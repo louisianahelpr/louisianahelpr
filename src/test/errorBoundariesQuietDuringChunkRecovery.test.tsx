@@ -22,7 +22,7 @@
 // @mutate src/components/ErrorBoundary.tsx | return { hasError: true, error, recovering: isRecoveryReloadInFlight() }; | return { hasError: true, error };
 // @mutate src/pages/admin/preview/previewParts.tsx |     if (this.state.recovering) return <ChunkRecoveringState compact />; |     if (false) return <ChunkRecoveringState compact />;
 // @mutate src/pages/admin/preview/previewParts.tsx | return { error, recovering: isRecoveryReloadInFlight() }; | return { error };
-// @mutate src/lib/chunkReload.ts | /undefined is not an object \(evaluating '[\w$.]*\.default'\)/i.test(msg) \|\| | /never-matches-webkit/i.test(msg) \|\|
+// @mutate src/lib/chunkReload.ts | /undefined is not an object \(evaluating '[^']*\.default'\)/i.test(msg) \|\| | /never-matches-webkit/i.test(msg) \|\|
 // @mutate src/lib/chunkReload.ts | /Cannot read propert(y\|ies) of undefined \(reading 'default'\)/i.test(msg) \|\| | /never-matches-v8/i.test(msg) \|\|
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

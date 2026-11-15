@@ -21,7 +21,7 @@
  * @mutate supabase/functions/stripe-connect/index.ts | if (countErr \|\| recentClears === null \|\| recentClears === undefined) { | if (countErr) {
  * @mutate supabase/functions/stripe-connect/index.ts | .eq("tags->>origin", "server")\n      .gte("created_at", sinceIso); | .eq("tags->>origin", "server");
  * @mutate supabase/functions/stripe-connect/index.ts | .eq("tags->>kind", STALE_CLEAR_KIND)\n      .eq("tags->>origin", "server") | .eq("tags->>kind", STALE_CLEAR_KIND)
- * @mutate supabase/functions/stripe-connect/index.ts | tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND, ...(isSeed | tags: { source: "stripe-connect", ...(isSeed
+ * @mutate supabase/functions/stripe-connect/index.ts | tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND, money_history: moneyHistory, ...(isSeed | tags: { source: "stripe-connect", money_history: moneyHistory, ...(isSeed
  * Q1436: a seed account's clear is digest-only (tags.seed), a real one's is not.
  * @mutate supabase/functions/stripe-connect/index.ts | ...(isSeed ? { seed: true } : {}) | ...({})
  * @mutate supabase/functions/stripe-connect/index.ts | ...(isSeed ? { seed: true } : {}) | ...({ seed: true })

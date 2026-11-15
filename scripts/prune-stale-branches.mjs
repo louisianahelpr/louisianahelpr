@@ -233,6 +233,88 @@ function git(args) {
   return execFileSync("git", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 }
 
+/**
+ * ONE PATCH-ID INDEX OF MAIN, NOT ONE `git cherry` PER BRANCH (Q2800).
+ *
+ * schedule-stalled #4450 (2026-11-13..14): every scheduled branch-prune run was
+ * cancelled at its 10-min job timeout inside `prune-stale-branches.mjs --apply`
+ * (run 43648333291: the step ran 22:29:39 -> 22:39:30 and printed nothing).
+ * origin held 2266 branches, and `git cherry origin/main origin/<b>` re-diffs
+ * EVERY main commit since that branch's merge base, so the job paid for main's
+ * history once per branch: measured locally, 39 sampled branches took 23.3 s
+ * (597 ms each, ~22 min for all), the stranded pass then paid again for
+ * `cherry -v`. Here main's patch ids are computed ONCE (`git log -p | git
+ * patch-id --stable`, 22,088 commits in 14 s) and each branch diffs only its
+ * own commits (66 ms each on the same sample). The answer keeps git cherry's
+ * shape ("+ sha" not on main / "- sha" on main, oldest first, merges skipped),
+ * so decideBranch and findStranded are unchanged. A commit with no patch id (an
+ * empty commit) reads "+", never as landed: a delete still needs every patch on
+ * main AND the content check.
+ */
+export function parsePatchIds(out) {
+  const bySha = new Map();
+  for (const line of String(out).split("\n")) {
+    const [pid, sha] = line.trim().split(/\s+/);
+    if (pid && sha) bySha.set(sha, pid);
+  }
+  return bySha;
+}
+
+/**
+ * git cherry's output for one branch, from its commits and the main index.
+ * @param {{ sha: string, subject: string }[]} commits the branch's own non-merge commits, oldest first
+ * @param {Map<string, string>} branchIds commit sha -> patch id
+ * @param {Set<string>} mainIds patch ids of main's commits
+ */
+export function cherryFromIndex(commits, branchIds, mainIds, verbose = false) {
+  return commits
+    .map(({ sha, subject }) => {
+      const pid = branchIds.get(sha);
+      const mark = pid && mainIds.has(pid) ? "-" : "+";
+      return verbose ? `${mark} ${sha} ${subject}` : `${mark} ${sha}`;
+    })
+    .map((l) => `${l}\n`)
+    .join("");
+}
+
+/** Patch ids of every non-merge commit in `range`, streamed through `git patch-id --stable`. */
+export function patchIdsOf(range, cwd = process.cwd()) {
+  const out = execFileSync("sh", ["-c", 'git log --no-merges -p --format="commit %H" "$1" | git patch-id --stable', "sh", range], {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 256 * 1024 * 1024,
+  });
+  return parsePatchIds(out);
+}
+
+/**
+ * A git runner that answers `cherry [-v] origin/main origin/<b>` from one index
+ * of main (built on first use) and passes every other command to `gitFn`.
+ */
+export function cherryIndexedGit(gitFn, idsOf = (range) => patchIdsOf(range)) {
+  let mainIds = null;
+  const perHead = new Map();
+  return (args) => {
+    const verbose = args[0] === "cherry" && args[1] === "-v";
+    const [upstream, head, ...rest] = args.slice(verbose ? 2 : 1);
+    if (args[0] !== "cherry" || upstream !== "origin/main" || !head || rest.length) return gitFn(args);
+    mainIds ??= new Set(idsOf("origin/main").values());
+    // The prune pass and the stranded pass both ask about a branch: diff it once.
+    if (!perHead.has(head)) {
+      const commits = gitFn(["log", "--no-merges", "--reverse", "--format=%H %s", `${upstream}..${head}`])
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => {
+          const sp = l.indexOf(" ");
+          return sp < 0 ? { sha: l, subject: "" } : { sha: l.slice(0, sp), subject: l.slice(sp + 1) };
+        });
+      perHead.set(head, { commits, ids: commits.length ? idsOf(`${upstream}..${head}`) : new Map() });
+    }
+    const { commits, ids } = perHead.get(head);
+    return cherryFromIndex(commits, ids, mainIds, verbose);
+  };
+}
+
 /** Remote branches with their tip sha and the tip's committer time (unix s). */
 function listRemoteBranches() {
   return git([
@@ -282,13 +364,15 @@ function main() {
     openPrIndex ??= buildRefsContentIndex(run, "origin/main", [...openHeads].filter((h) => tipOf.has(h)).map((h) => `origin/${h}`));
     return contentCoveredBy(contentResult(name), openPrIndex);
   };
+  // Q2800: every `git cherry` below is answered from one patch-id index of main.
+  const cherryGit = cherryIndexedGit(git);
   const rows = branches.map(({ name, ageHours }) => {
     const facts = {
       name,
       ageHours,
       hasOpenPr: openHeads.has(name),
       cherryOutput:
-        isProtected(name) || openHeads.has(name) ? "" : git(["cherry", "origin/main", `origin/${name}`]),
+        isProtected(name) || openHeads.has(name) ? "" : cherryGit(["cherry", "origin/main", `origin/${name}`]),
     };
     const first = decideBranch(facts);
     if (first.action !== "DELETE") return first;
@@ -307,7 +391,7 @@ function main() {
       (apply ? "" : "  (dry run; pass --apply to delete the DELETE rows)"),
   );
 
-  const { stranded, contentOnMain, inOpenPr } = findStranded(git, branches, openHeads, readAcceptedTips(), contentStrandedOf, contentInOpenPrOf);
+  const { stranded, contentOnMain, inOpenPr } = findStranded(cherryGit, branches, openHeads, readAcceptedTips(), contentStrandedOf, contentInOpenPrOf);
   for (const b of contentOnMain) {
     console.log(`content on main, not stranded: ${b.name} (${b.uncovered.length} commit(s) left by identity: ${b.uncovered.map((c) => c.subject).join("; ")})`);
   }

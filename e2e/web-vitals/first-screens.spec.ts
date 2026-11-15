@@ -99,11 +99,14 @@ type Metric = "fcp" | "lcp";
 // (the footer's H emblem while few jobs are open) paints from the HTML. cwv-lab, Slow 4G + 4x CPU, 5 cold runs each,
 // same build: before 4024-4132 (median 4052), after 1800-1824 (median 1820), CLS 0
 // (~/.lh-shots/b71-1031/perf before.log / after2.log).
+// 2026-11-14: "mobile /browse lcp" LOWERED 1966 -> 1577 (1460 x1.08): the overlay's own rules and show rule are inlined
+// in /browse's head (withBrowseShellCss), so the cards paint with the HTML instead of after the app stylesheet. cwv-lab,
+// local build, Slow 4G + 4x CPU, 3 cold runs each: before 3336-3352 (median 3348), after 1436-1460 (median 1460).
 // 2026-11-14: "mobile /posts lcp" RENAMED "mobile /jobs?tab=posted lcp", ceiling kept (never raised): /posts forwards
 // there (LANDS_ON), so the same screen is now measured under the address it lands on.
 const KNOWN: Record<string, { ceiling: number; measured: number }> = {
   "mobile / lcp": { ceiling: 4110, measured: 3804 },
-  "mobile /browse lcp": { ceiling: 1966, measured: 1820 },
+  "mobile /browse lcp": { ceiling: 1577, measured: 1460 },
   "mobile /signup lcp": { ceiling: 4400, measured: 4072 },
   "mobile /home lcp": { ceiling: 6630, measured: 6136 },
   "mobile /jobs lcp": { ceiling: 5410, measured: 5008 },

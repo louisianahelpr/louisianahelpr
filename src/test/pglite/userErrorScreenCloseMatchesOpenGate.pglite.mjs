@@ -2,7 +2,7 @@
 /**
  * PGlite proof for 20261115073221_user_error_screen_close_matches_open_gate.sql (Q2806, follow-up to Q2780):
  * the close question for an open LiveJobsSection / BootWatchdog error-screen item asks what the open gate
- * (20261115001106) asks. Still failing only on 3 rows of that screen and surface in 24 hours or 2 distinct members;
+ * (20261115001106) asks. Still failing only on 3 rows of that screen and surface in 24 hours or 2 distinct members (the rule as set 2026-11-15);
  * below that the item goes on to the press-probe half (Q94) and closes after a clean pass of its screen. Every other
  * surface and the overflow item still read one real row as failing.
  *

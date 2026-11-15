@@ -32,6 +32,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { ReviewQuestionCard } from "@/components/reviewPanel/ReviewQuestionCard";
 import { quickTagsFor } from "@/components/reviewPanel/types";
 import { insertReviewWithTags } from "@/lib/reviewTags";
+import { trackReviewLeft } from "@/lib/reviewLeftEvent";
 import { JobDoneSummary } from "@/components/jobDone/JobDoneSummary";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 
@@ -207,6 +208,9 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
       // `onDone` only clears this prompt; nothing else tells the activity
       // cache the job is reviewed (nightly-red #1719).
       recordReviewInActivityCache(jobId);
+      // review_left was emitted only by ReviewForm, so reviews made here (the
+      // prompt that opens right after Done) were never counted (Q2815).
+      trackReviewLeft(jobId, rating, userId);
 
       // Repeat low ratings → auto-flag for the admin fraud queue.
       //

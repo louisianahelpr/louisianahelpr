@@ -29,7 +29,7 @@
  */
 
 // @mutate src/components/reviewPanel/ReviewForm.tsx | recordReviewInActivityCache(jobId);\n      // Brand-tinted | // Brand-tinted
-// @mutate src/components/CompletionPrompts.tsx | recordReviewInActivityCache(jobId);\n\n      // Repeat low ratings | // Repeat low ratings
+// @mutate src/components/CompletionPrompts.tsx | recordReviewInActivityCache(jobId);\n      // review_left was emitted | // review_left was emitted
 // @mutate src/lib/reviewActivityCache.ts | if (!old \|\| !meta \|\| meta.reviewed) return old; | return old;
 // @mutate src/components/CompletionPrompts.tsx | rating, ...fields,\n            })\n            .select("id"), | rating, ...fields,\n            }),
 // @mutate src/components/reviewPanel/ReviewForm.tsx | photo_urls: uploadedPhotoUrls,\n        })\n        .select("id"), | photo_urls: uploadedPhotoUrls,\n        }),

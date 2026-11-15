@@ -5,6 +5,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useBoostReturn } from "./useBoostReturn";
 import { PageScaffold } from "@/components/ui/PageScaffold";
+import { ScrollAwaySpacer } from "@/components/sections/ScrollAwayScope";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -346,7 +347,9 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
         // SAME FRAME AS THE LOADED DESKTOP PAGE (Q169): no title card, feed + map columns, so the
         // panel no longer jumps 42px when the feed lands (CLS 0.045 at 1440).
         titleCard={embeddedTitle}
-        titleCardClassName=""
+        // Phone: the loaded page's title card (the tabs and chips overlay the feed's top, ScrollAway.tsx), so the card
+        // is the same height from the first frame.
+        titleCardClassName={!isWebDesktop ? "!overflow-visible z-10" : ""}
       >
         {/* The screen's one <h1> is the section top bar's ("Jobs", in the title card above); this only
             announces the wait. */}
@@ -367,7 +370,16 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
             </div>
           </div>
         ) : (
-          <DashboardSkeleton />
+          <>
+            {/* /jobs at 375 (prod-audit run 43691657529, page-settle 0.097 at ~497 ms): the tabs and chips switch to
+                overlaying the feed only once a spacer is drawn. The loading frame drew none, so the title card was
+                the full 151px, and when the feed's spacer arrived it dropped to 58px and the whole panel moved up
+                93px. The loading frame draws the same spacer, so the overlay (and the panel's place) holds from the
+                first frame; the feed's spacer takes over in the same commit. Guard:
+                src/test/jobsBrowseLoadingKeepsOverlay.test.tsx. */}
+            <ScrollAwaySpacer />
+            <DashboardSkeleton />
+          </>
         )}
       </PageScaffold>
     );

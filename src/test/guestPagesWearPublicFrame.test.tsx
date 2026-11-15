@@ -18,6 +18,7 @@
  *
  * @mutate src/components/AppPage.tsx |   const guestFrame = useGuestPublicFrame(); |   const guestFrame = false;
  * @mutate src/components/sections/SectionScreen.tsx |   const guestFrame = useGuestPublicFrame(); |   const guestFrame = false;
+ * @mutate src/components/sections/SectionScreen.tsx |             className="sticky z-30 -mx-5 | className="z-30 -mx-5
  * @mutate src/hooks/useAppShellViewport.ts | \|\| (framedGuest && isGuestPublicFrameRoute(pathname))) { | ) {
  * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search"] as const;
  * @mutate src/lib/guestPublicFrame.ts | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => (isReady ? !user : definitelyGuest()); | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => !user;
@@ -107,6 +108,12 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
     const { container } = render(<SectionScreen section="declutter" title="Declutter">list</SectionScreen>, { wrapper: at("/declutter") });
     expect(frameOf(container)).toBe("public");
     expect(container.querySelector("footer")).not.toBeNull();
+    // The tab row stays put while the window scrolls (owner 2026-10-30; measured 11-15 at 1440: the tablist's top
+    // 138px before and after a 1600px scroll): the section header is sticky right under the fixed public header.
+    const sticky = container.querySelector<HTMLElement>("[data-guest-explore-sticky]");
+    expect(sticky?.className).toMatch(/(^| )sticky( |$)/);
+    expect(sticky?.style.top).toContain("var(--public-nav-h)");
+    expect(sticky?.querySelector("[data-explore-header]")).not.toBeNull();
   });
 
   it("guest before auth settles (no stored session for certain): already the public frame", () => {

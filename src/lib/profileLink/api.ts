@@ -135,10 +135,13 @@ type PublicListing = { id: string; title: string; current_price_cents: number; a
 /** One listing as public_profile_by_handle sends it: `price_cents` IS the item's current price (i.current_price_cents). */
 type WireListing = Omit<PublicListing, "current_price_cents"> & { price_cents: number };
 
-/** The page for a handle, or null when there is none to show (unknown, hidden or a test member). Throws on a network fault. */
-export async function fetchPublicProfile(handle: string): Promise<PublicProfile | null> {
+/**
+ * The page for a handle, or null when there is none to show (unknown, hidden or a test member). Throws on a network fault.
+ * `given`: an answer the caller already took from an entry read for this handle (Home's own-page read, homePrefetch.ts).
+ */
+export async function fetchPublicProfile(handle: string, given: { data: unknown } | null = null): Promise<PublicProfile | null> {
   // A cold You landing asked for the member's own page from the entry (src/boot/profilePrefetch.ts); taken once.
-  const boot = await takeProfilePage(handle);
+  const boot = given ?? (await takeProfilePage(handle));
   let data: unknown = boot?.data;
   if (!boot) {
     const res = await supabase.rpc("public_profile_by_handle", { p_handle: handle });

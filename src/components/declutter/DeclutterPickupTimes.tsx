@@ -14,7 +14,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Button } from "@/components/ui/button";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ToggleChip } from "@/components/ui/ToggleChip";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Plus, X } from "lucide-react";
 import { type PickupWindow } from "@/lib/declutter/api";
 import { NativeSelect } from "@/components/ui/select";
@@ -45,11 +45,20 @@ export const TIME_STEPS: string[] = Array.from({ length: 33 }, (_, i) => {
  * days were two pickers with chips of different sizes). The pickup times' Days row and the porch-days choice
  * (SellPorchDays.tsx) both use it.
  */
+/**
+ * P2 (iOS design audit 11-16): the seven day chips wrapped 5 and 2 (seven 52px chips and their gaps are 412px, wider
+ * than a phone's column). Every day-chip row is this grid: four even columns, so a week reads 4 over 3 and each chip
+ * keeps a 44px-plus target down to 320 (seven columns would not). Guard: src/test/dayChipsEvenGrid.test.tsx.
+ */
+export function DayChipGrid({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-4 gap-2" data-day-chip-grid="">{children}</div>;
+}
+
 export function DayChip({ day, on, onToggle, disabled }: { day: number; on: boolean; onToggle: () => void; disabled?: boolean }) {
   return (
     // Named by content, not aria-label (WCAG 2.5.3, axe 4.14 label-content-name-mismatch, lead 11-04): the drawn
     // "Sat" is aria-hidden and the hidden "Saturday" is the name, as the job tracker's step tips do.
-    <ToggleChip pressed={on} disabled={disabled} onClick={onToggle} data-day-chip="" className="min-w-[3.25rem] justify-center px-3">
+    <ToggleChip pressed={on} disabled={disabled} onClick={onToggle} data-day-chip="" className="w-full min-w-[3.25rem] justify-center px-3">
       <span aria-hidden="true">{dayShort(day)}</span>
       <span className="sr-only">{dayWord(day)}</span>
     </ToggleChip>
@@ -123,9 +132,9 @@ export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWind
     <div className="space-y-4" data-pickup-times="">
       <fieldset className="space-y-2">
         <legend className="text-ds-13 font-semibold text-foreground">{t("lp.pt.days")}</legend>
-        <div className="flex flex-wrap gap-2">
+        <DayChipGrid>
           {SHORT.map((label, d) => <DayChip key={label} day={d} on={days.includes(d)} onToggle={() => toggleDay(d)} />)}
-        </div>
+        </DayChipGrid>
       </fieldset>
 
       {days.length === 0 ? (

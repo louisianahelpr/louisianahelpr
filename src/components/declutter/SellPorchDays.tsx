@@ -17,7 +17,7 @@ import { fetchMyPickupWindows } from "@/lib/declutter/api";
 import { fetchMyPorchDays, saveMyPorchDays, PORCH_DAYS_NOT_DEPLOYED } from "@/lib/declutter/porchDays";
 import { fetchMyPorchPlaces, MY_PORCH_PLACES_KEY } from "@/lib/declutter/porchPlaces";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { DayChip, shortDays } from "./DeclutterPickupTimes";
+import { DayChip, DayChipGrid, shortDays } from "./DeclutterPickupTimes";
 import "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
 
@@ -68,9 +68,9 @@ export function SellPorchDays({ pickupDays }: { pickupDays?: number[] }) {
       </div>
       {only && (
         <div className="space-y-2 pl-8" role="group" aria-label={t("lp.pd.aria")}>
-          <div className="flex flex-wrap gap-2">
+          <DayChipGrid>
             {offered.map((d) => <DayChip key={d} day={d} on={picked.includes(d)} disabled={save.isPending} onToggle={() => toggleDay(d)} />)}
-          </div>
+          </DayChipGrid>
           <p className="text-ds-13 text-muted-foreground">
             {picked.length ? t("lp.pd.onlyOn", { days: shortDays(picked) }) : t("lp.pd.tap")}
           </p>

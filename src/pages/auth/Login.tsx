@@ -547,10 +547,13 @@ const Login = () => {
               then the only thing carrying the job through signup. A guest who
               tapped a shared job link and lost it at the account step is the
               exact failure this whole path exists to prevent. */}
+          {/* L9 (iOS design audit 11-16): the link was a 105x14 target. A 44px-tall inline box, its extra height
+              pulled back out of the line with -my-3 so the sentence keeps its spacing. */}
           <Link
             to={signupHref}
-            className="font-semibold hover:underline whitespace-nowrap"
+            className="-my-3 inline-flex min-h-11 items-center px-1 font-semibold hover:underline whitespace-nowrap"
             style={{ color: "hsl(var(--bark))" }}
+            data-login-signup-link=""
           >
             {t("login.createAccount")}
           </Link>

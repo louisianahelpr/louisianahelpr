@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { osBodyPx, IOS_DEFAULT_BODY_PX } from "@/lib/simpleMode";
+import { rejectAppleSystemFont } from "@/test/helpers/rejectAppleSystemFont";
 
 /**
  * The Dynamic Type probe. This is the ONE reading of the OS text size in the
@@ -13,8 +14,10 @@ describe("osBodyPx — Dynamic Type probe", () => {
   });
 
   it("answers null when the browser drops `font: -apple-system-body`", () => {
-    // Unstubbed jsdom IS the non-Apple browser: it discards the declaration,
-    // so the probe inherits its host's sentinel size rather than an OS reading.
+    // A non-Apple browser discards the declaration, so the probe inherits its
+    // host's sentinel size rather than an OS reading. jsdom 30 did that on its
+    // own; jsdom 31 keeps the keyword, so the drop is now stated explicitly.
+    rejectAppleSystemFont();
     expect(osBodyPx()).toBeNull();
   });
 

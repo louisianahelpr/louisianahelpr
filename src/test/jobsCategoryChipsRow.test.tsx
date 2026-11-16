@@ -13,7 +13,7 @@
  * @mutate src/components/dashboard/JobCategoryChips.tsx |   return w && w !== key ? w : groupTileLabel(g); |   return groupTileLabel(g);
  * @mutate src/lib/browseEmptyCopy.ts |   if (!i.groupLabel \|\| i.activeFilterCount !== 1 \|\| i.searchQuery.trim()) return null; |   if (!i.groupLabel) return null;
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         const narrowed = filters.hasFilters && !groupTitle; |         const narrowed = filters.hasFilters;
- * @mutate src/pages/jobs/JobsSection.tsx |           {tab === "browse" && browse?.chips} |           {browse?.chips}
+ * @mutate src/pages/jobs/JobsSection.tsx | <ScrollAwayRows>{tab === "browse" && browse?.chips}</ScrollAwayRows> | <ScrollAwayRows>{browse?.chips}</ScrollAwayRows>
  * @mutate src/pages/home/Dashboard.tsx | { search: phoneBrowseSearch, chips: phoneBrowseChips } | { search: phoneBrowseSearch }
  */
 import { readFileSync } from "node:fs";

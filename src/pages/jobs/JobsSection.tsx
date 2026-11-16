@@ -147,13 +147,12 @@ const JobsSection = () => {
         <>
           <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false}
             search={browse?.search ?? <SectionSearchBar noun="jobs" home="/jobs" />} mine={mine} />
-          {/* Browse's category chips under the tabs (design audit A J1, owner 11-08; JobCategoryChips). Owner 11-14
-              (Depop/Vinted audit item 5): on Browse both rows slide up behind the top bar while the feed scrolls down
-              and come back on the way up (ScrollAway.tsx; the feed draws the spacer). */}
-          <ScrollAwayRows>
-            <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} />
-            {tab === "browse" && browse?.chips}
-          </ScrollAwayRows>
+          {/* M14 (iOS audit 11-16, owner decision 11-16: "keep the Jobs Browse/Posted/Working tabs pinned while
+              scrolling"): the tabs stay under the top bar; only Browse's category chips (design audit A J1, owner
+              11-08; JobCategoryChips) slide up while the feed scrolls down and come back on the way up (owner 11-14,
+              Depop/Vinted item 5; ScrollAway.tsx, the feed draws the spacer). */}
+          <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} />
+          <ScrollAwayRows>{tab === "browse" && browse?.chips}</ScrollAwayRows>
         </>
       )}
       {/* ONE search per screen (owner 2026-10-21). Desktop: every tab's search is an ICON at the end of the tabs row,

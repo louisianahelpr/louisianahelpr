@@ -10,10 +10,8 @@
  */
 import { NextStep } from "@/components/ui/NextStep";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
-import { lazy, Suspense, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { useDockYield } from "@/components/mobileNav/useDockYield";
-import { useOffScreen } from "./useOffScreen";
+import { lazy, Suspense, useState } from "react";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -115,12 +113,10 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const [rules, setRules] = useState(false);
   // Audit 1110 F359c: Take back my ask asks first, as Take back my offer does (DeclutterOffersSection).
   const [takingBack, setTakingBack] = useState(false);
-  // Q2560 (Auditor 1, audit 1102a): a paid item keeps Offer / Buy in a bar pinned to the bottom once its buttons
-  // scroll away; a free item had nothing, so after reading the description, pickup and questions there was no way to
-  // ask without scrolling back. The same trigger (useOffScreen) and dock hand-off (useDockYield) as OfferPanel.
-  const askButton = useRef<HTMLDivElement>(null);
-  const askBarShown = useOffScreen(askButton) && item.status === "live" && !underAge && !myAsk;
-  useDockYield(askBarShown);
+  // Q2560 (Auditor 1, audit 1102a) + M3 (iOS audit 11-16): a free item's Ask for it rides in the SAME bar as a paid
+  // item's Offer / Buy (StickyActionBar: fixed on a phone's bottom edge with the dock yielding, in the page wider). It
+  // used to appear only once the in-page button scrolled off, so on a tall phone (17 Pro) the dock sat over the card's
+  // "Free, nothing is charged" line while an SE got the bar: one screen, two behaviours by device height.
   const giver = useQuery({ queryKey: ["declutter", "seller-card", item.seller_id], queryFn: () => fetchSellerCard(item.seller_id) });
   const giverFirstName = giver.data?.name?.trim() ? formatName(giver.data.name).split(" ")[0] : null;
   const takeBack = useMutation({
@@ -177,25 +173,13 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   }
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-2" aria-label={t("free.askAria")} data-free-claim="">
-      {/* Owner mockup 11-01: ONE button; the asker picks the pickup time in the sheet it opens (Mockup 3). */}
-      <div ref={askButton}>
-        <Button type="button" size="wrap" className="w-full rounded-full" disabled={asks.isLoading} onClick={() => setAsking(true)}>
+      {/* Owner mockup 11-01: ONE button; the asker picks the pickup time in the sheet it opens (Mockup 3). M3: drawn
+          once, in the shared bar (the paid item's data-declutter-buybar, with one button). */}
+      <StickyActionBar label={t("free.askAria")} data-declutter-askbar="" spacer={false}>
+        <Button type="button" size="wrapBar" className="rounded-full px-3 font-semibold" disabled={asks.isLoading} onClick={() => setAsking(true)}>
           {t("free.askForIt")}
         </Button>
-      </div>
-      {askBarShown && typeof document !== "undefined" &&
-        createPortal(
-          // Portaled to <body> (a fixed bar inside the page would be placed by its transformed ancestor), flush on the
-          // bottom edge while the dock yields: the paid item's bar (data-declutter-buybar) with one button.
-          <div data-declutter-askbar="" data-rail-inset="" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-2 pb-[calc(var(--safe-area-bottom,0px)+0.5rem)] shadow-[0_-4px_16px_rgb(0_0_0/0.06)] sm:hidden">
-            <div role="group" aria-label={t("free.askAria")} className="mx-auto flex max-w-xl">
-              <Button type="button" size="wrap" className="flex-1 min-w-0 rounded-full px-3 font-semibold" disabled={asks.isLoading} onClick={() => setAsking(true)}>
-                {t("free.askForIt")}
-              </Button>
-            </div>
-          </div>,
-          document.body,
-        )}
+      </StickyActionBar>
       <p className="text-xs text-muted-foreground" data-free-ask-note="">
         {oneTimeCheckAhead ? t("free.askingFree") : t("free.freeNothing")} {t("free.pickWhenAsk")}{" "}
         {/* A text link inside the sentence (B106: as a <Button> it kept the global 44px button box, so the note's two

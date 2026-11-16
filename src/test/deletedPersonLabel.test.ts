@@ -59,7 +59,6 @@ describe("one label for a deleted person", () => {
       "components/GroupJobHelpers.tsx",
       "hooks/useActivityData.ts",
       "hooks/useProfileTabData.ts",
-      "components/reviewPanel/ReviewList.tsx",
       "pages/profile/giftCards/CreditCard.tsx",
       "pages/messages/messagesData/loadConversations.ts",
       "pages/posts/postedJobCard/steps/CompletedStep.tsx",

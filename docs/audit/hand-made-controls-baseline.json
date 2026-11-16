@@ -360,9 +360,6 @@
       "button": 2,
       "input": 1
     },
-    "src/components/reviewPanel/ReviewList.tsx": {
-      "button": 2
-    },
     "src/components/reviewPanel/ReviewQuestionCard.tsx": {
       "button": 1
     },

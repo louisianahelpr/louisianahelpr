@@ -118,20 +118,3 @@ export const RETIRED_QUICK_TAGS = [
 
 export const quickTagsFor = (role: RevieweeRole): string[] =>
   role === "poster" ? POSTER_QUICK_TAGS : HELPER_QUICK_TAGS;
-
-// Display reviews for a user
-export interface ReviewListProps {
-  userId: string;
-}
-
-export type Review = {
-  id: string;
-  rating: number;
-  feedback: string | null;
-  created_at: string;
-  // Null for an author who deleted their account (deletion anonymises; the
-  // review stands and renders under FORMER_MEMBER_LABEL).
-  reviewer_id: string | null;
-  photo_urls?: string[] | null;
-  reviewerName?: string;
-};

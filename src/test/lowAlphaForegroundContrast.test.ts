@@ -82,7 +82,6 @@ const ACCEPTED = new Map<string, number>([
   // The text declarations on that list were fixed; these are the glyphs.
   ["src/components/admin/userDetail/ReviewsTab.tsx --muted-foreground/0.3", 2], // 1.53:1 — unfilled <Star> outlines in each review row; the filled stars carry the rating
   ["src/components/profile/reviewCard.tsx --muted-foreground/0.3", 1], //  1.53:1 — unfilled <Star aria-hidden> inside role="img" aria-label="N of 5 stars"
-  ["src/components/reviewPanel/ReviewList.tsx --muted-foreground/0.3", 2], // 1.53:1 — unfilled <Star> outlines; the filled stars carry the rating
   ["src/pages/user/JobsList.tsx --muted-foreground/0.3", 1], //           1.53:1 — <EmptyIcon> ornament above the empty-state sentence
   ["src/pages/user/ReviewsSection.tsx --muted-foreground/0.3", 1], //     1.53:1 — <Star> ornament above the empty-state sentence
   ["src/components/CancellationDialog.tsx --muted-foreground/0.4", 1], // 1.80:1 — <ArrowRight rotate-90> connector between the numbered step 1 and step 2 cards

@@ -14,7 +14,7 @@
  * @mutate src/components/reviewPanel/types.ts | "Fair price", | "Fair price", "Shows up early",
  * @mutate src/components/reviewPanel/ReviewForm.tsx | insertReviewWithTags(feedback, (fields) => | ((fields) =>
  * @mutate src/hooks/useProfileTabData.ts | .select("id, rating, feedback, tags, created_at, reviewer_id, job_id, jobs!inner(status)") | .select("id, rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
- * @mutate src/components/reviewPanel/ReviewList.tsx | feedback: reviewText(r.feedback, r.tags), | feedback: r.feedback,
+ * @mutate src/hooks/useProfileTabData.ts | feedback: reviewText(r.feedback, r.tags), | feedback: r.feedback,
  * @mutate supabase/migrations/20261115073802_public_profile_hides_items_and_wanted_across_block.sql | public.review_text(rv.feedback, rv.tags) AS feedback | rv.feedback
  */
 import { readFileSync } from "node:fs";
@@ -69,8 +69,9 @@ describe("Q1088: review tags live in reviews.tags", () => {
       expect((src.match(/withReviewTags\(/g) ?? []).length, f).toBe(tagged);
       expect(src, f).toMatch(/reviewText\([^)]*\.feedback,\s*\w+\.tags\)/);
     }
-    // ReviewList, useOpenProfile, useProfileTabData (measured 11-05; useUserProfileData reads no reviews rows since lead 11-05).
-    expect(readers.length).toBeGreaterThan(2);
+    // useOpenProfile, useProfileTabData (measured 11-15; ReviewList, mounted nowhere, deleted 11-15;
+    // useUserProfileData reads no reviews rows since lead 11-05).
+    expect(readers.length).toBeGreaterThan(1);
   });
 
   it("the SQL readers return public.review_text(feedback, tags)", () => {

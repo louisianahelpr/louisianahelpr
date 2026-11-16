@@ -29,7 +29,6 @@ const files = walkSource([resolve(ROOT, "src")]).filter(
 const ALLOWED: Record<string, string> = {
   "src/components/CompletionPrompts.tsx": "checks whether I already reviewed this person on this job (reviewer_id = me)",
   "src/components/admin/adminusers/useOpenProfile.ts": "admin user detail: staff see every review",
-  "src/components/reviewPanel/ReviewList.tsx": "not mounted anywhere (its own comment says route through the RPC before mounting)",
 };
 
 function offenders(): string[] {

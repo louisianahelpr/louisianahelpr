@@ -268,7 +268,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
   // establishes a containing block — and every one of this component's three
   // mount sites supplies one:
   //
-  //   ChatView / ReviewList  render inside PageScaffold's panel, whose
+  //   ChatView (and ReviewList, deleted 11-15) render inside PageScaffold's panel, whose
   //     `.liquid-glass` carries `backdrop-filter: blur(20px) saturate(170%)`
   //     (index.css). A non-none filter makes an element the containing block
   //     for fixed descendants, exactly as a transform does — and the panel

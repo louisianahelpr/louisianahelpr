@@ -237,7 +237,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
         feedback: reviewText(r.feedback, r.tags),
         created_at: r.created_at,
         // "a neighbor", not "User": every other consumer surface for this exact
-        // state says "a neighbor" (ReviewList, PublicReviewWall, useActivityData,
+        // state says "a neighbor" (PublicReviewWall, useActivityData,
         // DashboardGuest). "User" read like an unfilled placeholder rather than
         // a person who left, and it disagreed with the review panel about the
         // same review. A NULL reviewer_id is a deleted author: FORMER_MEMBER_LABEL

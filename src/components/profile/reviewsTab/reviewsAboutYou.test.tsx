@@ -1,6 +1,6 @@
 /**
  * A3-75 (audit 11-01): You > Reviews about you. A Declutter review row has Report, which opens the shared ReportDialog
- * for that review ('declutter_review'); a job review row is unchanged here (Jobs reviews are reported from ReviewList).
+ * for that review ('declutter_review'); a job review row is unchanged here (Jobs reviews are reported from pages/user/ReviewsSection).
  * Server rules: src/test/pglite/declutterReviewReport.pglite.mjs.
  *
  * @mutate src/components/profile/reviewsTab/reviewsAboutYou.tsx |         declutterReviewId: r.id, |         declutterReviewId: undefined,

@@ -138,7 +138,8 @@ function HomeDashboardScreen() {
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
   const isLive = (s: (typeof visible)[number]) => s.feature === null || !!live.find((tab) => tab.path === s.path)?.on;
-  const soonLine = openingSoonLine(visible.filter((s) => !isLive(s)).map(sectionLabel), { and: t("home.and"), one: t("home.soonOne"), many: t("home.soonMany") });
+  // M8 (owner 11-16): a closed section is not listed, so it is not named in the "opening soon" line either.
+  const soonLine = openingSoonLine(visible.filter((s) => !isLive(s) && live.find((tab) => tab.path === s.path)?.listed !== false).map(sectionLabel), { and: t("home.and"), one: t("home.soonOne"), many: t("home.soonMany") });
   const isWebDesktop = useIsWebDesktop();
   // Plain state, never stored: a remount (load, coming back) starts collapsed.
   const [todoOpen, setTodoOpen] = useState(false);

@@ -9,7 +9,8 @@
  * F088 (owner UI audit 11-09): each count carries its status word ("2 live").
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |   posted: "live", |   posted: "",
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |   const open = visible.filter((s) => isOn(s) && isListedHere(s)); |   const open = visible;
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |       {soon && <p | {false && <p
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |       {soon && <p |       {true && <p
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx | visible.filter((s) => !isOn(s) && isListedHere(s)) | visible.filter((s) => !isOn(s))
  * @mutate src/pages/home/HomeDashboard.tsx |               {visible.filter(isLive).map((s) => { |               {visible.map((s) => {
  * @mutate src/components/profile/profileLanding/headingContract.ts | export const PROFILE_PAGE_TITLE = "You"; | export const PROFILE_PAGE_TITLE = "Profile";
  * @mutate src/components/profile/ProfileLanding.tsx |       <YourActivity /> |       {null}
@@ -69,7 +70,9 @@ describe("You matches board 18", () => {
     expect(tiles.map((t) => t.textContent)).toEqual([
       "Jobs Posted · 2 live", "Jobs Working", "Declutter Buying · 3 in progress", "Declutter Selling · 1 live", "Shops Orders", "Shops My shop",
     ]);
-    expect(screen.getByTestId("you-activity-soon").textContent).toBe("Homes is opening soon");
+    // M8/M9 (owner 11-16): Homes, closed to this member, is not named anywhere (it was "Homes is opening soon").
+    expect(screen.queryByTestId("you-activity-soon")).toBeNull();
+    expect(screen.queryByText(/Homes/)).toBeNull();
   });
 
   it("F087: a tester's preview section (on for them, not open to everyone) wears the Coming soon badge, dimmed", () => {
@@ -102,7 +105,8 @@ describe("You matches board 18", () => {
   it("Home's Your sections: a box per OPEN section, and the same one line for the rest", () => {
     const home = blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"));
     expect(home).toContain("{visible.filter(isLive).map((s) => {");
-    expect(home).toContain("openingSoonLine(visible.filter((s) => !isLive(s)).map(sectionLabel), { and: t(\"home.and\"), one: t(\"home.soonOne\"), many: t(\"home.soonMany\") })");
+    // M8/M9 (owner 11-16): only a LISTED closed section is named (Shops and Homes are not listed for members).
+    expect(home).toContain("openingSoonLine(visible.filter((s) => !isLive(s) && live.find((tab) => tab.path === s.path)?.listed !== false).map(sectionLabel), { and: t(\"home.and\"), one: t(\"home.soonOne\"), many: t(\"home.soonMany\") })");
     expect(openingSoonLine(["Casas", "Tiendas"], { and: "y", one: "{names} abre pronto", many: "{names} abren pronto" })).toBe("Casas y Tiendas abren pronto");
     expect(home).not.toMatch(/>Opening soon</);
   });

@@ -74,6 +74,12 @@ function useCreateRows(open: boolean) {
  * "Moving out sale" (Sell an item's chooser has it), no "No shop yet" beside Shops, no "or describe it" under Jobs
  * (Post a job offers it). Guard: src/test/centerCreateNav.test.tsx.
  */
+const WAYS: Record<number, string> = { 2: "two", 3: "three", 4: "four" };
+/** "One account, two ways to get things done." from the number of sections listed (M8, owner 11-16). */
+export function waysLine(n: number): string {
+  return WAYS[n] ? `One account, ${WAYS[n]} ways to get things done.` : "One account to get things done.";
+}
+
 export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
   const gate = useAgeGate();
@@ -95,7 +101,8 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" floor data-testid="create-sheet" onOpenAutoFocus={focusSheetItself}>
         <SheetHero moment title="What are we doing?" />
-        <p className="text-ds-14 text-muted-foreground">One account, four ways to get things done.</p>
+        {/* M8 (owner 11-16): the count is the sections this viewer is shown, so a member reads "two ways". */}
+        <p className="text-ds-14 text-muted-foreground">{waysLine(visible.length)}</p>
         {hiddenOpen.length > 0 && (
           <div className="mt-4 liquid-glass px-4 py-3 flex flex-col items-start gap-2" data-testid="create-all-hidden">
             <p className="text-ds-14 text-foreground">

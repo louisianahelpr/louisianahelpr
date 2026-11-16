@@ -1,22 +1,21 @@
 /**
  * OWNER 11-14 (top priority): "Messages and You are already at the top, so replace those with Shops and Homes and just
  * have those 2 listed as coming soon."
- *  - The phone bottom bar is Home, Jobs, Declutter, Shops, Homes. On the website Shops and Homes wear a small "Soon"
- *    tag while they are not open to everyone (closed to the viewer, or a tester's preview) and drop it the day they
- *    open. In the store app both tabs are listed with NO tag, closed or not, and open their coming-soon screens
- *    (owner 11-06: DOCK_LISTS_CLOSED_SECTIONS_IN_APP true; hideUnopenedInApp, owner 10-31: no "Soon" in the app).
- *    A tap opens the section's route, whose gate (ShopsGate / RentalsGate) is the coming-soon screen for anyone it is
- *    closed to; Shops is never opened by the bar. A closed section carries no to-do count.
+ *  - The phone bottom bar is Home, Jobs, Declutter, Shops, Homes for a tester; a MEMBER sees Home, Jobs, Declutter
+ *    (M8/M9, owner 11-16: "hide Shops and Homes from members everywhere ... until they launch"). On the website a
+ *    tester's preview tab wears a small "Soon" tag and drops it the day it opens to everyone. In the store app a
+ *    tester's preview is listed with NO tag (DOCK_LISTS_PREVIEWS_IN_APP true; hideUnopenedInApp, owner 10-31: no
+ *    "Soon" in the app). A section closed to the viewer is never in the bar and carries no to-do count.
  *  - Messages is on the top row: since owner 11-15 inside the ONE Inbox icon (44px), between the search and the photo,
  *    whose badge holds the unread the old Messages tab wore; on /messages it is the lit "you are here" mark. The photo
  *    still opens You. (The tabs and the combined badge: src/test/inboxOneIconTwoTabs.test.tsx.)
  *  - Messages and You light no bottom tab.
  *
  * @mutate src/components/mobileNav/dockItems.ts |     { path: homes.path, icon: homes.icon, label: homes.label, comingSoon: true },\n | \n
- * @mutate src/components/mobileNav/dockItems.ts | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true; | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = false;
+ * @mutate src/components/mobileNav/dockItems.ts | export const DOCK_LISTS_PREVIEWS_IN_APP = true; | export const DOCK_LISTS_PREVIEWS_IN_APP = false;
+ * @mutate src/components/MobileNav.tsx | listed: t ? (t.on && DOCK_LISTS_PREVIEWS_IN_APP) \|\| t.listed : true | listed: t ? DOCK_LISTS_PREVIEWS_IN_APP \|\| t.listed : true
  * @mutate src/components/MobileNav.tsx |       const soon = !!item.comingSoon && !!t && (!t.on \|\| t.preview) && !hideUnopenedInApp(); |       const soon = !!item.comingSoon && !!t && !t.on;
  * @mutate src/components/mobileNav/dockItems.ts | label: homes.label, comingSoon: true }, | label: homes.label },
- * @mutate src/components/MobileNav.tsx |     const badgeCount = isGuest \|\| closed ? 0 : dockBadgeCount(badgeKey, unreadCount, todo); |     const badgeCount = isGuest ? 0 : dockBadgeCount(badgeKey, unreadCount, todo);
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <TopBarInbox />} |
  * @mutate src/components/inbox/InboxButton.tsx |       {total > 0 && ( |       {false && (
  * @mutate src/components/sections/SectionSearchBar.tsx | full.length <= 22 ? "max-[429px]:hidden" | full.length <= 22 ? "max-[409px]:hidden"
@@ -37,7 +36,7 @@ vi.mock("@/integrations/supabase/client", async () => (await import("./helpers/e
 // The store app is native.on; sectionListedHere is the real rule read through the same answer.
 vi.mock("@/lib/hideUnopenedInApp", () => ({
   hideUnopenedInApp: () => native.on,
-  sectionListedHere: (tab: { on: boolean; preview: boolean } | undefined) => !tab || !native.on || (tab.on && !tab.preview),
+  sectionListedHere: (tab: { on: boolean; preview: boolean } | undefined) => !tab || (tab.on && (!native.on || !tab.preview)),
 }));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => openAll.set }));
 vi.mock("@/hooks/useFeature", () => ({
@@ -98,13 +97,19 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("the phone bottom bar (owner 11-14)", () => {
-  it("is Home, Jobs, Declutter, Shops, Homes: no Messages or You tab", () => {
+  it("a tester: Home, Jobs, Declutter, Shops, Homes; a member: Home, Jobs, Declutter (M8/M9); no Messages or You tab", () => {
+    switches.on = new Set(["declutter", "shops", "rentals"]);
     renderPhone();
     expect(tabs()).toHaveLength(5); // vacuity floor
     expect(names()).toEqual(["Home", "Jobs", "Declutter", "Shops", "Homes"]);
+    cleanup();
+    switches.on = new Set(["declutter"]);
+    renderPhone();
+    expect(names()).toEqual(["Home", "Jobs", "Declutter"]);
   });
 
-  it("a member: Shops and Homes wear the Soon tag (Declutter, open, does not); the name says so", () => {
+  it("a tester's preview: Shops and Homes wear the Soon tag (Declutter, open, does not); the name says so", () => {
+    switches.on = new Set(["declutter", "shops", "rentals"]);
     renderPhone();
     expect(soonOn()).toEqual(["/shops", "/rentals"]);
     expect(tab("Shops").getAttribute("aria-label")).toBe("Shops, Soon");
@@ -127,18 +132,17 @@ describe("the phone bottom bar (owner 11-14)", () => {
   });
 
   it("Declutter never wears the tag, even while its switch reads off (loading) for the viewer", () => {
-    switches.on = new Set();
+    switches.on = new Set(["shops", "rentals"]);
     renderPhone();
     expect(soonOn()).toEqual(["/shops", "/rentals"]);
     expect(tab("Declutter").getAttribute("aria-label")).toBe("Declutter");
   });
 
-  it("the store app lists Shops and Homes while closed to the member, with NO Soon tag (owner 11-06)", () => {
+  it("the store app leaves Shops and Homes out while closed to the member (M8/M9, owner 11-16)", () => {
     native.on = true;
     renderPhone();
-    expect(names()).toEqual(["Home", "Jobs", "Declutter", "Shops", "Homes"]);
+    expect(names()).toEqual(["Home", "Jobs", "Declutter"]);
     expect(soonOn()).toEqual([]);
-    expect(tab("Shops").getAttribute("aria-label")).toBe("Shops");
   });
 
   it("the store app: a tester-only preview is listed too, with no tag", () => {
@@ -149,15 +153,19 @@ describe("the phone bottom bar (owner 11-14)", () => {
     expect(soonOn()).toEqual([]);
   });
 
-  it.each([["Shops", "/shops"], ["Homes", "/rentals"]])("%s opens %s (its gate is the coming-soon screen) and is lit there", (name, path) => {
+  it.each([["Shops", "/shops"], ["Homes", "/rentals"]])("%s opens %s for a tester and is lit there", (name, path) => {
+    switches.on = new Set(["declutter", "shops", "rentals"]);
     renderPhone();
     fireEvent.click(tab(name));
     expect(screen.getByTestId("where").textContent).toBe(path);
     cleanup();
+    switches.on = new Set(["declutter", "shops", "rentals"]);
     renderPhone(path);
     expect(tab(name).getAttribute("aria-current")).toBe("page");
   });
 
+  // M8/M9: a closed section is not in the bar at all, so it shows no count (the badge rule's own closed check is
+  // now only defence; its @mutate moved off this file because no rendered tab can reach it).
   it("a closed section carries no to-do count", () => {
     Object.assign(todo, { shops: 2 });
     renderPhone();

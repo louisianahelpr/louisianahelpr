@@ -78,16 +78,15 @@ describe("Explore chips stay neutral while the switch answer is out", () => {
     for (const c of chips()) expect(visibleText(c)).not.toMatch(/Soon/);
   });
 
-  it("once the answer is in: Declutter live shows its plain name, a closed section says Soon", () => {
+  it("once the answer is in: Declutter live shows its plain name; closed sections are not listed (M8/M9)", () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     qc.setQueryData(featureSwitchBatchKey("u-1"), { declutter: true, shops: false, rentals: false });
     switches.on.add("declutter");
     mount(qc);
     expect(visibleText(chip("Declutter"))).toBe("Declutter");
     expect(chip("Declutter").querySelector("[data-soon-pending]")).toBeNull();
-    const closed = chips().filter((c) => /Soon/.test(visibleText(c)));
-    expect(closed.length).toBeGreaterThan(0);
-    for (const c of closed) expect(c.getAttribute("aria-label")).toMatch(/coming soon/i);
+    expect(chips().length).toBeGreaterThan(1);
+    for (const c of chips()) expect(visibleText(c)).not.toMatch(/Soon|Shops|Homes/);
   });
 
   it("a guest's chips stay neutral while features_open_to_everyone is pending", () => {

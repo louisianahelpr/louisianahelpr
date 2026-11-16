@@ -13,14 +13,15 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k === "declutter" }));
+const sw = vi.hoisted(() => ({ on: new Set(["declutter"]) }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => sw.on.has(k) }));
 vi.mock("@/components/sections/useSectionPrefs", () => ({
   useSectionPrefs: () => ({ prefs: { order: ["jobs", "declutter", "shops", "homes"], hidden: [] }, setHidden: () => true, move: () => {} }),
 }));
 
 import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); sw.on = new Set(["declutter"]); });
 
 describe("Customize sections matches board 90", () => {
   it("Home and Messages always on (one line), a both-sides line per section, switches only for open sections", () => {
@@ -31,8 +32,17 @@ describe("Customize sections matches board 90", () => {
     expect(screen.getByRole("switch", { name: "Show Jobs" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Show Declutter" })).toBeInTheDocument();
     expect(screen.queryByRole("switch", { name: "Show Shops" })).toBeNull();
-    expect([...document.querySelectorAll("[data-section-soon]")].map((e) => e.getAttribute("data-section-soon"))).toEqual(["shops", "homes"]);
+    // M8/M9 (owner 11-16): Shops and Homes, closed to this member, are not listed at all (they were "Coming soon").
+    expect(document.querySelectorAll("[data-section-soon]").length).toBe(0);
+    expect(document.body.textContent).not.toMatch(/Shops|Homes/);
     expect(document.body.textContent).not.toMatch(/drag/i);
+  });
+
+  it("Declutter, while its switch read is out, stays listed as Coming soon with no switch", () => {
+    sw.on = new Set();
+    render(<CustomizeSheet open onOpenChange={() => {}} />);
+    expect([...document.querySelectorAll("[data-section-soon]")].map((e) => e.getAttribute("data-section-soon"))).toEqual(["declutter"]);
+    expect(screen.queryByRole("switch", { name: "Show Declutter" })).toBeNull();
   });
 
   it("Done closes the sheet", () => {

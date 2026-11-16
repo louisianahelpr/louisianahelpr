@@ -38,8 +38,10 @@ export function useSectionTabs() {
   const on = { declutter: declutter || (guest && !!openToEveryone?.has("declutter")), shops, rentals } as const;
   return sectionItems.map((s) => {
     const preview = sectionIsPreview(on[s.feature], s.feature, openToEveryone);
-    // `listed`: false only in the iPhone app for a section not open to everyone (owner 10-31, hideUnopenedInApp).
-    return { ...s, on: on[s.feature], preview, listed: sectionListedHere({ on: on[s.feature], preview }) };
+    // `listed` (sectionListedHere): false for a section closed to the viewer, on the website and in the app (M8/M9,
+    // owner 11-16: Shops and Homes hidden from members until they launch), and in the app for a tester's preview.
+    // Declutter, open to everyone, stays listed while its switch read is out, so its tab never pops in late.
+    return { ...s, on: on[s.feature], preview, listed: sectionListedHere({ on: on[s.feature] || OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview }) };
   });
 }
 

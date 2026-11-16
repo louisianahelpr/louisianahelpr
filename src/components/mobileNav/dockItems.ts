@@ -2,13 +2,13 @@ import type { LucideIcon } from "lucide-react";
 import { leftItems, rightItems, sectionItems } from "@/components/mobileNav/mobileNavHelpers";
 
 /**
- * THE ONE FLAG for closed sections in the NATIVE app's dock. True (owner, 11-06 11:35 AM, told of the App Review
- * risk: "remove that from the tabs, the screen says it is coming"; owner 11-14 asked for Shops and Homes listed): a
- * section tab is listed in the iPhone/Android dock as on the web, with NO "Soon" mark (hideUnopenedInApp), and opens
- * its own coming-soon screen. False brings back the 10-31 rule (left out of the app's dock until it opens). One-line
- * flip. Guard: src/test/navSoonAndTopMessages.test.tsx.
+ * THE ONE FLAG for a tester's PREVIEW section in the NATIVE app's dock. M8/M9 (owner 11-16): "hide Shops and Homes
+ * from members everywhere ... until they launch", so a section CLOSED to the viewer is never in the dock, on the
+ * website or in the app. Admins and testers keep their existing access (owner 11-16): in the app their preview tab is
+ * listed with NO "Soon" mark (owner 11-06/11-14, hideUnopenedInApp). False leaves previews out of the app's dock too.
+ * Guard: src/test/navSoonAndTopMessages.test.tsx.
  */
-export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true;
+export const DOCK_LISTS_PREVIEWS_IN_APP = true;
 
 export type DockItem = { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "todo" | "todoJobs" | "todoShops" | "todoDeclutter"; comingSoon?: boolean };
 

@@ -7,7 +7,9 @@
  * look, never how many rows there are. This pins both halves: the rows the shared hook lists while the switch is
  * loading are the rows it lists once it answers, and the rail filters on `listed` alone.
  *
- * @mutate src/lib/hideUnopenedInApp.ts |   if (!tab \|\| !hideUnopenedInApp()) return true; |   if (!tab) return true;
+ * M8/M9 (owner 11-16): Shops and Homes, closed to a member, are no longer listed anywhere; Declutter (open to
+ * everyone) stays listed while its switch loads, so the row count still never changes when the answer arrives.
+ * @mutate src/components/mobileNav/useSectionTabs.ts | listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview }) | listed: sectionListedHere({ on: on[s.feature], preview })
  * @mutate src/components/DesktopSidebarNav.tsx | ?.listed !== false); | ?.on === true);
  */
 import { describe, it, expect, vi } from "vitest";
@@ -36,7 +38,7 @@ describe("the rail's rows do not wait for the 'declutter' switch (Q1838)", () =>
     expect(loading.map((r) => r.path)).toEqual(answered.map((r) => r.path));
     expect(loading.find((r) => r.feature === "declutter")).toMatchObject({ on: false, listed: true });
     expect(answered.find((r) => r.feature === "declutter")).toMatchObject({ on: true, listed: true });
-    expect(loading.every((r) => r.listed)).toBe(true);
+    expect(loading.filter((r) => r.listed).map((r) => r.path)).toEqual(answered.filter((r) => r.listed).map((r) => r.path));
   });
 
   it("the rail drops a section only when it is not listed, never because its switch is off", () => {

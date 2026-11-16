@@ -30,7 +30,7 @@ export const sponsorPage = {
      * sponsor-25days function refuses new sign-ups too (SPONSOR_SIGNUP_DEADLINE in
      * supabase/functions/_shared/sponsorSignup.ts must say the same date; src/test/sponsor25days.test.tsx checks).
      */
-    signup_deadline: "2026-11-22",
+    signup_deadline: "2026-11-28",
     firstDay: 1,
     lastDay: 25,
     timeZone: "America/Chicago",
@@ -54,13 +54,13 @@ export const sponsorPage = {
     headlineLead: "You're Invited!",
     headline: "25 Days of Louisiana Giveaways",
     subhead:
-      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays.",
-    primaryCta: "Claim Your Day 🎁",
+      "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays.",
+    primaryCta: "Join the Giveaways 🎁",
     secondaryCta: "How It Works",
     countdownLabel: "Giveaways start in",
     countdownLive: "The giveaways are live! Day {day} of 25",
-    /** Under the countdown and in Claim Your Day while sign-ups are open. */
-    deadline: "Sign up by Nov 22.",
+    /** Under the countdown and in the sign-up section while sign-ups are open. */
+    deadline: "Sign up by Nov 28.",
     countdownUnits: { days: "days", hours: "hours", minutes: "min", seconds: "sec" },
   },
 
@@ -102,7 +102,7 @@ export const sponsorPage = {
       "I'm the founder of Louisiana Helpr, and I live right here in Delcambre, Louisiana, on the Iberia–Vermilion Parish line.",
       "I'm a local small business owner myself [I own and manage rental properties in the area], so I know how hard it is to get your name in front of the right people.",
       "I started Louisiana Helpr because [YOUR REASON, e.g. I wanted one place where Louisiana people could help each other find work, homes and great local businesses].",
-      "25 Days of Louisiana Giveaways is my way of saying thank you to our community this Christmas, and of shining a big, bright spotlight on the brands that make Louisiana special.",
+      "25 Days of Louisiana Giveaways is my way of saying thank you to our community this Christmas, and of cheering on the brands that make Louisiana special.",
       "When you sign up, you're working directly with me, a real person who will answer your emails.",
     ],
     signature: "— Lexi, Founder, Louisiana Helpr",
@@ -111,7 +111,7 @@ export const sponsorPage = {
   howItWorks: {
     title: "How It Works",
     steps: [
-      { icon: "calendar", title: "Pick your day", body: "Choose any day (or days!) from December 1–25. Multiple brands can share a day." },
+      { icon: "calendar", title: "Pick a day", body: "Choose any day (or days!) from December 1–25. Brands share days, and each brand's prize gets its own winner." },
       { icon: "gift", title: "Tell us your prize", body: "Donate anything you'd like: a product, a gift card, a service or a bundle." },
       { icon: "sparkle", title: "We do the work", body: "We design the graphics, write and publish the posts, tag and link your brand, run the entries and pick a winner at random." },
       { icon: "chart", title: "Your brand shines", body: "A Louisiana neighbor wins your prize, and local families see your brand." },
@@ -121,7 +121,7 @@ export const sponsorPage = {
   brandGets: {
     title: "What Your Brand Gets",
     items: [
-      { icon: "star", title: "Your spotlight post", body: "A featured giveaway post for your brand on your day." },
+      { icon: "star", title: "Featured on our socials", body: "Your brand and prize featured in the giveaway post on your day, alongside any other brands that share it." },
       { icon: "link", title: "Tags & links everywhere", body: "Your brand tagged and linked on our Facebook page, our group and our website." },
       { icon: "heart", title: "Real local engagement", body: "Louisiana families commenting, sharing and following, right in the middle of holiday shopping." },
       { icon: "wall", title: "Featured on our sponsor wall", body: "Your logo on the 25 Days page all month, linked to your site." },
@@ -149,19 +149,89 @@ export const sponsorPage = {
   },
 
   preview: {
-    title: "A Peek at Your Spotlight",
-    note: "A sample of the kind of post your brand gets on its day.",
+    title: "A Peek at a Giveaway Post",
+    note: "A sample giveaway post. When brands share a day, every one of them is featured and tagged.",
     /** A sample card, so it shows a sample day number. */
     sampleDay: "5",
     cardDayLine: "Day {day} of 25 Days of Louisiana Giveaways 🎄",
-    cardSponsorLine: "Today's sponsor: YOUR BRAND HERE!",
+    cardSponsorLine: "Featuring: YOUR BRAND HERE!",
     logoPlaceholder: "Your logo",
     caption:
-      "🎁 GIVEAWAY TIME! Today's prize comes from YOUR BRAND HERE, a Louisiana favorite. To enter: like this post, comment your favorite holiday tradition and share it with a friend. A winner is picked at random tomorrow. Good luck, y'all! ⚜️",
+      "🎁 GIVEAWAY TIME! Today's giveaway features YOUR BRAND HERE, a Louisiana favorite. To enter: like this post, comment your favorite holiday tradition and share it with a friend. A winner is picked at random tomorrow. Good luck, y'all! ⚜️",
   },
 
   sponsorWall: {
     title: "Brands already joining the fun!",
+  },
+
+  /**
+   * The final lineup (owner 2026-11-16: "each person will have their own day" is no longer true; some days have
+   * two or three brands, each with its own winner). Source: the owner's 25 Days Sponsor Tracker (const S and D).
+   * Brand names and prizes ONLY: never a sponsor's contact name, email or phone (this page and repo are public).
+   */
+  lineup: {
+    title: "The Lineup",
+    intro: "25 days, one giveaway post a day. When brands share a day, each prize has its own winner, and every partner is featured and tagged on our socials.",
+    winners: "{n} winners",
+    days: [
+      { day: 1, partners: [{ brand: "homerunPET", prize: "Pet-friendly space heater" }] },
+      { day: 2, partners: [{ brand: "Boston Mints", prize: "Lip gloss" }] },
+      { day: 3, partners: [{ brand: "Tevin Lewis, District 2 Alderman", prize: "$25 Shucks gift card" }] },
+      { day: 4, partners: [{ brand: "K18 Hair", prize: "FutureIQ + Molecular Repair Hair Mask" }] },
+      { day: 5, partners: [{ brand: "Oyu Botanica", prize: "Winter stocking stuffers" }] },
+      { day: 6, partners: [{ brand: "IOKA Skin+Science", prize: "$50 gift card" }] },
+      { day: 7, partners: [{ brand: "Whimsies from Within", prize: "Mixed media wall hanging" }] },
+      { day: 8, partners: [{ brand: "Candle Bloom Confections", prize: "Candle flower bouquet" }] },
+      { day: 9, partners: [{ brand: "Peigneur Property Rentals", prize: "$25 gift card" }] },
+      { day: 10, partners: [{ brand: "GentleStyle Brush", prize: "GentleStyle Brush" }] },
+      { day: 11, partners: [{ brand: "Boston Mints", prize: "Lip gloss" }] },
+      { day: 12, partners: [{ brand: "Oyu Botanica", prize: "Winter stocking stuffers" }] },
+      { day: 13, partners: [{ brand: "SRI Labs", prize: "DryQ blow dryer" }] },
+      {
+        day: 14,
+        partners: [
+          { brand: "Aeva Beauty", prize: "$25 e-gift card" },
+          { brand: "The Sculpt Society", prize: "Workout membership for a mama" },
+        ],
+      },
+      { day: 15, partners: [{ brand: "Berkana Crystal", prize: "Crystal piece" }] },
+      { day: 16, partners: [{ brand: "SRI Labs", prize: "KeeWee shampoo" }] },
+      {
+        day: 17,
+        partners: [
+          { brand: "Cajun Belle Studio", prize: "Alligator earrings" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "LMNT", prize: "LMNT Variety Pack" },
+        ],
+      },
+      {
+        day: 18,
+        partners: [
+          { brand: "Boston Mints", prize: "Lip gloss" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+        ],
+      },
+      { day: 19, partners: [{ brand: "Ty's Boutique Shop", prize: "Women's two-piece set, winner's choice" }] },
+      { day: 20, partners: [{ brand: "Pass the Everything", prize: "Family meal / dining experience" }] },
+      { day: 21, partners: [{ brand: "The Soft Life Collective", prize: "Giving Book Bundle (3 books)" }] },
+      {
+        day: 22,
+        partners: [
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "LMNT", prize: "LMNT Variety Pack" },
+        ],
+      },
+      { day: 23, partners: [{ brand: "Tiffany Morton Cosmetic Tattooing", prize: "Gift certificate for a service of choice" }] },
+      {
+        day: 24,
+        partners: [
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "LMNT", prize: "LMNT Variety Pack" },
+          { brand: "Hilma", prize: "Daily Pre + Probiotic + Herbs" },
+        ],
+      },
+      { day: 25, partners: [{ brand: "Louisiana Helpr", prize: "$100 Louisiana Helpr gift card" }] },
+    ],
   },
 
   testimonials: {
@@ -169,14 +239,14 @@ export const sponsorPage = {
   },
 
   claim: {
-    title: "Claim Your Day",
-    intro: "Pick one day or as many as you like. More than one brand can share a day, and every sponsor gets their own spotlight post.",
+    title: "Join the Giveaways",
+    intro: "Pick one day or as many as you like. Brands share days, and every partner is featured and tagged on our socials.",
     dayCount: { one: "{n} brand joined", many: "{n} brands joined", none: "Open" },
     full: "Full",
-    deadline: "Sign up by Nov 22.",
+    deadline: "Sign up by Nov 28.",
     /** Shown in place of the calendar and form after signup_deadline. */
     closedTitle: "Sign-ups are closed",
-    closed: "Sign-ups for the 25 Days of Louisiana Giveaways closed on November 22. Thank you to every brand that joined! Questions? Email admin@louisianahelpr.com.",
+    closed: "Sign-ups for the 25 Days of Louisiana Giveaways closed on November 28. Thank you to every brand that joined! Questions? Email admin@louisianahelpr.com.",
     anyDay: "Any day is fine",
     selectedNone: "Pick at least one day, or tick the any-day box.",
     form: {
@@ -198,7 +268,7 @@ export const sponsorPage = {
       notes: "Anything else? (optional)",
       agree: "I agree to provide the prize(s) I described for my giveaway day(s)",
       showOnWall: "OK to show our logo on the sponsor wall",
-      submit: "Claim My Day 🎁",
+      submit: "Count Me In 🎁",
       submitting: "Sending…",
     },
     errors: {
@@ -211,7 +281,7 @@ export const sponsorPage = {
       url: "Enter a full web address that starts with https://",
       full: "Sorry, {days} just filled up. Pick another day?",
       rateLimited: "Too many tries in a short time. Please wait a few minutes and try again.",
-      closed: "Sign-ups closed on November 22, so this one was not saved. Questions? Email admin@louisianahelpr.com.",
+      closed: "Sign-ups closed on November 28, so this one was not saved. Questions? Email admin@louisianahelpr.com.",
       generic: "Something went wrong and your sign-up was NOT saved. Please try again, or email admin@louisianahelpr.com.",
     },
   },
@@ -236,7 +306,7 @@ export const sponsorPage = {
       { q: "How is the winner picked?", a: "At random from eligible entries, and announced publicly on our Facebook page and group." },
       { q: "How does the prize get to the winner?", a: "Ship it straight to the winner (we send you their shipping info), or send it to us and we handle delivery." },
       { q: "Can I sponsor more than one day?", a: "Absolutely!" },
-      { q: "Can more than one brand be on the same day?", a: "Yes, and every sponsor gets their own spotlight post." },
+      { q: "Can more than one brand be on the same day?", a: "Yes. Some days have two or three brands, and each brand's prize has its own winner. Every partner is featured and tagged on our socials." },
       { q: "What if I have more questions?", a: "Email us at admin@louisianahelpr.com. A real person replies." },
       { q: "Is this affiliated with Facebook?", a: "No. This giveaway is in no way sponsored, endorsed or administered by, or associated with, Facebook/Meta." },
     ],
@@ -244,7 +314,7 @@ export const sponsorPage = {
 
   finalCta: {
     title: "Let's make this Louisiana's merriest December yet. 🎄⚜️",
-    button: "Claim Your Day",
+    button: "Join the Giveaways",
   },
 
   footer: {

@@ -27,6 +27,15 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 const ROOT = path.resolve(__dirname, "../..");
 const SCAN_DIRS = ["src", "supabase/functions"];
 const SECTION_WORD = /\bRentals\b|\b[Yy]our rentals\b/;
+/**
+ * Business names that contain the word and are not the section (exact strings only, each with its reason).
+ * The name is removed from the text before the check, so the rest of that string is still read.
+ */
+const PROPER_NOUNS = [
+  // A 25 Days of Louisiana Giveaways sponsor's own business name (owner's lineup, 2026-11-16, src/content/sponsorPage.ts).
+  "Peigneur Property Rentals",
+] as const;
+const withoutProperNouns = (text: string) => PROPER_NOUNS.reduce((t, n) => t.split(n).join(""), text);
 
 function walk(dir: string, out: string[]) {
   for (const name of readdirSync(dir)) {
@@ -57,7 +66,7 @@ export function findSectionWord(fileName: string, source: string): string[] {
   const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const hits: string[] = [];
   const check = (node: ts.Node, text: string) => {
-    if (!SECTION_WORD.test(text)) return;
+    if (!SECTION_WORD.test(withoutProperNouns(text))) return;
     if (isLogArgument(node)) return;
     const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
     hits.push(`${path.relative(ROOT, fileName)}:${line + 1}: ${text.trim().slice(0, 120)}`);
@@ -88,6 +97,10 @@ describe("the section is called Homes in everything a member reads", () => {
     expect(findSectionWord("a.ts", 'const x = `Open Rentals now`;')).toHaveLength(1);
     expect(findSectionWord("a.ts", 'const RentalsPage = useFeature("rentals"); const k = ["rentals-home"]; const r = "/rentals/invite";')).toHaveLength(0);
     expect(findSectionWord("a.ts", 'const x = "Rental repair."; const y = "Party rentals";')).toHaveLength(0);
+    // A listed business name is not the section; the same string naming the section still fails.
+    expect(findSectionWord("a.ts", 'const x = "Peigneur Property Rentals";')).toHaveLength(0);
+    expect(findSectionWord("a.ts", 'const x = "Peigneur Property Rentals, now in Rentals";')).toHaveLength(1);
+    expect(findSectionWord("a.ts", 'const x = "Acme Property Rentals";')).toHaveLength(1);
   });
 
   it("no source file shows 'Rentals' as the section name", () => {

@@ -1,5 +1,5 @@
 /**
- * Section L, "Claim Your Day": the advent calendar (days 1-25, every day
+ * Section L, the sign-up ("Join the Giveaways"): the advent calendar (days 1-25, every day
  * selectable, counts only, never names; "Full" at the per-day cap), the
  * sign-up form and the thank-you. The page checks the form for instant
  * messages with the SAME validator the server runs
@@ -11,6 +11,7 @@ import { buildIcs, daysLabel } from "@/lib/sponsor/dates";
 import type { SponsorPublicState, SponsorSignupPayload, SponsorSubmitResult } from "@/lib/sponsor/types";
 import { checkLogo, sponsorSignupsOpen, validateSponsorSignup } from "../../../supabase/functions/_shared/sponsorSignup";
 import { Icon, StarRule } from "./Decor";
+import { lineupCount } from "./Sections";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
@@ -65,6 +66,16 @@ export function dayTileLabel(count: number, maxPerDay: number | null): { label: 
   return { label: tpl.replace("{n}", String(count)), full: false };
 }
 
+/**
+ * A tile's brand count: the sign-ups the server counts, or the published lineup's brands for that day when it
+ * lists more (owner 2026-11-16: some lineup brands joined outside the form), so a day the lineup shows as taken
+ * never reads "Open". It changes only the label: whether a day is full stays the server's count, which the
+ * sign-up function enforces. Exported for its test.
+ */
+export function tileCount(state: Pick<SponsorPublicState, "dayCounts">, day: number): number {
+  return Math.max(state.dayCounts[day] ?? 0, lineupCount(day));
+}
+
 /** The blank form. Exported for its test: every sign-up sends shipTo "helpr" (owner 11-09). */
 export const EMPTY: SponsorSignupPayload = {
   brandName: "", contactName: "", email: "", phone: "", website: "", instagram: "", facebook: "", tiktok: "",
@@ -114,6 +125,7 @@ export function ClaimSection({
 
   const fullDays = useMemo(() => {
     const s = new Set(extraFull);
+    // Full is the server's own count (it enforces the cap); the lineup only changes what a tile SAYS.
     for (const d of DAYS) if (dayTileLabel(state.dayCounts[d] ?? 0, state.maxPerDay).full) s.add(d);
     return s;
   }, [state, extraFull]);
@@ -240,8 +252,8 @@ export function ClaimSection({
         aria-describedby={err("days") ? "lh25-days-error" : undefined}
       >
         {DAYS.map((d) => {
-          const count = state.dayCounts[d] ?? 0;
-          const { label, full: atCap } = dayTileLabel(count, state.maxPerDay);
+          const atCap = dayTileLabel(state.dayCounts[d] ?? 0, state.maxPerDay).full;
+          const { label } = dayTileLabel(tileCount(state, d), null);
           const full = atCap || fullDays.has(d);
           const selected = form.days.includes(d);
           return (

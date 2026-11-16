@@ -117,7 +117,7 @@ export function NotificationPanelView({
         {inline ? (
           // THE INBOX'S NOTIFICATIONS TAB (owner 11-15): the same list, on a page instead of in the bell's panel. The tab
           // above already names it and there is nothing to close, so the row keeps only Unread / All and Mark all read.
-          <div className="shrink-0 flex items-center gap-2 px-4 pt-2 pb-2.5 border-b border-[hsl(var(--olivewood)/0.12)]">
+          <div className="shrink-0 flex items-center gap-2 pt-2 pb-2.5 border-b border-[hsl(var(--olivewood)/0.12)]">
             <div className="min-w-0 flex-1">{inboxChips}</div>
             {markAllButton}
           </div>

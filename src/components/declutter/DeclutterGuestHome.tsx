@@ -36,6 +36,9 @@ export function DeclutterGuestHome() {
         tabs={[]}
       />
     ),
-  } : { search: browse.search, tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows> };
-  return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} chrome={chrome} top={<><GuestSectionSwitch at="declutter" /><DeclutterGuestBrowseJoin /></>} /></Suspense>;
+  } : {
+    // M13: the "Jobs | Declutter" switch sits ABOVE the category chips (under them it read as one more filter row).
+    search: browse.search, tabs: <><GuestSectionSwitch at="declutter" className="pb-2" /><ScrollAwayRows>{browse.chips}</ScrollAwayRows></>,
+  };
+  return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} chrome={chrome} top={<DeclutterGuestBrowseJoin />} /></Suspense>;
 }

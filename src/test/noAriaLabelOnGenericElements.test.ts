@@ -54,8 +54,9 @@ describe("no aria-label on role-less elements", () => {
   });
 });
 
-// The star-rating row is a <div role="img" aria-label="N out of 5 stars">.
+// The star-rating row is a <div role="img" aria-label="N of 5 stars">.
 // Drop the role and the name is aria-prohibited: VoiceOver announces the five
 // decorative <Star> glyphs as nothing at all and the rating is unreadable.
-// @mutate src/components/reviewPanel/ReviewList.tsx | <div role="img" aria-label={`${r.rating} out of 5 stars`} className="flex"> | <div aria-label={`${r.rating} out of 5 stars`} className="flex">
+// (Moved 11-15 from reviewPanel/ReviewList.tsx, deleted as mounted nowhere, to the shared ReviewStars row.)
+// @mutate src/components/profile/reviewCard.tsx | <div role="img" aria-label={`${rating} of 5 stars`} className="flex gap-0.5 shrink-0"> | <div aria-label={`${rating} of 5 stars`} className="flex gap-0.5 shrink-0">
 

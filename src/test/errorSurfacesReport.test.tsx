@@ -359,7 +359,6 @@ const EXCUSED_INLINE: Record<string, string> = {
   "components/profile/ProfileSectionError.tsx": "a one-line row inside a Profile sub-section; the profile itself loaded",
   "components/profile/SecurityTab.tsx": "one line of the session-history list; reported as SecurityTab.sessions",
   "components/profile/profileEditForm/PhotoNameSection.tsx": "a field hint under the avatar picker",
-  "components/reviewPanel/ReviewList.tsx": "one line under the review summary; reported as ReviewPanel.load",
   "pages/home/QuickApplyHandler.tsx": "a toast (failWith), not a rendered screen",
   "components/rentals/RentPanel.tsx": "one line inside a home's card where its rent record goes (the Homes screen and the card loaded)",
   "components/rentals/DepositPanel.tsx": "one line inside a home's card where its deposit record goes (the Homes screen and the card loaded)",

@@ -61,7 +61,7 @@ export interface ReportDialogProps {
    *   job     — Dashboard, Activity, PostedJobActions (the job feed's "Report")
    *   message — Messages (a single chat message's action sheet)
    *   user    — UserProfile, Messages (report the person, not the thread)
-   *   review  — userProfile/ReviewsSection, reviewPanel/ReviewList
+   *   review  — userProfile/ReviewsSection
    *   application — postedJobs/ApplicantsPanel (the applicant card, Q366)
    *
    * "profile" USED to be in this union and was never passed by any call site;

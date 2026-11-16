@@ -56,7 +56,6 @@ const RECEIVED: Record<string, Kind> = {
   "src/components/admin/adminusers/useOpenProfile.ts": "count",
   "supabase/functions/weekly-helper-report/index.ts": "count",
   "src/pages/profile/HelprWrapped.tsx": "count",
-  "src/components/reviewPanel/ReviewList.tsx": "rows",
   "src/components/profile/HelperStreakBadge.tsx": "rows",
   "src/components/CompletionPrompts.tsx": "own",
 };
@@ -85,7 +84,7 @@ const USES_ONE_SOURCE = /get_public_profile_stats|fetchRatingStats\(|countsTowar
 describe("Q321: a review count comes from one definition", () => {
   it("every reader of reviews received is classified (two-way)", () => {
     const found = receivedReaders();
-    expect(found.length).toBeGreaterThan(8);
+    expect(found.length).toBeGreaterThan(7); // 8 readers (11-15: ReviewList, mounted nowhere, deleted)
     expect(found).toEqual(Object.keys(RECEIVED).sort());
   });
 

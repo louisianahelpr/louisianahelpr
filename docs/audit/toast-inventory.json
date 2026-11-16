@@ -715,7 +715,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 234,
+      "line": 239,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -725,7 +725,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 257,
+      "line": 262,
       "kind": "toast.error",
       "title": {
         "form": "literal",

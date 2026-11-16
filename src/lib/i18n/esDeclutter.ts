@@ -146,6 +146,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.sheet.price": "Precio",
   "decl.sheet.condition": "Estado",
   "decl.sheet.show": "Mostrar",
+  "decl.sheet.more": "Más filtros",
   "decl.sheet.dropsOnly": "Solo artículos que bajan de precio cada noche",
   "decl.sort.closest": "Más cerca primero",
   "decl.sort.newest": "Más nuevos",

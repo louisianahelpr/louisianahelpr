@@ -10,6 +10,8 @@ export interface BrowseViewToggleProps {
    *  one). The toolbar closes the filter sheet with it — you asked to look at
    *  the map, so the sheet gets out of the way. */
   onSelect?: () => void;
+  /** Width: full by default (a section of its own); "w-auto" on a section's title line (Declutter's sheet, M10). */
+  className?: string;
 }
 
 const OPTIONS = [
@@ -36,7 +38,7 @@ const OPTIONS = [
  * Omitted entirely on the desktop web (`hideViewToggle`), where the feed and
  * the map are both on screen at once and there is nothing to switch between.
  */
-export function BrowseViewToggle({ view, setView, onSelect }: BrowseViewToggleProps) {
+export function BrowseViewToggle({ view, setView, onSelect, className = "w-full" }: BrowseViewToggleProps) {
   return (
     <SegmentedControl
       ariaLabel="Feed view"
@@ -45,7 +47,7 @@ export function BrowseViewToggle({ view, setView, onSelect }: BrowseViewTogglePr
         startTransition(() => setView(next));
         onSelect?.();
       }}
-      className="w-full"
+      className={className}
       optionClassName="flex-1"
       options={OPTIONS.map(({ value, label, Icon }) => ({
         value,

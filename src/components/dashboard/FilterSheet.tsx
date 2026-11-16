@@ -1,4 +1,6 @@
-import type { ReactNode, RefObject } from "react";
+import { useState, type ReactNode, type RefObject } from "react";
+import { ChevronDown } from "lucide-react";
+import { ListRow } from "@/components/ui/ListRow";
 import {
   Sheet,
   SheetContent,
@@ -45,6 +47,13 @@ export interface FilterSheetSection {
    * eyebrow line belongs in `content`.
    */
   trailing?: ReactNode;
+  /**
+   * M10 (iOS design audit 11-16): a section the sheet folds behind ONE "More filters" row after the always-shown
+   * ones, so a long filter set (Declutter's was about 2,164px at 375, over the 1,200px sheet budget) opens short.
+   */
+  more?: boolean;
+  /** This section holds a filter in effect: the "More filters" row starts open when any folded section does. */
+  active?: boolean;
 }
 
 export interface FilterSheetProps {
@@ -73,6 +82,8 @@ export interface FilterSheetProps {
   /** Action rows rendered after the last section, above the footer —
    *  for rows that OPEN something (Saved Searches) rather than filter. */
   footer?: ReactNode;
+  /** The words on the "More filters" row (the caller's dictionary); English by default. */
+  moreLabel?: string;
 }
 
 /** Uppercase eyebrow + content, the standard section shell. The eyebrow is
@@ -104,15 +115,36 @@ function Section({ title, trailing, children }: { title: string; trailing?: Reac
 function FilterBody({
   sections,
   footer,
-}: Pick<FilterSheetProps, "sections" | "footer">) {
+  moreLabel = "More filters",
+}: Pick<FilterSheetProps, "sections" | "footer" | "moreLabel">) {
+  const shown = sections.filter((s) => !s.more);
+  const folded = sections.filter((s) => s.more);
+  // M10: folded sections stay folded until asked for, unless one of them is already filtering the list.
+  const [moreOpen, setMoreOpen] = useState(() => folded.some((s) => s.active));
+  const section = (s: FilterSheetSection) => (
+    <Section key={s.key} title={s.title} trailing={s.trailing}>
+      {s.content}
+    </Section>
+  );
   return (
     <>
       <div className="px-5 pb-3 space-y-2.5">
-        {sections.map((s) => (
-          <Section key={s.key} title={s.title} trailing={s.trailing}>
-            {s.content}
-          </Section>
-        ))}
+        {shown.map(section)}
+        {folded.length > 0 && (
+          <div className="border-t border-[hsl(var(--bark)/0.10)] pt-1" data-filter-more="">
+            {/* The shared disclosure row (ListRow), its 44px floor and tint; -mx-3 keeps the label on the eyebrows' edge. */}
+            <ListRow
+              aria-expanded={moreOpen}
+              aria-controls="filter-sheet-more"
+              onClick={() => setMoreOpen((o) => !o)}
+              className="-mx-3 w-[calc(100%+1.5rem)] text-ds-15 font-semibold text-foreground"
+              trailing={<ChevronDown aria-hidden className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${moreOpen ? "rotate-180" : ""}`} />}
+            >
+              {moreLabel}
+            </ListRow>
+          </div>
+        )}
+        {folded.length > 0 && moreOpen && <div id="filter-sheet-more" className="space-y-2.5">{folded.map(section)}</div>}
       </div>
 
       {/* Action rows (open-a-dialog things like Saved Searches) sit here with
@@ -135,6 +167,7 @@ export function FilterSheet({
   title = "Filters",
   resultCount,
   resultNoun = ["result", "results"],
+  moreLabel,
 }: FilterSheetProps) {
   const webDesktop = useIsWebDesktop();
   const footerBar = (compact: boolean) => (
@@ -152,7 +185,7 @@ export function FilterSheet({
   if (webDesktop) {
     return (
       <FilterDropdown open={open} onOpenChange={onOpenChange} anchorRef={anchorRef} label={title} footer={footerBar(true)}>
-        <FilterBody sections={sections} footer={footer} />
+        <FilterBody sections={sections} footer={footer} moreLabel={moreLabel} />
       </FilterDropdown>
     );
   }
@@ -186,7 +219,7 @@ export function FilterSheet({
         <SheetHero title={title} />
 
         <div data-filter-sheet-body="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <FilterBody sections={sections} footer={footer} />
+          <FilterBody sections={sections} footer={footer} moreLabel={moreLabel} />
         </div>
         {footerBar(false)}
       </SheetContent>

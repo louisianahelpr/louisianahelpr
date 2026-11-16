@@ -2,7 +2,10 @@
 import type { enYourPage } from "./enYourPage";
 
 export const esYourPage: Record<keyof typeof enYourPage, string> = {
-  "yp.hidden": "Su página está oculta ahora, así que otros no pueden abrirla.",
+  "yp.hidden": "Su página está oculta ahora",
+  "yp.hiddenEmail": "Los vecinos no pueden abrirla hasta que confirme su correo. Toque el enlace del correo que le enviamos.",
+  "yp.hiddenEmailAction": "Cuenta y seguridad",
+  "yp.hiddenOther": "Los vecinos no pueden abrirla mientras revisamos su cuenta. Una cuenta de prueba nunca tiene página pública.",
   "yp.askWhy": "Pregúntenos por qué",
   "yp.copied": "Enlace copiado",
   "yp.copyFailed": "No se pudo copiar el enlace. Manténgalo presionado para copiarlo.",

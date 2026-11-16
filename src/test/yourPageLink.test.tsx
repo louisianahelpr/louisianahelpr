@@ -150,7 +150,12 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     expect(screen.queryByRole("button", { name: /copy/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /share/i })).toBeNull();
     expect(screen.queryByText("louisianahelpr.com/u/eli-b")).toBeNull();
-    expect(container.textContent).toContain("Your page is hidden right now, so others can't open it.");
+    // M1 (iOS audit 11-16): the shared notice card with a reason and one action, not loose text.
+    const card = container.querySelector("[data-your-page-hidden]") as HTMLElement;
+    expect(card.getAttribute("data-notice")).toBe("info");
+    expect(card.textContent).toContain("Your page is hidden right now");
+    expect(card.textContent).toContain("under review");
+    expect(screen.getByRole("link", { name: "Ask us why" })).toBeTruthy();
   });
 
   it("F259k: a failed page read keeps the card (a network blip never hides a working link)", async () => {

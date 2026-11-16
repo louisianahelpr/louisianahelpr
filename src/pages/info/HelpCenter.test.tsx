@@ -366,4 +366,20 @@ describe("/help Common problems (F411)", () => {
     expect(questions).toContain("What does the cancellation rate on a profile mean?");
     expect(questions).not.toContain("What is the cancellation rate?");
   });
+
+  // L12 (iOS design audit 11-16): one-line tiles were shorter than their two-line neighbours. The grid cell stretches
+  // to the row (a flex box) and the tile fills it, so a row's tiles are one height. jsdom draws no layout: the classes.
+  // @mutate src/pages/info/HelpCenter.tsx | role="listitem" className="flex" data-help-problem-cell=""> | role="listitem" data-help-problem-cell="">
+  // @mutate src/pages/info/HelpCenter.tsx | min-h-11 h-full w-full rounded-[20px] | min-h-11 w-full rounded-[20px]
+  it("every Common problems tile fills its grid cell, so a row's tiles are one height (L12)", () => {
+    renderHelp();
+    const cells = [...document.querySelectorAll<HTMLElement>("[data-help-problem-cell]")];
+    expect(cells.length).toBe(COMMON_PROBLEMS.length);
+    expect(cells.length).toBeGreaterThan(1);
+    for (const cell of cells) {
+      expect(cell.classList.contains("flex")).toBe(true);
+      const tile = cell.querySelector<HTMLElement>("[data-help-problem]")!;
+      expect(tile.classList.contains("h-full")).toBe(true);
+    }
+  });
 });

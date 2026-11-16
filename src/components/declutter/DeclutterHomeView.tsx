@@ -534,12 +534,13 @@ function DeclutterMemberHome() {
     // F153 (owner UI audit 11-09: "Buying / Selling / Deliver / Wanted / Free tabs aren't visible. Show them (scrollable)
     // under the search bar"): the section's tabs, one sideways row under the search, then Browse's category chips.
     // The row is the desktop's SectionTabs (it scrolls and never cuts a word); the gear stays in My Declutter.
-    // Owner 11-14 (Depop/Vinted item 5): on Browse both rows slide away while the grid scrolls down (ScrollAway.tsx).
+    // Owner 11-14 (Depop/Vinted item 5): on Browse the chips slide away while the grid scrolls down (ScrollAway.tsx).
+    // The tabs stay pinned, as on Jobs (M14, owner 11-16: "keep tabs pinned"), so a tab switch never needs a scroll up.
     tabs: (
-      <ScrollAwayRows off={!browse}>
+      <>
         <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />
-        {browse?.chips}
-      </ScrollAwayRows>
+        <ScrollAwayRows off={!browse}>{browse?.chips}</ScrollAwayRows>
+      </>
     ),
   };
   // Owner pick 4 (11-08, design audit B #12): no "+ Sell" pill on a screen with its own main button (Wanted's "Post what

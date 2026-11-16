@@ -146,6 +146,7 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
       "src/integrations/supabase/client.ts": 2, // error-logger sends (refresh hold, Q1596 vanished-session hold)
       "src/integrations/supabase/keychainStorageAdapter.ts": 1, // error-logger send
       "src/lib/authSignOut.ts": 4, // error-logger sends; the online pill handoff + Home continue-days clears (an empty module = it never loaded this run, so it holds nothing)
+      "src/components/inbox/InboxButton.tsx": 1, // the Inbox (owner 11-15): arrival chime/push holder; loadModule answers null only while a stale-chunk reload is on its way, and the remounted icon holds it then
       "src/components/admin/adminRailBadges.ts": 2, // m?.fetchX picks the queue fetcher; an empty module gives undefined and the query waits on untilReload(), so nothing is dropped (knip reads the member off the import here)
       "src/lib/celebrate.ts": 1, // confetti: a decoration, nothing is lost
       "src/lib/i18n/language.ts": 1, // resets `loading`: the next call loads Spanish

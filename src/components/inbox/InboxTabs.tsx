@@ -68,7 +68,7 @@ export function InboxTabs({ tab }: { tab: InboxTab }) {
             onClick={() => choose(x.key)}
             onKeyDown={onKeyDown}
             className={cn(
-              "section-tab relative shrink-0 gap-1.5 px-0 font-sans text-ds-13 font-semibold hover:bg-transparent min-[420px]:text-ds-15",
+              "section-tab relative shrink-0 gap-1.5 px-0 font-sans text-ds-13 font-semibold min-[420px]:text-ds-15",
               on ? "section-tab-selected text-foreground" : "text-muted-foreground",
             )}
           >

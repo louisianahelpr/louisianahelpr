@@ -23,7 +23,7 @@ export const DarkGroundChromeButton = forwardRef<HTMLButtonElement, Props>(
       type="button"
       aria-label={label}
       {...props}
-      className={`min-h-11 min-w-11 ${showLabel ? "px-3" : "px-0"} inline-flex items-center justify-center gap-1.5 rounded-ds-md bg-white/[0.12] ctl-tint-invert text-white font-sans text-ds-13 font-medium active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none ${className}`.trim()}
+      className={`min-h-11 min-w-11 ${showLabel ? "px-3" : "px-0"} inline-flex items-center justify-center gap-1.5 rounded-ds-md bg-white/[0.12] ctl-tint-invert text-white font-sans text-ds-13 font-medium active:scale-[0.97] focus-visible:outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none ${className}`.trim()}
     >
       <Icon className="w-4 h-4" aria-hidden />
       {showLabel ? <span>{label}</span> : null}

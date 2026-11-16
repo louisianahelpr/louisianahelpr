@@ -30,12 +30,14 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
         {/* Fits without scrolling (owner 2026-10-25, "this doesn't need to scroll"):
             measured 730px of content in a 600px box at a 700px-tall window. Home and
             Messages, which have no control, are one line instead of two rows. */}
+        {/* M7 (iOS design audit 11-16): the app's own names, Home, Inbox and Create (it said Dashboard, Messages,
+            Explore and "the + menu", none of which the app shows by that name). */}
         <p className="text-ds-14 text-muted-foreground">
-          Use the arrows to reorder. Hidden sections leave Dashboard, Explore and the + menu. Nothing is deleted.
+          Use the arrows to reorder. Hidden sections leave Home, the bottom bar and Create. Nothing is deleted.
         </p>
         <p className="mt-2 text-ds-14 text-muted-foreground">
-          <span className="font-semibold text-foreground" data-always-on="Dashboard">Dashboard</span> and{" "}
-          <span className="font-semibold text-foreground" data-always-on="Messages">Messages</span> are always on.
+          <span className="font-semibold text-foreground" data-always-on="Home">Home</span> and{" "}
+          <span className="font-semibold text-foreground" data-always-on="Inbox">Inbox</span> are always on.
         </p>
 
         <h3 className="mt-3 mb-2 px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your sections</h3>

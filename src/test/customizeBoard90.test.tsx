@@ -7,6 +7,8 @@
  * @mutate src/components/sections/CustomizeSheet.tsx |                 {on ? ( |                 {true ? (
  * @mutate src/components/sections/CustomizeSheet.tsx |           <SheetPrimaryAction onClick={() => onOpenChange(false)}>Done</SheetPrimaryAction> |           <SheetPrimaryAction>Done</SheetPrimaryAction>
  * @mutate src/components/sections/CustomizeSheet.tsx |           Use the arrows to reorder. |           Drag to reorder.
+ * @mutate src/components/sections/CustomizeSheet.tsx | data-always-on="Inbox">Inbox</span> | data-always-on="Inbox">Messages</span>
+ * @mutate src/components/sections/CustomizeSheet.tsx | Hidden sections leave Home, the bottom bar and Create. | Hidden sections leave Dashboard, Explore and the + menu.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -28,6 +30,9 @@ describe("Customize sections matches board 90", () => {
     render(<CustomizeSheet open onOpenChange={() => {}} />);
     expect(screen.getByText("Customize sections")).toBeInTheDocument();
     expect(document.querySelectorAll("[data-always-on]").length).toBe(2);
+    // M7 (iOS audit 11-16): the app's own names only (one-name rule).
+    expect([...document.querySelectorAll("[data-always-on]")].map((e) => e.textContent)).toEqual(["Home", "Inbox"]);
+    expect(document.body.textContent).not.toMatch(/Dashboard|Explore|Messages|\+ menu/);
     expect(screen.getByText("Hire help or find work")).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Show Jobs" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Show Declutter" })).toBeInTheDocument();

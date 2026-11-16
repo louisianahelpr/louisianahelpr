@@ -49,13 +49,13 @@ describe("Home's top box is the same height as Posts/Jobs/Messages (Q1540)", () 
     expect(src("src/components/dashboard/DashboardTitleBar.tsx")).toMatch(/<NotificationPanel triggerClassName="h-11 w-11" \/>/);
   });
 
-  it("the guest Home passes the shared padding to its title card", () => {
-    // The guest Home only since 2026-10-19 (Q2205): the signed-in feed is Jobs > Browse now, under the section's
-    // own top bar (Dashboard.tsx passes titleCardClassName=""), and its standalone title bar was deleted. The
-    // /home route skeleton left this list with Q2214: it mirrors the Home dashboard's AppTopBar now
-    // (src/test/routeSkeletonMirrorsItsTitleBar.test.ts), not a title card.
-    for (const f of ["src/pages/home/DashboardGuest.tsx"]) {
-      expect(src(f), f).toMatch(/titleCardClassName=\{TITLE_BAR_PADDING\}/);
-    }
+  it("the guest Home's title card is the member Jobs header's (M13: one header for guests and members)", () => {
+    // The guest Home only since 2026-10-19 (Q2205). M13 (owner 11-16): the guest feed in the app draws the members'
+    // AppTopBar (search, then Log in / Join free), so its title card takes the member Jobs header's class (Dashboard.tsx:
+    // "!overflow-visible z-10" on a phone), not the old brand row's TITLE_BAR_PADDING.
+    const guest = src("src/pages/home/DashboardGuest.tsx");
+    expect(guest).toMatch(/titleCardClassName="!overflow-visible z-10"/);
+    expect(src("src/pages/home/Dashboard.tsx")).toContain('"!overflow-visible z-10"');
+    expect(guest).not.toContain("TITLE_BAR_PADDING");
   });
 });

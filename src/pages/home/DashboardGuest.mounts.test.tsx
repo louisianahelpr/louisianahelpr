@@ -8,7 +8,8 @@
  * DashboardTitleBar as the title card.
  *
  * @mutate src/pages/home/DashboardGuest.tsx |       <BrowseMap\n |       <BrowseMapGone\n
- * @mutate src/pages/home/DashboardGuest.tsx |             emblemTo="/" |             emblemTo="/home"
+ * @mutate src/pages/home/DashboardGuest.tsx |             search={<SectionSearchBar noun="jobs" home="/browse" value={filters.searchQuery} onChange={filters.setSearchQuery} />} /> |             /> 
+ * @mutate src/components/sections/AppTopBar.tsx |       {!user && !hasPersistedAuthToken() && !isWebDesktop && ( |       {false && (
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -62,7 +63,9 @@ describe("DashboardGuest mounts its children", () => {
     expect(await screen.findByTestId("browse-map-stub")).toBeTruthy();
   });
 
-  it("the app (native) draws DashboardTitleBar as its title card", async () => {
+  // M13 (owner 11-16, replacing 09-11's "no search in the guest bar"): the app draws the MEMBERS' header for a guest:
+  // AppTopBar with the jobs search field, and Log in / Join free where a member's Inbox and photo sit.
+  it("the app (native) draws the members' top bar: the jobs search, and Log in / Join free (M13)", async () => {
     vi.resetModules();
     vi.doMock("@/lib/nativeInit", async (orig) => ({ ...(await orig<typeof import("@/lib/nativeInit")>()), isNativePlatform: true }));
     const { default: NativeGuest } = await import("./DashboardGuest");
@@ -74,8 +77,9 @@ describe("DashboardGuest mounts its children", () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    // DashboardTitleBar's crest, pointed at the landing page (emblemTo="/"), inside the scaffold's title card.
-    await waitFor(() => expect(container.querySelector('.page-title-card a[href="/"]')).not.toBeNull());
+    await waitFor(() => expect(container.querySelector('.page-title-card [data-testid="app-top-bar-search"] input')).not.toBeNull());
+    const guest = container.querySelector('.page-title-card [data-testid="top-bar-guest"]');
+    expect(guest?.textContent).toBe("Log inJoin free");
     vi.doUnmock("@/lib/nativeInit");
   });
 

@@ -17,6 +17,7 @@ import { COMPACT_TOP_ROW, TITLE_TOP_ROW } from "@/components/sections/browseHead
 import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
+import { GuestAuthActions } from "@/pages/home/GuestAuthActions";
 
 // "My Declutter" (etc.) loads on the photo's first tap, never on the first screen.
 const MySectionSheet = lazy(() => import("./MySectionSheet"));
@@ -162,6 +163,14 @@ export function AppTopBar({
       {/* The INBOX (owner 11-15: "Merge messages and notifications into one, like Vinted does"): one icon, one badge,
           in place of the Messages button and the bell. AUD31-74: a guest has no inbox: no icon, as no photo. */}
       {user && !isWebDesktop && <TopBarInbox />}
+      {/* M13 (owner 11-16: guests get the same search as members in one consistent header): a guest's right side is
+          Log in and Join free where a member's Inbox and photo sit. Only when no session is stored, so a member's cold
+          start never flashes them. */}
+      {!user && !hasPersistedAuthToken() && !isWebDesktop && (
+        <div className="flex items-center" data-testid="top-bar-guest">
+          <GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />
+        </div>
+      )}
       {user && !isWebDesktop && showProfile && (
         <Button
           type="button"

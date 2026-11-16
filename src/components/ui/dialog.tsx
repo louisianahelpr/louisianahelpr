@@ -556,8 +556,10 @@ const DialogHero = ({ title, moment = false }: {
     <DialogTitle
       // TIGHTENED (owner, 2026-08-29): was `pt-2`, matched to AlertDialogHero
       // — see the note there. Change one, change both.
+      // L3 (iOS audit 11-16): the floor is SheetHero's --headline-section (20px), so a phone shows one popup title
+      // size (was 1.2rem = 19.2px here vs 20px on every SheetHero). Guard: src/test/popupTitleOneSizeOnPhone.test.tsx.
       className={moment ? "font-display font-moment leading-tight [overflow-wrap:anywhere]" : "font-display font-bold leading-tight [overflow-wrap:anywhere]"}
-      style={{ fontSize: moment ? "clamp(1.75rem, 1.6vw + 1.1rem, 2rem)" : "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+      style={{ fontSize: moment ? "clamp(1.75rem, 1.6vw + 1.1rem, 2rem)" : "clamp(var(--headline-section), 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
     >
       {title}
     </DialogTitle>

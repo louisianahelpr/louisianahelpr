@@ -146,8 +146,8 @@ describe("the section tabs (owner 2026-10-18)", () => {
     fireEvent.click(declutter);
     expect(screen.getByTestId("where").textContent).toBe("/jobs");
     expect(toasts).toEqual([]);
-    const homes = screen.getByRole("radio", { name: "Homes, coming soon" });
-    expect(homes.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Soon");
+    // M8/M9 (owner 11-16): Homes, closed to this viewer, is not listed at all (Declutter, open to everyone, stays).
+    expect(screen.queryByRole("radio", { name: /Homes/ })).toBeNull();
     // A section open to everyone carries no caption.
     expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-coming-soon]")).toBeNull();
   });

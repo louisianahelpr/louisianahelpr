@@ -11,7 +11,8 @@
  *     literal) reads the helper or the `listed` answer, so a new soon mark cannot reach the app unseen.
  *
  * @mutate src/lib/hideUnopenedInApp.ts |   return isNativePlatform; |   return false;
- * @mutate src/lib/hideUnopenedInApp.ts |   return tab.on && !tab.preview; |   return tab.on;
+ * @mutate src/lib/hideUnopenedInApp.ts |   return !hideUnopenedInApp() \|\| !tab.preview; |   return true;
+ * @mutate src/lib/hideUnopenedInApp.ts |   if (!tab.on) return false; |   if (!tab.on && hideUnopenedInApp()) return false;
  * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.filter(isListed).map((s) => { |   const options = visible.map((s) => {
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |   if (quotesComingSoon && hideUnopenedInApp()) return null; |
  * @mutate src/components/mobileNav/useSectionTabs.ts |   if (hideUnopenedInApp()) return; |
@@ -89,7 +90,9 @@ afterEach(cleanup);
 describe("(a) the one helper", () => {
   it("answers true only in the app; lists a section in the app only when it is open to everyone", () => {
     expect(hideUnopenedInApp()).toBe(false);
-    expect(sectionListedHere({ on: false, preview: false })).toBe(true);
+    // M8/M9 (owner 11-16): a section closed to the viewer is not listed on the website either; a tester's preview is.
+    expect(sectionListedHere({ on: false, preview: false })).toBe(false);
+    expect(sectionListedHere({ on: true, preview: true })).toBe(true);
     native.on = true;
     expect(hideUnopenedInApp()).toBe(true);
     expect(sectionListedHere(undefined)).toBe(true); // Jobs: no switch
@@ -111,9 +114,9 @@ describe("(a) the one helper", () => {
 });
 
 describe("(b) rendered with native mocked on and off", () => {
-  it("Explore's chips: the website lists Shops and Homes as Soon; the app lists only open sections, no soon text", () => {
+  it("Explore's chips: closed Shops and Homes are listed nowhere (M8/M9, owner 11-16); the app has no soon text", () => {
     renderExplore();
-    expect(chips().map((c) => c.replace(/Soon$/, " Soon"))).toEqual(["Jobs", "Declutter", "Shops Soon", "Homes Soon"]);
+    expect(chips()).toEqual(["Jobs", "Declutter"]);
     cleanup();
     native.on = true;
     const { container } = renderExplore();

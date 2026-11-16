@@ -64,7 +64,8 @@ export function YourActivity() {
   // tab's `listed` answer), so its preview tiles and their Coming soon badge never reach the app.
   const isListedHere = (s: (typeof visible)[number]) => live.find((t) => t.path === s.path)?.listed !== false;
   const open = visible.filter((s) => isOn(s) && isListedHere(s));
-  const soon = openingSoonLine(visible.filter((s) => !isOn(s)).map((s) => s.label));
+  // M8/M9 (owner 11-16): a section closed to the viewer is not listed, so the line never names it.
+  const soon = openingSoonLine(visible.filter((s) => !isOn(s) && isListedHere(s)).map((s) => s.label));
 
   return (
     <section aria-label="Your activity" className="flex flex-col gap-2" data-testid="you-activity">

@@ -73,9 +73,9 @@ describe("L001: a signed-out visitor's /search covers the sections open to every
     mount("/search?q=pillow");
     expect(await screen.findByRole("link", { name: /Feather pillow/ })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search jobs and items")).toBeInTheDocument();
-    // Shops and Homes are not open to everyone: they still say so, in one small line (F224); Declutter does not.
-    expect(screen.getByText("Shops and Homes are coming soon.")).toBeInTheDocument();
-    expect(document.querySelector("[data-search-soon]")?.textContent).not.toContain("Declutter");
+    // M8/M9 (owner 11-16): Shops and Homes are hidden until they launch, so nothing names them; Declutter is open.
+    expect(document.querySelector("[data-search-soon]")).toBeNull();
+    expect(screen.queryByText(/Shops|Homes/)).toBeNull();
   });
 
   it("Declutter not open to everyone: no items, and it says Coming soon", async () => {
@@ -83,7 +83,7 @@ describe("L001: a signed-out visitor's /search covers the sections open to every
     mount("/search?q=pillow");
     expect(await screen.findByPlaceholderText("Search jobs")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Feather pillow/ })).toBeNull();
-    expect(await screen.findByText("Declutter, Shops and Homes are coming soon.")).toBeInTheDocument();
+    expect(await screen.findByText("Declutter is coming soon.")).toBeInTheDocument();
     // F224: one line, never a card-sized row per closed section.
     expect(document.querySelectorAll("[data-search-soon]")).toHaveLength(1);
     expect(screen.queryByText("Coming soon")).toBeNull();

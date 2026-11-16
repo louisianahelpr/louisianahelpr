@@ -23,7 +23,8 @@ vi.mock("sonner", () => ({ toast: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null, isAdmin: false }) }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k === "declutter" }));
+const sw = vi.hoisted(() => ({ on: new Set(["declutter"]) }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => sw.on.has(k) }));
 vi.mock("@/hooks/useDarkMode", () => ({ useDarkMode: () => ({ theme: "system" }) }));
 vi.mock("@/components/sections/useSectionPrefs", async () => {
   const { SECTIONS } = await import("@/components/sections/sectionsConfig");
@@ -33,7 +34,7 @@ vi.mock("@/components/sections/useSectionPrefs", async () => {
 import { SettingsTab } from "@/components/profile/SettingsTab";
 import { TAB_TITLES } from "@/pages/profile/types";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); sw.on = new Set(["declutter"]); });
 
 function renderSettings(onSelectTab = vi.fn(), onRequestLogout = vi.fn()) {
   render(
@@ -56,17 +57,24 @@ describe("You › Settings, board 52", () => {
     expect(screen.getByText("Log out")).toBeTruthy();
   });
 
-  it("open sections get a switch; a closed one says Coming soon with no switch", () => {
+  it("open sections get a switch; closed Shops and Homes are not listed (M8/M9, owner 11-16)", () => {
     renderSettings();
     const sections = screen.getByRole("region", { name: "Your sections" });
     const jobs = within(sections).getByText("Jobs").closest("[data-settings-row]") as HTMLElement;
-    const shops = within(sections).getByText("Shops").closest("[data-settings-row]") as HTMLElement;
     expect(within(jobs).getByRole("switch")).toBeTruthy();
-    expect(within(shops).queryByRole("switch")).toBeNull();
-    expect(shops.textContent).toContain("Coming soon");
-    expect(shops.textContent).toContain("Soon");
+    expect(within(sections).queryByText("Shops")).toBeNull();
+    expect(within(sections).queryByText("Homes")).toBeNull();
     fireEvent.click(within(sections).getByRole("switch", { name: "Show Declutter" }));
     expect(setHidden).toHaveBeenCalledWith("declutter", true, ["jobs", "declutter"]);
+  });
+
+  it("Declutter, while its switch read is out, says Coming soon with no switch", () => {
+    sw.on = new Set();
+    renderSettings();
+    const sections = screen.getByRole("region", { name: "Your sections" });
+    const declutter = within(sections).getByText("Declutter").closest("[data-settings-row]") as HTMLElement;
+    expect(within(declutter).queryByRole("switch")).toBeNull();
+    expect(declutter.textContent).toContain("Coming soon");
   });
 
   it("rows open their tabs and Log out asks to log out", () => {

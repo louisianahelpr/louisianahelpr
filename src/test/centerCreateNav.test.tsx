@@ -313,20 +313,27 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     expect(toasts).toEqual([]);
   });
 
-  it("a section switched OFF for the viewer is a greyed 'Coming soon' row with no actions", () => {
+  // M8/M9 (owner 11-16): "hide Shops and Homes from members everywhere ... until they launch". A section switched
+  // OFF for the viewer has no row at all (it was a greyed "Coming soon" row), and the line counts the rows shown.
+  it("a section switched OFF for the viewer has no row, and the line counts the sections shown (M8)", () => {
     switches.on = new Set(["shops"]);
     renderDock();
     openSheet();
-    for (const key of ["declutter", "homes"]) {
-      expect(row(key).getAttribute("aria-disabled")).toBe("true");
-      expect(row(key).textContent).toContain("Coming soon");
-      expect(row(key).querySelectorAll("[data-create-action]").length).toBe(0);
-    }
-    fireEvent.click(document.querySelector('[data-create-soon="homes"]') as HTMLElement);
-    expect(where()).toBe("/home");
-    expect(toasts).toEqual(["Homes is coming soon"]);
+    expect(row("homes")).toBeNull();
+    expect(row("jobs")).not.toBeNull();
+    // Declutter (open to everyone) stays listed while its switch reads off, greyed with no actions.
+    expect(row("declutter").getAttribute("aria-disabled")).toBe("true");
+    expect(row("declutter").querySelectorAll("[data-create-action]").length).toBe(0);
+    expect(screen.getByText("One account, three ways to get things done.")).toBeTruthy();
     fireEvent.click(action("shops"));
     expect(where()).toBe("/shops/mine");
+    cleanup();
+    setCreateSheetOpen(false);
+    switches.on = new Set(["declutter"]);
+    renderDock();
+    openSheet();
+    expect(row("shops")).toBeNull();
+    expect(screen.getByText("One account, two ways to get things done.")).toBeTruthy();
   });
 
   // F134 (owner UI audit 11-09): "Open a shop" and "List for rent" were solid olive under a "Coming soon" mark.

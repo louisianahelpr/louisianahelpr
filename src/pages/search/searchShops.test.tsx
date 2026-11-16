@@ -91,10 +91,11 @@ describe("Q2725: /search finds Shops once the switch is on", () => {
     expect(state.reads.some((r) => r.table === "shops")).toBe(false);
   });
 
-  it("switch off: shops are never read and the line says Shops is coming soon", async () => {
+  it("switch off: shops are never read and nothing names Shops (M8, owner 11-16: hidden until it launches)", async () => {
     state.shopsOn = false;
     mount();
-    expect(await screen.findByText(/Shops (and Homes )?(is|are) coming soon/)).toBeInTheDocument();
+    await screen.findByText(/Nothing matches/);
+    expect(screen.queryByText(/Shops (and Homes )?(is|are) coming soon/)).toBeNull();
     expect(state.reads.some((r) => r.table === "shops")).toBe(false);
   });
 });

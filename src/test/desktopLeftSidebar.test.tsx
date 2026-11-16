@@ -96,12 +96,11 @@ describe("the LEFT sidebar (board 11)", () => {
     expect(screen.getByTestId("create-sheet")).toBeTruthy();
   });
 
-  it("Home, Explore, the sections nested, Messages, You (in order); a closed section is greyed", () => {
+  it("Home, Explore, the sections nested, Messages, You (in order); a closed section is not listed (M8/M9)", () => {
     mount();
     const rows = [...document.querySelectorAll("[data-sidebar-item]")].map((b) => b.getAttribute("data-sidebar-item"));
-    expect(rows).toEqual(["/home", "/explore", "/jobs", "/declutter", "/shops", "/rentals", "/messages", "/profile"]);
-    const homes = document.querySelector('[data-sidebar-item="/rentals"]') as HTMLElement;
-    expect(homes.getAttribute("aria-disabled")).toBe("true");
+    // Homes (rentals) is closed to this viewer: hidden until it launches (owner 11-16); Shops is on for them.
+    expect(rows).toEqual(["/home", "/explore", "/jobs", "/declutter", "/shops", "/messages", "/profile"]);
   });
 
   it("inside a section, Explore and that section are both current", () => {

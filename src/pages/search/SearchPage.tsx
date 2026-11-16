@@ -456,8 +456,9 @@ export default function SearchPage() {
           </Link>
         )}
 
+        {/* M8/M9 (owner 11-16): Shops and Homes are hidden from members until they launch, so the line never names them. */}
         {q && section === "all" && switchesSettled && (
-          <SoonLine names={[...(declutter.on ? [] : ["Declutter"]), ...(shops.on ? [] : ["Shops"]), ...(homes.on ? [] : ["Homes"])]} />
+          <SoonLine names={declutter.on ? [] : ["Declutter"]} />
         )}
       </div>
     </AppPage>

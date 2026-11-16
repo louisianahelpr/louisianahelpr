@@ -4,12 +4,17 @@
  * computer, one panel). And with no phone or browser registered for push, the panel's top says how to get alerts
  * (A3-90: "Get alerts on your phone." with a "Turn on phone notifications" button), not only the "Send a test" row at the bottom.
  *
- * @mutate src/pages/profile/ProfileTabPanels.tsx |             <SmsAlertsCard atTop />\n            <NotificationPreferences /> |             <NotificationPreferences />\n            <SmsAlertsCard atTop />
- * @mutate src/components/NotificationPreferences.tsx |       {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />} |       {false && <PushDeviceHint />}
+ * M11 (owner 11-16: "ask for PUSH notifications before TEXT alerts", replacing the 11-01 texts-first order): with no
+ * device registered, the push section comes FIRST (its own titled card, a full-width button), then Text alerts, then
+ * the switches. Text alerts stay above the switches (the 11-01 reason: people missed it at the bottom).
+ *
+ * @mutate src/pages/profile/ProfileTabPanels.tsx |             <NotificationPreferences textAlerts={<SmsAlertsCard atTop />} /> |             <SmsAlertsCard atTop />\n            <NotificationPreferences />
+ * @mutate src/components/NotificationPreferences.tsx |     {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />}\n    {textAlerts} |     {textAlerts}\n    {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />}
+ * @mutate src/components/NotificationPreferences.tsx |     {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />} |     {false && <PushDeviceHint />}
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
@@ -37,23 +42,29 @@ beforeEach(() => {
   TOKENS = 0;
 });
 
-describe("Notifications: text alerts first, and how to get push when no device is registered", () => {
-  it("the Notifications tab renders the Text alerts card before the switches", () => {
+describe("Notifications: push first, then text alerts, and how to get push when no device is registered", () => {
+  it("the Notifications tab hands the Text alerts card to the panel, which draws it under push and above the switches (M11)", async () => {
     const src = blankComments(readFileSync("src/pages/profile/ProfileTabPanels.tsx", "utf8"));
     const tab = src.slice(src.indexOf('tab === "notifications"'));
     const block = tab.slice(0, tab.indexOf("</Suspense>"));
-    const card = block.indexOf("<SmsAlertsCard");
-    const prefs = block.indexOf("<NotificationPreferences");
-    expect(card).toBeGreaterThan(-1);
-    expect(prefs).toBeGreaterThan(-1);
-    expect(card).toBeLessThan(prefs);
+    expect(block).toContain("<NotificationPreferences textAlerts={<SmsAlertsCard atTop />} />");
+    expect(block.match(/<SmsAlertsCard/g)).toHaveLength(1);
+    render(<NotificationPreferences textAlerts={<div data-testid="texts-card" />} />);
+    const hint = await screen.findByTestId("push-device-hint");
+    const texts = screen.getByTestId("texts-card");
+    const firstSwitch = screen.getAllByRole("switch")[0];
+    expect(hint.compareDocumentPosition(texts) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(texts.compareDocumentPosition(firstSwitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Push is a titled section with a full-width button.
+    expect(within(hint).getByRole("heading", { name: "Push notifications" })).toBeInTheDocument();
+    expect(within(hint).getByRole("button", { name: "Get alerts on this phone" }).className).toContain("w-full");
   });
 
   it("no registered device: the hint sits at the top of the panel, above the first switch and the Send a test row", async () => {
     render(<NotificationPreferences />);
     const hint = await screen.findByTestId("push-device-hint");
     // A3-90: the hint carries its action.
-    expect(hint.textContent).toBe("Hear about messages and job updates as they happen.Get alerts on this phone");
+    expect(hint.textContent).toBe("Push notificationsHear about messages and job updates as they happen.Get alerts on this phone");
     const firstSwitch = screen.getAllByRole("switch")[0];
     expect(hint.compareDocumentPosition(firstSwitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(hint.compareDocumentPosition(screen.getByText("Send a test")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

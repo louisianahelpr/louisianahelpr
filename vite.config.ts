@@ -786,6 +786,12 @@ export default defineConfig(({ mode, command }) => ({
         // L33 train 11-02: "icons-rest" (the leftover icons, below) is written the same short way: its name in the
         // entry's preload list put the entry 6 B gz over its band (5382 vs 5376); as "icons-<hash>" it shares the
         // other icon chunks' prefix. Only the file name changes.
+        // The pdf.js worker (src/components/documents/PdfPages.tsx, `pdf.worker.min.mjs?url`) is emitted as an ASSET and
+        // would keep its .mjs extension. The iOS app serves its files through Capacitor's WebViewAssetHandler, whose
+        // MIME table knows "js" but not "mjs" (it falls back to UTType, then application/octet-stream), and a module
+        // worker with a non-JavaScript MIME type is refused, so a PDF would never draw in the app. Every other asset
+        // keeps its own name.
+        assetFileNames: (asset) => (/\.mjs$/.test(asset.names?.[0] ?? "") ? "assets/[name]-[hash].js" : "assets/[name]-[hash][extname]"),
         chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" || chunk.name === "icons-item" || chunk.name === "icons-selling" ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
         // ── Chunk graph shape ────────────────────────────────────────────
         // Expressed as rolldown's `codeSplitting` rather than `manualChunks`

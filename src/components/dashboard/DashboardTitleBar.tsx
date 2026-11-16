@@ -57,16 +57,6 @@ interface DashboardTitleBarProps {
 }
 
 /**
- * The tighter title-card padding this row needs.
- *
- * PageScaffold's default `py-4 lg:py-5` is sized for a two-line greeting; a
- * single row of 44px controls floats in ~32px of dead space inside it. The
- * `!` is load-bearing — both are same-specificity utilities, so without it
- * stylesheet order (not class order) decides which `py` wins.
- */
-export const TITLE_BAR_PADDING = "!py-1.5 lg:!py-2"; // = Posts/Jobs/Messages (2026-10-08)
-
-/**
  * The Browse feed's brand row — the emblem on the left, and at the right edge
  * one live-state control (`status`) plus one trailing control (`trailing`).
  *

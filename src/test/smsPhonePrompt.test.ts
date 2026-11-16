@@ -13,7 +13,7 @@
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |                AND (c.sms_opt_in IS TRUE |                AND (false
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |   RETURN v_n = 1; |   RETURN v_n >= 1;
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql | WHERE p.user_id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); | WHERE p.user_id = v_uid);
- * @mutate src/pages/home/HomeDashboard.tsx | {!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /> | {<Suspense fallback={null}><SmsPhonePrompt moment="has_phone" />
+ * @mutate src/pages/home/HomeDashboard.tsx | {!firstRunActive && !customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /> | {!customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" />
  * @mutate src/pages/home/HomeDashboard.tsx | <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} /> | <FirstRun userId={user?.id} />
  * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx | title={allSet ? "You're all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} | title={allSet ? "You're all set" : SMS_PHONE_PROMPT_TITLE}
  * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx |           <SmsAlertsCard inPrompt onAllSet={onAllSet} prefillPhone={prefillPhone} /> |           <p>Text alerts</p>
@@ -73,7 +73,7 @@ describe("the one-time add-your-phone prompt", () => {
 
   it("on Home for members who already gave a phone: worded as turning texts on, never over the first-run tour", () => {
     const home = read("src/pages/home/HomeDashboard.tsx");
-    expect(home).toContain('{!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}');
+    expect(home).toContain('{!firstRunActive && !customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}');
     expect(home).toContain("<FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />");
     expect(home).toContain("const [firstRunActive, setFirstRunActive] = useState(true);");
     const prompt = readPrompt();

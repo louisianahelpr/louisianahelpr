@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { waitForNoModal } from "@/lib/pushPermissionNudge";
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHero, DialogSecondaryAction } from "@/components/ui/dialog";
 import SmsAlertsCard from "./SmsAlertsCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -17,6 +18,14 @@ import { SMS_PHONE_PROMPT_TITLE, SMS_PROMPT_ALL_SET_MS, SMS_PROMPT_LINE, SMS_TEX
 export default function SmsPhonePromptDialog({ moment }: { moment: SmsPromptMoment }) {
   const [closed, setClosed] = useState(false);
   const [allSet, setAllSet] = useState(false);
+  // M2 (iOS audit 11-16): one sheet at a time. The prompt waits until no other sheet is open (Customize, a
+  // confirm, the push ask) instead of stacking on it; if one stays open it is skipped for now, NOT dismissed.
+  const [clear, setClear] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void waitForNoModal().then((ok) => { if (live && ok) setClear(true); });
+    return () => { live = false; };
+  }, []);
   const queryClient = useQueryClient();
   // has_phone: they already gave a phone, so the box starts with it (Q2646); the consent box stays unticked.
   const { profile } = useCurrentUser();
@@ -44,10 +53,10 @@ export default function SmsPhonePromptDialog({ moment }: { moment: SmsPromptMome
     const t = setTimeout(close, SMS_PROMPT_ALL_SET_MS);
     return () => clearTimeout(t);
   }, [allSet, closed, close]);
-  if (closed) return null;
+  if (closed || !clear) return null;
   return (
     <Dialog open onOpenChange={(o) => { if (!o) close(); }}>
-      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} data-sms-phone-prompt={moment}>
+      <DialogContent keepClose onOpenAutoFocus={(e) => e.preventDefault()} data-sms-phone-prompt={moment}>
         <DialogHero title={allSet ? "You're all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} />
         <DialogBody>
           {/* Every section (Q2646): texts also go for Declutter checkout, pickup and offer deadlines (sms_kind_for). */}

@@ -33,6 +33,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { signupUrlFor, NOTIFY_SIGNUP_URL } from "@/lib/jobIntent";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
+import { GuestSectionSwitch } from "@/components/sections/GuestSectionSwitch";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { feedPhase } from "@/lib/feedPhase";
@@ -255,6 +256,8 @@ const DashboardGuest = () => {
   // differs.
   const toolbar = (
     <>
+    {/* M13 (iOS audit 11-16): the visible "Jobs | Declutter" switch, the same one guest Declutter starts with. */}
+    <GuestSectionSwitch at="jobs" className="mb-2" />
     {shownSearch && <BrowseSearchBar filters={filters} autoFocus={false} className="!w-full mb-3" />}
     <BrowseTasksToolbar
       // Same anchor the Filters button carries, so the desktop-web popover

@@ -49,7 +49,11 @@ function take(part: Part, userId: string, now: number): Promise<unknown> | null 
 export async function takeJobsFeedPrefetch(userId: string, now: number = Date.now()): Promise<JobsFeedPrefetch | null> {
   const p = take("feed", userId, now);
   if (!p) return null;
-  const x = (await within(p, JOBS_PREFETCH_WAIT_MS)) as Partial<JobsFeedPrefetch> | null;
+  return feedShape(await within(p, JOBS_PREFETCH_WAIT_MS));
+}
+
+function feedShape(v: unknown): JobsFeedPrefetch | null {
+  const x = v as Partial<JobsFeedPrefetch> | null;
   if (!x || !isRows(x.rows)) return null;
   const posters = isRows(x.profiles) && isRows(x.stats) && isRows(x.crew) && Array.isArray(x.posterIds) && Array.isArray(x.crewIds);
   return posters ? (x as JobsFeedPrefetch) : { rows: x.rows };
@@ -59,7 +63,11 @@ export async function takeJobsFeedPrefetch(userId: string, now: number = Date.no
 export async function takeJobsCtxPrefetch(userId: string, now: number = Date.now()): Promise<JobsCtxPrefetch | null> {
   const p = take("ctx", userId, now);
   if (!p) return null;
-  const x = (await within(p, JOBS_PREFETCH_WAIT_MS)) as Partial<JobsCtxPrefetch> | null;
+  return ctxShape(await within(p, JOBS_PREFETCH_WAIT_MS));
+}
+
+function ctxShape(v: unknown): JobsCtxPrefetch | null {
+  const x = v as Partial<JobsCtxPrefetch> | null;
   return x && isRows(x.fee) && isRows(x.availability) && isRows(x.applied) && isRows(x.blocks) ? (x as JobsCtxPrefetch) : null;
 }
 
@@ -80,9 +88,52 @@ export function coversPosters(pre: JobsFeedPrefetch, posterIds: readonly string[
 export async function takeJobsMePrefetch(userId: string, now: number = Date.now()): Promise<{ profile: Row | null; isAdmin: boolean } | null> {
   const p = take("me", userId, now);
   if (!p) return null;
-  const x = (await within(p, JOBS_PREFETCH_WAIT_MS)) as { profile?: unknown; admin?: unknown } | null;
+  return meShape(await within(p, JOBS_PREFETCH_WAIT_MS), userId);
+}
+
+function meShape(v: unknown, userId: string): { profile: Row | null; isAdmin: boolean } | null {
+  const x = v as { profile?: unknown; admin?: unknown } | null;
   if (!x || !isRows(x.profile) || !isRows(x.admin) || x.profile.length > 1 || x.admin.length > 1) return null;
   const profile = x.profile[0] ?? null;
   if (profile && profile.user_id !== userId) return null;
   return { profile, isAdmin: x.admin[0]?.role === "admin" };
 }
+
+/**
+ * Builder 2 (speed7, 11-15): the answers that have ALREADY arrived, readable during a render. Signed-in /jobs drew its
+ * skeleton first and the cards only in a second render (~450 ms of CPU at 4x on a phone), although the entry's reads had
+ * answered before the app's code finished downloading. So each query seeds itself from an answer already in hand
+ * (initialData), and the first draw has the cards. This module loads with the page's code, so the .then below is
+ * attached before the first render; an answer still in flight is simply not seeded (the query takes it as before).
+ */
+const settled: Partial<Record<Part, { value: unknown }>> = {};
+{
+  const s = typeof window === "undefined" ? undefined : (window as unknown as Record<string, Slot | undefined>)[KEY];
+  for (const part of ["feed", "ctx", "me"] as const) {
+    // A failed read is never seeded: the query reads for itself, as before.
+    s?.[part]?.then((value) => { settled[part] = { value }; }, () => undefined);
+  }
+}
+
+/**
+ * The settled answer for `part`, shaped, and accepted by `use`; else undefined. Taken ONCE and only when `use` accepts
+ * it (the query's own take then finds nothing), under the same member and freshness rules as take().
+ */
+function takeSettled<T, U>(part: Part, userId: string, shape: (v: unknown) => T | null, use: (x: T) => U | undefined, now: number): { at: number; value: U } | undefined {
+  const s = (window as unknown as Record<string, Slot | undefined>)[KEY];
+  const done = settled[part];
+  if (!s || !s[part] || !done || now - s.at > JOBS_PREFETCH_MAX_AGE_MS || s.userId !== userId) return undefined;
+  const x = shape(done.value);
+  const value = x ? use(x) : undefined;
+  if (value === undefined) return undefined;
+  take(part, userId, now);
+  return { at: s.at, value };
+}
+
+/** The feed's settled first page turned into what `use` draws (undefined when it cannot: nothing is taken). */
+export const takeSettledJobsFeed = <U,>(userId: string, use: (x: JobsFeedPrefetch) => U | undefined, now: number = Date.now()) =>
+  takeSettled("feed", userId, feedShape, use, now);
+export const takeSettledJobsCtx = <U,>(userId: string, use: (x: JobsCtxPrefetch) => U | undefined, now: number = Date.now()) =>
+  takeSettled("ctx", userId, ctxShape, use, now);
+export const takeSettledJobsMe = (userId: string, now: number = Date.now()) =>
+  takeSettled("me", userId, (v) => meShape(v, userId), (x) => x, now);

@@ -13,7 +13,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { crewSpotsFromRows, fetchCrewSpotsOpen } from "@/lib/crewSpots";
-import { coversPosters, takeJobsCtxPrefetch, takeJobsFeedPrefetch } from "@/hooks/jobsPrefetchTake";
+import { coversPosters, takeJobsCtxPrefetch, takeJobsFeedPrefetch, takeSettledJobsCtx, takeSettledJobsFeed, type JobsFeedPrefetch } from "@/hooks/jobsPrefetchTake";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
 import { queryKeys } from "@/lib/queryKeys";
@@ -192,19 +192,176 @@ async function fetchDashboardContext(
     // throws) instead of filtering with nothing.
     unwrap(blocksRes);
 
-    const feeRow = Array.isArray(feeRes.data) ? (feeRes.data)[0] : null;
+    return contextFromRows(userId, feeRes.data, availRes.data, appliedRes.data, blocksRes.data);
+}
+
+/** The context from its four reads' rows (also seeds the first render from the entry's answer: seedFromSettled). */
+function contextFromRows(
+  userId: string,
+  fee: Database["public"]["Functions"]["get_public_platform_settings"]["Returns"] | null,
+  avail: { day_of_week: number; is_available: boolean | null; start_time: string | null; end_time: string | null }[] | null,
+  applied: { job_id: string }[] | null,
+  blocks: { blocker_id: string; blocked_id: string }[] | null,
+) {
+    const feeRow = Array.isArray(fee) ? fee[0] : null;
     // Fall back to the canonical FREE-tier rate (12%), not a magic 10 — a
     // helper with no fee row is on the free plan, and the subscription page
     // already advertises free = 12% / pro = 10% / elite = 8% (LH-30).
     const platformFee = feeRow?.helper_fee_percent ?? TIER_PERKS.free.platformFeePercent;
-    const helperAvailability = availRes.data ?? [];
-    const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
+    const helperAvailability = avail ?? [];
+    const appliedJobIds = new Set((applied ?? []).map((a) => a.job_id));
     const blockedUserIds = new Set<string>();
-    for (const row of (blocksRes.data ?? [])) {
+    for (const row of (blocks ?? [])) {
       if (row.blocker_id === userId) blockedUserIds.add(row.blocked_id);
       if (row.blocked_id === userId) blockedUserIds.add(row.blocker_id);
     }
     return { platformFee, helperAvailability, appliedJobIds, blockedUserIds };
+}
+
+type PosterReads = readonly [
+  { data: Database["public"]["Functions"]["get_safe_profiles"]["Returns"] | null },
+  ReturnType<typeof ratingStatsFromRows>,
+  ReturnType<typeof crewSpotsFromRows>,
+];
+const postersFromPrefetch = (pre: JobsFeedPrefetch): PosterReads => [
+  { data: pre.profiles as unknown as Database["public"]["Functions"]["get_safe_profiles"]["Returns"] },
+  ratingStatsFromRows(pre.stats),
+  crewSpotsFromRows(pre.crew),
+];
+
+/** The first page from the entry's settled answer, or undefined when its posters' reads do not cover the page. */
+function seedFeedPage(pre: JobsFeedPrefetch, blockedUserIds: Set<string>): JobsPage | undefined {
+  const { rows: rawJobs, hasMore } = splitFeedPage(pre.rows as unknown as BrowseJobRow[], (j) => blockedUserIds.has(j.customer_id));
+  const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
+  const crewIds = rawJobs.filter((j) => j.is_group_job).map((j) => j.id as string);
+  if (rawJobs.length === 0 || !coversPosters(pre, posterIds, crewIds)) return undefined;
+  return enrichFeedPage(rawJobs, hasMore, 0, postersFromPrefetch(pre));
+}
+
+/** initialData (and its time) from an entry answer already in hand; called only when React Query builds the query. */
+function seedFromSettled<T, D = T>(take: (userId: string) => { at: number; value: T } | undefined, userId: string | undefined, wrap?: (v: T) => D) {
+  let at = 0;
+  return {
+    initialData: (): D | undefined => {
+      const got = userId ? take(userId) : undefined;
+      if (!got) return undefined;
+      at = got.at;
+      return wrap ? wrap(got.value) : (got.value as unknown as D);
+    },
+    initialDataUpdatedAt: () => at,
+  };
+}
+
+/** Phase 2's join: a page of rows plus its posters' names, ratings, tiers and crew spots. */
+function enrichFeedPage(rawJobs: BrowseJobRow[], hasMore: boolean, offset: number, [profilesRes, reviewStatsMap, crewSpots]: PosterReads): JobsPage {
+  const nameMap = new Map(
+    profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
+  );
+  const avatarMap = new Map<string, string | null>(
+    profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
+  );
+  // Poster ID-verified flag — get_safe_profiles gained is_id_verified in
+  // migration 20260616120000. Until that migration is pushed the RPC
+  // returns rows without the field, so read it via an optional cast and
+  // default to false → the "Verified" badge simply stays hidden.
+  const verifiedMap = new Map<string, boolean>(
+    profilesRes.data?.map((p) => [
+      p.user_id,
+      (p as { is_id_verified?: boolean }).is_id_verified ?? false,
+    ]) || [],
+  );
+  // Applicant counts now come straight off the main feed select —
+  // `applicant_count` has been live on the open_jobs_browse view since
+  // migration 20260616120000 (verified present on prod), so the separate
+  // best-effort round-trip that used to re-query the same view for the
+  // same rows is gone.
+  const applicantCountMap = new Map<string, number>(
+    rawJobs.map((j) => [j.id as string, (j.applicant_count as number | null) ?? 0]),
+  );
+
+  // Poster tier — from get_safe_profiles, the SAME source as name/avatar
+  // above and as the guest dashboard and the /jobs board.
+  //
+  // This used to be its own `.from("profiles").select("user_id,
+  // subscription_tier, subscription_expires_at").in(...)`, with the expiry
+  // folded in here client-side. That read returned ZERO ROWS and no error
+  // for every poster but yourself: RLS does not let one member select
+  // another member's `profiles` row (verified live 2026-09-11 with a real
+  // authenticated token — `[]`; the same ids through get_safe_profiles
+  // return `subscription_tier: "pro"`). So the Pro/Elite Poster chip on
+  // JobPosterCard was dead on the signed-in dashboard for every job, while
+  // the logged-out dashboard — which already read the RPC — showed it. One
+  // fact, two sources, and the silent zero-row read is the one that lost.
+  //
+  // get_safe_profiles is the ONLY sanctioned route by which one member
+  // learns another's tier, and it resolves expiry server-side
+  // (20260901022522: `CASE WHEN subscription_expires_at <= now() THEN NULL`),
+  // so no client-side expiry check is needed or wanted here.
+  const posterTierMap = new Map<string, string | null>(
+    profilesRes.data?.map((p) => [p.user_id, p.subscription_tier ?? null]) || [],
+  );
+
+  const now = new Date();
+  // A one-off job whose day has ENDED (in Central) is stale and must drop
+  // out of the feed even if its expires_at is null or still in the
+  // future. Flexible-schedule and recurring jobs have no single hard
+  // date, so they're exempt from the past-date cull.
+  //
+  // NO applied-to cull here (2026-10-05). It is a VIEWER cull and it lives
+  // at render, in useDashboardFilters, through isJobExcludedForViewer —
+  // the one predicate the header count and the map read from the same
+  // live set. Baked into this page it was a second, frozen (and persisted)
+  // copy of "applied" that a reload could pair with an older context: the
+  // list hid a job the count and the map still showed. The BLOCKED cull
+  // above stays here as well, deliberately: it fails closed (Q573) and the
+  // render layer re-applies it from the live set.
+  const enriched: EnrichedJob[] = rawJobs
+    .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
+    .filter((j) => {
+      if (j.is_flexible_schedule || j.is_recurring || !j.date_needed) return true;
+      // The job's day ends at Central midnight for every reader, not at
+      // the reader's own (Q21) — see jobDayHasEnded.
+      // Q2408: a window job ends with its LAST day, not its first.
+      return !jobDayHasEnded(jobLastDay(j) ?? j.date_needed, now.getTime());
+    })
+    .map((j) => {
+      const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
+      const stats = reviewStatsMap.get(j.customer_id);
+      return {
+        ...j,
+        posterName: nameMap.get(j.customer_id) || "a neighbor",
+        posterAvatarUrl: avatarMap.get(j.customer_id) ?? null,
+        posterReviewCount: stats?.count ?? 0,
+        posterAvgRating: stats?.avg ?? 0,
+        posterCompletedJobs: 0,
+        posterSubscriptionTier: posterTierMap.get(j.customer_id) ?? null,
+        isBoosted,
+        applicant_count: applicantCountMap.get(j.id) ?? 0,
+        posterIdVerified: verifiedMap.get(j.customer_id) ?? false,
+        crew_spots_open: crewSpots.get(j.id) ?? null,
+      };
+    });
+
+  // NO poster-tier re-sort here any more, deliberately.
+  //
+  // This used to end with an unbounded `tierWeight` sort (elite 3, pro 1,
+  // else 0) that lifted every Elite poster's job above everything else
+  // outright. It was wrong twice over. It was an OVERRIDE of the signals a
+  // browsing helper actually needs — freshness, budget, distance — on the
+  // surface where they are the customer of the ranking. And it never
+  // reached the screen anyway: `useDashboardFilters` re-ranks `allJobs`
+  // through `sortJobsSmart`, whose only tie-break is input index, and
+  // `smartScore` is continuous, so exact ties essentially never happen and
+  // this ordering was discarded on every render. Same defect, same shape,
+  // as the applicant list's discarded tier sort (applicantScoring.ts).
+  //
+  // The perk still exists — it is now a BOUNDED term inside `smartScore`
+  // (`POSTER_PLACEMENT_MAX_POINTS`, capped under the smallest discrete
+  // signal that scorer awards), where it survives the downstream sort and
+  // cannot outrank a genuinely better-matched job. `posterSubscriptionTier`
+  // is set above and is what that term reads. Re-adding a sort here would
+  // not reinforce it; it would be silently thrown away again.
+      return { jobs: enriched, nextOffset: hasMore ? offset + PAGE_SIZE : null };
 }
 
 export function useDashboardData() {
@@ -229,6 +386,7 @@ export function useDashboardData() {
     // Hold the prior ctx during a background refetch rather than briefly
     // returning undefined (which would make the feed query re-disable).
     placeholderData: keepPreviousData,
+    ...seedFromSettled((id) => takeSettledJobsCtx(id, (x) => contextFromRows(id, x.fee as never, x.availability as never, x.applied as never, x.blocks as never)), user?.id),
   });
 
   const { online } = useOnlineStatus();
@@ -419,128 +577,22 @@ export function useDashboardData() {
       // B43 (Q1158): the entry's prefetch also read these three for every poster on the page (a superset of
       // posterIds, which drops anyone blocked); used only when it covers every id asked for here.
       const postersPre = feedPre && coversPosters(feedPre, posterIds, crewIds) ? feedPre : null;
-      const [profilesRes, reviewStatsMap, crewSpots] = postersPre
-        ? [
-            { data: postersPre.profiles as unknown as Database["public"]["Functions"]["get_safe_profiles"]["Returns"] },
-            ratingStatsFromRows(postersPre.stats),
-            crewSpotsFromRows(postersPre.crew),
-          ] as const
+      return enrichFeedPage(rawJobs, hasMore, offset, postersPre
+        ? postersFromPrefetch(postersPre)
         : await feedPhase((abort) => Promise.all([
             supabase.rpc("get_safe_profiles", { user_ids: posterIds }).abortSignal(abort),
             fetchRatingStats(posterIds),
             fetchCrewSpotsOpen(crewIds),
-          ]), signal);
-
-      const nameMap = new Map(
-        profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
-      );
-      const avatarMap = new Map<string, string | null>(
-        profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
-      );
-      // Poster ID-verified flag — get_safe_profiles gained is_id_verified in
-      // migration 20260616120000. Until that migration is pushed the RPC
-      // returns rows without the field, so read it via an optional cast and
-      // default to false → the "Verified" badge simply stays hidden.
-      const verifiedMap = new Map<string, boolean>(
-        profilesRes.data?.map((p) => [
-          p.user_id,
-          (p as { is_id_verified?: boolean }).is_id_verified ?? false,
-        ]) || [],
-      );
-      // Applicant counts now come straight off the main feed select —
-      // `applicant_count` has been live on the open_jobs_browse view since
-      // migration 20260616120000 (verified present on prod), so the separate
-      // best-effort round-trip that used to re-query the same view for the
-      // same rows is gone.
-      const applicantCountMap = new Map<string, number>(
-        rawJobs.map((j) => [j.id as string, (j.applicant_count as number | null) ?? 0]),
-      );
-
-      // Poster tier — from get_safe_profiles, the SAME source as name/avatar
-      // above and as the guest dashboard and the /jobs board.
-      //
-      // This used to be its own `.from("profiles").select("user_id,
-      // subscription_tier, subscription_expires_at").in(...)`, with the expiry
-      // folded in here client-side. That read returned ZERO ROWS and no error
-      // for every poster but yourself: RLS does not let one member select
-      // another member's `profiles` row (verified live 2026-09-11 with a real
-      // authenticated token — `[]`; the same ids through get_safe_profiles
-      // return `subscription_tier: "pro"`). So the Pro/Elite Poster chip on
-      // JobPosterCard was dead on the signed-in dashboard for every job, while
-      // the logged-out dashboard — which already read the RPC — showed it. One
-      // fact, two sources, and the silent zero-row read is the one that lost.
-      //
-      // get_safe_profiles is the ONLY sanctioned route by which one member
-      // learns another's tier, and it resolves expiry server-side
-      // (20260901022522: `CASE WHEN subscription_expires_at <= now() THEN NULL`),
-      // so no client-side expiry check is needed or wanted here.
-      const posterTierMap = new Map<string, string | null>(
-        profilesRes.data?.map((p) => [p.user_id, p.subscription_tier ?? null]) || [],
-      );
-
-      const now = new Date();
-      // A one-off job whose day has ENDED (in Central) is stale and must drop
-      // out of the feed even if its expires_at is null or still in the
-      // future. Flexible-schedule and recurring jobs have no single hard
-      // date, so they're exempt from the past-date cull.
-      //
-      // NO applied-to cull here (2026-10-05). It is a VIEWER cull and it lives
-      // at render, in useDashboardFilters, through isJobExcludedForViewer —
-      // the one predicate the header count and the map read from the same
-      // live set. Baked into this page it was a second, frozen (and persisted)
-      // copy of "applied" that a reload could pair with an older context: the
-      // list hid a job the count and the map still showed. The BLOCKED cull
-      // above stays here as well, deliberately: it fails closed (Q573) and the
-      // render layer re-applies it from the live set.
-      const enriched: EnrichedJob[] = rawJobs
-        .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
-        .filter((j) => {
-          if (j.is_flexible_schedule || j.is_recurring || !j.date_needed) return true;
-          // The job's day ends at Central midnight for every reader, not at
-          // the reader's own (Q21) — see jobDayHasEnded.
-          // Q2408: a window job ends with its LAST day, not its first.
-          return !jobDayHasEnded(jobLastDay(j) ?? j.date_needed, now.getTime());
-        })
-        .map((j) => {
-          const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
-          const stats = reviewStatsMap.get(j.customer_id);
-          return {
-            ...j,
-            posterName: nameMap.get(j.customer_id) || "a neighbor",
-            posterAvatarUrl: avatarMap.get(j.customer_id) ?? null,
-            posterReviewCount: stats?.count ?? 0,
-            posterAvgRating: stats?.avg ?? 0,
-            posterCompletedJobs: 0,
-            posterSubscriptionTier: posterTierMap.get(j.customer_id) ?? null,
-            isBoosted,
-            applicant_count: applicantCountMap.get(j.id) ?? 0,
-            posterIdVerified: verifiedMap.get(j.customer_id) ?? false,
-            crew_spots_open: crewSpots.get(j.id) ?? null,
-          };
-        });
-
-      // NO poster-tier re-sort here any more, deliberately.
-      //
-      // This used to end with an unbounded `tierWeight` sort (elite 3, pro 1,
-      // else 0) that lifted every Elite poster's job above everything else
-      // outright. It was wrong twice over. It was an OVERRIDE of the signals a
-      // browsing helper actually needs — freshness, budget, distance — on the
-      // surface where they are the customer of the ranking. And it never
-      // reached the screen anyway: `useDashboardFilters` re-ranks `allJobs`
-      // through `sortJobsSmart`, whose only tie-break is input index, and
-      // `smartScore` is continuous, so exact ties essentially never happen and
-      // this ordering was discarded on every render. Same defect, same shape,
-      // as the applicant list's discarded tier sort (applicantScoring.ts).
-      //
-      // The perk still exists — it is now a BOUNDED term inside `smartScore`
-      // (`POSTER_PLACEMENT_MAX_POINTS`, capped under the smallest discrete
-      // signal that scorer awards), where it survives the downstream sort and
-      // cannot outrank a genuinely better-matched job. `posterSubscriptionTier`
-      // is set above and is what that term reads. Re-adding a sort here would
-      // not reinforce it; it would be silently thrown away again.
-      return { jobs: enriched, nextOffset: hasMore ? offset + PAGE_SIZE : null };
+          ]), signal));
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
+    // speed7 (11-15): the entry's first page, when it and the context have already answered, is the first render's
+    // data, so the first draw has the cards (jobsPrefetchTake.ts says why). seedFeedPage takes it only if it can draw.
+    ...seedFromSettled((id) => {
+      const ctxNow = queryClient.getQueryData<DashboardContext>(queryKeys.dashboard.context(id));
+      if (!ctxNow) return undefined;
+      return takeSettledJobsFeed(id, (pre) => seedFeedPage(pre, ctxNow.blockedUserIds));
+    }, user?.id, (page: JobsPage) => ({ pages: [page], pageParams: [0] })),
     // NOTE: deliberately NOT gated on `!!ctx` — see the ensureQueryData race
     // in the queryFn above. Gating here made the feed wait a full round-trip
     // for data it only uses to filter the response. Nor on the profile read

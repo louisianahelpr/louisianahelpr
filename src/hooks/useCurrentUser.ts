@@ -6,7 +6,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { authUserChangedFrom } from "@/lib/authUserChanged";
 import { queryKeys } from "@/lib/queryKeys";
-import { takeJobsMePrefetch } from "@/hooks/jobsPrefetchTake";
+import { takeJobsMePrefetch, takeSettledJobsMe } from "@/hooks/jobsPrefetchTake";
 import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -301,6 +301,20 @@ const fetchCurrentUser = async (
  * always the real mechanism; it just was not the one the comments credited.
  */
 
+/** initialData from the entry's "me" answer when it has already arrived; called only when React Query builds the query. */
+function seedFromSettledMe(userId: string | undefined) {
+  let at = 0;
+  return {
+    initialData: () => {
+      const got = userId ? takeSettledJobsMe(userId) : undefined;
+      if (!got) return undefined;
+      at = got.at;
+      return { profile: got.value.profile as Profile | null, isAdmin: got.value.isAdmin, adminCheckFailed: false };
+    },
+    initialDataUpdatedAt: () => at,
+  };
+}
+
 export const useCurrentUser = (): CurrentUser => {
   const { user, isReady } = useAuthReady();
   const queryClient = useQueryClient();
@@ -309,6 +323,8 @@ export const useCurrentUser = (): CurrentUser => {
     queryKey: queryKeys.currentUser.byId(user?.id),
     queryFn: () => fetchCurrentUser(user!.id),
     enabled: isReady && !!user,
+    // speed7 (11-15): an entry read that has already answered seeds the first render (jobsPrefetchTake.ts says why).
+    ...seedFromSettledMe(user?.id),
     // This is the ONLY mechanism that refreshes the profile — see the block
     // comment above `useCurrentUser` for why there is no realtime channel.
     // Short staleTime so approval-status changes (made by an admin) get picked

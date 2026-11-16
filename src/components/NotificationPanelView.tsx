@@ -103,7 +103,7 @@ export function NotificationPanelView({
     <FilterChips<Filter>
       chips={[
         { value: "all", label: t("notif.all") },
-        { value: "unread", label: unreadCount > 0 ? t("msg.filterUnreadN", { n: formatUnreadBadge(unreadCount) }) : t("notif.unread") },
+        { value: "unread", label: unreadCount > 0 ? t("notif.unreadN", { n: formatUnreadBadge(unreadCount) }) : t("notif.unread") },
       ]}
       value={filter ?? "all"}
       onChange={setFilter}

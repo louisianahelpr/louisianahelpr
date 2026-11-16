@@ -11,6 +11,7 @@ export const enNotifications = {
   "notif.markAllRead": "Mark all read",
   "notif.filter": "Filter notifications",
   "notif.unread": "Unread",
+  "notif.unreadN": "Unread · {n}",
   "notif.all": "All",
   "notif.unreadDot": "Unread",
   "notif.messagesUnread": "Messages, {n} unread",

@@ -60,6 +60,8 @@ const SCALAR_STRING: Record<string, string> = {
   CFBundleDisplayName: META.display.name,
   CFBundleName: META.display.product_name,
   LSApplicationCategoryType: META.display.category_uti,
+  // L14 (11-16): the build number is not copied as a literal; Info.plist reads the project setting.
+  CFBundleVersion: "$(CURRENT_PROJECT_VERSION)",
 };
 const SCALAR_BOOL: Record<string, boolean> = {
   ITSAppUsesNonExemptEncryption: META.build.uses_non_exempt_encryption,

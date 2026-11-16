@@ -91,6 +91,10 @@ const upsertPlistBool = (key, value) => {
 
 upsertPlistString("CFBundleDisplayName", metadata.displayName);
 upsertPlistString("CFBundleName", metadata.productName);
+// L14 (iOS audit 11-16): CFBundleVersion follows the project's CURRENT_PROJECT_VERSION instead of a
+// hard-coded number, so the build number lives in one place and an xcodebuild CURRENT_PROJECT_VERSION=
+// override reaches the built app (the hard-coded 7112 locked every Simulator build out at the update gate).
+upsertPlistString("CFBundleVersion", "$(CURRENT_PROJECT_VERSION)");
 upsertPlistString("LSApplicationCategoryType", metadata.category);
 upsertPlistBool("ITSAppUsesNonExemptEncryption", metadata.usesNonExemptEncryption);
 

@@ -1,27 +1,22 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 /**
  * A Declutter list with nothing in it yet (owner 2026-10-28: designed empty states, not a bare grey sentence): the
- * list's icon on the olive tint, what will show here, and when. A dashed edge: the slot the first one fills.
- * Selling's empties wore it first (DeclutterTabParts); Q2568/Q2577 (audit 1102a) gave Wanted's and Deliver's empties
- * the same card. Guards: declutterWantedForm.test.tsx (hub empties) and deliverAcceptConfirms.test.tsx (Deliver).
+ * list's icon, what will show here, and when. Selling's empties wore it first (DeclutterTabParts); Q2568/Q2577 (audit
+ * 1102a) gave Wanted's and Deliver's empties the same card. M5 (iOS design audit 11-16): drawn by the shared
+ * EmptyState's `compact` variant, no longer a dashed card of its own. Guards: declutterWantedForm.test.tsx (hub
+ * empties), deliverAcceptConfirms.test.tsx (Deliver) and src/test/emptyStatesOneComponent.test.ts.
  */
-export function DeclutterEmptyCard({ icon: Icon, title, children, action, ...rest }: {
+export function DeclutterEmptyCard({ icon, title, children, action, ...rest }: {
   icon: LucideIcon; title: string; children: ReactNode;
   /** Q2639: the list's one way to fill it (Your listings: Sell an item), under the words. */
   action?: ReactNode;
 } & HTMLAttributes<HTMLDivElement>) {
   return (
-    <div data-empty-card="" className="flex items-start gap-3 rounded-[20px] border border-dashed border-border bg-card/60 px-4 py-4" {...rest}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--olive)/0.35)] text-[hsl(var(--bark))]" aria-hidden>
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="min-w-0">
-        <p className="text-ds-15 font-semibold">{title}</p>
-        <p className="text-ds-13 text-muted-foreground">{children}</p>
-        {action}
-      </div>
+    <div data-empty-card="" {...rest}>
+      <EmptyState variant="compact" icon={icon} title={title} body={children} action={action} />
     </div>
   );
 }

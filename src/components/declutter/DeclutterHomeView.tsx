@@ -27,7 +27,7 @@ import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates,
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyPayouts } from "@/lib/declutter/handover";
 import { listingNextStep, listingRowLine } from "./listingStatusLine";
-import { Tags } from "lucide-react";
+import { Search, Tags } from "lucide-react";
 import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
 import { useTradedFor } from "./useMyTrades";
@@ -217,7 +217,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
         {/* D3 (Cowork audit 2026-10-20): the copy said 'Tap "Sell an item"' with no
             such button on screen (only the top bar's "+"). The action is here, as
             the section's own pill, to the same path as the "+". */}
-        {/* Q2639 (audit 1102c R14): the same dashed, iconed empty card as "No offers yet" and "Nothing sold yet". */}
+        {/* Q2639 (audit 1102c R14): the same iconed empty card as "No offers yet" and "Nothing sold yet". */}
         <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")} data-seller-empty=""
           action={<><HideSectionCreateFab /><SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>{sectionByKey("declutter").add.label}</SectionActionPill></>}>
           {t("decl.sl.emptyBody")}
@@ -232,14 +232,13 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
     return (
       <section className="space-y-2" aria-label={t("decl.sl.yours")} data-selling-search-empty="">
         <SectionHeading title={t("decl.sl.yours")} />
-        <div className="rounded-[20px] border border-dashed border-border bg-card px-4 py-6 text-center">
-          <p className="break-words text-ds-15 font-semibold">{t("decl.sl.noMatch", { q: search.trim() })}</p>
-          {onClearSearch && (
-            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onClearSearch} data-selling-search-clear="">
+        {/* M5 (iOS audit 11-16): the shared empty card, not a dashed box of its own. */}
+        <DeclutterEmptyCard icon={Search} title={t("decl.sl.noMatch", { q: search.trim() })}
+          action={onClearSearch && (
+            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onClearSearch} data-selling-search-clear="">
               {t("decl.sl.clear")}
             </Button>
-          )}
-        </div>
+          )}>{null}</DeclutterEmptyCard>
       </section>
     );
   }

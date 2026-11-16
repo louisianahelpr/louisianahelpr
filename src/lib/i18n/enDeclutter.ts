@@ -23,6 +23,7 @@ export const enDeclutter = {
   "decl.card.newTitle": "New since you last looked at this search",
   "decl.card.wasPrice": "Price dropped, was ",
   "decl.card.bundle": "Bundle deal",
+  "decl.card.yours": "Yours",
 
   "decl.card.signUpToSave": "Sign up to save {title}",
   "decl.card.savedByShort": ", saved by {n}",

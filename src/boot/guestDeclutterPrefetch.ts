@@ -146,6 +146,6 @@ export function startGuestDeclutterPrefetch(base: string, key: string, search: s
     // index.html's script drew these photos into #lh-declutter-shell, first row first (Q2705, 11-08): preloading all of
     // them now would split the slow link four ways again.
     if (document.documentElement.getAttribute("data-lh-app-shell") === "declutter") return;
-    preloadFirstCardPhotos(firstCardPhotoPreloads(base, { items: pre?.items ?? i, photos: p }, ""));
+    preloadFirstCardPhotos(firstCardPhotoPreloads(base, { items: pre?.items ?? i, photos: p }));
   });
 }

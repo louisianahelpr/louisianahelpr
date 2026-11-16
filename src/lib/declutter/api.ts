@@ -139,7 +139,8 @@ export interface DraftFields {
 /** Live (and reserved) listings the switch lets this member read; RLS decides. */
 export async function fetchLiveItems(): Promise<DeclutterItem[]> {
   // Started at boot on a cold /declutter (src/boot/declutterPrefetch.ts); taken once. Failed, old, not deployed yet, or
-  // a list longer than the answer: ask as before. It leaves out the member's own listings; every caller drops them.
+  // a list longer than the answer: ask as before. It holds the member's own live listings too (owner 2026-11-16: Browse
+  // shows them, marked "Yours"; 20261116152258).
   const prefetched = await takeFirstScreenItems();
   if (prefetched) return prefetched as unknown as DeclutterItem[];
   // Q2705: a guest's cold /declutter asked this same read from the entry (src/boot/guestDeclutterPrefetch.ts).

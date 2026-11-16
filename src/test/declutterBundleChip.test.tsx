@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261030135334_declutter_bundle_sellers.sql | REVOKE ALL ON FUNCTION public.declutter_bundle_sellers(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_bundle_sellers(uuid[]) FROM PUBLIC;
  * @mutate supabase/migrations/20261030135334_declutter_bundle_sellers.sql |   PERFORM public.require_feature('declutter'); |
  * @mutate src/components/declutter/DeclutterItemCard.tsx |       {bundle && <Badge | {false && <Badge
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   bundle={bundles.data?.has(item.seller_id) ?? false} |                   bundle={false}
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   bundle={item.seller_id !== userId && (bundles.data?.has(item.seller_id) ?? false)} |                   bundle={false}
  * @mutate src/lib/declutter/bundle.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_bundle_sellers")) return new Set(); |
  */
 import { readFileSync } from "node:fs";
@@ -61,7 +61,7 @@ describe("D-NEW12: the Bundle deal chip", () => {
   it("Browse asks once for the page's sellers and hands each card its seller's answer", () => {
     const src = blankComments(readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8"));
     expect(src).toContain("queryFn: () => fetchBundleSellers(sellerIds)");
-    expect(src).toContain("bundle={bundles.data?.has(item.seller_id) ?? false}");
+    expect(src).toContain("bundle={item.seller_id !== userId && (bundles.data?.has(item.seller_id) ?? false)}");
     expect(src).toMatch(/const sellerIds = useMemo\(\(\) => \[\.\.\.new Set\(others\.map\(\(i\) => i\.seller_id\)\)\]\.sort\(\), \[others\]\);/);
   });
 

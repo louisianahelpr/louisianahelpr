@@ -2,7 +2,8 @@
  * Declutter > Free (OWN-FREE; owner request via the lead, 2026-10-30): the live free items nearby, closest first.
  * The same read and the same rule as Browse's "Free" filter (the Free section, 20261027170717): fetchLiveItems
  * under Browse's query key (one cache), then applyBrowseFilters with only freeOnly on, so the tab and the filter
- * can never disagree about what is free. A member's own listings are left out, as on Browse.
+ * can never disagree about what is free. A member's own free listings show too, marked "Yours", as on Browse (owner
+ * 2026-11-16).
  */
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -30,8 +31,8 @@ export function FreeView({ userId }: { userId: string }) {
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
   const rows = useMemo(() => {
     const from = lat !== null && lng !== null ? { lat, lng } : null;
-    return applyBrowseFilters(nearestFirst((items.data ?? []).filter((i) => i.seller_id !== userId), from, null), FREE_ONLY, "", undefined);
-  }, [items.data, userId, lat, lng]);
+    return applyBrowseFilters(nearestFirst(items.data ?? [], from, null), FREE_ONLY, "", undefined);
+  }, [items.data, lat, lng]);
   const ids = rows.map((r) => r.item.id);
   const photos = useQuery({ queryKey: ["declutter", "photos", ids.join(",")], queryFn: () => fetchPhotos(ids), enabled: ids.length > 0 });
   const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
@@ -55,7 +56,7 @@ export function FreeView({ userId }: { userId: string }) {
       <ul className={DECLUTTER_GRID} data-testid="declutter-free-list">
         {rows.map(({ item, miles }) => (
           <li key={item.id} className="min-w-0">
-            <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={approximate}
+            <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={approximate} mine={item.seller_id === userId}
               save={{
                 on: watching.data?.has(item.id) ?? false,
                 toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),

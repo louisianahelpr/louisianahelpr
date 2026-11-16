@@ -454,13 +454,14 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   });
 
   // OWN-FREE (owner via the lead, 2026-10-30): a Free tab next to Wanted, for everyone (the Free section has no
-  // switch of its own), listing the live free items of OTHER members by Browse's own read and "Free" rule.
+  // switch of its own), listing the live free items by Browse's own read and "Free" rule; the member's own show too,
+  // marked "Yours" (owner 2026-11-16, as on Browse).
   // @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "free", label: "Free", labelKey: "decl.tab.free" },\n |
   // @mutate src/components/declutter/DeclutterHomeView.tsx |               : view === "free" ? <FreeView userId={user.id} /> |               : view === "free" ? <WantedView />
   // @mutate src/components/declutter/DeclutterFreeView.tsx | const FREE_ONLY = { ...NO_FILTERS, freeOnly: true }; | const FREE_ONLY = { ...NO_FILTERS };
-  // @mutate src/components/declutter/DeclutterFreeView.tsx | (items.data ?? []).filter((i) => i.seller_id !== userId) | (items.data ?? [])
+  // @mutate src/components/declutter/DeclutterFreeView.tsx | nearestFirst(items.data ?? [], from, null) | nearestFirst((items.data ?? []).filter((i) => i.seller_id !== userId), from, null)
   // @mutate src/components/declutter/DeclutterHomeView.tsx | const MINE_TABS_FREE = [...MINE_TABS, "free"] as const; | const MINE_TABS_FREE = [...MINE_TABS] as const;
-  it("the Free tab lists only other members' live free items, and says so when there are none", async () => {
+  it("the Free tab lists the live free items, your own marked Yours, and says so when there are none", async () => {
     state.live = [
       { ...ITEM, id: "f1", seller_id: "s9", title: "Free bookshelf", price_cents: 0, current_price_cents: 0 },
       { ...ITEM, id: "f2", seller_id: "s9", title: "Brass floor lamp" },
@@ -470,8 +471,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByText("Free bookshelf")).toBeInTheDocument();
     expect(tab(/^Free/)).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByText("Brass floor lamp")).toBeNull();
-    expect(screen.queryByText("My own free crib")).toBeNull();
-    expect(screen.getByTestId("declutter-free-list").querySelectorAll("li").length).toBe(1);
+    expect(screen.getByText("My own free crib").closest("li")?.querySelector("[data-card-mine]")?.textContent).toBe("Yours");
+    expect(screen.getByText("Free bookshelf").closest("li")?.querySelector("[data-card-mine]")).toBeNull();
+    expect(screen.getByTestId("declutter-free-list").querySelectorAll("li").length).toBe(2);
     first.unmount();
     // Wanted off: Free is still a tab.
     state.wantedOn = false;

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-16T05:22Z",
+  "measured_at": "2026-11-16T16:29Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43742590288",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43855620891",
         "runTruncated": false
       },
       {
@@ -290,7 +290,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4222
       },
       {
         "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
@@ -445,19 +445,19 @@
         "issue": null
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -507,6 +507,14 @@
         "status": "open",
         "title": "analytics: review_left stopped recording (real users acted, zero events)",
         "issue": null
+      },
+      {
+        "fingerprint": "18d08f75c165ca1b98b7adeeabf3ab4a",
+        "source_kind": "error_logs",
+        "source": "declutter_handover_sweep",
+        "status": "open",
+        "title": "declutter_handover_sweep: <id> failed: order_not_paid",
+        "issue": null
       }
     ]
   },
@@ -539,6 +547,7 @@
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
+    "ledger 18d08f75c165": "Q2817",
     "ledger 227a34518198": "Q2801",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 308b390594da": "Q2804",

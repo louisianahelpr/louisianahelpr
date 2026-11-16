@@ -30,7 +30,7 @@
  * @mutate src/pages/jobs/JobsSection.tsx |           <ScrollAwayRows>{tab === "browse" && browse?.chips}</ScrollAwayRows> |           <ScrollAwayRows><SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} />{tab === "browse" && browse?.chips}</ScrollAwayRows>
  * @mutate src/pages/jobs/JobsSection.tsx |   return <><ScrollAwayScope><Dashboard embeddedHeader={makeHeader} /></ScrollAwayScope>{fab}</>; |   return <><Dashboard embeddedHeader={makeHeader} />{fab}</>;
  * @mutate src/pages/home/Dashboard.tsx |       titleCardClassName={isWebDesktop ? "" : "!overflow-visible z-10"} |       titleCardClassName=""
- * @mutate src/components/declutter/DeclutterGuestHome.tsx |   } : { search: browse.search, tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows> }; |   } : { search: browse.search, tabs: browse.chips };
+ * @mutate src/components/declutter/DeclutterGuestHome.tsx | <ScrollAwayRows>{browse.chips}</ScrollAwayRows></>, | {browse.chips}</>,
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -194,7 +194,7 @@ describe("3. wired into Jobs Browse and Declutter Browse", () => {
   it("Declutter: the tabs stay pinned and the chips slide (member), the guest chips slide, SectionScreen draws the spacer first in its scroll column", () => {
     const decl = code("src/components/declutter/DeclutterHomeView.tsx");
     // A guest's Browse chrome lives in its own file since Q2705 (11-14).
-    expect(code("src/components/declutter/DeclutterGuestHome.tsx")).toContain("tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows>");
+    expect(code("src/components/declutter/DeclutterGuestHome.tsx")).toContain("<ScrollAwayRows>{browse.chips}</ScrollAwayRows></>,");
     // The tabs stay pinned like Jobs' (M14, owner 11-16 "keep tabs pinned"); only Browse's chips slide.
     expect(decl).toMatch(/tabs: \(\s*<>\s*<SectionTabs [^>]*\/>\s*<ScrollAwayRows off=\{!browse\}>\{browse\?\.chips\}<\/ScrollAwayRows>/);
     expect(decl).not.toMatch(/<ScrollAwayRows[^>]*>\s*<SectionTabs/);

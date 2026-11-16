@@ -50,7 +50,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sofa } from "lucide-react";
@@ -338,11 +338,11 @@ describe("the chip row fits", () => {
 });
 
 describe("the screen", () => {
-  const renderList = (sectionEmpty: Parameters<typeof ConversationList>[0]["sectionEmpty"], mainEmptyBody?: string) =>
+  const renderList = (sectionEmpty: Parameters<typeof ConversationList>[0]["sectionEmpty"], mainEmptyBody?: string, conversations: Conversation[] = []) =>
     render(
       <MemoryRouter>
         <ConversationList
-          conversations={[]}
+          conversations={conversations}
           loading={false}
           loadError={false}
           retryInbox={vi.fn()}
@@ -366,6 +366,27 @@ describe("the screen", () => {
     expect(screen.queryByRole("button", { name: /conversation filters|filter conversations/i })).toBeNull();
     expect(screen.queryByRole("menuitemradio", { name: /^(Active|All)/ })).toBeNull();
     expect(document.getElementById("inbox-filter-tabs")).toBeNull();
+  });
+
+  // A section's own list that is not threads (Shops' / Homes' chat lists): it leads the tab, and is handed the
+  // empty box to show in its place only while the tab has no threads.
+  function TestLead({ empty }: { empty: ReactNode }) {
+    return <div data-testid="section-lead">LEAD ROWS{empty != null && <div data-testid="lead-empty">{empty}</div>}</div>;
+  }
+  const leadEmpty = { icon: Sofa, title: "No Shops messages yet", body: "b", Lead: TestLead };
+
+  it("a section tab with a Lead and no threads: the Lead is drawn, holding the tab's empty box", () => {
+    renderList(leadEmpty);
+    expect(screen.getByTestId("section-lead").textContent).toContain("LEAD ROWS");
+    expect(within(screen.getByTestId("lead-empty")).getByText("No Shops messages yet")).toBeInTheDocument();
+    expect(screen.getAllByText("No Shops messages yet")).toHaveLength(1);
+  });
+
+  it("a section tab with a Lead and threads: the Lead leads the thread list, with no empty box", () => {
+    renderList(leadEmpty, undefined, [JOB]);
+    expect(screen.getByTestId("section-lead").textContent).toBe("LEAD ROWS");
+    expect(screen.queryByTestId("lead-empty")).toBeNull();
+    expect(screen.queryByText("No Shops messages yet")).toBeNull();
   });
 
   it("the Jobs tab keeps the Jobs empty state, whose action goes to Jobs > Browse", () => {

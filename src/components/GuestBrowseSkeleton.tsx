@@ -39,7 +39,7 @@ export const GUEST_FEED_RESERVE_CLASS = "min-h-screen md:min-h-0 content-start";
  * restated from Navbar.tsx / PublicLayout.tsx.
  *
  * NATIVE keeps the PageScaffold-shaped placeholder below: that is the native
- * branch's shell (DashboardGuest's PageScaffold + DashboardTitleBar).
+ * branch's shell (DashboardGuest's PageScaffold + the members' AppTopBar, M13).
  *
  * Deliberately light (Skeleton, JobCardSkeleton, PageHeader) so it stays in
  * the eager bundle and renders before the route chunk arrives.
@@ -59,11 +59,11 @@ const GuestBrowseSkeleton = () => {
   >
     <span className="sr-only">Loading jobs…</span>
 
-    {/* Header row — mirrors the guest dashboard's logo + Log in / Sign up. */}
+    {/* Header row — mirrors the guest feed's AppTopBar (M13, owner 11-16): the search field, then Log in / Join free. */}
     <div className="glass-header sticky top-0 z-50">
-      <div className="mx-auto w-full max-w-3xl lg:max-w-5xl flex h-14 items-center justify-between px-5 lg:px-8">
-        <Skeleton className="h-7 w-24 rounded-ds-md" />
-        <div className="flex items-center gap-2">
+      <div className="mx-auto w-full max-w-3xl lg:max-w-5xl flex h-14 items-center justify-between gap-2 px-5 lg:px-8">
+        <Skeleton className="h-11 min-w-0 flex-1 rounded-full" />
+        <div className="flex shrink-0 items-center gap-2">
           <Skeleton className="h-9 w-16 rounded-ds-md" />
           <Skeleton className="h-9 w-20 rounded-ds-md" />
         </div>

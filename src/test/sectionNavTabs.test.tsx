@@ -25,7 +25,7 @@
  * go red.
  *
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | { path: "/rentals", icon: KeyRound, label: "Homes", feature: "rentals" as const }, | { path: "/rentals", icon: KeyRound, label: "Rentals", feature: "rentals" as const },
- * @mutate src/components/mobileNav/useSectionTabs.ts |     return { ...s, on: on[s.feature], preview, listed: sectionListedHere({ on: on[s.feature], preview }) }; |     return { ...s, on: true, preview, listed: sectionListedHere({ on: on[s.feature], preview }) };
+ * @mutate src/components/mobileNav/useSectionTabs.ts |     return { ...s, on: on[s.feature], preview, listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview }) }; |     return { ...s, on: true, preview, listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview }) };
  * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !unknown && (!on \|\| isPreview(s)); |     const soon = !unknown && (!on);
  * (Owner 2026-10-21: on Explore a closed section says "Soon" ON its tab and a
  * tap does nothing, no toast popping up elsewhere; the row is the LIGHTER

@@ -196,7 +196,7 @@ async function fetchDashboardContext(
 }
 
 /** The context from its four reads' rows (also seeds the first render from the entry's answer: seedFromSettled). */
-function contextFromRows(
+export function contextFromRows(
   userId: string,
   fee: Database["public"]["Functions"]["get_public_platform_settings"]["Returns"] | null,
   avail: { day_of_week: number; is_available: boolean | null; start_time: string | null; end_time: string | null }[] | null,
@@ -230,7 +230,7 @@ const postersFromPrefetch = (pre: JobsFeedPrefetch): PosterReads => [
 ];
 
 /** The first page from the entry's settled answer, or undefined when its posters' reads do not cover the page. */
-function seedFeedPage(pre: JobsFeedPrefetch, blockedUserIds: Set<string>): JobsPage | undefined {
+export function seedFeedPage(pre: JobsFeedPrefetch, blockedUserIds: Set<string>): JobsPage | undefined {
   const { rows: rawJobs, hasMore } = splitFeedPage(pre.rows as unknown as BrowseJobRow[], (j) => blockedUserIds.has(j.customer_id));
   const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
   const crewIds = rawJobs.filter((j) => j.is_group_job).map((j) => j.id as string);

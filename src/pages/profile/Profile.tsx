@@ -7,7 +7,6 @@ import { savePhoneIfChanged } from "@/lib/phoneSaveIfChanged";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
-import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
 import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contactLeakField";
@@ -42,6 +41,8 @@ import { PAGE_COLUMN } from "@/lib/pageColumn";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { queryKeys } from "@/lib/queryKeys";
 import { joinName } from "@/lib/splitName";
+// speed7 (11-15): out of the first download; its Radix dialog stack (~13 KB gz) competed with the landing's chunks.
+const SignOutConfirmDialog = lazy(() => import("@/components/auth/SignOutConfirmDialog").then(m => ({ default: m.SignOutConfirmDialog })));
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 const ProfilePage = () => {
@@ -324,6 +325,8 @@ const ProfilePage = () => {
   };
 
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [logoutDialogUsed, setLogoutDialogUsed] = useState(false); // mounted from the first open on (close animates)
+  if (showLogoutDialog && !logoutDialogUsed) setLogoutDialogUsed(true);
 
   // The whole delete flow — dialog state, the "DELETE" → "DELETE MY ACCOUNT"
   // phrase mapping, the invoke, the sign-out — lives in `useDeleteAccount`,
@@ -572,14 +575,10 @@ const ProfilePage = () => {
 
     {avatarCropDialog}
 
-    <SignOutConfirmDialog
-        open={showLogoutDialog}
-        onOpenChange={setShowLogoutDialog}
-        title="Log out?"
-        description="You can sign back in anytime — your account stays intact."
-        label="Log out"
-        after={() => navigate("/")}
-      />
+    {logoutDialogUsed && <Suspense fallback={null}>
+      <SignOutConfirmDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog} title="Log out?"
+        description="You can sign back in anytime — your account stays intact." label="Log out" after={() => navigate("/")} />
+    </Suspense>}
 
       {/* Mounted only once the user opens it — the dialog chunk (and its
           confirm-flow deps) is fetched on demand rather than with the route. */}

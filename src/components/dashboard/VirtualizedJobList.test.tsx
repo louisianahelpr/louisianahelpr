@@ -17,8 +17,8 @@
  * default `measureElement` reads when no ResizeObserver entry is given). The
  * scroll viewport: `clientHeight` / `clientWidth`, which virtual-core's
  * `observeElementRect` reads from 3.19 on (3.18 read `offsetHeight` /
- * `offsetWidth`; with only those stubbed the viewport reads 0 and no row
- * renders, PR #4275). Both boxes are stubbed so the test holds on either.
+ * `offsetWidth`; with only those stubbed the viewport read 0 and no row
+ * rendered, PR #4275, measured 2026-11-15). Both boxes are stubbed so the test holds on either.
  */
 import { useEffect, useRef, useState } from "react";
 import { act, render } from "@testing-library/react";

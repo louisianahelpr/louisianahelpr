@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { createElement, lazy, useEffect, useState, type ComponentType } from "react";
 import { report } from "@/lib/errorLogger";
 import { getChunkRecoveryDecline, handOffStaleChunk, isChunkLoadError } from "@/lib/chunkReload";
 import { ModuleUnavailableError } from "@/lib/loadModule";
@@ -29,8 +29,13 @@ import { ModuleUnavailableError } from "@/lib/loadModule";
 type LazyBound = Awaited<ReturnType<Parameters<typeof lazy>[0]>>["default"];
 
 export function optionalLazy<T extends LazyBound>(load: () => Promise<{ default: T }>, source: string, onFail?: (err: unknown) => void) {
+  return lazy(() => optionalLoad(load, source, onFail));
+}
+
+/** The load behind optionalLazy and quietLazy: a failure is reported (or handed to the stale-chunk reload) and draws nothing. */
+function optionalLoad<T>(load: () => Promise<{ default: T }>, source: string, onFail?: (err: unknown) => void): Promise<{ default: T }> {
   const Nothing = (() => null) as unknown as T;
-  return lazy(() =>
+  return (
     load().catch((err: unknown) => {
       const unavailable = err instanceof ModuleUnavailableError;
       // A stale chunk goes to the shared recovery (handOffStaleChunk) and is quiet while that reload is on its way;
@@ -49,6 +54,36 @@ export function optionalLazy<T extends LazyBound>(load: () => Promise<{ default:
         report(hookErr, { severity: "warning", tags: { source, kind: "optional-chunk-onfail-failed" } });
       }
       return { default: Nothing };
-    }),
+    })
   );
+}
+
+/**
+ * optionalLazy for a piece mounted BESIDE the routes (the dock, banners, the Terms / ID / permission mounts): the
+ * same quiet failure, but it never suspends. It draws nothing until its chunk is in, then draws itself.
+ *
+ * Why (Builder 2, speed7 11-15): a suspended lazy anywhere in the tree turns React 18's reveal of the page into a
+ * throttled retry. When the route's content arrives while chrome chunks are still loading, the render ends
+ * "suspended" (even though each chrome piece has its own null Suspense). React then holds the commit for up to
+ * FALLBACK_THROTTLE_MS (500 ms) after the last fallback it showed, and restarts the whole render on every chunk that
+ * lands. Measured with temporary marks on signed-in /jobs (cwv-lab, Slow 4G, 4x CPU): the page rendered four times,
+ * at 4.24, 4.38, 4.76 and 4.85 s, with its cards in each pass. It first committed at 4.91 s, after the chrome chunks
+ * requested at 4.15 s had all arrived.
+ */
+export function quietLazy<P extends object>(load: () => Promise<{ default: ComponentType<P> }>, source: string, onFail?: (err: unknown) => void) {
+  let loaded: ComponentType<P> | null = null;
+  let pending: Promise<unknown> | null = null;
+  const start = () => (pending ??= optionalLoad(load, source, onFail).then((m) => { loaded = m.default as ComponentType<P>; }));
+  function Quiet(props: P) {
+    const [, setReady] = useState(false);
+    if (!loaded) void start();
+    useEffect(() => {
+      let live = true;
+      if (!loaded) void start().then(() => { if (live) setReady(true); });
+      return () => { live = false; };
+    }, []);
+    return loaded ? createElement(loaded, props) : null;
+  }
+  Quiet.displayName = `Quiet(${source})`;
+  return Quiet;
 }

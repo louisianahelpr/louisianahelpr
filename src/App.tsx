@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { RoutedBoundary } from "@/components/RoutedBoundary";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
 // Q1816: every lazy piece mounted beside the routes (outside RoutedBoundary) fails quietly; guard chromeLaziesFailQuietly.
-import { optionalLazy } from "@/lib/optionalLazy";
+import { optionalLazy, quietLazy } from "@/lib/optionalLazy";
 import { whenPageSettled } from "@/lib/pageSettled";
 import { loadAnimatedPageTransition, RoutePageTransition } from "@/components/RoutePageTransition";
 import { HomeShellLeaves } from "@/components/landing/HomeShellLeaves";
@@ -60,26 +60,26 @@ whenPageSettled(() => {
 });
 const PageTransition = RoutePageTransition;
 // Q2705 (11-09): Vercel Analytics + Speed Insights only inject Vercel's async script; off every page's boot (see the module).
-const VercelInsights = optionalLazy(() => import("@/components/VercelInsights"), "VercelInsights");
-const ScrollToTop = optionalLazy(() => import("@/components/ScrollToTop"), "ScrollToTop");
-const MobileNav = optionalLazy(() => import("./components/MobileNav"), "MobileNav");
+const VercelInsights = quietLazy(() => import("@/components/VercelInsights"), "VercelInsights");
+const ScrollToTop = quietLazy(() => import("@/components/ScrollToTop"), "ScrollToTop");
+const MobileNav = quietLazy(() => import("./components/MobileNav"), "MobileNav");
 const DesktopSidebarNav = optionalLazy(() => import("./components/DesktopSidebarNav"), "DesktopSidebarNav");
 const DesktopTopNav = optionalLazy(() => import("./components/DesktopTopNav"), "DesktopTopNav");
 // Q2440: "Online for deliveries" chip above the dock while a Helpr is online (phone web and the app).
-const DeliveryOnlinePill = optionalLazy(() => import("./components/declutter/DeliveryOnlinePill").then((m) => ({ default: () => <m.DeliveryOnlinePill placement="dock" /> })), "DeliveryOnlinePill");
+const DeliveryOnlinePill = quietLazy(() => import("./components/declutter/DeliveryOnlinePill").then((m) => ({ default: () => <m.DeliveryOnlinePill placement="dock" /> })), "DeliveryOnlinePill");
 // Badge = To-do (owner, 2026-10-20): publishes Home's to-do count for the navs.
-const NeedsYouMount = optionalLazy(() => import("./components/NeedsYouMount"), "NeedsYouMount");
+const NeedsYouMount = quietLazy(() => import("./components/NeedsYouMount"), "NeedsYouMount");
 import { SidePanelProvider } from "./components/sidePanelOpen";
 import { LucideProvider } from "lucide-react";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 // /quotes is retired (owner 2026-10-19): old hub links redirect to Posts, Jobs or My Jobs (src/lib/quotes/homes.ts).
 // A thin host: the dialog's chunk loads on the first ask or once the page settles (B86).
-const PermissionRationaleMount = optionalLazy(() => import("@/components/PermissionRationaleMount").then((m) => ({ default: m.PermissionRationaleMount })), "PermissionRationaleMount");
+const PermissionRationaleMount = quietLazy(() => import("@/components/PermissionRationaleMount").then((m) => ({ default: m.PermissionRationaleMount })), "PermissionRationaleMount");
 // Terms re-consent and the one Stripe Identity sheet (owner 2026-10-21): small
 // always-mounted parts that fetch their dialog only when it has to show
 // (src/components/TermsReconsentMount.tsx, identity/IdentityCheckMount.tsx).
-const TermsReconsentMount = optionalLazy(() => import("@/components/TermsReconsentMount").then((m) => ({ default: m.TermsReconsentMount })), "TermsReconsentMount");
-const IdentityCheckMount = optionalLazy(() => import("@/components/identity/IdentityCheckMount").then((m) => ({ default: m.IdentityCheckMount })), "IdentityCheckMount", () => { (window as Window & { __lhIdentitySheetUnavailable?: boolean }).__lhIdentitySheetUnavailable = true; window.dispatchEvent(new Event("lh:identity-sheet-unavailable")); });
+const TermsReconsentMount = quietLazy(() => import("@/components/TermsReconsentMount").then((m) => ({ default: m.TermsReconsentMount })), "TermsReconsentMount");
+const IdentityCheckMount = quietLazy(() => import("@/components/identity/IdentityCheckMount").then((m) => ({ default: m.IdentityCheckMount })), "IdentityCheckMount", () => { (window as Window & { __lhIdentitySheetUnavailable?: boolean }).__lhIdentitySheetUnavailable = true; window.dispatchEvent(new Event("lh:identity-sheet-unavailable")); });
 
 // Lazy load all pages including landing
 const Index = lazyWithPreload(() => import("./pages/info/Index"));
@@ -183,7 +183,7 @@ const COLD_ROUTE_PAGES: Record<string, { preload: () => void }> = { "/jobs": Job
 if (typeof window !== "undefined") COLD_ROUTE_PAGES[window.location.pathname.replace(/(.)\/+$/, "$1")]?.preload();
 
 // Lazy load less-critical global components
-const StrikeBanner = optionalLazy(() => import("./components/StrikeBanner"), "StrikeBanner");
+const StrikeBanner = quietLazy(() => import("./components/StrikeBanner"), "StrikeBanner");
 
 // Lazy load route wrappers
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));

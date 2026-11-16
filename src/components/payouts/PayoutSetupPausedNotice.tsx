@@ -1,12 +1,11 @@
 import { BriefcaseBusiness } from "lucide-react";
-import { MoneyNote } from "@/components/money/MoneyNote";
 import { PAYOUT_SETUP_NEEDS_HIRE_COPY } from "@/lib/payoutSetupPaused";
 import { usePayoutSetupBlock } from "@/hooks/usePayoutSetupPaused";
 
 /**
  * The calm notice shown INSTEAD of starting payout setup. No button, no toast,
- * no Stripe call: there is nothing for the member to do. Built on MoneyNote
- * (the one money-state note). `compact` drops the icon for tight spots (a
+ * no Stripe call: there is nothing for the member to do. A quiet neutral card
+ * (M12, iOS audit 11-16), not MoneyNote's rust money-state tint. `compact` drops the icon for tight spots (a
  * dialog row, a checklist line).
  *
  * It shows only the NOT-HIRED-YET reason (usePayoutSetupBlock): nobody has
@@ -18,7 +17,9 @@ export function PayoutSetupPausedNotice({ compact = false, className = "" }: { c
   const block = usePayoutSetupBlock();
   if (block !== "needs_hire") return null;
   return (
-    <MoneyNote className={className}>
+    // M12 (iOS audit 11-16): a QUIET card, not the rust money-state note: nothing is wrong and nothing is for the
+    // member to do, and the rust box read as an error on an empty Money page. The neutral tint the skeleton draws.
+    <div data-payout-quiet-note="" className={`rounded-2xl px-4 py-3 text-ds-13 leading-snug text-muted-foreground ${className}`} style={{ background: "hsl(var(--olivewood) / 0.05)" }}>
       <div
         role="status"
         data-payout-setup-paused=""
@@ -28,6 +29,6 @@ export function PayoutSetupPausedNotice({ compact = false, className = "" }: { c
         {!compact && <BriefcaseBusiness className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />}
         <p className="min-w-0">{PAYOUT_SETUP_NEEDS_HIRE_COPY}</p>
       </div>
-    </MoneyNote>
+    </div>
   );
 }

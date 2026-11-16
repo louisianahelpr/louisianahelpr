@@ -148,7 +148,8 @@ function MoneyTile({ kind, span, label, cents, caption, stack, disabled = false,
       className={`p-card lg:p-4 gap-0.5 ${span}`}
     >
       <span className="text-ds-13 text-muted-foreground">{label}</span>
-      <span data-money-amount className="text-ds-24 font-bold tabular-nums leading-tight" style={{ color: "hsl(var(--accent-ink))" }}>{amount}</span>
+      {/* M12 (iOS audit 11-16): a zero amount is the neutral ink; rust is for money that is really moving or held. */}
+      <span data-money-amount className="text-ds-24 font-bold tabular-nums leading-tight" style={{ color: cents === 0 ? "hsl(var(--ink-deep))" : "hsl(var(--accent-ink))" }}>{amount}</span>
       <span className="text-ds-13 text-muted-foreground leading-snug">{caption}</span>
       {stack && stack.waitingCents > 0 && (
         <span data-money-stack="waiting" className="mt-2 flex justify-between gap-2 text-ds-13">

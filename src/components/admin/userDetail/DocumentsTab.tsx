@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { TabsContent } from "@/components/ui/tabs";
 import type { Profile } from "../adminUserHelpers";
 import { isBrowserImagePath, isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
 import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
+import { FileTileButton } from "@/components/ui/FileTileButton";
 import { useInAppPhotoViewer, useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
 import { useDocumentViewer } from "@/components/documents/useDocumentViewer";
 import { documentName } from "@/lib/documentKind";
@@ -51,16 +52,7 @@ function SignedPortfolioTile({ path, fileName }: { path: string; fileName: strin
     <>
     {viewer}
     {docs.viewer}
-    <button
-      type="button"
-      onClick={open}
-      aria-label={`Open ${fileName}`}
-      disabled={busy}
-      className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 ctl-tint disabled:opacity-50"
-    >
-      {busy ? <Loader2 className="w-6 h-6 text-muted-foreground mb-1 animate-spin" /> : <FileText className="w-6 h-6 text-muted-foreground mb-1" />}
-      <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
-    </button>
+    <FileTileButton fileName={fileName} busy={busy} onClick={open} />
     </>
   );
 }
@@ -71,15 +63,7 @@ function DocumentTile({ url, onOpen }: { url: string; onOpen: (url: string, name
   const fileName = documentName(url);
   if (!docUrl) return null;
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(docUrl, fileName)}
-      aria-label={`Open ${fileName}`}
-      className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 ctl-tint"
-    >
-      <FileText className="w-6 h-6 text-muted-foreground mb-1" />
-      <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
-    </button>
+    <FileTileButton fileName={fileName} onClick={() => onOpen(docUrl, fileName)} />
   );
 }
 

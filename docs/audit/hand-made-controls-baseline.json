@@ -143,9 +143,6 @@
     "src/components/admin/userDetail/DetailHeader.tsx": {
       "button": 1
     },
-    "src/components/admin/userDetail/DocumentsTab.tsx": {
-      "button": 1
-    },
     "src/components/create/CreateSheet.tsx": {
       "button": 1
     },

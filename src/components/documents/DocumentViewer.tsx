@@ -1,10 +1,14 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Download, ExternalLink, FileText, Loader2, ZoomIn, ZoomOut } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { DarkGroundChromeButton } from "@/components/ui/DarkGroundChromeButton";
 import { DarkGroundCloseButton } from "@/components/ui/DarkGroundCloseButton";
 import { useOverlayFocus } from "@/hooks/useOverlayFocus";
 import { documentKind, documentName, downloadUrl } from "@/lib/documentKind";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { report } from "@/lib/errorLogger";
 
 // pdf.js loads only when a PDF is opened (PdfPages imports it), never on a page's first download.
 const PdfPages = lazy(() => import("./PdfPages"));
@@ -13,22 +17,40 @@ export type OpenDocument = { url: string; name?: string | null };
 
 const ZOOMS = [1, 1.5, 2, 3] as const;
 
+/** Shown when the browser refuses the new tab (the old openSignedDocument's copy). */
+export const POPUP_BLOCKED = "Your browser blocked the new tab. Allow pop-ups for this site and try again.";
+/** Shown when the in-app browser sheet (native) fails to open. */
+export const LEAVE_FAILED = "Couldn't open that file. Try again.";
+
 /**
  * Leave the app on purpose, from the viewer's secondary actions only (Download, Open in new tab). Native: the in-app
  * browser sheet (SFSafariViewController), which shows the file with its own Share/Save; web: a new tab. A storage
  * download URL answers `Content-Disposition: attachment`, so on the web the tab saves the file and closes.
+ *
+ * Never silent (security review 11-15, two Lows): a blocked tab and a sheet that fails to open each tell the user.
+ * The tab is opened blank first, without "noopener" (with it window.open returns null even on success, so a block
+ * could not be seen), its opener is cut before the document loads (the isolation "noopener" gave), then it is
+ * pointed at the file. Guard: src/test/documentViewerLeaveFailures.test.tsx.
  */
 async function leaveTo(url: string) {
   if (isNativePlatform) {
-    const { Browser } = await import("@capacitor/browser");
-    await Browser.open({ url, presentationStyle: "popover" });
+    try {
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.open({ url, presentationStyle: "popover" });
+    } catch (err) {
+      report(err, { tags: { area: "document-viewer", action: "browser-open" } });
+      toast.error(LEAVE_FAILED);
+    }
     return;
   }
-  window.open(url, "_blank", "noopener,noreferrer");
+  const tab = window.open("", "_blank");
+  if (!tab) {
+    toast.error(POPUP_BLOCKED);
+    return;
+  }
+  tab.opener = null;
+  tab.location.href = url;
 }
-
-const CHROME_BTN =
-  "min-h-11 px-3 inline-flex items-center gap-1.5 rounded-ds-md bg-white/[0.12] ctl-tint-invert text-white font-sans text-ds-13 font-medium transition-colors active:scale-95";
 
 /**
  * The app's own document viewer (owner 2026-11-15: "add the PDF viewer too"). A document opens here, full screen,
@@ -124,20 +146,12 @@ export function DocumentViewer({ doc, onClose }: { doc: OpenDocument | null; onC
       <div className="flex flex-wrap items-center justify-center gap-2 px-3 pt-2 pb-[max(0.75rem,var(--safe-area-bottom,0px))] border-t border-white/10">
         {kind === "pdf" && !failed ? (
           <>
-            <button type="button" className={CHROME_BTN} aria-label="Zoom out" disabled={zi <= 0} onClick={() => setZoom(ZOOMS[Math.max(0, zi - 1)])}>
-              <ZoomOut className="w-4 h-4" aria-hidden />
-            </button>
-            <button type="button" className={CHROME_BTN} aria-label="Zoom in" disabled={zi >= ZOOMS.length - 1} onClick={() => setZoom(ZOOMS[Math.min(ZOOMS.length - 1, zi + 1)])}>
-              <ZoomIn className="w-4 h-4" aria-hidden />
-            </button>
+            <DarkGroundChromeButton icon={ZoomOut} label="Zoom out" disabled={zi <= 0} onClick={() => setZoom(ZOOMS[Math.max(0, zi - 1)])} />
+            <DarkGroundChromeButton icon={ZoomIn} label="Zoom in" disabled={zi >= ZOOMS.length - 1} onClick={() => setZoom(ZOOMS[Math.min(ZOOMS.length - 1, zi + 1)])} />
           </>
         ) : null}
-        <button type="button" className={CHROME_BTN} onClick={() => void leaveTo(downloadUrl(doc.url, name))}>
-          <Download className="w-4 h-4" aria-hidden /> Download
-        </button>
-        <button type="button" className={CHROME_BTN} onClick={() => void leaveTo(doc.url)}>
-          <ExternalLink className="w-4 h-4" aria-hidden /> Open in new tab
-        </button>
+        <DarkGroundChromeButton icon={Download} label="Download" showLabel onClick={() => void leaveTo(downloadUrl(doc.url, name))} />
+        <DarkGroundChromeButton icon={ExternalLink} label="Open in new tab" showLabel onClick={() => void leaveTo(doc.url)} />
       </div>
     </div>,
     document.body,
@@ -161,9 +175,9 @@ function FileCard({ name, why, url }: { name: string; why: string; url: string }
         <FileText className="w-10 h-10 text-white/80" aria-hidden />
         <p className="font-sans text-ds-15 font-semibold text-white break-all">{name}</p>
         <p className="font-sans text-ds-13 text-white/75">{why} Download it to open it on your device.</p>
-        <button type="button" className="min-h-11 px-4 inline-flex items-center gap-1.5 rounded-ds-md btn-grad-primary text-white font-sans text-ds-13 font-medium active:scale-95" onClick={() => void leaveTo(downloadUrl(url, name))}>
-          <Download className="w-4 h-4" aria-hidden /> Download {name}
-        </button>
+        <Button variant="primary" size="wrapSm" className="max-w-full break-all" onClick={() => void leaveTo(downloadUrl(url, name))}>
+          <Download aria-hidden /> Download {name}
+        </Button>
       </div>
     </div>
   );

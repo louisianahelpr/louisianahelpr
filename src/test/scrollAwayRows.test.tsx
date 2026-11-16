@@ -26,6 +26,7 @@
  * @mutate src/components/sections/ScrollAwayScope.tsx |   if (!scope?.rows) return null; |   if (!scope) return null;
  * @mutate src/components/sections/SectionScreen.tsx |           <ScrollAwaySpacer />\n |\n
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         top={view === "map" ? undefined : <ScrollAwaySpacer />} |
+ * @mutate src/pages/jobs/JobsSection.tsx |           <ScrollAwayRows>{tab === "browse" && browse?.chips}</ScrollAwayRows> |           <ScrollAwayRows><SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} />{tab === "browse" && browse?.chips}</ScrollAwayRows>
  * @mutate src/pages/jobs/JobsSection.tsx |   return <><ScrollAwayScope><Dashboard embeddedHeader={makeHeader} /></ScrollAwayScope>{fab}</>; |   return <><Dashboard embeddedHeader={makeHeader} />{fab}</>;
  * @mutate src/pages/home/Dashboard.tsx |       titleCardClassName={isWebDesktop ? "" : "!overflow-visible z-10"} |       titleCardClassName=""
  * @mutate src/components/declutter/DeclutterGuestHome.tsx |   } : { search: browse.search, tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows> }; |   } : { search: browse.search, tabs: browse.chips };
@@ -175,9 +176,11 @@ describe("2. rendered on a phone", () => {
 });
 
 describe("3. wired into Jobs Browse and Declutter Browse", () => {
-  it("Jobs: the phone header wraps tabs and chips, the scope wraps Browse, the feed draws the spacer first, the title card lets the rows overlay", () => {
+  it("Jobs: the tabs stay pinned (M14) and only the chips slide, the scope wraps Browse, the feed draws the spacer first, the title card lets the rows overlay", () => {
     const jobs = code("src/pages/jobs/JobsSection.tsx");
-    expect(jobs).toMatch(/<ScrollAwayRows>\s*<SectionTabs [^>]*\/>\s*\{tab === "browse" && browse\?\.chips\}\s*<\/ScrollAwayRows>/);
+    // M14 (owner 11-16): the Browse | Posted | Working tabs are OUTSIDE the sliding rows; only the chips are inside.
+    expect(jobs).toMatch(/<SectionTabs [^>]*\/>\s*<ScrollAwayRows>\{tab === "browse" && browse\?\.chips\}<\/ScrollAwayRows>/);
+    expect(jobs).not.toMatch(/<ScrollAwayRows>\s*<SectionTabs/);
     expect(jobs).toContain("<ScrollAwayScope><Dashboard embeddedHeader={makeHeader} /></ScrollAwayScope>");
     const feed = code("src/components/dashboard/BrowseTasksFeed.tsx");
     expect(feed).toContain('top={view === "map" ? undefined : <ScrollAwaySpacer />}');

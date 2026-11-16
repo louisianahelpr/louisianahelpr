@@ -9106,7 +9106,7 @@
     },
     {
       "file": "src/components/mobileNav/useSectionTabs.ts",
-      "line": 102,
+      "line": 104,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -9873,7 +9873,7 @@
     },
     {
       "file": "src/components/profile/YourPageLink.tsx",
-      "line": 60,
+      "line": 79,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -9900,7 +9900,7 @@
     },
     {
       "file": "src/components/profile/YourPageLink.tsx",
-      "line": 61,
+      "line": 80,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11521,7 +11521,7 @@
     },
     {
       "file": "src/components/sections/CustomizeSheet.tsx",
-      "line": 68,
+      "line": 70,
       "kind": "toast",
       "title": {
         "form": "dynamic",

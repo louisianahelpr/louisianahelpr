@@ -16,6 +16,7 @@
 import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useDocumentViewer } from "@/components/documents/useDocumentViewer";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,6 +79,7 @@ export default function ShopsPaperworkCard() {
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
   const photoViewer = useSinglePhotoViewer();
+  const docs = useDocumentViewer();
   const view = async (path: string) => {
     // Owner 2026-11-15: a photo of the permit opens in the app's own viewer, never a new tab on the storage URL.
     if (isBrowserImagePath(path)) {
@@ -85,7 +87,8 @@ export default function ShopsPaperworkCard() {
       return;
     }
     try {
-      window.open(await permitDocumentUrl(path), "_blank", "noopener,noreferrer");
+      // A PDF permit opens in the app's own document viewer (owner 2026-11-15: "add the PDF viewer too").
+      docs.show(await permitDocumentUrl(path), "Permit document");
     } catch (err) {
       toast.error(`We couldn't open the document. ${shopsErrorMessage(err)}`);
     }
@@ -154,6 +157,7 @@ export default function ShopsPaperworkCard() {
     <AdminCard title="Shop paperwork" subtitle={'Permits and Secretary of State numbers. A checked permit shows "Permit on file" until it expires.'}>
       {body}
       {photoViewer.viewer}
+      {docs.viewer}
       <BrandConfirmDialog
         open={!!turningDown}
         onOpenChange={(o) => { if (!o && !decide.isPending) setTurningDown(null); }}

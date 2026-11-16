@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isBrowserImagePath, isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
 import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
+import { useDocumentViewer } from "@/components/documents/useDocumentViewer";
+import { documentName } from "@/lib/documentKind";
 import { unwrapMutationRow, mutationErrorMessage } from "@/lib/mutationResult";
 import { unwrap } from "@/lib/supabaseResult";
 import { Label } from "@/components/ui/label";
@@ -62,6 +64,7 @@ const EMPTY: CredentialFields = {
 export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () => void }) {
   const qc = useQueryClient();
   const photoViewer = useSinglePhotoViewer();
+  const docs = useDocumentViewer();
   const [removing, setRemoving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // Documents picked on this device and not yet sent.
@@ -273,7 +276,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   // themselves. RLS lets owners read their own paths.
   const openDoc = async (path: string) => {
     // A photo of the document opens in the app's own viewer (owner 2026-11-15: "when I click a picture it takes me out
-    // of the website into Supabase"); only a PDF still opens in the phone's document viewer.
+    // of the website into Supabase").
     if (isBrowserImagePath(path)) {
       if (!isStorageObjectPath(path)) {
         const safe = safeDocumentUrl(path);
@@ -287,11 +290,12 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       }, "Your document", () => toast.error("Couldn't generate a view link."));
       return;
     }
-    // Only a storage path is signed; any other value opens only if it passes
-    // safeDocumentUrl, and a data: document opens as blob: (Q295).
+    // A PDF, Word file or HEIC opens in the app's own document viewer (owner 2026-11-15). Only a storage path is
+    // signed; any other value opens only if it passes safeDocumentUrl; a data: document opens as blob: (Q295).
+    const label = documentName(path);
     if (!isStorageObjectPath(path)) {
       const safe = openableDocumentUrl(path);
-      if (safe) window.open(safe, "_blank", "noopener");
+      if (safe) docs.show(safe, label);
       else toast.error("This document link isn't one we can open.");
       return;
     }
@@ -302,7 +306,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       toast.error("Couldn't generate a view link.");
       return;
     }
-    window.open(signed.signedUrl, "_blank", "noopener");
+    docs.show(signed.signedUrl, label);
   };
 
   /**
@@ -424,6 +428,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           read as differently built. */}
       <ProfileTabHeader title="Licensed &amp; Insured" onBack={onBack} />
       {photoViewer.viewer}
+      {docs.viewer}
 
       <BrandConfirmDialog
         open={pullBack !== null}

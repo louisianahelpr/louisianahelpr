@@ -6,7 +6,8 @@ import type { Profile } from "../adminUserHelpers";
 import { isBrowserImagePath, isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
 import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 import { useInAppPhotoViewer, useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
-import { openSignedDocument } from "@/lib/openSignedDocument";
+import { useDocumentViewer } from "@/components/documents/useDocumentViewer";
+import { documentName } from "@/lib/documentKind";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ interface DocumentsTabProps {
 function SignedPortfolioTile({ path, fileName }: { path: string; fileName: string }) {
   const [busy, setBusy] = useState(false);
   const { showSigned, viewer } = useSinglePhotoViewer();
+  const docs = useDocumentViewer();
   const sign = async () => {
     if (!isStorageObjectPath(path)) return null;
     const { data, error } = await supabase.storage
@@ -39,17 +41,20 @@ function SignedPortfolioTile({ path, fileName }: { path: string; fileName: strin
   };
   const open = async () => {
     setBusy(true);
-    // A photo opens in the app's own viewer (owner 2026-11-15); only a document (PDF) opens a new tab.
+    // A photo opens in the photo viewer and a document (PDF, Word) in the document viewer, both inside the app
+    // (owner 2026-11-15: "add the PDF viewer too").
     if (isBrowserImagePath(path)) await showSigned(sign, fileName, (msg) => toast.error(msg));
-    else await openSignedDocument({ open: (url, target) => window.open(url, target), sign, toastError: (msg) => toast.error(msg) });
+    else await docs.showSigned(sign, fileName, (msg) => toast.error(msg));
     setBusy(false);
   };
   return (
     <>
     {viewer}
+    {docs.viewer}
     <button
       type="button"
       onClick={open}
+      aria-label={`Open ${fileName}`}
       disabled={busy}
       className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 ctl-tint disabled:opacity-50"
     >
@@ -57,6 +62,24 @@ function SignedPortfolioTile({ path, fileName }: { path: string; fileName: strin
       <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
     </button>
     </>
+  );
+}
+
+/** A portfolio document with an https URL: the button opens it in the document viewer. */
+function DocumentTile({ url, onOpen }: { url: string; onOpen: (url: string, name: string) => void }) {
+  const docUrl = openableDocumentUrl(url);
+  const fileName = documentName(url);
+  if (!docUrl) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(docUrl, fileName)}
+      aria-label={`Open ${fileName}`}
+      className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 ctl-tint"
+    >
+      <FileText className="w-6 h-6 text-muted-foreground mb-1" />
+      <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
+    </button>
   );
 }
 
@@ -69,10 +92,12 @@ export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
     portfolio.map((u) => (isBrowserImagePath(u) ? safeDocumentUrl(u) : null)),
     portfolio.map((_, i) => `Portfolio item ${i + 1}`),
   );
+  const docs = useDocumentViewer();
   return (
     <TabsContent value="documents" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
       {avatarViewer.viewer}
       {portfolioViewer}
+      {docs.viewer}
       {/* Profile Picture */}
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
@@ -149,11 +174,8 @@ export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
                   <img loading="lazy" decoding="async" src={safeDocumentUrl(url) ?? undefined} alt={`Portfolio item ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </PhotoOpenButton>
               ) : (
-                // A document (PDF, Word file): the app has no document viewer, so it still opens in the browser's own.
-                <a key={i} href={openableDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
-                  <FileText className="w-6 h-6 text-muted-foreground mb-1" />
-                  <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
-                </a>
+                // A document (PDF, Word file) opens in the app's own document viewer (owner 2026-11-15).
+                <DocumentTile key={i} url={url} onOpen={docs.show} />
               );
             })}
           </div>

@@ -16,7 +16,12 @@
  * screenshot, ID/permit photos and a member's own credential photos all opened the storage URL in a new tab. Two more
  * shapes are now caught: a link around an AVATAR, a link whose href is a photo's URL whatever it wraps, and any
  * document opener (openSignedDocument, window.open of a signed URL) that does not first send a photo
- * (isBrowserImagePath) to the in-app viewer. PDFs still open in a tab: the app has no document viewer.
+ * (isBrowserImagePath) to the in-app viewer.
+ *
+ * Owner 11-15 later: "add the PDF viewer too." A document now opens in the app's own document viewer
+ * (useDocumentViewer, guarded by documentsOpenInApp.test.tsx). A call to it (`docs.show` / `docs.showSigned`) counts as
+ * an opener here too: a photo must still be routed to the photo viewer first (isBrowserImagePath, or isImageMime for a
+ * chat attachment), so it keeps its zoom and swipe.
  *
  * @mutate src/components/jobDone/JobDoneSummary.tsx |               onClick={() => openPhoto(i)} |               onClick={() => {}}
  * @mutate src/components/PhotoProofDialog.tsx | onClick={() => openPhoto(beforeUrls.length + i)}> | onClick={() => {}}>
@@ -84,7 +89,7 @@ function photoEscapes(source: string, fileName: string): string[] {
     let found = false;
     const v = (c: ts.Node) => {
       if (found) return;
-      if (ts.isCallExpression(c) && c.expression.getText(sf) === "isBrowserImagePath") { found = true; return; }
+      if (ts.isCallExpression(c) && /^(isBrowserImagePath|isImageMime)$/.test(c.expression.getText(sf))) { found = true; return; }
       ts.forEachChild(c, v);
     };
     v(fn);
@@ -119,7 +124,7 @@ function photoEscapes(source: string, fileName: string): string[] {
       const callee = text(node.expression).replace(/\?\./g, ".");
       const arg = node.arguments[0];
       // openSignedDocument(…) / window.open(signed…) / openExternalUrl(photo…): a photo must be routed to the viewer first.
-      const opensFile = callee === "openSignedDocument"
+      const opensFile = callee === "openSignedDocument" || /^docs\.show(Signed)?$/.test(callee)
         || ((/(^|\.)window\.open$/.test(callee) || callee === "openExternalUrl") && !!arg && SIGNED_ARG.test(text(arg)));
       if (opensFile) {
         openersChecked++;
@@ -162,7 +167,7 @@ describe("source scan: no photo opens outside the app", () => {
 
   it("read the file openers it exists for (inventory floor)", () => {
     // 11-15: AttachmentLink, CredentialsTab, DocumentsTab, AdminCredentialQueue, AdminSupport, RentalsOwnershipCard,
-    // ShopsPaperworkCard (+ MessageAttachment's PDF opener is not signed-named). A walker that reads nothing fails here.
+    // ShopsPaperworkCard, and since the document viewer MessageAttachment (10 openers). A walker that reads nothing fails here.
     expect(openersChecked).toBeGreaterThan(6);
   });
 
@@ -273,7 +278,7 @@ describe("tapping an admin-side member photo opens the in-app viewer (owner 11-1
     cleanup();
   });
 
-  it("the Documents tab: avatar original and a portfolio photo; a PDF stays a document link", () => {
+  it("the Documents tab: avatar original and a portfolio photo; a PDF opens the document viewer, not a link", () => {
     render(<Tabs value="documents"><DocumentsTab viewProfile={PROFILE} /></Tabs>);
     noSignedLink();
     fireEvent.click(screen.getByRole("button", { name: "Open original" }));
@@ -283,7 +288,8 @@ describe("tapping an admin-side member photo opens the in-app viewer (owner 11-1
     fireEvent.click(screen.getByRole("button", { name: "Open portfolio item 1" }));
     viewer = screen.getByRole("dialog", { name: "Photo viewer" });
     expect((within(viewer).getByAltText("Portfolio item 1") as HTMLImageElement).src).toBe(PORTFOLIO);
-    expect(Array.from(document.querySelectorAll("a")).some((a) => a.getAttribute("href") === PDF)).toBe(true);
+    expect(Array.from(document.querySelectorAll("a")).some((a) => a.getAttribute("href") === PDF)).toBe(false);
+    expect(screen.getByRole("button", { name: "Open resume.pdf" })).toBeTruthy();
     cleanup();
   });
 });

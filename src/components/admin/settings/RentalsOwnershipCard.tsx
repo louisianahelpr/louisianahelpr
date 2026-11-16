@@ -31,7 +31,8 @@ import {
   type TakedownMatch,
 } from "@/lib/rentals/api";
 import { rentalsErrorMessage } from "@/lib/rentals/copy";
-import { openSignedDocument } from "@/lib/openSignedDocument";
+import { useDocumentViewer } from "@/components/documents/useDocumentViewer";
+import { documentName } from "@/lib/documentKind";
 import { isBrowserImagePath } from "@/lib/storagePath";
 import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
 import { AdminCard } from "../AdminViewShell";
@@ -40,19 +41,20 @@ import { Input } from "@/components/ui/input";
 
 function OpenFile({ path, label }: { path: string; label: string }) {
   const { showSigned, viewer } = useSinglePhotoViewer();
+  const docs = useDocumentViewer();
   const open = () => {
     // Owner 2026-11-15: a photo (an ID, a deed photo) opens in the app's own viewer, never a new tab on the storage URL.
     if (isBrowserImagePath(path)) { void showSigned(() => signedFileUrl(path), label, (msg) => toast.error(msg)); return; }
-    // A PDF: the tab opens inside the click, before any await, or WebKit blocks it silently (Q295).
-    void openSignedDocument({
-      open: (url, target) => window.open(url, target),
-      sign: () => signedFileUrl(path),
-      toastError: (msg) => toast.error(msg),
-    });
+    // A PDF (a deed, a lease) opens in the app's own document viewer (owner 2026-11-15: "add the PDF viewer too").
+    // Its name is the button's words plus the file's own extension ("ownership proof.pdf"), so Download saves a PDF.
+    const sign = () => signedFileUrl(path);
+    const name = documentName(path, label.replace(/^Open /, ""));
+    void docs.showSigned(sign, name, (msg) => toast.error(msg));
   };
   return (
     <>
       {viewer}
+      {docs.viewer}
       <InlineTextButton className="underline font-semibold" onClick={open}>
         {label}
       </InlineTextButton>

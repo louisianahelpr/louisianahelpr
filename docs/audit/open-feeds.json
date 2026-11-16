@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-16T16:29Z",
+  "measured_at": "2026-11-16T23:44Z",
   "issues": {
     "readable": true,
     "open": [
@@ -36,7 +36,7 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43470000763",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43940314586",
         "runTruncated": false
       },
       {
@@ -71,7 +71,7 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43743389939",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43956613799",
         "runTruncated": false
       },
       {
@@ -110,13 +110,6 @@
         "runTruncated": false
       },
       {
-        "number": 4415,
-        "title": "nightly-red: db-drift-detect",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43752011467",
-        "runTruncated": false
-      },
-      {
         "number": 4450,
         "title": "🔴 1 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
@@ -125,7 +118,7 @@
         "number": 4451,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43743145168",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43956384541",
         "runTruncated": false
       },
       {
@@ -534,7 +527,6 @@
     "issue #4253": "Q1816",
     "issue #4270": "Q1816",
     "issue #4340": "Q1816",
-    "issue #4415": "Q1816",
     "issue #4450": "Q2800",
     "issue #4451": "Q1816",
     "issue #4453": "Q1816",

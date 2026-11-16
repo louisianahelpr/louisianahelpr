@@ -6,6 +6,7 @@ export const esNotifications: Record<keyof typeof enNotifications, string> = {
   "notif.markAllRead": "Marcar todo como leído",
   "notif.filter": "Filtrar notificaciones",
   "notif.unread": "No leídas",
+  "notif.unreadN": "No leídas · {n}",
   "notif.all": "Todas",
   "notif.unreadDot": "Sin leer",
   "notif.messagesUnread": "Mensajes, {n} sin leer",

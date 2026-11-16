@@ -159,7 +159,8 @@ describe("the Inbox page: two tabs, deep links by ?tab=", () => {
     const tabs = screen.getAllByRole("tab");
     expect(tabs.map((t) => t.getAttribute("aria-label"))).toEqual(["Messages, 2 unread", "Notifications, 5 unread"]);
     expect(tabs.map((t) => t.getAttribute("aria-selected"))).toEqual(["true", "false"]);
-    for (const t of tabs) expect(t.className, "44px tab").toMatch(/\bmin-h-11\b/);
+    // 44px: the shared Button's size="sm" is h-11 (a hand-set min-h on a Button fails local/no-button-height-override).
+    for (const t of tabs) expect(t.className, "44px tab").toMatch(/(^|\s)h-11(\s|$)/);
     expect(lastInboxTab()).toBe("messages");
   });
 

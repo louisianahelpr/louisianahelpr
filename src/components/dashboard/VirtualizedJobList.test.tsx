@@ -13,8 +13,12 @@
  * already re-lays the list out correctly without that call.
  *
  * This renders the real component with a real virtualizer; jsdom has no
- * layout, so row heights are stubbed via `offsetHeight` (what the virtualizer's
- * default `measureElement` reads when no ResizeObserver entry is given).
+ * layout, so sizes are stubbed. Rows: `offsetHeight` (what the virtualizer's
+ * default `measureElement` reads when no ResizeObserver entry is given). The
+ * scroll viewport: `clientHeight` / `clientWidth`, which virtual-core's
+ * `observeElementRect` reads from 3.19 on (3.18 read `offsetHeight` /
+ * `offsetWidth`; with only those stubbed the viewport reads 0 and no row
+ * renders, PR #4275). Both boxes are stubbed so the test holds on either.
  */
 import { useEffect, useRef, useState } from "react";
 import { act, render } from "@testing-library/react";
@@ -62,29 +66,37 @@ function rowOffsets(container: HTMLElement): number[] {
 }
 
 describe("VirtualizedJobList — rows never overlap after an item is removed (Q154)", () => {
-  const originalOffsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
-  const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
+  // Element.prototype holds clientHeight/clientWidth, HTMLElement.prototype offsetHeight/offsetWidth.
+  const stubbed = [
+    [HTMLElement.prototype, "offsetHeight"],
+    [HTMLElement.prototype, "offsetWidth"],
+    [Element.prototype, "clientHeight"],
+    [Element.prototype, "clientWidth"],
+  ] as const;
+  const originals = stubbed.map(([proto, prop]) => Object.getOwnPropertyDescriptor(proto, prop));
+  const height = (el: Element) => {
+    if (!(el instanceof HTMLElement)) return 0;
+    if (el.dataset.index !== undefined) return ROW_HEIGHT;
+    if (el.dataset.testid === "scroller") return 2000;
+    return 0;
+  };
 
   beforeEach(() => {
-    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
-      configurable: true,
-      get(this: HTMLElement) {
-        if (this.dataset.index !== undefined) return ROW_HEIGHT;
-        if (this.dataset.testid === "scroller") return 2000;
-        return 0;
-      },
-    });
-    Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
-      configurable: true,
-      get() {
-        return 375;
-      },
-    });
+    for (const [proto, prop] of stubbed) {
+      Object.defineProperty(proto, prop, {
+        configurable: true,
+        get(this: Element) {
+          return prop.endsWith("Height") ? height(this) : 375;
+        },
+      });
+    }
   });
 
   afterEach(() => {
-    if (originalOffsetHeight) Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight);
-    if (originalOffsetWidth) Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalOffsetWidth);
+    stubbed.forEach(([proto, prop], i) => {
+      const original = originals[i];
+      if (original) Object.defineProperty(proto, prop, original);
+    });
   });
 
   it("keeps each surviving row a full measured row-height below the previous one", async () => {

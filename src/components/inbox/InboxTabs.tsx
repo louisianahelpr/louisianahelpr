@@ -1,5 +1,6 @@
 import { createContext, useContext, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { hapticLight } from "@/lib/haptics";
 import { formatUnreadBadge } from "@/lib/format";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -46,7 +47,11 @@ export function InboxTabs({ tab }: { tab: InboxTab }) {
         const on = x.key === tab;
         const n = formatUnreadBadge(x.count);
         return (
-          <button
+          // The shared Button (OWN-SHARED, src/test/noNewHandMadeControls.test.ts): ghost, sm (44px); the tab's
+          // own colour and weight ride on the inline style, which wins over the base's font-bold.
+          <Button
+            variant="ghost"
+            size="sm"
             key={x.key}
             ref={(el) => { refs.current[x.key] = el; }}
             type="button"
@@ -59,7 +64,7 @@ export function InboxTabs({ tab }: { tab: InboxTab }) {
             data-inbox-tab={x.key}
             onClick={() => choose(x.key)}
             onKeyDown={onKeyDown}
-            className="relative flex-1 min-h-11 inline-flex items-center justify-center gap-1.5 px-3 text-ds-14 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--ring))]"
+            className="relative flex-1 gap-1.5 px-3 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:ring-[hsl(var(--ring))]"
             style={{ color: on ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.7)", fontWeight: on ? 700 : 600 }}
           >
             <span className="whitespace-nowrap">{x.label}</span>
@@ -75,7 +80,7 @@ export function InboxTabs({ tab }: { tab: InboxTab }) {
               </span>
             )}
             {on && <span aria-hidden className="absolute inset-x-4 bottom-0 h-0.5 rounded-full" style={{ background: "hsl(var(--ink-deep))" }} />}
-          </button>
+          </Button>
         );
       })}
     </div>

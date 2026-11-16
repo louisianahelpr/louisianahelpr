@@ -80,7 +80,7 @@ describe("the /jobs placeholder draws the tab the URL opens on", () => {
 });
 
 describe("the placeholder's header is the loaded header's shape", () => {
-  it.each(["/jobs", "/jobs?tab=posted", "/jobs?tab=working"] as const)("%s: the phone header's one top row (the search, then the bell and the photo), the tabs row under it, no back row, and a single h1", (url) => {
+  it.each(["/jobs", "/jobs?tab=posted", "/jobs?tab=working"] as const)("%s: the phone header's one top row (the search, then the Inbox icon and the photo), the tabs row under it, no back row, and a single h1", (url) => {
     // The compact top (owner 11-14, after Depop / Vinted): on a phone the top row is the 44px search with the bell and
     // the photo inline on its right (AppTopBar's COMPACT_TOP_ROW), no visible title. No "+" (it floats:
     // SectionCreateFab). The Browse | Posted | Working tabs stay under it on every tab (F152, owner audit 11-09), so
@@ -93,7 +93,8 @@ describe("the placeholder's header is the loaded header's shape", () => {
     expect(bar!.querySelectorAll(".h-7"), "no title bone").toHaveLength(0);
     const kids = [...bar!.children].filter((c) => !c.classList.contains("sr-only"));
     expect(kids[0].querySelectorAll(".h-11.w-full.rounded-full"), "the search bar's bone first").toHaveLength(1);
-    expect(kids[1]?.children.length, "Messages (owner 11-14), the bell, the photo").toBe(3);
+    // The Inbox (owner 11-15, "Merge messages and notifications into one"): one icon replaces Messages and the bell.
+    expect(kids[1]?.children.length, "the Inbox icon, the photo").toBe(2);
     const row = bar!;
     expect(container.querySelectorAll(".h-11.w-full.rounded-ds-md"), "the tabs row on a phone").toHaveLength(1);
     expect(row.nextElementSibling?.className, "the tabs row right under the top row").toContain("h-11 w-full rounded-ds-md");

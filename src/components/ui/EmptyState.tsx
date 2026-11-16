@@ -15,8 +15,13 @@ import { cn } from "@/lib/utils";
  *   white box 1px inside the first — the 2026-09-07 box-in-a-box defect
  *   again, at 1440 this time (state-matrix sweep, 2026-09-11). The answer
  *   is not a different radius; the inner box is not drawn at all.
+ * - `compact`: ONE list inside a screen that has several (Declutter Selling's
+ *   lists, Wanted, Deliver): the same icon bubble, title face and body colour
+ *   as the full variants, in a short row card. M5 (iOS design audit 11-16):
+ *   these lists drew their own dashed card with a square tile, a fourth
+ *   empty-state look; they now come through here.
  */
-type EmptyStateVariant = "dock" | "inline" | "bare";
+type EmptyStateVariant = "dock" | "inline" | "bare" | "compact";
 
 interface EmptyStateProps {
   /** Lucide icon rendered inside the frosted circle. */
@@ -30,7 +35,7 @@ interface EmptyStateProps {
   /** Bold upright headline (Montserrat). Optional. */
   title?: string;
   /** Supporting sentence under the title. */
-  body: string;
+  body: ReactNode;
   /** Optional CTA (button / link) rendered below the copy. */
   action?: ReactNode;
   /**
@@ -182,6 +187,26 @@ export function EmptyState({
       "0 1px 3px hsl(var(--olivewood) / 0.06), " +
       "0 6px 18px -4px hsl(var(--olivewood) / 0.10)",
   };
+
+  if (variant === "compact") {
+    return (
+      <div className="flex min-w-0 max-w-full items-start gap-3 rounded-[20px] border border-border bg-card px-4 py-4 text-left" style={surfaceStyle} data-empty-state="compact">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={iconBubbleStyle} aria-hidden="true">
+          <Icon className="h-5 w-5" style={{ color: "hsl(var(--bark))" }} />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          {title ? (
+            <p data-empty-title="" className="font-sans text-ds-15 font-bold leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}>
+              {title}
+            </p>
+          ) : null}
+          {body ? <p className="font-sans text-ds-13 leading-relaxed break-words" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>{body}</p> : null}
+          {action && <div className="pt-1">{action}</div>}
+          {footnote}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

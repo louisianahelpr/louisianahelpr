@@ -32,6 +32,7 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { StatusBoxes, useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
 import { fetchMyOffers } from "@/lib/declutter/api";
@@ -143,9 +144,10 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
           {ended.length > 0 && <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>}
           {/* Q2569: only ended orders, nothing on the way and no offer out: a way back to shopping. */}
           {nothingActive && (
-            <Link to="/declutter" data-ended-browse="" className="inline-flex min-h-11 items-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">
-              {t("decl.mv.findBrowse")}
-            </Link>
+            // M5 (iOS audit 11-16): a real button, not a bare underlined link (the empty states' one action style).
+            <Button asChild variant="outline" size="sm" className="rounded-full">
+              <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>
+            </Button>
           )}
         </section>
       )}

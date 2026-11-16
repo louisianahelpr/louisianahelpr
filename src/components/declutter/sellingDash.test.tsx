@@ -442,7 +442,8 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     const card = listings.querySelector("[data-empty-card]") as HTMLElement;
     expect(card).not.toBeNull();
     expect(card.hasAttribute("data-seller-empty")).toBe(true);
-    expect(card.className).toContain("border-dashed");
+    // M5 (iOS audit 11-16): the shared EmptyState's compact card, no dashed edge of its own.
+    expect(card.querySelector('[data-empty-state="compact"]')).not.toBeNull();
     expect(card.querySelector("svg")).not.toBeNull();
     expect(within(card).getByText("You haven't listed anything yet.")).toBeInTheDocument();
     fireEvent.click(within(card).getByRole("button", { name: /Sell an item|List an item|Sell/ }));

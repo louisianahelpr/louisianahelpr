@@ -3,7 +3,8 @@ import { useLocation } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AppShell from "@/components/AppShell";
-import { authPages } from "@/components/mobileNav/mobileNavHelpers";
+import { routeHasDock } from "@/components/mobileNav/mobileNavHelpers";
+import { useNotFoundPathname } from "@/lib/notFoundPath";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
@@ -58,6 +59,7 @@ const PublicLayout = ({
 }: PublicLayoutProps) => {
   const location = useLocation();
   const { user } = useAuthReady();
+  const notFoundPath = useNotFoundPathname(); // L8: the 404 keeps the dock, so it keeps the clearance
 
   // TWO VERSIONS OF EVERY SHARED PAGE — public and signed-in (owner,
   // 2026-08-30: "there should be a public and signed in version of help and
@@ -86,7 +88,7 @@ const PublicLayout = ({
   // current route carries the bottom bar. Centralised here so no PublicLayout
   // page can regress the marketing footer onto the app surface.
   if (useAppChrome) {
-    const reserveBottomNav = authPages.some((p) => location.pathname.startsWith(p));
+    const reserveBottomNav = routeHasDock(location.pathname, notFoundPath);
     const statusBarCap = (
       <div
         aria-hidden

@@ -9,4 +9,10 @@
  * for the named-import chunks every other consumer shared before. Named
  * re-exports here keep the tree-shaken shape.
  */
+/**
+ * Used as a namespace: useFramerMotion.ts keeps `import("./framerRows")`'s module object, and
+ * NotificationPanelView reads `framer.motion` / `framer.AnimatePresence` off it. knip 6.44 follows a
+ * dynamic import only through direct member access, so it cannot see that use (PR #4274).
+ * @public
+ */
 export { AnimatePresence, motion } from "framer-motion";

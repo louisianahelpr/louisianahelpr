@@ -26,7 +26,7 @@ import { CONVERSATION_ROW_AVATAR, CONVERSATION_ROW_FRAME } from "./ConversationR
 import { rowAge } from "./rowAge";
 
 /** "You wrote last" / "The shop wrote last" / "The shopper wrote last": all the row knows (no words). */
-export function shopTalkRowLine(row: Pick<ShopTalkRow, "side" | "last_mine">): string {
+function shopTalkRowLine(row: Pick<ShopTalkRow, "side" | "last_mine">): string {
   if (row.last_mine) return "You wrote last";
   return row.side === "buyer" ? "The shop wrote last" : "The shopper wrote last";
 }

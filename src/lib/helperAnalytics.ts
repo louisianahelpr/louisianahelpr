@@ -34,7 +34,7 @@ export interface AnalyticsJob extends HelperEarningsJob {
   completed_at: string;
 }
 
-export type ApplicationOutcome = "won" | "lost" | "undecided";
+type ApplicationOutcome = "won" | "lost" | "undecided";
 
 export interface AnalyticsApplication {
   id: string;
@@ -94,7 +94,7 @@ export interface AnalyticsMarket {
 }
 
 /** Money-only rows handed to a NON-entitled caller for the upgrade pitch. */
-export type AnalyticsPreviewJob = HelperEarningsJob;
+type AnalyticsPreviewJob = HelperEarningsJob;
 
 export interface HelperAnalyticsPayload {
   generated_at: string;
@@ -140,7 +140,7 @@ export function median(values: readonly number[]): number | null {
 }
 
 /** Round to cents so a float tail never renders as $108.00000000000001. */
-export const cents = (n: number): number => Math.round(n * 100) / 100;
+const cents = (n: number): number => Math.round(n * 100) / 100;
 
 /**
  * What this job's platform fee WOULD have been at an arbitrary rate.
@@ -158,7 +158,7 @@ export function feeAtPercent(job: HelperEarningsJob, percent: number): number {
 }
 
 /** The helper's share of a job's budget — budget/N on a group job. */
-export function helperGrossDollars(job: HelperEarningsJob): number {
+function helperGrossDollars(job: HelperEarningsJob): number {
   return (job.budget ?? 0) / helperShareCount(job);
 }
 

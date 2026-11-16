@@ -43,7 +43,7 @@ const COLOR_MODE_LABEL: Record<Theme, string> = { light: "Light", dark: "Dark", 
 const MORE_KEYS = ["subscription", "referral", "gift-card", "report_bug", "legal", "admin"] as const;
 
 /** Sentence case for a row label that is Title Case at its source ("Gift Card" -> "Gift card"). */
-export function sentenceCase(label: string): string {
+function sentenceCase(label: string): string {
   return label.split(" ").map((w, i) => (i === 0 || w === "Helpr" || w === "Helprs" ? w : w.toLowerCase())).join(" ");
 }
 

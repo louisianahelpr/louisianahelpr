@@ -93,7 +93,7 @@ function readIsDark(): boolean {
  * pushes both pins DOWN the frame and leaves the pill inside it. That is the
  * region equivalent of Leaflet's asymmetric `paddingTopLeft`.
  */
-export function trackingRegion(
+function trackingRegion(
   mk: MapKitRuntime,
   helperLat: number,
   helperLng: number,

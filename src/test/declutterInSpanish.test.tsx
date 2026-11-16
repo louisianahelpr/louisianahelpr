@@ -90,7 +90,7 @@ describe("F260q: Declutter Browse in Spanish", () => {
     setLang("es");
     await act(async () => { await ensureLangLoaded(); });
     draw();
-    expect(screen.getAllByText("Gratis").length).toBeGreaterThan(1); // price + Free chip
+    expect(screen.getAllByText("Gratis").length).toBeGreaterThan(0); // the price (M4 11-16: no Free chip on the row)
     expect(screen.getByText("Recoger en el porche")).toBeTruthy();
     expect(screen.getByText("Poco usado")).toBeTruthy();
     expect(screen.getByText("Menos de 1 mi")).toBeTruthy();

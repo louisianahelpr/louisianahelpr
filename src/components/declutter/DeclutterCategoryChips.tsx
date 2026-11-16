@@ -50,8 +50,8 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
     const last = (k: string) => (k === "other" ? 1 : 0);
     return keys.sort((a, b) => last(a) - last(b) || (n.get(b) ?? 0) - (n.get(a) ?? 0) || (order.get(a) ?? 99) - (order.get(b) ?? 99));
   }, [items, value]);
-  const anyFree = useMemo(() => items.some((i) => i.current_price_cents === 0), [items]);
-  const freeChip = !!onFree && (anyFree || free);
+  // M4 (iOS design audit 11-16): no "Free" chip here. Declutter has its own Free tab beside Browse, so the chip
+  // repeated it; the Free filter stays in Filters, and "All" still clears it.
   const desktop = useIsWebDesktop();
   const { t } = useLanguage();
   const row = useRef<HTMLDivElement>(null);
@@ -71,18 +71,15 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [desktop, measure, chips.length, freeChip]);
+  }, [desktop, measure, chips.length]);
   const nudge = (dir: 1 | -1) => {
     const el = row.current;
     if (el) el.scrollBy({ left: dir * Math.max(120, el.clientWidth * 0.8), behavior: "smooth" });
   };
-  if (chips.length < 2 && !value && !freeChip) return null;
+  if (chips.length < 2 && !value && !free) return null;
   const list = (
     <div ref={row} onScroll={desktop ? measure : undefined} role="group" aria-label={t("decl.categories")} data-chip-row="categories" className="flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <FilterChip pressed={value === null && !free} onClick={() => { onChange(null); if (free) onFree?.(false); }} size="tall" className="shrink-0" data-category-chip="all">{t("decl.chip.all")}</FilterChip>
-      {freeChip && (
-        <FilterChip pressed={free} onClick={() => onFree?.(!free)} size="tall" className="shrink-0" data-category-chip="free">{t("decl.chip.free")}</FilterChip>
-      )}
       {chips.map((k) => (
         <FilterChip key={k} pressed={value === k} onClick={() => onChange(value === k ? null : k)} size="tall" className="shrink-0" data-category-chip={k}>
           {CATEGORY_LABEL[k] && t(`decl.cat.${k}` as MsgKey)}

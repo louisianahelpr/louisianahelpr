@@ -215,14 +215,16 @@ const CommonProblems = ({ setupFeeLabel }: { setupFeeLabel: string | null }) => 
         {COMMON_PROBLEMS.map((problem) => {
           const open = problem.id === openId;
           return (
-            <div key={problem.id} role="listitem">
+            // L12 (iOS audit 11-16): every tile in a row is the row's height (a one-line title's tile was shorter than
+            // its two-line neighbour): the grid cell stretches, and the tile fills it.
+            <div key={problem.id} role="listitem" className="flex" data-help-problem-cell="">
               <ListRow
                 variant="flush"
                 aria-expanded={open}
                 aria-controls={`help-problem-${problem.id}`}
                 data-help-problem={problem.id}
                 onClick={() => setOpenId(open ? null : problem.id)}
-                className={`min-h-11 w-full rounded-[20px] border bg-card px-4 py-4 text-left font-sans text-ds-15 font-semibold text-foreground transition-colors duration-200 hover:opacity-80 ${open ? "border-[hsl(var(--bark)/0.45)]" : "border-border"}`}
+                className={`min-h-11 h-full w-full rounded-[20px] border bg-card px-4 py-4 text-left font-sans text-ds-15 font-semibold text-foreground transition-colors duration-200 hover:opacity-80 ${open ? "border-[hsl(var(--bark)/0.45)]" : "border-border"}`}
               >
                 {problem.title}
               </ListRow>

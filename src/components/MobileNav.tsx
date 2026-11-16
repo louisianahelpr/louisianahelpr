@@ -521,9 +521,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               // Top-of-dock soft glow lifts the bar off the page, plus
               // a big ambient drop. No hard line — all very soft, very
               // wide spreads.
+              // L4 (iOS design audit 11-16): the drops take --nav-drop, dark in dark mode (olivewood there is light).
               boxShadow: scrolled
-                ? "inset 0 1px 1px 0 var(--nav-inset-hi), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.06), 0 2px 4px hsl(var(--olivewood) / 0.08), 0 22px 44px -10px hsl(var(--olivewood) / 0.20), 0 50px 90px -20px hsl(var(--olivewood) / 0.24)"
-                : "inset 0 1px 1px 0 var(--nav-inset-hi), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.05), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 18px 36px -8px hsl(var(--olivewood) / 0.16), 0 40px 72px -16px hsl(var(--olivewood) / 0.20)",
+                ? "inset 0 1px 1px 0 var(--nav-inset-hi), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.06), 0 2px 4px hsl(var(--nav-drop) / 0.08), 0 22px 44px -10px hsl(var(--nav-drop) / 0.20), 0 50px 90px -20px hsl(var(--nav-drop) / 0.24)"
+                : "inset 0 1px 1px 0 var(--nav-inset-hi), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.05), 0 1px 2px hsl(var(--nav-drop) / 0.06), 0 18px 36px -8px hsl(var(--nav-drop) / 0.16), 0 40px 72px -16px hsl(var(--nav-drop) / 0.20)",
             }}
           >
             {/* px-1.5, not px-2 — the last 2px of "fills the space to the left".

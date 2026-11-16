@@ -886,6 +886,8 @@
   --nav-rim-soft:      hsla(0, 0%, 100%, 0.55);
   --nav-rim-bottom:    hsla(0, 0%, 100%, 0.45);
   --nav-inset-hi:      rgba(255, 255, 255, 0.40);
+  /* The dock's drop-shadow colour, an HSL triplet (L4, iOS design audit 11-16): olivewood on the light page. */
+  --nav-drop:          var(--olivewood);
   --nav-curtain-top:   hsla(40, 28%, 99%, 0.6);
   --nav-curtain-fade:  hsla(40, 28%, 99%, 0);
 
@@ -1144,6 +1146,8 @@
   --nav-rim-soft:      hsla(0, 0%, 100%, 0.08);
   --nav-rim-bottom:    hsla(0, 0%, 100%, 0.05);
   --nav-inset-hi:      rgba(255, 255, 255, 0.10);
+  /* L4: dark mode's olivewood is LIGHT, so the dock's drop read as a pale glow under it; the drop is black here. */
+  --nav-drop:          0 0% 0%;
   --nav-curtain-top:   hsl(36 10% 10% / 0.6);
   --nav-curtain-fade:  hsl(36 10% 10% / 0);
 

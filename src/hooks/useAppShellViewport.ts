@@ -4,6 +4,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { getNotFoundPathname, writeNotFoundPathname } from "@/lib/notFoundPath";
 import { isGuestPublicFrameRoute, isGuestViewer } from "@/lib/guestPublicFrame";
 
 /**
@@ -137,13 +138,12 @@ const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/bro
  * usually the "Back to Home" button sit below the fold with no way to scroll
  * to them: a dead end on the page whose entire job is to be an exit.
  */
-let notFoundPathname: string | null = null;
 /** Re-runs the class-toggling effect below. Set while the hook is mounted. */
 let reapplyShellClasses: (() => void) | null = null;
 
 export const setNotFoundPathname = (pathname: string | null) => {
-  if (notFoundPathname === pathname) return;
-  notFoundPathname = pathname;
+  // The value lives in src/lib/notFoundPath.ts so the bottom bar can subscribe (L8).
+  if (!writeNotFoundPathname(pathname)) return;
   // Push, don't wait to be polled: the hook lives in a SIBLING component of
   // <Routes> (App.tsx's SessionManager), so relying on React's effect ordering
   // between the two would make correctness depend on their JSX order. This
@@ -167,7 +167,7 @@ export const isGuestDocumentScrollRoute = (pathname: string) =>
 
 export const isDocumentScrollRoute = (pathname: string) => {
   // The 404 catch-all is document-scroll — see setNotFoundPathname above.
-  if (notFoundPathname === pathname) return true;
+  if (getNotFoundPathname() === pathname) return true;
   if (
     isNativePlatform &&
     NATIVE_APP_SHELL_ROUTES.some(

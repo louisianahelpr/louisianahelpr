@@ -23,7 +23,7 @@ import { useWarmAvatar, useWarmTabChunks } from "@/components/mobileNav/useDockW
 import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
 import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
 import {
-  authPages,
+  routeHasDock,
   noNavPages,
   inTabStack,
   guestTabPath,
@@ -33,6 +33,7 @@ import { dockBadgeCount } from "@/components/mobileNav/dockBadgeCount";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
+import { useNotFoundPathname } from "@/lib/notFoundPath";
 import { useDockScrollState } from "@/components/mobileNav/useDockScrollState";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
@@ -114,11 +115,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // bounced straight back (measured 2026-09-23 at 375: all five, /post-job
   // included, landed on the verify-email page; /signup-pending since Q193).
   const emailUnverified = !!user && !user.email_confirmed_at;
+  const notFoundPath = useNotFoundPathname(); // L8: the 404 keeps the dock
   const dockHidden =
     isGuest ||
     emailUnverified ||
     noNavPages.some((p) => location.pathname.startsWith(p)) ||
-    !authPages.some((p) => location.pathname.startsWith(p));
+    !routeHasDock(location.pathname, notFoundPath);
 
   useEffect(() => {
     document.documentElement.classList.toggle("no-bottom-nav", dockHidden);
@@ -189,7 +191,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // `isGuest` one below — it is what collapses `--bottom-nav-h` so pages
   // don't reserve clearance for a dock that never renders.
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
-  if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
+  if (!routeHasDock(location.pathname, notFoundPath)) return null;
 
   // No approval states (Q193): every tab and the Post FAB show to every
   // signed-in, email-confirmed account. Verification still fires at the

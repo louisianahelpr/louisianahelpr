@@ -94,6 +94,16 @@ export function navIconFor(path: "/home" | "/posts" | "/jobs" | "/messages") {
   return [...leftItems, ...rightItems].find((i) => i.path === path)!.icon;
 }
 
+/**
+ * Does this pathname carry the bottom bar? Its `authPages` prefix, or the 404 the catch-all is showing right now
+ * (L8, iOS design audit 2026-11-16: the standard says the catch-all renders with full chrome, and a signed-in
+ * member on a 404 had no way out but the page's button). `notFound` is useNotFoundPathname() (src/lib/notFoundPath.ts).
+ * MobileNav and PublicLayout both ask this, so the dock and its clearance agree. Guard: src/test/notFoundKeepsTheDock.test.tsx.
+ */
+export function routeHasDock(pathname: string, notFound: string | null): boolean {
+  return notFound === pathname || authPages.some((p) => pathname.startsWith(p));
+}
+
 export const authPages = ["/home", "/explore", "/posts", "/jobs", "/post-job", "/profile", "/messages", "/support", "/user", "/jobs/", "/browse",
   // Declutter (hidden switch): the dock stays on its screens.
   "/declutter",

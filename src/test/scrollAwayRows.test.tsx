@@ -22,7 +22,8 @@
  * @mutate src/components/sections/ScrollAway.tsx |       style={overlay ? { marginBottom: -scope!.height } : undefined} |       style={undefined}
  * @mutate src/components/sections/ScrollAway.tsx |       onFocusCapture={() => setHidden(false)} |
  * @mutate src/components/sections/ScrollAway.tsx |   if (desktop) return <>{children}</>; |
- * @mutate src/components/declutter/DeclutterHomeView.tsx |       <ScrollAwayRows off={!browse}> |       <ScrollAwayRows>
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |         <ScrollAwayRows off={!browse}>{browse?.chips}</ScrollAwayRows> |         <ScrollAwayRows>{browse?.chips}</ScrollAwayRows>
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |         <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />\n        <ScrollAwayRows off={!browse}>{browse?.chips}</ScrollAwayRows> |         <ScrollAwayRows off={!browse}><SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />{browse?.chips}</ScrollAwayRows>
  * @mutate src/components/sections/ScrollAwayScope.tsx |   if (!scope?.rows) return null; |   if (!scope) return null;
  * @mutate src/components/sections/SectionScreen.tsx |           <ScrollAwaySpacer />\n |\n
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         top={view === "map" ? undefined : <ScrollAwaySpacer />} |
@@ -190,11 +191,13 @@ describe("3. wired into Jobs Browse and Declutter Browse", () => {
     expect(dash).toContain('titleCardClassName={isWebDesktop ? "" : "!overflow-visible z-10"}');
   });
 
-  it("Declutter: the phone Browse chrome wraps tabs and chips (member and guest), SectionScreen draws the spacer first in its scroll column", () => {
+  it("Declutter: the tabs stay pinned and the chips slide (member), the guest chips slide, SectionScreen draws the spacer first in its scroll column", () => {
     const decl = code("src/components/declutter/DeclutterHomeView.tsx");
     // A guest's Browse chrome lives in its own file since Q2705 (11-14).
     expect(code("src/components/declutter/DeclutterGuestHome.tsx")).toContain("tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows>");
-    expect(decl).toMatch(/tabs: \(\s*<ScrollAwayRows off=\{!browse\}>\s*<SectionTabs [^>]*\/>\s*\{browse\?\.chips\}\s*<\/ScrollAwayRows>/);
+    // The tabs stay pinned like Jobs' (M14, owner 11-16 "keep tabs pinned"); only Browse's chips slide.
+    expect(decl).toMatch(/tabs: \(\s*<>\s*<SectionTabs [^>]*\/>\s*<ScrollAwayRows off=\{!browse\}>\{browse\?\.chips\}<\/ScrollAwayRows>/);
+    expect(decl).not.toMatch(/<ScrollAwayRows[^>]*>\s*<SectionTabs/);
     const screenSrc = code("src/components/sections/SectionScreen.tsx");
     expect(screenSrc).toMatch(/data-app-page-scroll=""[^>]*>\s*<ScrollAwaySpacer \/>/);
     expect(screenSrc).toMatch(/<ScrollAwayScope>\s*<AppShell/);

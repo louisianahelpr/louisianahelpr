@@ -1,6 +1,7 @@
 import { createContext, useContext, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { formatUnreadBadge } from "@/lib/format";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -42,7 +43,9 @@ export function InboxTabs({ tab }: { tab: InboxTab }) {
     refs.current[next]?.focus();
   };
   return (
-    <div role="tablist" aria-label={t("inbox.tabs")} data-testid="inbox-tabs" className="shrink-0 flex w-full border-b border-[hsl(var(--olivewood)/0.12)]">
+    // M6 (iOS design audit 11-16): the SectionTabs look Jobs and Declutter use (left-aligned words 20px apart, a 2px
+    // bark underline under the selected one: .section-tab / .section-tab-selected), not two centred halves.
+    <div role="tablist" aria-label={t("inbox.tabs")} data-testid="inbox-tabs" data-section-tabs-look="" className="shrink-0 flex w-full items-end gap-5 border-b border-border/60">
       {tabs.map((x) => {
         const on = x.key === tab;
         const n = formatUnreadBadge(x.count);
@@ -64,8 +67,10 @@ export function InboxTabs({ tab }: { tab: InboxTab }) {
             data-inbox-tab={x.key}
             onClick={() => choose(x.key)}
             onKeyDown={onKeyDown}
-            className="relative flex-1 gap-1.5 px-3"
-            style={{ color: on ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.7)", fontWeight: on ? 700 : 600 }}
+            className={cn(
+              "section-tab relative shrink-0 gap-1.5 px-0 font-sans text-ds-13 font-semibold hover:bg-transparent min-[420px]:text-ds-15",
+              on ? "section-tab-selected text-foreground" : "text-muted-foreground",
+            )}
           >
             <span className="whitespace-nowrap">{x.label}</span>
             {x.count > 0 && (
@@ -79,7 +84,6 @@ export function InboxTabs({ tab }: { tab: InboxTab }) {
                 {n}
               </span>
             )}
-            {on && <span aria-hidden className="absolute inset-x-4 bottom-0 h-0.5 rounded-full" style={{ background: "hsl(var(--ink-deep))" }} />}
           </Button>
         );
       })}

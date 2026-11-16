@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-15T15:45Z",
+  "measured_at": "2026-11-16T01:13Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43584967592",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43742590288",
         "runTruncated": false
       },
       {
@@ -71,7 +71,7 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43619847734",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43743389939",
         "runTruncated": false
       },
       {
@@ -92,7 +92,7 @@
         "number": 4253,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43643232719",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43765914286",
         "runTruncated": false
       },
       {
@@ -100,13 +100,6 @@
         "title": "nightly-red: nightly-live-smoke",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43150645008",
-        "runTruncated": false
-      },
-      {
-        "number": 4302,
-        "title": "nightly-red: main: Vitest",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43725796197",
         "runTruncated": false
       },
       {
@@ -120,7 +113,7 @@
         "number": 4415,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43628190189",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43752011467",
         "runTruncated": false
       },
       {
@@ -132,7 +125,7 @@
         "number": 4451,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43619724192",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43743145168",
         "runTruncated": false
       },
       {
@@ -170,14 +163,6 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
-      },
-      {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": 4302
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -396,14 +381,6 @@
         "issue": null
       },
       {
-        "fingerprint": "a0597e872e21b8e38a6e743453dbb87a",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
-        "status": "open",
-        "title": "job stalled — nobody marked it done",
-        "issue": null
-      },
-      {
         "fingerprint": "3c0d6b003e080de5479e1faf4a1df45a",
         "source_kind": "sentry",
         "source": "sentry:assets/Signup",
@@ -492,14 +469,6 @@
         "issue": null
       },
       {
-        "fingerprint": "dd2ccbc600cefe639623d0c8e3339c8c",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/ · error screen shown: couldn't load the newest jobs.",
-        "issue": null
-      },
-      {
         "fingerprint": "feb363ff214ac3c02969933acc795e1e",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -556,7 +525,6 @@
     "issue #4222": "Q1816",
     "issue #4253": "Q1816",
     "issue #4270": "Q1816",
-    "issue #4302": "Q1816",
     "issue #4340": "Q1816",
     "issue #4415": "Q1816",
     "issue #4450": "Q2800",
@@ -614,7 +582,6 @@
     "ledger dd2ccbc600ce": "Q2780",
     "ledger e41c806b9175": "Q1816",
     "ledger f1bfed973a2a": "Q2734",
-    "ledger f22e3275d50d": "Q1816",
     "ledger fad6897fcfae": "Q2802",
     "ledger feb363ff214a": "Q1816"
   }

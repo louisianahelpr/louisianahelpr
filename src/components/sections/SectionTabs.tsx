@@ -132,8 +132,10 @@ export function SectionTabs<T extends string>({
           (measured in WebKit: scrollTop 0 -> 1 on a wheel over the row) and on iOS rubber-banded them out of the clip,
           leaving the border and the icons beside it. overflow-y:hidden makes it a sideways-only scroller.
           Guard: e2e/sectionTabsStayPut.spec.ts (WebKit 375 + 1440). */}
+      {/* M4 (iOS design audit 11-16): a row of five or six tabs keeps Jobs' 20px spacing (it was 6-12px, crammed);
+          the dense words still size by the screen, and a row that does not fit is the one sideways strip (owner 11-12). */}
       <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} data-tabs-strip=""
-        className={cn("flex min-w-0 items-end overflow-x-auto overflow-y-hidden no-scrollbar", onlySelected ? "flex-none" : "flex-1", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
+        className={cn("flex min-w-0 items-end overflow-x-auto overflow-y-hidden no-scrollbar", onlySelected ? "flex-none" : "flex-1", end ? "gap-2 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
         {options.map((o, i) => {
           const active = o.value === value;
           if (onlySelected && !active) return null;

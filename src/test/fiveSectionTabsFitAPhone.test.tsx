@@ -7,7 +7,9 @@
  *
  * @mutate src/components/sections/SectionTabs.tsx |   const dense = options.length >= DENSE_TAB_COUNT; |   const dense = false;
  * @mutate src/index.css |     font-size: clamp(12px, 3.6vw, 13px); |     font-size: 13px;
- * @mutate src/components/sections/SectionTabs.tsx | dense ? "gap-3 min-[420px]:gap-5" : "gap-5" | "gap-5"
+ * M4 (iOS design audit 11-16): every phone row without end controls is 20px apart, Jobs' spacing; five and six tabs
+ * keep their screen-sized words and scroll when they do not fit (owner 11-12, one sideways strip).
+ * @mutate src/components/sections/SectionTabs.tsx | end ? "gap-2 min-[420px]:gap-5" : "gap-5" | end ? "gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5"
  *
  * SIX (OWN-FREE, 2026-10-30): Declutter's Free tab made the row 357px in a 335px track at 375 (Chromium, measured), so
  * Browse showed "Fre" at the edge. A row of six or more is also `denser`: 11px at 320, 12.4px at 375, 8px apart from
@@ -15,7 +17,7 @@
  * 295 in 280 and scrolls, as a five-tab row with two to-do counts does (words under 11px were not taken).
  * @mutate src/components/sections/SectionTabs.tsx |   const denser = options.length >= DENSER_TAB_COUNT; |   const denser = false;
  * @mutate src/index.css |     font-size: clamp(11px, 3.3vw, 13px); |     font-size: 13px;
- * @mutate src/components/sections/SectionTabs.tsx | denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense | dense
+ * @mutate src/components/sections/SectionTabs.tsx | end ? "gap-2 min-[420px]:gap-5" : "gap-5" | end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : "gap-5"
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -31,21 +33,22 @@ const five = [
 ] as const;
 
 describe("five section tabs fit a phone (A3-6)", () => {
-  it("Declutter's row (Browse + four) is dense and 12px apart", () => {
+  it("Declutter's row (Browse + four) is dense and 20px apart, as Jobs (M4)", () => {
     expect(DENSE_TAB_COUNT).toBe(5);
     render(<SectionTabs label="Declutter view" tabs={five} value="selling" onChange={() => {}} />);
     const list = screen.getByRole("tablist");
     expect(list.className).toMatch(/\bsection-tabs-dense\b/);
-    expect(list.className).toMatch(/\bgap-3\b/);
+    expect(list.className).toMatch(/\bgap-5\b/);
+    expect(list.className).not.toMatch(/\bgap-3\b/);
   });
 
-  it("Declutter's six (with Free) are denser: 8px apart from 360px, 6px below; five stay as they were", () => {
+  it("Declutter's six (with Free) are denser words, 20px apart as Jobs (M4); five stay as they were", () => {
     expect(DENSER_TAB_COUNT).toBe(6);
     const { unmount } = render(<SectionTabs label="Declutter view" tabs={[...five, { value: "free", label: "Free" }]} value="free" onChange={() => {}} />);
     const list = screen.getByRole("tablist");
     expect(list.className).toMatch(/\bsection-tabs-denser\b/);
-    expect(list.className).toMatch(/\bgap-1\.5\b/);
-    expect(list.className).toMatch(/min-\[360px\]:gap-2\b/);
+    expect(list.className).toMatch(/\bgap-5\b/);
+    expect(list.className).not.toMatch(/\bgap-1\.5\b|min-\[360px\]:gap-2\b/);
     unmount();
     render(<SectionTabs label="Declutter view" tabs={five} value="selling" onChange={() => {}} />);
     expect(screen.getByRole("tablist").className).not.toMatch(/section-tabs-denser/);

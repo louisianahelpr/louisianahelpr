@@ -1,7 +1,8 @@
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enMessages";
 import { navKey } from "@/lib/i18n/navLabels";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, type ReactNode } from "react";
+import { FilterChips } from "@/components/ui/FilterChips";
 import { useSearchParams } from "react-router-dom";
 import { MailCheck } from "lucide-react";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
@@ -120,40 +121,9 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     { value: "unread", label: unread > 0 ? t("msg.filterUnreadN", { n: unread }) : t("msg.filterUnread") },
     ...chipTabs.map((k) => ({ value: k, label: sectionByKey(k).label })),
   ];
-  // #3 (Declutter walk 2026-10-28, shot 46): the row's right edge was faded ALWAYS, so at 1440 the last chip that
-  // fit ("Declutter") read as cut off, and the rest (Shops, Homes) sat out of sight in a row a mouse can't swipe
-  // (measured: 502px of chips in a 327px list pane). On the desktop website the chips wrap onto a second line
-  // (index.css), and anywhere the fade marks only a row that really continues past its right edge.
-  const rowRef = useRef<HTMLDivElement>(null);
-  const [more, setMore] = useState(false);
-  const chipCount = chips.length;
-  useEffect(() => {
-    const row = rowRef.current;
-    if (!row) return;
-    const update = () => setMore(row.scrollWidth - row.clientWidth - row.scrollLeft > 2);
-    update();
-    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
-    ro?.observe(row);
-    row.addEventListener("scroll", update, { passive: true });
-    return () => {
-      ro?.disconnect();
-      row.removeEventListener("scroll", update);
-    };
-  }, [chipCount]);
+  // M6 (iOS audit 11-16): the shared FilterChips, the same row the Notifications tab uses (All first).
   const strip = (
-    <div ref={rowRef} className="chip-row" data-more={more ? "" : undefined} role="group" aria-label={t("msg.filterAria")} data-testid="messages-filter-chips">
-      {chips.map((c) => (
-        <button
-          key={c.value}
-          type="button"
-          data-inbox-chip={c.value}
-          aria-pressed={section === c.value}
-          onClick={() => setSection(c.value)}
-        >
-          {c.label}
-        </button>
-      ))}
-    </div>
+    <FilterChips chips={chips} value={section} onChange={setSection} label={t("msg.filterAria")} testId="messages-filter-chips" chipAttr="data-inbox-chip" />
   );
 
   let empty: SectionEmpty | null = null;

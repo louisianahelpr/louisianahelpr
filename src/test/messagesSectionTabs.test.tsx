@@ -30,7 +30,7 @@
  * @mutate src/components/messages/ConversationList.tsx |       {sectionTabs && ( |       {false && (
  * @mutate src/pages/messages/useMessageSections.tsx |     mainEmptyBody: mainInboxEmptyBody(live.declutter), |     mainEmptyBody: mainInboxEmptyBody(false),
  * @mutate src/components/messages/ConversationListBody.tsx |                 body={mainEmptyBody} |                 body={mainInboxEmptyBody(false)}
- * @mutate src/pages/messages/useMessageSections.tsx | data-more={more ? "" : undefined} | data-more=""
+ * @mutate src/components/ui/FilterChips.tsx | data-more={more ? "" : undefined} | data-more=""
  * @mutate src/index.css | .chip-row[data-more] { | .chip-row, .chip-row[data-more] {
  * @mutate src/index.css | html.web-desktop .chip-row {\n  flex-wrap: wrap !important; | html.web-desktop .chip-row {\n  flex-wrap: nowrap !important;
  * @mutate src/pages/messages/useMessageSections.tsx |   const chipTabs = tabs.length > 1 ? tabs : []; |   const chipTabs = tabs;

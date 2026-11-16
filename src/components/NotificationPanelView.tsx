@@ -10,6 +10,7 @@ import { prefetchOnIntent } from "@/components/notificationPanel/notificationFee
 import { AlertTriangle, BellRing, CheckCheck, ChevronRight, Loader2, MessageSquare } from "lucide-react";
 import { useBellMessagesUnread } from "@/components/notificationPanel/useBellMessagesUnread";
 import { formatUnreadBadge } from "@/lib/format";
+import { FilterChips } from "@/components/ui/FilterChips";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { Popover, PopoverTrigger, PopoverContent, PopoverPortal, PopoverAnchor, PopoverDismissLayer } from "@/components/ui/popover";
 import { AnchoredPanelHeader, AnchoredPanelSegmented, screenPanelContentClass, screenPanelContentProps } from "@/components/ui/anchoredPanel";
@@ -90,10 +91,25 @@ export function NotificationPanelView({
       label={t("notif.filter")}
       value={filter ?? "all"}
       onChange={setFilter}
+      // M6 (iOS audit 11-16): All first, as on Messages.
       options={[
-        { key: "unread", label: t("notif.unread"), count: unreadCount },
         { key: "all", label: t("notif.all") },
+        { key: "unread", label: t("notif.unread"), count: unreadCount },
       ]}
+    />
+  );
+  // M6: the Inbox's Notifications tab filters with the SAME chips as its Messages tab (FilterChips), in the same order.
+  const inboxChips = (
+    <FilterChips<Filter>
+      chips={[
+        { value: "all", label: t("notif.all") },
+        { value: "unread", label: unreadCount > 0 ? t("msg.filterUnreadN", { n: formatUnreadBadge(unreadCount) }) : t("notif.unread") },
+      ]}
+      value={filter ?? "all"}
+      onChange={setFilter}
+      label={t("notif.filter")}
+      testId="notif-filter-chips"
+      chipAttr="data-notif-chip"
     />
   );
   const body = (
@@ -102,7 +118,7 @@ export function NotificationPanelView({
           // THE INBOX'S NOTIFICATIONS TAB (owner 11-15): the same list, on a page instead of in the bell's panel. The tab
           // above already names it and there is nothing to close, so the row keeps only Unread / All and Mark all read.
           <div className="shrink-0 flex items-center gap-2 px-4 pt-2 pb-2.5 border-b border-[hsl(var(--olivewood)/0.12)]">
-            <div className="min-w-0 flex-1">{segmented}</div>
+            <div className="min-w-0 flex-1">{inboxChips}</div>
             {markAllButton}
           </div>
         ) : (

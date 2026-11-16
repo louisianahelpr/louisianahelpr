@@ -79,7 +79,8 @@ export function quietLazy<P extends object>(load: () => Promise<{ default: Compo
     if (!loaded) void start();
     useEffect(() => {
       let live = true;
-      if (!loaded) void start().then(() => { if (live) setReady(true); });
+      // Always: the chunk may have landed between this render (which drew nothing) and this effect.
+      void start().then(() => { if (live) setReady(true); });
       return () => { live = false; };
     }, []);
     return loaded ? createElement(loaded, props) : null;

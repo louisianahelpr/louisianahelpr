@@ -15,7 +15,6 @@
  *
  * @mutate src/components/inbox/useInboxCounts.ts | return { messages, notifications, total: messages + notifications }; | return { messages, notifications, total: messages };
  * @mutate src/components/inbox/inboxTab.ts |   return params.get("tab") === "notifications" ? "notifications" : "messages"; |   return "messages";
- * @mutate src/App.tsx | <Route path="/notifications" element={<Navigate to="/messages?tab=notifications" replace />} /> | <Route path="/notifications" element={<Navigate to="/messages" replace />} />
  * @mutate src/components/inbox/InboxButton.tsx | onClick={() => navigate(inboxPath(lastInboxTab()))} | onClick={() => navigate(inboxPath("messages"))}
  * @mutate src/components/inbox/InboxTabs.tsx |             role="tab"\n | \n
  * @mutate src/components/inbox/withInbox.tsx |   if (tab === "notifications") { |   if (false) {
@@ -193,9 +192,11 @@ describe("the Inbox page: two tabs, deep links by ?tab=", () => {
     expect(lastInboxTab()).toBe("messages");
   });
 
-  it("/notifications lands on the Notifications tab; /messages keeps its route", () => {
+  // No /notifications redirect: App.tsx serves no redirect-only route the owner did not name
+  // (src/test/everyLinkIsARealRoute.test.ts), and nothing links to /notifications.
+  it("/messages keeps its route and is the Inbox; no /notifications redirect", () => {
     const app = code("src/App.tsx");
-    expect(app).toContain('<Route path="/notifications" element={<Navigate to="/messages?tab=notifications" replace />} />');
+    expect(app).not.toContain('<Route path="/notifications"');
     expect(app).toMatch(/<Route path="\/messages" element=\{[^\n]*<Messages \/>/);
     expect(code("src/pages/messages/Messages.tsx")).toContain("export default withInbox(Messages);");
   });

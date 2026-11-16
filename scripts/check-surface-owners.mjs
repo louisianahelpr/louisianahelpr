@@ -95,9 +95,6 @@ const OWNERS = {
   "/explore": ["lh-design-holes"],
   "/post-job": ["lh-input-boundary", "lh-money-escrow"],
   "/messages": ["lh-trust-safety"],
-  // The Inbox (11-15): a redirect onto /messages?tab=notifications, so it is
-  // owned with /messages; its defect is landing on the wrong tab or screen.
-  "/notifications": ["lh-trust-safety"],
   // The Stripe checkout RETURN. Was owned only by lh-native-bridge, which
   // covers the native handoff and not what this page asserts about the money.
   "/payment-success": ["lh-money-escrow", "lh-native-bridge"],

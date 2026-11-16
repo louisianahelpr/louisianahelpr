@@ -3,7 +3,9 @@ import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { DarkGroundCloseButton } from "@/components/ui/DarkGroundCloseButton";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FileText, ExternalLink, Loader2, Play, Pause } from "lucide-react";
+import { FileText, Loader2, Play, Pause } from "lucide-react";
+import { toast } from "sonner";
+import { useDocumentViewer, DOCUMENT_SIGN_FAILED } from "@/components/documents/useDocumentViewer";
 import { useOverlayFocus } from "@/hooks/useOverlayFocus";
 import {
   getMessageAttachmentSignedUrl,
@@ -180,6 +182,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const docs = useDocumentViewer();
   const thumbRef = useRef<HTMLButtonElement>(null);
   const wasOpenRef = useRef(false);
   const lightboxRef = useRef<HTMLDivElement>(null);
@@ -282,12 +285,18 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
     setLightboxOpen(true);
   };
 
-  const handleOpenExternal = async (e: React.MouseEvent) => {
+  // A PDF opens in the app's own document viewer (owner 2026-11-15: "add the PDF viewer too"), never a new tab.
+  const handleOpenDocument = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // A photo goes to the photo viewer above, with its zoom (photosOpenInApp.test.tsx).
+    if (isImageMime(mime)) { setLightboxOpen(true); return; }
     const url = thumbUrl ?? (await getMessageAttachmentSignedUrl(path));
-    if (!url) return;
-    window.open(url, "_blank", "noopener,noreferrer");
+    if (!url) {
+      toast.error(DOCUMENT_SIGN_FAILED);
+      return;
+    }
+    docs.show(url, filename);
   };
 
   const filename = getMessageAttachmentFilename(path);
@@ -401,8 +410,10 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
   if (isPdfMime(mime)) {
     const sizeKb = size ? `${(size / 1024).toFixed(0)} KB` : null;
     return (
+      <>
+      {docs.viewer}
       <ListRow variant="flush"
-        onClick={handleOpenExternal}
+        onClick={handleOpenDocument}
         className="w-auto min-h-11 text-center flex items-center gap-2 rounded-2xl px-3 py-2 transition-all active:scale-[0.98]"
         style={
           mine
@@ -421,8 +432,8 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
         <FileText className="w-4 h-4 shrink-0" />
         <span title={filename} className="truncate max-w-[180px] font-sans font-semibold text-ds-12">{filename}</span>
         {sizeKb && <span className="text-ds-10 opacity-70 shrink-0 font-sans tabular-nums">{sizeKb}</span>}
-        <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
       </ListRow>
+      </>
     );
   }
 

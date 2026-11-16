@@ -1,4 +1,4 @@
-// @mutate src/components/admin/AdminCredentialQueue.tsx |       const safe = openableDocumentUrl(path); // a data: document opens as blob: (Q295)\n      if (safe) window.open(safe, "_blank", "noopener"); |       const safe = safeDocumentUrl(path);\n      if (safe) window.open(safe, "_blank", "noopener");
+// @mutate src/components/admin/AdminCredentialQueue.tsx |       const safe = openableDocumentUrl(path); // a data: document opens as blob: (Q295)\n      if (safe) docs.show(safe, "Credential document"); |       const safe = safeDocumentUrl(path);\n      if (safe) docs.show(safe, "Credential document");
 // @mutate src/components/profile/CredentialsTab.tsx | const safe = openableDocumentUrl(path); | const safe = safeDocumentUrl(path);
 // @mutate src/lib/storagePath.ts |   if (!safe \|\| !safe.startsWith("data:")) return safe; |   if (!safe \|\| safe) return safe;
 /*
@@ -16,8 +16,10 @@
  * seed to a storage object later that day). openableDocumentUrl() re-serves a
  * data: image as a blob: of the same bytes; every open sink uses it.
  *
- * Inventory: every source file that opens a document (href on a link, or
- * window.open) with a value from safeDocumentUrl / openableDocumentUrl.
+ * Inventory: every source file that opens a document (href on a link,
+ * window.open, or since 2026-11-15 the in-app document viewer's docs.show,
+ * whose Download / Open in new tab hand the same URL on) with a value from
+ * safeDocumentUrl / openableDocumentUrl.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -70,13 +72,15 @@ describe("Q295: an opened document never goes to a data: URL", () => {
       if (!/(safe|openable)DocumentUrl/.test(raw)) continue;
       const src = blankComments(raw);
       const rel = file.slice(SRC.length + 1);
-      sinks += (src.match(/href=\{openableDocumentUrl\(|window\.open\(\s*\w+/g) ?? []).length;
+      sinks += (src.match(/href=\{openableDocumentUrl\(|window\.open\(\s*\w+|docs\.show\(\s*\w+/g) ?? []).length;
       for (const m of src.matchAll(/href=\{safeDocumentUrl\(/g)) offenders.push(`${rel}@${m.index}: href={safeDocumentUrl(…)} (a data: document opens nothing)`);
-      for (const m of src.matchAll(/const (\w+) = safeDocumentUrl\([^)]*\);[\s\S]{0,240}?window\.open\(\s*\1\b/g)) offenders.push(`${rel}@${m.index}: window.open(${m[1]}) of a safeDocumentUrl value`);
+      for (const m of src.matchAll(/const (\w+) = safeDocumentUrl\([^)]*\);[\s\S]{0,240}?(window\.open|docs\.show)\(\s*\1\b/g)) offenders.push(`${rel}@${m.index}: ${m[2]}(${m[1]}) of a safeDocumentUrl value`);
       for (const m of src.matchAll(/window\.open\(\s*safeDocumentUrl\(/g)) offenders.push(`${rel}@${m.index}: window.open(safeDocumentUrl(…))`);
     }
-    // 7 on 2026-11-15 (three photo links became in-app viewer buttons, photosOpenInApp.test.tsx).
-    expect(sinks, "found almost no document-opening sinks — the scan is broken").toBeGreaterThan(6);
+    // 7 on 2026-11-15 (three photo links became in-app viewer buttons, photosOpenInApp.test.tsx); 4 later that day:
+    // documents open in the in-app document viewer (documentsOpenInApp.test.tsx). CredentialsTab 2 (docs.show),
+    // AdminCredentialQueue 1 (docs.show), MarketingQueue 1 (its View post link).
+    expect(sinks, "found almost no document-opening sinks — the scan is broken").toBeGreaterThan(3);
     expect(offenders.join("\n")).toBe("");
   });
 });

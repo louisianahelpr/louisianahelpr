@@ -21,7 +21,7 @@ import { splitSupportScreenshot } from "@/lib/supportScreenshot";
 import { splitSupportGuest, supportTicketRef } from "../../../supabase/functions/_shared/supportGuest";
 import { isBrowserImagePath, isStorageObjectPath } from "@/lib/storagePath";
 import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
-import { openSignedDocument } from "@/lib/openSignedDocument";
+import { useDocumentViewer } from "@/components/documents/useDocumentViewer";
 import { SupportReplyComposer, SupportThread } from "@/components/admin/SupportReply";
 import { useSupportReplies } from "@/components/admin/useSupportReplies";
 import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
@@ -560,13 +560,13 @@ const AdminSupport = () => {
 /**
  * The reporter's screenshot, signed at CLICK time for five minutes. The ticket
  * stores only the user-documents path (src/lib/supportScreenshot.ts); admins
- * can read it through the "user-documents: owner or admin read" policy. The
- * tab opens inside the click before any await (openSignedDocument, Q295), or
- * WebKit blocks it silently.
+ * can read it through the "user-documents: owner or admin read" policy. It
+ * opens in the app's own photo or document viewer, never a new tab.
  */
 function ViewScreenshotButton({ path }: { path: string }) {
   const [busy, setBusy] = useState(false);
   const { showSigned, viewer } = useSinglePhotoViewer();
+  const docs = useDocumentViewer();
   const sign = async () => {
     if (!isStorageObjectPath(path)) return null;
     const { data, error } = await supabase.storage
@@ -577,15 +577,17 @@ function ViewScreenshotButton({ path }: { path: string }) {
   };
   const open = async () => {
     setBusy(true);
-    // Owner 2026-11-15: the screenshot opens in the app's own photo viewer, never a new tab on the storage URL. Only a
-    // file a browser cannot draw (a HEIC screenshot) still opens in a tab.
+    // Owner 2026-11-15: the screenshot opens in the app's own photo viewer, never a new tab on the storage URL. A file
+    // the photo viewer cannot draw (a HEIC screenshot) opens in the document viewer, which tries it and else offers
+    // Download.
     if (isBrowserImagePath(path)) await showSigned(sign, "Screenshot the member attached", (msg) => toast.error(msg));
-    else await openSignedDocument({ open: (url, target) => window.open(url, target), sign, toastError: (msg) => toast.error(msg) });
+    else await docs.showSigned(sign, "Screenshot the member attached", (msg) => toast.error(msg));
     setBusy(false);
   };
   return (
     <div>
       {viewer}
+      {docs.viewer}
       <Button size="sm" variant="outline" onClick={open} disabled={busy}>
         {busy ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5 mr-1" />}
         View screenshot

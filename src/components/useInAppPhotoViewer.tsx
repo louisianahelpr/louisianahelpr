@@ -37,7 +37,7 @@ export function useInAppPhotoViewer(
   return { open, viewer };
 }
 
-/** Shown when a private photo could not be signed (the same words openSignedDocument uses for a document). */
+/** Shown when a private photo could not be signed (useDocumentViewer has its twin for a document). */
 const PHOTO_SIGN_FAILED = "Couldn't load that photo. Try again.";
 
 /**

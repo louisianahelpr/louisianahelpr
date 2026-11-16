@@ -242,6 +242,9 @@ const HAND_ROLLED_BY_DESIGN: Record<string, string> = {
   "src/components/dashboard/PhotoLightbox.tsx":
     "Full-bleed image viewer, same reasoning as MessageAttachment: framing a " +
     "photo in a 512px card to satisfy a consistency rule makes the photo worse.",
+  "src/components/documents/DocumentViewer.tsx":
+    "Full-screen document viewer, PhotoLightbox's twin for PDFs (owner 2026-11-15: \"add the PDF viewer too\"): " +
+    "a PDF page squeezed into a 512px card is unreadable on a phone, so the pages get the whole viewport.",
   "src/components/AppLockGate.tsx":
     "The lock screen is the whole viewport, deliberately. It must cover the app " +
     "completely and leave the middle clear for the OS biometric sheet to land " +

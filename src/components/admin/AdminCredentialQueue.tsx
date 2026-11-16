@@ -6,14 +6,15 @@ import { unwrap } from "@/lib/supabaseResult";
 import { isBrowserImagePath, isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
 import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
-import { openSignedDocument } from "@/lib/openSignedDocument";
+import { useDocumentViewer } from "@/components/documents/useDocumentViewer";
+import { documentName } from "@/lib/documentKind";
 import { report } from "@/lib/errorLogger";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ShieldCheck, FileText, ExternalLink, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { ShieldCheck, FileText, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { formatShortDate } from "@/lib/format";
 import {
   Dialog,
@@ -444,12 +445,13 @@ const AdminCredentialQueue = () => {
   );
 };
 
-// Resolve a 5-minute signed URL on demand and open in a new tab.
+// Resolve a 5-minute signed URL on demand and open it in the app's photo or document viewer.
 // user-documents bucket is private as of 2026-05-05 — admins authorize
 // via has_role('admin') in the bucket SELECT policy.
 function SignedOpenLink({ path }: { path: string }) {
   const [busy, setBusy] = useState(false);
   const { show, showSigned, viewer } = useSinglePhotoViewer();
+  const docs = useDocumentViewer();
   const sign = async () => {
     if (!isStorageObjectPath(path)) return null;
     const { data, error } = await supabase.storage
@@ -459,8 +461,8 @@ function SignedOpenLink({ path }: { path: string }) {
     return error || !data ? null : data.signedUrl;
   };
   const open = async () => {
-    // A photo of the document opens in the app's own viewer (owner 2026-11-15:
-    // never a new tab on the storage URL); only a PDF opens a tab.
+    // A photo of the document opens in the app's own photo viewer (owner 2026-11-15:
+    // never a new tab on the storage URL).
     if (isBrowserImagePath(path)) {
       if (!isStorageObjectPath(path)) {
         const safe = safeDocumentUrl(path);
@@ -473,33 +475,29 @@ function SignedOpenLink({ path }: { path: string }) {
       setBusy(false);
       return;
     }
-    // A value that is already a URL opens as-is ONLY if it is an https: or
-    // raster data: URL (safeDocumentUrl); only a storage path is signed.
+    // A document (PDF, Word, HEIC) opens in the app's own document viewer (owner 2026-11-15: "add the PDF viewer
+    // too"). A value that is already a URL opens as-is ONLY if it is an https: or raster data: URL; only a storage
+    // path is signed.
     if (!isStorageObjectPath(path)) {
       const safe = openableDocumentUrl(path); // a data: document opens as blob: (Q295)
-      if (safe) window.open(safe, "_blank", "noopener");
+      if (safe) docs.show(safe, "Credential document");
       else toast.error("This document link isn't one we can open.");
       return;
     }
-    // Q295: the tab opens inside the click (before any await), or WebKit
-    // blocks it silently; openSignedDocument then points it at the URL.
     setBusy(true);
-    await openSignedDocument({
-      open: (url, target) => window.open(url, target),
-      sign,
-      toastError: (msg) => toast.error(msg),
-    });
+    await docs.showSigned(sign, documentName(path), (msg) => toast.error(msg));
     setBusy(false);
   };
   return (
     <>
     {viewer}
+    {docs.viewer}
     <InlineTextButton
       onClick={open}
       disabled={busy}
       className="inline-flex items-center gap-1 text-ds-11 text-primary disabled:opacity-50"
     >
-      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Open {isBrowserImagePath(path) ? null : <ExternalLink className="w-3 h-3" />}</>}
+      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : "Open"}
     </InlineTextButton>
     </>
   );

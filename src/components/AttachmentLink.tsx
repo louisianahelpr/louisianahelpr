@@ -1,6 +1,7 @@
 import { ListRow } from "@/components/ui/ListRow";
 import { useState } from "react";
-import { FileText, ExternalLink as ExternalLinkIcon } from "lucide-react";
+import { FileText } from "lucide-react";
+import { useDocumentViewer } from "@/components/documents/useDocumentViewer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { getAttachmentSignedUrl, getAttachmentFilename, extractAttachmentPath } from "@/lib/applicationAttachments";
@@ -26,9 +27,10 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
   const [loading, setLoading] = useState(false);
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
   // Owner 11-13: an image attachment opens in the app's own viewer, never the signed URL in Safari. A file (PDF, doc)
-  // still opens in the system viewer: the app has no document viewer of its own.
+  // opens in the app's own document viewer (owner 11-15).
   const { open: openPhoto, viewer } = useInAppPhotoViewer([thumbUrl], [`Attachment ${index + 1}`]);
   const single = useSinglePhotoViewer();
+  const docs = useDocumentViewer();
 
   // Lazy-load image thumbnails using a signed URL the first time they render
   if (isImage && variant === "thumb" && !thumbUrl && !loading) {
@@ -47,12 +49,8 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
       await single.showSigned(() => getAttachmentSignedUrl(url), filename, () => toast.error("Couldn't open that — try again?"));
       return;
     }
-    const signed = await getAttachmentSignedUrl(url);
-    if (!signed) {
-      toast.error("Couldn't open that — try again?");
-      return;
-    }
-    window.open(signed, "_blank", "noopener,noreferrer");
+    // A PDF or Word file opens in the app's own document viewer (owner 2026-11-15: "add the PDF viewer too").
+    await docs.showSigned(() => getAttachmentSignedUrl(url), filename, () => toast.error("Couldn't open that — try again?"));
   };
 
   if (isImage && variant === "thumb") {
@@ -83,13 +81,13 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
   return (
     <>
     {single.viewer}
+    {docs.viewer}
     <ListRow variant="flush"
       onClick={handleOpen}
       className={`w-auto min-h-11 text-center flex items-center gap-1.5 text-ds-11 text-primary hover:underline bg-secondary/30 rounded-ds-sm px-2.5 py-1.5 ${className ?? ""}`}
     >
       <FileText className="w-3.5 h-3.5" />
       <span title={filename} className="truncate max-w-[120px]">{filename.length > 20 ? filename.slice(-20) : filename}</span>
-      {isBrowserImagePath(path) ? null : <ExternalLinkIcon className="w-3 h-3 text-muted-foreground" />}
     </ListRow>
     </>
   );

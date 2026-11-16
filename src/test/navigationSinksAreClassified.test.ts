@@ -105,8 +105,6 @@ const MAPS = "mapsSearchUrl(): a fixed https://maps.apple.com / maps:// / geo: p
 
 const CLASSIFIED: Record<string, string> = {
   // 25 Days sponsor page (owner 2026-11-09).
-  // Shops paperwork queue (lead train 11-10): the permit document link, gated by isStorageObjectPath in permitDocumentUrl.
-  "components/admin/ShopsPaperworkCard.tsx::await permitDocumentUrl(path)": STORAGE_SIGNED,
   "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,
   "pages/auth/completeProfile/ConsentStep.tsx::href": "link()'s prop: its only callers pass the fixed in-app paths \"/terms\", \"/rules\" and \"/privacy\"",
   "components/sponsor/ClaimSection.tsx::href": "a data:text/calendar URL of an .ics file the page builds itself (buildIcs + encodeURIComponent)",
@@ -116,17 +114,11 @@ const CLASSIFIED: Record<string, string> = {
   "components/sponsor/Sections.tsx::C.links.website": "a constant https:// URL in src/content/sponsorPage.ts",
   "components/sponsor/Sections.tsx::site": "filledUrl(sponsor website): a sponsor-entered value shown only after an admin confirms the sponsor, and only when it matches ^https?:// (no javascript:/data:); rel noopener noreferrer nofollow",
   // --- stored values, sanitized upstream of the sink ---
-  "components/AttachmentLink.tsx::signed": "getAttachmentSignedUrl(): isStorageObjectPath-gated createSignedUrl output, else null",
-  "components/MessageAttachment.tsx::url": "thumbUrl / getMessageAttachmentSignedUrl(): isStorageObjectPath-gated createSignedUrl output, else null",
-  "components/admin/AdminCredentialQueue.tsx::safe": "const safe = openableDocumentUrl(path) above (safeDocumentUrl output, or a blob: of its data: image)",
-  "components/admin/AdminCredentialQueue.tsx::url": "SignedOpenLink's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
-  "components/admin/settings/RentalsOwnershipCard.tsx::url": "the ownership-proof button's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
-  "components/admin/AdminSupport.tsx::url": "ViewScreenshotButton's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
-  "components/admin/userDetail/DocumentsTab.tsx::url": "SignedPortfolioTile's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
+  // The document viewer's own Download / Open in new tab (owner 2026-11-15): url is the document it shows, which
+  // every caller passes from createSignedUrl / getAttachmentSignedUrl / permitDocumentUrl / signedFileUrl output or
+  // openableDocumentUrl (https or a blob: of a raster data: image); downloadUrl only adds a query parameter.
+  "components/documents/DocumentViewer.tsx::url": STORAGE_SIGNED + ", or openableDocumentUrl() output (documentsOpenInApp.test.tsx)",
   "lib/rentals/rentReceipt.ts::url": OBJECT_URL + " (the rent receipt text, revoked after 1 s)",
-  "lib/openSignedDocument.ts::url": STORAGE_SIGNED + " (Q295: deps.sign() is SignedOpenLink's createSignedUrl behind isStorageObjectPath; null closes the tab)",
-  "components/profile/CredentialsTab.tsx::safe": "const safe = openableDocumentUrl(path) above (safeDocumentUrl output, or a blob: of its data: image)",
-  "components/profile/CredentialsTab.tsx::signed.signedUrl": STORAGE_SIGNED,
   "components/messages/MessageBubble.tsx::url": "isSafeHttpsUrl(url) (new URL(url).protocol === 'https:') returns inert text first",
   // --- app-built URLs, no stored value in the scheme position ---
   "components/job-card/JobCardMetaRow.tsx::mapHref": MAPS,

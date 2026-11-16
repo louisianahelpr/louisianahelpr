@@ -9,7 +9,7 @@
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |   if (!on) return null; |
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |         <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(false)}> |         <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(true)}>
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |       {q.isError ? ( |       {false ? (
- * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |           open: (url, target) => window.open(url, target), |           open: () => null,
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |     void docs.showSigned(sign, name, | void (sign, name,
  * Landlord ID beside the proof (owner 2026-10-19):
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |         <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate(false)}> |         <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate(true)}>
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |   const open = [...groups.values()].filter((g) => g.id?.status === "pending_review" \|\| g.properties.length > 0); |   const open = [...groups.values()].filter((g) => g.properties.length > 0);
@@ -36,6 +36,7 @@ const reviewOwnership = vi.fn(async () => undefined);
 const reviewLandlordId = vi.fn(async () => undefined);
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
+vi.mock("@/components/documents/PdfPages", () => ({ default: ({ url }: { url: string }) => <div data-testid="pdf-pages" data-url={url} /> }));
 vi.mock("@/components/ui/ReportErrorScreen", () => ({ ReportErrorScreen: () => <p>report</p> }));
 vi.mock("@/lib/rentals/api", () => ({
   fetchPendingOwnership: async () => {
@@ -134,16 +135,16 @@ describe("RentalsOwnershipCard", () => {
     await waitFor(() => expect(reviewOwnership).toHaveBeenLastCalledWith("p1", false, "Name on the deed differs"));
   });
 
-  it("opens the proof tab inside the click, then points it at the signed link (Q295: WebKit blocks a tab opened after an await)", async () => {
+  it("opens the proof PDF in the app's own document viewer, never a new tab (owner 2026-11-15: \"add the PDF viewer too\")", async () => {
     state.pending = [PROPERTY];
-    const tab = { opener: {} as unknown, location: { href: "" }, close: vi.fn() };
-    const open = vi.spyOn(window, "open").mockImplementation(() => tab as unknown as Window);
+    const open = vi.spyOn(window, "open");
     try {
       renderCard();
       fireEvent.click(await screen.findByRole("button", { name: "Open ownership proof" }));
-      expect(open).toHaveBeenCalledWith("", "_blank");
-      await waitFor(() => expect(tab.location.href).toBe("https://signed/x"));
-      expect(tab.opener).toBeNull();
+      const viewer = await screen.findByRole("dialog", { name: "Document viewer" });
+      expect(viewer.textContent).toContain("ownership proof.pdf");
+      expect((await screen.findByTestId("pdf-pages")).getAttribute("data-url")).toBe("https://signed/x");
+      expect(open).not.toHaveBeenCalled();
     } finally {
       open.mockRestore();
     }

@@ -16,6 +16,7 @@
  * @mutate src/components/MobileNav.tsx | listed: t ? (t.on && DOCK_LISTS_PREVIEWS_IN_APP) \|\| t.listed : true | listed: t ? DOCK_LISTS_PREVIEWS_IN_APP \|\| t.listed : true
  * @mutate src/components/MobileNav.tsx |       const soon = !!item.comingSoon && !!t && (!t.on \|\| t.preview) && !hideUnopenedInApp(); |       const soon = !!item.comingSoon && !!t && !t.on;
  * @mutate src/components/mobileNav/dockItems.ts | label: homes.label, comingSoon: true }, | label: homes.label },
+ * @mutate src/components/MobileNav.tsx |     const badgeCount = isGuest \|\| closed ? 0 : dockBadgeCount(badgeKey, unreadCount, todo); |     const badgeCount = isGuest ? 0 : dockBadgeCount(badgeKey, unreadCount, todo);
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <TopBarInbox />} |
  * @mutate src/components/inbox/InboxButton.tsx |       {total > 0 && ( |       {false && (
  * @mutate src/components/sections/SectionSearchBar.tsx | full.length <= 22 ? "max-[429px]:hidden" | full.length <= 22 ? "max-[409px]:hidden"
@@ -164,12 +165,20 @@ describe("the phone bottom bar (owner 11-14)", () => {
     expect(tab(name).getAttribute("aria-current")).toBe("page");
   });
 
-  // M8/M9: a closed section is not in the bar at all, so it shows no count (the badge rule's own closed check is
-  // now only defence; its @mutate moved off this file because no rendered tab can reach it).
-  it("a closed section carries no to-do count", () => {
-    Object.assign(todo, { shops: 2 });
+  // M8/M9: Shops and Homes, when closed, are not in the bar at all. The one tab that is LISTED while closed is Declutter
+  // while its switch still reads off (loading; OPEN_FOR_THOSE_WHO_HAVE_IT keeps it so it doesn't pop in late). It must
+  // carry no to-do count then, and it shows the count once the switch reads on (the positive control).
+  it("a listed tab whose section reads closed (Declutter while its switch loads) carries no to-do count", () => {
+    Object.assign(todo, { declutter: 2 });
+    switches.on = new Set();
+    openAll.set = new Set();
     renderPhone();
-    expect(document.querySelector(`${DOCK} [data-dock-badge="/shops"]`)).toBeNull();
+    expect(tab("Declutter")).toBeTruthy(); // listed while closed: the path this check guards is reachable
+    expect(document.querySelector(`${DOCK} [data-dock-badge="/declutter"]`)).toBeNull();
+    cleanup();
+    switches.on = new Set(["declutter"]);
+    renderPhone();
+    expect(document.querySelector(`${DOCK} [data-dock-badge="/declutter"]`)).not.toBeNull();
   });
 
   it.each(["/messages", "/profile"])("%s lights no bottom tab", (at) => {

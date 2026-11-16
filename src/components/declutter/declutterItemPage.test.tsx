@@ -191,7 +191,6 @@ vi.mock("@/lib/declutter/trades", async () => ({
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
-import { ROWS_NEAR_MARGIN } from "./DeclutterItemRows";
 import PageHeader from "@/components/PageHeader";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
@@ -537,63 +536,42 @@ describe("the photo-first Declutter item page", () => {
       window.matchMedia = real;
     }
   });
-  // Q2560 (Auditor 1, audit 1102a): a free item gets the same pinned bar, with its one "Ask for it" button.
-  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   const askBarShown = useOffScreen(askButton) && item.status === "live" && !underAge && !myAsk; |   const askBarShown = false;
-  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   useDockYield(askBarShown); |   void askBarShown;
-  it("phone: a free item's Ask for it rides in the same bottom bar once its button is off screen (Q2560)", async () => {
+  // Q2560 (Auditor 1, audit 1102a) + M3 (iOS audit 11-16): a free item's Ask for it rides in the SAME bar as a paid
+  // item's buttons, from the first screen, on every phone height. It used to appear only once the in-page button left
+  // the screen, so a 17 Pro kept the dock over the card's "nothing is charged" line while an SE got the bar.
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |       <StickyActionBar label={t("free.askAria")} data-declutter-askbar="" spacer={false}> |       <StickyActionBar label={t("free.askAria")} data-declutter-askbar="" spacer={false} active={false}>
+  it("phone: a free item's Ask for it rides in the bottom bar from the first screen, with the IntersectionObserver saying it is on screen (M3)", async () => {
+    // The in-page button's spot is fully on screen (the 17 Pro case): the bar must still be the one place it is drawn.
     vi.stubGlobal(
       "IntersectionObserver",
       class {
-        constructor(private cb: (e: { isIntersecting: boolean }[]) => void) {}
-        observe() { this.cb([{ isIntersecting: false }]); }
+        constructor(private cb: (e: { isIntersecting: boolean; intersectionRatio: number }[]) => void) {}
+        observe() { this.cb([{ isIntersecting: true, intersectionRatio: 1 }]); }
         disconnect() {}
       },
     );
-    state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
-    open();
-    await screen.findAllByRole("button", { name: "Ask for it" });
-    const bar = await waitFor(() => {
-      const el = document.body.querySelector("[data-declutter-askbar]") as HTMLElement | null;
-      expect(el).not.toBeNull();
-      return el as HTMLElement;
-    });
-    expect(bar.className).toContain("bottom-0");
-    expect(within(bar).getByRole("button", { name: "Ask for it" })).toBeInTheDocument();
-    await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
-    // A paid item's bar is not drawn for a free item.
-    expect(document.body.querySelector("[data-declutter-buybar]")).toBeNull();
-  });
-  // Audit 1030 DB-14: at 375 the in-page Buy now sat in the strip behind the dock, and the observer counted that strip
-  // as on screen, so the bar never came and Buy now stayed hidden. The strip the dock covers is cut off the observed
-  // screen, and a group only partly clear of it still gets the bar (local repro 375x900: before no bar, after bar
-  // 827-900 with the dock hidden; ~/.lh-shots/b96/db14).
-  // @mutate src/components/declutter/useOffScreen.ts |       { rootMargin: `0px 0px -${dockCoverPx()}px 0px`, threshold: [0, 0.99] }, |       { threshold: [0, 0.99] },
-  // @mutate src/components/declutter/useOffScreen.ts |       ([entry]) => setOff(!entry.isIntersecting \|\| (entry.intersectionRatio ?? 1) < 0.99), |       ([entry]) => setOff(!entry.isIntersecting),
-  it("DB-14: the strip behind the dock does not count as on screen, and a button only partly clear of it still gets the bar (free item's Ask for it; a paid item's bar is always shown since owner pick 1, 11-08)", async () => {
-    const dock = document.createElement("div");
-    dock.className = "mobile-nav-frame";
-    dock.getBoundingClientRect = () => ({ top: window.innerHeight - 64, bottom: window.innerHeight, height: 64, left: 0, right: 375, width: 375, x: 0, y: window.innerHeight - 64, toJSON: () => ({}) });
-    document.body.appendChild(dock);
-    const seen: { rootMargin?: string }[] = [];
-    vi.stubGlobal(
-      "IntersectionObserver",
-      class {
-        constructor(private cb: (e: { isIntersecting: boolean; intersectionRatio: number }[]) => void, opts: { rootMargin?: string }) { seen.push(opts ?? {}); }
-        // Half of the button group shows above the dock: intersecting, but not clear of it.
-        observe() { this.cb([{ isIntersecting: true, intersectionRatio: 0.5 }]); }
-        disconnect() {}
-      },
-    );
+    const real = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...real(query), matches: query.includes("max-width: 639px") })) as typeof window.matchMedia;
     state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
     try {
-      open();
-      await screen.findAllByRole("button", { name: "Ask for it" });
-      await waitFor(() => expect(document.body.querySelector("[data-declutter-askbar]")).not.toBeNull());
+      const { container } = open();
+      const bar = await waitFor(() => {
+        const el = document.body.querySelector("[data-declutter-askbar]") as HTMLElement | null;
+        expect(el).not.toBeNull();
+        return el as HTMLElement;
+      });
+      expect(bar.className).toContain("fixed");
+      expect(bar.className).toContain("bottom-0");
+      expect(container.contains(bar)).toBe(false);
+      expect(within(bar).getByRole("button", { name: "Ask for it" })).toBeInTheDocument();
+      // ONE Ask for it: none left in the page under the dock.
+      expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
       await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
-      // F062: the rows under the item watch for themselves too (ROWS_NEAR_MARGIN); this is the action bar's observer.
-      expect(seen.filter((o) => o.rootMargin !== ROWS_NEAR_MARGIN).slice(-1)[0]?.rootMargin).toBe("0px 0px -64px 0px");
+      // The card's caption stays in the page, above the page's bottom clearance.
+      expect(container.querySelector("[data-free-ask-note]")).not.toBeNull();
+      expect(document.body.querySelector("[data-declutter-buybar]")).toBeNull();
     } finally {
-      dock.remove();
+      window.matchMedia = real;
     }
   });
 

@@ -361,6 +361,24 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     }
   });
 
+  // L13 (iOS design audit 11-16): "Post a job" and "Sell an item" were both solid olive. One primary in the sheet.
+  // @mutate src/components/create/CreateSheet.tsx | j === 0 && s.key === primaryRow ? "btn-grad-primary" | j === 0 ? "btn-grad-primary"
+  it("the sheet has ONE solid primary action, the first live row's first; every other action is the outline pill (L13)", () => {
+    openAll.set = new Set(["declutter"]);
+    try {
+      renderDock();
+      openSheet();
+      const all = [...document.querySelectorAll("[data-create-action]")] as HTMLElement[];
+      // Inventory floor: Jobs and Declutter each offer actions.
+      expect(all.length).toBeGreaterThan(2);
+      const solid = all.filter((b) => b.className.includes("btn-grad-primary"));
+      expect(solid).toEqual([action("jobs")]);
+      expect(action("declutter").className).toContain("border");
+    } finally {
+      openAll.set = null;
+    }
+  });
+
   it("Customize: a hidden section has no row", () => {
     localStorage.setItem("helpr_section_prefs:u-create", JSON.stringify({ hidden: ["shops"] }));
     renderDock();

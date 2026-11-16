@@ -28,7 +28,7 @@ export function useTradeOffersToAnswer(userId: string | null): number {
 }
 
 /** F360c: the cart checkout holding this trade's item, scrolled to and focused; false when it is not on this page. */
-export function goToTradeCheckout(itemId: string | null | undefined): boolean {
+function goToTradeCheckout(itemId: string | null | undefined): boolean {
   if (!itemId) return false;
   const box = document.querySelector<HTMLElement>(`[data-cart-item="${CSS.escape(itemId)}"]`)?.closest<HTMLElement>("[data-checkout-seller]");
   if (!box) return false;

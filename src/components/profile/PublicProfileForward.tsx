@@ -27,7 +27,7 @@ import { UserProfileForwardWait } from "@/pages/user/UserProfileLoadingBody";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Forwards to the member's /u page (keeping ?query and #hash); `none` and `notDeployed` say what shows otherwise. */
-export function PublicProfileForward({ userId, none, notDeployed, onForward, wait }: {
+function PublicProfileForward({ userId, none, notDeployed, onForward, wait }: {
   userId: string | undefined;
   none: ReactNode;
   notDeployed: ReactNode;

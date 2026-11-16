@@ -54,7 +54,7 @@ const input = "w-full rounded-lg border border-input bg-background px-3 py-2 tex
 /** Audit 1028 part 2, D2-15: the amount is a few digits; a full-width box read as a text field. */
 const amountInput = `${input} max-w-[12rem]`;
 
-export const REFUND_REASON_WORDS: Record<RefundReason, string> = {
+const REFUND_REASON_WORDS: Record<RefundReason, string> = {
   not_as_described: "Not as described",
   damaged: "Damaged",
   not_received: "Never got it",
@@ -292,7 +292,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
  * A3-79: the buyer's step while an agreed full refund waits for the item: bring it back by the time Louisiana Helpr
  * takes over (return_deadline), or, once it is dropped off or the seller comes for it, who we are waiting on.
  */
-export function returnStep(r: NonNullable<RefundRequestView["request"]>, who: string): NextStepValue | null {
+function returnStep(r: NonNullable<RefundRequestView["request"]>, who: string): NextStepValue | null {
   const by = r.return_deadline ?? r.return_by;
   const byWords = by ? at(by) : null;
   if (r.return_way === "collect") return { who: "them", text: `Waiting on ${who} to come for it`, by: r.return_at ? at(r.return_at) : null };
@@ -304,7 +304,7 @@ export function returnStep(r: NonNullable<RefundRequestView["request"]>, who: st
  * A3-22 (audit 11-01): the seller's side of a return, in the shared line: waiting on the buyer to bring it back (by
  * the return deadline), going for it themselves (at the picked time), then "Next: tap I got it back".
  */
-export function sellerReturnStep(r: NonNullable<RefundRequestView["request"]>, who: string): NextStepValue {
+function sellerReturnStep(r: NonNullable<RefundRequestView["request"]>, who: string): NextStepValue {
   const by = r.return_deadline ?? r.return_by;
   if (r.return_way === "collect") return { who: "you", text: `Pick the item up from ${who}, then tap I got it back`, by: r.return_at ? at(r.return_at) : null };
   if (r.return_dropped_off_at && r.return_way === "drop_off") return { who: "you", text: "Tap I got it back", by: null };

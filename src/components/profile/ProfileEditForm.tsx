@@ -49,7 +49,7 @@ export const AREA_FIELD_MEASURE = "max-w-[36rem]";
  * characters (2 to go)"): "2 more characters to go" alone never said what the target was (audit 11-10 W2 F261a).
  */
 /** Audit 11-10 F457: the words under a ZIP left with 1-4 digits. */
-export const ZIP_FIELD_ERROR = "ZIP is 5 digits.";
+const ZIP_FIELD_ERROR = "ZIP is 5 digits.";
 
 export function bioCharsToGo(bio: string): string {
   const left = Math.max(0, 20 - bio.trim().length);

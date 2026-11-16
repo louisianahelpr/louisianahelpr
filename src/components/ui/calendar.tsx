@@ -5,7 +5,7 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 // classNames + components keys follow the react-day-picker v9/v10 schema
 // (v8's `caption`/`cell`/`head_cell`/`nav_button_*` and the IconLeft/

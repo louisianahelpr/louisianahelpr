@@ -15,7 +15,7 @@ const loadSheet = () => loadModule(() => import("@/components/identity/IdentityC
 const IdentityCheckHost = optionalLazy(() => loadSheet().then((m) => (m ? { default: m.IdentityCheckHost } : untilReload())), "IdentityCheckHost", () => markIdentitySheetUnavailable({ entryLink: hasIdentityEntryParam(new URLSearchParams(window.location.search)) }));
 
 /** The two links that open the sheet on arrival (the notice, and Stripe's return). */
-export function hasIdentityEntryParam(params: URLSearchParams): boolean {
+function hasIdentityEntryParam(params: URLSearchParams): boolean {
   return params.get("verify_id") === "1" || params.get("idv") === "complete";
 }
 

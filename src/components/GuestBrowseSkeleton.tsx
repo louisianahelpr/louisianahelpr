@@ -61,7 +61,7 @@ const GuestBrowseSkeleton = () => {
 
     {/* Header row — mirrors the guest feed's AppTopBar (M13, owner 11-16): the search field, then Log in / Join free. */}
     <div className="glass-header sticky top-0 z-50">
-      <div className="mx-auto w-full max-w-3xl lg:max-w-5xl flex h-14 items-center justify-between gap-2 px-5 lg:px-8">
+      <div className="mx-auto w-full max-w-3xl lg:max-w-5xl flex h-14 items-center justify-between gap-2 px-4 lg:px-8">
         <Skeleton className="h-11 min-w-0 flex-1 rounded-full" />
         <div className="flex shrink-0 items-center gap-2">
           <Skeleton className="h-9 w-16 rounded-ds-md" />

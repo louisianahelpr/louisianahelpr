@@ -451,6 +451,9 @@ const DashboardGuest = () => {
       <PageScaffold
         maxWidth="narrow"
         animate
+        // The members' gutter (Dashboard, member Declutter): 16px, so the header and the Jobs | Declutter switch sit at
+        // the same x on both guest screens and every member one (sim check 11-16: guest Jobs was at 20, the rest at 16).
+        tightGutter
         // No `header` — the guest feed carried a sticky app bar whose only job
         // was to state the brand and hold the two auth actions. Both now live in
         // the title card's single row below, exactly as Home's emblem + bell do,

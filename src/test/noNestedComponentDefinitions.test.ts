@@ -112,5 +112,5 @@ describe("components are declared at module level", () => {
 // inside NotificationPreferences' render body. Every render makes a new type,
 // so React unmounts and remounts it and the switch under the user's finger
 // loses focus mid-toggle.
-// @mutate src/components/NotificationPreferences.tsx | const NotificationPreferences = () => { | const NotificationPreferences = () => { const SwitchSlotLocal = ({ checked }: { checked: boolean }) => <div>{String(checked)}</div>; void SwitchSlotLocal;
+// @mutate src/components/NotificationPreferences.tsx | const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode } = {}) => { | const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode } = {}) => { const SwitchSlotLocal = ({ checked }: { checked: boolean }) => <div>{String(checked)}</div>; void SwitchSlotLocal;
 

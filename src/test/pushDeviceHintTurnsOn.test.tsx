@@ -7,7 +7,7 @@
  * @mutate src/components/notificationPreferences/PushDeviceHint.tsx |     const outcome = await requestPush(); |     const outcome = "granted" as string;
  * @mutate src/components/notificationPreferences/PushDeviceHint.tsx | outcome === "refused" ? "blocked" : "idle" | outcome === "refused" ? "idle" : "idle"
  * @mutate src/components/notificationPreferences/PushDeviceHint.tsx | {Capacitor.isNativePlatform() ? PUSH_HINT_BLOCKED_PHONE : PUSH_HINT_BLOCKED_BROWSER} | {PUSH_HINT_BLOCKED_BROWSER}
- * @mutate src/components/notificationPreferences/PushDeviceHint.tsx |         <Button variant="primary" size="sm" className="ml-auto" disabled={state === "asking"} onClick={() => { void turnOn(); }}> |         <Button variant="primary" size="sm" className="ml-auto" disabled={state === "asking"}>
+ * @mutate src/components/notificationPreferences/PushDeviceHint.tsx |         <Button variant="primary" size="sm" className="w-full" disabled={state === "asking"} onClick={() => { void turnOn(); }}> |         <Button variant="primary" size="sm" className="w-full" disabled={state === "asking"}>
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";

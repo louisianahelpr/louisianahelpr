@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
 import { NotificationGroupHeader } from "@/components/notificationPreferences/NotificationGroupHeader";
@@ -30,7 +31,11 @@ import { QuietHoursCard } from "./notificationPreferences/QuietHoursCard";
 import { SavedHelprNudgeCard } from "./notificationPreferences/SavedHelprNudgeCard";
 import { TestSendCard } from "./notificationPreferences/TestSendCard";
 
-const NotificationPreferences = () => {
+/**
+ * `textAlerts`: the Text alerts card (SmsAlertsCard). M11 (owner 11-16: "ask for PUSH notifications before TEXT
+ * alerts", replacing 11-01's texts-first order): drawn here so it sits UNDER the push section and above the switches.
+ */
+const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode } = {}) => {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   // WHICH toggle is in flight, so the inline spinner renders next to the switch being changed.
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -348,8 +353,12 @@ const NotificationPreferences = () => {
   if (!loaded) return <ProfileTabBodyReserve tab="notifications" />;
 
   return (
+    <>
+    {/* M11 (owner 11-16): push first, as its own titled section with a full-width button, while no phone or browser
+        is registered; then the Text alerts card; then the switches. */}
+    {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />}
+    {textAlerts}
     <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
-      {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />}
       {/* The saved settings could not be read: say so, offer a retry, and keep
           every switch below disabled so no press can save the defaults over
           them (Q2311). */}
@@ -567,6 +576,7 @@ const NotificationPreferences = () => {
         </p>
       </div>
     </div>
+    </>
   );
 };
 

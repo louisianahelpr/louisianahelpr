@@ -13,6 +13,7 @@ import { useRequestPushPermissionOutcome } from "@/lib/nativePush";
  * dialog changes nothing.
  */
 const PUSH_HINT_ON = "On";
+const PUSH_HINT_TITLE = "Push notifications";
 export const PUSH_HINT_BLOCKED_PHONE = "Blocked in your phone's Settings: open Settings → Louisiana Helpr → Notifications.";
 export const PUSH_HINT_BLOCKED_BROWSER = "Blocked in this browser: allow notifications for this site in the browser's settings.";
 
@@ -27,27 +28,32 @@ export function PushDeviceHint() {
   };
 
   return (
-    <div
+    // M11 (owner 11-16: push before text alerts): its own titled section, first on the page, with a full-width button.
+    <section
       data-testid="push-device-hint"
-      className="px-3 min-[360px]:px-4 py-2.5 font-sans text-ds-13 flex flex-wrap items-center gap-x-3 gap-y-2"
-      style={{ color: "hsl(var(--ink-deep) / 0.8)", borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+      aria-labelledby="push-device-hint-title"
+      className="mb-4 rounded-2xl liquid-glass overflow-hidden shadow-sm px-4 py-4 font-sans text-ds-13 space-y-3"
+      style={{ color: "hsl(var(--ink-deep) / 0.8)" }}
     >
-      {/* F454 (audit 11-10): the button says what you get, not the setting's name. */}
-      <p className="flex-1 min-w-[10rem]">Hear about messages and job updates as they happen.</p>
+      <div className="space-y-1">
+        <h2 id="push-device-hint-title" className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{PUSH_HINT_TITLE}</h2>
+        {/* F454 (audit 11-10): the button says what you get, not the setting's name. */}
+        <p>Hear about messages and job updates as they happen.</p>
+      </div>
       {state === "on" ? (
         <p role="status" data-testid="push-device-hint-result" className="font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
           {PUSH_HINT_ON}
         </p>
       ) : (
-        <Button variant="primary" size="sm" className="ml-auto" disabled={state === "asking"} onClick={() => { void turnOn(); }}>
+        <Button variant="primary" size="sm" className="w-full" disabled={state === "asking"} onClick={() => { void turnOn(); }}>
           Get alerts on this phone
         </Button>
       )}
       {state === "blocked" && (
-        <p role="status" data-testid="push-device-hint-result" className="basis-full">
+        <p role="status" data-testid="push-device-hint-result">
           {Capacitor.isNativePlatform() ? PUSH_HINT_BLOCKED_PHONE : PUSH_HINT_BLOCKED_BROWSER}
         </p>
       )}
-    </div>
+    </section>
   );
 }

@@ -109,7 +109,7 @@ export function startDeclutterPrefetch(pathname: string): void {
   if (opensOnBrowse) {
     void answer.then((a) => {
       if (document.getElementById("lh-declutter-shell")?.hasAttribute("data-lh-photos")) return;
-      preloadFirstCardPhotos(firstCardPhotoPreloads(base, a, session.userId));
+      preloadFirstCardPhotos(firstCardPhotoPreloads(base, a));
     });
   }
   // B81: the tab row's three reads (every tab waits on them), beside this one.
@@ -141,8 +141,8 @@ export type CardPhotoPreload = { href: string; srcset: string; high: boolean };
 
 /**
  * The photos of the cards Browse draws above the fold from this answer (Q2705, 11-07: the 3rd card, on the second row
- * at 375x812, was the largest paint and waited until the grid rendered, 8.6 s live). Its items in order, less the
- * member's own (the grid leaves them out), one grid slot each; a slot whose item has a photo gives its first photo (the
+ * at 375x812, was the largest paint and waited until the grid rendered, 8.6 s live). Its items in order, the
+ * member's own included (owner 2026-11-16: the grid shows them, marked "Yours"), one grid slot each; a slot whose item has a photo gives its first photo (the
  * answer's photos come by position, as DeclutterItemCard's firstPhotos picks). `high`: the first row, which the card
  * asks for with fetchpriority high. The URLs are the card's own src and srcSet (photoCardUrl, cardPhotoSrcSet), so the
  * browser picks the same candidate and the card's request is answered from the preload. Anything not in the expected
@@ -151,7 +151,6 @@ export type CardPhotoPreload = { href: string; srcset: string; high: boolean };
 export function firstCardPhotoPreloads(
   supabaseUrl: string,
   answer: unknown,
-  userId: string,
   view: { width: number; height: number } = { width: window.innerWidth, height: window.innerHeight },
 ): CardPhotoPreload[] {
   const a = answer as { items?: unknown; photos?: unknown } | null;
@@ -165,9 +164,9 @@ export function firstCardPhotoPreloads(
   const root = `${supabaseUrl.replace(/\/$/, "")}/storage/v1/render/image/public/${BUCKET}/`;
   const out: CardPhotoPreload[] = [];
   let slot = 0;
-  for (const i of a.items as { id?: unknown; seller_id?: unknown }[]) {
+  for (const i of a.items as { id?: unknown }[]) {
     if (slot >= slots) break;
-    if (typeof i?.id !== "string" || i.seller_id === userId) continue;
+    if (typeof i?.id !== "string") continue;
     const at = slot++;
     const path = first.get(i.id);
     if (!path || path.includes("?")) continue;

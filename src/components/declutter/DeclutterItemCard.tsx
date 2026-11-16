@@ -70,9 +70,17 @@ const LATER_PHOTO: Record<string, string> = { loading: "lazy" };
 /** The card's photo source, in order: the card-sized thumbnail, then the full photo if the thumbnail fails, then none. */
 type PhotoStage = "card" | "full" | "failed";
 
-export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag, bundle, firstRow, aboveFold, guestSaveTo }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean;
+export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, saves, tag, bundle, firstRow, aboveFold, guestSaveTo: guestSaveToProp, mine }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean;
   /** F052 (UI audit 11-09): a guest's heart, a link to sign-up ("Sign up to save items.") that comes back here. */
-  guestSaveTo?: string }) {
+  guestSaveTo?: string;
+  /**
+   * Owner 2026-11-16 ("my declutter page shows nothing"): the viewer's own listing, shown in Browse as Vinted does. A
+   * "Yours" tag tops the photo's tags and the card has no heart (you don't save your own item); the card still opens
+   * the item page, which for its seller is the manage view (DeclutterItemView isSeller: no buy, offer or message).
+   */
+  mine?: boolean }) {
+  const save = mine ? undefined : saveProp;
+  const guestSaveTo = mine ? undefined : guestSaveToProp;
   // Audit 11-10 F321: the short form ("3 mi", "About 1 mi"), so the condition beside it is not cut to "Lightly u...".
   const { t } = useLanguage();
   const itemPriceLabel = (cents: number) => (cents === 0 ? t("decl.chip.free") : englishPriceLabel(cents));
@@ -137,8 +145,9 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
         )}
         {/* Owner pick 4 (11-08): "Porch pickup" and "Trades OK" are tags on the photo (one PhotoTag style, shared with
             Builder 3's trades badge), with the card's one rule tag (drop / delivery / new) under them. */}
-        {(item.porch_ok || item.accepts_trades === true || tag) && (
+        {(mine || item.porch_ok || item.accepts_trades === true || tag) && (
           <PhotoTagStack>
+            {mine && <PhotoTag data-card-mine="" tone="plain">{t("decl.card.yours")}</PhotoTag>}
             {item.porch_ok && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>}
             {item.accepts_trades === true && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>}
             {tag && (

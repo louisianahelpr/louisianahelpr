@@ -276,7 +276,10 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems, enabled: fullListNow || fullListAsked });
   const preview = !items.data && previewFits;
   const listed = (items.data ?? (preview ? capped?.items : undefined)) as typeof items.data;
-  const others = useMemo(() => (listed ?? []).filter((i) => i.seller_id !== userId), [listed, userId]);
+  // Owner 2026-11-16 ("my declutter page shows nothing"): the viewer's own live listings stay in the list (the
+  // name `others` predates that), as Vinted shows yours, each marked "Yours" with no heart (ItemCard `mine`).
+  // Guard: src/test/declutterBrowseShowsOwn.test.tsx.
+  const others = useMemo(() => listed ?? [], [listed]);
   // keepPreviousData: when the full list replaces the preview the ids change, and the cards on screen keep their photos
   // and tags instead of going back to the bones. Below them, a card's photo comes with the next read.
   const photos = useQuery({
@@ -527,7 +530,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
                   firstRow={index < declutterFirstRowCount(desktop && !mapVisible, window.innerWidth)}
                   aboveFold={index < declutterAboveFoldCount(desktop && !mapVisible, window.innerWidth, window.innerHeight)}
                   tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
-                  bundle={bundles.data?.has(item.seller_id) ?? false}
+                  bundle={item.seller_id !== userId && (bundles.data?.has(item.seller_id) ?? false)}
+                  mine={!!userId && item.seller_id === userId}
                   saves={savesOf(item.id)}
                   save={member ? {
                     on: watching.data?.has(item.id) ?? false,

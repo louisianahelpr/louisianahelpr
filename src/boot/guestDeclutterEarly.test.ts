@@ -188,7 +188,7 @@ describe("index.html's guest /declutter script (Q2705, 11-08)", () => {
     // The second row waits for the first.
     expect(imgs[2].getAttribute("src")).toBeNull();
     // The card's own URLs (and the server's preload's), so every <img> reuses one download.
-    const want = firstCardPhotoPreloads(BASE, PREVIEW, "", { width: 375, height: 812 });
+    const want = firstCardPhotoPreloads(BASE, PREVIEW, { width: 375, height: 812 });
     expect(imgs.slice(0, 2).map((i) => [i.getAttribute("src"), i.getAttribute("srcset")])).toEqual(want.slice(0, 2).map((p) => [p.href, p.srcset]));
     expect(imgs[0].getAttribute("sizes")).toBe(BOOT_CARD_SIZES);
     imgs[0].dispatchEvent(new Event("load"));
@@ -303,7 +303,7 @@ describe("the server's first-row preload (src/lib/declutterFirstPhotos.mjs, api/
     expect(firstPhotoPaths({ items: [{ id: "a" }], photos: [{ item_id: "a", storage_path: 'x/"><script>' }] })).toEqual(["-"]);
     const paths = firstPhotoPaths(PREVIEW)!;
     expect(paths).toEqual(["u1/declutter/i1/a.jpg", "u1/declutter/i2/a.jpg", "-", "u2/declutter/i4/a.jpg"]);
-    const want = firstCardPhotoPreloads(BASE, PREVIEW, "", { width: 375, height: 812 });
+    const want = firstCardPhotoPreloads(BASE, PREVIEW, { width: 375, height: 812 });
     expect(paths.slice(0, 2).map((p) => cardPhotoUrls(BASE, p))).toEqual(want.slice(0, 2).map((p) => ({ href: p.href, srcset: p.srcset })));
     expect(CARD_SIZES).toBe(BOOT_CARD_SIZES);
     const header = declutterPhotoPreloadHeader(BASE, paths)!;

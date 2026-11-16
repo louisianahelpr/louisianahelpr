@@ -224,7 +224,7 @@ describe("the entry's /declutter first screen", () => {
 });
 
 describe("the first cards' photos start from the entry's answer (B96, Q2705/Q2708)", () => {
-  it("are the card's own src and srcSet, for the grid slots above the fold (not the member's own), each by its first photo", async () => {
+  it("are the card's own src and srcSet, for the grid slots above the fold (the member's own included), each by its first photo", async () => {
     const { photoCardUrl, photoPublicUrl, CARD_PHOTO_PX } = await import("@/lib/declutter/api");
     const { cardPhotoSrcSet, CARD_PHOTO_SIZES } = await import("@/lib/declutter/photoSizes");
     const { firstCardPhotoPreloads, CARD_SIZES } = await import("./declutterPrefetch");
@@ -241,13 +241,13 @@ describe("the first cards' photos start from the entry's answer (B96, Q2705/Q270
       ],
     };
     const card = (path: string, high: boolean) => ({ href: photoCardUrl(path), srcset: cardPhotoSrcSet(photoPublicUrl(path), photoCardUrl(path), CARD_PHOTO_PX), high });
-    // 375x812: four slots (two rows). "nophoto" takes slot 2 (the grid draws its card), so b is the second row's first.
-    expect(firstCardPhotoPreloads(base, answer, "me", { width: 375, height: 812 })).toEqual([
-      card("u/declutter/a/first.jpg", true), card("u/declutter/b/first.jpg", false), card("u/declutter/c/1.jpg", false),
+    // 375x812: four slots (two rows): mine, a, "nophoto" (the grid draws its card, no photo), b; c is below the fold.
+    expect(firstCardPhotoPreloads(base, answer, { width: 375, height: 812 })).toEqual([
+      card("u/declutter/mine/1.jpg", true), card("u/declutter/a/first.jpg", true), card("u/declutter/b/first.jpg", false),
     ]);
     // 375x667: the first row only.
-    expect(firstCardPhotoPreloads(base, answer, "me", { width: 375, height: 667 })).toEqual([card("u/declutter/a/first.jpg", true)]);
-    for (const bad of [null, {}, { items: "x", photos: [] }, { items: [], photos: [] }]) expect(firstCardPhotoPreloads(base, bad, "me")).toEqual([]);
+    expect(firstCardPhotoPreloads(base, answer, { width: 375, height: 667 })).toEqual([card("u/declutter/mine/1.jpg", true), card("u/declutter/a/first.jpg", true)]);
+    for (const bad of [null, {}, { items: "x", photos: [] }, { items: [], photos: [] }]) expect(firstCardPhotoPreloads(base, bad)).toEqual([]);
   });
 
   it("the entry's above-the-fold count is Browse's own (a copy, held equal here)", async () => {

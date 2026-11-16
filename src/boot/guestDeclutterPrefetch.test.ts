@@ -22,7 +22,7 @@
 // @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql | SELECT i.id, i.seller_id, i.status, i.title, i.category, | SELECT i.id, i.seller_id, i.status, i.title, i.description, i.category,
 // @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     SELECT * FROM ranked ORDER BY live_at DESC LIMIT 24 |     SELECT * FROM ranked ORDER BY live_at DESC LIMIT 500
 // @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql | STABLE\nSECURITY INVOKER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\n  WITH ranked AS | STABLE\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\n  WITH ranked AS
-// @mutate src/boot/guestDeclutterPrefetch.ts |     preloadFirstCardPhotos(firstCardPhotoPreloads(base, { items: pre?.items ?? i, photos: p }, "")); |
+// @mutate src/boot/guestDeclutterPrefetch.ts |     preloadFirstCardPhotos(firstCardPhotoPreloads(base, { items: pre?.items ?? i, photos: p })); |
 // @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql | STABLE\nSECURITY INVOKER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\n  WITH items AS | STABLE\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\n  WITH items AS
 // @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |            i.porch_ok, i.accepts_offers, i.accepts_trades\n |            i.porch_ok, i.accepts_trades\n
 // @mutate src/lib/declutter/guestBootPrefetch.ts |   if (!s \|\| now - s.at > GUEST_PREFETCH_MAX_AGE_MS \|\| !definitelyGuest()) return null; |   if (!s) return null;

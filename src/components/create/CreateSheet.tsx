@@ -126,6 +126,9 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
         )}
         <ul className="mt-4 liquid-glass overflow-hidden">
           {visible.map((s, i) => {
+            // L13 (iOS design audit 11-16): two solid olive buttons competed (Post a job, Sell an item). ONE primary
+            // in the sheet: the first live row's first action; every other action is the outline pill.
+            const primaryRow = visible.find((v) => isOn(v) && !isPreview(v))?.key;
             const on = isOn(s);
             // F134 (owner UI audit 11-09): a section open only to testers wears "Coming soon", so its buttons must not
             // look live: they are drawn grey and disabled, and a tap says it is coming soon.
@@ -179,10 +182,10 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                         onClick={a.gated ? gate.gate("post", () => go(a.path)) : () => go(a.path)}
                         {...(a.gated ? gate.gatedProps("post") : {})}
                         className={`btn-press rounded-full min-h-11 px-3 min-[360px]:px-4 text-ds-13 min-[360px]:text-ds-14 font-semibold whitespace-nowrap ${
-                          j === 0 ? "btn-grad-primary" : "border text-foreground"
+                          j === 0 && s.key === primaryRow ? "btn-grad-primary" : "border text-foreground"
                         }`}
                         // No `bg-card` on the outline pill: index.css T2 strips a .bg-card border (looked: it vanished).
-                        style={j === 0 ? { color: "hsl(var(--primary-foreground))" } : { borderColor: "hsl(var(--border))", background: "hsl(var(--card))" }}
+                        style={j === 0 && s.key === primaryRow ? { color: "hsl(var(--primary-foreground))" } : { borderColor: "hsl(var(--border))", background: "hsl(var(--card))" }}
                       >
                         {a.label}
                       </button>

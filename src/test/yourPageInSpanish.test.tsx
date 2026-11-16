@@ -6,7 +6,7 @@
  * @mutate src/components/profile/YourPageLink.tsx |         {t("yp.pageLead")}{" "} |         Your page:{" "}
  * @mutate src/components/profile/YourPageLink.tsx | {forSale === 1 ? t("yp.forSale1") : t("yp.forSaleN", { n: forSale })} | {forSale === 1 ? t("yp.forSale1") : `${forSale} items for sale`}
  * @mutate src/components/profile/YourPageLink.tsx | <Share2 className="w-4 h-4" aria-hidden /> {t("yp.shareListings")} | <Share2 className="w-4 h-4" aria-hidden /> Share your listings
- * @mutate src/components/profile/YourPageLink.tsx |         {t("yp.hidden")}{" "} |         Your page is hidden right now, so others can't open it.{" "}
+ * @mutate src/components/profile/YourPageLink.tsx |         title={t("yp.hidden")} |         title="Your page is hidden right now"
  * @mutate src/components/profile/YourPageLink.tsx | aria-label={t("yp.copyLabel")} | aria-label="Copy your page link"
  * @mutate src/components/profile/YourPageLink.tsx | toast(t("yp.copied")); | toast("Link copied");
  */
@@ -68,7 +68,7 @@ describe("Your page link card follows the member's language (F260q)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copy your page link" }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith("Link copied"));
     page.current = null;
-    expect(await show()).toContain("Your page is hidden right now, so others can't open it.");
+    expect(await show()).toContain("Your page is hidden right now");
   });
 
   it("Spanish: the card, the sale card, the slim line, the toast and the hidden line change", async () => {
@@ -83,6 +83,6 @@ describe("Your page link card follows the member's language (F260q)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copiar el enlace de su página" }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith("Enlace copiado"));
     page.current = null;
-    expect(await show()).toContain("Su página está oculta ahora, así que otros no pueden abrirla.");
+    expect(await show()).toContain("Su página está oculta ahora");
   });
 });

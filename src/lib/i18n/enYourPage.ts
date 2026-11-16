@@ -6,7 +6,10 @@
 import { addEnglish } from "./enRegistry";
 
 export const enYourPage = {
-  "yp.hidden": "Your page is hidden right now, so others can't open it.",
+  "yp.hidden": "Your page is hidden right now",
+  "yp.hiddenEmail": "Neighbors can't open it until your email is confirmed. Tap the link in the email we sent you.",
+  "yp.hiddenEmailAction": "Account and security",
+  "yp.hiddenOther": "Neighbors can't open it while your account is under review. A test account never has a public page.",
   "yp.askWhy": "Ask us why",
   "yp.copied": "Link copied",
   "yp.copyFailed": "Couldn't copy the link. Press and hold it to copy.",

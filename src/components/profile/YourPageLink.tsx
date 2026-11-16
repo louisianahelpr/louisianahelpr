@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Copy, Share2 } from "lucide-react";
+import { Copy, EyeOff, Share2 } from "lucide-react";
+import { Notice } from "@/components/ui/Notice";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { copyToClipboard } from "@/lib/nativeShare";
@@ -42,6 +44,7 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
     staleTime: 10 * 60_000,
   });
   const handle = knownHandle || readHandle;
+  const { profile } = useCurrentUser();
   // F259k (audit 11-10, lead confirmed live): the card offered Copy and Share for a page that opened "This profile isn't
   // available" (public_profile_by_handle answers nothing for a hidden, restricted or test account). Ask the same read
   // the page uses (same cache key, so opening the page is instant); when it answers "no page", say so and offer no link
@@ -49,11 +52,27 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
   const { data: publicPage } = useQuery({ ...publicPageQuery(handle ?? ""), enabled: !!handle });
   if (!handle) return null;
   if (publicPage === null) {
+    // M1 (iOS design audit 11-16): one shared notice card with the reason and the one thing to do, not loose text
+    // with "Ask us why". The reason the member can act on is an unconfirmed email (profile_page_hidden,
+    // 20261105172514); every other reason (a review, a test account) points at support.
+    const emailUnconfirmed = profile?.email_verified === false;
     return (
-      <p data-your-page-link="" data-your-page-hidden="" className={`text-ds-13 text-muted-foreground ${className}`}>
-        {t("yp.hidden")}{" "}
-        <Link to="/support?topic=message&subject=My%20profile%20page" className="link-standard font-semibold text-foreground">{t("yp.askWhy")}</Link>
-      </p>
+      <Notice
+        data-your-page-link=""
+        data-your-page-hidden={emailUnconfirmed ? "email" : "other"}
+        icon={EyeOff}
+        title={t("yp.hidden")}
+        className={className}
+        action={
+          <Button asChild variant="outline" size="sm">
+            {emailUnconfirmed
+              ? <Link to="/profile?tab=security">{t("yp.hiddenEmailAction")}</Link>
+              : <Link to="/support?topic=message&subject=My%20profile%20page">{t("yp.askWhy")}</Link>}
+          </Button>
+        }
+      >
+        {emailUnconfirmed ? t("yp.hiddenEmail") : t("yp.hiddenOther")}
+      </Notice>
     );
   }
   const copy = async () => {

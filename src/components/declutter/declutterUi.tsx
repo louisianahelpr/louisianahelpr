@@ -3,6 +3,7 @@
  * (docs/specs/declutter-auctions.md). Plain words only: no "draft",
  * "pending_review" or other codes reach the member.
  */
+import { Notice } from "@/components/ui/Notice";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFeature } from "@/hooks/useFeature";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -135,15 +136,8 @@ export function ConditionChip({ stars }: { stars: number }) {
 
 /** A plain-English block in place of a control the member cannot use yet. */
 export function DeclutterNotice({ title, children, tone = "info" }: { title: string; children?: ReactNode; tone?: "info" | "warn" }) {
-  return (
-    <div
-      role={tone === "warn" ? "alert" : "status"}
-      className={`rounded-2xl border p-4 text-sm ${tone === "warn" ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100" : "border-border bg-card text-foreground"}`}
-    >
-      <p className="font-semibold">{title}</p>
-      {children && <div className="mt-1 text-muted-foreground">{children}</div>}
-    </div>
-  );
+  // The app's one notice card (ui/Notice, M1 11-16).
+  return <Notice title={title} tone={tone}>{children}</Notice>;
 }
 
 /**

@@ -11,6 +11,7 @@ import { lazy, Suspense } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { SectionTabs } from "@/components/sections/SectionTabs";
 import { ScrollAwayRows } from "@/components/sections/ScrollAway";
+import { GuestSectionSwitch } from "@/components/sections/GuestSectionSwitch";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { t } from "@/lib/i18n/language";
 import type { DeclutterTab } from "@/lib/declutter/tabs";
@@ -36,5 +37,5 @@ export function DeclutterGuestHome() {
       />
     ),
   } : { search: browse.search, tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows> };
-  return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} chrome={chrome} top={<DeclutterGuestBrowseJoin />} /></Suspense>;
+  return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} chrome={chrome} top={<><GuestSectionSwitch at="declutter" /><DeclutterGuestBrowseJoin /></>} /></Suspense>;
 }

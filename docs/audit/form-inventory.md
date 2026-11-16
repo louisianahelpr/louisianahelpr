@@ -271,7 +271,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/sections/CustomizeSheet.tsx` | checkbox/switch/radio×1 |  |  | customize-sheet |
 
-## /home, /jobs
+## /home, /jobs, /browse
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|

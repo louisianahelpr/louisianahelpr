@@ -514,8 +514,9 @@ function HomeDashboardScreen() {
       {/* Board 53 + the short coach-mark tour (owner 2026-10-20). It replaced the 7-step OnboardingTour,
           which only ever opened on /home from the Jobs feed and so never showed once Home moved here. */}
       <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />
-      {/* SMS-OPTIN (owner 2026-10-29): members who gave a phone are asked once to turn texts on; never over the tour. */}
-      {!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}
+      {/* SMS-OPTIN (owner 2026-10-29): members who gave a phone are asked once to turn texts on; never over the tour
+          and never over or under Customize (M2, iOS audit 11-16: the two sheets stacked). */}
+      {!firstRunActive && !customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}
     </SectionScreen>
   );
 }

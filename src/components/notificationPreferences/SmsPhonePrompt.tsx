@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -56,6 +57,12 @@ export function SmsPhonePrompt({ moment }: { moment: SmsPromptMoment }) {
     // Account-scoped and one-time: never restored from the persisted cache.
     meta: { persist: false },
     queryFn: async (): Promise<boolean> => {
+      // M2 (iOS audit 11-16): on the phone app, push is the main channel, so texts are never asked for before
+      // push is on. Until this phone allows notifications the prompt is not due (the push ask comes first).
+      if (Capacitor.isNativePlatform()) {
+        const push = await loadModule(() => import("@/lib/pushPermissionNudge"));
+        if ((await push?.readPushPermission()) !== "granted") return false;
+      }
       const res = await supabase.rpc("sms_phone_prompt_due", { p_moment: moment });
       // Not deployed yet (the web build can reach prod before db-deploy): never prompt.
       if (res.error && isMissingRpcNamed(res.error, "sms_phone_prompt_due")) return false;

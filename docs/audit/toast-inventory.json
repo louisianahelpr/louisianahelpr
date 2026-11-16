@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1246,
-    "files": 359,
-    "rendering": 1165,
+    "calls": 1248,
+    "files": 360,
+    "rendering": 1167,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
       "toast": 247,
-      "toast.error": 838,
+      "toast.error": 840,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 489,
       "template": 105,
-      "dynamic": 706,
+      "dynamic": 708,
       "jsx": 0
     }
   },
@@ -4355,7 +4355,7 @@
     },
     {
       "file": "src/components/admin/userDetail/DocumentsTab.tsx",
-      "line": 46,
+      "line": 47,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4365,7 +4365,7 @@
     },
     {
       "file": "src/components/admin/userDetail/DocumentsTab.tsx",
-      "line": 47,
+      "line": 48,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8181,6 +8181,26 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/documents/DocumentViewer.tsx",
+      "line": 42,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "LEAVE_FAILED"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/documents/DocumentViewer.tsx",
+      "line": 48,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "POPUP_BLOCKED"
       },
       "renders": true
     },

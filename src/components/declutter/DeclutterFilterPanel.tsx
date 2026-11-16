@@ -82,7 +82,12 @@ function DollarBox({ label, value, onCommit }: { label: string; value: number | 
   );
 }
 
-/** The filter sheet's sections for Declutter Browse, in order. */
+/**
+ * The filter sheet's sections for Declutter Browse, in order. M10 (iOS design audit 11-16: the sheet was about
+ * 2,164px tall at 375): Sort and Distance show; How you get it, Price, Condition, Category and Show fold behind the
+ * shared sheet's one "More filters" row (`more`), open from the start when one of them is in effect (`active`).
+ * Guard: src/test/declutterFiltersFold.test.tsx.
+ */
 export function declutterFilterSections({
   filters,
   onChange,
@@ -149,6 +154,8 @@ export function declutterFilterSections({
     {
       key: "handover",
       title: t("decl.sheet.howYouGetIt"),
+      more: true,
+      active: filters.porchOnly || filters.ways.length > 0,
       content: (
         // DA-19 (audit 2026-10-30): the one square checkbox among the pills; now the same Chip as every filter.
         // A3-109: every way checkout offers, in its words; pick any and an item offering one of them shows.
@@ -163,6 +170,8 @@ export function declutterFilterSections({
     {
       key: "price",
       title: t("decl.sheet.price"),
+      more: true,
+      active: filters.freeOnly || filters.tradesOnly || filters.minDollars !== null || filters.maxDollars !== null,
       content: (
         <div className="space-y-2.5">
           {/* The Free section (20261027170717): items given away, $0. */}
@@ -184,6 +193,8 @@ export function declutterFilterSections({
     {
       key: "condition",
       title: t("decl.sheet.condition"),
+      more: true,
+      active: filters.conditions.length > 0,
       content: (
         <Row>
           {[5, 4, 3, 2, 1].map((n) => {
@@ -200,6 +211,8 @@ export function declutterFilterSections({
     {
       key: "category",
       title: t("decl.item.category"),
+      more: true,
+      active: !!filters.category,
       content: (
         // About 32 categories (owner 2026-10-30), so they sit under the same headings as the Sell picker.
         <div className="space-y-3">
@@ -226,6 +239,8 @@ export function declutterFilterSections({
     sections.push({
       key: "show",
       title: t("decl.sheet.show"),
+      more: true,
+      active: filters.dropsOnly,
       content: (
         <Row><Chip on={filters.dropsOnly} onClick={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })}>{t("decl.sheet.dropsOnly")}</Chip></Row>
       ),

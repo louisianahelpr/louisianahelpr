@@ -425,6 +425,8 @@ describe("Declutter location ask", () => {
     expect(screen.getByText("Oak rocking chair")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     const sheet = await screen.findByRole("dialog");
+    // M10 (iOS audit 11-16): Category waits behind the sheet's one "More filters" row.
+    fireEvent.click(within(sheet).getByRole("button", { name: "More filters" }));
     const kitchen = within(sheet).getByRole("button", { name: "Kitchen" });
     // One category-name map (lead 2026-10-28): the sheet says what Sell and Wanted say.
     expect(within(sheet).getByRole("button", { name: "Home decor" })).toBeInTheDocument();
@@ -484,6 +486,7 @@ describe("Declutter location ask", () => {
       // Filters open the shared FilterSheet; no List / Map choice in it (both are on screen).
       fireEvent.click(within(strip).getByRole("button", { name: "Filters" }));
       const sheet = await screen.findByRole("dialog");
+      fireEvent.click(within(sheet).getByRole("button", { name: "More filters" }));
       expect(within(sheet).getByRole("button", { name: "Kitchen" })).toBeInTheDocument();
       expect(within(sheet).queryByRole("radiogroup", { name: "Feed view" })).toBeNull();
       fireEvent.keyDown(sheet, { key: "Escape" });

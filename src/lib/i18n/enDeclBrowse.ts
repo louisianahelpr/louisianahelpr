@@ -84,6 +84,7 @@ export const enDeclBrowse = {
   "decl.sheet.price": "Price",
   "decl.sheet.condition": "Condition",
   "decl.sheet.show": "Show",
+  "decl.sheet.more": "More filters",
   "decl.sheet.dropsOnly": "Only items with nightly price drops",
   "decl.sort.closest": "Closest first",
   "decl.sort.newest": "Newest",

@@ -10,6 +10,8 @@ import type { RefObject } from "react";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { BrowseViewToggle } from "@/components/dashboard/browseTasksToolbar/BrowseViewToggle";
 import type { DeclutterOrigin } from "./useDeclutterOrigin";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclBrowse";
 
 export interface OriginAsk {
   origin: DeclutterOrigin;
@@ -50,8 +52,10 @@ export function DeclutterFilterSheet({
   anchorRef?: RefObject<HTMLElement | null>;
   view?: { value: "list" | "map"; set: (v: "list" | "map") => void };
 }) {
-  const all: FilterSheetSection[] = view
-    ? [{ key: "view", title: "View", content: <BrowseViewToggle view={view.value} setView={view.set} onSelect={() => onOpenChange(false)} /> }, ...sections]
+  // M10 (iOS design audit 11-16): List | Map rides on the first row's title line (FilterSheet's `trailing`, as the
+  // sheet's own doc names it), not a section of its own.
+  const all: FilterSheetSection[] = view && sections.length > 0
+    ? [{ ...sections[0], trailing: <BrowseViewToggle className="w-auto" view={view.value} setView={view.set} onSelect={() => onOpenChange(false)} /> }, ...sections.slice(1)]
     : sections;
   return (
     <FilterSheet
@@ -64,6 +68,7 @@ export function DeclutterFilterSheet({
       onClearAll={onClearAll}
       resultCount={shown}
       resultNoun={["item", "items"]}
+      moreLabel={t("decl.sheet.more")}
     />
   );
 }

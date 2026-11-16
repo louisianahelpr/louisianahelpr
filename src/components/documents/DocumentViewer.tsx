@@ -121,7 +121,7 @@ export function DocumentViewer({ doc, onClose }: { doc: OpenDocument | null; onC
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-white/10">
+      <div className="flex flex-wrap items-center justify-center gap-2 px-3 pt-2 pb-[max(0.75rem,var(--safe-area-bottom,0px))] border-t border-white/10">
         {kind === "pdf" && !failed ? (
           <>
             <button type="button" className={CHROME_BTN} aria-label="Zoom out" disabled={zi <= 0} onClick={() => setZoom(ZOOMS[Math.max(0, zi - 1)])}>

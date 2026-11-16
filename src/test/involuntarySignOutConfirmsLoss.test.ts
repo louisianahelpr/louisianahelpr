@@ -67,6 +67,10 @@ const ALLOWED = new Map<string, string>([
     "src/lib/appleSubscriptions.ts | openAppleSubscriptions | window.location.assign(APPLE_SUBSCRIPTIONS_URL)",
     "an Apple member's Manage tap opening Apple's manage-subscriptions page (a constant https://apps.apple.com URL, Q1797): a voluntary tap, never a session check",
   ],
+  [
+    "src/components/documents/DocumentViewer.tsx | leaveTo | tab.location.href = url",
+    "the document viewer's Download / Open in new tab tap: navigates a NEW blank tab (window.open, opener nulled) to the document's own signed URL, never the app's window and never /login; a voluntary tap, never a session check (owner 2026-11-15 doc viewer)",
+  ],
 ]);
 
 type Target = "login" | "unknown" | "not-login";

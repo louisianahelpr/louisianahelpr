@@ -20,7 +20,7 @@ export const FileTileButton = forwardRef<HTMLButtonElement, Props>(({ fileName, 
     aria-busy={busy || undefined}
     {...props}
     className={cn(
-      "aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 ctl-tint active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50",
+      "aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 ctl-tint active:scale-[0.97] focus-visible:outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50",
       className,
     )}
   >

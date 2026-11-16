@@ -17,7 +17,7 @@
  *      dialogs and bridges mount beside the routes too).
  * Behaviour of optionalLazy itself: src/test/badgeBridgeChunkFailureStaysQuiet.test.tsx.
  *
- * @mutate src/App.tsx | const MobileNav = optionalLazy(() => import("./components/MobileNav"), "MobileNav"); | const MobileNav = lazy(() => import("./components/MobileNav"));
+ * @mutate src/App.tsx | const MobileNav = quietLazy(() => import("./components/MobileNav"), "MobileNav"); | const MobileNav = lazy(() => import("./components/MobileNav"));
  * @mutate src/components/TermsReconsentMount.tsx | const TermsReconsentDialog = optionalLazy( | const TermsReconsentDialog = lazy(
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -32,7 +32,7 @@ const app = read("src/App.tsx");
 /** const X = <loader>(... import("<path>") ...) declarations in a file. */
 function lazyDecls(src: string): Map<string, { loader: string; path: string | null }> {
   const out = new Map<string, { loader: string; path: string | null }>();
-  for (const m of src.matchAll(/const (\w+) = (lazy|lazyWithPreload|optionalLazy)\(/g)) {
+  for (const m of src.matchAll(/const (\w+) = (lazy|lazyWithPreload|optionalLazy|quietLazy)\(/g)) {
     const rest = src.slice(m.index ?? 0, (m.index ?? 0) + 400);
     const path = rest.match(/import\("([^"]+)"\)/)?.[1] ?? null;
     out.set(m[1], { loader: m[2], path });
@@ -40,6 +40,7 @@ function lazyDecls(src: string): Map<string, { loader: string; path: string | nu
   return out;
 }
 
+const QUIET = new Set(["optionalLazy", "quietLazy"]);
 const decls = lazyDecls(app);
 // The app's JSX tree: from the last `const App = ` to the end, with the routed region taken out.
 const tree = app.slice(app.lastIndexOf("const App = "));
@@ -60,8 +61,8 @@ describe("lazy pieces beside the routes fail quietly", () => {
     expect(besideLazies.length).toBeGreaterThan(8);
   });
 
-  it("App.tsx declares every one of them with optionalLazy", () => {
-    const bad = besideLazies.filter((n) => decls.get(n)!.loader !== "optionalLazy").map((n) => `${n}: ${decls.get(n)!.loader}()`);
+  it("App.tsx declares every one of them with optionalLazy (or quietLazy, the same quiet failure without suspending)", () => {
+    const bad = besideLazies.filter((n) => !QUIET.has(decls.get(n)!.loader)).map((n) => `${n}: ${decls.get(n)!.loader}()`);
     expect(bad, bad.join("\n")).toEqual([]);
   });
 
@@ -70,7 +71,7 @@ describe("lazy pieces beside the routes fail quietly", () => {
     expect(files.length).toBeGreaterThan(8);
     const bad: string[] = [];
     for (const f of files) {
-      for (const [name, d] of lazyDecls(read(f))) if (d.loader !== "optionalLazy") bad.push(`${f}: ${name} = ${d.loader}()`);
+      for (const [name, d] of lazyDecls(read(f))) if (!QUIET.has(d.loader)) bad.push(`${f}: ${name} = ${d.loader}()`);
     }
     expect(bad, bad.join("\n")).toEqual([]);
   });

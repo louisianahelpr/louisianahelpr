@@ -126,7 +126,7 @@ describe("the ID-check sheet that cannot load is said, never a dead press", () =
     const mount = blankComments(readFileSync(resolve(__dirname, "../components/identity/IdentityCheckMount.tsx"), "utf8"));
     expect(mount).toContain('"IdentityCheckHost", () => markIdentitySheetUnavailable({ entryLink: hasIdentityEntryParam(new URLSearchParams(window.location.search)) }));');
     const app = blankComments(readFileSync(resolve(__dirname, "../App.tsx"), "utf8"));
-    const decl = app.slice(app.indexOf("const IdentityCheckMount = optionalLazy("), app.indexOf("\n", app.indexOf("const IdentityCheckMount = optionalLazy(")));
+    const decl = app.slice(app.indexOf("const IdentityCheckMount = quietLazy("), app.indexOf("\n", app.indexOf("const IdentityCheckMount = quietLazy(")));
     expect(decl).toContain("__lhIdentitySheetUnavailable = true;");
     expect(decl).toContain(`window.dispatchEvent(new Event("${IDENTITY_SHEET_UNAVAILABLE_EVENT}"))`);
   });

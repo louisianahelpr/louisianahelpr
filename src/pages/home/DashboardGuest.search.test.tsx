@@ -5,7 +5,7 @@
  * "Clear search". Plain /browse keeps no search (owner 09-11). The field does not take focus on arrival.
  *
  * @mutate src/pages/home/DashboardGuest.tsx |   const [arrivedWithSearch] = useState(() => !!filters.searchQuery); |   const [arrivedWithSearch] = useState(() => false);
- * @mutate src/pages/home/DashboardGuest.tsx |     {shownSearch && <BrowseSearchBar | {false && <BrowseSearchBar
+ * @mutate src/pages/home/DashboardGuest.tsx |     {!isNativePlatform && shownSearch && <BrowseSearchBar | {false && <BrowseSearchBar
  * @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx |     if (!el \|\| !autoFocus) return; |     if (!el) return;
  */
 import { describe, it, expect, vi } from "vitest";

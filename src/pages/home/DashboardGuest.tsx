@@ -28,18 +28,19 @@ import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
-import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { signupUrlFor, NOTIFY_SIGNUP_URL } from "@/lib/jobIntent";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { GuestSectionSwitch } from "@/components/sections/GuestSectionSwitch";
+import { AppTopBar } from "@/components/sections/AppTopBar";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { feedPhase } from "@/lib/feedPhase";
 import { fetchGuestJobs, useBrowseShellHandoff } from "./fetchGuestJobs";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
-import { GuestAuthActions } from "./GuestAuthActions";
+import { t as tr } from "@/lib/i18n/language";
 import { useGuestPosterEnrichment } from "./useGuestPosterEnrichment";
 import { useGuestSessionCheck } from "./useGuestSessionCheck";
 import { useGuestJobSheet } from "./useGuestJobSheet";
@@ -258,7 +259,7 @@ const DashboardGuest = () => {
     <>
     {/* M13 (iOS audit 11-16): the visible "Jobs | Declutter" switch, the same one guest Declutter starts with. */}
     <GuestSectionSwitch at="jobs" className="mb-2" />
-    {shownSearch && <BrowseSearchBar filters={filters} autoFocus={false} className="!w-full mb-3" />}
+    {!isNativePlatform && shownSearch && <BrowseSearchBar filters={filters} autoFocus={false} className="!w-full mb-3" />}
     <BrowseTasksToolbar
       // Same anchor the Filters button carries, so the desktop-web popover
       // opens against it instead of floating.
@@ -269,7 +270,8 @@ const DashboardGuest = () => {
       // heading made a SECOND one on the same page. Native has no visible
       // title (PageScaffold's card is the H logo), so there the toolbar's
       // heading is the only one and must stay.
-      renderHeading={isNativePlatform}
+      // M13: in the app the header (AppTopBar) carries the page's h1 now, so the toolbar draws none on either shell.
+      renderHeading={false}
       filters={filters}
       user={null}
       helperAvailability={[]}
@@ -455,22 +457,15 @@ const DashboardGuest = () => {
         // so the screen is one band of chrome over a large title instead of a
         // bar over a card over a title. PageScaffold takes on the top safe-area
         // inset itself when no header is passed.
+        // M13 (owner 11-16, replacing 09-11's "no search in the guest bar"): the members' header. AppTopBar with the
+        // same SectionSearchBar the member Jobs screen draws (it searches this feed in place), and Log in / Join free
+        // where a member's Inbox and photo sit. Guest Declutter draws the same bar (SectionScreen).
         titleCard={
-          <DashboardTitleBar
-            // The crest points at the marketing landing, not at this feed: a
-            // signed-out visitor tapping it wants the front door.
-            emblemTo="/"
-            // No `status` — the live-job pill is a signed-in thing.
-            //
-            // No search icon and no filters in the guest title bar (owner, 2026-09-11: "just remove the filters here and
-            // the search. its not needed"), so the filter sheet, sort and List/Map toggle stay unreachable for guests and
-            // `view` is pinned to "list" (owner 2026-08-19 too). EXCEPTION (owner UI audit 11-09 F070, lead decision 11-09:
-            // the audit wins): a guest who ARRIVES with a search (/browse?q=yard, from the landing page) gets a search
-            // field with the term in it above the list (`toolbar` below), so a search with no results can try another word.
-            trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
-          />
+          <AppTopBar title={tr("nav.jobs")} desktopGap={false}
+            search={<SectionSearchBar noun="jobs" home="/browse" value={filters.searchQuery} onChange={filters.setSearchQuery} />} />
         }
-        titleCardClassName={TITLE_BAR_PADDING}
+        // The member Jobs header's title card (Dashboard): the search row's own spacing, nothing clipped.
+        titleCardClassName="!overflow-visible z-10"
       >
         {/* The inline List ⇄ Map chips were REMOVED here (owner, 2026-08-19:
             "Don't give the list or map option in the guest page like this.

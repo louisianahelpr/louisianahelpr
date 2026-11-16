@@ -64,7 +64,7 @@ export function InboxTabs({ tab }: { tab: InboxTab }) {
             data-inbox-tab={x.key}
             onClick={() => choose(x.key)}
             onKeyDown={onKeyDown}
-            className="relative flex-1 gap-1.5 px-3 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:ring-[hsl(var(--ring))]"
+            className="relative flex-1 gap-1.5 px-3"
             style={{ color: on ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.7)", fontWeight: on ? 700 : 600 }}
           >
             <span className="whitespace-nowrap">{x.label}</span>

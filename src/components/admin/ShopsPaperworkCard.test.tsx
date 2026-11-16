@@ -6,7 +6,7 @@
  *     never show (owner 2026-10-27).
  *  2. Approve -> shops_admin_review_permit(approve true); Turn down needs a reason and sends it.
  *  3. Registered / Not found -> shops_admin_check_registration with the shop and the answer.
- *  4. View document opens a signed user-documents link for the permit's own path.
+ *  4. View document opens the permit's own signed user-documents link in the app's document viewer, never a new tab.
  *  5. PGRST202: "not on the server yet", never an empty list.
  *
  * @mutate src/components/admin/ShopsPaperworkCard.tsx |   return { permits: withoutTestRows(p.permits), registrations: withoutTestRows(p.registrations), notDeployed: p.notDeployed }; |   return { permits: p.permits, registrations: p.registrations, notDeployed: p.notDeployed };
@@ -27,6 +27,9 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc, from, functi
 vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: false }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "admin1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+vi.mock("@/components/documents/PdfPages", () => ({
+  default: ({ url }: { url: string }) => <div data-testid="pdf-pages" data-url={url} />,
+}));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 vi.mock("@/components/ui/BrandConfirmDialog", () => ({
@@ -116,14 +119,17 @@ describe("Admin > Shops: paperwork (Q1952)", () => {
     expect(rpcCall("shops_admin_check_registration")![1]).toEqual({ p_shop_id: "s2", p_verified: true });
   });
 
-  it("View document opens a signed link to the permit's own path", async () => {
+  it("View document opens the permit's own signed link in the app's document viewer", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     renderView();
     const permit = await screen.findByTestId("admin-shops-permit");
     fireEvent.click(within(permit).getByRole("button", { name: "View document" }));
-    await waitFor(() => expect(open).toHaveBeenCalled());
+    const viewer = await screen.findByRole("dialog", { name: "Document viewer" });
     expect(storageFrom).toHaveBeenCalledWith("user-documents");
-    expect(open.mock.calls[0][0]).toBe("https://signed.example/u1/shop-permits/food_permit-1762800000000.pdf");
+    expect((await within(viewer).findByTestId("pdf-pages")).getAttribute("data-url"))
+      .toBe("https://signed.example/u1/shop-permits/food_permit-1762800000000.pdf");
+    // Owner 2026-11-15: a PDF permit opens inside the app, never a new tab on the storage URL.
+    expect(open).not.toHaveBeenCalled();
     open.mockRestore();
   });
 

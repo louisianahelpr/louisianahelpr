@@ -19,7 +19,7 @@ const browserOpen = vi.hoisted(() => vi.fn());
 const reportFn = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/nativeInit", () => ({ get isNativePlatform() { return native.on; } }));
-vi.mock("sonner", () => ({ toast: { error: toastError, success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: toastError, success: vi.fn() }) }));
 vi.mock("@capacitor/browser", () => ({ Browser: { open: browserOpen } }));
 vi.mock("@/lib/errorLogger", () => ({ report: reportFn }));
 vi.mock("@/components/documents/PdfPages", () => ({ default: () => <div data-testid="pdf-pages" /> }));

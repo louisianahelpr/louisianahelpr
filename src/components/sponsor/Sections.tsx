@@ -341,6 +341,53 @@ export function PreviewCard() {
   );
 }
 
+/* ── I2) THE LINEUP ──────────────────────────────────────────────────── */
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+/** "Tue" for December `day` of the event year (a calendar date, so UTC is exact). Exported for its test. */
+export function lineupWeekday(day: number): string {
+  return WEEKDAYS[new Date(Date.UTC(C.event.year, 11, day)).getUTCDay()];
+}
+
+/** How many brands the published lineup lists for December `day` (0 when none). Exported for ClaimSection. */
+export function lineupCount(day: number): number {
+  return C.lineup.days.find((d) => d.day === day)?.partners.length ?? 0;
+}
+
+/**
+ * The final lineup (owner 2026-11-16): every day with its brand or brands and their prizes. A day with more
+ * than one brand says how many winners it has, since each brand's prize has its own winner.
+ */
+export function Lineup() {
+  return (
+    <section className="lh25-section" id="lineup" aria-labelledby="lh25-lineup">
+      <SectionTitle><span id="lh25-lineup">{C.lineup.title}</span></SectionTitle>
+      <p className="lh25-lede lh25-center">{C.lineup.intro}</p>
+      <ol className="lh25-lineup">
+        {C.lineup.days.map((d) => (
+          <li key={d.day} className="lh25-lineup-day" data-testid={`lineup-day-${d.day}`}>
+            <div className="lh25-lineup-head">
+              <span className="lh25-lineup-date">{lineupWeekday(d.day)} · Dec {d.day}</span>
+              {d.partners.length > 1 ? (
+                <span className="lh25-lineup-winners">{C.lineup.winners.replace("{n}", String(d.partners.length))}</span>
+              ) : null}
+            </div>
+            <ul className="lh25-lineup-partners">
+              {d.partners.map((p) => (
+                <li key={p.brand}>
+                  <span className="lh25-lineup-brand">{p.brand}</span>
+                  <span className="lh25-lineup-prize">{p.prize}</span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 /* ── J) SPONSOR WALL ─────────────────────────────────────────────────── */
 
 export function SponsorWall({ wall, logoUrl }: { wall: SponsorPublicState["wall"]; logoUrl: (id: string) => string }) {

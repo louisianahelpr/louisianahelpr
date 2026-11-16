@@ -220,23 +220,23 @@ export const NOINDEX_PAGE_META = {
   // NOT indexed: it is dark behind the sponsor_25days switch and is reached from emails, not search. The link
   // card (og-25days.png) is what a brand sees when the link unfurls. Same entries the pages pass to usePageMeta.
   "/sponsor": {
-    title: "Sponsor a day of the 25 Days of Louisiana Giveaways — Helpr",
+    title: "Become a partner in the 25 Days of Louisiana Giveaways — Helpr",
     description:
-      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
+      "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
     canonical: `${SITE_ORIGIN}/sponsor`,
     ogTitle: "You're invited: 25 Days of Louisiana Giveaways",
     ogDescription:
-      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
+      "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
     robots: NOINDEX_ROBOTS,
   },
   "/25days": {
-    title: "Claim your day in the 25 Days of Louisiana Giveaways — Helpr",
+    title: "Join the 25 Days of Louisiana Giveaways — Helpr",
     description:
-      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
+      "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
     canonical: `${SITE_ORIGIN}/25days`,
     ogTitle: "You're invited: 25 Days of Louisiana Giveaways",
     ogDescription:
-      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
+      "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
     robots: NOINDEX_ROBOTS,
   },
   "/25days/rules": {

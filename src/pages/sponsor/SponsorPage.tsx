@@ -23,7 +23,7 @@ import { normalizeRef } from "../../../supabase/functions/_shared/sponsorSignup"
 import { ClaimSection } from "@/components/sponsor/ClaimSection";
 import { PlaidTrim } from "@/components/sponsor/Decor";
 import {
-  About, BrandGets, Faq, FinalCta, Footer, Founder, Hero, HowItWorks, PlaceholderPreview, PreviewCard, Reach,
+  About, BrandGets, Faq, FinalCta, Footer, Founder, Hero, HowItWorks, Lineup, PlaceholderPreview, PreviewCard, Reach,
   SponsorWall, Testimonials, TrustStrip, WhatWeAsk,
 } from "@/components/sponsor/Sections";
 import "./sponsor.css";
@@ -140,6 +140,7 @@ export default function SponsorPage() {
           <About />
           <Founder photoUrl={photoUrl} />
           <HowItWorks />
+          <Lineup />
           <BrandGets />
           <WhatWeAsk />
           <Reach stats={state.stats} />

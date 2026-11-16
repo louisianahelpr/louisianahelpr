@@ -320,28 +320,28 @@ describe("dates, calendar file and CSV", () => {
   });
 });
 
-describe("sign-up deadline (owner 2026-11-11: claim your day by Nov 22; the giveaway stays Dec 1-25)", () => {
+describe("sign-up deadline (owner 2026-11-16: sign up by Nov 28, was Nov 22; the giveaway stays Dec 1-25)", () => {
   it("the content file and the server agree on the date", () => {
     expect(sponsorPage.event.signup_deadline).toBe(SPONSOR_SIGNUP_DEADLINE);
-    expect(sponsorPage.hero.deadline).toBe("Sign up by Nov 22.");
-    expect(sponsorPage.claim.deadline).toBe("Sign up by Nov 22.");
-    expect(sponsorPage.claim.closed).toContain("closed on November 22");
+    expect(sponsorPage.hero.deadline).toBe("Sign up by Nov 28.");
+    expect(sponsorPage.claim.deadline).toBe("Sign up by Nov 28.");
+    expect(sponsorPage.claim.closed).toContain("closed on November 28");
   });
-  it("open through Nov 22 in Louisiana, closed from midnight Nov 23 (2026-11-23T06:00:00Z)", () => {
-    expect(SPONSOR_SIGNUP_DEADLINE).toBe("2026-11-22");
-    expect(sponsorSignupsOpen(Date.parse("2026-11-23T05:59:59Z"))).toBe(true);
-    expect(sponsorSignupsOpen(Date.parse("2026-11-23T06:00:00Z"))).toBe(false);
+  it("open through Nov 28 in Louisiana, closed from midnight Nov 29 (2026-11-29T06:00:00Z)", () => {
+    expect(SPONSOR_SIGNUP_DEADLINE).toBe("2026-11-28");
+    expect(sponsorSignupsOpen(Date.parse("2026-11-29T05:59:59Z"))).toBe(true);
+    expect(sponsorSignupsOpen(Date.parse("2026-11-29T06:00:00Z"))).toBe(false);
     expect(sponsorSignupsOpen(Date.parse("2026-11-30T12:00:00Z"))).toBe(false);
     expect(sponsorSignupsOpen(Date.UTC(2026, 10, 9))).toBe(true);
     expect(sponsorSignupsOpen(0, "not a date")).toBe(false);
   });
   it("after the deadline the form is gone and says sign-ups are closed; before it, the deadline line shows", () => {
     const st: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
-    const closed = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 10, 24)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    const closed = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 10, 30)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     expect(closed.getByTestId("sponsor-closed").textContent).toContain(sponsorPage.claim.closedTitle);
     expect(closed.container.querySelector("form")).toBeNull();
     closed.unmount();
-    const open = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 10, 20)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    const open = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 10, 27)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     expect(open.container.querySelector("form")).not.toBeNull();
     expect(open.container.textContent).toContain(sponsorPage.claim.deadline);
   });

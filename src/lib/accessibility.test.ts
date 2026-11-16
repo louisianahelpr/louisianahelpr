@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
+import { rejectAppleSystemFont } from "@/test/helpers/rejectAppleSystemFont";
 
 import {
   prefersReducedMotion,
@@ -124,6 +125,10 @@ describe("useReducedMotion", () => {
 describe("useDynamicTypeSync", () => {
   beforeEach(() => {
     document.documentElement.style.removeProperty("--user-text-scale");
+    // Every case here runs in a non-Apple browser unless it stubs the probe's
+    // reading itself: the `-apple-system-body` declaration is dropped. jsdom 30
+    // did that on its own; jsdom 31 keeps the keyword (see the helper).
+    rejectAppleSystemFont();
   });
 
   // Restoration must not live at the end of a test body: an assertion that
@@ -235,7 +240,7 @@ describe("useDynamicTypeSync", () => {
   });
 
   it("falls back to the root font-size when the keyword is truly unsupported", () => {
-    // Unstubbed jsdom drops the declaration, so the probe answers null and the
+    // The browser drops the declaration, so the probe answers null and the
     // hook must use the root size — which on non-Apple platforms does track
     // the browser/OS text scale. 20px root = 1.25, NOT 20/17.
     document.documentElement.style.fontSize = "20px";

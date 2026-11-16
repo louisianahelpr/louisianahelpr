@@ -56,19 +56,31 @@ describe("a job card's price wears ink, one colour rule (spec §1.1; J5 11-08)",
   });
 
   it("computed: the rendered MoneyChip's amount and '$' are the money token", () => {
+    // The token gets a distinctive value so the comparison means something on both jsdoms: jsdom 30 leaves the
+    // computed colour as the unresolved "hsl(var(--foreground))", jsdom 31 resolves var() (to rgb(0, 128, 0) here).
+    // A reference element written straight with the token is the expected value either way, and it must differ
+    // from an unstyled element's colour, or a chip that lost its colour rule would match too.
     const style = document.createElement("style");
-    style.textContent = moneyChipColourRules().join("\n");
+    style.textContent = `:root { --foreground: 120 100% 25%; }\n${moneyChipColourRules().join("\n")}`;
     document.head.appendChild(style);
+    const ref = document.createElement("span");
+    ref.style.color = "hsl(var(--foreground))";
+    const plain = document.createElement("span");
+    document.body.append(ref, plain);
     try {
+      const token = getComputedStyle(ref).color;
+      expect(token).not.toBe(getComputedStyle(plain).color);
       const { container } = render(<MoneyChip amount="90" />);
       const chip = container.querySelector(".money-chip") as HTMLElement;
       const amount = chip.firstElementChild as HTMLElement;
       const dollar = amount.firstElementChild as HTMLElement;
       for (const el of [amount, dollar]) {
-        expect(getComputedStyle(el).color).toBe("hsl(var(--foreground))");
+        expect(getComputedStyle(el).color).toBe(token);
       }
     } finally {
       style.remove();
+      ref.remove();
+      plain.remove();
     }
   });
 

@@ -12,7 +12,7 @@
 // @mutate src/components/declutter/DeclutterBrowseView.tsx | setHeight(mapFillHeight(scroller)) | setHeight(Math.max(320, scroller.clientHeight - 24))
 // @mutate src/lib/declutter/mapFillHeight.ts | px(inner, "paddingTop") + px(inner, "paddingBottom") | px(inner, "paddingTop")
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { mapFillHeight } from "./mapFillHeight";
 
@@ -25,8 +25,15 @@ function column(clientHeight: number, pb: string, innerPt: string, innerPb: stri
   inner.style.paddingTop = innerPt;
   inner.style.paddingBottom = innerPb;
   scroller.appendChild(inner);
+  // In the document, as Browse's scroll column is: getComputedStyle on a detached element answers "" for every
+  // property (CSSOM spec; jsdom 31 does this, jsdom 30 did not), which would read as zero padding.
+  document.body.appendChild(scroller);
   return scroller;
 }
+
+afterEach(() => {
+  document.body.replaceChildren();
+});
 
 describe("Declutter Browse map column height (DA-8)", () => {
   it("leaves room for the padding around the list, so a short list does not scroll", () => {

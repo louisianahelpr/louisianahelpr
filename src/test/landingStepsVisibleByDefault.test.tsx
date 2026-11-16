@@ -24,6 +24,10 @@ const HowItWorksSection = () => <MemoryRouter><HowItWorksSectionBare /></MemoryR
 const SRC = readFileSync(join(process.cwd(), "src/components/landing/HowItWorksSection.tsx"), "utf8");
 const card = () => screen.getByText("Post what you need").closest("div[style]") as HTMLElement;
 
+// The source writes "translateY(0)"; jsdom 31 serialises that zero length as "0px" (jsdom 30 kept "0"). Both are the
+// same value, the card at rest; "translateY(16px)" (lowered) still fails this.
+const RAISED = /^translateY\(0(px)?\)$/;
+
 type Cb = (entries: { isIntersecting: boolean }[]) => void;
 let observed: { cb: Cb; opts?: IntersectionObserverInit }[] = [];
 class FakeIO {
@@ -53,14 +57,14 @@ describe("How it works is visible by default; the reveal only enhances", () => {
     vi.stubGlobal("IntersectionObserver", undefined);
     at(5000);
     render(<HowItWorksSection />);
-    expect(card().style.transform).toBe("translateY(0)");
+    expect(card().style.transform).toMatch(RAISED);
   });
 
   it("already on screen at load: visible, nothing observed", () => {
     vi.stubGlobal("IntersectionObserver", FakeIO);
     at(100);
     render(<HowItWorksSection />);
-    expect(card().style.transform).toBe("translateY(0)");
+    expect(card().style.transform).toMatch(RAISED);
     expect(observed.length).toBe(0);
   });
 
@@ -73,6 +77,6 @@ describe("How it works is visible by default; the reveal only enhances", () => {
     expect(observed.length).toBeGreaterThan(0);
     expect(observed[0].opts?.threshold).toBe(0);
     act(() => observed[0].cb([{ isIntersecting: true }]));
-    expect(card().style.transform).toBe("translateY(0)");
+    expect(card().style.transform).toMatch(RAISED);
   });
 });

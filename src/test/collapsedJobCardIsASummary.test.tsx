@@ -352,7 +352,9 @@ describe("Jobs: a collapsed card hides the tracker and the action row", () => {
     expect(edit.textContent).toContain("Edit application");
     // No yellow Edit, no pink-filled Withdraw: Edit wears the neutral tint, Withdraw has no fill and the danger ink.
     expect(edit.getAttribute("style") ?? "").toContain("--olivewood");
-    expect(withdraw.getAttribute("style") ?? "").toMatch(/background: transparent/);
+    // The inline `background: transparent`: jsdom 30 serialises it "transparent", jsdom 31 "none" (transparent colour,
+    // no image). Either is no fill; a pink fill reads back as its hsl(...) value and fails.
+    expect(withdraw.style.background).toMatch(/^(transparent|none)$/);
     expect(withdraw.getAttribute("style") ?? "").toContain("--danger-ink");
   });
 });

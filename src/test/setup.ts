@@ -1,3 +1,5 @@
+// First, before anything loads react-dom: it reads `reportError` once at load (Q259 under jsdom 31; see the file).
+import "./reportErrorKeepsQ259";
 import { appendFileSync } from "node:fs";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";

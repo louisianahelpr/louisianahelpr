@@ -1094,6 +1094,16 @@ export const PRESS_SIDE_EFFECT_WRITES = {
   // as the form changes (src/lib/jobPostDraftAccount.ts saveDraftToAccount, one private row per member); picking a
   // tile is a form change, and the draft is nobody else's and posts nothing.
   "/rest/v1/rpc/save_my_job_post_draft": "the member's own unfinished Post a job draft, kept as the form changes (src/lib/jobPostDraftAccount.ts); posts nothing",
+  // press-every-control 43855620891 (11-16): 212 presses on /declutter item cards and 19 /messages Declutter
+  // threads failed as GATE MISSes on writes that only LOOKING makes. Live bodies (pg_get_functiondef, prod
+  // 2026-11-17): declutter_record_item_view and declutter_funnel_event RETURN at once for a test member
+  // (is_test_member) and otherwise insert one view / one funnel row, like record_job_view and analytics_events;
+  // sponsor_log_visit returns for a test member too; declutter_mark_talk_read stamps only the CALLER's own
+  // buyer_read_at / seller_read_at on a talk they are a party to, like opening a job thread. Still aborted.
+  "/rest/v1/rpc/declutter_record_item_view": "INSERT declutter_item_views ON CONFLICT DO NOTHING when an item opens; returns at once for a test member",
+  "/rest/v1/rpc/declutter_funnel_event": "the Declutter funnel's item_view step when an item opens; returns at once for a test member",
+  "/rest/v1/rpc/declutter_mark_talk_read": "stamps the caller's own read time on a Declutter talk they open (buyer_read_at / seller_read_at)",
+  "/rest/v1/rpc/sponsor_log_visit": "the 25 Days sponsor page's visit count on landing; returns at once for a test member",
 };
 
 /**

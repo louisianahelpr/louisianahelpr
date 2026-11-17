@@ -31,7 +31,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * The owner's lineup, day -> brands: her 2026-11-16 list plus (2026-11-17) every sponsor who said yes by email or
- * Facebook on their tracker day, and RYSE on every day the tracker lists it (the owner confirmed the tracker).
+ * Facebook on their tracker day, and RYSE on every day the tracker lists it (the owner confirmed the tracker);
+ * owner 2026-11-17 later: five unconfirmed sponsors pulled (Candle Bloom, Summar T., Aeva, Berkana, Pass the Everything).
  */
 const FINAL: Record<number, string[]> = {
   1: ["homerunPET", "RYSE", "CMI Entertainment: A Christmas Carol"],
@@ -41,19 +42,19 @@ const FINAL: Record<number, string[]> = {
   5: ["Oyu Botanica", "RYSE"],
   6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery"],
   7: ["Whimsies from Within", "RYSE"],
-  8: ["Candle Bloom Confections", "RYSE"],
+  8: ["RYSE"],
   9: ["Peigneur Property Rentals", "RYSE", "Let's Create LLC"],
   10: ["GentleStyle Brush", "RYSE", "Manta Sleep"],
   11: ["Boston Mints", "RYSE", "IDRA Wellness"],
-  12: ["Oyu Botanica", "RYSE", "Summar T. Photography"],
+  12: ["Oyu Botanica", "RYSE"],
   13: ["SRI Labs", "RYSE", "Hello Darlin'"],
-  14: ["Aeva Beauty", "The Sculpt Society"],
-  15: ["Berkana Crystal", "RYSE", "Britt Creates"],
+  14: ["The Sculpt Society"],
+  15: ["RYSE", "Britt Creates"],
   16: ["SRI Labs", "RYSE", "3 Redneck Tenors"],
   17: ["Cajun Belle Studio", "RYSE", "LMNT", "Bayou Grace Outfitters"],
   18: ["Boston Mints", "RYSE"],
   19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography"],
-  20: ["Pass the Everything", "RYSE", "Cher Bebe Embroidery"],
+  20: ["RYSE", "Cher Bebe Embroidery"],
   21: ["The Soft Life Collective", "RYSE", "Bourque's Cajun Country Seasoning"],
   22: ["RYSE", "LMNT", "Krazy Bull Kreations"],
   23: ["Tiffany Morton Cosmetic Tattooing", "Faith & Fire BBQ"],
@@ -103,7 +104,7 @@ describe("the final lineup", () => {
     expect(tileCount(NO_DB, 4)).toBe(3);
     expect(tileCount(NO_DB, 25)).toBe(1);
     expect(tileCount(NO_DB, 24)).toBe(4);
-    expect(tileCount(NO_DB, 14)).toBe(2);
+    expect(tileCount(NO_DB, 14)).toBe(1);
     expect(tileCount({ dayCounts: { 2: 5 } }, 2)).toBe(5);
     render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />);
     const day4 = screen.getByRole("button", { name: /^December 4,/ });

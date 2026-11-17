@@ -75,7 +75,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-gqGU6r9HbrUIpdPthhuPeXU+B2zcmZT1aAmpD4gchlU=' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-iM0f4+aBKl+E/kyF/rtYvwGr3DReX7pZBVOsJTHp8Hs=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-y1aXsC/o/rpfCYQZRJULEaEnE7AxBaPaSve8/k2wUC4=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-qK/buIbEuoKpu3zuEoRZc7roBXysccqcCWIPaViDwFY=' 'sha256-y6aFXodIjzQ1oBnBnfRU4A587k5dKqrsMiv3dZYq0Yk=' 'sha256-CNL6CFgEbleCRr+8NMiY+WUFWOKxd+yxCbeOhrHTGYE=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-gqGU6r9HbrUIpdPthhuPeXU+B2zcmZT1aAmpD4gchlU=' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-iM0f4+aBKl+E/kyF/rtYvwGr3DReX7pZBVOsJTHp8Hs=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-swEJNTC4n6toCVLRcRphryJVgrVMXYFl7x9h8fSdwuQ=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-y1aXsC/o/rpfCYQZRJULEaEnE7AxBaPaSve8/k2wUC4=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-qK/buIbEuoKpu3zuEoRZc7roBXysccqcCWIPaViDwFY=' 'sha256-y6aFXodIjzQ1oBnBnfRU4A587k5dKqrsMiv3dZYq0Yk=' 'sha256-CNL6CFgEbleCRr+8NMiY+WUFWOKxd+yxCbeOhrHTGYE=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -661,9 +661,24 @@
             reloadFresh();
           }, wait);
         }
+        // Q2818: a stall with NOTHING unfinished (11-17: /sponsor and
+        // /gift-guides, "unfinished: 0", each cured by the reload) left no
+        // clue. An uncaught error or rejection before the app's first commit
+        // is kept here and sent with the stall row, and it means the entry
+        // will not boot on its own: earlyCheck() below reloads at once.
+        var preBootErrors = [];
+        function notePreBoot(msg) {
+          if (fired || booted() || preBootErrors.length >= 3) return;
+          preBootErrors.push(String(msg || "unknown").slice(0, 200));
+        }
+        window.addEventListener("unhandledrejection", function (ev) {
+          var r = ev && ev.reason;
+          notePreBoot("rejection: " + ((r && r.message) || r));
+        });
         window.addEventListener("error", function (ev) {
           var t = ev.target;
-          if (fired || !t || t === window) return;
+          if (!t || t === window || !t.tagName) { notePreBoot(ev.message); return; }
+          if (fired) return;
           var src = (t.tagName === "SCRIPT" && t.src) || (t.tagName === "LINK" && t.href) || "";
           if (!src) return;
           if (t.hasAttribute("data-lh-page-preload")) return;
@@ -694,7 +709,7 @@
           }
           return out;
         }
-        function stallCheck() {
+        function stallCheck(early) {
           if (fired || booted()) return;
           if (document.visibilityState === "hidden") { setTimeout(stallCheck, 5000); return; }
           if (navigator.onLine === false) { setTimeout(stallCheck, 5000); return; }
@@ -705,10 +720,14 @@
           // on quiet. The files stay in context.pending.
           post({
             user_id: null, severity: "error",
-            message: "Boot stalled " + (STALL_MS / 1000) + "s on the startup screen (boot scripts unfinished: " + pending.length + ")",
+            message: "Boot stalled " + ((early === true ? EARLY_MS : STALL_MS) / 1000) + "s on the startup screen (boot scripts unfinished: " + pending.length + ")",
             stack: null, url: location.pathname, user_agent: navigator.userAgent,
             tags: { source: "BootWatchdog", kind: "boot-stall", route: location.pathname, screen: location.pathname, via: "inline-beacon" },
-            context: { pending: pending, readyState: document.readyState, attempt: readState().count }
+            context: {
+              pending: pending, readyState: document.readyState, attempt: readState().count,
+              early: early === true, entryRan: !!window.__lhEntryRan, errors: preBootErrors,
+              webdriver: navigator.webdriver === true, focused: typeof document.hasFocus === "function" ? document.hasFocus() : null
+            }
           });
           try { sessionStorage.setItem(STALL_FLAG, String(Date.now())); } catch (e) { /* no storage: no recovery report */ }
           recover(pending[0] || "");
@@ -734,7 +753,22 @@
             context: { stalledAt: at, recoveredAfterMs: Date.now() - at }
           });
         }
+        // Q2818: every boot script has arrived (nothing unfinished) and the
+        // entry module either threw or never started (main.tsx sets
+        // window.__lhEntryRan first thing): nothing is left to wait for, so
+        // waiting the full STALL_MS only keeps the visitor on the H. Take the
+        // same budgeted reload now. A slow download still gets the full
+        // STALL_MS: this only fires when nothing is downloading.
+        var EARLY_MS = 8000;
+        function earlyCheck() {
+          if (fired || booted() || document.readyState === "loading") return;
+          if (document.visibilityState === "hidden" || navigator.onLine === false) return;
+          if (window.__lhEntryRan && !preBootErrors.length) return;
+          if (unfinished().length) return;
+          stallCheck(true);
+        }
         stallRecoveredCheck(STALL_MS / 500);
+        setTimeout(earlyCheck, EARLY_MS);
         setTimeout(stallCheck, STALL_MS);
       })();
     </script>

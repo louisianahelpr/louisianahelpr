@@ -45,6 +45,8 @@ export const sponsorPage = {
     email: "admin@louisianahelpr.com",
     privacy: "/privacy",
     rules: "/25days/rules",
+    // Owner 2026-11-16: the Holiday Gift Guides page, linked from this page's footer.
+    giftGuides: "/gift-guides",
   },
 
   hero: {
@@ -324,6 +326,7 @@ export const sponsorPage = {
     groupLink: "Facebook Group",
     rulesLink: "Official Giveaway Rules",
     privacyLink: "Privacy Policy",
+    giftGuidesLink: "Holiday Gift Guides",
   },
 
   rules: {

@@ -222,6 +222,12 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
                 {w("footer.safety", "Safety")}
               </Link>
             </li>
+            {/* Owner 2026-11-16: the Holiday Gift Guides, reachable from every public page. */}
+            <li>
+              <Link to="/gift-guides" className={FOOTER_LINK}>
+                {w("footer.giftGuides", "Holiday Gift Guides")}
+              </Link>
+            </li>
             <li>
               {/* /contact redirects here too (vercel.json); this is where a
                   person who wants to reach us lands. */}

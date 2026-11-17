@@ -421,9 +421,20 @@ describe("Session Replay privacy (PROD path)", () => {
 });
 
 describe("captureException", () => {
-  it("no-ops when Sentry is not initialized", async () => {
+  it("initializes first when called before init, so a cold-launch error is not lost", async () => {
     const { captureException } = await loadFresh();
-    captureException(new Error("test"));
+    const err = new Error("test");
+    captureException(err);
+    expect(initMock).toHaveBeenCalledTimes(1);
+    expect(captureExceptionMock).toHaveBeenCalledWith(err, undefined);
+  });
+
+  it("no-ops when init itself fails", async () => {
+    initMock.mockImplementationOnce(() => {
+      throw new Error("init boom");
+    });
+    const { captureException } = await loadFresh();
+    expect(() => captureException(new Error("test"))).not.toThrow();
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 

@@ -57,9 +57,54 @@ async function readKeychain(key: string): Promise<string | null> {
 // client (Q161), so reporting is safe; it stays a lazy import so this module,
 // which the client imports at the top of the boot path, stays small.
 function reportKeychain(err: unknown, step: string): void {
+  const unavailable = isKeychainUnavailable(err);
+  // One row per launch for an unavailable Keychain: every token refresh would hit it again.
+  if (unavailable) {
+    if (keychainUnavailableReported) return;
+    keychainUnavailableReported = true;
+  }
   void errorLogger()
-    .then((m) => m?.report(err, { severity: 'error', tags: { area: 'keychain_session' }, context: { step } }))
+    .then((m) => m?.report(err, unavailable
+      ? { severity: 'warning', tags: { area: 'keychain_session' }, context: { step, osStatus: ERR_SEC_MISSING_ENTITLEMENT, fallback: 'webkit-storage' } }
+      : { severity: 'error', tags: { area: 'keychain_session' }, context: { step } }))
     .catch(() => { /* Silent by design: the logger itself failed to load; nothing else can record it. */ });
+}
+
+// ── NO KEYCHAIN (-34018, errSecMissingEntitlement) ──────────────────────
+// The OS refuses the Keychain to a binary signed without entitlements. Measured 2026-11-17: the three prod rows
+// "An OS error occurred (-34018) — code=osError" (step setItem, 2026-11-16 18:32-20:08 UTC) were two test accounts
+// on simulator builds of this app installed on the dev Mac at those times, linker-signed ad hoc with no
+// entitlements (xcodebuild CODE_SIGNING_ALLOWED=NO, scripts/sim-smoke.sh). A signed device build gets its default
+// access group from application-identifier. iOS can also refuse it briefly on a real device. Either way the
+// session already lives in memory and WebKit storage, so this launch keeps working:
+//   · a refused write is retried once (a transient refusal clears), then left to WebKit storage;
+//   · it is recorded as ONE warning per launch, never an error that pages the owner;
+//   · a flag in Preferences (UserDefaults, which needs no entitlement) marks the Keychain copy stale, so the next
+//     launch's restore never puts that older, possibly rotated-out token over the newer one WebKit still holds
+//     (that would sign the person out). The next write that lands clears the flag.
+const ERR_SEC_MISSING_ENTITLEMENT = -34018;
+const KEYCHAIN_STALE_FLAG_KEY = 'helpr_keychain_stale';
+const KEYCHAIN_RETRY_MS = 300;
+let keychainUnavailableReported = false;
+let keychainStale = false;
+
+function isKeychainUnavailable(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : typeof err === 'string' ? err : '';
+  return message.includes(`(${ERR_SEC_MISSING_ENTITLEMENT})`);
+}
+
+function markKeychainStale(): void {
+  if (keychainStale) return;
+  keychainStale = true;
+  void Preferences.set({ key: KEYCHAIN_STALE_FLAG_KEY, value: '1' })
+    .catch((err: unknown) => reportKeychain(err, 'stale flag set'));
+}
+
+function clearKeychainStale(): void {
+  if (!keychainStale) return;
+  keychainStale = false;
+  void Preferences.remove({ key: KEYCHAIN_STALE_FLAG_KEY })
+    .catch((err: unknown) => reportKeychain(err, 'stale flag clear'));
 }
 
 // Hydrate cache + localStorage from the Keychain, once, at module load.
@@ -101,8 +146,12 @@ export const hydratePromise: Promise<void> = (async () => {
       }
       await Preferences.set({ key: INSTALL_FLAG_KEY, value: '1' });
     }
+    // A launch that could not write the Keychain left its copy older than WebKit's (NO KEYCHAIN above).
+    const stale = (await Preferences.get({ key: KEYCHAIN_STALE_FLAG_KEY }))?.value === '1';
+    if (stale) keychainStale = true;
     for (const key of await SecureStorage.keys()) {
       if (!isAuthTokenKey(key)) continue;
+      if (stale && readSync(key) !== null) continue; // WebKit's copy is the newer one: keep it
       let value: string | null;
       try {
         value = await readKeychain(key);
@@ -255,13 +304,28 @@ export const keychainStorageAdapter = {
     try { localStorage.setItem(key, value); } catch { /* Silent by design: WebKit storage blocked or evicted; the in-memory cache and the Keychain still hold the value. */ }
     if (Capacitor.isNativePlatform() && isAuthTokenKey(key)) {
       const mirrored = inKeychainOrder(async () => {
+        const write = () => SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS); // awaited: THE RACE above
         try {
-          await SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS); // awaited: THE RACE above
+          await write();
         } catch (err) {
-          // This launch works from memory and WebKit storage, but the Keychain may
-          // now hold a rotated-out token the next cold launch cannot use.
-          reportKeychain(err, 'setItem');
+          if (!isKeychainUnavailable(err)) {
+            // This launch works from memory and WebKit storage, but the Keychain may
+            // now hold a rotated-out token the next cold launch cannot use.
+            reportKeychain(err, 'setItem');
+            return;
+          }
+          // NO KEYCHAIN above: one retry, then WebKit storage carries the session.
+          await new Promise<void>((resolve) => setTimeout(resolve, KEYCHAIN_RETRY_MS));
+          try {
+            await write();
+          } catch (again) {
+            // Not swallowed: flagged stale for the next launch's restore and reported (one warning per launch).
+            markKeychainStale();
+            reportKeychain(again, 'setItem');
+            return;
+          }
         }
+        clearKeychainStale();
       });
       await underWriteCap(mirrored, 'setItem cap');
     }

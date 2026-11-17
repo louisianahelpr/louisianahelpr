@@ -516,7 +516,7 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
 
 // Shown able to fail:
 // The awaited native mirror write (fire-and-forget re-opens rotated-token loss).
-// @mutate src/integrations/supabase/keychainStorageAdapter.ts | await SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS); // awaited: THE RACE above | void SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS); // awaited: THE RACE above
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts |           await write();\n        } catch (err) { |           void write();\n        } catch (err) {
 // The hard cap in front of `await hydratePromise` in client.ts.
 // @mutate src/integrations/supabase/keychainStorageAdapter.ts | new Promise<void>((resolve) => setTimeout(() => { capped = true; resolve(); }, HYDRATE_TIMEOUT_MS)), | new Promise<void>(() => { /* no cap */ }),
 // Both halves of isAuthTokenKey.
@@ -610,4 +610,75 @@ describe("keychainStorageAdapter under the real auth-js sign-out (Q1412)", () =>
     expect(kcRemoveMock).toHaveBeenCalledWith("sb-fncmgoasalhdgfwzhsqa-auth-token");
     expect(keychainStorageAdapter.getItem("sb-fncmgoasalhdgfwzhsqa-auth-token")).toBeNull();
   }, 8_000);
+});
+
+// -34018 (errSecMissingEntitlement): the Keychain is refused to this binary (an unsigned simulator build on
+// 2026-11-16, the only prod rows) or, briefly, by iOS. The session already lives in memory and WebKit storage.
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts |           await new Promise<void>((resolve) => setTimeout(resolve, KEYCHAIN_RETRY_MS));\n          try {\n            await write(); |           try {\n            throw err;
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts |       ? { severity: 'warning', | ? { severity: 'error',
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts |     if (keychainUnavailableReported) return; |     if (keychainUnavailableReported) void 0;
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts | if (stale && readSync(key) !== null) continue; | if (stale && readSync(key) !== null) void 0;
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts |         clearKeychainStale();\n      }); |       });
+describe("keychainStorageAdapter: no Keychain (-34018) degrades to WebKit storage", () => {
+  const MISSING = () => new Error("An OS error occurred (-34018)");
+  const STALE_FLAG = "helpr_keychain_stale";
+
+  beforeEach(() => {
+    isNativePlatformMock.mockReturnValue(true);
+  });
+
+  it("a transient refusal is retried once and lands, with nothing reported", async () => {
+    kcSetMock.mockRejectedValueOnce(MISSING()).mockResolvedValue(undefined);
+    const { keychainStorageAdapter } = await loadAdapter();
+    await keychainStorageAdapter.setItem(AUTH_KEY, "fresh");
+    await vi.waitFor(() => expect(kcSetMock).toHaveBeenCalledTimes(2));
+    expect(reportMock).not.toHaveBeenCalled();
+    expect(prefsSetMock).not.toHaveBeenCalledWith({ key: STALE_FLAG, value: "1" });
+  });
+
+  it("a lasting refusal keeps the session in WebKit storage, flags the Keychain copy stale, and reports ONE warning per launch", async () => {
+    kcSetMock.mockRejectedValue(MISSING());
+    const { keychainStorageAdapter } = await loadAdapter();
+    await keychainStorageAdapter.setItem(AUTH_KEY, "first");
+    await keychainStorageAdapter.setItem(AUTH_KEY, "second");
+    expect(localStorage.getItem(AUTH_KEY)).toBe("second");
+    expect(keychainStorageAdapter.getItem(AUTH_KEY)).toBe("second");
+    await vi.waitFor(() => expect(reportMock).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 50)); // let a second report, if any, arrive
+    expect(reportMock).toHaveBeenCalledTimes(1);
+    expect(reportMock.mock.calls[0][1]).toMatchObject({
+      severity: "warning",
+      tags: { area: "keychain_session" },
+      context: { step: "setItem", osStatus: -34018, fallback: "webkit-storage" },
+    });
+    expect(prefsSetMock).toHaveBeenCalledWith({ key: STALE_FLAG, value: "1" });
+    // Inventory floor: each write tried twice (one retry).
+    expect(kcSetMock.mock.calls.length).toBeGreaterThan(3);
+  });
+
+  it("a launch after a stale flag keeps WebKit's newer token instead of restoring the Keychain's older one", async () => {
+    prefsGetMock.mockImplementation((arg: { key: string }) => Promise.resolve({ value: arg.key === STALE_FLAG ? "1" : null }));
+    kcKeysMock.mockResolvedValue([AUTH_KEY]);
+    kcGetItemMock.mockResolvedValue("rotated-out");
+    localStorage.setItem(AUTH_KEY, "newest");
+    const { keychainStorageAdapter } = await loadAdapter();
+    expect(keychainStorageAdapter.getItem(AUTH_KEY)).toBe("newest");
+    expect(localStorage.getItem(AUTH_KEY)).toBe("newest");
+  });
+
+  it("with no stale flag the Keychain copy still restores (the eviction case it exists for)", async () => {
+    prefsGetMock.mockResolvedValue({ value: null });
+    kcKeysMock.mockResolvedValue([AUTH_KEY]);
+    kcGetItemMock.mockResolvedValue("restored");
+    localStorage.setItem(AUTH_KEY, "webkit");
+    const { keychainStorageAdapter } = await loadAdapter();
+    expect(keychainStorageAdapter.getItem(AUTH_KEY)).toBe("restored");
+  });
+
+  it("the next write that lands clears the stale flag", async () => {
+    prefsGetMock.mockImplementation((arg: { key: string }) => Promise.resolve({ value: arg.key === STALE_FLAG ? "1" : null }));
+    const { keychainStorageAdapter } = await loadAdapter();
+    await keychainStorageAdapter.setItem(AUTH_KEY, "landed");
+    await vi.waitFor(() => expect(prefsRemoveMock).toHaveBeenCalledWith({ key: STALE_FLAG }));
+  });
 });

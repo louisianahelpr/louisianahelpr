@@ -358,6 +358,18 @@ void hydrateStorage();
   };
 
   const loadAnalytics = () => {
+    // Sentry starts ALONE, before the shared bootstrap below. That bootstrap waits on posthog and the Supabase
+    // client in one Promise.all, so a content blocker that refuses the posthog chunk (every "background import
+    // failed: posthog" row on prod comes with its sentry twin or alone) left Sentry never initialized for the
+    // whole page. initSentry() is idempotent; the bootstrap below still sets the user and the replay policy.
+    void (async () => {
+      try {
+        const sentryAlone = await backgroundImport(() => import("./lib/sentry"), "sentry");
+        sentryAlone.initSentry();
+      } catch {
+        /* backgroundImport already reported the failed chunk; error tracking must never break the app */
+      }
+    })();
     void (async () => {
       try {
         const [

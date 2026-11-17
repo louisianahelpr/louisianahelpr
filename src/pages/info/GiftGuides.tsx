@@ -1,6 +1,7 @@
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { safeDocumentUrl } from "@/lib/storagePath";
 import { giftGuides as G, type GiftLink, type GiftPick, type GiftSection } from "@/content/giftGuides";
 
 /**
@@ -11,10 +12,10 @@ import { giftGuides as G, type GiftLink, type GiftPick, type GiftSection } from 
  * neither waits for them nor shifts when they land. Guard: src/test/giftGuidesPage.test.tsx.
  */
 
-/** The one place an outbound link is drawn, so none can miss the rel or the new tab. */
+/** The one place an outbound link is drawn, so none can miss the rel or the new tab. https only (safeDocumentUrl). */
 function Out({ link, className, children }: { link: GiftLink | { href: string; label?: string }; className?: string; children?: React.ReactNode }) {
   return (
-    <a href={link.href} target="_blank" rel="sponsored noopener" className={className} data-gift-out="">
+    <a href={safeDocumentUrl(link.href) ?? undefined} target="_blank" rel="sponsored noopener" className={className} data-gift-out="">
       {children ?? link.label}
     </a>
   );
@@ -27,13 +28,13 @@ function PickCard({ pick }: { pick: GiftPick }) {
     <li className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card" data-gift-pick="">
       <div className="aspect-square w-full bg-white">
         <img
+          loading="lazy"
+          decoding="async"
           src={pick.image}
           alt={pick.name}
           width={320}
           height={320}
           sizes="(min-width: 640px) 240px, 45vw"
-          loading="lazy"
-          decoding="async"
           className="h-full w-full object-contain p-3"
         />
       </div>
@@ -85,7 +86,7 @@ export default function GiftGuides() {
   usePageMeta(PUBLIC_PAGE_META["/gift-guides"]);
   return (
     <PublicHeaderPage title={G.title} backTo="/" wrapTitle bottomPaddingClassName="pb-12 md:pb-16">
-      <div className="page-measure mx-auto max-w-5xl space-y-10 font-sans" data-gift-guides="">
+      <div className="page-measure space-y-section font-sans" data-gift-guides="">
         <div className="space-y-3">
           <p className="text-ds-17" style={ink}>{G.intro}</p>
           {/* FTC Endorsement Guides (16 CFR Part 255): plain, near the top, before any link. */}

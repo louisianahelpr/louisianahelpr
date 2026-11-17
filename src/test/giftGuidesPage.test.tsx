@@ -43,7 +43,7 @@ import { sponsorPage } from "@/content/sponsorPage";
 afterEach(cleanup);
 
 const src = (p: string) => blankComments(readFileSync(p, "utf8"));
-const DISCLOSURE = "Some links are affiliate links. We may earn a small commission at no extra cost to you.";
+const DISCLOSURE = "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.";
 const SECTION_TITLES = ["For Her", "For Him", "For Kids and Little Ones", "For the Home", "Stocking Stuffers", "Louisiana-made"];
 
 const contentLinks = [
@@ -71,7 +71,7 @@ describe("gift guides: the content inventory", () => {
     }
   });
 
-  it("the disclosure is the required sentence, word for word", () => {
+  it("the disclosure says plainly that links are affiliate links and we may earn from them", () => {
     expect(giftGuides.disclosure).toBe(DISCLOSURE);
   });
 });

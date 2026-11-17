@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-16T23:44Z",
+  "measured_at": "2026-11-17T00:21Z",
   "issues": {
     "readable": true,
     "open": [
@@ -127,6 +127,13 @@
         "label": "nightly-red",
         "run": null,
         "runTruncated": true
+      },
+      {
+        "number": 4651,
+        "title": "nightly-red: db-backup",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43981987678",
+        "runTruncated": false
       }
     ]
   },
@@ -531,6 +538,7 @@
     "issue #4451": "Q1816",
     "issue #4453": "Q1816",
     "issue #4553": "Q2802",
+    "issue #4651": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",

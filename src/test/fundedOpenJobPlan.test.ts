@@ -17,6 +17,7 @@
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | else if (runway < MIN_RUNWAY_DAYS) retire | else if (runway < 0) retire
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts |       r !== keep && |       r !== keep && false &&
  * @mutate e2e/prod-audit/fundedOpenJob.ts |   for (const row of plan.discard ?? []) log.push(await discardNeverPaidFixture(api, poster, row)); |   void discardNeverPaidFixture;
+ * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const FUNDED = new Set(["escrow", "held", "cancelling"]); | const FUNDED = new Set(["escrow", "cancelling"]);
  * @mutate e2e/prod-audit/deep-links.spec.ts | const funded = await unlessLivePay(() => ensureFundedOpenJob(request, browser, poster, helper)); | const funded = { value: null, livePay: null };
  */
 import { describe, it, expect } from "vitest";
@@ -94,6 +95,16 @@ describe("planFundedOpenJob", () => {
     const newer = row({ created_at: "2026-09-20T00:00:00Z" });
     const p = plan([older, newer]);
     expect(p.reuse).toBe(newer);
+    expect(p.retire.map((x) => x.row.id)).toEqual([older.id]);
+  });
+
+  it("a card-HELD fixture (Q2399) counts as funded: reused, and a held duplicate retired (core-loop-canary 44108363727)", () => {
+    const older = row({ payment_status: "held", created_at: "2026-11-07T16:40:12Z" });
+    const newer = row({ payment_status: "held", created_at: "2026-11-14T07:05:34Z" });
+    expect(plan([newer])).toEqual({ reuse: newer, pay: null, retire: [] });
+    const p = plan([older, newer]);
+    expect(p.reuse).toBe(newer);
+    expect(p.pay).toBeNull();
     expect(p.retire.map((x) => x.row.id)).toEqual([older.id]);
   });
 

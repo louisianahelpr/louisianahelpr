@@ -165,7 +165,12 @@ export function discardableNeverPaid(rows: readonly FixtureRow[], keep: FixtureR
   );
 }
 
-const FUNDED = new Set(["escrow", "cancelling"]);
+// Q2399 card_hold_at_post: fund() returns a fixture whose card is only HELD
+// (payment_status 'held', no PaymentIntent yet) as funded. Leaving 'held' out
+// made every run see no funded fixture and pay another, never retiring one:
+// poster-e2e reached 4 cap-counted open jobs (two held "Prod audit funded
+// fixture" rows, 11-07 and 11-14) and core-loop-canary 44108363727 failed Q1779.
+const FUNDED = new Set(["escrow", "held", "cancelling"]);
 const REPAYABLE = new Set(["unpaid", "abandoned", "failed"]);
 
 /**

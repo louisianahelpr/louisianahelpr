@@ -231,6 +231,7 @@ describe("branch-prune opens no auto-land PR for a branch whose content is on ma
 
   it("the script's main() goes through findStranded", () => {
     const src = readFileSync(resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8");
-    expect(src).toMatch(/const \{ stranded, contentOnMain, inOpenPr \} = findStranded\(cherryGit, branches, openHeads, readAcceptedTips\(\), contentStrandedOf, contentInOpenPrOf\);/);
+    // --no-stranded (branch-prune.yml's prune job, 2026-11-17) skips it; every other run still calls it this way.
+    expect(src).toMatch(/const \{ stranded, contentOnMain, inOpenPr \} = skipStranded\s*\?\s*\{ stranded: \[\], contentOnMain: \[\], inOpenPr: \[\] \}\s*:\s*findStranded\(cherryGit, branches, openHeads, readAcceptedTips\(\), contentStrandedOf, contentInOpenPrOf\);/);
   });
 });

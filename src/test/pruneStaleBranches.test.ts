@@ -7,12 +7,15 @@
 // @mutate scripts/prune-stale-branches.mjs | export const PROTECTED_PREFIXES = ["land/", "gh-readonly-queue/"]; | export const PROTECTED_PREFIXES = [];
 // @mutate scripts/prune-stale-branches.mjs | if (!(ageHours >= MIN_AGE_HOURS)) { | if (false) {
 // @mutate scripts/prune-stale-branches.mjs | `--force-with-lease=refs/heads/${r.name}:${tipOf.get(r.name)}`, | 
+// @mutate scripts/prune-stale-branches.mjs | if (done.has(r.name)) deleted.push(r.name); | if (true) deleted.push(r.name);
+// @mutate scripts/prune-stale-branches.mjs | const batch = rows.slice(i, i + chunk); | const batch = rows.slice(i, i + 1);
 // @mutate scripts/prune-stale-branches.mjs |   if (unlanded === 0 && contentStranded) { |   if (false) {
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   decideBranch,
+  deleteBranches,
   isStranded,
   READY_QUEUE_GRACE_HOURS,
   uncoveredCommits,
@@ -81,6 +84,47 @@ describe("prune-stale-branches decideBranch", () => {
     const src = fs.readFileSync(path.resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8");
     const del = src.slice(src.indexOf('"--delete"') - 200, src.indexOf('"--delete"'));
     expect(del).toContain("--force-with-lease=refs/heads/");
+  });
+});
+
+/**
+ * branch-prune 44108754513 (2026-11-17): 143 DELETE rows, 0 deleted. One push
+ * per branch ran after a 9-minute analysis and the 10-minute job was cancelled
+ * before any delete. Deletes now go in batched pushes, each ref still leased
+ * on its measured tip, and run before the report-only stranded scan.
+ */
+describe("prune-stale-branches deletes in batches, leased per ref", () => {
+  const rows = Array.from({ length: 250 }, (_, i) => ({ name: `ready/b-${i}` }));
+  const tipOf = new Map(rows.map((r, i) => [r.name, `sha${i}`]));
+
+  it("250 deletes take 3 pushes, each ref carrying its own lease, and a rejected lease is reported, not counted deleted", () => {
+    const calls: string[][] = [];
+    const gitFn = (args: string[]) => {
+      calls.push(args);
+      const names = args.slice(args.indexOf("--delete") + 1);
+      const lines = names.map((n) => (n === "ready/b-7" ? `!\t:refs/heads/${n}\t[rejected] (stale info)` : `-\t:refs/heads/${n}\t[deleted]`));
+      if (names.includes("ready/b-7")) throw Object.assign(new Error("push failed"), { stdout: `To origin\n${lines.join("\n")}\nDone\n` });
+      return `To origin\n${lines.join("\n")}\nDone\n`;
+    };
+    const res = deleteBranches(rows, tipOf, gitFn);
+    expect(calls).toHaveLength(3);
+    expect(calls[0]).toContain("--force-with-lease=refs/heads/ready/b-0:sha0");
+    expect(calls[0].filter((a) => a.startsWith("--force-with-lease=")).length).toBe(100);
+    expect(res.deleted).toHaveLength(249);
+    expect(res.failed).toEqual([{ name: "ready/b-7", why: "[rejected] (stale info)" }]);
+  });
+
+  it("a push that confirms nothing deletes nothing", () => {
+    const res = deleteBranches(rows.slice(0, 2), tipOf, () => "");
+    expect(res.deleted).toEqual([]);
+    expect(res.failed.map((f) => f.name)).toEqual(["ready/b-0", "ready/b-1"]);
+  });
+
+  it("deletes run before the stranded scan", () => {
+    const src = blankComments(fs.readFileSync(path.resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8"));
+    const main = src.slice(src.indexOf("function main()"));
+    expect(main.indexOf("deleteBranches(")).toBeGreaterThan(0);
+    expect(main.indexOf("deleteBranches(")).toBeLessThan(main.indexOf("findStranded("));
   });
 });
 

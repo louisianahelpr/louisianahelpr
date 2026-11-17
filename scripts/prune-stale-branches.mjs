@@ -234,6 +234,60 @@ function git(args) {
 }
 
 /**
+ * `git push --porcelain` per-ref lines ("<flag>\t<from>:<to>\t<summary>"):
+ * flag "-" is a deleted ref; "!" is rejected (a stale lease: someone pushed
+ * since we measured). Returns the branch names on each side.
+ * @param {string} out
+ */
+export function parsePorcelainDeletes(out) {
+  const deleted = [], rejected = [];
+  for (const line of String(out).split("\n")) {
+    const m = /^([-!])\t:refs\/heads\/(\S+)\t(.*)$/.exec(line);
+    if (!m) continue;
+    (m[1] === "-" ? deleted : rejected).push({ name: m[2], why: m[3] });
+  }
+  return { deleted: deleted.map((d) => d.name), rejected };
+}
+
+/**
+ * Delete branches in batches of `chunk` refs per push (one push per branch
+ * took ~1 s each and ran out the job's clock). Every ref keeps its own lease on
+ * the tip we measured, so a branch pushed to since is rejected, not deleted. A
+ * ref the porcelain output does not confirm deleted counts as failed.
+ * @param {{name:string}[]} rows
+ * @param {Map<string,string>} tipOf
+ * @param {(args:string[]) => string} gitFn
+ */
+export function deleteBranches(rows, tipOf, gitFn, chunk = 100) {
+  const deleted = [], failed = [];
+  for (let i = 0; i < rows.length; i += chunk) {
+    const batch = rows.slice(i, i + chunk);
+    const args = ["push", "--porcelain"];
+    for (const r of batch) args.push(`--force-with-lease=refs/heads/${r.name}:${tipOf.get(r.name)}`,);
+    args.push("origin", "--delete", ...batch.map((r) => r.name));
+    let out;
+    try {
+      out = gitFn(args);
+    } catch (e) {
+      // Non-zero when any ref is rejected; the porcelain lines are still on stdout.
+      out = String(/** @type {{stdout?: string}} */ (e)?.stdout ?? "");
+      if (!out) {
+        for (const r of batch) failed.push({ name: r.name, why: e instanceof Error ? e.message : String(e) });
+        continue;
+      }
+    }
+    const res = parsePorcelainDeletes(out);
+    const done = new Set(res.deleted);
+    const why = new Map(res.rejected.map((r) => [r.name, r.why]));
+    for (const r of batch) {
+      if (done.has(r.name)) deleted.push(r.name);
+      else failed.push({ name: r.name, why: why.get(r.name) ?? "push did not confirm the delete" });
+    }
+  }
+  return { deleted, failed };
+}
+
+/**
  * ONE PATCH-ID INDEX OF MAIN, NOT ONE `git cherry` PER BRANCH (Q2800).
  *
  * schedule-stalled #4450 (2026-11-13..14): every scheduled branch-prune run was
@@ -391,6 +445,19 @@ function main() {
       (apply ? "" : "  (dry run; pass --apply to delete the DELETE rows)"),
   );
 
+  // REPORT ONLY: nothing here opens a PR (one landing path, the train).
+  // Deletes run BEFORE the stranded report: on 2026-11-17 the analysis took
+  // ~9 of the job's 10 minutes and the old one-push-per-branch loop after the
+  // report never ran (branch-prune 44108754513: 143 DELETE rows, 0 deleted,
+  // cancelled), so origin's 2,337 branches only grew and every run got slower.
+  let failed = 0;
+  if (apply) {
+    const res = deleteBranches(rows.filter((x) => x.action === "DELETE"), tipOf, git);
+    for (const name of res.deleted) console.log(`deleted ${name}`);
+    for (const f of res.failed) console.error(`FAILED to delete ${f.name}: ${f.why}`);
+    failed = res.failed.length;
+  }
+
   const { stranded, contentOnMain, inOpenPr } = findStranded(cherryGit, branches, openHeads, readAcceptedTips(), contentStrandedOf, contentInOpenPrOf);
   for (const b of contentOnMain) {
     console.log(`content on main, not stranded: ${b.name} (${b.uncovered.length} commit(s) left by identity: ${b.uncovered.map((c) => c.subject).join("; ")})`);
@@ -406,21 +473,6 @@ function main() {
     }
   } else {
     console.log("\nSTRANDED: none.");
-  }
-
-  // REPORT ONLY: nothing here opens a PR (one landing path, the train).
-  let failed = 0;
-  if (apply) {
-    for (const r of rows.filter((x) => x.action === "DELETE")) {
-      try {
-        // Leased on the tip we measured: a push since then makes this fail, not delete.
-        git(["push", `--force-with-lease=refs/heads/${r.name}:${tipOf.get(r.name)}`, "origin", "--delete", r.name]);
-        console.log(`deleted ${r.name}`);
-      } catch (e) {
-        failed++;
-        console.error(`FAILED to delete ${r.name}: ${e.message}`);
-      }
-    }
   }
 
   const summary = process.env.GITHUB_STEP_SUMMARY;

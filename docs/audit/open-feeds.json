@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-17T12:44Z",
+  "measured_at": "2026-11-17T13:02Z",
   "issues": {
     "readable": true,
     "open": [
@@ -477,6 +477,14 @@
         "issue": null
       },
       {
+        "fingerprint": "b757f9393658386f1d245a1055db0291",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/sponsor · boot stalled #s on the startup screen (boot scripts unfinished: #)",
+        "issue": null
+      },
+      {
         "fingerprint": "4fa3a43d27c008020ff0b5e36d711915",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -514,6 +522,22 @@
         "source": "declutter_handover_sweep",
         "status": "open",
         "title": "declutter_handover_sweep: <id> failed: order_not_paid",
+        "issue": null
+      },
+      {
+        "fingerprint": "5844c03737d13e6f92de61e382d42d72",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/gift-guides · boot stalled #s on the startup screen (boot scripts unfinished: #)",
+        "issue": null
+      },
+      {
+        "fingerprint": "d13e663f2f12696de59ae802153f3712",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/gift-guides · boot recovered after a stall (reload attempt #)",
         "issue": null
       }
     ]
@@ -561,6 +585,7 @@
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 4fa3a43d27c0": "Q2798",
+    "ledger 5844c03737d1": "Q2819",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5be6011a46f6": "Q1816",
     "ledger 60298a019ea3": "Q1776",
@@ -579,12 +604,14 @@
     "ledger ab6fdbe8c882": "Q1816",
     "ledger acf4ea2ff283": "Q2794",
     "ledger aeedd2495772": "Q2409",
+    "ledger b757f9393658": "Q2818",
     "ledger b8b42cf124da": "Q2506",
     "ledger ba04c0f07725": "Q2532",
     "ledger bbdaee370c35": "Q1631",
     "ledger c540527c8265": "Q2517",
     "ledger c5d2aafd1f77": "Q2410",
     "ledger cae29df0662b": "Q2351",
+    "ledger d13e663f2f12": "Q2820",
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
     "ledger e41c806b9175": "Q1816",

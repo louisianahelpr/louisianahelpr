@@ -41,3 +41,10 @@ export async function expectGateSendsToCompleteProfile(api: APIRequestContext, s
       "Something submitted Complete Profile as this account: find and stop that writer too.",
   ).toBe(false);
 }
+
+/**
+ * Where the full Complete Profile form is drawn for the incomplete account (owner 11-14, deferred profile): on the way
+ * to a commitment route. With Terms + 18+ on record, a bare /complete-profile goes to /home (CompleteProfile.tsx
+ * alreadyComplete); `?next=` a route src/lib/profileGateRoutes.ts calls a commitment keeps the form.
+ */
+export const COMPLETE_PROFILE_FORM = `/complete-profile?next=${encodeURIComponent("/post-job")}`;

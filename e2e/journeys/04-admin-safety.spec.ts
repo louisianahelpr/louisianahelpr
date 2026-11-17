@@ -23,6 +23,7 @@ import { slotAhead } from "./postJobForm";
 import { withChromium } from "./stripeInChromium";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { moveSeedJobStart } from "../moveSeedJobStart";
+import { NO_SHOW_WAIT_MINUTES } from "../../src/lib/noShowOpens";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { createThrowaway, deleteThrowaway, serviceKey, type Throwaway } from "./throwaway";
 import { srFetch } from "../serviceRoleFetch";
@@ -558,8 +559,12 @@ test.describe.serial("admin and safety journeys", () => {
     });
 
     await test.step("after the start, the poster reports the no-show", async () => {
-      const wait = startAt.getTime() + 15_000 - Date.now();
-      if (wait > 0) await pp.waitForTimeout(wait);
+      // F284 (owner 11-11): a report opens 30 minutes after the start (noShowOpens.ts NO_SHOW_WAIT_MINUTES; the same
+      // instant report_helper_no_show's GUARD 2 refuses before). Waiting 15 s past the start left the sheet's Confirm
+      // disabled ("You can report a no-show from 9:00 AM"; e2e-journeys 44101977703, 2026-11-17). Harness concession,
+      // as for the hire (moveSeedJobStart, is_seed only): the start moves back past that wait instead of sleeping 30 min.
+      startAt = await moveSeedJobStart(SUPABASE_URL, jobId, -(NO_SHOW_WAIT_MINUTES + 2) * 60_000, "the no-show job (report window)");
+      expect(Date.now(), "the no-show report window is open").toBeGreaterThanOrEqual(startAt.getTime() + NO_SHOW_WAIT_MINUTES * 60_000);
       await openCard(pp, jobId, JOB_TITLE);
       const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), NO_SHOW, 30_000);
       expect(chip, "No-Show is not offered after the start with no arrival, on the row or in More").not.toBeNull();

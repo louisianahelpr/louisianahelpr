@@ -2,7 +2,7 @@
 // @vitest-environment-options {"url":"https://www.louisianahelpr.com/sponsor"}
 /**
  * THE BOOT WATCHDOG NEVER RELOADS IN A LOOP, AND A SCANNER IS NOT LOGGED
- * (hourly error sweep, 11-17). One "Firefox/116.0" client sent 10 boot-stall
+ * (hourly error sweep, 2026-11-17). One "Firefox/116.0" client sent 10 boot-stall
  * and 9 "Boot failed" rows in 19 s. Every stall row said attempt 0, and the
  * rows came ~2 s apart though each one is written 20 s after its own page
  * opened: ten pages opened side by side, not one page reloading itself.
@@ -99,7 +99,7 @@ describe("index.html boot watchdog: no reload loop", () => {
     window.history.replaceState(null, "", "/sponsor");
   });
 
-  it("an emulated page whose location has no pathname posts nothing (the 11-17 Firefox/116 scanner)", async () => {
+  it("an emulated page whose location has no pathname posts nothing (the 2026-11-17 Firefox/116 scanner)", async () => {
     const fake = { hostname: "www.louisianahelpr.com", href: undefined, pathname: undefined };
     new Function("location", watchdog.body)(fake);
     await vi.advanceTimersByTimeAsync(25_000);

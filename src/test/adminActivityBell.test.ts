@@ -66,6 +66,7 @@ describe("admin bell: every member activity notifies admins, never for test data
 
   it("every activity table has its trigger, and no activity trigger sits off the list (both ways)", () => {
     const have = Object.fromEntries(trg.map((t) => [t.table, t.fn]));
+    expect(trg.length).toBeGreaterThan(3);
     expect(have).toEqual(ACTIVITY);
   });
 

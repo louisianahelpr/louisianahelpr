@@ -182,6 +182,7 @@ describe("the hold is wired in the source (inventory)", () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
     const src = readFileSync(join(__dirname, "EarningsTab.tsx"), "utf8");
+    expect(src.length).toBeGreaterThan(1000);
     const holds = [...src.matchAll(/<EarningsNoAccountHold\b/g)].length;
     expect(holds).toBeGreaterThan(0);
     expect(src).toContain("hidden={!connectSettled || holdBody}");

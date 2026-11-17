@@ -25,6 +25,7 @@ const PAGES = [
 describe("a missing public profile never claims the member left (F271a)", () => {
   it.each(PAGES)("%s says the profile isn't public, not that the account is gone", (p) => {
     const src = read(p);
+    expect(src.length).toBeGreaterThan(500);
     expect(src).not.toMatch(/no longer on Helpr/);
     expect(src).toContain("this profile isn't public right now");
   });

@@ -125,6 +125,7 @@ describe("F389: a photo in the order chat", () => {
 
   it("the picker, the photo and the upload are lazy (the chat chunk does not grow)", () => {
     const src = readFileSync("src/components/declutter/DeclutterOrderTalk.tsx", "utf8");
+    expect(src.length).toBeGreaterThan(1000);
     expect(src).not.toMatch(/^import[^;]*from "\.\/OrderTalkPhotoParts"/m);
     expect(src).not.toMatch(/^import[^;]*from "@\/lib\/declutter\/handover"/m);
     expect(src).toMatch(/lazy\(\(\) => import\("\.\/OrderTalkPhotoParts"\)/);

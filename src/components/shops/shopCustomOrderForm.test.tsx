@@ -80,6 +80,7 @@ describe("S2-015: the custom-order total includes a first-time setup fee", () =>
     const { readFileSync } = await import("node:fs");
     const { resolve } = await import("node:path");
     const src = readFileSync(resolve(__dirname, "ShopDigitalBuy.tsx"), "utf8");
+    expect(src.length).toBeGreaterThan(1000);
     expect(src).toMatch(/You pay \$\{formatCents\(picked\.price_cents \+ buyerFeeCents\(picked\.price_cents\) \+ setupFeeCents\)\}/);
     expect(src).toMatch(/useFirstPayoutFeeKnown\(\)/);
   });

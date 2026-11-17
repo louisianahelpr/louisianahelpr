@@ -59,6 +59,7 @@ describe("an expired listing's one action sits under its line on the desktop web
 
   it("JobPage draws it inside the status card (data-job-steps) and drops the side row for it", () => {
     const page = blankComments(readFileSync(join(__dirname, "JobPage.tsx"), "utf8"));
+    expect(page.length).toBeGreaterThan(1000);
     const steps = page.indexOf('data-job-steps=""');
     const inline = page.indexOf("{repost.inline}");
     expect(steps).toBeGreaterThan(0);

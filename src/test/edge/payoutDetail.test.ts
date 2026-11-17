@@ -239,7 +239,7 @@ describe("F267a: a tip (a destination charge) is named from the caller's own tip
     expect(d.lines.reduce((sum, l) => sum + l.amount_cents, 0)).toBe(900);
     // One platform read per unnamed transfer, with NO stripeAccount (the transfer lives on the platform).
     expect(transferCalls.map((c) => c[0]).sort()).toEqual(["tr_gone", "tr_tip1", "tr_tip2"]);
-    for (const c of transferCalls) expect(c.length).toBe(1);
+    expect(transferCalls.map((c) => c.length)).toEqual([1, 1, 1]);
     expect(reads).toContainEqual(["tips", "helper_id", "user-1"]);
     expect(reads).toContainEqual(["helpr_task_tips", "helpr_id", "user-1"]);
   });

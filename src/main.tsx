@@ -37,8 +37,12 @@ import { clearGreetingName } from "./lib/homeGreetingShell.mjs";
 declare global {
   interface Window {
     HELPR_BUILD?: string;
+    __lhEntryRan?: number;
   }
 }
+// Q2818: tells index.html's boot watchdog that the entry module ran (every import above evaluated). With every boot
+// script arrived and this unset, the module graph is dead and the watchdog reloads at 8 s instead of 20 s.
+window.__lhEntryRan = Date.now();
 // NB-020: injected at build time (vite.config.ts define), so push_tokens.app_version
 // names the commit and build that registered the device; a literal never changed.
 window.HELPR_BUILD =

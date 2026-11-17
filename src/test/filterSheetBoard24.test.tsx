@@ -22,7 +22,7 @@
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |         title="Filter jobs" |         title="Filters"
  * @mutate src/components/dashboard/FilterSheet.tsx |         floor\n        // The Filters button |         floor={false}\n        // The Filters button
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |           style={minBudget \|\| maxBudget ? { color: "hsl(var(--burnt-sienna))" } : undefined} |           style={{ color: "hsl(var(--burnt-sienna))" }}
- * @mutate src/components/ui/FilterChip.tsx | btn-press border min-h-10"; | btn-press border h-11";
+ * @mutate src/components/ui/FilterChip.tsx | btn-press border min-h-11"; | btn-press border h-11";
  * @mutate src/components/ui/FilterChip.tsx |   tight: FILTER_CHIP.replace("px-4", "px-3"), |   tight: FILTER_CHIP,
  * @mutate src/components/dashboard/browseTasksToolbar/BrowseViewToggle.tsx |     <SegmentedControl | <SegmentedControl semantics="tab"
  */
@@ -228,11 +228,14 @@ describe("board 24, lead review 2026-10-20: lighter chips, a segmented View, mut
     boostedOnly: false, setBoostedOnly: noop, urgentOnly: false, setUrgentOnly: noop,
   });
 
-  it("chips are the Declutter ChipGroup size (min-h-10, px-4, text-ds-13)", () => {
+  // 2026-11-17 (nightly-red #3491): the chips keep the ChipGroup's px-4 and text-ds-13 but are 44px tall (min-h-11);
+  // ui-sweep's overlay sweep 44194316384 flagged the 40px chips of this sheet as tap targets under 44px.
+  it("chips are the ChipGroup recipe at the 44px tap floor (min-h-11, px-4, text-ds-13)", () => {
     render(<MemoryRouter>{build("").find((x) => x.key === "sort")!.content}</MemoryRouter>);
     const chip = screen.getByRole("button", { name: "Newest" });
-    for (const c of ["min-h-10", "px-4", "text-ds-13"]) expect(chip.className.split(/\s+/)).toContain(c);
-    expect(chip.className).not.toMatch(/\bh-11\b/);
+    for (const c of ["min-h-11", "px-4", "text-ds-13"]) expect(chip.className.split(/\s+/)).toContain(c);
+    // A FIXED height would clip a two-line label under Bigger text; the floor is a min-height.
+    expect(chip.className.split(/\s+/)).not.toContain("h-11");
   });
 
   it("'Any price' is muted ink; a real range is rust", () => {

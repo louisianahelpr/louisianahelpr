@@ -9,9 +9,11 @@
  *
  * @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | <ApplicationCardSkeleton key={i} {...shape} title={titles[i] \|\| undefined} /> | <ApplicationCardSkeleton key={i} {...shape} />
  * @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx |   return <MineFaceSkeleton tracker={tracker} address={address} title={title} />; |   return <MineFaceSkeleton tracker={tracker} address={address} />;
- * @mutate src/components/job-card/JobListPage.tsx | <PostedListBones filter={statusFilter} titles={firstCardTitles(filteredPostedJobs, statusFilter, pendingApplicantCounts)} /> | <PostedListBones filter={statusFilter} />
+ * @mutate src/components/job-card/postedLeanFirst.tsx | <PostedListBones filter={filter} titles={firstCardTitles(jobs, filter, pending)} /> | <PostedListBones filter={filter} />
  * @mutate src/components/job-card/JobListPage.tsx | useActivityData(user, tab, { leanFirst, holdWhole: !postedTabIn }) | useActivityData(user, tab)
- * @mutate src/components/job-card/JobListPage.tsx |     if (group.length) return group.slice(0, 3).map(title); |     if (group.length) return group.map(title);
+ * @mutate src/components/job-card/JobListPage.tsx | {tab === "posted" && !postedTabIn && <PostedTitleBones | {false && <PostedTitleBones
+ * @mutate src/components/job-card/postedLeanFirst.tsx |     if (group.length) return group.slice(0, 3).map(title); |     if (group.length) return group.map(title);
+ * @mutate src/components/job-card/postedLeanFirst.tsx |     && !v.searchQuery.trim() && LEAN_FIRST_FILTERS.has(v.statusFilter); |     && LEAN_FIRST_FILTERS.has(v.statusFilter);
  */
 import { describe, expect, it, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -24,6 +26,8 @@ afterEach(cleanup);
 
 const ROOT = resolve(__dirname, "../..");
 const page = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/JobListPage.tsx"), "utf8"));
+// JobListPage's lean-first pieces (componentSizeRatchet keeps that file under 600 lines).
+const lean = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/postedLeanFirst.tsx"), "utf8"));
 
 describe("Posted's bones carry the first cards' titles (Q2705)", () => {
   it("prints each given title in the face's own title type, and bone lines for the rest", () => {
@@ -42,13 +46,14 @@ describe("Posted's bones carry the first cards' titles (Q2705)", () => {
   });
 
   it("JobListPage draws them while the tab's code is out, from the rows it already has, and reads lean-first", () => {
-    expect(page).toContain("<PostedListBones filter={statusFilter} titles={firstCardTitles(filteredPostedJobs, statusFilter, pendingApplicantCounts)} />");
-    expect(page).toMatch(/tab === "posted" && !postedTabIn && \(/);
+    expect(lean).toContain("<PostedListBones filter={filter} titles={firstCardTitles(jobs, filter, pending)} />");
+    expect(page).toContain('{tab === "posted" && !postedTabIn && <PostedTitleBones jobs={filteredPostedJobs} filter={statusFilter} pending={pendingApplicantCounts} />}');
     expect(page).toContain("useActivityData(user, tab, { leanFirst, holdWhole: !postedTabIn })");
+    expect(page).toContain("usePostedLeanFirst({ tab, deepLinkJobId, highlightJobId, manageJobId, applicantsJobId, searchQuery, statusFilter })");
     // The first open group's first PREVIEW (3) cards, as ActivityBucketGroups draws them.
-    expect(page).toContain("return group.slice(0, 3).map(title);");
+    expect(lean).toContain("return group.slice(0, 3).map(title);");
     // Inventory floor: the lean-first gate names every condition (no deep link, no search, a lean-covered filter).
-    const gate = page.slice(page.indexOf("const leanFirst ="), page.indexOf("LEAN_FIRST_FILTERS.has(statusFilter)"));
+    const gate = lean.slice(lean.indexOf("function isLeanFirstView("), lean.indexOf("LEAN_FIRST_FILTERS.has(v.statusFilter)"));
     expect(["deepLinkJobId", "highlightJobId", "manageJobId", "applicantsJobId", "searchQuery"].filter((n) => gate.includes(n)).length).toBeGreaterThan(4);
   });
 });

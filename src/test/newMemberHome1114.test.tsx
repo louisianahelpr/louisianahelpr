@@ -59,6 +59,7 @@ import { TabButton } from "@/components/mobileNav/TabButton";
 import { readFirstRunPicks, saveFirstRunPicks } from "@/components/firstRun/firstRunPicks";
 import { GetStartedGuide, getStartedKey, guideSteps } from "@/pages/home/homeDashboard/GetStartedGuide";
 import ForSaleNearYou from "@/pages/home/homeDashboard/ForSaleNearYou";
+import { NewMemberHome } from "@/pages/home/homeDashboard/NewMemberHome";
 
 const src = (f: string) => blankComments(readFileSync(f, "utf8"));
 function Where() {
@@ -213,6 +214,27 @@ describe("1. a new member's Home leads with real things near them (owner 11-14)"
     const { container } = render(wrap(<ForSaleNearYou userId="me" />));
     await new Promise((r) => setTimeout(r, 20));
     expect(container.querySelector("[data-home-for-sale]")).toBeNull();
+  });
+
+  it("NewMemberHome mounts the starting actions, the guide and the items strip (vacuity: rendered as a whole)", async () => {
+    db.rows = {
+      declutter_items: [
+        { id: "i1", seller_id: "s1", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4, delivery_size: "small", price_cents: 4000, current_price_cents: 4000, area_label: "Mid City", area_lat: 30.45, area_lng: -91.15, live_at: "2026-11-13" },
+      ],
+      declutter_item_photos: [{ item_id: "i1", storage_path: "s1/i1/a.jpg", position: 0 }],
+    };
+    render(wrap(<NewMemberHome userId="me" sell guide={<p data-testid="guide-slot">guide</p>} />));
+    expect(screen.getByTestId("home-welcome")).toBeTruthy();
+    expect(screen.getByTestId("guide-slot")).toBeTruthy();
+    // The lazy strip arrives on its own.
+    expect(await screen.findByText("Oak rocking chair")).toBeTruthy();
+    cleanup();
+    db.rows = {};
+    // Not selling: no items strip, the actions still drawn.
+    render(wrap(<NewMemberHome userId="me" sell={false} guide={null} />));
+    expect(screen.getByTestId("home-welcome")).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(document.querySelector("[data-home-for-sale]")).toBeNull();
   });
 
   it("Home swaps the new-member block in (actions, guide, jobs near, items for sale), the items strip loaded on its own", () => {

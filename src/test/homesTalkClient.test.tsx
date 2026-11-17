@@ -22,15 +22,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 
 const TALK = "22222222-2222-4222-8222-222222222222";
-const talkMocks = vi.hoisted(() => ({ fetchHomeTalk: vi.fn(), markHomeTalkRead: vi.fn() }));
+const talkMocks = vi.hoisted(() => ({ fetchHomeTalk: vi.fn(), markHomeTalkRead: vi.fn(), fetchMyHomeTalks: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 vi.mock("@/lib/rentals/talk", async (orig) => ({
   ...(await orig<typeof import("@/lib/rentals/talk")>()),
   fetchHomeTalk: talkMocks.fetchHomeTalk,
   markHomeTalkRead: talkMocks.markHomeTalkRead,
+  fetchMyHomeTalks: talkMocks.fetchMyHomeTalks,
 }));
 
 import { HomeTalkFromLink } from "@/components/rentals/listings/HomeTalk";
+import { HomeTalkRows } from "@/components/messages/HomeTalkInbox";
 import { HOME_TALK_ERROR_COPY, homeTalkErrorMessage, WIRE_FRAUD_LINE } from "@/lib/rentals/talk";
 import { RENTALS_ERROR_COPY } from "@/lib/rentals/errorCopy";
 import { REASONS, REPORTED_NOUN, REASON_PROMPT } from "@/components/reportDialog/reportReasons";
@@ -90,6 +92,25 @@ describe("Homes messages, client (Q2209)", () => {
     await screen.findByText("Yes, come Saturday.");
     expect(screen.getByText(WIRE_FRAUD_LINE)).toBeTruthy();
     expect(screen.getByText("About: Two-bed shotgun near the park")).toBeTruthy();
+  });
+
+  it("Messages' Homes list mounts the chat sheet for a tapped row (?talk=) (vacuity: HomeTalk rendered through its parent)", async () => {
+    talkMocks.fetchMyHomeTalks.mockResolvedValue([
+      { talk_id: TALK, listing_id: "l1", listing_headline: "Two-bed shotgun near the park", side: "member", other_label: "Ruth",
+        last_at: "2026-11-06T20:05:00Z", last_mine: false, unread: true },
+    ]);
+    talkMocks.fetchHomeTalk.mockResolvedValue(view("rent"));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={[`/messages?talk=${TALK}`]}>
+          <HomeTalkRows empty={null} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText("Ruth")).toBeTruthy();
+    // The sheet the list mounts opens on ?talk= and shows the thread.
+    expect(await screen.findByText("Yes, come Saturday.")).toBeTruthy();
   });
 
   it("a rental thread has no wire line, and only the other side's message can be reported", async () => {

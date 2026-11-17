@@ -7,7 +7,10 @@
  * b6a1772d01, and the attributes are the same (type=button; aria-pressed only where it was).
  *
  * @mutate src/components/ui/FilterChip.tsx | export const FILTER_CHIP_OFF = "bg-card text-foreground border-border hover:bg-[hsl(var(--bark)/0.06)]"; | export const FILTER_CHIP_OFF = "bg-card text-foreground border-border";
- * @mutate src/components/ui/FilterChip.tsx |   tall: FILTER_CHIP.replace("min-h-10", "min-h-11"), |   tall: FILTER_CHIP,
+ * @mutate src/components/ui/FilterChip.tsx | duration-200 btn-press border min-h-11"; | duration-200 btn-press border min-h-10";
+ *
+ * 2026-11-17 (nightly-red #3491, ui-sweep 44194316384): every size is 44px tall (min-h-11). The 40px default put the
+ * 21 chips of the /jobs Filters sheet under the 44px tap floor; the look is otherwise class for class unchanged.
  * @mutate src/components/ui/FilterChip.tsx |     aria-pressed={pressed} |     aria-pressed={pressed ?? false}
  * @mutate src/components/ui/FilterChip.tsx |     className={`${SIZES[size]} ${pressed ? FILTER_CHIP_ON : FILTER_CHIP_OFF} ${className}`.trim()} |     className={`${SIZES[size]} ${pressed ? FILTER_CHIP_ON : FILTER_CHIP_OFF}`}
  * @mutate src/components/schedule/ChangeJobSheet.tsx | <FilterChip key={d} size="tall" | <FilterChip key={d}
@@ -19,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { FilterChip } from "@/components/ui/FilterChip";
 
 const set = (cls: string) => [...new Set(cls.split(/\s+/).filter(Boolean))].sort();
-const BASE = "inline-flex items-center gap-1.5 px-4 rounded-full text-ds-13 font-semibold whitespace-nowrap transition-colors duration-200 btn-press border min-h-10";
+const BASE = "inline-flex items-center gap-1.5 px-4 rounded-full text-ds-13 font-semibold whitespace-nowrap transition-colors duration-200 btn-press border min-h-11";
 const ON = "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border-transparent";
 const OFF = "bg-card text-foreground border-border hover:bg-[hsl(var(--bark)/0.06)]";
 const chip = (el: ReactElement) => render(el).container.querySelector("button")!;
@@ -39,9 +42,17 @@ describe("the Jobs chips are the shared FilterChip, class for class the hand-mad
     expect(set(chip(<FilterChip size="tight" pressed={false}>5 mi</FilterChip>).className)).toEqual(set(`${BASE.replace("px-4", "px-3")} ${OFF}`));
   });
 
-  it("Change the job's day strip (tall + shrink-0): min-h-11 in place of min-h-10", () => {
+  it("Change the job's day strip (tall + shrink-0): the same 44px chip", () => {
     const b = chip(<FilterChip size="tall" pressed className="shrink-0">Mon</FilterChip>);
-    expect(set(b.className)).toEqual(set(`${BASE.replace("min-h-10", "min-h-11")} shrink-0 ${ON}`));
+    expect(set(b.className)).toEqual(set(`${BASE} shrink-0 ${ON}`));
+  });
+
+  it("every size clears the 44px tap floor (min-h-11), none is the old 40px chip", () => {
+    for (const size of ["default", "tight", "tall"] as const) {
+      const b = chip(<FilterChip size={size} pressed={false}>x</FilterChip>);
+      expect(b.className, size).toContain("min-h-11");
+      expect(b.className, size).not.toContain("min-h-10");
+    }
   });
 
   it("an action chip (no pressed) has no aria-pressed and the idle look, as 'Need a new time' had", () => {

@@ -33,19 +33,20 @@ import { blankComments } from "./helpers/blankNonCode";
  * The owner's lineup, day -> brands: her 2026-11-16 list plus (2026-11-17) every sponsor who said yes by email or
  * Facebook on their tracker day, and RYSE on every day the tracker lists it (the owner confirmed the tracker);
  * owner 2026-11-17 later: five unconfirmed sponsors pulled (Candle Bloom, Summar T., Aeva, Berkana, Pass the Everything);
- * then three added (Written on the River Dec 8, Summar T. Photography Dec 12, Crew Dog Dec 14).
+ * then three added (Written on the River Dec 8, Summar T. Photography Dec 12, Crew Dog Dec 14);
+ * then (owner 2026-11-17, batch 3) Oil Center Dec 1 and R&R Wedding Co. Dec 5 added, Manta Sleep moved Dec 10 -> Dec 3.
  */
 const FINAL: Record<number, string[]> = {
-  1: ["homerunPET", "RYSE", "CMI Entertainment: A Christmas Carol"],
+  1: ["homerunPET", "RYSE", "CMI Entertainment: A Christmas Carol", "Oil Center"],
   2: ["Boston Mints", "RYSE", "World Ballet Company: The Nutcracker"],
-  3: ["Tevin Lewis, District 2 Alderman", "RYSE"],
+  3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Manta Sleep"],
   4: ["K18 Hair", "RYSE", "Megan Benoit's Closet"],
-  5: ["Oyu Botanica", "RYSE"],
+  5: ["Oyu Botanica", "RYSE", "R&R Wedding Co."],
   6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery"],
   7: ["Whimsies from Within", "RYSE"],
   8: ["RYSE", "Written on the River"],
   9: ["Peigneur Property Rentals", "RYSE", "Let's Create LLC"],
-  10: ["GentleStyle Brush", "RYSE", "Manta Sleep"],
+  10: ["GentleStyle Brush", "RYSE"],
   11: ["Boston Mints", "RYSE", "IDRA Wellness"],
   12: ["Oyu Botanica", "RYSE", "Summar T. Photography"],
   13: ["SRI Labs", "RYSE", "Hello Darlin'"],
@@ -108,6 +109,10 @@ describe("the final lineup", () => {
     expect(tileCount(NO_DB, 14)).toBe(2);
     expect(tileCount(NO_DB, 8)).toBe(2);
     expect(tileCount(NO_DB, 12)).toBe(3);
+    expect(tileCount(NO_DB, 1)).toBe(4);
+    expect(tileCount(NO_DB, 3)).toBe(3);
+    expect(tileCount(NO_DB, 5)).toBe(3);
+    expect(tileCount(NO_DB, 10)).toBe(2);
     expect(tileCount({ dayCounts: { 2: 5 } }, 2)).toBe(5);
     render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />);
     const day4 = screen.getByRole("button", { name: /^December 4,/ });

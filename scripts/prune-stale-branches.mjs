@@ -462,7 +462,14 @@ function main() {
     failed = res.failed.length;
   }
 
-  const { stranded, contentOnMain, inOpenPr } = findStranded(cherryGit, branches, openHeads, readAcceptedTips(), contentStrandedOf, contentInOpenPrOf);
+  // --no-stranded (branch-prune.yml's prune job): the `stranded` job (scripts/stranded-work.mjs) owns that report
+  // and its red. Here it re-checked the content of every unlanded branch: ~3 of 7 min locally, ~5 of the job's
+  // 10 in CI with 2,113 unlanded branches on origin, so the job hit its timeout and every run since 2026-11-13 was
+  // cancelled (branch-prune 44174959845; schedule-heartbeat 44163484641 read the lost scheduled run as stalled).
+  const skipStranded = process.argv.includes("--no-stranded");
+  const { stranded, contentOnMain, inOpenPr } = skipStranded
+    ? { stranded: [], contentOnMain: [], inOpenPr: [] }
+    : findStranded(cherryGit, branches, openHeads, readAcceptedTips(), contentStrandedOf, contentInOpenPrOf);
   for (const b of contentOnMain) {
     console.log(`content on main, not stranded: ${b.name} (${b.uncovered.length} commit(s) left by identity: ${b.uncovered.map((c) => c.subject).join("; ")})`);
   }
@@ -476,7 +483,7 @@ function main() {
       for (const c of b.uncovered) console.log(`    ${c.sha.slice(0, 9)} ${c.subject}`);
     }
   } else {
-    console.log("\nSTRANDED: none.");
+    console.log(skipStranded ? "\nSTRANDED: not checked here (--no-stranded); the stranded job reports it." : "\nSTRANDED: none.");
   }
 
   const summary = process.env.GITHUB_STEP_SUMMARY;

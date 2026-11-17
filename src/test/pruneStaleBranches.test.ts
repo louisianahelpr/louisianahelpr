@@ -133,6 +133,23 @@ describe("prune-stale-branches deletes in batches, leased per ref", () => {
     expect(wf).toMatch(/concurrency:\n {2}group: branch-prune-\$\{\{ github\.event_name \}\}\n/);
   });
 
+  // branch-prune 44174959845 (2026-11-17): the prune job re-ran the stranded scan the `stranded` job owns and hit its
+  // 10-min timeout; every run since 2026-11-13 ended cancelled, so schedule-heartbeat read the schedule as stalled.
+  // @mutate .github/workflows/branch-prune.yml | node scripts/prune-stale-branches.mjs --apply --no-stranded | node scripts/prune-stale-branches.mjs --apply
+  // @mutate .github/workflows/branch-prune.yml |     timeout-minutes: 30 |     timeout-minutes: 15
+  // @mutate scripts/prune-stale-branches.mjs |   const { stranded, contentOnMain, inOpenPr } = skipStranded | const { stranded, contentOnMain, inOpenPr } = false
+  it("the prune job leaves the stranded scan to the stranded job, and both jobs have room to finish", () => {
+    const wf = blankHashComments(fs.readFileSync(path.resolve(__dirname, "../../.github/workflows/branch-prune.yml"), "utf8"));
+    expect(wf).toMatch(/run: node scripts\/prune-stale-branches\.mjs --apply --no-stranded\n/);
+    const timeouts = [...wf.matchAll(/^ {4}timeout-minutes: (\d+)$/gm)].map((m) => Number(m[1]));
+    expect(timeouts.length).toBeGreaterThan(1);
+    const job = (name: string) => Number(new RegExp(`^ {2}${name}:\\n(?:(?! {2}\\S).*\\n)*? {4}timeout-minutes: (\\d+)`, "m").exec(wf)?.[1]);
+    expect(job("prune")).toBeGreaterThanOrEqual(20);
+    expect(job("stranded")).toBeGreaterThanOrEqual(30);
+    const src = blankComments(fs.readFileSync(path.resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8"));
+    expect(src).toMatch(/skipStranded\s*\?\s*\{ stranded: \[\]/);
+  });
+
   it("a push that confirms nothing deletes nothing", () => {
     const res = deleteBranches(rows.slice(0, 2), tipOf, () => "");
     expect(res.deleted).toEqual([]);

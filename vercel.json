@@ -28,6 +28,11 @@
       "permanent": true
     },
     {
+      "source": "/sponser",
+      "destination": "/sponsor",
+      "permanent": true
+    },
+    {
       "source": "/contact",
       "destination": "/support",
       "permanent": true

@@ -37,10 +37,14 @@
 // working at all: all eleven rows in the trap on prod are `is_seed = true`.
 // Do not "restore consistency" with the other two sweeps here.
 //
-// seed-policy: swept, nudged and queued like real jobs (above); only the OPS
-// ALERT differs — a seed job's Slack escalation goes to the daily digest
-// (postSlackOpsAlert `seed`), and the admin notification names the job so the
-// push->Slack mirror can do the same (docs/OPEN.md Q2, 2026-09-23).
+// seed-policy: swept, nudged and queued like real jobs (above); only the
+// ALERTS differ. A seed job (jobs.is_seed, the same predicate 20261117041858
+// uses for the dispute sweep: `j.is_seed IS NOT TRUE`) sends NO admin_alert
+// and NO ops alert at all (owner rule, test data never reaches the owner;
+// 2026-11-17 prod error_logs held "Job stalled — nobody marked it done" and
+// "Job stalled with escrow held" rows for job 60191cb1, a SEED TEST job). The
+// digest routing (postSlackOpsAlert `seed`) still wrote those rows, so a seed
+// job now skips both sends instead of being routed lower.
 //
 // Auth: CRON_SECRET or service-role bearer. Schedule: daily at 13:46 UTC
 // (8:46am CDT / 7:46am CST; moved off :00 by Q786) — see the migrations. A daily run is deliberate: the
@@ -272,12 +276,14 @@ serve(async (req) => {
           // resolved_at null, read by admin_stalled_job_queue(). No
           // admin_audit_log row is written — no admin has acted yet.
           const hours = hoursPastScheduledEnd(evidence, now);
+          // Test data never reaches the owner: a seed job alerts no admin and posts no ops alert.
+          const ownerFacing = job.is_seed !== true;
           const { data: admins, error: adminsErr } = await supabase
             .from("user_roles")
             .select("user_id")
             .eq("role", "admin");
           if (adminsErr) throw adminsErr;
-          for (const a of admins ?? []) {
+          for (const a of ownerFacing ? admins ?? [] : []) {
             await notifyUser(
               a.user_id,
               STALLED_ADMIN_TITLE,
@@ -314,15 +320,14 @@ serve(async (req) => {
             "job_updates",
             job.id,
           );
-          await postSlackOpsAlert({
+          if (ownerFacing) await postSlackOpsAlert({
             kind: "custom",
             severity: "warning",
             title: "Job stalled with escrow held",
             message: `Job ${job.id} — in_progress, ${Math.round(hours)}h past its scheduled end, neither completion stamp set. Escrow still held. Needs a human decision; nothing moves automatically.`,
             fields: { job_id: job.id },
             oncePerDayKey: `stalled-completion-escalation:${job.id}`,
-            // Seed jobs are still swept and queued (owner, 2026-09-19); their
-            // ops alert goes to the daily digest instead of paging.
+            // Defence in depth: ownerFacing already keeps seed jobs out of this call.
             seed: job.is_seed === true,
           });
         }

@@ -3,6 +3,7 @@
  * Shops used Tailwind text-xs / text-sm (the same 11px / 13px), so with Bigger text on the money terms, card-hold
  * words and hours stayed 11-13px while labels grew to 16-20px. Every Shops screen now uses text-ds-11 / text-ds-13
  * (identical at the normal size), so all of its words grow. This guard keeps a new text-xs / text-sm out.
+ * @mutate src/components/shops/PublicShopItemSheet.tsx | <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL | <p className="text-xs text-muted-foreground">{SHOP_ITEM_TYPE_LABEL
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

@@ -2,6 +2,7 @@
  * S2-005 (shops audit 2, 11-12): an upload cut off before its check leaves a waiting row that blocks Publish
  * (files_required counts only checked files and refuses any waiting one). The owner must SEE it, with "Try again"
  * and Remove, and Publish must name it, instead of the list hiding it while Publish refuses.
+ * @mutate src/components/shops/ShopItemEditor.tsx |   if (x.digitalWaiting) out.push( |   if (false) out.push(
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";

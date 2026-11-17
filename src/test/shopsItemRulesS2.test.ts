@@ -3,6 +3,7 @@
  * (20261112222000_shops_item_rules_s2.sql), and the editor names the refusal. Behaviour on a real database is
  * src/test/pglite/shopsItemRulesS2.pglite.mjs (3x; NEW_MIGRATION=skip RED; 5 planted defects RED). S2-002 is pinned
  * in shopsLiveItemPhotos.test.ts.
+ * @mutate src/lib/shops/errors.ts | options_not_for_downloads: "A download has one price. | options_not_for_downloads: "A download has a price.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

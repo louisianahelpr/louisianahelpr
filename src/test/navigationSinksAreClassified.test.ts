@@ -1,3 +1,4 @@
+// @mutate src/components/admin/marketing/MarketingQueue.tsx | <a href={openableDocumentUrl(row.external_url) ?? undefined} target="_blank" | <a href={row.external_url ?? undefined} target="_blank"
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";

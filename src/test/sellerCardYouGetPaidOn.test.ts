@@ -119,7 +119,7 @@ describe("F360b: the seller card's one money line", () => {
     expect(lines[0]).toBe("You get $45. It waits until the refund request is settled.");
     expect(lines[1]).toBe("You get $45. It's held while Louisiana Helpr looks at the problem.");
     expect(lines.length).toBeGreaterThan(4);
-    for (const l of lines) expect(l).not.toMatch(/\bfees?\b/i);
+    expect(lines.filter((l) => /\bfees?\b/i.test(l))).toEqual([]);
   });
 
   it("no ready payout account: no day; a declined refund request moves the day to its own 24 hours", () => {

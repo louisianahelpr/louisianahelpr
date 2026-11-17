@@ -31,7 +31,7 @@ describe("11-10 notice wording", () => {
     for (const s of [problem, damage]) expect(s).not.toMatch(/declutter_notify\([^,]+,\s*'payment',\s*'Louisiana Helpr decided'/);
     for (const t of TITLES.slice(0, 5)) expect(problem).toContain(`'${t}'`);
     expect((damage.match(/'We reviewed your delivery problem'/g) ?? []).length).toBe(2);
-    for (const t of TITLES) expect(t.length).toBeLessThanOrEqual(40);
+    expect(TITLES.filter((t) => t.length > 40)).toEqual([]);
   });
 
   it("F503: declutter_notice_type files every new title under declutter_refunds", () => {

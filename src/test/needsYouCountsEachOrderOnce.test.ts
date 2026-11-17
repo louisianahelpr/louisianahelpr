@@ -73,6 +73,7 @@ describe("F363 (owner 11-11): each order is ONE Needs you row, even with two mov
 
   it("the Buying chip counts the Home To-do Buying rows (the same rows the bucket set is built from)", () => {
     const src = blankComments(readFileSync("src/components/declutter/BuyingOrders.tsx", "utf8"));
+    expect(src.length).toBeGreaterThan(1000);
     expect(src).toMatch(/const homeRows = declutterBuyingTodos\(/);
     expect(src).toMatch(/counts\.needs_you = homeRows\.length;/);
   });

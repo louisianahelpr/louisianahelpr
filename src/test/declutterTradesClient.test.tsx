@@ -147,6 +147,7 @@ describe("Declutter trades, client (slice 2)", () => {
   });
 
   it("the switches and the picker are wired in (Settings default, Manage listing, item page, new listing)", () => {
+    expect(src("src/components/declutter/DeclutterListingDefaults.tsx").length).toBeGreaterThan(500);
     expect(src("src/components/declutter/DeclutterListingDefaults.tsx")).toMatch(/change\(\{ acceptsTrades: v === true \}\)/);
     expect(src("src/components/declutter/DeclutterManageListing.tsx")).toMatch(/<DeclutterTradeRules itemId=\{item\.id\}/);
     expect(src("src/components/declutter/DeclutterItemView.tsx")).toMatch(/canAct && user && !free && it\.status === "live" && <Suspense fallback=\{null\}><OfferTradeButton/);

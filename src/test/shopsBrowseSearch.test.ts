@@ -42,6 +42,7 @@ describe("S043: shops_browse searches item titles on the server", () => {
     expect(MIG).toContain("CREATE INDEX IF NOT EXISTS shop_items_live_title_idx ON public.shop_items (shop_id) INCLUDE (title) WHERE status = 'live';");
     // No later migration brings the old signature back.
     const later = readdirSync(MIG_DIR).filter((f) => f > FILE && f.endsWith(".sql"));
+    expect(later.length).toBeGreaterThan(0);
     for (const f of later) expect(readFileSync(resolve(MIG_DIR, f), "utf8"), f).not.toMatch(/shops_browse\(numeric, numeric, text, text, integer, integer\)/);
     const allow = readFileSync(resolve(__dirname, "../../scripts/ci/definer-exec-allowlist.json"), "utf8");
     expect(allow).toContain('"shops_browse(numeric, numeric, text, text, integer, integer, text)": "client"');

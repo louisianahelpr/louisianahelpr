@@ -48,6 +48,7 @@ describe("F486: the bell's Repost pill reaches only the poster", () => {
       // notify_on_job_update's Helpr copy (helprCancelCopy.ts)
       row("warning", "Job cancelled", '"Move a dresser" was cancelled by our team.'),
     ];
+    expect(theirs).toHaveLength(5);
     for (const n of theirs) {
       expect(quickActionFor(n, toJob), n.title).toEqual({ label: "View", href: "/jobs/j1" });
       expect(quickActionFor(n, nowhere), n.title).toBeNull();

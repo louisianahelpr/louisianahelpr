@@ -53,6 +53,7 @@ describe("audit 11-10: typed and old addresses forward (F471/F415/F234, F455)", 
     ["/settings", "/profile?tab=settings"],
     ["/profile/security", "/profile?tab=security"],
   ])("%s forwards to %s", (from, to) => {
+    expect(app.length).toBeGreaterThan(1000);
     expect(app).toContain(`<Route path="${from}" element={<Navigate to="${to}" replace />} />`);
   });
 });

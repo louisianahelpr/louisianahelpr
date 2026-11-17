@@ -71,6 +71,7 @@ describe("F259h: Back to log in has a 44px tap box", () => {
   it.each(["src/pages/auth/ForgotPassword.tsx", "src/pages/auth/ResetPassword.tsx"])("%s", (file) => {
     const src = read(file);
     const at = src.indexOf('<Link to="/login" className="font-bold');
+    expect(src.length).toBeGreaterThan(500);
     expect(at).toBeGreaterThan(-1);
     const tag = src.slice(at, src.indexOf(">", at));
     expect(tag).toContain("min-h-11");

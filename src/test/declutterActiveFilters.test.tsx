@@ -39,6 +39,7 @@ describe("F055: each filter that is on shows as a removable chip", () => {
 
   it("Browse draws the chips above the cards", () => {
     const browse = blankComments(readFileSync(join(__dirname, "../components/declutter/DeclutterBrowseView.tsx"), "utf8"));
+    expect(browse.length).toBeGreaterThan(1000);
     expect(browse).toContain("<DeclutterActiveFilters filters={filters} maxMiles={maxMiles} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />");
   });
 });

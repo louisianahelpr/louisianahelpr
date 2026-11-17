@@ -45,6 +45,7 @@ describe("F235: both support forms state the reply time before sending", () => {
   it.each(["src/pages/info/Support.tsx", "src/components/profile/SupportInline.tsx"])("%s", (file) => {
     const src = code(file);
     const form = src.slice(src.indexOf("<form"), src.indexOf("</form>"));
+    expect(src.length).toBeGreaterThan(500);
     expect(form).toMatch(/data-support-reply-time="">\s*A real person reads every message\. \{SUPPORT_REPLY_PROMISE\}/);
   });
 });

@@ -82,6 +82,7 @@ describe("F363 (owner 11-11): a seller's problem report puts the purchase under 
     expect(buyerProblemOrderIds([line({ order_id: "b" }), line({ order_id: "a" }), line({ order_id: "c", order_status: "cancelled" }), line({ order_id: "d", my_side: "seller" })]))
       .toEqual(["a", "b"]);
     const hook = read("src/pages/home/homeDashboard/useNeedsYouTodos.ts");
+    expect(hook.length).toBeGreaterThan(500);
     expect(hook).toMatch(/const problemIds = useMemo\(\(\) => buyerProblemOrderIds\(cartLines\), \[cartLines\]\);/);
     expect(hook).toMatch(/queryKey: \["declutter", "problems", problemIds\.join\(","\)\]/);
     expect(hook).toMatch(/declutterProblems: problemRows/);

@@ -50,6 +50,7 @@ describe("fee amounts in Help and the Terms come from the checkout's own numbers
   });
 
   it("no Help answer hand-types a setup fee amount", () => {
+    expect(answers.length).toBeGreaterThan(10);
     for (const x of answers) expect(x.a).not.toMatch(/\$\d+(\.\d\d)? (one-time |account )?setup fee/i);
   });
 

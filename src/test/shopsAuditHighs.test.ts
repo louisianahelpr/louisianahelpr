@@ -70,6 +70,7 @@ describe("Shops audit 11-12 Highs", () => {
   });
 
   it("S006: no newest Shops function promises \"add your side on the order\"", () => {
+    expect(DEFS.size).toBeGreaterThan(100);
     for (const [name, def] of DEFS) {
       if (!/^shops?_/.test(name)) continue;
       expect(flat(def.stmt), name).not.toMatch(/add your side on the order/i);

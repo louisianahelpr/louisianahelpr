@@ -40,6 +40,7 @@ describe("Selling's small panels and Buying's chips follow the member's language
   });
 
   it("every word has its Spanish, es.ts carries it, and the chips' English is ORDER_BUCKETS' word for word", () => {
+    expect(KEYS.length).toBeGreaterThan(6);
     for (const k of KEYS) {
       expect(enDeclutter[k], k).toBeTruthy();
       expect(es[k], k).toBe(esDeclutter[k]);

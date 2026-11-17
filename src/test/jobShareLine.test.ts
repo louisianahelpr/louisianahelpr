@@ -99,6 +99,7 @@ describe("F269a: api/share.ts and the page say the same words", () => {
 
   it("the page's usePageMeta reads the same function (JobDetail.tsx) for description and og/twitter", () => {
     const src = blankComments(readFileSync(resolve("src/pages/jobs/JobDetail.tsx"), "utf8"));
+    expect(src.length).toBeGreaterThan(1000);
     expect(src).toMatch(/const jobLine = job \? jobShareDescription\(job\) : ""/);
     expect(src).toMatch(/description: jobDescription,[\s\S]{0,200}ogDescription: jobDescription/);
     expect(src).toContain("expires_at, parish\"");

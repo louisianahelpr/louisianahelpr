@@ -164,6 +164,7 @@ describe("the lean posted set keeps every job Home can act on (Q2812)", () => {
   it("every status x payment status x back-out x marked-done whose bucket is not Done or Cancelled is in the set", () => {
     const p = leanPredicate();
     const statuses: readonly (string | null)[] = [...Constants.public.Enums.job_status, null];
+    expect(statuses.length).toBeGreaterThan(5);
     let checked = 0;
     const missing: string[] = [];
     for (const status of statuses) {

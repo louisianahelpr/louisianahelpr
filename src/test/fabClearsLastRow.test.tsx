@@ -52,6 +52,7 @@ describe("a list ends above the floating create pill (F150)", () => {
 
   it("every Jobs list under the pill adds the clearance; SectionScreen keeps its pb-20", () => {
     const users = ["src/components/job-card/JobListPage.tsx", "src/components/dashboard/MainFeedSection.tsx", "src/components/dashboard/BrowseTasksFeed.tsx"];
+    expect(users).toHaveLength(3);
     for (const f of users) expect(read(f), f).toMatch(/paddingBottom:[^\n]*var\(--section-fab-clearance, 0px\)/);
     expect(read("src/components/sections/SectionScreen.tsx")).toMatch(/\$\{fab \? "pb-20" : "pb-6"\}/);
     expect(read("src/pages/jobs/JobsSection.tsx")).toMatch(/<SectionCreateFab section="jobs"/);

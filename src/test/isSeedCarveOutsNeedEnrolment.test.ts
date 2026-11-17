@@ -167,7 +167,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   sweep_needs_you_reminders: "alerts", // A3-85 (20261102002011): a test offer or refund request never gets a deadline reminder
   declutter_answer_no_show: "alerts", // 20261031004529: a test sale's answer reaches no admin; the answer itself still works
   declutter_helpr_answer_no_show: "alerts", // 20261031134217 (soldstates-5): a test sale's or test Helpr's answer reaches no admin; the answer itself still works
-  declutter_handover_sweep: "alerts", // 20261031004529: a test sale gets no nudge and no 60-day problem; every other step of the sweep still runs on it
+  declutter_handover_sweep: "alerts", // 20261031004529: a test sale gets no nudge and no 60-day problem; 20261117041858: no step reads a seed order, so it logs no defect about one
   helpr_task_sweep: "alerts", // 20261031014011: a test task or member never gets the still-not-delivered nudge
   helpr_task_cant_finish: "alerts", // 20261031231150 (BUY-36): a test task's or member's report reaches no admin; the report itself still works
   helpr_task_seller_return_answer: "alerts", // 20261031231150 (BUY-36): a test seller's "it didn't come back" reaches no admin; the problem still opens
@@ -321,7 +321,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   sms_claim_confirmation: "hides",
   sms_claim_due: "hides",
   sweep_daily_job_digest: "hides",
-  sweep_disputes_closed_without_payment: "alerts",
+  sweep_disputes_closed_without_payment: "alerts", // 20261117041858: a seed job's dispute is never reported (no error_logs row)
   sweep_idv_review_waiting: "alerts",
   sweep_job_match_queue: "alerts",
   sweep_saved_search_alert_queue: "alerts",

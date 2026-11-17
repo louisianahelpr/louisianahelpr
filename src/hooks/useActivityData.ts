@@ -191,6 +191,14 @@ const isActiveStatus = (s: string | null | undefined) =>
  * server-side-join pattern is the same one useActivityBadgeCounts has used
  * against production since the nav badges shipped.
  */
+/** created_at descending, then id descending: a total order (see fetchPostedActivity). A missing created_at sorts last. */
+function newestFirst(a: { id: string; created_at?: string | null }, b: { id: string; created_at?: string | null }): number {
+  const ta = a.created_at ?? "";
+  const tb = b.created_at ?? "";
+  if (ta !== tb) return ta < tb ? 1 : -1;
+  return a.id === b.id ? 0 : a.id < b.id ? 1 : -1;
+}
+
 export async function fetchPostedActivity(userId: string, opts: { lean?: boolean } = {}): Promise<PostedActivity> {
   // The third read here used to be `job_checkins WHERE type = 'start_request'`,
   // feeding a `startRequestedJobIds` set that gated the poster's "Confirm
@@ -280,7 +288,11 @@ export async function fetchPostedActivity(userId: string, opts: { lean?: boolean
   }
 
   // Cast, not `.overrideTypes()`: see the note in src/lib/jobColumns.ts.
-  const rows = readableJobRows(jobsRes.data);
+  // Newest first, ties broken by id (Q2705, 11-17). Both reads order by created_at alone, and jobs created in one
+  // statement share it to the microsecond (the cwv-lab poster's 5 seeded "in progress" jobs: 2026-11-08 18:28:13.691),
+  // so two reads could list them in different orders: Posted's first cards, drawn from the lean read, reordered when
+  // the whole list landed. One total order makes every read of the same jobs list them the same way.
+  const rows = [...readableJobRows(jobsRes.data)].sort(newestFirst);
   // The series state rides on its own read (JOB_SERIES_STATE_COLUMNS: a
   // column the web deploy selects before db-deploy adds it must not fail the
   // whole list). Series parents only; never throws.
@@ -916,20 +928,49 @@ export function prefetchActivityCores(queryClient: QueryClient, userId: string) 
  *        first paint; the other tab's core is warmed on idle so switching
  *        still comes out of cache.
  */
-export function useActivityData(user: SupaUser | null, tab: "posted" | "applied" = "posted", opts: { lean?: boolean } = {}) {
+export function useActivityData(
+  user: SupaUser | null,
+  tab: "posted" | "applied" = "posted",
+  opts: { lean?: boolean; leanFirst?: boolean; holdWhole?: boolean } = {},
+) {
   const queryClient = useQueryClient();
   const userId = user?.id;
   const isPosted = tab === "posted";
   // Q2812: Home reads the LEAN posted core (its own key; fetchPostedActivity's lean read). Activity reads the whole one.
   const lean = !!opts.lean;
 
+  // Q2705 (11-17): Activity's Posted tab paints its first cards from the LEAN posted core (the nav badge's own query:
+  // same key, same fetch, so it is one read) while the whole list is still loading. The lean set is every job outside
+  // Done and Cancelled (src/test/homeReadsLeanPosted.test.ts), so the Needs you, Waiting and Upcoming groups it draws
+  // are already the whole list's; Done and Cancelled join below them when the whole read lands. Only when the caller
+  // says the view needs nothing else (`leanFirst`: no deep link, a lean-covered filter, no search; JobListPage).
+  // prod-audit 44032555275 (11-17): the first card painted at 10872 ms, waiting on the whole read (831 jobs).
+  const leanFirstWanted = !!opts.leanFirst && isPosted && !lean;
+  // Read, not watched: the whole query below watches its own key and re-renders this hook when it lands.
+  const wholeCached = userId && leanFirstWanted ? queryClient.getQueryData(queryKeys.activity.posted(userId)) !== undefined : false;
+  const postedLeanFirst = useQuery({
+    queryKey: userId ? queryKeys.activity.postedLean(userId) : ["activity", "postedLeanFirst", "anon"],
+    queryFn: () => fetchPostedActivity(userId!, { lean: true }),
+    enabled: !!userId && leanFirstWanted && !wholeCached,
+    staleTime: CORE_STALE,
+  });
+  const leanFirstData = postedLeanFirst.data;
+  const leanHasCards = (leanFirstData?.postedJobs.length ?? 0) > 0;
+  // The whole read WAITS on a lean-first load while the lean read is out, and while it has cards to show and the caller
+  // still holds (`holdWhole`: the Posted tab's chunk is not in yet), so the first cards' data and code never share the
+  // slow link with the whole list (lab, same build: with both at once the whole read ran 3528 -> 8660 ms and the first
+  // card drew at 6.7-7.9 s). A lean read that fails or finds no card releases it at once; so does a cached whole list.
+  const wholeHeld = leanFirstWanted && !wholeCached && !postedLeanFirst.isError
+    && (leanFirstData === undefined || (leanHasCards && !!opts.holdWhole));
+
   const postedCore = useQuery({
     queryKey: userId ? (lean ? queryKeys.activity.postedLean(userId) : queryKeys.activity.posted(userId)) : ["activity", "posted", "anon"],
     queryFn: () => fetchPostedActivity(userId!, { lean }),
-    enabled: !!userId && isPosted,
+    enabled: !!userId && isPosted && !wholeHeld,
     staleTime: CORE_STALE,
     refetchOnMount: ACTIVITY_REFETCH_ON_MOUNT,
   });
+  const partial = leanFirstWanted && postedCore.data === undefined && !postedCore.isError && leanHasCards;
 
   const appliedCore = useQuery({
     queryKey: userId ? queryKeys.activity.applied(userId) : ["activity", "applied", "anon"],
@@ -939,7 +980,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     refetchOnMount: ACTIVITY_REFETCH_ON_MOUNT,
   });
 
-  const postedJobs = postedCore.data?.postedJobs;
+  const postedJobs = (postedCore.data ?? (partial ? leanFirstData : undefined))?.postedJobs;
   const postedInputs = useMemo(() => postedDetailInputs(postedJobs ?? []), [postedJobs]);
   const postedDetail = useQuery({
     queryKey: userId
@@ -948,6 +989,9 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     queryFn: () => fetchPostedActivityDetail(userId!, postedInputs),
     enabled: !!userId && isPosted && !!postedJobs,
     staleTime: CORE_STALE,
+    // Q2705: the lean first cards' helper names stay on screen while the whole list's detail is read (its key moves
+    // when the whole list lands), never blanking under the reader. Same member only.
+    placeholderData: (prev, prevQuery) => (prevQuery?.queryKey[2] === userId ? prev : undefined),
   });
 
   const appliedApps = appliedCore.data?.appliedApps;
@@ -1104,7 +1148,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     }
   }, [isPosted, postedRefetch, postedDetailRefetch, appliedRefetch, appliedDetailRefetch]);
 
-  const posted = postedCore.data ?? EMPTY_POSTED;
+  const posted = postedCore.data ?? (partial && leanFirstData ? leanFirstData : EMPTY_POSTED);
   const postedD = postedDetail.data ?? EMPTY_POSTED_DETAIL;
   const applied = appliedCore.data ?? EMPTY_APPLIED;
   const appliedD = appliedDetail.data ?? EMPTY_APPLIED_DETAIL;
@@ -1191,10 +1235,13 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
   // (refetchOnMount "always" still fires); only a genuinely cold cache — or a
   // query still waiting on identity — shows the skeleton.
   // src/hooks/useActivityData.firstPaint.test.tsx pins this.
-  const loading = !activeCore.isError && activeCore.data === undefined;
+  // Q2705: the lean first cards (`partial`) are a painted list, not a loading one.
+  const loading = !activeCore.isError && activeCore.data === undefined && !partial;
 
   return {
     loading,
+    /** Q2705: the Posted list on screen is the lean core (every group but Done and Cancelled); the whole one is loading. */
+    partial,
     loadError: activeCore.isError,
     postedJobs: postedWithBackout,
     appliedApps: appliedWithBackout,

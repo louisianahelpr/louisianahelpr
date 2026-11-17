@@ -21,3 +21,12 @@ export function startTabChunk(tab: Tab): void {
     /* the tab's lazy render retries and reports it */
   });
 }
+
+/**
+ * Q2705 (11-17): resolves true once the Posted tab's chunk is in hand (false if it failed: the lazy render owns that).
+ * JobListPage holds the whole posted read until then on a lean-first Posted load, so the chunk the first cards need
+ * never shares the slow link with the whole list.
+ */
+export function postedTabChunkReady(): Promise<boolean> {
+  return loadPostedTab().then((m) => !!m, () => false);
+}

@@ -139,6 +139,6 @@ describe("card-matching skeletons", () => {
 // at a 76px pitch standing in for a flat 64px strip.
 // @mutate src/components/ui/skeletons/MessageThreadSkeleton.tsx | <div className={CONVERSATION_ROW_FRAME} aria-hidden> | <div className="p-3 rounded-ds-md liquid-glass" aria-hidden>
 // Q700/Q833: /jobs and /posts draw the face, each in its list's shape. Each mutation moves one list off its shape.
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} />; | return <div className={JOB_CARD_SHELL_FRAME} aria-hidden />;
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <FaceListBones side="posted" filter={filter} />; | return <FaceListBones side="applied" filter={filter} />;
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} title={title} />; | return <div className={JOB_CARD_SHELL_FRAME} aria-hidden />;
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <FaceListBones side="posted" filter={filter} titles={titles} />; | return <FaceListBones side="applied" filter={filter} titles={titles} />;
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | const address = side === "applied" && | const address = false &&

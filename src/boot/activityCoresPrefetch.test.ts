@@ -11,7 +11,9 @@
 // @mutate src/lib/activityCores.ts |     return hasKeys(early, PART_KEYS[which]) ? early : readWhole(); |     return isPayload(early) ? early : readWhole();
 // @mutate src/lib/activityCores.ts |  const merged = { ...applied, ...posted, ...(days ? { open_continue_days: days } : {}) } as ActivityCoresPayload; |  const merged = { ...applied, ...posted } as ActivityCoresPayload;
 // @mutate src/lib/activityCores.ts |       return part ? inFlight.parts[part] : inFlight.whole; |       return inFlight.whole;
-// @mutate src/boot/activityCoresPrefetch.ts |     answers = { posted: read(["posted"]), applied: read(["applied"]) }; |     answers = { posted: read(), applied: read() };
+// @mutate src/boot/activityCoresPrefetch.ts |     answers = { posted: onFirstUse(() => read(["posted"])), applied: read(["applied"]) }; |     answers = { posted: read(["posted"]), applied: read(["applied"]) };
+// @mutate src/boot/activityCoresPrefetch.ts |     answers = { posted: onFirstUse(() => read(["posted"])), applied: read(["applied"]) }; |     answers = { posted: onFirstUse(() => read()), applied: read() };
+// @mutate src/boot/activityCoresPrefetch.ts |     const postedLean = read(["posted_lean"]); |     const postedLean = read(["posted"]);
 // @mutate src/boot/activityCoresPrefetch.ts |   return path === "/posts" \|\| (path === "/jobs" && new URLSearchParams(search).get("tab") === "posted"); |   return path === "/posts";
 // @mutate src/entry.ts | \|jobs\|posts\|profile)? | \|jobs\|profile)?
 // @mutate src/boot/activityCoresPrefetch.ts |   if (path === "/home") return true; |
@@ -23,9 +25,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { ACTIVITY_CORES_PREFETCH_KEY, CORES_APPLICATION_COLUMNS, CORES_APPLICATION_JOB_COLUMNS, CORES_JOB_COLUMNS, opensOnActivityList, opensOnPostedFirst, startActivityCoresPrefetch } from "./activityCoresPrefetch";
+import { ACTIVITY_CORES_PREFETCH_KEY, POSTED_LEAN_PREFETCH_KEY, CORES_APPLICATION_COLUMNS, CORES_APPLICATION_JOB_COLUMNS, CORES_JOB_COLUMNS, opensOnActivityList, opensOnPostedFirst, startActivityCoresPrefetch } from "./activityCoresPrefetch";
 import { jobListsOpenFirst } from "./jobsListRoute";
-import { ACTIVITY_CORES_PREFETCH_MAX_AGE_MS, takeActivityCoresPrefetch } from "@/lib/activityCoresTake";
+import { ACTIVITY_CORES_PREFETCH_MAX_AGE_MS, takeActivityCoresPrefetch, takeLeanPostedPrefetch } from "@/lib/activityCoresTake";
 import { JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
 import { APPLICATION_READABLE_COLUMN_LIST } from "@/lib/applicationColumns";
 import { blankComments } from "@/test/helpers/blankNonCode";
@@ -191,29 +193,48 @@ describe("the Posted / Working lists' read starts from the entry (B100)", () => 
  * Q2706 (Builder 3 11-05): on a Posted-first cold link the entry asks for the two parts apart (p_parts, 20261105111750),
  * so Posted paints on its own answer instead of waiting on the whole payload (mostly application_jobs). Lab proxy:
  * helper, Fast 4G, cold /jobs?tab=posted, LCP median 1856 -> 1336 ms.
+ * Q2705 (11-17): it sends the LEAN posted core (its own slot) and the applied part at once, and the whole posted part
+ * only when the app first asks for it (prod-audit 44032555275: the first card waited 10.9 s on the whole list, which
+ * shared the slow link with the app's JavaScript from the head).
  */
-describe("a Posted-first link asks for the posted and applied parts apart (Q2706)", () => {
+describe("a Posted-first link asks for the lean posted, applied and whole posted parts apart (Q2706, Q2705)", () => {
   const POSTED_PART = { posted_jobs: [{ id: "p" }], poster_applications: [], offer_targets: [], open_continue_days: [{ job_id: "p", status: "set", new_date: "2026-11-12", new_start_time: "10:00" }] };
   const APPLIED_PART = { my_applications: [{ id: "a" }], application_jobs: [{ id: "aj" }], direct_offers: [], violations: [], reviews: [], open_continue_days: [{ job_id: "aj", status: "set", new_date: "2026-11-10", new_start_time: "09:00" }] };
+  const LEAN_PART = { posted_jobs: [{ id: "lean" }], poster_applications: [], offer_targets: [], posted_lean: true };
   const bodyOf = (f: ReturnType<typeof vi.fn>, i: number) => JSON.parse(String((f.mock.calls[i] as unknown as [string, RequestInit])[1].body));
+  const json = (body: unknown) => async () => ({ ok: true, json: async () => body }) as unknown as Response;
+  const clearSlots = () => {
+    (window as unknown as Record<string, unknown>)[ACTIVITY_CORES_PREFETCH_KEY] = undefined;
+    (window as unknown as Record<string, unknown>)[POSTED_LEAN_PREFETCH_KEY] = undefined;
+  };
+  afterEach(clearSlots);
   function deferred() {
     let resolve!: (v: unknown) => void;
     const p = new Promise<unknown>((r) => { resolve = r; });
     return { p, resolve };
   }
 
-  it("/posts and /jobs?tab=posted send two calls, posted first, each the whole body plus its part; other list links send one", async () => {
+  it("/posts and /jobs?tab=posted send the lean posted and applied parts at once and the whole posted part only when asked; other list links send one", async () => {
     await cores.fetchActivityCores(UID);
     const whole = db.calls[0].args as Record<string, unknown>;
+    db.calls.length = 0;
+    cores.forgetActivityCoresRead();
     signIn();
     for (const [path, q] of [["/posts", ""], ["/posts/", ""], ["/jobs", "?tab=posted"], ["/jobs/", "?tab=posted&x=1"]]) {
       const f = answering(PAYLOAD("boot"));
       vi.stubGlobal("fetch", f);
       startActivityCoresPrefetch(path, q);
       expect(f, path + q).toHaveBeenCalledTimes(2);
-      expect(bodyOf(f, 0)).toEqual({ ...whole, p_parts: ["posted"] });
+      expect(bodyOf(f, 0)).toEqual({ ...whole, p_parts: ["posted_lean"] });
       expect(bodyOf(f, 1)).toEqual({ ...whole, p_parts: ["applied"] });
-      (window as unknown as Record<string, unknown>)[ACTIVITY_CORES_PREFETCH_KEY] = undefined;
+      expect(takeLeanPostedPrefetch(UID), "the lean answer waits in its own slot").not.toBeNull();
+      // The whole posted part: sent when the posted core first asks for it, once.
+      await cores.fetchActivityCores(UID, "posted");
+      expect(f, path + q).toHaveBeenCalledTimes(3);
+      expect(bodyOf(f, 2)).toEqual({ ...whole, p_parts: ["posted"] });
+      expect(db.calls, "no server read").toEqual([]);
+      cores.forgetActivityCoresRead();
+      clearSlots();
     }
     for (const [path, q] of [["/jobs", "?tab=working"], ["/jobs", "?job=1"]]) {
       const f = answering(PAYLOAD("boot"));
@@ -221,7 +242,7 @@ describe("a Posted-first link asks for the posted and applied parts apart (Q2706
       startActivityCoresPrefetch(path, q);
       expect(f, path + q).toHaveBeenCalledTimes(1);
       expect(bodyOf(f, 0), path + q).toEqual(whole);
-      (window as unknown as Record<string, unknown>)[ACTIVITY_CORES_PREFETCH_KEY] = undefined;
+      clearSlots();
     }
     for (const [path, q] of [["/posts", ""], ["/jobs", "?tab=posted"], ["/jobs/", "?tab=posted"]]) expect(opensOnPostedFirst(path, q), path + q).toBe(true);
     for (const [path, q] of [["/jobs", "?tab=working"], ["/jobs", ""], ["/home", ""], ["/jobs", "?job=1"], ["/declutter", "?tab=posted"]]) expect(opensOnPostedFirst(path, q), path + q).toBe(false);
@@ -232,8 +253,9 @@ describe("a Posted-first link asks for the posted and applied parts apart (Q2706
     const posted = deferred();
     const applied = deferred();
     const f = vi.fn()
-      .mockImplementationOnce(async () => ({ ok: true, json: () => posted.p }) as unknown as Response)
-      .mockImplementationOnce(async () => ({ ok: true, json: () => applied.p }) as unknown as Response);
+      .mockImplementationOnce(json(LEAN_PART))
+      .mockImplementationOnce(async () => ({ ok: true, json: () => applied.p }) as unknown as Response)
+      .mockImplementationOnce(async () => ({ ok: true, json: () => posted.p }) as unknown as Response);
     vi.stubGlobal("fetch", f);
     startActivityCoresPrefetch("/jobs", "?tab=posted");
     const p = cores.fetchActivityCores(UID, "posted");
@@ -252,9 +274,7 @@ describe("a Posted-first link asks for the posted and applied parts apart (Q2706
 
   it("a caller naming no part gets the two answers merged, with both parts' open continue days", async () => {
     signIn();
-    const f = vi.fn()
-      .mockImplementationOnce(async () => ({ ok: true, json: async () => POSTED_PART }) as unknown as Response)
-      .mockImplementationOnce(async () => ({ ok: true, json: async () => APPLIED_PART }) as unknown as Response);
+    const f = vi.fn().mockImplementationOnce(json(LEAN_PART)).mockImplementationOnce(json(APPLIED_PART)).mockImplementationOnce(json(POSTED_PART));
     vi.stubGlobal("fetch", f);
     startActivityCoresPrefetch("/posts", "");
     const got = await cores.fetchActivityCores(UID);
@@ -268,13 +288,11 @@ describe("a Posted-first link asks for the posted and applied parts apart (Q2706
     signIn();
     const cases: [string, () => Promise<Response>][] = [
       ["refused", async () => ({ ok: false, json: async () => null }) as unknown as Response],
-      ["the posted part's keys, not the applied", async () => ({ ok: true, json: async () => POSTED_PART }) as unknown as Response],
+      ["the posted part's keys, not the applied", json(POSTED_PART)],
       ["offline", async () => { throw new TypeError("Failed to fetch"); }],
     ];
     for (const [why, appliedAnswer] of cases) {
-      const f = vi.fn()
-        .mockImplementationOnce(async () => ({ ok: true, json: async () => POSTED_PART }) as unknown as Response)
-        .mockImplementationOnce(appliedAnswer);
+      const f = vi.fn().mockImplementationOnce(json(LEAN_PART)).mockImplementationOnce(appliedAnswer).mockImplementationOnce(json(POSTED_PART));
       vi.stubGlobal("fetch", f);
       startActivityCoresPrefetch("/posts", "");
       const [p, a] = await Promise.all([cores.fetchActivityCores(UID, "posted"), cores.fetchActivityCores(UID, "applied")]);
@@ -282,9 +300,10 @@ describe("a Posted-first link asks for the posted and applied parts apart (Q2706
       expect(a?.posted_jobs, why).toEqual([{ id: "server" }]);
       expect(db.calls, why).toHaveLength(1);
       cores.forgetActivityCoresRead();
+      clearSlots();
       db.calls.length = 0;
     }
-    // An older database refuses both (PGRST202): one whole read serves both cores.
+    // An older database refuses every part (PGRST202): one whole read serves both cores.
     vi.stubGlobal("fetch", answering(null, false));
     startActivityCoresPrefetch("/posts", "");
     const [p, a] = await Promise.all([cores.fetchActivityCores(UID, "posted"), cores.fetchActivityCores(UID, "applied")]);

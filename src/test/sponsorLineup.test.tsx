@@ -3,6 +3,9 @@
 // @mutate src/components/sponsor/Sections.tsx |               {d.partners.length > 1 ? ( |               {d.partners.length > 9 ? (
 // @mutate src/components/sponsor/ClaimSection.tsx |   return Math.max(state.dayCounts[day] ?? 0, lineupCount(day)); |   return state.dayCounts[day] ?? 0;
 // @mutate src/content/sponsorPage.ts | Brands share days, and every partner is featured and tagged on our socials. | More than one brand can share a day, and every sponsor gets their own spotlight post.
+// @mutate src/content/sponsorPage.ts | like and follow Louisiana Helpr | like this post
+// @mutate src/components/sponsor/ClaimSection.tsx | {C.claim.daysNote} | {null}
+// @mutate src/components/sponsor/Sections.tsx | {C.lineup.daysNote} | {null}
 // @mutate src/pages/sponsor/SponsorPage.tsx |           <Lineup /> |           {null}
 /**
  * 25 Days of Louisiana Giveaways: the final lineup (owner 2026-11-16, "update the page ... you'll need to
@@ -26,14 +29,36 @@ import { ClaimSection, tileCount } from "@/components/sponsor/ClaimSection";
 import type { SponsorPublicState } from "@/lib/sponsor/types";
 import { blankComments } from "./helpers/blankNonCode";
 
-/** The owner's final lineup, day -> brands, as she gave it on 2026-11-16. */
+/**
+ * The owner's lineup, day -> brands: her 2026-11-16 list plus (2026-11-17) every sponsor who said yes by email or
+ * Facebook on their tracker day, and RYSE on every day the tracker lists it (the owner confirmed the tracker).
+ */
 const FINAL: Record<number, string[]> = {
-  1: ["homerunPET"], 2: ["Boston Mints"], 3: ["Tevin Lewis, District 2 Alderman"], 4: ["K18 Hair"], 5: ["Oyu Botanica"],
-  6: ["IOKA Skin+Science"], 7: ["Whimsies from Within"], 8: ["Candle Bloom Confections"], 9: ["Peigneur Property Rentals"],
-  10: ["GentleStyle Brush"], 11: ["Boston Mints"], 12: ["Oyu Botanica"], 13: ["SRI Labs"], 14: ["Aeva Beauty", "The Sculpt Society"],
-  15: ["Berkana Crystal"], 16: ["SRI Labs"], 17: ["Cajun Belle Studio", "RYSE", "LMNT"], 18: ["Boston Mints", "RYSE"],
-  19: ["Ty's Boutique Shop"], 20: ["Pass the Everything"], 21: ["The Soft Life Collective"], 22: ["RYSE", "LMNT"],
-  23: ["Tiffany Morton Cosmetic Tattooing"], 24: ["RYSE", "LMNT", "Hilma"], 25: ["Louisiana Helpr"],
+  1: ["homerunPET", "RYSE", "CMI Entertainment: A Christmas Carol"],
+  2: ["Boston Mints", "RYSE", "World Ballet Company: The Nutcracker"],
+  3: ["Tevin Lewis, District 2 Alderman", "RYSE"],
+  4: ["K18 Hair", "RYSE", "Megan Benoit's Closet"],
+  5: ["Oyu Botanica", "RYSE"],
+  6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery"],
+  7: ["Whimsies from Within", "RYSE"],
+  8: ["Candle Bloom Confections", "RYSE"],
+  9: ["Peigneur Property Rentals", "RYSE", "Let's Create LLC"],
+  10: ["GentleStyle Brush", "RYSE", "Manta Sleep"],
+  11: ["Boston Mints", "RYSE", "IDRA Wellness"],
+  12: ["Oyu Botanica", "RYSE", "Summar T. Photography"],
+  13: ["SRI Labs", "RYSE", "Hello Darlin'"],
+  14: ["Aeva Beauty", "The Sculpt Society"],
+  15: ["Berkana Crystal", "RYSE", "Britt Creates"],
+  16: ["SRI Labs", "RYSE", "3 Redneck Tenors"],
+  17: ["Cajun Belle Studio", "RYSE", "LMNT", "Bayou Grace Outfitters"],
+  18: ["Boston Mints", "RYSE"],
+  19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography"],
+  20: ["Pass the Everything", "RYSE", "Cher Bebe Embroidery"],
+  21: ["The Soft Life Collective", "RYSE", "Bourque's Cajun Country Seasoning"],
+  22: ["RYSE", "LMNT", "Krazy Bull Kreations"],
+  23: ["Tiffany Morton Cosmetic Tattooing", "Faith & Fire BBQ"],
+  24: ["RYSE", "LMNT", "Hilma", "Playtopia Lafayette"],
+  25: ["Louisiana Helpr"],
 };
 
 const NO_DB: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
@@ -75,14 +100,40 @@ describe("the final lineup", () => {
   });
 
   it("a day the lineup lists never reads Open on the sign-up calendar, even with no sign-up row", () => {
-    expect(tileCount(NO_DB, 4)).toBe(1);
-    expect(tileCount(NO_DB, 24)).toBe(3);
+    expect(tileCount(NO_DB, 4)).toBe(3);
+    expect(tileCount(NO_DB, 25)).toBe(1);
+    expect(tileCount(NO_DB, 24)).toBe(4);
     expect(tileCount(NO_DB, 14)).toBe(2);
     expect(tileCount({ dayCounts: { 2: 5 } }, 2)).toBe(5);
     render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />);
     const day4 = screen.getByRole("button", { name: /^December 4,/ });
-    expect(day4.textContent).toContain("1 brand joined");
-    expect(screen.getByRole("button", { name: /^December 17,/ }).textContent).toContain("3 brands joined");
+    expect(day4.textContent).toContain("3 brands joined");
+    expect(screen.getByRole("button", { name: /^December 17,/ }).textContent).toContain("4 brands joined");
+  });
+});
+
+describe("owner 2026-11-17: entry rules and the days-may-change note", () => {
+  const NOTE = "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.";
+
+  it("the sample post's entry rules are the owner's", () => {
+    render(<MemoryRouter><PreviewCard /></MemoryRouter>);
+    expect(document.body.textContent).toContain(
+      "To enter: share this post, like and follow Louisiana Helpr and today's sponsor pages, and tag 2 friends in the comments.",
+    );
+    expect(document.body.textContent).not.toMatch(/favorite holiday tradition/);
+  });
+
+  it("the note shows under the lineup intro, by the day picker, and in the days FAQ", () => {
+    render(
+      <MemoryRouter>
+        <Lineup />
+        <ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />
+        <Faq />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId("lineup-days-note").textContent).toBe(NOTE);
+    expect(screen.getByTestId("claim-days-note").textContent).toBe(NOTE);
+    expect(sponsorPage.faq.items.find((i) => i.q === "Can I sponsor more than one day?")?.a).toContain(NOTE);
   });
 });
 

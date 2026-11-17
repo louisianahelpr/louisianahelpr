@@ -159,7 +159,7 @@ export const sponsorPage = {
     cardSponsorLine: "Featuring: YOUR BRAND HERE!",
     logoPlaceholder: "Your logo",
     caption:
-      "🎁 GIVEAWAY TIME! Today's giveaway features YOUR BRAND HERE, a Louisiana favorite. To enter: like this post, comment your favorite holiday tradition and share it with a friend. A winner is picked at random tomorrow. Good luck, y'all! ⚜️",
+      "🎁 GIVEAWAY TIME! Today's giveaway features YOUR BRAND HERE, a Louisiana favorite. To enter: share this post, like and follow Louisiana Helpr and today's sponsor pages, and tag 2 friends in the comments. A winner is picked at random tomorrow. Good luck, y'all! ⚜️",
   },
 
   sponsorWall: {
@@ -168,27 +168,117 @@ export const sponsorPage = {
 
   /**
    * The final lineup (owner 2026-11-16: "each person will have their own day" is no longer true; some days have
-   * two or three brands, each with its own winner). Source: the owner's 25 Days Sponsor Tracker (const S and D).
+   * two or three brands, each with its own winner). Source: the owner's 25 Days Sponsor Tracker (const S and D); owner 2026-11-17: every sponsor who said yes by
+   * email or Facebook is listed on their tracker day.
    * Brand names and prizes ONLY: never a sponsor's contact name, email or phone (this page and repo are public).
    */
   lineup: {
     title: "The Lineup",
     intro: "25 days, one giveaway post a day. When brands share a day, each prize has its own winner, and every partner is featured and tagged on our socials.",
+    // Owner 2026-11-17: shown under the intro and by the sign-up day picker (claim.daysNote), and in the FAQ.
+    daysNote: "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.",
     winners: "{n} winners",
     days: [
-      { day: 1, partners: [{ brand: "homerunPET", prize: "Pet-friendly space heater" }] },
-      { day: 2, partners: [{ brand: "Boston Mints", prize: "Lip gloss" }] },
-      { day: 3, partners: [{ brand: "Tevin Lewis, District 2 Alderman", prize: "$25 Shucks gift card" }] },
-      { day: 4, partners: [{ brand: "K18 Hair", prize: "FutureIQ + Molecular Repair Hair Mask" }] },
-      { day: 5, partners: [{ brand: "Oyu Botanica", prize: "Winter stocking stuffers" }] },
-      { day: 6, partners: [{ brand: "IOKA Skin+Science", prize: "$50 gift card" }] },
-      { day: 7, partners: [{ brand: "Whimsies from Within", prize: "Mixed media wall hanging" }] },
-      { day: 8, partners: [{ brand: "Candle Bloom Confections", prize: "Candle flower bouquet" }] },
-      { day: 9, partners: [{ brand: "Peigneur Property Rentals", prize: "$25 gift card" }] },
-      { day: 10, partners: [{ brand: "GentleStyle Brush", prize: "GentleStyle Brush" }] },
-      { day: 11, partners: [{ brand: "Boston Mints", prize: "Lip gloss" }] },
-      { day: 12, partners: [{ brand: "Oyu Botanica", prize: "Winter stocking stuffers" }] },
-      { day: 13, partners: [{ brand: "SRI Labs", prize: "DryQ blow dryer" }] },
+      {
+        day: 1,
+        partners: [
+          { brand: "homerunPET", prize: "Pet-friendly space heater" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "CMI Entertainment: A Christmas Carol", prize: "Tickets to A Christmas Carol, Strand Theatre Shreveport, Dec 6" },
+        ],
+      },
+      {
+        day: 2,
+        partners: [
+          { brand: "Boston Mints", prize: "Lip gloss" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "World Ballet Company: The Nutcracker", prize: "Pair of Nutcracker tickets, Strand Theatre Shreveport, Dec 8" },
+        ],
+      },
+      {
+        day: 3,
+        partners: [
+          { brand: "Tevin Lewis, District 2 Alderman", prize: "$25 Shucks gift card" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+        ],
+      },
+      {
+        day: 4,
+        partners: [
+          { brand: "K18 Hair", prize: "FutureIQ + Molecular Repair Hair Mask" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Megan Benoit's Closet", prize: "$30 gift card" },
+        ],
+      },
+      {
+        day: 5,
+        partners: [
+          { brand: "Oyu Botanica", prize: "Winter stocking stuffers" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+        ],
+      },
+      {
+        day: 6,
+        partners: [
+          { brand: "IOKA Skin+Science", prize: "$50 gift card" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Mystic Forests Nursery", prize: "5-gallon Rising Sun redbud" },
+        ],
+      },
+      {
+        day: 7,
+        partners: [
+          { brand: "Whimsies from Within", prize: "Mixed media wall hanging" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+        ],
+      },
+      {
+        day: 8,
+        partners: [
+          { brand: "Candle Bloom Confections", prize: "Candle flower bouquet" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+        ],
+      },
+      {
+        day: 9,
+        partners: [
+          { brand: "Peigneur Property Rentals", prize: "$25 gift card" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Let's Create LLC", prize: "Custom item or gift card" },
+        ],
+      },
+      {
+        day: 10,
+        partners: [
+          { brand: "GentleStyle Brush", prize: "GentleStyle Brush" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Manta Sleep", prize: "Manta PRO Sleep Mask" },
+        ],
+      },
+      {
+        day: 11,
+        partners: [
+          { brand: "Boston Mints", prize: "Lip gloss" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "IDRA Wellness", prize: "Body lotion + oil package" },
+        ],
+      },
+      {
+        day: 12,
+        partners: [
+          { brand: "Oyu Botanica", prize: "Winter stocking stuffers" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Summar T. Photography", prize: "Gift card or mini session" },
+        ],
+      },
+      {
+        day: 13,
+        partners: [
+          { brand: "SRI Labs", prize: "DryQ blow dryer" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Hello Darlin'", prize: "Free 2-hour vintage audio guest book rental" },
+        ],
+      },
       {
         day: 14,
         partners: [
@@ -196,14 +286,29 @@ export const sponsorPage = {
           { brand: "The Sculpt Society", prize: "Workout membership for a mama" },
         ],
       },
-      { day: 15, partners: [{ brand: "Berkana Crystal", prize: "Crystal piece" }] },
-      { day: 16, partners: [{ brand: "SRI Labs", prize: "KeeWee shampoo" }] },
+      {
+        day: 15,
+        partners: [
+          { brand: "Berkana Crystal", prize: "Crystal piece" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Britt Creates", prize: "Resume refresh + headshot session" },
+        ],
+      },
+      {
+        day: 16,
+        partners: [
+          { brand: "SRI Labs", prize: "KeeWee shampoo" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "3 Redneck Tenors", prize: "Pair of tickets, Feb 26 2027, Strand Theatre Shreveport" },
+        ],
+      },
       {
         day: 17,
         partners: [
           { brand: "Cajun Belle Studio", prize: "Alligator earrings" },
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
           { brand: "LMNT", prize: "LMNT Variety Pack" },
+          { brand: "Bayou Grace Outfitters", prize: "T-shirt (winner picks design + size)" },
         ],
       },
       {
@@ -213,23 +318,52 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
         ],
       },
-      { day: 19, partners: [{ brand: "Ty's Boutique Shop", prize: "Women's two-piece set, winner's choice" }] },
-      { day: 20, partners: [{ brand: "Pass the Everything", prize: "Family meal / dining experience" }] },
-      { day: 21, partners: [{ brand: "The Soft Life Collective", prize: "Giving Book Bundle (3 books)" }] },
+      {
+        day: 19,
+        partners: [
+          { brand: "Ty's Boutique Shop", prize: "Women's two-piece set, winner's choice" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Hannahbelle Photography", prize: "Free 20-minute photoshoot" },
+        ],
+      },
+      {
+        day: 20,
+        partners: [
+          { brand: "Pass the Everything", prize: "Family meal / dining experience" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Cher Bebe Embroidery", prize: "Custom wreath sash + tea towel of choice" },
+        ],
+      },
+      {
+        day: 21,
+        partners: [
+          { brand: "The Soft Life Collective", prize: "Giving Book Bundle (3 books)" },
+          { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Bourque's Cajun Country Seasoning", prize: "Gift basket" },
+        ],
+      },
       {
         day: 22,
         partners: [
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
           { brand: "LMNT", prize: "LMNT Variety Pack" },
+          { brand: "Krazy Bull Kreations", prize: "$25 shop credit (freshies)" },
         ],
       },
-      { day: 23, partners: [{ brand: "Tiffany Morton Cosmetic Tattooing", prize: "Gift certificate for a service of choice" }] },
+      {
+        day: 23,
+        partners: [
+          { brand: "Tiffany Morton Cosmetic Tattooing", prize: "Gift certificate for a service of choice" },
+          { brand: "Faith & Fire BBQ", prize: "Seasoning, t-shirt + Bible" },
+        ],
+      },
       {
         day: 24,
         partners: [
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
           { brand: "LMNT", prize: "LMNT Variety Pack" },
           { brand: "Hilma", prize: "Daily Pre + Probiotic + Herbs" },
+          { brand: "Playtopia Lafayette", prize: "Play package" },
         ],
       },
       { day: 25, partners: [{ brand: "Louisiana Helpr", prize: "$100 Louisiana Helpr gift card" }] },
@@ -246,6 +380,7 @@ export const sponsorPage = {
     dayCount: { one: "{n} brand joined", many: "{n} brands joined", none: "Open" },
     full: "Full",
     deadline: "Sign up by Nov 28.",
+    daysNote: "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.",
     /** Shown in place of the calendar and form after signup_deadline. */
     closedTitle: "Sign-ups are closed",
     closed: "Sign-ups for the 25 Days of Louisiana Giveaways closed on November 28. Thank you to every brand that joined! Questions? Email admin@louisianahelpr.com.",
@@ -307,7 +442,7 @@ export const sponsorPage = {
       { q: "Who can enter the giveaways?", a: "[Louisiana residents 18+ — confirm]. Full details are in the Official Giveaway Rules." },
       { q: "How is the winner picked?", a: "At random from eligible entries, and announced publicly on our Facebook page and group." },
       { q: "How does the prize get to the winner?", a: "Ship it straight to the winner (we send you their shipping info), or send it to us and we handle delivery." },
-      { q: "Can I sponsor more than one day?", a: "Absolutely!" },
+      { q: "Can I sponsor more than one day?", a: "Absolutely! Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1." },
       { q: "Can more than one brand be on the same day?", a: "Yes. Some days have two or three brands, and each brand's prize has its own winner. Every partner is featured and tagged on our socials." },
       { q: "What if I have more questions?", a: "Email us at admin@louisianahelpr.com. A real person replies." },
       { q: "Is this affiliated with Facebook?", a: "No. This giveaway is in no way sponsored, endorsed or administered by, or associated with, Facebook/Meta." },

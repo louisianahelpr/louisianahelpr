@@ -250,6 +250,7 @@ export function ClaimSection({
       </div>
       <p className="lh25-lede lh25-center">{C.claim.intro}</p>
       <p className="lh25-deadline lh25-center">{C.claim.deadline}</p>
+      <p className="lh25-hint lh25-center lh25-days-note" data-testid="claim-days-note">{C.claim.daysNote}</p>
 
       <div
         className={`lh25-calendar${err("days") ? " lh25-calendar-error" : ""}`}

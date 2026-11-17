@@ -9,7 +9,10 @@
 // @mutate src/lib/chunkReload.ts | const booted = () => document.readyState !== "loading" && !document.getElementById("boot-loader"); | const booted = () => true;
 // @mutate src/lib/chunkReload.ts | const v = scrubbedRecoveryMarker \|\| Number( | const v = Number(
 // @mutate src/main.tsx | scrubRecoveryReloadMarker();\n// WebKit | // WebKit
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import {
   __resetChunkReloadForTests,
   getChunkRecoveryDecline,
@@ -82,5 +85,17 @@ describe("the recovery reload's _v is scrubbed from the address (F359n)", () => 
     });
     expect(recoverFromChunkError()).toBe(false);
     expect(getChunkRecoveryDecline()).toMatchObject({ reason: "storage_blocked_after_reload", count: 0 });
+  });
+});
+
+// Vacuity run 44157702986: every case above calls scrubRecoveryReloadMarker itself, so deleting the boot call in
+// main.tsx (the only place it runs in the app) stayed green. Boot must call it, as code, not in a comment.
+describe("boot calls the scrub (F359n)", () => {
+  it("main.tsx calls scrubRecoveryReloadMarker() at top level", () => {
+    const main = blankComments(readFileSync(resolve(__dirname, "..", "main.tsx"), "utf8"));
+    const calls = main.match(/^scrubRecoveryReloadMarker\(\);$/gm) ?? [];
+    expect(calls).toHaveLength(1);
+    // Inventory floor: the read is the real boot file, not an empty or wrong one.
+    expect(main.length).toBeGreaterThan(1000);
   });
 });

@@ -251,9 +251,15 @@ describe("beforeSend noise filter", () => {
       { filename: "iabjs://navigation_performance_logger_android" },
       { filename: "iabjs://navigation_performance_logger_android" },
     ];
+    // The message is NOT one clientNoise.ts already drops ("Java object is gone" is, since 2026-11-14), so only the
+    // every-frame-foreign rule can drop this event (vacuity run 44157702986: the old message kept it green).
+    const message = "TypeError: Cannot read properties of null (reading 'postMessage')";
     expect(
-      beforeSend({ exception: { values: [{ value: "Error invoking postMessage: Java object is gone", stacktrace: { frames } }] } }),
+      beforeSend({ exception: { values: [{ value: message, stacktrace: { frames } }] } }),
     ).toBeNull();
+    // Control: the same message with one frame of ours is kept, so the drop above is the frame rule's.
+    const ours = { exception: { values: [{ value: message, stacktrace: { frames: [...frames, { filename: "https://www.louisianahelpr.com/assets/index.js" }] } }] } };
+    expect(beforeSend(ours)).toEqual(ours);
   });
 
   it("keeps an error with any frame of ours, on every scheme we ship from", async () => {

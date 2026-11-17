@@ -57,7 +57,7 @@ describe("the Jobs loading frame reserves the chips row the feed will draw", () 
   it("every category chip is the 44 px tall chip, so the row clears the tap floor", () => {
     const { container } = render(<JobCategoryChips value={null} onChange={() => {}} saved={{ on: false, count: 1, onToggle: () => {} }} />);
     const chips = [...container.querySelectorAll<HTMLElement>("[data-category-chip]")];
-    // Inventory floor: All + Saved + the 8 Post a job groups.
+    // Inventory floor: All + Saved + every Post a job group (JOB_CATEGORY_GROUPS).
     expect(chips.length).toBeGreaterThan(9);
     for (const c of chips) {
       expect(c.className, `chip ${c.dataset.categoryChip}`).toContain("min-h-11");

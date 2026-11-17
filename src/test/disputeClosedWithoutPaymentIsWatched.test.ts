@@ -175,14 +175,16 @@ describe("a dispute closed without moving money is watched", () => {
     expect(sweepSql).toContain("e.tags ->> 'area' = 'dispute-unsettled'");
   });
 
-  it("real money pages; a seed fixture goes to the digest — under DIFFERENT sources", () => {
-    expect(sweepSql).toContain("CASE WHEN r.is_seed THEN 'error' ELSE 'fatal' END");
-    // Separate tags.source per severity. trg_error_logs_slack suppresses a post
-    // when another row with the SAME source was written in the last 10 minutes,
-    // so a shared source would let a seed row silence a real page written by the
-    // very same sweep — the bug 20260922155258 records and avoids.
-    expect(sweepSql).toContain("'dispute-unsettled-seed'");
-    expect(sweepSql).toMatch(/ELSE 'dispute-unsettled' END/);
+  it("real money pages fatal; a seed job's dispute writes nothing at all", () => {
+    // Until 20261117041858 a seed job's dispute was written at severity 'error' under its own source
+    // ('dispute-unsettled-seed'), so it never paged, but it still put a row in error_logs about test data
+    // (prod 2026-11-16: "Dispute c5c85b7e on job 7e52c767 ... moved no money", is_seed true). Owner rule: test or
+    // seed data never writes owner-facing alerts or error_logs rows. The candidate query now leaves seed jobs out
+    // (proof: src/test/pglite/disputeSweepSkipsSeedJobs.pglite.mjs), and every row it writes is a real page.
+    expect(sweepBody).toContain("AND j.is_seed IS NOT TRUE");
+    expect(sweepBody).not.toContain("dispute-unsettled-seed");
+    expect(sweepBody).toMatch(/VALUES \(\s*'fatal',/);
+    expect(sweepBody).toContain("jsonb_build_object('source', 'dispute-unsettled', 'area', 'dispute-unsettled')");
   });
 
   it("is DETECTION ONLY — it must never move money itself", () => {
@@ -199,4 +201,5 @@ describe("a dispute closed without moving money is watched", () => {
 
 // Proof this is able to fail. Each mutation breaks a different premise:
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | .or("disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved))") | .or("disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved,open))")
-// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | AND d.execution_refund_id   IS NULL | AND true
+// @mutate supabase/migrations/20261117041858_seed_rows_skip_handover_and_dispute_sweeps.sql | AND d.execution_refund_id   IS NULL | AND true
+// @mutate supabase/migrations/20261117041858_seed_rows_skip_handover_and_dispute_sweeps.sql | AND j.is_seed IS NOT TRUE | AND true

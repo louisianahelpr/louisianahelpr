@@ -10,7 +10,8 @@
  *   (d) reminders     a booked delivery 24 h out: the 24 h reminder; 24 h + 1 ms: none
  *   (e) no answer     the buyer's no-show report with no answer at no_show_answer_by: closed (seller's fault)
  *   (f) held          nobody said anything 24 h after the time: both nudged; again only 7 days later
- * none of them 1 ms early.
+ * none of them 1 ms early, and none of them on a seed order (20261117: every step leaves is_seed orders out, so a
+ * seed order with no real money never fails a step and never writes an error_logs defect).
  *
  *   node src/test/pglite/declutterHandoverSweepClock.pglite.mjs
  *   HANDOVER_PAY_STRICT=1 ...       # RED: the seller's "Picked up" + 24 h edge made strict (both reads)
@@ -73,6 +74,12 @@ CREATE FUNCTION public.log_cron_defect(a text, b text, c text) RETURNS void LANG
 const anchor = newestFunction("declutter_pickup_anchor");
 const rules = newestFunction("declutter_seller_delivery_rules");
 const sweepFn = newestFunction("declutter_handover_sweep");
+// SEED_SWEPT=1: RED, the seed exclusions taken out of the newest sweep (the state before 20261117).
+if (process.env.SEED_SWEPT) {
+  console.log("SEED_SWEPT=1 (expect FAILs)");
+  check("SEED_SWEPT: the exclusion is there to remove", sweepFn.stmt.includes("AND o2.is_seed IS NOT TRUE"));
+  sweepFn.stmt = sweepFn.stmt.split("AND o2.is_seed IS NOT TRUE").join("");
+}
 let anchorSql = onFixedClock(anchor.stmt);
 const base = onFixedClock(sweepFn.stmt);
 let fixed = base;
@@ -119,7 +126,12 @@ const edge = async (name, setup, edgeMs, ok) => {
   await reset(); await setup();
   const at = await sweep(edgeMs);
   check(`${name}: at the edge`, ok(at) && !at.calls.some((c) => c.startsWith("defect:")), JSON.stringify(at));
+  // 20261117: a seed order is never swept, at the edge or after it (no money step, no notice, no error_logs defect).
+  await reset(); await setup(); await seedIt();
+  const seed = await sweep(edgeMs + D);
+  check(`${name}: a seed order, a day past the edge: nothing`, seed.calls.length === 0, JSON.stringify(seed));
 };
+const seedIt = () => q(`UPDATE public.declutter_orders SET is_seed = true`);
 
 const N = Date.UTC(2026, 6, 15, 20, 0, 0);
 // (a) Door sale: pickup N - 30 h, the seller's "Picked up" at N - 24 h: the later edge (the confirm) decides.
@@ -156,6 +168,11 @@ await edge("(c) seller delivery handed over 24 h ago", async () => {
   const near = await sweep(N);
   const [{ rh }] = await q(`SELECT reminded_hours::text rh FROM public.declutter_seller_deliveries`);
   check("(d) delivery exactly 24 h out: the 24 h reminder marked sent", rh === "{24}" && near.r.delivery_reminders === 1, JSON.stringify({ rh, ...near }));
+  await reset();
+  await order({ handover: "seller_delivery", paidAt: N - D }); await delivery({ status: "booked", slotStart: N + 24 * H, slotEnd: N + 25 * H }); await seedIt();
+  const seedNear = await sweep(N);
+  const [{ rh: rhSeed }] = await q(`SELECT reminded_hours::text rh FROM public.declutter_seller_deliveries`);
+  check("(d) a seed order's delivery 24 h out: no reminder", rhSeed === "{}" && seedNear.calls.length === 0, JSON.stringify({ rhSeed, ...seedNear }));
   void far;
 }
 // (e) The buyer's no-show report, no answer by the deadline.

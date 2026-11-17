@@ -835,7 +835,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // (a needs_time seller delivery past book_by closes as delivery_never_booked = full_platform_absorbs, no strike),
       // which 031228 dropped. Every other loop unchanged.
       // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
-      declutter_handover_sweep: "20261109224952_notices_card_fee_and_our_team.sql 1d94322dc3ec2719",
+      // Seed rows (20261117041858): 20261109224952 verbatim plus `AND o2.is_seed IS NOT TRUE` in every candidate query; no
+      // refund reason, amount or fee changed (a seed order is simply never swept).
+      declutter_handover_sweep: "20261117041858_seed_rows_skip_handover_and_dispute_sweeps.sql f74db8e876ba297e",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout

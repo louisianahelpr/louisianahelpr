@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF v_side <> 'buyer' THEN\n    -- the seller cannot tap | IF false THEN\n    -- the seller cannot tap
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF o.handover NOT IN ('pickup_home', 'meetup') THEN\n    RAISE EXCEPTION 'not_a_door_pickup' | IF false THEN\n    RAISE EXCEPTION 'not_a_door_pickup'
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL\n                                                  AND h.set_out_at + interval '24 hours' <= now())) THEN |          THEN
+ * @mutate supabase/migrations/20261117041858_seed_rows_skip_handover_and_dispute_sweeps.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL\n                                                  AND h.set_out_at + interval '24 hours' <= now())) THEN |          THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF NEW.confirmed_by = 'code' AND | IF false AND
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN |   IF p_by IS NULL OR p_by NOT IN ('code', 'customer', 'auto', 'admin') THEN
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN | IF false THEN
@@ -158,7 +158,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     // Then 20261102031228 (Q2465): the (d) delivery reminders are sent strict; porch rule unchanged.
     // Then 20261102084222 (A3 reconcile): 031228 plus A3-72's loop (b2); porch rule unchanged.
     // Then 20261109224952 (Part 3 F193): restated from LIVE, wording only; porch rule unchanged.
-    expect(DEFS.get("declutter_handover_sweep")?.file).toBe("20261109224952_notices_card_fee_and_our_team.sql");
+    // Then 20261117041858: every candidate query leaves seed orders out; porch rule unchanged.
+    expect(DEFS.get("declutter_handover_sweep")?.file).toBe("20261117041858_seed_rows_skip_handover_and_dispute_sweeps.sql");
     // porch: both the query and the re-check under the lock
     expect(sw.split("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now()))").length - 1).toBe(1);
     expect(sw.split("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now()))").length - 1).toBe(1);

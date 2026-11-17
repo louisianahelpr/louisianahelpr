@@ -79,6 +79,9 @@ const DSN =
   (import.meta.env.VITE_SENTRY_DSN as string | undefined) ||
   "https://d3221775aacee16ad5837d44f0cbaa33@o4511265714601984.ingest.us.sentry.io/4511270677250048";
 
+/** The DSN this build reports to (src/test/sentryInitPathReachesIngest.test.ts checks it and the CSP). */
+export const SENTRY_DSN = DSN;
+
 const ENV =
   (import.meta.env.VITE_SENTRY_ENV as string | undefined) ||
   (import.meta.env.DEV ? "development" : "production");
@@ -429,6 +432,12 @@ export function captureException(
   context?: Record<string, unknown>,
   level?: "fatal" | "error" | "warning" | "info",
 ) {
+  // An error reported before main.tsx's first-interaction gate ran initSentry() used to be dropped here
+  // without a trace: every cold-launch error and every error on a page whose analytics bootstrap failed
+  // reached error_logs but never Sentry (measured 2026-11-17: no accepted Sentry event after 11-14 23:37 UTC
+  // while error_logs kept real client errors). The SDK chunk is already loaded by the time anything calls
+  // this (errorLogger imported it), so initializing now costs no download.
+  if (!initialized) initSentry();
   if (!initialized) return;
   try {
     const hint = { ...(context ? { extra: context } : {}), ...(level ? { level } : {}) };

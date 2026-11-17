@@ -6,7 +6,7 @@ import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
 import { isTestRecipient, TEST_RECIPIENT_REASON } from '../_shared/testRecipient.ts'
 import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
 import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
-import { actionLabelInLanguage, notificationActionLabel } from '../_shared/email-templates/notificationAction.ts'
+import { actionLabelInLanguage, noticeSubject, notificationActionLabel } from '../_shared/email-templates/notificationAction.ts'
 import { noticeInSpanish } from '../_shared/noticeEs.ts'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
@@ -476,10 +476,14 @@ serve(async (req) => {
       .maybeSingle()
     if (langErr) console.warn('profiles.language read failed; sending English:', langErr.message)
     const lang: 'en' | 'es' = !langErr && langRow?.language === 'es' ? 'es' : 'en'
-    const subject = lang === 'es' ? noticeInSpanish(title) : title
+    const heading = lang === 'es' ? noticeInSpanish(title) : title
+    const readerMessage = lang === 'es' ? noticeInSpanish(message) : message
+    // Owner 11-17 (notices in Gmail spam): the subject names the job or item the message quotes, so forty
+    // "New application" emails stop being one identical, vague subject. The heading inside stays the plain title.
+    const subject = noticeSubject(heading, readerMessage)
     const { html, text } = await renderNotificationEmail(
-      subject,
-      lang === 'es' ? noticeInSpanish(message) : message,
+      heading,
+      readerMessage,
       safeLink,
       profile.full_name || '',
       unsubscribeUrl,

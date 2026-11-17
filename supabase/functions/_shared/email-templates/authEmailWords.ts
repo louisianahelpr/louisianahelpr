@@ -72,6 +72,9 @@ export const RECOVERY_WORDS = {
     heading: 'Reset your password',
     body: 'We got a request to reset your password. Tap the button below to choose a new password.',
     button: 'Choose a new password',
+    // Owner 11-17 (reset mail in Gmail spam): a real second sentence, so the body is more than one line and a link.
+    once:
+      'This link works one time. We sent it because a password reset was asked for on the Louisiana Helpr account that uses this email address.',
     footer: "If you didn't request a password reset, you can safely ignore this email. Your password won't be changed.",
   },
   es: {
@@ -79,6 +82,8 @@ export const RECOVERY_WORDS = {
     heading: 'Restablezca su contraseña',
     body: 'Recibimos una solicitud para restablecer su contraseña. Toque el botón de abajo para elegir una nueva.',
     button: 'Elegir una nueva contraseña',
+    once:
+      'Este enlace funciona una sola vez. Lo enviamos porque se pidió restablecer la contraseña de la cuenta de Louisiana Helpr que usa este correo.',
     footer: 'Si no pidió restablecer su contraseña, puede ignorar este correo. Su contraseña no cambiará.',
   },
 } as const

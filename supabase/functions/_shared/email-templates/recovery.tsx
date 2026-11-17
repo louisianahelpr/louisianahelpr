@@ -32,6 +32,7 @@ export const RecoveryEmail = ({
       <Heading className="e-h1" style={h1}>{w.heading}</Heading>
       <Text className="e-text" style={text}>{w.body}</Text>
       <BrandButton href={confirmationUrl} label={w.button} />
+      <Text className="e-text" style={{ ...text, margin: '20px 0 0' }}>{w.once}</Text>
       <TransactionalFooter>{w.footer}</TransactionalFooter>
   </BaseLayout>
   )

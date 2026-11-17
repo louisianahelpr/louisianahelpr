@@ -72,3 +72,28 @@ export const NOTICE_SIGNOFF = "Louisiana Helpr";
 export function keepNumberUnitsTogether(text: string): string {
   return text.replace(/(\d)-(day|days|hour|hours|minute|minutes|week|weeks|month|months)\b/g, "$1\u2011$2");
 }
+
+/**
+ * The notice email's subject names the thing it is about (owner 11-17: these notices landed in Gmail spam). The
+ * subject was the bare title, so one member got forty emails all called "New application" (Gmail threaded them into
+ * one conversation) with nothing saying which job. When the message quotes the job or item (Neosha W. applied to
+ * "Pick up packages"), the subject carries that name: New application: "Pick up packages". A title that already
+ * quotes something, or a message that quotes nothing, keeps the title as it is.
+ * Guard: src/test/transactionalEmailsAreNotThin.test.ts.
+ */
+export function noticeSubject(title: string, message: string | null | undefined): string {
+  const t = (title ?? "").trim();
+  if (/["\u201c\u201d]/.test(t)) return t;
+  const m = /["\u201c]([^"\u201c\u201d\r\n]{2,200})["\u201d]/.exec(message ?? "");
+  if (!m) return t;
+  const name = m[1].trim();
+  if (!name) return t;
+  const short = name.length > 60 ? `${name.slice(0, 57).trimEnd()}\u2026` : name;
+  return `${t}: "${short}"`;
+}
+
+/** The inbox preview line: the notice's own message, on one line, cut at 140 characters (never a fixed phrase). */
+export function noticePreheader(message: string | null | undefined): string {
+  const one = keepNumberUnitsTogether((message ?? "").replace(/\s+/g, " ").trim());
+  return one.length > 140 ? `${one.slice(0, 139).trimEnd()}\u2026` : one;
+}

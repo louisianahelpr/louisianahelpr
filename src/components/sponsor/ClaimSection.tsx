@@ -293,13 +293,15 @@ export function ClaimSection({
           return (
             <ToggleChip
               key={d}
-              className={`lh25-tile${selected ? " is-selected" : ""}${full ? " is-full" : ""}`}
+              className={`lh25-tile min-h-[76px] sm:min-h-[96px]${selected ? " is-selected" : ""}${full ? " is-full" : ""}`}
               pressed={selected}
               disabled={full}
               onClick={() => toggleDay(d)}
               aria-label={`December ${d}, ${full ? C.claim.full : label}${selected ? ", picked" : ""}`}
             >
-              <span className="lh25-tile-day">{d}</span>
+              {/* The space keeps the visible text "1 4 brands joined" inside the accessible name "December 1, 4 brands
+                  joined" (axe label-content-name-mismatch read "14 brands joined"); a flex column draws no space. */}
+              <span className="lh25-tile-day">{d}</span>{" "}
               <span className="lh25-tile-count">{full ? C.claim.full : label}</span>
               {selected ? <span className="lh25-tile-check" aria-hidden="true"><Icon name="check" size={14} /></span> : null}
             </ToggleChip>
@@ -343,7 +345,7 @@ export function ClaimSection({
             <Input id={ID.phone} name="phone" type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} aria-describedby={describe("lh25-phone", "phone")} />
           </Field>
           <Field id={ID.prize} label={F.prizeDescription} error={err("prizeDescription")} hint={F.prizeDescriptionHint}>
-            <Textarea id={ID.prize} name="prizeDescription" rows={2} value={form.prizeDescription} onChange={(e) => set("prizeDescription", e.target.value)} aria-invalid={!!err("prizeDescription")} aria-describedby={describe("lh25-prize", "prizeDescription", true)} required />
+            <Textarea className="min-h-12" id={ID.prize} name="prizeDescription" rows={2} value={form.prizeDescription} onChange={(e) => set("prizeDescription", e.target.value)} aria-invalid={!!err("prizeDescription")} aria-describedby={describe("lh25-prize", "prizeDescription", true)} required />
           </Field>
           <Field id={ID.website} label={F.website} error={err("website")}>
             <Input id={ID.website} name="website" type="url" inputMode="url" autoComplete="url" value={form.website} onChange={(e) => set("website", e.target.value)} aria-describedby={describe("lh25-website", "website")} placeholder="https://" />
@@ -374,7 +376,7 @@ export function ClaimSection({
             ))}
           </fieldset>
           <Field id={ID.notes} label={F.notes} error={err("notes")}>
-            <Textarea id={ID.notes} name="notes" rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+            <Textarea className="min-h-12" id={ID.notes} name="notes" rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
           </Field>
         </div>
 

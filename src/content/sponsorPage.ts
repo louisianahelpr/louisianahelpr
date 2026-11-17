@@ -185,6 +185,7 @@ export const sponsorPage = {
           { brand: "homerunPET", prize: "Pet-friendly space heater" },
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
           { brand: "CMI Entertainment: A Christmas Carol", prize: "Tickets to A Christmas Carol, Strand Theatre Shreveport, Dec 6" },
+          { brand: "Oil Center", prize: "Festival of Lights tickets" },
         ],
       },
       {
@@ -200,6 +201,7 @@ export const sponsorPage = {
         partners: [
           { brand: "Tevin Lewis, District 2 Alderman", prize: "$25 Shucks gift card" },
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "Manta Sleep", prize: "Manta PRO Sleep Mask" },
         ],
       },
       {
@@ -215,6 +217,7 @@ export const sponsorPage = {
         partners: [
           { brand: "Oyu Botanica", prize: "Winter stocking stuffers" },
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
+          { brand: "R&R Wedding Co.", prize: "Day-of wedding coordination discount" },
         ],
       },
       {
@@ -252,7 +255,6 @@ export const sponsorPage = {
         partners: [
           { brand: "GentleStyle Brush", prize: "GentleStyle Brush" },
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
-          { brand: "Manta Sleep", prize: "Manta PRO Sleep Mask" },
         ],
       },
       {

@@ -91,7 +91,6 @@ type Metric = "fcp" | "lcp";
  * same build read 3-7% faster on the reference Mac, and run-to-run spread on
  * an unchanged screen was within 4% on both.
  */
-// @two-way e2e/web-vitals/first-screens.spec.ts:KNOWN entries now inside GOOD or far under their ceiling: delete or lower them
 // 2026-10-05: 12 entries deleted (every mobile FCP, and /login and /messages LCP),
 // measured inside GOOD by prod-audit 37270491218 (FCP 1412-1452 ms, LCP 1956 and 2184 ms).
 // 2026-11-01: "mobile /browse lcp" LOWERED 4810 -> 1966 (1820 x1.08), never deleted (owner rule: a budget is never
@@ -105,11 +104,21 @@ type Metric = "fcp" | "lcp";
 // local build, Slow 4G + 4x CPU, 3 cold runs each: before 3336-3352 (median 3348), after 1436-1460 (median 1460).
 // 2026-11-14: "mobile /posts lcp" RENAMED "mobile /jobs?tab=posted lcp", ceiling kept (never raised): /posts forwards
 // there (LANDS_ON), so the same screen is now measured under the address it lands on.
+// 2026-11-17: "mobile /home lcp" LOWERED 6630 -> 4234 (3920 x1.08; Q2705). Prod-audit 43650083979 (11-14, a749bb741f)
+// read 9776 ms: the largest paint was the Your page card's line, which waited for the top cards to settle, then for the
+// profile row, then for its own page read. 11-15's landed Home work (ca1d303af1, cc6a5a5d4a, dc52fb12ef, 8dadeb01b8:
+// the lean posted read, the profile and own-page reads and the poster first-job read started from the entry) moved
+// that. cwv-lab, local build of main be6f228f47, poster persona, Slow 4G + 4x CPU (calibrated 3.96x), 375, two
+// sessions of 3 cold runs: 3804/3828/3860 and 3920/4000/4172 (median 3920). The card's "hidden" notice now draws in
+// the same frame as Home's columns (ready marks: home-dashboard 3728-3745, columns and notice 3764-3784), so Home no
+// longer waits on any slow read; what is left is the boot JS sharing the 180 KB/s link (app JS done ~3.54 s).
+// Raw: ~/.lh-shots/q2705-home-1117/.
+// @two-way e2e/web-vitals/first-screens.spec.ts:KNOWN entries now inside GOOD or far under their ceiling: delete or lower them
 const KNOWN: Record<string, { ceiling: number; measured: number }> = {
   "mobile / lcp": { ceiling: 4110, measured: 3804 },
   "mobile /browse lcp": { ceiling: 1577, measured: 1460 },
   "mobile /signup lcp": { ceiling: 4400, measured: 4072 },
-  "mobile /home lcp": { ceiling: 6630, measured: 6136 },
+  "mobile /home lcp": { ceiling: 4234, measured: 3920 },
   "mobile /jobs lcp": { ceiling: 5410, measured: 5008 },
   "mobile /jobs?tab=posted lcp": { ceiling: 6100, measured: 5640 },
   "mobile /post-job lcp": { ceiling: 5970, measured: 5520 },

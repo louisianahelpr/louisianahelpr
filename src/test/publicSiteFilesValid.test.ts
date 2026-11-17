@@ -18,6 +18,8 @@
 // @mutate vercel.json |       "source": "/homes", |       "source": "/home-s",
 // @mutate vercel.json |       "source": "/sponsorship", |       "source": "/sponsor-ship",
 // @mutate vercel.json |       "source": "/gift-", |       "source": "/gift-x",
+// @mutate vercel.json |       "source": "/giftguides", |       "source": "/gift-guides-x",
+// @mutate vercel.json |       "source": "/gift-guide", |       "source": "/gift-:rest*",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -108,10 +110,20 @@ describe("vercel.json redirects", () => {
     ["/gifts", "/gift-guides"],
     ["/giftguide", "/gift-guides"],
     ["/gift-guide", "/gift-guides"],
+    ["/giftguides", "/gift-guides"],
   ])("%s goes to %s", (source, destination) => {
     const r = config.redirects.find((x) => x.source === source);
     expect(r?.destination).toBe(destination);
     expect(r?.permanent).toBe(true);
+  });
+
+  // The gift aliases are exact paths. /gift-card stays a 404 on purpose (owner Q194, see the App.tsx comment), so no
+  // alias may be a pattern that could swallow it or any other /gift* address.
+  it("the gift-guides aliases are exact paths and leave /gift-card alone", () => {
+    const giftAliases = config.redirects.filter((x) => !x.has && x.destination === "/gift-guides");
+    expect(giftAliases.length).toBeGreaterThan(5);
+    for (const r of giftAliases) expect(r.source, `${r.source} must be a literal path`).toMatch(/^\/[a-z-]+$/);
+    expect(config.redirects.some((x) => x.source.startsWith("/gift-card"))).toBe(false);
   });
 
   // Owner's UI audit 11-09, F138: the section is called Homes everywhere (menu, dock, landing card), but its page is

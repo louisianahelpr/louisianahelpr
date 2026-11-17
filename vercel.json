@@ -78,6 +78,11 @@
       "permanent": true
     },
     {
+      "source": "/giftguides",
+      "destination": "/gift-guides",
+      "permanent": true
+    },
+    {
       "source": "/contact",
       "destination": "/support",
       "permanent": true

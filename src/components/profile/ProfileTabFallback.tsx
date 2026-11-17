@@ -368,8 +368,23 @@ const ReviewRowReserve = () => (
   </div>
 );
 
+/**
+ * M11 (owner 11-16, ce40c5e0b2): with no phone or browser registered for push, the tab opens with the "Push
+ * notifications" card (PushDeviceHint) ABOVE the Text alerts card. The reserve still drew only Text alerts + the
+ * switches, so loading-states-refresh 43990736717 (2026-11-17, both test accounts) read "3 placeholder rows -> 4
+ * real rows" on every settled stage. The push card's box comes first now. Its height is from the card's own classes at
+ * 375 (py-4 32 + title 24 + gap 4 + the two-line sentence 38 + gap 12 + the h-11 button 44), not yet measured in CI;
+ * it has no round icon, so the media count stays 44, and the row median stays the Text alerts card's 355px.
+ */
+export const PUSH_CARD_RESERVE_PX = 154;
 const NotificationsReserve = () => (
   <>
+  <div aria-hidden data-push-card-reserve="" style={{ height: PUSH_CARD_RESERVE_PX }}
+    className="mb-4 rounded-2xl liquid-glass overflow-hidden px-4 py-4 space-y-3">
+    <Skeleton className="h-5 w-2/5 rounded" />
+    <Skeleton className="h-4 w-11/12 rounded" />
+    <Skeleton className="h-11 w-full rounded-full" />
+  </div>
   <div aria-hidden data-testid="profile-tab-fallback" data-sms-card-reserve="" style={{ height: SMS_CARD_RESERVE_PX }}
     className="mb-4 rounded-2xl liquid-glass overflow-hidden p-card space-y-3">
     <div className="flex items-center gap-3">

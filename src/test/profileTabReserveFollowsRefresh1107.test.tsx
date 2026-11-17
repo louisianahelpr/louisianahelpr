@@ -9,7 +9,7 @@
 // @mutate src/components/profile/ProfileTabFallback.tsx | export const SMS_CARD_RESERVE_PX = 355; | export const SMS_CARD_RESERVE_PX = 155;
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { ProfileTabBodyReserve, TAB_SHAPES, NOTIFICATION_ROWS, NOTIFICATION_ROW_PX, SMS_CARD_RESERVE_PX } from "@/components/profile/ProfileTabFallback";
+import { ProfileTabBodyReserve, TAB_SHAPES, NOTIFICATION_ROWS, NOTIFICATION_ROW_PX, PUSH_CARD_RESERVE_PX, SMS_CARD_RESERVE_PX } from "@/components/profile/ProfileTabFallback";
 import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 
 vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
@@ -74,14 +74,18 @@ describe("Q2773 refresh 11-07: profile tab placeholders match what replaces them
     expect(Math.abs(median(rows) - 241)).toBeLessThanOrEqual(ROW_BUDGET);
   });
 
-  it("notifications: the Text alerts card's box, then the switches card, 44 icons in all (11-14)", () => {
+  // Refresh of 2026-11-17 (run 43990736717): push card first (M11, owner 11-16), "3 placeholder rows -> 4 real".
+  // @mutate src/components/profile/ProfileTabFallback.tsx |   <div aria-hidden data-push-card-reserve="" | <div hidden data-push-card-reserve=""
+  it("notifications: the Push card's box, the Text alerts card's box, then the switches card, 44 icons in all (11-17)", () => {
     const { container } = render(<ProfileTabBodyReserve tab="notifications" />);
-    const blocks = [...container.children] as HTMLElement[];
-    expect(blocks.length).toBe(2); // + the header = 3 rows, as loaded
-    expect(blocks[0].style.height).toBe(`${SMS_CARD_RESERVE_PX}px`);
-    expect(Math.abs(median([HEADER, SMS_CARD_RESERVE_PX, NOTIFICATION_ROWS * NOTIFICATION_ROW_PX]) - 355)).toBeLessThanOrEqual(ROW_BUDGET);
-    expect(circles(blocks[0])).toBe(1);
-    expect(circles(blocks[1])).toBe(NOTIFICATION_ROWS);
+    const blocks = ([...container.children] as HTMLElement[]).filter((b) => !b.hidden);
+    expect(blocks.length).toBe(3); // + the header = 4 rows, as loaded with no push device (both test accounts)
+    expect(blocks[0].style.height).toBe(`${PUSH_CARD_RESERVE_PX}px`);
+    expect(blocks[1].style.height).toBe(`${SMS_CARD_RESERVE_PX}px`);
+    expect(Math.abs(median([HEADER, PUSH_CARD_RESERVE_PX, SMS_CARD_RESERVE_PX, NOTIFICATION_ROWS * NOTIFICATION_ROW_PX]) - 355)).toBeLessThanOrEqual(ROW_BUDGET);
+    expect(circles(blocks[0])).toBe(0);
+    expect(circles(blocks[1])).toBe(1);
+    expect(circles(blocks[2])).toBe(NOTIFICATION_ROWS);
     expect(Math.abs(circles(container) - 44)).toBeLessThanOrEqual(1);
     // The switches card's height is the measured one (4605.6px), within a row's budget.
     expect(Math.abs(NOTIFICATION_ROWS * NOTIFICATION_ROW_PX - 4606)).toBeLessThanOrEqual(NOTIFICATION_ROWS);

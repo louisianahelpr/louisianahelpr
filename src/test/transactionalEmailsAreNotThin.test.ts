@@ -19,7 +19,7 @@
  * The address footer on every template is guarded by src/test/emailFootersCarryPostalAddress.test.ts.
  *
  * @mutate supabase/functions/_shared/email-templates/notification.tsx | preheader={noticePreheader(message)} | preheader={`${title} — open Louisiana Helpr for the details.`}
- * @mutate supabase/functions/send-notification-email/index.ts | const subject = noticeSubject(heading, readerMessage) | const subject = heading
+ * @mutate supabase/functions/send-notification-email/index.ts | const subject = sanitizeHeaderValue(noticeSubject(heading, readerMessage)) | const subject = sanitizeHeaderValue(heading)
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts | return `${t}: "${short}"`; | return t;
  * @mutate supabase/functions/_shared/resend.ts | const SENDER_NAME = "Louisiana Helpr"; | const SENDER_NAME = "Helpr";
  * @mutate supabase/functions/_shared/email-templates/recovery.tsx | <Text className="e-text" style={{ ...text, margin: '20px 0 0' }}>{w.once}</Text> | {null}
@@ -81,7 +81,7 @@ describe("transactional emails are not thin (owner 11-17, notices in Gmail spam)
 
   it("send-notification-email sends that subject on both paths and keeps the plain title as the heading", () => {
     const src = read(join(FUNCTIONS, "send-notification-email/index.ts"));
-    expect(src).toContain("const subject = noticeSubject(heading, readerMessage)");
+    expect(src).toContain("const subject = sanitizeHeaderValue(noticeSubject(heading, readerMessage))");
     expect(src).toMatch(/renderNotificationEmail\(\s*heading,\s*readerMessage,/);
     expect(src.match(/\bfrom: FROM_DEFAULT,\s*subject,/g)?.length).toBe(2);
   });

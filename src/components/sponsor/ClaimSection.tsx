@@ -18,6 +18,7 @@ import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { report } from "@/lib/errorLogger";
 
 const E = C.claim.errors;
 const F = C.claim.form;
@@ -187,8 +188,15 @@ export function ClaimSection({
         setErrors(errs2);
         setBanner(E.generic);
       } else {
+        // Not saved for a reason the page has no words for (network, server error): say so, keep the entries, log it.
+        report(new Error("sponsor sign-up not saved"), { severity: "warning", tags: { source: "sponsor-signup", kind: res.kind } });
         setBanner(E.generic);
       }
+    } catch (e) {
+      // A send that throws (offline, a blocked request) must never look like success or lose the entries:
+      // the form keeps every field and says so.
+      report(e, { severity: "warning", tags: { source: "sponsor-signup", kind: "threw" } });
+      setBanner(E.generic);
     } finally {
       setBusy(false);
     }
@@ -287,10 +295,12 @@ export function ClaimSection({
       {form.days.length > 0 ? <p className="lh25-picked lh25-center">Picked: {daysLabel(form.days)}</p> : null}
 
       <form ref={formRef} className="lh25-form" onSubmit={submit} noValidate>
-        {/* Honeypot: hidden from people and screen readers; a bot that fills it is dropped by the server. */}
+        {/* Honeypot: hidden from people and screen readers. The server only LOGS a filled one (it never drops a
+            sign-up for it): browser autofill ignores autocomplete="off" and filled the old "Company fax" field for
+            real sponsors (2026-11-17). So no name, id or label here may look like a contact field to autofill. */}
         <div className="lh25-hp" aria-hidden="true">
-          <label htmlFor="lh25-company-fax">Company fax</label>
-          <Input id="lh25-company-fax" name="company_fax" tabIndex={-1} autoComplete="off" value={form.company_fax} onChange={(e) => set("company_fax", e.target.value)} />
+          <label htmlFor="lh25-hp-check">Leave this empty</label>
+          <Input id="lh25-hp-check" name="lh25_hp_check" tabIndex={-1} autoComplete="off" data-1p-ignore="true" data-lpignore="true" data-form-type="other" value={form.company_fax} onChange={(e) => set("company_fax", e.target.value)} />
         </div>
 
         <div className="lh25-form-grid">

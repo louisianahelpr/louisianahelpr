@@ -66,13 +66,13 @@ function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
       />
       {/* SectionTabs: thin underline tabs, 44px, on a phone too since F152 (owner audit 11-09). */}
       <Skeleton className="h-11 w-full rounded-ds-md" />
-      {/* Browse's category chips row (phone; JobCategoryChips: 40px chips + 4px scroller pad), only when the last
+      {/* Browse's category chips row (phone; JobCategoryChips: 44px `tall` chips + 4px scroller pad), only when the last
           loaded Browse drew it (jobChipsSeen.ts), so the list does not jump down when the chips arrive. */}
       {!desktop && chips && (
         <div data-chips-bone="" className="flex min-w-0 gap-2 overflow-hidden pb-1">
-          <Skeleton className="h-10 w-14 shrink-0 rounded-full" />
-          <Skeleton className="h-10 w-24 shrink-0 rounded-full" />
-          <Skeleton className="h-10 w-32 shrink-0 rounded-full" />
+          <Skeleton className="h-11 w-14 shrink-0 rounded-full" />
+          <Skeleton className="h-11 w-24 shrink-0 rounded-full" />
+          <Skeleton className="h-11 w-32 shrink-0 rounded-full" />
         </div>
       )}
     </div>

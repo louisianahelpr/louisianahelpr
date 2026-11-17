@@ -2,7 +2,7 @@
 // (owner spec 2026-11-09). Public: brands sign up signed out.
 //
 //   POST (multipart: payload = JSON, logo = optional file)
-//        The sign-up. Rate limited per address; honeypot; validated with the
+//        The sign-up. Rate limited per address; honeypot (logged, never dropped); validated with the
 //        same rules the page uses (_shared/sponsorSignup.ts); the per-day cap
 //        is enforced by sponsor_create_signup under a lock. Then two emails:
 //        a confirmation to the brand and the details to admin@.
@@ -171,6 +171,36 @@ async function handleFounderPhoto(req: Request): Promise<Response> {
   return json({ ok: true })
 }
 
+/**
+ * Every sign-up POST that does NOT save a sign-up says why, where we can see it (2026-11-17: two real
+ * sponsors were told "you're in" and nothing was saved). Two tiers:
+ *   logNotCreated    the visitor was told why (invalid, full, closed, rate limited, switch off): the edge
+ *                    log only, searchable as "sign-up NOT saved". Never error_logs: a server row there of any
+ *                    severity posts to #ops-alerts and opens a ledger item (notify_slack_on_error_log,
+ *                    ops_alert_ledger_from_error_log), and a typo in a form is not an alert.
+ *   alertNotCreated  OUR fault (upload, save, crash): the edge log AND one error_logs row (severity error,
+ *                    so it pages), because a real sponsor's sign-up was lost and someone must follow up.
+ * No contact details in either: the brand name and the reason are enough to find them.
+ */
+function logNotCreated(reason: string, context: Record<string, unknown> = {}): void {
+  console.warn(`[sponsor-25days] sign-up NOT saved: ${reason}`, JSON.stringify(context))
+}
+
+async function alertNotCreated(admin: SupabaseClient, reason: string, context: Record<string, unknown> = {}): Promise<void> {
+  logNotCreated(reason, context)
+  try {
+    const { error } = await admin.from('error_logs').insert({
+      severity: 'error',
+      message: `sponsor sign-up not saved: ${reason}`,
+      tags: { source: 'sponsor-25days', origin: 'server', reason },
+      context,
+    })
+    if (error) console.error('[sponsor-25days] could not log the unsaved sign-up:', error.message)
+  } catch (e) {
+    console.error('[sponsor-25days] could not log the unsaved sign-up:', caughtMessage(e))
+  }
+}
+
 function daysLabel(days: number[], anyDay: boolean): string {
   if (anyDay || days.length === 0) return 'Any day'
   if (days.length === 1) return `December ${days[0]}`
@@ -180,38 +210,57 @@ function daysLabel(days: number[], anyDay: boolean): string {
 async function handleSignup(req: Request): Promise<Response> {
   // An open endpoint that writes a row and sends mail: 5 sign-ups per address per 15 minutes.
   const rl = await checkRateLimit(req, { windowMs: 15 * 60_000, maxRequests: 5, ipMaxRequests: 10, keyPrefix: 'sponsor-days-signup' })
-  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 300, corsHeaders)
+  if (!rl.allowed) {
+    logNotCreated('rate_limited')
+    return rateLimitResponse(rl.retryAfter ?? 300, corsHeaders)
+  }
 
   const admin = serviceClient()
   const userId = await verifiedUserId(req)
-  if (!(await switchOn(admin, userId))) return notFound()
+  if (!(await switchOn(admin, userId))) {
+    logNotCreated('switch_off')
+    return notFound()
+  }
 
   // After the sign-up deadline (Nov 28, Louisiana time) nothing new is saved.
-  if (!sponsorSignupsOpen(Date.now())) return json({ error: 'closed' }, 410)
+  if (!sponsorSignupsOpen(Date.now())) {
+    logNotCreated('closed')
+    return json({ error: 'closed' }, 410)
+  }
 
   const form = await req.formData().catch(() => null)
-  if (!form) return json({ error: 'invalid', fields: {} }, 400)
+  if (!form) {
+    logNotCreated('unreadable_form')
+    return json({ error: 'invalid', fields: {} }, 400)
+  }
   let raw: Record<string, unknown>
   try {
     const parsed = JSON.parse(String(form.get('payload') ?? ''))
     raw = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
   } catch {
     // A body that is not our JSON is a bad request, answered as one.
+    logNotCreated('unreadable_payload')
     return json({ error: 'invalid', fields: {} }, 400)
   }
 
-  // Honeypot: a person never sees the field. A bot that fills it is told "ok" and nothing is saved or sent.
-  if (typeof raw.company_fax === 'string' && raw.company_fax.trim() !== '') {
-    console.log('[sponsor-25days] honeypot filled; dropped')
-    return json({ ok: true, days: [], any_day: true })
-  }
+  // Honeypot: a signal only, NEVER a reason to drop. Browser autofill fills hidden fields (it ignores
+  // autocomplete="off"), and on 2026-11-17 a filled honeypot answered real sponsors "ok" and saved nothing.
+  // The rate limit above and the per-day cap stop a flood; a bot's row is visible on /admin/sponsors. A filled one
+  // sends no confirmation to the address given (a bot must not make us mail strangers) and flags the admin email.
+  const honeypotFilled = typeof raw.company_fax === 'string' && raw.company_fax.trim() !== ''
 
   const v = validateSponsorSignup(raw)
-  if (!v.ok) return json({ error: 'invalid', fields: v.errors }, 400)
+  if (!v.ok) {
+    logNotCreated('invalid', { fields: v.errors, brand: typeof raw.brandName === 'string' ? raw.brandName.slice(0, 120) : null })
+    return json({ error: 'invalid', fields: v.errors }, 400)
+  }
   const s = v.value
 
   const img = await readImage(form.get('logo'), true)
-  if (typeof img === 'string') return json({ error: 'invalid', fields: { logo: img } }, 400)
+  if (typeof img === 'string') {
+    logNotCreated('invalid_logo', { logo: img, brand: s.brandName })
+    return json({ error: 'invalid', fields: { logo: img } }, 400)
+  }
 
   const signupId = crypto.randomUUID()
   let logoPath: string | null = null
@@ -221,6 +270,7 @@ async function handleSignup(req: Request): Promise<Response> {
     const up = await admin.storage.from(BUCKET).upload(logoPath, img.bytes, { contentType: img.type, cacheControl: '31536000', upsert: false })
     if (up.error) {
       console.error('[sponsor-25days] logo upload failed:', up.error.message)
+      await alertNotCreated(admin, 'logo_upload_failed', { error: up.error.message, brand: s.brandName })
       return json({ error: 'upload_failed' }, 500)
     }
   }
@@ -251,10 +301,15 @@ async function handleSignup(req: Request): Promise<Response> {
   const result = (data ?? {}) as { ok?: boolean; full_days?: number[]; days?: number[]; any_day?: boolean }
   if (error || result.ok !== true) {
     if (logoPath) await admin.storage.from(BUCKET).remove([logoPath])
-    if (!error && Array.isArray(result.full_days)) return json({ error: 'full', full_days: result.full_days }, 409)
+    if (!error && Array.isArray(result.full_days)) {
+      logNotCreated('days_full', { full_days: result.full_days, brand: s.brandName })
+      return json({ error: 'full', full_days: result.full_days }, 409)
+    }
     console.error('[sponsor-25days] sign-up not saved:', error?.message ?? JSON.stringify(result))
+    await alertNotCreated(admin, 'save_failed', { error: error?.message ?? JSON.stringify(result), brand: s.brandName })
     return json({ error: 'save_failed' }, 500)
   }
+  if (honeypotFilled) console.warn(`[sponsor-25days] honeypot filled (likely browser autofill); saved anyway: ${signupId}`)
 
   // Saved. The emails never undo a saved sign-up: a failure is logged, and the
   // sign-up is on /admin/sponsors either way.
@@ -264,18 +319,20 @@ async function handleSignup(req: Request): Promise<Response> {
     prizeValue: s.prizeValue, shipTo: s.shipTo, notes: s.notes, daysLabel: daysLabel(s.days, s.anyDay),
     showOnWall: s.showOnWall, ref: s.ref,
   }
-  await sendEmails(admin, emailSignup, logoPath)
-  return json({ ok: true, days: s.days, any_day: s.anyDay })
+  await sendEmails(admin, emailSignup, logoPath, honeypotFilled)
+  // The saved row's id, for the edge log and any later client check (the page today reads ok only).
+  return json({ ok: true, id: signupId, days: s.days, any_day: s.anyDay })
 }
 
-async function sendEmails(admin: SupabaseClient, s: SponsorEmailSignup, logoPath: string | null): Promise<void> {
+async function sendEmails(admin: SupabaseClient, s: SponsorEmailSignup, logoPath: string | null, honeypotFilled: boolean): Promise<void> {
   const key = Deno.env.get('RESEND_API_KEY')
   if (!key) {
     console.error('[sponsor-25days] RESEND_API_KEY not configured; no emails sent')
     return
   }
-  await sendConfirmation(admin, key, s)
-  await sendAdminNotice(admin, key, s, logoPath)
+  if (honeypotFilled) console.warn('[sponsor-25days] honeypot filled; confirmation not sent, admin notice flagged')
+  else await sendConfirmation(admin, key, s)
+  await sendAdminNotice(admin, key, s, logoPath, honeypotFilled)
 }
 
 // Q840: a fixture/test address is never mailed (each send asks for itself).
@@ -293,7 +350,7 @@ async function sendConfirmation(admin: SupabaseClient, key: string, s: SponsorEm
 }
 
 // Q840 / Q137: a test address's sign-up is not sent to admin@ either.
-async function sendAdminNotice(admin: SupabaseClient, key: string, s: SponsorEmailSignup, logoPath: string | null): Promise<void> {
+async function sendAdminNotice(admin: SupabaseClient, key: string, s: SponsorEmailSignup, logoPath: string | null, honeypotFilled: boolean): Promise<void> {
   try {
     if (await isTestRecipient(admin, s.email)) {
       console.log('[sponsor-25days] test address; admin notice not sent (Q840)')
@@ -305,7 +362,7 @@ async function sendAdminNotice(admin: SupabaseClient, key: string, s: SponsorEma
       logoUrl = signed.data?.signedUrl ?? null
     }
     const { html, text } = await renderEmail(React.createElement(SponsorAdminEmail, { s, logoUrl }))
-    await sendWithResend(key, { to: SUPPORT_EMAIL, from: FROM_DEFAULT, subject: `New 25 Days sponsor: ${s.brandName} (${s.daysLabel})`, html, text, replyTo: s.email })
+    await sendWithResend(key, { to: SUPPORT_EMAIL, from: FROM_DEFAULT, subject: `${honeypotFilled ? '[Check: hidden field filled, maybe a bot; no confirmation sent] ' : ''}New 25 Days sponsor: ${s.brandName} (${s.daysLabel})`, html, text, replyTo: s.email })
   } catch (e) {
     console.error('[sponsor-25days] admin email failed:', caughtMessage(e))
   }
@@ -318,7 +375,13 @@ serve(async (req) => {
     if (req.method === 'GET') return await handleGet(req, url)
     if (req.method === 'POST') {
       if (url.searchParams.get('action') === 'founder_photo') return await handleFounderPhoto(req)
-      return await handleSignup(req)
+      try {
+        return await handleSignup(req)
+      } catch (e) {
+        // A crash mid sign-up loses a real sponsor's entry: it pages, like a failed save.
+        await alertNotCreated(serviceClient(), 'crashed', { error: caughtMessage(e) })
+        return json({ error: 'server_error' }, 500)
+      }
     }
     return json({ error: 'method_not_allowed' }, 405)
   } catch (e) {

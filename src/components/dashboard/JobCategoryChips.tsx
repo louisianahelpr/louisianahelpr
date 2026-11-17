@@ -17,6 +17,11 @@
  * Chips are the shared FilterChip; icons are lucide at the app's one weight (owner 11-04), not the filter sheet's emoji.
  * Guard: src/test/jobsCategoryChipsRow.test.tsx.
  *
+ * Size `tall` (44px), like DeclutterCategoryChips (audit 11-10 F313): a strip thumbed sideways on a phone keeps the
+ * 44px tap floor. Since the row always draws (owner 11-13) the default 40px chips put ten sub-44px controls on every
+ * signed-in /jobs, and e2e-journeys feed-chrome (14:20Z 11-17 run 44101977703) failed on them at 375 and 1440.
+ * Guard: src/test/jobsSkeletonChipsBone.test.tsx (chips and their loading bone are both 44px).
+ *
  * F107 (owner UI audit 11-09; owner pick 11-09: filters inside the existing tabs): a "Saved" chip after "All", the
  * feed's own "Only saved jobs" filter (Dashboard's savedOnly, the same one the filter sheet and the desktop cluster
  * toggle), so a job you saved has a home on Browse. Shown once you have saved a job, or while it is on.
@@ -66,9 +71,9 @@ export function JobCategoryChips({ value, onChange, saved }: {
   useEffect(() => { noteJobChipsRow(true); }, []);
   return (
     <div role="group" aria-label="Categories" data-chip-row="job-categories" className="flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <FilterChip pressed={value === null && !saved?.on} onClick={() => { onChange(null); if (saved?.on) saved.onToggle(); }} className="shrink-0" data-category-chip="all">{t("section.chipAll")}</FilterChip>
+      <FilterChip pressed={value === null && !saved?.on} onClick={() => { onChange(null); if (saved?.on) saved.onToggle(); }} size="tall" className="shrink-0" data-category-chip="all">{t("section.chipAll")}</FilterChip>
       {savedChip && (
-        <FilterChip pressed={saved!.on} onClick={saved!.onToggle} className="shrink-0" data-category-chip="saved">
+        <FilterChip pressed={saved!.on} onClick={saved!.onToggle} size="tall" className="shrink-0" data-category-chip="saved">
           <Bookmark className="h-4 w-4 shrink-0" aria-hidden />
           {t("section.chipSaved")}
         </FilterChip>
@@ -76,7 +81,7 @@ export function JobCategoryChips({ value, onChange, saved }: {
       {JOB_CATEGORY_GROUPS.map((g) => {
         const Icon = GROUP_ICON[g.id];
         return (
-          <FilterChip key={g.id} pressed={value === g.id} onClick={() => onChange(value === g.id ? null : g.id)} className="shrink-0" data-category-chip={g.id}>
+          <FilterChip key={g.id} pressed={value === g.id} onClick={() => onChange(value === g.id ? null : g.id)} size="tall" className="shrink-0" data-category-chip={g.id}>
             <Icon className="h-4 w-4 shrink-0" aria-hidden />
             {jobGroupChipLabel(g, t)}
           </FilterChip>

@@ -5139,6 +5139,13 @@ html.web-desktop .chip-row > button {
   background: hsl(var(--card)) !important; background-image: none !important;
   color: hsl(var(--foreground)) !important; box-shadow: none !important;
 }
+/* The guest Jobs | Declutter switch (GuestSectionSwitch, M13 11-16) is a guest's way between the two sections, not a
+   list filter: its chips keep the 44px tap floor at every width (e2e-journeys feed-chrome "guest sub-44px controls",
+   run 44101977703: Jobs and Declutter at 36px on /browse at 320, 375 and 1440). Guard:
+   src/test/guestSectionSwitchTapFloor.test.ts. */
+[data-guest-section-switch] .chip-row > button {
+  min-height: 2.75rem;
+}
 .category-chip-row > button[aria-pressed="true"],
 .chip-row > button[aria-selected="true"],
 .chip-row > button[aria-checked="true"],

@@ -1,11 +1,11 @@
 /**
  * F260q (owner 11-11 "Spanish everything"): the notice email follows the recipient's language (profiles.language).
  * A member who picked Spanish gets the subject and message re-written by the shared notice shapes
- * (_shared/noticeEs.ts), the button in Spanish, and the template's own words (preheader, greeting, footer) in Spanish.
+ * (_shared/noticeEs.ts), the button in Spanish, and the template's own words (the next-step line, greeting, footer) in Spanish.
  * An English reader, or a failed language read, gets exactly what the notice said. Real sender source, edge harness.
  *
  * @mutate supabase/functions/send-notification-email/index.ts |     const lang: 'en' \| 'es' = !langErr && langRow?.language === 'es' ? 'es' : 'en' |     const lang: 'en' \| 'es' = 'en'
- * @mutate supabase/functions/send-notification-email/index.ts |       lang === 'es' ? noticeInSpanish(message) : message, |       message,
+ * @mutate supabase/functions/send-notification-email/index.ts |     const readerMessage = lang === 'es' ? noticeInSpanish(message) : message |     const readerMessage = message
  * @mutate supabase/functions/send-notification-email/index.ts |       subject,\n      html, |       subject: title,\n      html,
  * @mutate supabase/functions/send-notification-email/index.ts |       lang,\n      userName, |       userName,
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   return lang === "es" ? (ACTION_LABEL_ES[label] ?? label) : label; |   return label;
@@ -67,7 +67,8 @@ describe("the notice email follows the recipient's language (F260q)", () => {
   it("a Spanish reader gets the subject, message, button and template words in Spanish", async () => {
     setup("es");
     const { subject, props } = await send();
-    expect(subject).toBe("Nueva postulación");
+    // The subject names the job the message quotes (owner 11-17, transactionalEmailsAreNotThin).
+    expect(subject).toBe('Nueva postulación: "Mow lawn"');
     expect(props.title).toBe("Nueva postulación");
     expect(props.message).toBe('Su pago por "Mow lawn" se liberó a su cuenta.');
     expect(props.actionLabel).toBe("Ver el trabajo");
@@ -78,7 +79,7 @@ describe("the notice email follows the recipient's language (F260q)", () => {
     for (const lang of ["en", undefined]) {
       setup(lang);
       const { subject, props } = await send();
-      expect(subject).toBe("New application");
+      expect(subject).toBe('New application: "Mow lawn"');
       expect(props.message).toBe('Your payout for "Mow lawn" has been released to your account.');
       expect(props.actionLabel).toBe("See the job");
       expect(props.lang).toBe("en");
@@ -88,7 +89,7 @@ describe("the notice email follows the recipient's language (F260q)", () => {
   it("the template's own words come from the reader's language", () => {
     const tpl = blankComments(readFileSync(join(ROOT, "supabase/functions/_shared/email-templates/notification.tsx"), "utf8"));
     expect(tpl).toContain("const w = NOTICE_EMAIL_WORDS[lang]");
-    for (const k of ["preheader", "hey", "why", "change", "open"]) expect(tpl).toMatch(new RegExp(`\\bw\\.${k}\\b`));
+    for (const k of ["more", "hey", "why", "change", "open"]) expect(tpl).toMatch(new RegExp(`\\bw\\.${k}\\b`));
     expect(tpl).toContain("hey: 'Hola'");
     expect(tpl).toContain("Cambiar qué correos recibe");
     expect(tpl.match(/\bw\.[a-z]+/g)?.length ?? 0).toBeGreaterThan(5);

@@ -16,7 +16,7 @@
 import * as React from 'npm:react@18.3.1'
 import { Heading, Link, Text } from 'npm:@react-email/components@0.0.22'
 import { brand, h1, text as textStyle } from './styles.ts'
-import { NOTICE_SIGNOFF, keepNumberUnitsTogether } from './notificationAction.ts'
+import { NOTICE_SIGNOFF, keepNumberUnitsTogether, noticePreheader } from './notificationAction.ts'
 import { BaseLayout, BrandButton, MarketingFooter, TransactionalFooter } from './components.tsx'
 
 export interface NotificationEmailProps {
@@ -59,10 +59,18 @@ export interface NotificationEmailProps {
   lang?: 'en' | 'es'
 }
 
-/** The email's own words, per language. Brand names stay as they are. */
+/**
+ * The email's own words, per language. Brand names stay as they are.
+ *
+ * There is no fixed preheader any more (owner 11-17: these notices landed in Gmail spam). The old one was
+ * "open Louisiana Helpr for the details.", the same vague words under every notice, so the inbox line read
+ * "New application — open Helpr for the details." with a one-sentence body: a link-only notice, a classic spam
+ * shape. The preview line is now the notice's own message, and `more` is a real sentence saying what the button does.
+ * Guard: src/test/transactionalEmailsAreNotThin.test.ts.
+ */
 const NOTICE_EMAIL_WORDS = {
   en: {
-    preheader: 'open Louisiana Helpr for the details.',
+    more: 'Tap the button to see it on Louisiana Helpr, where you can answer it or take the next step.',
     hey: 'Hey',
     there: 'there',
     why: "You're getting this because email alerts are on for this kind of notice.",
@@ -70,7 +78,7 @@ const NOTICE_EMAIL_WORDS = {
     open: 'Open Louisiana Helpr',
   },
   es: {
-    preheader: 'abra Louisiana Helpr para ver los detalles.',
+    more: 'Toque el botón para verlo en Louisiana Helpr, donde puede responder o dar el siguiente paso.',
     hey: 'Hola',
     there: '',
     why: 'Recibe esto porque las alertas por correo están activadas para este tipo de aviso.',
@@ -149,7 +157,8 @@ export const NotificationEmail = ({
   const name = userName || w.there
   return (
   <BaseLayout
-    preheader={`${title} — ${w.preheader}`}
+    lang={lang}
+    preheader={noticePreheader(message)}
     footer={
       unsubscribeUrl ? (
         <MarketingFooter unsubscribeUrl={unsubscribeUrl} />
@@ -180,6 +189,9 @@ export const NotificationEmail = ({
       {keepNumberUnitsTogether(message)}
     </Text>
     {receipt ? <ReceiptBlock receipt={receipt} /> : null}
+    <Text className="e-text" style={textStyle}>
+      {w.more}
+    </Text>
     <BrandButton href={actionUrl} label={actionLabel ?? w.open} widthPx={230} />
     <Text className="e-text" style={{ ...textStyle, fontSize: '14px', margin: '28px 0 4px' }}>
       — {SIGNOFF}

@@ -114,8 +114,12 @@ export const SENDER_DOMAIN = "louisianahelpr.com";
 /** Envelope address for every outbound Helpr email. */
 const SENDER_ADDRESS = `noreply@${SENDER_DOMAIN}`;
 
-/** The one brand display name. Was: "The Helpr Team" / "Helpr" / "Louisiana Helpr". */
-const SENDER_NAME = "Helpr";
+/**
+ * The one brand display name. Was: "The Helpr Team" / "Helpr" / "Louisiana Helpr"; then "Helpr" alone, while every
+ * body, sign-off, subject and footer says "Louisiana Helpr" (owner 11-17, notices in Gmail spam: the From name now
+ * matches the name the email signs with). Guard: src/test/transactionalEmailsAreNotThin.test.ts.
+ */
+const SENDER_NAME = "Louisiana Helpr";
 
 /** Default From header — use this unless you have a reason not to. */
 export const FROM_DEFAULT = `${SENDER_NAME} <${SENDER_ADDRESS}>`;

@@ -14,3 +14,5 @@ export function verifyRestore(io: {
   restoredRows: { bucket_id: string; name: string }[];
   read: (rel: string) => Uint8Array | null;
 }): { problems: string[]; checked: number; pointed: number };
+export function withTransientRetry<T>(fn: () => Promise<T>, opts?: { tries?: number; baseMs?: number; sleep?: (ms: number) => Promise<void> }): Promise<T>;
+export function httpError(status: number, retryAfter?: string | null): Error & { status: number; retryAfterMs?: number };

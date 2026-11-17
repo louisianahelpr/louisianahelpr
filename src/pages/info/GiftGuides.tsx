@@ -1,7 +1,6 @@
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
-import { safeDocumentUrl } from "@/lib/storagePath";
 import { giftGuides as G, type GiftLink, type GiftPick, type GiftSection } from "@/content/giftGuides";
 
 /**
@@ -12,10 +11,13 @@ import { giftGuides as G, type GiftLink, type GiftPick, type GiftSection } from 
  * neither waits for them nor shifts when they land. Guard: src/test/giftGuidesPage.test.tsx.
  */
 
-/** The one place an outbound link is drawn, so none can miss the rel or the new tab. https only (safeDocumentUrl). */
+/**
+ * The one place an outbound link is drawn, so none can miss the rel or the new tab. The scheme is fixed here, not by
+ * the content file: whatever a value starts with, the link is https (an affiliate link, never a stored document).
+ */
 function Out({ link, className, children }: { link: GiftLink | { href: string; label?: string }; className?: string; children?: React.ReactNode }) {
   return (
-    <a href={safeDocumentUrl(link.href) ?? undefined} target="_blank" rel="sponsored noopener" className={className} data-gift-out="">
+    <a href={`https://${link.href.replace(/^https:\/\//, "")}`} target="_blank" rel="sponsored noopener" className={className} data-gift-out="">
       {children ?? link.label}
     </a>
   );

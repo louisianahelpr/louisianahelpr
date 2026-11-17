@@ -33,6 +33,51 @@
       "permanent": true
     },
     {
+      "source": "/sponsors",
+      "destination": "/sponsor",
+      "permanent": true
+    },
+    {
+      "source": "/sponsorship",
+      "destination": "/sponsor",
+      "permanent": true
+    },
+    {
+      "source": "/sponser-form",
+      "destination": "/sponsor",
+      "permanent": true
+    },
+    {
+      "source": "/sponsorform",
+      "destination": "/sponsor",
+      "permanent": true
+    },
+    {
+      "source": "/gift-",
+      "destination": "/gift-guides",
+      "permanent": true
+    },
+    {
+      "source": "/gift",
+      "destination": "/gift-guides",
+      "permanent": true
+    },
+    {
+      "source": "/gifts",
+      "destination": "/gift-guides",
+      "permanent": true
+    },
+    {
+      "source": "/giftguide",
+      "destination": "/gift-guides",
+      "permanent": true
+    },
+    {
+      "source": "/gift-guide",
+      "destination": "/gift-guides",
+      "permanent": true
+    },
+    {
       "source": "/contact",
       "destination": "/support",
       "permanent": true

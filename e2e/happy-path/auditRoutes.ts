@@ -178,6 +178,8 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // F255 (owner 2026-11-11).
   { name: "fees", url: "/fees" },
   { name: "safety", url: "/safety" },
+  // Owner 2026-11-16: the Holiday Gift Guides.
+  { name: "gift-guides", url: "/gift-guides" },
   // OPS-4 town + service pages (src/lib/townPages.mjs): one of the 40 stands in for the shared page.
   { name: "hire-town", url: "/hire/handyman/lafayette" },
   { name: "terms-full", url: "/terms/full" },

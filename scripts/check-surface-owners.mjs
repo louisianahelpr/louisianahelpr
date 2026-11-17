@@ -67,6 +67,7 @@ const OWNERS = {
   "/sms-opt-in": ["lh-copy-content"],
   "/fees": ["lh-copy-content"],
   "/safety": ["lh-trust-safety", "lh-copy-content"],
+  "/gift-guides": ["lh-copy-content", "lh-compliance-store"],
   "/terms/full": ["lh-compliance-store"],
   "/privacy/full": ["lh-compliance-store"],
   // /gift-card (a redirect onto this tab) was deleted with Q194, 2026-09-23.

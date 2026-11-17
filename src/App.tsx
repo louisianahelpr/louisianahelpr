@@ -167,14 +167,12 @@ const DashboardGuest = lazyWithPreload(() => import("./pages/home/DashboardGuest
 const HelpCenter = lazyWithPreload(() => import("./pages/info/HelpCenter"));
 const HireTownPage = lazyWithPreload(() => import("./pages/info/HireTownPage"));
 const SmsOptIn = lazyWithPreload(() => import("./pages/info/SmsOptIn"));
-// F255 (audit 11-10, owner 2026-11-11): /fees and /safety, lazy so the critical path is unchanged.
+// F255 (audit 11-10, owner 2026-11-11): /fees, /safety (and 11-16 /gift-guides), lazy; critical path unchanged.
 const Fees = lazyWithPreload(() => import("./pages/info/Fees"));
 const Safety = lazyWithPreload(() => import("./pages/info/Safety"));
-// Owner 2026-11-16: the Holiday Gift Guides, public and lazy (critical path unchanged).
 const GiftGuides = lazyWithPreload(() => import("./pages/info/GiftGuides"));
 const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
-
 /**
  * A cold load's own page starts its import HERE, as this file runs, so the import has answered before the first render
  * and lazyWithPreload draws the page as itself: no route fallback, no retry for React to hold 500 ms (Builder 2,
@@ -467,10 +465,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/hire/:service/:town" element={<RouteErrorBoundary>{routeEl(<PageTransition><HireTownPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Twilio A2P review (owner 2026-10-23): a public link to how members opt in to texts. */}
       <Route path="/sms-opt-in" element={<RouteErrorBoundary>{routeEl(<PageTransition><SmsOptIn /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* F255 (owner 2026-11-11): what it costs (words only) and how members are kept safe. */}
+      {/* F255 (owner 2026-11-11): costs, safety; 11-16 Holiday Gift Guides (src/content/giftGuides.ts). */}
       <Route path="/fees" element={<RouteErrorBoundary>{routeEl(<PageTransition><Fees /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/safety" element={<RouteErrorBoundary>{routeEl(<PageTransition><Safety /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* Owner 2026-11-16: the Holiday Gift Guides (picks and links in src/content/giftGuides.ts). */}
       <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).

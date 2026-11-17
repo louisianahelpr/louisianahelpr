@@ -73,10 +73,12 @@ div.lh25.lh25 {
 /* `.lh25 .lh25-btn` (0,2,0): the controls are the shared <Button variant="ghost"> (OWN-SHARED), so the page's own
    button look is stated one step stronger than any Tailwind utility the shared component carries. Press feedback is
    the app's shared one (no :active transform here: src/test/pressKeepsTranslate.test.ts). One button look on this
-   page (owner 2026-11-09): oxblood with a gold edge, as in the email; the outline variant is its quiet secondary. */
+   page (owner 2026-11-09): oxblood with a gold edge, as in the email; the outline variant is its quiet secondary.
+   min-height 56px = the shared <Button>'s default `h-14`, which `height: auto` releases: at 48px the a11y geometry
+   check read "asks h-14 (56px), renders 48px" on every hero/final/submit button (2026-11-17, src/test/sponsorButtonGeometry.test.ts). */
 .lh25 .lh25-btn {
   height: auto; white-space: normal; text-align: center;
-  display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 14px 28px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; padding: 14px 28px;
   border-radius: var(--radius); font: 400 14px/1.25 var(--body); letter-spacing: .16em; text-transform: uppercase; text-decoration: none; cursor: pointer;
   background: var(--ox); color: var(--cream) !important; border: 1px solid var(--gold); box-shadow: none;
   transition: background-color .15s ease;
@@ -227,10 +229,12 @@ div.lh25.lh25 {
 .lh25-claim { scroll-margin-top: 12px; }
 .lh25-calendar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; max-width: 760px; margin: 0 auto; padding: 4px; }
 .lh25-calendar-error { box-shadow: 0 0 0 1px var(--ox); }
-/* `.lh25 .lh25-tile`: each tile is the shared <ToggleChip> (aria-pressed), drawn in the page's own tile look. */
+/* `.lh25 .lh25-tile`: each tile is the shared <ToggleChip> (aria-pressed), drawn in the page's own tile look. Its height
+   (76px, 96px from 640px) is the `min-h-[76px] sm:min-h-[96px]` class on the tile in ClaimSection.tsx, not a rule here:
+   a CSS min-height beat the chip's own `min-h-11`, so the class asked 44px and the tile rendered 76px. */
 .lh25 .lh25-tile {
   white-space: normal; flex-shrink: 1; font-size: inherit; font-weight: inherit;
-  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 76px; min-width: 0; padding: 8px 2px;
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; padding: 8px 2px;
   border-radius: var(--radius); border: 1px solid var(--line); cursor: pointer; font-family: var(--body); color: var(--ink);
   background: var(--paper); background-image: none; box-shadow: none; transition: background-color .12s ease, border-color .12s ease;
 }
@@ -246,7 +250,9 @@ div.lh25.lh25 {
 .lh25-tile.is-full .lh25-tile-count { color: var(--ox); }
 .lh25-anyday { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 18px auto 0; font-style: italic; color: var(--green); cursor: pointer; min-height: 44px; }
 /* The app's 44px tap floor sits on the LABEL here (whole row is clickable), so the box itself can be a normal size. */
-.lh25 input[type="radio"] { min-width: 0; min-height: 0; width: 22px; height: 22px; margin: 0; accent-color: var(--green); flex: none; }
+/* No width/height here: the radio is the shared <NativeRadio> (h-4 w-4), and a 22px rule beat its class (a11y geometry
+   check, 2026-11-17: "input asks h-4 (16px), renders 22.0px"). */
+.lh25 input[type="radio"] { min-width: 0; min-height: 0; margin: 0; accent-color: var(--green); flex: none; }
 /* The shared <Checkbox> (18 px box, 12 px tick) in the page's green when ticked. */
 .lh25 [role="checkbox"] { flex: none; background: var(--paper); border-color: var(--field-line); }
 .lh25 [role="checkbox"][data-state="checked"] { background: var(--green); border-color: var(--green); color: var(--cream); }
@@ -284,7 +290,7 @@ div.lh25.lh25 {
 .lh25-check-error span { color: var(--ox); }
 .lh25-req { color: var(--ox); }
 .lh25-banner-error { margin: 16px 0 0; padding: 12px 14px; background: #fdf3f2; color: var(--ox); font-weight: 700; border: 1px solid rgba(110, 20, 35, .35); }
-.lh25 .lh25-submit { width: 100%; margin-top: 20px; font-size: 15px; min-height: 54px; }
+.lh25 .lh25-submit { width: 100%; margin-top: 20px; font-size: 15px; }
 .lh25-hp { position: absolute !important; left: -10000px !important; width: 1px; height: 1px; overflow: hidden; }
 
 /* Thank you / sign-ups closed */
@@ -336,7 +342,7 @@ div.lh25.lh25 {
 @media (min-width: 640px) {
   .lh25-trust { grid-template-columns: repeat(4, auto); justify-content: center; gap: 10px 36px; }
   .lh25-calendar { gap: 10px; }
-  .lh25 .lh25-tile { min-height: 96px; padding: 10px 6px; }
+  .lh25 .lh25-tile { padding: 10px 6px; }
   .lh25-tile-day { font-size: 32px; }
   .lh25-tile-count { font-size: 12px; }
   .lh25-tile-check { top: 6px; right: 6px; width: 22px; height: 22px; }

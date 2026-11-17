@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-17T02:43Z",
+  "measured_at": "2026-11-17T08:10Z",
   "issues": {
     "readable": true,
     "open": [
@@ -85,7 +85,7 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43796729286",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44019606215",
         "runTruncated": false
       },
       {
@@ -99,7 +99,7 @@
         "number": 4270,
         "title": "nightly-red: nightly-live-smoke",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43793877451",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44021551725",
         "runTruncated": false
       },
       {
@@ -205,14 +205,6 @@
         "issue": 2244
       },
       {
-        "fingerprint": "8018e82cb1674eba274a494805d751d1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-drift-detect",
-        "issue": 4415
-      },
-      {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -290,7 +282,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": 4222
+        "issue": null
       },
       {
         "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
@@ -307,6 +299,14 @@
         "status": "open",
         "title": "cron http failure: review-nag-cron returned 500 (# defect(s) reported)",
         "issue": null
+      },
+      {
+        "fingerprint": "8a5eda1d93db04a8bc5310caf5150938",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: db-backup",
+        "issue": 4651
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -474,7 +474,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: nightly-live-smoke",
-        "issue": 4270
+        "issue": null
       },
       {
         "fingerprint": "4fa3a43d27c008020ff0b5e36d711915",
@@ -568,10 +568,10 @@
     "ledger 6389f98a9f66": "Q1816",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
-    "ledger 8018e82cb167": "Q1816",
     "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
     "ledger 8a2e802edbe7": "Q2800",
+    "ledger 8a5eda1d93db": "Q1816",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",
     "ledger 99390a68ded7": "Q1615",

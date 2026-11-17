@@ -87,16 +87,40 @@ async function memberGet<T>(request: APIRequestContext, s: Session, path: string
   return (await r.json()) as T;
 }
 
+/**
+ * The thread is chosen the way the Inbox orders and keeps its rows, or the row may not be on the list at all: the
+ * Inbox reads the newest 200 messages and hides system rows from the list (loadConversations.ts, inboxShowsRow), so a
+ * thread whose only recent row is a system row ("No longer open", written when a fixture is retired) is not listed.
+ * e2e-journeys 44101977703 (2026-11-17) picked exactly that: the newest SYSTEM row was on a retired "Prod audit funded
+ * fixture" whose last real message was 11-06, past the 200-row window, and 13 tests waited 20 s for a row that was
+ * never drawn. Now: the threads with the newest NON-system rows first (what the Inbox lists at the top), and the
+ * first of them that also carries stored system rows.
+ */
 async function findThread(request: APIRequestContext, s: Session): Promise<Thread> {
   if (thread) return thread;
   const me = s.user.id;
-  const rows = await memberGet<{ job_id: string; sender_id: string; receiver_id: string }[]>(
+  const recent = await memberGet<{ job_id: string | null; sender_id: string; receiver_id: string }[]>(
     request,
     s,
-    `messages?select=job_id,sender_id,receiver_id&is_system=is.true&or=(sender_id.eq.${me},receiver_id.eq.${me})&order=created_at.desc&limit=1`,
+    `messages?select=job_id,sender_id,receiver_id&is_system=is.false&job_id=not.is.null&or=(sender_id.eq.${me},receiver_id.eq.${me})&order=created_at.desc&limit=60`,
   );
-  expect(rows.length, "the test poster has a thread with stored system rows (the job-status trigger writes them)").toBeGreaterThan(0);
-  const r = rows[0];
+  const candidates = [...new Map(recent.filter((m) => m.job_id).map((m) => [m.job_id as string, m])).values()];
+  // Inventory floor: the poster has recent conversations to choose from.
+  expect(candidates.length, "the test poster has recent conversations (non-system rows)").toBeGreaterThan(0);
+  let r: { job_id: string; sender_id: string; receiver_id: string } | null = null;
+  for (const c of candidates.slice(0, 12)) {
+    const sysRows = await memberGet<{ id: string }[]>(
+      request,
+      s,
+      `messages?select=id&job_id=eq.${c.job_id}&is_system=is.true&or=(sender_id.eq.${me},receiver_id.eq.${me})&limit=1`,
+    );
+    if (sysRows.length > 0) {
+      r = { job_id: c.job_id as string, sender_id: c.sender_id, receiver_id: c.receiver_id };
+      break;
+    }
+  }
+  expect(r, "one of the poster's newest conversations has stored system rows (the job-status trigger writes them)").not.toBeNull();
+  if (!r) throw new Error("unreachable: no thread with system rows");
   const jobs = await memberGet<{ title: string }[]>(request, s, `jobs?select=title&id=eq.${r.job_id}`);
   expect(jobs.length, "the poster can read the thread's job").toBe(1);
   const sys = await memberGet<{ content: string }[]>(

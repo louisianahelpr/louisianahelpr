@@ -7,6 +7,7 @@ import { HELPER_E2E_ID, POSTER_E2E_ID } from "./throwaway";
 import { ensureBrowseFixture } from "../../scripts/e2e/browseFixture.mjs";
 import { EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH } from "../prelaunch";
 import { searchFeed } from "../feedSearch";
+import { JOB_CATEGORY_GROUPS } from "../../src/lib/jobCategoryGroups";
 
 /**
  * Journey 1 — discovery.
@@ -148,11 +149,13 @@ test(guestTitle, async ({ browser, request, journey }) => {
 
   await test.step("guest taps a job, sees it, and is asked to create an account, keeping the job", async () => {
     // JOBS-29 (lead 2026-10-31): a guest tap shows the job first (GuestJobPreview: title, category, parish,
-    // budget), then "Sign up to apply" goes to sign-up carrying the job, so the job opens after signing in.
+    // pay after fees), then "Sign up to apply" goes to sign-up carrying the job, so the job opens after signing in.
     await page.getByRole("heading", { level: 2 }).first().click();
     const preview = page.locator("[data-guest-job-preview]");
     await expect(preview, "tapping a job as a guest did not show the job").toBeVisible({ timeout: 30_000 });
-    await expect(preview.getByText("Budget")).toBeVisible();
+    // The preview names the pay as the card does, after fees (GuestJobPreview GUEST_PAY_LABEL, 11-11), never "Budget":
+    // e2e-journeys 44101977703 (2026-11-17) still waited for "Budget" on a preview that read "You'd earn after fees".
+    await expect(preview.getByText("You'd earn after fees")).toBeVisible();
     await preview.getByRole("button", { name: "Sign up to apply" }).click();
     await expect(page, "tapping a job as a guest did not prompt sign-up").toHaveURL(/\/signup\?redirect=%2Fjobs%2F[0-9a-f-]{36}/, { timeout: 30_000 });
     // Board 55 (owner 10-20): the sign-up heading is "Create your account".
@@ -252,11 +255,17 @@ test(authedTitle, async ({ browser, request, journey }) => {
     await page.getByRole("button", { name: "Filters" }).first().click();
     const cat = page.getByRole("dialog").getByRole("group", { name: "Filter by category" });
     await expect(cat).toBeVisible();
-    await cat.getByRole("button", { name: /cleaning/i }).first().click();
+    // The sheet's Category is the 8 Post a job groups since owner 2026-10-21 (jobCategoryGroups.ts: "the group a poster
+    // picks is the group a Helpr filters by"); e2e-journeys 44101977703 (2026-11-17) still looked for a "Cleaning" chip.
+    // Cleaning sits in Home, so Home is chosen and every card left must name one of Home's categories.
+    const home = JOB_CATEGORY_GROUPS.find((g) => g.id === "home");
+    expect(home?.items.length ?? 0, "the Home group holds categories").toBeGreaterThan(1);
+    const homeWords = new RegExp(home!.items.map((i) => i.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i");
+    await cat.getByRole("button", { name: home!.label, exact: true }).first().click();
     await closeFilterSheet(page);
     await expect(cards.first()).toBeVisible({ timeout: 20_000 });
     for (const label of await cards.evaluateAll((els) => els.map((e) => e.textContent ?? ""))) {
-      expect.soft(label, "a non-Cleaning job survived the Cleaning filter").toMatch(/cleaning/i);
+      expect.soft(label, "a job outside Home survived the Home filter").toMatch(homeWords);
     }
     await assertHealthy(page, "category filter");
     await journey.milestone(page, "filtered-cleaning");

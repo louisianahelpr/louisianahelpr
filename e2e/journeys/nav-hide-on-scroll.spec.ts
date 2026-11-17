@@ -346,7 +346,14 @@ test(`${scrollName("tab-order", "poster")} · a hidden dock is taken out of the 
  * Jobs · Declutter · Messages · You", each tab painting its icon and its name under it on one line. The source half
  * is src/test/dockLabelsOneLine.test.ts; this is the pixel half: each tab paints an icon and exactly its name, each
  * is at least 44px wide inside the dock and the viewport, and no two touch.
+ *
+ * The tabs themselves are the owner's 11-14 dock (src/components/mobileNav/dockItems.ts phoneDockItems): Home, Jobs,
+ * Declutter, Shops, Homes, with Messages and You on the top row. Shops and Homes are listed only for a viewer who can
+ * preview them (owner 11-16 M8/M9: hidden from members until they launch; testers keep them) and then wear a "Soon"
+ * tag (name "Shops, Soon", the tag in [data-dock-soon]). e2e-journeys 44101977703 (2026-11-17) failed here still
+ * expecting the 11-09 "Messages · You" dock: tabs=["Home","Jobs","Declutter","Shops, Soon","Homes, Soon"].
  */
+const PHONE_DOCK = ["Home", "Jobs", "Declutter", "Shops", "Homes"];
 for (const width of [320, 375]) {
   test(`${scrollName(`labels-${width}`, "poster")} · dock labels: five named tabs, each word under its icon, none touching @ ${width}`, as("poster", `labels-${width}`, async (page) => {
     await boot(page, "/home");
@@ -362,7 +369,7 @@ for (const width of [320, 375]) {
           // The words a tab paints: its text minus its count badge.
           const words = [...el.querySelectorAll<HTMLElement>("*")].concat(el)
             .flatMap((n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => ({ c, parent: n })))
-            .filter(({ parent }) => !parent.closest("[data-dock-badge]"))
+            .filter(({ parent }) => !parent.closest("[data-dock-badge]") && !parent.closest("[data-dock-soon]"))
             .map(({ c }) => (c.textContent ?? "").trim())
             .join("");
           return { name: el.getAttribute("aria-label") ?? "", words, icon: !!el.querySelector("svg"), left: r.left, right: r.right, w: r.width };
@@ -370,10 +377,14 @@ for (const width of [320, 375]) {
         .sort((a, b) => a.left - b.left);
       return { tabs, navLeft: navBox?.left ?? 0, navRight: navBox?.right ?? 0, vw: innerWidth };
     });
-    const names = m.tabs.map((t) => t.name.replace(/^\d+\+? /, ""));
-    expect(names, `tabs=${JSON.stringify(names)}`).toEqual(["Home", "Jobs", "Declutter", "Messages", "You"]);
+    // The shown name: the count badge's number and a preview tab's ", Soon" tag are not the tab's own words.
+    const shownName = (name: string) => name.replace(/^\d+\+? /, "").replace(/, Soon$/, "");
+    const names = m.tabs.map((t) => shownName(t.name));
+    // Inventory floor: the three open sections are always there; Shops and Homes follow only as a preview.
+    expect(names.length, `tabs=${JSON.stringify(names)}`).toBeGreaterThan(2);
+    expect(names, `tabs=${JSON.stringify(names)}`).toEqual(PHONE_DOCK.slice(0, names.length));
     for (const t of m.tabs) {
-      expect(t.words, `"${t.name}" paints its name under its icon`).toBe(t.name.replace(/^\d+\+? /, ""));
+      expect(t.words, `"${t.name}" paints its name under its icon`).toBe(shownName(t.name));
       expect(t.icon, `"${t.name}" has no icon`).toBe(true);
       expect(t.w, `"${t.name}" is narrower than 44px at ${width}`).toBeGreaterThanOrEqual(44);
       expect(t.left, `"${t.name}" leaves the dock on the left`).toBeGreaterThanOrEqual(Math.max(0, m.navLeft) - 0.5);

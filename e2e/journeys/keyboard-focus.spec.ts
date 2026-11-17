@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable, rest, SUPABASE_URL, E2E_TITLE_MARKER, type Session } from "./fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
-import { expectGateSendsToCompleteProfile } from "./incompleteAccount";
+import { COMPLETE_PROFILE_FORM, expectGateSendsToCompleteProfile } from "./incompleteAccount";
 import { fillBudget } from "./postJobForm";
 import { clearJobPostDraft } from "./jobPostDraft";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
@@ -110,7 +110,11 @@ test(guestTitle, async ({ browser, request, journey }) => {
     // found"). The class is unchanged: a keyboard stop with nothing painted.
     // The form the incomplete account lands on is walked whole, from the
     // screen's own inventory.
-    await page.goto("/complete-profile");
+    // Owner 11-14 (deferred profile, CompleteProfile.tsx alreadyComplete): a member who has ticked Terms + 18+ sees
+    // the full form only on the way to a commitment route; a bare /complete-profile sends them to /home. e2e-journeys
+    // 44101977703 (2026-11-17) waited 60 s for #zipCode on Home. So the leg arrives the way the app sends them:
+    // headed to Post a job (src/lib/profileGateRoutes.ts isCommitmentPath).
+    await page.goto(COMPLETE_PROFILE_FORM);
     // First/last name are asked only when a provider gave no full name (owner
     // 2026-10-26, CompleteProfile.tsx providerGaveName); the seed carries one,
     // so the always-present field is the ZIP.

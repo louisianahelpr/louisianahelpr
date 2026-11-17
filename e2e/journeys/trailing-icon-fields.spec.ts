@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { test, expect, assertHealthy, newUserContext, optionalSession } from "./fixtures";
-import { expectGateSendsToCompleteProfile } from "./incompleteAccount";
+import { COMPLETE_PROFILE_FORM, expectGateSendsToCompleteProfile } from "./incompleteAccount";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 
 /**
@@ -151,7 +151,11 @@ test(incompleteTitle, async ({ browser, request, journey }) => {
   const ctx = await newUserContext(browser, session, { rotation });
   const page = journey.track("incomplete", await ctx.newPage());
   await test.step("/complete-profile: every ✓-bearing field shows its value", async () => {
-    await page.goto("/complete-profile");
+    // Owner 11-14 (deferred profile, CompleteProfile.tsx alreadyComplete): a member who has ticked Terms + 18+ sees
+    // the full form only on the way to a commitment route; a bare /complete-profile sends them to /home. e2e-journeys
+    // 44101977703 (2026-11-17) waited 60 s for #zipCode on Home. So the leg arrives the way the app sends them:
+    // headed to Post a job (src/lib/profileGateRoutes.ts isCommitmentPath).
+    await page.goto(COMPLETE_PROFILE_FORM);
     await expect(page.locator("#zipCode")).toBeVisible({ timeout: 60_000 });
     // First/last name are asked only when a provider gave no full name (owner
     // 2026-10-26, CompleteProfile.tsx providerGaveName). The seed is an email

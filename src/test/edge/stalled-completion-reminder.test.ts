@@ -361,6 +361,30 @@ describe("stalled-completion-reminder", () => {
     expect(JSON.stringify(notifs())).not.toContain("admin_alert");
   });
 
+  it("a lapsed continue day measures the ladder from THAT day: day 1's age never escalates it (vacuity 44108754883)", async () => {
+    const fn = await load();
+    // Day 1 is ESCALATE + 200 h past and both nudges went out long ago: measured from day 1 this job escalates.
+    seedStalled(STALLED_ESCALATE_AFTER_HOURS + 200, {
+      job_id: "job-stalled",
+      first_sent_at: new Date(Date.now() - 100 * HOUR).toISOString(),
+      second_sent_at: new Date(Date.now() - 80 * HOUR).toISOString(),
+      escalated_at: null,
+    });
+    // A fixed one-hour estimate, so the moved day's end is exactly 29 h past: over the second nudge's 24 h, under
+    // escalation's 48 h, and the second nudge was already sent. Measured from the moved day there is nothing to send.
+    (scenario.reads.jobs.rows as Array<Record<string, unknown>>)[0].estimated_hours = 1;
+    const movedStart = new Date(Date.now() - 30 * HOUR);
+    const part = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", ...o }).format(movedStart);
+    const newDate = part({ year: "numeric", month: "2-digit", day: "2-digit" });
+    const newTime = `${part({ hour: "2-digit", hourCycle: "h23" }).padStart(2, "0")}:${part({ minute: "2-digit" }).padStart(2, "0")}:00`;
+    expect(Math.abs(jobLocalStartMs(newDate, newTime) - movedStart.getTime())).toBeLessThan(60_000);
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-stalled", status: "set", new_date: newDate, new_start_time: newTime }] };
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(200);
+    expect(notifs()).toEqual([]);
+    expect(ledgerWrites()).toHaveLength(0);
+  });
+
   it("continue another day: an unreadable check holds the job (fail closed)", async () => {
     const fn = await load();
     seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);

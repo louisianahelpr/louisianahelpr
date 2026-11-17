@@ -20,13 +20,14 @@
  * decision the function makes, not on a query string.
  *
  * @mutate supabase/functions/stalled-completion-reminder/index.ts |       if (heldByContinueDay(continuing, job.id)) return; |       if (false) return;
+ * @mutate supabase/functions/stalled-completion-reminder/index.ts |           const ownerFacing = job.is_seed !== true; |           const ownerFacing = job.is_seed !== false;
  * @mutate supabase/functions/stalled-completion-reminder/index.ts |       const evidence = moved ? { ...job, date_needed: moved.new_date, start_time: moved.new_start_time } : job; |       const evidence = job;
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import {
   scheduledEndMs,
   STALLED_ESCALATE_AFTER_HOURS,
@@ -240,12 +241,9 @@ describe("stalled-completion-reminder", () => {
       second_sent_at: new Date(Date.now() - (hoursAgo - STALLED_SECOND_AFTER_HOURS) * HOUR).toISOString(),
       escalated_at: null,
     });
-    // A FIXTURE row, deliberately: the eleven jobs in this trap on prod are all
-    // `is_seed`, and since the owner's 2026-09-19 decision they escalate to the
-    // admin queue like any other job. What proves the row would actually reach
-    // this code is the query assertion above (the harness applies no filters);
-    // what this pins is that nothing downstream of the scan branches on it.
-    (scenario.reads.jobs!.rows![0] as Record<string, unknown>).is_seed = true;
+    // A REAL job: it pages the admins and posts the ops alert. A seed job is
+    // queued the same way but alerts nobody (the next test).
+    (scenario.reads.jobs!.rows![0] as Record<string, unknown>).is_seed = false;
 
     const res = await fn.fetch(cronRequest(fn));
     expect(res.status).toBe(200);
@@ -260,6 +258,7 @@ describe("stalled-completion-reminder", () => {
     // is the class guard that keeps every edge-emitted admin link resolvable.
     expect(adminAlert!.link).toBe(`/admin?view=stalled&job=${(scenario.reads.jobs!.rows![0] as { id: string }).id}`);
     expect(adminAlert!.message).toMatch(/Nothing moves automatically/i);
+    expect(slackAlerts.map((a) => (a as { title: string }).title)).toEqual(["Job stalled with escrow held"]);
     // Both parties are told a person is looking, and that the money is parked.
     for (const who of [POSTED_BY, WORKED_BY]) {
       const n = sent.find((x) => x.user_id === who);
@@ -285,6 +284,37 @@ describe("stalled-completion-reminder", () => {
     expect(onlyOnce, "the escalate claim must be conditional on escalated_at IS NULL").toBeDefined();
     expect(onlyOnce!.op).toBe("is");
     expect(onlyOnce!.value).toBeNull();
+    assertNoMoneyMoved();
+  });
+
+  // Owner rule (test data never reaches the owner), measured on prod 2026-11-17: error_logs held both
+  // "Job stalled — nobody marked it done" (admin_alert mirror) and "Job stalled with escrow held" (ops alert) for
+  // SEED TEST job 60191cb1. A seed job is still queued and its seed parties still told (owner 2026-09-19,
+  // "Sweep everything, fixtures included."), but no admin is alerted and no ops alert is posted.
+  it("a SEED job escalates to the queue but alerts no admin and posts no ops alert", async () => {
+    const fn = await load();
+    const hoursAgo = STALLED_ESCALATE_AFTER_HOURS + 2;
+    seedStalled(hoursAgo, {
+      job_id: "job-stalled",
+      first_sent_at: new Date(Date.now() - (hoursAgo - STALLED_FIRST_AFTER_HOURS) * HOUR).toISOString(),
+      second_sent_at: new Date(Date.now() - (hoursAgo - STALLED_SECOND_AFTER_HOURS) * HOUR).toISOString(),
+      escalated_at: null,
+    });
+    (scenario.reads.jobs!.rows![0] as Record<string, unknown>).is_seed = true;
+
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ escalate: 1, errors: 0 });
+
+    const sent = notifs();
+    expect(sent.filter((n) => n.type === "admin_alert"), "no admin_alert for a seed job").toEqual([]);
+    expect(sent.filter((n) => n.user_id === ADMIN)).toEqual([]);
+    expect(slackAlerts, "no ops alert (not even the seed digest) for a seed job").toEqual([]);
+    // Still queued and both seed parties still told.
+    expect(sent.map((n) => n.user_id).sort()).toEqual([POSTED_BY, WORKED_BY].sort());
+    const claim = ledgerWrites();
+    expect(claim).toHaveLength(1);
+    expect((claim[0].payload as Record<string, unknown>).escalated_at).toBeTruthy();
     assertNoMoneyMoved();
   });
 

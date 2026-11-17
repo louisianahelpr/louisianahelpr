@@ -266,18 +266,22 @@ export function deleteBranches(rows, tipOf, gitFn, chunk = 100) {
     for (const r of batch) args.push(`--force-with-lease=refs/heads/${r.name}:${tipOf.get(r.name)}`,);
     args.push("origin", "--delete", ...batch.map((r) => r.name));
     let out;
+    let err = "";
     try {
       out = gitFn(args);
     } catch (e) {
       // Non-zero when any ref is rejected; the porcelain lines are still on stdout.
       out = String(/** @type {{stdout?: string}} */ (e)?.stdout ?? "");
-      if (!out) {
+      err = String(/** @type {{stderr?: string}} */ (e)?.stderr ?? "");
+      if (!out && !err) {
         for (const r of batch) failed.push({ name: r.name, why: e instanceof Error ? e.message : String(e) });
         continue;
       }
     }
     const res = parsePorcelainDeletes(out);
-    const done = new Set(res.deleted);
+    // The other event's run (push vs schedule) deleted it first: the branch is gone, which is what we wanted.
+    const gone = new Set([...err.matchAll(/unable to delete '([^']+)': remote ref does not exist/g)].map((m) => m[1]));
+    const done = new Set([...res.deleted, ...gone]);
     const why = new Map(res.rejected.map((r) => [r.name, r.why]));
     for (const r of batch) {
       if (done.has(r.name)) deleted.push(r.name);

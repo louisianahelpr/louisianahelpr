@@ -232,13 +232,7 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
         ],
       },
-      {
-        day: 8,
-        partners: [
-          { brand: "Candle Bloom Confections", prize: "Candle flower bouquet" },
-          { brand: "RYSE", prize: "RYSE Fuel bundle" },
-        ],
-      },
+      { day: 8, partners: [{ brand: "RYSE", prize: "RYSE Fuel bundle" }] },
       {
         day: 9,
         partners: [
@@ -268,7 +262,6 @@ export const sponsorPage = {
         partners: [
           { brand: "Oyu Botanica", prize: "Winter stocking stuffers" },
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
-          { brand: "Summar T. Photography", prize: "Gift card or mini session" },
         ],
       },
       {
@@ -279,17 +272,10 @@ export const sponsorPage = {
           { brand: "Hello Darlin'", prize: "Free 2-hour vintage audio guest book rental" },
         ],
       },
-      {
-        day: 14,
-        partners: [
-          { brand: "Aeva Beauty", prize: "$25 e-gift card" },
-          { brand: "The Sculpt Society", prize: "Workout membership for a mama" },
-        ],
-      },
+      { day: 14, partners: [{ brand: "The Sculpt Society", prize: "Workout membership for a mama" }] },
       {
         day: 15,
         partners: [
-          { brand: "Berkana Crystal", prize: "Crystal piece" },
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
           { brand: "Britt Creates", prize: "Resume refresh + headshot session" },
         ],
@@ -329,7 +315,6 @@ export const sponsorPage = {
       {
         day: 20,
         partners: [
-          { brand: "Pass the Everything", prize: "Family meal / dining experience" },
           { brand: "RYSE", prize: "RYSE Fuel bundle" },
           { brand: "Cher Bebe Embroidery", prize: "Custom wreath sash + tea towel of choice" },
         ],

@@ -569,7 +569,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43940314586. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43430382667. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
   - vacuity: issue #2894, newest red run: see the issue's latest comment. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
-  - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43389964385. feed: issue #3454 · feed: ledger a8ceee56bbd5
+  - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/44053689473. feed: issue #3454 · feed: ledger a8ceee56bbd5
   - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43427222509. notes: Q2761. feed: issue #3491 · feed: ledger 2e4f3e726722
   - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43956613799. feed: issue #3784 · feed: ledger db0fb15c4ec3
   - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43619551118. feed: issue #3813 · feed: ledger 3a3460b71be7

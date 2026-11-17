@@ -11,13 +11,15 @@
  * @mutate scripts/lib/storageBackup.mjs | if (o.bucket_id in EXCLUDED_BUCKETS) { | if (false) {
  * @mutate scripts/lib/storageBackup.mjs | if (want >= 0 && bytes.byteLength !== want) throw | if (false) throw
  * @mutate scripts/lib/storageBackup.mjs | if (!byKey.has(`${r.bucket_id}/${r.name}`)) problems.push | if (false) problems.push
+ * @mutate scripts/lib/storageBackup.mjs | const transient = status === 429 \|\| | const transient = false \|\|
+ * @mutate scripts/storage-backup.mjs | const download = (bucket, name) => withTransientRetry(async () => { | const download = (bucket, name) => (async () => {
  * @mutate .github/workflows/db-backup.yml | node scripts/storage-backup.mjs backup out/storage | echo skipped
  * @mutate .github/workflows/db-restore-drill.yml | node scripts/storage-backup.mjs verify | echo
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { EXCLUDED_BUCKETS, backupObjects, verifyRestore, safeRelPath, sha256 } from "../../scripts/lib/storageBackup.mjs";
+import { EXCLUDED_BUCKETS, backupObjects, verifyRestore, safeRelPath, sha256, withTransientRetry, httpError } from "../../scripts/lib/storageBackup.mjs";
 import { declaredBuckets } from "@/test/helpers/declaredBuckets";
 
 const ROOT = resolve(__dirname, "..", "..");
@@ -72,6 +74,26 @@ describe("storage file backup (Q147)", () => {
   it("a failed download or a size mismatch is a FAILED backup", async () => {
     expect((await run({ "proof-photos/job-1/a.jpg": new Error("HTTP 500") })).errors).toHaveLength(1);
     expect((await run({ "proof-photos/job-1/a.jpg": "abcd" })).errors[0]).toMatch(/size 4, storage.objects says 3/);
+  });
+
+  it("a storage 429/5xx is retried with backoff, then still fails; a 404 is never retried (nightly 43981987678)", async () => {
+    const waits: number[] = [];
+    const sleep = async (ms: number) => { waits.push(ms); };
+    let calls = 0;
+    const flaky = async () => { calls++; if (calls < 3) throw httpError(429, "2"); return "ok"; };
+    expect(await withTransientRetry(flaky, { sleep })).toBe("ok");
+    expect(calls).toBe(3);
+    expect(waits).toEqual([2000, 2000]);
+    calls = 0;
+    await expect(withTransientRetry(async () => { calls++; throw httpError(503); }, { sleep, tries: 4 })).rejects.toThrow(/HTTP 503/);
+    expect(calls).toBe(4);
+    calls = 0;
+    await expect(withTransientRetry(async () => { calls++; throw httpError(404); }, { sleep })).rejects.toThrow(/HTTP 404/);
+    expect(calls).toBe(1);
+    // The CLI wraps its download in it.
+    const cli = readFileSync(resolve(ROOT, "scripts/storage-backup.mjs"), "utf8");
+    expect(cli).toMatch(/const download = \(bucket, name\) => withTransientRetry\(/);
+    expect(cli).toMatch(/throw httpError\(res\.status, res\.headers\.get\("retry-after"\)\)/);
   });
 
   it("refuses object names that could escape the output directory", () => {

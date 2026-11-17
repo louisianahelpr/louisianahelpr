@@ -41,6 +41,40 @@ export function safeRelPath(bucket, name) {
 export const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
 
 /**
+ * Storage answers HTTP 429 (rate limit) or a 5xx when ~1,000 objects are pulled
+ * back to back: the 2026-11-17 nightly lost 2 of 965 objects to 429 and the
+ * whole backup went red. Retry ONLY those transient statuses, with backoff
+ * (honouring Retry-After), then give up: a download that still fails is still a
+ * failed backup. Any other error (404, size mismatch, unsafe name) is not retried.
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @param {{ tries?: number, baseMs?: number, sleep?: (ms:number) => Promise<void> }} [opts]
+ * @returns {Promise<T>}
+ */
+export async function withTransientRetry(fn, { tries = 6, baseMs = 1000, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const status = /** @type {{status?: number, retryAfterMs?: number}} */ (e)?.status;
+      const transient = status === 429 || (typeof status === "number" && status >= 500);
+      if (!transient || attempt >= tries) throw e;
+      const after = /** @type {{retryAfterMs?: number}} */ (e).retryAfterMs;
+      await sleep(Math.max(after ?? 0, baseMs * 2 ** (attempt - 1)));
+    }
+  }
+}
+
+/** A download failure that carries its HTTP status (and Retry-After), so withTransientRetry can tell 429 from 404. */
+export function httpError(status, retryAfter) {
+  const err = /** @type {Error & {status:number, retryAfterMs?:number}} */ (new Error(`download HTTP ${status}`));
+  err.status = status;
+  const secs = Number(retryAfter);
+  if (retryAfter != null && Number.isFinite(secs)) err.retryAfterMs = Math.min(secs, 60) * 1000;
+  return err;
+}
+
+/**
  * Download every non-excluded object. Any failed download or size mismatch is
  * a FAILED backup (never a partial one reported as whole).
  * @param {{ objects: {bucket_id:string, name:string, size:number|string}[],

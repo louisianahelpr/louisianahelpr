@@ -20,7 +20,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { OBJECTS_SQL, backupObjects, verifyRestore } from "./lib/storageBackup.mjs";
+import { OBJECTS_SQL, backupObjects, verifyRestore, withTransientRetry, httpError } from "./lib/storageBackup.mjs";
 import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
 
 // Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
@@ -46,15 +46,15 @@ async function backup(outdir) {
   if (!url || !key) throw new Error("needs SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY");
   const objects = await mgmtSql(OBJECTS_SQL);
   if (!Array.isArray(objects)) throw new Error("storage.objects listing was not an array");
-  const download = async (bucket, name) => {
+  const download = (bucket, name) => withTransientRetry(async () => {
     const path = name.split("/").map(encodeURIComponent).join("/");
     const res = await fetch(`${url}/storage/v1/object/authenticated/${bucket}/${path}`, {
       headers: { Authorization: `Bearer ${key}`, apikey: key },
       signal: AbortSignal.timeout(60_000),
     });
-    if (!res.ok) throw new Error(`download HTTP ${res.status}`);
+    if (!res.ok) throw httpError(res.status, res.headers.get("retry-after"));
     return new Uint8Array(await res.arrayBuffer());
-  };
+  });
   const write = (rel, bytes) => {
     const p = join(outdir, rel);
     mkdirSync(dirname(p), { recursive: true });

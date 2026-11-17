@@ -215,7 +215,9 @@ async function fillToCheckout(page: Page, title: string, allowReport: (m: RegExp
   // Three days out: no day-of ladder here, and never "today" at any hour.
   const review = await fillLogistics(page, slotAhead(3 * 24 * 60), allowReport);
   await review.click();
-  await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 60_000 });
+  // F304 (owner 2026-11-11): a plain job's review card is "You pay $N" (data-plain-you-pay) with no
+  // "Payment breakdown" heading; only a job with lines to break down keeps the heading. Either is the review step.
+  await expect(page.getByText(/Payment breakdown/i).or(page.locator("[data-plain-you-pay]")).first()).toBeVisible({ timeout: 60_000 });
   await page.getByRole("checkbox", { name: /checked the details above/i }).click();
   return page.getByRole("button", { name: /Continue to payment|Post job/i });
 }

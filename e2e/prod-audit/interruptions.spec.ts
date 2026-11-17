@@ -586,7 +586,9 @@ test.describe("post a job", () => {
     const review = page.getByRole("button", { name: /Review, then pay/ });
     await expect(review, "the submit button never became Review, then pay").toBeEnabled({ timeout: 20_000 });
     await review.click();
-    await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 30_000 });
+    // F304 (owner 2026-11-11): a plain job's review card is "You pay $N" (data-plain-you-pay) with no
+    // "Payment breakdown" heading; only a job with lines to break down keeps the heading. Either is the review step.
+    await expect(page.getByText(/Payment breakdown/i).or(page.locator("[data-plain-you-pay]")).first()).toBeVisible({ timeout: 30_000 });
     await page.getByRole("checkbox", { name: /checked the details above/i }).click();
     const submit = page.getByRole("button", { name: /Continue to payment|Post job/i });
     await expect(submit, "the final Post never became enabled after confirming the details").toBeEnabled({ timeout: 20_000 });

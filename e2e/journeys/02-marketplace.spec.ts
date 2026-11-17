@@ -338,7 +338,9 @@ test.describe.serial("marketplace chain", () => {
       await assertHealthy(page, "logistics");
       await journey.milestone(page, "post-form-complete");
       await review.click();
-      await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 30_000 });
+      // F304 (owner 2026-11-11): a plain job's review card is "You pay $N" (data-plain-you-pay) with no
+      // "Payment breakdown" heading; only a job with lines to break down keeps the heading. Either is the review step.
+      await expect(page.getByText(/Payment breakdown/i).or(page.locator("[data-plain-you-pay]")).first()).toBeVisible({ timeout: 30_000 });
       await assertHealthy(page, "checkout step");
       await journey.milestone(page, "post-checkout-step");
     });

@@ -364,6 +364,7 @@ export function Lineup() {
     <section className="lh25-section" id="lineup" aria-labelledby="lh25-lineup">
       <SectionTitle><span id="lh25-lineup">{C.lineup.title}</span></SectionTitle>
       <p className="lh25-lede lh25-center">{C.lineup.intro}</p>
+      <p className="lh25-hint lh25-center lh25-days-note" data-testid="lineup-days-note">{C.lineup.daysNote}</p>
       <ol className="lh25-lineup">
         {C.lineup.days.map((d) => (
           <li key={d.day} className="lh25-lineup-day" data-testid={`lineup-day-${d.day}`}>

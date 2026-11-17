@@ -53,7 +53,6 @@ export interface GiftSection {
 export const BRAND_SITES = ["www.zchocolat.com", "www.diecastmodelswholesale.com"] as const;
 
 const shopmy = (id: number) => `https://shopmy.us/collections/${id}`;
-const img = (path: string) => `https://static.shopmy.us${path}`;
 const PIN = "https://www.pinterest.com/lexilombas";
 
 const MOM = shopmy(8978491);
@@ -65,7 +64,7 @@ const LOUISIANA_PANTRY = shopmy(9000334);
 export const giftGuides = {
   title: "Holiday Gift Guides 2026",
   intro: "Gift ideas for everyone on your list. Pick a guide, then shop the full collection.",
-  disclosure: "Some links are affiliate links. We may earn a small commission at no extra cost to you.",
+  disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
   shopLabel: "Shop",
   fullGuideLabel: "Shop the full guide",
   moreLabel: "More guides:",
@@ -89,13 +88,13 @@ export const giftGuides = {
         {
           name: "UGG Women's Tasman II Slipper",
           line: "A slipper from the Gifts for Mom guide.",
-          image: img("/pins/zoom-103906626-1794380185104-7463182f-3d64-4bba-98b2-08572887c09a.jpeg"),
+          image: "https://static.shopmy.us/pins/zoom-103906626-1794380185104-7463182f-3d64-4bba-98b2-08572887c09a.jpeg",
           href: MOM,
         },
         {
           name: "Le Creuset Signature 7.25-Qt. Round Dutch Oven",
           line: "A Dutch oven from the Gifts for Mom guide.",
-          image: img("/pins/zoom-104050519-1794418254578-.jpg"),
+          image: "https://static.shopmy.us/pins/zoom-104050519-1794418254578-.jpg",
           href: MOM,
         },
         {
@@ -119,13 +118,13 @@ export const giftGuides = {
         {
           name: "Solo Stove Ranger 2.0 Firepit",
           line: "A fire pit from the Gifts for Dad guide.",
-          image: img("/uploads/pretty-prod-1764742009311"),
+          image: "https://static.shopmy.us/uploads/pretty-prod-1764742009311",
           href: DAD,
         },
         {
           name: "YETI Roadie 24 2.0 Hard Cooler",
           line: "A hard cooler from the Gifts for Dad guide.",
-          image: img("/uploads/pretty-prod-1765315393509"),
+          image: "https://static.shopmy.us/uploads/pretty-prod-1765315393509",
           href: DAD,
         },
         {
@@ -150,13 +149,13 @@ export const giftGuides = {
         {
           name: "Yoto 4th Gen Player",
           line: "A kids' audio player from the Gifts for Toddlers guide.",
-          image: img("/uploads/pretty-prod-1789686406501"),
+          image: "https://static.shopmy.us/uploads/pretty-prod-1789686406501",
           href: TODDLERS,
         },
         {
           name: "LEGO DUPLO Animal Train 10412",
           line: "A DUPLO set from the Gifts for Toddlers guide.",
-          image: img("/uploads/pretty-prod-1794219508743"),
+          image: "https://static.shopmy.us/uploads/pretty-prod-1794219508743",
           href: TODDLERS,
         },
       ],
@@ -174,13 +173,13 @@ export const giftGuides = {
         {
           name: "Brooklinen Essential Sheet Set",
           line: "A sheet set from the Gifts for the New Homeowner guide.",
-          image: img("/uploads/img-product-1793059152298"),
+          image: "https://static.shopmy.us/uploads/img-product-1793059152298",
           href: NEW_HOMEOWNER,
         },
         {
           name: "Millwood Pines Esenia Acacia Charcuterie Board",
           line: "A charcuterie board from the Gifts for the New Homeowner guide.",
-          image: img("/pins/zoom-103905152-1794379486075-.jpg"),
+          image: "https://static.shopmy.us/pins/zoom-103905152-1794379486075-.jpg",
           href: NEW_HOMEOWNER,
         },
       ],
@@ -204,15 +203,13 @@ export const giftGuides = {
         {
           name: "Cafe Du Monde Coffee and Chicory",
           line: "Coffee from the Louisiana Pantry guide.",
-          image: img("/pins/zoom-104066048-1794420042859-124391_XXX_v1.jpg"),
+          image: "https://static.shopmy.us/pins/zoom-104066048-1794420042859-124391_XXX_v1.jpg",
           href: LOUISIANA_PANTRY,
         },
         {
           name: "Tony Chachere's Original Creole Seasoning, 17 oz",
           line: "Creole seasoning from the Louisiana Pantry guide.",
-          image: img(
-            "/pins/zoom-13310115-1739836672681-Tony-Chachere-s-Creole-Original-Seasoning-17-Oz_9eefe6d3-49c2-4b4e-aecd-3df46b2eb053.417856d4f5ed70d8391fb53bbd414e01.jpeg",
-          ),
+          image: "https://static.shopmy.us/pins/zoom-13310115-1739836672681-Tony-Chachere-s-Creole-Original-Seasoning-17-Oz_9eefe6d3-49c2-4b4e-aecd-3df46b2eb053.417856d4f5ed70d8391fb53bbd414e01.jpeg",
           href: LOUISIANA_PANTRY,
         },
       ],

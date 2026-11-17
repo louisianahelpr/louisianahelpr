@@ -110,11 +110,11 @@ export const PUBLIC_PAGE_META = {
   },
   // Owner 2026-11-16: the Holiday Gift Guides (src/content/giftGuides.ts). Indexed: it is meant to be found.
   "/gift-guides": {
-    title: "Holiday Gift Guides 2026 — Helpr",
+    title: "Holiday gift guides 2026 — Helpr",
     description:
       "Gift ideas for her, for him, for kids, for the home, stocking stuffers and Louisiana-made favorites for the 2026 holidays.",
     canonical: `${SITE_ORIGIN}/gift-guides`,
-    ogTitle: "Holiday Gift Guides 2026 from Louisiana Helpr",
+    ogTitle: "Holiday gift guides 2026 from Louisiana Helpr",
     ogDescription: "Gift ideas for everyone on your list, plus Louisiana-made favorites.",
   },
   // Owner 2026-10-23: the Terms and the Privacy Policy as one open page each, for Twilio's A2P review (LegalFullText).

@@ -25,13 +25,10 @@ describe("e2e review-step waits accept the plain You pay card (F304)", () => {
   });
 
   it("no spec waits for the Payment breakdown heading alone", () => {
-    let waits = 0;
-    for (const p of SPECS) {
-      const src = code(p);
-      const hits = [...src.matchAll(/getByText\(\/Payment breakdown\/i\)(\.or\(page\.locator\("\[data-plain-you-pay\]"\)\))?/g)];
-      waits += hits.length;
-      for (const h of hits) expect(h[1], `${p} waits for "Payment breakdown" alone; a plain job has no such heading`).toBeTruthy();
-    }
-    expect(waits).toBeGreaterThanOrEqual(SPECS.length);
+    const hits = SPECS.flatMap((p) =>
+      [...code(p).matchAll(/getByText\(\/Payment breakdown\/i\)(\.or\(page\.locator\("\[data-plain-you-pay\]"\)\))?/g)].map((m) => ({ p, either: !!m[1] })),
+    );
+    expect(hits.length).toBeGreaterThanOrEqual(SPECS.length);
+    expect(hits.filter((h) => !h.either).map((h) => h.p), "waits for \"Payment breakdown\" alone; a plain job has no such heading").toEqual([]);
   });
 });

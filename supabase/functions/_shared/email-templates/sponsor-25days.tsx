@@ -43,7 +43,7 @@ const Detail = ({ label, children }: { label: string; children: React.ReactNode 
   </Row>
 )
 
-// Owner 11-09: every prize ships to Louisiana Helpr.
+// Owner 11-09: prizes ship to Louisiana Helpr by default; owner 11-17: or the sponsor gets it to the winner (ship_to 'winner').
 const SHIP_ADDRESS = 'Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528'
 
 const shipLabel = (s: SponsorEmailSignup['shipTo']) =>
@@ -66,7 +66,11 @@ export const SponsorConfirmationEmail = ({ s, adminEmail }: { s: SponsorEmailSig
     <Section style={{ width: '100%', margin: '0 0 16px' }}>
       <Detail label="Your day(s)">{s.daysLabel}</Detail>
       <Detail label="Your prize">{s.prizeDescription}</Detail>
-      <Detail label="Ship your prize to">{SHIP_ADDRESS}</Detail>
+      {s.shipTo === 'winner' ? (
+        <Detail label="Prize delivery">You get it to the winner. We send you their name and shipping address within 24 hours of the drawing.</Detail>
+      ) : (
+        <Detail label="Ship your prize to">{SHIP_ADDRESS}</Detail>
+      )}
     </Section>
     <Heading as="h2" className="e-h1" style={{ ...h1, fontSize: '18px' }}>What happens next</Heading>
     <Text className="e-text" style={textStyle}>

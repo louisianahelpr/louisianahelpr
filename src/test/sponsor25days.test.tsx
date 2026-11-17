@@ -7,6 +7,11 @@
 // @mutate api/share.ts |   sponsor: SPONSOR_CARD, |   sponsorX: SPONSOR_CARD,
 // @mutate supabase/functions/_shared/sponsorSignup.ts |   return nowMs < closesAt; |   return true;
 // @mutate src/components/sponsor/ClaimSection.tsx |   shipTo: "helpr", notes: "", |   shipTo: "", notes: "",
+// @mutate src/components/sponsor/ClaimSection.tsx |   if (delivery === "helpr" \|\| delivery === "winner") return { ...form, shipTo: delivery }; |   if (delivery === "helpr" \|\| delivery === "winner") return { ...form, shipTo: "helpr" };
+// @mutate src/components/sponsor/ClaimSection.tsx |   return { ...form, shipTo: "winner", notes }; |   return { ...form, shipTo: "winner" };
+// @mutate src/components/sponsor/ClaimSection.tsx |   const [delivery, setDelivery] = useState<PrizeDelivery>("helpr"); |   const [delivery, setDelivery] = useState<PrizeDelivery>("winner");
+// @mutate src/content/sponsorPage.ts | are shared with that day's sponsor only to deliver the prize, and are not used for anything else. | are shared with that day's sponsor.
+// @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       {s.shipTo === 'winner' ? ( |       {false ? (
 // @mutate supabase/functions/_shared/sponsorSignup.ts |     // Not given: stays null (sponsor_signups.prize_value is nullable since 20261110171648). |     errors.prizeValue = "required";
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <Detail label="Your prize">{s.prizeDescription}</Detail> |       <Detail label="Your prize">{s.prizeDescription} (about ${s.prizeValue})</Detail>
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       {s.prizeValue != null ? <Detail label="Prize value">${s.prizeValue}</Detail> : null} |       <Detail label="Prize value">${s.prizeValue}</Detail>
@@ -26,14 +31,14 @@
 import { describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
 import { SPONSOR_SIGNUP_DEADLINE, checkLogo, cleanDays, normalizeRef, slugifyBrand, sniffLogoType, sponsorSignupsOpen, validateSponsorSignup } from "../../supabase/functions/_shared/sponsorSignup";
 import { filledUrl, hasPlaceholder, onlyFilled, statNumber } from "@/lib/sponsor/placeholders";
 import { buildIcs, countdown, dayStartUtc, daysLabel } from "@/lib/sponsor/dates";
 import { About, BrandGets, Faq, Footer, Founder, Hero, Reach, filledStats } from "@/components/sponsor/Sections";
-import { ClaimSection, EMPTY as EMPTY_SIGNUP, dayTileLabel, errorMessage } from "@/components/sponsor/ClaimSection";
+import { ClaimSection, EMPTY as EMPTY_SIGNUP, dayTileLabel, errorMessage, withDelivery } from "@/components/sponsor/ClaimSection";
 import { rulesAreDraft } from "@/pages/sponsor/SponsorRulesPage";
 import { prizeValueLabel, signupsCsv } from "@/pages/admin/sponsors/AdminSponsorsPage";
 import type { SponsorAdminSignup, SponsorPublicState } from "@/lib/sponsor/types";
@@ -191,20 +196,49 @@ describe("ref greeting", () => {
   });
 });
 
-describe("prizes ship to Louisiana Helpr (owner 11-09)", () => {
-  it("the form shows the shipping address, asks no ship-to question, and sends ship_to helpr", async () => {
-    const st: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
+describe("four prize delivery options, shipping to us first (owner 11-09, 11-17)", () => {
+  const st: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
+  it("the form offers the four choices, ship-to-us picked by default with the address shown", () => {
     render(<ClaimSection state={st} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    const radios = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="radio"][name="delivery"]'));
+    expect(radios.map((r) => r.value)).toEqual(["helpr", "winner", "digital", "pickup"]);
+    expect(radios.filter((r) => r.checked).map((r) => r.value)).toEqual(["helpr"]);
     expect(screen.getByTestId("sponsor-ship-address").textContent).toContain("314 Lynn Street, Delcambre, LA 70528");
-    expect(document.querySelector('input[name="shipTo"]')).toBeNull();
-    expect(screen.queryByText("The winner directly")).toBeNull();
     expect(EMPTY_SIGNUP.shipTo).toBe("helpr");
+    fireEvent.click(radios[1]);
+    expect(radios[1].checked).toBe(true);
+    expect(screen.getByTestId("sponsor-delivery-winner").textContent).toMatch(/within 24 hours of the drawing/);
+    expect(screen.queryByTestId("sponsor-ship-address")).toBeNull();
   });
-  it("the confirmation email says where to ship", () => {
+  it("each choice maps to a ship_to the server accepts; digital and pickup are named in the notes", () => {
+    const base = { ...EMPTY_SIGNUP, notes: "Call first" };
+    expect(withDelivery(base, "helpr")).toMatchObject({ shipTo: "helpr", notes: "Call first" });
+    expect(withDelivery(base, "winner")).toMatchObject({ shipTo: "winner", notes: "Call first" });
+    expect(withDelivery(base, "digital")).toMatchObject({ shipTo: "winner", notes: "Prize delivery: Email a digital gift card\nCall first" });
+    expect(withDelivery({ ...EMPTY_SIGNUP }, "pickup")).toMatchObject({ shipTo: "winner", notes: "Prize delivery: Local pickup (will call)" });
+    for (const d of ["helpr", "winner", "digital", "pickup"] as const) {
+      const v = validateSponsorSignup({ ...withDelivery(base, d) });
+      expect(v.ok).toBe(false); // the blank form misses required fields, but never a shipTo error
+      if (!v.ok) expect(v.errors.shipTo).toBeUndefined();
+      const ok = validateSponsorSignup({ ...withDelivery(base, d), brandName: "B", contactName: "C", email: "c@example.com", prizeDescription: "P", anyDay: true, agree: true });
+      expect(ok.ok && ok.value.shipTo).toBe(d === "helpr" ? "helpr" : "winner");
+    }
+  });
+  it("the page copy, badge and rules describe the four options and limit the winner's address to delivery", () => {
+    const faq = sponsorPage.faq.items.find((i) => i.q === "How does the prize get to the winner?")!.a;
+    for (const bit of ["314 Lynn Street, Delcambre, LA 70528", "within 24 hours of the drawing", "within a week", "photo", "digital gift card", "picks it up"]) expect(faq).toContain(bit);
+    expect(sponsorPage.whatWeAsk.body).toMatch(/ship it or drop it off to us.*straight to the winner.*digital gift card.*pick it up/);
+    expect(sponsorPage.trustStrip).toContain("Easy prize delivery");
+    expect(JSON.stringify(sponsorPage.trustStrip)).not.toMatch(/by us/i);
+    const fulfil = sponsorPage.rules.sections.find((x) => x.heading === "Prizes and fulfillment")!.body;
+    expect(fulfil).toContain("The winner's name and shipping address are shared with that day's sponsor only to deliver the prize, and are not used for anything else.");
+  });
+  it("the confirmation email gives our address for ship-to-us and the 24-hour promise for ship-to-winner", () => {
     const src = fs.readFileSync(path.resolve(__dirname, "../../supabase/functions/_shared/email-templates/sponsor-25days.tsx"), "utf8");
     const conf = src.slice(src.indexOf("export const SponsorConfirmationEmail"), src.indexOf("export const SponsorAdminEmail"));
     expect(conf).toContain("Ship your prize to");
     expect(conf).toContain("{SHIP_ADDRESS}");
+    expect(conf).toMatch(/s\.shipTo === 'winner' \?[\s\S]*within 24 hours of the drawing/);
     expect(src).toContain("314 Lynn Street, Delcambre, LA 70528");
   });
 });

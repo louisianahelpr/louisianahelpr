@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { Input } from "@/components/ui/input";
+import { NativeRadio } from "@/components/ui/NativeRadio";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { report } from "@/lib/errorLogger";
@@ -77,12 +78,30 @@ export function tileCount(state: Pick<SponsorPublicState, "dayCounts">, day: num
   return Math.max(state.dayCounts[day] ?? 0, lineupCount(day));
 }
 
-/** The blank form. Exported for its test: every sign-up sends shipTo "helpr" (owner 11-09). */
+/** The blank form. Exported for its test: shipping to Louisiana Helpr is the default choice (owner 11-09, 11-17). */
 export const EMPTY: SponsorSignupPayload = {
   brandName: "", contactName: "", email: "", phone: "", website: "", instagram: "", facebook: "", tiktok: "",
   prizeDescription: "", shipTo: "helpr", notes: "", days: [], anyDay: false, agree: false, showOnWall: false,
   ref: null, company_fax: "",
 };
+
+const D = F.delivery;
+/** The sponsor's prize delivery choice (owner 11-17): four ways, shipping to us first. */
+export type PrizeDelivery = (typeof D.options)[number]["value"];
+
+/**
+ * What the sign-up sends for a delivery choice. The server's ship_to accepts only "helpr" and "winner"
+ * (sponsor_signups CHECK, sponsorSignup.ts SponsorShipTo), so the server is unchanged: a digital gift card and local
+ * pickup go out as "winner" (the sponsor gets it to the winner) and name the exact choice on the notes' first line.
+ * Exported for its test.
+ */
+export function withDelivery(form: SponsorSignupPayload, delivery: PrizeDelivery): SponsorSignupPayload {
+  if (delivery === "helpr" || delivery === "winner") return { ...form, shipTo: delivery };
+  const option = D.options.find((o) => o.value === delivery)?.label ?? delivery;
+  const line = D.noteLine.replace("{option}", option);
+  const notes = form.notes.trim() ? `${line}\n${form.notes}` : line;
+  return { ...form, shipTo: "winner", notes };
+}
 
 function Field({ id, label, error, hint, children }: { id: string; label: string; error: string | null; hint?: string; children: ReactNode }) {
   return (
@@ -110,11 +129,12 @@ export function ClaimSection({
   onSubmit: (payload: SponsorSignupPayload, logo: File | null) => Promise<SponsorSubmitResult>;
 }) {
   const [form, setForm] = useState<SponsorSignupPayload>(() => ({ ...EMPTY, brandName: greetingBrand ?? "", ref: refCode }));
+  const [delivery, setDelivery] = useState<PrizeDelivery>("helpr");
   const [logo, setLogo] = useState<File | null>(null);
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [banner, setBanner] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<{ days: number[]; anyDay: boolean; brand: string } | null>(null);
+  const [done, setDone] = useState<{ days: number[]; anyDay: boolean; brand: string; delivery: PrizeDelivery } | null>(null);
   const [extraFull, setExtraFull] = useState<number[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
@@ -155,7 +175,8 @@ export function ClaimSection({
     ev.preventDefault();
     if (busy) return;
     setBanner(null);
-    const v = validateSponsorSignup({ ...form });
+    const payload = withDelivery(form, delivery);
+    const v = validateSponsorSignup({ ...payload });
     const errs: Partial<Record<FieldKey, string>> = {};
     if (!v.ok) for (const [k, code] of Object.entries(v.errors)) errs[k as FieldKey] = errorMessage(code) ?? undefined;
     if (errors.logo) errs.logo = errors.logo;
@@ -168,9 +189,9 @@ export function ClaimSection({
     }
     setBusy(true);
     try {
-      const res = await onSubmit(form, logo);
+      const res = await onSubmit(payload, logo);
       if (res.ok) {
-        setDone({ days: res.days, anyDay: res.anyDay, brand: form.brandName.trim() });
+        setDone({ days: res.days, anyDay: res.anyDay, brand: form.brandName.trim(), delivery });
         requestAnimationFrame(() => doneRef.current?.focus());
         return;
       }
@@ -215,7 +236,11 @@ export function ClaimSection({
             <strong>{C.thankYou.yourDays}</strong> {done.anyDay ? C.thankYou.anyDay : daysLabel(done.days)}
           </p>
           <p className="lh25-thanks-days" data-testid="sponsor-thanks-ship">
-            <strong>{C.thankYou.shipTo}</strong> {F.shipAddress}
+            {done.delivery === "helpr" ? (
+              <><strong>{C.thankYou.shipTo}</strong> {F.shipAddress}</>
+            ) : (
+              <><strong>{D.thankYou}</strong> {D.options.find((o) => o.value === done.delivery)?.label}</>
+            )}
           </p>
           {/* F240 (audit 11-10): "Any day, we'll pick one together" has no date yet, so there is nothing to add. */}
           {done.anyDay ? null : (
@@ -336,9 +361,18 @@ export function ClaimSection({
             <HiddenFileInput peer id={ID.logo} name="logo" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => { pickLogo(e.target.files?.[0] ?? null); e.target.value = ""; }} aria-describedby={describe("lh25-logo", "logo", true)} />
             <label htmlFor={ID.logo} className="lh25-file-pick" aria-hidden="true">{logo ? "Choose another file" : "Choose a file"}</label>
           </Field>
-          <p className="lh25-field" data-testid="sponsor-ship-address">
-            <strong>{F.shipTo}:</strong> {F.shipAddress}
-          </p>
+          <fieldset className="lh25-field lh25-delivery" data-testid="sponsor-delivery">
+            <legend>{D.legend}</legend>
+            {D.options.map((o) => (
+              <label key={o.value} className="min-h-11 lh25-check" data-testid={`sponsor-delivery-${o.value}`}>
+                <NativeRadio className="mt-1" name="delivery" value={o.value} checked={delivery === o.value} onChange={() => setDelivery(o.value)} />
+                <span>
+                  {o.label}
+                  {delivery === o.value ? <span className="lh25-hint" data-testid={o.value === "helpr" ? "sponsor-ship-address" : undefined}>{o.hint}</span> : null}
+                </span>
+              </label>
+            ))}
+          </fieldset>
           <Field id={ID.notes} label={F.notes} error={err("notes")}>
             <Textarea id={ID.notes} name="notes" rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
           </Field>

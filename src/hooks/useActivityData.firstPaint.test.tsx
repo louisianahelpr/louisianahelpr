@@ -12,7 +12,7 @@
 // prefetch / IndexedDB persister leaves it, with the revalidation request held
 // in flight forever, and reads `loading` on the FIRST render.
 //
-// @mutate src/hooks/useActivityData.ts | const loading = !activeCore.isError && activeCore.data === undefined; | const loading = !activeCore.isError && (activeCore.data === undefined \|\| (activeCore.isFetching && (isPosted ? postedCore.data!.postedJobs.length : appliedCore.data!.appliedApps.length) === 0));
+// @mutate src/hooks/useActivityData.ts | const loading = !activeCore.isError && activeCore.data === undefined && !partial; | const loading = !activeCore.isError && (activeCore.data === undefined \|\| (activeCore.isFetching && (isPosted ? postedCore.data!.postedJobs.length : appliedCore.data!.appliedApps.length) === 0)) && !partial;
 
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";

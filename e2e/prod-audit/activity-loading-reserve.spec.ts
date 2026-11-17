@@ -65,7 +65,7 @@
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | <Skeleton className={`${B.button} h-11`} /> | <Skeleton className={`${B.button} h-[96px]`} />
 // Q833: /jobs and /posts draw the MineJobFace placeholder; take the face out (the old collapsed card it replaced
 // was 130px against 197px cards on prod, and was removed 11-03) and every surface jumps again.
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} />; | return <div className={JOB_CARD_SHELL_FRAME} aria-hidden />;
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} title={title} />; | return <div className={JOB_CARD_SHELL_FRAME} aria-hidden />;
 // Re-pointed 2026-10-19 (Q2205): the old My Posts / My Jobs placeholder (ActivityPageSkeleton) and its folded
 // tab-row reservation went with those screens. Jobs > Posted / Working always show the four status boxes, and the
 // placeholder (JobsSectionSkeleton) must reserve them: without the bones the list starts ~76px high.

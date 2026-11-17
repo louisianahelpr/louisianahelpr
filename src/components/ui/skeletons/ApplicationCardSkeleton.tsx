@@ -68,7 +68,7 @@ function FaceLine({ type, width, className = "" }: { type: string; width: string
   );
 }
 
-export function MineFaceSkeleton({ tracker = true, address = false }: { tracker?: boolean; address?: boolean } = {}) {
+export function MineFaceSkeleton({ tracker = true, address = false, title }: { tracker?: boolean; address?: boolean; title?: string } = {}) {
   const B = MINE_FACE_BOXES;
   return (
     <div
@@ -83,10 +83,17 @@ export function MineFaceSkeleton({ tracker = true, address = false }: { tracker?
             <div className="min-w-0 flex-1">
               <div className={B.titleRow}>
                 {/* Two title lines on a phone (a real title wraps at ~22 characters there), one from 768px. */}
-                <div className="min-w-0 flex-1 md:flex-none md:w-[40%]">
-                  <FaceLine type={B.title} width="92%" />
-                  <FaceLine type={B.title} width="60%" className="md:hidden" />
-                </div>
+                {/* Q2705 (11-17): a list whose rows are already read but whose card code is still on its way draws each
+                    card's REAL title here, in the face's own title type (MineJobFace's title span), so the reader sees
+                    their jobs while the rest of the card loads. Without a title, the two bone lines as before. */}
+                {title ? (
+                  <span data-bones-title="" className={`${B.title} text-foreground [overflow-wrap:anywhere]`}>{title}</span>
+                ) : (
+                  <div className="min-w-0 flex-1 md:flex-none md:w-[40%]">
+                    <FaceLine type={B.title} width="92%" />
+                    <FaceLine type={B.title} width="60%" className="md:hidden" />
+                  </div>
+                )}
                 <div className="shrink-0">
                   <FaceLine type={B.money} width="100%" className="w-12" />
                 </div>
@@ -145,12 +152,12 @@ function faceShapeFor(side: "applied" | "posted", filter: string | null): { trac
  * them (ActivityBucketGroups: a `text-ds-13` heading, `gap-2` to its list), so the first card starts where the real
  * one does.
  */
-function FaceListBones({ side, filter }: { side: "applied" | "posted"; filter: string | null }) {
+function FaceListBones({ side, filter, titles = [] }: { side: "applied" | "posted"; filter: string | null; titles?: readonly string[] }) {
   const shape = faceShapeFor(side, filter);
   const cards = (
     <div className="space-y-list">
-      {[1, 2, 3, 4].map((i) => (
-        <ApplicationCardSkeleton key={i} {...shape} />
+      {[0, 1, 2, 3].map((i) => (
+        <ApplicationCardSkeleton key={i} {...shape} title={titles[i] || undefined} />
       ))}
     </div>
   );
@@ -172,8 +179,8 @@ export function WorkingListBones({ filter }: { filter: string | null }) {
 }
 
 /** The Posted tab's bones: PostedJobCard is MineJobFace too (Q833), so /posts stops drawing the old collapsed card. */
-export function PostedListBones({ filter }: { filter: string | null }) {
-  return <FaceListBones side="posted" filter={filter} />;
+export function PostedListBones({ filter, titles }: { filter: string | null; titles?: readonly string[] }) {
+  return <FaceListBones side="posted" filter={filter} titles={titles} />;
 }
 
 /**
@@ -181,6 +188,6 @@ export function PostedListBones({ filter }: { filter: string | null }) {
  * spec e2e/prod-audit/activity-loading-reserve.spec.ts and listPitchToken name
  * it); since Q833 it is the MineJobFace drawing above, and /posts draws the same face (PostedListBones).
  */
-export function ApplicationCardSkeleton({ tracker = true, address = false }: { tracker?: boolean; address?: boolean } = {}) {
-  return <MineFaceSkeleton tracker={tracker} address={address} />;
+export function ApplicationCardSkeleton({ tracker = true, address = false, title }: { tracker?: boolean; address?: boolean; title?: string } = {}) {
+  return <MineFaceSkeleton tracker={tracker} address={address} title={title} />;
 }

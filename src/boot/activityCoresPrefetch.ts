@@ -95,9 +95,17 @@ export function startActivityCoresPrefetch(pathname: string, search: string = lo
     (window as unknown as Record<string, unknown>)[POSTED_LEAN_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, postedLean: read(["posted_lean"]) };
     answers = { posted: Promise.resolve(null), applied: read(["applied"]) };
   } else if (opensOnPostedFirst(pathname, search)) {
-    // Q2706: two calls, posted first; neither carries the other's keys (20261105111750), so Posted paints without
-    // waiting on application_jobs and a poster downloads posted_jobs once.
-    answers = { posted: read(["posted"]), applied: read(["applied"]) };
+    // Q2706: separate calls; none carries another's keys (20261105111750), so Posted paints without waiting on
+    // application_jobs and a poster downloads posted_jobs once.
+    // Q2705 (11-17): the LEAN posted core first (its own slot, as on /home): Posted's first cards (Needs you, Waiting,
+    // Upcoming) paint from it while the whole list (every job ever posted: Done and Cancelled) loads. The whole posted
+    // part is sent only when the app asks for it (onFirstUse), which it does once the first cards' code is in
+    // (useActivityData holdWhole), so it never shares the link with them. prod-audit 44032555275 read 10872 ms: the
+    // first card waited for the whole list (831 jobs, ~176 KB gzip on the cwv-lab poster), which shared the 180 KB/s
+    // link with the app's JavaScript from the head (lab: the read ran 1489 -> 8551 ms).
+    const postedLean = read(["posted_lean"]);
+    (window as unknown as Record<string, unknown>)[POSTED_LEAN_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, postedLean };
+    answers = { posted: onFirstUse(() => read(["posted"])), applied: read(["applied"]) };
   } else {
     const one = read();
     answers = { posted: one, applied: one };
@@ -106,6 +114,22 @@ export function startActivityCoresPrefetch(pathname: string, search: string = lo
 }
 
 type CoresPart = "posted" | "applied" | "posted_lean";
+
+/**
+ * Q2705: a promise-shaped answer whose read starts on its first `then`/`catch` (fetchActivityCores awaits the part when
+ * the posted query runs), not when the entry runs. The slot's freshness clock (ACTIVITY_CORES_PREFETCH_MAX_AGE_MS) still
+ * starts now, so a late taker reads through supabase-js as before.
+ */
+function onFirstUse(start: () => Promise<unknown>): Promise<unknown> {
+  let p: Promise<unknown> | null = null;
+  const run = () => (p ??= start());
+  return {
+    then: (ok?: (v: unknown) => unknown, bad?: (e: unknown) => unknown) => run().then(ok, bad),
+    catch: (bad?: (e: unknown) => unknown) => run().catch(bad),
+    finally: (f?: () => void) => run().finally(f),
+    [Symbol.toStringTag]: "Promise",
+  } as Promise<unknown>;
+}
 
 /** Q2812: the /home read of the lean posted core (src/lib/activityCoresTake.ts takeLeanPostedPrefetch reads it). */
 export const POSTED_LEAN_PREFETCH_KEY = "__lhPostedLeanPrefetch";

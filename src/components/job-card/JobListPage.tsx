@@ -18,7 +18,7 @@ import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitP
 import { PendingBankPayments } from "@/pages/posts/postedJobs/PendingBankPayments";
 import { type Tab } from "@/components/job-card/activityConstants";
 
-import { PostedJobsTab, AppliedJobsTab, startTabChunk } from "@/components/job-card/activityTabChunks";
+import { PostedJobsTab, AppliedJobsTab, startTabChunk, postedTabChunkReady } from "@/components/job-card/activityTabChunks";
 
 // Dialogs mount only on a user action, so lazy-loading keeps their subtrees
 // out of the initial chunk entirely (the offer pop-ups: ActivityOfferDialogs).
@@ -36,6 +36,26 @@ import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifie
 import SectionBoundary from "@/components/SectionBoundary";
 import { PAGE_COLUMN } from "@/lib/pageColumn";
 
+/** Q2705: the filters the lean posted core holds whole ("all" draws its Done and Cancelled groups once the whole list lands). */
+const LEAN_FIRST_FILTERS: ReadonlySet<string> = new Set(["all", "needs_you", "waiting", "scheduled"]);
+
+/**
+ * Q2705 (11-17): the titles of the cards the Posted list draws first, in its order: on "All" (grouped,
+ * ActivityBucketGroups) the first open group's first PREVIEW cards; on one status (flat) the list's first four. The
+ * card code (PostedJobsTab's chunk) can arrive seconds after the rows on a slow phone; until then its bones show these.
+ */
+const BONES_GROUP_ORDER = ["needs_you", "waiting", "scheduled"] as const;
+type BonesJob = Parameters<typeof postedActivityBucket>[0] & { id: string; title?: string | null };
+function firstCardTitles(jobs: readonly BonesJob[], filter: string, pending: Record<string, number> | undefined): string[] {
+  const title = (j: { title?: string | null }) => j.title ?? "";
+  if (filter !== "all") return jobs.slice(0, 4).map(title);
+  for (const b of BONES_GROUP_ORDER) {
+    const group = jobs.filter((j) => postedActivityBucket(j, pending?.[j.id] ?? 0) === b);
+    if (group.length) return group.slice(0, 3).map(title);
+  }
+  return [];
+}
+
 /** Jobs > Posted / Working (owner, 2026-10-19; embeddedActivity.tsx). `embeddedHeader` is the section's top bar +
  *  tabs; the status boxes sit under it. The old standalone My Posts / My Jobs headers (PostsHeader / JobsHeader,
  *  with their own search field) are gone: no route rendered them once /jobs became the Jobs section (Q2205). */
@@ -47,6 +67,14 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   const tab = defaultTab as Tab;
   // The tab's code downloads beside its data, not after it (see startTabChunk).
   useEffect(() => startTabChunk(tab), [tab]);
+  // Q2705: on a lean-first Posted load the whole posted read waits for this chunk (useActivityData `holdWhole`).
+  const [postedTabIn, setPostedTabIn] = useState(false);
+  useEffect(() => {
+    if (tab !== "posted") return;
+    let live = true;
+    void postedTabChunkReady().then(() => { if (live) setPostedTabIn(true); });
+    return () => { live = false; };
+  }, [tab]);
   // Jobs > Posted / Working open on EVERY group ("all"), under the status boxes
   // (owner, 2026-10-19): tap a box = only that group, tap it again = all.
   const defaultFilter = "all";
@@ -151,13 +179,19 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   // Mirror filter + search into the URL through the SHARED hook (useActivityUrlMirror.ts says why).
   useActivityUrlMirror(statusFilter, setStatusFilter, searchQuery, setSearchQuery, defaultFilter);
 
+  // Q2705 (11-17): Posted may paint its first cards from the lean posted core (useActivityData `partial`) only when
+  // this view needs nothing outside it: no deep link (each resolves against the whole list), no search (it searches
+  // every job), and a filter the lean set holds whole (All, whose Done and Cancelled groups join when the whole read
+  // lands, or Needs you / Waiting / Upcoming). Otherwise the list waits for the whole read, as before.
+  const leanFirst = tab === "posted" && !deepLinkJobId && !highlightJobId && !manageJobId && !applicantsJobId
+    && !searchQuery.trim() && LEAN_FIRST_FILTERS.has(statusFilter);
   const {
-    loading, loadError, postedJobs, appliedApps, applicantCounts, pendingApplicantCounts, closedApplicantSummaries,
+    loading, partial, loadError, postedJobs, appliedApps, applicantCounts, pendingApplicantCounts, closedApplicantSummaries,
     helperNames, helperAvatars, completedJobMeta,
     helperReviewedJobIds, latestTracking, groupHelpersByJob, refresh,
     // Only THIS tab's data blocks the first card. The other tab's core query
     // is warmed on idle inside the hook, so switching still comes out of cache.
-  } = useActivityData(user, tab);
+  } = useActivityData(user, tab, { leanFirst, holdWhole: !postedTabIn });
   const activitySettled = useActivitySettled(); // a ?job= link waits for it (Q1563, deepLinkWait.ts)
 
   // No "Get notified?" toast on the first applicant any more (Q2003, owner 2026-11-03): the notifications ask is
@@ -192,7 +226,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
       (highlightJobId ? `job:${highlightJobId}` : null);
     if (!deepLinkKey) return;
     if (deepLinkResolvedFor.current === deepLinkKey) return;
-    if (loading) return;
+    if (loading || partial) return;
     const named = tab === "posted"
       ? postedJobs.some((j) => j.id === (deepLinkJobId ?? highlightJobId))
       : appliedApps.some((a) => (deepLinkJobId ? a.job_id === deepLinkJobId : a.id === highlightAppId));
@@ -263,7 +297,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     // reaches this effect at all, because none of the data deps change. It
     // cannot loop: the branch above deletes `job` from the URL, which sets
     // `deepLinkJobId` to null and the next run returns on the null key.
-  }, [loading, postedJobs, appliedApps, pendingApplicantCounts, deepLinkJobId, activitySettled]);
+  }, [loading, partial, postedJobs, appliedApps, pendingApplicantCounts, deepLinkJobId, activitySettled]);
 
   // Data-loading + action handlers + dialog/UI state (extracted hook).
   const actions = useActivityActions({
@@ -317,7 +351,9 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   // old filter labels ("Nothing under scheduled") while the status boxes above
   // it say Upcoming / Booked / Not picked. One name per bucket: the box's.
   const activeStatusFilters = boxLabelledFilters(tab, tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS);
-  const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
+  // Q2705: while the lean first cards show, All, Done and Cancelled print no count yet (the whole list is still loading);
+  // the three lean groups' counts are already the whole list's.
+  const activeCounts = tab === "posted" ? (partial ? { ...postedCounts, all: 0, done: 0, cancelled: 0 } : postedCounts) : appliedCounts;
 
   /* No auto-switch on open. The old My Posts / My Jobs pages opened on the
      first bucket that held anything (owner, 2026-10-08); the Jobs section
@@ -337,8 +373,10 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   // The entrance animation is for arriving on a page that is already there.
   // After a skeleton it replayed as a fade-to-empty + 8px rise between the
   // skeleton and the cards — one more visible jump (VN-32).
-  if (loading) skeletonShownRef.current = true;
-  if (loading) return <EmbeddedActivityLoading header={embeddedHeader} tab={tab === "posted" ? "posted" : "applied"} />;
+  // Q2705: lean first cards with nothing in this filter are not an answer yet (an empty state would be premature).
+  const waiting = loading || (partial && filteredPostedJobs.length === 0);
+  if (waiting) skeletonShownRef.current = true;
+  if (waiting) return <EmbeddedActivityLoading header={embeddedHeader} tab={tab === "posted" ? "posted" : "applied"} />;
 
   // The header renders ALWAYS — including on an empty list. It used to be
   // replaced by null, which took the page title down with the filter tabs and
@@ -443,7 +481,16 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
           <JobListQuotesSlot tab={tab} />{/* the member's quotes, behind the 'quotes' switch (owner 2026-10-19) */}
           {/* Jobs waiting for the poster's bank payment: shown, never bucketed. */}
           {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mb-3" />}
-          {tab === "posted" && (
+          {tab === "posted" && !postedTabIn && (
+            /* Q2705 (11-17): the rows are read but the cards' code (PostedJobsTab's chunk) is still on its way: the
+               MineJobFace-shaped bones, carrying the first cards' real titles. Drawn here, not only as the Suspense
+               fallback below: measured (cwv-lab, local build, 375), that fallback never reached the screen while the
+               chunk loaded (the list stayed blank from 5.0 to 8.0 s). */
+            <div className="px-0">
+              <PostedListBones filter={statusFilter} titles={firstCardTitles(filteredPostedJobs, statusFilter, pendingApplicantCounts)} />
+            </div>
+          )}
+          {tab === "posted" && postedTabIn && (
             /* `space-y-list` (12px, Q213a), which is what PostedJobsTab uses. It said `space-y-2.5` — 10px
                against the real 12px — the same 2px-per-row drift
                ActivityPageSkeleton was fixed for on 2026-09-21; a gap is part

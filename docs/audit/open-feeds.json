@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-17T08:10Z",
+  "measured_at": "2026-11-17T10:52Z",
   "issues": {
     "readable": true,
     "open": [
@@ -57,7 +57,7 @@
         "number": 3454,
         "title": "nightly-red: slow-network",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43389964385",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44053689473",
         "runTruncated": false
       },
       {

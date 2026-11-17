@@ -1,45 +1,10 @@
 {
-  "generated": "2026-11-17T14:01:41.404Z",
-  "guards": 4177,
-  "registered": 4165,
-  "unregistered": [
-    "src/components/shops/publicShopLayout.test.tsx",
-    "src/components/shops/shopBrowseCardName.test.tsx",
-    "src/components/shops/shopVisitorAudit2.test.tsx",
-    "src/lib/shops/preorders.test.ts",
-    "src/test/navigationSinksAreClassified.test.ts",
-    "src/test/shopCustomRequestSheetS2.test.tsx",
-    "src/test/shopCustomRequestsListS2.test.tsx",
-    "src/test/shopDigitalFilesWaiting.test.tsx",
-    "src/test/shopItemOptionsErrorsS2.test.tsx",
-    "src/test/shopsCustomRequestReopen.test.ts",
-    "src/test/shopsItemRulesS2.test.ts",
-    "src/test/shopsTextGrowsWithBiggerText.test.ts"
-  ],
+  "generated": "2026-11-17T18:29:30.400Z",
+  "guards": 4183,
+  "registered": 4183,
+  "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/components/declutter/orderTalkPhotos.test.tsx",
-    "src/components/profile/earningsNoAccountOnePaint.test.tsx",
-    "src/components/shops/shopCustomOrderForm.test.tsx",
-    "src/components/shops/shopVisitorAudit2.test.tsx",
-    "src/pages/jobs/jobPage/expiredRepost.test.tsx",
-    "src/test/adminActivityBell.test.ts",
-    "src/test/audit1110BellRepostOnlyForPoster.test.tsx",
-    "src/test/audit1110CopyAndRedirects.test.tsx",
-    "src/test/audit1110InlineTrashUnreadPillReplyTime.test.tsx",
-    "src/test/audit1110ReplyPromiseAndSmallCopy.test.tsx",
-    "src/test/declutterActiveFilters.test.tsx",
-    "src/test/declutterTradesClient.test.tsx",
-    "src/test/fabClearsLastRow.test.tsx",
-    "src/test/feeAmountsFromCheckout.test.tsx",
-    "src/test/homeReadsLeanPosted.test.ts",
-    "src/test/jobShareLine.test.ts",
-    "src/test/needsYouCountsEachOrderOnce.test.ts",
-    "src/test/sellerProblemIsBuyersNeedsYou.test.ts",
-    "src/test/sellingPanelsInSpanish.test.tsx",
-    "src/test/shopsAuditHighs.test.ts",
-    "src/test/shopsBrowseSearch.test.ts",
-    "src/test/unavailableProfileDoesNotSayTheyLeft.test.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {
@@ -50,80 +15,13 @@
       ]
     },
     {
-      "file": "src/test/edge/payoutDetail.test.ts",
-      "why": [
-        "transferCalls (literal declared in this file) is both input and oracle"
-      ]
-    },
-    {
-      "file": "src/test/noticeTitlesByOutcome.test.ts",
-      "why": [
-        "TITLES (literal declared in this file) is both input and oracle"
-      ]
-    },
-    {
       "file": "src/test/prodSeedGroupJobFixture.test.ts",
       "why": [
         "rows (literal declared in this file) is both input and oracle"
       ]
-    },
-    {
-      "file": "src/test/sellerCardYouGetPaidOn.test.ts",
-      "why": [
-        "lines (literal declared in this file) is both input and oracle"
-      ]
     }
   ],
   "classB_mountWiring": [
-    {
-      "module": "src/components/declutter/SellTradesRow.tsx",
-      "tests": [
-        "src/test/declutterTradesPrompt.test.tsx",
-        "src/test/sellFormInSpanish.test.tsx"
-      ],
-      "parents": [
-        "src/components/declutter/SellSummaryCard.tsx"
-      ]
-    },
-    {
-      "module": "src/components/rentals/listings/HomeTalk.tsx",
-      "tests": [
-        "src/test/homesTalkClient.test.tsx"
-      ],
-      "parents": [
-        "src/components/rentals/listings/ListingView.tsx",
-        "src/components/messages/HomeTalkInbox.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/home/homeDashboard/ForSaleNearYou.tsx",
-      "tests": [
-        "src/test/newMemberHome1114.test.tsx"
-      ],
-      "parents": [
-        "src/pages/home/homeDashboard/NewMemberHome.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/home/homeDashboard/WelcomeCard.tsx",
-      "tests": [
-        "src/test/homeCardsInSpanish.test.tsx",
-        "src/test/homeWelcomeCard.test.tsx",
-        "src/test/newMemberHomeCreateNotCovering.test.tsx"
-      ],
-      "parents": [
-        "src/pages/home/homeDashboard/NewMemberHome.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/info/legal/LegalTabBar.tsx",
-      "tests": [
-        "src/test/publicPagesInSpanish.test.tsx"
-      ],
-      "parents": [
-        "src/pages/info/Legal.tsx"
-      ]
-    },
     {
       "module": "src/pages/post-job/CheckoutStepView.tsx",
       "tests": [

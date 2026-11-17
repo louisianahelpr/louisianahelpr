@@ -16,6 +16,8 @@
 // @mutate vercel.json |       "destination": "https://www.louisianahelpr.com/:path",\n      "permanent": true | "destination": "https://www.louisianahelpr.com/:path",\n      "permanent": false
 // @mutate vercel.json |       "source": "/contact", |       "source": "/contact-us",
 // @mutate vercel.json |       "source": "/homes", |       "source": "/home-s",
+// @mutate vercel.json |       "source": "/sponsorship", |       "source": "/sponsor-ship",
+// @mutate vercel.json |       "source": "/gift-", |       "source": "/gift-x",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -94,6 +96,18 @@ describe("vercel.json redirects", () => {
     ["/become-a-helper", "/signup"],
     ["/find-work", "/signup"],
     ["/work", "/signup"],
+    // prod error_logs 11-17: a sponsor typed /sponser (01:33 UTC) and her 25 Days sign-up never arrived; a truncated
+    // gift-guides link landed on /gift- (12:14 UTC). Common misspellings and variants go to the real page.
+    ["/sponser", "/sponsor"],
+    ["/sponsors", "/sponsor"],
+    ["/sponsorship", "/sponsor"],
+    ["/sponser-form", "/sponsor"],
+    ["/sponsorform", "/sponsor"],
+    ["/gift-", "/gift-guides"],
+    ["/gift", "/gift-guides"],
+    ["/gifts", "/gift-guides"],
+    ["/giftguide", "/gift-guides"],
+    ["/gift-guide", "/gift-guides"],
   ])("%s goes to %s", (source, destination) => {
     const r = config.redirects.find((x) => x.source === source);
     expect(r?.destination).toBe(destination);
@@ -109,6 +123,15 @@ describe("vercel.json redirects", () => {
     expect(r?.permanent).toBe(false);
     const sections = read("src/components/sections/sectionsConfig.ts");
     expect(sections).toMatch(/key: "homes", label: "Homes", navLabel: "Homes", path: "\/rentals"/);
+  });
+
+  it("every doorway redirect lands on a real app route, and the table is not empty", () => {
+    const app = read("src/App.tsx");
+    const doorways = config.redirects.filter((x) => !x.has && x.destination.startsWith("/"));
+    expect(doorways.length).toBeGreaterThan(15);
+    for (const r of doorways) {
+      expect(app.includes(`path="${r.destination}"`), `${r.source} -> ${r.destination} has no App.tsx route`).toBe(true);
+    }
   });
 
   it("no doorway redirect shadows a real app route", () => {

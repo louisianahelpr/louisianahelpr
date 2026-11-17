@@ -9,6 +9,8 @@
 // @mutate scripts/prune-stale-branches.mjs | `--force-with-lease=refs/heads/${r.name}:${tipOf.get(r.name)}`, | 
 // @mutate scripts/prune-stale-branches.mjs | if (done.has(r.name)) deleted.push(r.name); | if (true) deleted.push(r.name);
 // @mutate scripts/prune-stale-branches.mjs | const batch = rows.slice(i, i + chunk); | const batch = rows.slice(i, i + 1);
+// @mutate scripts/prune-stale-branches.mjs | const done = new Set([...res.deleted, ...gone]); | const done = new Set(res.deleted);
+// @mutate .github/workflows/branch-prune.yml |   group: branch-prune-${{ github.event_name }} |   group: branch-prune
 // @mutate scripts/prune-stale-branches.mjs |   if (unlanded === 0 && contentStranded) { |   if (false) {
 import fs from "node:fs";
 import path from "node:path";
@@ -112,6 +114,23 @@ describe("prune-stale-branches deletes in batches, leased per ref", () => {
     expect(calls[0].filter((a) => a.startsWith("--force-with-lease=")).length).toBe(100);
     expect(res.deleted).toHaveLength(249);
     expect(res.failed).toEqual([{ name: "ready/b-7", why: "[rejected] (stale info)" }]);
+  });
+
+  it("a branch the overlapping run already deleted is gone, not a failed delete; a stale lease still fails", () => {
+    const gitFn = () => {
+      throw Object.assign(new Error("push failed"), {
+        stdout: "To origin\n!\t:refs/heads/ready/b-1\t[rejected] (stale info)\nDone\n",
+        stderr: "error: unable to delete 'ready/b-0': remote ref does not exist\nerror: failed to push some refs\n",
+      });
+    };
+    const res = deleteBranches(rows.slice(0, 2), tipOf, gitFn);
+    expect(res.deleted).toEqual(["ready/b-0"]);
+    expect(res.failed).toEqual([{ name: "ready/b-1", why: "[rejected] (stale info)" }]);
+  });
+
+  it("scheduled runs have their own concurrency group, so a push run never replaces a queued scheduled one", () => {
+    const wf = blankHashComments(fs.readFileSync(path.resolve(__dirname, "../../.github/workflows/branch-prune.yml"), "utf8"));
+    expect(wf).toMatch(/concurrency:\n {2}group: branch-prune-\$\{\{ github\.event_name \}\}\n/);
   });
 
   it("a push that confirms nothing deletes nothing", () => {

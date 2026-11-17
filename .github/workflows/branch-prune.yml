@@ -30,8 +30,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# One group PER EVENT (schedule-heartbeat 43956384541): with one shared group a
+# queued scheduled run was replaced by the next main push's run (GitHub keeps
+# one pending run per group), so scheduled runs were cancelled before any job
+# started (43381484905, 44042863268) and the heartbeat went red. A push run and
+# a scheduled run may now overlap; a branch the other run already deleted is
+# not a failed delete (deleteBranches reads "remote ref does not exist").
 concurrency:
-  group: branch-prune
+  group: branch-prune-${{ github.event_name }}
   cancel-in-progress: false
 
 permissions:

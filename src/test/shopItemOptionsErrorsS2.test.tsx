@@ -3,6 +3,7 @@
  *   - a switched-off combination with a price the server would refuse sends the item's own price (it is never sold),
  *     instead of failing the save with a toast naming no row;
  *   - stock is a whole number (2.5 was allowed and refused as "a price" problem), said under that row, Save off.
+ * @mutate src/components/shops/ShopItemOptionsEditor.tsx |   if (r.active \|\| optionPriceProblem(r.price) === null) return optionPriceCents(r.price); |   return optionPriceCents(r.price);
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

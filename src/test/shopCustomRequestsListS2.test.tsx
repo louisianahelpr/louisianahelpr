@@ -3,6 +3,7 @@
  *   S2-024: a failed read says so with Try again (it showed nothing); closed requests fold under "Earlier".
  *   S2-021: an unanswered request shows its 7-day deadline to both sides.
  *   S2-020 (part): the shop's "Price sent" toast says it still accepts the order within 24 hours.
+ * @mutate src/components/shops/ShopCustomRequestsList.tsx | >Earlier ({earlier.length})</summary> | >Older ({earlier.length})</summary>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";

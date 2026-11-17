@@ -2,6 +2,7 @@
  * S2-043 (Shops audit 2): on phones the card is a compact row (logo, then the lines); the photo card is sm and up.
  * S2-040 (Shops audit 2): a Browse shop card's link has a short name (name, rating, category, open or not, place),
  * not the logo's letter and every line and badge run together ("TTEST Boudin shop 5 Bakery ... ID checked Permit").
+ * @mutate src/components/shops/ShopBrowseCard.tsx |       aria-label={label} |       aria-label={undefined}
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";

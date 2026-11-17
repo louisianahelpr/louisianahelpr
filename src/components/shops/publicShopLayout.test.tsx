@@ -4,6 +4,7 @@
  * once (the header says "Shop").
  * S2-038: an item with options says "From $18" (has_options, 20261112210500), and tapping an item opens a read-only
  * sheet with "Sign up to order".
+ * @mutate src/components/shops/PublicShopView.tsx | <div className="mx-auto w-full max-w-5xl space-y-4 pb-8" data-public-shop-body=""> | <div className="mx-auto w-full space-y-4 pb-8" data-public-shop-body="">
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";

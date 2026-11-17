@@ -1,6 +1,7 @@
 /**
  * S2-021 (Shops audit 2, the rest): the request form sends an optional "Need it by" date (the server took one; the form
  * always sent null, so "Wanted by" never showed), and the confirmation links to My orders, where the price shows up.
+ * @mutate src/components/shops/ShopCustomRequestSheet.tsx | sendCustomRequest(shopId, text, needBy \|\| null) | sendCustomRequest(shopId, text, null)
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

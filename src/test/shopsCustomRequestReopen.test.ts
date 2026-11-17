@@ -3,6 +3,7 @@
  * declines, its 24 hours run out, the buyer cancels before the accept): 'quoted' while its price is good, 'expired'
  * after. A charged order never reopens it. Behaviour: src/test/pglite/shopsCustomRequestReopen.pglite.mjs (3x;
  * NEW_MIGRATION=skip RED; 5 planted defects RED). S2-021: the shop's notice names the answer-by day (same file).
+ * @mutate supabase/migrations/20261112224850_shops_custom_request_reopen.sql | IF OLD.status = 'held' AND NEW.status IN ('declined', 'expired', 'cancelled') THEN | IF OLD.status = 'held' AND NEW.status IN ('declined', 'expired', 'cancelled', 'completed') THEN
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

@@ -3,6 +3,7 @@
  * - S2-028: the sticky "Review order" bar hides while the order sheet is on screen (it covered the note box), and the
  *   sheet has a scroll margin so "Review order" lands on its heading.
  * - S2-029: an item's option lists show their names ("Scent", "Size") above each select.
+ * @mutate src/components/shops/ShopOrderOptions.tsx |  aria-hidden data-option-name="">{name}</span> |  aria-hidden>{name}</span>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
@@ -79,6 +80,8 @@ describe("S2-030: a cancel rule that keeps the card processing cost never says F
   const { CANCEL_POLICIES, READY_TAP_CANCELS, cancelPolicyText } = await import("@/lib/shops/orders");
   it("every buyer label whose detail keeps a cost reads as a refund, not free", () => {
     const all = CANCEL_POLICIES.flatMap((p) => READY_TAP_CANCELS.map((t) => cancelPolicyText(p, t)));
+    // Inventory floor: an empty policy list would pass every check below.
+    expect(all.length).toBeGreaterThan(2);
     for (const { label, detail } of all) {
       if (/isn't refunded/.test(detail)) expect(label, label).not.toMatch(/free/i);
       expect(detail, detail).not.toMatch(/free cancel/i);

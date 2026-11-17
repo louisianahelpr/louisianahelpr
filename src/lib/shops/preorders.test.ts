@@ -2,6 +2,7 @@
  * Preorder words (20261108184654): the product page's label and goal progress, the charge and refund words, the
  * buyer's cancel words, and the shop's ready-from date. Each number matches the SQL's own limit
  * (src/test/shopsPreorders.test.ts reads those).
+ * @mutate src/lib/shops/preorders.ts |   if (p.cap != null && p.ordered >= p.cap) return "This preorder is full."; |   if (p.cap != null && p.ordered > p.cap) return "This preorder is full.";
  */
 import { describe, expect, it } from "vitest";
 import {

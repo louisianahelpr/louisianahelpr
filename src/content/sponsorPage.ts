@@ -69,7 +69,7 @@ export const sponsorPage = {
   trustStrip: [
     "Louisiana-owned & run",
     "Based in Delcambre, LA",
-    "Prizes delivered to the winner by us",
+    "Easy prize delivery",
     "Real local families, not bots",
   ],
 
@@ -133,7 +133,7 @@ export const sponsorPage = {
   whatWeAsk: {
     title: "What We Ask",
     body:
-      "Donate a prize, anything you'd like (a product, a gift card, a service or a bundle), dropped off or shipped to us in Delcambre. That's it. We handle the graphics, the posts and picking the winner.",
+      "Donate a prize, anything you'd like (a product, a gift card, a service or a bundle). The easiest way is to ship it or drop it off to us in Delcambre, and we deliver it to the winner. You can also ship it straight to the winner, email a digital gift card, or have the winner pick it up from you. That's it. We handle the graphics, the posts and picking the winner.",
   },
 
   reach: {
@@ -397,9 +397,21 @@ export const sponsorPage = {
       prizeDescriptionHint: "e.g. a candle gift set, a $50 gift card, a holiday bundle",
       logo: "Logo (optional)",
       logoHint: "PNG, JPG or SVG, up to 5 MB",
-      // Owner 11-09: every prize ships to Louisiana Helpr; the form shows the address instead of asking.
+      // Owner 11-17: four ways to get the prize to the winner; shipping to us stays the first, easiest choice.
       shipTo: "Ship your prize to",
       shipAddress: "Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528",
+      delivery: {
+        legend: "How will your prize get to the winner?",
+        /** Written into the sign-up's notes for the two choices ship_to cannot name. */
+        noteLine: "Prize delivery: {option}",
+        thankYou: "Prize delivery:",
+        options: [
+          { value: "helpr", label: "Ship or drop off to Louisiana Helpr (easiest)", hint: "314 Lynn Street, Delcambre, LA 70528. We deliver it to the winner." },
+          { value: "winner", label: "Ship straight to the winner", hint: "We send you the winner's name and shipping address within 24 hours of the drawing. Please ship within a week and send us a photo of the prize for the post." },
+          { value: "digital", label: "Email a digital gift card", hint: "To us or straight to the winner." },
+          { value: "pickup", label: "Local pickup (will call)", hint: "The winner picks it up from you." },
+        ],
+      },
       notes: "Anything else? (optional)",
       agree: "I agree to provide the prize(s) I described for my giveaway day(s)",
       showOnWall: "OK to show our logo on the sponsor wall",
@@ -439,7 +451,7 @@ export const sponsorPage = {
       { q: "Is this really free?", a: "Yes. There's no fee to join; all we ask is a prize to give away." },
       { q: "Who can enter the giveaways?", a: "[Louisiana residents 18+ — confirm]. Full details are in the Official Giveaway Rules." },
       { q: "How is the winner picked?", a: "At random from eligible entries, and announced publicly on our Facebook page and group." },
-      { q: "How does the prize get to the winner?", a: "Ship it straight to the winner (we send you their shipping info), or send it to us and we handle delivery." },
+      { q: "How does the prize get to the winner?", a: "Your choice, four easy ways. 1) Easiest: ship it or drop it off to us at 314 Lynn Street, Delcambre, LA 70528, and we deliver it to the winner. 2) Ship it straight to the winner: we send you their name and shipping address within 24 hours of the drawing, you ship within a week, and you send us a photo of the prize for the post. 3) Email a digital gift card, to us or to the winner. 4) Local pickup: the winner picks it up from you." },
       { q: "Can I sponsor more than one day?", a: "Absolutely! Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1." },
       { q: "Can more than one brand be on the same day?", a: "Yes. Some days have two or three brands, and each brand's prize has its own winner. Every partner is featured and tagged on our socials." },
       { q: "What if I have more questions?", a: "Email us at admin@louisianahelpr.com. A real person replies." },
@@ -494,7 +506,7 @@ export const sponsorPage = {
       },
       {
         heading: "Prizes and fulfillment",
-        body: "Each prize is provided by that day's sponsor, and its description and approximate retail value are stated in the giveaway post. The sponsor ships the prize directly to the winner, or to Louisiana Helpr for delivery. Prizes are not transferable and no cash substitute is offered except at the sponsor's discretion. Winners are responsible for any taxes on their prize. [Confirm fulfillment terms.]",
+        body: "Each prize is provided by that day's sponsor, and its description and approximate retail value are stated in the giveaway post. The sponsor delivers the prize in one of these ways: by shipping or dropping it off to Louisiana Helpr, which delivers it to the winner; by shipping it directly to the winner; by emailing a digital gift card to Louisiana Helpr or the winner; or by local pickup, where the winner picks it up from the sponsor. The winner's name and shipping address are shared with that day's sponsor only to deliver the prize, and are not used for anything else. Prizes are not transferable and no cash substitute is offered except at the sponsor's discretion. Winners are responsible for any taxes on their prize. [Confirm fulfillment terms.]",
       },
       {
         heading: "Facebook release",

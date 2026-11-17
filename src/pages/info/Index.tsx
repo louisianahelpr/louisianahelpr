@@ -17,6 +17,7 @@ import HeroSection from "@/components/landing/HeroSection";
 import { LandingBrowseSwitch } from "@/components/landing/LandingBrowseSwitch";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
+import { GiftGuidesBand } from "@/components/landing/GiftGuidesBand";
 
 const SITE_URL = "https://www.louisianahelpr.com";
 
@@ -145,6 +146,9 @@ const Index = () => {
       <LandingBrowseSwitch />
 
       <SectionsShowcase />
+
+      {/* Owner 2026-11-16: the Holiday Gift Guides card, below the first screen (text only, nothing to load). */}
+      <GiftGuidesBand />
 
       <HowItWorksSection />
 

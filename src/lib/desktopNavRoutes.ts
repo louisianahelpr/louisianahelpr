@@ -76,6 +76,7 @@ const AUTH_PREFIXES = [
   "/help", "/legal", "/support",
   "/sms-opt-in", // the text-alerts opt-in page (Twilio A2P review, 2026-10-23), same PublicLayout as /help
   "/fees", "/safety", // F255 (owner 2026-11-11): same PublicHeaderPage as /sms-opt-in
+  "/gift-guides", // the Holiday Gift Guides (owner 2026-11-16), same PublicHeaderPage
   "/hire/", // the town + service pages (OPS-4, /hire/<service>/<town>), same PublicHeaderPage as /help
   // /u/<handle>, the shareable profile (owner request 11-05): a signed-in member keeps the rail and the top bar there,
   // as on every other app page; a guest's page is unchanged (the rail and bar need a user).

@@ -117,6 +117,17 @@ export const WelcomeEmail = inert("WelcomeEmail");
 /** Every direct `sendWithResend(key, message)` call, in order (send-notification-email's fallback). */
 export const sendWithResend = vi.fn(async (_key: string, _message: unknown) => ({ id: "resend-mock-id" }));
 
+/** `_shared/resend.ts` sanitizeHeaderValue: same rule as the real one (C0/C1 controls to spaces, collapse, trim, cap). Harness-aliased (see verifyUnsubscribeToken). @public */
+export const sanitizeHeaderValue = (input: unknown, max = 200): string =>
+  typeof input !== "string"
+    ? ""
+    : input
+        // eslint-disable-next-line no-control-regex -- stripping control characters is the point
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, max);
+
 /** The per-send ceiling process-email-queue sizes its visibility timeout from (real value in _shared/resend.ts). Harness-aliased (see verifyUnsubscribeToken). @public */
 export const SEND_TIMEOUT_MS = 10_000;
 

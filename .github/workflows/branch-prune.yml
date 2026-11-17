@@ -47,7 +47,8 @@ permissions:
 jobs:
   prune:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 20 (was 10): the branch table alone took ~7 min in CI on 2026-11-17 (2,202 origin branches; 4 min locally).
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,7 +56,7 @@ jobs:
       - name: Prune branches on main; report stranded ones (opens no PR)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/prune-stale-branches.mjs --apply
+        run: node scripts/prune-stale-branches.mjs --apply --no-stranded
       # Owner, 2026-10-12: a lane that dies leaves its claim/Q<n> branch behind
       # and the item stays claimed for good. Delete claim/* branches claimed
       # over 6 h ago that no open PR mentions and that carry nothing beyond
@@ -69,7 +70,9 @@ jobs:
 
   stranded:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 30 (was 15): judging 1,700+ unaccepted origin branches by content took 13 min on 2026-11-17 (44154540084)
+    # and the next runs hit 15 and were cancelled, so a scheduled run never reported (schedule-heartbeat red).
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read

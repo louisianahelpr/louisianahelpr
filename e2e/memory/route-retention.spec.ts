@@ -76,7 +76,7 @@ test.describe("PD-009 route retention", () => {
     expect(last.live, "live DOM node count of the landing page").toBeGreaterThan(200);
     expect(last.listeners).toBeGreaterThan(50);
 
-    expect(last.detachedNodes, `detached DOM still retained after ${LAPS * ROUTES.length + ROUTES.length} navigations`).toBeLessThanOrEqual(DETACHED_NODE_BUDGET);
+    expect(last.detachedNodes, `detached DOM still retained after ${LAPS * ROUTES.length + ROUTES.length} navigations: ${last.detached.join(" | ")}`).toBeLessThanOrEqual(DETACHED_NODE_BUDGET);
     expect(last.nodes - first.nodes, "renderer node growth across laps").toBeLessThanOrEqual(NODE_GROWTH_BUDGET);
     expect(last.listeners - first.listeners, "event-listener growth across laps").toBeLessThanOrEqual(LISTENER_GROWTH_BUDGET);
   });

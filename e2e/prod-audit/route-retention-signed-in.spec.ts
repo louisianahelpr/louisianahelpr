@@ -80,7 +80,7 @@ test.describe("Q440 route retention, signed in", () => {
     const last = samples[samples.length - 1];
     expect(last.live, "live DOM of the last route").toBeGreaterThan(100);
 
-    expect(last.detachedNodes, `detached DOM still retained after ${(LAPS + 1) * ROUTES.length} signed-in navigations`).toBeLessThanOrEqual(DETACHED_NODE_BUDGET);
+    expect(last.detachedNodes, `detached DOM still retained after ${(LAPS + 1) * ROUTES.length} signed-in navigations: ${last.detached.join(" | ")}`).toBeLessThanOrEqual(DETACHED_NODE_BUDGET);
     expect(last.nodes - first.nodes, "renderer node growth across laps").toBeLessThanOrEqual(NODE_GROWTH_BUDGET);
     expect(last.listeners - first.listeners, "event-listener growth across laps").toBeLessThanOrEqual(LISTENER_GROWTH_BUDGET);
     await ctx.close();

@@ -363,7 +363,7 @@ describe("stalled-completion-reminder", () => {
 
   it("a lapsed continue day measures the ladder from THAT day: day 1's age never escalates it (vacuity 44108754883)", async () => {
     const fn = await load();
-    // Day 1 is ESCALATE + 200 h past and both nudges went out long ago: measured from day 1 this job escalates.
+    // Day 1 is ESCALATE + 200 h past and both nudges went out long ago, so measured from the first day the job escalates.
     seedStalled(STALLED_ESCALATE_AFTER_HOURS + 200, {
       job_id: "job-stalled",
       first_sent_at: new Date(Date.now() - 100 * HOUR).toISOString(),

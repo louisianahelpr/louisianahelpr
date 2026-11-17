@@ -389,6 +389,13 @@ test(stepTitle("post", "drop"), async ({ browser, request, journey }) => {
     // trouble, never the browser's raw text.
     await expect(page.getByText(/Connection trouble/i).first(), "Q270: a dropped post showed no connection copy").toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/Failed to fetch|Load failed|NetworkError|TypeError/i), "Q270: raw fetch error shown to the user").toHaveCount(0);
+    // The two error toasts (offline, then connection trouble) are bottom-anchored (toastPlacement.test.tsx) and sit
+    // over the in-flow Post button once it is scrolled to the bottom edge; a person reads them and taps their X. The
+    // harness did not, and its click retries kept the pointer over a toast, which pauses Sonner's timer, so they never
+    // left: slow-network 44194371146 (2026-11-17) timed out 60 s on "Continue to payment" under two toasts.
+    const closeToast = page.getByRole("button", { name: "Close toast" });
+    for (let i = 0; i < 5 && (await closeToast.count()) > 0; i++) await closeToast.first().click({ timeout: 5_000 });
+    await expect(page.locator("[data-sonner-toast][data-type=error]"), "the error toasts close when their X is tapped").toHaveCount(0, { timeout: 10_000 });
     await submit.click();
     await expectExactlyOnce(request, poster, q, "jobs row");
   });

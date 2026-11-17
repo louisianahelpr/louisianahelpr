@@ -2,7 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
-import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
+import { FROM_DEFAULT, sanitizeHeaderValue, sendWithResend } from '../_shared/resend.ts'
 import { isTestRecipient, TEST_RECIPIENT_REASON } from '../_shared/testRecipient.ts'
 import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
 import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
@@ -480,7 +480,7 @@ serve(async (req) => {
     const readerMessage = lang === 'es' ? noticeInSpanish(message) : message
     // Owner 11-17 (notices in Gmail spam): the subject names the job or item the message quotes, so forty
     // "New application" emails stop being one identical, vague subject. The heading inside stays the plain title.
-    const subject = noticeSubject(heading, readerMessage)
+    const subject = sanitizeHeaderValue(noticeSubject(heading, readerMessage))
     const { html, text } = await renderNotificationEmail(
       heading,
       readerMessage,

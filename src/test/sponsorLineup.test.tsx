@@ -1,4 +1,4 @@
-// @mutate src/content/sponsorPage.ts |       { day: 4, partners: [{ brand: "K18 Hair", prize: "FutureIQ + Molecular Repair Hair Mask" }] }, |       { day: 4, partners: [] },
+// @mutate src/content/sponsorPage.ts |           { brand: "Megan Benoit's Closet", prize: "$30 gift card" }, |           { brand: "Megan Benoit's Closet REMOVED", prize: "$30 gift card" },
 // @mutate src/content/sponsorPage.ts |     winners: "{n} winners", |     winners: "",
 // @mutate src/components/sponsor/Sections.tsx |               {d.partners.length > 1 ? ( |               {d.partners.length > 9 ? (
 // @mutate src/components/sponsor/ClaimSection.tsx |   return Math.max(state.dayCounts[day] ?? 0, lineupCount(day)); |   return state.dayCounts[day] ?? 0;

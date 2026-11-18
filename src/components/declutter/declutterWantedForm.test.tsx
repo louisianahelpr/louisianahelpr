@@ -39,7 +39,8 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | {feeLine(form.maxPrice)} |
  * Q2578 (audit 1102a): the empty field's line is an example, not "A $30 item".
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | return `${valid ? "A" : "For example, a"} | return `${"A"}
- * @mutate src/components/declutter/DeclutterWantedViews.tsx | placeholder="Kids bike" enterKeyHint | placeholder="Kids bike, 16 inch" enterKeyHint
+ * @mutate src/lib/i18n/enDeclSell.ts | "dsl.w.example": "e.g. kids bike" | "dsl.w.example": "Kids bike"
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | inputMode="numeric" value={form.maxPrice} enterKeyHint | inputMode="numeric" value={form.maxPrice} placeholder="30" enterKeyHint
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |   useEffect(() => { saveWantedDraft(form); }, [form, editing]);
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const gotIt = !payBy && accepted.some((r) => r.paid === true \|\| r.paid === undefined); |   const gotIt = false;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const payBy = accepted.find((r) => r.checkout_by && !r.paid); |   const payBy = undefined as WantedReply \| undefined;
@@ -255,7 +256,9 @@ describe("the Wanted hub", () => {
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Post what you're looking for" }));
     const sheet = await screen.findByRole("dialog");
-    expect(within(sheet).getByLabelText("I'm looking for")).toHaveAttribute("placeholder", "Kids bike");
+    // Area 06b M3 (design audit 11-18): the example reads as one, and the price field starts empty (no grey "30").
+    expect(within(sheet).getByLabelText("I'm looking for")).toHaveAttribute("placeholder", "e.g. kids bike");
+    expect(sheet.querySelector("#wanted-max")).not.toHaveAttribute("placeholder");
   });
 
   it("#9: an open post can be edited, on its own words, without touching the new-post draft", async () => {

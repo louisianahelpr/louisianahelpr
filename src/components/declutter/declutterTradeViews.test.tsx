@@ -1794,6 +1794,20 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText(/of 3 strikes/)).toBeNull();
   });
 
+  // Design audit 11-17 #2: off Selling the strikes are one line (the full card at 3, when Declutter is paused).
+  it("strike count off Selling is one line under 3 strikes, the full card at 3", async () => {
+    state.strikes = 2;
+    const { container, unmount } = show(<StrikeCount userId="u1" full={false} />);
+    expect(await screen.findByText("You have 2 of 3 strikes.")).toBeInTheDocument();
+    expect(container.querySelector("[data-strike-line]")).not.toBeNull();
+    expect(screen.queryByText(/goes away 1 year/)).toBeNull();
+    unmount();
+    state.strikes = 3;
+    const again = show(<StrikeCount userId="u1" full={false} />);
+    expect(await screen.findByText(/Declutter is paused for you/)).toBeInTheDocument();
+    expect(again.container.querySelector("[data-strike-line]")).toBeNull();
+  });
+
   it("parses dollar amounts strictly", () => {
     expect(dollarsInputToCents("25")).toBe(2500);
     expect(dollarsInputToCents("$25.5")).toBe(2550);

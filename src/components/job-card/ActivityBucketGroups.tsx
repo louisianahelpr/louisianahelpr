@@ -11,7 +11,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enJobPoster";
 
 /** Posted's bucket words in the viewer's language (POSTED_GROUP_LABEL's English; esJobPoster.ts's Spanish). */
-export function postedGroupWords(t: (k: "jp.g.needs_you" | "jp.g.waiting" | "jp.g.scheduled" | "jp.g.done" | "jp.g.cancelled") => string): Record<string, string> {
+export function postedGroupWords(t: (k: "jp.g.needs_you" | "jp.g.waiting" | "jp.g.scheduled" | "jp.g.done" | "jp.g.cancelled") => string): Record<ActivityBucket, string> {
   return { needs_you: t("jp.g.needs_you"), waiting: t("jp.g.waiting"), scheduled: t("jp.g.scheduled"), done: t("jp.g.done"), cancelled: t("jp.g.cancelled") };
 }
 

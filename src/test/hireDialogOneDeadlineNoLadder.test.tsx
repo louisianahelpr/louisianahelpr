@@ -13,7 +13,7 @@
  * the start comes first, and the line under it says that same deadline.
  *
  * @mutate src/components/ResponseDeadlineDialog.tsx |   const options = deadlineChoices(hoursLeft, startLabel); |   const options = deadlineOptions;
- * @mutate src/components/ResponseDeadlineDialog.tsx |         <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-no-strike=""> |         <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-no-strike="">1st — recorded, no penalty.
+ * @mutate src/components/ResponseDeadlineDialog.tsx |         <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-no-strike=""> |         <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-no-strike="">1st — recorded, no penalty.
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";

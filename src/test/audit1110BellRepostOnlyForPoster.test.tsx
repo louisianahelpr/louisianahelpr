@@ -12,7 +12,7 @@
  * @mutate src/components/notificationPanel/quickActions.ts |   if (n.title === "Your Helpr cancelled" \|\| n.message.toLowerCase().includes("auto-cancel")) { |   if (n.type === "warning" \|\| n.title === "Your Helpr cancelled" \|\| n.message.toLowerCase().includes("auto-cancel")) {
  * @mutate src/components/notificationPanel/quickActions.ts |   if (n.type === "warning" \|\| n.type === "job_update") { |   if (n.type === "job_update") {
  * @mutate src/components/NotificationPanelView.tsx |                               const action = quickActionFor(n, destinationOf); |                               const action = n.type === "expired" ? { label: "Repost", href: "/post-job" } : null;
- * @mutate src/components/sponsor/ClaimSection.tsx |           {done.anyDay ? null : ( |           {false ? null : (
+ * @mutate src/components/sponsor/ClaimSection.tsx |           <p className="lh25-thanks-body" data-testid="sponsor-thanks-days-note">{C.thankYou.daysNote}</p> |           {done.anyDay ? null : <a href="data:text/calendar,">Add to calendar</a>}
  * @mutate src/pages/info/HireTownPage.tsx |           <Button asChild variant="outline" size="sm" className="squircle"> |           <p className="text-ds-15">
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |         <div className="mt-8 border-t border-border pt-4" data-delete-account-apart=""> |         <div data-delete-account-apart="">
  */
@@ -69,11 +69,12 @@ describe("F486: the bell's Repost pill reaches only the poster", () => {
 });
 
 describe("F240: no Add to calendar for a brand that chose Any day", () => {
-  it("the thank-you link is gated on done.anyDay", () => {
+  // Area 11b M10 (owner rule 11-17: don't confirm sponsors' days yet) took the link away for every brand, so no
+  // brand, Any day or not, is handed a calendar entry for a day that may still move.
+  it("the thank-you offers no calendar link at all", () => {
     const s = src("src/components/sponsor/ClaimSection.tsx");
-    const i = s.indexOf("{done.anyDay ? null : (");
-    expect(i).toBeGreaterThan(0);
-    expect(s.slice(i, i + 400)).toContain("C.thankYou.addToCalendar");
+    expect(s).toContain("C.thankYou.daysNote");
+    expect(s).not.toMatch(/text\/calendar|Add to calendar|addToCalendar/);
   });
 });
 

@@ -1,5 +1,7 @@
 import { Camera } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
 
 interface PhotoProofToggleProps {
   requirePhotoProof: boolean;
@@ -25,6 +27,7 @@ export function PhotoProofToggle({
   requirePhotoProof,
   setRequirePhotoProof,
 }: PhotoProofToggleProps) {
+  const { t: tr } = useLanguage();
   // Switch BESIDE its label, not pushed to the far edge (owner, 2026-09-14,
   // VN-49: "too spaced out"). At 1440 the form is ~1500px wide, so
   // `justify-between` put the title at one end, the switch at the other and
@@ -43,7 +46,7 @@ export function PhotoProofToggle({
         >
           <Camera className="w-4 h-4 text-primary shrink-0" />
           <span className="text-ds-13 font-semibold text-foreground">
-            Require before &amp; after photos
+            {tr("postJob.f.photoProof")}
           </span>
         </label>
         <Switch
@@ -54,8 +57,8 @@ export function PhotoProofToggle({
       </div>
       <p className="text-ds-11 text-muted-foreground leading-snug max-w-prose">
         {requirePhotoProof
-          ? "Your Helpr has to upload a photo before they start and another when they finish. Those photos are the proof that releases your payment."
-          : "Your Helpr can mark this job done without uploading photos. Good for deliveries, errands and pet care, where a before-and-after shot doesn't show much."}
+          ? tr("postJob.f.photoProofOn")
+          : tr("postJob.f.photoProofOff")}
       </p>
     </div>
   );

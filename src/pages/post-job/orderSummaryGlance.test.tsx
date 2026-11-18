@@ -1,4 +1,4 @@
-// @mutate src/components/postjob/CheckoutGlanceCard.tsx | className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3 text-right" | className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3"
+// @mutate src/components/postjob/CheckoutGlanceCard.tsx | className="text-ds-13 text-foreground leading-relaxed line-clamp-3 text-left" | className="text-ds-13 text-foreground leading-relaxed line-clamp-3 text-right"
 /**
  * Owner, 2026-10-01, on the Post a job "Order Summary" (review) screen:
  * "Remove detail and review and pay at the top. Category should be seperate
@@ -83,7 +83,9 @@ describe("Order Summary review card (owner 2026-10-01)", () => {
     expect(screen.queryByRole("button", { name: /go back to edit job details/i })).toBeNull();
   });
 
-  it("every glance row is a label plus one right-aligned value", () => {
+  // Design audit r2 #8 (11-17, owner approved every finding): the multi-line rows (Details, Location) stack the label
+  // above a left-aligned value; the one-line rows keep a right-aligned value beside the label.
+  it("every glance row is a label plus one value: right-aligned beside it, or left-aligned under it when multi-line", () => {
     render(<CheckoutStepView form={makeForm()} />);
     const rows = glanceRows();
     // Job, Category, Details, Location, When at minimum (the Total row moved to the Payment breakdown, audit 11-01 JA-45).
@@ -91,7 +93,9 @@ describe("Order Summary review card (owner 2026-10-01)", () => {
     for (const row of rows) {
       const kids = Array.from(row.children) as HTMLElement[];
       expect(kids.length, `row "${row.textContent}" has label + value`).toBe(2);
-      expect(kids[1].className, `value of "${kids[0].textContent}" is right-aligned`).toMatch(/\btext-right\b/);
+      const stacked = /Details|Location/.test(kids[0].textContent ?? "");
+      expect(kids[1].className, `value of "${kids[0].textContent}" alignment`).toMatch(stacked ? /\btext-left\b/ : /\btext-right\b/);
+      if (stacked) expect(row.className).toMatch(/\bflex-col\b/);
     }
   });
 
@@ -107,11 +111,11 @@ describe("Order Summary review card (owner 2026-10-01)", () => {
     expect(rows[catIdx].textContent).toContain("Cleaning");
   });
 
-  it("the Details value is right-aligned", () => {
+  it("the Details value is left-aligned under its label (design audit r2 #8)", () => {
     render(<CheckoutStepView form={makeForm()} />);
     const details = glanceRows().find((r) => (r.children[0] as HTMLElement).textContent?.trim() === "Details");
     expect(details).toBeDefined();
-    expect((details!.children[1] as HTMLElement).className).toMatch(/\btext-right\b/);
+    expect((details!.children[1] as HTMLElement).className).toMatch(/\btext-left\b/);
   });
 
   it("Location shows the address only, never a parish", () => {

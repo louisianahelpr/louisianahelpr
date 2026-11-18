@@ -4,6 +4,8 @@ import { formatJobDate } from "@/lib/dateUtils";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 import { CheckoutRepeatsRow } from "./CheckoutRepeatsRow";
 import { ReviewMediaRows } from "./ReviewMediaRows";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
 
 /** Q806: CheckoutStep's read-only "Your post at a glance" card, moved out unchanged (a pure move; no money figure here). */
 export function CheckoutGlanceCard({
@@ -16,6 +18,7 @@ export function CheckoutGlanceCard({
   estimatedHours: string; isRecurring: boolean; whenDate: string; recurrenceDays: number[]; visitCount: number;
   seriesEndDate: string; imagePreviews: string[]; scopeVideoUrl?: string | null; specialRequirements: string;
 }) {
+  const { t: tr } = useLanguage();
   return (
     /* ── Review & Post summary card ─────────────────────────────
         A clean read-only summary of everything the poster set. Shows
@@ -37,13 +40,13 @@ export function CheckoutGlanceCard({
           className="text-ds-10 uppercase tracking-wide font-semibold"
           style={{ color: "hsl(var(--bark))" }}
         >
-          Your post at a glance
+          {tr("postJob.f.glance")}
         </p>
       </div>
       <div className="divide-y divide-border">
         {/* Title */}
         <div className="px-4 py-3 flex items-start justify-between gap-3">
-          <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Job</span>
+          <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">{tr("postJob.f.row.job")}</span>
           <div className="flex-1 min-w-0 text-right">
             <p className="text-ds-13 font-semibold text-foreground truncate">{title}</p>
           </div>
@@ -51,7 +54,7 @@ export function CheckoutGlanceCard({
 
         {/* Category: its own row, not under the title (owner, 2026-10-01). */}
         <div className="px-4 py-3 flex items-start justify-between gap-3">
-          <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Category</span>
+          <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">{tr("postJob.f.row.category")}</span>
           <div className="flex-1 min-w-0 text-right">
             <span
               className="inline-block px-2 py-0.5 rounded-full text-ds-10 font-semibold capitalize"
@@ -65,12 +68,13 @@ export function CheckoutGlanceCard({
           </div>
         </div>
 
-        {/* Description (3 lines), right-aligned like every value (owner, 2026-10-01). */}
+        {/* Description (3 lines). Design audit r2 #8: a multi-line value (Details, Location) sits left-aligned under
+            its label; the one-line values stay right-aligned beside theirs. */}
         {description && (
-          <div className="px-4 py-3 flex items-start gap-3">
-            <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Details</span>
+          <div className="px-4 py-3 flex flex-col gap-1">
+            <span className="text-ds-12 text-muted-foreground">{tr("postJob.f.row.details")}</span>
             <p
-              className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3 text-right"
+              className="text-ds-13 text-foreground leading-relaxed line-clamp-3 text-left"
               style={{ wordBreak: "break-word" }}
             >
               {description}
@@ -85,11 +89,11 @@ export function CheckoutGlanceCard({
         {/* Location — full street address (the poster's own job, so
             showing the complete address once at checkout is fine). No parish
             suffix (owner, 2026-10-01: "no need to show ... any parish"). */}
-        <div className="px-4 py-3 flex items-start gap-3">
-          <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
-            <MapPin className="w-3 h-3" />Location
+        <div className="px-4 py-3 flex flex-col gap-1">
+          <span className="text-ds-12 text-muted-foreground flex items-center gap-1">
+            <MapPin className="w-3 h-3" />{tr("postJob.f.row.location")}
           </span>
-          <p className="flex-1 text-ds-13 text-foreground text-right">
+          <p className="text-ds-13 text-foreground text-left">
             {[streetAddress, city, addrState, zipCode].filter(Boolean).join(", ")}
           </p>
         </div>
@@ -98,7 +102,7 @@ export function CheckoutGlanceCard({
         {dateNeeded && (
           <div className="px-4 py-3 flex items-start gap-3">
             <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
-              <Calendar className="w-3 h-3" />When
+              <Calendar className="w-3 h-3" />{tr("postJob.f.row.when")}
             </span>
             <p className="flex-1 text-ds-13 text-foreground text-right">
               {isRecurring ? formatJobDate(whenDate) : jobDayLabel({ date_needed: whenDate, date_window_end: dateWindowEnd })}
@@ -127,7 +131,7 @@ export function CheckoutGlanceCard({
         {/* Special requirements */}
         {specialRequirements && (
           <div className="px-4 py-3 flex items-start gap-3">
-            <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Notes</span>
+            <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">{tr("postJob.f.row.notes")}</span>
             <p className="flex-1 text-ds-13 text-foreground text-right line-clamp-2">
               {specialRequirements}
             </p>

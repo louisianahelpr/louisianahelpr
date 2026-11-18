@@ -3,8 +3,9 @@
  * question, the group grid, the ways to start and the Continue button. Not on the boot path: only Post a job's
  * modules import this file (side effect), which registers the words with t() (enRegistry.ts) before they render.
  *
- * Money and price wording (the price screen's helper lines, totals, fees, the checkout) stays English until a
- * person translates it, as the chat screens do; only the question "What will you pay?" is here.
+ * Money and price wording (the price screen's helper lines, totals, fees, the checkout breakdown) stays English until
+ * a person translates it, as the chat screens do. Design audit r2 #32 (11-17) added steps 3-6's field words (labels,
+ * tiers, When chips, the review rows, "You pay", "Continue to payment").
  */
 import { addEnglish } from "./enRegistry";
 
@@ -40,6 +41,43 @@ export const enPostJob = {
   "postJob.priceQ": "What will you pay?",
   "postJob.whereQ": "When and where?",
   "postJob.whereH": "Helprs see the area now. Your street address goes only to the Helpr you offer the job to.",
+
+  // Steps 3-6 field words (design audit r2 #32)
+  "postJob.f.jobTitle": "Job title",
+  "postJob.f.description": "Description",
+  "postJob.f.tip": "Tip: {tips}",
+  "postJob.f.whoCanApply": "Who can apply?",
+  "postJob.f.whoCanApplyH": "Require credentials for licensed trade work.",
+  "postJob.f.tier.open": "Open",
+  "postJob.f.tier.openSub": "Anyone can apply",
+  "postJob.f.tier.licensed": "Licensed",
+  "postJob.f.tier.licensedSub": "Licensed pros only",
+  "postJob.f.tier.insured": "Licensed + Insured",
+  "postJob.f.tier.insuredSub": "Licensed & insured",
+  "postJob.f.photoProof": "Require before & after photos",
+  "postJob.f.photoProofOn": "Your Helpr has to upload a photo before they start and another when they finish. Those photos are the proof that releases your payment.",
+  "postJob.f.photoProofOff": "Your Helpr can mark this job done without uploading photos. Good for deliveries, errands and pet care, where a before-and-after shot doesn't show much.",
+  "postJob.f.jobType": "Job type",
+  "postJob.f.once": "One-time",
+  "postJob.f.repeats": "Repeats",
+  "postJob.f.group": "Group",
+  "postJob.f.setTime": "A set time",
+  "postJob.f.anyWeek": "Any time this week",
+  "postJob.f.needToday": "Need it today",
+  "postJob.f.dateNeeded": "Date needed",
+  "postJob.f.startDate": "Start date",
+  "postJob.f.moreDates": "More dates",
+  "postJob.f.startTime": "Start time",
+  "postJob.f.lookGood": "Look good?",
+  "postJob.f.glance": "Your post at a glance",
+  "postJob.f.row.job": "Job",
+  "postJob.f.row.category": "Category",
+  "postJob.f.row.details": "Details",
+  "postJob.f.row.location": "Location",
+  "postJob.f.row.when": "When",
+  "postJob.f.row.notes": "Notes",
+  "postJob.f.youPay": "You pay",
+  "postJob.f.continuePay": "Continue to payment",
 
   // The group grid
   "postJob.searchCategories": "Search categories",

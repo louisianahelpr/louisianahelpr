@@ -4,7 +4,7 @@
  * from a draft that carried Group), and link_maintenance_request_job refuses a group job on the server.
  * Behaviour of the server half (real Postgres): src/test/pglite/rentalsNoCrewRepairJob.pglite.mjs.
  *
- * @mutate src/components/postjob/LogisticsSection.tsx |   const jobTypeOptions = crewAllowed ? JOB_TYPE_OPTIONS : JOB_TYPE_OPTIONS_NO_CREW; |   const jobTypeOptions = JOB_TYPE_OPTIONS;
+ * @mutate src/components/postjob/LogisticsSection.tsx | (crewAllowed ? JOB_TYPE_OPTIONS : JOB_TYPE_OPTIONS_NO_CREW).map( | (JOB_TYPE_OPTIONS).map(
  * @mutate src/components/postjob/LogisticsSection.tsx |   const isGroupJob = crewAllowed && isGroupJobProp; |   const isGroupJob = isGroupJobProp;
  * @mutate src/pages/post-job/usePostJobForm.ts |     crewAllowed: !searchParams.get("maintenance"), |     crewAllowed: true,
  * @mutate src/pages/post-job/FormStep.tsx |             crewAllowed={form.crewAllowed} |

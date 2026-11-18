@@ -101,3 +101,42 @@ describe("design audit r2 #31: the You page follows the member's language", () =
     }
   });
 });
+
+/**
+ * #32 (High): Post a job steps 3-6 were English in Spanish except the questions. The field labels, tiers, photo-proof
+ * toggle, When chips, review rows, "You pay", "Continue to payment" and the app bar now draw t(). Every key added has
+ * real Spanish (not the English copied).
+ * @mutate src/components/postjob/LogisticsSection.tsx | onClick={chooseWeek}>{tr("postJob.f.anyWeek")}</ChoicePill> | onClick={chooseWeek}>Any time this week</ChoicePill>
+ * @mutate src/pages/post-job/CheckoutStepView.tsx | question={tr("postJob.f.lookGood")} | question="Look good?"
+ */
+describe("design audit r2 #32: Post a job steps 3-6 follow the member's language", () => {
+  const FORBIDDEN: Record<string, string[]> = {
+    "src/components/postjob/detailsSection/TitleField.tsx": [">Job title <"],
+    "src/components/postjob/detailsSection/DescriptionField.tsx": [">Description <"],
+    "src/components/postjob/detailsSection/CredentialTierSelector.tsx": [">Who can apply?<", "Require credentials for licensed trade work."],
+    "src/components/postjob/detailsSection/PhotoProofToggle.tsx": ["Require before &amp; after photos", "\"Your Helpr has to upload"],
+    "src/components/postjob/LogisticsSection.tsx": [">Job type<", ">A set time<", ">Any time this week<", "Need it today\n", "More dates\n", "Start time\n", "\"Date needed\""],
+    "src/components/postjob/CheckoutGlanceCard.tsx": ["Your post at a glance\n", ">Job<", ">Category<", ">Details<", "/>Location", "/>When"],
+    "src/components/postjob/CheckoutPlainYouPay.tsx": [">You pay<"],
+    "src/components/postjob/CheckoutStep.tsx": [": \"Continue to payment\""],
+    "src/pages/post-job/CheckoutStepView.tsx": ["question=\"Look good?\""],
+    "src/pages/post-job/PostJob.tsx": ["title: \"Post a job\""],
+  };
+  it("no hard-coded English is left in those screens", () => {
+    const bad: string[] = [];
+    let checked = 0;
+    for (const [f, words] of Object.entries(FORBIDDEN)) {
+      const src = blankComments(readFileSync(f, "utf8"));
+      for (const w of words) { checked++; if (src.includes(w)) bad.push(`${f}: ${JSON.stringify(w)}`); }
+    }
+    expect(checked).toBeGreaterThan(20);
+    expect(bad).toEqual([]);
+  });
+
+  it("every step 3-6 key has Spanish of its own", () => {
+    const keys = Object.keys(en).filter((k) => k.startsWith("postJob.f."));
+    expect(keys.length).toBeGreaterThan(30);
+    const same = keys.filter((k) => es[k as keyof typeof es] === en[k as keyof typeof en]);
+    expect(same).toEqual([]);
+  });
+});

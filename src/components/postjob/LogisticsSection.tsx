@@ -26,6 +26,8 @@ import { useSameDayPick } from "@/components/postjob/useSameDayPick";
 import { MaterialsToggle } from "@/components/postjob/MaterialsToggle";
 import { weekWindowEnd } from "@/lib/jobDateWindow";
 import { formatJobDate } from "@/lib/dateUtils";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * Repeats is ON as of 2026-08-23 (owner approved).
@@ -184,6 +186,7 @@ export function LogisticsSection({
   savedAddress = null,
   otherSavedAddresses = NO_OTHER_PLACES,
 }: LogisticsSectionProps) {
+  const { t: tr } = useLanguage();
   const materialsToggleRelevant =
     !!category && MATERIALS_RELEVANT_CATEGORIES.has(category);
 
@@ -199,7 +202,7 @@ export function LogisticsSection({
     setOtherTime(false);
     setStartTime(v);
   };
-  const dateLabel = isRecurring ? "Start date" : "Date needed";
+  const dateLabel = isRecurring ? tr("postJob.f.startDate") : tr("postJob.f.dateNeeded");
   // Q2438 "Need it today": today, at the soonest start the server takes (2 hours' notice).
   const today = strip[0]?.iso ?? todayYmd();
   const { sameDayStart, markTodayStart, pickDay } = useSameDayPick({ today, startTime, setDateNeeded, setStartTime });
@@ -225,7 +228,8 @@ export function LogisticsSection({
   // (jobs_date_window_single_job_only refuses the window on either).
   // Q2081: on a repair-request post a draft's Group reads as One-time everywhere below.
   const isGroupJob = crewAllowed && isGroupJobProp;
-  const jobTypeOptions = crewAllowed ? JOB_TYPE_OPTIONS : JOB_TYPE_OPTIONS_NO_CREW;
+  const JOB_TYPE_KEY = { once: "postJob.f.once", recurring: "postJob.f.repeats", group: "postJob.f.group" } as const;
+  const jobTypeOptions = (crewAllowed ? JOB_TYPE_OPTIONS : JOB_TYPE_OPTIONS_NO_CREW).map((o) => ({ ...o, label: tr(JOB_TYPE_KEY[o.value]) }));
   const windowOk = !isRecurring && windowAllowed && !(GROUP_JOBS_ENABLED && isGroupJob);
   const weekWindow = windowOk && !!dateWindowEnd;
   const chooseWeek = () => {
@@ -315,14 +319,14 @@ export function LogisticsSection({
           can't make. (It was withdrawn once because every visit after the first
           was posted with nothing behind it; see RECURRING_ENABLED above.) */}
       <div className="space-y-3">
-        <Label id="job-type-label">Job type</Label>
+        <Label id="job-type-label">{tr("postJob.f.jobType")}</Label>
         {/* With Group withdrawn, a restored draft carrying `isGroupJob: true`
             (useJobEntry:123 rehydrates it) must not leave the whole control
             unselected — One-Time is what that draft now IS, and
             `jobSubmitHelpers` forces the same coercion on the way into the
             insert. */}
         <SegmentedControl
-          ariaLabel="Job type"
+          ariaLabel={tr("postJob.f.jobType")}
           layout="grid"
           gridClassName={jobTypeCols(jobTypeOptions.length)}
           options={jobTypeOptions}
@@ -368,9 +372,9 @@ export function LogisticsSection({
         <div id="flexible" role="radiogroup" aria-labelledby="when-label" className="flex flex-wrap gap-2">
           {/* Q2615 (Jobs audit 1102b row 29): one filled chip for "when". While Need it today is on, neither of
               these reads selected (both used to be filled with it); tapping one leaves today for tomorrow. */}
-          <ChoicePill selected={!isToday && !isFlexibleSchedule && !weekWindow} onClick={() => chooseWhen(false)}>A set time</ChoicePill>
+          <ChoicePill selected={!isToday && !isFlexibleSchedule && !weekWindow} onClick={() => chooseWhen(false)}>{tr("postJob.f.setTime")}</ChoicePill>
           {windowOk && setDateWindowEnd && (
-            <ChoicePill selected={!isToday && weekWindow} onClick={chooseWeek}>Any time this week</ChoicePill>
+            <ChoicePill selected={!isToday && weekWindow} onClick={chooseWeek}>{tr("postJob.f.anyWeek")}</ChoicePill>
           )}
           <ChoicePill selected={!isToday && isFlexibleSchedule && !weekWindow} onClick={() => chooseWhen(true)}>Flexible</ChoicePill>
         </div>
@@ -402,7 +406,7 @@ export function LogisticsSection({
                 }`}
               >
                 <Zap className="h-4 w-4" aria-hidden />
-                Need it today
+                {tr("postJob.f.needToday")}
               </button>
             </div>
             {!sameDayStart ? (
@@ -459,7 +463,7 @@ export function LogisticsSection({
         <FieldError id="date-closed-error">{holdsClosedToday ? TODAY_CLOSED_COPY : undefined}</FieldError>
         {!showCalendar && (
           <Button type="button" variant="link" size="sm" onClick={() => setMoreDates(true)} className="self-start px-0 font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]">
-            More dates
+            {tr("postJob.f.moreDates")}
           </Button>
         )}
         {/* "More dates" opens the existing calendar INLINE, on the same field
@@ -485,7 +489,7 @@ export function LogisticsSection({
         {/* The `*` is conditional because the requirement is: under Flexible
             the time is optional, and a required marker would contradict it. */}
         <Label id="start-time-label">
-          Start time
+          {tr("postJob.f.startTime")}
           {!isFlexibleSchedule && <span aria-hidden className="text-[hsl(var(--destructive-ink))]">{" *"}</span>}
         </Label>
         <div
@@ -507,7 +511,7 @@ export function LogisticsSection({
             (timeWheelNeverPicksOnItsOwn.test.tsx). */}
         {showWheel && (
         <div className="flex flex-col justify-center rounded-2xl border border-input glass-field p-3">
-          <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" variant="wheels" className="max-w-none w-full" />
+          <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel={tr("postJob.f.startTime")} variant="wheels" className="max-w-none w-full" />
         </div>
         )}
         {/* Live, not submit-only: this clears the moment the poster moves the

@@ -8,7 +8,7 @@
  * @mutate src/pages/post-job/FormStep.tsx | <PostJobStepHeader screen="where" | <PostJobStepHeader screen="price"
  * @mutate src/pages/post-job/EntryChoice.tsx |                     form.setFormPage(2);\n                  }} |                   }}
  * @mutate src/components/postjob/PostJobStepHeader.tsx |   const step = screenNumber(screen); |   const step = 1;
- * @mutate src/pages/post-job/PostJob.tsx |   const header = { title: "Post a job" }; |   const header = { title: form.categoryGroup ? "Home" : "Post a job" };
+ * @mutate src/pages/post-job/PostJob.tsx |   const header = { title: tr("jobs.postAJob") }; |   const header = { title: form.categoryGroup ? "Home" : tr("jobs.postAJob") };
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -28,7 +28,7 @@ const EXPECTED: [file: string, key: string, question: RegExp][] = [
   ["src/pages/post-job/FormStep.tsx", "details", /question=\{t\("postJob\.detailsQ"\)\}/],
   ["src/pages/post-job/FormStep.tsx", "price", /question=\{t\("postJob\.priceQ"\)\}/],
   ["src/pages/post-job/FormStep.tsx", "where", /question=\{t\("postJob\.whereQ"\)\}/],
-  ["src/pages/post-job/CheckoutStepView.tsx", "review", /question="Look good\?"/],
+  ["src/pages/post-job/CheckoutStepView.tsx", "review", /question=\{tr\("postJob\.f\.lookGood"\)\}/],
 ];
 
 describe("Post a Job screen numbers (owner 2026-10-21)", () => {
@@ -67,7 +67,8 @@ describe("Post a Job screen numbers (owner 2026-10-21)", () => {
 
   it("the top bar reads 'Post a job' on every screen (owner 2026-10-21); screen 3's question names the group", () => {
     const page = read("src/pages/post-job/PostJob.tsx");
-    expect(page).toContain('const header = { title: "Post a job" };');
+    // Design audit r2 #32: the same words, in the member's language (jobs.postAJob is "Post a job" in English).
+    expect(page).toContain('const header = { title: tr("jobs.postAJob") };');
     expect(page).toMatch(/<AppPage title=\{header\.title\}/);
     expect(page).not.toMatch(/title:\s*[^"\n]*\?/);
   });

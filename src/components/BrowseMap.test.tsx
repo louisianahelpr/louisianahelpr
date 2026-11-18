@@ -384,7 +384,7 @@ describe("BrowseMap busy-area key (NIGHT-JOBSMA5-4)", () => {
     const { BrowseMap } = await import("./BrowseMap");
     render(<BrowseMap />);
     await screen.findByTestId("browse-map-surface");
-    expect(await screen.findByTestId("browse-map-busy-key", {}, { timeout: 3000 })).toHaveTextContent("Shaded circles: parishes busy right now");
+    expect(await screen.findByTestId("browse-map-busy-key", {}, { timeout: 3000 })).toHaveTextContent("Shaded areas show where jobs are waiting");
     const map = mapInstances[mapInstances.length - 1];
     expect(map.addOverlays).toHaveBeenCalled();
   });

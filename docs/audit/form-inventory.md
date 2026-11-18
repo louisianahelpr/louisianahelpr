@@ -306,7 +306,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/ResponseDeadlineDialog.tsx` | textarea×1, select×1 |  |  | Response deadline · Message to Helpr (optional) |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | textarea×1 |  | 1000 |  |
 | `src/pages/jobs/appliedJobCard/DisputedSection.tsx` | textarea×1 |  | 500 |  |
-| `src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx` | textarea×1 |  |  | Edit your message · Remove attachment |
+| `src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx` | textarea×1 |  |  | Remove attachment |
 | `src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx` | input×5, textarea×1 | file, text | 80, 2000 |  |
 | `src/pages/jobs/AppliedJobsTab.tsx` | textarea×1 |  |  | Withdraw reason — other |
 | `src/pages/posts/EditJobDialog.tsx` | input×3, textarea×3, select×1, checkbox/switch/radio×2, date/calendar×1 | text, date | 500 | Job title · Description · Category · category-applicants-lock-hint · category-tax-lock-hint · Location · edit-week-window · edit-flexible-schedule |
@@ -422,7 +422,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/profile/petProfiles/PetForm.tsx` | input×9, textarea×3 | text, number, tel |  | pet-species-label · pet-name · pet-name-error · pet-breed · Lab mix · pet-breed-suggestions · pet-age · pet-age-error |
 | `src/pages/profile/SavedSearchesTab.tsx` | checkbox/switch/radio×4 |  |  | saved-search-sheet · saved-searches-tab · pause-all-alerts |
 | `src/pages/profile/strSettings/AddCalendarForm.tsx` | input×5, checkbox/switch/radio×1 | url, text, number |  | ical-url · ical-url-error · str-property-name · e.g. Lakehouse · str-property-address · e.g. New Orleans, LA · str-auto-create-cleaning-label · str-auto-create-cleaning |
-| `src/pages/profile/WorkRecord.tsx` | date/calendar×1 |  |  |  |
+| `src/pages/profile/WorkRecord.tsx` | date/calendar×1 |  |  | work-record-id-how |
 
 ## /quotes/request/:id
 

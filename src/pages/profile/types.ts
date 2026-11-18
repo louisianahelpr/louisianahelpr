@@ -39,13 +39,14 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // then said "Legal & Policies" in the same box. The browser tab was wrong
   // too, for as long as it had drifted.
   legal: "Legal and policies",
-  reviews: "Reviews about you",
+  // "Reviews" (design audit area 04 #33, 11-18): the 28px page title "Reviews about you" wrapped to two lines at 390.
+  reviews: "Reviews",
   referral: "Referrals",
   subscription: "Membership",
   support: "Help",
   notifications: "Notifications",
   warnings: "Warnings and strikes",
-  credentials: "Licensed & Insured",
+  credentials: "Licenses & insurance",
   saved_helpers: "Saved Helprs",
   // Q2275 (board 91): You › Settings › Alerts › Saved searches.
   saved_searches: "Saved searches",

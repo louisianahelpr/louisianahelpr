@@ -123,6 +123,7 @@ export type JobActionTone =
   | "edit"
   | "danger"
   | "quietDanger"
+  | "quiet"
   | "primary"
   | "approve"
   | "neutral"
@@ -196,6 +197,14 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
       return {
         background: "transparent",
         color: "hsl(var(--danger-ink))",
+        border: "0.5px solid hsl(var(--border))",
+      };
+    case "quiet":
+      // quietDanger's outline in the plain ink (design audit area 04 #25, 11-18): the Applied card's Edit application
+      // beside Withdraw, so the pair wears ONE button style (tinted Edit + outlined Withdraw read as two kinds).
+      return {
+        background: "transparent",
+        color: "hsl(var(--foreground))",
         border: "0.5px solid hsl(var(--border))",
       };
     case "neutral":

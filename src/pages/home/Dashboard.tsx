@@ -472,6 +472,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
                   <WantsQuotesSlot active={wantsQuotes} onShowAllJobs={showAllJobs}>
                   <BrowseTasksFeed
                     view={isWebDesktop ? "list" : view}
+                    onShowList={() => setView("list")}
                     density={density}
                     filters={filters}
                     user={user}

@@ -32,7 +32,7 @@ export const JOBS_SETTINGS_GROUPS: { title: string; items: MenuItem[] }[] = [
       // CMP-4: the private least-you'd-take per kind of work, so posters can book you now.
       { key: "instant-book", label: TAB_TITLES.instant_book, icon: <Zap className="w-5 h-5" />, desc: "Let people book you now, at your lowest price (private)", tint: SECTION_TINT.work, href: "/profile?tab=instant_book" },
       // Q2200: the owner asked for Licensed & Insured in the Helpr's Jobs settings (it also stays in Shops > Shop settings).
-      { key: "credentials", label: TAB_TITLES.credentials, icon: <BadgeCheck className="w-5 h-5" />, desc: "Licenses & insurance for licensed work", tint: SECTION_TINT.work, href: "/profile?tab=credentials" },
+      { key: "credentials", label: TAB_TITLES.credentials, icon: <BadgeCheck className="w-5 h-5" />, desc: "Show them for jobs that need a license", tint: SECTION_TINT.work, href: "/profile?tab=credentials" },
       { key: "work-record", label: "Work record", icon: <FileText className="w-5 h-5" />, desc: "Shareable verified earnings document", tint: SECTION_TINT.work, href: "/profile?tab=work_record" },
     ],
   },

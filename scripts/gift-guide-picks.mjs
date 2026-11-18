@@ -4,18 +4,17 @@
  * (name, brand, line, href, store, why_trending, louisianaFit) into src/content/giftGuidePicks.ts, the generated file
  * src/content/giftGuideCatalog.ts reads. Usage: node scripts/gift-guide-picks.mjs [<picks dir>]
  *
- * It refuses (exit 1) a file that breaks the page's rules, so nothing reaches the page unchecked:
+ * A file that breaks any of the page's rules is SKIPPED whole and listed (exit 1 only when no file passes), so
+ * nothing reaches the page unchecked:
  *   - every link https and on an allowlisted host (amazon, shopmy, BRAND_SITES, LOUISIANA_SHOPS in giftGuides.ts);
  *   - every Amazon link carries tag=louisianahelpr-20;
  *   - no price anywhere ("$" followed by a digit).
- * HELD guides (the budget guides, until the lead sends the price-verified list) are skipped: they keep their
- * "Picks coming soon" page. The badges are decided on the page from the brand (giftGuideCatalog.ts), not here.
+ * The budget guides (under-20 / under-25 / under-50, stocking-stuffers) hold only items the lead checked under the
+ * limit (price-verified 2026-11-18). The badges are decided on the page from the brand (giftGuideCatalog.ts), not here.
  */
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-
-export const HELD = ["under-20", "under-25", "under-50"];
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -23,13 +22,13 @@ const content = readFileSync(new URL("../src/content/giftGuides.ts", import.meta
 const listed = (name) => [...(content.match(new RegExp(`export const ${name} = \\[([^\\]]*)\\]`))?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 const hosts = new Set(["www.amazon.com", "amazon.com", "shopmy.us", ...listed("BRAND_SITES"), ...listed("LOUISIANA_SHOPS")]);
 
-const errors = [];
+const skipped = [];
 const guides = {};
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".json")).sort()) {
   const slug = file.replace(/\.json$/, "");
-  if (HELD.includes(slug)) continue;
   const picks = JSON.parse(readFileSync(join(dir, file), "utf8"));
-  guides[slug] = picks.map((p) => {
+  const errors = [];
+  const list = picks.map((p) => {
     const url = new URL(p.href);
     if (url.protocol !== "https:") errors.push(`${slug}: ${p.href} is not https`);
     if (!hosts.has(url.hostname)) errors.push(`${slug}: ${url.hostname} is not allowlisted (add it to LOUISIANA_SHOPS)`);
@@ -37,11 +36,11 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json")).sort()) {
     for (const v of [p.name, p.line, p.why_trending]) if (/\$\s?\d/.test(v ?? "")) errors.push(`${slug}: price in "${v}"`);
     return { name: p.name, brand: p.brand, line: p.line, href: p.href, ...(p.louisianaFit ? { louisianaFit: true } : {}) };
   });
+  if (errors.length) skipped.push(`${file}: ${[...new Set(errors)].join("; ")}`);
+  else guides[slug] = list;
 }
-if (errors.length) {
-  console.error(errors.join("\n"));
-  process.exit(1);
-}
+if (Object.keys(guides).length === 0) process.exit(1);
+if (skipped.length) console.error(`SKIPPED (fix the file or the allowlist, then re-run):\n${skipped.join("\n")}`);
 const body = Object.entries(guides).map(([slug, picks]) => `  ${JSON.stringify(slug)}: ${JSON.stringify(picks)},`).join("\n");
 writeFileSync(
   out,
@@ -49,4 +48,4 @@ writeFileSync(
     `export interface ResearchedPick { name: string; brand: string; line: string; href: string; louisianaFit?: true }\n` +
     `export const RESEARCHED_PICKS: Record<string, ResearchedPick[]> = {\n${body}\n};\n`,
 );
-console.log(`gift-guide-picks: ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks (held: ${HELD.join(", ")})`);
+console.log(`gift-guide-picks: ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks`);

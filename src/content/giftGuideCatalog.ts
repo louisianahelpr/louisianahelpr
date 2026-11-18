@@ -245,15 +245,6 @@ for (const [from, targets] of Object.entries(MERGED_GUIDES)) {
     draftOf.set(t, { ...d, picks: RESEARCHED_PICKS[t] ? d.picks : uniqueByHref([...d.picks, ...src.picks]), links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
   }
 }
-/**
- * Guides held on "Picks coming soon" (lead 2026-11-18): the budget guides wait for the price-verified list, so none of
- * their picks show (their Amazon items stay in the Amazon store guide). scripts/gift-guide-picks.mjs skips the same.
- */
-export const HELD_PICK_GUIDES = ["under-20", "under-25", "under-50"];
-for (const slug of HELD_PICK_GUIDES) {
-  const d = draftOf.get(slug);
-  if (d) draftOf.set(slug, { ...d, picks: [], links: [] });
-}
 const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug];
 
 /** Where an old or folded guide's link now goes (null: no such guide). */

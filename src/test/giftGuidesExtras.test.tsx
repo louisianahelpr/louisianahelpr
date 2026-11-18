@@ -8,20 +8,18 @@
  * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
  * @mutate src/content/giftGuideCatalog.ts |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand ? (["louisiana-made"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []), |   ...([] as const),
- * @mutate src/content/giftGuideCatalog.ts |   if (d) draftOf.set(slug, { ...d, picks: [], links: [] }); |   if (d && false) draftOf.set(slug, { ...d, picks: [], links: [] });
  * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
  * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`); |     const hay = fold(`${g.title} ${g.lead}`);
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |       {query.trim() ? ( |       {false ? (
- * @mutate scripts/gift-guide-picks.mjs |   if (HELD.includes(slug)) continue; |   if (HELD.includes(slug) && false) continue;
+ * @mutate src/content/giftGuideCatalog.ts |   draftOf.set(slug, { ...d, picks: list.map(toPick) }); |   draftOf.set(slug, { ...d });
  */
-import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
 import { RESEARCHED_PICKS } from "@/content/giftGuidePicks";
 import { LOUISIANA_MADE_BRANDS, SPONSOR_BRANDS } from "@/content/giftGuides";
-import { HELD_PICK_GUIDES, guideBySlug, searchGuides } from "@/content/giftGuideCatalog";
+import { guideBySlug, searchGuides } from "@/content/giftGuideCatalog";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -93,15 +91,13 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(out.length).toBe(25);
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");
   });
-  it("holds the budget guides on Picks coming soon until the price-verified list arrives", () => {
-    expect(HELD_PICK_GUIDES).toEqual(["under-20", "under-25", "under-50"]);
-    const script = readFileSync("scripts/gift-guide-picks.mjs", "utf8");
-    expect(script).toContain(`export const HELD = ${JSON.stringify(HELD_PICK_GUIDES).replace(/,/g, ", ")};`);
-    for (const slug of HELD_PICK_GUIDES) {
-      expect(RESEARCHED_PICKS[slug], slug).toBeUndefined();
-      expect(guideBySlug(slug)?.picks, slug).toEqual([]);
+  it("loads the price-verified budget guides like the others (lead 2026-11-18: the hold is released)", () => {
+    for (const slug of ["under-20", "under-25", "under-50", "stocking-stuffers"]) {
+      expect(RESEARCHED_PICKS[slug]?.length, slug).toBeGreaterThan(10);
+      expect(guideBySlug(slug)?.picks.map((p) => p.href), slug).toEqual(RESEARCHED_PICKS[slug].map((p) => p.href));
       const { container } = renderAt(`/gift-guides/${slug}`);
-      expect(container.querySelector("[data-gift-coming-soon]"), slug).not.toBeNull();
+      expect(container.querySelector("[data-gift-coming-soon]"), slug).toBeNull();
+      expect(container.querySelectorAll("[data-gift-pick]").length, slug).toBe(RESEARCHED_PICKS[slug].length);
       cleanup();
     }
   });

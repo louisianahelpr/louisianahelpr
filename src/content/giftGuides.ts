@@ -193,6 +193,11 @@ export const giftGuides = {
   /** The pick badges (owner 2026-11-18). Never a price. */
   badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
+  helpr: {
+    title: "No time to wrap?",
+    body: "Hire a local Helpr to wrap your gifts, assemble toys or hang the Christmas lights.",
+    cta: "Post a job",
+  },
   myListLabel: "My list",
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
   searchNone: "No guides match. Try another word.",

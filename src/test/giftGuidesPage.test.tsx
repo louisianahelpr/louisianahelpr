@@ -78,6 +78,7 @@ import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuidesBand, GIFT_GUIDES_PATH } from "@/components/landing/GiftGuidesBand";
 import { giftGuides, BRAND_SITES, LOUISIANA_SHOPS, SPONSOR_SITES, SHOPMY_COLLECTIONS, activeCodes, codesByStore, discountCodes } from "@/content/giftGuides";
 import { DiscountCodes } from "@/pages/info/giftGuides/GiftGuidesSidebar";
+import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { RESEARCHED_PICKS } from "@/content/giftGuidePicks";
@@ -436,7 +437,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
     let checked = 0;
     for (const g of GUIDES.filter((x) => !x.children)) {
       const { container } = renderAt(`/gift-guides/${g.slug}`);
-      expect(screen.getByRole("heading", { level: 2, name: g.title })).toBeTruthy();
+      // (querySelector, not getByRole: an accessibility-tree walk per guide over ~470 guides timed out.)
       expect(container.querySelector("[data-gift-words] h2")?.textContent, g.slug).toBe(g.title);
       const rows = [...container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]")];
       expect(rows.length, g.slug).toBe(g.picks.length);
@@ -513,6 +514,8 @@ describe("gift guides: links and disclosures on every view", () => {
       for (const a of container.querySelectorAll("a")) {
         const href = a.getAttribute("href") ?? "";
         if (href.startsWith("/")) {
+          // The one link out of the guides: the Hire-a-Helpr box's pre-filled Post a job (owner 2026-11-18).
+          if (href === GIFT_WRAP_JOB_PATH) continue;
           expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+|\?group=[a-z-]+|\?list=mine)?$/);
           continue;
         }

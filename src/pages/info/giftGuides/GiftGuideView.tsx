@@ -3,6 +3,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { STORES, guideBySlug, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
+import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
 import { Heart, togglePick, useGiftList } from "./giftList";
 
@@ -72,9 +73,13 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
   );
 }
 
+/** The guide where the Hire-a-Helpr box sits at the TOP (owner 2026-11-18). */
+const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
+
 export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
   return (
     <article aria-labelledby="gift-guide-title" data-gift-guide={guide.slug}>
+      {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
       {guide.children?.map((group) => (
         <section key={group.label} aria-label={group.label} data-gift-hub-group={group.label}>
           <div className="gg-rowhead"><h3>{group.label}</h3></div>
@@ -84,6 +89,7 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
         </section>
       ))}
       <GiftGuideList guide={guide} />
+      {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>
   );
 }

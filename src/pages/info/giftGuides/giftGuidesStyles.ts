@@ -94,6 +94,11 @@ color:var(--gg-ink)}
 .gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
 .gg-soon p{margin:0 auto 8px;max-width:44ch;color:var(--gg-muted);font-size:14px}
 .gg-also{margin:12px 0 0;font-size:13px;color:var(--gg-muted)}
+.gg-helpr{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:20px 0;padding:14px 16px;border-radius:14px;background:#f3f4ea;border:1px solid #e3e6d2;color:#2f3020}
+.gg-helpr b{display:block;font-size:15px}
+.gg-helpr span{font-size:13px;color:#55554a}
+.gg-helpr-btn{display:inline-flex;align-items:center;min-height:44px;background:hsl(var(--bark));color:#fff;font-weight:700;font-size:13px;padding:0 16px;border-radius:999px;white-space:nowrap;text-decoration:none}
+@media (max-width:480px){.gg-helpr{flex-direction:column;align-items:flex-start}}
 .gg-more{display:flex;flex-wrap:wrap;gap:0 20px;margin-top:12px}
 .gg-disc{border-top:1px solid var(--gg-line);margin-top:26px;padding-top:14px;font-size:12px;color:var(--gg-muted);text-align:center}
 .gg-disc p{margin:2px 0}

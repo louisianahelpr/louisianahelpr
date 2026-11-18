@@ -13,6 +13,8 @@
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | onToggle={() => toggleGuide(g.slug)} | onToggle={() => undefined}
  * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.shipsFast ? (["ships-fast"] as const) : []), |   ...(flags.trending ? (["ships-fast"] as const) : []),
+ * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping" }) | t: "Gift wrap" })
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />} |       {false && <GiftGuideHelpr />}
  * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
  * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`); |     const hay = fold(`${g.title} ${g.lead}`);
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |       {query.trim() ? ( |       {false ? (
@@ -31,6 +33,9 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
 import { resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
+import { MATCHMAKER_PARAM, readMatchmakerLink } from "@/lib/matchmakerLink";
+import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
+import { PREFILL_OPENS_DETAILS } from "@/pages/post-job/usePrefillOpensDetails";
 
 afterEach(cleanup);
 const renderAt = (url: string) =>
@@ -209,5 +214,29 @@ describe("gift guides: pick badges come from optional fields, never a price", ()
     expect(badgesFor(undefined, { localPickup: true })).toEqual(["local-pickup"]);
     expect(Object.values(giftGuides.badges)).toEqual(["Trending", "Louisiana-made", "25 Days sponsor", "Ships fast", "Local pickup"]);
     for (const label of Object.values(giftGuides.badges)) expect(label).not.toMatch(/\$/);
+  });
+});
+
+describe("gift guides: the Hire-a-Helpr box", () => {
+  it("sits at the bottom of every guide and at the TOP of Gift Wrap & Cards, with the exact words", () => {
+    const mom = renderAt("/gift-guides/mom").container;
+    const box = mom.querySelector("[data-gift-helpr]")!;
+    expect(box.textContent).toBe("No time to wrap?Hire a local Helpr to wrap your gifts, assemble toys or hang the Christmas lights.Post a job");
+    const article = mom.querySelector("article[data-gift-guide]")!;
+    expect(article.lastElementChild).toBe(box);
+    cleanup();
+    const wrap = renderAt("/gift-guides/gift-wrap-and-cards").container.querySelector("article[data-gift-guide]")!;
+    expect(wrap.firstElementChild?.hasAttribute("data-gift-helpr")).toBe(true);
+    expect(wrap.querySelectorAll("[data-gift-helpr]").length).toBe(1);
+  });
+  it("Post a job opens the existing pre-filled post flow: title Gift wrapping, an existing category, no new enum", () => {
+    const { container } = renderAt("/gift-guides/mom");
+    const href = container.querySelector("a[data-gift-helpr-post]")!.getAttribute("href")!;
+    expect(href.startsWith("/post-job?")).toBe(true);
+    const f = readMatchmakerLink(new URLSearchParams(href.split("?")[1]));
+    expect(f?.title).toBe("Gift wrapping");
+    expect(["errands", "other"]).toContain(f?.category);
+    expect(Object.keys(JOB_CATEGORY_LABELS)).toContain(f?.category);
+    expect(PREFILL_OPENS_DETAILS).toContain(MATCHMAKER_PARAM);
   });
 });

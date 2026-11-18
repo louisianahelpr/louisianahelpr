@@ -1020,10 +1020,10 @@ describe("Declutter slice 3 screens", () => {
   });
 
   it("lead 2026-10-28: a reserved line says \"Reserved for you, not paid yet\" with the time left; the bundle hint only when the seller has one", async () => {
-    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {allFree ? "Reserved for you. " : noStrike ? "" : "Reserved for you, not paid yet. "} |         {allFree ? "Reserved for you. " : noStrike ? "" : "Reserved for you. "}
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {allFree ? t("dbuy.reserved") : noStrike ? "" : t("dbuy.reservedUnpaid")} |         {allFree ? t("dbuy.reserved") : noStrike ? "" : t("dbuy.reserved")}
     // Next-step line (owner 2026-11-01): the hold opens with the buyer's move and its deadline.
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |       <NextStep value={cartNextStep(allFree, timeLeft)} /> |       <NextStep value={null} />
-    // @mutate src/components/declutter/DeclutterReserveSheet.tsx | allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: timeLeft \|\| null | allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: null
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx | allFree ? t("dbuy.next.free") : t("dbuy.next.pay"), by: timeLeft \|\| null | allFree ? t("dbuy.next.free") : t("dbuy.next.pay"), by: null
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {!allFree && rule.data ? |         {!allFree ?
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |             <Link to={memberProfilePath(sellerId, { from: PROFILE_FROM_DECLUTTER })} data-cart-bundle-more="" |             <Link to="/declutter" data-cart-bundle-more=""
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
@@ -1077,8 +1077,8 @@ describe("Declutter slice 3 screens", () => {
 
   // DB-5 (owner 2026-10-30): a Buy now line (source "buy") is no strike; a checkout holding an accepted offer keeps it.
   // Audit 11-10 F351 (High): the Buy now hold is "Held for you until …. Not ready? Remove it anytime, no strike."
-  // @mutate src/components/declutter/DeclutterReserveSheet.tsx |           : noStrike ? `Held for you until ${by}. |           : false ? `Held for you until ${by}.
-  // @mutate src/components/declutter/DeclutterReserveSheet.tsx | : noStrike ? "" : "Reserved for you, not paid yet. " | : "Reserved for you, not paid yet. "
+  // @mutate src/components/declutter/DeclutterReserveSheet.tsx |           : noStrike ? t("dbuy.heldUntil", { by }) |           : false ? t("dbuy.heldUntil", { by })
+  // @mutate src/components/declutter/DeclutterReserveSheet.tsx | : noStrike ? "" : t("dbuy.reservedUnpaid") | : t("dbuy.reservedUnpaid")
   // @mutate src/lib/declutter/buyNowHold.ts |   return lines.length > 0 && lines.every((l) => l.price_cents === 0 \|\| l.source === "buy"); |   return lines.length > 0;
   // @mutate src/components/declutter/DeclutterTradeViews.tsx | allFree={allFree} lines={lines} timeLeft= | allFree={allFree} lines={[]} timeLeft=
   it("DB-5: a Buy now checkout says No strike; one with an accepted offer still warns of the strike", async () => {
@@ -1135,10 +1135,10 @@ describe("Declutter slice 3 screens", () => {
     expect(document.querySelector("[data-checkout-setup-fee]")).toBeNull();
     // Board 161: two items, one checkout, ONE service fee. Owner 11-07 ~5:10 PM (Vinted review, Declutter only): every
     // line shown, the service fee named "Service fee" with its amount, pickup Free, sales tax $0.00, then the Total.
-    // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |       <Line data="tax" label="Sales tax" tip={SUMMARY_TIPS.tax} value={exact(taxCents)} /> | {null}
+    // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |       <Line data="tax" label={t("dbuy.sum.tax")} tip={tipWords("tax")} value={exact(taxCents)} /> | {null}
     expect(bill.textContent).toMatch(/^2 items\$7\.00Service fee\$1\.05PickupFreeSales tax\$0\.00Total\$8\.05$/);
     // Lead 2026-10-28: the card says it once, the heading the checkout, the line what the items share.
-    // @mutate src/components/declutter/DeclutterCartWords.tsx | shared: "From the same seller: one pickup, one payment." }; | shared: "One checkout, one pickup, one payment." };
+    // @mutate src/lib/i18n/enDeclPanels.ts | "dbuy.card.paidShared": "From the same seller: one pickup, one payment.", | "dbuy.card.paidShared": "One checkout, one pickup, one payment.",
     expect(screen.getByText("From the same seller: one pickup, one payment.")).toBeInTheDocument();
     const card = screen.getByRole("region", { name: "Checkout 1" });
     expect((card.textContent ?? "").match(/checkout/gi)?.length ?? 0).toBeLessThanOrEqual(2);

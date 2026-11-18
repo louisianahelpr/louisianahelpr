@@ -5,8 +5,8 @@
  *
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} | standing={null}
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} | standing={problem ? null : refundStanding(refundStatus, fullRefund)}
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} | bookedOnly={false}
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} | bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| fullRefund}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | bookedOnly={order.status === "refunded" \|\| !!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} | bookedOnly={false}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | bookedOnly={order.status === "refunded" \|\| !!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} | bookedOnly={order.status === "refunded" \|\| !!problem \|\| refundHoldsTheItem(refundStatus) \|\| fullRefund}
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     enabled: done && refundRequests && items > 0, |     enabled: false,
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "delivery" && !view && <DeliveryDoneStatus | {(order.handover === "delivery" \|\| order.handover === "seller_delivery") && <DeliveryDoneStatus
  * @mutate src/lib/declutter/refundRequests.ts |   return request?.status === "agreed" && !!request.returned_at; |   return request?.status === "agreed";
@@ -15,7 +15,7 @@
  * @mutate src/lib/declutter/refundRequests.ts |   return status === "returning" \|\| status === "to_admin"; |   return false;
  *
  * Audit 11-10 F366 (rest): with a refund still being worked out (no problem row) the card's step bar ended on "Done".
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |  refundOpen={refundIsOpen(refundStatus)} open={open} |  open={open}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |  refundOpen={refundIsOpen(refundStatus)} refundOffered={refundStatus === "offered"} open={open} |  refundOffered={refundStatus === "offered"} open={open}
  *
  * Owner 11-11 F382: after a seller says no, the refund panel's report button reads "Ask Louisiana Helpr to look".
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |  stage="handover" triggerLabel="Ask Louisiana Helpr to look" />} /> |  stage="handover" />} />
@@ -185,11 +185,22 @@ describe("BUY-31: the order card agrees with a refund", () => {
 });
 
 describe("F366 (rest): the step bar never ends on Done over a refund still being worked out", () => {
-  it.each(["open", "offered", "returning", "to_admin"])("refund %s: the last step says Refund asked", async (status) => {
+  // Area 05 #5 (11-18): an offer from the seller reads "Refund offered" (the test below).
+  it.each(["open", "returning", "to_admin"])("refund %s: the last step says Refund asked", async (status) => {
     state.refund = status;
     const { container } = show();
     await waitFor(() => expect(container.querySelector('[aria-label="Step 4 of 4: Refund asked"]')).not.toBeNull());
     expect(container.querySelector('[aria-label="Step 4 of 4: Done"]')).toBeNull();
+  });
+  // @mutate src/components/declutter/OrderSteps.tsx | : refundOffered ? "Refund offered" : "Refund asked"] | : "Refund asked"]
+  // @mutate src/components/declutter/BuyingOrders.tsx |   const action = view.action ?? (refundOffered && !view.facts.cancelled ? SEE_OFFER : null); |   const action = view.action;
+  it("area 05 #5: a part-refund offer reads Refund offered, with See the offer as the card's button", async () => {
+    state.refund = "offered";
+    const { container } = show();
+    await waitFor(() => expect(container.querySelector('[aria-label="Step 4 of 4: Refund offered"]')).not.toBeNull());
+    expect(container.textContent).not.toContain("Refund asked");
+    const btn = container.querySelector<HTMLButtonElement>("[data-next-action]");
+    expect(btn?.textContent).toBe("See the offer");
   });
   it.each([null, "declined"])("refund %s: Done stays Done", async (status) => {
     state.refund = status;

@@ -97,8 +97,8 @@ export function gotItOpensAt(slotStart: string): string {
 
 export function gotItOpen(slotStart: string | null | undefined, now: number = Date.now()): boolean {
   if (!slotStart) return false;
-  const at = new Date(slotStart).getTime();
-  return Number.isFinite(at) && now >= at - GOT_IT_OPENS_MINUTES_BEFORE * 60_000;
+  const t = new Date(slotStart).getTime();
+  return Number.isFinite(t) && now >= t - GOT_IT_OPENS_MINUTES_BEFORE * 60_000;
 }
 
 /** The step words for this order (free: "Claimed" first). */

@@ -32,7 +32,6 @@ import { useMyPaidCents } from "./useMyPaidCents";
 import { fetchMyRefundedCents } from "@/lib/declutter/refundedCents";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { useOpenProblemsRead } from "./useOpenProblems";
-import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
 import { t, useLanguage } from "@/lib/i18n/language";
@@ -141,60 +140,60 @@ export function buyerNextStep(f: OrderFacts, when: string | null, helprName: str
   const info = (text: string): NextStepValue => ({ who: "info", text });
   // Audit 11-10 F370: the tracker passes the refund figure and day through cancelledStep; this is the words-only fallback.
   if (f.cancelled) return cancelledStep(null, null);
-  if (f.problem) return f.problemAwaitsYou ? you("Add your side to the problem") : info(PROBLEM_ON_HOLD);
+  if (f.problem) return f.problemAwaitsYou ? you(t("dbuy.nx.addSide")) : info(t("dbuy.nx.onHold"));
   // Audit 11-10 F365: inside the buyer's 24 hours the row says until when they can report a problem.
-  if (f.done && checkUntil) return info(`You have it. Check it over: you can report a problem until ${orderWhen(checkUntil)}, then the sale is final.`);
-  if (f.done) return info("Handed over. It's yours.");
+  if (f.done && checkUntil) return info(t("dbuy.nx.checkIt", { when: orderWhen(checkUntil) }));
+  if (f.done) return info(t("dbuy.nx.yours"));
   const at = orderStepAt(f);
   // A3-19 (lead 11-01 5:01 PM): nothing booked says "by <book_by>"; a checkout time once booked is named, no "by".
   const { chosen, by } = times;
   switch (f.handover) {
     case "porch":
-      return at === 0 ? you("Pick a pickup time", by)
-        : at === 1 && chosen ? info(`Pickup ${chosen} · porch`)
-        : at === 1 ? them(`The seller puts it out ${when ? `for ${when}` : "on your day"} and posts a photo.`)
-          : at === 2 ? you("Pick it up from the porch, then tap I got it")
-            : info("Picked up.");
+      return at === 0 ? you(t("dbuy.act.pickPorch"), by)
+        : at === 1 && chosen ? info(t("dbuy.nx.porchChosen", { chosen }))
+        : at === 1 ? them(when ? t("dbuy.nx.porchOutFor", { when }) : t("dbuy.nx.porchOutDay"))
+          : at === 2 ? you(t("dbuy.nx.porchPick"))
+            : info(t("dbuy.nx.pickedUp"));
     case "pickup_home":
-      if (at === 0) return you("Book a pickup time", by);
-      if (at === 1 && chosen && !f.gotItOpen) return info(`Pickup ${chosen} · at the door`);
-      if (at === 1) return f.gotItOpen ? you("Pick it up, then tap I got it", when ? `booked for ${when}` : null) : info(`Pickup booked${when ? ` for ${when}` : ""}.`);
-      return info("Picked up.");
+      if (at === 0) return you(t("dbuy.act.bookPickup"), by);
+      if (at === 1 && chosen && !f.gotItOpen) return info(t("dbuy.nx.doorChosen", { chosen }));
+      if (at === 1) return f.gotItOpen ? you(t("dbuy.nx.doorPick"), when ? t("dbuy.nx.bookedFor", { when }) : null) : info(when ? t("dbuy.nx.pickupBookedFor", { when }) : t("dbuy.nx.pickupBooked"));
+      return info(t("dbuy.nx.pickedUp"));
     case "meetup":
-      if (at === 0) return you("Book a time to meet at the safe spot", by);
-      if (at === 1 && chosen && !f.gotItOpen) return info(`Meet ${chosen}`);
-      if (at === 1) return f.gotItOpen ? you("Meet the seller, then tap I got it", when ? `booked for ${when}` : null) : info(`Meeting booked${when ? ` for ${when}` : ""}.`);
-      return info("Met.");
+      if (at === 0) return you(t("dbuy.nx.bookMeet"), by);
+      if (at === 1 && chosen && !f.gotItOpen) return info(t("dbuy.nx.meetChosen", { chosen }));
+      if (at === 1) return f.gotItOpen ? you(t("dbuy.nx.meetPick"), when ? t("dbuy.nx.bookedFor", { when }) : null) : info(when ? t("dbuy.nx.meetBookedFor", { when }) : t("dbuy.nx.meetBooked"));
+      return info(t("dbuy.nx.met"));
     case "seller_delivery":
-      if (at === 0) return f.needsTime ? you("Pick a delivery time") : them("Waiting on the seller to set the delivery time.");
+      if (at === 0) return f.needsTime ? you(t("dbuy.nx.sdPick")) : them(t("dbuy.nx.sdWaiting"));
       // AUD31-2: past its time and not marked delivered, it says it is late, never "booked".
       // The card's button ("It wasn't delivered") is the step; the line says why.
-      if (at === 1 && f.late) return info(`Late: it was due ${when ?? "earlier"} and the seller hasn't marked it delivered.`);
-      if (at === 1 && f.moveAsked) return you("Accept the new delivery time, or keep yours");
-      return at === 1 ? info(`Delivery booked${when ? ` for ${when}` : ""}.`) : you("Tap I got it once you have it");
+      if (at === 1 && f.late) return info(when ? t("dbuy.nx.sdLate", { when }) : t("dbuy.nx.sdLateEarlier"));
+      if (at === 1 && f.moveAsked) return you(t("dbuy.nx.sdMove"));
+      return at === 1 ? info(when ? t("dbuy.nx.sdBookedFor", { when }) : t("dbuy.nx.sdBooked")) : you(t("dbuy.nx.tapGotIt"));
     case "delivery":
       // AUD31-7: a delivery nobody took, or one that was closed, is never still "Finding a Helpr" (the task says so
       // under Details: DeclutterDeliveryViews' own lines).
-      if (taskStatus === "unfilled") return info("No Helpr took this delivery. What you paid for delivery was refunded.");
-      if (taskStatus && !LIVE_TASK.has(taskStatus)) return info("This delivery was closed.");
-      if (at === 0) return them("Finding a Helpr to bring it.");
+      if (taskStatus === "unfilled") return info(t("dbuy.nx.dUnfilled"));
+      if (taskStatus && !LIVE_TASK.has(taskStatus)) return info(t("dbuy.nx.dClosed"));
+      if (at === 0) return them(t("dbuy.nx.dFinding"));
       // Audit 1c D3-3: "<First> picks it up from the seller <day, time>" from the booked pickup (pickup_slot_start),
       // never "on the way" days before it.
-      if (at === 1) return them(`${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.`);
+      if (at === 1) return them(when ? t("dbuy.nx.dPicksAt", { name: helprName ?? t("dbuy.nx.yourHelpr"), when }) : t("dbuy.nx.dPicks", { name: helprName ?? t("dbuy.nx.yourHelpr") }));
       if (at === 2) {
         // LEAD-GOTIT30H: held 24 hours undelivered, the buyer may say they have it.
-        const held = stillInHandLine(helprName ?? "Your Helpr", taskPickedUpAt);
-        if (f.inHandLong) return you(`Tap I got it if you have it${held ? `. ${held}` : ""}`);
-        return held ? info(held) : them("Picked up. On its way to you.");
+        const held = stillInHandLine(helprName ?? t("dbuy.nx.yourHelpr"), taskPickedUpAt);
+        if (f.inHandLong) return you(held ? t("dbuy.nx.dIfHaveHeld", { held }) : t("dbuy.nx.dIfHave"));
+        return held ? info(held) : them(t("dbuy.nx.dOnWay"));
       }
-      return you("Tap I got it once you have it");
+      return you(t("dbuy.nx.tapGotIt"));
     case "ship": {
       // B134: the seller packs it and drops it off by the Ship-by day; then the carrier's scans say where it is.
       const by = shipByWords(ship?.ship_by);
-      if (at === 0) return them(by ? `The seller packs it and ships it by ${by}.` : "The seller packs it and ships it.");
-      if (at === 1) return them(by ? `Packed. The seller drops it off by ${by}.` : "Packed. The seller drops it off next.");
-      if (at === 2) return info(`Shipped. ${trackingStatusWords(ship?.tracking_status) ?? "On its way"}.`);
-      return info("Delivered.");
+      if (at === 0) return them(by ? t("dbuy.nx.shipBy", { by }) : t("dbuy.nx.ship"));
+      if (at === 1) return them(by ? t("dbuy.nx.packedBy", { by }) : t("dbuy.nx.packed"));
+      if (at === 2) return info(t("dbuy.nx.shipped", { status: trackingStatusWords(ship?.tracking_status) ?? t("dbuy.nx.onItsWay") }));
+      return info(t("dbuy.nx.delivered"));
     }
   }
 }

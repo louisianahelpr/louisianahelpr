@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx | value={wayCents === 0 \|\| pickup ? | value={pickup ? exact(0) :
  * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx | {exact(gift.onCardCents)} | {exact(payCents)}
  * Audit 11-10 F354: the Service fee tip says how the fee is worked out, per way, matching the fee the server charges.
- * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx | tip={way === "seller_delivery" ? SUMMARY_TIPS.serviceFeeSellerDelivery : way === "ship" ? SUMMARY_TIPS.serviceFeeShip : SUMMARY_TIPS.serviceFee} /> | tip={SUMMARY_TIPS.serviceFee} />
+ * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx | tip={way === "seller_delivery" ? tipWords("serviceFeeSellerDelivery") : way === "ship" ? tipWords("serviceFeeShip") : tipWords("serviceFee")} /> | tip={tipWords("serviceFee")} />
  * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |   serviceFee: "$0.70 plus 5% of the items, | serviceFee: "It keeps Declutter running,
  */
 import { describe, expect, it } from "vitest";

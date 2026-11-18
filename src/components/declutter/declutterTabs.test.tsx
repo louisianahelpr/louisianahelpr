@@ -561,7 +561,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     ["free", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")], |     ["paid", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")],
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |   return free === waiting.length ? "Claimed" : "Waiting"; |   return "To be paid";
   // @mutate src/components/declutter/DeclutterTabParts.tsx | sold.every((l) => l.price_cents === 0) ? "Given away: pickup" | false ? "Given away: pickup"
-  // @mutate src/components/declutter/DeclutterCartWords.tsx |   return claimsOnly ? { title: "Claimed", todoWords: "to choose a pickup" } : | return false ? { title: "Claimed", todoWords: "to choose a pickup" } :
+  // @mutate src/components/declutter/DeclutterCartWords.tsx |   return claimsOnly ? { title: t("dbuy.cart.claimed"), todoWords: t("dbuy.cart.toChoose") } : | return false ? { title: t("dbuy.cart.claimed"), todoWords: t("dbuy.cart.toChoose") } :
   // @mutate src/components/declutter/DeclutterCartWords.tsx |   if (allFree) { |   if (false) {
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     body: "No strike for a free item. | body: "You'll get a Declutter strike. No strike for a free item.
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx | toast(kind === "paid" ? | toast(kind !== "never" ?

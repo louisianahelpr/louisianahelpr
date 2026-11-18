@@ -105,12 +105,12 @@ export function AdminUserDetailDialog({
                   visibly narrower than its own label and the labels ran into
                   each other (eyeballed 2026-09-07). */}
               <TabsList className="flex w-full justify-start overflow-x-auto no-scrollbar [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] sm:[mask-image:none] sm:grid sm:grid-cols-6 flex-shrink-0">
-                <TabsTrigger value="actions" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Actions</TabsTrigger>
-                <TabsTrigger value="overview" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Overview</TabsTrigger>
-                <TabsTrigger value="jobs" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Jobs</TabsTrigger>
-                <TabsTrigger value="reviews" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Reviews</TabsTrigger>
-                <TabsTrigger value="documents" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Docs</TabsTrigger>
-                <TabsTrigger value="emails" className="shrink-0 text-ds-11 sm:text-ds-13 px-2.5 sm:px-1">Emails</TabsTrigger>
+                <TabsTrigger value="actions" className="shrink-0 text-ds-13 px-2.5 sm:px-1">Actions</TabsTrigger>
+                <TabsTrigger value="overview" className="shrink-0 text-ds-13 px-2.5 sm:px-1">Overview</TabsTrigger>
+                <TabsTrigger value="jobs" className="shrink-0 text-ds-13 px-2.5 sm:px-1">Jobs</TabsTrigger>
+                <TabsTrigger value="reviews" className="shrink-0 text-ds-13 px-2.5 sm:px-1">Reviews</TabsTrigger>
+                <TabsTrigger value="documents" className="shrink-0 text-ds-13 px-2.5 sm:px-1">Docs</TabsTrigger>
+                <TabsTrigger value="emails" className="shrink-0 text-ds-13 px-2.5 sm:px-1">Emails</TabsTrigger>
               </TabsList>
 
               <OverviewTab viewProfile={viewProfile} profileViolations={profileViolations} />

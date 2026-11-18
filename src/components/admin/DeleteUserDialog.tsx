@@ -80,7 +80,8 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
           <DialogBody>
             <p>
               Are you sure you want to permanently delete{" "}
-              <strong className="text-foreground">{formatName(profile?.full_name)}</strong>'s account?
+              {/* Design audit area 10 #40: the FULL name (admin sees full names, Q2421), not "Marie B.". */}
+              <strong className="text-foreground">{profile?.full_name?.trim() || formatName(profile?.full_name)}</strong>'s account?
             </p>
           </DialogBody>
           <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
@@ -96,7 +97,7 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
             aria-label={`Type ${CONFIRM_PHRASE} to confirm deleting this account`}
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
-            placeholder={CONFIRM_PHRASE}
+            // Design audit area 10 #40: no "DELETE" placeholder, which read as already typed.
             className="h-11 text-center font-mono tracking-wide rounded-ds-md"
             disabled={deleting}
           />

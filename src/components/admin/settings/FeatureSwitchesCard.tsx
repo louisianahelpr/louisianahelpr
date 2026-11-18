@@ -96,9 +96,12 @@ export function FeatureSwitchesCard() {
   return (
     <>
     <AdminCard
-      title={<span className="flex items-center gap-2"><ToggleRight className="w-4 h-4 text-primary" /> Hidden Feature Switches</span>}
+      title={<span className="flex items-center gap-2"><ToggleRight className="w-4 h-4 text-primary" /> Hidden feature switches</span>}
       subtitle="New features ship switched to Testers only (admins and test accounts), then you flip them to Everyone. Every change is logged."
       contentClassName="space-y-3"
+      // Design audit area 10 #11: the long switch list spans both Settings columns, so the short cards pair up beside
+      // each other instead of leaving the right half blank for six screens.
+      className="lg:col-span-2"
     >
       <p className="text-ds-11 text-muted-foreground">
         Testers-only switches {canaryReachesMe ? "reach" : "do not reach"} this account

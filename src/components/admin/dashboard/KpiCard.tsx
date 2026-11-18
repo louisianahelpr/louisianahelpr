@@ -4,9 +4,13 @@ import { cn } from "@/lib/utils";
 
 const KpiSparkline = lazy(() => import("@/components/admin/KpiSparkline"));
 
-export const computeTrend = (current: number, previous: number): { pct: number; up: boolean } | null => {
+export type KpiTrend = { pct: number; up: boolean; fresh?: boolean };
+
+export const computeTrend = (current: number, previous: number): KpiTrend | null => {
   if (previous === 0 && current === 0) return null;
-  if (previous === 0) return { pct: 100, up: true };
+  // Design audit area 10 #6 (11-18): growth from zero is not "+100%" (any number over 0 is infinite growth); the
+  // tile says "New this period" instead.
+  if (previous === 0) return { pct: 0, up: true, fresh: true };
   const pct = Math.round(((current - previous) / previous) * 100);
   return { pct: Math.abs(pct), up: pct >= 0 };
 };
@@ -18,7 +22,7 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
   label: string;
   value: string | number;
   icon: React.ElementType;
-  trend?: { pct: number; up: boolean } | null;
+  trend?: KpiTrend | null;
   accent: "primary" | "accent" | "destructive";
   onClick?: () => void;
   sparkline?: number[];
@@ -79,7 +83,7 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
           trend.up ? "text-primary" : "text-destructive-ink",
         )}>
           {trend.up ? <TrendingUp className="w-3.5 h-3.5 shrink-0" aria-hidden /> : <TrendingDown className="w-3.5 h-3.5 shrink-0" aria-hidden />}
-          <span>{trend.up ? "+" : "−"}{trend.pct}%{compareLabel ? ` ${compareLabel}` : ""}</span>
+          <span>{trend.fresh ? "New this period" : `${trend.up ? "+" : "−"}${trend.pct}%${compareLabel ? ` ${compareLabel}` : ""}`}</span>
         </p>
       )}
       {/* A tile that ASKED for a sparkline always gets the lane, even when the

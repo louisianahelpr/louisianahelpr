@@ -72,7 +72,7 @@ const navGroups = adminNavGroups;
 const VIEW_LABELS: Record<View, string> = {
     home: "Dashboard", analytics: "Analytics", people: "Users",
     jobs: "Jobs", settings: "Settings", disputes: "Disputes",
-    notifications: "Notifications", notiflogs: "Notification logs",
+    notifications: "My notifications", notiflogs: "Notification logs",
     reports: "Reports", support: "Support",
     referrals: "Referrals", fraud: "Fraud",
     audit: "Audit log", health: "Health", export: "Export",

@@ -52,6 +52,9 @@ import {
 export const ADMIN_PHONE_TITLES: Readonly<Record<string, string>> = {
   credentials: "Licenses",
   exceptions: "Exceptions",
+  // Design audit area 10 #38 (11-18): two more titles cut on a phone.
+  payouts: "Payouts",
+  notiflogs: "Notif. logs",
 };
 
 export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
@@ -128,7 +131,6 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
   {
     title: "Engagement",
     items: [
-      { id: "notifications", label: "Notifications", icon: BellRing },
       { id: "notiflogs", label: "Notification logs", icon: ClipboardCheck },
       { id: "marketing", label: "Marketing", icon: Mail },
       // Email campaigns are "Marketing" above; this is the Facebook/Instagram
@@ -144,6 +146,9 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
     title: "System",
     items: [
       { id: "settings", label: "Settings", icon: Settings },
+      // Design audit area 10 #7 (11-18): this screen is the admin's OWN alert preferences, not a member-notifications
+      // tool, so it says so and sits under System (it was "Notifications" under Engagement).
+      { id: "notifications", label: "My notifications", icon: BellRing },
       { id: "audit", label: "Audit log", icon: ScrollText },
       { id: "health", label: "Health", icon: Activity },
       { id: "export", label: "Export", icon: Download },

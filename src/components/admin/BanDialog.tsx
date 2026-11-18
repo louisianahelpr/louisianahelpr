@@ -69,7 +69,9 @@ const DURATION_OPTIONS: { id: string; label: string; days: number | "permanent" 
 ];
 
 export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
-  const [banType, setBanType] = useState<BanType>("warning");
+  // Design audit area 10 #14 (11-18): the dialog opens from "Suspend / Ban", so it starts on Temp Ban (7 days), not
+  // Warning; a warning is one tap away.
+  const [banType, setBanType] = useState<BanType>("temporary");
   const [reasonCategory, setReasonCategory] = useState<string>("tos");
   const [reasonNote, setReasonNote] = useState("");
   const [duration, setDuration] = useState("7");
@@ -87,7 +89,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
     if (banning) return;
     setReasonNote("");
     setReasonCategory("tos");
-    setBanType("warning");
+    setBanType("temporary");
     setDuration("7");
     onClose();
   };

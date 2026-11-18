@@ -155,6 +155,9 @@ export default function ShopOrderSheet({ shopId, hours }: { shopId: string; /** 
   const addrKey = JSON.stringify(dropoff);
   // The price shown is the price sent: only a quote for the address as typed now counts.
   const helprCents = helpring && quote && quote.for === addrKey ? quote.q.delivery_cents : null;
+  // Launch pass 1: "pick it up" only when the buyer picks it up (a service is done by the shop; a delivery comes to them).
+  const dayPlaceholder = chosen.some((l) => l.item.kind === "service" || l.item.at_buyer === true) ? "Pick the day"
+    : delivering || helpring ? "Pick the delivery day" : "Pick the day you'll pick it up";
   const canSend = preorder
     ? note.length <= NOTE_MAX && !opening
     : !preorderChosen && chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening && addrProblem === null
@@ -256,7 +259,7 @@ export default function ShopOrderSheet({ shopId, hours }: { shopId: string; /** 
           onChange={setReadyDate}
           min={earliestReadyDate(t, leadDays)}
           isDateDisabled={(iso) => readyDateProblem(iso, t, leadDays) !== null}
-          placeholder={firstDate ? "Pick the day you'll pick it up" : "No open days in the next 90 days"}
+          placeholder={firstDate ? dayPlaceholder : "No open days in the next 90 days"}
           aria-invalid={dateProblem !== null}
           aria-describedby="shop-order-date-help"
         />

@@ -248,6 +248,8 @@ export const giftGuides = {
   comingSoonBody: "We're gathering the best gifts for this guide. Check back soon, or browse another guide.",
   relatedTitle: "Try these guides",
   loadingPicks: "Loading picks…",
+  /** Under a long list (design audit 11-18 #3: store-amazon drew 827 rows at once): the next 50. */
+  showMorePicks: (left: number) => `Show more (${left} more)`,
   allLinks: [
     { label: "Every collection on ShopMy", href: "https://shopmy.us/shop/lexilombas" },
     { label: "Every gift guide on Pinterest", href: `${PIN}/gift-guides/` },

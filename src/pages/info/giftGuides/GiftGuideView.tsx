@@ -57,15 +57,25 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
 }
 
 /** A guide's items: the numbered list, or (holding nothing) related guides, then its full-guide links. */
+/** Rows a list draws at first, and each "Show more" adds (design audit 11-18 #3: 827 rows, 9,600 DOM nodes at once). */
+export const PICKS_PAGE = 50;
+
 function GiftGuideList({ guide }: { guide: CatalogGuide }) {
+  const [shown, setShown] = useState(PICKS_PAGE);
   if (!picksReady(guide.slug)) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];
+  const left = guide.picks.length - shown;
   return (
     <>
       {guide.picks.length > 0 && (
         <ol className="gg-list" data-gift-list="">
-          {guide.picks.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
+          {guide.picks.slice(0, shown).map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
         </ol>
+      )}
+      {left > 0 && (
+        <button type="button" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
+          {G.showMorePicks(left)}
+        </button>
       )}
       {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && (
         // Owner 2026-11-18: a guide with no picks yet opens a friendly note, never an empty list or a dead link.
@@ -156,7 +166,7 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
           </ul>
         </section>
       ))}
-      <GiftGuideList guide={guide} />
+      <GiftGuideList key={guide.slug} guide={guide} />
       <StoreDeals guide={guide} />
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>

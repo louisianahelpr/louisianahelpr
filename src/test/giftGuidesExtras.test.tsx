@@ -52,6 +52,11 @@ const RESEARCHED_PICKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
 const APPENDED = ["store-amazon", "store-zchocolat", "store-diecast-models"];
 const OWN_LIST = Object.entries(RESEARCHED_PICKS).filter(([s]) => !APPENDED.includes(s));
 await loadAllGuidePicks();
+/** Opens every "Show more" under a long list (50 rows at first, design audit 11-18 #3), so a check sees every row. */
+const expandAll = (root: HTMLElement) => {
+  for (let b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); b; b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]")) fireEvent.click(b);
+  return root;
+};
 const renderAt = (url: string) =>
   render(
     <MemoryRouter initialEntries={[url]}>
@@ -138,6 +143,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
       expect(RESEARCHED_PICKS[slug]?.length, slug).toBeGreaterThan(10);
       expect(guideBySlug(slug)?.picks.map((p) => p.href), slug).toEqual(RESEARCHED_PICKS[slug].map((p) => p.href));
       const { container } = renderAt(`/gift-guides/${slug}`);
+      expandAll(container);
       expect(container.querySelector("[data-gift-coming-soon]"), slug).toBeNull();
       expect(container.querySelectorAll("[data-gift-pick]").length, slug).toBe(RESEARCHED_PICKS[slug].length);
       cleanup();
@@ -222,6 +228,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
   it("a pick heart saves the pick; My list shows saved guides and picks", () => {
     const g = guideBySlug("mom")!;
     const view = renderAt("/gift-guides/mom");
+    expandAll(view.container);
     const hearts = [...view.container.querySelectorAll("[data-gift-pick] [data-gift-heart]")];
     expect(hearts.length).toBe(g.picks.length);
     for (const h of hearts) expect(h.closest("a")).toBeNull();

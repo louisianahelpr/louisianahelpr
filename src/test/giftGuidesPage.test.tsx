@@ -90,7 +90,7 @@ import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
-import { GiftGuideView, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
+import { GiftGuideView, PICKS_PAGE, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -110,6 +110,12 @@ const RESEARCHED_PICKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
 await loadAllGuidePicks();
 
 const src = (p: string) => blankComments(readFileSync(p, "utf8"));
+
+/** Opens every "Show more" under a long list (50 rows at first, design audit 11-18 #3), so a check sees every row. */
+const expandAll = (root: HTMLElement) => {
+  for (let b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); b; b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]")) fireEvent.click(b);
+  return root;
+};
 const DISCLOSURE = "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.";
 const AMAZON_STATEMENT = "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.";
 const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Experiences", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
@@ -589,6 +595,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
     let checked = 0;
     for (const g of GUIDES.filter((x) => !x.children && x.picks.length > 0)) {
       const { container } = render(<MemoryRouter><GiftGuideView guide={g} /></MemoryRouter>);
+      expandAll(container);
       const rows = [...container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]")];
       expect(rows.length, g.slug).toBe(g.picks.length);
       rows.forEach((li, i) => {
@@ -613,6 +620,10 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       const g = guideBySlug(slug)!;
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-words] h2")?.textContent, slug).toBe(g.title);
+      // Design audit 11-18 #3: a long list draws 50 rows, then "Show more" adds 50 at a time (store-amazon drew 827).
+      // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {guide.picks.slice(0, shown).map( | {guide.picks.map(
+      expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(Math.min(g.picks.length, PICKS_PAGE));
+      expandAll(container);
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length);
       const back = container.querySelector("a[data-gift-back]");
       expect(back?.getAttribute("href")).toBe("/gift-guides");
@@ -674,7 +685,7 @@ describe("gift guides: links and disclosures on every view", () => {
       ...GUIDES.map((g) => [g.slug, () => render(<MemoryRouter><GiftGuideView guide={g} /></MemoryRouter>).container] as [string, () => HTMLElement]),
     ];
     for (const [url, draw] of views) {
-      const container = draw();
+      const container = expandAll(draw());
       for (const a of container.querySelectorAll("a")) {
         const href = a.getAttribute("href") ?? "";
         // "Text this guide" opens the visitor's own messages app (an sms: link, not a shop).

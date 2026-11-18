@@ -73,6 +73,7 @@ a.gg-share{display:inline-flex;align-items:center;text-decoration:none}
 .gg-name{display:block;font-size:14px;font-weight:600;margin-top:7px;text-align:center;line-height:1.3}
 .gg-count{display:block;font-size:11px;color:var(--gg-muted);text-align:center}
 .gg-list{list-style:none;margin:16px 0 0;padding:0;counter-reset:gg}
+.gg-more-picks{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin:12px 0 0;border-radius:999px;border:1px solid var(--gg-olive);background:transparent;color:var(--gg-olive);font-weight:700;font-size:13px}
 .gg-list>li{border-top:1px solid var(--gg-line);counter-increment:gg}
 .gg-item{display:flex;align-items:center;gap:14px;padding:11px 0;color:var(--gg-ink);text-decoration:none;font-size:15px;min-height:44px}
 .gg-item::before{content:counter(gg);width:20px;flex:none;font-size:12px;color:var(--gg-muted);font-variant-numeric:tabular-nums}

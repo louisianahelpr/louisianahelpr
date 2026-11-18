@@ -8,7 +8,7 @@ import { AuthCardHead } from "@/components/auth/AuthCardHead";
 import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
 import { isCaptchaError } from "@/lib/turnstile";
 import { runWithCaptcha } from "@/hooks/useCaptcha";
-import { recognizedAuthError } from "@/lib/authErrors";
+import { AUTH_RATE_LIMIT_MESSAGE, recognizedAuthError } from "@/lib/authErrors";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
@@ -194,7 +194,7 @@ const SignupPending = () => {
       // seconds" matched none of these and fell through to "Resent". The status says it, whatever the words.
       const limited = (error as { status?: number }).status === 429 || msg.includes("only request this after");
       if (limited || msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
-        toast.error("Too many requests — try again in a minute.");
+        toast.error(AUTH_RATE_LIMIT_MESSAGE);
         return;
       }
       // Fall through: this screen must not reveal whether an address has an

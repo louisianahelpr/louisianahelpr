@@ -201,7 +201,7 @@ export const es: Record<MsgKey, string> = {
   "login.verify": "Verificar",
   "login.verifying": "Verificando…",
   "login.differentAccount": "Usar otra cuenta",
-  "login.confirmEmailFirst": "Revise su correo primero: debe confirmar su correo electrónico antes de iniciar sesión.",
+  "login.confirmEmailFirst": "Confirme su correo primero. El enlace está en su bandeja de entrada.",
   "login.mfaCheckFailed": "No pudimos verificar su configuración de seguridad. ¿Lo intenta de nuevo?",
   "login.tooManyAttempts": "Demasiados intentos. Inténtelo de nuevo en {minutes} min.",
   "login.mfaWrongCode": "Ese código no coincide. Revise su app e inténtelo de nuevo.",
@@ -227,7 +227,7 @@ export const es: Record<MsgKey, string> = {
   "forgot.backToLogin": "Volver a iniciar sesión",
   "forgot.close": "Cerrar",
   "forgot.captchaFailed": "La verificación de seguridad no terminó. Inténtelo de nuevo.",
-  "forgot.tooMany": "Demasiadas solicitudes: inténtelo de nuevo en un minuto.",
+  "forgot.tooMany": "Demasiados intentos por ahora. Espere un momento e inténtelo de nuevo.",
 
   // Sign up, step 1
   "signup.title": "Cree su cuenta",

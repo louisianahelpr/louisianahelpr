@@ -85,7 +85,7 @@ export const enScreens = {
   "login.verify": "Verify",
   "login.verifying": "Verifying…",
   "login.differentAccount": "Use a different account",
-  "login.confirmEmailFirst": "Check your inbox first — you'll need to confirm your email before signing in.",
+  "login.confirmEmailFirst": "Confirm your email first. The link is in your inbox.",
   "login.mfaCheckFailed": "Couldn't verify your security settings — try again?",
   "login.tooManyAttempts": "Too many attempts \u2014 try again in {minutes} min.",
   "login.mfaWrongCode": "That code didn't match. Check your app and try again.",
@@ -111,7 +111,7 @@ export const enScreens = {
   "forgot.backToLogin": "Back to log in",
   "forgot.close": "Close",
   "forgot.captchaFailed": "The security check didn't finish. Try again.",
-  "forgot.tooMany": "Too many requests — try again in a minute.",
+  "forgot.tooMany": "Too many attempts just now. Give it a moment and try again.", // area 11 L13: authErrors AUTH_RATE_LIMIT_MESSAGE
 
   // Sign up, step 1
   "signup.title": "Create your account",

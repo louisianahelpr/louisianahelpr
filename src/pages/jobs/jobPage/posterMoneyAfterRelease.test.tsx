@@ -60,7 +60,8 @@ describe("the poster's money after the release (F32)", () => {
     show(row({ payout_scheduled_at: at.toISOString() }));
     expect(price()).toBe("$40");
     const day = at.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
-    expect(notes()).toContain(`Paid and released to your Helpr. Their pay goes out ${day} at `);
+    expect(notes()).toContain(`Paid. Your Helpr's pay goes out ${day} at `);
+    expect(notes()).not.toContain("Paid and released"); // area 11 L3
     expect(screen.getByRole("link", { name: "See your receipt" }).getAttribute("href")).toBe("/profile?tab=receipts&job=j");
   });
 

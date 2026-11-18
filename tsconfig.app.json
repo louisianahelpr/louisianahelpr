@@ -96,6 +96,7 @@
     "supabase/functions/_shared/connectRecord.ts",
     "supabase/functions/_shared/noticeEs.ts",
     "supabase/functions/_shared/email-templates/authEmailWords.ts",
+    "supabase/functions/_shared/email-templates/sponsorDelivery.ts",
     "supabase/functions/send-push-notification/pushLanguage.ts",
     "supabase/functions/_shared/appleRoutes.ts",
     "supabase/functions/_shared/travelEstimates.ts",

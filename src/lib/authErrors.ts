@@ -18,7 +18,11 @@
  * machine-shape filter trusts them and passes them through verbatim.
  */
 /** F259f (audit 11-10): Login offers "Send the email again" beside this one message, instead of Forgot password. */
-export const EMAIL_NOT_CONFIRMED_MESSAGE = "Please verify your email first — check your inbox for the link.";
+// Area 11 L13 (11-18): the same sentence as Login's own unconfirmed toast (enScreens login.confirmEmailFirst): one message, not two.
+export const EMAIL_NOT_CONFIRMED_MESSAGE = "Confirm your email first. The link is in your inbox.";
+
+/** Area 11 L13 (11-18): ONE rate-limit sentence on every auth screen (login, sign-up resend, forgot password). */
+export const AUTH_RATE_LIMIT_MESSAGE = "Too many attempts just now. Give it a moment and try again.";
 
 export function recognizedAuthError(raw: string | undefined | null): string | null {
   const msg = (raw ?? "").toLowerCase();
@@ -30,7 +34,7 @@ export function recognizedAuthError(raw: string | undefined | null): string | nu
     return EMAIL_NOT_CONFIRMED_MESSAGE;
   }
   if (msg.includes("rate") && msg.includes("limit")) {
-    return "Too many attempts just now. Give it a moment and try again.";
+    return AUTH_RATE_LIMIT_MESSAGE;
   }
   // GoTrue's per-address email throttle. It is the same situation as the rate
   // limit above and it is far more common, but it is worded as a sentence that
@@ -39,7 +43,7 @@ export function recognizedAuthError(raw: string | undefined | null): string | nu
   // security accusation, and "for security purposes" is the backend's
   // vocabulary, not ours.
   if (msg.includes("for security purposes")) {
-    return "Too many attempts just now. Give it a moment and try again.";
+    return AUTH_RATE_LIMIT_MESSAGE;
   }
   // GoTrue's refusal when Turnstile is on and the token is missing, expired or
   // already spent (Q1314): "captcha protection: request disallowed

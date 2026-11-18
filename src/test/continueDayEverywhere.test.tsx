@@ -6,7 +6,7 @@
  * lists the new day. The "Set a day to finish" sheet no longer offers today after a "done" (A3-119) and says what
  * setting a day does.
  *
- * @mutate src/components/tracker/jobProgressState.ts |     if (step) return { ...base, next: nextStepWords(step), waitingOnYou: step.who === "you" }; |     if (step) return base;
+ * @mutate src/components/tracker/jobProgressState.ts |     if (step && (step.who !== "info" \|\| planOnly)) return { ...base, next: nextStepWords(step), waitingOnYou: step.who === "you" }; |     if (step && (step.who !== "info" \|\| planOnly)) return base;
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       detail: continueDayWords(continueDays[jobId], { side, otherFirst: other })! }; |       detail: "" };
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |     if (!step \|\| step.who === "you") return null; |     return null;
  * @mutate src/pages/home/homeDashboard/comingUp.ts |   const setDay = (jobId: string) => (i.continueDays?.[jobId]?.status === "set" ? i.continueDays[jobId] : null); |   const setDay = (jobId: string) => (jobId ? null : null);

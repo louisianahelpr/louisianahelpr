@@ -128,7 +128,9 @@ const RELEASED = new Set(["payout_pending", "released"]);
 function releasedLine(job: JobPageRow): string {
   if (job.payment_status === "released") return HELD_LINE.released!;
   const at = job.payout_scheduled_at && new Date(job.payout_scheduled_at).getTime() > Date.now() ? job.payout_scheduled_at : null;
-  return at ? `Paid and released to your Helpr. Their pay goes out ${payoutWhen(at)}.` : "Paid and released to your Helpr. Their pay goes out with the next payout.";
+  // Area 11 L3 (11-18): "Paid and released" read as final beside the Helpr Guarantee under it; the pay has not gone
+  // out yet (payout_scheduled_at), so the line says only what is true now. Copy only.
+  return at ? `Paid. Your Helpr's pay goes out ${payoutWhen(at)}.` : "Paid. Your Helpr's pay goes out with the next payout.";
 }
 
 /**

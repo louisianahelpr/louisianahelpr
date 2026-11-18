@@ -38,7 +38,7 @@ describe("PayoutFailedCard (board 143a)", () => {
     expect(screen.getByText("$84.80")).toBeTruthy();
     expect(screen.getByText(/The bank account is closed\./)).toBeTruthy();
     expect(screen.queryByText(/more payout/)).toBeNull();
-    expect(screen.getByRole("link", { name: "Fix bank" }).getAttribute("href")).toBe("/profile?tab=earnings");
+    expect(screen.getByRole("link", { name: "Update payout method" }).getAttribute("href")).toBe("/profile?tab=earnings");
   });
 
   it("two open failures say there is more than one", () => {

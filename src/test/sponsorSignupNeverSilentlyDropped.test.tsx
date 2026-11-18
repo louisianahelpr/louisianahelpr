@@ -127,7 +127,7 @@ describe("the /sponsor form: a failed send says so and keeps every entry", () =>
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: C.claim.form.submit })); });
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("alert").textContent).toBe(C.claim.errors.generic);
-    expect(C.claim.errors.generic).toContain("NOT saved");
+    expect(C.claim.errors.generic).toContain("wasn't saved"); // area 11 L16: no shouting caps
     expect((screen.getByLabelText(C.claim.form.brandName) as HTMLInputElement).value).toBe("Bayou Candles");
     expect((screen.getByLabelText(C.claim.form.email) as HTMLInputElement).value).toBe("ann@example.com");
     expect(screen.queryByTestId("sponsor-thanks")).toBeNull();

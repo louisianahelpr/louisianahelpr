@@ -1155,7 +1155,7 @@ describe("job page, the street address follows the Working card", () => {
 
   // Owner 11-01 kept the category on its own line; owner pick 11-08 (JP1) moved the day, time and town out of a muted
   // line of dots into label/value facts rows under it (When / Where), poster and Helpr alike.
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {when && <FactRow label="When" data-job-meta="">{when}</FactRow>} |             {false && <FactRow label="When" data-job-meta="">{when}</FactRow>}
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {when && <FactRow label={t("jobPage.whenRow")} data-job-meta="">{when}</FactRow>} |             {false && <FactRow label={t("jobPage.whenRow")} data-job-meta="">{when}</FactRow>}
   // @mutate src/pages/jobs/jobPage/JobPage.tsx |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}</p> |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}{when ? ` · ${when}` : ""}</p>
   it("the head: the category alone on its line, then the When and Where rows (poster and Helpr)", () => {
     for (const job of [row({ customer_id: ME }), row({ helper_id: ME, status: "accepted", helper_confirmed_at: null, date_needed: DAY })]) {
@@ -1467,7 +1467,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     expect(screen.queryByTestId("where")).toBeNull();
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: "Cancel job", go: flows.cancel, | label: "Cancel job", go: () => navigate(`/posts?highlight=${id}&manage=1`),
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: t("jobPage.cancelJob"), go: flows.cancel, | label: t("jobPage.cancelJob"), go: () => navigate(`/posts?highlight=${id}&manage=1`),
   it("Cancel job runs the card's own cancel flow (on-the-way check, fee quote, refund) ON the page", () => {
     state.job = booked();
     state.party = true;
@@ -1597,7 +1597,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canEdit = !draft && status === "open" && !job.is_group_job && job.direct_offer_status !== "pending"; |   const canEdit = false;
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | <NoApplicantsYet job={job} onManage={posterActions.edit} /> | <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: "Edit job", go: flows.edit, | label: "Edit job", go: () => navigate(`/posts?highlight=${id}&manage=1`),
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: t("jobPage.editJob"), go: flows.edit, | label: t("jobPage.editJob"), go: () => navigate(`/posts?highlight=${id}&manage=1`),
   it("an open job: Edit job, and the no-applicants rows (photo, price) open the card's own edit ON the page", () => {
     state.job = row({ customer_id: ME });
     state.applicants = { total: 0, pending: 0 };

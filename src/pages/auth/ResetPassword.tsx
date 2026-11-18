@@ -228,7 +228,9 @@ const ResetPassword = () => {
       {/* role="status" on the whole card once done, so the announcement
           carries the heading ("Password updated.") as well as the detail. */}
       <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6" role={done ? "status" : undefined} aria-live={done ? "polite" : undefined}>
-        <AuthCardHead testId="reset-card-head" title={done ? "Password updated." : "Set a new password"} />
+        {/* Design audit r3 #47: with no usable link the page's only action is to request one, so it is titled like
+            /forgot-password and that button is the primary (was "Set a new password" over an outline button). */}
+        <AuthCardHead testId="reset-card-head" title={done ? "Password updated." : ready || verifying ? "Set a new password" : "Reset your password"} />
         {done ? (
           /* role="status" + aria-live: a screen-reader user gets the same
              evidence a sighted one does. Without it the panel is silent
@@ -274,7 +276,7 @@ const ResetPassword = () => {
                 the space-y-4 margin, so the link sat flush against the
                 paragraph above it (0px, Q179). Guard:
                 src/test/noButtonInsideLink.test.ts. */}
-            <Button asChild variant="outline" className="w-full rounded-full">
+            <Button asChild variant="primary" className="w-full rounded-full">
               <Link to="/forgot-password">
                 {linkError ? "Request a new reset link" : "Request a reset link"}
               </Link>

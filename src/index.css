@@ -4978,6 +4978,23 @@ html.web-desktop .explore-switcher-bone { display: none; }
   backdrop-filter: none !important;
   box-shadow: 0 0 0 1px hsl(var(--card-hairline)), 0 1px 2px hsl(220 14% 20% / 0.06), 0 4px 14px -6px hsl(220 14% 20% / 0.10) !important;
 }
+/* Design audit r3 #1 (HIGH, 11-18): a FIELD or a CHIP is not a card. T2 above clears the border of every .bg-card, so
+   on the white page (owner 11-17) the Edit listing / Sell title and description boxes, the Edit listing chips
+   (ChoicePill), the Open a shop category chips and other white controls were white on white with only a #ECECEA
+   hairline shadow: floating text. These keep a real 1 px edge (the --border hairline, #D2D2CE) and their own
+   Tailwind ring/shadow (T2's shadow is !important, so it would also hide their focus ring). Outranks T2's :where()
+   (0,0,0) with a typed selector. Guard: src/test/whiteFieldsAndChipsKeepAnEdge.test.ts. */
+input.bg-card,
+textarea.bg-card,
+select.bg-card,
+button[role="radio"].bg-card,
+button[aria-pressed].bg-card,
+button[aria-expanded].bg-card,
+label[for].bg-card,
+[data-field-edge].bg-card {
+  border-color: hsl(var(--border)) !important;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow, 0 0 #0000) !important;
+}
 .page-panel { box-shadow: none !important; background-color: transparent !important; }
 [data-feed-card] > div, [data-activity-card] { border-radius: 1rem; }
 /* Design audit A J2 (owner approved 11-08): the Browse feed is hairline ROWS on the page, not white cards. Higher

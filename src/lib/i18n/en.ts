@@ -28,6 +28,7 @@ import { enDeclPanels } from "./enDeclPanels";
 import { enSellSummary } from "./enSellSummary";
 import { enSellForm } from "./enSellForm";
 import { enOfferTrade } from "./enOfferTrade";
+import { enReport } from "./enReport";
 import { enFreeAsk } from "./enFreeAsk";
 import { enMoneyTiles } from "./enMoneyTiles";
 import { enChatEvents } from "./enChatEvents";
@@ -53,6 +54,6 @@ import { enListForSeller } from "./enListForSeller";
 import { enJobsHelpr } from "./enJobsHelpr";
 
 /** The whole dictionary (boot words + screen words). Tests and es.ts's type read it; app code calls t(). */
-export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enNewMember, ...enSettings, ...enMessages, ...enOffer, ...enFree, ...enQuestions, ...enDeclPanels, ...enSections, ...enDeclBrowse, ...enSellSummary, ...enOfferTrade, ...enFreeAsk, ...enMoneyTiles, ...enChatEvents, ...enSellForm, ...enDeclOffers, ...enTodos, ...enListingParts, ...enTracker, ...enPorchPlaces, ...enSellingNow, ...enYourPage, ...enJobSteps, ...enNextStep, ...enJobLines, ...enCardLines, ...enDeclErrors, ...enSellerDeliveryErrors, ...enAiDraft, ...enListForSeller, ...enJobsHelpr, ...enSuggest, ...enItemPage, ...enJobCats, ...enGuest } as const;
+export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enNewMember, ...enSettings, ...enMessages, ...enOffer, ...enFree, ...enQuestions, ...enDeclPanels, ...enSections, ...enDeclBrowse, ...enSellSummary, ...enOfferTrade, ...enFreeAsk, ...enMoneyTiles, ...enChatEvents, ...enSellForm, ...enDeclOffers, ...enTodos, ...enListingParts, ...enTracker, ...enPorchPlaces, ...enSellingNow, ...enYourPage, ...enJobSteps, ...enNextStep, ...enJobLines, ...enCardLines, ...enDeclErrors, ...enSellerDeliveryErrors, ...enAiDraft, ...enListForSeller, ...enJobsHelpr, ...enSuggest, ...enItemPage, ...enJobCats, ...enGuest, ...enReport } as const;
 
 export type MsgKey = keyof typeof en;

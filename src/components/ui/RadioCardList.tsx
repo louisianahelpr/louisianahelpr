@@ -14,6 +14,8 @@ export interface RadioCardOption {
   value: string;
   label: ReactNode;
   sub?: ReactNode;
+  /** Optional picture after the radio (design audit r3 #10: Offer a trade's rows show each listing's photo). */
+  media?: ReactNode;
 }
 
 export function RadioCardList({
@@ -81,6 +83,7 @@ export function RadioCardList({
             >
               {on && <span className="w-2.5 h-2.5 rounded-full" style={{ background: "hsl(var(--bark))" }} />}
             </span>
+            {o.media}
             <span className="flex-1 min-w-0 whitespace-normal break-words">
               <span className="block font-sans font-semibold text-ds-14 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
                 {o.label}

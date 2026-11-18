@@ -46,7 +46,7 @@ export const enSellForm = {
   "sf.offersTitle": "Accept offers",
   "sf.offersOn": "Buyers can offer a lower price, and you say yes or no.",
   "sf.offersOff": "Off. Buyers pay your price with Buy now; no offers.",
-  "sf.taxHead": "Confirm about this item",
+  "sf.taxHead": "Before you post",
   "sf.taxLine": "Louisiana doesn't charge sales tax on occasional sales of your own things.",
   "sf.group.home": "Home",
   "sf.group.outdoors": "Outdoors",

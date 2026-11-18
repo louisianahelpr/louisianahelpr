@@ -5,7 +5,7 @@
  * turns that into copy instead of the generic "try again".
  *
  * @mutate supabase/migrations/20260924061853_reports_per_reporter_rate_limit.sql | IF v_hour >= 10 OR v_day >= 30 THEN  -- TS-012 cap | IF false THEN  -- TS-012 cap
- * @mutate src/components/ReportDialog.tsx | toast.error(reportSubmitError(error, "We couldn't send your report — please try again.")); | toast.error("We couldn't send your report — please try again.");
+ * @mutate src/components/ReportDialog.tsx | toast.error(reportSubmitError(error, t("rep.failed"))); | toast.error(t("rep.failed"));
  * @mutate src/components/profile/SupportInline.tsx | toast.error(reportSubmitError(error, "We couldn't send that — please try again.")); | toast.error("We couldn't send that — please try again.");
  * @mutate src/lib/reportErrors.ts | if (error?.message?.includes("report_rate_limited")) { | if (false) {
  */

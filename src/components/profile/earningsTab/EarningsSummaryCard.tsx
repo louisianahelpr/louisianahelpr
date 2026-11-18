@@ -1,4 +1,3 @@
-import { TrendingUp, Gift } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { earnedRangeLabel, formatCents } from "./earningsTabHelpers";
 import { EarningsRangeToggle, type EarningsRange } from "./EarningsRangeToggle";
@@ -67,17 +66,9 @@ export function EarningsSummaryCard({
 }: EarningsSummaryCardProps) {
   return (
     <div className="rounded-2xl liquid-glass p-card">
-      <div className="flex items-center gap-2.5 mb-3">
-        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <TrendingUp className="w-4 h-4 text-primary" />
-        </div>
-        <h2
-          className="font-display font-bold leading-tight text-ds-17"
-          style={{ color: "hsl(var(--ink-deep))" }}
-        >
-          Earned
-        </h2>
-      </div>
+      {/* Design audit r3 #29: the Earned | Spent tab right above already says "Earned", so the card's own icon +
+          "Earned" heading said it twice. The heading stays for screen readers only. */}
+      <h2 className="sr-only">Earned</h2>
 
       {/* Own row rather than sharing the header line: four options plus a
           title do not fit at 320px, and a toggle that wraps mid-control is
@@ -124,8 +115,9 @@ export function EarningsSummaryCard({
             </p>
           </div>
           <div className="border-l border-border/40 pl-4">
+            {/* Design audit r3 #30: no lone gift icon here (the left column has none, so the two amounts sat at
+                different heights). Same empty eyebrow row as the left column. */}
             <div className="flex items-center gap-1.5 mb-1">
-              <Gift className="w-3 h-3 text-primary" />
               <span className="sr-only">Tips</span>
             </div>
             <p

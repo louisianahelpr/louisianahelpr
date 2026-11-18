@@ -308,7 +308,8 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
             </span>
             <span className="min-w-0">
               <span className="flex items-center gap-2 flex-wrap">
-                <span className="block font-sans font-bold text-foreground leading-tight text-ds-15">
+                {/* Design audit r3 #48: semibold, not bold, so a long title reads as a row, not a headline. */}
+                <span className="block font-sans font-semibold text-foreground leading-tight text-ds-15">
                   {isSearching ? highlight(title, query) : title}
                 </span>
                 {/* During a cross-tab search, mark which policy this section

@@ -106,7 +106,7 @@ function TakeABreakLine({ onGo }: { onGo: () => void }) {
   return (
     <p className="text-ds-13 text-foreground" data-delete-take-a-break="">
       {t("deleteAccount.breakLead")}{" "}
-      <Link to="/profile?tab=notifications" onClick={onGo} className="font-semibold underline underline-offset-2">{t("deleteAccount.breakLink")}</Link>
+      <Link to="/profile?tab=notifications" onClick={onGo} className="font-semibold text-primary underline underline-offset-2">{t("deleteAccount.breakLink")}</Link>
     </p>
   );
 }
@@ -185,20 +185,22 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
   ];
 
   return (
-    <div className="my-1 grid gap-3 sm:grid-cols-2">
+    // Design audit r3 #37: one column at every width, 14 px items and 12 px headings, the same size as the
+    // "Open work finishes first" card above (were 11 px lists squeezed into two 210 px columns on desktop).
+    <div className="my-1 grid gap-3" data-delete-lists="">
       <div>
         <p
-          className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5"
+          className="text-ds-12 font-semibold uppercase tracking-wide mb-1.5"
           style={{ color: "hsl(var(--alert-ink))" }}
         >
           {t("deleteAccount.erasedHeading")}
         </p>
         <ul className="space-y-1">
           {erased.map((item) => (
-            <li key={item} className="flex items-start gap-1.5 text-ds-11 leading-snug">
+            <li key={item} className="flex items-start gap-2 text-ds-14 leading-snug">
               <X
                 aria-hidden="true"
-                className="w-3 h-3 shrink-0 mt-[3px]"
+                className="w-3.5 h-3.5 shrink-0 mt-[3px]"
                 style={{ color: "hsl(var(--alert-ink))" }}
               />
               <span style={{ color: "hsl(var(--olivewood) / 0.9)" }}>{item}</span>
@@ -208,17 +210,17 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
       </div>
       <div>
         <p
-          className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5"
+          className="text-ds-12 font-semibold uppercase tracking-wide mb-1.5"
           style={{ color: "hsl(var(--olivewood))" }}
         >
           {t("deleteAccount.keptHeading")}
         </p>
         <ul className="space-y-1">
           {kept.map((item) => (
-            <li key={item} className="flex items-start gap-1.5 text-ds-11 leading-snug">
+            <li key={item} className="flex items-start gap-2 text-ds-14 leading-snug">
               <Check
                 aria-hidden="true"
-                className="w-3 h-3 shrink-0 mt-[3px]"
+                className="w-3.5 h-3.5 shrink-0 mt-[3px]"
                 style={{ color: "hsl(var(--olivewood))" }}
               />
               <span style={{ color: "hsl(var(--olivewood) / 0.9)" }}>{item}</span>

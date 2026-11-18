@@ -5,6 +5,8 @@ import { formatPrice } from "@/lib/format";
 import { getCity } from "@/lib/locationUtils";
 import type { JobPageRow } from "./useJobPage";
 import { useJobReach } from "./useJobReach";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 
 /**
  * Board 57, the poster's open job with nobody applied yet. Shown only when the job is
@@ -15,26 +17,29 @@ import { useJobReach } from "./useJobReach";
  * are tester-only (the 'quotes' switch).
  */
 export function NoApplicantsYet({ job, onManage }: { job: JobPageRow; onManage: () => void }) {
+  const { t } = useLanguage();
   const city = job.location ? getCity(job.location) : null;
   // Board 184: the alerts already sent, a floor (sent rows only); 0 or unknown says nothing new.
   const reach = useJobReach(job.id);
   const rows = [
-    !(job.photos ?? []).length && { key: "photo", title: "Add a photo", detail: "Jobs with photos are easier to say yes to" },
-    { key: "price", title: "Change the price", detail: <>You're at <span className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">${formatPrice(job.budget)}</span></> },
+    !(job.photos ?? []).length && { key: "photo", title: t("jobPage.addPhoto"), detail: t("jobPage.addPhotoWhy") },
+    { key: "price", title: t("jobPage.changePrice"), detail: <>{t("jobPage.youreAt")} <span className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">${formatPrice(job.budget)}</span></> },
   ].filter(Boolean) as { key: string; title: string; detail: React.ReactNode }[];
   return (
-    <section data-no-applicants="" aria-labelledby="no-applicants-title" className="space-y-3 text-center lg:col-start-1">
-      <h2 id="no-applicants-title" className="font-display font-moment text-ds-28 font-semibold">No applicants yet</h2>
+    // Design audit r3 #18: one card, left-aligned, a 17 px title (was a 28 px display headline floating outside any
+    // card, then an uppercase "WANT REPLIES SOONER?" eyebrow). Guard: src/test/auditR3Mediums.test.tsx.
+    <section data-no-applicants="" aria-labelledby="no-applicants-title" className="space-y-3 rounded-2xl border border-border bg-card p-4 text-left lg:col-start-1">
+      <h2 id="no-applicants-title" className="text-ds-17 font-semibold text-foreground">{t("jobPage.noApplicants")}</h2>
       <p className="text-ds-14 text-muted-foreground">
         {reach && reach > 0
-          ? `Sent to ${reach} Helpr${reach === 1 ? "" : "s"} so far.`
-          : city ? `It's out to Helprs near ${city}.` : "It's out to Helprs nearby."}{" "}
-        We'll tell you when someone applies.
+          ? (reach === 1 ? t("jobPage.sentToOne") : t("jobPage.sentToN", { n: reach }))
+          : city ? t("jobPage.outNear", { city }) : t("jobPage.outNearby")}{" "}
+        {t("jobPage.tellYou")}
       </p>
-      <h3 className="pt-2 text-left text-ds-12 font-semibold uppercase tracking-wide text-muted-foreground">Want replies sooner?</h3>
+      <h3 className="sr-only">{t("jobPage.repliesSooner")}</h3>
       <div className="space-y-2 text-left">
         <ShareJobButton job={{ id: job.id, title: job.title, budget: job.budget, helper_fee_flat_cents: job.helper_fee_flat_cents, helper_fee_percent: job.helper_fee_percent, category: job.category, city: city ?? undefined }} />
-        <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+        <ul className="-mx-4 divide-y divide-border border-t border-border">
           {rows.map((r) => (
             <li key={r.key}>
               <ListRow variant="flush" onClick={onManage} className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left">

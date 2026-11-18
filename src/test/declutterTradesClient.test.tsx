@@ -44,6 +44,8 @@ vi.mock("@/lib/declutter/trades", async (orig) => ({
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
   fetchMyItems: async () => state.mine,
+  // Design audit r3 #10: the trade rows read their covers; no photos here (each row shows its category tile).
+  fetchPhotos: async () => [],
 }));
 
 const { OfferTradeButton } = await import("@/components/declutter/DeclutterOfferTrade");

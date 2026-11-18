@@ -52,7 +52,7 @@ const RESEARCHED_PICKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
 const APPENDED = ["store-amazon", "store-zchocolat", "store-diecast-models"];
 const OWN_LIST = Object.entries(RESEARCHED_PICKS).filter(([s]) => !APPENDED.includes(s));
 await loadAllGuidePicks();
-/** Opens every "Show more" under a long list (50 rows at first, design audit 11-18 #3), so a check sees every row. */
+/** Opens every "Show more" under a long list (50 rows at first as of 2026-11-18, design audit #3), so a check sees every row. */
 const expandAll = (root: HTMLElement) => {
   for (let b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); b; b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]")) fireEvent.click(b);
   return root;

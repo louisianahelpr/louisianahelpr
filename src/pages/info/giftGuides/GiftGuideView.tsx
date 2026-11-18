@@ -61,7 +61,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
  * A list split at each change of its picks' section (store-amazon's "Louisiana Helpr Picks", "By person"...; design
  * audit 11-18 #3). A list with no sections is one untitled run; a pick with none joins the run before it.
  */
-export const sectionsOf = (picks: CatalogPick[]) => {
+const sectionsOf = (picks: CatalogPick[]) => {
   const runs: { title?: string; picks: { start: number; rows: CatalogPick[] } }[] = [];
   picks.forEach((p, i) => {
     const last = runs.at(-1);

@@ -209,10 +209,9 @@ export const enScreens = {
   "profileGate.stillNeeded": "Still needed",
   "profileGate.stepName": "add your full name",
   "profileGate.stepPolicies": "accept the rules, terms and privacy",
-  "profileGate.nextStep": "Next: {step} · step {n} of {total}",
+  "profileGate.nextStep": "Next: {step}",
   "profileGate.saving": "Saving…",
-  "profileGate.enterApp": "Enter App",
-  "profileGate.completeRequired": "Complete required fields",
+  "profileGate.finish": "Finish",
   "profileGate.deleteAccount": "Delete account",
   // Design audit area 09 M12: the consent step says 18+ once (its own box), so its Terms box leads without it.
   "profileGate.agreeLead": "I agree to the",

@@ -77,6 +77,8 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  // Design audit area 11b M6: what is still needed shows after a first Finish, not as a nag before any typing.
+  const [attempted, setAttempted] = useState(false);
   // Apple/Google: the name is asked only when the provider gave no full name
   // (owner 2026-10-26). Set once, from the profile the sign-in created.
   const [providerGaveName, setProviderGaveName] = useState(false);
@@ -220,6 +222,7 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    setAttempted(true);
 
     const fail = (msg: string) => { hapticError(); toast.error(msg); };
     if (nameAsked && (!firstName.trim() || !lastName.trim())) return fail(t("profileGate.nameToast"));
@@ -516,7 +519,7 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
             </label>
 
 
-            <StillNeededList checklist={checklist} allComplete={allComplete} t={t} />
+            {attempted && <StillNeededList checklist={checklist} allComplete={allComplete} t={t} />}
 
             <Button
               type="submit"
@@ -528,10 +531,10 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
                 "h-auto !min-h-[60px] whitespace-normal min-[360px]:whitespace-nowrap text-balance px-4 py-3 sm:px-8 sm:py-0",
                 allComplete && !submitting && "btn-grad-primary",
               )}
-              disabled={submitting || !allComplete}
+              disabled={submitting}
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-              {submitting ? t("profileGate.saving") : allComplete ? t("profileGate.enterApp") : t("profileGate.completeRequired")}
+              {submitting ? t("profileGate.saving") : t("profileGate.finish")}
             </Button>
 
             <Button

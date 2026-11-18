@@ -220,7 +220,7 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
     socialProfile.full_name = "";
     try {
       renderPage(TO_POST_JOB);
-      expect(screen.getByRole("button", { name: /Complete required fields/ })).toBeDisabled(); // the page, not a redirect
+      expect(screen.getByRole("button", { name: /^Finish$/ })).toBeInTheDocument(); // the page, not a redirect
       expect(screen.queryByRole("checkbox", { name: /18 years of age or older/ })).toBeNull();
       expect(screen.queryByTestId("complete-profile-consent-step")).toBeNull();
     } finally {
@@ -249,7 +249,7 @@ describe("Complete Profile: an empty optional City never blocks Enter App", () =
       expect(container.querySelector("form")!.checkValidity()).toBe(true);
       fireEvent.change(container.querySelector("#firstName")!, { target: { value: "Gee" } });
       fireEvent.change(container.querySelector("#lastName")!, { target: { value: "O" } });
-      fireEvent.click(screen.getByRole("button", { name: /Enter App/ }));
+      fireEvent.click(screen.getByRole("button", { name: /^Finish$/ }));
       await waitFor(() => expect(updates).toHaveLength(1));
     } finally {
       socialProfile.location = was.location;

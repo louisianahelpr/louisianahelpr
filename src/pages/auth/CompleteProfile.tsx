@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -299,9 +300,9 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
       // Design audit area 09 M12: a muted line for a new member, not a red Delete button under Continue.
       <p className="text-center text-ds-13 text-muted-foreground" data-consent-delete="">
         {t("profileGate.notForYou")}{" "}
-        <button type="button" onClick={deleteAccount.requestDelete} className="min-h-11 font-semibold underline underline-offset-2 text-muted-foreground hover:text-foreground">
+        <InlineTextButton onClick={deleteAccount.requestDelete} className="min-h-11 font-semibold underline underline-offset-2 text-muted-foreground hover:text-foreground">
           {t("profileGate.deleteAccount")}
-        </button>
+        </InlineTextButton>
       </p>
     );
     // The 18+ box is also asked of an email sign-up whose sign-up never finished (no Terms and no 18+ on record:

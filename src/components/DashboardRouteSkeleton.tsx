@@ -1,4 +1,5 @@
 import AppShell from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HOME_NEEDS_YOU_MIN_PX } from "@/lib/homeSkeleton";
 import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
@@ -68,9 +69,9 @@ const DashboardRouteSkeleton = () => {
         <div data-testid="home-stuck-card" className="liquid-glass p-card flex w-full max-w-md flex-col items-start gap-2 shadow-lg">
           <p className="text-ds-18 font-bold leading-snug">{t("home.stuckTitle")}</p>
           <p className="text-ds-14 text-muted-foreground">{t("home.stuckBody")}</p>
-          <button type="button" onClick={() => window.location.reload()} className="btn-press mt-1 h-11 rounded-full bg-primary px-5 text-ds-14 font-semibold text-primary-foreground">
+          <Button size="sm" onClick={() => window.location.reload()} className="mt-1 px-5 font-semibold">
             {t("core.tryAgain")}
-          </button>
+          </Button>
         </div>
       </div>
     )}

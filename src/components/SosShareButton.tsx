@@ -1,5 +1,6 @@
 import { ListRow } from "@/components/ui/ListRow";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useState } from "react";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enChatParts";
@@ -183,17 +184,16 @@ export function SafetyShieldButton({
       </RoundIconButton>
       {/* Area 08 L6 (design audit 11-18): a red shield alone said nothing on first view. Its word beside it, the
           same tap (the button above carries the name for screen readers). */}
-      <button
-        type="button"
+      <InlineTextButton
         aria-hidden
         tabIndex={-1}
         data-sos-shield-label=""
         onClick={() => setOpen(true)}
-        className="hidden min-[360px]:inline font-sans font-semibold text-ds-11 pr-1"
+        className="hidden min-[360px]:inline font-sans font-semibold text-ds-11 pr-1 no-underline"
         style={{ color: SOS_TINT.color }}
       >
         {t("cp.safetyLabel")}
-      </button>
+      </InlineTextButton>
       <SosShareSheet jobId={job.id} open={open} onOpenChange={setOpen} />
     </>
   );

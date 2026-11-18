@@ -1,4 +1,5 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { storageExtFor } from "@/lib/storageExt";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -301,9 +302,9 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
             <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Topic: </span>
             <span className="font-semibold">{selected.label}</span>
             <span aria-hidden className="text-muted-foreground"> · </span>
-            <button type="button" className="font-semibold underline underline-offset-2 min-h-11" style={{ color: "hsl(var(--bark))" }} onClick={() => setTopicCollapsed(false)} data-support-change-topic="">
+            <InlineTextButton className="font-semibold underline underline-offset-2 min-h-11" style={{ color: "hsl(var(--bark))" }} onClick={() => setTopicCollapsed(false)} data-support-change-topic="">
               Change
-            </button>
+            </InlineTextButton>
           </p>
         ) : (
         <div>

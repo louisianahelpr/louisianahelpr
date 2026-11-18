@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 
 /** The share links for a gift-guides page (owner 2026-11-18): Facebook's sharer and Pinterest's pin builder, no SDK script. */
@@ -38,10 +39,10 @@ export function GiftGuideShare({ path, title, image }: { path: string; title: st
   };
   return (
     <span className="gg-share-wrap">
-      <button type="button" className="gg-share" onClick={share} aria-expanded={open} data-gift-share="">Share</button>
+      <InlineTextButton className="gg-share no-underline" onClick={share} aria-expanded={open} data-gift-share="">Share</InlineTextButton>
       {open && (
         <span className="gg-share-menu" data-gift-share-menu="">
-          <button type="button" onClick={copy}>{copied ? "Link copied" : "Copy link"}</button>
+          <InlineTextButton onClick={copy}>{copied ? "Link copied" : "Copy link"}</InlineTextButton>
           <a href={links.facebook} target="_blank" rel="noopener noreferrer">Facebook</a>
           <a href={links.pinterest} target="_blank" rel="noopener noreferrer" data-gift-pin="">Pinterest</a>
         </span>

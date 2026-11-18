@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import { Input } from "@/components/ui/input";
 import { giftGuides as G, activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { useState } from "react";
 import { MyListLink } from "./GiftGuideMyList";
@@ -20,9 +22,9 @@ export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogG
   return (
     <nav key={active?.slug ?? ""} className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
       {/* Owner 2026-11-18: a search box at the top of the menu filters every guide by its title or group. */}
-      <label className="gg-search">
+      <label className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
         <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" aria-label="Search gift guides" data-gift-search="" />
+        <Input look="bare" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" aria-label="Search gift guides" data-gift-search="" />
       </label>
       <MyListLink current={myList} />
       {query.trim() ? (
@@ -90,9 +92,9 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
                 {c.dates ? <span className="gg-code-offer">{G.codeValid(c.dates)}</span> : c.expires && <span className="gg-code-offer">{G.codeEnds(c.expires)}</span>}
                 <span className="gg-code-row">
                   <code>{c.code}</code>
-                  <button type="button" onClick={() => copy(c.code)} aria-label={`${G.copyCode} ${c.code}`}>
+                  <InlineTextButton className="no-underline" onClick={() => copy(c.code)} aria-label={`${G.copyCode} ${c.code}`}>
                     {copied === c.code ? G.copiedCode : G.copyCode}
-                  </button>
+                  </InlineTextButton>
                 </span>
               </span>
             ))}

@@ -1,4 +1,5 @@
 import { Bell, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
 import AppPage from "@/components/AppPage";
@@ -98,9 +99,9 @@ function DeclutterSettingsBody({ user }: { user: { id: string } }) {
           {/* Area 06b L6 (design audit 11-18): 44px chips, Meet spots included (were 19px text links that skipped it). */}
           <nav aria-label="On this page" className="flex flex-wrap items-center gap-2" data-settings-index="">
             {SETTINGS_INDEX.map((name) => (
-              <button key={name} type="button" data-settings-index-chip=""
-                className="inline-flex min-h-11 items-center rounded-full border border-border bg-card px-4 text-ds-14 font-medium text-foreground ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{name}</button>
+              <Button key={name} variant="ghost" size="wrapSm" data-settings-index-chip=""
+                className="border border-border bg-card font-medium tracking-normal text-foreground focus-visible:ring-offset-0"
+                onClick={() => document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{name}</Button>
             ))}
           </nav>
           <div className="space-y-section">

@@ -22,7 +22,7 @@ describe("F464: Report a bug hides the topic dropdown behind Change", () => {
     expect(collapsed).toContain('data-support-topic-collapsed=""');
     expect(collapsed).toContain("{selected.label}");
     // Design audit area 09 M6: "Topic: … · Change", Change a text link on the same line.
-    expect(collapsed).toMatch(/onClick=\{\(\) => setTopicCollapsed\(false\)\} data-support-change-topic="">\s*Change\s*<\/button>/);
+    expect(collapsed).toMatch(/onClick=\{\(\) => setTopicCollapsed\(false\)\} data-support-change-topic="">\s*Change\s*<\/(?:button|InlineTextButton)>/);
     expect(collapsed).toContain('<span aria-hidden className="text-muted-foreground"> · </span>');
     // The dropdown is the other branch of the same conditional, not gone.
     expect(src.slice(start)).toContain('<SelectTrigger id="support-reason"');

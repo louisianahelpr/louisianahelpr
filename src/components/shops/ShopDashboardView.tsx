@@ -9,6 +9,7 @@
  * handover choice (ShopHandoverModePicker). No visual pass yet.
  */
 import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useEffect, useState, type ReactNode } from "react";
 import { ChevronDown, Settings } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -199,9 +200,9 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         {header?.(myId.data)}
         {/* Area 07 M5: the settings sat under every order with no way to them from the top; one link jumps there
             (from lg they are already in view in the side column). */}
-        <button type="button" onClick={toSettings} className="btn-press inline-flex min-h-11 items-center gap-1.5 text-ds-13 font-semibold text-primary lg:hidden" data-testid="shop-settings-jump">
+        <InlineTextButton onClick={toSettings} className="btn-press inline-flex min-h-11 items-center gap-1.5 text-ds-13 font-semibold text-primary no-underline lg:hidden" data-testid="shop-settings-jump">
           <Settings className="h-4 w-4" aria-hidden /> {t("shb.dash.toSettings")}
-        </button>
+        </InlineTextButton>
         {embedded && !orders.isError && (
           <StatusBoxes
             boxes={[

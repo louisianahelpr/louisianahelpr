@@ -333,7 +333,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <SectionHeading>When &amp; where</SectionHeading>
             <div className="space-y-1.5">
               <Label className="text-ds-14 font-sans font-semibold text-foreground">Location</Label>
-              <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
+              <Input aria-label="Location" className="text-ellipsis" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={dateId} className="text-ds-14 font-sans font-semibold text-foreground">Date needed</Label>

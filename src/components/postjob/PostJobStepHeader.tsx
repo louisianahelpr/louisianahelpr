@@ -66,7 +66,9 @@ export function PostJobStepHeader({ screen, question, helper, onPick, canPick }:
         </span>
       </div>
       <div className="space-y-1.5">
-        <h2 className="font-display font-moment text-ds-32 font-semibold text-foreground">{question}</h2>
+        {/* Design audit r2 #4: the app bar's "Post a job" is the page's 28px title; the step question one step down
+            (20px semibold), so two 28px bold headings no longer stack within 90px. */}
+        <h2 className="font-display font-moment text-ds-20 font-semibold text-foreground">{question}</h2>
         <p className="font-sans text-ds-15 text-muted-foreground">{helper}</p>
       </div>
     </header>

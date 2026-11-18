@@ -274,3 +274,14 @@ describe("design audit r2 #11: plain copy on Post a job", () => {
     expect(desc).not.toMatch(/text-ds-11 font-sans leading-snug/);
   });
 });
+
+/**
+ * #4 (part): two 28px bold headings stacked ("Post a job" + the step question); the question is 20px semibold now.
+ * @mutate src/components/postjob/PostJobStepHeader.tsx | font-moment text-ds-20 font-semibold | font-moment text-ds-32 font-semibold
+ */
+describe("design audit r2 #4: the step question sits one size under the page title", () => {
+  it("PostJobStepHeader's question is text-ds-20", () => {
+    const src = blankComments(readFileSync("src/components/postjob/PostJobStepHeader.tsx", "utf8"));
+    expect(src).toMatch(/<h2 className="[^"]*\btext-ds-20\b[^"]*">\{question\}<\/h2>/);
+  });
+});

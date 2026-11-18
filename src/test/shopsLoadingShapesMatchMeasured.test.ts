@@ -56,7 +56,7 @@ const CASES = [
   { file: "src/components/shops/ShopMyOrdersView.tsx", label: '{t("shb.ord.loading")}', inner: "<NoOrdersYet />", loaded: /\.length === 0 \? \(\s*<NoOrdersYet \/>/ },
   { file: "src/components/shops/ShopDashboardView.tsx", label: "Loading your shop's orders", inner: "<NoShopYet embedded=\\{embedded\\} placeholder />", loaded: /<NoShopYet embedded=\{embedded\} \/>/ },
   { file: "src/components/shops/ShopEditView.tsx", label: "Loading your shop", inner: "\\{children\\}", loaded: /<ShopEditSkeleton>\{formEl\}<\/ShopEditSkeleton>/ },
-  { file: "src/components/shops/ShopView.tsx", label: "Loading the shop", inner: "<ShopUnavailable />", loaded: /<ShopUnavailable body=/ },
+  { file: "src/components/shops/ShopView.tsx", label: '{t("shv.loading")}', inner: "<ShopUnavailable />", loaded: /<ShopUnavailable body=/ },
 ] as const;
 
 describe("Q2558: each /shops placeholder is its screen's shorter loaded shape, hidden under one bone", () => {

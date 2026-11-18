@@ -1,6 +1,6 @@
 /**
  * Shops order cards in English (design audit 11-18, Area 07 H1): the order card's addresses, deposit box, date line,
- * money line and Helpr pickup (ShopOrderCard.tsx). Its own chunk (vite.config.ts I18N_SCREEN_DICTS). The status words
+ * money line and Helpr pickup (ShopOrderCard.tsx), and the shop page's own words (ShopView.tsx). Its own chunk (vite.config.ts I18N_SCREEN_DICTS). The status words
  * (orderStatusLabel) and cancel-policy words stay in src/lib/shops/orders.ts. Spanish: esShopOrders.ts.
  */
 import { addEnglish } from "./enRegistry";
@@ -61,6 +61,34 @@ export const enShopOrders = {
   "sho.sending": "Sending…",
   "sho.yesTellThem": "Yes, tell them",
   "sho.notNow": "Not now",
+  // The shop page (ShopView.tsx).
+  "shv.title": "Shop",
+  "shv.myShop": "My shop",
+  "shv.loading": "Loading the shop",
+  "shv.pausedToast": "Your shop is paused.",
+  "shv.openAgainToast": "Your shop is open again.",
+  "shv.sellsAndCustom": "Sells items and takes custom orders.",
+  "shv.sells": "Sells items.",
+  "shv.custom": "Takes custom orders.",
+  "shv.dashboard": "Dashboard",
+  "shv.editShop": "Edit shop",
+  "shv.following": "Following",
+  "shv.follow": "Follow",
+  "shv.hidden": "Louisiana Helpr has hidden your shop.",
+  "shv.pausedVisitor": "This shop is paused for now.",
+  "shv.pausedBody": "Members can still see it, but your shared link says it isn't available until you open it again.",
+  "shv.noItems": "No items listed yet.",
+  "shv.addFirst": "Add your first item",
+  "shv.shareMine": "Share my shop",
+  "shv.share": "Share",
+  "shv.printSign": "Print a sign",
+  "shv.oneFollower": "1 follower",
+  "shv.followers": "{n} followers",
+  "shv.askCustom": "Ask for a custom order",
+  "shv.about": "About",
+  "shv.parishes": "Parishes served",
+  "shv.openAgain": "Open my shop again",
+  "shv.pause": "Pause my shop (vacation)",
 } as const;
 
 addEnglish(enShopOrders);

@@ -135,8 +135,9 @@ const CONVERTED = [
   "src/components/declutter/SellAiDraft.tsx",
   // F260q: the job page's list-it-for-the-seller panel (enListForSeller.ts).
   "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx",
-  // Area 07 H1 (design audit 11-18): the Shops order card (enShopOrders.ts).
+  // Area 07 H1 (design audit 11-18): the Shops order card and the shop page (enShopOrders.ts).
   "src/components/shops/ShopOrderCard.tsx",
+  "src/components/shops/ShopView.tsx",
   // Area 07 H1 (design audit 11-18): Shops (browse, its cards, the buyer's orders, reviews, the public shop page; enShopsBrowse.ts).
   "src/components/shops/ShopsHomeView.tsx",
   "src/components/shops/ShopBrowseCard.tsx",

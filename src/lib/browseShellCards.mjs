@@ -332,7 +332,7 @@ function cardHtml(job) {
     `<h2 class="${c.title}" style="color:hsl(var(--ink-deep));letter-spacing:-0.02em">${title}</h2>` +
     `<div class="${c.chip}" style="background:hsl(var(--bark) / 0.1);border:0.5px solid hsl(var(--bark) / 0.28)">` +
     `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span></div>` +
-    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}"><span aria-hidden="true" class="w-3.5 h-3.5 shrink-0"></span><span class="font-sans truncate">${label}</span></span><span class="shrink-0 opacity-30">·</span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span>${shellWhenHtml(job)}</div><div aria-hidden="true" class="${c.face}"></div></div>` +
+    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}"><span class="font-sans truncate">${label}</span></span><span class="shrink-0 opacity-30">·</span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span>${shellWhenHtml(job)}</div><div aria-hidden="true" class="${c.face}"></div></div>` +
     `</div></div></div></div></div>`
   );
 }
@@ -413,7 +413,7 @@ export function browseShellHtml(rows, now = Date.now(), emblem = null) {
     `<div aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 glass-nav" style="padding-top:max(var(--safe-area-top, 0px), 0.25rem)"><div class="w-full flex items-center justify-between h-[var(--public-nav-h)] px-5 sm:px-8 lg:px-12 ${SHELL_PUBLIC_CONTAINER}">${mark}</div></div>` +
     `<div aria-hidden="true" style="height:calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))"></div>` +
     `<div class="flex-1"><div class="${SHELL_PUBLIC_CONTAINER}"><div class="mx-auto page-measure px-5 sm:px-8 lg:px-12 pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6"><div class="flex items-center gap-3"><div class="flex flex-col leading-none min-w-0"><h1 class="text-page-title leading-tight truncate">Browse jobs</h1></div></div></div>` +
-    `<div class="px-5 sm:px-8 lg:px-12 pb-16"><div class="mx-auto page-measure">` +
+    `<div class="px-5 sm:px-8 lg:px-12 pb-4"><div class="mx-auto page-measure">` +
     (empty ? SHELL_EMPTY_HTML : `<div class="grid grid-cols-1 gap-list md:grid-cols-2 md:gap-4">${jobs.map(cardHtml).join("")}</div>`) +
     `</div></div></div></div>` +
     (emblem ? shellFooterHtml(emblem, now) : "") +

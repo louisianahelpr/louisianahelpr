@@ -5329,14 +5329,17 @@ html.page-scrolled .page-title-card:has(.explore-header),
 }
 .landing-page .mesh-gradient-global { display: none; }
 
-/* Landing headlines in Bodoni Moda (spec §1.2: landing headlines are a Bodoni
-   moment). Three classes deep so it outranks T1's upright-Montserrat rule above;
-   the stack is the Tailwind `display` stack, Georgia's fallback first. */
+/* Landing headlines: the app's own heading face (owner 2026-11-17: "the same sans-serif heading font the signed-in
+   app uses", so the site feels one and modern), Montserrat 650, upright, -0.02em, exactly .text-page-title (T1). They
+   were Bodoni Moda (spec §1.2). Sizes are unchanged. The H1 (.landing-h1) joins here: T1 still exempts it by name, and
+   this rule, three classes deep with !important, outranks the Tailwind `font-display` stack it carries. The /sponsor
+   page has its own Christmas type and is not touched. Guard: src/test/landingHeadingsAreSans.test.ts. */
 :root .font-display.landing-serif,
+:root .font-display.landing-h1,
 .landing-serif-text {
-  font-family: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", Georgia, serif !important;
+  font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;
   font-style: normal !important;
-  font-weight: 600 !important;
+  font-weight: 650 !important;
   letter-spacing: -0.02em !important;
 }
 

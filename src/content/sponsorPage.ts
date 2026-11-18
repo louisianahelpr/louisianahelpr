@@ -76,14 +76,14 @@ export const sponsorPage = {
   about: {
     title: "What is Louisiana Helpr?",
     body:
-      "Louisiana Helpr is a homegrown community website and app built for the people of Louisiana. It's one place where neighbors can find local jobs, homes and rentals, declutter and sell, and discover local shops and businesses. Along with louisianahelpr.com, we run the Louisiana Helpr Facebook page and the Louisiana Helpr Community Facebook group, where Louisiana families connect, share and support each other every day.",
+      "Louisiana Helpr is a homegrown community website and app built for the people of Louisiana. It's one place where neighbors can find local jobs and help, and buy and sell with Declutter. Along with louisianahelpr.com, we run the Louisiana Helpr Facebook page and the Louisiana Helpr Community Facebook group, where Louisiana families connect, share and support each other every day.",
     /**
      * `href` is set only for a section that is open to everyone today. A card
      * with `href: null` shows `soonLabel` instead of a link (Homes & Rentals
      * and Shops are not open to everyone yet).
      */
     features: [
-      { icon: "briefcase", title: "Jobs & Gigs", body: "Hire local help or find work near you.", href: "/jobs", soonLabel: null },
+      { icon: "briefcase", title: "Jobs", body: "Hire local help or find work near you.", href: "/jobs", soonLabel: null },
       // The section is called Homes everywhere in the app (owner 2026-10-18; src/test/homesNotRentalsInCopy.test.ts).
       { icon: "home", title: "Homes", body: "Local homes and rentals, from your neighbors.", href: null, soonLabel: "Coming soon" },
       { icon: "bag", title: "Shop & Declutter Local", body: "Buy and sell used things with Louisiana neighbors.", href: "/declutter", soonLabel: null },

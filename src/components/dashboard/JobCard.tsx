@@ -317,7 +317,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               tighter than the rest of the row. */}
           <div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden">
             {row && (<>
-              <JobCategoryTab category={job.category} className="shrink-0" />
+              {/* No icon before the label (owner 2026-11-17): the row's thumbnail tile already shows it. */}
+              <JobCategoryTab category={job.category} icon={false} className="shrink-0" />
               <span className="shrink-0 opacity-30">·</span>
             </>)}
             {/* Never hidden (owner, 2026-10-08); floor = pin + ~5 letters, not a city's width (owner, 2026-10-19: even "·" spacing). */}

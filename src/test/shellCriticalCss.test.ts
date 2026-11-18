@@ -33,12 +33,12 @@ const SHELL = INDEX.slice(INDEX.indexOf(SHELL_START), INDEX.indexOf(SHELL_END));
 
 // A compiled sheet in the shape Tailwind emits: the tokens, preflight, utilities the shell uses and ones it does not.
 const SHEET = [
-  ":root{--lp-money:20 50% 40%}",
+  ":root{--lp-ink:20 50% 40%}",
   // Tokens: one read by a kept rule through another token, one read by nothing in the first frame.
   ":root{--chain-a-xyz:var(--chain-b-xyz);--chain-b-xyz:3px;--unused-token-xyz:1px}",
   ".landing-h1{margin:var(--chain-a-xyz)}",
   ".not-in-the-shell-xyz{padding:var(--unused-token-xyz)}",
-  '[data-theme="dark"]{--lp-money:20 50% 60%}',
+  '[data-theme="dark"]{--lp-ink:20 50% 60%}',
   "*,:before,:after{box-sizing:border-box}",
   "html{line-height:1.5}",
   "@font-face{font-family:Bodoni Moda;src:url(/fonts/b.woff2)}",
@@ -69,13 +69,13 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
     expect(v.classes.size, "the shell's class inventory").toBeGreaterThan(100);
     for (const c of ["landing-h1", "font-display", "landing-page", "lg:mt-7"]) expect(v.classes.has(c), c).toBe(true);
     expect(v.ids.has("lh-landing-shell")).toBe(true);
-    for (const t of ["h1", "p", "em", "nav"]) expect(v.tags.has(t), t).toBe(true);
+    for (const t of ["h1", "p", "form", "nav"]) expect(v.tags.has(t), t).toBe(true);
   });
 
   it("keeps the rules the shell needs and drops the rest", () => {
     const out = shellCriticalCss(SHELL, SHEET);
-    expect(out).toContain(":root{--lp-money:20 50% 40%}");
-    expect(out).toContain('[data-theme="dark"]{--lp-money:20 50% 60%}');
+    expect(out).toContain(":root{--lp-ink:20 50% 40%}");
+    expect(out).toContain('[data-theme="dark"]{--lp-ink:20 50% 60%}');
     expect(out).toContain("box-sizing:border-box");
     expect(out).toContain("html{line-height:1.5}");
     expect(out).toContain(".landing-h1{font-size:44px}");

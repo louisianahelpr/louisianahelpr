@@ -6,9 +6,9 @@
  *
  * @mutate src/components/landing/HeroSection.tsx | <section className="landing-hero-band relative | <section className="relative
  * @mutate src/components/landing/HeroSection.tsx | <span className="landing-h1-accent">{es ? es.titleAccent : "partner."}</span> | {es ? es.titleAccent : "partner."}
- * @mutate src/index.css | .landing-page .landing-hero-band { background: var(--lp-hero-band); } | .landing-page .landing-hero-band { background: var(--lp-page); }
+ * @mutate src/index.css | .landing-page .landing-hero-band { background: var(--lp-hero-band); | .landing-page .landing-hero-band { background: var(--lp-page);
  * @mutate src/index.css | .landing-page .landing-h1-accent { font-style: italic; color: var(--lp-action-strong); } | .landing-page .landing-h1-accent { color: var(--lp-action-strong); }
- * @mutate src/index.css |   --lp-hero-band: linear-gradient(160deg, #2e2f22 0%, #262620 45%, #1c1a17 100%); |   --lp-hero-band: linear-gradient(160deg, #dfe3c4 0%, #eef0de 45%, #faf6ee 100%);
+ * @mutate src/index.css |   --lp-hero-band: linear-gradient(160deg, #2e2f22 0%, #262620 45%, #1c1a17 100%); |   --lp-hero-band: linear-gradient(160deg, #eaeed6 0%, #f4f6ea 45%, #fdfaf4 100%);
  * @mutate src/components/Navbar.tsx |         landing && atTop && "landing-nav-top", |
  */
 import { describe, it, expect } from "vitest";
@@ -57,8 +57,8 @@ describe("landing hero colour band (owner 11-18, mockup B)", () => {
     expect(HERO).toContain('"Hire help, find work, or buy and sell. One account, real neighbors."');
   });
 
-  it("light band is the mockup's gradient; dark band is a dark olive gradient", () => {
-    expect(bandFor(".landing-page")).toBe("linear-gradient(160deg, #dfe3c4 0%, #eef0de 45%, #faf6ee 100%)");
+  it("light band is the lightened mockup gradient (owner 11-18: 'light up the green'); dark band is a dark olive gradient", () => {
+    expect(bandFor(".landing-page")).toBe("linear-gradient(160deg, #eaeed6 0%, #f4f6ea 45%, #fdfaf4 100%)");
     const dark = bandFor('[data-theme="dark"] .landing-page');
     expect(dark).toMatch(/^linear-gradient\(160deg,/);
     expect(dark).not.toBe(bandFor(".landing-page"));

@@ -23,6 +23,9 @@ import { identityView, openIdentityCheckOrSay, type IdentityView } from "@/lib/i
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
+import { ShowInSearchSwitch } from "@/components/profile/ShowInSearchSwitch";
+import { useSavedJobAddress } from "@/pages/post-job/useSavedJobAddress";
+import "@/lib/i18n/enAccount";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useLanguage } from "@/lib/i18n/language";
 import { enSettings } from "@/lib/i18n/enSettings";
@@ -37,7 +40,7 @@ export const SECTION_BLURB: Record<SectionKey, string> = {
   homes: "Find a place or list one",
 };
 
-const COLOR_MODE_LABEL: Record<Theme, string> = { light: "Light", dark: "Dark", system: "Match my phone" };
+const COLOR_MODE_LABEL: Record<Theme, string> = { light: "Light", dark: "Dark", system: "Match phone" };
 
 /** Rows that moved here off the You tab when it became board 18's four rows. */
 const MORE_KEYS = ["subscription", "referral", "gift-card", "report_bug", "legal", "admin"] as const;
@@ -196,7 +199,7 @@ export function SettingsTab({
       <ProfileTabHeader title={word("Settings")} onBack={onBack} />
 
       <Group title="Look">
-        <Row testId="color-mode" label="Color mode" sub={COLOR_MODE_LABEL[theme]} onClick={() => onSelectTab("accessibility")} />
+        <Row testId="color-mode" label="Color and text" sub={COLOR_MODE_LABEL[theme]} onClick={() => onSelectTab("accessibility")} />
         {onToggleSeniorMode && (
           <Row
             testId="bigger-text"
@@ -250,7 +253,7 @@ export function SettingsTab({
         {/* Only what Edit profile can change (app audit A3-C4: the name is shown there, not editable). Guard: src/test/settingsProfileHintMatchesForm.test.ts. */}
         <Row testId="profile" label={TAB_TITLES.profile} sub="Photo, about you, what you help with" onClick={() => onSelectTab("profile")} />
         {/* LEAD-PROFILE-LINK (owner 2026-10-31): the one shareable link; fetched only when opened. */}
-        {profile && <ProfileLinkRow name={profile.full_name?.trim().split(/\s+/)[0] ?? null} changedOnce={!!profile.handle_changed_at} userId={profile.user_id} showInSearch={profile.show_in_search === true} />}
+        {profile && <ProfileLinkRow name={profile.full_name?.trim().split(/\s+/)[0] ?? null} changedOnce={!!profile.handle_changed_at} />}
         {/* Board 120: the row shows what is true now (your email and how you
             sign in) instead of a list of what is inside; each part only when known. */}
         <Row testId="security" label={TAB_TITLES.security} sub={accountLine(user?.email, user?.identities) ?? "Email, password, sign-in"} onClick={() => onSelectTab("security")} />
@@ -259,6 +262,22 @@ export function SettingsTab({
         {idOn && profile && profile.is_seed !== true && ["verified", "checking", "with_team"].includes(identityView(profile.idv_status)) && (
           <Row testId="id" label="ID" sub={ID_ROW_SUB[identityView(profile.idv_status)]} onClick={() => openIdentityCheckOrSay("general")} />
         )}
+        <Row testId="warnings" label={TAB_TITLES.warnings} sub="Your account standing" onClick={() => onSelectTab("warnings")} />
+        {onRequestDelete && <Row testId="delete-account" label="Delete account" sub="Permanent" danger onClick={onRequestDelete} />}
+      </Group>
+
+      {/* Design audit area 09 M5: one Privacy group (the search-engine switch was hidden in the profile link panel,
+          job photos and Download my data sat in Your account, and ?tab=privacy opened Settings with no Privacy here). */}
+      <Group title="Privacy">
+        {profile && (
+          <div className="px-4 py-3" data-settings-row="show-in-search">
+            <ShowInSearchSwitch userId={profile.user_id} initial={profile.show_in_search === true} />
+          </div>
+        )}
+        <ShareJobPhotosRow profile={profile} />
+        {/* A3-C16: unblock without having to find the person's profile first. */}
+        <Row testId="blocked" label={TAB_TITLES.blocked} sub="People you blocked, and unblock" onClick={() => onSelectTab("blocked")} />
+        <SavedAddressRow />
         {/* A3-I4: downloads here, through the same export as the Privacy policy's card (useDataExport), instead of opening the whole policy. */}
         <Row
           testId="download-data"
@@ -270,11 +289,6 @@ export function SettingsTab({
             ? <Loader2 className="w-4 h-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
             : <Download className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />}
         />
-        <ShareJobPhotosRow profile={profile} />
-        {/* A3-C16: unblock without having to find the person's profile first. */}
-        <Row testId="blocked" label={TAB_TITLES.blocked} sub="People you blocked, and unblock" onClick={() => onSelectTab("blocked")} />
-        <Row testId="warnings" label={TAB_TITLES.warnings} sub="Your account standing" onClick={() => onSelectTab("warnings")} />
-        {onRequestDelete && <Row testId="delete-account" label="Delete account" sub="Permanent" danger onClick={onRequestDelete} />}
       </Group>
 
       {more.length > 0 && (
@@ -289,6 +303,27 @@ export function SettingsTab({
         <Row testId="logout" label="Log out" onClick={onRequestLogout} right={<span />} />
       </section>
     </ProfileTabBody>
+  );
+}
+
+/**
+ * Design audit area 09 M14: "Saved address", the street address Post a job offers first (useSavedJobAddress: the
+ * newest whole Louisiana address on the member's own jobs; nothing new is stored). View only: it is read from the
+ * jobs themselves, so there is no saved copy to clear.
+ */
+function SavedAddressRow() {
+  const { t } = useLanguage();
+  const { savedAddress } = useSavedJobAddress();
+  const line = savedAddress
+    ? `${savedAddress.streetAddress}, ${savedAddress.city}, ${savedAddress.addrState} ${savedAddress.zipCode}`
+    : t("acct.savedAddressNone");
+  return (
+    <div data-settings-row="saved-address" className="w-full min-h-[56px] flex items-center gap-3 px-4 py-3 text-left">
+      <span className="flex-1 min-w-0">
+        <span className="block text-ds-15 font-semibold leading-tight text-foreground">{t("acct.savedAddress")}</span>
+        <span className="block text-ds-13 text-muted-foreground mt-0.5 break-words">{line}</span>
+      </span>
+    </div>
   );
 }
 

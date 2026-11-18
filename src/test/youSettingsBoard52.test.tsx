@@ -19,6 +19,8 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
 const setHidden = vi.hoisted(() => vi.fn(() => true));
+// Settings › Privacy's Saved address row (design audit area 09 M14) reads the member's own jobs; none here.
+vi.mock("@/pages/post-job/useSavedJobAddress", () => ({ useSavedJobAddress: () => ({ savedAddress: null, otherSavedAddresses: [] }) }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null, isAdmin: false }) }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).

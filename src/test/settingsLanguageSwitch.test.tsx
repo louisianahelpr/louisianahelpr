@@ -11,6 +11,8 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
+// Settings › Privacy's Saved address row (design audit area 09 M14) reads the member's own jobs; none here.
+vi.mock("@/pages/post-job/useSavedJobAddress", () => ({ useSavedJobAddress: () => ({ savedAddress: null, otherSavedAddresses: [] }) }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null, isAdmin: false }) }));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));

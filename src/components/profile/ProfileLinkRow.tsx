@@ -12,7 +12,8 @@ import {
   setMyHandle,
   shareMyProfile,
 } from "@/lib/profileLink/api";
-import { ShowInSearchSwitch } from "@/components/profile/ShowInSearchSwitch";
+import "@/lib/i18n/enAccount";
+import { t, useLanguage } from "@/lib/i18n/language";
 
 /**
  * SETTINGS › YOUR ACCOUNT › "Your profile link" (LEAD-PROFILE-LINK, owner 2026-10-31):
@@ -21,16 +22,14 @@ import { ShowInSearchSwitch } from "@/components/profile/ShowInSearchSwitch";
  * Nothing is fetched until the row is opened: the handle is made the first time it is needed
  * (rpc_ensure_my_handle), so opening Settings never writes. Open, it shows the link, the
  * "Share my profile" button, and "Change link" while the member has not changed it yet
- * (rpc_set_my_handle, once; the server refuses a second change either way), and the
- * "Show my profile in search engines" switch (L7, off by default; ShowInSearchSwitch).
+ * (rpc_set_my_handle, once; the server refuses a second change either way). The "Show my profile in search
+ * engines" switch (L7) moved to Settings › Privacy (design audit area 09 M5: it was hidden inside this panel).
  */
-export function ProfileLinkRow({ name, changedOnce, userId, showInSearch }: {
+export function ProfileLinkRow({ name, changedOnce }: {
   name?: string | null;
   changedOnce?: boolean;
-  /** L7 (owner 11-05): the member's own "Show my profile in search engines" switch; off by default. */
-  userId?: string;
-  showInSearch?: boolean;
 }) {
+  useLanguage();
   const [open, setOpen] = useState(false);
   const [handle, setHandle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +94,7 @@ export function ProfileLinkRow({ name, changedOnce, userId, showInSearch }: {
         <div className="px-4 pb-4 flex flex-col gap-3">
           {loading && (
             <p className="flex items-center gap-2 text-ds-13 text-muted-foreground" role="status">
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Getting your link…
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> {t("acct.gettingLink")}
             </p>
           )}
           {error && (
@@ -104,20 +103,21 @@ export function ProfileLinkRow({ name, changedOnce, userId, showInSearch }: {
             </p>
           )}
           {!handle && !loading && error && (
-            <Button type="button" variant="outline" onClick={() => void load()}>Try again</Button>
+            <Button type="button" variant="outline" onClick={() => void load()}>{t("acct.tryAgain")}</Button>
           )}
           {handle && !editing && (
             <>
               <p className="text-ds-13 text-muted-foreground">
-                Anyone with the link sees your listings, open jobs, Helpr work and Wanted posts. Never your address or contact info.
+                {t("acct.linkWho")}
               </p>
-              <Button type="button" data-share-my-profile onClick={() => void shareMyProfile(handle, name)} className="gap-2">
-                <Share2 className="w-4 h-4" aria-hidden /> Share my profile
+              {/* Design audit area 09 L20 + M3: stacked full-width buttons; "Share profile", and an outline (not ghost)
+                  Change link that says it is once. */}
+              <Button type="button" data-share-my-profile onClick={() => void shareMyProfile(handle, name)} className="w-full gap-2">
+                <Share2 className="w-4 h-4" aria-hidden /> {t("acct.shareProfile")}
               </Button>
-              {userId && <ShowInSearchSwitch userId={userId} initial={showInSearch === true} />}
               {!changed && (
-                <Button type="button" variant="ghost" onClick={() => { setDraft(handle); setError(null); setEditing(true); }}>
-                  Change link (once)
+                <Button type="button" variant="outline" data-change-link="" className="w-full" onClick={() => { setDraft(handle); setError(null); setEditing(true); }}>
+                  {t("acct.changeLink")}
                 </Button>
               )}
             </>
@@ -127,7 +127,7 @@ export function ProfileLinkRow({ name, changedOnce, userId, showInSearch }: {
               className="flex flex-col gap-2"
               onSubmit={(e) => { e.preventDefault(); void save(); }}
             >
-              <label htmlFor="profile-handle" className="text-ds-13 font-semibold text-foreground">New link</label>
+              <label htmlFor="profile-handle" className="text-ds-13 font-semibold text-foreground">{t("acct.newLink")}</label>
               <div className="flex items-center gap-1 text-ds-13 text-muted-foreground">
                 <span className="shrink-0">louisianahelpr.com/u/</span>
                 <Input
@@ -141,14 +141,14 @@ export function ProfileLinkRow({ name, changedOnce, userId, showInSearch }: {
                   onChange={(e) => setDraft(e.target.value)}
                 />
               </div>
-              <p id="profile-handle-hint" className="text-ds-12 text-muted-foreground">
-                3 to 30 letters, numbers or single hyphens. You can change it once.
+              <p id="profile-handle-hint" className="text-ds-13 text-muted-foreground">
+                {t("acct.linkHint")}
               </p>
-              <div className="flex gap-2">
-                <Button type="button" variant="ghost" onClick={() => { setEditing(false); setError(null); }}>Cancel</Button>
-                <Button type="submit" disabled={!draftOk || saving} aria-busy={saving || undefined}>
-                  {saving ? "Saving…" : "Save link"}
+              <div className="flex flex-col gap-2">
+                <Button type="submit" className="w-full" disabled={!draftOk || saving} aria-busy={saving || undefined}>
+                  {saving ? t("acct.saving") : t("acct.saveLink")}
                 </Button>
+                <Button type="button" variant="outline" className="w-full" onClick={() => { setEditing(false); setError(null); }}>{t("acct.cancel")}</Button>
               </div>
             </form>
           )}

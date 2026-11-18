@@ -28,6 +28,7 @@ import { esTracker } from "./esTracker";
 import { esPorchPlaces } from "./esPorchPlaces";
 import { esSellingNow } from "./esSellingNow";
 import { esYourPage } from "./esYourPage";
+import { esAccount } from "./esAccount";
 import { esJobSteps } from "./esJobSteps";
 import { esNextStep } from "./esNextStep";
 import { esJobLines } from "./esJobLines";
@@ -64,6 +65,7 @@ export const es: Record<MsgKey, string> = {
   ...esPorchPlaces,
   ...esSellingNow,
   ...esYourPage,
+  ...esAccount,
   ...esJobSteps,
   ...esNextStep,
   ...esJobLines,
@@ -513,10 +515,11 @@ export const es: Record<MsgKey, string> = {
   "settings.updates": "Avisos",
   "settings.yourAccount": "Su cuenta",
   "settings.more": "Más",
-  "settings.colorMode": "Modo de color",
+  "settings.privacy": "Privacidad",
+  "settings.colorMode": "Color y texto",
   "settings.light": "Claro",
   "settings.dark": "Oscuro",
-  "settings.matchPhone": "Igual que mi teléfono",
+  "settings.matchPhone": "Igual que el teléfono",
   "settings.biggerText": "Texto y botones más grandes",
   "settings.biggerTextSub": "Letra más grande y botones más fáciles de tocar",
   "settings.jobs": "Trabajos",

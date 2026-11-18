@@ -189,7 +189,8 @@ describe("every pop-up title is sentence case", () => {
     // 240: +1 "Leave without saving?" (ShopEditView's back arrow asks before unsaved edits are lost, lead 11-12).
     // 243 (train 1112-j, 2026-11-12): +2 "Withdraw this request?" / "Decline this request?" (ShopCustomRequestsList asks
     // first, S2-023) and +1 "Remove all options?" (ShopItemOptionsEditor, S2-003 a download drops its options).
-    expect(all.length).toBe(243);
+    // 242 (design audit area 09, 11-18): -1, Profile's and DesktopTopNav's two "Log out?" are one LogOutConfirmDialog.
+    expect(all.length).toBe(242);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

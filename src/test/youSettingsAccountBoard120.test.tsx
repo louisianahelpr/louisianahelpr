@@ -15,6 +15,8 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const user = vi.hoisted(() => ({ current: { id: "u1", email: "lexi@example.com", identities: [{ provider: "email" }, { provider: "google" }] } as unknown }));
+// Settings › Privacy's Saved address row (design audit area 09 M14) reads the member's own jobs; none here.
+vi.mock("@/pages/post-job/useSavedJobAddress", () => ({ useSavedJobAddress: () => ({ savedAddress: null, otherSavedAddresses: [] }) }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: user.current, profile: null, isAdmin: false }) }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).

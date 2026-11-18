@@ -38,7 +38,7 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // titles as the loading header: the placeholder said "Legal" and LegalTab
   // then said "Legal & Policies" in the same box. The browser tab was wrong
   // too, for as long as it had drifted.
-  legal: "Legal & policies",
+  legal: "Legal and policies",
   reviews: "Reviews about you",
   referral: "Referrals",
   subscription: "Membership",
@@ -53,7 +53,8 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   blocked: "Blocked people",
   // CMP-4: Jobs settings › When you work › Instant book (the private floors).
   instant_book: "Instant book",
-  accessibility: "Accessibility",
+  // "Color and text" (design audit area 09 L8): what the screen holds; Settings' row says the same.
+  accessibility: "Color and text",
   // Was the standalone route /pets until 2026-09-02.
   pets: "My pets",
   // Six more standalone routes folded in 2026-09-02 — each was reached only

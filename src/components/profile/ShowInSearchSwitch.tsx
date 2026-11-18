@@ -10,11 +10,14 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
+import "@/lib/i18n/enAccount";
+import { t, useLanguage } from "@/lib/i18n/language";
 
 export function ShowInSearchSwitch({ userId, initial }: { userId: string; initial: boolean }) {
   const [on, setOn] = useState(initial);
   const [saving, setSaving] = useState(false);
   const id = useId();
+  useLanguage();
   // The profile can refresh after first paint: follow it unless a write is in flight.
   useEffect(() => {
     if (!saving) setOn(initial);
@@ -31,7 +34,7 @@ export function ShowInSearchSwitch({ userId, initial }: { userId: string; initia
       setOn(next);
     } catch (err) {
       report(err, { severity: "error", tags: { source: "ShowInSearchSwitch" } });
-      toast.error("Couldn't save that. Try again.");
+      toast.error(t("acct.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -39,10 +42,8 @@ export function ShowInSearchSwitch({ userId, initial }: { userId: string; initia
   return (
     <div className="flex items-start gap-3" data-testid="show-in-search">
       <label htmlFor={id} className="flex-1 min-w-0">
-        <span className="block text-ds-14 font-semibold text-foreground">Show my profile in search engines</span>
-        <span className="block text-ds-13 text-muted-foreground">
-          Off: only people you send the link to find your page. On: Google and others can list it.
-        </span>
+        <span className="block text-ds-15 font-semibold leading-tight text-foreground">{t("acct.searchTitle")}</span>
+        <span className="block text-ds-13 text-muted-foreground mt-0.5">{t("acct.searchBody")}</span>
       </label>
       <Switch id={id} checked={on} disabled={saving} aria-busy={saving || undefined} onCheckedChange={(v) => void change(v)} />
     </div>

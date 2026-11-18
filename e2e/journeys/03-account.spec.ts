@@ -511,7 +511,7 @@ test(j8, async ({ browser, request, journey }) => {
     ["/profile", /^Talk to a real person/, "Help"],
     ["/profile", /^Settings/, "Settings"],
     ["/profile?tab=settings", /^Account and security/, "Account Security"],
-    ["/profile?tab=settings", /^Color mode/, "Accessibility"],
+    ["/profile?tab=settings", /^Color and text/, "Color and text"],
     ["/profile?tab=settings", /^Legal/, "Legal"],
     ["/profile?tab=settings", /^Warnings and strikes/, "Warnings"],
   ] as const) {

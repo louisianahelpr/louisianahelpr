@@ -10,7 +10,7 @@
  * Held here (comments blanked): Profile.tsx imports the dialog only through lazy(), never statically, and mounts it
  * only once Log out has been pressed (then it stays mounted, so closing animates and a sign-out in flight keeps it).
  */
-// @mutate src/pages/profile/Profile.tsx | const SignOutConfirmDialog = lazy(() => import("@/components/auth/SignOutConfirmDialog").then(m => ({ default: m.SignOutConfirmDialog }))); | import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
+// @mutate src/pages/profile/Profile.tsx | const LogOutConfirmDialog = lazy(() => import("@/components/auth/SignOutConfirmDialog").then(m => ({ default: m.LogOutConfirmDialog }))); | import { LogOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
 // @mutate src/pages/profile/Profile.tsx |     {logoutDialogUsed && <Suspense fallback={null}> |     {<Suspense fallback={null}>
 // @mutate src/pages/profile/Profile.tsx |   if (showLogoutDialog && !logoutDialogUsed) setLogoutDialogUsed(true); |
 import { readFileSync } from "node:fs";
@@ -29,10 +29,11 @@ describe("/profile loads the Log out dialog only when it is opened", () => {
   });
 
   it("mounted only once Log out has been pressed, and kept from then on", () => {
-    const at = profile.indexOf("<SignOutConfirmDialog");
+    // Design audit area 09 H1/L6: Profile draws the shared LogOutConfirmDialog (the same file, in the member's language).
+    const at = profile.indexOf("<LogOutConfirmDialog");
     expect(at).toBeGreaterThan(0);
     expect(profile.slice(Math.max(0, at - 80), at)).toMatch(/\{logoutDialogUsed && <Suspense fallback=\{null\}>\s*$/);
     expect(profile).toMatch(/if \(showLogoutDialog && !logoutDialogUsed\) setLogoutDialogUsed\(true\);/);
-    expect(profile).toMatch(/<SignOutConfirmDialog open=\{showLogoutDialog\} onOpenChange=\{setShowLogoutDialog\}/);
+    expect(profile).toMatch(/<LogOutConfirmDialog open=\{showLogoutDialog\} onOpenChange=\{setShowLogoutDialog\}/);
   });
 });

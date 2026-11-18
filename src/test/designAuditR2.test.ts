@@ -199,3 +199,16 @@ describe("design audit r2 #24: How it works shows the numeral, not a second icon
     expect(how).not.toMatch(/lh25-icon-badge/);
   });
 });
+
+/**
+ * #22 (25 Days): the back-to-top button was a white disc with a grey shadow on the cream page; there it wears cream
+ * with a 1px gold edge and no shadow.
+ * @mutate src/components/ScrollToTop.tsx |         ...(onGiveawayPage(pathname) ? GIVEAWAY_LOOK : null),\n | \n
+ */
+describe("design audit r2 #22: back-to-top matches the 25 Days page", () => {
+  it("ScrollToTop applies the cream + gold look on /25days", () => {
+    const src = blankComments(readFileSync("src/components/ScrollToTop.tsx", "utf8"));
+    expect(src).toMatch(/GIVEAWAY_LOOK = \{ background: "#fbf7ee", border: "1px solid #b08d57"[^}]*boxShadow: "none" \}/);
+    expect(src).toContain("...(onGiveawayPage(pathname) ? GIVEAWAY_LOOK : null),");
+  });
+});

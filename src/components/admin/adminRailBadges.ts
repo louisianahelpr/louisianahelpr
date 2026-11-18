@@ -228,7 +228,17 @@ function useDeclutterQueueCount(enabled: boolean) {
   const claims = useQuery({
     queryKey: ["admin", "declutter-ship-claims-due", "rail-count"],
     queryFn: async () => {
-      const rows = (unwrap(await supabase.rpc("declutter_admin_ship_claims_due")) ?? []) as { seller_id: string }[];
+      const res = await supabase.rpc("declutter_admin_ship_claims_due");
+      let rows: { seller_id: string }[];
+      try {
+        rows = (unwrap(res) ?? []) as { seller_id: string }[];
+      } catch (thrown) {
+        // The admin words ride only on a failure (this hook is in every desktop rail's bundle), as the card reads them.
+        const copy = await loadModule(() => import("@/components/admin/adminRpcErrorCopy"));
+        const words = copy?.rpcErrorMessage("declutter_admin_ship_claims_due", thrown);
+        if (words && thrown instanceof Error && Object.isExtensible(thrown)) Object.assign(thrown, { userMessage: words });
+        throw thrown;
+      }
       return (await withoutTestPeople(rows, (r) => [r.seller_id])).length;
     },
     enabled: enabled && shippingOn,

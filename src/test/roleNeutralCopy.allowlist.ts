@@ -136,6 +136,10 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
     file: "supabase/functions/stripe-webhook/handlers/_resolveUser.ts",
     text: "customer email",
     reason: "internal webhook resolution reason; 'customer' is Stripe's object name (the Stripe Customer's email), not a party to a job.",
+  },  {
+    file: "src/content/giftGuideIndex.ts",
+    text: "Customer Service Reps",
+    reason: "a gift guide for a job title (people who work in customer service), not a party to a job on Helpr.",
   },
 ];
 

@@ -16,7 +16,7 @@
  *   H1: the order card speaks Spanish (enShopOrders.ts / esShopOrders.ts).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -92,8 +92,10 @@ describe("M1: one primary per stage", () => {
   it("after ready: Handed over is the one filled button", async () => {
     handover.fetchHandovers.mockImplementation(async () => new Map([["o1", { ready_at: "2025-12-31T10:00:00Z" }]]));
     wrap(<ShopHandoverActions order={order()} side="shop" userId="u2" />);
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull());
-    expect(screen.getByRole("button", { name: "Handed over" }).className).toContain("btn-grad-primary");
+    // Wait for the ready answer to fill Handed over (Mark ready is absent on a first paint too, so waiting for its
+    // absence alone waits for nothing).
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: "Handed over" }).className).toContain("btn-grad-primary"));
+    expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull();
     expect(screen.getAllByRole("button").filter((b) => b.className.includes("btn-grad-primary"))).toHaveLength(1);
   });
 });

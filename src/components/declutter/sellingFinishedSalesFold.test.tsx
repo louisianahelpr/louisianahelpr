@@ -122,7 +122,9 @@ describe("soldstates-2: Selling folds finished sales", () => {
     show();
     expect(await screen.findByText("Sale 1 paid")).toBeInTheDocument();
     // Area 06 H2: the handed-over sale folds once its review and payout reads say it is done.
-    await vi.waitFor(() => expect(screen.queryByText("Sale 2 handed_over")).toBeNull());
+    // Wait for the fold itself (a first paint has no handed-over row either, so waiting for its absence waits for nothing).
+    expect(await screen.findByRole("button", { name: "Show 1 finished and 1 refunded sales" })).toBeInTheDocument();
+    expect(screen.queryByText("Sale 2 handed_over")).toBeNull();
     expect(screen.queryByText("Sale 3 refunded")).toBeNull();
     // Q2630 (audit 1102c R5): the refunded one is never counted as a "finished sale".
     fireEvent.click(screen.getByRole("button", { name: "Show 1 finished and 1 refunded sales" }));
@@ -157,7 +159,9 @@ describe("soldstates-2: Selling folds finished sales", () => {
     state.cart = [line(1, "paid"), line(2, "handed_over"), line(3, "refunded")];
     show(undefined, "/declutter?tab=selling&order=00000000-0000-4000-8000-000000000003");
     expect(await screen.findByText("Sale 3 refunded")).toBeInTheDocument();
-    await vi.waitFor(() => expect(screen.queryByText("Sale 2 handed_over")).toBeNull());
+    // The fold is up (so the finished sale had its chance to draw), and the finished sale is under it.
+    expect(await screen.findByRole("button", { name: /^Show 1 finished/ })).toBeInTheDocument();
+    expect(screen.queryByText("Sale 2 handed_over")).toBeNull();
   });
 
   it("BUY-30: every sale finished, the notice's order still shows without opening the fold", async () => {

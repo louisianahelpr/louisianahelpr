@@ -217,7 +217,8 @@ function HomeDashboardScreen() {
           actions={
             <Link to="/search" data-testid="home-desktop-search" className={`${DESKTOP_SEARCH_PILL_SURFACE} ${DESKTOP_SEARCH_PILL_WIDTH} inline-flex items-center gap-2 px-4 text-ds-15 text-muted-foreground ctl-tint`}>
               <Search className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="truncate">{`${t("section.search")} ${t("section.noun.jobsAndItems")}`}</span>
+              {/* title: the full words stay reachable where a narrow pill cuts them (Q108). */}
+              <span className="truncate" title={`${t("section.search")} ${t("section.noun.jobsAndItems")}`}>{`${t("section.search")} ${t("section.noun.jobsAndItems")}`}</span>
             </Link>
           }
           // Phone: no greeting (owner 11-14, Depop/Vinted audit item 6: the page opens straight on Next up under the

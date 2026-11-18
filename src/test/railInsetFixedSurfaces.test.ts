@@ -48,6 +48,9 @@ const DELIBERATELY_FULL_WIDTH = new Set([
   // Declutter's desktop guest top bar (DeclutterGuestTopBar) renders only in DeclutterGate's signed-out branch
   // (declutterUi.tsx `if (!user)`); the rail is signed-in only, so nothing sits on its right 248px.
   "src/components/declutter/DeclutterGuest.tsx",
+  // The route skeleton's stuck card draws its own rail bones and insets itself by inline `left: var(--desktop-sidebar-w)`
+  // whenever those bones show (railBones); on a rail route the real rail is not up yet, so nothing sits on its right.
+  "src/components/DashboardRouteSkeleton.tsx",
   // AppShell IS the frame the rail insets — index.css moves it by `right`.
   "src/components/AppShell.tsx",
 ]);

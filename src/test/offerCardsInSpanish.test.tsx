@@ -94,6 +94,9 @@ describe("Declutter's offer cards follow the language (F260q)", () => {
     expect(screen.getByText("Entre $7 y $10.")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Su precio"), { target: { value: "5" } });
     expect(screen.getByText("Ya ofrecieron $6. Responda con más que eso, o toque Aceptar.")).toBeTruthy();
+    // Area 05 #11 (11-18): the price box takes the answers' place; its Ahora no brings them back.
+    expect(screen.queryByRole("button", { name: "Decir que no" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Ahora no" }));
     fireEvent.click(screen.getByRole("button", { name: "Decir que no" }));
     expect(await screen.findByText("¿Decir que no a $6?")).toBeTruthy();
     expect(screen.getByText("\"Blue enamel mug\": esta oferta termina y se le avisa al comprador que dijo que no.")).toBeTruthy();

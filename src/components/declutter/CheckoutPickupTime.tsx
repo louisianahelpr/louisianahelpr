@@ -8,6 +8,8 @@
 import { useState } from "react";
 import type { PickupDay } from "@/lib/declutter/pickupSlots";
 import { Chip } from "./DeclutterFilterPanel";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
 
 export function CheckoutPickupTime({ days, porch, meetup = false, value, onPick, loading = false }: {
   days: PickupDay[];
@@ -18,33 +20,33 @@ export function CheckoutPickupTime({ days, porch, meetup = false, value, onPick,
   loading?: boolean;
 }) {
   const [dayPick, setDayPick] = useState<string | null>(null);
-  if (loading) return <p className="text-ds-13 text-muted-foreground" role="status">Loading the seller's pickup times…</p>;
+  useLanguage();
+  if (loading) return <p className="text-ds-13 text-muted-foreground" role="status">{t("dbuy.time.loading")}</p>;
   // A3-54 (audit 11-01): no open time in the next 7 days. Pay stays open (the order's book_by and the 7-day close,
   // declutter_handover_sweep), so the buyer is told what happens after paying instead of the picker vanishing.
   if (days.length === 0) {
     return (
       <p className="text-ds-13 text-muted-foreground" role="status" data-checkout-no-times="">
-        The seller has no open {meetup ? "meeting" : "pickup"} times this week. After you pay, you have 7 days to book one with them, or the order is cancelled and refunded.
+        {meetup ? t("dbuy.time.noneMeet") : t("dbuy.time.nonePickup")}
       </p>
     );
   }
   const chosenDay = days.find((d) => d.ymd === dayPick) ?? days.find((d) => d.slots.some((s) => s.iso === value)) ?? days[0];
-  const what = meetup ? "meet" : "pick it up";
   return (
     <div className="space-y-2" data-checkout-pickup-time="">
-      <p className="text-ds-14 font-semibold text-foreground">{porch ? "When you'll pick it up" : `When you'll ${what}`}</p>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Pickup day">
+      <p className="text-ds-14 font-semibold text-foreground">{porch || !meetup ? t("dbuy.time.whenPickUp") : t("dbuy.time.whenMeet")}</p>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t("dbuy.time.day")}>
         {days.map((d) => (
           <Chip key={d.ymd} on={d.ymd === chosenDay.ymd} onClick={() => { setDayPick(d.ymd); onPick(null); }}>{d.label}</Chip>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2" role="group" aria-label={`Pickup time on ${chosenDay.label}`}>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t("dbuy.time.timeOn", { day: chosenDay.label })}>
         {chosenDay.slots.map((s) => (
           <Chip key={s.iso} on={s.iso === value} onClick={() => onPick(s.iso)}>{s.label}</Chip>
         ))}
       </div>
       <p className="text-ds-12 text-muted-foreground">
-        {porch ? "The seller leaves it out on the porch for this window." : meetup ? "Be there at this time; the seller is told when you pay." : "The seller is told this time when you pay."}
+        {porch ? t("dbuy.time.porchNote") : meetup ? t("dbuy.time.meetNote") : t("dbuy.time.doorNote")}
       </p>
     </div>
   );

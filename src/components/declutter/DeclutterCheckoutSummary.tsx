@@ -14,6 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatPrice } from "@/lib/declutter/distance";
 import type { Handover } from "@/lib/declutter/api";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
+import type { MsgKey } from "@/lib/i18n/en";
+
+/** Area 05 #1: a tip in the member's language (dbuy.tip.<key>; the English is SUMMARY_TIPS word for word). */
+const tipWords = (k: keyof typeof SUMMARY_TIPS) => t(`dbuy.tip.${k}` as MsgKey);
 
 /** Exact cents with two decimals, as a receipt prints them ("$0.85", "$12.00"). */
 const exact = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -41,12 +47,12 @@ function InfoTip({ label, children }: { label: string; children: ReactNode }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" variant="ghost" size="iconCompact" aria-label={`About ${label}`} data-summary-tip={label}
+        <Button type="button" variant="ghost" size="iconCompact" aria-label={t("dbuy.sum.about", { label })} data-summary-tip={label}
           className="-my-3 -ml-1.5 text-muted-foreground [&_svg]:size-3.5">
           <Info aria-hidden />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" aria-label={`About ${label}`} className="w-72 text-ds-13 leading-relaxed text-muted-foreground">
+      <PopoverContent align="start" aria-label={t("dbuy.sum.about", { label })} className="w-72 text-ds-13 leading-relaxed text-muted-foreground">
         {children}
       </PopoverContent>
     </Popover>
@@ -88,36 +94,37 @@ export function CheckoutPriceSummary({
    */
   gift?: { fromGiftCents: number; onCardCents: number } | null;
 }) {
+  useLanguage();
   const pickup = way !== undefined && PICKUP_WAYS.includes(way);
-  const wayTip = !way ? "" : pickup ? SUMMARY_TIPS.pickup : way === "delivery" ? SUMMARY_TIPS.delivery : way === "ship" ? SUMMARY_TIPS.ship : SUMMARY_TIPS.sellerDelivery;
+  const wayTip = !way ? "" : pickup ? tipWords("pickup") : way === "delivery" ? tipWords("delivery") : way === "ship" ? tipWords("ship") : tipWords("sellerDelivery");
   const unpriced = way !== undefined && !pickup && wayCents === null;
   return (
     <dl className="space-y-2.5" data-checkout-price-summary="">
-      <Line data="items" label={itemCount > 1 ? `${itemCount} items` : "Item"} tip={SUMMARY_TIPS.items} value={exact(itemsCents)} />
-      {discountCents > 0 && <Line data="discount" label="Bundle discount" tip={SUMMARY_TIPS.discount} value={`−${exact(discountCents)}`} />}
-      <Line data="service-fee" label="Service fee" value={exact(serviceFeeCents)}
-        tip={way === "seller_delivery" ? SUMMARY_TIPS.serviceFeeSellerDelivery : way === "ship" ? SUMMARY_TIPS.serviceFeeShip : SUMMARY_TIPS.serviceFee} />
+      <Line data="items" label={itemCount > 1 ? t("dbuy.sum.items", { n: itemCount }) : t("dbuy.sum.item")} tip={tipWords("items")} value={exact(itemsCents)} />
+      {discountCents > 0 && <Line data="discount" label={t("dbuy.sum.discount")} tip={tipWords("discount")} value={`−${exact(discountCents)}`} />}
+      <Line data="service-fee" label={t("dbuy.sum.serviceFee")} value={exact(serviceFeeCents)}
+        tip={way === "seller_delivery" ? tipWords("serviceFeeSellerDelivery") : way === "ship" ? tipWords("serviceFeeShip") : tipWords("serviceFee")} />
       {/* A delivery or postage not priced yet has no line: the Total says "+ delivery" until it is. */}
       {way && !unpriced && (
-        <Line data="way" label={pickup ? "Pickup" : way === "delivery" ? "Helpr delivery" : way === "ship" ? "Shipping" : "Seller delivery"} tip={wayTip}
-          value={wayCents === 0 || pickup ? <span className="font-bold text-primary" data-summary-free="">Free</span> : exact(wayCents as number)} />
+        <Line data="way" label={pickup ? t("dbuy.sum.pickup") : way === "delivery" ? t("dbuy.sum.helprDelivery") : way === "ship" ? t("dbuy.sum.shipping") : t("dbuy.sum.sellerDelivery")} tip={wayTip}
+          value={wayCents === 0 || pickup ? <span className="font-bold text-primary" data-summary-free="">{t("dbuy.sum.free")}</span> : exact(wayCents as number)} />
       )}
-      {setupFeeCents > 0 && <Line data="setup-fee" label="One-time setup fee" tip={SUMMARY_TIPS.setupFee} value={exact(setupFeeCents)} />}
-      <Line data="tax" label="Sales tax" tip={SUMMARY_TIPS.tax} value={exact(taxCents)} />
+      {setupFeeCents > 0 && <Line data="setup-fee" label={t("dbuy.sum.setupFee")} tip={tipWords("setupFee")} value={exact(setupFeeCents)} />}
+      <Line data="tax" label={t("dbuy.sum.tax")} tip={tipWords("tax")} value={exact(taxCents)} />
       <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2.5" data-summary-line="total">
-        <dt className="text-ds-16 font-bold text-foreground">Total</dt>
+        <dt className="text-ds-16 font-bold text-foreground">{t("dbuy.sum.total")}</dt>
         <dd className="text-right text-ds-24 font-bold tabular-nums text-foreground">
           {formatPrice(payCents)}
           {/* Delivery chosen but not priced yet: the total is not complete, so say so (money review #4). */}
-          {unpriced && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">{way === "ship" ? "+ shipping" : "+ delivery"}</span>}
-          {!setupFeeKnown && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground" data-setup-fee-pending="">+ any setup fee</span>}
+          {unpriced && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">{way === "ship" ? t("dbuy.sum.plusShipping") : t("dbuy.sum.plusDelivery")}</span>}
+          {!setupFeeKnown && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground" data-setup-fee-pending="">{t("dbuy.sum.plusSetup")}</span>}
         </dd>
       </div>
       {gift && gift.fromGiftCents > 0 && (
         <>
-          <Line data="gift" label="Gift card" tip={SUMMARY_TIPS.gift} value={`−${exact(gift.fromGiftCents)}`} />
+          <Line data="gift" label={t("dbuy.sum.gift")} tip={tipWords("gift")} value={`−${exact(gift.fromGiftCents)}`} />
           <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2.5" data-summary-line="pay-by-card">
-            <dt className="text-ds-16 font-bold text-foreground">Pay by card</dt>
+            <dt className="text-ds-16 font-bold text-foreground">{t("dbuy.sum.payByCard")}</dt>
             <dd className="text-right text-ds-24 font-bold tabular-nums text-foreground">{exact(gift.onCardCents)}</dd>
           </div>
         </>

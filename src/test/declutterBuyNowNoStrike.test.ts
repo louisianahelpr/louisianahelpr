@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out',
  * @mutate supabase/migrations/20261112023602_declutter_reserved_notice_says_who_accepted.sql |   ELSIF p_source = 'buy' THEN |   ELSIF false THEN
  * @mutate supabase/migrations/20261112054500_declutter_my_cart_photo_path.sql |          CASE WHEN c.swap_id IS NOT NULL THEN 'swap' ELSE c.source END,  -- DB-5; | NULL::text,  -- DB-5;
- * @mutate src/components/declutter/DeclutterReserveSheet.tsx | Not ready? Remove it anytime, no strike.` | If you don't, you get a strike.`
+ * @mutate src/lib/i18n/enDeclPanels.ts | Not ready? Remove it anytime, no strike.", | If you don't, you get a strike.",
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -78,7 +78,8 @@ describe("Buy now gives no strike for not paying (DB-5)", () => {
     expect(heads[heads.length - 1][1]).toMatch(/\bsource text, photo_path text\s*$/);
     // Audit 11-10 F351: the cart hold says it is held and that Remove costs nothing; the item page keeps its line.
     const files: [string, string][] = [
-      ["src/components/declutter/DeclutterReserveSheet.tsx", "Not ready? Remove it anytime, no strike.`"],
+      // Area 05 #1 (11-18): the cart hold's words moved to the dictionary (dbuy.heldUntil) for Spanish.
+      ["src/lib/i18n/enDeclPanels.ts", "Not ready? Remove it anytime, no strike.\","],
       ["src/components/declutter/DeclutterYourOffer.tsx", "If you don't, it goes back up for sale. No strike.`"],
     ];
     expect(files.length).toBeGreaterThan(1);

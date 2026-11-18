@@ -226,16 +226,18 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           <p className="text-ds-12 text-muted-foreground">{t("dof.atMost")}</p>
         </dl>
       )}
-      {myTurn && (
+      {/* Area 05 #11 (11-18): Accept (filled) and Counter (outlined) side by side, Say no a quiet link; while the price box
+          is open it takes the row's place (its own Not now closes it). */}
+      {myTurn && !countering && (
         // Q2709: the shared Button (44px tap floor); the green primary on the RIGHT (owner 11-01), the row
         // right-aligned so a wrap keeps Accept at the bottom right.
         // Audit 11-10 F373: three outlined buttons competed and pushed Accept onto its own line at 375; the two
         // other answers are text links (still the shared Button, 44px), so Accept is the one button in the row.
         <div className="flex flex-wrap items-center justify-end gap-2" data-offer-actions="">
-          <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
+          <Button type="button" variant="link" size="sm" className="text-muted-foreground" disabled={act.isPending} onClick={() => setDeclining(true)} data-offer-say-no="">
             {t("dof.sayNo")}
           </Button>
-          <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={openCounter} aria-expanded={countering}>
+          <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={openCounter} aria-expanded={countering} data-offer-counter="">
             {t("dof.answerPrice")}
           </Button>
           {/* Area 06 M8: while the seller is writing a counter, Accept steps aside (one answer at a time). */}
@@ -280,6 +282,9 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
               {t("dof.send")}
             </Button>
           </div>
+          <Button type="button" variant="link" size="sm" className="px-0 text-muted-foreground" onClick={() => setCountering(false)} data-counter-close="">
+            {t("dof.notNow")}
+          </Button>
           <p id={`counter-range-${o.offer_id}`} className={`text-ds-13 ${counterBad ? "text-[hsl(var(--destructive-ink))]" : "text-muted-foreground"}`}>
             {counterBad ?? t("dof.between", shownRange(o))}
           </p>

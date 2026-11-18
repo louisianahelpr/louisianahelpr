@@ -93,6 +93,11 @@ describe("B. The phone search results page (Depop/Vinted item 7)", () => {
     a.unmount();
     const b = render(<DeclutterResultsHead query="lamp" count={1} />);
     expect(b.container.querySelector("[data-results-count]")?.textContent).toBe("1 item");
+    b.unmount();
+    // Area 05 #23 (11-18): nothing found says so once, in the empty state, never "0 items" above it.
+    // @mutate src/components/declutter/DeclutterResultsBar.tsx |       {count !== null && count > 0 && ( |       {count !== null && (
+    const c = render(<DeclutterResultsHead query="lamp" count={0} />);
+    expect(c.container.querySelector("[data-results-count]")).toBeNull();
   });
 
   it("one 44px Filter | Sort bar: Filter opens the sheet, Sort offers the sheet's choices and sets one", async () => {

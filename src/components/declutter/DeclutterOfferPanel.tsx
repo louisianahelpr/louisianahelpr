@@ -444,16 +444,21 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           </div>
           {/* Q2471 (2): Claude's suggested amount, one tap to fill the box. */}
           <OfferSuggestion itemId={item.id} priceCents={item.current_price_cents} onUse={setAmount} />
-          <Input
-            id="declutter-offer"
-            ref={offerBox}
-            inputMode="decimal"
-            className="w-full min-w-0"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder={t("offer.customPlaceholder", { min: formatPrice(minCents) })}
-            aria-describedby="declutter-offer-help"
-          />
+          {/* Area 05 #12 (11-18): a "$" in the field, as the counter box has, and a wrong amount marked invalid. */}
+          <div className="relative min-w-0" data-offer-field="">
+            <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-muted-foreground">$</span>
+            <Input
+              id="declutter-offer"
+              ref={offerBox}
+              inputMode="decimal"
+              className="w-full min-w-0 pl-6"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={t("offer.customPlaceholder", { min: formatPrice(minCents) })}
+              aria-describedby="declutter-offer-help"
+              aria-invalid={amount.trim() && offerProblem ? true : undefined}
+            />
+          </div>
           {cents !== null && !offerProblem && (
             // Board 67: what the buyer would pay if the seller says yes, from the same fee rule as Buy now and
             // checkout (buyNowTotalCents = checkoutAmounts for one item, pickup). Delivery is added at checkout.
@@ -468,7 +473,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
               <p className="text-ds-12 text-muted-foreground">{t("offer.atMost", { phrase: totalPhrase(way) })}</p>
             </dl>
           )}
-          <p id="declutter-offer-help" className="text-xs text-muted-foreground">
+          <p id="declutter-offer-help" className={`text-xs ${amount.trim() && offerProblem ? "font-medium text-[hsl(var(--destructive-ink))]" : "text-muted-foreground"}`} data-offer-help="">
             {amount.trim() && offerProblem
               ? offerProblem
               : t("offer.help")}

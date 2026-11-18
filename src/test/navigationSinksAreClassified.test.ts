@@ -112,6 +112,10 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/GiftGuideView.tsx::l.href": "GiftOut's prop (a guide's links, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.facebook": "shareLinks(): a fixed https://www.facebook.com/sharer/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.pinterest": "shareLinks(): a fixed https://www.pinterest.com/pin/create/... prefix + URLSearchParams",
+  "pages/info/giftGuides/GiftGuideShare.tsx::smsHref(links.url, title, typeof navigator === \"undefined\" ? \"\" : navigator.userAgent)": "smsHref(): a fixed sms: scheme + encodeURIComponent(the guide's own URL and title) (\"Text this guide\", owner 2026-11-18)",
+  "pages/info/giftGuides/GiftGuideView.tsx::d.href": "GiftOut's prop (a store page's deal sections, generated from our content files; the import keeps https:// affiliate links only); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuidesSidebar.tsx::x.href": "GiftOut's prop (the Sales list, generated from our content files' deal links; https:// affiliate links only); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideLanding.tsx::sponsorPage.links.facebookPage": "a fixed https://www.facebook.com/... constant in src/content/sponsorPage.ts (the 25 Days card's follow link)",
   // 25 Days sponsor page (owner 2026-11-09).
   "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,
   "pages/auth/completeProfile/ConsentStep.tsx::href": "link()'s prop: its only callers pass the fixed in-app paths \"/terms\", \"/rules\" and \"/privacy\"",

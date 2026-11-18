@@ -12,7 +12,7 @@ import { sponsorPage } from "@/content/sponsorPage";
  * guides as a wrapped grid). Each tile opens /gift-guides/<slug>.
  */
 /** The guides a phone sees first (owner 2026-11-18), before "More guides" opens every row. */
-export const START_HERE = ["mom", "dad", "her", "him", "kids", "under-25", "louisiana-made"];
+const START_HERE = ["mom", "dad", "her", "him", "kids", "under-25", "louisiana-made"];
 
 export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   const rows = group ? ROWS.filter((r) => r.row === group) : ROWS;

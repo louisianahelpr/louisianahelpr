@@ -542,7 +542,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect((await screen.findByText(/^You get/)).textContent).toBe("You get $40 after the handover. Details");
     // It reads as a control: underlined, as the other in-line text links on Declutter cards ("How it works").
     expect(document.querySelector("[data-payout-details]")!.className).toMatch(/\bunderline\b/);
-    expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. If neither of you says anything, the money stays held.');
+    expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. Tap "Picked up" after the handover so you get paid.');
     expect(document.body.textContent).not.toMatch(/24 hours after you tap|paid 24 hours after the handover/);
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     expect(screen.queryByLabelText(/code/i)).toBeNull();

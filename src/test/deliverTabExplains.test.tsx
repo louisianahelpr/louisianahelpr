@@ -43,7 +43,13 @@ describe("the Deliver tab explains itself", () => {
     // 5 road miles at $6 + $1.50 a mile (owner 11-01): $13.50 small -> $12 to the driver; $33.50 large -> $31
     // (2026-10-28 rule: less 5% + 70c, rounded down).
     expect([small, large]).toEqual(["$12", "$31"]);
-    expect(pay).toBe(`A ${EXAMPLE_MILES}-mile trip pays you ${small}, or ${large} for a large item. Every delivery shows your pay before you take it, and tips are all yours.`);
+    // Design audit 11-17 #18: two short lines up front; the steps and rules behind "How deliveries work".
+    expect(pay).toBe(`A ${EXAMPLE_MILES}-mile trip pays you ${small}, or ${large} for a large item. Tips are all yours.`);
+    expect(container.querySelector("[data-deliver-what]")?.textContent).toBe("Pick up from a neighbor, drop at the buyer's door.");
+    const how = container.querySelector("details[data-deliver-how]")!;
+    expect(how.querySelector("summary")?.textContent).toBe("How deliveries work");
+    expect(how.textContent).toMatch(/Every delivery shows your pay before you take it\./);
+    expect(how.querySelector("[data-deliver-rules]")).not.toBeNull();
     expect(card.textContent).not.toMatch(/fee|%|¢|70c/i);
     // BUY-45: the limit and the no-show strike the server applies (helpr_task_accept: 2 taken; helpr_task_sweep: 2 hours).
     expect(container.querySelector("[data-deliver-rules]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("You can have 2 deliveries taken and not yet picked up at a time. If you don't pick it up within 2 hours of the pickup time, it goes to another Helpr and you get a delivery strike.");

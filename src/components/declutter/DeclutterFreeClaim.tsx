@@ -20,10 +20,12 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
-  checkoutFree, fetchFreeRequestsForItem, fetchSellerCard, fetchItemHandovers, fetchMyCart, fetchMyFreePause, fetchMyFreeRequests, pickFreeRequest,
-  pickupsLabel, withdrawFreeRequest, type DeclutterItem, type Handover,
+  checkoutFree, fetchFreeRequestsForItem, fetchSellerCard, fetchItemHandovers, fetchMyCart, fetchMyFreePause, fetchMyFreeRequests, fetchPhotos, pickFreeRequest,
+  pickupsLabel, withdrawFreeRequest, type DeclutterItem, type Handover, type MyFreeRequest,
 } from "@/lib/declutter/api";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { ListingThumb } from "./ListingThumb";
+import { firstPhotos } from "./DeclutterItemCard";
 import { wayAllowed } from "@/lib/declutter/handovers";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
@@ -293,12 +295,27 @@ export function MyFreeAsks() {
   }
   const rows = asks.data ?? [];
   if (rows.length === 0) return null;
+  return <MyFreeAskRows rows={rows} />;
+}
+
+/**
+ * Area 05 #10 (design audit 11-18, rest): each ask shows the item's cover photo (or its category icon), as the Selling
+ * list does, so the row says which item it is at a glance; the photo opens the item page too.
+ */
+function MyFreeAskRows({ rows }: { rows: MyFreeRequest[] }) {
+  const { t } = useLanguage();
+  const ids = rows.map((r) => r.item_id);
+  const photos = useQuery({ queryKey: ["declutter", "photos", ids.join(",")], queryFn: () => fetchPhotos(ids), enabled: ids.length > 0 });
+  const covers = firstPhotos(photos.data ?? []);
   return (
     <section className="space-y-2" aria-label={t("free.myAsksTitle")} data-my-free-asks="">
       <h2 className="text-base font-semibold">{t("free.myAsksTitle")}</h2>
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
         {rows.map((r) => (
-          <li key={r.id}>
+          <li key={r.id} className="flex items-center pl-4 [&>a:last-child]:min-w-0 [&>a:last-child]:flex-1" data-free-ask-row="">
+            <Link to={`/declutter/item/${r.item_id}`} tabIndex={-1} aria-hidden="true" className="py-3" data-free-ask-thumb="">
+              <ListingThumb path={covers.get(r.item_id)} category={r.declutter_items?.category ?? "other"} />
+            </Link>
             <Link to={`/declutter/item/${r.item_id}`} className="block px-4 py-3 min-h-11">
               {/* Area 05 #10 (11-18): the item's name wraps to two lines instead of cutting off. */}
               <span className="line-clamp-2 break-words text-ds-15 font-semibold" data-free-ask-title="" title={t("free.youAskedFor", { title: r.declutter_items?.title ?? t("free.aFreeItem") })}>{t("free.youAskedFor", { title: r.declutter_items?.title ?? t("free.aFreeItem") })}</span>

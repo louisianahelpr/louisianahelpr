@@ -250,7 +250,8 @@ export function refundStanding(status: string | null | undefined, inFull = false
 
 /** "today", "tomorrow" or "Thu, Oct 30", to sit after "for". */
 const porchDayLower = (day: string) => porchDayWords(day).replace(/^(Today|Tomorrow)$/, (w) => w.toLowerCase());
-const whenWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+// Area 05 #15: the same date style as every other line on the card (orderWhen, Central).
+const whenWords = (iso: string) => orderWhen(iso);
 
 /** The buyer's paid orders in cart order (the same order, and so the same bookings key, as PaidOrdersSection). */
 function buyerPaidOrders(cart: CartLine[]) {

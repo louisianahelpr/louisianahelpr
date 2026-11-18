@@ -4,6 +4,7 @@
  */
 import type { QueryClient } from "@tanstack/react-query";
 import type { CartLine } from "@/lib/declutter/api";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 
 /** One paid order as the cart lists it (its lines share order_id). */
 export interface PaidOrder {
@@ -46,7 +47,8 @@ export function liveSalesFirst<T extends Pick<PaidOrder, "status">>(orders: read
   return orders.map((o, i) => ({ o, i, r: SALE_RANK[o.status ?? ""] ?? 0 })).sort((a, b) => a.r - b.r || a.i - b.i).map((x) => x.o);
 }
 
-export const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+/** Area 05 #15 (design audit 11-18): the order cards' one date style, "Thu, Nov 19, 3:00 PM" in Central (orderWhen). */
+export const when = (iso: string) => orderWhen(iso);
 
 /** `<input type="datetime-local">` value -> ISO (the device's own time zone). */
 export function localInputToIso(v: string): string | null {

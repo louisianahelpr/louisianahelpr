@@ -17,6 +17,7 @@ export const enDeclOffers = {
   "dof.st.expired": "Ran out of time",
   "dof.st.withdrawn": "Taken back",
   "dof.st.voided": "Item went to someone else",
+  "dof.st.lapsed": "Expired",
 
   "dof.inCart": "In your cart. Check out by {when}.",
   "dof.checkOut": "Check out",

@@ -396,9 +396,9 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   it("an empty 'To be paid' chip says nothing is waiting, not a blank page (Sellinglist-3)", async () => {
     at("/declutter?tab=selling");
     await screen.findByRole("heading", { name: /^Your listings/ });
-    expect(screen.queryByText("Nothing waiting to be paid right now.")).toBeNull();
+    expect(screen.queryByText("Nothing waiting to be paid right now")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /^To be paid/ }));
-    expect(await screen.findByText("Nothing waiting to be paid right now.")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing waiting to be paid right now")).toBeInTheDocument();
   });
 
   it("empty 'Offers on your items' and 'Sold: pickup and payout' are designed empty states", async () => {

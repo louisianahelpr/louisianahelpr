@@ -69,7 +69,8 @@ export function BookingPanel({ order, booking, frozen = false, noTimes = null }:
       ) : (
       <>
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
-      <div className="space-y-2">
+      {/* Area 05 #20: the card's "Book a pickup time" scrolls here (goToOrderControl). */}
+      <div className="scroll-mt-3 space-y-2" tabIndex={-1} data-booking-picker="">
         <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} noTimes={booked ? null : noTimes} porch={porch}
           fallback={<DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />} />
         <div className="flex flex-wrap gap-2">

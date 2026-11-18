@@ -56,7 +56,8 @@ describe("D3-7: OrderDeliveryPanel opens 'Do you have it?' when opened from the 
     for (const [side, status] of [["seller", "delivered"], ["buyer", "accepted"]] as const) {
       state.status = status;
       const r = show(side, true);
-      expect(await screen.findByText(/Blue mug/)).toBeInTheDocument();
+      // Area 06 M11: the panel says the route (the order card's head names the item).
+      expect(await screen.findByText(/Downtown to Baker/)).toBeInTheDocument();
       expect(screen.queryByText("Do you have it?")).toBeNull();
       r.unmount();
       n++;

@@ -280,8 +280,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
               <h2 className="min-w-0 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere] lg:text-ds-28">{it.title}</h2>
               {saveShare}
             </div>
-            {/* The condition chip beside the price (board D5, owner mockup 11-01), not again as a Details row. */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {/* The condition chip under the price (board D5, owner mockup 11-01), not again as a Details row. Design
+                audit 11-17 #17: price, chip and "Listed 1 week ago" shared one line and "Trades OK" wrapped alone, so the
+                price stands alone, the chips (condition, Trades OK) are a row under it, and the age joins the place line. */}
+            <div className="space-y-2">
               {/* Owner 11-09 (10:35 PM, reverses pick 2 of 11-08): the LIST price is the big one (ink, the item page's
                   one t-xl), and "$3.85 incl. fee" sits under it, smaller; Free stays burnt sienna. */}
               <p data-item-price="" className="flex flex-col leading-tight">
@@ -302,18 +304,20 @@ export default function ItemView({ itemId }: { itemId: string }) {
                   <PriceInclFee priceCents={it.current_price_cents} className="mt-0.5 text-ds-13 font-medium tabular-nums text-muted-foreground" />
                 )}
               </p>
+              <div className="flex flex-wrap items-center gap-2" data-item-chips="">
               <ConditionChip stars={it.condition_stars} />
-              {/* Owner 11-07 (Vinted review): how fresh the listing is, beside the condition. */}
-              {forSale && listedAgo(it.live_at) && <span data-item-listed="" className="text-sm text-muted-foreground">{listedAgo(it.live_at)}</span>}
               {/* Trades audit 11-08 #3: a listing Open to trades says so up front, for guests too. */}
               {it.accepts_trades === true && !free && (
                 <span data-item-trades="" className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-ds-13 font-medium text-foreground">{t("decl.card.trades")}</span>
               )}
+              </div>
             </div>
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {/* Owner 11-07: lead with free porch pickup where it applies (nothing is charged to pick it up). */}
               {it.porch_ok !== false && <span data-item-porch-free="" className="font-semibold text-foreground">{t("decl.item.freePorch")} · </span>}
               {[it.area_label, away].filter(Boolean).join(" · ")}
+              {/* Owner 11-07 (Vinted review): how fresh the listing is; in this grey meta line since design audit 11-17 #17. */}
+              {forSale && listedAgo(it.live_at) && <span data-item-listed="">{`${it.area_label || away ? " · " : ""}${listedAgo(it.live_at)}`}</span>}
             </p>
             {/* Owner 11-11 (F229): a buyer-protection line under a paid price, naming only what the app does: payment in
                 the app, porch pickup where this listing offers it, and 24 hours after the handover to report a problem. */}

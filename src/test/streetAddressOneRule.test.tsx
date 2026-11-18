@@ -4,7 +4,7 @@
  * to". The job page shows it to an offered Helpr before they accept, so the offer is the moment. Both lines now say the
  * one rule (STREET_ADDRESS_RULE), and no Post a job source says "after you hire" about the address.
  *
- * @mutate src/lib/i18n/enPostJob.ts |   "postJob.whereH": `Helprs see the area now. ${STREET_ADDRESS_RULE}`, |   "postJob.whereH": "Helprs see the area now and your street address after you hire.",
+ * @mutate src/lib/i18n/enPostJob.ts |   "postJob.whereH": "Helprs see the area now. Your street address goes only to the Helpr you offer the job to.", |   "postJob.whereH": "Helprs see the area now and your street address after you hire.",
  * @mutate src/components/postjob/LogisticsSection.tsx | and the distance. {STREET_ADDRESS_RULE} | and the distance. The street address is shared after you hire.
  */
 import { describe, it, expect } from "vitest";

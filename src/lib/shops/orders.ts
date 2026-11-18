@@ -15,7 +15,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 import { openShopsIdentityCheckFor } from "./errors";
-import { louisianaNow } from "./hours";
+import { louisianaNow } from "./louisianaClock";
 import type { ShopHour } from "./api";
 
 export type CancelPolicy = "until_24h_before_ready" | "until_accept" | "until_handover";

@@ -43,7 +43,7 @@ function buyerGroup(o: Pick<ShopOrder, "status">): BuyerGroup {
  * Launch pass 1: only sent=1 was read, so a download or a paid balance came back with no word at all, and a
  * preorder was told its card was only held.
  */
-export function checkoutReturnToast(params: URLSearchParams): { param: "sent" | "bought" | "paid"; words: string } | null {
+function checkoutReturnToast(params: URLSearchParams): { param: "sent" | "bought" | "paid"; words: string } | null {
   const sent = params.get("sent");
   if (sent === "1") return { param: "sent", words: "Order sent. The shop has 24 hours to answer; your card is held, not charged." };
   if (sent === "preorder") return { param: "sent", words: "Preorder placed. Your card was charged in full; the shop has it ready by its ready-by date." };

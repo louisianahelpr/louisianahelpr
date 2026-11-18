@@ -759,7 +759,10 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       payment_method_options: threeDSecureOptions(chargedCents - giftCents),
       expires_at: expiresAt,
       // A preorder is charged in full at once, so its return says so (ShopMyOrdersView reads sent=preorder).
-      success_url: buildRedirectUrl(preorderLine ? "/shops/orders?sent=preorder" : "/shops/orders?sent=1", native),
+      // Two literal targets, not one conditional argument: deepLinkOneRouter.test.ts proves each is a served route.
+      success_url: preorderLine
+        ? buildRedirectUrl("/shops/orders?sent=preorder", native)
+        : buildRedirectUrl("/shops/orders?sent=1", native),
       cancel_url: buildRedirectUrl(`/shops/${shopId}`, native),
     },
     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` },

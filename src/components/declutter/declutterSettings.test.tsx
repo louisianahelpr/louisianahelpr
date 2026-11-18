@@ -255,11 +255,11 @@ describe("Declutter settings", () => {
       expect(el).not.toBeNull();
       return el as HTMLElement;
     });
-    expect(now.textContent).toBe("New listings now use Lafayette, from your last listing, with pickup Sat 9:00 AM–12:00 PM. Add a pickup place to save one here and change it.");
+    expect(now.textContent).toBe("Your listings use Lafayette, Sat 9:00 AM–12:00 PM (from your last listing). Add a pickup place to change it.");
     first.unmount();
     lastSetup.value = null;
     const second = open();
-    await waitFor(() => expect(document.querySelector("[data-pickup-now]")?.textContent).toBe("New listings now use the address you give each one, with pickup Sat 9:00 AM–12:00 PM. Add a pickup place to save one here and change it."));
+    await waitFor(() => expect(document.querySelector("[data-pickup-now]")?.textContent).toBe("Your listings use the address you give each one, Sat 9:00 AM–12:00 PM. Add a pickup place to change it."));
     second.unmount();
     state.places = [{ id: "p1", label: "Porch", address: "1 Main St, Lafayette, LA", area: "Lafayette", lat: 30.2, lng: -92, weekdays: [6], windows: [{ weekday: 6, starts: "09:00", ends: "12:00" }], position: 0 }];
     open();

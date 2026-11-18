@@ -182,6 +182,8 @@ export const enDeclSell = {
   "dsl.w.keptTyped": "{msg} We kept what you typed.",
   "dsl.photos.label": "Photos (optional, up to {n})",
   "dsl.photos.group": "Photos",
+  "dsl.ms.miles": "{n} mi",
+  "dsl.ms.showMore": "Show {n} more",
 } as const;
 
 addEnglish(enDeclSell);

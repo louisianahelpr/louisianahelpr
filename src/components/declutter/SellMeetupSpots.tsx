@@ -23,6 +23,9 @@ import { NO_CITY_IN_ADDRESS } from "./sellForm";
 import { useExactAddressPoint } from "./useExactAddressPoint";
 import { PLACE_CARD_EDGE } from "./SellPorchPlaces";
 import "@/lib/i18n/enListingParts";
+import "@/lib/i18n/enDeclSell";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { milesBetween } from "@/lib/declutter/distance";
 import { t } from "@/lib/i18n/language";
 
 type Draft = { name: string; address: string; area: string; windows: MeetupWindow[]; point?: { lat: number; lng: number; address: string } };
@@ -102,14 +105,25 @@ function SpotRow({ spot }: { spot: MyMeetupSpot }) {
   );
 }
 
+/** M6: how many suggested spots show before "Show more". */
+const SPOTS_SHOWN = 3;
+
 export function SellMeetupSpots() {
   const q = useQuery({ queryKey: MY_MEETUP_SPOTS_KEY, queryFn: fetchMyMeetupSpots });
   const sug = useQuery({ queryKey: ["declutter", "meetup-suggestions"], queryFn: fetchMeetupSuggestions, staleTime: 10 * 60_000 });
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [moreSpots, setMoreSpots] = useState(false);
+  const { profile } = useCurrentUser();
   if (q.data === MEETUP_SPOTS_NOT_DEPLOYED) return null;
   const spots = Array.isArray(q.data) ? q.data : [];
   const taken = new Set(spots.map((s) => s.address.trim().toLowerCase()));
-  const suggestions = (sug.data ?? []).filter((s) => !taken.has(s.address.trim().toLowerCase())).slice(0, 6);
+  // Area 06b M6 (design audit 11-18): six statewide spots as bold pills, with no distance. Nearest first, each with its
+  // miles from the member's home (profile location), three shown and the rest behind "Show more".
+  const here = profile?.latitude != null && profile?.longitude != null ? { lat: Number(profile.latitude), lng: Number(profile.longitude) } : null;
+  const ranked = (sug.data ?? []).filter((s) => !taken.has(s.address.trim().toLowerCase()))
+    .map((s) => ({ s, mi: here ? milesBetween(here, { lat: s.lat, lng: s.lng }) : null }))
+    .sort((a, b) => (a.mi ?? 0) - (b.mi ?? 0)).slice(0, 6);
+  const suggestions = moreSpots ? ranked : ranked.slice(0, SPOTS_SHOWN);
   const fromSuggestion = (s: MeetupSuggestion): Draft => ({ name: s.name, address: s.address, area: s.area, windows: START_HOURS, point: { lat: s.lat, lng: s.lng, address: s.address } });
   return (
     <section className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="meet-spots-title" data-testid="sell-meetup-spots">
@@ -132,14 +146,22 @@ export function SellMeetupSpots() {
           {suggestions.length > 0 && (
             <div className="space-y-1.5" data-meetup-suggestions="">
               <p className="text-ds-13 font-semibold text-foreground">{t("lp.ms.police")}</p>
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map((s) => (
-                  <Button key={s.id} type="button" variant="outline" size="sm" onClick={() => setDraft(fromSuggestion(s))}
-                    className="h-auto max-w-full justify-start whitespace-normal px-3 py-2 text-left text-ds-13 leading-snug">
-                    + {s.name}
-                  </Button>
+              <ul className="divide-y divide-border rounded-[16px] border border-border" data-meetup-suggestion-list="">
+                {suggestions.map(({ s, mi }) => (
+                  <li key={s.id}>
+                    <Button type="button" variant="ghost" onClick={() => setDraft(fromSuggestion(s))} data-meetup-suggestion={s.id}
+                      className="h-auto min-h-11 w-full max-w-full justify-between gap-3 whitespace-normal rounded-none px-3 py-2 text-left text-ds-14 font-normal leading-snug text-foreground">
+                      <span className="min-w-0 break-words">+ {s.name}</span>
+                      {mi != null && <span className="shrink-0 tabular-nums text-ds-13 text-muted-foreground">{t("dsl.ms.miles", { n: Math.round(mi) })}</span>}
+                    </Button>
+                  </li>
                 ))}
-              </div>
+              </ul>
+              {!moreSpots && ranked.length > SPOTS_SHOWN && (
+                <Button type="button" variant="link" size="sm" className="px-0" onClick={() => setMoreSpots(true)} data-meetup-more="">
+                  {t("dsl.ms.showMore", { n: ranked.length - SPOTS_SHOWN })}
+                </Button>
+              )}
             </div>
           )}
         </div>

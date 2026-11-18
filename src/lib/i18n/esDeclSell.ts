@@ -177,4 +177,6 @@ export const esDeclSell: Record<keyof typeof enDeclSell, string> = {
   "dsl.w.keptTyped": "{msg} Guardamos lo que escribió.",
   "dsl.photos.label": "Fotos (opcional, hasta {n})",
   "dsl.photos.group": "Fotos",
+  "dsl.ms.miles": "{n} mi",
+  "dsl.ms.showMore": "Ver {n} más",
 };

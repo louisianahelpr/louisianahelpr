@@ -218,6 +218,7 @@ export const enListingParts = {
   "lp.m.now": "Now {price}",
   "lp.m.lowest": "lowest {price}",
   "lp.m.dropsListedOff": "Off: you listed it without price drops",
+  "lp.m.dropsNoFloor": "Off. Set a lowest price first.",
   "lp.m.dropsAtFloor": "Off: its lowest price is its price",
   "lp.m.dropsStopped": "Off. It stays at {price}.",
   "lp.m.dropsOn": "On. It drops each evening, never below your lowest price.",

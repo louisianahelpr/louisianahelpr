@@ -71,7 +71,9 @@ export function DeclutterOfferRules({
         </span>
         <Switch aria-labelledby={`offers-on-${itemId}`} checked={on} disabled={busy} onCheckedChange={(v) => rules.mutate({ accepts: v, auto: v && auto })} />
       </li>
-      {on && (
+      {/* Area 06 M9 (11-18): a set lowest price shows once, on Change price ("Now $40 · lowest $30"); this row is only
+          the way to set a first one. */}
+      {on && floorCents == null && (
         <li className={`${rowClassName} flex-wrap`} data-offer-floor="">
           <span className="flex-1 min-w-0">
             <span className="block text-ds-15 font-semibold">{t("lp.or.floor")}</span>

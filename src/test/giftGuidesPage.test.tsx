@@ -351,7 +351,8 @@ describe("gift guides: the landing opens to the guides", () => {
     // No guide's list on the landing; only the "Top 10 most-loved" row (owner 2026-11-18), first, ten picks at most.
     const topRow = container.querySelector("[data-gift-top]")!;
     expect(topRow.compareDocumentPosition(rows[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(topRow.querySelector("h2")?.textContent).toBe("Top 10 most-loved");
+    // Design audit r2 #17: "most-loved" claimed a ranking we don't have.
+    expect(topRow.querySelector("h2")?.textContent).toBe("Our Top 10");
     const topRows = topRow.querySelectorAll("[data-gift-pick]");
     expect(topRows.length).toBeGreaterThan(0);
     expect(topRows.length).toBeLessThanOrEqual(10);
@@ -372,7 +373,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector(".gg-band")).toBeNull();
     const words = container.querySelector("[data-gift-words]");
-    expect([...(words?.children ?? [])].map((c) => c.textContent)).toEqual(["top-rated finds", "Holiday Gift Guides", "ShareText this guide"]);
+    expect([...(words?.children ?? [])].map((c) => c.textContent)).toEqual(["top-rated finds", "Holiday Gift Guides", "ShareText these guides"]);
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
     // age guide keeps its age band).
     const tiles = [...container.querySelectorAll("a[data-gift-tile]")];
@@ -533,7 +534,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const codes = side.querySelector(":scope > [data-gift-codes]")!;
     expect(codes).not.toBeNull();
     // Owner 11-18 PM ("discount code shouldn't open expanded"): it starts collapsed; opening shows every code.
-    // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details className="gg-codes" data-gift-codes=""> | <details open className="gg-codes" data-gift-codes="">
+    // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details id="gift-codes" className="gg-codes" data-gift-codes=""> | <details open id="gift-codes" className="gg-codes" data-gift-codes="">
     expect((codes as HTMLDetailsElement).open).toBe(false);
     expect(codes.compareDocumentPosition(side.querySelector("details[data-gift-group]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // One box per store, several codes inside: Muck Boot holds CYBER and TAKE25 (Nov 20–28), in the owner's order.
@@ -685,8 +686,9 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-words] h2")?.textContent, slug).toBe(g.title);
       // Design audit 2026-11-18 #3: a long list draws 50 rows, then "Show more" adds 50 at a time (store-amazon drew 827).
-      // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {sectionsOf(guide.picks.slice(0, shown)).map( | {sectionsOf(guide.picks).map(
-      expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(Math.min(g.picks.length, PICKS_PAGE));
+      // ... and with six or fewer left it draws them all (design audit r2 #16: "Show more (1 more)").
+      // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const upTo = guide.picks.length - shown <= SHOW_ALL_UNDER ? guide.picks.length : shown; |   const upTo = guide.picks.length;
+      expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length - PICKS_PAGE <= 6 ? g.picks.length : PICKS_PAGE);
       expandAll(container);
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length);
       // Owner 11-18 PM ("double back button?? does the same thing"): one way back, the header's arrow, to All guides.
@@ -921,6 +923,72 @@ describe("gift guides: each row heading carries its guide count (owner 11-18 PM)
       expect(c.querySelector(`section[data-gift-row="${row}"] h2 [data-gift-row-count]`)?.textContent?.trim(), row).toBe(`(${counts.get(row)})`);
       cleanup();
     }
+  });
+});
+
+describe("gift guides: design audit round 2 UI fixes", () => {
+  // @mutate src/content/giftGuideCatalog.ts |   return hits.map((g, i) => ({ g, i, r: rank(g) })).sort((a, b) => a.r - b.r \|\| a.i - b.i).map((x) => x.g); |   return hits;
+  // @mutate src/content/giftGuideCatalog.ts |   "store-muck-boot": "boots", |   "store-muck-boot": "",
+  it("#11 search: Louisiana words find their guides; a title match ranks first", () => {
+    expect(searchGuides("lsu").map((g) => g.slug)).toEqual(expect.arrayContaining(["purple-and-gold-lover", "game-day"]));
+    expect(searchGuides("saints").map((g) => g.slug)).toContain("game-day");
+    expect(searchGuides("boots").map((g) => g.slug)).toEqual(expect.arrayContaining(["store-muck-boot", "store-xtratuf"]));
+    const mom = searchGuides("mom").map((g) => g.slug);
+    expect(mom[0]).toBe("mom");
+    const firstOther = mom.findIndex((x) => !guideBySlug(x)!.title.toLowerCase().split(/[^a-z0-9]+/).some((w) => w.startsWith("mom")));
+    expect(mom.slice(0, firstOther === -1 ? mom.length : firstOther)).toEqual(expect.arrayContaining(["mom-to-be"]));
+  });
+
+  // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   : pick.store === "shopmy" ? pick.brand ?? "" |   : pick.store === "shopmy" ? "ShopMy"
+  it("#9 no pick says \"On ShopMy\"", () => {
+    let checked = 0;
+    for (const slug of ["mom", "cousins", "camper"]) {
+      const { container } = renderAt(`/gift-guides/${slug}`);
+      expandAll(container);
+      for (const li of container.querySelectorAll("li[data-gift-pick]")) expect(li.textContent, slug).not.toMatch(/On ShopMy/);
+      checked += container.querySelectorAll("li[data-gift-pick]").length;
+      cleanup();
+    }
+    expect(checked).toBeGreaterThan(20);
+  });
+
+  // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const dealsAt = deals ? Math.min(DEALS_AFTER, upTo) : -1; |   const dealsAt = -1;
+  it("#12 a store's deals come right after its first 12 picks, its section heading once", () => {
+    const g = guideBySlug("store-walmart")!;
+    expect(g.picks.length).toBeGreaterThan(12);
+    const { container } = renderAt("/gift-guides/store-walmart");
+    const deals = container.querySelector("[data-gift-deals]");
+    expect(deals).not.toBeNull();
+    const before = [...container.querySelectorAll("li[data-gift-pick]")].filter((li) => li.compareDocumentPosition(deals!) & Node.DOCUMENT_POSITION_FOLLOWING && !deals!.contains(li));
+    expect(before.length).toBe(12);
+    cleanup();
+    const amazon = renderAt("/gift-guides/store-amazon").container;
+    const titles = [...amazon.querySelectorAll("[data-gift-section] > h3")].map((h) => h.textContent);
+    expect(new Set(titles).size).toBe(titles.length);
+  });
+
+  // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
+  it("#10 Sales: one line per link, the first 12, then See all sales", () => {
+    const dup = { slug: "store-walmart", store: "Walmart", offer: "x", href: "https://walmrt.us/x", ends: "2099-01-01" };
+    expect(liveSales([dup, { ...dup }], "2026-11-18")).toHaveLength(1);
+    const many = Array.from({ length: 20 }, (_, i) => ({ ...dup, href: `https://walmrt.us/${i}` }));
+    const c = render(<MemoryRouter><SalesList sales={many} /></MemoryRouter>).container;
+    expect(c.querySelectorAll("[data-gift-sale]").length).toBe(12);
+    fireEvent.click(c.querySelector("[data-gift-all-sales]")!);
+    expect(c.querySelectorAll("[data-gift-sale]").length).toBe(20);
+  });
+
+  // @mutate src/pages/info/GiftGuides.tsx |         <nav className="gg-quick" aria-label={G.quickLabel} data-gift-quick=""> |         <nav className="gg-quick" aria-label={G.quickLabel} data-gift-quick="" hidden>
+  it("#15 the phone tool row under the title: Search, My list, Codes; shown only below 768 px", () => {
+    const { container } = renderAt("/gift-guides/mom");
+    const quick = container.querySelector("[data-gift-quick]")!;
+    expect(quick.hasAttribute("hidden")).toBe(false);
+    expect(quick.compareDocumentPosition(container.querySelector(".gg-layout")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(quick.textContent).toMatch(/Search.*My list.*Codes/);
+    expect(GIFT_GUIDES_CSS).toContain(".gg-quick{display:none}");
+    expect(GIFT_GUIDES_CSS).toMatch(/@media \(max-width:767px\)\{[^@]*\.gg \.gg-quick\{display:flex/);
+    expect(container.querySelector("#gift-search input")).not.toBeNull();
+    expect(container.querySelector("details#gift-codes summary")).not.toBeNull();
   });
 });
 

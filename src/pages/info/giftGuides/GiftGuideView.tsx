@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, relatedGuides, subscribeGuidePicks, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
@@ -23,7 +23,11 @@ import { Button } from "@/components/ui/button";
  * its store's name when it has no photo or the photo fails to load (lead 2026-11-18: never a blank gap).
  */
 /** The name a pick's row shows for its store: the brand for a Louisiana shop or a sponsor, else the store's. */
-export const storeLabel = (pick: CatalogPick) => ((pick.store === "louisiana" || pick.store === "sponsor") && pick.brand ? pick.brand : STORES[pick.store].name);
+export const storeLabel = (pick: CatalogPick) =>
+  (pick.store === "louisiana" || pick.store === "sponsor") && pick.brand ? pick.brand
+  // ShopMy is no store a shopper knows (design audit r2 #9): the brand, or nothing.
+  : pick.store === "shopmy" ? pick.brand ?? ""
+  : STORES[pick.store].name;
 
 function PickThumb({ pick }: { pick: CatalogPick }) {
   const [failed, setFailed] = useState(false);
@@ -42,7 +46,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <PickThumb pick={pick} />
         <span className="gg-nm">
           {pick.name}
-          <small>{pick.line ? `${pick.line} ` : ""}{G.onStore(storeLabel(pick))}</small>
+          <small>{pick.line ? `${pick.line} ` : ""}{storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}</small>
           {pick.badges && (
             <span className="gg-badges">
               {pick.badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
@@ -76,21 +80,35 @@ const sectionsOf = (picks: CatalogPick[]) => {
 /** Rows a list draws at first, and each "Show more" adds (design audit 11-18 #3: 827 rows, 9,600 DOM nodes at once). */
 export const PICKS_PAGE = 50;
 
-function GiftGuideList({ guide }: { guide: CatalogGuide }) {
+/** "Show more" with this many or fewer left draws them all instead; a store's deals come after this many picks. */
+const SHOW_ALL_UNDER = 6;
+const DEALS_AFTER = 12;
+
+function GiftGuideList({ guide, deals }: { guide: CatalogGuide; deals?: ReactNode }) {
   const [shown, setShown] = useState(PICKS_PAGE);
   if (!picksReady(guide.slug)) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];
-  const left = guide.picks.length - shown;
-  return (
-    <>
-      {sectionsOf(guide.picks.slice(0, shown)).map(({ title, picks }, i) => (
-        <section key={`${i} ${title ?? ""}`} data-gift-section={title ?? ""}>
+  // Six or fewer left: draw them all, no "Show more (1 more)" (design audit r2 #16).
+  const upTo = guide.picks.length - shown <= SHOW_ALL_UNDER ? guide.picks.length : shown;
+  const left = guide.picks.length - upTo;
+  // A store page's live deals sit after its first picks, not under every row (design audit r2 #12).
+  const dealsAt = deals ? Math.min(DEALS_AFTER, upTo) : -1;
+  const runs = (from: number, to: number) => sectionsOf(guide.picks.slice(0, to)).flatMap((r) => {
+    const rows = r.picks.rows.filter((_, k) => r.picks.start + k > from);
+    // A section cut by the deals keeps its heading only above its first part.
+    return rows.length ? [{ title: r.picks.start > from ? r.title : undefined, picks: { start: r.picks.start + (r.picks.rows.length - rows.length), rows } }] : [];
+  });
+  const draw = (from: number, to: number) => runs(from, to).map(({ title, picks }, i) => (
+        <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""}>
           {title && <h3 className="gg-sec-title">{title}</h3>}
           <ol className="gg-list" data-gift-list="" style={picks.start > 1 ? { counterReset: `gg ${picks.start - 1}` } : undefined}>
             {picks.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
           </ol>
         </section>
-      ))}
+      ));
+  return (
+    <>
+      {dealsAt >= 0 ? <>{draw(0, dealsAt)}{deals}{draw(dealsAt, upTo)}</> : draw(0, upTo)}
       {left > 0 && (
         <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
           {G.showMorePicks(left)}
@@ -129,9 +147,13 @@ const todayInLouisiana = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Ame
  * now"): each a heading that opens the deal page (affiliate link), its items when the loader has them (Walmart's
  * collections), and its end date. A section past its end date is hidden.
  */
-function StoreDeals({ guide }: { guide: CatalogGuide }) {
+const liveDeals = (guide: CatalogGuide) => {
   const today = todayInLouisiana();
-  const live = (guide.deals ?? []).filter((d) => !d.ends || d.ends >= today);
+  return (guide.deals ?? []).filter((d) => !d.ends || d.ends >= today);
+};
+
+function StoreDeals({ guide }: { guide: CatalogGuide }) {
+  const live = liveDeals(guide);
   if (live.length === 0) return null;
   return (
     <section aria-label={G.dealsTitle} data-gift-deals="">
@@ -176,8 +198,7 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
           </ul>
         </section>
       ))}
-      <GiftGuideList key={guide.slug} guide={guide} />
-      <StoreDeals guide={guide} />
+      <GiftGuideList key={guide.slug} guide={guide} deals={liveDeals(guide).length > 0 ? <StoreDeals guide={guide} /> : undefined} />
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>
   );

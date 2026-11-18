@@ -7,6 +7,8 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { ROWS, guideBySlug, newSlugFor, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
+import { MyListLink } from "./giftGuides/GiftGuideMyList";
+import { Button } from "@/components/ui/button";
 import { GiftGuideLanding } from "./giftGuides/GiftGuideLanding";
 import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { GiftGuideShare } from "./giftGuides/GiftGuideShare";
@@ -23,6 +25,13 @@ import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
  * link (GiftOut). The FTC disclosure (16 CFR Part 255) and Amazon's required Associates statement sit at the BOTTOM
  * as plain muted lines (owner decision 2026-11-18). Guard: src/test/giftGuidesPage.test.tsx.
  */
+/** Scrolls the menu's part into view and focuses it (the phone's tool row). */
+const jumpTo = (id: string, focus: string) => {
+  const el = document.getElementById(id);
+  el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  (el?.querySelector(focus) as HTMLElement | null)?.focus({ preventScroll: true });
+};
+
 export default function GiftGuides() {
   const { slug } = useParams<{ slug?: string }>();
   const { hash } = useLocation();
@@ -69,8 +78,15 @@ export default function GiftGuides() {
           <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint}
             share={<GiftGuideShare path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
         ) : (
-          <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" share={<GiftGuideShare path="/gift-guides" title={G.title} />} />
+          <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" share={<GiftGuideShare path="/gift-guides" title={G.title} many />} />
         )}
+        {/* Phone (design audit r2 #15): the menu sits after the guide, so a slim row under the title jumps to its search,
+            My list and codes. Hidden from 768 px, where the menu is beside the guide. */}
+        <nav className="gg-quick" aria-label={G.quickLabel} data-gift-quick="">
+          <Button type="button" variant="outline" size="inline" className="gg-quick-btn" onClick={() => jumpTo("gift-search", "input")}>{G.quickSearch}</Button>
+          <MyListLink current={myList} />
+          <Button type="button" variant="outline" size="inline" className="gg-quick-btn" onClick={() => jumpTo("gift-codes", "summary")}>{G.quickCodes}</Button>
+        </nav>
         <div className="gg-layout">
           <GiftGuidesSidebar active={guide} myList={myList} />
           <div className="gg-main">

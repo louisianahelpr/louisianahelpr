@@ -263,7 +263,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/info/giftGuides/GiftGuidesSidebar.tsx` | input×1 | search |  | Search · Search gift guides |
+| `src/pages/info/giftGuides/GiftGuidesSidebar.tsx` | input×1 | search |  | gift-search · Search · Search gift guides · gift-codes |
 
 ## /help
 

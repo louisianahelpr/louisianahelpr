@@ -114,5 +114,12 @@ a.gg-share{display:inline-flex;align-items:center;text-decoration:none}
 .gg-layout{grid-template-columns:minmax(0,1fr)}
 .gg-side{position:static;max-height:none;border-right:0;border-top:1px solid var(--gg-line);padding:8px 0;order:2}
 .gg-main{padding:4px 0 24px;order:1}
+.gg .gg-quick{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin:0 0 10px}
+.gg-quick .gg-mylist{min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid #ddd8cc;border-radius:999px}
+.gg-shop{display:none}
+.gg-item{gap:10px;padding:8px 0;font-size:14px}
 }
+.gg-quick{display:none}
+.gg-quick-btn{min-height:44px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:700}
+.gg-code-row code{white-space:nowrap;overflow-wrap:normal;font-size:12px}
 `;

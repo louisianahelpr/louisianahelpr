@@ -219,7 +219,7 @@ export const giftGuides = {
   badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
   /** The landing's first row (owner 2026-11-18): the picks the most guides list. */
-  topTitle: "Top 10 most-loved",
+  topTitle: "Our Top 10",
   /** The landing's guides a phone sees first, and the button that opens every row (owner 2026-11-18). */
   startTitle: "Start here",
   moreGuidesLabel: "More guides",
@@ -241,6 +241,12 @@ export const giftGuides = {
   codesLabel: "Discount codes",
   /** The sidebar's Sales (follow-up 2026-11-18): every live store sale, soonest end first; each hidden after it ends. */
   salesLabel: "Sales",
+  /** The Sales list shows its first few, then this button opens the rest (design audit r2 #10: 229 in one list). */
+  allSalesLabel: (n: number) => `See all sales (${n})`,
+  /** The phone's tool row under the title (design audit r2 #15: search, My list and codes sat at the page's end). */
+  quickLabel: "Gift guide tools",
+  quickSearch: "Search",
+  quickCodes: "Codes",
   copyCode: "Copy",
   copiedCode: "Copied",
   codeEnds: (date: string) => `Ends ${date}`,

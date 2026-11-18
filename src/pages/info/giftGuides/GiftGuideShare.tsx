@@ -25,7 +25,7 @@ const shareLinks = (path: string, title: string, image?: string) => {
 export const smsHref = (url: string, title: string, userAgent: string) =>
   `sms:${/iPhone|iPad|iPod/.test(userAgent) ? "&" : "?"}body=${encodeURIComponent(`${title} ${url}`)}`;
 
-export function GiftGuideShare({ path, title, image }: { path: string; title: string; image?: string }) {
+export function GiftGuideShare({ path, title, image, many = false }: { path: string; title: string; image?: string; many?: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const links = shareLinks(path, title, image);
@@ -47,7 +47,7 @@ export function GiftGuideShare({ path, title, image }: { path: string; title: st
   return (
     <span className="gg-share-wrap">
       <InlineTextButton className="gg-share no-underline" onClick={share} aria-expanded={open} data-gift-share="">Share</InlineTextButton>
-      <a className="gg-share no-underline" href={smsHref(links.url, title, typeof navigator === "undefined" ? "" : navigator.userAgent)} data-gift-text="">Text this guide</a>
+      <a className="gg-share no-underline" href={smsHref(links.url, title, typeof navigator === "undefined" ? "" : navigator.userAgent)} data-gift-text="">{many ? "Text these guides" : "Text this guide"}</a>
       {open && (
         <span className="gg-share-menu" data-gift-share-menu="">
           <InlineTextButton onClick={copy}>{copied ? "Link copied" : "Copy link"}</InlineTextButton>

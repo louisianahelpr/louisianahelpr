@@ -420,7 +420,9 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
       partner_address: "220 St Vincent St", chosen_at: "2026-10-30T15:00:00Z", donated_at: "2026-11-01T15:00:00Z", receipt: true }]);
     at("/declutter?tab=selling");
     const listings = await screen.findByRole("region", { name: "Your listings" });
-    expect(within(listings).getByText("You haven't listed anything yet.")).toBeInTheDocument();
+    // Area 06 M15 (11-18): a seller with past listings is told "Nothing for sale right now", not "haven't listed anything".
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |     const returning = (mine.data ?? []).length > 0; |     const returning = false;
+    expect(within(listings).getByText("Nothing for sale right now.")).toBeInTheDocument();
     const receipts = await within(listings).findByRole("region", { name: "Donation receipts" });
     expect(within(receipts).getByText(/Your Helpr took it to St\. Vincent de Paul, 220 St Vincent St/)).toBeInTheDocument();
   });
@@ -428,7 +430,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   // Q2639 (audit 1102c R14): with no listing left, "Your listings" was a solid card with a primary button and no icon,
   // beside the dashed, iconed "No offers yet" and "Nothing sold yet". It is the same DeclutterEmptyCard now, its one
   // action still the sell path; and a Selling history title wraps instead of being cut ("Oak rocking chair (sa…").
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")} data-seller-empty="" | <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")}
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <DeclutterEmptyCard icon={Tags} title={t(returning ? "decl.sl.emptyNow" : "decl.sl.empty")} data-seller-empty="" | <DeclutterEmptyCard icon={Tags} title={t(returning ? "decl.sl.emptyNow" : "decl.sl.empty")}
   // @mutate src/components/declutter/DeclutterEmptyCard.tsx |         {action} |
   // @mutate src/components/declutter/DeclutterTakenDown.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={item.title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={item.title}>
   // @mutate src/components/declutter/DeclutterEndedSales.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={l.item_title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={l.item_title}>
@@ -445,7 +447,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     // M5 (iOS audit 11-16): the shared EmptyState's compact card, no dashed edge of its own.
     expect(card.querySelector('[data-empty-state="compact"]')).not.toBeNull();
     expect(card.querySelector("svg")).not.toBeNull();
-    expect(within(card).getByText("You haven't listed anything yet.")).toBeInTheDocument();
+    expect(within(card).getByText("Nothing for sale right now.")).toBeInTheDocument();
     fireEvent.click(within(card).getByRole("button", { name: /Sell an item|List an item|Sell/ }));
     expect(await screen.findByText("Sell page")).toBeInTheDocument();
   });

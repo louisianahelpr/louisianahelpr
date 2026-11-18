@@ -211,6 +211,9 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   const searching = search.trim().length > 0;
   const list = searching ? all.filter((i) => matchesListingSearch(i, search)) : all;
   if (all.length === 0) {
+    // Area 06 M15 (11-18): a seller with past listings (taken down, sold, ended) is not new here; "You haven't listed
+    // anything yet" was wrong for them.
+    const returning = (mine.data ?? []).length > 0;
     return (
       <section className="space-y-2" aria-label={t("decl.sl.yours")}>
         <SectionHeading title={t("decl.sl.yours")} />
@@ -218,7 +221,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
             such button on screen (only the top bar's "+"). The action is here, as
             the section's own pill, to the same path as the "+". */}
         {/* Q2639 (audit 1102c R14): the same iconed empty card as "No offers yet" and "Nothing sold yet". */}
-        <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")} data-seller-empty=""
+        <DeclutterEmptyCard icon={Tags} title={t(returning ? "decl.sl.emptyNow" : "decl.sl.empty")} data-seller-empty=""
           action={<><HideSectionCreateFab /><SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>{sectionByKey("declutter").add.label}</SectionActionPill></>}>
           {t("decl.sl.emptyBody")}
         </DeclutterEmptyCard>

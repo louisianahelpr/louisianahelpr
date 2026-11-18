@@ -302,6 +302,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.sl.takenDown": "Retirado.",
   "decl.sl.loadFail": "No pudimos cargar sus publicaciones.",
   "decl.sl.yours": "Sus publicaciones",
+  "decl.sl.emptyNow": "No tiene nada a la venta ahora.",
   "decl.sl.empty": "Aún no ha publicado nada.",
   "decl.sl.noMatch": "Ninguna publicación coincide con «{q}»",
   "decl.sl.clear": "Borrar",

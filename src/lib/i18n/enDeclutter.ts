@@ -205,6 +205,7 @@ export const enDeclutter = {
   "decl.sl.takenDown": "Taken down.",
   "decl.sl.loadFail": "We couldn't load your listings.",
   "decl.sl.yours": "Your listings",
+  "decl.sl.emptyNow": "Nothing for sale right now.",
   "decl.sl.empty": "You haven't listed anything yet.",
   // Owner 11-13: Selling's search finds nothing among the seller's own listings (never a jump to Browse).
   "decl.sl.noMatch": "No listings match \u201c{q}\u201d",

@@ -23,7 +23,7 @@
  * @mutate src/components/dashboard/GuestJobPreview.tsx | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, job) | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, null)
  * F217 (whole-app audit 2026-11-10): the sheet also prints the card's town, day and time ("When"), and the pay reads
  * "You'd earn after fees", never "take home" beside the card's bare price.
- * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (when) facts.push({ label: "When", value: when }); |
+ * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (day) facts.push({ label: "Day", value: day }); |
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (town && area && area !== town) facts.push({ label: "Town", value: town }); |
  * @mutate src/components/dashboard/GuestJobPreview.tsx | const GUEST_PAY_LABEL = "You'd earn after fees"; | const GUEST_PAY_LABEL = "You'd take home";
  * @mutate src/pages/jobs/JobDetail.tsx | date_needed, date_window_end, start_time, is_flexible_schedule, status, expires_at, parish", | status, expires_at, parish",
@@ -67,9 +67,9 @@ describe("the guest job preview", () => {
     expect(sheet).toBeTruthy();
     expect(screen.getByText("Haul off an old couch")).toBeTruthy();
     const facts = guestJobFacts(JOB);
-    expect(facts.map((f) => f.label)).toEqual(["Category", "Town", "Parish", "When", "You'd earn after fees"]);
+    expect(facts.map((f) => f.label)).toEqual(["Category", "Town", "Parish", "Time", "You'd earn after fees"]);
     expect(facts.find((f) => f.label === "Town")?.value).toBe("Lafayette");
-    expect(facts.find((f) => f.label === "When")?.value).toBe("Flexible");
+    expect(facts.find((f) => f.label === "Time")?.value).toBe("Flexible");
     expect(facts.find((f) => f.label === "Parish")?.value).toBe("Lafayette Parish");
     expect(facts.find((f) => f.label === "You'd earn after fees")?.value).toBe(`$${Math.floor(guestTakeHome(JOB)!)}`);
     expect(sheet.textContent).not.toContain("$85");
@@ -125,20 +125,22 @@ describe("the guest job preview", () => {
     expect(guestJobArea("Baton Rouge, LA")).toBe("East Baton Rouge Parish");
     expect(guestJobArea("Nowhere Special, LA")).toBe("Nowhere Special");
     expect(guestJobArea(null)).toBeNull();
-    expect(guestJobFacts({ ...JOB, budget: null, location: null }).map((f) => f.label)).toEqual(["Category", "When"]);
+    expect(guestJobFacts({ ...JOB, budget: null, location: null }).map((f) => f.label)).toEqual(["Category", "Time"]);
     // A town that is its own area is not printed twice.
     // Design audit areas 11-18 #5: a town that names no single parish is labelled "Area", not "Parish".
-    expect(guestJobFacts({ ...JOB, location: "Nowhere Special, LA" }).map((f) => f.label)).toEqual(["Category", "Area", "When", "You'd earn after fees"]);
+    expect(guestJobFacts({ ...JOB, location: "Nowhere Special, LA" }).map((f) => f.label)).toEqual(["Category", "Area", "Time", "You'd earn after fees"]);
   });
 
   it("F217: the sheet prints the card's day and time, and the pay never says take home", () => {
     const day = jobLocalDateISO(3);
     const facts = guestJobFacts({ ...JOB, date_needed: day, start_time: "14:30:00" });
-    expect(facts.find((f) => f.label === "When")?.value).toBe(`${formatJobDate(day)} · 2:30 PM`);
-    expect(guestJobFacts({ ...JOB, date_needed: day }).find((f) => f.label === "When")?.value).toBe(formatJobDate(day));
+    expect(facts.find((f) => f.label === "Day")?.value).toBe(formatJobDate(day));
+    expect(facts.find((f) => f.label === "Time")?.value).toBe("2:30 PM");
+    expect(guestJobFacts({ ...JOB, date_needed: day }).find((f) => f.label === "Day")?.value).toBe(formatJobDate(day));
     render(<GuestJobPreview job={{ ...JOB, date_needed: day, start_time: "14:30:00" }} onClose={vi.fn()} onSignUp={vi.fn()} />);
     const sheet = document.querySelector("[data-guest-job-preview]") as HTMLElement;
-    expect(sheet.textContent).toContain(`${formatJobDate(day)} · 2:30 PM`);
+    expect(sheet.textContent).toContain(`Day${formatJobDate(day)}`);
+    expect(sheet.textContent).toContain("Time2:30 PM");
     expect(sheet.textContent).toContain("Lafayette Parish");
     expect(sheet.textContent).toContain("You'd earn after fees");
     expect(sheet.textContent).not.toMatch(/take home/i);

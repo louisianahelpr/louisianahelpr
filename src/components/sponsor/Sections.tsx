@@ -356,6 +356,22 @@ export function lineupCount(day: number): number {
 }
 
 /**
+ * Design audit r2 #19 (presentation only; the lineup data is the owner's, src/content/sponsorPage.ts): a prize that
+ * starts with its brand's name ("GentleStyle Brush" under GentleStyle) drops the repeated brand, and a prize that is
+ * only the brand's name is not shown twice.
+ */
+export function prizeWithoutBrand(brand: string, prize: string): string {
+  const b = brand.trim();
+  const p = prize.trim();
+  if (p.toLowerCase() === b.toLowerCase()) return "";
+  if (p.toLowerCase().startsWith(`${b.toLowerCase()} `)) {
+    const rest = p.slice(b.length).replace(/^[\s:–—-]+/, "");
+    return rest ? rest.charAt(0).toUpperCase() + rest.slice(1) : "";
+  }
+  return p;
+}
+
+/**
  * The final lineup (owner 2026-11-16): every day with its brand or brands and their prizes. A day with more
  * than one brand says how many winners it has, since each brand's prize has its own winner.
  */
@@ -369,18 +385,21 @@ export function Lineup() {
         {C.lineup.days.map((d) => (
           <li key={d.day} className="lh25-lineup-day" data-testid={`lineup-day-${d.day}`}>
             <div className="lh25-lineup-head">
-              <span className="lh25-lineup-date">{lineupWeekday(d.day)} · Dec {d.day}</span>
+              <span className="lh25-lineup-date">{lineupWeekday(d.day)}<span className="lh25-lineup-dot" aria-hidden="true">·</span>Dec {d.day}</span>
               {d.partners.length > 1 ? (
                 <span className="lh25-lineup-winners">{C.lineup.winners.replace("{n}", String(d.partners.length))}</span>
               ) : null}
             </div>
             <ul className="lh25-lineup-partners">
-              {d.partners.map((p) => (
-                <li key={p.brand}>
-                  <span className="lh25-lineup-brand">{p.brand}</span>
-                  <span className="lh25-lineup-prize">{p.prize}</span>
-                </li>
-              ))}
+              {d.partners.map((p) => {
+                const prize = prizeWithoutBrand(p.brand, p.prize);
+                return (
+                  <li key={p.brand}>
+                    <span className="lh25-lineup-brand">{p.brand}</span>
+                    {prize ? <span className="lh25-lineup-prize">{prize}</span> : null}
+                  </li>
+                );
+              })}
             </ul>
           </li>
         ))}

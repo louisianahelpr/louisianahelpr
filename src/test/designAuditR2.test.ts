@@ -158,3 +158,31 @@ describe("design audit r2 #6: unselected choices keep an edge in dark mode", () 
     expect(readFileSync("src/components/ui/ChoicePill.tsx", "utf8")).toMatch(/role="radio"[\s\S]*bg-card/);
   });
 });
+
+/**
+ * #19, #20, #23, #29 (25 Days, presentation only): a prize no longer repeats its brand ("GentleStyle Brush" under
+ * GentleStyle reads "Brush"; a prize equal to the brand is not shown twice); the calendar count is 12px; the date's
+ * dot is upright with room each side; lineup cards align to the top of their row.
+ * @mutate src/components/sponsor/Sections.tsx |   if (p.toLowerCase() === b.toLowerCase()) return ""; |   if (p.toLowerCase() === "") return "";
+ */
+describe("design audit r2: 25 Days lineup presentation", () => {
+  it("strips a leading brand from the prize and hides a prize that is only the brand", async () => {
+    const { prizeWithoutBrand } = await import("@/components/sponsor/Sections");
+    expect(prizeWithoutBrand("GentleStyle", "GentleStyle Brush")).toBe("Brush");
+    expect(prizeWithoutBrand("GentleStyle Brush", "GentleStyle Brush")).toBe("");
+    expect(prizeWithoutBrand("RYSE", "RYSE Fuel bundle")).toBe("Fuel bundle");
+    expect(prizeWithoutBrand("Acme", "$50 gift card")).toBe("$50 gift card");
+    const { sponsorPage } = await import("@/content/sponsorPage");
+    const all = sponsorPage.lineup.days.flatMap((d) => d.partners);
+    expect(all.length).toBeGreaterThan(25);
+    // No shown prize starts with its own brand.
+    expect(all.filter((p) => { const s = prizeWithoutBrand(p.brand, p.prize); return s && s.toLowerCase().startsWith(`${p.brand.toLowerCase()} `); })).toEqual([]);
+  });
+
+  it("the CSS: 12px calendar count, upright spaced dot, top-aligned lineup cards", () => {
+    const css = readFileSync("src/pages/sponsor/sponsor.css", "utf8");
+    expect(css).toMatch(/\.lh25-tile-count \{ font-size: 12px;/);
+    expect(css).toMatch(/\.lh25-lineup-dot \{ font-style: normal; margin: 0 \.3em; \}/);
+    expect(css).toMatch(/\.lh25-lineup \{[^}]*align-items: start;/);
+  });
+});

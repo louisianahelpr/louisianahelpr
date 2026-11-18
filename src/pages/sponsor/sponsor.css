@@ -211,10 +211,12 @@ div.lh25.lh25 {
 .lh25-wall-name { font: italic 400 16px/1.2 var(--head); color: var(--green); text-align: center; overflow-wrap: anywhere; }
 
 /* Lineup: one card per December day; a shared day lists each brand and says how many winners */
-.lh25-lineup { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 12px; }
+.lh25-lineup { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; /* r2 #29: a 2-brand card does not stretch its row-mates into blank space */ }
 .lh25-lineup-day { background: var(--paper); border: 1px solid var(--line); border-top: 2px solid var(--gold); padding: 14px 16px; min-width: 0; }
 .lh25-lineup-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .lh25-lineup-date { font: italic 400 19px/1.2 var(--head); color: var(--ox); }
+/* Design audit r2 #23: the dot sat against the italic "Dec"; upright, with room each side. */
+.lh25-lineup-dot { font-style: normal; margin: 0 .3em; }
 .lh25-lineup-winners { flex: none; font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--green); border: 1px solid var(--gold); padding: 2px 8px; }
 .lh25-lineup-partners { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .lh25-lineup-partners li { display: flex; flex-direction: column; min-width: 0; }
@@ -240,7 +242,7 @@ div.lh25.lh25 {
 }
 .lh25-tile:hover:not([disabled]) { border-color: var(--green); }
 .lh25-tile-day { font: 400 25px/1 var(--head); color: var(--green); }
-.lh25-tile-count { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.2; letter-spacing: .04em; }
+.lh25-tile-count { font-size: 12px; /* r2 #20: was 10px */ color: var(--muted); text-align: center; line-height: 1.2; letter-spacing: .04em; }
 .lh25 .lh25-tile.is-selected { background: var(--green); background-image: none; border-color: var(--gold); color: var(--cream); box-shadow: inset 0 0 0 1px var(--gold); }
 .lh25-tile.is-selected .lh25-tile-day { color: var(--cream); }
 .lh25-tile.is-selected .lh25-tile-count { color: var(--on-green); }

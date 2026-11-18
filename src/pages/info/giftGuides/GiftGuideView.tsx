@@ -7,6 +7,7 @@ import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
 import { Heart, togglePick, useGiftList } from "./giftList";
+import { Button } from "@/components/ui/button";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -90,9 +91,9 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
         </section>
       ))}
       {left > 0 && (
-        <button type="button" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
+        <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
           {G.showMorePicks(left)}
-        </button>
+        </Button>
       )}
       {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && (
         // Owner 2026-11-18: a guide with no picks yet opens a friendly note, never an empty list or a dead link.

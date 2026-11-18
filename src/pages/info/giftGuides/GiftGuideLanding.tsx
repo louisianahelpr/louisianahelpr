@@ -5,6 +5,7 @@ import { ROWS, guideBySlug, guidesIn, topPicks, type CatalogGuide, type GuideRow
 import { PickRow } from "./GiftGuideView";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { sponsorPage } from "@/content/sponsorPage";
+import { Button } from "@/components/ui/button";
 
 /**
  * /gift-guides opens to the guides, not their items (owner 2026-11-18: "open to the sections first"; final design):
@@ -37,9 +38,9 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       {!group && (
         // On a phone the other rows wait behind this button (owner 2026-11-18); on a wider screen it is hidden and every
         // row shows.
-        <button type="button" className="gg-more-btn" aria-expanded={more} onClick={() => setMore((m) => !m)} data-gift-more="">
+        <Button type="button" variant="outline" size="inline" className="gg-more-btn" aria-expanded={more} onClick={() => setMore((m) => !m)} data-gift-more="">
           {more ? G.fewerGuidesLabel : G.moreGuidesLabel}
-        </button>
+        </Button>
       )}
       <div className={!group && !more ? "gg-rows gg-rows-folded" : "gg-rows"} data-gift-rows="">
       {rows.map(({ row, label, tint }) => {

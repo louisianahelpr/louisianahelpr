@@ -1,10 +1,11 @@
 {
-  "generated": "2026-11-18T11:47:07.630Z",
-  "guards": 4194,
-  "registered": 4194,
+  "generated": "2026-11-18T15:37:47.682Z",
+  "guards": 4243,
+  "registered": 4243,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/components/admin/adminTestMarkedRows.test.ts",
     "src/test/declutterGiftOnlyClose.test.ts"
   ],
   "classD_selfReferential": [

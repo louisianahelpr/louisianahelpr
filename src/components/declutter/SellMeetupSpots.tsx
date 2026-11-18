@@ -149,8 +149,8 @@ export function SellMeetupSpots() {
               <ul className="divide-y divide-border rounded-[16px] border border-border" data-meetup-suggestion-list="">
                 {suggestions.map(({ s, mi }) => (
                   <li key={s.id}>
-                    <Button type="button" variant="ghost" onClick={() => setDraft(fromSuggestion(s))} data-meetup-suggestion={s.id}
-                      className="h-auto min-h-11 w-full max-w-full justify-between gap-3 whitespace-normal rounded-none px-3 py-2 text-left text-ds-14 font-normal leading-snug text-foreground">
+                    <Button type="button" variant="ghost" size="wrapSm" onClick={() => setDraft(fromSuggestion(s))} data-meetup-suggestion={s.id}
+                      className="w-full max-w-full justify-between gap-3 rounded-none px-3 py-2 text-left text-ds-14 font-normal leading-snug text-foreground">
                       <span className="min-w-0 break-words">+ {s.name}</span>
                       {mi != null && <span className="shrink-0 tabular-nums text-ds-13 text-muted-foreground">{t("dsl.ms.miles", { n: Math.round(mi) })}</span>}
                     </Button>

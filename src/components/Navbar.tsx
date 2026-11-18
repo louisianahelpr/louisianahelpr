@@ -170,6 +170,22 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 Declutter
               </Link>
             </Button>
+            {/* Owner 2026-11-18: "Holiday Gift Guides" in the public top bar. From md up only: below that the bar holds
+                exactly Jobs, Declutter, Log in and Join free beside the logo (measured at 320-375, owner 11-04). */}
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+            >
+              <Link
+                to="/gift-guides"
+                aria-current={location.pathname.startsWith("/gift-guides") ? "page" : undefined}
+                data-testid="nav-gift-guides"
+              >
+                Holiday Gift Guides
+              </Link>
+            </Button>
             {/* The divider between the public links and the auth actions. Below 400px the bar drops it and
                 tightens the link padding (below 375 also one text size down), so Jobs + Declutter fit beside the logo without squeezing it
                 (owner 11-04; measured at 320, 360 and 375). */}

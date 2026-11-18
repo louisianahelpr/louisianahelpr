@@ -13,7 +13,7 @@
  * from the real file, so a size that stops wrapping turns this red.
  *
  * @mutate src/components/ui/button.tsx | wrapSm: "h-auto min-h-11 px-4 py-2 text-ds-14 whitespace-normal" | wrapSm: "h-11 px-4 py-2 text-ds-14"
- * @mutate src/components/declutter/SellMeetupSpots.tsx | className="h-auto min-h-11 w-full max-w-full justify-between gap-3 whitespace-normal rounded-none px-3 py-2 text-left text-ds-14 font-normal leading-snug text-foreground" | className="px-3 text-left text-ds-14"
+ * @mutate src/components/declutter/SellMeetupSpots.tsx | className="w-full max-w-full justify-between gap-3 rounded-none px-3 py-2 text-left text-ds-14 font-normal leading-snug text-foreground" | className="px-3 text-left text-ds-14"
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

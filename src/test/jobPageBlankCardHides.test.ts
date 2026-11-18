@@ -25,7 +25,9 @@ describe("the job page's side card hides when nothing in it shows (area 11 H2)",
     expect(card('<p data-viewer-status="">You cancelled</p>').matches(BLANK_CARD_SELECTOR)).toBe(false);
   });
   it("the class is the selector, and the page's side card wears it", () => {
-    expect(HIDE_WHEN_BLANK).toBe(`[&${BLANK_CARD_SELECTOR}]:hidden`);
+    // Built by concatenation, not a template: Tailwind scans test files too, and a template literal of the arbitrary variant
+    // compiled to a rule with a literal "$" that lightningcss refuses (train CI 2026-11-18, "Unexpected token Delim('$')").
+    expect(HIDE_WHEN_BLANK).toBe("[&" + BLANK_CARD_SELECTOR + "]:hidden");
     const src = blankComments(fs.readFileSync(path.resolve(__dirname, "../pages/jobs/jobPage/JobPage.tsx"), "utf8"));
     const tag = src.match(/<section data-job-card=""[^>]*>/g) ?? [];
     expect(tag.length).toBeGreaterThan(0);

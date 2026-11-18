@@ -12,7 +12,7 @@ import { HelpEntry } from "@/components/help/HelpEntry";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { avatarButtonLabel } from "@/lib/avatarImage";
 import { useState } from "react";
-import { LogOut, Settings, UserRound } from "lucide-react";
+import { Gift, LogOut, Settings, UserRound } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LogOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
 import { wordInLang } from "@/lib/i18n/inLang";
@@ -115,6 +115,10 @@ const DesktopTopNav = () => {
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => navigate("/profile?tab=settings")}>
                 <Settings className="w-4 h-4 mr-2" aria-hidden /> {wordInLang("settings.title", "Settings")}
+              </DropdownMenuItem>
+              {/* Owner 2026-11-18: signed-in members need a way to the Holiday Gift Guides too. */}
+              <DropdownMenuItem onSelect={() => navigate("/gift-guides")} data-testid="desktop-top-gift-guides">
+                <Gift className="w-4 h-4 mr-2" aria-hidden /> Holiday Gift Guides
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setLogoutOpen(true)}>

@@ -172,8 +172,10 @@ const withAmazonFixes = (p) => {
 /** One raw pick -> the page's pick, or null (hidden: the reason is listed). */
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
-  p = withAmazonFixes(p);
-  if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
+  const fixed = withAmazonFixes(p);
+  // A swap is a different product: the blocklist reads it too.
+  if (fixed !== p && blockedBrand(fixed)) return hidden.push(`${where}: ${fixed.name} (swap) is a blocked brand`), null;
+  p = fixed;
   let href = p.affiliate_href || p.href;
   let url;
   try {
@@ -328,6 +330,34 @@ const swappedOut = [];
 }
 /** Photos first, order kept inside each group. */
 for (const slug of Object.keys(guides)) guides[slug] = [...guides[slug].filter((p) => p.image), ...guides[slug].filter((p) => !p.image)];
+/**
+ * FEATURED ORDER (owner 11-18 PM: "This can't possibly be the top gifts you're recommending"): _featured-order.json,
+ * { "<slug>": [pick names, up to 12], "top-10": [{ guide, name }] }, from bestseller research over existing picks only.
+ * A guide's featured picks lead in that order, then the rest by the photos-first order above. Optional file.
+ */
+const FEATURED = (() => {
+  const v = readJson("_featured-order.json");
+  return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+})();
+/** No more than one XTRATUF boot in any guide's first FEATURED_TOP picks (owner 11-18 PM: Her opened on two), store pages aside. */
+export const FEATURED_TOP = 12;
+const isXtratuf = (p) => /^xtratuf$/i.test(p.brand ?? "") || p.store === "store-xtratuf";
+const featuredFirst = (slug, list) => {
+  const names = Array.isArray(FEATURED[slug]) ? FEATURED[slug].filter((x) => typeof x === "string").map(compact) : [];
+  const lead = names.map((n) => list.find((p) => compact(p.name) === n)).filter(Boolean);
+  const ordered = [...new Set([...lead, ...list])];
+  if (slug.startsWith("store-")) return ordered;
+  const head = [];
+  const later = [];
+  let boots = 0;
+  for (const p of ordered) {
+    if (head.length < FEATURED_TOP && isXtratuf(p) && boots++ >= 1) later.push(p);
+    else if (head.length < FEATURED_TOP) head.push(p);
+    else later.push(p);
+  }
+  return [...head, ...later.sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b))];
+};
+for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, guides[slug]);
 
 /** "Nov 22" / "2026-11-23 (...)" -> "2026-11-22"; anything else -> no end date. */
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
@@ -483,11 +513,16 @@ const looksLikeProduct = (p) => {
   if (p.brand && name.includes(" - ") && compact(name.split(" - ")[0]) === compact(p.brand)) return false; // "L.L.Bean - Outside Together ..."
   return name.length > 3 && !/^sites-|\b20\d\d\b|\|/i.test(name) && ![p.brand, store].some((x) => x && compact(x) === compact(name)) && !/^[a-z0-9]+$/.test(name);
 };
-const topPicks = [...new Map([...loved.values()].filter((x) => x.n > 1 && looksLikeProduct(x.p)).map((x) => [x.p.name, x])).values()]
+const lovedTop = [...new Map([...loved.values()].filter((x) => x.n > 1 && looksLikeProduct(x.p)).map((x) => [x.p.name, x])).values()]
   .sort((a, b) => Number(Boolean(b.p.image)) - Number(Boolean(a.p.image)) || b.n - a.n || a.p.name.localeCompare(b.p.name))
   // One per brand, so the row is ten different finds.
   .filter((x, i, all) => !x.p.brand || all.findIndex((y) => y.p.brand === x.p.brand) === i)
-  .slice(0, 10).map((x) => x.p);
+  .map((x) => x.p);
+/** Our Top 10 (owner 11-18 PM): the featured file's "top-10" ({ guide, name }) when present; the most-loved picks fill any gap. */
+const featuredTop = (Array.isArray(FEATURED["top-10"]) ? FEATURED["top-10"] : [])
+  .map((x) => (pageList[x?.guide] ?? guides[x?.guide] ?? []).find((p) => compact(p.name) === compact(String(x?.name ?? ""))))
+  .filter(Boolean);
+const topPicks = [...new Map([...featuredTop, ...lovedTop].map((p) => [p.href, p])).values()].slice(0, 10);
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();

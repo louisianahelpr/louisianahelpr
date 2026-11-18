@@ -145,3 +145,21 @@ describe("design audit r2: sales and search", () => {
     expect(inTitle.indexOf(false)).toBeGreaterThan(-1);
   });
 });
+
+describe("gift guides: featured order and Our Top 10 (owner 11-18 PM: \"This can't possibly be the top gifts\")", () => {
+  const SCRIPT = readFileSync(join(process.cwd(), "scripts/gift-guide-picks.mjs"), "utf8");
+  it("a guide's featured picks lead, Our Top 10 comes from the featured file, and no guide opens on two XTRATUF boots", () => {
+    // @mutate scripts/gift-guide-picks.mjs |   const v = readJson("_featured-order.json"); |   const v = null;
+    expect(SCRIPT).toContain('const v = readJson("_featured-order.json");');
+    // @mutate scripts/gift-guide-picks.mjs | const topPicks = [...new Map([...featuredTop, ...lovedTop] | const topPicks = [...new Map([...lovedTop]
+    expect(SCRIPT).toContain("const topPicks = [...new Map([...featuredTop, ...lovedTop]");
+    expect(SCRIPT).toContain("for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, guides[slug]);");
+    let guides = 0;
+    for (const [slug, picks] of Object.entries(CHUNKS)) {
+      if (slug.startsWith("store-")) continue;
+      guides += 1;
+      expect(picks.slice(0, 12).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(1);
+    }
+    expect(guides).toBeGreaterThan(150);
+  });
+});

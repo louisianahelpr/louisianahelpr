@@ -136,7 +136,10 @@ function toPick(p, where) {
   // A TIFF photo shows blank in every browser (affiliate sweep 11-18: 279 ShopMy "_fpx.tif" images): dropped, so the
   // pick is swapped for a photo'd one in a mixed guide or draws its store tile.
   const tiff = typeof p.image === "string" && /\.tiff?(\?|#|$)/i.test(p.image);
-  const image = !tiff && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe")) ? p.image : undefined;
+  // ShopMy's own S3 photos answer 403 AccessDenied (all 639 distinct URLs, curl 11-18 PM): dropped like the TIFFs, so
+  // mixed guides swap in photo'd picks and no row makes a failed request.
+  const deadHost = typeof p.image === "string" && /^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(p.image);
+  const image = !tiff && !deadHost && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe")) ? p.image : undefined;
   return {
     name: p.name, brand: p.brand ?? "", line: p.line ?? "", href,
     ...(image ? { image } : {}), ...(store ? { store } : {}), ...(p.louisianaFit ? { louisianaFit: true } : {}), ...flags,

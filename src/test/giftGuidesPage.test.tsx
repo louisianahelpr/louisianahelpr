@@ -902,8 +902,11 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
     // collection, not the retailer) is on no store page.
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null
+    // @mutate scripts/gift-guide-picks.mjs |   const image = !tiff && !deadHost && |   const image = !tiff && 
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
       expect(p.image ?? "", `${slug}: ${p.name}`).not.toMatch(/\.tiff?(\?|#|$)/i);
+      // ShopMy's S3 photos are all 403 (11-18 PM): none ships.
+      expect(p.image ?? "", `${slug}: ${p.name}`).not.toMatch(/production-shopmyshelf-/);
       if (p.href.startsWith("https://shopmy.us/collections/")) expect(p.store, `${slug}: ${p.name}`).toBeUndefined();
     }
     // Affiliate sweep 11-18 PM #6, #11, #14: no raw non-ASCII ("®") in a link (encoded by the import), no line naming

@@ -10,7 +10,6 @@ export const esPublic: Record<keyof typeof enPublic, string> = {
   "footer.help": "Centro de ayuda",
   "footer.fees": "Tarifas",
   "footer.safety": "Seguridad",
-  "footer.giftGuides": "Guías de regalos navideños",
   "footer.contact": "Contáctenos",
   "footer.legal": "Legal",
   "footer.terms": "Términos",
@@ -23,9 +22,7 @@ export const esPublic: Record<keyof typeof enPublic, string> = {
   "footer.facebookTitle": "Síganos en Facebook",
   "footer.instagram": "Síganos en Instagram (se abre en una pestaña nueva)",
   "footer.instagramTitle": "Síganos en Instagram",
-  "footer.madeWith": "Hecho con",
-  "footer.love": "amor",
-  "footer.forCommunities": "para las comunidades de Luisiana",
+  "footer.place": "Delcambre, Luisiana",
 
   "fees.title": "Tarifas",
   "fees.postFree": "Publicar un trabajo es gratis.",

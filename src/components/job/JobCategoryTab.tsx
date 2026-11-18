@@ -32,6 +32,7 @@ import { formatCategory } from "@/lib/format";
 export function JobCategoryTab({
   category,
   flexible = false,
+  icon = true,
   className,
 }: {
   /** Job category key, e.g. "cleaning". Unknown keys fall back to "other". */
@@ -43,6 +44,11 @@ export function JobCategoryTab({
    * containing width.
    */
   flexible?: boolean;
+  /**
+   * Draw the small category icon before the label. Off on a Browse feed ROW (owner 2026-11-17), whose thumbnail tile
+   * already shows the category icon, so the row drew it twice.
+   */
+  icon?: boolean;
   className?: string;
 }) {
   const catStyle = categoryColors[category] ?? categoryColors.other;
@@ -52,11 +58,13 @@ export function JobCategoryTab({
     <span
       className={`job-cat-label inline-flex items-center gap-1.5 min-w-0 text-ds-11 font-semibold text-muted-foreground${flexible ? " max-w-[52%]" : ""}${className ? ` ${className}` : ""}`}
     >
-      <CategoryIcon
-        category={category}
-        aria-hidden
-        className={`w-3.5 h-3.5 shrink-0 ${catStyle.title}`}
-      />
+      {icon && (
+        <CategoryIcon
+          category={category}
+          aria-hidden
+          className={`w-3.5 h-3.5 shrink-0 ${catStyle.title}`}
+        />
+      )}
       <span className="font-sans truncate">
         {categoryLabels[category] || formatCategory(category)}
       </span>

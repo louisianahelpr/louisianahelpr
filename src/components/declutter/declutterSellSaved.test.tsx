@@ -283,10 +283,14 @@ describe("a new listing is kept on this device", () => {
     await startAndEdit();
     cleanup();
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Start over" }));
-    await waitFor(() => expect(document.querySelector("[data-photo-count]")).toBeNull()); // no photos: no count line (design audit 11-17 #21)
+    const startOver = await screen.findByRole("button", { name: "Start over" });
+    // The kept listing's two photos are drawn before Start over, so the absence below is a real change.
+    expect(document.querySelector("[data-photo-count]")?.textContent).toContain("2 of 12");
+    fireEvent.click(startOver);
+    // Wait for the fresh form itself, then assert what is gone (waitForEmptyIsVacuous).
+    await waitFor(() => expect(rowValue("title")).toBe("Add a title"));
+    expect(document.querySelector("[data-photo-count]")).toBeNull(); // no photos: no count line (design audit 11-17 #21)
     expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
-    expect(rowValue("title")).toBe("Add a title");
     await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));
   });
   // LEAD-BUNCH-DROPS-IGNORED (owner 2026-10-31, prod c87b7de4): the owner turned price drops off in Settings at

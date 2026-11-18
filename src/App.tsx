@@ -1,6 +1,6 @@
 import { lazy, Suspense, forwardRef, type ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 import { RoutedBoundary } from "@/components/RoutedBoundary";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
 // Q1816: every lazy piece mounted beside the routes (outside RoutedBoundary) fails quietly; guard chromeLaziesFailQuietly.
@@ -11,8 +11,7 @@ import { HomeShellLeaves } from "@/components/landing/HomeShellLeaves";
 
 import QueryCacheHydrator from "@/components/QueryCacheHydrator";
 import DeferredToasters from "@/components/DeferredToasters";
-// Shared singleton so the SIGNED_OUT handler in main.tsx can wipe the
-// same cache the provider wraps. See src/lib/queryClient.ts.
+// Shared singleton so the SIGNED_OUT handler in main.tsx can wipe the same cache the provider wraps (src/lib/queryClient.ts).
 import { queryClient } from "@/lib/queryClient";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -27,17 +26,15 @@ const ProfileRouteSkeleton = skeletonOnDemand(() => import("@/components/Profile
 const LoginRouteSkeleton = skeletonOnDemand(() => import("@/components/LoginRouteSkeleton"));
 const MessagesRouteSkeleton = skeletonOnDemand(() => import("@/components/MessagesRouteSkeleton"));
 const DeclutterRouteSkeleton = skeletonOnDemand(() => import("@/components/DeclutterRouteSkeleton"));
-// Static on purpose (Q1107): a lazy banner must be fetched to say the network
-// is down. lucide and supabase are in main's graph anyway (2026-10-05 build).
-// Guard: src/test/offlineSurfacesAreStatic.test.ts.
+// Static on purpose (Q1107): a lazy banner must be fetched to say the network is down. lucide and supabase are in
+// main's graph anyway (2026-10-05 build). Guard: src/test/offlineSurfacesAreStatic.test.ts.
 import OfflineBanner from "@/components/OfflineBanner";
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import RouteMemory from "@/components/RouteMemory";
 import StaleClientWatch from "@/components/StaleClientWatch";
-// Tiny + Supabase-free by design (a synchronous localStorage probe plus a
-// lazy boundary) so it can be imported eagerly here without putting the
-// auth check — and therefore Supabase — on the landing page's LCP path.
+// Tiny + Supabase-free by design (a synchronous localStorage probe plus a lazy boundary) so it can be imported eagerly
+// here without putting the auth check — and therefore Supabase — on the landing page's LCP path.
 import MarketingRedirect from "@/components/MarketingRedirect";
 import { AppLockGate } from "@/components/AppLockGate";
 import { ForceUpdateGate } from "@/components/ForceUpdateGate";
@@ -75,16 +72,13 @@ import { ICON_STROKE_PX } from "@/lib/iconWeight";
 // /quotes is retired (owner 2026-10-19): old hub links redirect to Posts, Jobs or My Jobs (src/lib/quotes/homes.ts).
 // A thin host: the dialog's chunk loads on the first ask or once the page settles (B86).
 const PermissionRationaleMount = optionalLazy(() => import("@/components/PermissionRationaleMount").then((m) => ({ default: m.PermissionRationaleMount })), "PermissionRationaleMount");
-// Terms re-consent and the one Stripe Identity sheet (owner 2026-10-21): small
-// always-mounted parts that fetch their dialog only when it has to show
-// (src/components/TermsReconsentMount.tsx, identity/IdentityCheckMount.tsx).
+// Terms re-consent and the one Stripe Identity sheet (owner 2026-10-21): small always-mounted parts that fetch their
+// dialog only when it has to show (src/components/TermsReconsentMount.tsx, identity/IdentityCheckMount.tsx).
 const TermsReconsentMount = optionalLazy(() => import("@/components/TermsReconsentMount").then((m) => ({ default: m.TermsReconsentMount })), "TermsReconsentMount");
 const IdentityCheckMount = optionalLazy(() => import("@/components/identity/IdentityCheckMount").then((m) => ({ default: m.IdentityCheckMount })), "IdentityCheckMount", () => { (window as Window & { __lhIdentitySheetUnavailable?: boolean }).__lhIdentitySheetUnavailable = true; window.dispatchEvent(new Event("lh:identity-sheet-unavailable")); });
 
-// Lazy load all pages including landing
+// Lazy load all pages, the landing page included.
 const Index = lazyWithPreload(() => import("./pages/info/Index"));
-
-// Lazy load all other pages
 const Login = lazyWithPreload(() => import("./pages/auth/Login"));
 const Signup = lazyWithPreload(() => import("./pages/auth/Signup"));
 const SignupPending = lazyWithPreload(() => import("./pages/auth/SignupPending"));
@@ -93,8 +87,7 @@ const AccountBanned = lazyWithPreload(() => import("./pages/auth/AccountBanned")
 const ForgotPassword = lazyWithPreload(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword = lazyWithPreload(() => import("./pages/auth/ResetPassword"));
 const Unsubscribe = lazyWithPreload(() => import("./pages/auth/Unsubscribe"));
-// HOME (owner final decisions, 2026-10-19): the app opens on the dashboard
-// for every section; the job feed moved to Jobs > Browse.
+// HOME (owner final decisions, 2026-10-19): the app opens on the dashboard for every section; the job feed moved to Jobs > Browse.
 const HomeDashboard = lazyWithPreload(() => import("./pages/home/HomeDashboard"));
 const Profile = lazyWithPreload(() => import("./pages/profile/Profile"));
 // Lazy: it reads useAuthReady, which pulls the Supabase client.
@@ -128,8 +121,7 @@ const DeclutterGuestOrMember = lazy(() => import("./components/declutter/Declutt
 const DeclutterSellPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSellPage"));
 const DeclutterMovePage = lazyWithPreload(() => import("./pages/declutter/DeclutterMovePage"));
 const DeclutterSettingsPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSettingsPage"));
-// Quotes on jobs (owner Q1-Q8): each page renders the 404 unless the hidden
-// 'quotes' switch is on for the member (QuotesGate).
+// Quotes on jobs (owner Q1-Q8): each page renders the 404 unless the hidden 'quotes' switch is on for the member (QuotesGate).
 const QuoteRequestPage = lazyWithPreload(() => import("./pages/quotes/QuoteRequestPage"));
 // Board 181: the Helpr's "X tipped you" moment (the tip notification opens it).
 const TipMoment = lazyWithPreload(() => import("./pages/tips/TipMoment"));
@@ -145,8 +137,7 @@ const PublicProfilePage = lazyWithPreload(() => import("./pages/u/PublicProfileP
 const UserProfileRoute = lazy(() => import("./components/profile/PublicProfileForward").then((m) => ({ default: m.UserProfileRoute })));
 const BookHelprRoute = lazy(() => import("./components/profile/PublicProfileForward").then((m) => ({ default: m.BookHelprRoute })));
 const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"));
-// Rentals S1 (docs/specs/landlord-hub-prep.md): the 404 unless the hidden
-// 'rentals' switch is on for the member (RentalsGate).
+// Rentals S1 (docs/specs/landlord-hub-prep.md): the 404 unless the hidden 'rentals' switch is on for the member (RentalsGate).
 const RentalsPage = lazyWithPreload(() => import("./pages/rentals/RentalsPage"));
 const RentalsInvitePage = lazyWithPreload(() => import("./pages/rentals/RentalsInvitePage"));
 const MaintenanceRequestPage = lazyWithPreload(() => import("./pages/rentals/MaintenanceRequestPage"));
@@ -161,9 +152,8 @@ const JobDetail = lazyWithPreload(() => import("./pages/jobs/JobDetail"));
 const JobsSettings = lazyWithPreload(() => import("./pages/jobs/JobsSettings"));
 const DashboardGuest = lazyWithPreload(() => import("./pages/home/DashboardGuest"));
 
-// The seven pages that used to be lazy-imported here are now Profile tabs and
-// are lazy-imported by ProfileTabPanels instead: PetProfiles, WorkRecord,
-// HomeHistory, HelprWrapped, StrSettings, HelperAnalytics, AutoTip.
+// The seven pages that used to be lazy-imported here are now Profile tabs, lazy-imported by ProfileTabPanels instead:
+// PetProfiles, WorkRecord, HomeHistory, HelprWrapped, StrSettings, HelperAnalytics, AutoTip.
 const HelpCenter = lazyWithPreload(() => import("./pages/info/HelpCenter"));
 const HireTownPage = lazyWithPreload(() => import("./pages/info/HireTownPage"));
 const SmsOptIn = lazyWithPreload(() => import("./pages/info/SmsOptIn"));
@@ -182,20 +172,17 @@ const Support = lazyWithPreload(() => import("./pages/info/Support"));
 const COLD_ROUTE_PAGES: Record<string, { preload: () => void }> = { "/jobs": JobsPage };
 if (typeof window !== "undefined") COLD_ROUTE_PAGES[window.location.pathname.replace(/(.)\/+$/, "$1")]?.preload();
 
-// Lazy load less-critical global components
+// Lazy load less-critical global components and the route wrappers.
 const StrikeBanner = optionalLazy(() => import("./components/StrikeBanner"), "StrikeBanner");
-
-// Lazy load route wrappers
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 // B90: Admin's page chunk starts WITH its gate, not a round later (AdminRoute still decides; see boot/profileRoute.ts).
 const AdminRoute = lazy(() => (Admin.preload(), import("./components/AdminRoute")));
 
 /**
- * The landing page's load fallback: the plain page background and nothing
- * else (owner, 2026-09-23: no H loader and no dashboard-shaped skeleton
- * before the landing page; a guest saw the generic route skeleton, then the
- * landing page, which read as a jump). Same ground as the #boot-loader shell
- * in index.html, so boot -> chunk load -> landing paints as one surface.
+ * The landing page's load fallback: the plain page background and nothing else (owner, 2026-09-23: no H loader and no
+ * dashboard-shaped skeleton before the landing page; a guest saw the generic route skeleton, then the landing page,
+ * which read as a jump). Same ground as the #boot-loader shell in index.html, so boot -> chunk load -> landing paints
+ * as one surface.
  */
 const LandingPlainFallback = () => <div className="min-h-screen bg-premium-page" aria-busy="true" />;
 
@@ -204,6 +191,17 @@ const LandingPlainFallback = () => <div className="min-h-screen bg-premium-page"
 const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFallback />) => (
   <Suspense fallback={fallback}>{node}</Suspense>
 );
+
+/**
+ * Owner 2026-11-17: the Holiday Gift Guides are a hidden preview. Without ?preview=1, /gift-guides goes home exactly as
+ * before (and loads nothing); with it, the lazy page renders (its element is only created, never loaded, on the way home). The param check is inline so the gift-guide content
+ * never joins the entry chunk. Guard: src/test/giftGuidesPage.test.tsx.
+ */
+function GiftGuidesPreviewGate({ children }: { children: ReactElement }) {
+  const [params] = useSearchParams();
+  if (params.get("preview") !== "1") return <Navigate to="/" replace />;
+  return children;
+}
 
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
@@ -468,7 +466,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* F255 (owner 2026-11-11): costs, safety; 11-16 Holiday Gift Guides (src/content/giftGuides.ts). */}
       <Route path="/fees" element={<RouteErrorBoundary>{routeEl(<PageTransition><Fees /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/safety" element={<RouteErrorBoundary>{routeEl(<PageTransition><Safety /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Owner 2026-11-17: the gift guides are not visible yet; /gift-guides goes home. The owner reviews the page at
+          /gift-guides?preview=1 (GiftGuidesPreviewGate); nothing links there. */}
+      <Route path="/gift-guides" element={<GiftGuidesPreviewGate><RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary></GiftGuidesPreviewGate>} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).
           Same as above: no redirect exists, and none is warranted on current

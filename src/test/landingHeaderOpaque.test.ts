@@ -3,10 +3,10 @@
  * --lp-ground the content scrolling under it showed through at 375 ("JUST
  * FINISHED" and a job photo behind the logo row). Every rule outside a media
  * block that paints `.landing-page .glass-nav` must give an opaque colour, and
- * the token it reads (--lp-ground) must be opaque in light and dark. The hero
- * itself is not touched.
+ * the token it reads (--lp-page since owner 2026-11-17, the white page; --lp-ground before) must be opaque in light
+ * and dark. The hero itself is not touched.
  */
-// @mutate src/index.css | .landing-page .glass-nav { background-color: var(--lp-ground); } | .landing-page .glass-nav { background-color: color-mix(in srgb, var(--lp-ground) 84%, transparent); }
+// @mutate src/index.css | .landing-page .glass-nav { background-color: var(--lp-page); } | .landing-page .glass-nav { background-color: color-mix(in srgb, var(--lp-page) 84%, transparent); }
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -50,8 +50,8 @@ describe("the landing's top bar is opaque (P5-7)", () => {
     expect(bgs.filter(translucent)).toEqual([]);
   });
 
-  it("--lp-ground, the colour it paints, is opaque in light and dark", () => {
-    const grounds = [...CSS.matchAll(/--lp-ground:\s*([^;]+);/g)].map((m) => m[1].trim());
+  it("--lp-page, the colour it paints, is opaque in light and dark", () => {
+    const grounds = [...CSS.matchAll(/--lp-page:\s*([^;]+);/g)].map((m) => m[1].trim());
     expect(grounds.length).toBeGreaterThan(1);
     expect(grounds.filter(translucent)).toEqual([]);
   });

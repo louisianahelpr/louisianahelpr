@@ -212,7 +212,7 @@ filter on this column." Transactional mail is exempt and does not read it.
 
 **LOCKED, never rewritten by any agent, in any layer, for any reason:**
 - The landing hero H1 — `src/components/landing/HeroSection.tsx:152-161`:
-  **"Louisiana's Local Job Partner."** ("Partner." set in italic burnt-sienna.)
+  **"Louisiana's Local Job Partner."** (Since 2026-11-17 by owner decision: one colour, sans heading font, no italic accent word; the shipped wording is "Louisiana's local partner.")
 - Its subhead — `HeroSection.tsx:174`: **"Hire a Helpr or find local work. For
   everyday jobs, big and small."**
 

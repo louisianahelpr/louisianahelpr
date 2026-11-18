@@ -9,7 +9,7 @@
  * @mutate src/pages/posts/EditJobDialog.tsx |       <DialogContent keepClose> |       <DialogContent>
  * @mutate src/pages/posts/EditJobDialog.tsx | Leave the start time blank | Leave Start Time blank
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |       <h2 id="no-applicants-title" className="text-ds-17 font-semibold text-foreground">{t("jobPage.noApplicants")}</h2> |       <h2 id="no-applicants-title" className="font-display font-moment text-ds-28 font-semibold">{t("jobPage.noApplicants")}</h2>
- * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |       <h3 className="sr-only">Want replies sooner?</h3> |       <h3 className="pt-2 text-left text-ds-12 font-semibold uppercase tracking-wide text-muted-foreground">Want replies sooner?</h3>
+ * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |       <h3 className="sr-only">{t("jobPage.repliesSooner")}</h3> |       <h3 className="pt-2 text-left text-ds-12 font-semibold uppercase tracking-wide text-muted-foreground">Want replies sooner?</h3>
  * @mutate src/components/profile/DeleteAccountDialog.tsx |     <div className="my-1 grid gap-3" data-delete-lists=""> |     <div className="my-1 grid gap-3 sm:grid-cols-2" data-delete-lists="">
  * @mutate src/components/profile/DeleteAccountDialog.tsx | className="font-semibold text-primary underline underline-offset-2">{t("deleteAccount.breakLink")} | className="font-semibold underline underline-offset-2">{t("deleteAccount.breakLink")}
  * @mutate src/pages/info/legal/LegalChrome.tsx |       <span className="text-ds-15 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-tldr-heading=""> |       <span className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-tldr-heading="">

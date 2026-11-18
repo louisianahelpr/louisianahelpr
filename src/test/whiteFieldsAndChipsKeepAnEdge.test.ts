@@ -10,7 +10,7 @@
  * @mutate src/index.css | label[for].bg-card,
  | 
  * @mutate src/index.css | [data-field-edge].bg-card {\n  border-color: hsl(var(--border)) !important; | [data-field-edge].bg-card {\n  border-color: transparent !important;
- * @mutate src/components/declutter/DeclutterManageListing.tsx | <div className={field} data-field-edge=""> | <div className={field}>
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | <div className={field} data-field-edge="">\n          <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>\n          <input id="manage-price" | <div className={field}>\n          <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>\n          <input id="manage-price"
  * @mutate src/pages/profile/giftCards/OccasionChips.tsx | border: "1px solid hsl(var(--border))", | border: "1px solid hsl(var(--bark) / 0.18)",
  */
 import { readFileSync } from "node:fs";

@@ -10,7 +10,7 @@
  * @mutate supabase/migrations/20261112094500_shops_review_report.sql | 'Thanks for your report about ' \|\| v_noun | 'Thanks for your report about ' \|\| coalesce(NEW.description, '')
  * @mutate supabase/migrations/20261102015348_reporter_hears_the_outcome.sql |   AFTER UPDATE OF status ON public.reports |   AFTER INSERT ON public.reports
  * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | SET status = CASE WHEN reporter_id IS NULL THEN 'resolved' ELSE 'dismissed' END | SET status = 'resolved'
- * @mutate src/components/ReportDialog.tsx | We&apos;ll send you a notice when we&apos;ve looked into it | There&apos;s no automatic status update
+ * @mutate src/lib/i18n/enReport.ts | "rep.notice": "We'll send you a notice when we've looked into it. | "rep.notice": "There's no automatic status update.
  */
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -64,8 +64,10 @@ describe("the reporter hears the outcome of a report", () => {
   });
 
   it("the Report sheet says the reporter will hear back", () => {
-    const src = readFileSync("src/components/ReportDialog.tsx", "utf8");
-    expect(src).toContain("We&apos;ll send you a notice when we&apos;ve looked into it");
-    expect(src).not.toContain("There&apos;s no automatic status update");
+    // Design audit r3 #8: the words live in the Report dialog's dictionary now (Spanish beside them, esReport.ts).
+    expect(readFileSync("src/components/ReportDialog.tsx", "utf8")).toContain('{t("rep.notice")}');
+    const src = readFileSync("src/lib/i18n/enReport.ts", "utf8");
+    expect(src).toContain("We'll send you a notice when we've looked into it");
+    expect(src).not.toContain("There's no automatic status update");
   });
 });

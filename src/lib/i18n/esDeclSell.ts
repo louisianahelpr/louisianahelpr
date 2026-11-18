@@ -179,4 +179,6 @@ export const esDeclSell: Record<keyof typeof enDeclSell, string> = {
   "dsl.photos.group": "Fotos",
   "dsl.ms.miles": "{n} mi",
   "dsl.ms.showMore": "Ver {n} más",
+  "dsl.item.buyersPay": "Los compradores pagan {amount} con la tarifa",
+  "dsl.item.publicPage": "Ver su página pública",
 };

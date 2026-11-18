@@ -184,6 +184,8 @@ export const enDeclSell = {
   "dsl.photos.group": "Photos",
   "dsl.ms.miles": "{n} mi",
   "dsl.ms.showMore": "Show {n} more",
+  "dsl.item.buyersPay": "Buyers pay {amount} with the fee",
+  "dsl.item.publicPage": "See your public page",
 } as const;
 
 addEnglish(enDeclSell);

@@ -41,7 +41,7 @@
  * @mutate src/lib/shops/orders.ts |   if (!terms.open_weekdays.includes(new Date(isoToUtc(iso)).getUTCDay())) return "closed"; |   if (false) return "closed";
  * @mutate src/lib/shops/orders.ts |   if (terms.full_days.includes(iso)) return "full"; |   if (false) return "full";
  * @mutate src/components/shops/ShopMyOrdersView.tsx |               {o.status === "held" && ( |               {o.status !== "declined" && (
- * @mutate src/components/shops/ShopMyOrdersView.tsx |     if (params.get("sent") !== "1") return; |     return;
+ * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (sent === "1") return | if (sent === "never") return
  * @mutate src/components/shops/ShopHandoverActions.tsx | onClick={() => ready.mutate(null)}>Mark ready</Button> | onClick={() => finish.mutate()}>Mark ready</Button>
  * @mutate src/components/shops/ShopHandoverActions.tsx |       ) : side === "shop" ? ( |       ) : side === "shop" && false ? (
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (declining) decline.mutate({ id: declining.id, why: reason }); |           if (declining) decline.mutate({ id: declining.id, why: "" });

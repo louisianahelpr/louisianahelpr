@@ -14,6 +14,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import type { MsgKey } from "./en";
 import { englishWords } from "./enRegistry";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { setCurrentLang } from "./currentLang";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -51,6 +52,7 @@ function emit() {
 }
 
 function applyHtmlLang() {
+  setCurrentLang(lang);
   if (typeof document !== "undefined") document.documentElement.lang = lang;
 }
 

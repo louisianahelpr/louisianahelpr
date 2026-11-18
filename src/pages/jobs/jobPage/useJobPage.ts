@@ -76,6 +76,8 @@ export interface JobPageRow {
   revision_requested_at?: string | null;
   revision_completed_at?: string | null;
   revision_acceptance_deadline?: string | null;
+  /** Stamped by report_helper_no_show (Area 11 H3): the poster's cancelled line names the no-show. */
+  no_show_reported_at?: string | null;
   /** The photo rule and the photos taken (party read only): the hired Helpr's line and button hang on them, as on
    *  the Working card (audit 2026-10-28 F1/F26: without them every arrived job read "Take the before photo"). */
   require_photo_proof?: boolean | null;

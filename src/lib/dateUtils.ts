@@ -1,5 +1,5 @@
 import { jobLocalStartMs } from "../../supabase/functions/_shared/cancellationFee";
-import { getLang } from "@/lib/i18n/language";
+import { getLang } from "@/lib/i18n/currentLang";
 
 /**
  * Parse a date string like "2026-04-12" into a local Date without timezone shifts.

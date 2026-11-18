@@ -141,7 +141,7 @@ describe("Suggest a category: hidden, gated, closed (20261015051141)", () => {
  * The list is explicit (no directory walk); each file must still draw its
  * picker, so a moved picker fails here instead of silently dropping the link.
  */
-const PICKERS: ReadonlyArray<{ file: string; picker: RegExp; area: "jobs" | "declutter" }> = [
+const PICKERS: ReadonlyArray<{ file: string; picker: RegExp; area: "jobs" | "declutter" | "shops" }> = [
   { file: "src/components/postjob/JobCategoryGroups.tsx", picker: /JOB_CATEGORY_GROUPS\.map\(groupTile\)/, area: "jobs" },
   { file: "src/components/declutter/SellSummaryCard.tsx", picker: /<CategoryDrillDown label=\{t\("sell\.category"\)\}/, area: "declutter" },
   { file: "src/components/declutter/DeclutterSellView.tsx", picker: /<CategoryDrillDown label=\{tr\("sf\.ds\.category"\)\}/, area: "declutter" },

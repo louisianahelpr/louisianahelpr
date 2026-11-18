@@ -534,7 +534,7 @@ describe("design audit r2 #34: the inbox rows in Spanish", () => {
       expect(rowAge(new Date(now - 3 * 3600_000).toISOString(), now)).toBe("3 h");
       expect(rowAge("2026-11-05T18:00:00Z", now)).toMatch(/nov/i);
       expect(rowAge("2026-11-05T18:00:00Z", now)).not.toMatch(/Nov 5/);
-      expect(threadRoleCaption({ teamThread: false, viewerIsPoster: true, viewerIsAssignedHelper: false, jobStatus: "open" })).toBe("Su trabajo");
+      expect(threadRoleCaption({ teamThread: undefined, viewerIsPoster: true, viewerIsAssignedHelper: false, jobStatus: "open" })).toBe("Su trabajo");
     } finally {
       setLang("en");
     }

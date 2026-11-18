@@ -39,6 +39,7 @@ const QUEUE_NAME: Record<(typeof ADMIN_QUEUE_IDS)[number], string> = {
   disputes: "Disputes",
   reports: "Reports",
   support: "Support",
+  declutter: "Declutter",
 };
 
 /**

@@ -41,6 +41,14 @@ export default function GiftGuides() {
   usePageMeta(guide ? giftGuidePageMeta(guide.slug, guide.title) : PUBLIC_PAGE_META["/gift-guides"]);
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
+  // Visual check 11-18: at 375 the long pill squeezed "Gift guides" into "Gift / guid / es"; phones get the short words.
+  const shipTail = " for Christmas delivery";
+  const shipPill = ship ? (
+    <p className="gg-ship whitespace-nowrap" data-gift-ship="">
+      {ship.endsWith(shipTail) ? ship.slice(0, -shipTail.length) : ship}
+      {ship.endsWith(shipTail) && <span className="hidden sm:inline">{shipTail}</span>}
+    </p>
+  ) : undefined;
   const myList = !guide && params.get("list") === "mine";
   const group = ROWS.find((r) => r.row === groupParam)?.row ?? (null as GuideRow | null);
 
@@ -66,7 +74,7 @@ export default function GiftGuides() {
 
   return (
     <PublicHeaderPage title={G.pageTitle} backTo={guide ? "/gift-guides" : "/"} bottomPaddingClassName="pb-12 md:pb-16"
-      titleActions={ship ? <p className="gg-ship whitespace-nowrap" data-gift-ship="">{ship.replace(/ for Christmas delivery$/, "")}<span className="hidden sm:inline">{ship.endsWith(" for Christmas delivery") ? " for Christmas delivery" : ""}</span></p> : undefined}>
+      titleActions={shipPill}>
       <style>{GIFT_GUIDES_CSS}</style>
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="">

@@ -149,7 +149,7 @@ function renderAt(url: string) {
 describe("gift guides: the shipping pill rides the page header's row (owner 11-18 PM)", () => {
   // Owner: "the order by should be on the same line as gift guides but on the right, move the rest up". The pill is the
   // header's title action (same row as "← Gift guides"), never a row of its own above the hero.
-  // @mutate src/pages/info/GiftGuides.tsx |       titleActions={ship ? <p className="gg-ship" data-gift-ship="">{ship}</p> : undefined}> |       >{ship && <p className="gg-ship" data-gift-ship="">{ship}</p>}
+  // @mutate src/pages/info/GiftGuides.tsx |       titleActions={shipPill}> |       >{shipPill}
   it("on the landing and on a guide, the pill sits in the header row beside the title, outside the page body", () => {
     let checked = 0;
     for (const url of ["/gift-guides", "/gift-guides/mom"]) {

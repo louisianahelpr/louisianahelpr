@@ -71,6 +71,7 @@ export const enMessages = {
   "msg.jumpNewOneAria": "Jump to 1 new message",
   "msg.jumpNewNAria": "Jump to {n} new messages",
   "msg.reportUser": "Report user",
+  "msg.reportName": "Report {name}",
   "msg.reportUserBody": "Tell our team about a problem.",
   "msg.hideConvoTitle": "Hide this conversation?",
   "msg.deleteTitle": "Delete message?",

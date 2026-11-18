@@ -211,12 +211,20 @@ describe("Messages on the top row, inside the Inbox icon (owner 11-14, merged wi
     expect(screen.getByTestId("where").textContent).toBe("/messages");
   });
 
-  it("no badge at 0; lit (aria-current) on the Inbox itself", async () => {
-    renderPhone("/messages");
+  it("no badge at 0", async () => {
+    renderPhone("/profile", false);
     const inbox = await screen.findByTestId("top-bar-inbox");
     expect(inbox.querySelector("[data-top-bar-badge]")).toBeNull();
     expect(inbox.getAttribute("aria-label")).toBe("Inbox");
-    expect(inbox.getAttribute("aria-current")).toBe("page");
+  });
+
+  // Area 08 M7: the Inbox page's own tabs carry the counts, so the top bar's icon and badge are not drawn there.
+  // @mutate src/components/inbox/InboxButton.tsx |   if (here) return null;\n | \n
+  it("is not drawn on the Inbox itself (/messages)", async () => {
+    unread.n = 12;
+    renderPhone("/messages");
+    await screen.findByTestId("app-top-bar");
+    expect(screen.queryByTestId("top-bar-inbox")).toBeNull();
   });
 
   it("You's title row (no search) has it too", async () => {

@@ -1,6 +1,8 @@
 import { ListRow } from "@/components/ui/ListRow";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useState } from "react";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatParts";
 import type React from "react";
 import { useInRouterContext, useNavigate } from "react-router-dom";
 import { ShieldAlert, Share2, Loader2, Phone, MessageCircle, ChevronRight } from "lucide-react";
@@ -167,6 +169,7 @@ export function SafetyShieldButton({
     <>
       <RoundIconButton
         aria-label="SOS — are you safe?"
+        title={t("cp.safety")}
         data-sos-shield=""
         onClick={() => setOpen(true)}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
@@ -178,6 +181,19 @@ export function SafetyShieldButton({
       >
         <ShieldAlert className="w-5 h-5" aria-hidden />
       </RoundIconButton>
+      {/* Area 08 L6 (design audit 11-18): a red shield alone said nothing on first view. Its word beside it, the
+          same tap (the button above carries the name for screen readers). */}
+      <button
+        type="button"
+        aria-hidden
+        tabIndex={-1}
+        data-sos-shield-label=""
+        onClick={() => setOpen(true)}
+        className="hidden min-[360px]:inline font-sans font-semibold text-ds-11 pr-1"
+        style={{ color: SOS_TINT.color }}
+      >
+        {t("cp.safety")}
+      </button>
       <SosShareSheet jobId={job.id} open={open} onOpenChange={setOpen} />
     </>
   );

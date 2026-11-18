@@ -31,7 +31,7 @@ describe("continueDayNextStep", () => {
     expect(nextStepWords(continueDayNextStep(row(), { side: "poster", otherFirst: "Yusef" })!)).toBe("Yusef comes back Thu, Nov 5 at 9:00 AM · nothing for you to do; Yusef confirms next"); // F289a
     // Auditor 11 (11-01): once the Helpr confirms, the poster's line says so.
     expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-02T12:00:00Z" }), { side: "poster", otherFirst: "Yusef" })!)).toBe("Yusef confirmed Thu, Nov 5 at 9:00 AM");
-    expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", otherFirst: "Dana" })!)).toBe("Next: confirm you'll be there · continuing Thu, Nov 5 at 9:00 AM");
+    expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", otherFirst: "Dana" })!)).toBe("Next: confirm you'll be there · for Thu, Nov 5 at 9:00 AM");
     expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-05T12:00:00Z" }), { side: "helpr", otherFirst: "Dana" })!))
       .toBe("You're set for Thu, Nov 5 at 9:00 AM · mark it done when you finish");
   });

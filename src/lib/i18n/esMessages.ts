@@ -65,6 +65,7 @@ export const esMessages: Record<keyof typeof enMessages, string> = {
   "msg.jumpNewOneAria": "Ir a 1 mensaje nuevo",
   "msg.jumpNewNAria": "Ir a {n} mensajes nuevos",
   "msg.reportUser": "Reportar al usuario",
+  "msg.reportName": "Reportar a {name}",
   "msg.reportUserBody": "Cuéntele a nuestro equipo sobre un problema.",
   "msg.hideConvoTitle": "¿Ocultar esta conversación?",
   "msg.deleteTitle": "¿Borrar el mensaje?",

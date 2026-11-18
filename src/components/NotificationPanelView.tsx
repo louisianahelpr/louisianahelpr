@@ -286,13 +286,9 @@ export function NotificationPanelView({
                       borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)",
                     }}
                   >
+                    {/* Area 08 M8 (design audit 11-18): no count beside the day. It was a fourth number on the tab
+                        (badge, Unread chip, day total) and it counted read rows too; the Unread chip is the one count. */}
                     <span>{group.label}</span>
-                    <span
-                      className="tabular-nums font-sans text-ds-11 font-normal"
-                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                    >
-                      {group.items.length}
-                    </span>
                   </div>
                   {/* AnimatePresence with initial={false} — only NEW
                       notifications animate in (realtime arrivals slide

@@ -360,7 +360,9 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
         is registered; then the Text alerts card; then the switches. */}
     {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />}
     {textAlerts}
-    <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
+    {/* Area 08 M16: overflow-clip, not overflow-hidden, so the App / Email header below can stick (a hidden overflow
+        makes this card the sticky's scroller, and it never scrolls). It still clips the rounded corners. */}
+    <div className="rounded-2xl liquid-glass overflow-clip shadow-sm">
       {/* The saved settings could not be read: say so, offer a retry, and keep
           every switch below disabled so no press can save the defaults over
           them (Q2311). */}
@@ -372,10 +374,13 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
           the master row now carries its own two-column switch pair too.
           Fixed-width slots keep the labels aligned with their toggles
           regardless of icon/text rendering quirks across browsers. */}
+      {/* Area 08 M16 (design audit 11-18): the App / Email labels scrolled away for seven screens of switches. They stay
+          at the top while the switches scroll, on an opaque fill (the same tint laid over the card colour). */}
       <div
-        className="flex items-center justify-end px-4 py-1.5 shrink-0"
+        data-prefs-column-header=""
+        className="sticky top-0 z-20 flex items-center justify-end px-4 py-1.5 shrink-0"
         style={{
-          background: "hsl(var(--ivory-sand) / 0.4)",
+          background: "linear-gradient(hsl(var(--ivory-sand) / 0.4), hsl(var(--ivory-sand) / 0.4)), hsl(var(--card))",
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)",
         }}
       >

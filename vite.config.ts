@@ -235,7 +235,7 @@ const HOME_SCHEDULE_READS = /[\\/]src[\\/]lib[\\/](scheduleChange|scheduleClashe
 // Q2706 (B98): Home's shop-order reads (useHomeSummary / useNeedsYouTodos import("@/lib/shops/orders")). In signed-in-deep
 // they fetched that chunk and its closure (browse-first-screen, declutter-first-screen, signed-in-pages, ...) ~180 KB gz
 // the moment the feature switches answered, before /home's money tile drew. src/test/homeLazyReadsStayLight.test.ts.
-const HOME_SHOP_READS = /[\\/]src[\\/]lib[\\/]shops[\\/](orders|rpcErrorCopy|errors)\.ts$/;
+const HOME_SHOP_READS = /[\\/]src[\\/]lib[\\/]shops[\\/](orders|rpcErrorCopy|errors|louisianaClock)\.ts$/;
 const HOME_DERIVE_LEAVES = /[\\/]src[\\/](pages[\\/]home[\\/]homeDashboard[\\/]useNeedsYouTodos|components[\\/]tracker[\\/]jobProgressSteps|components[\\/]job-card[\\/]helperStepRequest)\.ts$/;
 // Builder 1, 11-11: and BrowseViewToggle (the filter sheet's List/Map control): Declutter's browse bar imports it, and in
 // browse-first-screen that one 0.4 KB module put the whole 20.6 KB gz guest-browse chunk on /declutter (481 -> 456 KB gz

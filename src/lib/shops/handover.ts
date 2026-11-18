@@ -33,7 +33,7 @@ export const HANDOVER_MODE_TEXT: Record<HandoverMode, { label: string; detail: s
   },
   porch: {
     label: "Left out for pickup",
-    detail: "You leave the order out and take a photo of it. The buyer taps \"I got it\". With your photo, you're paid 48 hours after it (or after the ready day starts, if that is later) unless the buyer reports a problem.",
+    detail: "You leave the order out and take a photo of it. The buyer taps \"I got it\". With your photo, you're paid 48 hours after the photo (or after the ready day starts, if that is later) unless the buyer reports a problem.",
   },
 };
 export const HANDOVER_MODES = Object.keys(HANDOVER_MODE_TEXT) as HandoverMode[];

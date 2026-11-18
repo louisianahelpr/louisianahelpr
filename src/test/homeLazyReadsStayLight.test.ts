@@ -38,7 +38,7 @@ const GROUPS: { name: string; re: string; files: string[]; allow?: string[] }[] 
   { name: "home-schedule-reads", re: "HOME_SCHEDULE_READS", files: ["src/lib/scheduleChange.ts", "src/lib/scheduleClashes.ts", "src/lib/notDeployedYet.ts"] },
   // Its one shared module, declutter/errors.ts (ListingPhotoError), rides item-shared: a leaf chunk (~10 KB gz) that
   // imports only app-shared and supabase, never signed-in-deep's closure (checked on the built chunk, B98).
-  { name: "home-shop-reads", re: "HOME_SHOP_READS", files: ["src/lib/shops/orders.ts", "src/lib/shops/rpcErrorCopy.ts", "src/lib/shops/errors.ts"], allow: ["src/lib/declutter/errors.ts"] },
+  { name: "home-shop-reads", re: "HOME_SHOP_READS", files: ["src/lib/shops/orders.ts", "src/lib/shops/rpcErrorCopy.ts", "src/lib/shops/errors.ts", "src/lib/shops/louisianaClock.ts"], allow: ["src/lib/declutter/errors.ts"] },
 ];
 
 function groupRegex(constName: string): RegExp {

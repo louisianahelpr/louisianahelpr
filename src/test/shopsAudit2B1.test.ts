@@ -34,13 +34,15 @@ describe("Shops audit 2 (Builder 1)", () => {
   it("S2-044: a waiting until_accept order still shows the rule", () => {
     expect(orderCancelLine({ ...base, status: "held", cancel_policy: "until_accept" })).toBe("Free to cancel until the shop accepts.");
   });
+  // The cutoffs are Louisiana midnights (CST, -06:00 in November), so each instant is pinned there: a device-local
+  // Date made the test pass in Chicago and fail on CI's UTC runners.
   it("S2-044: date rules show until the cutoff, then say it ended", () => {
     const o = { ...base, cancel_policy: "until_24h_before_ready" as const };
-    expect(orderCancelLine(o, new Date(2026, 10, 18, 12))).toBe("Cancel for a refund until 24 hours before the ready date.");
-    expect(orderCancelLine(o, new Date(2026, 10, 19, 1))).toBe("The cancel-for-a-refund time has ended.");
+    expect(orderCancelLine(o, new Date("2026-11-18T12:00:00-06:00"))).toBe("Cancel for a refund until 24 hours before the ready date.");
+    expect(orderCancelLine(o, new Date("2026-11-19T01:00:00-06:00"))).toBe("The cancel-for-a-refund time has ended.");
     const h = { ...base, cancel_policy: "until_handover" as const };
-    expect(orderCancelLine(h, new Date(2026, 10, 19, 23))).toMatch(/^Cancel for a refund until/);
-    expect(orderCancelLine(h, new Date(2026, 10, 20, 0, 1))).toBe("The cancel-for-a-refund time has ended.");
+    expect(orderCancelLine(h, new Date("2026-11-19T23:00:00-06:00"))).toMatch(/^Cancel for a refund until/);
+    expect(orderCancelLine(h, new Date("2026-11-20T00:01:00-06:00"))).toBe("The cancel-for-a-refund time has ended.");
   });
   it("S2-044: finished orders show nothing; the card uses the helper", async () => {
     expect(orderCancelLine({ ...base, status: "accepted", handed_over_at: "x", cancel_policy: "until_accept" })).toBeNull();

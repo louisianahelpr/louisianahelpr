@@ -21,13 +21,13 @@
  *  5. The entries: Shops home and the Profile row link the dashboard once the
  *     member has a shop.
  *
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.paused && <ShopOrderSheet shopId={s.id} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />} |         {s.offers_selling && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />}
  * H8 (b) (lead 11-05): an at-home carpet or furniture cleaning asks where, is ordered on its own, and the shop sees the
  * address only once it accepted:
  * @mutate src/components/shops/ShopOrderSheet.tsx |     && (!atHome \|\| (svcOk && !atHomeMixed)) && (!helpring |     && (!helpring
  * @mutate src/components/shops/ShopOrderSheet.tsx |         ...(atHome ? { serviceAddress: | ...(false ? { serviceAddress:
  * @mutate src/components/shops/ShopOrderCard.tsx | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over"]); | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over", "held"]);
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} hours={s.hours} />}
  * @mutate src/components/shops/shopCart.tsx | i.kind !== "digital" && (i.stock_count == null \|\| i.stock_count > 0) | i.kind !== "digital"
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0); |   const leadDays = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0; |   const feeCents = 0;
@@ -41,7 +41,7 @@
  * @mutate src/lib/shops/orders.ts |   if (!terms.open_weekdays.includes(new Date(isoToUtc(iso)).getUTCDay())) return "closed"; |   if (false) return "closed";
  * @mutate src/lib/shops/orders.ts |   if (terms.full_days.includes(iso)) return "full"; |   if (false) return "full";
  * @mutate src/components/shops/ShopMyOrdersView.tsx |               {o.status === "held" && ( |               {o.status !== "declined" && (
- * @mutate src/components/shops/ShopMyOrdersView.tsx |     if (params.get("sent") !== "1") return; |     return;
+ * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (sent === "1") return | if (sent === "never") return
  * @mutate src/components/shops/ShopHandoverActions.tsx | onClick={() => ready.mutate(null)}>Mark ready</Button> | onClick={() => finish.mutate()}>Mark ready</Button>
  * @mutate src/components/shops/ShopHandoverActions.tsx |       ) : side === "shop" ? ( |       ) : side === "shop" && false ? (
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (declining) decline.mutate({ id: declining.id, why: reason }); |           if (declining) decline.mutate({ id: declining.id, why: "" });
@@ -368,6 +368,24 @@ describe("/shops/orders", () => {
   });
 });
 
+describe("/shops/orders: what each Stripe return says (launch pass 1)", () => {
+  // @mutate src/components/shops/ShopMyOrdersView.tsx |   if (params.get("bought") === "1") return | if (params.get("bought") === "never") return
+  // @mutate src/components/shops/ShopMyOrdersView.tsx |   if (sent === "preorder") return | if (sent === "never") return
+  for (const [url, words] of [
+    ["/shops/orders?bought=1", "Thanks for your order. Your download shows on the order below once the payment goes through."],
+    ["/shops/orders?paid=1", "The rest of your custom order is paid."],
+    ["/shops/orders?sent=preorder", "Preorder placed. Your card was charged in full; the shop has it ready by its ready-by date."],
+  ] as const) {
+    it(`${url} gets its own words, never the held-card line`, async () => {
+      orders.fetchMyOrders.mockResolvedValue([order({ id: "o1", status: "accepted", captured_at: "2026-10-19T12:00:00Z" })]);
+      renderAt(url, "/shops/orders", <ShopOrdersPage />);
+      expect(await screen.findAllByTestId("shop-order-card")).toHaveLength(1);
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith(words));
+      expect(toast.success).not.toHaveBeenCalledWith(expect.stringContaining("held, not charged"));
+    });
+  }
+});
+
 describe("/shops/dashboard", () => {
   it("H8 (b): the shop sees an at-home cleaning's address once it accepted, never while the order is only held", async () => {
     api.fetchMyShopId.mockResolvedValue("s1");
@@ -429,12 +447,12 @@ describe("/shops/dashboard", () => {
     const group = await screen.findByRole("radiogroup", { name: "If you mark an order ready early" });
     const choices = within(group).getAllByRole("radio");
     expect(choices.map((b) => b.textContent?.split("Buyers")[0].split("If you")[0])).toEqual([
-      "Marking it ready ends free cancel",
+      "Marking it ready ends the refund time",
       "Marking it ready counts from the day before (default)",
-      "Marking it ready never ends free cancel early",
+      "Marking it ready never ends the refund time early",
     ]);
     expect(choices.map((b) => b.getAttribute("aria-checked"))).toEqual(["false", "false", "true"]);
-    expect(group.textContent).toContain("Buyers can cancel for free until the ready date begins, however early you mark the order ready.");
+    expect(group.textContent).toContain("Buyers can cancel for a refund until the ready date begins, however early you mark the order ready.");
     fireEvent.click(choices[0]);
     await waitFor(() => expect(orders.setReadyTapCancel).toHaveBeenCalledWith("ends_at_tap"));
     expect(orders.setReadyTapCancel).toHaveBeenCalledTimes(1);

@@ -318,7 +318,7 @@ export default function ShopEditView() {
       <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="e.g. Broussard"
         onChange={(e) => set("areaLabel", e.target.value)} required {...invalidProps("area", errors)} />
       <FieldError field="area" errors={errors} />
-      <p className="text-ds-11 text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
+      <p className="text-ds-11 text-muted-foreground">Never your street address. Buyers see only this town or neighborhood.</p>
     </div>
     <div className="flex items-start gap-2">
       <Checkbox id="shop-storefront" checked={form.storefront} onCheckedChange={(v) => set("storefront", v === true)} />

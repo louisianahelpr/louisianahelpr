@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 489,
+      "literal": 488,
       "template": 105,
-      "dynamic": 708,
+      "dynamic": 709,
       "jsx": 0
     }
   },
@@ -11641,7 +11641,7 @@
     },
     {
       "file": "src/components/shops/ShopCustomRequestSheet.tsx",
-      "line": 41,
+      "line": 43,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12361,17 +12361,17 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 73,
+      "line": 89,
       "kind": "toast.success",
       "title": {
-        "form": "literal",
-        "text": "Order sent. The shop has 24 hours to answer; your card is held, not charged."
+        "form": "dynamic",
+        "text": "said.words"
       },
       "renders": false
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 83,
+      "line": 99,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -12381,7 +12381,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 88,
+      "line": 104,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12511,7 +12511,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 170,
+      "line": 175,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12521,7 +12521,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 202,
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -27,8 +27,8 @@ vi.mock("@/lib/openExternalUrl", () => ({
   openExternalUrl: async (url: string) => { opened.urls.push(url); },
 }));
 vi.mock("@/components/DatePickerField", () => ({
-  DatePickerField: ({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) => (
-    <input id={id} aria-label="Ready date" value={value} onChange={(e) => onChange(e.target.value)} />
+  DatePickerField: ({ id, value, onChange, placeholder }: { id: string; value: string; onChange: (v: string) => void; placeholder?: string }) => (
+    <input id={id} aria-label="Ready date" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
 const setup = vi.hoisted(() => ({ cents: 0, known: true }));
@@ -60,6 +60,15 @@ beforeEach(() => {
   opened.urls = [];
   toast.error.mockClear();
   setup.cents = 0; setup.known = true;
+});
+
+// Launch pass 1: a custom order can be a service, so its date prompt never assumes a pickup.
+// @mutate src/components/shops/ShopCustomOrderForm.tsx | placeholder={firstDate ? "Pick the day it's ready" | placeholder={firstDate ? "Pick the day you'll pick it up"
+describe("the custom order's date prompt", () => {
+  it("asks for the day it's ready", async () => {
+    show();
+    expect((await screen.findByLabelText("Ready date")).getAttribute("placeholder")).toBe("Pick the day it's ready");
+  });
 });
 
 describe("S2-015: the custom-order total includes a first-time setup fee", () => {

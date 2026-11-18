@@ -228,7 +228,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   order_not_accepted: "This order isn't accepted yet.",
   // M3 (20261019071055): refunds, cancels and strikes.
   invalid_expect: "Something changed. Reload the order and try again.",
-  cancel_terms_changed: "The free-cancel time for this order has changed. Look again before cancelling.",
+  cancel_terms_changed: "The cancel terms for this order have changed. Look again before cancelling.",
   order_final: "This order was picked up and is final.",
   not_in_person: "A left-out order can't be a no-show; it finishes on its own after the ready date.",
   too_early_for_no_show: "You can report a no-show once the ready date is over.",

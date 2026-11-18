@@ -13,14 +13,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchCustomOrders } from "@/lib/shops/orders";
 import { CUSTOM_REQUEST_MAX, sendCustomRequest } from "@/lib/shops/customRequests";
+import { louisianaToday } from "@/lib/shops/preorders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopCard } from "./ShopProfile";
 
-/** S2-021: the wanted date's bounds, as the server checks them (tomorrow to 180 days out), in the member's own day. */
+/** S2-021: the wanted date's bounds, as the server checks them (tomorrow to 180 days out), in Louisiana's day
+ * (shops_send_custom_request's v_today), whatever the device's zone. */
 export function wantedDateBounds(now = new Date()): { min: string; max: string } {
-  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const at = (days: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
-  return { min: iso(at(1)), max: iso(at(180)) };
+  const [y, m, d] = louisianaToday(now.getTime()).split("-").map(Number);
+  const at = (days: number) => new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+  return { min: at(1), max: at(180) };
 }
 
 export default function ShopCustomRequestSheet({ shopId }: { shopId: string }) {

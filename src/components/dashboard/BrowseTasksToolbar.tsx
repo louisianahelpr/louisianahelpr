@@ -1,4 +1,5 @@
 import { ListRow } from "@/components/ui/ListRow";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ChevronRight, SearchCheck } from "lucide-react";
 import { whenPageSettled } from "@/lib/routePrefetch";
@@ -242,7 +243,8 @@ export function BrowseTasksToolbar({
             open={filters.filtersOpen}
             onOpenChange={filters.setFiltersOpen}
             anchorRef={filtersAnchorRef}
-            title="Filter jobs"
+            title={wordInLang("jh.f.title", "Filter jobs")}
+            moreLabel={wordInLang("jh.f.more", "More filters")}
             resultCount={resultCount}
             resultNoun={JOB_NOUN}
             activeFilterCount={filters.activeFilterCount}
@@ -269,7 +271,7 @@ export function BrowseTasksToolbar({
                 ? []
                 : [{
                     key: "view",
-                    title: "View",
+                    title: wordInLang("jh.f.view", "View"),
                     content: (
                       <BrowseViewToggle
                         view={view}

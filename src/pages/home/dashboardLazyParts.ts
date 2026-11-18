@@ -16,6 +16,10 @@ export const BirthdayPopup = lazy<ComponentType<BirthdayPopupProps>>(() => impor
 export const ApplicationSentDialog = lazy(() =>
   loadModule(() => import("@/components/dashboard/ApplicationSentDialog")).then((m) => (m ? { default: m.ApplicationSentDialog } : untilReload())),
 );
+// The quick-apply deep link (?quickApply=<id>, Q2705 pass 3): renders nothing; mounted only once a link carries one.
+export const QuickApplyHandler = lazy(() =>
+  loadModule(() => import("./QuickApplyHandler")).then((m) => (m ? { default: m.QuickApplyHandler } : untilReload())),
+);
 // Map column for the web-desktop two-pane (the map surface pulls Apple's
 // MapKit JS from the CDN — lazy so the phone/native feed never pays for it).
 export const BrowseMap = lazy(() => import("@/components/BrowseMap").then(m => ({ default: m.BrowseMap })));

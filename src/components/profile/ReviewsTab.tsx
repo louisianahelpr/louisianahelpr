@@ -2,6 +2,8 @@ import { ListRow } from "@/components/ui/ListRow";
 import { useState, useMemo } from "react";
 import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { wordInLang } from "@/lib/i18n/inLang";
+import { useLanguage } from "@/lib/i18n/language";
 /* Board 179: each review's row is AboutYouRowCard (reviewsTab/reviewsAboutYou.tsx), which draws
    its stars with the SHARED ReviewStars from reviewCard.tsx (reviewCardOneDesign.test.tsx). */
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -54,6 +56,7 @@ const sortOptions: { value: SortKey; label: string; icon: typeof Star }[] = [
 ];
 
 export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCount, onBack, onLoadMore, hasMore, loadingMore }: ReviewsTabProps) {
+  useLanguage(); // Area 04 #3 (11-18): redraw in the reader's language
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const [filter, setFilter] = useState<AboutYouFilter>("all");
   // Board 179: Declutter reviews join the job reviews in ONE list. One loading gate for both
@@ -110,7 +113,7 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
               className="font-sans mt-1 text-ds-11"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              out of 5
+              {wordInLang("jh.r.outOf5", "out of 5")}
             </p>
           </div>
           <div className="flex-1 min-w-0">
@@ -203,8 +206,9 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
           variant="inline"
           icon={Star}
           illustration={<EmptyStateIllustration variant="reviews" />}
-          title="No reviews yet"
-          body="Complete a job and your first review will show up here."
+          title={wordInLang("jh.r.noneTitle", "No reviews yet")}
+          // Area 04 #6 (11-18): true for a Helpr with 152 jobs done as well as for a new one.
+          body={wordInLang("jh.r.noneBody", "People you work for can rate you after each job.")}
           action={
             /* How-reviews-work disclosure — opens a small popover with
                the 4 rating dimensions so new helprs know what's being
@@ -218,24 +222,24 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
                   className="px-0 gap-1.5 text-ds-11 font-sans font-semibold tracking-normal active:opacity-70 [&_svg]:size-3.5"
                   style={{ color: "hsl(var(--bark))" }}
                 >
-                  <Info /> How reviews work
+                  <Info /> {wordInLang("jh.r.how", "How reviews work")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent
                 // Radix gives PopoverContent role="dialog", so without a name a
                 // screen reader announces this disclosure as bare "dialog".
-                aria-label="How reviews work"
+                aria-label={wordInLang("jh.r.how", "How reviews work")}
                 className="w-[min(92vw,320px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-4"
                 align="center"
               >
                 <p className="font-display font-bold leading-tight mb-2 text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                  Everyone who hires you leaves one overall rating.
+                  {wordInLang("jh.r.howTitle", "Everyone who hires you leaves one overall rating.")}
                 </p>
                 <ul className="space-y-1.5 font-sans text-ds-11 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Overall</span> · a 1–5 star summary of the whole job</li>
+                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{wordInLang("jh.r.overall", "Overall")}</span> · {wordInLang("jh.r.overallHint", "a 1–5 star summary of the whole job")}</li>
                 </ul>
                 <p className="font-sans text-ds-11 mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  They can leave written feedback too. Everything shows up here within minutes.
+                  {wordInLang("jh.r.written", "They can leave written feedback too. Everything shows up here within minutes.")}
                 </p>
               </PopoverContent>
             </Popover>
@@ -266,14 +270,14 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
                   }}
                 >
                   <ActiveSortIcon className="w-3.5 h-3.5" />
-                  {activeSort.label}
+                  {wordInLang(`jh.r.sort.${activeSort.value}`, activeSort.label)}
                 </button>
               </PopoverTrigger>
               <PopoverContent
                 // Radix gives PopoverContent role="dialog"; without a name a
                 // screen reader announces this sort menu as bare "dialog".
                 // Same reason as the disclosure popover above.
-                aria-label="Sort reviews"
+                aria-label={wordInLang("jh.r.sortAria", "Sort reviews")}
                 className="w-[min(92vw,200px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
                 align="end"
               >
@@ -290,7 +294,7 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
                       }`}
                     >
                       <OptIcon className="w-3.5 h-3.5" />
-                      {opt.label}
+                      {wordInLang(`jh.r.sort.${opt.value}`, opt.label)}
                     </ListRow>
                   );
                 })}
@@ -308,7 +312,7 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
               disabled={loadingMore}
               className="w-full mt-2"
             >
-              {loadingMore ? "Loading…" : "Load more reviews"}
+              {loadingMore ? wordInLang("jh.r.loading", "Loading…") : wordInLang("jh.r.more", "Load more reviews")}
             </Button>
           )}
         </div>

@@ -1,6 +1,6 @@
 // PROVEN ABLE TO FAIL: putting the label back in Title Case ("Sign Up to
 // Apply") makes this red.
-// @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx | const guestCtaLabel = "Sign up to apply"; | const guestCtaLabel = "Sign Up to Apply";
+// @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx | const guestCtaLabel = wordInLang("jh.s.signUpApply", "Sign up to apply"); | const guestCtaLabel = wordInLang("jh.s.signUpApply", "Sign Up to Apply");
 
 /**
  * Q248(a) once held this guest CTA in Title Case ("Sign Up to Apply"). The
@@ -18,7 +18,8 @@ const FILE = resolve(__dirname, "../components/dashboard/jobDetailDialog/JobDeta
 describe("Q248(a) / Q2619: guest apply CTA is sentence case (owner 2026-10-21)", () => {
   it("labels the guest CTA \"Sign up to apply\"", () => {
     const src = readFileSync(FILE, "utf8");
-    const m = /const guestCtaLabel = "([^"]+)";/.exec(src);
+    // Area 04 #1 (11-18): the label reads through wordInLang (Spanish too); its English fallback is what is checked.
+    const m = /const guestCtaLabel = (?:wordInLang\("[^"]+", )?"([^"]+)"\)?;/.exec(src);
     expect(m, "guestCtaLabel declaration not found").toBeTruthy();
     expect(m![1]).toBe("Sign up to apply");
   });

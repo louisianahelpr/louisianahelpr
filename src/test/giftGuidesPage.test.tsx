@@ -927,7 +927,7 @@ describe("gift guides: each row heading carries its guide count (owner 11-18 PM)
 });
 
 describe("gift guides: design audit round 2 UI fixes", () => {
-  // @mutate src/content/giftGuideCatalog.ts |   return hits.map((g, i) => ({ g, i, r: rank(g) })).sort((a, b) => a.r - b.r \|\| a.i - b.i).map((x) => x.g); |   return hits;
+  // @mutate src/content/giftGuideCatalog.ts |   }).map((g, i) => [g, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j).map(([g]) => g); |   });
   // @mutate src/content/giftGuideCatalog.ts |   "store-muck-boot": "boots", |   "store-muck-boot": "",
   it("#11 search: Louisiana words find their guides; a title match ranks first", () => {
     expect(searchGuides("lsu").map((g) => g.slug)).toEqual(expect.arrayContaining(["purple-and-gold-lover", "game-day"]));

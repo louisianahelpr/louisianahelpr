@@ -17,7 +17,7 @@
  * @mutate scripts/giftGuideRules.mjs | export const brokenImage = (u) => /liquid(%20\|\s\|\+)error/i.test(u) \|\| /[<>{}]/.test(u); | export const brokenImage = (u) => /[<>{}]/.test(u);
  * @mutate src/content/giftGuideCatalog.ts |  ${SEARCH_KEYWORDS[g.slug] ?? ""}`); | `);
  * @mutate src/content/giftGuideCatalog.ts | .sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j) | .sort(([, i], [, j]) => i - j)
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? G.collectionOnShopMy : G.onStore(storeLabel(pick))} | {G.onStore(storeLabel(pick))}
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? | {false ? G.collectionOnShopMy : storeLabel(pick) ?
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -108,7 +108,7 @@ describe("design audit r2: lines, variants, photos, brands", () => {
   });
   it("a ShopMy collection row says 'Collection on ShopMy', never names the collection as one product's store", () => {
     expect(all.filter(({ p }) => p.href.startsWith("https://shopmy.us/collections/")).length).toBeGreaterThan(100);
-    expect(VIEW).toContain("{isShopMyCollection(pick.href) ? G.collectionOnShopMy : G.onStore(storeLabel(pick))}");
+    expect(VIEW).toContain('{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}');
   });
 });
 

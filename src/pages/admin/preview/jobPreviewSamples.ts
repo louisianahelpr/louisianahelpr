@@ -308,6 +308,9 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       job = {
         ...base, ...hired, ...today, ...bothIn, status: "revision_requested", helper_on_the_way_at: ago(240), helper_arrived_at: ago(210),
         poster_confirmed_arrival_at: ago(208), poster_confirmed_working_at: ago(205), helper_completed_at: ago(90),
+        // Area 11 M2 (11-18): create-payment request_revision stamps revision_requested_at; without it the preview read
+        // "Next: approve Eli's work" with Approve primary while the fix was still owed (the real page waits on the fix).
+        revision_requested_at: ago(60),
         revision_note: "The side yard by the fence still has leaves, and two bags were left by the porch instead of the curb.",
         revision_deadline: new Date(now + 22 * 60 * 60_000).toISOString(),
       };

@@ -4509,7 +4509,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 362,
+      "line": 383,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -16297,7 +16297,7 @@
     },
     {
       "file": "src/pages/profile/WorkRecord.tsx",
-      "line": 139,
+      "line": 141,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -16311,7 +16311,7 @@
     },
     {
       "file": "src/pages/profile/WorkRecord.tsx",
-      "line": 162,
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "literal",

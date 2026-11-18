@@ -47,7 +47,7 @@ import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { bunchOthers, bunchRowStartsOpen, focusBunchFilesNextPaint, focusBunchListStep } from "./bunchFlowHelpers";
 import { BunchPileCard } from "./DeclutterBunchPile";
-import { bunchIntro, BunchMovingSale } from "./DeclutterBunchMovingSale";
+import { bunchIntro, BunchMovingDayHelp, BunchMovingSale } from "./DeclutterBunchMovingSale";
 import { BunchResults } from "./DeclutterBunchResults";
 import { BunchRow } from "./DeclutterBunchRow";
 import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
@@ -522,6 +522,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
       </BunchSection>
       )}
+      {/* Area 06b L9: moving-day help after the photo step, not before step 1. */}
+      {showMove && <BunchMovingDayHelp userId={user.id} date={moveDate} />}
 
       {items.length > 0 && (
         <BunchSection id="bunch-check" title={sortedCount > 0 ? t("lp.bv.checkHeadN", { step: firstStep + 1, ready: ready.length + heldForFee, total: sortedCount }) : t("lp.bv.checkHead", { step: firstStep + 1 })}>

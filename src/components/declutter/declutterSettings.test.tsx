@@ -217,8 +217,11 @@ describe("Declutter settings", () => {
   // the notifications are, and Notifications stands outside it.
   // @mutate src/pages/declutter/DeclutterSettingsPage.tsx |           <SectionHeading title="Selling" /> |           {null}
   // Audit 11-10 F346: the pointer line became a short index whose links reach each section, Notifications included.
-  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | document.querySelector(`section[aria-label="${name}"]`)?.scrollIntoView | document.querySelector(`[data-none="${name}"]`)?.scrollIntoView
-  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | const SETTINGS_INDEX = ["Pickup places", "Listing defaults", "Notifications"] as const; | const SETTINGS_INDEX = ["Pickup places", "Listing defaults"] as const;
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${name}"]`)?.scrollIntoView | document.querySelector(`[data-none="${name}"]`)?.scrollIntoView
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | const SETTINGS_INDEX = ["Pickup places", "Meet spots", "Listing defaults", "Notifications"] as const; | const SETTINGS_INDEX = ["Pickup places", "Listing defaults"] as const;
+  // Area 06b L6: Meet spots has its chip too, and it reaches the Meet spots card.
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | const SETTINGS_INDEX = ["Pickup places", "Meet spots", "Listing defaults", "Notifications"] as const; | const SETTINGS_INDEX = ["Pickup places", "Listing defaults", "Notifications"] as const;
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | { "Meet spots": '[data-testid="sell-meetup-spots"]' } | {}
   it("Q2574: the seller setup is headed Selling and points a buyer to the notifications", async () => {
     open();
     await screen.findByRole("button", { name: "Add a pickup place" });
@@ -228,7 +231,7 @@ describe("Declutter settings", () => {
     const index = within(selling).getByRole("navigation", { name: "On this page" });
     const scrolled: Element[] = [];
     const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { scrolled.push(this); });
-    for (const name of ["Pickup places", "Listing defaults", "Notifications"]) {
+    for (const name of ["Pickup places", "Meet spots", "Listing defaults", "Notifications"]) {
       fireEvent.click(within(index).getByRole("button", { name }));
       expect(scrolled[scrolled.length - 1]).toBe(screen.getByRole("region", { name }));
     }
@@ -255,11 +258,11 @@ describe("Declutter settings", () => {
       expect(el).not.toBeNull();
       return el as HTMLElement;
     });
-    expect(now.textContent).toBe("New listings now use Lafayette, from your last listing, with pickup Sat 9:00 AM–12:00 PM. Add a pickup place to save one here and change it.");
+    expect(now.textContent).toBe("Your listings use Lafayette, Sat 9:00 AM–12:00 PM (from your last listing). Add a pickup place to change it.");
     first.unmount();
     lastSetup.value = null;
     const second = open();
-    await waitFor(() => expect(document.querySelector("[data-pickup-now]")?.textContent).toBe("New listings now use the address you give each one, with pickup Sat 9:00 AM–12:00 PM. Add a pickup place to save one here and change it."));
+    await waitFor(() => expect(document.querySelector("[data-pickup-now]")?.textContent).toBe("Your listings use the address you give each one, Sat 9:00 AM–12:00 PM. Add a pickup place to change it."));
     second.unmount();
     state.places = [{ id: "p1", label: "Porch", address: "1 Main St, Lafayette, LA", area: "Lafayette", lat: 30.2, lng: -92, weekdays: [6], windows: [{ weekday: 6, starts: "09:00", ends: "12:00" }], position: 0 }];
     open();

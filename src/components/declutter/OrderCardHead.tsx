@@ -18,6 +18,7 @@ import { isTradeOrder, type PaidOrder } from "./paidOrders";
 import { useTradedFor } from "./useMyTrades";
 import { t, useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclSell";
 
 function howItComes(order: Pick<PaidOrder, "handover" | "side">): string {
   switch (order.handover) {
@@ -56,11 +57,11 @@ export function OrderCardHead({ order, userId }: { order: PaidOrder; userId: str
         {/* Audit 1110 F408: an order title wraps to two lines (break-words) instead of an ellipsis at 375 / Bigger text. */}
         <p className="line-clamp-2 break-words text-ds-15 font-semibold leading-snug" title={title}>{title}</p>
         <p className="text-ds-13 text-muted-foreground">
-          {howItComes(order)}{trade ? "" : order.side === "seller" && items === 0 ? " · You're giving" : ""}
+          {howItComes(order)}{trade ? "" : order.side === "seller" && items === 0 ? t("dsl.giving") : ""}
         </p>
-        {tradeGets && <p data-order-trade="" className="truncate text-ds-13 font-semibold text-foreground" title={tradeGets}>Your trade: {tradeGets}</p>}
+        {tradeGets && <p data-order-trade="" className="break-words text-ds-13 font-semibold text-foreground" title={tradeGets}>{t("dsl.yourTrade", { title: tradeGets })}</p>}
       </div>
-      <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--accent-ink))]">{trade ? "Trade" : itemPriceLabel(items)}</span>
+      <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--accent-ink))]">{trade ? t("dsl.trade") : itemPriceLabel(items)}</span>
     </div>
   );
 }

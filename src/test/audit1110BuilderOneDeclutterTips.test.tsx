@@ -32,7 +32,7 @@ vi.mock("@/lib/declutter/moves", () => ({
 vi.mock("@/components/declutter/DeclutterMovingSaleDetails", () => ({ MovingSaleDetails: () => null }));
 vi.mock("@/components/declutter/DeclutterDonate", () => ({ DonatePicker: () => null, DonationReceipts: () => null }));
 
-import { BunchMovingSale } from "@/components/declutter/DeclutterBunchMovingSale";
+import { BunchMovingDayHelp, BunchMovingSale } from "@/components/declutter/DeclutterBunchMovingSale";
 import { HaulAwayItemLine, HaulAwayTooSoonTip } from "@/components/declutter/DeclutterHaulAway";
 
 afterEach(cleanup);
@@ -51,9 +51,13 @@ describe("F343: Moving out sale reads as its own thing", () => {
     expect(mod.bunchIntro(true)).not.toBe(mod.bunchIntro(false));
     expect(code("src/components/declutter/DeclutterBunchView.tsx")).toContain("{bunchIntro(moving)}");
   });
-  it("the moving-day help shows under the date before any date is picked, linking a dateless moving job", async () => {
-    wrap(<BunchMovingSale userId="u1" date="" setDate={() => {}} today="2026-11-10" />);
+  // Area 06b L9 (11-18): the help moved below the photo step (BunchMovingDayHelp); it still shows before any date.
+  // @mutate src/components/declutter/DeclutterBunchView.tsx |       {showMove && <BunchMovingDayHelp userId={user.id} date={moveDate} />} |
+  it("the moving-day help shows before any date is picked, linking a dateless moving job", async () => {
+    wrap(<><BunchMovingSale userId="u1" date="" setDate={() => {}} today="2026-11-10" /><BunchMovingDayHelp userId="u1" date="" /></>);
     expect(document.querySelector("[data-bunch-moving-day]")).toBeTruthy();
+    const view = code("src/components/declutter/DeclutterBunchView.tsx");
+    expect(view.indexOf("<BunchMovingDayHelp")).toBeGreaterThan(view.indexOf('id="bunch-photos"'));
     expect(screen.getByRole("link", { name: "Hire a Helpr for moving day" }).getAttribute("href")).toBe("/post-job?movingDay=1");
     // No sale yet: End the moving sale stays off.
     expect(screen.queryByRole("button", { name: "End the moving sale" })).toBeNull();

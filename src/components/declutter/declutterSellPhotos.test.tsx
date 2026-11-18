@@ -82,9 +82,9 @@ vi.mock("@/hooks/useUserLocation", () => ({
 }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => ({ status: "exact", lat: 30.45, lng: -91.15 }) }));
 vi.mock("@/components/AppPage", () => ({
-  default: ({ title, children, phoneHidesTitle }: { title: string; children: React.ReactNode; phoneHidesTitle?: boolean }) => (
+  default: ({ title, children, phoneHidesTitle, hidesTitle }: { title: string; children: React.ReactNode; phoneHidesTitle?: boolean; hidesTitle?: boolean }) => (
     <main>
-      <h1 data-phone-hides-title={phoneHidesTitle ? "" : undefined}>{title}</h1>
+      <h1 data-phone-hides-title={phoneHidesTitle ? "" : undefined} data-hides-title={hidesTitle ? "" : undefined}>{title}</h1>
       {children}
     </main>
   ),
@@ -665,17 +665,19 @@ describe("photo-first selling, one screen", () => {
 
   // Audit posting 1030 #12, #13: a giveaway talked about selling and offered a price.
   // @mutate src/components/declutter/SellOneScreen.tsx | title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} | title={tr("sf.sellAnItem")}
-  // @mutate src/components/declutter/SellOneScreen.tsx | title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling"> | title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle>
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free}> | phoneHidesTitle hidesTitle={!form.free}>
   // @mutate src/components/declutter/SellSummaryCard.tsx | : field === "description" ? "text-foreground" : "font-semibold text-foreground"} | : "font-semibold text-foreground"}
   // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: t("sell.chargeForIt"), onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
   // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />} | {<SellItForMeEntry />}
   // Design audit r2 #12: a phone showed only back + help over "Show it off"; the app bar names the page.
-  // @mutate src/components/declutter/SellOneScreen.tsx | title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling"> | title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free}>
+  // Train 11-18: on the one screen area 06b L12 (below) supersedes r2 #12 (the step head is the one painted heading); a
+  // giveaway still paints its title (F341).
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free}> | phoneHidesTitle hidesTitle>
   // @mutate src/components/declutter/DeclutterSellView.tsx | <AppPage title={tr("sf.sellAnItem")} onBack={back}> | <AppPage title={tr("sf.sellAnItem")} onBack={back} phoneHidesTitle>
-  it("r2 #12: selling keeps its \"Sell an item\" title on a phone, on the one screen and the saved draft's steps", async () => {
+  it("r2 #12: the saved draft's steps keep their \"Sell an item\" title on a phone (the one screen: L12 below)", async () => {
     const first = open();
     const title = await screen.findByRole("heading", { name: "Sell an item", level: 1 });
-    expect(title.hasAttribute("data-phone-hides-title")).toBe(false);
+    expect(title.hasAttribute("data-hides-title")).toBe(true);
     first.unmount();
     open("/declutter/sell?item=d1");
     const stepTitle = await screen.findByRole("heading", { name: "Sell an item", level: 1 });
@@ -687,6 +689,7 @@ describe("photo-first selling, one screen", () => {
     const title = await screen.findByRole("heading", { name: "Give it away" });
     // Audit 11-10 F341: on a phone the giveaway still says what it is.
     expect(title.hasAttribute("data-phone-hides-title")).toBe(false);
+    expect(title.hasAttribute("data-hides-title")).toBe(false);
     expect(screen.queryByText("Photos that sell")).toBeNull();
     expect(screen.queryByText(/Sell it for me/)).toBeNull();
     expect(screen.getByText("Good photos")).toBeInTheDocument();
@@ -696,6 +699,16 @@ describe("photo-first selling, one screen", () => {
     expect(screen.queryByRole("button", { name: "Edit price" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Charge for it" }));
     expect(document.activeElement).toBe(document.querySelector('[data-summary-row="price"] input'));
+  });
+
+  // Area 06b L12 (design audit 11-18): selling one item paints one heading at every width, the step's "Show it off";
+  // "Sell an item" stays the page's h1 for screen readers only.
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free}> | phoneHidesTitle={!form.free}>
+  it("L12: Sell an item is not painted over Show it off at any width", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    const h1 = screen.getByRole("heading", { level: 1, name: "Sell an item" });
+    expect(h1.hasAttribute("data-hides-title")).toBe(true);
   });
 
   // Audit posting 1030 #19: Post reported one problem per tap.

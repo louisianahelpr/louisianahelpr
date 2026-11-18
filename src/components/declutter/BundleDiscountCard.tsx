@@ -45,9 +45,9 @@ export function BundleDiscountCard({ pick, onPick, disabled = false }: { pick: n
   const current = pick !== undefined ? pick : (rule.data ?? null);
   const value = current ? String(current) : "off";
   return (
-    <div className="space-y-2 rounded-[14px] bg-[hsl(var(--muted)/0.55)] px-3 py-3" role="group" aria-labelledby={`${id}-label`} data-bundle-card="">
+    <div className="space-y-2" role="group" aria-labelledby={`${id}-label`} data-bundle-card="">
       <div className="flex items-center justify-between gap-3" data-bundle-row="">
-        <label id={`${id}-label`} htmlFor={id} className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">Bundle discount</label>
+        <label id={`${id}-label`} htmlFor={id} className="min-w-0 flex-1 text-ds-15 font-semibold text-foreground">Bundle discount</label>
         <NativeSelect
           id={id}
           value={value}

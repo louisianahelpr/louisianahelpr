@@ -9,9 +9,9 @@
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |       <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => onPutBack(row)}> |       <Button type="button" size="sm" variant="outline" disabled={pending}>
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |   if (row.state === "paying") { |   if (false) {
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |   if (row?.state !== "unpaid") return null; |   if (!row) return null;
- * @mutate src/components/declutter/DeclutterHaulAway.tsx | onClick={() => onFinishBooking(row)}>\n        Finish booking | onClick={() => onFinishBooking(row)}>\n        Book it again
- * @mutate src/components/declutter/DeclutterHaulAway.tsx | Finish booking, or put the item back on sale. | Book it again, or put the item back on sale.
- * @mutate src/components/declutter/DeclutterHaulAway.tsx |   return more > 0 ? `${head} and ${more} more` : head; |   return head;
+ * @mutate src/lib/i18n/enDeclSell.ts | "dsl.haul.finish": "Finish booking", | "dsl.haul.finish": "Book it again",
+ * @mutate src/lib/i18n/enDeclSell.ts | Finish booking, or put the item back on sale. | Book it again, or put the item back on sale.
+ * @mutate src/components/declutter/DeclutterHaulAway.tsx |   return more > 0 ? t("dsl.haul.andMore", { head, n: more }) : head; |   return head;
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

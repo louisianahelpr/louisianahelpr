@@ -73,7 +73,8 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
                 {/* Owner 11-09 (reverses pick 2 of 11-08): the list price is the bold one; "$X.XX incl. fee" small under it. */}
                 <p className="text-ds-14 font-bold tabular-nums text-foreground">{itemPriceLabel(it.current_price_cents)}</p>
                 <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-12 font-medium tabular-nums text-muted-foreground" />
-                <p className="text-ds-13 truncate" title={it.title}>{it.title}</p>
+                {/* Area 06b M2: the title wraps to two lines, never cut to "Kids b…". */}
+                <p className="text-ds-13 line-clamp-2 [overflow-wrap:anywhere]" data-selling-now-title="" title={it.title}>{it.title}</p>
               </div>
             </Link>
           </li>

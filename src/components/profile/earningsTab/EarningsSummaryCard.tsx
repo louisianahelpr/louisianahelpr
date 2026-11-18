@@ -111,7 +111,8 @@ export function EarningsSummaryCard({
               {formatCents(Math.round(earnedDollars * 100))}
             </p>
             <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {earnedRangeLabel(range)} · {jobCount} job{jobCount === 1 ? "" : "s"} · {saleCount} sale{saleCount === 1 ? "" : "s"}
+              {/* Area 06b M8 (design audit 11-18): "· 0 sales" told every non-seller about Declutter; the count shows once there is one. */}
+              {earnedRangeLabel(range)} · {jobCount} job{jobCount === 1 ? "" : "s"}{saleCount > 0 ? <> · {saleCount} sale{saleCount === 1 ? "" : "s"}</> : null}
             </p>
           </div>
           <div className="border-l border-border/40 pl-4">

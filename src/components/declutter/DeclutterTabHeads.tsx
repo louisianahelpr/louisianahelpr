@@ -9,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchMyActiveStrikes, fetchMyCart, fetchMyOffers } from "@/lib/declutter/api";
 import { declutterTodo, type DeclutterTodo } from "@/lib/declutter/tabs";
 import { DeclutterNotice } from "./declutterUi";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclSell";
 
 /**
  * What needs the member on each side (the Buying / Selling badges), from the
@@ -51,10 +53,8 @@ export function StrikeCount({ userId, full = true }: { userId: string; full?: bo
     );
   }
   return (
-    <DeclutterNotice tone="warn" title={title}>
-      {n >= 3
-        ? "Declutter is paused for you until one of them goes away. Each strike goes away 1 year after you got it."
-        : "Each strike goes away 1 year after you got it. At 3 strikes you can't buy or sell on Declutter until one goes away."}
+    <DeclutterNotice tone="warn" title={t("dsl.sw.strikesNow", { n: Math.min(n, 3) })}>
+      {n >= 3 ? t("dsl.strike.paused") : t("dsl.strike.each")}
     </DeclutterNotice>
   );
 }

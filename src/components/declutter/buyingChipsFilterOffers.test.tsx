@@ -6,7 +6,7 @@
  * @mutate src/lib/declutter/buyingBucket.ts |  return only ? rows.filter((r) => bucketOf(r) === only) : rows; |  return rows;
  * @mutate src/lib/declutter/buyingBucket.ts |  if (o.status === "accepted") return "done"; |  if (o.status === "accepted") return "cancelled";
  * @mutate src/lib/declutter/buyingBucket.ts |  if (t.status === "open") return side === "seller" ? "needs_you" : "waiting"; |  if (t.status === "open") return "needs_you";
- * @mutate src/components/declutter/DeclutterOffersSection.tsx |  if (only && mine.length === 0) return null; |  if (false) return null;
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx |  if ((only \|\| quietWhenEmpty) && mine.length === 0) return null; |  if (quietWhenEmpty && mine.length === 0) return null;
  *
  * Audit 11-10 F360d: Buying folds its finished offers (said no, taken back, ran out) under "Show N closed offers", the
  * same as Selling; an accepted offer stays out (it is in the cart), nothing folds under a chip, and an offer waiting

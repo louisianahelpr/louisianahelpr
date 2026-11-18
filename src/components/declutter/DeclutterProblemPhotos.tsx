@@ -12,6 +12,8 @@ import { uploadProblemPhoto } from "@/lib/declutter/handover";
 import { PROBLEM_PHOTO_MAX } from "@/lib/declutter/problemPhotos";
 import { FallbackImg } from "./FallbackImg";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclSell";
 
 /** Adds the chosen files to `current`, keeping at most PROBLEM_PHOTO_MAX and only images. */
 export function addProblemPhotos(current: File[], chosen: FileList | File[] | null): File[] {
@@ -26,14 +28,16 @@ export async function uploadProblemPhotos(orderId: string, files: File[]): Promi
   return paths;
 }
 
-export function ProblemPhotoPicker({ files, onChange, disabled = false }: { files: File[]; onChange: (files: File[]) => void; disabled?: boolean }) {
+export function ProblemPhotoPicker({ files, onChange, disabled = false, fieldLabel = false }: { files: File[]; onChange: (files: File[]) => void; disabled?: boolean;
+  /** Area 06b L10 (design audit 11-18): on the Wanted form the label matches the other fields' labels (15px semibold). */
+  fieldLabel?: boolean }) {
   const id = useId();
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
   const full = files.length >= PROBLEM_PHOTO_MAX;
   return (
-    <div className="space-y-2" role="group" aria-label="Photos" data-problem-photos="">
-      <p className="text-ds-13 font-semibold text-foreground/80">Photos (optional, up to {PROBLEM_PHOTO_MAX})</p>
+    <div className="space-y-2" role="group" aria-label={t("dsl.photos.group")} data-problem-photos="">
+      <p className="text-ds-13 font-semibold text-foreground/80" data-photos-label={fieldLabel ? "field" : undefined}>{t("dsl.photos.label", { n: PROBLEM_PHOTO_MAX })}</p>
       <HiddenFileInput id={id} accept="image/*" multiple tabIndex={-1} disabled={disabled || full}
         onChange={(e) => { onChange(addProblemPhotos(files, e.target.files)); e.target.value = ""; }} />
       <ul className="flex flex-wrap gap-2">

@@ -16,6 +16,7 @@ import { declutterTodo } from "@/lib/declutter/tabs";
 import { SectionHeading } from "./DeclutterTabHeads";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclSell";
 import type { BuyerOrderView } from "./BuyingOrders";
 import { useLinkedOrder, useLinkedOrderOutcome } from "./useLinkedOrder";
 import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
@@ -54,8 +55,8 @@ function SellerEmpty({ icon, title, children }: { icon: LucideIcon; title: strin
 /** "Offers on your items" with none yet (OffersSection side="seller"), from the real offer rules (half the price, 48 hours). */
 export function NoSellerOffers() {
   return (
-    <SellerEmpty icon={HandCoins} title="No offers yet">
-      Buyers can offer from half your price. You have 48 hours to answer each one.
+    <SellerEmpty icon={HandCoins} title={t("dsl.noOffers")}>
+      {t("dsl.noOffersBody")}
     </SellerEmpty>
   );
 }
@@ -98,13 +99,13 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
     // buyer to pay" over "Nothing sold yet". While one waits, the empty card is left out.
     if (!buyer && lines.some((l) => l.status === "in_cart")) return null;
     return (
-      <section className="space-y-2" aria-label={buyer ? "Purchases" : "Sold: pickup and payout"}>
-        <SectionHeading title={buyer ? "Purchases" : "Sold: pickup and payout"} />
+      <section className="space-y-2" aria-label={buyer ? t("dsl.purchases") : t("dsl.soldTitle")}>
+        <SectionHeading title={buyer ? t("dsl.purchases") : t("dsl.soldTitle")} />
         {buyer ? (
-          <p className="text-sm text-muted-foreground">Nothing bought yet. After you pay, each order shows here with its pickup.</p>
+          <p className="text-sm text-muted-foreground">{t("dsl.nothingBought")}</p>
         ) : (
-          <SellerEmpty icon={PackageCheck} title="Nothing sold yet">
-            When a buyer pays, you book the pickup here and see your payout.
+          <SellerEmpty icon={PackageCheck} title={t("dsl.nothingSold")}>
+            {t("dsl.nothingSoldBody")}
           </SellerEmpty>
         )}
       </section>
@@ -113,8 +114,8 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   // DA-3: a giver whose orders are all free items sold nothing and is paid nothing.
   const sold = lines.filter((l) => l.status === "paid" && l.order_id);
   // Lead 11-08: sales that are all trades are "Traded", never "Given away" (a trade line is $0 too).
-  const sellerTitle = sold.length > 0 && sold.every((l) => l.source === "swap") ? "Traded: handover"
-    : sold.every((l) => l.price_cents === 0) ? "Given away: pickup" : "Sold: pickup and payout";
+  const sellerTitle = sold.length > 0 && sold.every((l) => l.source === "swap") ? t("dsl.tradedTitle")
+    : sold.every((l) => l.price_cents === 0) ? t("dsl.givenTitle") : t("dsl.soldTitle");
   // NIGHT-SELL-soldstates-2: Selling's finished sales (handed over, refunded) fold under one button, as Buying folds
   // Done, so the sales still to hand over are the list. A chip's own `show` (To answer's reports) is never folded.
   const done = new Set(side === "seller" && !show ? sold.filter((l) => ((l.order_status === "handed_over" && foldable.has(l.order_id as string)) || l.order_status === "refunded") && !awaiting.has(l.order_id as string)).map((l) => l.order_id as string) : []);
@@ -122,28 +123,29 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   // Q2630 (audit 1102c R5): a refunded sale did not go ahead, so the fold never calls it a "finished sale".
   const refundedDone = new Set(sold.filter((l) => l.order_status === "refunded" && done.has(l.order_id as string)).map((l) => l.order_id as string)).size;
   const finishedDone = done.size - refundedDone;
-  const doneCounts = [finishedDone > 0 ? `${finishedDone} finished` : null, refundedDone > 0 ? `${refundedDone} refunded` : null].filter(Boolean).join(" and ");
-  const doneKinds = [finishedDone > 0 ? "finished" : null, refundedDone > 0 ? "refunded" : null].filter(Boolean).join(" and ");
+  // Area 06b H1 (design audit 11-18): the fold's words in the member's language.
+  const doneCounts = [finishedDone > 0 ? t("dsl.fold.finished", { n: finishedDone }) : null, refundedDone > 0 ? t("dsl.fold.refunded", { n: refundedDone }) : null].filter(Boolean).join(t("dsl.fold.and"));
+  const doneKinds = [finishedDone > 0 ? t("dsl.fold.finishedKind") : null, refundedDone > 0 ? t("dsl.fold.refundedKind") : null].filter(Boolean).join(t("dsl.fold.and"));
   const doneToggle = done.size > 0 && (
     <InlineTextButton className="text-sm font-medium underline underline-offset-2" aria-expanded={showDone} onClick={() => setShowDone((v) => !v)} data-done-sales-toggle="">
-      {showDone ? `Hide ${doneKinds} sales` : `Show ${doneCounts} ${done.size === 1 ? "sale" : "sales"}`}
+      {showDone ? t("dsl.fold.hide", { kinds: doneKinds }) : t(done.size === 1 ? "dsl.fold.showOne" : "dsl.fold.showMany", { counts: doneCounts })}
     </InlineTextButton>
   );
   if (allDone && !showDone && !(linked && done.has(linked))) {
     return (
       <section className="space-y-2" aria-label={sellerTitle}>
-        <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />
+        <SectionHeading title={sellerTitle} todo={toHandOver} todoWords={t("dsl.toHandOver")} />
         {/* Area 06 M15 (design audit 11-18): the same iconed empty card as "Nothing sold yet". */}
-        <SellerEmpty icon={PackageCheck} title="Nothing to hand over right now">{null}</SellerEmpty>
+        <SellerEmpty icon={PackageCheck} title={t("dsl.nothingToHandOver")}>{null}</SellerEmpty>
         {doneToggle}
       </section>
     );
   }
-  const paidLabel = ended ? "Ended orders" : side === "buyer" ? "Purchases" : sellerTitle;
+  const paidLabel = ended ? t("dsl.endedOrders") : side === "buyer" ? t("dsl.purchases") : sellerTitle;
   const paidHeading = ended ? <></>
     : side === "buyer"
-      ? views ? <SectionHeading title={t("dbuy.order.yours")} /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
-      : <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />;
+      ? views ? <SectionHeading title={t("dbuy.order.yours")} /> : <SectionHeading title={t("dsl.purchases")} todo={todo.purchasesOpen} todoWords={t("dsl.toPickUp")} />
+      : <SectionHeading title={sellerTitle} todo={toHandOver} todoWords={t("dsl.toHandOver")} />;
   return (
     <>
     <Suspense fallback={<PaidOrdersLoading heading={paidHeading} label={paidLabel} cards={new Set(sold.map((l) => l.order_id as string).filter((id) => showDone || !done.has(id) || id === linked)).size} />}>

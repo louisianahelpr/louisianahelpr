@@ -110,7 +110,8 @@ function AcceptedOfferNext({ o }: { o: MyOffer }) {
  * Area 05 #16 (design audit 11-18): an accepted offer whose checkout time ran out (its cart line went "missed") still
  * read "Accepted". It reads "Expired", muted. Words only: the offer and the cart line are the server's (no money here).
  */
-export function offerLapsed(o: Pick<MyOffer, "status" | "item_id" | "my_side">, cart: readonly Pick<CartLine, "item_id" | "my_side" | "status">[] | undefined): boolean {
+type LapseCartLine = Pick<CartLine, "item_id" | "my_side" | "status">;
+export function offerLapsed(o: Pick<MyOffer, "status" | "item_id" | "my_side">, cart: readonly LapseCartLine[] | undefined): boolean {
   if (o.status !== "accepted" || !cart) return false;
   const mine = cart.filter((l) => l.item_id === o.item_id && l.my_side === o.my_side);
   return mine.length > 0 && mine.every((l) => l.status === "missed");
@@ -354,7 +355,8 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
  */
 /** onlyMyTurn (audit DC-9, Selling's "To answer"): only the open offers waiting for this member, nothing else. */
 /** only (audit 11-10 F374, Buying's chips): just the offers that chip files (offerBucket); nothing at all when none. */
-export function OffersSection({ side, onlyMyTurn = false, only = null }: { side: "buyer" | "seller"; onlyMyTurn?: boolean; only?: OrderBucket | null }) {
+/** quietWhenEmpty (area 06b L3): no section at all when there are no offers (Selling, while nothing priced is up). */
+export function OffersSection({ side, onlyMyTurn = false, only = null, quietWhenEmpty = false }: { side: "buyer" | "seller"; onlyMyTurn?: boolean; only?: OrderBucket | null; quietWhenEmpty?: boolean }) {
   const { t } = useLanguage();
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
   const seller = side === "seller";
@@ -367,7 +369,7 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
   }
   if (offers.isLoading) return <p className="text-sm text-muted-foreground" role="status">{t("dof.loading")}</p>;
   const mine = underChip((offers.data ?? []).filter((o) => o.my_side === side), only, (o) => offerBucket(o, side));
-  if (only && mine.length === 0) return null;
+  if ((only || quietWhenEmpty) && mine.length === 0) return null;
   const myTurn = (o: MyOffer) => o.status === "open" && o.awaiting === side;
   const toAnswer = mine.filter(myTurn).length;
   if (onlyMyTurn) {

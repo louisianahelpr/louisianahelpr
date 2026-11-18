@@ -195,6 +195,9 @@ describe("every pop-up title is sentence case", () => {
     // 242 (design audit r3, 11-18): EditJobDialog's title is the one literal "Edit job" (was the job name in quotes or
     // "Edit job"); the Report dialog's titles read the dictionary (enReport.ts, r3 #8).
     // 243 (Area 03 M11, 11-18): +1 "More options" (the job card's More is the job page's bottom sheet, JobActionRow).
+    // 244 (area 06b stack, 11-18): DeclutterOrderTalk's titles are dictionary branches now (#4720): "Message the buyer" /
+    // "Message the seller" and "Your chat with the buyer" / "Your chat with the seller" each count as two.
+    // 243 (merge 11-18): 244 above, -1 for Filter jobs below.
     expect(all.length).toBe(243);
   });
 

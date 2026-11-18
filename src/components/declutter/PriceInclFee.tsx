@@ -19,7 +19,7 @@ import { wordInLang } from "@/lib/i18n/inLang";
 const inclFeeWords = () => wordInLang("ip.inclFee", "incl. fee");
 
 /** Exact cents, always two decimals ("$3.85", "$21.70"). */
-function exactDollars(cents: number): string {
+export function exactDollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 

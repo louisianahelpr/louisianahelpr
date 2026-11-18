@@ -138,9 +138,10 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   postNow.current = post;
 
   return (
-    // Audit 11-10 F341 + design audit r2 #12: the phone app bar names the page ("Sell an item" / "Give it away"), so
-    // the first heading there is not just "Show it off".
-    <AppPage title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling">
+    // Audit 11-10 F341: a giveaway keeps its title on a phone too, so the first heading there is not just "Show it off".
+    // Area 06b L12: at 768 and up "Sell an item" was painted over the step's own "Show it off" (two headings, out of line);
+    // the step head is the one painted heading at every width now. A giveaway still says what it is (F341).
+    <AppPage title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free} hidesTitle={!form.free}>
       <div className="w-full max-w-xl space-y-6" data-sell-one-screen="">
         {s.freeChoice && (
           // Area 06 H1 (11-18): "Give away free" with a priced draft kept on this device asks, never opens the draft.

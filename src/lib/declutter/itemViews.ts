@@ -9,6 +9,8 @@
  *
  * fetchMyItemViewCounts: the seller's own counts (item id -> people), read only for the seller.
  */
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclSell";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMyItemViewCounts, sendItemViewRpc } from "@/lib/declutter/api";
 import { whenPageSettled } from "@/lib/routePrefetch";
@@ -53,5 +55,6 @@ export function useMyItemViewCounts(userId: string | null | undefined, enabled =
 
 /** "1 view" / "N views": people, not page loads. */
 export function viewsLabel(n: number): string {
-  return `${n} ${n === 1 ? "view" : "views"}`;
+  // Area 06b H1 (design audit 11-18): in the member's language ("3 vistas").
+  return t(n === 1 ? "dsl.view" : "dsl.views", { n });
 }

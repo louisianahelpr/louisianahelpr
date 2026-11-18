@@ -16,7 +16,7 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const only = asked && trk.counts[asked] > 0 ? asked : null; |   const only = asked;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
  * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></> | {view === "buying" ? <WantedView />
- * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />} |       {show("offers") && null}
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} quietWhenEmpty={!pricedLive} />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: tr("tabs.browse") }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted", labelKey: "decl.tab.wanted" as const }] : []), |         ...[],
@@ -559,11 +559,11 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // "Sold: pickup and payout"; the claimer's "Your cart · 1 to check out" over a "Checkout" card). Free lines now use
   // give-away words; a paid line beside them keeps the sale words (the class: every waiting kind on both tabs).
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     ["free", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")], |     ["paid", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")],
-  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |   return free === waiting.length ? "Claimed" : "Waiting"; |   return "To be paid";
-  // @mutate src/components/declutter/DeclutterTabParts.tsx | sold.every((l) => l.price_cents === 0) ? "Given away: pickup" | false ? "Given away: pickup"
+  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |   return free === waiting.length ? t("dsl.sw.claimed") : t("dsl.sw.waiting"); |   return t("dsl.sw.toBePaid");
+  // @mutate src/components/declutter/DeclutterTabParts.tsx | sold.every((l) => l.price_cents === 0) ? t("dsl.givenTitle") | false ? t("dsl.givenTitle")
   // @mutate src/components/declutter/DeclutterCartWords.tsx |   return claimsOnly ? { title: t("dbuy.cart.claimed"), todoWords: t("dbuy.cart.toChoose") } : | return false ? { title: t("dbuy.cart.claimed"), todoWords: t("dbuy.cart.toChoose") } :
   // @mutate src/components/declutter/DeclutterCartWords.tsx |   if (allFree) { |   if (false) {
-  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     body: "No strike for a free item. | body: "You'll get a Declutter strike. No strike for a free item.
+  // @mutate src/lib/i18n/enDeclSell.ts |   "dsl.sw.free.body": "No strike for a free item. |   "dsl.sw.free.body": "You'll get a Declutter strike. No strike for a free item.
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx | toast(kind === "paid" ? | toast(kind !== "never" ?
   it("DA-3/DA-4: a free claim reads as a give-away on Selling and on Buying, never as a sale", async () => {
     const FREE = { ...LINE, price_cents: 0, porch_ok: true };

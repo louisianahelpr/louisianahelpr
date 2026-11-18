@@ -11,7 +11,7 @@
  */
 // @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql | Nothing was charged.', v_item.title) | If you already paid, every cent comes back to your card.', v_item.title)
 // @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     CASE WHEN v_line.source = 'offer' |     CASE WHEN true
-// @mutate src/components/declutter/DeclutterSalesWaiting.tsx | Your listing comes down too; relist it from History. |
+// @mutate src/lib/i18n/enDeclSell.ts | Your listing comes down too; relist it from History. |
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -21,7 +21,8 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 const DEFS = effectiveDefs(resolve(__dirname, "../../supabase/migrations"));
 const def = DEFS.get("declutter_seller_cancel_sale");
 const flat = blankSqlComments(def?.stmt ?? "").replace(/\s+/g, " ");
-const sheet = blankComments(readFileSync(resolve(__dirname, "../components/declutter/DeclutterSalesWaiting.tsx"), "utf8")).replace(/\s+/g, " ");
+// Area 06b H1 (11-18): the sheet's words moved to enDeclSell (dsl.sw.paid.body, Spanish in esDeclSell).
+const sheet = blankComments(readFileSync(resolve(__dirname, "../lib/i18n/enDeclSell.ts"), "utf8")).replace(/\s+/g, " ");
 
 describe("Declutter seller cancel: the words match what happened", () => {
   it("reads the newest definition (floor)", () => {

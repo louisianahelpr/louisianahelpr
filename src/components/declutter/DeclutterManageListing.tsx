@@ -442,7 +442,8 @@ export function SellerListingPanel({ item, coverUrl, onDeleted }: { item: Declut
               </Button>
             </>
           ) : (
-            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setOpen("menu")}>
+            // Area 06b L2: Manage listing is the seller's one action here, so it is the filled primary.
+            <Button type="button" size="sm" className="rounded-full" data-manage-listing="" onClick={() => setOpen("menu")}>
               {t("lp.m.tMenu")}
             </Button>
           )}

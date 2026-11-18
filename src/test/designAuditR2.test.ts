@@ -373,3 +373,28 @@ describe("design audit r2 #44: Home's skeleton reserves the Needs-you card's hei
     expect(home).toMatch(/data-testid="home-top-loading"[^>]*style=\{\{ minHeight: HOME_NEEDS_YOU_MIN_PX \}\}/);
   });
 });
+
+/**
+ * #46/#47: the admin sub-nav was 11px under a 16px main nav (now 13px, the next size on the five-size scale); the admin
+ * home's greeting named nothing ("There are items needing attention today."), its plate had a pink burnt-sienna glow,
+ * and a zero KPI tile still drew a flat chart line.
+ * @mutate src/components/admin/dashboard/homeStanding.ts |     if (n > 0) parts.push(`${n} in ${QUEUE_NAME[id]}`); |     if (n > 0) parts.push("items");
+ * @mutate src/components/DesktopSidebarNav.tsx | pl-11 pr-3 text-left text-ds-13 ctl-tint | pl-11 pr-3 text-left text-ds-12 ctl-tint
+ */
+describe("design audit r2 #46/#47: admin nav size and home polish", () => {
+  it("the attention line names what is waiting", async () => {
+    const { attentionLine } = await import("@/components/admin/dashboard/homeStanding");
+    expect(attentionLine({ idvreview: 2, disputes: 0 }, 10)).toBe("10 health alerts, 2 in Identity review need a look.");
+    expect(attentionLine({ fraud: 1 }, 0)).toBe("1 in Fraud needs a look.");
+    expect(attentionLine({}, 0)).toBeNull();
+  });
+  it("no pink glow, no zero chart line, 13px admin sub-nav", () => {
+    const home = blankComments(readFileSync("src/components/admin/dashboard/DashboardHome.tsx", "utf8"));
+    expect(home).not.toContain("--burnt-sienna");
+    expect(home).toContain("{standingLine}");
+    const kpi = blankComments(readFileSync("src/components/admin/dashboard/KpiCard.tsx", "utf8"));
+    expect(kpi).not.toContain('<div className="h-px w-full bg-border" />');
+    expect(kpi).toContain('data-kpi-spark-empty=""');
+    expect(readFileSync("src/components/DesktopSidebarNav.tsx", "utf8")).toContain("pl-11 pr-3 text-left text-ds-13 ctl-tint");
+  });
+});

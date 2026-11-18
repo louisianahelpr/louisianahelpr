@@ -103,9 +103,9 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
             </Suspense>
           </div>
         ) : (
-          <div className="h-7 mt-auto pt-2 flex items-end" aria-hidden>
-            <div className="h-px w-full bg-border" />
-          </div>
+          // Design audit r2 #47: a zero tile draws no chart (not even a flat line); the lane stays, so the tiles in a
+          // row keep one height.
+          <div data-kpi-spark-empty="" className="h-7 mt-auto pt-2" aria-hidden />
         )
       )}
     </button>

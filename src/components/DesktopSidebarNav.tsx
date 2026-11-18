@@ -396,7 +396,7 @@ const AdminNavGroup = () => {
                         // Indented to the parent's icon column, so the
                         // nesting reads structurally rather than needing
                         // a rule or a box.
-                        className="min-h-11 flex w-full items-center gap-2.5 rounded-ds-md py-1.5 pl-11 pr-3 text-left text-ds-12 ctl-tint"
+                        className="min-h-11 flex w-full items-center gap-2.5 rounded-ds-md py-1.5 pl-11 pr-3 text-left text-ds-13 ctl-tint"
                         style={{
                           background: on ? "hsl(var(--bark) / 0.08)" : "transparent",
                           color: on ? "hsl(var(--bark))" : "hsl(var(--ink-deep) / 0.78)",

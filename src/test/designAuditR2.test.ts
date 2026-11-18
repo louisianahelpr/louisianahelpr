@@ -358,3 +358,18 @@ describe("design audit r2 #41: the tablet column caps at max-w-2xl", () => {
     expect(readFileSync("src/components/ui/PageScaffold.tsx", "utf8")).toContain('data-scaffold-container=""');
   });
 });
+
+/**
+ * #44: Home's skeleton did not match the loaded layout (the page jumped). Both loading frames reserve the loaded
+ * Needs-you card's ~176px: the route skeleton (and index.html's copy of it) and HomeDashboard's in-page top card.
+ * @mutate src/lib/homeSkeleton.ts | export const HOME_NEEDS_YOU_MIN_PX = 176; | export const HOME_NEEDS_YOU_MIN_PX = 0;
+ */
+describe("design audit r2 #44: Home's skeleton reserves the Needs-you card's height", () => {
+  it("the route skeleton's first card and the in-page loader are at least 176px tall", async () => {
+    const { HOME_NEEDS_YOU_MIN_PX } = await import("@/lib/homeSkeleton");
+    expect(HOME_NEEDS_YOU_MIN_PX).toBeGreaterThanOrEqual(170);
+    expect(readFileSync("index.html", "utf8")).toContain(`data-skeleton-part="next-up" style="min-height:${HOME_NEEDS_YOU_MIN_PX}px"`);
+    const home = blankComments(readFileSync("src/pages/home/HomeDashboard.tsx", "utf8"));
+    expect(home).toMatch(/data-testid="home-top-loading"[^>]*style=\{\{ minHeight: HOME_NEEDS_YOU_MIN_PX \}\}/);
+  });
+});

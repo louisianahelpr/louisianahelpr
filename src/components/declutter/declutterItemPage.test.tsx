@@ -249,7 +249,7 @@ describe("the photo-first Declutter item page", () => {
 
   // Owner 11-11 F229: a protection line under a paid price, naming porch pickup only where the listing offers it.
   // @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && !isSeller && ( |  {false && (
-  // @mutate src/components/declutter/DeclutterItemView.tsx | ${it.porch_ok !== false ? ", pick up from the porch" : ""} | , pick up from the porch
+  // @mutate src/components/declutter/DeclutterItemView.tsx | {it.porch_ok !== false ? t("ip.protectedPorch") : t("ip.protected")} | {t("ip.protectedPorch")}
   it("F229: a paid listing says what protects the buyer; porch only where it is offered; none on a free item", async () => {
     const { unmount } = open();
     expect((await screen.findByText(/^Protected:/)).textContent).toBe("Protected: pay in the app, pick up from the porch, 24 hours to report a problem.");

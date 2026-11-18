@@ -18,7 +18,7 @@
  * @mutate src/components/admin/settings/DeclutterShippingClaimsCard.tsx | { p_order_id: id, p_note: note.trim() } | { p_order_id: id, p_note: "" }
  * @mutate src/components/admin/settings/DeclutterShippingClaimsCard.tsx |   if (!on) return null; |
  * @mutate src/components/admin/settings/DeclutterShippingClaimsCard.tsx |     rows = (unwrap(res) ?? []) as ClaimDue[]; |     rows = (res.data ?? []) as ClaimDue[];
- * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <DeclutterShippingClaimsCard /> |
+ * @mutate src/components/admin/AdminDeclutter.tsx |       <DeclutterShippingClaimsCard /> |
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -170,9 +170,10 @@ describe("DeclutterShippingClaimsCard", () => {
     expect(state.rpc).toEqual([]);
   });
 
-  it("the admin settings mount it with the Declutter cards", () => {
-    const src = blankComments(readFileSync(resolve(__dirname, "FeatureSwitchesCard.tsx"), "utf8"));
-    expect(src.length, "inventory floor: the file was read").toBeGreaterThan(4000);
+  // Design audit area 10 #2 (11-18): the Declutter cards moved from Settings to the Declutter queue view.
+  it("the admin Declutter view mounts it with the Declutter cards", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "..", "AdminDeclutter.tsx"), "utf8"));
+    expect(src.length, "inventory floor: the file was read").toBeGreaterThan(800);
     expect(src).toMatch(/<MeetupSpotsCard \/>\s*<DeclutterShippingClaimsCard \/>\s*<DonationPartnersCard \/>/);
   });
 });

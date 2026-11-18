@@ -476,6 +476,9 @@ export const ADMIN_VIEWS = [
   "shops",
   // growth — matchmaker "Post this job" links and who brings customers (B59).
   "growth",
+  // Design audit area 10 #2/#3 (11-18): the Declutter queue (cards moved out of Settings), the one list of stage
+  // previews, and 25 Days (redirects to /admin/sponsors).
+  "declutter", "previews", "sponsors",
 ] as const;
 
 const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];

@@ -376,7 +376,8 @@ export function ActiveJobSection({
         primaryHaptic="warning"
         primaryDisabled={aborting || abortReason.trim().length < 5}
         onPrimary={(e) => { e.preventDefault(); void handleAbort(); }}
-        secondaryLabel="Cancel"
+        // Area 04 #30 (11-18): "Cancel" beside "Cancel job" read as two ways to cancel; the dismiss keeps the job.
+        secondaryLabel="Keep job"
       >
         <div className="space-y-2.5">
           {/* The money outcome, stated plainly, before the tap. */}

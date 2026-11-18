@@ -69,8 +69,10 @@ describe("ConfirmedSection back-out is 'Cancel job' (VN-18)", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Cancel job — / }));
     expect(screen.getByRole("heading", { name: "Cancel this job?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel job" })).toBeInTheDocument();
-    // The dismiss stays "Cancel" — the popup grammar guard (dialogShell.test.ts).
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    // Area 04 #30 (11-18): the dismiss is "Keep job", never a second "Cancel" beside "Cancel job".
+    // @mutate src/pages/jobs/appliedJobCard/ConfirmedSection.tsx |         secondaryLabel="Keep job" |         secondaryLabel="Cancel"
+    expect(screen.getByRole("button", { name: "Keep job" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
     expect(screen.queryByText(/booking/i)).toBeNull();
   });
 });

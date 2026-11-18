@@ -123,7 +123,8 @@ const sources = walkSource([join(ROOT, "src")])
 
 describe("Q1586(c) every Apply / Post a job entry reads the under-18 gate", () => {
   const postEntries = sources.filter((f) => POST_ROUTE.test(f.code));
-  const applyEntries = sources.filter((f) => APPLY_ENTRY.test(f.code));
+  // A words dictionary (src/lib/i18n, Area 04 2026-11-18: enJobsHelpr's "Apply now") draws no button; the screen that reads it is the entry.
+  const applyEntries = sources.filter((f) => APPLY_ENTRY.test(f.code) && !f.rel.startsWith("src/lib/i18n/"));
   const workCalls = sources.filter((f) => WORK_RPC.test(f.code));
 
   it("the inventory is real (floors)", () => {

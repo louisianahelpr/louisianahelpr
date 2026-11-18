@@ -372,7 +372,7 @@ export function DisputedSection({
        Once it is escalated they are not. */
     <JobStepPrimaryButton
       icon={MessageSquare}
-      label={awaitingAdmin ? "Add your side" : "Respond to dispute"}
+      label={awaitingAdmin ? "Add photos" : "Respond to dispute"}
       onClick={() => setRespondingJobId(app.job_id)}
     />
   ) : null;

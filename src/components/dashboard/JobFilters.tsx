@@ -12,6 +12,7 @@ import { categoryLabels } from "@/components/job-card/activityConstants";
 import { JOB_CATEGORY_GROUPS, categoryFilterLabel, isJobCategoryGroupId } from "@/lib/jobCategoryGroups";
 import { GROUP_ICON } from "@/lib/categoryEmoji";
 import { hapticLight } from "@/lib/haptics";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { X } from "lucide-react";
 import { JOB_WHEN_OPTIONS } from "@/lib/jobWhenFilter";
 import { FilterChip, FILTER_CHIP, FILTER_CHIP_ON, FILTER_CHIP_OFF } from "@/components/ui/FilterChip";
@@ -96,7 +97,7 @@ export const SortContent = ({
         pressed={sortBy === opt.value}
         onClick={() => { hapticLight(); setSortBy(opt.value); onSelect?.(); }}
       >
-        {opt.label}
+        {wordInLang(`jh.f.sort.${opt.value}`, opt.label)}
       </FilterChip>
     ))}
   </div>
@@ -131,7 +132,7 @@ export const CategoryContent = ({
             onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : g.id); onSelect?.(); }}
           >
             {(() => { const G = GROUP_ICON[g.id]; return <G aria-hidden data-chip-glyph="" className="h-4 w-4 shrink-0" />; })()}
-            {g.label}
+            {wordInLang(`postJob.group.${g.id}`, g.label)}
           </FilterChip>
         );
       })}
@@ -175,7 +176,7 @@ export const NearbyContent = ({
           pressed={current === null}
           onClick={() => { hapticLight(); setLocationFilter(""); onSelect?.(); }}
         >
-          Any
+          {wordInLang("jh.f.any", "Any")}
         </FilterChip>
         {radiusOptions.map((mi) => {
           const active = current === mi;
@@ -192,10 +193,10 @@ export const NearbyContent = ({
         })}
       </div>
       {current !== null && status === "loading" && (
-        <p className="text-ds-11 text-muted-foreground mt-2">Getting your location…</p>
+        <p className="text-ds-11 text-muted-foreground mt-2">{wordInLang("jh.f.locating", "Getting your location…")}</p>
       )}
       {current !== null && status === "error" && (
-        <p className="text-ds-11 text-[hsl(var(--destructive-ink))] mt-2">{message || "Couldn't get your location"}</p>
+        <p className="text-ds-11 text-[hsl(var(--destructive-ink))] mt-2">{message || wordInLang("jh.f.noLocation", "Couldn't get your location")}</p>
       )}
       {current !== null && status === "ready" && (
         <p className="text-ds-11 text-muted-foreground mt-2">Showing jobs within {current} miles of you</p>
@@ -217,7 +218,7 @@ export const WhenContent = ({
         pressed={jobWhen === opt.value}
         onClick={() => { hapticLight(); setJobWhen(jobWhen === opt.value ? "" : opt.value); }}
       >
-        {opt.label}
+        {wordInLang(`jh.f.when.${opt.value || "any"}`, opt.label)}
       </FilterChip>
     ))}
     {expiresWithin && (

@@ -61,7 +61,7 @@ import "@/lib/i18n/enShopsBrowse";
  * A seller's order card title (Area 07 M3): the buyer's first name and the first item, "Ann · 2 × Pecan pralines",
  * "+ N more" for more lines; just the item when the server gives no name (Q2104: a blocked pair or a deleted buyer).
  */
-export function orderTitle(o: Pick<ShopOrder, "shop_order_lines">, name: string | null | undefined): string {
+function orderTitle(o: Pick<ShopOrder, "shop_order_lines">, name: string | null | undefined): string {
   const [first, ...rest] = o.shop_order_lines ?? [];
   const one = first ? tr("shb.dash.item", { qty: first.quantity, title: first.title }) : tr("shb.dash.order");
   const item = rest.length > 0 ? tr("shb.dash.more", { item: one, n: rest.length }) : one;

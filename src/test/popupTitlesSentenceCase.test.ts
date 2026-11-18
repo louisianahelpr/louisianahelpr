@@ -198,7 +198,9 @@ describe("every pop-up title is sentence case", () => {
     // 244 (area 06b stack, 11-18): DeclutterOrderTalk's titles are dictionary branches now (#4720): "Message the buyer" /
     // "Message the seller" and "Your chat with the buyer" / "Your chat with the seller" each count as two.
     // 243 (merge 11-18): 244 above, -1 for Filter jobs below.
-    expect(all.length).toBe(243);
+    // 245 (train 11-18, one batch): the counts above added together once every 11-18 PR is in (area 06b +2 talk branches,
+    // area 03 +1 More options, area 04 -1 Filter jobs, area 09 -1 Log out?, r3 +/-0 ...), measured on the merged tree.
+    expect(all.length).toBe(245);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

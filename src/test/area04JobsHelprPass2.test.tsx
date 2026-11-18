@@ -74,8 +74,11 @@ describe("area 04 Jobs Helpr, pass 2", () => {
   it("#9: the map key says what the shading means, and the map has its own way back to the list", () => {
     expect(code("src/components/browseMap/MapLayers.tsx")).toContain("Shaded areas show where jobs are waiting");
     const feed = code("src/components/dashboard/BrowseTasksFeed.tsx");
-    expect(feed).toContain('data-testid="browse-map-show-list"');
-    expect(feed).toContain("onClick={onShowList}");
+    // The pill moved to MapShowListPill.tsx in the 11-18 train (BrowseTasksFeed stays under the 600-line ratchet).
+    expect(feed).toContain("{onShowList && <MapShowListPill onClick={onShowList} />}");
+    const pill = code("src/components/dashboard/MapShowListPill.tsx");
+    expect(pill).toContain('data-testid="browse-map-show-list"');
+    expect(pill).toContain("onClick={onClick}");
     expect(code("src/pages/home/Dashboard.tsx")).toContain('onShowList={() => setView("list")}');
   });
 

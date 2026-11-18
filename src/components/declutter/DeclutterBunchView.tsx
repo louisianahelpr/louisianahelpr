@@ -111,8 +111,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const [results, setResults] = useState<BunchOutcome[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // LEAD-BUNCH-34-SLOW: while sorting, each photo's thumbnail is its small copy, shown the moment it is made (no second
-  // decode of the full photo); "Adding N of M" counts them. The preview maker fills in the rest once sorting is done.
+  // LEAD-BUNCH-34-SLOW: while sorting, each thumbnail is its small copy (no second full decode); previews fill in after.
   const [adding, setAdding] = useState<{ ready: number; total: number } | null>(null);
   const [thumbs, setCopyUrls] = useSortingThumbs(photos, !!sorting);
   // Photos of listed and dropped items stop counting toward the cap. Not mid-sort: a batch's photos aren't in an item yet.
@@ -463,8 +462,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
   return (
     <AppPage title={pageTitle} backTo="/declutter?view=selling">
-      {/* A3-69: once everything is listed, the result is the page: the intro and the empty photo step come back with
-          List more (a failed item still on the list keeps them, so it can be fixed). */}
+      {/* A3-69: once all is listed the result is the page; List more (or a failed item) brings the intro back. */}
       {!allListed && (
       <p className="text-sm text-muted-foreground">{bunchIntro(moving)}</p>
       )}

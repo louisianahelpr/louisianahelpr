@@ -4,8 +4,8 @@ import { browseFilteredEmptyCopy, browseGroupEmptyTitle } from "@/lib/browseEmpt
 import { JOB_CATEGORY_GROUPS, groupTileLabel } from "@/lib/jobCategoryGroups";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { List, Search } from "lucide-react";
-import { MAP_DOCK_CLEARANCE } from "@/components/browseMap/config";
+import { Search } from "lucide-react";
+import { MapShowListPill } from "./MapShowListPill";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SavedOnlyState, type SavedRead } from "./SavedOnlyState";
@@ -41,11 +41,7 @@ type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 interface BrowseTasksFeedProps {
   /** List vs Map view — selects which body renders. */
   view: "list" | "map";
-  /**
-   * Back to the list from the map, on the map itself (design audit area 04 #9, 11-18): the only way back was
-   * Filters › View, and the choice is remembered, so a Helpr who tried the map came back to it with no visible exit.
-   * Omitted: no pill (the desktop split map always shows the list beside it).
-   */
+  /** Back to the list, on the map (area 04 #9, MapShowListPill). Omitted on the desktop split map (list beside it). */
   onShowList?: () => void;
   /** Card density: comfortable (default full cards) or compact (single-line rows). */
   density: FeedDensity;
@@ -345,19 +341,7 @@ export function BrowseTasksFeed({
 
       {view === "map" && (
         <div className="relative flex-1 min-h-0 px-3 pt-2 pb-0">
-          {onShowList && (
-            <button
-              type="button"
-              data-testid="browse-map-show-list"
-              onClick={onShowList}
-              className="btn-press absolute left-6 z-[420] inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-ds-13 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-              // Bottom-left, on the my-location control's floor (bottom-right): the top-left holds the shaded-areas key.
-              style={{ bottom: MAP_DOCK_CLEARANCE, background: "hsl(var(--card))", border: "1px solid hsl(var(--olivewood) / 0.22)", color: "hsl(var(--olivewood))", boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.22)" }}
-            >
-              <List className="w-4 h-4" aria-hidden="true" />
-              List
-            </button>
-          )}
+          {onShowList && <MapShowListPill onClick={onShowList} />}
           <Suspense fallback={<Skeleton className="h-full w-full rounded-t-2xl" />}>
             <BrowseMap
               // Apply from a pin opens the SAME job-detail dialog as tapping

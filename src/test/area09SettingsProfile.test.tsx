@@ -13,7 +13,7 @@
  * @mutate src/lib/i18n/enSettings.ts | "Terms, rules and privacy" | "Terms, rules & privacy"
  * @mutate src/pages/profile/SavedSearchesTab.tsx | font-semibold text-ds-15 line-clamp-2 break-words | font-semibold text-ds-15 truncate
  * @mutate src/pages/profile/SavedSearchesTab.tsx | title={t("ss.title")} | title="Saved searches"
- * @mutate src/components/profile/profileLanding/YouCard.tsx |           Public profile\n |           View my public profile\n
+ * @mutate src/lib/i18n/enYourPage.ts |   "yp.you.publicProfile": "Public profile", |   "yp.you.publicProfile": "View my public profile",
  * @mutate src/lib/i18n/enYourPage.ts | "yp.page": "Your public profile" | "yp.page": "Your page"
  * @mutate src/lib/i18n/enAccount.ts | "acct.linkTitle": "Public profile link" | "acct.linkTitle": "Your profile link"
  * @mutate src/components/profile/SettingsTab.tsx |         <PaymentMethodsRow />\n |

@@ -48,8 +48,8 @@ import {
   planFundedOpenJob,
   staleApplicantFixtures,
   type FixtureRow,
+  APPLICANT_FIXTURE_TITLE,
 } from "../../e2e/prod-audit/fundedOpenJobPlan";
-import { APPLICANT_FIXTURE_TITLE } from "../../e2e/prod-audit/fundedApplicantJob";
 
 const REPO = join(__dirname, "..", "..");
 const read = (p: string) => blankComments(readFileSync(join(REPO, p), "utf8"));

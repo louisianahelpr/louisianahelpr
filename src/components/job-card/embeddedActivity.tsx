@@ -9,6 +9,7 @@ import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL, postedGroupWords } from "@/com
 import { WORKING_CHIPS, WORKING_CHIP_LABEL } from "@/lib/activityBuckets";
 import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobPoster";
 
 /**
  * The status chips over Jobs & Posts > Posted / Working (owner, 2026-10-19), after "All": every bucket, in the job's

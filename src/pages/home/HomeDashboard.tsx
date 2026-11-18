@@ -46,6 +46,7 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 import { useLanguage, getLang, t as tNow } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
 import "@/lib/i18n/enHome";
+import "@/lib/i18n/enSections";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 // Drawn only when a Coming up read fails, so the error card (and EmptyState under it) loads on its own and never rides

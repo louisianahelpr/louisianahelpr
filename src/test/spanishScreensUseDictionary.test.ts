@@ -161,8 +161,14 @@ const ALLOWED: Record<string, string[]> = {
   // "Shops" is the section's header, which ShopsPage's loading frame draws word for word (sectionLoadingHeaderIsSettled);
   // both move to t() together, in a follow-up (the dock already says "Tiendas").
   "src/components/shops/ShopsHomeView.tsx": ["AbortError", "Shops"],
-  // Area 07 H1: Stripe's checkout-return toast stays as it is here; PR #4702 (Shops launch pass 1) rewrites that effect.
-  "src/components/shops/ShopMyOrdersView.tsx": ["Order sent. The shop has 24 hours to answer; your card is held, not charged."],
+  // Area 07 H1: Stripe's checkout-return toasts stay English here; PR #4702/#4704 (Shops launch passes) rewrote that
+  // effect into checkoutReturnToast, which met area 07 only in the 11-18 train. Moving all four to t() is a follow-up.
+  "src/components/shops/ShopMyOrdersView.tsx": [
+    "Order sent. The shop has 24 hours to answer; your card is held, not charged.",
+    "Preorder placed. Your card was charged in full; the shop has it ready by its ready-by date.",
+    "Thanks for your order. Your download shows on the order below once the payment goes through.",
+    "The rest of your custom order is paid.",
+  ],
   // The time zone the review dates are read in (Intl), not words.
   "src/components/shops/ShopReviews.tsx": ["America/Chicago"],
   // A report tag (ReportErrorScreen source), never shown.

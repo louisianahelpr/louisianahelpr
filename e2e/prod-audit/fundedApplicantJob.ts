@@ -31,10 +31,11 @@ import type { APIRequestContext, Browser } from "@playwright/test";
 import { SUPABASE_URL, type Session } from "../journeys/fixtures";
 import { createFixtureRow, fund, headers, retireFundedJob } from "./fundedOpenJob";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
-import { staleApplicantFixtures } from "./fundedOpenJobPlan";
+import { APPLICANT_FIXTURE_TITLE, staleApplicantFixtures } from "./fundedOpenJobPlan";
 
 /** Title prefix of the applicant fixture. Not FUNDED_FIXTURE_TITLE, and no sweeper marker. */
-export const APPLICANT_FIXTURE_TITLE = "Prod audit applicant fixture";
+// The title lives in the pure plan module, so unit tests read it without this file's Playwright imports (train 11-18).
+export { APPLICANT_FIXTURE_TITLE };
 
 export interface ApplicantFixture {
   job: { id: string; title: string };

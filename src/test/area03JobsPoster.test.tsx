@@ -8,7 +8,7 @@
  * @mutate src/components/job-card/ActivityBucketGroups.tsx | {all ? t("jp.showLess") : t("jp.seeAll", { n: list.length })} | {all ? "Show less" : `See all ${list.length}`}
  * @mutate src/lib/i18n/es.ts |   ...esJobPoster,\n |
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx | no Helpr has opened it yet. Share the link or boost it to reach more Helprs.` | no Helpr has opened it yet. Getting it in front of people is the first problem to solve.`
- * @mutate src/components/SuggestCategory.tsx | &ldquo;Something else&rdquo; and post right now. | &ldquo;Other&rdquo; and post right now.
+ * @mutate src/lib/i18n/enSuggest.ts | “Something else” and post right now. | “Other” and post right now.
  * @mutate src/components/job-card/ActivityEmptyState.tsx |     : isPosted && !hasSearch && POSTED_EMPTY_TITLE[statusFilter] ? POSTED_EMPTY_TITLE[statusFilter]\n | 
  * @mutate src/components/TipDialog.tsx |       <DialogContent keepClose>\n        <DialogHero moment title={first |       <DialogContent>\n        <DialogHero moment title={first
  */

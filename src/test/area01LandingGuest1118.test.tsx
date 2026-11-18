@@ -35,7 +35,7 @@
  * @mutate src/components/landing/LiveJobsSection.tsx | {date && <span className="whitespace-nowrap" data-live-job-date="">{date}</span>} | {date}
  * @mutate src/lib/i18n/esLanding.ts |   "landing.how.side.sell": "Compra y venta", |   "landing.how.side.sell": "Comprar o vender",
  * @mutate src/pages/info/Fees.tsx |           {t("fees.declutter", { pct: DECLUTTER_BUYER_FEE_PERCENT, cents: DECLUTTER_BUYER_FEE_FIXED_CENTS })} |           {null}
- * @mutate src/pages/info/Safety.tsx |         <li data-safety-declutter="">{t("safety.declutter")}</li> |
+ * @mutate src/pages/info/Safety.tsx |         <li className={INFO_CARD_ROW} data-safety-declutter="">{t("safety.declutter")}</li> |
  * @mutate src/pages/info/HelpCenter.tsx | ${open ? "border-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.08)]" : "border-border bg-card"} | ${open ? "border-[hsl(var(--bark)/0.45)] bg-card" : "border-border bg-card"}
  * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11 lg:[@media(pointer:fine)]:min-h-8"; | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11";
  * @mutate src/pages/auth/Login.tsx | <p className="text-center text-ds-14 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-login-new-here=""> | <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-login-new-here="">

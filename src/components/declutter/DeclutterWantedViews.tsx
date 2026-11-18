@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { AddPhotoTile } from "@/components/ui/AddPhotoTile";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
-import { safeStorage } from "@/lib/safeStorage";
+import { EMPTY, clearWantedDraft, readWantedDraft, saveWantedDraft } from "./wantedDraft";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -71,44 +71,11 @@ import { EXPIRED_WORD } from "@/lib/dateUtils";
 import { Input } from "@/components/ui/input";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
-const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
 const FORM_ID = "wanted-form";
-
-/**
- * Audit 10-30 #13: what was typed survives a reload, an app kill or leaving the page. Words, category, price and
- * distance only; chosen photos can't be kept and are picked again.
- */
-const WANTED_DRAFT_KEY = "helpr_wanted_draft";
 
 /** Design audit 11-17 #10: the shared form-label size (ui/label: 13 px semibold), the same as Edit profile, Sign up and
  * the photo picker's "Photos (optional, up to 3)"; the 15 px labels read 17 px beside a 12 px one. */
 const FIELD_LABEL = "block text-ds-13 font-semibold text-foreground/80";
-
-function readWantedDraft(): WantedForm {
-  try {
-    const raw = safeStorage.getItem(WANTED_DRAFT_KEY);
-    if (!raw) return EMPTY;
-    const d = JSON.parse(raw) as Partial<WantedForm>;
-    return {
-      what: typeof d.what === "string" ? d.what : "",
-      category: typeof d.category === "string" ? d.category : "",
-      maxPrice: typeof d.maxPrice === "string" ? d.maxPrice : "",
-      radius: WANTED_RADIUS_CHOICES.find((m) => m === d.radius) ?? EMPTY.radius,
-    };
-  } catch (err) {
-    console.warn("[declutter] ignored an unreadable Wanted draft", err);
-    return EMPTY;
-  }
-}
-
-function clearWantedDraft() {
-  safeStorage.removeItem(WANTED_DRAFT_KEY);
-}
-
-function saveWantedDraft(form: WantedForm) {
-  if (form.what === "" && form.category === "" && form.maxPrice === "" && form.radius === EMPTY.radius) clearWantedDraft();
-  else safeStorage.setItem(WANTED_DRAFT_KEY, JSON.stringify(form));
-}
 
 /** What sellers near the poster see (shown under the form, in place of the old switch). */
 const WANTED_SELLERS_SEE = () => t("dsl.w.sellersSee");

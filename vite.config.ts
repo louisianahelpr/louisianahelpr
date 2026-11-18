@@ -18,8 +18,11 @@ const I18N_SCREEN_DICTS = readdirSync(path.join(process.cwd(), "src/lib/i18n"))
 /**
  * One panel's words, imported by that one panel only (i18nDictionariesRideWithTheirScreens.test.ts checks it): no group,
  * so each is inlined into its panel's chunk instead of being one more small file on the item page (Q178).
+ * enMoneyTiles and enJobLines left this set in the 11-18 train: area 11 M12/M13 gave each three importers
+ * (HomeMoneyTiles, PayoutFailedCard, payoutProblems; OnTheWayNow, jobProgressState, reviewTimeLeft), so each is a
+ * grouped dictionary with its own chunk now.
  */
-const I18N_PANEL_DICTS = new Set(["enOffer", "enQuestions", "enFree", "enOfferTrade", "enSellSummary", "enFreeAsk", "enMoneyTiles", "enChatEvents", "enPorchPlaces", "enSellingNow", "enJobSteps", "enNextStep", "enJobLines", "enAiDraft", "enListForSeller", "enItemPage", "enGuest"]);
+const I18N_PANEL_DICTS = new Set(["enOffer", "enQuestions", "enFree", "enOfferTrade", "enSellSummary", "enFreeAsk", "enChatEvents", "enPorchPlaces", "enSellingNow", "enJobSteps", "enNextStep", "enAiDraft", "enListForSeller", "enItemPage", "enGuest"]);
 
 // Build identity — baked into the bundle at build time so any running app
 // can show exactly which commit it was built from without any API calls.

@@ -24,9 +24,9 @@ import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { getCity } from "@/lib/locationUtils";
 import { formatJobDate } from "@/lib/dateUtils";
-import { jobStartTimeLabel } from "@/lib/jobDate";
+import { FactRow, whenLine } from "./jobFacts";
 import { jobEyebrow } from "./jobEyebrow";
-import { useJobPage, useMyInstantBooking, useOfferedToMe, useOwesReview, type JobPageRow } from "./useJobPage";
+import { useJobPage, useMyInstantBooking, useOfferedToMe, useOwesReview } from "./useJobPage";
 import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
@@ -44,7 +44,7 @@ import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel"
 import { jobPageViewerState } from "./viewerState";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useState } from "react";
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { HIDE_WHEN_BLANK } from "./blankCard";
@@ -78,7 +78,6 @@ import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { RefundRequestPanel } from "@/components/refund/RefundRequestPanel";
 import { useRefundRequest } from "@/components/refund/refundParts";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { jobDayLabel } from "@/lib/jobDateWindow";
 
 /** The hired Helpr's way to this job's card on the Jobs tab, one name everywhere (Q2598). */
 const OPEN_IN_JOBS = "Open in Jobs";
@@ -88,24 +87,6 @@ const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ 
 // JA-17: the Working card's Accept / Decline on this page; loaded only for a Helpr with an offer.
 // From the job lists' chunk (it holds useActivityActions already), never a chunk of its own: see JobListPage.tsx.
 const PageOfferPanel = lazy(() => import("@/components/job-card/JobListPage").then((m) => ({ default: m.PageOfferPanel })));
-
-/** The When row: the day and the start time ("Wed, Nov 11 · 9:00 AM"). */
-function whenLine(job: JobPageRow): string {
-  return [
-    job.date_needed ? jobDayLabel(job) : null,
-    jobStartTimeLabel(job.start_time, job.is_flexible_schedule),
-  ].filter(Boolean).join(" · ");
-}
-
-/** One label/value row of the job's facts (owner pick 11-08, JP1: When / Where / Visits, like a listing's facts). */
-function FactRow({ label, children, ...rest }: { label: string; children: ReactNode } & Record<`data-${string}`, string>) {
-  return (
-    <div data-job-fact="" className="flex items-baseline justify-between gap-4 border-b border-border py-2 last:border-b-0">
-      <dt className="shrink-0 text-ds-14 text-muted-foreground">{label}</dt>
-      <dd {...rest} className="min-w-0 text-right text-ds-14 text-foreground [overflow-wrap:anywhere]">{children}</dd>
-    </div>
-  );
-}
 
 const CARD = "rounded-2xl border border-border bg-card";
 // Area 11 H2: no visible child (the phone bar portals out, step controls are hidden), no card.

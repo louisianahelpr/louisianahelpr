@@ -28,6 +28,9 @@
  */
 import { isListedPayment } from "../listedPayment";
 
+/** The applicant fixture's title prefix (fundedApplicantJob.ts creates and retires rows by it). */
+export const APPLICANT_FIXTURE_TITLE = "Prod audit applicant fixture";
+
 /** Title prefix every fixture row carries. NOT any sweeper marker (E2E-PRODAUDIT, PRESS DO NOT ACCEPT, E2E DO NOT ACCEPT): those delete or cancel on sight. */
 export const FUNDED_FIXTURE_TITLE = "Prod audit funded fixture";
 

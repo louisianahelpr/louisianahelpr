@@ -1,7 +1,5 @@
 import { memo, useRef, useState } from "react";
-import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { t } from "@/lib/i18n/language";
-import "@/lib/i18n/enJobPoster";
+import { ArriveConfirm } from "./postedJobCard/ArriveConfirm";
 import { takesApplicants } from "./postedJobCard/crewRefill";
 import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
@@ -591,17 +589,8 @@ function PostedJobCardInner({
             {!isExpanded && !!(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me && /* Q1551 */ <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={false} hideAsk />}
           </JobCardShell>
         </div>
-        <div data-arrive-confirm-host="" onClick={(e) => e.stopPropagation()}>
-          <BrandConfirmDialog
-            open={arriveAsk === job.id}
-            onOpenChange={(o) => { if (!o) setArriveAsk(null); }}
-            title={arriveFirst ? t("jp.arriveTitle", { name: arriveFirst }) : t("jp.arriveTitleNoName")}
-            description={t("jp.arriveBody")}
-            primaryLabel={t("jp.arriveYes")}
-            onPrimary={() => { setArriveAsk(null); confirmArrivalNow(job.id); }}
-            secondaryLabel={t("jp.arriveNo")}
-          />
-        </div>
+        <ArriveConfirm open={arriveAsk === job.id} first={arriveFirst} onClose={() => setArriveAsk(null)}
+          onPrimary={() => { setArriveAsk(null); confirmArrivalNow(job.id); }} />
         </JobCardLeadContext.Provider></JobCardPersonContext.Provider>
   );
 }

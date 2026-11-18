@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/DeclutterManageListing.tsx | <RowText title={t("lp.m.preview")}>{t("lp.m.previewBody")}</RowText> | <RowText title="See what buyers see">Your listing as a buyer reads it</RowText>
  * @mutate src/components/declutter/ListedWhatNext.tsx | primary={{ label: t("decl.lwn.preview"), onClick: () => navigate(`/declutter/item/${it.id}?preview=buyer`) }} | primary={{ label: "See my listing", onClick: () => navigate(`/declutter/item/${it.id}`) }}
- * @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={t("decl.sl.previewAria", { title: item.title })}>{t("decl.sl.preview")}</Link> | aria-label={`See what buyers see of ${item.title}`}>See what buyers see</Link>
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={t("decl.sl.previewAria", { title: item.title })}><Eye aria-hidden /><span className="sr-only">{t("decl.sl.preview")}</span></Link> | aria-label={`See what buyers see of ${item.title}`}>See what buyers see</Link>
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -38,7 +38,8 @@ describe("LEAD-ONE-PREVIEW: one Preview for the seller", () => {
     // F260q: the words live in enListingParts (Spanish in esListingParts).
     expect(readFileSync(join(process.cwd(), "src/lib/i18n/enListingParts.ts"), "utf8")).toContain('"lp.m.preview": "Preview",\n  "lp.m.previewBody": "See your listing as buyers do",');
     expect(read("ListedWhatNext.tsx")).toMatch(/primary=\{\{ label: t\("decl\.lwn\.preview"\), onClick: \(\) => navigate\(`\/declutter\/item\/\$\{it\.id\}\?preview=buyer`\) \}\}/);
-    expect(read("DeclutterHomeView.tsx")).toMatch(/\?preview=buyer`\} aria-label=\{t\("decl\.sl\.previewAria", \{ title: item\.title \}\)\}>\{t\("decl\.sl\.preview"\)\}<\/Link>/);
+    // Design audit 11-17 #20: the Selling row's Preview is a 44px icon button; the word stays as its hidden text.
+    expect(read("DeclutterHomeView.tsx")).toMatch(/\?preview=buyer`\} aria-label=\{t\("decl\.sl\.previewAria", \{ title: item\.title \}\)\}><Eye aria-hidden \/><span className="sr-only">\{t\("decl\.sl\.preview"\)\}<\/span><\/Link>/);
     expect(readFileSync(join(process.cwd(), "src/lib/i18n/enDeclutter.ts"), "utf8")).toContain('"decl.sl.preview": "Preview",');
   });
 });

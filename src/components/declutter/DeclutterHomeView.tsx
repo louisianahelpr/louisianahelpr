@@ -27,7 +27,7 @@ import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates,
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyPayouts } from "@/lib/declutter/handover";
 import { listingNextStep, listingRowLine } from "./listingStatusLine";
-import { Search, Tags } from "lucide-react";
+import { Eye, Search, Tags } from "lucide-react";
 import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
 import { useTradedFor } from "./useMyTrades";
@@ -298,8 +298,10 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                 ) : null}
                 {/* LEAD-ONE-PREVIEW (owner 10-31): View and "See what buyers see" are one action, Preview: the listing as buyers read it. */}
                 {item.status !== "draft" && (
-                  <Button asChild variant="outline" size="sm" data-listing-preview="">
-                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}>{t("decl.sl.preview")}</Link>
+                  // Design audit 11-17 #20: three equal outline buttons were heavy; Manage is the one labelled button,
+                  // Preview and Share are 44px icon buttons (their names stay on aria-label and in the hidden word).
+                  <Button asChild variant="outline" size="iconCompact" className="rounded-full" data-listing-preview="">
+                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}><Eye aria-hidden /><span className="sr-only">{t("decl.sl.preview")}</span></Link>
                   </Button>
                 )}
                 {(item.status === "live" || item.status === "paused") && (

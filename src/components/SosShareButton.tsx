@@ -169,7 +169,7 @@ export function SafetyShieldButton({
     <>
       <RoundIconButton
         aria-label="SOS — are you safe?"
-        title={t("cp.safety")}
+        title={t("cp.safetyLabel")}
         data-sos-shield=""
         onClick={() => setOpen(true)}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
@@ -192,7 +192,7 @@ export function SafetyShieldButton({
         className="hidden min-[360px]:inline font-sans font-semibold text-ds-11 pr-1"
         style={{ color: SOS_TINT.color }}
       >
-        {t("cp.safety")}
+        {t("cp.safetyLabel")}
       </button>
       <SosShareSheet jobId={job.id} open={open} onOpenChange={setOpen} />
     </>

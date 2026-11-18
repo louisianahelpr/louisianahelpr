@@ -40,6 +40,7 @@ export const esMessages: Record<keyof typeof enMessages, string> = {
   "msg.muted": "Silenciada",
   "msg.viewPinned": "Fijadas",
   "msg.viewDeleted": "Borradas recientemente",
+  "msg.edited": "Editado",
   "msg.backToAll": "Volver a todos los mensajes",
   "msg.filterConvos": "Filtrar conversaciones",
   "msg.hideFilters": "Ocultar los filtros",

@@ -10,9 +10,12 @@
  * @mutate src/components/messages/MessageBubble.tsx | relative z-10 mt-0.5 flex | relative z-10 -mt-2 flex
  * @mutate src/components/NotificationPreferences.tsx | className="sticky top-0 z-20 flex items-center justify-end | className="flex items-center justify-end
  * @mutate src/components/NotificationPreferences.tsx | liquid-glass overflow-clip shadow-sm | liquid-glass overflow-hidden shadow-sm
- * @mutate src/components/SosShareButton.tsx |         {t("cp.safety")}\n |         {""}\n
+ * @mutate src/components/SosShareButton.tsx |         {t("cp.safetyLabel")}\n |         {""}\n
  * @mutate src/components/messages/ConversationListHeader.tsx |           {inboxTab === "pinned" ? t("msg.viewPinned") : t("msg.viewDeleted")}\n |           {""}\n
  * @mutate src/components/messages/ConversationListHeader.tsx |           aria-label={t("msg.backToAll")}\n | \n
+ * @mutate src/components/messages/chatView/ChatTimeline.tsx |             hideTime={timeOnNext}\n | \n
+ * @mutate src/components/messages/MessageBubble.tsx |             {!hideTime ? ( |             {true ? (
+ * @mutate src/components/messages/chatView/ChatTimeline.tsx | export const TIME_GROUP_MS = 10 * 60 * 1000; | export const TIME_GROUP_MS = 0;
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -20,6 +23,7 @@ import { blankComments } from "./helpers/blankNonCode";
 import { enNotifPrefs } from "@/lib/i18n/enNotifPrefs";
 import { esNotifPrefs } from "@/lib/i18n/esNotifPrefs";
 import { jobReminderWords } from "@/lib/i18n/notifPrefWords";
+import { TIME_GROUP_MS } from "@/components/messages/chatView/ChatTimeline";
 
 const code = (f: string) => blankComments(readFileSync(f, "utf8"));
 const P = "src/components/notificationPreferences/";
@@ -83,8 +87,8 @@ describe("L4 / L6: reaction chip and SOS shield", () => {
   });
   it("the shield wears its word", () => {
     const src = code("src/components/SosShareButton.tsx");
-    expect(src).toMatch(/data-sos-shield-label=""[\s\S]{0,300}\{t\("cp\.safety"\)\}/);
-    expect(src).toContain('title={t("cp.safety")}');
+    expect(src).toMatch(/data-sos-shield-label=""[\s\S]{0,300}\{t\("cp\.safetyLabel"\)\}/);
+    expect(src).toContain('title={t("cp.safetyLabel")}');
   });
 });
 
@@ -93,5 +97,17 @@ describe("M9: Pinned and Recently deleted have a header", () => {
     const src = code("src/components/messages/ConversationListHeader.tsx");
     expect(src).toMatch(/data-inbox-view-header=""[\s\S]{0,400}aria-label=\{t\("msg\.backToAll"\)\}/);
     expect(src).toMatch(/<h2[^>]*>\s*\{inboxTab === "pinned" \? t\("msg\.viewPinned"\) : t\("msg\.viewDeleted"\)\}/);
+  });
+});
+
+describe("L3: one time per 10-minute stretch, on its last message", () => {
+  it("the timeline hides a time the next message (within 10 minutes) carries", () => {
+    expect(TIME_GROUP_MS).toBe(10 * 60 * 1000);
+    const tl = code("src/components/messages/chatView/ChatTimeline.tsx");
+    expect(tl).toMatch(/Date\.parse\(next\.message\.created_at\) - Date\.parse\(m\.created_at\) < TIME_GROUP_MS/);
+    expect(tl).toContain("hideTime={timeOnNext}");
+    const bubble = code("src/components/messages/MessageBubble.tsx");
+    expect(bubble).toContain("{!hideTime ? (");
+    expect(bubble).not.toMatch(/\{!grouped && \(\s*<span>\s*\{new Date/);
   });
 });

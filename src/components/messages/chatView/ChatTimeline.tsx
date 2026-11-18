@@ -17,6 +17,9 @@ import {
   normalizeStoredSystemMessage,
 } from "./SystemEventRow";
 
+/** Area 08 L3: messages closer together than this share one time, on the last of them. */
+export const TIME_GROUP_MS = 10 * 60 * 1000;
+
 /**
  * Shape-matched placeholder bubbles shown while a newly-opened
  * conversation's messages are still in flight — fills the same blank
@@ -277,6 +280,15 @@ export function ChatTimeline({
           prev.type === "message" &&
           !prev.message.is_system &&
           prev.message.sender_id === m.sender_id;
+        // Area 08 L3 (design audit 11-18): a time under every bubble was noise. Messages within 10 minutes of the
+        // next one read as one stretch, and only the stretch's last message carries the time (a left-drag still
+        // shows every time).
+        const next = timeline[i + 1];
+        const timeOnNext =
+          !!next &&
+          next.type === "message" &&
+          !next.message.is_system &&
+          Date.parse(next.message.created_at) - Date.parse(m.created_at) < TIME_GROUP_MS;
         return (
           <MessageBubble
             key={item.key}
@@ -300,6 +312,7 @@ export function ChatTimeline({
               return { content: parent.content, mine: parent.sender_id === userId };
             })()}
             grouped={grouped}
+            hideTime={timeOnNext}
             activeConvo={activeConvo}
             retryMessage={retryMessage}
             setLightboxPhoto={setLightboxPhoto}

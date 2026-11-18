@@ -46,6 +46,7 @@ export const enMessages = {
   "msg.muted": "Muted",
   "msg.viewPinned": "Pinned",
   "msg.viewDeleted": "Recently deleted",
+  "msg.edited": "Edited",
   "msg.backToAll": "Back to all messages",
   "msg.filterConvos": "Filter conversations",
   "msg.hideFilters": "Hide conversation filters",

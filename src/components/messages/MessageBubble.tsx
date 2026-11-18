@@ -100,6 +100,7 @@ export function MessageBubble({
   replyParent,
   reveal = 0,
   grouped = false,
+  hideTime = false,
   activeConvo,
   retryMessage,
   setLightboxPhoto,
@@ -126,6 +127,8 @@ export function MessageBubble({
    *  reads as one group (iOS convention), with a larger gap on sender
    *  change. */
   grouped?: boolean;
+  /** Area 08 L3: the next message comes within 10 minutes, so it carries the time for both. */
+  hideTime?: boolean;
   activeConvo: Conversation;
   retryMessage: (clientId: string) => void;
   setLightboxPhoto: (url: string | null) => void;
@@ -351,12 +354,16 @@ export function MessageBubble({
                 message carries the time. Every hidden time is still one
                 left-drag away (see useTimestampReveal), which is exactly the
                 trade iMessage makes. */}
-            {!grouped && (
+            {/* Area 08 L3: the time sits on the LAST message of a stretch (the next one is more than 10 minutes
+                later, or there is none); a hidden time keeps its Edited mark. */}
+            {!hideTime ? (
               <span>
                 {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
                 {m.edited_at && " · Edited"}
               </span>
-            )}
+            ) : m.edited_at ? (
+              <span>{t("msg.edited")}</span>
+            ) : null}
             {showReadReceipt && (
               <ReadReceipt
                 read={m.read}

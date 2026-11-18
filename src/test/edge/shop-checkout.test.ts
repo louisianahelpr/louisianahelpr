@@ -45,6 +45,7 @@
  * Launch rule (gift cards refused on Shops while SHOP_GIFT_CARDS is not "on"):
  * @mutate supabase/functions/shop-checkout/index.ts |  if (giftCardId && Deno.env.get("SHOP_GIFT_CARDS") !== "on") { |  if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |  if (giftCardId && Deno.env.get("SHOP_GIFT_CARDS") !== "on") { |  if (giftCardId && Deno.env.get("SHOP_GIFT_CARDS") === "off") {
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (giftCardId && byHelpr) { |  if (false) {
  * H6 (tax at capture, not at the hold):
  * @mutate supabase/functions/shop-checkout/index.ts |    customer_details: { address, address_source: addressSource }, |    customer_details: { address: { ...address, postal_code: "70112" }, address_source: addressSource },
  * @mutate supabase/functions/shop-checkout/index.ts |  }, { idempotencyKey: `shop-tax-${orderId}` }); |  });
@@ -445,6 +446,23 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
       expect(res.status).toBe(409);
       expect((await json(res)).error).toBe("gift_card_not_accepted");
     }
+    expect(rpcs("shops_request_order")).toHaveLength(0);
+    expect(rpcs("redeem_gift_card_for_shop_order")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+  it("Q2105 step 3: even with the switch on, a gift card never pays for an order a Helpr delivers (refused before anything freezes)", async () => {
+    const fn = await load();
+    frozen();
+    env({ SHOP_GIFT_CARDS: "on" });
+    const res = await fn.fetch(fn.request({
+      headers: { Authorization: "Bearer buyer-jwt" },
+      body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
+        terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, gift_card_id: GIFT,
+        delivery_by: "helpr", delivery_cents: 900,
+        delivery: { line1: "1 Main St", city: "Lafayette", state: "LA", postal_code: "70501" } },
+    }));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("gift_card_not_accepted");
     expect(rpcs("shops_request_order")).toHaveLength(0);
     expect(rpcs("redeem_gift_card_for_shop_order")).toHaveLength(0);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();

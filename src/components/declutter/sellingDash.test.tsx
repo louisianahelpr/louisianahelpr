@@ -42,8 +42,8 @@
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return tr("decl.st.claimedWaiting"); |   void 0;
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return tr("decl.st.claimed"); |   void 0;
  * @mutate src/components/declutter/DeclutterItemView.tsx | title={t("decl.yourListing", { status: sellerStatusLabel(it, tradedFor.get(it.id) ?? null) })} | title={t("decl.yourListing", { status: t(`decl.st.${it.status}` as MsgKey) })}
- * @mutate src/components/declutter/declutterSellingParts.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
+ * @mutate src/components/declutter/declutterSellingParts.tsx |   const cents = SOLD.has(item.status) ? sold : item.status === "reserved" |   const cents = false ? sold : item.status === "reserved"
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} agreed= |                 <ListingPrice item={item} sold={item.current_price_cents} agreed=
  * @mutate src/components/declutter/declutterSellingParts.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
  * @mutate src/components/declutter/listingStatusLine.ts |   return paid ? `${base} · ${paid}` : base; |   return base;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null; |     return (payouts.data ?? [])[0] ?? null;

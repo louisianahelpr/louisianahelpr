@@ -1473,6 +1473,7 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const porchSeller = order.handover === "porch" && order.side === "seller"; |   const porchSeller = false;
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | trigger={pickupTimeOver(booking, Date.now(), porchSeller)} /> | trigger={pickupTimeOver(booking)} />
   // @mutate src/components/declutter/DeclutterPorchDay.tsx | const until = booking.porch_until ? new Date(booking.porch_until) : | const until = false ? new Date(booking.porch_until ?? "") :
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {!(booking.porch_until && booking.porch_mode !== "all_day" && !posted) && <p | {<p
   it("Q2627: porch out until a time: the seller's They didn't show and Report a problem wait until it is over", async () => {
     const outUntil = (minsFromNow: number) => ({ ...slot(120), porch_mode: "until", porch_until: new Date(Date.now() + minsFromNow * 60_000).toISOString() });
     let checked = 0;
@@ -1480,7 +1481,10 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
       state.bookings = [outUntil(mins)];
       const { unmount } = show([line({ handover: "porch", my_side: "seller", porch_ok: true })]);
       await screen.findByText(/Pickup( day)?:/);
-      expect(await screen.findByText(/out until/)).toBeInTheDocument();
+      // Area 06 M4 (design audit 11-18): before the porch photo the booked line names the time, so "You said it's out
+      // until <time>" is not repeated (the Out until button stays to change it).
+      expect(screen.getByRole("button", { name: /Out until a time/ })).toBeInTheDocument();
+      expect(screen.queryByText(/You said it's out until/)).toBeNull();
       expect(`${mins}: ${!!screen.queryByRole("button", { name: "They didn't show" })}`).toBe(`${mins}: ${offered}`);
       expect(`${mins}: ${!!screen.queryByRole("button", { name: "Report a problem" })}`).toBe(`${mins}: ${offered}`);
       checked++;

@@ -13,6 +13,7 @@ export const esDeclOffers: Record<keyof typeof enDeclOffers, string> = {
   "dof.st.expired": "Se acabó el tiempo",
   "dof.st.withdrawn": "Retirada",
   "dof.st.voided": "El artículo fue para otra persona",
+  "dof.st.lapsed": "Vencida",
 
   "dof.inCart": "En su carrito. Pague antes del {when}.",
   "dof.checkOut": "Pagar",

@@ -7,7 +7,7 @@
 //
 // @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql |      AND (NOT i.is_seed OR i.seller_id = v_uid OR NOT public.seed_hidden_in_discovery()) |      AND true
 // @mutate supabase/migrations/20261112054500_declutter_my_cart_photo_path.sql |      AND (i.id IS NULL OR NOT i.is_seed OR c.seller_id = v_uid OR NOT public.seed_hidden_in_discovery()) |      AND true
-// @mutate src/lib/declutter/api.ts | status, created_at, pickup_at, declutter_items!inner(title) | status, created_at, pickup_at, declutter_items(title)
+// @mutate src/lib/declutter/api.ts | status, created_at, pickup_at, declutter_items!inner(title, category) | status, created_at, pickup_at, declutter_items(title, category)
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -32,6 +32,6 @@ describe("Buying lists leave out test items the caller may not see", () => {
   it("free asks require the item, so the items read policy's seed rule applies", () => {
     const api = readFileSync(resolve(__dirname, "../lib/declutter/api.ts"), "utf8");
     const fn = api.slice(api.indexOf("export async function fetchMyFreeRequests"), api.indexOf("export async function fetchOpenFreeRequestCounts"));
-    expect(fn).toContain("declutter_items!inner(title)");
+    expect(fn).toContain("declutter_items!inner(title, category)");
   });
 });

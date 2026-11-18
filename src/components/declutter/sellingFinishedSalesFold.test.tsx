@@ -123,7 +123,7 @@ describe("soldstates-2: Selling folds finished sales", () => {
   it("every sale finished: the heading stays, says nothing to hand over, and the fold opens them", async () => {
     state.cart = [line(2, "handed_over")];
     show();
-    expect(await screen.findByText("Nothing to hand over right now.")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing to hand over right now")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Sold: pickup and payout/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show 1 finished sale" }));
     expect(screen.getByText("Sale 2 handed_over")).toBeInTheDocument();

@@ -18,7 +18,8 @@ import { byClock, timeLeft } from "@/lib/declutter/timeLeft";
 import { NextStep } from "@/components/ui/NextStep";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { SellerTalks } from "./DeclutterHandoverTalk";
-import { DeclutterNotice } from "./declutterUi";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
+import { HandCoins } from "lucide-react";
 
 /** The words for one kind of waiting line: a paid sale, or a free item someone claimed. */
 const WORDS = {
@@ -91,7 +92,9 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
   if (cart.isError) {
     return <ErrorState variant="inline" title="We couldn't load your sales." body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
   }
-  if (waiting.length === 0) return emptyNotice && cart.isSuccess ? <DeclutterNotice title="Nothing waiting to be paid right now." /> : null;
+  if (waiting.length === 0) return emptyNotice && cart.isSuccess
+    // Area 06 M15 (design audit 11-18): the same iconed empty card as every other Selling list.
+    ? <DeclutterEmptyCard icon={HandCoins} title="Nothing waiting to be paid right now" data-seller-empty="">{null}</DeclutterEmptyCard> : null;
   const groups: [Kind, CartLine[]][] = [
     ["paid", waiting.filter((l) => l.price_cents !== 0)],
     ["swap", waiting.filter((l) => l.source === "swap")],

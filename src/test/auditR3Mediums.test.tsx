@@ -14,6 +14,9 @@
  * @mutate src/components/profile/DeleteAccountDialog.tsx | className="font-semibold text-primary underline underline-offset-2">{t("deleteAccount.breakLink")} | className="font-semibold underline underline-offset-2">{t("deleteAccount.breakLink")}
  * @mutate src/pages/info/legal/LegalChrome.tsx |       <span className="text-ds-15 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-tldr-heading=""> |       <span className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-tldr-heading="">
  * @mutate src/components/ReportDialog.tsx | const REPORT_FOOTER_PINNED = "sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 bg-background border-t border-border"; | const REPORT_FOOTER_PINNED = "sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 bg-card";
+ * @mutate src/components/ui/RadioCardList.tsx |             {o.media}\n |
+ * @mutate src/components/declutter/DeclutterOfferTrade.tsx | media: <ListingThumb small path={cover.get(c.id)} category={c.category} /> | media: null
+ * @mutate src/components/declutter/DeclutterOfferTrade.tsx | <SheetFooter className="sticky bottom-0 -mx-4 -mb-4 grid grid-cols-2 | <SheetFooter className="mt-4 -mx-4 -mb-4
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -69,5 +72,13 @@ describe("design audit round 3 fixes", () => {
 
   it("#3 Report: the pinned footer is the dialog's own colour with a top hairline", () => {
     expect(code("src/components/ReportDialog.tsx")).toMatch(/REPORT_FOOTER_PINNED = "[^"]*\bbg-background border-t border-border"/);
+  });
+
+  it("#10/#2 Offer a trade: each row shows its listing's photo; Cancel + Send sit side by side, pinned", () => {
+    expect(code("src/components/ui/RadioCardList.tsx")).toMatch(/\{o\.media\}\s*<span className="flex-1 min-w-0/);
+    const trade = code("src/components/declutter/DeclutterOfferTrade.tsx");
+    expect(trade).toMatch(/media: <ListingThumb small path=\{cover\.get\(c\.id\)\}/);
+    expect(trade).toMatch(/<SheetFooter className="sticky bottom-0 [^"]*\bgrid grid-cols-2\b[^"]*"/);
+    expect(code("src/components/declutter/ListingThumb.tsx")).toMatch(/small \? "h-11 w-11 rounded-lg"/);
   });
 });

@@ -78,7 +78,6 @@ export function createDemoBackend(): SponsorBackend {
       failNext = null;
       if (f === "full") return { ok: false, kind: "full", fullDays: payload.days.slice(0, 1) };
       if (f === "rate") return { ok: false, kind: "rateLimited" };
-      if (f === "closed") return { ok: false, kind: "closed" };
       if (f === "error") return { ok: false, kind: "error" };
       if (cap !== null) {
         const c = counts();

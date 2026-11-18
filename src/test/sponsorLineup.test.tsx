@@ -1,3 +1,13 @@
+// @mutate src/components/sponsor/Sections.tsx |           const shown = d.partners.filter((p) => !recurringBrands.has(p.brand)); |           const shown = d.partners;
+// @mutate src/components/sponsor/Sections.tsx |     if (e.prizes.size === 1 && e.days.length * 2 > days.length) out.push |     if (e.prizes.size === 1 && e.days.length > days.length) out.push
+// @mutate src/components/sponsor/Sections.tsx |   if (p.toLowerCase() === b.toLowerCase()) return ""; |   if (false) return "";
+// @mutate src/components/sponsor/Sections.tsx |   if (p.toLowerCase().startsWith(`${b.toLowerCase()} `)) { |   if (false) {
+// @mutate src/components/sponsor/Sections.tsx |   const [openWeeks, setOpenWeeks] = useState<ReadonlySet<number>>(() => new Set([0])); |   const [openWeeks, setOpenWeeks] = useState<ReadonlySet<number>>(() => new Set([0, 1, 2, 3]));
+// @mutate src/pages/sponsor/sponsor.css |   .lh25-lineup-day.lh25-lineup-later { display: none; } |   .lh25-lineup-day.lh25-lineup-later { }
+// @mutate src/content/sponsorPage.ts |     websiteButton: "Explore the site", |     websiteButton: "Explore louisianahelpr.com",
+// @mutate src/content/sponsorPage.ts |     title: "How it works", |     title: "How It Works",
+// @mutate src/components/sponsor/ClaimSection.tsx |           <span>{F.agree}</span> |           <span>{F.agree} <span className="lh25-req" aria-hidden="true">*</span></span>
+// @mutate src/pages/sponsor/SponsorRulesPage.tsx |           {i < parts.length - 1 ? <a href={`mailto:${email}`}>{email}</a> : null} |           {i < parts.length - 1 ? email : null}
 // @mutate src/content/sponsorPage.ts |           { brand: "Megan Benoit's Closet", prize: "$30 gift card" }, |           { brand: "Megan Benoit's Closet REMOVED", prize: "$30 gift card" },
 // @mutate src/content/sponsorPage.ts |     winners: "{n} winners", |     winners: "",
 // @mutate src/components/sponsor/Sections.tsx |               {d.partners.length > 1 ? ( |               {d.partners.length > 9 ? (
@@ -20,11 +30,12 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
-import { About, BrandGets, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk, lineupWeekday } from "@/components/sponsor/Sections";
+import { About, BrandGets, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk, dayList, lineupWeekday, prizeWithoutBrand, recurringPartners } from "@/components/sponsor/Sections";
+import { WithEmailLink } from "@/pages/sponsor/SponsorRulesPage";
 import { ClaimSection, tileCount } from "@/components/sponsor/ClaimSection";
 import type { SponsorPublicState } from "@/lib/sponsor/types";
 import { blankComments } from "./helpers/blankNonCode";
@@ -83,7 +94,11 @@ describe("the final lineup", () => {
       const card = screen.getByTestId(`lineup-day-${day}`);
       const text = card.textContent ?? "";
       expect(text).toContain(`Dec ${day}`);
-      for (const b of brands) expect(text).toContain(b);
+      // RYSE (the same prize on 20 of the 25 days) is said once above the cards, not in each card (design audit r2 #18).
+      for (const b of brands) {
+        if (b === "RYSE") expect(text).not.toContain("RYSE");
+        else expect(text).toContain(b);
+      }
       if (brands.length > 1) expect(within(card).getByText(`${brands.length} winners`)).toBeTruthy();
       else expect(text).not.toMatch(/winners/);
     }
@@ -115,7 +130,7 @@ describe("the final lineup", () => {
     expect(tileCount(NO_DB, 5)).toBe(4);
     expect(tileCount(NO_DB, 10)).toBe(4);
     expect(tileCount({ dayCounts: { 2: 7 } }, 2)).toBe(7);
-    render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />);
+    render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     const day4 = screen.getByRole("button", { name: /^December 4,/ });
     expect(day4.textContent).toContain("5 brands joined");
     expect(screen.getByRole("button", { name: /^December 17,/ }).textContent).toContain("4 brands joined");
@@ -137,7 +152,7 @@ describe("owner 2026-11-17: entry rules and the days-may-change note", () => {
     render(
       <MemoryRouter>
         <Lineup />
-        <ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />
+        <ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />
         <Faq />
       </MemoryRouter>,
     );
@@ -160,7 +175,7 @@ describe("no copy promises a brand its own day or its own spotlight (owner 2026-
         <BrandGets />
         <WhatWeAsk />
         <PreviewCard />
-        <ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />
+        <ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />
         <Faq />
         <FinalCta />
       </MemoryRouter>,
@@ -183,5 +198,102 @@ describe("no copy promises a brand its own day or its own spotlight (owner 2026-
     walk([NOINDEX_PAGE_META["/sponsor"], NOINDEX_PAGE_META["/25days"]]);
     expect(strings.length).toBeGreaterThan(150);
     expect(strings.filter((s) => PROMISE.test(s))).toEqual([]);
+  });
+});
+
+describe("lineup polish (design audit r2 #18, #19; display only, the owner's data is untouched)", () => {
+  const CSS = fs.readFileSync(path.resolve(__dirname, "../pages/sponsor/sponsor.css"), "utf8");
+
+  it("RYSE, the same prize on most days, is one line above the cards with its real days", () => {
+    const rec = recurringPartners();
+    expect(rec.map((r) => r.brand)).toEqual(["RYSE"]);
+    expect(rec[0].days.length).toBeGreaterThan(12);
+    expect(dayList(rec[0].days)).toBe("1–13, 15, 16 and 18–22");
+    render(<MemoryRouter><Lineup /></MemoryRouter>);
+    const lines = screen.getAllByTestId("lineup-recurring");
+    expect(lines).toHaveLength(1);
+    expect(lines[0].textContent).toBe("RYSE on most days: a 12-pack of RYSE Fuel ($30), Dec 1–13, 15, 16 and 18–22");
+    // Every other brand still shows in its own day's card; a day's winner count still counts RYSE's prize.
+    expect(within(screen.getByTestId("lineup-day-1")).getByText("5 winners")).toBeTruthy();
+    // The data itself still lists RYSE on each of those days.
+    expect(sponsorPage.lineup.days.filter((d) => d.partners.some((p) => p.brand === "RYSE")).length).toBe(20);
+  });
+
+  it("a brand with different prizes on different days, or on half the days or fewer, stays in its cards", () => {
+    const days = [1, 2, 3, 4].map((day) => ({ day, partners: [{ brand: "A", prize: day < 4 ? "Mug" : "Hat" }, { brand: "B", prize: "Pen" }, ...(day < 3 ? [{ brand: "C", prize: "Cup" }] : [])] }));
+    expect(recurringPartners(days as unknown as typeof sponsorPage.lineup.days).map((r) => r.brand)).toEqual(["B"]);
+  });
+
+  it("a prize never repeats its brand: a leading brand name is dropped, a prize that is only the brand is hidden", () => {
+    expect(prizeWithoutBrand("GentleStyle", "GentleStyle Brush")).toBe("Brush");
+    expect(prizeWithoutBrand("GentleStyle Brush", "GentleStyle Brush")).toBe("");
+    expect(prizeWithoutBrand("Bashi", "Bashi - gift set")).toBe("Gift set");
+    expect(prizeWithoutBrand("RYSE", "A 12-pack of RYSE Fuel ($30)")).toBe("A 12-pack of RYSE Fuel ($30)");
+    render(<MemoryRouter><Lineup /></MemoryRouter>);
+    let checked = 0;
+    for (const d of sponsorPage.lineup.days) {
+      const card = screen.getByTestId(`lineup-day-${d.day}`);
+      for (const li of card.querySelectorAll(".lh25-lineup-partners > li")) {
+        const brand = li.querySelector(".lh25-lineup-brand")?.textContent ?? "";
+        const prize = li.querySelector(".lh25-lineup-prize")?.textContent ?? "";
+        expect(prize.toLowerCase().startsWith(`${brand.toLowerCase()} `), `Dec ${d.day} ${brand}`).toBe(false);
+        expect(prize.toLowerCase() === brand.toLowerCase(), `Dec ${d.day} ${brand}`).toBe(false);
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(80);
+  });
+
+  it("on a phone only Dec 1–7 shows at first; each later week opens with its own button", () => {
+    render(<MemoryRouter><Lineup /></MemoryRouter>);
+    const later = (day: number) => screen.getByTestId(`lineup-day-${day}`).classList.contains("lh25-lineup-later");
+    for (let day = 1; day <= 7; day++) expect(later(day), `Dec ${day}`).toBe(false);
+    for (let day = 8; day <= 25; day++) expect(later(day), `Dec ${day}`).toBe(true);
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Show Dec 8–14", "Show Dec 15–21", "Show Dec 22–25"]);
+    fireEvent.click(screen.getByRole("button", { name: "Show Dec 8–14" }));
+    for (let day = 8; day <= 14; day++) expect(later(day), `Dec ${day}`).toBe(false);
+    expect(later(15)).toBe(true);
+    expect(screen.queryByRole("button", { name: "Show Dec 8–14" })).toBeNull();
+    // The hiding is phone-only CSS: under 640px a later day is hidden; from 640px the buttons are.
+    expect(CSS).toMatch(/@media \(max-width: 639\.98px\) \{\s*\.lh25-lineup-day\.lh25-lineup-later \{ display: none; \}/);
+    expect(CSS).toMatch(/@media \(min-width: 640px\) \{(?:[^{}]*\{[^{}]*\})*?\s*\.lh25-lineup-more-row \{ display: none; \}/);
+  });
+});
+
+describe("25 Days copy polish (design audit r2 #25, #26; area 01 #4, #14)", () => {
+  it("the site button says Explore the site", () => {
+    expect(sponsorPage.about.websiteButton).toBe("Explore the site");
+    render(<MemoryRouter><About /></MemoryRouter>);
+    expect(screen.getByText("Explore the site")).toBeTruthy();
+  });
+
+  it("section headings are sentence case (only the first word and proper names capitalised)", () => {
+    const C = sponsorPage;
+    const headings = [C.howItWorks.title, C.brandGets.title, C.whatWeAsk.title, C.reach.title, C.preview.title, C.lineup.title, C.testimonials.title, C.claim.title, C.faq.title, C.rules.title, C.hero.headlineLead];
+    expect(headings.length).toBeGreaterThan(10);
+    const PROPER = new Set(["Louisiana", "Helpr", "I'm", "Lexi!"]);
+    for (const h of headings) {
+      const words = h.replace(/^[^A-Za-z]+/, "").split(/\s+/).slice(1);
+      for (const w of words) {
+        const after = h.includes("? ") && h.split("? ")[1].startsWith(w);
+        if (PROPER.has(w) || after || !/^[A-Z]/.test(w)) continue;
+        throw new Error(`"${h}": "${w}" should be lower case`);
+      }
+    }
+  });
+
+  it("the agree box has no lone required star", () => {
+    const NO_DB2: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
+    const { container } = render(<ClaimSection state={NO_DB2} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    const agree = container.querySelector("#lh25-agree")?.closest("label");
+    expect(agree).not.toBeNull();
+    expect(agree?.textContent).not.toContain("*");
+  });
+
+  it("the rules page's contact email is a mailto: link", () => {
+    const { container } = render(<WithEmailLink text={sponsorPage.rules.pendingNote} />);
+    const a = container.querySelector("a");
+    expect(a?.getAttribute("href")).toBe(`mailto:${sponsorPage.links.email}`);
+    expect(container.textContent).toBe(sponsorPage.rules.pendingNote);
   });
 });

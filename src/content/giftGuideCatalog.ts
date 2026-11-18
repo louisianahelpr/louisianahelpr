@@ -56,10 +56,16 @@ export interface CatalogPick {
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
 export type PickBadge = "trending" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup";
 
-/** "Louisiana-made" only for a Louisiana brand; "25 Days sponsor" for a sponsor's pick (lead 2026-11-18). */
-export const badgesFor = (brand: string | undefined): PickBadge[] => [
+/**
+ * A pick's badges, in this order: Trending (its optional `trending` flag), "Louisiana-made" only for a Louisiana brand,
+ * "25 Days sponsor" for a sponsor's pick (lead 2026-11-18), Ships fast and Local pickup (optional flags). Never a price.
+ */
+export const badgesFor = (brand: string | undefined, flags: { trending?: true; shipsFast?: true; localPickup?: true } = {}): PickBadge[] => [
+  ...(flags.trending ? (["trending"] as const) : []),
   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []),
+  ...(flags.shipsFast ? (["ships-fast"] as const) : []),
+  ...(flags.localPickup ? (["local-pickup"] as const) : []),
 ];
 
 /** A group's id: its label in GUIDE_INDEX, slugged ("By person" -> "by-person"). */
@@ -164,7 +170,7 @@ const amazonGuides: Draft[] = AMAZON_GUIDES.map((g) => ({
 }));
 
 const toPick = (p: ResearchedPick): CatalogPick => {
-  const badges = badgesFor(p.brand);
+  const badges = badgesFor(p.brand, p);
   return { name: p.name, href: p.href, store: storeOf(p.href), line: p.line, brand: p.brand, ...(badges.length ? { badges } : {}) };
 };
 const researched = (): CatalogPick[] => Object.values(RESEARCHED_PICKS).flat().map(toPick);

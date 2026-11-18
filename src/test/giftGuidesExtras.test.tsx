@@ -11,6 +11,7 @@
  * @mutate src/pages/info/giftGuides/giftList.tsx | aria-pressed={saved} | aria-pressed={false}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | onToggle={() => toggleGuide(g.slug)} | onToggle={() => undefined}
  * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
+ * @mutate src/content/giftGuideCatalog.ts |   ...(flags.shipsFast ? (["ships-fast"] as const) : []), |   ...(flags.trending ? (["ships-fast"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
  * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`); |     const hay = fold(`${g.title} ${g.lead}`);
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |       {query.trim() ? ( |       {false ? (
@@ -21,8 +22,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
 import { RESEARCHED_PICKS } from "@/content/giftGuidePicks";
-import { LOUISIANA_MADE_BRANDS, SPONSOR_BRANDS } from "@/content/giftGuides";
-import { guideBySlug, searchGuides } from "@/content/giftGuideCatalog";
+import { LOUISIANA_MADE_BRANDS, SPONSOR_BRANDS, giftGuides } from "@/content/giftGuides";
+import { badgesFor, guideBySlug, searchGuides } from "@/content/giftGuideCatalog";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -183,5 +184,16 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     spy.mockRestore();
+  });
+});
+
+describe("gift guides: pick badges come from optional fields, never a price", () => {
+  it("Trending, Louisiana-made, 25 Days sponsor, Ships fast, Local pickup, in that order", () => {
+    expect(badgesFor("TABASCO", { trending: true, shipsFast: true, localPickup: true })).toEqual(["trending", "louisiana-made", "ships-fast", "local-pickup"]);
+    expect(badgesFor("Crew Dog")).toEqual(["sponsor"]);
+    expect(badgesFor("YETI")).toEqual([]);
+    expect(badgesFor(undefined, { localPickup: true })).toEqual(["local-pickup"]);
+    expect(Object.values(giftGuides.badges)).toEqual(["Trending", "Louisiana-made", "25 Days sponsor", "Ships fast", "Local pickup"]);
+    for (const label of Object.values(giftGuides.badges)) expect(label).not.toMatch(/\$/);
   });
 });

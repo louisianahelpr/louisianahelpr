@@ -7,7 +7,7 @@ import { addEnglish } from "./enRegistry";
 export const enSuggest = {
   "sug.link": "Don't see yours? Suggest a category",
   "sug.title": "Suggest a category",
-  "sug.body": "Tell us what's missing and we'll look at adding it for everyone. You can pick “Other” and post right now.",
+  "sug.body": "Tell us what's missing and we'll look at adding it for everyone. You can pick “Something else” and post right now.",
   "sug.name": "Category name",
   "sug.placeholder": "e.g. Tutoring",
   "sug.max": "Up to {n} characters.",

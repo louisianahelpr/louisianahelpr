@@ -33,6 +33,7 @@ import { esItemPage } from "./esItemPage";
 import { esJobCats } from "./esJobCats";
 import { esGuest } from "./esGuest";
 import { esJobSteps } from "./esJobSteps";
+import { esJobPoster } from "./esJobPoster";
 import { esNextStep } from "./esNextStep";
 import { esJobLines } from "./esJobLines";
 import { esCardLines } from "./esCardLines";
@@ -78,6 +79,7 @@ export const es: Record<MsgKey, string> = {
   ...esJobCats,
   ...esGuest,
   ...esJobSteps,
+  ...esJobPoster,
   ...esNextStep,
   ...esJobLines,
   ...esCardLines,

@@ -50,7 +50,7 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
     setSending(true);
     try {
       await suggestCategory(area, text);
-      toast.success("Thanks, we'll look at your suggestion. Pick \"Other\" for now.");
+      toast.success("Thanks, we'll look at your suggestion. Pick \"Something else\" for now.");
       setOpen(false);
       setText("");
       setTouched(false);

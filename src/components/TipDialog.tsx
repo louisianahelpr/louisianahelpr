@@ -107,7 +107,8 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
   // reached from the completed card or a notification.
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      {/* Area 03 L11 (design audit 11-18): the tip sheet has its close X, like every other sheet with a choice in it. */}
+      <DialogContent keepClose>
         <DialogHero moment title={first ? `Add a tip for ${first}?` : "Add a tip?"} />
         {takesTips === false ? (
           <>

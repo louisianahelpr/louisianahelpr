@@ -35,6 +35,23 @@ function RuleText({ text }: { text: string }) {
   );
 }
 
+/** Design audit area 01 #4 (2026-11-18): the contact email is a mailto: link, not text to copy by hand. */
+export function WithEmailLink({ text }: { text: string }) {
+  const email = C.links.email;
+  const parts = text.split(email);
+  if (parts.length === 1) return <>{text}</>;
+  return (
+    <>
+      {parts.map((part, i) => (
+        <span key={i}>
+          {part}
+          {i < parts.length - 1 ? <a href={`mailto:${email}`}>{email}</a> : null}
+        </span>
+      ))}
+    </>
+  );
+}
+
 export default function SponsorRulesPage() {
   const [backend, setBackend] = useState<SponsorBackend | null>(null);
   useEffect(() => {
@@ -83,12 +100,12 @@ export default function SponsorRulesPage() {
         <p className="lh25-rules-sub">{C.rules.subtitle}</p>
         {/* Owner 11-10: an unfinished draft is never shown to the public; only the local preview (?demo) shows it. */}
         {draft && !showDraft ? (
-          <p className="lh25-rules-pending" data-testid="rules-pending">{C.rules.pendingNote}</p>
+          <p className="lh25-rules-pending" data-testid="rules-pending"><WithEmailLink text={C.rules.pendingNote} /></p>
         ) : (
           C.rules.sections.map((s) => (
             <section key={s.heading}>
               <h2>{s.heading}</h2>
-              <p>{draft ? <RuleText text={s.body} /> : s.body}</p>
+              <p>{draft ? <RuleText text={s.body} /> : <WithEmailLink text={s.body} />}</p>
             </section>
           ))
         )}

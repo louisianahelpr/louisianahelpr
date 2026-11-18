@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-18T03:29:07.244Z",
-  "guards": 4190,
-  "registered": 4190,
+  "generated": "2026-11-18T11:47:07.630Z",
+  "guards": 4194,
+  "registered": 4194,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -23,6 +23,15 @@
     }
   ],
   "classB_mountWiring": [
+    {
+      "module": "src/components/dashboard/JobFilters.tsx",
+      "tests": [
+        "src/test/area04JobsHelprSpanish.test.tsx"
+      ],
+      "parents": [
+        "src/components/dashboard/filterSheet/jobFilterSections.tsx"
+      ]
+    },
     {
       "module": "src/pages/post-job/CheckoutStepView.tsx",
       "tests": [

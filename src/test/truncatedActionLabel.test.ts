@@ -88,12 +88,12 @@ const KNOWN: Record<string, string> = {
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): all 25 admin sub-nav labels sw==cw on /admin at 1440 as admin-e2e (the sub-nav renders only at desktop)",
   "src/components/TimeRangeField.tsx:button:{display}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"9 AM – 5 PM\" sw==cw 89/89 at 320 on the availability editor as poster-e2e",
-  "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:Apply now":
+  'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:{wordInLang("jh.s.applyNow", "Apply now")}':
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Apply now\" whole on the /browse job dialog at 320 (p3-poster-dialog-320); the footer row is 254px at 320, a 182px text box against the label's 79px",
   "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:{guestCtaLabel}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Sign Up to Apply\" sw==cw 146/146 on guest /browse?job=<id> at 320, 375 and 1440",
-  'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:ListRow:{(job.credential_tier ?? 0) === 2 ? "Licensed pros only" : "':
-    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): no credential_tier>0 open job on prod, so this button's markup was injected alone into the real footer row (254px at 320, 309 at 375, 726 at 1440): \"Licensed pros only\" 138, \"Licensed & Insured Only\" 174, sw==cw at 320, 375 and 1440",
+  'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:ListRow:{(job.credential_tier ?? 0) === 2 ? wordInLang("jh.s.license':
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): no credential_tier>0 open job on prod, so this button's markup was injected alone into the real footer row (254px at 320, 309 at 375, 726 at 1440): \"Licensed pros only\" 138, \"Licensed & Insured Only\" 174, sw==cw at 320, 375 and 1440 (Area 04 11-18: now sentence case and via wordInLang; Spanish widths not measured)",
   "src/components/mobileNav/NavQuickMenuItem.tsx:ListRow:{label}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): long-press Posts quick filters (Needs You/Waiting/Scheduled/Done/Cancelled) and Messages recent chats sw==cw at 320 and 375 as poster-e2e",
   "src/components/mobileNav/NavQuickMenuItem.tsx:ListRow:{sub}":

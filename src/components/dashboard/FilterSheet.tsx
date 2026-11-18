@@ -7,6 +7,7 @@ import {
   SheetHero,
 } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useLanguage } from "@/lib/i18n/language";
 import { FilterSheetFooter } from "@/components/dashboard/filterSheet/FilterSheetFooter";
 import { FilterDropdown } from "@/components/dashboard/filterSheet/FilterDropdown";
 
@@ -169,6 +170,8 @@ export function FilterSheet({
   resultNoun = ["result", "results"],
   moreLabel,
 }: FilterSheetProps) {
+  // Area 04 #2 (11-18): the job sections' words come from t(), so the sheet redraws when the language changes.
+  useLanguage();
   const webDesktop = useIsWebDesktop();
   const footerBar = (compact: boolean) => (
     <FilterSheetFooter

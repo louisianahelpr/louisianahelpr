@@ -6,6 +6,7 @@
  * @mutate src/lib/continueDayWords.ts | { who: "them", text: `${other \|\| "Your Helpr"} comes back ${when}`, by: `nothing for you to do; ${other \|\| "your Helpr"} confirms next` }; | null;
  * @mutate src/lib/continueDayWords.ts | ${h12}:${String(mm \|\| 0).padStart(2, "0")} ${hh < 12 | ${h12} ${hh < 12
  * @mutate src/lib/continueDayWords.ts |       ? { who: "you", text: `Confirm ${other ? `${other}'s` : "your Helpr's"} new day`, by: when } |       ? null
+ * @mutate src/lib/continueDayWords.ts |   if (row.new_date && louisianaToday(o.now ?? new Date()) > row.new_date) { |   if (false) {
  * @mutate src/lib/continueDayWords.ts |       ? { who: "info", text: `${other \|\| "Your Helpr"} confirmed ${when}` } |       ? { who: "them", text: `Continuing ${when}`, by: `waiting on ${other \|\| "your Helpr"} to confirm` }
  */
 import { describe, it, expect } from "vitest";
@@ -31,9 +32,21 @@ describe("continueDayNextStep", () => {
     expect(nextStepWords(continueDayNextStep(row(), { side: "poster", otherFirst: "Yusef" })!)).toBe("Yusef comes back Thu, Nov 5 at 9:00 AM · nothing for you to do; Yusef confirms next"); // F289a
     // Auditor 11 (11-01): once the Helpr confirms, the poster's line says so.
     expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-02T12:00:00Z" }), { side: "poster", otherFirst: "Yusef" })!)).toBe("Yusef confirmed Thu, Nov 5 at 9:00 AM");
-    expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", otherFirst: "Dana" })!)).toBe("Next: confirm you'll be there · continuing Thu, Nov 5 at 9:00 AM");
-    expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-05T12:00:00Z" }), { side: "helpr", otherFirst: "Dana" })!))
+    const before = new Date("2026-11-04T18:00:00Z");
+    expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", otherFirst: "Dana", now: before })!)).toBe("Next: confirm you'll be there · continuing Thu, Nov 5 at 9:00 AM");
+    expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-05T12:00:00Z" }), { side: "helpr", otherFirst: "Dana", now: before })!))
       .toBe("You're set for Thu, Nov 5 at 9:00 AM · mark it done when you finish");
+  });
+
+  // Area 04 #18 (11-18): the set day's date went by (confirmed or not): the Helpr is told so, never "You're set".
+  it("a set day that has passed: the Helpr reads 'The new day passed · mark it done or ask for another day'", () => {
+    const after = new Date("2026-11-06T18:00:00Z");
+    for (const confirmed of [null, "2026-11-04T12:00:00Z"]) {
+      expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: confirmed }), { side: "helpr", otherFirst: "Dana", now: after })!))
+        .toBe("Next: the new day passed · mark it done or ask for another day");
+    }
+    // The day itself is not "passed" yet.
+    expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", now: new Date("2026-11-05T22:00:00Z") })!)).toContain("continuing");
   });
 
   it("a Helpr's ask is the poster's move (one tap), and the Helpr waits on them", () => {

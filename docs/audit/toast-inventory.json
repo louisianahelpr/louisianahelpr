@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 489,
-      "template": 105,
-      "dynamic": 708,
+      "literal": 485,
+      "template": 103,
+      "dynamic": 714,
       "jsx": 0
     }
   },
@@ -8256,7 +8256,7 @@
     },
     {
       "file": "src/components/help/HelpEntry.tsx",
-      "line": 53,
+      "line": 61,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9593,17 +9593,34 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 99,
+      "line": 102,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign out everywhere again."
+        "form": "dynamic",
+        "text": "t(\"acct.everywhereFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 149,
+      "line": 152,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9613,7 +9630,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 170,
+      "line": 173,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -9623,7 +9640,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 139,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9633,7 +9650,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 232,
+      "line": 237,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -9653,71 +9670,156 @@
     },
     {
       "file": "src/components/profile/ShowInSearchSwitch.tsx",
-      "line": 34,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Couldn't save that. Try again."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 57,
+      "line": 37,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "userFacingError(back.message, \"That sign-in couldn't be connected. Try again.\")"
+        "text": "t(\"acct.saveFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 72,
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(back.message, t(\"sim.connectFailed\"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 75,
       "kind": "confirmConsequential",
       "title": {
-        "form": "template",
-        "text": "${NAME[provider]} connected. It now opens this account."
+        "form": "dynamic",
+        "text": "t(\"sim.connected\", { name: NAME[provider] })",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 74,
+      "line": 77,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "userFacingError(result.message, \"That sign-in couldn't be connected. Try again.\")"
+        "text": "userFacingError(result.message, t(\"sim.connectFailed\"))"
       },
       "renders": true
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 78,
+      "line": 81,
       "kind": "toast",
       "title": {
-        "form": "template",
-        "text": "Connecting ${NAME[provider]} cancelled. Nothing changed."
+        "form": "dynamic",
+        "text": "t(\"sim.cancelled\", { name: NAME[provider] })",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 89,
+      "line": 92,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't remove that sign-in method — try again?"
+        "form": "dynamic",
+        "text": "t(\"sim.removeFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 93,
+      "line": 96,
       "kind": "confirmConsequential",
       "title": {
-        "form": "literal",
-        "text": "Sign-in method removed."
+        "form": "dynamic",
+        "text": "t(\"sim.removed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -13682,7 +13784,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 214,
+      "line": 216,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -13692,7 +13794,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 224,
+      "line": 227,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13702,7 +13804,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 254,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -16115,41 +16217,41 @@
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 45,
+      "line": 48,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "mutationErrorMessage(err, \"We couldn't change that alert. Please try again.\")"
+        "text": "mutationErrorMessage(err, t(\"ss.alertFailed\"))"
       },
       "renders": true
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 70,
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "mutationErrorMessage(err, \"We couldn't change that alert. Please try again.\")"
+        "text": "mutationErrorMessage(err, t(\"ss.alertFailed\"))"
       },
       "renders": true
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 83,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "mutationErrorMessage(err, \"We couldn't delete that search. Please try again.\")"
+        "text": "mutationErrorMessage(err, t(\"ss.deleteFailed\"))"
       },
       "renders": true
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 156,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "mutationErrorMessage(err, \"We couldn't change that. Please try again.\")"
+        "text": "mutationErrorMessage(err, t(\"ss.changeFailed\"))"
       },
       "renders": true
     },

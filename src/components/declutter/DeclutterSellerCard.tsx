@@ -32,8 +32,10 @@ function joinedLabel(iso: string | null | undefined): string | null {
 }
 
 /** `noun`: who the card is about, for its accessible name (the job page reuses this card for the poster). */
-export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, action = null }: {
+export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, action = null, seeLabel }: {
   sellerId: string; noun?: "seller" | "poster" | "Helpr";
+  /** Area 03 H4 (design audit 11-18): the card's "See the Helpr" name in the reader's language (the job page's t()). */
+  seeLabel?: string;
   /** Owner pick 1 (11-08): the item page's Message button sits on the seller row, beside the card (never inside its link). */
   action?: ReactNode;
   /** Owner mockup 11-01: the item page folds "12+ more items · check out together" into the card (BundleLine). */
@@ -60,6 +62,7 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, a
   const reviews = stats.data?.count ?? 0;
   const name = formatName(card.data?.name, "A neighbor");
   const joined = joinedLabel(card.data?.joinedAt);
+  const see = seeLabel ?? `See the ${noun}`;
   // DA-18: the rating is in the link's name: the card's words read "4.0 stars from 1 review" (the sr-only words below).
   const link = (
     <Link
@@ -68,7 +71,7 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, a
       data-seller-card=""
       // Loaded, the card's own words are its name ("See the Helpr, " is read before them), so the visible text is in
       // the accessible name (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The skeleton has no words.
-      aria-label={loading ? `See the ${noun}` : undefined}
+      aria-label={loading ? see : undefined}
       className={`flex min-h-[72px] items-center gap-3 rounded-2xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${action ? "min-w-0 flex-1" : ""}`}
     >
       {loading ? (
@@ -86,7 +89,7 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, a
             <UserAvatar userId={sellerId} src={card.data?.avatarUrl} name={card.data?.name ?? name} pixelSize={48} className="h-12 w-12 shrink-0" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="sr-only">See the {noun}, </span>
+            <span className="sr-only">{see}, </span>
             <span className="block truncate font-semibold" title={name}>{name}</span>
             {/* Two short lines, never one that wraps a stray "·" at 320. */}
             {reviews > 0 && (

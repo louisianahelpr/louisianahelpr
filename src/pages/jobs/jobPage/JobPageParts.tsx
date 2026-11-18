@@ -331,7 +331,7 @@ export function PostedBy({ posterId }: { posterId: string }) {
   const { t } = useLanguage();
   return (
     <section aria-label={t("jobPage.postedBy")}>
-      <DeclutterSellerCard sellerId={posterId} noun="poster" />
+      <DeclutterSellerCard sellerId={posterId} noun="poster" seeLabel={t("jobPage.seePoster")} />
     </section>
   );
 }
@@ -344,7 +344,7 @@ export function HiredHelpr({ helprId }: { helprId: string }) {
   const { t } = useLanguage();
   return (
     <section aria-label={t("jobPage.yourHelpr")}>
-      <DeclutterSellerCard sellerId={helprId} noun="Helpr" />
+      <DeclutterSellerCard sellerId={helprId} noun="Helpr" seeLabel={t("jobPage.seeHelpr")} />
     </section>
   );
 }

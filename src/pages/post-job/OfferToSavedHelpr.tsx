@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, Heart, Search, UserCheck } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -89,7 +90,7 @@ export function OfferToSavedHelpr({
   // saved Helpr" quietly threw the gift away and billed them in full.
   const [searchParams] = useSearchParams();
 
-  const { data: helpers, isError, error } = useSavedHelpersLite();
+  const { data: helpers, isError, error, refetch, isFetching } = useSavedHelpersLite();
 
   if (isError) report(error, { tags: { source: "OfferToSavedHelpr.get_my_saved_helpers" } });
 
@@ -110,7 +111,20 @@ export function OfferToSavedHelpr({
 
   const list = (
         <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${headless ? "" : "mt-3"}`}>
-          {!helpers ? (
+          {/* Area 03 L10 (design audit 11-18): a failed read said "Loading your saved Helprs…" for ever. It says it
+              failed and offers Try again, the Saved Helprs tab's own words. Guard: src/test/area03JobsPosterPass2.test.tsx. */}
+          {!helpers && isError ? (
+            <div className="sm:col-span-2" data-saved-helprs-error="">
+              <ErrorState
+                variant="inline"
+                title="We couldn't load your saved Helprs."
+                body="Tap Try again. Your saved Helprs are safe — this is just a loading hiccup on our end."
+                onRetry={() => void refetch()}
+                retryDisabled={isFetching}
+                retryLabel={isFetching ? "Trying again…" : "Try again"}
+              />
+            </div>
+          ) : !helpers ? (
             <p
               className="font-sans text-ds-12 py-2"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}

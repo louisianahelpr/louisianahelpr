@@ -865,7 +865,7 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
 describe("job page, the poster sees who they hired (AUD31-80)", () => {
   // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <HiredHelpr helprId={job.helper_id} />} |
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && | {isPoster && job.helper_id && !job.is_group_job &&
-  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <DeclutterSellerCard sellerId={helprId} noun="Helpr" /> |       <DeclutterSellerCard sellerId={helprId} noun="poster" />
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <DeclutterSellerCard sellerId={helprId} noun="Helpr" seeLabel={t("jobPage.seeHelpr")} /> |       <DeclutterSellerCard sellerId={helprId} noun="poster" seeLabel={t("jobPage.seeHelpr")} />
   const hired = () => row({ customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z" });
 
   it("a hired job shows the Helpr's own person card, linked to their profile, beside Message <name>", async () => {

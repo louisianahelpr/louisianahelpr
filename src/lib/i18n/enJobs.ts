@@ -29,6 +29,14 @@ export const enJobs = {
   "jobPage.crew": "Your crew",
   "jobPage.side": "Price and actions",
   "jobPage.postedBy": "Posted by",
+  // Area 03 H4 (design audit 11-18): the Helpr Guarantee card and the person cards' names on the job page.
+  "jobPage.seeHelpr": "See the Helpr",
+  "jobPage.seePoster": "See who posted this job",
+  "gu.title": "Helpr Guarantee",
+  "gu.tellBy": "Not done right? Tell us by {when}.",
+  "gu.tellWithin": "Not done right? Tell us within 48 hours of the job being done.",
+  "gu.explain": "Your Helpr comes back to fix it, and their pay waits until it's settled. If it can't be fixed, we decide whether you get a refund of the job price.",
+  "gu.notDoneRight": "Not done right",
   "jobPage.yourHelpr": "Your Helpr",
   // Design audit r3 #9: the job page's fact rows, the no-applicants card and the poster's Edit / Cancel buttons.
   "jobPage.whenRow": "When",

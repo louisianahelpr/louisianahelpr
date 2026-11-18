@@ -193,7 +193,8 @@ describe("every pop-up title is sentence case", () => {
     // its English is still sentence case (enJobsHelpr.ts "jh.f.title").
     // 242 (design audit r3, 11-18): EditJobDialog's title is the one literal "Edit job" (was the job name in quotes or
     // "Edit job"); the Report dialog's titles read the dictionary (enReport.ts, r3 #8).
-    expect(all.length).toBe(242);
+    // 243 (Area 03 M11, 11-18): +1 "More options" (the job card's More is the job page's bottom sheet, JobActionRow).
+    expect(all.length).toBe(243);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

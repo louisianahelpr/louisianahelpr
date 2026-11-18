@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import { buttonLabel } from "@/components/ui/pairLabel";
 import { MoreHorizontal, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 
 /**
  * The icon-over-label action row shared by the activity job cards.
@@ -483,45 +483,38 @@ export function JobStepOverflowChip({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  // Area 03 M11 (design audit 11-18): More opens THE SAME BOTTOM SHEET the job page's "..." does (JobPageActionRow:
+  // "More options", one outlined full-width row per action; JobStepCard hands the chips in as MenuAction rows). The
+  // popover drew four coloured pills, icon over label, that overlapped the next card. Guard: src/test/area03JobsPosterPass2.test.tsx.
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      {/* Anchored to the More button itself now (2026-10-08): the panel is a
-          short list as wide as its contents, dropping under the button that
-          opened it, not a row-wide box around one chip. */}
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={JOB_ACTION_CHIP_CLASS}
-          style={jobActionChipStyle("neutral")}
-          // Counted as a chip by the density gate, which is what it is.
-          data-job-action-chip=""
-          // How a test — and the shell's own measurement — tells this control
-          // apart from the chips the step asked for.
-          data-job-step-overflow=""
-          aria-label={`More — ${count} more action${count === 1 ? "" : "s"} for this job`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal className="w-4 h-4" />
-          <span className={JOB_ROW_LABEL_CLASS}>More</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        // role="dialog" with no name announces as bare "dialog" — and this
-        // panel holds the job's overflow ACTIONS, so the announcement is what
-        // tells a screen-reader user which job they are acting on.
-        aria-label="More actions for this job"
-        align="start"
-        // FITS ITS CONTENTS (owner, 2026-10-08: "white box needs to fit the
-        // SOS box"): as wide as its widest action, capped to the screen.
-        className="w-max min-w-[9rem] max-w-[min(17rem,calc(100vw-1.5rem))] p-1.5"
-        data-job-step-overflow-panel=""
-        onClick={() => setOpen(false)}
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={JOB_ACTION_CHIP_CLASS}
+        style={jobActionChipStyle("neutral")}
+        // Counted as a chip by the density gate, which is what it is.
+        data-job-action-chip=""
+        // How a test — and the shell's own measurement — tells this control
+        // apart from the chips the step asked for.
+        data-job-step-overflow=""
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={`More — ${count} more action${count === 1 ? "" : "s"} for this job`}
+        onClick={(e) => { e.stopPropagation(); setOpen(true); }}
       >
-        {/* One column, in importance order (MORE_ORDER), SOS last. */}
-        <div className="grid grid-cols-1 gap-1.5">{children}</div>
-      </PopoverContent>
-    </Popover>
+        <MoreHorizontal className="w-4 h-4" />
+        <span className={JOB_ROW_LABEL_CLASS}>More</span>
+      </Button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="bottom" aria-label="More actions for this job" aria-labelledby={undefined} data-job-step-overflow-panel="" onClick={(e) => e.stopPropagation()}>
+          <SheetHero title="More options" />
+          {/* One tap runs an action and closes the list; in importance order (MORE_ORDER), SOS last. */}
+          <div data-job-step-overflow-list="" className="flex flex-col gap-2 pb-2" onClick={(e) => { e.stopPropagation(); setOpen(false); }}>{children}</div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 

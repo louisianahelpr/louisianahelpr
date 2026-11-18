@@ -24,6 +24,10 @@ const SEARCH_HINTS: [RegExp, JobCategory[]][] = [
   [/\b(?:furniture|boxes|haul)\b/, ["moving", "declutter_help"]],
   // F301 (audit 11-10): "hang shelves" and "shelves" found nothing, the commonest handyman asks.
   [/\b(?:shel(?:f|ves)|hang(?:ing)?|curtains?|blinds|pictures?|mirrors?|tv|mount(?:ing)?)\b/, ["handyman", "assembly"]],
+  // Area 03 L9 (design audit 11-18): "wash" found only Pressure washing; a car wash or the laundry are asks too.
+  // Guard: src/test/area03JobsPosterPass2.test.tsx.
+  [/\b(?:wash(?:ing)?|laundry|ironing|dishes)\b/, ["cleaning", "errands"]],
+  [/\b(?:car|truck|boat)\s*wash|\bdetail(?:ing)?\b/, ["cleaning", "auto_repair"]],
 ];
 
 /* A tile's title and examples are t("postJob.group.<id>") / t("postJob.groupEx.<id>"): their English is

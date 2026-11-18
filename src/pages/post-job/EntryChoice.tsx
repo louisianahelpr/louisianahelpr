@@ -332,10 +332,11 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                 >
                   {/* No "typical $45 · ~1 hr": that was a number typed into
                       src/data/sampleJobs.ts, not one measured from jobs (truth
-                      rule, #54), so it is not shown. The emoji stays (owner
-                      2026-10-21: one emoji per way to start / category). */}
-                  <span className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-base" aria-hidden>
-                    {sample.icon}
+                      rule, #54), so it is not shown. Area 03 L8 (design audit 11-18): the template's CATEGORY line icon,
+                      the one the category tiles draw (owner 11-09, F113: line icons on Post a Job, replacing the
+                      10-21 emoji); the emoji tiles sat beside line-icon links. Guard: src/test/area03JobsPosterPass2.test.tsx. */}
+                  <span data-template-icon="" className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" aria-hidden>
+                    <CategoryIcon category={sample.category} aria-hidden className="h-4 w-4" />
                   </span>
                   <p className="font-sans text-ds-14 font-semibold leading-tight text-foreground">{sample.title}</p>
                   {seasonalIds.has(sample.id) && (

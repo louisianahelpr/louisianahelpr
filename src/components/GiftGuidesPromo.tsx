@@ -11,7 +11,7 @@ import { Gift, X } from "lucide-react";
  */
 export const GIFT_PROMO_KEY = "lh-gift-guides-promo-closed";
 /** The last day the banner shows (YYYY-MM-DD, local). */
-export const GIFT_PROMO_LAST_DAY = "2026-12-25";
+const GIFT_PROMO_LAST_DAY = "2026-12-25";
 
 const todayIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 

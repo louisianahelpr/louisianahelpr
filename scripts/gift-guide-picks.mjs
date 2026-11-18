@@ -343,7 +343,7 @@ for (const [slug, list] of sortedGuides) if (GUIDE_SLUGS.has(slug) && !storeList
       if (!g || slug.startsWith("store-")) continue;
       for (const p of list) if (!firstGroup.has(p.href) || rank(g) < rank(firstGroup.get(p.href))) firstGroup.set(p.href, g);
     }
-    const sectionOf = (p) => (own.has(p.href) ? AMAZON_SECTIONS[0] : firstGroup.get(p.href) ?? AMAZON_SECTIONS.at(-1));
+    const sectionOf = (p) => (own.has(p.href) ? AMAZON_SECTIONS[0] : firstGroup.get(p.href) ?? AMAZON_SECTIONS[AMAZON_SECTIONS.length - 1]);
     pageList["store-amazon"] = [...byHref.values()].map((p) => ({ ...p, section: sectionOf(p) }))
       .map((p, i) => [p, i]).sort(([a, i], [b, j]) => rank(a.section) - rank(b.section) || i - j).map(([p]) => p);
   }

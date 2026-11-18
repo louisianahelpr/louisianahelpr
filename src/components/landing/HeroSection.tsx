@@ -60,7 +60,7 @@ const HeroSection = () => {
         <div className="relative mx-auto w-full max-w-[760px]">
           <div data-testid="landing-hero-column" className="flex flex-col items-center text-center min-w-0">
             <h1
-              className="landing-h1 relative z-10 font-display font-bold leading-[1] text-balance break-words text-[3.25rem] min-[400px]:text-[3.5rem] sm:text-[4.75rem] lg:text-[6.5rem] xl:text-[7.75rem]"
+              className="landing-h1 relative z-10 landing-serif-text font-bold leading-[1] text-balance break-words text-[3.25rem] min-[400px]:text-[3.5rem] sm:text-[4.75rem] lg:text-[6.5rem] xl:text-[7.75rem]"
               style={{ color: "var(--lp-ink)", letterSpacing: "-0.03em" }}
             >
               {es ? es.titleLead : <>Louisiana&rsquo;s local</>}{" "}

@@ -46,7 +46,7 @@ describe("the landing's headings are the app's sans heading face (owner 2026-11-
     const files = ["HeroSection", "SectionsShowcase", "HowItWorksSection", "LiveJobsSection", "LandingBrowseShell"].map(
       (f) => blankComments(readFileSync(`src/components/landing/${f}.tsx`, "utf8")),
     );
-    const headings = files.flatMap((src) => src.match(/<h[12][^>]*className="[^"]*font-display[^"]*"/g) ?? []);
+    const headings = files.flatMap((src) => src.match(/<h[12][^>]*className="[^"]*(?:font-display|landing-serif-text)[^"]*"/g) ?? []);
     expect(headings.length).toBeGreaterThan(4);
     for (const h of headings) expect(h, h).toMatch(/landing-serif|landing-h1/);
   });

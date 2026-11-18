@@ -45,7 +45,7 @@ const SHEET = [
   "@font-face{font-family:Unused Face;src:url(/fonts/u.woff2)}",
   "@keyframes spin{to{transform:rotate(360deg)}}",
   ".landing-h1{font-size:44px}",
-  ".font-display{font-family:Bodoni Moda,serif}",
+  ".landing-serif-text{font-family:Bodoni Moda,serif}",
   ".not-in-the-shell-xyz{color:red}",
   "table{border-collapse:collapse}",
   ".landing-h1,.not-in-the-shell-xyz{letter-spacing:-.01em}",
@@ -58,7 +58,7 @@ const SHEET = [
   ".landing-h1:hover{color:red}",
   ".landing-h1:not(:focus-visible){outline:none}",
   ".landing-h1{transition:color .2s;-webkit-animation:spin 1s;animation:spin 1s;will-change:transform;color:#111}",
-  ".font-display::before{content:''}",
+  ".landing-serif-text::before{content:''}",
   ".not-in-the-shell-xyz:hover{color:blue}",
   "div>.not-in-the-shell-xyz{color:green}",
 ].join("");
@@ -67,7 +67,7 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
   it("reads the classes, ids and elements of the real index.html shell", () => {
     const v = shellVocabulary(SHELL);
     expect(v.classes.size, "the shell's class inventory").toBeGreaterThan(100);
-    for (const c of ["landing-h1", "font-display", "landing-page", "lg:mt-7"]) expect(v.classes.has(c), c).toBe(true);
+    for (const c of ["landing-h1", "landing-serif-text", "landing-page", "lg:mt-7"]) expect(v.classes.has(c), c).toBe(true);
     expect(v.ids.has("lh-landing-shell")).toBe(true);
     for (const t of ["h1", "p", "form", "nav"]) expect(v.tags.has(t), t).toBe(true);
   });
@@ -79,7 +79,7 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
     expect(out).toContain("box-sizing:border-box");
     expect(out).toContain("html{line-height:1.5}");
     expect(out).toContain(".landing-h1{font-size:44px}");
-    expect(out).toContain(".font-display{");
+    expect(out).toContain(".landing-serif-text{");
     expect(out).toContain(".landing-h1{letter-spacing:-.01em}");
     expect(out).toContain("@media (min-width:1024px){.lg\\:mt-7{margin-top:1.75rem}}");
     expect(out, "a :not() of something absent still matches").toContain(".landing-h1:not(.absent-xyz){padding-top:190px}");
@@ -88,7 +88,7 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
     expect(out, "a :not() of a dynamic state applies at first frame").toContain(".landing-h1:not(:focus-visible){outline:none}");
     expect(out, "the colour stays, the motion goes").toContain(".landing-h1{color:#111}");
     expect(out).not.toMatch(/transition|animation|will-change/);
-    expect(out).toContain(".font-display::before{content:''}");
+    expect(out).toContain(".landing-serif-text::before{content:''}");
     expect(out).not.toContain("not-in-the-shell-xyz");
     expect(out).not.toContain("9999px");
     expect(out).not.toContain("table{");

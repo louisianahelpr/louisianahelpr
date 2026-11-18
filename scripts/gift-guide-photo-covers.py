@@ -85,7 +85,10 @@ def cutout(data):
     if n == 0:
         return None
     sizes = ndimage.sum(fg, lab, range(1, n + 1))
-    fg = ndimage.binary_fill_holes(np.isin(lab, [i + 1 for i, v in enumerate(sizes) if v >= 0.04 * sizes.max()]))
+    big = [i + 1 for i, v in enumerate(sizes) if v >= 0.04 * sizes.max()]
+    if len(big) > 8:
+        return None  # many separate pieces: a word mark or a logo, not a product
+    fg = ndimage.binary_fill_holes(np.isin(lab, big))
     share = fg.mean()
     if share < 0.04 or share > 0.9:
         return None
@@ -93,6 +96,8 @@ def cutout(data):
     w, h = xs.max() - xs.min() + 1, ys.max() - ys.min() + 1
     if max(w, h) > 3 * min(w, h):
         return None  # a banner or badge ("HEATED"), not a product
+    if len(big) > 4 and fg.sum() < 0.35 * w * h:
+        return None  # a few sparse letters around an icon: a logo ("vstapn"), not a product
     alpha = Image.fromarray((fg * 255).astype("uint8")).filter(ImageFilter.GaussianBlur(1.0))
     out = im.convert("RGBA")
     out.putalpha(alpha)
@@ -149,7 +154,9 @@ def shadow(p):
 
 def wrap(d, text, f, width):
     lines, cur = [], ""
-    for w in text.split():
+    # "Father-in-Law" may break after its first hyphen, like a word break.
+    words = [x for w in text.split() for x in (re.sub(r"^([^-]+-)", r"\1 ", w).split() if d.textlength(w, font=f) > width else [w])]
+    for w in words:
         t = (cur + " " + w).strip()
         if d.textlength(t, font=f) > width and cur:
             lines.append(cur)
@@ -170,7 +177,7 @@ def tracked(d, cx, y, text, f, track):
 def draw(row, prods, out):
     im = Image.new("RGB", (S, S), CREAM)
     d = ImageDraw.Draw(im)
-    x0, x1, y0, y1 = 318, 642, 92, 868
+    x0, x1, y0, y1 = 306, 654, 92, 868
     r = (x1 - x0) / 2
     d.pieslice([x0, y0, x1, y0 + 2 * r], 180, 360, fill=WHITE)
     d.rectangle([x0, y0 + r, x1, y1], fill=WHITE)
@@ -205,7 +212,7 @@ def draw(row, prods, out):
         bx = int(min(max(px - s.width / 2, 4), S - s.width - 4))
         by = int(min(max(fy * S - s.height / 2, 4), S - s.height - 4))
         im.paste(s, (bx, by), s)
-    im.resize((480, 480), Image.LANCZOS).save(out, "WEBP", quality=72, method=6)
+    im.resize((480, 480), Image.LANCZOS).save(out, "WEBP", quality=58, method=6)
 
 
 def main():

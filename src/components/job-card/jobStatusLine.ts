@@ -385,7 +385,7 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   overdue_unconfirmed: { detail: "Your Helpr never accepted — cancel?" },
   overdue_not_started: { detail: "Your Helpr never started — cancel?" },
   overdue_not_arrived: { detail: "Your Helpr never arrived — cancel?" },
-  overdue_no_show: { detail: "Your Helpr never arrived — No-Show?" },
+  overdue_no_show: { detail: "Your Helpr didn't show up" }, // design audit 11-17 #29
   overdue_unfinished: { detail: "Waiting on your Helpr to finish", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
   /* THE START TIME PASSED AND NOBODY CHECKED IN (audit 2026-10-29 A2-B12). auto-start-due-jobs turns every booked
      job in_progress at its start, whether or not the Helpr set out or arrived; the card read "Eli is at the job",
@@ -899,7 +899,7 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* Past the day, at the job, and the before photo is still the primary. */
   overdue_before_photo: { detail: "Day passed — take the before photo" },
   /* Past the day, at the job, work not started (tracking row): the next step is Start working. */
-  overdue_start_working: { detail: "Past the start time — tap Start" }, // A3-11: the pair's word, as start_working says it
+  overdue_start_working: { detail: "Running late? Tap Start working." }, // A3-11: the pair's word, as start_working says it
   /* Shorter than its on-the-day twin: the 320 line has room for no name here. */
   overdue_arrival_unconfirmed: { detail: "Day passed — arrival not confirmed" },
   overdue_after_photo: { detail: "Day passed — take the after photo" },
@@ -1201,7 +1201,7 @@ const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => strin
   overdue_unconfirmed: (n) => inLang("cl.pn.overdue_unconfirmed", `${firstName(n)} never accepted — cancel?`, { name: firstName(n) }),
   overdue_not_started: (n) => inLang("cl.pn.overdue_not_started", `${firstName(n)} never started — cancel?`, { name: firstName(n) }),
   overdue_not_arrived: (n) => inLang("cl.pn.overdue_not_arrived", `${firstName(n)} never arrived — cancel?`, { name: firstName(n) }),
-  overdue_no_show: (n) => inLang("cl.pn.overdue_no_show", `${firstName(n)} never arrived — No-Show?`, { name: firstName(n) }),
+  overdue_no_show: (n) => inLang("cl.pn.overdue_no_show", `${firstName(n)} didn't show up`, { name: firstName(n) }),
   overdue_unfinished: (n) => inLang("cl.pn.overdue_unfinished", `Waiting on ${firstName(n)} to finish`, { name: firstName(n) }),
   // F272 (audit 11-10): "checked in" was jargon. This wait is no on-the-way and no arrival past the start.
   started_no_checkin: (n) => inLang("cl.pn.started_no_checkin", `${firstName(n)} hasn't said they're on the way`, { name: firstName(n) }),

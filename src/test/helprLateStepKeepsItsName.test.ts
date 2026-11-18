@@ -19,7 +19,7 @@ const face = (id: string) => ({ line: { id, tone: "you" as const, detail: "" }, 
 describe("F290a: a late Helpr's line and bar", () => {
   it("the lines say the start time passed, never 'Day passed', and name the tap", () => {
     expect(HELPER_WAIT.overdue_not_arrived.detail).toBe("Past the start time — tap I've arrived");
-    expect(HELPER_WAIT.overdue_start_working.detail).toBe("Past the start time — tap Start");
+    expect(HELPER_WAIT.overdue_start_working.detail).toBe("Running late? Tap Start working."); // design audit 11-17 #29
   });
 
   it("every overdue step on the Helpr's bar keeps its own name (no replacement word)", () => {

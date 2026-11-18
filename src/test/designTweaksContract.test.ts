@@ -45,7 +45,8 @@ describe("design tweaks (owner 2026-10-18)", () => {
     const display = rule(".font-display:not(.landing-h1, .landing-h1 *, .font-moment)");
     expect(display).toMatch(/font-family:\s*Montserrat/);
     expect(display).toMatch(/font-style:\s*normal/);
-    expect(code("src/components/landing/HeroSection.tsx")).toMatch(/className="landing-h1 relative z-10 font-display/);
+    // a57914618c (train 11-18): the hero H1 dropped its dead font-display class; its face is .landing-serif-text.
+    expect(code("src/components/landing/HeroSection.tsx")).toMatch(/className="landing-h1 relative z-10 landing-serif-text/);
   });
 
   it("T2: cards have no outline and no blur", () => {

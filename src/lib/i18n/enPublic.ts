@@ -71,6 +71,8 @@ export const enPublic = {
   "pub.fact.Parish": "Parish",
   "pub.fact.Area": "Area",
   "pub.fact.When": "When",
+  "pub.fact.Day": "Day",
+  "pub.fact.Time": "Time",
   "pub.fact.Pay": "Pay",
   "pub.fact.earn": "You'd earn after fees",
   "pub.job.signUpApply": "Sign up to apply",

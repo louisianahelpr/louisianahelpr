@@ -91,29 +91,30 @@ describe("S030: 'gives quotes' shows only while the shop takes custom orders, an
   it("custom orders off: no quotes promise; the card says only what the shop sells", async () => {
     api.fetchShop.mockResolvedValue(page());
     renderAt("/shops/s1");
-    const title = await screen.findByRole("heading", { name: "What this shop offers" });
+    const meta = await screen.findByTestId("shop-offers");
     await vi.waitFor(() => expect(orders.reads).toBeGreaterThan(0));
     await new Promise((r) => setTimeout(r, 20));
-    const card = title.closest("section") as HTMLElement;
-    expect(card.querySelector("p")?.textContent).toBe("Sells items.");
+    // Area 07 L7: the offers line is header meta beside the followers, not its own card.
+    expect(meta.querySelector("p")?.textContent).toMatch(/ · Sells items\.$/);
+    expect(screen.queryByRole("heading", { name: "What this shop offers" })).toBeNull();
     expect(document.body.textContent).not.toMatch(/open here soon|gives quotes/i);
     expect(screen.queryByRole("button", { name: "Ask for a custom order" })).toBeNull();
   });
 
-  it("custom orders off and the shop only gave quotes: the card is not shown", async () => {
+  it("custom orders off and the shop only gave quotes: no offers line is shown", async () => {
     api.fetchShop.mockResolvedValue(page({ offers_selling: false }));
     renderAt("/shops/s1");
     await screen.findByText("Bayou Cakes");
     await vi.waitFor(() => expect(orders.reads).toBeGreaterThan(0));
     await new Promise((r) => setTimeout(r, 20));
-    expect(screen.queryByRole("heading", { name: "What this shop offers" })).toBeNull();
+    expect(screen.getByTestId("shop-offers").textContent).not.toContain("·");
   });
 
   it.each(["full_hold", "deposit_50"])("custom orders on (%s): 'takes custom orders' with a button to the request sheet", async (mode) => {
     orders.mode = mode;
     api.fetchShop.mockResolvedValue(page());
     renderAt("/shops/s1");
-    expect(await screen.findByText("Sells items and takes custom orders.")).toBeTruthy();
+    expect((await screen.findByTestId("shop-offers")).textContent).toContain("Sells items and takes custom orders.");
     expect(screen.getByRole("button", { name: "Ask for a custom order" })).toBeTruthy();
   });
 });

@@ -20,6 +20,7 @@ import { Plus, Printer, Share2 } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShop, setShopFollow, setShopPaused, shopPhotoUrl } from "@/lib/shops/api";
 import { fetchShopItems } from "@/lib/shops/items";
@@ -201,9 +202,21 @@ export default function ShopView() {
             </>
           }
         />
-        <p className="px-1 text-ds-11 text-muted-foreground">
-          {s.follower_count === 1 ? "1 follower" : `${s.follower_count} followers`}
-        </p>
+        {/* Area 07 L7 (design audit 11-18): what the shop offers is header meta beside the followers, not a whole card. */}
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-1 text-ds-11 text-muted-foreground" data-testid="shop-offers">
+          <p>
+            {s.follower_count === 1 ? "1 follower" : `${s.follower_count} followers`}
+            {offersLine ? ` · ${offersLine}` : ""}
+          </p>
+          {offersLine && takesCustom && !s.mine && !s.paused && (
+            <InlineTextButton
+              className="text-ds-11 underline"
+              onClick={() => document.getElementById("shop-custom-request")?.closest("section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            >
+              Ask for a custom order
+            </InlineTextButton>
+          )}
+        </div>
         {s.mine && <ShopTalksCard />}
         <ShopTalkFromLink />
         {s.about && (
@@ -232,21 +245,6 @@ export default function ShopView() {
         <ShopGallery photos={s.photos} />
         {s.offers_selling && <ShopPolicies shopId={s.id} />}
         <ShopFaqs shopId={s.id} />
-        {offersLine && (
-          <ShopCard id="shop-offers" title="What this shop offers">
-            <p className="text-ds-13 text-muted-foreground">{offersLine}</p>
-            {takesCustom && !s.mine && !s.paused && (
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-2 rounded-full"
-                onClick={() => document.getElementById("shop-custom-request")?.closest("section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              >
-                Ask for a custom order
-              </Button>
-            )}
-          </ShopCard>
-        )}
         {!s.mine && <ShopReportShop shopId={s.id} />}
         {s.mine && (
           <Button type="button" variant="outline" disabled={pause.isPending} onClick={() => pause.mutate(!s.paused)}>

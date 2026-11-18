@@ -585,7 +585,7 @@ export default function ShopEditView() {
           e.preventDefault();
           close.mutate();
         }}
-        secondaryLabel="Cancel"
+        secondaryLabel="Keep my shop"
       />
     </AppPage>
   );

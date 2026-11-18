@@ -6,6 +6,8 @@
  * @mutate src/components/Footer.tsx | <div className="page-measure max-w-6xl pt-6 md:pt-8 pb-2"> | <div className="page-measure pt-6 md:pt-8 pb-2">
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | const FIELD_LABEL = "block text-ds-13 font-semibold text-foreground/80"; | const FIELD_LABEL = "block text-ds-15 font-semibold";
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | <span className="ml-auto shrink-0 text-ds-11 | {!row.open && <span data-order-talk-ended="">x</span>}<span className="ml-auto shrink-0 text-ds-11
+ * @mutate src/components/dashboard/jobDetailDialog/JobDetailTitleRow.tsx | <div className="font-sans text-ds-15 leading-relaxed text-foreground" data-job-description=""> | <div className="font-sans text-ds-12 leading-relaxed" data-job-description="">
+ * @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx | <div key="stat-tiles" className="flex flex-col gap-1" data-job-deadline-line=""> | <div key="stat-tiles" className="grid grid-cols-2 auto-rows-fr gap-2" data-job-deadline-line="">
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -47,5 +49,14 @@ describe("design audit 11-17", () => {
     expect(title).toBeGreaterThan(0);
     expect(ended).toBeGreaterThan(line);
     expect(s.indexOf("data-order-talk-ended")).toBe(ended);
+  });
+
+  it("#11: the job sheet's description is 15 px, the row's values 14 px from sm, and Closes is one meta line", () => {
+    const row = src("src/components/dashboard/jobDetailDialog/JobDetailTitleRow.tsx");
+    expect(row).toContain('<div className="font-sans text-ds-15 leading-relaxed text-foreground" data-job-description="">');
+    const tiles = src("src/components/dashboard/jobDetailDialog/JobStatTiles.tsx");
+    expect(tiles).toContain("text-ds-12 sm:text-ds-14");
+    expect(tiles).toContain('<div key="stat-tiles" className="flex flex-col gap-1" data-job-deadline-line="">');
+    expect(tiles).not.toMatch(/col-span-2/);
   });
 });

@@ -193,7 +193,8 @@ describe("the dashboard Helpr delivery switch", () => {
     delivery.fetchDeliveryOffer.mockResolvedValue({ delivers: false, fee_cents: 0, radius_miles: 10, helpr_delivery: false });
     delivery.setHelprDelivery.mockResolvedValue(true);
     renderIt(<ShopDeliveryPicker shopId="s1" />);
-    fireEvent.click(await screen.findByRole("button", { name: "Offer it" }));
+    // Area 07 M5: a radio card, as every shop setting.
+    fireEvent.click(await screen.findByRole("radio", { name: /Offer it/ }));
     await waitFor(() => expect(delivery.setHelprDelivery).toHaveBeenCalledWith(true));
   });
 });

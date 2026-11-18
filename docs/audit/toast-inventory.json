@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1248,
+    "calls": 1246,
     "files": 360,
     "rendering": 1167,
-    "suppressedByPolicy": 81,
+    "suppressedByPolicy": 79,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
@@ -13,13 +13,13 @@
       "toast.error": 840,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 85,
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 485,
+      "literal": 482,
       "template": 104,
-      "dynamic": 713,
+      "dynamic": 714,
       "jsx": 0
     }
   },
@@ -11581,17 +11581,7 @@
     },
     {
       "file": "src/components/shops/ShopCancelPolicyPicker.tsx",
-      "line": 23,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Cancel rule saved. New orders use it."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/shops/ShopCancelPolicyPicker.tsx",
-      "line": 26,
+      "line": 30,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11611,7 +11601,7 @@
     },
     {
       "file": "src/components/shops/ShopCustomOrdersPicker.tsx",
-      "line": 23,
+      "line": 27,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11711,19 +11701,19 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 127,
+      "line": 131,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "charged ? \"Accepted. The buyer's card is charged.\" : \"Accepted. The charge finishes within a few minutes.\"",
+        "text": "charged ? t(\"shb.dash.accepted\") : t(\"shb.dash.acceptedSoon\")",
         "branches": [
           {
-            "form": "literal",
-            "text": "Accepted. The buyer's card is charged."
+            "form": "dynamic",
+            "text": "t(\"shb.dash.accepted\")"
           },
           {
-            "form": "literal",
-            "text": "Accepted. The charge finishes within a few minutes."
+            "form": "dynamic",
+            "text": "t(\"shb.dash.acceptedSoon\")"
           }
         ]
       },
@@ -11731,7 +11721,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 132,
+      "line": 136,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11741,17 +11731,17 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 140,
+      "line": 144,
       "kind": "toast.success",
       "title": {
-        "form": "literal",
-        "text": "Declined. The buyer's card was not charged."
+        "form": "dynamic",
+        "text": "t(\"shb.dash.declined\")"
       },
       "renders": false
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 146,
+      "line": 150,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11761,7 +11751,7 @@
     },
     {
       "file": "src/components/shops/ShopDeliveryPicker.tsx",
-      "line": 38,
+      "line": 43,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11771,7 +11761,7 @@
     },
     {
       "file": "src/components/shops/ShopDeliveryPicker.tsx",
-      "line": 46,
+      "line": 51,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12051,17 +12041,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverModePicker.tsx",
-      "line": 21,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Saved. New orders use it."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/shops/ShopHandoverModePicker.tsx",
-      "line": 24,
+      "line": 28,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -11,7 +11,9 @@
  */
 
 function StatusChips<K extends string>({ chips, value, onPick }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void }) {
-  const all = chips.reduce((n, c) => n + c.count, 0);
+  // Area 06 L2 (11-18): "All · 15" beside the tab's "Selling 5" counted History (taken down, ended) too; All counts
+  // what is still going.
+  const all = chips.reduce((n, c) => n + (c.key === "taken" ? 0 : c.count), 0);
   return (
     // AUD31-4 (lead 10-31): at 375 the last chip runs off the right edge on purpose: the row scrolls sideways. The right
     // edge fades so the cut chip reads as "more to scroll"; the end padding (>= the fade) lets the last chip scroll clear

@@ -29,16 +29,14 @@ const state = vi.hoisted(() => ({
   pending: new Set<string>(),
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "s" }, profile: {}, isLoading: false }) }));
-vi.mock("@/lib/declutter/payoutReads", async (orig) => ({
-  ...(await orig<object>()),
-  fetchMyPayouts: async () => state.cart.map((l) => ({ order_id: l.order_id, status: state.pending.has(l.order_id as string) ? "pending" : "succeeded" })),
-}));
+
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<object>()),
   fetchOpenProblems: async () => state.problems,
   fetchOrderProblem: async () => null,
   fetchIReviewed: async (orderId: string) => !state.notReviewed.has(orderId),
+  fetchMyPayouts: async () => state.cart.map((l) => ({ order_id: l.order_id, status: state.pending.has(l.order_id as string) ? "pending" : "succeeded" })),
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null }),
 }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => ({

@@ -5,8 +5,8 @@
  * and keys as the order card (payouts, i-reviewed), so this adds no request the card doesn't already make.
  */
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { fetchIReviewed } from "@/lib/declutter/handover";
-import { fetchMyPayouts } from "@/lib/declutter/payoutReads";
+// The same module the order card reads them from (DeclutterHandoverViews), so one mock or read serves both.
+import { fetchIReviewed, fetchMyPayouts } from "@/lib/declutter/handover";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const reviewedKey = (orderId: string, side: "buyer" | "seller") => `declutter-reviewed:${orderId}:${side}`;

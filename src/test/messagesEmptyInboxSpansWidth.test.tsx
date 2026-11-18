@@ -5,7 +5,7 @@
  * "Pick a conversation"; an open chat keeps the two panes.
  *
  * @mutate src/pages/messages/MessagesTwoPane.tsx |   const spanAll = empty && !chat; |   const spanAll = false;
- * @mutate src/pages/messages/Messages.tsx | empty={!loading && !loadError && allConversations.length === 0} | empty={false}
+ * @mutate src/pages/messages/Messages.tsx | empty={!loading && !loadError && allConversations?.length === 0} | empty={false}
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -48,9 +48,10 @@ describe("desktop Inbox with no conversations (owner 11-17)", () => {
     expect(screen.getByTestId("messages-list-pane").hasAttribute("data-span-all")).toBe(false);
   });
 
+  // Not yet read (allConversations undefined) is not empty: `?.length === 0` is false until the inbox query answers.
   it("Messages passes 'empty' only once the inbox has loaded with none (a filter's zero is not empty)", () => {
     const page = blankComments(readFileSync(resolve(__dirname, "../pages/messages/Messages.tsx"), "utf8"));
     expect(page.length).toBeGreaterThan(5000);
-    expect(page).toContain("empty={!loading && !loadError && allConversations.length === 0}");
+    expect(page).toContain("empty={!loading && !loadError && allConversations?.length === 0}");
   });
 });

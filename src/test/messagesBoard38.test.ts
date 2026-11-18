@@ -43,7 +43,7 @@ describe("Messages matches board 38 without ever cutting the chat off", () => {
     expect(page).toMatch(/const twoPane = useMessagesTwoPane\(\);/);
     expect(page).toMatch(/embedded=\{twoPane\}\s*activeKey=\{/);
     expect(page).toMatch(/jobSystemEvents=\{jobSystemEvents\}\s*embedded=\{twoPane\}/);
-    expect(page).toMatch(/\{twoPane \? \(\s*<MessagesTwoPane list=\{listEl\} chat=\{chatEl\} hasConversations=\{conversations\.length > 0\} empty=\{!loading && !loadError && allConversations\.length === 0\} \/>/);
+    expect(page).toMatch(/\{twoPane \? \(\s*<MessagesTwoPane list=\{listEl\} chat=\{chatEl\} hasConversations=\{conversations\.length > 0\} empty=\{!loading && !loadError && allConversations\?\.length === 0\} \/>/);
     expect(panes.length).toBeGreaterThan(800);
     expect(panes).toContain("<PageScaffold flushRight>"); // B107 (11-01): the open chat runs to the window edge on desktop
     expect(panes).toMatch(/data-testid="messages-list-pane"[\s\S]*style=\{spanAll \? undefined : \{ width: MESSAGES_LIST_PANE_PX \}\}/);

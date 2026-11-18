@@ -462,7 +462,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         )}
         {!digital && (
         <div className="space-y-1.5">
-          <Label htmlFor="item-lead">Days you need to make it</Label>
+          {/* Launch pass 1: a service or a rental isn't made, so it asks for notice instead. */}
+          <Label htmlFor="item-lead">{d.kind === "service" || d.kind === "rental" ? "Days' notice you need" : "Days you need to make it"}</Label>
           <Input id="item-lead" type="number" min={0} max={60} value={d.lead} onChange={(e) => set("lead", e.target.value)} {...fieldErrorProps("lead")} />
           {fieldErrorLine("lead")}
         </div>

@@ -195,7 +195,7 @@ export const enScreens = {
   "profileGate.checking": "Checking your saved profile",
   "profileGate.checkingBody": "Hang tight — we’re making sure your previous submission is loaded before asking for anything again.",
   "profileGate.loggingOut": "Logging out…",
-  "profileGate.signOut": "Sign out",
+  "profileGate.signOut": "Log out",
   "profileGate.title": "Almost there.",
   "profileGate.photoPreview": "Profile preview",
   "profileGate.photoChange": "Change profile picture",

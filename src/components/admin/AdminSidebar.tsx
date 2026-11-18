@@ -295,14 +295,14 @@ const AdminSidebar = ({
           variant="ghost"
           size="sm"
           onClick={onLogout}
-          aria-label="Sign out"
+          aria-label="Log out"
           className={cn(
             "justify-start gap-2 hover:bg-destructive/10 hover:text-destructive-ink",
             collapsed && "justify-center px-0"
           )}
         >
           <LogOut className="w-4 h-4" />
-          {!collapsed && <span>Sign Out</span>}
+          {!collapsed && <span>Log out</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>

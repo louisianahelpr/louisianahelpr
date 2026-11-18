@@ -17,6 +17,8 @@
  * @mutate src/lib/i18n/enYourPage.ts | "yp.page": "Your public profile" | "yp.page": "Your page"
  * @mutate src/lib/i18n/enAccount.ts | "acct.linkTitle": "Public profile link" | "acct.linkTitle": "Your profile link"
  * @mutate src/components/profile/SettingsTab.tsx |         <PaymentMethodsRow />\n |
+ * @mutate src/pages/admin/AdminFrame.tsx |         title="Log out?" |         title="Sign out?"
+ * @mutate src/lib/i18n/enScreens.ts | "profileGate.signOut": "Log out" | "profileGate.signOut": "Sign out"
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -155,6 +157,25 @@ describe("design audit area 09: Privacy shows the saved address and where cards 
     expect(privacy.indexOf("<PaymentMethodsRow />")).toBeGreaterThan(0);
     expect(enAccount["acct.paymentMethodsBody"]).toContain("Stripe");
     expect(esAccount["acct.paymentMethodsBody"]).toContain("Stripe");
+  });
+});
+
+describe("design audit area 09 L6 / area 11b L12: Log out, never Sign out", () => {
+  it("every log-out control and dialog says Log out", () => {
+    const files = [
+      "src/components/auth/Under13Blocked.tsx",
+      "src/pages/auth/AccountBanned.tsx",
+      "src/pages/admin/AdminFrame.tsx",
+      "src/components/admin/AdminSidebar.tsx",
+      "src/pages/auth/ResetPassword.tsx",
+      "src/lib/i18n/enScreens.ts",
+      "src/components/auth/SignOutConfirmDialog.tsx",
+    ];
+    expect(files.length).toBeGreaterThan(5);
+    for (const f of files) {
+      const code = src(f);
+      expect(code, f).not.toMatch(/["'>]\s*Sign [Oo]ut\b|Sign out everywhere|sign back in/);
+    }
   });
 });
 

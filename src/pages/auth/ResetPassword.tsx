@@ -241,7 +241,7 @@ const ResetPassword = () => {
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {othersSignedOut
                 ? "Anywhere else you were signed in will ask for the new password next time."
-                : "We couldn\u2019t sign out your other devices. Use \u201cSign out everywhere\u201d on your profile\u2019s Security tab."}
+                : "We couldn\u2019t log out your other devices. Use \u201cLog out everywhere\u201d in You \u203a Settings \u203a Account and security."}
             </p>
             <Button
               variant="primary"

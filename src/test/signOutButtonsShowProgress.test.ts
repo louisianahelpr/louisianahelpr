@@ -146,6 +146,6 @@ describe("pressed Log Out buttons show progress (owner, 2026-10-09)", () => {
 // "nothing happened" wiring and fails this guard (and so did checking out the
 // five wired files from origin/main: both inventory tests failed).
 // @mutate src/components/auth/SignOutConfirmDialog.tsx | primaryDisabled={signingOut} |
-// @mutate src/pages/auth/AccountBanned.tsx | {signingOut ? "Logging out…" : "Sign out"} | Sign Out
+// @mutate src/pages/auth/AccountBanned.tsx | {signingOut ? "Logging out…" : "Log out"} | Log out
 // @mutate src/pages/profile/Profile.tsx | after={() => navigate("/")} | after={async () => { await signOutWithPushCleanup(); navigate("/"); }}
 // @mutate src/pages/auth/completeProfile/CheckingProfileCard.tsx |         disabled={signingOut}\n |

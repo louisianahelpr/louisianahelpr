@@ -35,12 +35,12 @@
  * @mutate src/content/giftGuideCatalog.ts | 9000047: "gardener", | 9000047: "no-guide", 
  * @mutate src/content/giftGuideCatalog.ts | "for-him": "him", | "for-him": "him-x",
 
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | loading="lazy" decoding="async" data-gift-cover | decoding="async" data-gift-cover
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | className="gg-cover" loading="lazy" decoding="async" | className="gg-cover" decoding="async"
  * @mutate src/pages/info/GiftGuides.tsx |   const { slug } = useParams<{ slug?: string }>(); |   const slug = undefined as string \| undefined; useParams();
  * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && fromHash) return | if (!slug && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
  * @mutate src/pages/info/GiftGuides.tsx | {guide ? <Link to="/gift-guides" className="gg-link" | {guide ? <Link to="/gift-guides/" className="gg-link"
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | loading="lazy" decoding="async" /> | decoding="async" />
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading="lazy" decoding="async" | className="gg-thumb" decoding="async"
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
  * @mutate src/content/giftGuides.ts | const shopmy = (id: number) => `https://shopmy.us/collections/${id}`; | const shopmy = (id: number) => `http://shopmy.us/collections/${id}`;

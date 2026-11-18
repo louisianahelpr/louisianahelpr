@@ -421,7 +421,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
  */
 // Owner 11-14: this account (Terms ticked by the re-consent path only, no city) lands on /complete-profile's consent
 // step (ProtectedRoute's isConsentComplete), whose Delete account button is the one pressed here.
-// @mutate src/pages/auth/CompleteProfile.tsx | <button type="button" onClick={deleteAccount.requestDelete} className="min-h-11 font-semibold underline | <button type="button" onClick={() => {}} className="min-h-11 font-semibold underline
+// @mutate src/pages/auth/CompleteProfile.tsx | <InlineTextButton onClick={deleteAccount.requestDelete} className="min-h-11 font-semibold underline | <InlineTextButton onClick={() => {}} className="min-h-11 font-semibold underline
 const INCOMPLETE_TAG = `${RUN_TAG.slice(0, 13)}inc`;
 const INCOMPLETE_EMAIL = disposableEmail(INCOMPLETE_TAG);
 

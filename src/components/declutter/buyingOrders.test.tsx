@@ -520,7 +520,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     const pickup = iso(48);
     load([{ id: "hd1", line: { handover: "delivery", delivery_task_id: "t-hd1" }, task: { accepted_at: iso(-2), pickup_slot_start: pickup, helpr_first_name: "Hallie" }, step: 1, bucket: "upcoming", action: null }]);
     show();
-    const words = new Date(pickup).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    const words = new Date(pickup).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); // order times read in Louisiana time (orderWhen)
     expect(await screen.findByText(`Hallie picks it up from the seller ${words}.`)).toBeInTheDocument();
     expect(card("hd1").textContent).not.toMatch(/on the way/i);
   });

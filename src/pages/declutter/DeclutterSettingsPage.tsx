@@ -100,7 +100,7 @@ function DeclutterSettingsBody({ user }: { user: { id: string } }) {
           <nav aria-label="On this page" className="flex flex-wrap items-center gap-2" data-settings-index="">
             {SETTINGS_INDEX.map((name) => (
               <Button key={name} variant="ghost" size="wrapSm" data-settings-index-chip=""
-                className="border border-border bg-card font-medium tracking-normal text-foreground focus-visible:ring-offset-0"
+                className="border border-border bg-card font-medium tracking-normal text-foreground"
                 onClick={() => document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{name}</Button>
             ))}
           </nav>

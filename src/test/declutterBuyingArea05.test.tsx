@@ -35,6 +35,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { blankComments } from "./helpers/blankNonCode";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 import { enDeclBuy } from "@/lib/i18n/enDeclBuy";
+import { enDeclPanels } from "@/lib/i18n/enDeclPanels";
 import { esDeclPanels } from "@/lib/i18n/esDeclPanels";
 import { CheckoutPriceSummary, SUMMARY_TIPS } from "@/components/declutter/DeclutterCheckoutSummary";
 import { CheckoutPickupTime } from "@/components/declutter/CheckoutPickupTime";
@@ -58,9 +59,12 @@ const days = [{ ymd: "2026-11-20", label: "Fri 11/20", slots: [{ iso: "2026-11-2
 
 describe("Area 05 #1: checkout and order cards in Spanish", () => {
   it("every dbuy key has its own Spanish, and the tips' English is SUMMARY_TIPS word for word", () => {
-    const keys = Object.keys(enDeclBuy).filter((k) => k.startsWith("dbuy.")) as (keyof typeof enDeclBuy)[];
+    // The order step words (dbuy.step.*) live in enDeclPanels since train 11-18 (OrderSteps loads that chunk, and
+    // enDeclBuy rides the item page's budget), so the dbuy set is the two English chunks together.
+    const keys = [...Object.keys(enDeclBuy), ...Object.keys(enDeclPanels)].filter((k) => k.startsWith("dbuy."));
+    expect(new Set(keys).size).toBe(keys.length);
     expect(keys.length).toBeGreaterThan(140);
-    for (const k of keys) expect(esDeclPanels[k], k).toBeTruthy();
+    for (const k of keys) expect((esDeclPanels as Record<string, string>)[k], k).toBeTruthy();
     for (const [k, v] of Object.entries(SUMMARY_TIPS)) expect(enDeclBuy[`dbuy.tip.${k}` as keyof typeof enDeclBuy], k).toBe(v);
   });
 

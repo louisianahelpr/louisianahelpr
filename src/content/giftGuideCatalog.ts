@@ -7,12 +7,12 @@
  * Every pick carries a `store`, read from its link's host (storeOf), and each "Shop by store" guide is every pick on
  * that store. Guard: src/test/giftGuidesPage.test.tsx.
  */
-import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
+import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { RESEARCHED_PICKS, type ResearchedPick } from "@/content/giftGuidePicks";
 
-export type GiftStore = "amazon" | "shopmy" | "zchocolat" | "diecast" | "louisiana";
+export type GiftStore = "amazon" | "shopmy" | "zchocolat" | "diecast" | "louisiana" | "sponsor";
 
 /** Each store, the name the page shows and the link hosts that belong to it. */
 export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] }> = {
@@ -22,6 +22,8 @@ export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] 
   diecast: { name: "DiecastModelsWholesale", hosts: ["www.diecastmodelswholesale.com"] },
   // The Louisiana shops' own sites (each pick names its brand, so "On <brand>" is shown, not this name).
   louisiana: { name: "a Louisiana shop", hosts: LOUISIANA_SHOPS },
+  // The 25 Days sponsors' own sites (each pick names its brand, shown as "On <brand>").
+  sponsor: { name: "a 25 Days sponsor", hosts: SPONSOR_SITES },
 };
 
 /** The store a pick's link goes to, read from its host. A host on no store is a content error, so it throws. */
@@ -57,13 +59,14 @@ export interface CatalogPick {
 export type PickBadge = "trending" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup";
 
 /**
- * A pick's badges, in this order: Trending (its optional `trending` flag), "Louisiana-made" only for a Louisiana brand,
- * "25 Days sponsor" for a sponsor's pick (lead 2026-11-18), Ships fast and Local pickup (optional flags). Never a price.
+ * A pick's badges, in this order: Trending (its optional `trending` flag), "Louisiana-made" only when the pick is
+ * marked louisianaFit AND its brand is Louisiana-based, "25 Days sponsor" for a sponsor's pick or any pick on the
+ * sponsors guide (lead 2026-11-18), Ships fast and Local pickup (optional flags). Never a price.
  */
-export const badgesFor = (brand: string | undefined, flags: { trending?: true; shipsFast?: true; localPickup?: true } = {}): PickBadge[] => [
+export const badgesFor = (brand: string | undefined, flags: { louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true } = {}): PickBadge[] => [
   ...(flags.trending ? (["trending"] as const) : []),
-  ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
-  ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []),
+  ...(flags.louisianaFit && brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
+  ...(flags.sponsor || (brand && SPONSOR_BRANDS.includes(brand)) ? (["sponsor"] as const) : []),
   ...(flags.shipsFast ? (["ships-fast"] as const) : []),
   ...(flags.localPickup ? (["local-pickup"] as const) : []),
 ];

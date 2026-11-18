@@ -3,6 +3,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { STORES, guideBySlug, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
+import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
 import { Heart, togglePick, useGiftList } from "./giftList";
 
 /**
@@ -26,7 +27,7 @@ export function PickRow({ pick }: { pick: CatalogPick }) {
         )}
         <span className="gg-nm">
           {pick.name}
-          <small>{pick.line ? `${pick.line} ` : ""}{G.onStore(pick.store === "louisiana" && pick.brand ? pick.brand : STORES[pick.store].name)}</small>
+          <small>{pick.line ? `${pick.line} ` : ""}{G.onStore((pick.store === "louisiana" || pick.store === "sponsor") && pick.brand ? pick.brand : STORES[pick.store].name)}</small>
           {pick.badges && (
             <span className="gg-badges">
               {pick.badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
@@ -57,6 +58,10 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
           <p>{G.comingSoonBody}</p>
           <Link to="/gift-guides" className="gg-link">{G.allGuidesLabel}</Link>
         </div>
+      )}
+      {NAME_ONLY_SPONSORS[guide.slug] && (
+        // A sponsor whose gift is left out (lead 2026-11-18: Hilma's probiotic, a health product) is still named.
+        <p className="gg-also" data-gift-also-sponsoring="">{G.alsoSponsoring(NAME_ONLY_SPONSORS[guide.slug].join(", "))}</p>
       )}
       {guide.links.length > 0 && (
         <p className="gg-more">

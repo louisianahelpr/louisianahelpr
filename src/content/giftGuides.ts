@@ -66,6 +66,12 @@ export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "nolacoutur
  */
 export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du Monde", "Tony Chachere's", "Community Coffee", "NOLA Couture", "Aunt Sally's", "KREWE", "Leah's Pralines", "Southern Marsh", "Slap Ya Mama", "Zatarain's", "Joe Gambino's Bakery", "Cajun Power", "Savoie's", "Zapp's", "Magic Seasoning Blends", "French Market", "TABASCO", "Camellia Brand", "Steen's", "Kary's", "Abita", "Crystal", "Blue Plate", "Louisiana Fish Fry", "Bruce's", "Cafe Du Monde", "French Truck Coffee", "Red Stick Spice Company", "Panola Pepper Co.", "Poche's", "Randazzo King Cake", "Southern Candymakers"];
 
+/**
+ * The 25 Days of Giveaways sponsors' own sites (lead 2026-11-18, ~/Desktop/Gift-guide-picks/25-days-sponsors.json):
+ * the sponsors guide links each sponsor's gift. Exact hosts, never a wildcard.
+ */
+export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "tushbaby.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com"] as const;
+
 /** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
 export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop"];
 
@@ -186,6 +192,7 @@ export const giftGuides = {
   onStore: (store: string) => `On ${store}`,
   /** The pick badges (owner 2026-11-18). Never a price. */
   badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup" },
+  alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
   myListLabel: "My list",
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
   searchNone: "No guides match. Try another word.",

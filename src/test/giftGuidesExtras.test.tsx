@@ -6,8 +6,9 @@
  * @mutate src/content/giftGuideShipping.ts |   if (day <= 20) return SHIP_LINES.late; |   if (day < 20) return SHIP_LINES.late;
  * @mutate src/content/giftGuideShipping.ts |   if (day <= 25) return SHIP_LINES.instant; |   if (day <= 31) return SHIP_LINES.instant;
  * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
- * @mutate src/content/giftGuideCatalog.ts |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand ? (["louisiana-made"] as const) : []),
- * @mutate src/content/giftGuideCatalog.ts |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []), |   ...([] as const),
+ * @mutate src/content/giftGuideCatalog.ts |   ...(flags.louisianaFit && brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
+ * @mutate src/content/giftGuideCatalog.ts |   ...(flags.sponsor \|\| (brand && SPONSOR_BRANDS.includes(brand)) ? (["sponsor"] as const) : []), |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []),
+ * @mutate scripts/gift-guide-picks.mjs |   const list = picks.filter((p) => !nameOnly(slug, p)).map((p) => { |   const list = picks.map((p) => {
  * @mutate src/pages/info/giftGuides/giftList.tsx | aria-pressed={saved} | aria-pressed={false}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | onToggle={() => toggleGuide(g.slug)} | onToggle={() => undefined}
  * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
@@ -76,16 +77,29 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(all.length).toBeGreaterThan(500);
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) expect(guideBySlug(slug)?.picks.map((p) => p.href), slug).toEqual(list.map((p) => p.href));
   });
-  it("Louisiana-made only for a Louisiana brand (louisianaFit alone is not enough); sponsors get 25 Days sponsor", () => {
-    const picks = Object.keys(RESEARCHED_PICKS).flatMap((s) => guideBySlug(s)!.picks);
-    for (const p of picks) {
-      expect(p.badges?.includes("louisiana-made") ?? false, p.name).toBe(LOUISIANA_MADE_BRANDS.includes(p.brand!));
-      expect(p.badges?.includes("sponsor") ?? false, p.name).toBe(SPONSOR_BRANDS.includes(p.brand!));
+  it("Louisiana-made only when louisianaFit AND a Louisiana brand; sponsors (and every sponsors-guide pick) get 25 Days sponsor", () => {
+    const picks = Object.entries(RESEARCHED_PICKS).flatMap(([s, raw]) => guideBySlug(s)!.picks.map((p, i) => ({ p, raw: raw[i], s })));
+    for (const { p, raw, s } of picks) {
+      expect(raw.href).toBe(p.href);
+      expect(p.badges?.includes("louisiana-made") ?? false, p.name).toBe(!!raw.louisianaFit && LOUISIANA_MADE_BRANDS.includes(p.brand!));
+      expect(p.badges?.includes("sponsor") ?? false, p.name).toBe(s === "25-days-sponsors" || SPONSOR_BRANDS.includes(p.brand!));
     }
+    // A Louisiana brand's pick not marked louisianaFit gets no Louisiana-made badge.
+    expect(badgesFor("TABASCO")).toEqual([]);
+    expect(badgesFor("TABASCO", { louisianaFit: true })).toEqual(["louisiana-made"]);
+    const sponsors = guideBySlug("25-days-sponsors")!.picks;
+    expect(sponsors.length).toBeGreaterThan(20);
+    for (const p of sponsors) expect(p.badges, p.name).toContain("sponsor");
     const fitNotMade = all.filter((p) => p.louisianaFit && !LOUISIANA_MADE_BRANDS.includes(p.brand));
     expect(fitNotMade.some((p) => p.brand === "YETI")).toBe(true);
-    expect(picks.filter((p) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(50);
-    expect(picks.filter((p) => p.badges?.includes("sponsor")).length).toBeGreaterThan(1);
+    expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(50);
+    expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
+  });
+  it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
+    expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);
+    const { container } = renderAt("/gift-guides/25-days-sponsors");
+    expect(container.querySelector("[data-gift-also-sponsoring]")?.textContent).toBe("Also sponsoring: Hilma");
+    expect(container.querySelector('a[href*="hilma"]')).toBeNull();
   });
   it("draws the badges on the list, never a price, and every Shop link is sponsored + noopener", () => {
     const { container } = renderAt("/gift-guides/louisiana-made");
@@ -189,7 +203,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
 
 describe("gift guides: pick badges come from optional fields, never a price", () => {
   it("Trending, Louisiana-made, 25 Days sponsor, Ships fast, Local pickup, in that order", () => {
-    expect(badgesFor("TABASCO", { trending: true, shipsFast: true, localPickup: true })).toEqual(["trending", "louisiana-made", "ships-fast", "local-pickup"]);
+    expect(badgesFor("TABASCO", { louisianaFit: true, trending: true, shipsFast: true, localPickup: true })).toEqual(["trending", "louisiana-made", "ships-fast", "local-pickup"]);
     expect(badgesFor("Crew Dog")).toEqual(["sponsor"]);
     expect(badgesFor("YETI")).toEqual([]);
     expect(badgesFor(undefined, { localPickup: true })).toEqual(["local-pickup"]);

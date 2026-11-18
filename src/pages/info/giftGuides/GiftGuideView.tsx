@@ -64,7 +64,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
 const sectionsOf = (picks: CatalogPick[]) => {
   const runs: { title?: string; picks: { start: number; rows: CatalogPick[] } }[] = [];
   picks.forEach((p, i) => {
-    const last = runs.at(-1);
+    const last = runs[runs.length - 1];
     if (last && (!p.section || p.section === last.title)) last.picks.rows.push(p);
     else runs.push({ title: p.section, picks: { start: i + 1, rows: [p] } });
   });

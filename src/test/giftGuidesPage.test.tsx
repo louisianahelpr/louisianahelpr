@@ -807,7 +807,7 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
     let picks = 0;
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
       picks += 1;
-      expect(blockedBrand(p as Record<string, unknown>), `${slug}: ${p.name}`).toBe(false);
+      expect(blockedBrand(p as unknown as Record<string, unknown>), `${slug}: ${p.name}`).toBe(false);
     }
     expect(picks).toBeGreaterThan(500);
   });

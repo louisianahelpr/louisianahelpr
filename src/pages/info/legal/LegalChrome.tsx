@@ -46,7 +46,9 @@ export const TldrCard = ({ items }: { items: ReactNode[] }) => {
   <div className="rounded-[20px] border border-border bg-card p-5 space-y-3">
     <div className="flex items-center gap-2">
       <ListChecks className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-      <span className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+      {/* Design audit r3 #48: the heading is the policy sections' title size (was 13 px over 16 px bold titles,
+          so the hierarchy read upside down). */}
+      <span className="text-ds-15 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-tldr-heading="">
         The short version
       </span>
     </div>

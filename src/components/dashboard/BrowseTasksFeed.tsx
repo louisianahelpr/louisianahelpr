@@ -505,6 +505,7 @@ export function BrowseTasksFeed({
             <BrowseEndCard
               onWiden={nearby ? () => filters.setLocationFilter(next ? `nearby:${next}` : "") : undefined}
               widenLabel={next ? `Widen to ${next} mi` : "Any distance"}
+              title={nearby ? "That's every open job near you." : "That's every open job for now."}
               onAlerts={() => void notifyWhenWorkLands()}
             />
           );

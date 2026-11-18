@@ -37,7 +37,9 @@ import { blankComments } from "./helpers/blankNonCode";
 const state = vi.hoisted(() => ({ jobs: 2, unread: 12, shared: 0, sheetOpened: 0 }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => true }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
-vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
+// Launched by default; owner 2026-11-17: a section not yet open to everyone is not in the rail, for a tester too.
+const everyone = vi.hoisted(() => ({ open: new Set(["declutter", "shops", "rentals"]) as ReadonlySet<string> | null }));
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => everyone.open }));
 // S2-016: the navs read the member's unread shop chats for the badge; none here.
 vi.mock("@/lib/shops/talkUnread", () => ({ SHOP_TALKS_SUMMARY_KEY: ["shops", "my-talks", "summary"], SHOP_TALKS_UNREAD_EVENT: "lh-shop-talks-unread", fetchShopTalkSummary: async () => ({ total: 0, unread: 0 }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k !== "rentals" }));
@@ -101,6 +103,19 @@ describe("the LEFT sidebar (board 11)", () => {
     const rows = [...document.querySelectorAll("[data-sidebar-item]")].map((b) => b.getAttribute("data-sidebar-item"));
     // Homes (rentals) is closed to this viewer: hidden until it launches (owner 11-16); Shops is on for them.
     expect(rows).toEqual(["/home", "/explore", "/jobs", "/declutter", "/shops", "/messages", "/profile"]);
+  });
+
+  it("owner 2026-11-17: Shops on for a tester but not yet open to everyone is not in the rail (no Coming soon row)", () => {
+    everyone.open = new Set(["declutter"]);
+    try {
+      mount();
+      const rows = [...document.querySelectorAll("[data-sidebar-item]")].map((b) => b.getAttribute("data-sidebar-item"));
+      expect(rows.length).toBeGreaterThan(4);
+      expect(rows).not.toContain("/shops");
+      expect(document.body.textContent).not.toMatch(/coming soon/i);
+    } finally {
+      everyone.open = new Set(["declutter", "shops", "rentals"]);
+    }
   });
 
   it("inside a section, Explore and that section are both current", () => {

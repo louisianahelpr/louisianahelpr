@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Car, ClipboardList, Handshake, House, Leaf, MessageCircle, PartyPopper, PawPrint, Repeat, Sparkles, Truck, Wrench } from "lucide-react";
+import { Car, ClipboardList, Handshake, House, Leaf, MessageCircle, PartyPopper, PawPrint, PenLine, Repeat, Truck, Wrench } from "lucide-react";
 import type { JobCategory } from "./jobCategories";
 import type { JobCategoryGroupId } from "./jobCategoryGroups";
 
@@ -21,8 +21,9 @@ export const GROUP_ICON: Record<JobCategoryGroupId, LucideIcon> = {
   other: MessageCircle,
 };
 
-/** The start screen's links (templates, a saved Helpr, the AI builder, repost). */
-export const START_ICON = { templates: ClipboardList, offer: Handshake, ai: Sparkles, repost: Repeat } as const;
+/** The start screen's links (templates, a saved Helpr, the AI builder, repost). Owner 2026-11-17: the builder's link is a
+ * plain pencil ("Describe it in your own words"), not a sparkle. */
+export const START_ICON = { templates: ClipboardList, offer: Handshake, ai: PenLine, repost: Repeat } as const;
 
 /**
  * The emoji the Post a Job start screens drew (owner 2026-10-21: "she prefers the EMOJI icons from the

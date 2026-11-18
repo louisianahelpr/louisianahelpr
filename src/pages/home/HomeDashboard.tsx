@@ -16,7 +16,7 @@ import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useHomeSummary } from "./homeDashboard/useHomeSummary";
+import { useHomeSummary, usePageSettled } from "./homeDashboard/useHomeSummary";
 import { todoTarget } from "./homeDashboard/useNeedsYouTodos";
 import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { type ComingUpItem } from "./homeDashboard/comingUp";
@@ -61,6 +61,7 @@ function newMemberBlock<P extends object>(pick: (m: NewMemberBlocks) => Componen
 }
 const NewMemberHome = newMemberBlock((m) => m.NewMemberHome);
 const GetStartedGuide = newMemberBlock((m) => m.GetStartedGuide);
+const NearYouBlock = newMemberBlock((m) => m.NearYouBlock);
 
 // The desktop website's greeting: the hours rule and the date line (homeGreetingShell.mjs).
 const greeting = () => greetingFor(new Date(), getLang());
@@ -137,7 +138,8 @@ function HomeDashboardScreen() {
   }, [myHandle, myId, queryClient]);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
-  const isLive = (s: (typeof visible)[number]) => s.feature === null || !!live.find((tab) => tab.path === s.path)?.on;
+  // Owner 2026-11-17: an unlaunched section (Shops, Homes for a tester) gets no chip either, the same `listed` answer.
+  const isLive = (s: (typeof visible)[number]) => s.feature === null || (!!live.find((tab) => tab.path === s.path)?.on && live.find((tab) => tab.path === s.path)?.listed !== false);
   // M8 (owner 11-16): a closed section is not listed, so it is not named in the "opening soon" line either.
   const soonLine = openingSoonLine(visible.filter((s) => !isLive(s) && live.find((tab) => tab.path === s.path)?.listed !== false).map(sectionLabel), { and: t("home.and"), one: t("home.soonOne"), many: t("home.soonMany") });
   const isWebDesktop = useIsWebDesktop();
@@ -180,6 +182,11 @@ function HomeDashboardScreen() {
     <GetStartedGuide userId={user?.id} fresh={fresh} declutterOpen={sellOpen} hasPhoto={!!profile?.avatar_url} alertsOff={firstJob ? firstJob.alertsOff : null} />
   );
   const rest = Math.max(0, todoCount - 1);
+  // Owner 2026-11-17 (item 4): a quiet day (nothing needs you, nothing booked) shows "Near you" under Coming up, its
+  // chunk and reads asked only once the page has settled (usePageSettled), so Home's first paint is unchanged.
+  const pageSettled = usePageSettled();
+  // Not for a new member: their own blocks (NewMemberHome, FirstJobHome) already list the jobs near them.
+  const quietDay = !welcome && !firstJob?.isNew && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting && !summary.loading && summary.upcoming.length === 0 && !summary.upcomingFailed;
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
   const nextUpRef = useRef<HTMLElement>(null);
@@ -448,6 +455,7 @@ function HomeDashboardScreen() {
               )}
             </GroupSection>
             )}
+            {quietDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}
 
             {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one
                 progress line. Board 189: before a member's first job, the first-job checklist and jobs near them.

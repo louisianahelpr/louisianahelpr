@@ -19,6 +19,7 @@
  * @mutate src/index.css | #lh-browse-shell { visibility: visible !important; } | #lh-browse-shell { visibility: visible; }
  * @mutate src/lib/browseShellCards.mjs |   catLabel: "job-cat-label inline-flex | catLabel: "job-cat-labelx inline-flex
  */
+import { jobCategoryTint } from "@/lib/jobCategoryTint.mjs";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -196,7 +197,10 @@ describe("the shell card wears the real guest JobCard's classes", () => {
     expect(c.mediaRow).toBe(real("[data-feed-card] > div > div:first-child"));
     expect(c.mediaPad).toBe(real("[data-feed-card] > div > div:first-child > div:first-child"));
     expect(c.media).toBe(real("[data-testid=job-card-media]"));
-    expect(container.querySelector<HTMLElement>("[data-testid=job-card-media]")?.style.background).toBe(c.mediaTint);
+    // Owner 11-17: the tile wears its category's tint, the same value in the shell (src/lib/jobCategoryTint.mjs).
+    const tile = container.querySelector<HTMLElement>("[data-testid=job-card-media]")!;
+    expect(tile.getAttribute("style")).toContain(jobCategoryTint(job.category).background);
+    expect(browseShellHtml([row()], NOW)).toContain(`<div class="${c.media}" style="background:${jobCategoryTint(row().category).background}">`);
     expect(c.textCol).toBe(real("[data-feed-card] > div > div:first-child > div:nth-child(2)"));
     expect(c.badgeLine).toBe(real("[data-feed-card] > div > div:first-child > div:nth-child(2) > div:first-child"));
     expect(container.querySelector("[data-feed-card]")?.hasAttribute("data-feed-row")).toBe(true);

@@ -68,7 +68,7 @@ export function sectionCardLines(
 }
 
 /** True once the page has finished loading (routePrefetch's whenPageSettled): the cards' counts wait for it. */
-function usePageSettled(): boolean {
+export function usePageSettled(): boolean {
   const [settled, setSettled] = useState(false);
   useEffect(() => whenPageSettled(() => setSettled(true), 300, 4000), []);
   return settled;
@@ -202,6 +202,15 @@ export function useHomeSummary(user: SupaUser | null) {
         buying: declutterOn
           ? (cart.data ?? []).filter((l) => l.my_side === "buyer" && (l.status === "in_cart" || (l.status === "paid" && l.order_status === "paid"))).length
           : 0,
+      },
+      // Owner 2026-11-17 (signed-in tweaks, item 8): a tile whose count has ANSWERED with 0 says "None yet"; one still
+      // loading (or failed) says nothing, so a tile never claims "None yet" for a read that has not come back.
+      countsKnown: {
+        posted: !posted.loading && !posted.loadError && posted.postedJobs !== undefined,
+        working: !applied.loading && !applied.loadError && applied.appliedApps !== undefined,
+        selling: declutter.data !== undefined,
+        shopOrders: orders.data !== undefined,
+        buying: cart.data !== undefined,
       },
       tiles: {
         // H5 (Cowork audit 2026-10-20): "N in progress" counted open jobs still

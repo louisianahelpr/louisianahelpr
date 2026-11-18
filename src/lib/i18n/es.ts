@@ -454,7 +454,7 @@ export const es: Record<MsgKey, string> = {
   "postJob.otherWays": "Otras formas de empezar",
   "postJob.useTemplate": "Usar una plantilla",
   "postJob.hireSaved": "Contratar a un Helpr guardado",
-  "postJob.describeAi": "Describirlo con IA",
+  "postJob.describeAi": "Descríbelo con tus propias palabras",
   "postJob.repost": "Volver a publicar un trabajo reciente",
   "postJob.templatesQ": "Elija una plantilla",
   "postJob.templatesH": "Empiece con un trabajo común y luego cambie lo que quiera.",

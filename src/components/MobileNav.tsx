@@ -28,7 +28,7 @@ import {
   inTabStack,
   guestTabPath,
 } from "@/components/mobileNav/mobileNavHelpers";
-import { phoneDockItems, DOCK_LISTS_PREVIEWS_IN_APP, type DockItem } from "@/components/mobileNav/dockItems";
+import { phoneDockItems, type DockItem } from "@/components/mobileNav/dockItems";
 import { dockBadgeCount } from "@/components/mobileNav/dockBadgeCount";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
@@ -84,15 +84,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // THE PHONE BOTTOM BAR (owner 11-14): Home, Jobs, Declutter, Shops, Homes, no center "+"; Messages and You are on
   // the top row (AppTopBar). Shops and Homes, while not open to everyone, wear a small "Soon" tag on the website ("just
   // have those 2 listed as coming soon"); a tap opens the section, which for anyone it is closed to is its own
-  // coming-soon screen (ShopsGate, RentalsGate). The store app lists a tester's preview tab with no tag (DOCK_LISTS_PREVIEWS_IN_APP,
-  // owner 11-06; hideUnopenedInApp, owner 10-31). The Create sheet still mounts here.
+  // coming-soon screen (ShopsGate, RentalsGate). Owner 2026-11-17: a tester's preview tab is not
+  // listed either, until the section launches (useSectionTabs `listed`). The Create sheet still mounts here.
   const sectionTabs = useSectionTabs();
   const dock = phoneDockItems()
     .map((item) => {
       const t = sectionTabs.find((x) => x.path === item.path);
       const soon = !!item.comingSoon && !!t && (!t.on || t.preview) && !hideUnopenedInApp();
-      // M8/M9 (owner 11-16): a section closed to the viewer is not listed; a tester's preview keeps its tab.
-      return { ...item, soon, closed: !!t && !t.on, listed: t ? (t.on && DOCK_LISTS_PREVIEWS_IN_APP) || t.listed : true };
+      // M8/M9 (owner 11-16): a section closed to the viewer is not listed. Owner 2026-11-17: nor is a tester's preview
+      // (Shops, Homes) until it launches; the ONE `listed` answer decides, as on the rail.
+      return { ...item, soon, closed: !!t && !t.on, listed: t ? t.listed : true };
     })
     .filter((item) => item.listed);
   const createOpen = useCreateSheetOpen();

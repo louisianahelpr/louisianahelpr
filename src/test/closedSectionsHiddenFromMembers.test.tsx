@@ -10,18 +10,20 @@
  * youBoard18 (You and Home's line), nothingComingSoonInTheApp and sectionNavTabs (Explore), search tests (Search).
  *
  * @mutate src/lib/hideUnopenedInApp.ts |   if (!tab.on) return false; |   if (!tab.on && hideUnopenedInApp()) return false;
- * @mutate src/components/mobileNav/useSectionTabs.ts | listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview }) | listed: sectionListedHere({ on: on[s.feature], preview })
+ * @mutate src/components/mobileNav/useSectionTabs.ts | listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview: unlaunched }) | listed: sectionListedHere({ on: on[s.feature], preview: unlaunched })
+ * @mutate src/components/mobileNav/useSectionTabs.ts |     const unlaunched = !OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature) && !openToEveryone?.has(s.feature); |     const unlaunched = !OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature) && openToEveryone !== null && !openToEveryone.has(s.feature);
+ * @mutate src/lib/hideUnopenedInApp.ts |   return !tab.preview; |   return !hideUnopenedInApp() \|\| !tab.preview;
  * @mutate src/components/create/CreateSheet.tsx | {waysLine(visible.length)} | One account, four ways to get things done.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 
-const env = vi.hoisted(() => ({ native: false, on: new Set<string>(["declutter"]) }));
+const env = vi.hoisted(() => ({ native: false, on: new Set<string>(["declutter"]), open: new Set<string>(["declutter"]) as ReadonlySet<string> | null }));
 vi.mock("@/lib/nativeInit", async (orig) => ({ ...(await orig<object>()), get isNativePlatform() { return env.native; } }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => env.on.has(k), useFeatureStatus: (k: string) => ({ on: env.on.has(k), settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 // Only Declutter is open to everyone (prod, 11-16).
-vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => new Set(["declutter"]) }));
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => env.open }));
 
 import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { waysLine } from "@/components/create/CreateSheet";
@@ -37,11 +39,12 @@ const listed = () => {
   return out;
 };
 
-afterEach(() => { cleanup(); env.native = false; env.on = new Set(["declutter"]); });
+afterEach(() => { cleanup(); env.native = false; env.on = new Set(["declutter"]); env.open = new Set(["declutter"]); });
 
 describe("Shops and Homes are hidden from members until they launch (M8/M9)", () => {
   it("found the section tabs (inventory)", () => {
     env.on = new Set(["declutter", "shops", "rentals"]);
+    env.open = new Set(["declutter", "shops", "rentals"]);
     expect(listed().length).toBeGreaterThan(2);
   });
 
@@ -51,11 +54,25 @@ describe("Shops and Homes are hidden from members until they launch (M8/M9)", ()
     expect(listed()).toEqual(["Declutter"]);
   });
 
-  it("a tester keeps Shops and Homes on the website (the app keeps leaving previews out of these lists)", () => {
+  it("a tester does not see Shops and Homes either until they launch, on the website and in the app (owner 11-17)", () => {
     env.on = new Set(["declutter", "shops", "rentals"]);
-    expect(listed()).toEqual(["Declutter", "Shops", "Homes"]);
+    expect(listed()).toEqual(["Declutter"]);
     env.native = true;
     expect(listed()).toEqual(["Declutter"]);
+  });
+
+  it("while the open-to-everyone answer is loading or failed, an unlaunched section stays hidden (no flash)", () => {
+    env.on = new Set(["declutter", "shops", "rentals"]);
+    env.open = null;
+    expect(listed()).toEqual(["Declutter"]);
+  });
+
+  it("the day a section opens to everyone it lists again, for testers and members alike", () => {
+    env.on = new Set(["declutter", "shops", "rentals"]);
+    env.open = new Set(["declutter", "shops"]);
+    expect(listed()).toEqual(["Declutter", "Shops"]);
+    env.native = true;
+    expect(listed()).toEqual(["Declutter", "Shops"]);
   });
 
   it("Declutter stays listed while its switch read is out, so its tab never pops in late", () => {

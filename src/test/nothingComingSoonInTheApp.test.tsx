@@ -11,7 +11,7 @@
  *     literal) reads the helper or the `listed` answer, so a new soon mark cannot reach the app unseen.
  *
  * @mutate src/lib/hideUnopenedInApp.ts |   return isNativePlatform; |   return false;
- * @mutate src/lib/hideUnopenedInApp.ts |   return !hideUnopenedInApp() \|\| !tab.preview; |   return true;
+ * @mutate src/lib/hideUnopenedInApp.ts |   return !tab.preview; |   return true;
  * @mutate src/lib/hideUnopenedInApp.ts |   if (!tab.on) return false; |   if (!tab.on && hideUnopenedInApp()) return false;
  * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.filter(isListed).map((s) => { |   const options = visible.map((s) => {
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |   if (quotesComingSoon && hideUnopenedInApp()) return null; |
@@ -90,9 +90,11 @@ afterEach(cleanup);
 describe("(a) the one helper", () => {
   it("answers true only in the app; lists a section in the app only when it is open to everyone", () => {
     expect(hideUnopenedInApp()).toBe(false);
-    // M8/M9 (owner 11-16): a section closed to the viewer is not listed on the website either; a tester's preview is.
+    // M8/M9 (owner 11-16): a section closed to the viewer is not listed on the website either; owner 2026-11-17: nor
+    // is a tester's unlaunched preview.
     expect(sectionListedHere({ on: false, preview: false })).toBe(false);
-    expect(sectionListedHere({ on: true, preview: true })).toBe(true);
+    expect(sectionListedHere({ on: true, preview: true })).toBe(false);
+    expect(sectionListedHere({ on: true, preview: false })).toBe(true);
     native.on = true;
     expect(hideUnopenedInApp()).toBe(true);
     expect(sectionListedHere(undefined)).toBe(true); // Jobs: no switch

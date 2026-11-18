@@ -295,9 +295,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       size="sm"
       data-entry-link={key}
       onClick={onClick}
-      className="w-fit px-0 items-center gap-2 font-sans text-ds-14 font-semibold text-[hsl(var(--bark))] underline-offset-2 hover:underline"
+      className="w-fit px-0 items-center gap-2 font-sans text-ds-15 font-semibold text-[hsl(var(--bark))] underline-offset-2 hover:underline"
     >
-      <Icon aria-hidden data-entry-glyph="" className="h-4 w-4 shrink-0" />
+      {/* Owner 2026-11-17: body size (16px, was 13px) with the 44px tap row (size sm, h-11). */}
+      <Icon aria-hidden data-entry-glyph="" className="h-5 w-5 shrink-0" />
       {label}
     </Button>
   );

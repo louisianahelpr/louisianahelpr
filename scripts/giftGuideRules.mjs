@@ -11,7 +11,7 @@ const compact = (s) => String(s ?? "").toLowerCase().replace(/&/g, "and").replac
  * dated before 2026 ("… Delivered 2024", while a "2027 Planner" is a product) or a guide name is no product, so the pick is hidden. Nothing is renamed beyond cutting those parts off.
  */
 export const PROMO_NAME = /\b(black friday|cyber monday|cyber week|sales?|deals?|coupons?|promo(tion)?s?|clearance|free shipping|valid thru|shop now|shop early|shop online|gift guides?|bogo|doorbusters?|savings?)\b|% off|\bbuy \d+,? get\b/i;
-/** A year before 2026 in a page title ("… Delivered 2024 | Harry & David"); a product's model year ("Kindle (2024)") stays. */
+/** A year before the 2026 season (written 2026-11-18) in a page title ("… Delivered 2024 | Harry & David"); a product's model year ("Kindle (2024)") stays. */
 export const OLD_YEAR = /\b(19\d\d|20[01]\d|202[0-5])\b/;
 export const domainName = (s) => /^[\w-]+(\.[\w-]+)*\.(com|net|org|co|us|shop|store)$/i.test(s);
 export const GENERIC_SEGMENT = /^(home|shop|official site|online store|[\w' ]*gifts?)$/i;

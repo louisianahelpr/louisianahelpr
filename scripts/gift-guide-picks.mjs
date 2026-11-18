@@ -73,7 +73,7 @@ export const STORE_ALIASES = {
   comrad: "Comrad Socks", loop: "Loop Earplugs", loopearplugsus: "Loop Earplugs", malbon: "Malbon Golf",
   giftcards: "GiftCards.com", giftcardscom: "GiftCards.com", magazines: "Magazines.com", magazinescom: "Magazines.com",
   "831stories": "831 Stories", communitycoffee: "Community Coffee", freyrs: "Freyrs Eyewear", freyrseyewear: "Freyrs Eyewear",
-  lashnextdoor: "Lash Next Door", yotoplay: "Yoto", campsnap: "Camp Snap", campsnapphoto: "Camp Snap",
+  lashnextdoor: "Lash Next Door", gilt: "Gilt", giltandgiltcity: "Gilt", giltcity: "Gilt", yotoplay: "Yoto", campsnap: "Camp Snap", campsnapphoto: "Camp Snap",
 };
 const storeFor = (raw) => {
   if (!raw) return null;
@@ -343,7 +343,9 @@ for (const f of ["_later-deals.json", "_later-promos.json", "_awin-offers.json"]
 }
 
 /** The Sales list (sidebar): one line per store with a live deal, soonest end first; the page hides expired ones. */
+// One line per link (design audit r2 #10: 9 links were listed twice, under Gilt and "Gilt & Gilt City").
 const sales = Object.entries(deals).flatMap(([slug, list]) => list.filter((d) => d.ends).map((d) => ({ store: stores.get(slug).name, slug, offer: d.title, ends: d.ends, href: d.href })))
+  .filter((x, i, all) => all.findIndex((y) => y.href === x.href) === i)
   .sort((a, b) => a.ends.localeCompare(b.ends) || a.store.localeCompare(b.store));
 
 const storeList = Object.fromEntries([...stores.entries()].filter(([slug]) => guides[slug]?.length || deals[slug]?.length || Object.values(guides).some((l) => l.some((p) => p.store === slug)))

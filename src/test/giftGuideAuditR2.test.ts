@@ -15,11 +15,15 @@
  * @mutate scripts/giftGuideRules.mjs |   if (EXPERIENCE_GUIDES.includes(slug)) return EXPERIENCE.test(p.name) && !NOT_A_GIFT.test(p.name); |
  * @mutate scripts/giftGuideRules.mjs |   if (/\bkni(fe\|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false; |
  * @mutate scripts/giftGuideRules.mjs | export const brokenImage = (u) => /liquid(%20\|\s\|\+)error/i.test(u) \|\| /[<>{}]/.test(u); | export const brokenImage = (u) => /[<>{}]/.test(u);
+ * @mutate src/content/giftGuideCatalog.ts |  ${SEARCH_KEYWORDS[g.slug] ?? ""}`); | `);
+ * @mutate src/content/giftGuideCatalog.ts | .sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j) | .sort(([, i], [, j]) => i - j)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? G.collectionOnShopMy : G.onStore(storeLabel(pick))} | {G.onStore(storeLabel(pick))}
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { SALES } from "@/content/giftGuidePicks";
+import { SEARCH_KEYWORDS, searchGuides } from "@/content/giftGuideCatalog";
 import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, brokenImage, fitsGuide, productName } from "../../scripts/giftGuideRules.mjs";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
@@ -105,5 +109,28 @@ describe("design audit r2: lines, variants, photos, brands", () => {
   it("a ShopMy collection row says 'Collection on ShopMy', never names the collection as one product's store", () => {
     expect(all.filter(({ p }) => p.href.startsWith("https://shopmy.us/collections/")).length).toBeGreaterThan(100);
     expect(VIEW).toContain("{isShopMyCollection(pick.href) ? G.collectionOnShopMy : G.onStore(storeLabel(pick))}");
+  });
+});
+
+describe("design audit r2: sales and search", () => {
+  it("#10 the Sales list has one line per link, and Gilt is one store", () => {
+    expect(SALES.length).toBeGreaterThan(50);
+    const hrefs = SALES.map((x) => x.href);
+    expect(hrefs.filter((h, i) => hrefs.indexOf(h) !== i)).toEqual([]);
+    expect([...new Set(SALES.filter((x) => /gilt/i.test(x.store)).map((x) => x.store))].length).toBeLessThan(2);
+  });
+  it("#11 'lsu', 'saints', 'boots' and 'nurse' find their guides; a title match ranks first", () => {
+    const slugs = (q: string) => searchGuides(q).map((g) => g.slug);
+    expect(Object.keys(SEARCH_KEYWORDS).length).toBeGreaterThan(5);
+    expect(slugs("lsu")).toContain("purple-and-gold-lover");
+    expect(slugs("saints")).toContain("game-day");
+    expect(slugs("boots")).toContain("store-muck-boot");
+    expect(slugs("nurse")).toEqual(expect.arrayContaining(["rns", "lpns"]));
+    expect(slugs("mom")[0]).toBe("mom");
+    // Every guide titled with the word comes before any guide that only matches through its lead or row.
+    const inTitle = searchGuides("mom").map((g) => /mom/i.test(g.title));
+    expect(inTitle.filter(Boolean).length).toBeGreaterThan(1);
+    expect(inTitle.lastIndexOf(true)).toBeLessThan(inTitle.indexOf(false) === -1 ? Infinity : inTitle.indexOf(false));
+    expect(inTitle.indexOf(false)).toBeGreaterThan(-1);
   });
 });

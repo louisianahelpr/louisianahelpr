@@ -473,14 +473,29 @@ export const guideBySlug = (slug: string | undefined) => GUIDES.find((g) => g.sl
  * The sidebar search (owner 2026-11-18): every guide whose title or group matches the words typed, case- and
  * accent-blind, in the page's order. Empty words match nothing (the sidebar then shows its groups).
  */
+/**
+ * Words a shopper types that a guide's title lacks (design audit r2 #11 and r1 #26: "lsu", "saints", "boots" and
+ * "nurse" found nothing useful). Search-only: never shown.
+ */
+export const SEARCH_KEYWORDS: Record<string, string> = {
+  "purple-and-gold-lover": "lsu tigers geaux", "game-day": "saints lsu tigers tailgate football",
+  "store-muck-boot": "boots", "store-xtratuf": "boots", "store-durango-boots": "boots",
+  rns: "nurse nurses", lpns: "nurse nurses", healthcare: "nurse nurses", "healthcare-workers": "nurse nurses",
+};
 export const searchGuides = (query: string): CatalogGuide[] => {
   const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const words = fold(query).split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
   const label = new Map(ROWS.map((r) => [r.row, r.label] as const));
+  const q = words.join(" ");
+  // Title matches first (exact, then starting with the words, then containing them), the list's order kept inside each.
+  const rank = (g: CatalogGuide) => {
+    const t = fold(g.title);
+    return t === q ? 0 : t.startsWith(q) ? 1 : words.every((w) => t.includes(w)) ? 2 : 3;
+  };
   return GUIDES.filter((g) => {
     if (g.empty) return false;
-    const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`);
+    const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
     return words.every((w) => hay.includes(w));
-  });
+  }).map((g, i) => [g, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([g]) => g);
 };

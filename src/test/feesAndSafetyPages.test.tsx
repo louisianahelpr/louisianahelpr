@@ -9,10 +9,11 @@
  *
  * Red first (2026-11-11) against origin/main 7a86319c6e: no route, no page, no footer link.
  *
+ * @mutate src/pages/info/shortInfoCard.ts | export const INFO_COLUMN = "mx-auto max-w-2xl"; | export const INFO_COLUMN = "page-measure mx-auto";
  * @mutate src/App.tsx |       <Route path="/fees" element= |       <Route path="/fees-old" element=
  * @mutate src/components/Footer.tsx |               <Link to="/safety" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
  * @mutate src/lib/i18n/enPublic.ts |   "fees.helprsSeePay": "Helprs see their pay before they apply.", |   "fees.helprsSeePay": "Helprs see their pay (10% + 70¢ off) before they apply.",
- * @mutate src/pages/info/Safety.tsx |         {idCheckOn && <li>{t("safety.idChecked")} | {true && <li>{t("safety.idChecked")}
+ * @mutate src/pages/info/Safety.tsx |         {idCheckOn && <li className={INFO_CARD_ROW}>{t("safety.idChecked")} | {true && <li className={INFO_CARD_ROW}>{t("safety.idChecked")}
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -39,6 +40,12 @@ describe("F255: /fees and /safety (owner 2026-11-11)", () => {
     const body = container.querySelector("[data-fees-body]")!.textContent!;
     expect(body).toBe("Posting a job is free.A small one-time setup fee applies to your first paid job.Any service fee is shown before you pay.Helprs see their pay before they apply.");
     expect(body).not.toMatch(/\d|%|¢|\$/);
+    // Design audit 11-17 #15: the lines are rows of Help's white rounded list card, in a 672px column.
+    const list = container.querySelector("[data-fees-body]")!;
+    expect(list.tagName).toBe("UL");
+    expect(list.className).toMatch(/\bmax-w-2xl\b/);
+    expect(list.className).toMatch(/\brounded-\[20px\] border border-border bg-card\b/);
+    expect(list.querySelectorAll("li").length).toBe(4);
   });
 
   it("/safety: ID check (switch on), money held until you approve, report from any job", () => {

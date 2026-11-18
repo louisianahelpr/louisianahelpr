@@ -859,11 +859,12 @@ describe("Declutter slice 3 screens", () => {
     expect(within(yours).getByText("Porch swing")).toBeInTheDocument();
   });
 
-  it("deep audit #30: only closed offers left: 'No open offers.' and the fold, never the first-time empty state", async () => {
+  // Design audit 11-17 #19: with only closed offers, the fold's link row is the whole answer ("No open offers." went).
+  it("deep audit #30: only closed offers left: the fold alone, never the first-time empty state", async () => {
     state.offers = [{ ...OFFER, offer_id: "c1", status: "declined", item_title: "Old lamp" }];
     show(<OffersSection side="seller" />);
-    expect(await screen.findByText("No open offers.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Show 1 closed offer from the last 30 days" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Show 1 closed offer from the last 30 days" })).toBeInTheDocument();
+    expect(screen.queryByText("No open offers.")).toBeNull();
     expect(screen.queryByText("No offers yet")).toBeNull();
     expect(screen.queryByText("Old lamp")).toBeNull();
   });
@@ -1792,6 +1793,20 @@ describe("Declutter slice 3 screens", () => {
     show(<StrikeCount userId="u1" />);
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByText(/of 3 strikes/)).toBeNull();
+  });
+
+  // Design audit 11-17 #2: off Selling the strikes are one line (the full card at 3, when Declutter is paused).
+  it("strike count off Selling is one line under 3 strikes, the full card at 3", async () => {
+    state.strikes = 2;
+    const { container, unmount } = show(<StrikeCount userId="u1" full={false} />);
+    expect(await screen.findByText("You have 2 of 3 strikes.")).toBeInTheDocument();
+    expect(container.querySelector("[data-strike-line]")).not.toBeNull();
+    expect(screen.queryByText(/goes away 1 year/)).toBeNull();
+    unmount();
+    state.strikes = 3;
+    const again = show(<StrikeCount userId="u1" full={false} />);
+    expect(await screen.findByText(/Declutter is paused for you/)).toBeInTheDocument();
+    expect(again.container.querySelector("[data-strike-line]")).toBeNull();
   });
 
   it("parses dollar amounts strictly", () => {

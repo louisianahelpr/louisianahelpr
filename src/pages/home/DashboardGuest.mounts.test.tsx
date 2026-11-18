@@ -9,7 +9,7 @@
  *
  * @mutate src/pages/home/DashboardGuest.tsx |       <BrowseMap\n |       <BrowseMapGone\n
  * @mutate src/pages/home/DashboardGuest.tsx |             search={<SectionSearchBar noun="jobs" home="/browse" value={filters.searchQuery} onChange={filters.setSearchQuery} />} /> |             /> 
- * @mutate src/components/sections/AppTopBar.tsx |       {!user && !hasPersistedAuthToken() && !isWebDesktop && ( |       {false && (
+ * @mutate src/components/sections/AppTopBar.tsx |       {!user && !hasPersistedAuthToken() && !isWebDesktop && !publicFrame && ( |       {false && (
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";

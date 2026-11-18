@@ -13,7 +13,7 @@
  * @mutate src/components/notificationPanel/quickActions.ts |   if (n.type === "warning" \|\| n.type === "job_update") { |   if (n.type === "job_update") {
  * @mutate src/components/NotificationPanelView.tsx |                               const action = quickActionFor(n, destinationOf); |                               const action = n.type === "expired" ? { label: "Repost", href: "/post-job" } : null;
  * @mutate src/components/sponsor/ClaimSection.tsx |           {done.anyDay ? null : ( |           {false ? null : (
- * @mutate src/pages/info/HireTownPage.tsx |           <Button asChild variant="outline" size="sm" className="squircle"> |           <p className="text-ds-15">
+ * @mutate src/pages/info/HireTownPage.tsx |           <Button asChild variant="outline" size="wrap" className="rounded-full"> |           <p className="text-ds-15">
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |         <div className="mt-8 border-t border-border pt-4" data-delete-account-apart=""> |         <div data-delete-account-apart="">
  */
 import { describe, expect, it, vi } from "vitest";
@@ -93,6 +93,10 @@ describe("F260t: See Helprs in <town> is a secondary button", () => {
     expect(link).toHaveAttribute("href", "/helprs?town=New%20Iberia");
     expect(link.className).toMatch(/\bborder\b|outline/);
     expect(link.className).not.toContain("link-standard");
+    // Design audit 11-17 #13: the same size as "Post a job" beside it.
+    const post = screen.getByRole("link", { name: "Post a job" });
+    expect(link.className.match(/\bh-\S+|min-h-\S+|text-ds-\d+/g)).toEqual(post.className.match(/\bh-\S+|min-h-\S+|text-ds-\d+/g));
+    expect(document.querySelectorAll("[data-town-step-n]").length).toBe(3);
   });
 });
 

@@ -21,8 +21,10 @@ export function PasswordRuleList({ password }: { password: string }) {
         {PASSWORD_RULES.map((r) => {
           const met = r.test(password);
           return (
-            <li key={r.needKey} data-rule-met={met ? "true" : "false"} className={`inline-flex items-center gap-1 text-ds-11 ${met ? "text-primary" : "text-muted-foreground"}`}>
-              {met ? <Check className="w-3 h-3" aria-hidden /> : <span aria-hidden className="inline-block w-3 h-3 rounded-full border border-current" />}
+            // Design audit 11-17 #30: 13px (was 11) and a check on every rule, faint until it is met (an empty circle read
+            // as a radio button).
+            <li key={r.needKey} data-rule-met={met ? "true" : "false"} className={`inline-flex items-center gap-1 text-ds-13 ${met ? "text-primary" : "text-muted-foreground"}`}>
+              <Check className={`w-3.5 h-3.5 ${met ? "" : "text-border"}`} aria-hidden />
               <span>{t(r.needKey, { n: PASSWORD_MIN_LENGTH })}</span>
               <span className="sr-only">{met ? t("signup.ruleMet") : t("signup.ruleNotMet")}</span>
             </li>

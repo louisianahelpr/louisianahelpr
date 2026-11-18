@@ -33,7 +33,7 @@ export function ProblemPhotoPicker({ files, onChange, disabled = false }: { file
   const full = files.length >= PROBLEM_PHOTO_MAX;
   return (
     <div className="space-y-2" role="group" aria-label="Photos" data-problem-photos="">
-      <p className="text-xs font-medium">Photos (optional, up to {PROBLEM_PHOTO_MAX})</p>
+      <p className="text-ds-13 font-semibold text-foreground/80">Photos (optional, up to {PROBLEM_PHOTO_MAX})</p>
       <HiddenFileInput id={id} accept="image/*" multiple tabIndex={-1} disabled={disabled || full}
         onChange={(e) => { onChange(addProblemPhotos(files, e.target.files)); e.target.value = ""; }} />
       <ul className="flex flex-wrap gap-2">

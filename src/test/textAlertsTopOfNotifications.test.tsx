@@ -64,7 +64,8 @@ describe("Notifications: push first, then text alerts, and how to get push when 
     render(<NotificationPreferences />);
     const hint = await screen.findByTestId("push-device-hint");
     // A3-90: the hint carries its action.
-    expect(hint.textContent).toBe("Push notificationsHear about messages and job updates as they happen.Get alerts on this phone");
+    // Design audit 11-17 #26: the Text alerts card's header (title, then an On / Off pill).
+    expect(hint.textContent).toBe("Push notificationsOffHear about messages and job updates as they happen.Get alerts on this phone");
     const firstSwitch = screen.getAllByRole("switch")[0];
     expect(hint.compareDocumentPosition(firstSwitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(hint.compareDocumentPosition(screen.getByText("Send a test")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

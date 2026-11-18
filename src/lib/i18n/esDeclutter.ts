@@ -286,6 +286,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.mv.history": "Historial",
   "decl.mv.nothingToAnswer": "No hay nada que responder por ahora.",
   "decl.mv.findBrowse": "Buscar algo para comprar",
+  "decl.mv.nothingActive": "Nada en curso.",
   "decl.hv.moreWays": "Más formas de vender",
   "decl.hv.sellOne": "Vender un artículo",
   "decl.hv.otherWays": "¿Gratis, varios o por mudanza?",

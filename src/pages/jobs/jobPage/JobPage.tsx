@@ -47,6 +47,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { lazy, Suspense, useState, type ReactNode } from "react";
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
+import { HIDE_WHEN_BLANK } from "./blankCard";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
@@ -106,6 +107,7 @@ function FactRow({ label, children, ...rest }: { label: string; children: ReactN
 }
 
 const CARD = "rounded-2xl border border-border bg-card";
+// Area 11 H2: no visible child (the phone bar portals out, step controls are hidden), no card.
 /** The hired Helpr's done step (helperFaceAction.ts, key "done"). */
 const DONE_FACE_LABEL = "Mark it done"; // helperFaceAction's done label (JA-56)
 /** A crew job whose roster the poster follows on the page (JA-32): filling, booked, under way, being fixed, done. */
@@ -506,7 +508,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             EMPTY left column beside the card at 1440. The card (and the Guarantee under it) then sits right under the
             tracker at full content width, from 1024 up. */}
         <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
-          <section data-job-card="" className={`${CARD} space-y-4 p-4 empty:hidden lg:p-5`}>
+          <section data-job-card="" className={`${CARD} space-y-4 p-4 ${HIDE_WHEN_BLANK} lg:p-5`}>
             {/* CMP-4: the booked Helpr's card, the same one the Working offer card shows (InstantBookingCard). */}
             {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} sticky />}
             {viewer.status && !(!isPoster && instantUntil) && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}

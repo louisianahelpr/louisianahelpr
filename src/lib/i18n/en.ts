@@ -41,6 +41,7 @@ import { enYourPage } from "./enYourPage";
 import { enSuggest } from "./enSuggest";
 import { enItemPage } from "./enItemPage";
 import { enJobCats } from "./enJobCats";
+import { enGuest } from "./enGuest";
 import { enJobSteps } from "./enJobSteps";
 import { enNextStep } from "./enNextStep";
 import { enJobLines } from "./enJobLines";
@@ -51,6 +52,6 @@ import { enAiDraft } from "./enAiDraft";
 import { enListForSeller } from "./enListForSeller";
 
 /** The whole dictionary (boot words + screen words). Tests and es.ts's type read it; app code calls t(). */
-export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enNewMember, ...enSettings, ...enMessages, ...enOffer, ...enFree, ...enQuestions, ...enDeclPanels, ...enSections, ...enDeclBrowse, ...enSellSummary, ...enOfferTrade, ...enFreeAsk, ...enMoneyTiles, ...enChatEvents, ...enSellForm, ...enDeclOffers, ...enTodos, ...enListingParts, ...enTracker, ...enPorchPlaces, ...enSellingNow, ...enYourPage, ...enJobSteps, ...enNextStep, ...enJobLines, ...enCardLines, ...enDeclErrors, ...enSellerDeliveryErrors, ...enAiDraft, ...enListForSeller, ...enSuggest, ...enItemPage, ...enJobCats } as const;
+export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enNewMember, ...enSettings, ...enMessages, ...enOffer, ...enFree, ...enQuestions, ...enDeclPanels, ...enSections, ...enDeclBrowse, ...enSellSummary, ...enOfferTrade, ...enFreeAsk, ...enMoneyTiles, ...enChatEvents, ...enSellForm, ...enDeclOffers, ...enTodos, ...enListingParts, ...enTracker, ...enPorchPlaces, ...enSellingNow, ...enYourPage, ...enJobSteps, ...enNextStep, ...enJobLines, ...enCardLines, ...enDeclErrors, ...enSellerDeliveryErrors, ...enAiDraft, ...enListForSeller, ...enSuggest, ...enItemPage, ...enJobCats, ...enGuest } as const;
 
 export type MsgKey = keyof typeof en;

@@ -104,6 +104,12 @@ export const enPostJob = {
   "postJob.f.customBonus": "Custom bonus",
   "postJob.f.customBonusAria": "Custom urgent fee amount in dollars",
   "postJob.f.urgentMinWarn": "Urgent bonus must be at least $5",
+  "postJob.gift.one": "{n} Helpr gift card waiting for you",
+  "postJob.gift.many": "{n} Helpr gift cards waiting for you",
+  "postJob.gift.ready": "Ready to spend on your next job ·",
+  "postJob.gift.seeIt": "See it",
+  "postJob.gift.seeThem": "See them",
+  "postJob.gift.dismiss": "Dismiss",
 
   // The group grid
   "postJob.searchCategories": "Search categories",

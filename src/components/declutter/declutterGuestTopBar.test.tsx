@@ -8,12 +8,12 @@
  * @mutate src/components/declutter/DeclutterGuest.tsx |   if (failed \|\| open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>; |   if (failed \|\| open?.has("declutter")) return <>{children}</>;
  * @mutate src/components/declutter/DeclutterGuest.tsx |   if (!isWebDesktop) return null; |   if (isWebDesktop) return null;
  * @mutate src/components/declutter/DeclutterGuest.tsx |       style={{ paddingTop: DESKTOP_BAR_PAD_TOP, top: bannerOffset \|\| 0, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} |       style={{ paddingTop: 0, top: bannerOffset \|\| 0, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
- * @mutate src/components/declutter/DeclutterGuest.tsx |             <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>\n          </Button>\n        </div>\n      </div>\n    </header> |             <Link to="/signup">Sign up</Link>\n          </Button>\n        </div>\n      </div>\n    </header>
+ * @mutate src/components/declutter/DeclutterGuest.tsx |             <Link to={`/signup?redirect=${here(location)}`}>{gw("g.signUp")}</Link>\n          </Button>\n        </div>\n      </div>\n    </header> |             <Link to="/signup">{gw("g.signUp")}</Link>\n          </Button>\n        </div>\n      </div>\n    </header>
  *
  * Lead 10-31 (follow-up): at 1440 a guest then saw the logo and Sign up / Log in twice (the bar and the item's join
  * panel). At desktop width the item panel keeps only its item-specific message; phone widths are unchanged.
  * @mutate src/components/declutter/DeclutterGuest.tsx |   // only on a phone.\n  const barShown = useIsWebDesktop(); |   // only on a phone.\n  const barShown = false;
- * @mutate src/components/declutter/DeclutterGuest.tsx |               <Link to={`/login?redirect=${here(location)}`}>Log in</Link>\n            </Button> |               <Link to={`/login?redirect=${here(location)}`}>Log in</Link>\n            </Button><Link to="/signup">Sign up</Link>
+ * @mutate src/components/declutter/DeclutterGuest.tsx |               <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>\n            </Button> |               <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>\n            </Button><Link to="/signup">{gw("g.signUp")}</Link>
  * @mutate src/components/declutter/DeclutterGuest.tsx |         {!loginShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login=""> |         {loginShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login="">
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -117,8 +117,8 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
 
   // F048 / F059 (owner UI audit 11-09): a free item's one button says what it does for a guest ("Sign up to ask for
   // it"), and the line says SIGNING UP is free (under a $3 price "Free to join" / "It's free" read as a free item).
-  // @mutate src/components/declutter/DeclutterGuest.tsx | {free ? "Sign up to ask for it" : "Buy now"} | {free ? "Ask for it" : "Buy now"}
-  // @mutate src/components/declutter/DeclutterGuest.tsx |           Signing up is free. We'll bring you back to this item. |           Free to join. You come back here after.
+  // @mutate src/components/declutter/DeclutterGuest.tsx | {free ? gw("g.signUpAsk") : gw("g.buyNow")} | {free ? "Ask for it" : "Buy now"}
+  // @mutate src/components/declutter/DeclutterGuest.tsx |           {gw("g.freeJoin")} |           {"Free to join. You come back here after."}
   it("F048: a free item gets one real 'Sign up to ask for it' button and the owner's sign-up line, at both widths", () => {
     for (const desktop of [true, false]) {
       state.desktop = desktop;
@@ -136,7 +136,7 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
 
   // Audit 1110 F318: the phone's Log in was an inline underlined word (36x14px measured). It is a 44px outline pill
   // now (Button size sm = h-11), the same control as the Browse card's Log in.
-  // @mutate src/components/declutter/DeclutterGuest.tsx |             <Button asChild size="sm" variant="outline" className="rounded-full">\n              <Link to={`/login?redirect=${here(location)}`}>Log in</Link> |             <Button asChild size="sm" variant="link" className="rounded-full">\n              <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+  // @mutate src/components/declutter/DeclutterGuest.tsx |             <Button asChild size="sm" variant="outline" className="rounded-full">\n              <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link> |             <Button asChild size="sm" variant="link" className="rounded-full">\n              <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>
   it("F318 phone: Log in is a 44px outline pill, not an inline underlined word", () => {
     state.desktop = false;
     const join = panel();

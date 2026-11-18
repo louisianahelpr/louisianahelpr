@@ -31,6 +31,7 @@ import { esYourPage } from "./esYourPage";
 import { esSuggest } from "./esSuggest";
 import { esItemPage } from "./esItemPage";
 import { esJobCats } from "./esJobCats";
+import { esGuest } from "./esGuest";
 import { esJobSteps } from "./esJobSteps";
 import { esNextStep } from "./esNextStep";
 import { esJobLines } from "./esJobLines";
@@ -70,6 +71,7 @@ export const es: Record<MsgKey, string> = {
   ...esSuggest,
   ...esItemPage,
   ...esJobCats,
+  ...esGuest,
   ...esJobSteps,
   ...esNextStep,
   ...esJobLines,
@@ -495,6 +497,12 @@ export const es: Record<MsgKey, string> = {
   "postJob.f.customBonus": "Otro bono",
   "postJob.f.customBonusAria": "Monto del bono por urgencia en dólares",
   "postJob.f.urgentMinWarn": "El bono por urgencia debe ser de al menos $5",
+  "postJob.gift.one": "{n} tarjeta de regalo de Helpr lo espera",
+  "postJob.gift.many": "{n} tarjetas de regalo de Helpr lo esperan",
+  "postJob.gift.ready": "Lista para usar en su próximo trabajo ·",
+  "postJob.gift.seeIt": "Verla",
+  "postJob.gift.seeThem": "Verlas",
+  "postJob.gift.dismiss": "Cerrar",
   "postJob.searchCategories": "Buscar categorías",
   "postJob.searchPlaceholder": "p. ej., lavar mi entrada",
   "postJob.clearSearch": "Borrar la búsqueda",
@@ -592,6 +600,9 @@ export const es: Record<MsgKey, string> = {
   "settings.biggerTextSub": "Letra más grande y botones más fáciles de tocar",
   "settings.jobs": "Trabajos",
   "settings.declutter": "Declutter",
+  "settings.password": "Contraseña",
+  "settings.profileLink": "Su enlace de perfil",
+  "settings.profileLinkSub": "Un enlace a lo que publica y hace",
   "settings.shops": "Tiendas",
   "settings.homes": "Casas",
   "settings.jobsBlurb": "Contrate ayuda o encuentre trabajo",

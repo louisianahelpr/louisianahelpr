@@ -20,6 +20,11 @@ import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
 import { useMarkGuestTopBarOn } from "@/lib/guestTopBar";
 import { useGuestPublicFrame } from "@/hooks/useGuestPublicFrame";
+import { enGuest } from "@/lib/i18n/enGuest";
+import { wordInLang } from "@/lib/i18n/inLang";
+
+/** A guest word in the reader's language (design audit r2 #37), English from enGuest. */
+const gw = (k: keyof typeof enGuest) => wordInLang(k, enGuest[k]);
 
 function here(location: { pathname: string; search: string }): string {
   return encodeURIComponent(location.pathname + location.search);
@@ -41,9 +46,9 @@ export function DeclutterSignedOutOwner() {
   const location = useLocation();
   return (
     <div data-signed-out-owner="" role="status" className="space-y-2 rounded-2xl border border-border bg-card p-3 text-sm">
-      <p>You've been signed out. Log in again to manage this listing.</p>
+      <p>{gw("g.signedOut")}</p>
       <Button asChild size="sm">
-        <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+        <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>
       </Button>
     </div>
   );
@@ -103,10 +108,10 @@ function DeclutterGuestTopBar() {
         <HelprMark to="/" size="md" emblemOnly />
         <div className="flex items-center gap-2">
           <Button asChild size="sm" variant="ghost" className="rounded-full px-3">
-            <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+            <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>
           </Button>
           <Button asChild size="sm" className="rounded-full px-4">
-            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
+            <Link to={`/signup?redirect=${here(location)}`}>{gw("g.signUp")}</Link>
           </Button>
         </div>
       </div>
@@ -129,38 +134,38 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
   // Q2784: the public header (useGuestPublicFrame) carries Log in at every width, so the item panel does not repeat it.
   const publicFrame = useGuestPublicFrame();
   const loginShown = barShown || publicFrame;
-  const label = free ? "Ask for this item" : offers ? "Buy or make an offer" : "Buy this item";
+  const label = free ? gw("g.askItem") : offers ? gw("g.buyOrOffer") : gw("g.buyItem");
   const signup = `/signup?redirect=${here(location)}`;
   return (
     <section data-guest-join="" aria-label={label} className="space-y-3 lg:contents">
       <StickyActionBar label={label} spacer={false} data-guest-buttons="" pinWide>
         {!free && offers && (
           <Button asChild variant="outline" size="wrap" className="rounded-full px-3 font-semibold">
-            <Link to={signup} data-guest-offer="">Make offer</Link>
+            <Link to={signup} data-guest-offer="">{gw("g.makeOffer")}</Link>
           </Button>
         )}
         <Button asChild size="wrap" className="rounded-full px-3">
-          <Link to={signup} data-guest-buy="">{free ? "Sign up to ask for it" : "Buy now"}</Link>
+          <Link to={signup} data-guest-buy="">{free ? gw("g.signUpAsk") : gw("g.buyNow")}</Link>
         </Button>
       </StickyActionBar>
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
           {/* F048 / F059 (owner UI audit 11-09, newest wording): it is SIGNING UP that is free, never read as the item. */}
-          Signing up is free. We'll bring you back to this item.
+          {gw("g.freeJoin")}
         </p>
         {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. Audit 1110 F318: as
             an inline underlined word it measured 36x14px; it is a 44px (h-11) outline pill now, like the Browse card's. */}
         {!loginShown && (
           <div className="flex shrink-0 items-center gap-2" data-guest-login="">
             <Button asChild size="sm" variant="outline" className="rounded-full">
-              <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+              <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>
             </Button>
             <GuestBrand />
           </div>
         )}
       </div>
       {/* Trades audit 11-08 #3: a trade is one of the member's own listings, so a guest needs both. */}
-      {trades && <p data-guest-trades="" className="text-xs text-muted-foreground">Sign in and list an item to offer a trade.</p>}
+      {trades && <p data-guest-trades="" className="text-xs text-muted-foreground">{gw("g.trades")}</p>}
     </section>
   );
 }
@@ -171,12 +176,12 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
  */
 function guestWants(search: string): string | null {
   const q = new URLSearchParams(search);
-  if (q.has("offer")) return "Log in to see your offer";
-  if (q.has("order") || q.has("order_talk") || q.get("tab") === "buying") return "Log in to see your order";
-  if (q.get("tab") === "selling") return "Log in to see your sales";
+  if (q.has("offer")) return gw("g.want.offer");
+  if (q.has("order") || q.has("order_talk") || q.get("tab") === "buying") return gw("g.want.order");
+  if (q.get("tab") === "selling") return gw("g.want.sales");
   // F359k: the "post what you want" link (?tab=wanted&post=1) and the Wanted tab itself.
-  if (q.has("post")) return "Log in to post what you want";
-  if (q.get("tab") === "wanted") return "Log in to see your Wanted posts";
+  if (q.has("post")) return gw("g.want.post");
+  if (q.get("tab") === "wanted") return gw("g.want.wanted");
   return null;
 }
 
@@ -189,28 +194,28 @@ export function DeclutterGuestBrowseJoin() {
   // Owner 11-10: at desktop width the guest top bar already carries Log in / Sign up, so this card is not repeated there.
   if (barShown) return null;
   return (
-    <section data-guest-join="browse" aria-label="Join to buy or sell" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
+    <section data-guest-join="browse" aria-label={gw("g.joinAria")} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
       {!barShown && <GuestBrand />}
       <p className="min-w-0 flex-1 basis-48 text-sm">
         {want ? (
           // F402: the link is to something of theirs; Log in is the main button, Sign up the aside.
           <>
             <span className="font-semibold">{want}</span>{" "}
-            <span className="text-muted-foreground">New here?</span>
+            <span className="text-muted-foreground">{gw("g.newHere")}</span>
           </>
         ) : (
           <>
-            <span className="font-semibold">Sign up to buy, make offers or sell.</span>{" "}
-            <span className="text-muted-foreground">It's free.</span>
+            <span className="font-semibold">{gw("g.signUpToBuy")}</span>{" "}
+            <span className="text-muted-foreground">{gw("g.itsFree")}</span>
           </>
         )}
       </p>
       <div className="flex shrink-0 gap-2" data-guest-join-buttons="">
         <Button asChild size="sm" variant={want ? "default" : "outline"} className="rounded-full">
-          <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+          <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>
         </Button>
         <Button asChild size="sm" variant={want ? "outline" : "default"} className="rounded-full">
-          <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
+          <Link to={`/signup?redirect=${here(location)}`}>{gw("g.signUp")}</Link>
         </Button>
       </div>
     </section>

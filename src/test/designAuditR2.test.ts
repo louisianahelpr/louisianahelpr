@@ -478,3 +478,34 @@ describe("design audit r2 #33: Spanish job categories and dates", () => {
     expect(formatJobDate("2026-11-18")).toBe("Wed, Nov 18");
   });
 });
+
+/**
+ * #37 (rest): Home's count lines ("15 need you", "241 items near you"), the post-step-1 gift-card banner, Settings'
+ * "Your profile link" and "Password", and the guest's "Log in / Join free / Sign up to buy..." were English in Spanish.
+ * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       : wordInLang("home.c.itemsNear", `${near.declutter} items near you`, { n: near.declutter! }) |       : `${near.declutter} items near you`
+ * @mutate src/components/declutter/DeclutterGuest.tsx | <span className="font-semibold">{gw("g.signUpToBuy")}</span> | <span className="font-semibold">Sign up to buy, make offers or sell.</span>
+ */
+describe("design audit r2 #37: the stragglers follow the reader's language", () => {
+  it("Home's counts, the profile line and the guest words read Spanish for a Spanish reader", async () => {
+    const { setLang, ensureLangLoaded } = await import("@/lib/i18n/language");
+    const { sectionCardLines } = await import("@/pages/home/homeDashboard/useHomeSummary");
+    const { accountLine } = await import("@/components/profile/SettingsTab");
+    try {
+      setLang("es");
+      await ensureLangLoaded();
+      expect(sectionCardLines({ jobs: null, declutter: null }, 0, { jobs: 3, declutter: 241 })).toEqual({ jobs: "3 abiertos cerca de usted", declutter: "241 artículos cerca de usted" });
+      expect(accountLine("a@b.co", [{ provider: "email" }])).toBe("a@b.co · Contraseña");
+    } finally {
+      setLang("en");
+    }
+    expect(sectionCardLines({ jobs: null, declutter: null }, 0, { jobs: 3, declutter: 241 })).toEqual({ jobs: "3 open near you", declutter: "241 items near you" });
+    const guest = blankComments(readFileSync("src/components/declutter/DeclutterGuest.tsx", "utf8"));
+    expect(guest).not.toMatch(/>(Log in|Sign up|Make offer)</);
+    expect(guest).not.toMatch(/"Log in to see your/);
+    const nav = blankComments(readFileSync("src/components/Navbar.tsx", "utf8"));
+    expect(nav).toContain('{wordInLang("g.joinFree", enGuest["g.joinFree"])}');
+    expect(es["g.joinFree"]).toBe("Únase gratis");
+    expect(blankComments(readFileSync("src/components/profile/ProfileLinkRow.tsx", "utf8"))).toContain('wordInLang("settings.profileLink", "Your profile link")');
+    expect(blankComments(readFileSync("src/pages/post-job/GiftCardTeaser.tsx", "utf8"))).toContain('"postJob.gift.many"');
+  });
+});

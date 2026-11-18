@@ -13,6 +13,8 @@ import {
   shareMyProfile,
 } from "@/lib/profileLink/api";
 import { ShowInSearchSwitch } from "@/components/profile/ShowInSearchSwitch";
+import "@/lib/i18n/enSettings";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 /**
  * SETTINGS › YOUR ACCOUNT › "Your profile link" (LEAD-PROFILE-LINK, owner 2026-10-31):
@@ -82,9 +84,9 @@ export function ProfileLinkRow({ name, changedOnce, userId, showInSearch }: {
         className="glass-press ctl-tint transition-colors w-full min-h-[56px] flex items-center gap-3 px-4 py-3 text-left"
       >
         <span className="flex-1 min-w-0">
-          <span className="block text-ds-15 font-semibold leading-tight text-foreground">Your profile link</span>
+          <span className="block text-ds-15 font-semibold leading-tight text-foreground">{wordInLang("settings.profileLink", "Your profile link")}</span>
           <span className="block text-ds-13 text-muted-foreground mt-0.5 break-all">
-            {handle ? profileLinkLabel(handle) : "One link to what you post and do"}
+            {handle ? profileLinkLabel(handle) : wordInLang("settings.profileLinkSub", "One link to what you post and do")}
           </span>
         </span>
         <ChevronRight className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} aria-hidden />

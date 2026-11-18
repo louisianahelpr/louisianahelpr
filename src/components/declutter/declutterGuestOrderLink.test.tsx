@@ -7,10 +7,10 @@
  * want", ?tab=wanted "Log in to see your Wanted posts".
  *
  * @mutate src/components/declutter/DeclutterGuest.tsx |   const want = guestWants(location.search); |   const want = null;
- * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.has("offer")) return "Log in to see your offer"; |   if (q.has("offer")) return "Log in to see your order";
- * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.get("tab") === "selling") return "Log in to see your sales"; |
- * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.has("post")) return "Log in to post what you want"; |
- * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.get("tab") === "wanted") return "Log in to see your Wanted posts"; |
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.has("offer")) return gw("g.want.offer"); |   if (q.has("offer")) return gw("g.want.order");
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.get("tab") === "selling") return gw("g.want.sales"); |
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.has("post")) return gw("g.want.post"); |
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.get("tab") === "wanted") return gw("g.want.wanted"); |
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

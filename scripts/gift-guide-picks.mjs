@@ -121,7 +121,8 @@ const add = (slug, raw, where) => {
   const list = (guides[slug] ??= []);
   // One row per link in a guide (a ShopMy collection link is shared by several products, so those match by name too).
   const shared = new URL(p.href).hostname === "shopmy.us";
-  if (!list.some((x) => x.href === p.href && (!shared || x.name === p.name))) list.push(p);
+  // ... and one row per product name (design audit 11-18: UGG Tasman at #1 on Amazon and again at #23 on ShopMy).
+  if (!list.some((x) => (x.href === p.href && (!shared || x.name === p.name)) || compact(x.name) === compact(p.name))) list.push(p);
 };
 
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.startsWith("_")).sort()) {
@@ -238,14 +239,24 @@ for (const [slug, list] of sortedGuides) if (GUIDE_SLUGS.has(slug) && !storeList
 /** The Amazon page: every Amazon-link pick from every guide, once per link (the page adds the static Amazon picks first). */
 {
   const byHref = new Map();
-  for (const p of [...(guides["store-amazon"] ?? []), ...everyPick]) if (AMAZON.has(new URL(p.href).hostname) && !byHref.has(p.href)) byHref.set(p.href, p);
+  const names = new Set();
+  for (const p of [...(guides["store-amazon"] ?? []), ...everyPick]) {
+    if (!AMAZON.has(new URL(p.href).hostname) || byHref.has(p.href) || names.has(compact(p.name))) continue;
+    byHref.set(p.href, p);
+    names.add(compact(p.name));
+  }
   if (byHref.size) pageList["store-amazon"] = [...byHref.values()];
 }
 const FIXED_PAGES = new Set(["store-amazon", "store-zchocolat", "store-diecast-models"]);
 for (const slug of Object.keys(storeList)) {
   if (FIXED_PAGES.has(slug)) continue;
   const byHref = new Map();
-  for (const p of [...(guides[slug] ?? []), ...everyPick.filter((x) => x.store === slug && !FIXED_HOSTS.has(new URL(x.href).hostname))]) if (!byHref.has(p.href)) byHref.set(p.href, p);
+  const names = new Set();
+  for (const p of [...(guides[slug] ?? []), ...everyPick.filter((x) => x.store === slug && !FIXED_HOSTS.has(new URL(x.href).hostname))]) {
+    if (byHref.has(p.href) || names.has(compact(p.name))) continue;
+    byHref.set(p.href, p);
+    names.add(compact(p.name));
+  }
   const firstWins = [...byHref.values()];
   if (firstWins.length) pageList[slug] = [...firstWins.filter((p) => p.image), ...firstWins.filter((p) => !p.image)];
 }

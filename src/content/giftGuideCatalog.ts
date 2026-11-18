@@ -407,7 +407,7 @@ const build = (slug: string, group: string, tint: GuideTint, listed?: { title: s
     Object.defineProperty(g, "picks", { enumerable: true, get: () => {
       const c = loaded.get(slug);
       if (!c) return base;
-      return !APPEND_CHUNK.has(slug) ? c.picks : slug === "store-amazon" ? uniqueByHref([...base, ...c.picks]) : uniqueByName([...base, ...c.picks]);
+      return !APPEND_CHUNK.has(slug) ? c.picks : slug === "store-amazon" ? uniqueByName(uniqueByHref([...base, ...c.picks])) : uniqueByName([...base, ...c.picks]);
     } });
     Object.defineProperty(g, "deals", { enumerable: true, get: () => loaded.get(slug)?.deals });
   }

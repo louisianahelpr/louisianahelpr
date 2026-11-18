@@ -85,7 +85,6 @@ const realBackend: SponsorBackend = {
     }
     const status = ctx?.status ?? 0;
     if (status === 429) return { ok: false, kind: "rateLimited" };
-    if (status === 410 || body?.error === "closed") return { ok: false, kind: "closed" };
     if (body?.error === "full" && Array.isArray(body.full_days)) return { ok: false, kind: "full", fullDays: body.full_days as number[] };
     if (body?.error === "invalid" && body.fields && typeof body.fields === "object") {
       return { ok: false, kind: "invalid", errors: body.fields as Record<string, never> };

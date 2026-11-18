@@ -80,8 +80,6 @@ export default function SponsorPage() {
   const { pathname } = useLocation();
   const refCode = normalizeRef(params.get("ref"));
   const preview = import.meta.env.DEV && params.has("demo") && params.has("placeholders");
-  // Local preview only: show the claim section as it looks after the sign-up deadline.
-  const previewClosed = import.meta.env.DEV && params.has("demo") && params.has("closed");
   const backend = useBackend();
 
 
@@ -147,7 +145,7 @@ export default function SponsorPage() {
           <PreviewCard />
           <SponsorWall wall={state.wall} logoUrl={(id) => backend.logoUrl(id)} />
           <Testimonials items={state.testimonials} />
-          <ClaimSection state={state} greetingBrand={state.greetingBrand} refCode={refCode} onSubmit={(p, logo) => backend.submit(p, logo)} nowMs={previewClosed ? Date.UTC(2026, 11, 2) : undefined} />
+          <ClaimSection state={state} greetingBrand={state.greetingBrand} refCode={refCode} onSubmit={(p, logo) => backend.submit(p, logo)} />
           <Faq />
         </div>
         <FinalCta />

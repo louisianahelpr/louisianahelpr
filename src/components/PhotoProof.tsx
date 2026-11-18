@@ -142,7 +142,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
     const selected = await prepareProofPhotos(picked, (f) => isAllowedUploadType(f, PROOF_PHOTO_TYPES)).finally(() => setConverting(false));
     if (selected.length === 0) return;
     const current = filesRef.current;
-    if (current.length + selected.length > 5) { toast.error("Max 5 photos."); return; }
+    if (current.length + selected.length > 5) { toast.error("You can add up to 5 photos."); return; }
     const newFiles = [...current, ...selected].slice(0, 5);
     setFiles(newFiles);
     setPreviews(newFiles.map(f => URL.createObjectURL(f)));

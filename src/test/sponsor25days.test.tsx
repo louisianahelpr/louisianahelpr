@@ -5,7 +5,10 @@
 // @mutate src/components/sponsor/ClaimSection.tsx |   if (maxPerDay !== null && count >= maxPerDay) return { label: C.claim.full, full: true }; |   if (maxPerDay !== null && count > maxPerDay) return { label: C.claim.full, full: true };
 // @mutate src/components/sponsor/Sections.tsx |         {greetingBrand ? ( |         {true ? (
 // @mutate api/share.ts |   sponsor: SPONSOR_CARD, |   sponsorX: SPONSOR_CARD,
-// @mutate supabase/functions/_shared/sponsorSignup.ts |   return nowMs < closesAt; |   return true;
+// @mutate src/components/sponsor/ClaimSection.tsx |   const err = (k: FieldKey) => errors[k] ?? null; |   if (Date.now() > Date.UTC(2026, 10, 29)) return null; const err = (k: FieldKey) => errors[k] ?? null;
+// @mutate supabase/functions/sponsor-25days/index.ts |   if (!(await switchOn(admin, userId))) { |   if (Date.now() > 0) return json({ error: 'closed' }, 410); if (!(await switchOn(admin, userId))) {
+// @mutate src/content/sponsorPage.ts |     deadline: "Sign up by Sunday, Nov 22.", |     deadline: "Sign up by Nov 28.",
+// @mutate src/components/sponsor/Sections.tsx |         <p className="lh25-deadline">{C.hero.deadline}</p> |         {null}
 // @mutate src/components/sponsor/ClaimSection.tsx |   shipTo: "helpr", notes: "", |   shipTo: "", notes: "",
 // @mutate src/components/sponsor/ClaimSection.tsx |   if (delivery === "helpr" \|\| delivery === "winner") return { ...form, shipTo: delivery }; |   if (delivery === "helpr" \|\| delivery === "winner") return { ...form, shipTo: "helpr" };
 // @mutate src/components/sponsor/ClaimSection.tsx |   return { ...form, shipTo: "winner", notes }; |   return { ...form, shipTo: "winner" };
@@ -34,7 +37,7 @@ import path from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
-import { SPONSOR_SIGNUP_DEADLINE, checkLogo, cleanDays, normalizeRef, slugifyBrand, sniffLogoType, sponsorSignupsOpen, validateSponsorSignup } from "../../supabase/functions/_shared/sponsorSignup";
+import { checkLogo, cleanDays, normalizeRef, slugifyBrand, sniffLogoType, validateSponsorSignup } from "../../supabase/functions/_shared/sponsorSignup";
 import { filledUrl, hasPlaceholder, onlyFilled, statNumber } from "@/lib/sponsor/placeholders";
 import { buildIcs, countdown, dayStartUtc, daysLabel } from "@/lib/sponsor/dates";
 import { About, BrandGets, Faq, Footer, Founder, Hero, Reach, filledStats } from "@/components/sponsor/Sections";
@@ -42,6 +45,7 @@ import { ClaimSection, EMPTY as EMPTY_SIGNUP, dayTileLabel, errorMessage, withDe
 import { rulesAreDraft } from "@/pages/sponsor/SponsorRulesPage";
 import { prizeValueLabel, signupsCsv } from "@/pages/admin/sponsors/AdminSponsorsPage";
 import type { SponsorAdminSignup, SponsorPublicState } from "@/lib/sponsor/types";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = path.resolve(__dirname, "../..");
 const good = {
@@ -301,7 +305,8 @@ describe("links and rules", () => {
     for (const f of sponsorPage.about.features) {
       if (f.href) {
         expect(app).toContain(`path="${f.href}"`);
-        expect(["/jobs", "/declutter"]).toContain(f.href);
+        // /browse, not /jobs: /jobs is a sign-in wall for a guest (design audit area 01 #3).
+        expect(["/browse", "/declutter"]).toContain(f.href);
       } else {
         expect(f.soonLabel).toBe("Coming soon");
       }
@@ -354,30 +359,51 @@ describe("dates, calendar file and CSV", () => {
   });
 });
 
-describe("sign-up deadline (owner 2026-11-16: sign up by Nov 28, was Nov 22; the giveaway stays Dec 1-25)", () => {
-  it("the content file and the server agree on the date", () => {
-    expect(sponsorPage.event.signup_deadline).toBe(SPONSOR_SIGNUP_DEADLINE);
-    expect(sponsorPage.hero.deadline).toBe("Sign up by Nov 28.");
-    expect(sponsorPage.claim.deadline).toBe("Sign up by Nov 28.");
-    expect(sponsorPage.claim.closed).toContain("closed on November 28");
+describe("sign-ups never close (owner 2026-11-18: ask for Sunday, November 22; late sponsors still welcome)", () => {
+  const ASK = "Please sign up by Sunday, November 22 so we can include you in the full lineup.";
+  it("the hero asks short, the sign-up section asks in full; neither names a closing date", () => {
+    expect(sponsorPage.hero.deadline).toBe("Sign up by Sunday, Nov 22.");
+    expect(sponsorPage.claim.deadline).toBe(ASK);
+    const files = [
+      "src/content/sponsorPage.ts",
+      "src/components/sponsor/Sections.tsx",
+      "src/components/sponsor/ClaimSection.tsx",
+      "supabase/functions/_shared/email-templates/sponsor-25days.tsx",
+      "supabase/functions/_shared/sponsorSignup.ts",
+      "supabase/functions/sponsor-25days/index.ts",
+    ];
+    expect(files.length).toBeGreaterThan(5);
+    for (const f of files) {
+      const src = fs.readFileSync(path.join(ROOT, f), "utf8");
+      expect(src, f).not.toMatch(/Nov(ember|\.)? 28/);
+      expect(src, f).not.toMatch(/sign-?ups? (are |were )?closed|closed on November/i);
+    }
   });
-  it("open through Nov 28 in Louisiana, closed from midnight Nov 29 (2026-11-29T06:00:00Z)", () => {
-    expect(SPONSOR_SIGNUP_DEADLINE).toBe("2026-11-28");
-    expect(sponsorSignupsOpen(Date.parse("2026-11-29T05:59:59Z"))).toBe(true);
-    expect(sponsorSignupsOpen(Date.parse("2026-11-29T06:00:00Z"))).toBe(false);
-    expect(sponsorSignupsOpen(Date.parse("2026-11-30T12:00:00Z"))).toBe(false);
-    expect(sponsorSignupsOpen(Date.UTC(2026, 10, 9))).toBe(true);
-    expect(sponsorSignupsOpen(0, "not a date")).toBe(false);
+  it("the server never refuses a sign-up as closed (no 410, no closed answer, no deadline constant)", () => {
+    const fn = blankComments(fs.readFileSync(path.join(ROOT, "supabase/functions/sponsor-25days/index.ts"), "utf8"));
+    expect(fn).toContain("req.formData()");
+    expect(fn).not.toMatch(/\b410\b/);
+    expect(fn).not.toMatch(/error:\s*'closed'/);
+    const shared = blankComments(fs.readFileSync(path.join(ROOT, "supabase/functions/_shared/sponsorSignup.ts"), "utf8"));
+    expect(shared).not.toMatch(/SPONSOR_SIGNUP_DEADLINE|sponsorSignupsOpen/);
   });
-  it("after the deadline the form is gone and says sign-ups are closed; before it, the deadline line shows", () => {
+  it("the form and the ask still show long after Nov 22 and after Nov 28 (Dec 20, 2026 and 2027)", () => {
     const st: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
-    const closed = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 10, 30)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
-    expect(closed.getByTestId("sponsor-closed").textContent).toContain(sponsorPage.claim.closedTitle);
-    expect(closed.container.querySelector("form")).toBeNull();
-    closed.unmount();
-    const open = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 10, 27)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
-    expect(open.container.querySelector("form")).not.toBeNull();
-    expect(open.container.textContent).toContain(sponsorPage.claim.deadline);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      for (const now of [Date.UTC(2026, 10, 20), Date.UTC(2026, 11, 20), Date.UTC(2027, 0, 5)]) {
+        vi.setSystemTime(now);
+        const r = render(<ClaimSection state={st} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+        expect(r.container.querySelector("form"), new Date(now).toISOString()).not.toBeNull();
+        expect(r.container.textContent).toContain(ASK);
+        r.unmount();
+        const h = render(<MemoryRouter><Hero greetingBrand={null} /></MemoryRouter>);
+        expect(h.container.textContent).toContain(sponsorPage.hero.deadline);
+        h.unmount();
+      }
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

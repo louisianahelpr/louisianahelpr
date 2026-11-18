@@ -35,7 +35,7 @@ import { isTestRecipient } from '../_shared/testRecipient.ts'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { SponsorAdminEmail, SponsorConfirmationEmail, type SponsorEmailSignup } from '../_shared/email-templates/sponsor-25days.tsx'
 import { caughtMessage } from '../_shared/caughtMessage.ts'
-import { SPONSOR_LIMITS, sniffLogoType, sponsorSignupsOpen, validateSponsorSignup } from '../_shared/sponsorSignup.ts'
+import { SPONSOR_LIMITS, sniffLogoType, validateSponsorSignup } from '../_shared/sponsorSignup.ts'
 import { serve } from '../_shared/buildStamp.ts'
 import { writeAdminAudit } from '../_shared/adminAuditLog.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
@@ -174,7 +174,7 @@ async function handleFounderPhoto(req: Request): Promise<Response> {
 /**
  * Every sign-up POST that does NOT save a sign-up says why, where we can see it (2026-11-17: two real
  * sponsors were told "you're in" and nothing was saved). Two tiers:
- *   logNotCreated    the visitor was told why (invalid, full, closed, rate limited, switch off): the edge
+ *   logNotCreated    the visitor was told why (invalid, full, rate limited, switch off): the edge
  *                    log only, searchable as "sign-up NOT saved". Never error_logs: a server row there of any
  *                    severity posts to #ops-alerts and opens a ledger item (notify_slack_on_error_log,
  *                    ops_alert_ledger_from_error_log), and a typo in a form is not an alert.
@@ -222,11 +222,7 @@ async function handleSignup(req: Request): Promise<Response> {
     return notFound()
   }
 
-  // After the sign-up deadline (Nov 28, Louisiana time) nothing new is saved.
-  if (!sponsorSignupsOpen(Date.now())) {
-    logNotCreated('closed')
-    return json({ error: 'closed' }, 410)
-  }
+  // Sign-ups never close (owner 2026-11-18): a sign-up after the asked-for Nov 22 date is still saved.
 
   const form = await req.formData().catch(() => null)
   if (!form) {

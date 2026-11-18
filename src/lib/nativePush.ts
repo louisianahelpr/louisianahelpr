@@ -538,26 +538,35 @@ export type PushRequestOutcome = "granted" | "refused" | "dismissed";
 /** Like useRequestPushPermission, but says WHY a request was not granted. */
 export function useRequestPushPermissionOutcome() {
   const { request } = usePermissionRationale();
-  return async (): Promise<PushRequestOutcome> => {
-    if (!isNativePlatform && !isPushSupported()) return "refused";
-    let asked = false;
-    let granted = false;
-    await request("notifications", async () => {
-      asked = true;
-      if (isNativePlatform) {
-        granted = await requestPushPermission();
-      } else {
-        // FIRST, with nothing awaited before it: Safari shows the browser's
-        // prompt only inside the tap. Then save this browser's subscription
-        // (src/lib/webPush.ts waits for the service worker itself; it never
-        // throws and reports its own failures).
-        granted = await requestWebPushPermission();
-        if (granted) await subscribeWebPushOnUse();
-      }
-    });
-    if (granted) return "granted";
-    return asked ? "refused" : "dismissed";
-  };
+  return () => requestPushPermissionOutcome(request);
+}
+
+/**
+ * The body of useRequestPushPermissionOutcome, with the rationale's `request` passed in. Q2705 pass 3: signed-in
+ * /jobs' feed (useNotifyWhenWorkLands) takes `request` from usePermissionRationale itself and loads this module on the
+ * tap, so its first screen does not download this file (native-push, 3.7 KB gz) for a button only an empty feed shows.
+ */
+export async function requestPushPermissionOutcome(
+  request: ReturnType<typeof usePermissionRationale>["request"],
+): Promise<PushRequestOutcome> {
+  if (!isNativePlatform && !isPushSupported()) return "refused";
+  let asked = false;
+  let granted = false;
+  await request("notifications", async () => {
+    asked = true;
+    if (isNativePlatform) {
+      granted = await requestPushPermission();
+    } else {
+      // FIRST, with nothing awaited before it: Safari shows the browser's
+      // prompt only inside the tap. Then save this browser's subscription
+      // (src/lib/webPush.ts waits for the service worker itself; it never
+      // throws and reports its own failures).
+      granted = await requestWebPushPermission();
+      if (granted) await subscribeWebPushOnUse();
+    }
+  });
+  if (granted) return "granted";
+  return asked ? "refused" : "dismissed";
 }
 
 export function useRequestPushPermission() {

@@ -7,6 +7,7 @@ import type { EnrichedJob } from "../types";
 import { signupUrlFor, rememberPendingSave } from "@/lib/jobIntent";
 import { askQuestionCounterpart } from "./askQuestionCounterpart";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 interface JobDetailFooterProps {
   job: EnrichedJob;
@@ -35,7 +36,7 @@ export const JobDetailFooter = ({
     // Instant Book was dropped (20260904034410, dead-feature cut) — the CTA
     // always names the real action now, applying. (A third "Sign up to bid"
     // branch went away earlier with bidding — zero production usage.)
-    const guestCtaLabel = "Sign up to apply";
+    const guestCtaLabel = wordInLang("jh.s.signUpApply", "Sign up to apply");
     return (
       <div className="flex gap-1.5 pt-0.5 items-stretch">
       {/* Guest save — the strongest interest signal a guest can give
@@ -44,7 +45,7 @@ export const JobDetailFooter = ({
           walks them into signup; the authed bounce consumes it, saves the
           job, and says so. */}
       <RoundIconButton
-        aria-label="Save this job — sign up to keep it"
+        aria-label={wordInLang("jh.s.saveGuest", "Save this job — sign up to keep it")}
         onClick={() => {
           rememberPendingSave(job.id);
           navigate(signupUrlFor(`/jobs/${job.id}`));
@@ -118,7 +119,7 @@ export const JobDetailFooter = ({
       // the thread would be with themselves.
       askQuestionCounterpart(job, viewerUserId) != null && (
       <IconActionButton
-        ariaLabel="Ask a question"
+        ariaLabel={wordInLang("jh.s.ask", "Ask a question")}
         onClick={onAskQuestion}
         hoverGlow="inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -2px hsl(var(--bark) / 0.22), 0 0 0 3px hsl(var(--bark) / 0.08)"
         hoverColor="hsl(var(--bark))"
@@ -144,7 +145,7 @@ export const JobDetailFooter = ({
             className="font-sans font-semibold text-ds-14"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            This is your post
+            {wordInLang("jh.s.yourPost", "This is your post")}
           </span>
         </div>
       ) : viewerAppPosition !== null ? (
@@ -171,7 +172,7 @@ export const JobDetailFooter = ({
                 saw count 1. The viewer's true queue position is not derivable
                 client-side at all (the poster's applicant list is theirs alone),
                 so the honest surface is the fact of having applied. */}
-            Applied
+            {wordInLang("jh.s.applied", "Applied")}
           </span>
         </div>
       ) : (job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (
@@ -196,7 +197,8 @@ export const JobDetailFooter = ({
           // setSearchParams(..., { replace: true }), and setSearchParams acts on the
           // CURRENT location — so it replaced the entry navigate() had just pushed and
           // dropped the visitor back on the guest feed.
-          onClick={() => navigate("/profile")}
+          // Area 04 #11 (11-18): straight to Licenses & insurance, not the You landing.
+          onClick={() => navigate("/profile?tab=credentials")}
           className="w-auto min-h-11 py-0 text-center flex-1 min-w-0 rounded-full h-11 sm:h-12 px-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           style={{
             background: "hsl(var(--bark) / 0.08)",
@@ -211,7 +213,7 @@ export const JobDetailFooter = ({
             className="font-sans font-semibold text-ds-14 truncate"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            {(job.credential_tier ?? 0) === 2 ? "Licensed pros only" : "Licensed & Insured Only"}
+            {(job.credential_tier ?? 0) === 2 ? wordInLang("jh.s.licensedPros", "Licensed pros only") : wordInLang("jh.s.licensedInsured", "Licensed & insured only")}
           </span>
           <ChevronRight className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
         </ListRow>
@@ -262,7 +264,7 @@ export const JobDetailFooter = ({
                 inline form is withheld: the transient frame before the
                 viewer's own id resolves on a job they posted. Naming it
                 "Continue" pointed at a step that no longer exists. */}
-            <span className="truncate">Apply now</span>
+            <span className="truncate">{wordInLang("jh.s.applyNow", "Apply now")}</span>
             <ChevronRight
               className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
             />

@@ -43,12 +43,12 @@ function buyerGroup(o: Pick<ShopOrder, "status">): BuyerGroup {
  * Launch pass 1: only sent=1 was read, so a download or a paid balance came back with no word at all, and a
  * preorder was told its card was only held.
  */
-export function checkoutReturnToast(params: URLSearchParams): { param: "sent" | "bought" | "paid"; message: string } | null {
+export function checkoutReturnToast(params: URLSearchParams): { param: "sent" | "bought" | "paid"; words: string } | null {
   const sent = params.get("sent");
-  if (sent === "1") return { param: "sent", message: "Order sent. The shop has 24 hours to answer; your card is held, not charged." };
-  if (sent === "preorder") return { param: "sent", message: "Preorder placed. Your card was charged in full; the shop has it ready by its ready-by date." };
-  if (params.get("bought") === "1") return { param: "bought", message: "Thanks for your order. Your download shows on the order below once the payment goes through." };
-  if (params.get("paid") === "1") return { param: "paid", message: "The rest of your custom order is paid." };
+  if (sent === "1") return { param: "sent", words: "Order sent. The shop has 24 hours to answer; your card is held, not charged." };
+  if (sent === "preorder") return { param: "sent", words: "Preorder placed. Your card was charged in full; the shop has it ready by its ready-by date." };
+  if (params.get("bought") === "1") return { param: "bought", words: "Thanks for your order. Your download shows on the order below once the payment goes through." };
+  if (params.get("paid") === "1") return { param: "paid", words: "The rest of your custom order is paid." };
   return null;
 }
 
@@ -86,7 +86,7 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
   useEffect(() => {
     const said = checkoutReturnToast(params);
     if (!said) return;
-    toast.success(said.message);
+    toast.success(said.words);
     const next = new URLSearchParams(params);
     next.delete(said.param);
     setParams(next, { replace: true });

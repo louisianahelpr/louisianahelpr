@@ -60,7 +60,7 @@ describe("the order card: a 50% deposit order's rest", () => {
   // S037 (Shops audit 11-12): the shop's box read the buyer's charged amounts (service fee and tax inside), which never
   // added up to the shop's price; it now says the halves in words, and the card's own line says "Your price".
   // @mutate src/components/shops/ShopOrderCard.tsx |   if (side === "shop") {\n    return ( |   if (false) {\n    return (
-  // @mutate src/components/shops/ShopOrderCard.tsx |                 : `Your price: ${formatCents(shopGets)}.`} |                 : `You get the item price in full: ${formatCents(shopGets)}.`}
+  // @mutate src/components/shops/ShopOrderCard.tsx |                 : t("sho.price", { amount: formatCents(shopGets) })} |                 : `You get the item price in full: ${formatCents(shopGets)}.`}
   it("the shop reads it in its own terms: no buyer amounts, and 'Your price', never 'in full' (S037)", () => {
     show(order(), "shop");
     expect(screen.getByTestId("shop-order-deposit").textContent).toBe(

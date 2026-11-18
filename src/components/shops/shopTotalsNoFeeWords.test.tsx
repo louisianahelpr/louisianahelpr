@@ -4,7 +4,7 @@
  * total_cents plus the one-time setup fee when this order carried it (setup_fee_state 'claimed', outside total_cents).
  *
  * @mutate src/lib/shops/orders.ts |   return o.setup_fee_state === "claimed" ? Math.max(0, Number(o.setup_fee_cents ?? 0)) : 0; |   return 0;
- * @mutate src/components/shops/ShopOrderCard.tsx |           Items {formatCents(order.items_cents)}\n |           Items {formatCents(order.items_cents)} + service fee {formatCents(order.premium_cents)}\n
+ * @mutate src/components/shops/ShopOrderCard.tsx |           {t("sho.items", { amount: formatCents(order.items_cents) })}\n |           {t("sho.items", { amount: formatCents(order.items_cents) })} + service fee {formatCents(order.premium_cents)}\n
  * @mutate src/components/shops/ShopDigitalOrder.tsx |         Download {formatCents(order.items_cents)}\n |         Download {formatCents(order.items_cents)} + service fee {formatCents(order.premium_cents)}\n
  */
 import { describe, expect, it, vi } from "vitest";

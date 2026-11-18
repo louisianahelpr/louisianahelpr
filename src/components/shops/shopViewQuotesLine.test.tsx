@@ -6,7 +6,7 @@
  * shop takes custom orders, as "takes custom orders" with a button to the request sheet; otherwise the line drops.
  *
  * @mutate src/components/shops/ShopView.tsx |   const takesCustom = !!customOrders.data && customOrders.data !== "off"; |   const takesCustom = !!customOrders.data;
- * @mutate src/components/shops/ShopView.tsx |             {takesCustom && !s.mine && !s.paused && ( |             {false && (
+ * @mutate src/components/shops/ShopView.tsx |           {offersLine && takesCustom && !s.mine && !s.paused && ( |           {false && (
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

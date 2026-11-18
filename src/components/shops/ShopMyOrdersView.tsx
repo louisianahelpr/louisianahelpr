@@ -38,6 +38,21 @@ function buyerGroup(o: Pick<ShopOrder, "status">): BuyerGroup {
 }
 
 /**
+ * What Stripe's return to /shops/orders says (shop-checkout's success_url): an order sent for the shop to accept
+ * (the card is only held), a preorder (charged in full now), a digital download, or a custom order's rest paid.
+ * Launch pass 1: only sent=1 was read, so a download or a paid balance came back with no word at all, and a
+ * preorder was told its card was only held.
+ */
+export function checkoutReturnToast(params: URLSearchParams): { param: "sent" | "bought" | "paid"; message: string } | null {
+  const sent = params.get("sent");
+  if (sent === "1") return { param: "sent", message: "Order sent. The shop has 24 hours to answer; your card is held, not charged." };
+  if (sent === "preorder") return { param: "sent", message: "Preorder placed. Your card was charged in full; the shop has it ready by its ready-by date." };
+  if (params.get("bought") === "1") return { param: "bought", message: "Thanks for your order. Your download shows on the order below once the payment goes through." };
+  if (params.get("paid") === "1") return { param: "paid", message: "The rest of your custom order is paid." };
+  return null;
+}
+
+/**
  * The buyer's empty Orders (shops audit 11-10 F16: "Browse shops" is a button, as on Jobs and Declutter, not a
  * plain underlined link). The loading placeholder is this same card, hidden (Q2558).
  */
@@ -69,10 +84,11 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
   });
 
   useEffect(() => {
-    if (params.get("sent") !== "1") return;
-    toast.success("Order sent. The shop has 24 hours to answer; your card is held, not charged.");
+    const said = checkoutReturnToast(params);
+    if (!said) return;
+    toast.success(said.message);
     const next = new URLSearchParams(params);
-    next.delete("sent");
+    next.delete(said.param);
     setParams(next, { replace: true });
   }, [params, setParams]);
 

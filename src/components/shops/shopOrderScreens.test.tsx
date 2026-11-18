@@ -21,13 +21,13 @@
  *  5. The entries: Shops home and the Profile row link the dashboard once the
  *     member has a shop.
  *
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.paused && <ShopOrderSheet shopId={s.id} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />} |         {s.offers_selling && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />}
  * H8 (b) (lead 11-05): an at-home carpet or furniture cleaning asks where, is ordered on its own, and the shop sees the
  * address only once it accepted:
  * @mutate src/components/shops/ShopOrderSheet.tsx |     && (!atHome \|\| (svcOk && !atHomeMixed)) && (!helpring |     && (!helpring
  * @mutate src/components/shops/ShopOrderSheet.tsx |         ...(atHome ? { serviceAddress: | ...(false ? { serviceAddress:
  * @mutate src/components/shops/ShopOrderCard.tsx | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over"]); | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over", "held"]);
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} hours={s.hours} />}
  * @mutate src/components/shops/shopCart.tsx | i.kind !== "digital" && (i.stock_count == null \|\| i.stock_count > 0) | i.kind !== "digital"
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0); |   const leadDays = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0; |   const feeCents = 0;
@@ -366,6 +366,24 @@ describe("/shops/orders", () => {
     fireEvent.click(screen.getByRole("button", { name: "confirm Withdraw order" }));
     await waitFor(() => expect(orders.cancelOrderRequest).toHaveBeenCalledWith("o1"));
   });
+});
+
+describe("/shops/orders: what each Stripe return says (launch pass 1)", () => {
+  // @mutate src/components/shops/ShopMyOrdersView.tsx |   if (params.get("bought") === "1") return | if (params.get("bought") === "never") return
+  // @mutate src/components/shops/ShopMyOrdersView.tsx |   if (sent === "preorder") return | if (sent === "never") return
+  for (const [url, words] of [
+    ["/shops/orders?bought=1", "Thanks for your order. Your download shows on the order below once the payment goes through."],
+    ["/shops/orders?paid=1", "The rest of your custom order is paid."],
+    ["/shops/orders?sent=preorder", "Preorder placed. Your card was charged in full; the shop has it ready by its ready-by date."],
+  ] as const) {
+    it(`${url} gets its own words, never the held-card line`, async () => {
+      orders.fetchMyOrders.mockResolvedValue([order({ id: "o1", status: "accepted", captured_at: "2026-10-19T12:00:00Z" })]);
+      renderAt(url, "/shops/orders", <ShopOrdersPage />);
+      expect(await screen.findAllByTestId("shop-order-card")).toHaveLength(1);
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith(words));
+      expect(toast.success).not.toHaveBeenCalledWith(expect.stringContaining("held, not charged"));
+    });
+  }
 });
 
 describe("/shops/dashboard", () => {

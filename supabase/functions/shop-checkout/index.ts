@@ -758,7 +758,8 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       // Q202: 3D Secure from $300 up (the whole charge, tax included).
       payment_method_options: threeDSecureOptions(chargedCents - giftCents),
       expires_at: expiresAt,
-      success_url: buildRedirectUrl("/shops/orders?sent=1", native),
+      // A preorder is charged in full at once, so its return says so (ShopMyOrdersView reads sent=preorder).
+      success_url: buildRedirectUrl(preorderLine ? "/shops/orders?sent=preorder" : "/shops/orders?sent=1", native),
       cancel_url: buildRedirectUrl(`/shops/${shopId}`, native),
     },
     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` },

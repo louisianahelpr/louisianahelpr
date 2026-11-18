@@ -17,6 +17,7 @@ import { COMPACT_TOP_ROW, TITLE_TOP_ROW } from "@/components/sections/browseHead
 import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
+import { useGuestPublicFrame } from "@/hooks/useGuestPublicFrame";
 import { GuestAuthActions } from "@/pages/home/GuestAuthActions";
 
 // "My Declutter" (etc.) loads on the photo's first tap, never on the first screen.
@@ -147,6 +148,9 @@ export function AppTopBar({
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const isWebDesktop = useIsWebDesktop();
+  // Design audit 11-17 #1 (High): under the public header (a guest on /declutter, /helprs, /search on the web) the
+  // header already carries Log in / Join free, so this bar draws no second pair.
+  const publicFrame = useGuestPublicFrame();
   const [mineOpen, setMineOpen] = useState(false);
   const [mineAsked, setMineAsked] = useState(false);
   const mineToDo = mineToDoCount(mine);
@@ -166,7 +170,7 @@ export function AppTopBar({
       {/* M13 (owner 11-16: guests get the same search as members in one consistent header): a guest's right side is
           Log in and Join free where a member's Inbox and photo sit. Only when no session is stored, so a member's cold
           start never flashes them. */}
-      {!user && !hasPersistedAuthToken() && !isWebDesktop && (
+      {!user && !hasPersistedAuthToken() && !isWebDesktop && !publicFrame && (
         <div className="flex items-center" data-testid="top-bar-guest">
           <GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />
         </div>

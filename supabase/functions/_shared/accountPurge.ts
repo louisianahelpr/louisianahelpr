@@ -175,6 +175,15 @@ export const SERIES_BLOCKS_DELETION_MESSAGE =
  * not ended. Deleting either party mid-series leaves the other with visits
  * nobody can run or pay for.
  */
+/**
+ * Q2108: a missing TABLE only (42P01, or PostgREST's PGRST205), the migration-lag window in which nothing can be live
+ * there. Never a missing COLUMN (42703, whose message also says "does not exist"): a renamed column must fail the
+ * deletion check closed, not report "no live work" after earlier purge steps already ran.
+ */
+export function isTableAbsent(e: { code?: string | null }): boolean {
+  return e.code === "42P01" || e.code === "PGRST205";
+}
+
 /** jobs.series_ended_on is not deployed yet (42703 / PGRST204, or the message naming it). */
 function isMissingSeriesEndColumn(e: { code?: string | null; message?: string | null }): boolean {
   return e.code === "42703" || e.code === "PGRST204" || /series_ended_on[^"]*does not exist|could not find the 'series_ended_on' column/i.test(e.message ?? "");
@@ -231,7 +240,7 @@ async function findRunningSeries(admin: PurgeCapableClient, userId: string): Pro
   if (holds.error) {
     // The table arrives with 20260927012806; before db-deploy there is
     // nothing to hold. Any other failure fails closed.
-    if (/does not exist|42P01|PGRST205/i.test(`${holds.error.code ?? ""} ${holds.error.message}`)) {
+    if (isTableAbsent(holds.error)) {
       return { ok: true, active: false };
     }
     console.error(`[accountPurge] held-dates check failed for ${userId}:`, holds.error.message);
@@ -364,7 +373,7 @@ export async function findActiveWork(
   if (roster.error) {
     // A missing table is not a reason to refuse a deletion forever, but any
     // other failure is — we cannot prove the account is safe to remove.
-    if (/does not exist|42P01|PGRST205/i.test(`${roster.error.code ?? ""} ${roster.error.message}`)) {
+    if (isTableAbsent(roster.error)) {
       return { ok: true, active: false, detail: "group_job_helpers absent" };
     }
     console.error(`[accountPurge] roster check failed for ${userId}:`, roster.error.message);
@@ -433,7 +442,7 @@ export async function closeUnpaidShopPages(admin: PurgeCapableClient, userId: st
     .eq("status", "awaiting_hold")
     .select("id");
   if (res.error) {
-    if (/does not exist|42P01|PGRST205/i.test(`${res.error.code ?? ""} ${res.error.message}`)) return { ok: true, detail: "shop_orders absent" };
+    if (isTableAbsent(res.error)) return { ok: true, detail: "shop_orders absent" };
     console.error(`[accountPurge] closing unpaid Shops pages failed for ${userId}:`, res.error.message);
     return { ok: false, detail: res.error.message };
   }
@@ -450,7 +459,7 @@ async function findShopOrderInFlight(admin: PurgeCapableClient, userId: string):
     .limit(1);
   if (rows.error) {
     // Before the Shops orders migration is live the table does not exist: no order can be in progress.
-    if (/does not exist|42P01|PGRST205/i.test(`${rows.error.code ?? ""} ${rows.error.message}`)) {
+    if (isTableAbsent(rows.error)) {
       return { ok: true, active: false, detail: "shop_orders absent" };
     }
     console.error(`[accountPurge] Shops order check failed for ${userId}:`, rows.error.message);
@@ -471,7 +480,7 @@ async function findShopOrderInFlight(admin: PurgeCapableClient, userId: string):
     .in("status", ["pending", "failed", "held_for_review"])
     .limit(1);
   if (owed.error) {
-    if (/does not exist|42P01|PGRST205/i.test(`${owed.error.code ?? ""} ${owed.error.message}`)) {
+    if (isTableAbsent(owed.error)) {
       return { ok: true, active: false, detail: "shop_payouts absent" };
     }
     console.error(`[accountPurge] Shops payout check failed for ${userId}:`, owed.error.message);
@@ -837,7 +846,7 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
   for (const c of raiseChecks) {
     const raises = await c.build();
     if (raises.error) {
-      if (/does not exist|42P01|PGRST205|PGRST200/i.test(`${raises.error.code ?? ""} ${raises.error.message}`)) {
+      if (isTableAbsent(raises.error) || raises.error.code === "PGRST200") {
         return { ok: true, active: false, detail: "declutter_delivery_raises absent" };
       }
       console.error(`[accountPurge] delivery raise check failed for ${userId}:`, raises.error.message);
@@ -859,7 +868,7 @@ async function activeHelprRows(admin: PurgeCapableClient, table: string, userId:
     .in("status", statuses)
     .limit(1);
   if (rows.error) {
-    if (/does not exist|42P01|PGRST205/i.test(`${rows.error.code ?? ""} ${rows.error.message}`)) {
+    if (isTableAbsent(rows.error)) {
       return { ok: true, active: false, detail: `${table} absent` };
     }
     console.error(`[accountPurge] ${table} check failed for ${userId}:`, rows.error.message);

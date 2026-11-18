@@ -84,6 +84,22 @@ export interface VirtualListHandle {
   count: number;
 }
 
+/**
+ * Area 08 H1 (design audit 11-18): `measure()` empties the size cache, but a row that stays mounted across the length
+ * change (same key: a thread in All that is also Pinned) is never re-measured, because its callback ref does not run
+ * again and its ResizeObserver only fires on a size CHANGE. Every such row then sat at `estimateSize` (80px) while
+ * being taller (a two-line row), so the Pinned view's rows overlapped. Re-measure every mounted row right after the reset.
+ */
+function remeasureMounted(list: HTMLElement | null, v: { getVirtualItems: () => unknown; measureElement: (el: Element) => void }) {
+  if (!list) return;
+  // Rebuild the layout from the emptied cache first: until then it still holds the old sizes, and measuring a row
+  // against its own old size finds no change and records nothing.
+  v.getVirtualItems();
+  for (const el of Array.from(list.children)) {
+    if (el instanceof HTMLElement && el.dataset.index !== undefined) v.measureElement(el);
+  }
+}
+
 export function VirtualList<T>(props: VirtualListProps<T>) {
   // Whether a call site scrolls the window or an element is a property of the
   // ROUTE, so it never changes across a given list's life. Branching on it at
@@ -134,6 +150,7 @@ function WindowVirtualList<T>({
 
   useEffect(() => {
     virtualizer.measure();
+    remeasureMounted(parentRef.current, virtualizer);
   }, [items.length]);
 
   useVirtualizerHandle(virtualizerRef, virtualizer.scrollToIndex, items.length);
@@ -240,6 +257,7 @@ function ElementVirtualList<T>({
 
   useEffect(() => {
     virtualizer.measure();
+    remeasureMounted(parentRef.current, virtualizer);
   }, [items.length]);
 
   useVirtualizerHandle(virtualizerRef, virtualizer.scrollToIndex, items.length);

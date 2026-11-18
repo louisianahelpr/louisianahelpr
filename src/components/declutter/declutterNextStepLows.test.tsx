@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | text: t("free.pickWho"), by: t("free.nAsked", { n: rows.length }) | text: t("free.pickWho")
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {(t.side === "buyer" \|\| t.side === "seller") && <Suspense | {false && <Suspense
  * @mutate src/components/declutter/OrderTalkStep.tsx |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}&order=${orderId}`; |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}`;
- * @mutate src/components/declutter/OrderTalkStep.tsx | action={step.who === "you" ? "See the order" : null} | action={null}
+ * @mutate src/components/declutter/OrderTalkStep.tsx | step={step} action={null} />; | step={step} action={step.who === "you" ? "See the order" : null} />;
  * @mutate src/components/declutter/OrderTalkStep.tsx |       { ...chatTimeWords(times.data?.[0], kind, b), buyer: other.first, photoDay: |       { chosen: null, by: null, photoDay:
  * @mutate src/pages/profile/PayoutHistory.tsx | action: { label: "Payout settings", to: "/profile?tab=payment" } | action: null
  * @mutate src/pages/profile/PayoutHistory.tsx |       return { step: { who: "them", text: "Waiting on the bank", by: `arrives about ${payoutDay(p.arrival_date)}` }, action: null }; |       return null;
@@ -143,7 +143,8 @@ const todayAt = (h: number, m: number) => { const d = new Date(); return new Dat
 describe("A3-27: the order chat shows the order card's step", () => {
   const talk = (side: "buyer" | "seller") => ({ side, open: true, open_until: null, messages: [] });
 
-  it("seller: put it out and take one photo (the card's words), See the order opens the card at the order", async () => {
+  // Area 08 H4: "See the order" is said once (the chat's link under the line), never also as a button on the line.
+  it("seller: put it out and take one photo (the card's words), See the order is said once and opens the card at the order", async () => {
     const id = "22222222-2222-4222-8222-222222222222";
     state.talk = talk("seller");
     state.cart = [{ ...LINE, status: "paid", order_id: id, order_status: "paid", handover: "porch", porch_ok: true }];
@@ -154,7 +155,9 @@ describe("A3-27: the order chat shows the order card's step", () => {
     const step = await screen.findByText("Next: put it out and take one photo where the buyer will find it");
     const box = step.closest("[data-order-talk-step]") as HTMLElement;
     expect(box.getAttribute("data-order-talk-step")).toBe("you");
-    fireEvent.click(within(box).getByRole("button", { name: "See the order" }));
+    expect(within(box).queryByRole("button", { name: "See the order" })).toBeNull();
+    expect(screen.getAllByText("See the order")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("link", { name: "See the order" }));
     expect(where).toBe(`/declutter?tab=selling&order=${id}`);
   });
 

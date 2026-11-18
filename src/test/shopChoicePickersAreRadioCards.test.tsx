@@ -10,7 +10,7 @@
  *      every option's FULL label and sentence in its text, and no truncate / line-clamp / ellipsis / nowrap class
  *      inside an option (jsdom has no layout; the 375 measurement is in the 11-10 handoff).
  *
- * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |         <RadioCardList\n          label="Cancel rule" |         <RadioCardListX\n          label="Cancel rule"
+ * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |         <RadioCardList\n          label={t("shb.set.cancelLabel")} |         <RadioCardListX\n          label={t("shb.set.cancelLabel")}
  * @mutate src/components/ui/RadioCardList.tsx |             aria-checked={on} |             aria-pressed={on}
  * @mutate src/components/ui/RadioCardList.tsx | <span className="flex-1 min-w-0 whitespace-normal break-words"> | <span className="flex-1 min-w-0 truncate">
  */

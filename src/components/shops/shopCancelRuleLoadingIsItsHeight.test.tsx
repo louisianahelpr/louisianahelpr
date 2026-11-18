@@ -5,7 +5,7 @@
  * arrived. The placeholder is now the list itself, invisible under one bone, so it is the list's height at every width
  * (jsdom has no layout: this pins the structure; the height follows from it).
  *
- * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |             <RadioCardList label="Cancel rule" options={policyOptions()} value="" onChange={() => {}} /> |             <div className="h-24" />
+ * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |             <RadioCardList label={t("shb.set.cancelLabel")} options={policyOptions()} value="" onChange={() => {}} /> |             <div className="h-24" />
  * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |           <div className="invisible" aria-hidden> |           <div aria-hidden>
  */
 import { describe, it, expect, vi } from "vitest";

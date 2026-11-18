@@ -301,7 +301,8 @@ describe("S028: the badge read's seed never replaces the shop dashboard's orders
     qc.setQueryData(badgeSectionKey("shop_orders", "u1"), []);
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.getByText("2 × Candle")).toBeTruthy();
-    expect(screen.queryByText("Accepted: make these")).toBeTruthy();
+    // Area 07 M4: the group head is the chip's words with its count.
+    expect(screen.queryByText("To make · 1")).toBeTruthy();
     expect(orders.fetchShopOrders).toHaveBeenCalledTimes(1);
   });
 });

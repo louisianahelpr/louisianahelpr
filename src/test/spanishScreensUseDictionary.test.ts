@@ -144,6 +144,14 @@ const CONVERTED = [
   "src/components/shops/ShopMyOrdersView.tsx",
   "src/components/shops/ShopReviews.tsx",
   "src/components/shops/PublicShopView.tsx",
+  // Area 07 pass 2: the shop owner's dashboard, its Products and its settings (the option words themselves come from
+  // orders.ts / handover.ts, which PR #4702 rewrites; ShopHandoverModePicker also holds the buyer's HandoverModeNote).
+  "src/components/shops/ShopDashboardView.tsx",
+  "src/components/shops/ShopDashboardProducts.tsx",
+  "src/components/shops/ShopDeliveryPicker.tsx",
+  "src/components/shops/ShopCustomOrdersPicker.tsx",
+  "src/components/shops/ShopCancelPolicyPicker.tsx",
+  "src/components/shops/shopSettingsUi.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */

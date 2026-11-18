@@ -27,8 +27,12 @@ const FILES = [
 ];
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
 
-/** Suppressed (renders:false) toasts app-wide on 10-31 after LEAD-TOAST2, SS-2 and LEAD-TOAST3 (81). Never raise it. */
-const SUPPRESSED_CEILING = 81;
+/**
+ * Suppressed (renders:false) toasts app-wide. 79 on 2026-11-18 (Area 07 pass 2, M5): -2, the shop handover-mode and
+ * cancel-rule "saved" toasts became the settings' inline "Saved. New orders use it." line (ShopSettingSaved).
+ * 81 on 10-31 after LEAD-TOAST2, SS-2 and LEAD-TOAST3. Never raise it.
+ */
+const SUPPRESSED_CEILING = 79;
 
 describe("Declutter handover, problem and refund confirmations are shown", () => {
   it("reads the screens (floor: they raise toasts)", () => {

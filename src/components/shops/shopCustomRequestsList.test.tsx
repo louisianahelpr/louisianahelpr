@@ -103,7 +103,9 @@ describe("S2-017: custom requests that need an answer are not buried", () => {
     const { resolve } = await import("node:path");
     const dash = readFileSync(resolve(__dirname, "ShopDashboardView.tsx"), "utf8");
     expect(dash.indexOf('<ShopCustomRequestsList side="shop" />')).toBeGreaterThan(-1);
-    expect(dash.indexOf('<ShopCustomRequestsList side="shop" />')).toBeLessThan(dash.indexOf('id="shop-waiting"'));
+    // Area 07 M4: under the "Needs you · N" head (requests + orders), above the waiting orders.
+    expect(dash.indexOf('<ShopCustomRequestsList side="shop" />')).toBeGreaterThan(dash.indexOf('head("answer", waiting.length + newRequests)'));
+    expect(dash.indexOf('<ShopCustomRequestsList side="shop" />')).toBeLessThan(dash.indexOf("waiting.map("));
     expect(dash).toMatch(/count: waiting\.length \+ newRequests/);
     const mine = readFileSync(resolve(__dirname, "ShopMyOrdersView.tsx"), "utf8");
     expect(mine.indexOf('<ShopCustomRequestsList side="buyer" />')).toBeLessThan(mine.indexOf("<NoOrdersYet />"));

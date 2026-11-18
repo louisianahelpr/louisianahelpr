@@ -506,8 +506,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/shops/ShopDashboardView.tsx` | textarea×1 |  |  | Loading your shop · shop-waiting · shop-order-time-left · shop-accepted · shop-earlier · shop-decline-reason · Booked up that day · Pickup and delivery |
-| `src/components/shops/ShopDeliveryPicker.tsx` | input×2 | text |  | shop-delivery-offer · Do you deliver? · shop-delivery-price · shop-delivery-price-help · shop-delivery-radius · shop-delivery-radius-help · shop-helpr-delivery · Helpr delivery |
+| `src/components/shops/ShopDashboardView.tsx` | textarea×1 |  |  | shop-dashboard-columns · shop-settings-jump · shop-order-time-left · shop-settings · shop-settings-head · shop-decline-reason · shop-handover-settings-toggle · shop-handover-settings |
+| `src/components/shops/ShopDeliveryPicker.tsx` | input×2 | text |  | shop-delivery-offer · shop-delivery-price · shop-delivery-price-help · shop-delivery-radius · shop-delivery-radius-help · shop-delivery-save · shop-helpr-delivery |
 
 ## /shops/mine
 

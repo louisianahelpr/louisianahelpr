@@ -18,7 +18,7 @@
  * @mutate src/lib/declutter/browseFilters.ts |     maxMiles: positive(p.get("mi")), |     maxMiles: positive(p.get("mi")) ?? 25,
  * @mutate src/components/MobileNav.tsx |             <div className="flex items-stretch h-14 px-1.5"> |             <div className="flex items-stretch h-14 px-1.5"><button aria-label="Post a new job"><Plus /></button>
  * @mutate src/components/sections/SectionCreateFab.tsx |       <Plus aria-hidden />\n      {!folded && text} |       <Plus aria-hidden /><Plus aria-hidden />\n      {!folded && text}
- * @mutate src/components/shops/ShopDashboardView.tsx | <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill> | <Button className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</Button>
+ * @mutate src/components/shops/ShopDashboardView.tsx | <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>{tr("shb.openShop")}</SectionActionPill> | <Button className="mt-3" onClick={() => navigate("/shops/mine")}>{tr("shb.openShop")}</Button>
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3" onClick={() => navigate("/declutter")}>
  * @mutate src/components/DesktopSidebarNav.tsx |           data-testid="sidebar-create" |           data-testid="sidebar-made"
  */
@@ -136,7 +136,7 @@ describe("design tweaks (owner 2026-10-18)", () => {
     const pills: Array<[string, RegExp]> = [
       // Declutter's add action is its own pill (no section "+" in the header since owner 2026-10-28).
       ["src/components/declutter/DeclutterHomeView.tsx", /<SectionActionPill className="mt-3" onClick=\{\(\) => navigate\(sectionByKey\("declutter"\)\.add\.path\)\}>/],
-      ["src/components/shops/ShopDashboardView.tsx", /<SectionActionPill[\s\S]{0,200}Open a shop/],
+      ["src/components/shops/ShopDashboardView.tsx", /<SectionActionPill[\s\S]{0,200}shb\.openShop/],
       ["src/components/rentals/RentalsHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Add a property/],
       // Jobs' add action is the desktop rail's "+ Create" (owner 2026-10-28: "do we need the post a job since the
       // create is to post"); on a phone the floating create pill, asserted above.

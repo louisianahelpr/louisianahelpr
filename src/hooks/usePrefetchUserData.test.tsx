@@ -97,11 +97,11 @@ describe("usePrefetchUserData", () => {
     expect(prefetchPayoutSetupMock).not.toHaveBeenCalled();
   });
 
-  it("prefetches referral + activity data with the userId when provided", () => {
+  it("prefetches referral + activity data with the userId when provided", async () => {
     const { wrapper } = makeWrapper();
     renderHook(() => usePrefetchUserData("user-1"), { wrapper });
 
-    expect(fetchReferralMock).toHaveBeenCalledWith("user-1");
+    await vi.waitFor(() => expect(fetchReferralMock).toHaveBeenCalledWith("user-1"));
     expect(prefetchActivityCoresMock).toHaveBeenCalledWith(expect.anything(), "user-1");
   });
 
@@ -117,13 +117,13 @@ describe("usePrefetchUserData", () => {
     expect(routes.slice().sort()).toEqual(["/jobs", "/posts", "/profile"]);
   });
 
-  it("warms the SLOW Stripe-class payout query — the whole point of the hook", () => {
+  it("warms the SLOW Stripe-class payout query — the whole point of the hook", async () => {
     const { wrapper, client } = makeWrapper();
     renderHook(() => usePrefetchUserData("user-1"), { wrapper });
-    expect(prefetchPayoutSetupMock).toHaveBeenCalledWith(client, "user-1");
+    await vi.waitFor(() => expect(prefetchPayoutSetupMock).toHaveBeenCalledWith(client, "user-1"));
   });
 
-  it("falls back to setTimeout when requestIdleCallback unavailable", () => {
+  it("falls back to setTimeout when requestIdleCallback unavailable", async () => {
     Reflect.deleteProperty(window, "requestIdleCallback");
     vi.useFakeTimers();
     const { wrapper } = makeWrapper();
@@ -135,14 +135,15 @@ describe("usePrefetchUserData", () => {
     vi.advanceTimersByTime(500);
 
     // After 400ms timeout: fired
-    expect(fetchReferralMock).toHaveBeenCalledWith("user-1");
+    expect(prefetchRouteMock).toHaveBeenCalledTimes(3);
+    await vi.waitFor(() => expect(fetchReferralMock).toHaveBeenCalledWith("user-1"));
     vi.useRealTimers();
   });
 
   // Q1158: "idle" is the main thread, and the main thread is idle while the
   // Dashboard waits on its own reads, so the warm-up went out beside them
   // (cold /home, 375, Slow 4G: every warm-up started ~0.1 s after first draw).
-  it("warms NOTHING until the page has settled, then everything", () => {
+  it("warms NOTHING until the page has settled, then everything", async () => {
     let settle: (() => void) | undefined;
     whenPageSettledMock.mockImplementation((cb: () => void) => {
       settle = cb;
@@ -158,7 +159,7 @@ describe("usePrefetchUserData", () => {
     expect(prefetchPayoutSetupMock).not.toHaveBeenCalled();
 
     settle!();
-    expect(fetchReferralMock).toHaveBeenCalledWith("user-1");
+    await vi.waitFor(() => expect(fetchReferralMock).toHaveBeenCalledWith("user-1"));
     expect(prefetchActivityCoresMock).toHaveBeenCalledWith(expect.anything(), "user-1");
     expect(prefetchRouteMock).toHaveBeenCalledTimes(3);
     expect(prefetchPayoutSetupMock).toHaveBeenCalledTimes(1);
@@ -173,6 +174,18 @@ describe("usePrefetchUserData", () => {
     expect(stop).toHaveBeenCalledTimes(1);
   });
 
+  // Q2705 pass 2: the readers load inside the idle callback; a page left before they arrive warms nothing.
+  it("warms no data when the page is left while the warm-up code is still loading", async () => {
+    const { wrapper } = makeWrapper();
+    const { unmount } = renderHook(() => usePrefetchUserData("user-1"), { wrapper });
+    expect(prefetchRouteMock).toHaveBeenCalledTimes(3);
+    unmount();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(fetchReferralMock).not.toHaveBeenCalled();
+    expect(prefetchActivityCoresMock).not.toHaveBeenCalled();
+    expect(prefetchPayoutSetupMock).not.toHaveBeenCalled();
+  });
+
   it("warms nothing on Save-Data / a 2G-class link", () => {
     isConstrainedNetworkMock.mockReturnValue(true);
     const { wrapper } = makeWrapper();
@@ -183,17 +196,17 @@ describe("usePrefetchUserData", () => {
     expect(prefetchPayoutSetupMock).not.toHaveBeenCalled();
   });
 
-  it("re-prefetches when userId changes (account swap)", () => {
+  it("re-prefetches when userId changes (account swap)", async () => {
     const { wrapper } = makeWrapper();
     const { rerender } = renderHook(
       ({ uid }) => usePrefetchUserData(uid),
       { wrapper, initialProps: { uid: "user-1" as string | undefined } },
     );
 
-    expect(fetchReferralMock).toHaveBeenCalledWith("user-1");
+    await vi.waitFor(() => expect(fetchReferralMock).toHaveBeenCalledWith("user-1"));
 
     rerender({ uid: "user-2" });
-    expect(fetchReferralMock).toHaveBeenCalledWith("user-2");
+    await vi.waitFor(() => expect(fetchReferralMock).toHaveBeenCalledWith("user-2"));
     expect(fetchReferralMock).toHaveBeenCalledTimes(2);
   });
 });
@@ -201,3 +214,4 @@ describe("usePrefetchUserData", () => {
 // @mutate src/hooks/usePrefetchUserData.ts | setTimeout(cb, 400); | setTimeout(cb, 4000);
 // @mutate src/hooks/usePrefetchUserData.ts | const stopWaiting = whenPageSettled(() => idle(() => { | const stopWaiting = ((f: () => void) => { f(); return () => {}; })(() => idle(() => {
 // @mutate src/hooks/usePrefetchUserData.ts | prefetchPayoutSetup(queryClient, userId); | void 0;
+// @mutate src/hooks/usePrefetchUserData.ts |         if (cancelled) return; |         if (cancelled) void 0;

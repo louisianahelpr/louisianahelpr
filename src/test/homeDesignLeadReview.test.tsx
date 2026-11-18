@@ -52,7 +52,7 @@ const unread = vi.hoisted(() => ({ n: 0 }));
 const todo = vi.hoisted(() => ({ jobs: 0 }));
 const desktop = vi.hoisted(() => ({ on: false }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
-vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => new Set(["declutter", "shops", "rentals"]) })); // launched: an unlaunched section is not listed (owner 2026-11-17)
 // S2-016: the navs read the member's unread shop chats for the badge; none here.
 vi.mock("@/lib/shops/talkUnread", () => ({ SHOP_TALKS_SUMMARY_KEY: ["shops", "my-talks", "summary"], SHOP_TALKS_UNREAD_EVENT: "lh-shop-talks-unread", fetchShopTalkSummary: async () => ({ total: 0, unread: 0 }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));

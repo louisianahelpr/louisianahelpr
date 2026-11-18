@@ -5,6 +5,9 @@
  * "Any distance"; "Turn on alerts" only in Jobs (the only real alert).
  *
  * @mutate src/components/sections/BrowseEndCard.tsx |         title={onWiden ? "That's everything nearby." : "That's everything for now."} |         title="That's everything nearby."
+ * Owner 2026-11-17 (signed-in tweaks, item 3): no round check-mark disc (it read as a stray button); Jobs' line is its own.
+ * @mutate src/components/sections/BrowseEndCard.tsx |     <div data-testid="browse-end-card" className="flex flex-col items-center gap-1 px-4 pt-4 pb-6 text-center"> |     <div data-testid="browse-end-card" className="flex flex-col items-center gap-1 px-4 pt-4 pb-6 text-center"><svg className="lucide-circle-check" />
+ * @mutate src/components/dashboard/BrowseTasksFeed.tsx |               title={nearby ? "That's every open job near you." : "That's every open job for now."} |
  * @mutate src/components/shops/ShopsHomeView.tsx | && <BrowseEndCard />} | && null}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |           onWiden={from && maxMiles !== null ? | onWiden={from ?
  */
@@ -32,6 +35,20 @@ describe("BrowseEndCard", () => {
     expect(screen.getByText("Check back soon.")).toBeTruthy();
     expect(screen.queryAllByRole("button")).toEqual([]);
     expect(document.body.textContent).not.toMatch(/soon\b.*alerts|coming soon/i);
+  });
+});
+
+describe("owner 2026-11-17: plain text, no icon disc", () => {
+  it("draws no icon besides the alerts bell, and takes the section's own line", () => {
+    const { container } = render(<BrowseEndCard onWiden={() => {}} onAlerts={() => {}} title="That's every open job near you." />);
+    expect(screen.getByText("That's every open job near you.")).toBeTruthy();
+    // Inventory floor: the one bell inside "Turn on alerts".
+    const svgs = [...container.querySelectorAll("svg")];
+    expect(svgs.length).toBeGreaterThan(0);
+    expect(svgs.every((el) => !!el.closest("button"))).toBe(true);
+  });
+  it("Jobs passes its own end line", () => {
+    expect(src("src/components/dashboard/BrowseTasksFeed.tsx")).toContain(`title={nearby ? "That's every open job near you." : "That's every open job for now."}`);
   });
 });
 

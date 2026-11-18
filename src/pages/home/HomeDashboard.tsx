@@ -137,7 +137,8 @@ function HomeDashboardScreen() {
   }, [myHandle, myId, queryClient]);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
-  const isLive = (s: (typeof visible)[number]) => s.feature === null || !!live.find((tab) => tab.path === s.path)?.on;
+  // Owner 2026-11-17: an unlaunched section (Shops, Homes for a tester) gets no chip either, the same `listed` answer.
+  const isLive = (s: (typeof visible)[number]) => s.feature === null || (!!live.find((tab) => tab.path === s.path)?.on && live.find((tab) => tab.path === s.path)?.listed !== false);
   // M8 (owner 11-16): a closed section is not listed, so it is not named in the "opening soon" line either.
   const soonLine = openingSoonLine(visible.filter((s) => !isLive(s) && live.find((tab) => tab.path === s.path)?.listed !== false).map(sectionLabel), { and: t("home.and"), one: t("home.soonOne"), many: t("home.soonMany") });
   const isWebDesktop = useIsWebDesktop();

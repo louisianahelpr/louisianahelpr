@@ -5,7 +5,10 @@
  * section not open to this viewer has no tiles; ONE line names every such
  * section (owner 2026-10-21: "Homes is opening soon").
  *
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |                   {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>} |                   {<><span aria-hidden="true"> ·</span> {n} {word}</>}
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |             const status = n > 0 ? `${n} ${word}` : t.count && summary.countsKnown?.[t.count] ? "None yet" : ""; |             const status = `${n} ${word}`;
+ * Owner 2026-11-17 (signed-in tweaks, item 8): a count that has answered 0 says "None yet"; one still loading says nothing.
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |             const status = n > 0 ? `${n} ${word}` : t.count && summary.countsKnown?.[t.count] ? "None yet" : ""; |             const status = n > 0 ? `${n} ${word}` : t.count ? "None yet" : "";
+ * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |         working: !applied.loading && !applied.loadError && applied.appliedApps !== undefined, |         working: true,
  * F088 (owner UI audit 11-09): each count carries its status word ("2 live").
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |   posted: "live", |   posted: "",
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |   const open = visible.filter((s) => isOn(s) && isListedHere(s)); |   const open = visible;
@@ -15,10 +18,8 @@
  * @mutate src/components/profile/profileLanding/headingContract.ts | export const PROFILE_PAGE_TITLE = "You"; | export const PROFILE_PAGE_TITLE = "Profile";
  * @mutate src/components/profile/ProfileLanding.tsx |       <YourActivity /> |       {null}
  *
- * F087 (owner UI audit 11-09): a tester's preview sections (Shops, Homes: on for them, not open to everyone) showed
- * live-looking tiles. They carry the Coming soon badge inside, slightly dimmed (owner 11-09 badge rule).
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 {preview && <>{" "}<PreviewPill className="self-start mt-auto" /></>} |
- * @mutate src/components/profile/profileLanding/YourActivity.tsx | style={preview ? { opacity: 0.75 } : undefined} | style={undefined}
+ * F087 (owner UI audit 11-09) badged a tester's preview tiles "Coming soon"; owner 2026-11-17 (signed-in tweaks, item 1):
+ * a section not yet open to everyone has no tiles at all, for a tester too, until it launches.
  *
  * F449 (audit 11-10): at 375 the tile's count line read "Buying · 1 in ..." (truncate); the words wrap instead.
  * @mutate src/components/profile/profileLanding/YourActivity.tsx | text-foreground break-words${ | text-foreground truncate${
@@ -35,10 +36,12 @@ vi.mock("sonner", () => ({ toast }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null }) }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 const openAnswer = vi.hoisted(() => ({ value: null as ReadonlySet<string> | null }));
+const ALL_KNOWN = { posted: true, working: true, selling: true, shopOrders: true, buying: true };
+const known = vi.hoisted(() => ({ value: { posted: true, working: true, selling: true, shopOrders: true, buying: true } as Record<string, boolean> }));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => openAnswer.value }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k !== "rentals" }));
 vi.mock("@/pages/home/homeDashboard/useHomeSummary", () => ({
-  useHomeSummary: () => ({ counts: { posted: 2, working: 0, selling: 1, shopOrders: 0, buying: 3 } }),
+  useHomeSummary: () => ({ counts: { posted: 2, working: 0, selling: 1, shopOrders: 0, buying: 3 }, countsKnown: known.value }),
 }));
 vi.mock("@/components/sections/useSectionPrefs", async () => {
   const { SECTIONS } = await import("@/components/sections/sectionsConfig");
@@ -51,7 +54,7 @@ import { PROFILE_PAGE_TITLE } from "@/components/profile/profileLanding/headingC
 
 let path = "";
 function Where() { path = useLocation().pathname + useLocation().search; return null; }
-afterEach(() => { cleanup(); toast.mockClear(); openAnswer.value = null; });
+afterEach(() => { cleanup(); toast.mockClear(); openAnswer.value = null; known.value = { ...ALL_KNOWN }; });
 
 describe("You matches board 18", () => {
   it("is named You: the h1 constant, rendered by ProfileLanding, and the browser tab", () => {
@@ -68,31 +71,35 @@ describe("You matches board 18", () => {
     const tiles = screen.getAllByRole("button");
     expect(Object.values(ACTIVITY_TILES).flat().length).toBe(8);
     expect(tiles.map((t) => t.textContent)).toEqual([
-      "Jobs Posted · 2 live", "Jobs Working", "Declutter Buying · 3 in progress", "Declutter Selling · 1 live", "Shops Orders", "Shops My shop",
+      "Jobs Posted · 2 live", "Jobs Working · None yet", "Declutter Buying · 3 in progress", "Declutter Selling · 1 live",
     ]);
     // M8/M9 (owner 11-16): Homes, closed to this member, is not named anywhere (it was "Homes is opening soon").
     expect(screen.queryByTestId("you-activity-soon")).toBeNull();
     expect(screen.queryByText(/Homes/)).toBeNull();
   });
 
-  it("F087: a tester's preview section (on for them, not open to everyone) wears the Coming soon badge, dimmed", () => {
-    // Shops is on for this viewer (useFeature mock) and only Declutter is open to everyone.
+  it("owner 11-17: a tester's unlaunched section (on for them, not open to everyone) has no tiles; launched, it has", () => {
+    // Shops is on for this viewer (useFeature mock); only Declutter is open to everyone.
     openAnswer.value = new Set(["declutter"]);
-    const { container } = render(<MemoryRouter><YourActivity /><Where /></MemoryRouter>);
-    const tiles = [...container.querySelectorAll("[data-activity-tile]")] as HTMLElement[];
-    expect(tiles.length).toBeGreaterThan(4);
-    const shops = tiles.filter((t) => t.dataset.activityTile!.startsWith("shops:"));
-    expect(shops).toHaveLength(2);
-    for (const t of shops) {
-      expect(t.dataset.preview).toBe("true");
-      expect(t.querySelector("[data-preview-pill]")?.textContent).toBe("Coming soon");
-      expect(t.style.opacity).toBe("0.75");
-    }
-    // Jobs and Declutter are live for everyone: no badge, no dim.
-    for (const t of tiles.filter((t) => !t.dataset.activityTile!.startsWith("shops:"))) {
-      expect(t.querySelector("[data-preview-pill]")).toBeNull();
-      expect(t.style.opacity).toBe("");
-    }
+    const { container, unmount } = render(<MemoryRouter><YourActivity /><Where /></MemoryRouter>);
+    const keys = () => [...container.querySelectorAll("[data-activity-tile]")].map((t) => (t as HTMLElement).dataset.activityTile!);
+    expect(keys().length).toBeGreaterThan(3);
+    expect(keys().filter((k) => k.startsWith("shops:"))).toEqual([]);
+    expect(container.querySelector("[data-preview-pill]")).toBeNull();
+    unmount();
+    openAnswer.value = new Set(["declutter", "shops"]);
+    const again = render(<MemoryRouter><YourActivity /><Where /></MemoryRouter>);
+    const shops = [...again.container.querySelectorAll("[data-activity-tile]")].map((t) => (t as HTMLElement).dataset.activityTile!).filter((k) => k.startsWith("shops:"));
+    expect(shops).toEqual(["shops:Orders", "shops:My shop"]);
+  });
+
+  it("owner 11-17: a 0 count says 'None yet' only once its read has answered; still loading, the tile is its label", () => {
+    known.value = { ...ALL_KNOWN, working: false };
+    render(<MemoryRouter><YourActivity /><Where /></MemoryRouter>);
+    const tiles = screen.getAllByRole("button").map((t) => t.textContent);
+    expect(tiles.length).toBeGreaterThan(3);
+    expect(tiles).toContain("Jobs Working");
+    expect(tiles).not.toContain("Jobs Working · None yet");
   });
 
   it("an open tile routes to its tab; a closed section has no tile to tap", () => {

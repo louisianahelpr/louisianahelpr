@@ -131,6 +131,11 @@ div.lh25.lh25 {
   border-bottom: 1px solid var(--line);
 }
 .lh25-trust li { display: flex; align-items: center; gap: 8px; line-height: 1.4; }
+/* Design audit r2 #21: below 1024px the 2x2 strip wrapped each label to 2-3 lines (12px uppercase, .12em tracking in a
+   ~165px cell). There it reads in sentence case with tight tracking, so each label fits its cell. */
+@media (max-width: 1023px) {
+  .lh25-trust { letter-spacing: .02em; text-transform: none; font-size: 13px; }
+}
 
 /* ── Sections ────────────────────────────────────────────────────────── */
 .lh25-main { display: block; }

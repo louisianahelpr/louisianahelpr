@@ -212,3 +212,14 @@ describe("design audit r2 #22: back-to-top matches the 25 Days page", () => {
     expect(src).toContain("...(onGiveawayPage(pathname) ? GIVEAWAY_LOOK : null),");
   });
 });
+
+/**
+ * #21 (25 Days): the trust strip wrapped 2-3 lines per label at 390/768. Below 1024px it drops the uppercase tracking.
+ * @mutate src/pages/sponsor/sponsor.css |   .lh25-trust { letter-spacing: .02em; text-transform: none; font-size: 13px; } |   .lh25-trust { }
+ */
+describe("design audit r2 #21: the 25 Days trust strip fits below 1024px", () => {
+  it("sponsor.css untracks and un-uppercases the strip under 1024px", () => {
+    const css = readFileSync("src/pages/sponsor/sponsor.css", "utf8");
+    expect(css).toMatch(/@media \(max-width: 1023px\) \{\s*\.lh25-trust \{ letter-spacing: \.02em; text-transform: none; font-size: 13px; \}/);
+  });
+});

@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enNotifPrefs";
 import { Label } from "@/components/ui/label";
 import { Moon } from "lucide-react";
 import { QuietHoursClock } from "@/components/profile/QuietHoursClock";
@@ -44,7 +46,7 @@ export function QuietHoursCard({ prefs, quietEnabled, toggleQuiet, patchPrefs, l
               className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Quiet hours
+              {t("np.quiet.label")}
             </Label>
             {/* Was "Mute non-critical pushes overnight. Security alerts still
                 fire." — the second sentence is the same false promise as the
@@ -63,7 +65,7 @@ export function QuietHoursCard({ prefs, quietEnabled, toggleQuiet, patchPrefs, l
                 to the orchestrator rather than papered over in copy — the
                 times below deliberately carry no "local" claim. */}
             <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Hold app notifications overnight. Everything still shows in your notifications.
+              {t("np.quiet.desc")}
             </p>
           </div>
         </div>
@@ -99,15 +101,15 @@ export function QuietHoursCard({ prefs, quietEnabled, toggleQuiet, patchPrefs, l
             >
               —
             </span>
-            <span className="sr-only">Push-only, no email version</span>
+            <span className="sr-only">{t("np.pushOnly")}</span>
           </div>
         </div>
       </div>
       {quietEnabled && (
         <div className="mt-2 flex items-start gap-3 pl-[2.375rem]">
           <div className="flex-1 flex items-center gap-2 flex-wrap">
-            <QuietTimeInput label="From" ariaLabel="Quiet hours start time" value={prefs.quiet_start ?? "22:00"} onChange={(v) => void patchPrefs({ quiet_start: v }, "quiet_hours")} disabled={locked || !prefs.push_enabled || saving} />
-            <QuietTimeInput label="to" ariaLabel="Quiet hours end time" value={prefs.quiet_end ?? "07:00"} onChange={(v) => void patchPrefs({ quiet_end: v }, "quiet_hours")} disabled={locked || !prefs.push_enabled || saving} />
+            <QuietTimeInput label={t("np.quiet.from")} ariaLabel="Quiet hours start time" value={prefs.quiet_start ?? "22:00"} onChange={(v) => void patchPrefs({ quiet_start: v }, "quiet_hours")} disabled={locked || !prefs.push_enabled || saving} />
+            <QuietTimeInput label={t("np.quiet.to")} ariaLabel="Quiet hours end time" value={prefs.quiet_end ?? "07:00"} onChange={(v) => void patchPrefs({ quiet_end: v }, "quiet_hours")} disabled={locked || !prefs.push_enabled || saving} />
           </div>
           {/* Visual donut — translates the start/end times into a 24hr
               arc so it's immediately clear *which* hours are muted.

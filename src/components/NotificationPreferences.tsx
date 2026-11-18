@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enNotifPrefs";
 import type { ReactNode } from "react";
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
@@ -382,13 +384,13 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
             className="flex items-center justify-center gap-1 w-[51px] font-sans uppercase text-ds-10"
             style={{ color: "hsl(var(--muted-foreground))", letterSpacing: "0.08em" }}
           >
-            <Smartphone className="w-3 h-3 shrink-0" /> App
+            <Smartphone className="w-3 h-3 shrink-0" /> {t("np.h.app")}
           </div>
           <div
             className="flex items-center justify-center gap-1 w-[51px] font-sans uppercase text-ds-10"
             style={{ color: "hsl(var(--muted-foreground))", letterSpacing: "0.08em" }}
           >
-            <Mail className="w-3 h-3 shrink-0" /> Email
+            <Mail className="w-3 h-3 shrink-0" /> {t("np.h.email")}
           </div>
         </div>
       </div>
@@ -442,7 +444,7 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
               className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              All notifications
+              {t("np.all")}
             </Label>
           </div>
         </div>
@@ -471,7 +473,7 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
             // `toggle()` names its spinner after the column it writes, so the
             // id has to follow which path toggleEmailMaster took.
             savingId={emailMasterColumn ? "email_enabled" : "email_master"}
-            title="Off mutes every email below. Your per-category choices are kept."
+            title={t("np.emailMasterTitle")}
           />
         </div>
       </div>
@@ -571,8 +573,8 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {/* Area 08 M17 (design audit 11-18): named a "System Alerts" row that does not exist, in system words. */}
-          Safety and dispute alerts arrive under Account and safety alerts.
-          Password and sign-in emails always send.
+          {t("np.footer.safety")}{" "}
+          {t("np.footer.auth")}
         </p>
       </div>
     </div>

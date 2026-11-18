@@ -1,3 +1,6 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enNotifPrefs";
+import { jobReminderWords } from "@/lib/i18n/notifPrefWords";
 import { useEffect, useState } from "react";
 import { BellRing } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -98,17 +101,17 @@ export function JobRemindersGroup({
         data-testid="job-reminders-group"
       >
         <h2 className="font-sans font-semibold text-ds-13 mb-0" style={{ color: "hsl(var(--ink-deep))" }}>
-          Job reminders
+          {t("np.jr.title")}
         </h2>
         <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Reminders about jobs you're booked on. Each switch covers app, email and text. The ones a job can't work without are always on.
+          {t("np.jr.desc")}
         </p>
       </div>
       {state === "failed" ? (
         <div className="px-3 min-[360px]:px-4 py-2.5">
           <ErrorState
             variant="inline"
-            title="We couldn't load your job reminders."
+            title={t("np.jr.loadFailed")}
             onRetry={() => {
               setState("loading");
               setAttempt((a) => a + 1);
@@ -116,15 +119,15 @@ export function JobRemindersGroup({
           />
         </div>
       ) : (
-        (types ?? []).map((t) => {
-          const key = isReminderKey(t.pref_column) ? t.pref_column : null;
-          if (!t.always_on && !key) return null;
+        (types ?? []).map((r) => {
+          const key = isReminderKey(r.pref_column) ? r.pref_column : null;
+          if (!r.always_on && !key) return null;
           return (
             <div
-              key={t.kind}
+              key={r.kind}
               className="flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0"
               style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.08)" }}
-              data-testid={`job-reminder-${t.kind}`}
+              data-testid={`job-reminder-${r.kind}`}
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <span
@@ -135,10 +138,10 @@ export function JobRemindersGroup({
                 </span>
                 <div className="min-w-0">
                   <Label className="font-sans font-semibold block text-ds-14 mb-0" style={{ color: "hsl(var(--ink-deep))" }}>
-                    {t.label}
+                    {jobReminderWords(r.kind, "l", r.label)}
                   </Label>
                   <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {t.description}
+                    {jobReminderWords(r.kind, "d", r.description)}
                   </p>
                 </div>
               </div>
@@ -152,12 +155,12 @@ export function JobRemindersGroup({
                     checked={prefs[key] === true}
                     onCheckedChange={() => onToggle(key)}
                     disabled={locked || !columnsReady(key)}
-                    ariaLabel={`${t.label} reminder`}
+                    ariaLabel={`${jobReminderWords(r.kind, "l", r.label)} reminder`}
                     savingId={key}
                   />
                 ) : (
                   <span className="font-sans font-semibold text-ds-12 whitespace-nowrap" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    Always on
+                    {t("np.jr.alwaysOn")}
                   </span>
                 )}
               </div>

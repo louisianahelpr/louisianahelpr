@@ -228,6 +228,14 @@ div.lh25.lh25 {
 .lh25-lineup-brand { font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
 .lh25-lineup-prize { font-size: 14.5px; color: var(--muted); overflow-wrap: anywhere; }
 
+/* Design audit r2 #18: the recurring brand's one line above the cards, and the phone-only week buttons
+   (Sections.tsx Lineup). Under 640px a week not yet opened is hidden; from 640px every day shows and no button does. */
+.lh25-lineup-recurring { max-width: 640px; margin: 0 auto 18px; font-size: 15px; color: var(--green); }
+.lh25-lineup-more-row { grid-column: 1 / -1; display: flex; justify-content: center; }
+@media (max-width: 639.98px) {
+  .lh25-lineup-day.lh25-lineup-later { display: none; }
+}
+
 /* Testimonials */
 .lh25-quote blockquote { margin: 0 0 12px; font-size: 17px; font-style: italic; color: var(--ink); }
 .lh25-quote figcaption { color: var(--ox); font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; }
@@ -361,6 +369,7 @@ div.lh25.lh25 {
   .lh25-grid-gets { grid-template-columns: repeat(2, 1fr); }
   .lh25-steps { grid-template-columns: repeat(2, 1fr); }
   .lh25-lineup { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lh25-lineup-more-row { display: none; }
   .lh25-hero { padding: 56px 24px 60px; }
 }
 @media (min-width: 960px) {

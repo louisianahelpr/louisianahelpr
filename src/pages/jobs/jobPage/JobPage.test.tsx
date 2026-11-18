@@ -1722,7 +1722,7 @@ describe("one row of buttons at every stage (B93)", () => {
     state.tracking = "working";
     renderPage();
     // F291a (audit 11-10): the Helpr's button says what the case sheet lets them do.
-    await untilOffered("Add your side");
+    await untilOffered("Add photos");
     expect(pageActions()).not.toContain("Not finished? Set a day");
   });
 
@@ -1766,7 +1766,9 @@ describe("one row of buttons at every stage (B93)", () => {
     state.party = true;
     renderPage();
     await waitFor(() => expect(rowLabels()).toEqual(["More options", "Leave a review"]));
-    expect(document.querySelector("[data-helpr-paid]")?.textContent).toMatch(/^Approved\. Your pay goes out /);
+    // Area 04 #31 (11-18): the payout day alone ("Thu, Nov 19."), never "at 1:16 AM".
+    // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | at ? `Approved. Your pay goes out ${payoutDay(at)}.` | at ? `Approved. Your pay goes out ${payoutWhen(at)}.`
+    expect(document.querySelector("[data-helpr-paid]")?.textContent).toMatch(/^Approved\. Your pay goes out \w{3}, \w{3} \d{1,2}\.$/);
     // Q2598 (Jobs audit 1102b row 12): the same name alone in More options as in a pair, never "Open in working".
     // @mutate src/pages/jobs/jobPage/JobPage.tsx | const OPEN_IN_JOBS = "Open in Jobs"; | const OPEN_IN_JOBS = "Open in working";
     fireEvent.click(screen.getByRole("button", { name: "More options" }));
@@ -1931,17 +1933,18 @@ describe("job page: the booked job's clock, as its card shows it (JA-34)", () =>
 /**
  * JA-30 (Jobs audit 11-01): a disputed job's page says when they hear back AND links to the case.
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | const seeCase: RowAction \| null = party && (isPoster \|\| isHired) && | const seeCase: RowAction \| null = false && party && (isPoster \|\| isHired) &&
- * F291a (audit 11-10): the hired Helpr's name for it is "Add your side" (the case sheet takes their photos); the poster's stays.
+ * F291a (audit 11-10): the hired Helpr's name for it is "Add photos" (Area 04 #16, 11-18: was "Add your side", but the case
+ * sheet takes photos only, no written side); the poster's stays.
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | label: t(isHired && job.has_active_dispute ? "jobPage.addYourSide" : "jobPage.seeCase") | label: t("jobPage.seeCase")
  */
 describe("job page, a disputed job (JA-30)", () => {
-  it("both parties get the case button (the Helpr's 'Add your side', the poster's 'See the case'), which opens the dispute's own case view", async () => {
+  it("both parties get the case button (the Helpr's 'Add photos', the poster's 'See the case'), which opens the dispute's own case view", async () => {
     for (const viewer of [ME, POSTER]) {
       state.job = row({ customer_id: POSTER, helper_id: ME, status: "disputed", payment_status: "escrow", has_active_dispute: true });
       state.party = true;
       renderPage(viewer);
       // Owner pick 11-08 (JP2): one of the bar's actions (the secondary, or in its "..." menu).
-      await pressWhenOffered(viewer === ME ? "Add your side" : "See the case");
+      await pressWhenOffered(viewer === ME ? "Add photos" : "See the case");
       expect((await screen.findByTestId("dispute-case")).getAttribute("data-job")).toBe(state.job.id);
       cleanup();
     }

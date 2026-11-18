@@ -1,10 +1,10 @@
 /**
  * Spec v2 §2 --photo-empty (Builder 1 request, 2026-10-20): an empty or
- * loading Declutter photo paints warm sand (#DCD5C7 light, #3A3731 dark),
- * never the cool grey of bg-muted. The token is declared in both themes,
+ * loading Declutter photo paints its own placeholder token (#D3D3CF neutral light since owner 2026-11-17 "white
+ * everywhere", was warm #DCD5C7; #3A3731 dark), not bg-muted. The token is declared in both themes,
  * exposed to Tailwind, and every Declutter photo frame (an <img> or an
  * aspect-ratio photo box, incl. skeletons) wears it.
- * @mutate src/index.css |   --photo-empty: 40 23% 82%; |   --photo-empty: 220 13% 91%;
+ * @mutate src/index.css |   --photo-empty: 60 4% 82%; |   --photo-empty: 220 13% 91%;
  * @mutate src/components/declutter/DeclutterItemCard.tsx | overflow-hidden rounded-xl bg-photo-empty lg:aspect-[4/5]"> | overflow-hidden rounded-xl bg-muted lg:aspect-[4/5]">
  * @mutate src/components/declutter/itemPhotoFrame.ts | item: "aspect-square max-h-[52dvh] max-sm:rounded-none sm:max-h-[max(55dvh,calc(100dvh-400px))] sm:aspect-[4/3] bg-photo-empty" | item: "aspect-square max-h-[52dvh] max-sm:rounded-none sm:max-h-[max(55dvh,calc(100dvh-400px))] sm:aspect-[4/3] bg-muted"
  */
@@ -17,10 +17,10 @@ import { blankComments, blankCssComments } from "./helpers/blankNonCode";
 const ROOT = join(import.meta.dirname, "..", "..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 
-describe("Declutter photos paint --photo-empty, never cool grey", () => {
+describe("Declutter photos paint --photo-empty, not bg-muted", () => {
   it("the token is declared in light and dark with the spec's values, and Tailwind exposes it", () => {
     const css = blankCssComments(read("src/index.css"));
-    expect(css).toMatch(/--photo-empty:\s*40 23% 82%;/);
+    expect(css).toMatch(/--photo-empty:\s*60 4% 82%;/);
     const dark = css.slice(css.indexOf('[data-theme="dark"] {'));
     expect(dark).toMatch(/--photo-empty:\s*40 8% 21%;/);
     expect(read("tailwind.config.ts")).toMatch(/"photo-empty": "hsl\(var\(--photo-empty\)\)"/);

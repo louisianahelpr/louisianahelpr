@@ -252,7 +252,8 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
         primaryTone="sienna"
         primaryDisabled={cancelling}
         onPrimary={() => void handleCancelBooking()}
-        secondaryLabel="Cancel"
+        // Area 04 #30 (11-18): "Cancel" beside "Cancel job" read as two ways to cancel; the dismiss keeps the job.
+        secondaryLabel="Keep job"
       />
       </>
       }

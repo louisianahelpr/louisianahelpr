@@ -11,7 +11,7 @@ import { setLandingMode, useLandingMode } from "./landingMode";
 
 /**
  * Hero (owner-approved landing redesign 2026-10-20; option B 2026-10-23): Bodoni
- * H1 with the rust italic "partner.", the subhead (one line from 1024px), one
+ * H1 in one colour and style (owner 2026-11-17: no italic rust "partner."), the subhead (one line from 1024px), one
  * search. ONE centered column (max 760px) at every width. The proof row
  * (LandingProof) is NOT here: it opens the next section, below the fold (owner,
  * 2026-11-02: the first screen is just the headline, subhead and search). No phone mock (owner,
@@ -60,9 +60,7 @@ const HeroSection = () => {
               style={{ color: "var(--lp-ink)", letterSpacing: "-0.03em" }}
             >
               {es ? es.titleLead : <>Louisiana&rsquo;s local</>}{" "}
-              <em className="relative inline-block" style={{ fontStyle: "italic", color: "var(--lp-money)" }}>
-                {es ? es.titleAccent : "partner."}
-              </em>
+              {es ? es.titleAccent : "partner."}
             </h1>
 
             <p

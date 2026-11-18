@@ -22,21 +22,11 @@ export const SPONSOR_LIMITS = {
   lastDay: 25,
 } as const;
 
-/**
- * The last day to sign up, Louisiana time (src/content/sponsorPage.ts event.signup_deadline says the same date).
- * Owner 2026-11-11: moved from Nov 30 to Nov 22; owner 2026-11-16: moved from Nov 22 to Nov 28. Late November is
- * Central Standard Time (UTC-6), so sign-ups close at 06:00 UTC on the next day (2026-11-29T06:00:00Z).
+/*
+ * Sign-ups never close (owner 2026-11-18): the page asks brands to sign up by Sunday, November 22 so they make the
+ * full lineup, but a later sign-up is still saved. There is no deadline constant and no closed answer here or in
+ * sponsor-25days; src/test/sponsor25days.test.tsx keeps it that way.
  */
-export const SPONSOR_SIGNUP_DEADLINE = "2026-11-28";
-
-/** Are sign-ups still open at `nowMs`? Open through the whole deadline day in Louisiana. */
-export function sponsorSignupsOpen(nowMs: number, deadline: string = SPONSOR_SIGNUP_DEADLINE): boolean {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(deadline);
-  if (!m) return false;
-  // Midnight starting the next day in Louisiana: 06:00 UTC (CST) in late November / December.
-  const closesAt = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1, 6, 0, 0);
-  return nowMs < closesAt;
-}
 
 const SPONSOR_LOGO_TYPES = ["image/png", "image/jpeg", "image/svg+xml"] as const;
 export type SponsorLogoType = (typeof SPONSOR_LOGO_TYPES)[number];

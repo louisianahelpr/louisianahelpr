@@ -1,8 +1,8 @@
 /**
  * Audit #14 (2026-10-21): the footer's column titles and its heart were rust;
- * rust is for money only. Titles are neutral, the heart olive.
+ * rust is for money only. Titles are neutral (the heart went 2026-11-17; the line is "Delcambre, Louisiana").
  *
- * @mutate src/components/Footer.tsx |               color: "hsl(var(--bark))",\n              fill: "hsl(var(--bark))", |               color: "hsl(var(--burnt-sienna))",\n              fill: "hsl(var(--burnt-sienna))",
+ * @mutate src/components/Footer.tsx | <p className="text-ds-11 text-[hsl(var(--olivewood))]/80">{w("footer.place" | <p className="text-ds-11 text-[hsl(var(--burnt-sienna))]">{w("footer.place"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

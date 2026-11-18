@@ -28,7 +28,8 @@ import { blankCssComments, blankComments as blankTsComments } from "./helpers/bl
  * a stray `family=EB+Garamond` in index.html downloads ~60KB of font for zero
  * elements. This file is the only thing that notices either.
  *
- * The hero is LOCKED (CLAUDE.md): H1 in Bodoni Moda, subhead in Montserrat.
+ * The hero was LOCKED (CLAUDE.md): H1 in Bodoni Moda, subhead in Montserrat. Owner 2026-11-17: the landing
+ * headings, H1 included, are the app's Montserrat heading face (src/test/landingHeadingsAreSans.test.ts).
  * That is asserted from the rendered element's own style, not from a class
  * name, because a class name can be present and compile to nothing (see the
  * gloss rule in CLAUDE.md for the same trap).
@@ -141,7 +142,7 @@ describe("two-font type system", () => {
     expect(block).not.toMatch(/serif:/);
   });
 
-  it("the hero H1 is Bodoni Moda and the subhead is Montserrat (LOCKED)", () => {
+  it("the hero H1 carries font-display (drawn in Montserrat since owner 2026-11-17, landingHeadingsAreSans) and the subhead is Montserrat", () => {
     render(
       <MemoryRouter>
         <HeroSection />
@@ -149,8 +150,8 @@ describe("two-font type system", () => {
     );
     const h1 = screen.getByRole("heading", { level: 1 });
     expect(h1.textContent).toBe("Louisiana’s local partner.");
-    // jsdom has no stylesheet, so the class list is the contract here: the
-    // `font-display` token is the only route to Bodoni Moda in the app.
+    // jsdom has no stylesheet, so the class list is the contract here. The H1 keeps `font-display`; index.css draws
+    // the landing's font-display headings in Montserrat (owner 2026-11-17).
     expect(h1.className.split(/\s+/)).toContain("font-display");
     const subhead = screen.getByText("Hire help, find work, or buy and sell. One account, real neighbors.");
     expect(subhead.style.fontFamily).toMatch(/^Montserrat/);

@@ -25,7 +25,8 @@ describe("Declutter and guest icon pins (Q2707/Q2708)", () => {
   const { shared, own, declutter } = guestIconSplit(ROOT);
 
   it("splits the guest icons exactly in two, and the Declutter rest is not a guest icon", () => {
-    expect(guest.size).toBeGreaterThan(40);
+    // 39 on 2026-11-17: the owner's subtle landing (PR #4696) dropped the Heart and the landing's money/trust step icons.
+    expect(guest.size).toBeGreaterThan(35);
     expect(shared.size).toBeGreaterThan(20);
     expect(own.size).toBeGreaterThan(5);
     expect(declutter.size).toBeGreaterThan(0);

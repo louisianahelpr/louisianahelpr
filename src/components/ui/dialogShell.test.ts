@@ -1066,6 +1066,9 @@ describe("Popup grammar — footer", () => {
       "Keep them",
       // F261a (ProfileEditForm, eda6b23bce): the unsaved-edits prompt's dismiss keeps the member in the form; "Keep editing" says so, "Cancel" would read as cancel the edits.
       "Keep editing",
+      // Area 04 #30 (2026-11-18, ActiveJobSection + ConfirmedSection): the Helpr's "Cancel this job?" sheet; "Cancel" beside
+      // "Cancel job" read as two ways to cancel, so the dismiss names what stays, as "Keep editing" does.
+      "Keep job",
       // "It's gone" answers the still-available ask: it ends the listing as gone elsewhere (an answer, not a dismissal).
       "It's gone",
       // AUD31-71 (TwoFactorCard, f2aaec89f6): turning two-step off is a security downgrade; the dismiss names what stays.

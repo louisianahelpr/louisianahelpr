@@ -1405,6 +1405,17 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false
             },
+            // 11-18 train (Q178): the payout words Profile's Earnings tab and Declutter's sale cards share, with their one
+            // dependency (formatPrice). In signed-in-deep they put that whole chunk and its closure (declutter-first-screen,
+            // browse-first-screen, rentals, sponsorPage...) on /profile?tab=earnings: 368 -> 576 KB gz, 5 -> 6 rounds.
+            // Priority 18 for the reason native-push gives above: signed-in-deep (16) wins anything lower.
+            {
+              name: "payout-words",
+              test: /[\\/]src[\\/]lib[\\/]declutter[\\/](payoutWords|formatPrice)\.ts$/,
+              priority: 18,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             // Q2705 pass 2 (11-17): the leaves signed-in /jobs' Browse screen runs (the apply flow's lifecycle errors and
             // online check, jobLinkRef, deepLinkRouter...). In leaves, /jobs also downloaded the next-step line, celebrate
             // and the payout reads, and through NextStep's import the whole signed-in-shared chunk (20.6 KB gz).

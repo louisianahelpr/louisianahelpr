@@ -5,6 +5,7 @@
  * locates the seller's door. Shown rounded: "< 1 mi", then whole miles.
  */
 import { wordInLang } from "@/lib/i18n/inLang";
+import { formatPrice } from "@/lib/declutter/formatPrice";
 
 const EARTH_RADIUS_MI = 3958.8;
 
@@ -117,7 +118,4 @@ export function itemPriceLabel(cents: number): string {
   return cents === 0 ? "Free" : formatPrice(cents);
 }
 
-export function formatPrice(cents: number): string {
-  const dollars = cents / 100;
-  return Number.isInteger(dollars) ? `$${dollars}` : `$${dollars.toFixed(2)}`;
-}
+export { formatPrice };

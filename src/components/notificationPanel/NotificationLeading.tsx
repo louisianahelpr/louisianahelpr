@@ -33,7 +33,7 @@ export function NotificationLeading({ n, face }: { n: Notification; face: Notifi
         money
           ? { background: "hsl(var(--burnt-sienna) / 0.12)", color: "hsl(var(--burnt-sienna))" }
           : warn
-            ? { background: "hsl(var(--alert) / 0.10)", color: "hsl(var(--alert))" }
+            ? { background: "hsl(var(--alert) / 0.10)", color: "hsl(var(--alert-ink))" }
             : { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))" }
       }
     >

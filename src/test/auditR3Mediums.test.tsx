@@ -8,7 +8,7 @@
  * @mutate src/pages/posts/EditJobDialog.tsx |         <DialogHero title="Edit job" /> |         <DialogHero title={title ? `"${title}"` : "Edit job"} />
  * @mutate src/pages/posts/EditJobDialog.tsx |       <DialogContent keepClose> |       <DialogContent>
  * @mutate src/pages/posts/EditJobDialog.tsx | Leave the start time blank | Leave Start Time blank
- * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |       <h2 id="no-applicants-title" className="text-ds-17 font-semibold text-foreground">No applicants yet</h2> |       <h2 id="no-applicants-title" className="font-display font-moment text-ds-28 font-semibold">No applicants yet</h2>
+ * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |       <h2 id="no-applicants-title" className="text-ds-17 font-semibold text-foreground">{t("jobPage.noApplicants")}</h2> |       <h2 id="no-applicants-title" className="font-display font-moment text-ds-28 font-semibold">{t("jobPage.noApplicants")}</h2>
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |       <h3 className="sr-only">Want replies sooner?</h3> |       <h3 className="pt-2 text-left text-ds-12 font-semibold uppercase tracking-wide text-muted-foreground">Want replies sooner?</h3>
  * @mutate src/components/profile/DeleteAccountDialog.tsx |     <div className="my-1 grid gap-3" data-delete-lists=""> |     <div className="my-1 grid gap-3 sm:grid-cols-2" data-delete-lists="">
  * @mutate src/components/profile/DeleteAccountDialog.tsx | className="font-semibold text-primary underline underline-offset-2">{t("deleteAccount.breakLink")} | className="font-semibold underline underline-offset-2">{t("deleteAccount.breakLink")}
@@ -20,6 +20,9 @@
  * @mutate supabase/functions/_shared/email-templates/components.tsx | arcsize="50%" | arcsize="26%"
  * @mutate supabase/functions/_shared/email-templates/components.tsx |         borderRadius: '999px', |         borderRadius: '12px',
  * @mutate supabase/functions/_shared/email-templates/styles.ts | export const linkStyle = {\n  color: brand.bark, | export const linkStyle = {\n  color: brand.burntSienna,
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | town ? <FactRow label={t("jobPage.whereRow")} data-job-town=""> | town ? <FactRow label="Where" data-job-town="">
+ * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |         {t("jobPage.tellYou")} |         We'll tell you when someone applies.
+ * @mutate src/lib/i18n/es.ts |   "jobPage.noApplicants": "Aún no hay solicitudes",\n |
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -55,7 +58,7 @@ describe("design audit round 3 fixes", () => {
   it("#18 No applicants yet: one card with a 17 px title, no uppercase eyebrow", () => {
     const na = code("src/pages/jobs/jobPage/NoApplicantsYet.tsx");
     expect(na).toMatch(/data-no-applicants="" [^>]*rounded-2xl border border-border bg-card p-4 text-left/);
-    expect(na).toMatch(/className="text-ds-17 font-semibold text-foreground">No applicants yet/);
+    expect(na).toMatch(/className="text-ds-17 font-semibold text-foreground">\{t\("jobPage\.noApplicants"\)\}/);
     expect(na).not.toMatch(/uppercase/);
     expect(na).not.toMatch(/font-moment/);
   });
@@ -93,5 +96,22 @@ describe("design audit round 3 fixes", () => {
     const styles = code("supabase/functions/_shared/email-templates/styles.ts");
     expect(styles).toMatch(/export const linkStyle = \{\s*color: brand\.bark,/);
     expect(styles).toMatch(/const button = \{[^}]*borderRadius: '999px'/);
+  });
+
+  it("#9 job page in Spanish: the fact rows, the no-applicants card and Edit / Cancel read the dictionary", async () => {
+    const { enJobs } = await import("@/lib/i18n/enJobs");
+    const { es } = await import("@/lib/i18n/es");
+    const keys = ["jobPage.whenRow", "jobPage.whereRow", "jobPage.noApplicants", "jobPage.tellYou", "jobPage.addPhoto", "jobPage.changePrice", "jobPage.editJob", "jobPage.cancelJob"] as const;
+    for (const k of keys) {
+      expect(enJobs[k], k).toBeTruthy();
+      expect((es as Record<string, string>)[k], k).toBeTruthy();
+      expect((es as Record<string, string>)[k]).not.toBe(enJobs[k]);
+    }
+    const na = code("src/pages/jobs/jobPage/NoApplicantsYet.tsx");
+    for (const w of ["No applicants yet", "We'll tell you", "Add a photo", "Change the price", "It's out to Helprs"]) expect(na, w).not.toContain(w);
+    const page = code("src/pages/jobs/jobPage/JobPage.tsx");
+    expect(page).not.toMatch(/label="(When|Where)"/);
+    const actions = code("src/pages/jobs/jobPage/posterPageActions.tsx");
+    expect(actions).not.toMatch(/label: "(Edit job|Cancel job)"/);
   });
 });

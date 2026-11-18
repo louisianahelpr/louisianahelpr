@@ -30,6 +30,22 @@ export const enJobs = {
   "jobPage.side": "Price and actions",
   "jobPage.postedBy": "Posted by",
   "jobPage.yourHelpr": "Your Helpr",
+  // Design audit r3 #9: the job page's fact rows, the no-applicants card and the poster's Edit / Cancel buttons.
+  "jobPage.whenRow": "When",
+  "jobPage.whereRow": "Where",
+  "jobPage.noApplicants": "No applicants yet",
+  "jobPage.sentToOne": "Sent to 1 Helpr so far.",
+  "jobPage.sentToN": "Sent to {n} Helprs so far.",
+  "jobPage.outNear": "It's out to Helprs near {city}.",
+  "jobPage.outNearby": "It's out to Helprs nearby.",
+  "jobPage.tellYou": "We'll tell you when someone applies.",
+  "jobPage.repliesSooner": "Want replies sooner?",
+  "jobPage.addPhoto": "Add a photo",
+  "jobPage.addPhotoWhy": "Jobs with photos are easier to say yes to",
+  "jobPage.changePrice": "Change the price",
+  "jobPage.youreAt": "You're at",
+  "jobPage.editJob": "Edit job",
+  "jobPage.cancelJob": "Cancel job",
 } as const;
 
 addEnglish(enJobs);

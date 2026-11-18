@@ -413,7 +413,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
           {moneyNotes}
           <dl data-job-facts="" className="border-y border-border">
-            {when && <FactRow label="When" data-job-meta="">{when}</FactRow>}
+            {when && <FactRow label={t("jobPage.whenRow")} data-job-meta="">{when}</FactRow>}
             {/* JA-20: the hired Helpr's street opens Maps; JA-25: not once the job is cancelled. The street once,
                 here, for the hired Helpr (F7, JOBS2-39); the town for everyone else. */}
             {isHired && job.location && job.status !== "cancelled" ? (
@@ -422,7 +422,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                   {job.location}
                 </a>
               </FactRow>
-            ) : town ? <FactRow label="Where" data-job-town="">{town}</FactRow> : null}
+            ) : town ? <FactRow label={t("jobPage.whereRow")} data-job-town="">{town}</FactRow> : null}
             {/* JOBS-18: every visit, before they apply or answer; the hired Helpr and the poster read it in HiredSeriesSection (A3-44). */}
             {!isHired && !isPoster && seriesSummary(job) && <FactRow label="Visits" data-job-series="">{seriesSummary(job)}</FactRow>}
           </dl>

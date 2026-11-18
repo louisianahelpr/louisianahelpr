@@ -175,7 +175,10 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
         {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />}
         {deliverOff && <p role="note" className="text-ds-13 text-foreground" data-deliver-off-all="">{t("lp.ld.deliverOff")}</p>}
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Area 06b M5 (design audit 11-18): Save sat about three screens below the first field. While there are unsaved
+          changes the Save row sticks above the bottom bar, so it is in view wherever the edit was made. */}
+      <div className={`flex flex-wrap items-center gap-3 ${unsaved ? "sticky bottom-safe-nav z-10 -mx-4 rounded-2xl border border-border bg-card px-4 py-3 shadow-md" : ""}`}
+        data-defaults-save-bar={unsaved ? "sticky" : ""}>
         <Button type="button" size="sm" disabled={save.isPending || noWay || !unsaved} onClick={() => save.mutate()}>
           {save.isPending ? t("lp.f.saving") : t("lp.ld.save")}
         </Button>

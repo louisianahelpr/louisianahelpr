@@ -47,7 +47,7 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
     setSending(true);
     try {
       await suggestCategory(area, text);
-      toast.success("Thanks, we'll look at your suggestion. Pick \"Other\" for now.");
+      toast.success("Thanks, we'll look at your suggestion. Pick \"Something else\" for now.");
       setOpen(false);
       setText("");
       setTouched(false);
@@ -78,7 +78,7 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
           <DialogBody>
             <p>
               Tell us what&apos;s missing and we&apos;ll look at adding it for everyone. You can pick
-              &ldquo;Other&rdquo; and post right now.
+              &ldquo;Something else&rdquo; and post right now.
             </p>
           </DialogBody>
           <div className="space-y-1.5 mt-2">

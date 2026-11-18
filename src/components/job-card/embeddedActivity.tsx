@@ -5,9 +5,10 @@ import { InlineListSearch } from "@/components/sections/InlineListSearch";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
-import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
+import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL, postedGroupWords } from "@/components/job-card/ActivityBucketGroups";
 import { WORKING_CHIPS, WORKING_CHIP_LABEL } from "@/lib/activityBuckets";
 import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * The status chips over Jobs & Posts > Posted / Working (owner, 2026-10-19), after "All": every bucket, in the job's
@@ -61,7 +62,9 @@ export function EmbeddedActivityHeader({
 }) {
   // F107 (owner 11-09): Posted's chips are its five buckets; Working's are Needs you · Applied · Active · Completed.
   const chips: readonly string[] = tab === "posted" ? BOX_BUCKETS : WORKING_CHIPS;
-  const labels: Record<string, string> = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_CHIP_LABEL;
+  // Area 03 H3 (design audit 11-18): Posted's chips in Spanish too (they stayed English under Español).
+  const { t } = useLanguage();
+  const labels: Record<string, string> = tab === "posted" ? postedGroupWords(t) : WORKING_CHIP_LABEL;
   const noRows = !search.trim() && Object.values(counts).every((n) => !n);
   // Desktop: the icon by the gear opens in place and its box fills the tabs row's rest while open. A phone's search is
   // the top bar's field (owner 11-08, the Vinted header), so it takes no room from a tab or a chip (audit F20).
@@ -100,6 +103,7 @@ export function EmbeddedActivityHeader({
             // HELP-WORKIN (lead 10-31): the same right-edge fade as Declutter's chip row (AUD31-4); at 360 the 4th chip
             // starts past the edge, and the fade says the row scrolls.
             fade
+            allLabel={t("jp.all")}
           />
         </div>
       </div>}

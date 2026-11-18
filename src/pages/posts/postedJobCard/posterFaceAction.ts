@@ -5,6 +5,8 @@ import type { Job } from "../../../components/job-card/activityConstants";
 import { requestFaceAction } from "@/components/job-card/faceActionRequest";
 import { useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobPoster";
 import { shareNative } from "@/lib/nativeShare";
 import { deviceOpensShareSheet, jobShareContent } from "@/lib/jobShareContent";
 
@@ -107,9 +109,9 @@ export function posterFaceAction(
       // No poster "it's done" path exists: a stalled job is released or refunded
       // only by a person (STALLED_APPROVE_DISABLED_REASON). Talking to them is.
       // Secondary (lead 2026-10-20): filled olive is kept for money and real next steps.
-      return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary" };
+      return { label: t("jp.messageName", { name: first(h.helperName) }), onClick: h.message, tone: "secondary" };
     case "cancelled":
-      return { label: "Post again", onClick: h.postAgain, tone: "secondary" };
+      return { label: t("jp.postAgain"), onClick: h.postAgain, tone: "secondary" };
     case "no_applicants":
       // F265 (audit 11-10): an open job nobody has applied to. The help is getting it seen, so the button shares it;
       // the card's controls stay the small "More options" link beside it (the waiting-card shape, critique item 13).
@@ -125,7 +127,7 @@ export function posterFaceAction(
     case "overdue_no_show":
     case "started_no_checkin":
       // started_no_checkin: the start passed with no check-in (A2-B12), the same choice, on the face, not under More.
-      return { label: "Report no-show", onClick: h.noShow, tone: "secondary" };
+      return { label: t("jp.reportNoShow"), onClick: h.noShow, tone: "secondary" };
     case "overdue_unhired":
     case "overdue_unconfirmed":
     case "overdue_not_started":
@@ -138,7 +140,7 @@ export function posterFaceAction(
       // WAITING ON THE HELPR (owner, 2026-10-23, card critique item 13; board 14): the one button talks to them,
       // and "More options" (the card's controls, JA-35) is a small text link beside it. No Helpr yet, or a crew: More options.
       return job.helper_id && !job.is_group_job
-        ? { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary", also: { label: POSTER_CONTROLS_LABEL, onClick: h.manage } }
+        ? { label: t("jp.messageName", { name: first(h.helperName) }), onClick: h.message, tone: "secondary", also: { label: POSTER_CONTROLS_LABEL, onClick: h.manage } }
         : { label: POSTER_CONTROLS_LABEL, onClick: h.manage, tone: "secondary" };
   }
 }

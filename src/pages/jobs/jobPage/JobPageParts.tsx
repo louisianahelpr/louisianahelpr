@@ -6,6 +6,7 @@
  */
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobPoster";
 import "@/lib/i18n/enJobs";
 import { formatPrice, formatPriceExact, formatPriceFloor } from "@/lib/format";
 import { useHelprPaidOut } from "@/hooks/useHelprPaidOut";
@@ -140,6 +141,9 @@ export function PosterPrice({ job }: { job: JobPageRow }) {
  * why an unpaid job is not live, the receipt, and the applicant count. The "held" line is the header's word now.
  */
 export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; total: number; loading: boolean }) {
+  // Area 03 H4 (design audit 11-18): the unpaid and held lines, the receipt link and the applicant count in Spanish too.
+  const { t } = useLanguage();
+  const heldWords: Partial<Record<string, string>> = { held: t("jp.heldLine"), unpaid: t("jp.unpaid"), abandoned: t("jp.unpaid") };
   const released = RELEASED.has(job.payment_status ?? "");
   // F108: a released job whose Helpr has no bank yet says so, never "on its way to their bank".
   const waitsOnBank = useHelprPayoutWaitsOnBank(released && !job.is_group_job ? job.helper_id : null);
@@ -153,7 +157,7 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
   // refunded."), never a bare "Refunded to your card." that read as whole.
   const refund = usePosterJobRefund(job);
   const refundLine = status === "refunded" ? `${refundedWords(refund).replace(/\.$/, "")}.` : null;
-  const line = released ? (waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName) : releasedLine(job)) : refundInTracker ? null : refundLine ?? HELD_LINE[status] ?? null;
+  const line = released ? (waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName) : releasedLine(job)) : refundInTracker ? null : refundLine ?? heldWords[status] ?? HELD_LINE[status] ?? null;
   const count = job.status === "open" && !loading && total > 0;
   if (!line && !released && !count) return null;
   return (
@@ -161,11 +165,11 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
       {line && <p className="text-ds-13 text-muted-foreground">{line}</p>}
       {released && (
         <Link data-receipt-link="" to={`/profile?tab=receipts&job=${job.id}`} className="inline-block text-ds-14 font-semibold text-primary underline underline-offset-2">
-          See your receipt
+          {t("jp.seeReceipt")}
         </Link>
       )}
       {/* Zero applicants is the page's own "No applicants yet" block (board 57), not a line here. */}
-      {count && <p data-applicant-count="" className="text-ds-14 font-semibold">{`${total} applicant${total === 1 ? "" : "s"}`}</p>}
+      {count && <p data-applicant-count="" className="text-ds-14 font-semibold">{total === 1 ? t("jp.applicantOne") : t("jp.applicantN", { n: total })}</p>}
     </div>
   );
 }

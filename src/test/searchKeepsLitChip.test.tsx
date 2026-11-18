@@ -20,7 +20,7 @@
  * row scrolls. The row now carries Declutter's right-edge fade (AUD31-4): a mask over the last 40px and an end padding
  * at least as wide, so the last chip scrolls clear of it.
  *
- * @mutate src/components/job-card/embeddedActivity.tsx |             fade\n          /> |           />
+ * @mutate src/components/job-card/embeddedActivity.tsx |             fade\n            allLabel={t("jp.all")}\n          /> |             allLabel={t("jp.all")}\n          />
  * @mutate src/components/sections/StatusBoxes.tsx | : fade ? "pl-1 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]" : "px-1" | : "px-1"
  *
  * @mutate src/components/job-card/embeddedActivity.tsx | header(desktop ? { end: searchEnd } : { search: <SectionSearchBar | header(desktop \|\| true ? { end: searchEnd } : { search: <SectionSearchBar

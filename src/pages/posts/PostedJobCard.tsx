@@ -1,4 +1,7 @@
-import { memo, useRef } from "react";
+import { memo, useRef, useState } from "react";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobPoster";
 import { takesApplicants } from "./postedJobCard/crewRefill";
 import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
@@ -66,7 +69,7 @@ function PostedJobCardInner({
   onDispute,
   onReport,
   onViewDispute,
-  onConfirmArrival,
+  onConfirmArrival: confirmArrivalNow,
   confirmingArrivalJobId,
   onConfirmWorking,
   confirmingWorkingJobId,
@@ -147,6 +150,11 @@ function PostedJobCardInner({
      The person tile sits directly above the action row, not in <JobTracking>; the V6 rule
      (nothing about the Helpr on a collapsed card) lives at `helperTile` above. */
   // ONE line per card: the strip prints it, the face's one button (board 14) and the 8-step bar, closed and open (A2-B15), read it.
+  // Area 03 M8 (design audit 11-18): "Confirm" arrival asks "Did Hallie arrive?" first; it fired in one tap. The write
+  // is still the card's own confirmArrival (useLifecycleHandlers), unchanged. Guard: src/test/area03JobsPoster.test.tsx.
+  const [arriveAsk, setArriveAsk] = useState<string | null>(null);
+  const onConfirmArrival = (id: string) => setArriveAsk(id);
+  const arriveFirst = job.helper_id && helperNames[job.helper_id] ? helperName.trim().split(/\s+/)[0] : "";
   const cardLine = withClosedApplicants(posterStatusLine(withDisputeSettling(job, unsettledDisputeJobIds), pendingApplicantCounts?.[job.id] ?? 0, undefined, completedJobMeta[job.id]), closedApplicantSummaries?.[job.id] ?? null);
   const { faceAction, completionRequest, revisionRequest } = usePosterFaceAction({
     job, isExpanded, helperName, toggle: toggleExpandedJobId, navigate, wait: cardLine.id as PosterWait,
@@ -582,6 +590,17 @@ function PostedJobCardInner({
                 mounts no tracker at all, so no realtime channel per row. */}
             {!isExpanded && !!(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me && /* Q1551 */ <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={false} hideAsk />}
           </JobCardShell>
+        </div>
+        <div data-arrive-confirm-host="" onClick={(e) => e.stopPropagation()}>
+          <BrandConfirmDialog
+            open={arriveAsk === job.id}
+            onOpenChange={(o) => { if (!o) setArriveAsk(null); }}
+            title={arriveFirst ? t("jp.arriveTitle", { name: arriveFirst }) : t("jp.arriveTitleNoName")}
+            description={t("jp.arriveBody")}
+            primaryLabel={t("jp.arriveYes")}
+            onPrimary={() => { setArriveAsk(null); confirmArrivalNow(job.id); }}
+            secondaryLabel={t("jp.arriveNo")}
+          />
         </div>
         </JobCardLeadContext.Provider></JobCardPersonContext.Provider>
   );

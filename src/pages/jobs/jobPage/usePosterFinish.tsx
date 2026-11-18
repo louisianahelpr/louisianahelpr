@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { PosterFinishSheet } from "@/components/jobs/PosterFinishSheet";
 import { continueDayMissedOpen } from "@/lib/continueDayMissed";
-import { POSTER_FINISH_LABEL, posterFinishOpen, type PosterFinishDay, type PosterFinishJob } from "../../../../supabase/functions/_shared/posterFinish";
+import { posterFinishOpen, type PosterFinishDay, type PosterFinishJob } from "../../../../supabase/functions/_shared/posterFinish";
 import type { PagePrimary } from "./posterPageActions";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobPoster";
 import type { PosterPageFlows } from "./usePosterPageFlows";
 
 /**
@@ -39,7 +41,7 @@ export function usePosterFinish({
   const jobPrice = !(job.urgent_fee && job.urgent_fee > 0) && job.budget ? Number(job.budget) : null;
   const onContinueDay = !!day && (day.status === "set" || day.status === "proposed");
   return {
-    lead: { label: POSTER_FINISH_LABEL, go: () => setOpen(true), disabled: !flows.ready || flows.completing },
+    lead: { label: t("jp.markDoneRelease"), go: () => setOpen(true), disabled: !flows.ready || flows.completing },
     sheet: (
       <PosterFinishSheet
         open={open}

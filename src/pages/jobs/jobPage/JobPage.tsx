@@ -64,6 +64,7 @@ import { PageApplySheet, usePageApply } from "./PageApplySheet";
 import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enJobs";
+import "@/lib/i18n/enJobPoster";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
@@ -265,11 +266,20 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     ? hiredHelprFace(dayJob, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data, markFixDone: () => void fixDone.mark(), markingFix: fixDone.marking })
     : null;
   // The poster's own step on this page, over posterPageActions' (undefined: theirs).
+  // Area 03 H1 (design audit 11-18, money safety): a Helpr who never arrived (No-show? / hasn't checked in) puts
+  // "Report no-show" in the sticky main button, never "Mark done and release" (that paid the no-show Helpr in one
+  // tap); the release moves into the "..." menu below. The report is the card's own NoShowDialog (posterFlows.noShow).
+  // Guard: src/test/area03JobsPoster.test.tsx.
+  const noShowLead = !job.is_group_job && (posterWait === "overdue_no_show" || posterWait === "started_no_checkin");
   const posterStep = posterWait === "confirm_arrival"
-    ? { label: arrival.confirming ? "Confirming…" : "Confirm they've arrived", go: () => void arrival.confirm(), disabled: arrival.confirming }
+    ? { label: arrival.confirming ? t("jp.confirming") : t("jp.confirmArrived"), go: () => void arrival.confirm(), disabled: arrival.confirming }
+    : noShowLead
+    ? { label: t("jp.reportNoShow"), go: posterFlows.noShow, disabled: !posterFlows.ready }
     : jobIsUnfundedDraft(job)
-    // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. The copy is the way on.
-    ? { label: "Post this job again", go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }
+    // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. Area 03 H2: it says
+    // what it does, "Pay to post" (the copy, paid at its own checkout; owner 2026-09-27: no "finish paying" on a server
+    // row), never "Post this job again" on a job that reads open.
+    ? { label: t("jp.payToPost"), go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }
     // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): the step due now, or the next useful thing; never "Manage job"
     // (posterPageActions.tsx: confirm, approve, cancel and the card's steps all on this page).
     : undefined;
@@ -536,6 +546,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {/* Owner pick 11-08 (JP2): "Something's not right" and "Not finished? Set a day" are in the "..." menu. */}
             {isPoster && !repost.hideRow && posterActions.row(continueDay.posterLead ?? posterStep ?? posterFinish.lead ?? (seeCase ? { label: seeCase.label, go: seeCase.go } : undefined), [
               ...continueDay.posterExtras,
+              // Area 03 H1: on a no-show the release is a menu row, never the lead.
+              ...(noShowLead && posterFinish.lead ? [{ key: "finish", label: t("jp.markDoneRelease"), go: posterFinish.lead.go, disabled: posterFinish.lead.disabled, inMenu: true }] : []),
               ...(posterActions.notRight ? [{ key: "not-right", label: NOT_RIGHT_LABEL, go: posterActions.notRight, inMenu: true }] : []),
               ...(continueDay.setDay ? [continueDay.setDay] : []),
             ], { noCardSteps: continueDay.doneAhead, menuHost })}

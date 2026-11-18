@@ -238,7 +238,10 @@ describe("gift guides: the content inventory", () => {
       for (const p of g.picks) expect(p.store).toBe(store);
       const names = new Set(g.picks.map((p) => p.name));
       const hrefs = new Set(g.picks.map((p) => p.href));
-      for (const p of picks.filter((x) => x.store === store)) expect(names.has(p.name) || hrefs.has(p.href), p.name).toBe(true);
+      // A size or color variant of a listed product counts as listed (owner 11-18 PM: no repeats on a page).
+      const variant = (n: string) => n.toLowerCase().replace(/\([^)]*\)/g, " ").replace(/\d+(\.\d+)?/g, " ").replace(/\b(fl|oz|qt|ct|count|pc|pack|pk|cup|mm|in)\b\.?/g, " ").replace(/\b(black|white|red|blue|green|pink|purple|gold|silver|grey|gray|navy|brown)\b(?! line\b)/g, " ").replace(/[^a-z]+/g, " ").trim();
+      const variants = new Set(g.picks.map((p) => variant(p.name)));
+      for (const p of picks.filter((x) => x.store === store)) expect(names.has(p.name) || hrefs.has(p.href) || [...variants].some((v) => v.includes(variant(p.name)) || variant(p.name).includes(v)), p.name).toBe(true);
     }
     expect(guidesIn("by-store")[0].slug).toBe("store-amazon");
     expect(guidesIn("by-store")[1].slug).toBe("store-walmart");

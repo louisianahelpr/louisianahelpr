@@ -151,9 +151,9 @@ describe("gift guides: featured order and Our Top 10 (owner 11-18 PM: \"This can
   it("a guide's featured picks lead, Our Top 10 comes from the featured file, and no guide opens on two XTRATUF boots", () => {
     // @mutate scripts/gift-guide-picks.mjs |   const v = readJson("_featured-order.json"); |   const v = null;
     expect(SCRIPT).toContain('const v = readJson("_featured-order.json");');
-    // @mutate scripts/gift-guide-picks.mjs | const topPicks = [...new Map([...featuredTop, ...lovedTop] | const topPicks = [...new Map([...lovedTop]
-    expect(SCRIPT).toContain("const topPicks = [...new Map([...featuredTop, ...lovedTop]");
-    expect(SCRIPT).toContain("for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, guides[slug]);");
+    // @mutate scripts/gift-guide-picks.mjs | const topPicks = noRepeats([...featuredTop, ...lovedTop]) | const topPicks = noRepeats([...lovedTop])
+    expect(SCRIPT).toContain("const topPicks = noRepeats([...featuredTop, ...lovedTop])");
+    expect(SCRIPT).toContain("for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));");
     let guides = 0;
     for (const [slug, picks] of Object.entries(CHUNKS)) {
       if (slug.startsWith("store-")) continue;
@@ -161,5 +161,37 @@ describe("gift guides: featured order and Our Top 10 (owner 11-18 PM: \"This can
       expect(picks.slice(0, 12).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(1);
     }
     expect(guides).toBeGreaterThan(150);
+  });
+});
+
+describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't repeat items in guides\", \"All guides should have the top trending gifts\")", () => {
+  const SCRIPT = readFileSync(join(process.cwd(), "scripts/gift-guide-picks.mjs"), "utf8");
+  // The import's own key: lowercase, sizes, colors, pack counts and punctuation dropped.
+  const key = (name: string) => name.toLowerCase().replace(/\([^)]*\)/g, " ")
+    .replace(/\b\d+(\.\d+)?\s*-?\s*(oz|fl oz|in|inch|ft|qt|ct|count|pc|pcs|piece|pack|pk|ml|lb|lbs|mm|cm|cup|cups)\b\.?/g, " ")
+    .replace(/\b(black|white|red|blue|green|pink|purple|gold|silver|grey|gray|navy|brown)\b(?! line\b)/g, " ")
+    .replace(/[^a-z0-9]+/g, " ").trim();
+  it("no page shows the same product twice (same link or same normalized name), Top 10 included", () => {
+    // @mutate scripts/gift-guide-picks.mjs | for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]); | void 0;
+    expect(SCRIPT).toContain("for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]);");
+    let pages = 0;
+    for (const [slug, picks] of Object.entries(CHUNKS)) {
+      pages += 1;
+      const hrefs = picks.filter((p) => !p.href.startsWith("https://shopmy.us/")).map((p) => p.href);
+      expect(hrefs.length - new Set(hrefs).size, `${slug}: repeated link`).toBe(0);
+      const keys = picks.map((p) => key(p.name)).filter((k) => k.length > 3);
+      const twice = keys.filter((k, i) => keys.indexOf(k) !== i);
+      expect(twice, `${slug}: repeated product`).toEqual([]);
+    }
+    expect(pages).toBeGreaterThan(300);
+    // Variants are one product; the Thin Blue and Thin Red Line flags are two.
+    expect(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 15pc.")).toBe(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 30pc."));
+    expect(key("Thin Blue Line US Flag, 3x5")).not.toBe(key("Thin Red Line US Flag, 3x5"));
+  });
+  it("trending picks lead every guide and top up thin ones, never on a store page or the sponsors guide", () => {
+    // @mutate scripts/gift-guide-picks.mjs | guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug])); | guides[slug] = featuredFirst(slug, guides[slug]);
+    expect(SCRIPT).toContain("guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));");
+    expect(SCRIPT).toContain('if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || !trendingPick.size) return list;');
+    expect(SCRIPT).toContain("if (isAmazonPick(p) && (out.filter(isAmazonPick).length + 1) / (out.length + 1) > 0.5) continue;");
   });
 });

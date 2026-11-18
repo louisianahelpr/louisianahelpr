@@ -330,6 +330,15 @@ const swappedOut = [];
 }
 /** Photos first, order kept inside each group. */
 for (const slug of Object.keys(guides)) guides[slug] = [...guides[slug].filter((p) => p.image), ...guides[slug].filter((p) => !p.image)];
+const COLOR_WORDS = "black|white|red|blue|green|pink|purple|gold|silver|grey|gray|navy|brown|beige|cream|tan|ivory|yellow|orange|teal|clear|multi|multicolor|rose|charcoal|olive|sage|lavender|burgundy|maroon|natural|espresso|stone|sand|mint|coral|plum|copper|bronze|chrome|walnut|oak|honey|camo|realtree|mossy oak";
+const SIZE_UNITS = "oz|fl oz|fl\\.? oz|in|inch|inches|ft|qt|quart|ct|count|pc|pcs|piece|pieces|pack|pk|ml|l|liter|lb|lbs|mm|cm|gb|tb|g|kg|cup|cups";
+export const dedupeKey = (name) => String(name ?? "").toLowerCase()
+  .replace(/\([^)]*\)/g, " ")
+  .replace(new RegExp(`\\b\\d+(\\.\\d+)?\\s*-?\\s*(${SIZE_UNITS})\\b\\.?`, "g"), " ")
+  .replace(/\b(set|pack|box) of \d+\b|\b\d+\s*-?\s*(pack|pk|count|ct)\b/g, " ")
+  // "Thin Blue Line" and "Thin Red Line" flags are two products (police, fire): a color before "line" stays.
+  .replace(new RegExp(`\\b(${COLOR_WORDS})\\b(?! line\\b)`, "g"), " ")
+  .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 /**
  * FEATURED ORDER (owner 11-18 PM: "This can't possibly be the top gifts you're recommending"): _featured-order.json,
  * { "<slug>": [pick names, up to 12], "top-10": [{ guide, name }] }, from bestseller research over existing picks only.
@@ -357,7 +366,45 @@ const featuredFirst = (slug, list) => {
   }
   return [...head, ...later.sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b))];
 };
-for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, guides[slug]);
+/**
+ * TRENDING (owner 11-18 PM: "All guides should have the top trending gifts"): _featured-order.json's "trending" list,
+ * [{ name, fits: [slugs], href? }], ~100 picks we already carry. In every guide (never a store page) its trending picks
+ * come right after the featured ones; a guide holding fewer than TRENDING_MIN gets fitting ones added (fits names the
+ * guide), up to TRENDING_ADD, never a repeat, and an Amazon one only while Amazon stays at most half the guide.
+ */
+export const TRENDING_MIN = 3;
+export const TRENDING_ADD = 6;
+const TRENDING = (Array.isArray(FEATURED.trending) ? FEATURED.trending : []).filter((t) => t && typeof t.name === "string");
+const trendingPick = new Map();
+for (const t of TRENDING) {
+  const found = Object.entries(guides).filter(([s]) => !s.startsWith("store-")).flatMap(([, l]) => l)
+    .find((p) => (t.href && p.href === t.href) || compact(p.name) === compact(t.name));
+  if (found) trendingPick.set(t, found);
+}
+const isTrending = (p) => [...trendingPick.values()].some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name));
+const isAmazonPick = (p) => AMAZON.has(new URL(p.href).hostname);
+const withTrending = (slug, list) => {
+  // Store pages stay store-only; the 25 Days guide stays sponsors-only.
+  if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || !trendingPick.size) return list;
+  const out = [...list];
+  let have = out.filter(isTrending).length;
+  let added = 0;
+  for (const [t, p] of trendingPick) {
+    if (have >= TRENDING_MIN + 1 || added >= TRENDING_ADD) break;
+    if (!(Array.isArray(t.fits) && t.fits.includes(slug)) || !fitsGuide(slug, p)) continue;
+    if (out.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
+    if (isAmazonPick(p) && (out.filter(isAmazonPick).length + 1) / (out.length + 1) > 0.5) continue;
+    out.push(p);
+    have += 1;
+    added += 1;
+  }
+  // Trending first (in the list's order), the rest as they were.
+  const order = [...trendingPick.values()];
+  const rankOf = (p) => order.findIndex((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name));
+  const hot = out.filter(isTrending).sort((a, b) => rankOf(a) - rankOf(b));
+  return [...hot, ...out.filter((p) => !isTrending(p))];
+};
+for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));
 
 /** "Nov 22" / "2026-11-23 (...)" -> "2026-11-22"; anything else -> no end date. */
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
@@ -493,6 +540,36 @@ for (const [slug, host] of [["store-zchocolat", "www.zchocolat.com"], ["store-di
   if (onHost.length) pageList[slug] = onHost;
 }
 /**
+ * NO REPEATS (owner 11-18 PM: "Don't repeat items in guides"): on every page a product shows once. Two rows are the
+ * same product when they share a link, or a normalized name (dedupeKey: lowercase, sizes, colors, pack counts and
+ * punctuation dropped; the brand ignored, so the same product at two stores matches). The first row stays (featured,
+ * then photos first); a later twin with a photo lends it its photo slot when the first has none.
+ */
+let repeatsRemoved = 0;
+const noRepeats = (list) => {
+  const out = [];
+  const seenHref = new Map();
+  const seenKey = new Map();
+  for (const p of list) {
+    const key = dedupeKey(p.name);
+    // A ShopMy collection link is shared by several products: those match by name only.
+    const shared = new URL(p.href).hostname === "shopmy.us";
+    const at = (!shared && seenHref.has(p.href) ? seenHref.get(p.href) : undefined) ?? (key.length > 3 ? seenKey.get(key) : undefined);
+    if (at !== undefined) {
+      repeatsRemoved += 1;
+      if (process.env.GIFT_PICKS_VERBOSE) console.error(`REPEAT: "${p.name}" = "${out[at].name}"`);
+      if (!out[at].image && p.image) out[at] = p;
+      continue;
+    }
+    if (!shared) seenHref.set(p.href, out.length);
+    if (key.length > 3) seenKey.set(key, out.length);
+    out.push(p);
+  }
+  return out;
+};
+for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]);
+const pageRepeats = repeatsRemoved;
+/**
  * "Top 10 most-loved" (owner 2026-11-18): the picks listed in the most guides (store pages not counted), photos
  * first, then by how many guides list them, then by name. Counted by link (and name, for shared ShopMy links).
  */
@@ -522,7 +599,7 @@ const lovedTop = [...new Map([...loved.values()].filter((x) => x.n > 1 && looksL
 const featuredTop = (Array.isArray(FEATURED["top-10"]) ? FEATURED["top-10"] : [])
   .map((x) => (pageList[x?.guide] ?? guides[x?.guide] ?? []).find((p) => compact(p.name) === compact(String(x?.name ?? ""))))
   .filter(Boolean);
-const topPicks = [...new Map([...featuredTop, ...lovedTop].map((p) => [p.href, p])).values()].slice(0, 10);
+const topPicks = noRepeats([...featuredTop, ...lovedTop]).slice(0, 10);
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();
@@ -590,4 +667,4 @@ writeFileSync(
     `export const GIFT_GUIDE_SEO = ${JSON.stringify(seo)};\n`,
 );
 
-console.log(`gift-guide-picks: ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them)`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them)`);

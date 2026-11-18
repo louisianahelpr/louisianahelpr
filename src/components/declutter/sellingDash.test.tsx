@@ -411,6 +411,21 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(within(sold).getByText("Nothing sold yet")).toBeInTheDocument();
   });
 
+  // Area 06 L7 (11-18): a listing whose $36 offer was accepted showed its $40 list price while the buyer paid.
+  // @mutate src/components/declutter/declutterSellingParts.tsx | item.status === "reserved" && agreed !== undefined ? agreed : item.current_price_cents | item.current_price_cents
+  it("Area 06 L7: a reserved listing shows the agreed price, not its list price", async () => {
+    state.mine = [{ ...ITEM, status: "reserved" }];
+    state.cart = [{ line_id: "l-r", item_id: "i1", item_title: "Oak rocking chair", my_side: "seller", seller_id: "u1", price_cents: 3600, status: "in_cart",
+      checkout_by: new Date(Date.now() + 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: 0, total_cents: null }];
+    try {
+      at("/declutter?tab=selling");
+      await waitFor(() => expect(document.querySelector("[data-listing-price]")?.textContent).toBe("$36"));
+      expect(document.querySelectorAll("[data-listing-row]").length).toBeGreaterThan(0);
+    } finally {
+      state.cart = [];
+    }
+  });
+
   // Q2667 (Builder 178, 11-02): the donation that took the seller's last item still shows its receipt on the empty card.
   // @mutate src/components/declutter/DeclutterHomeView.tsx |         {haulOn && <DonationReceipts />}\n |
   it("Q2667: a seller whose only item was donated sees the donation receipt under 'You haven't listed anything yet'", async () => {

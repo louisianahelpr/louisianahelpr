@@ -23,7 +23,7 @@ import { YourPageLink } from "@/components/profile/YourPageLink";
 import { ManagerWaitingForOkGate } from "./ManagerWaitingForOkGate";
 import { ManagerPanelGate } from "./ManagerPanelGate";
 import { BoughtWhatNext } from "./BoughtWhatNext";
-import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
+import { fetchMyCart, fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyPayouts } from "@/lib/declutter/handover";
 import { listingNextStep, listingRowLine } from "./listingStatusLine";
@@ -120,6 +120,10 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   // SE-5: a sold listing shows what it SOLD for (the paid line), never its list price; read only when one is sold.
   const anySold = (mine.data ?? []).some((i) => SOLD.has(i.status));
   const sales = useQuery({ queryKey: ["declutter", "sales", userId], queryFn: () => fetchMySales(userId), enabled: anySold });
+  // Area 06 L7: a reserved listing's agreed price, from the cart read Selling's checkout box already makes (same key).
+  const anyReserved = (mine.data ?? []).some((i) => i.status === "reserved");
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: anyReserved });
+  const agreed = new Map((cart.data ?? []).filter((l) => l.my_side === "seller" && l.status === "in_cart" && l.item_id).map((l) => [l.item_id as string, l.price_cents]));
   // #60: and where its payout stands (the same read and key as the sold cards' payout line).
   const payouts = useQuery({ queryKey: ["declutter", "payouts", userId], queryFn: () => fetchMyPayouts(userId), enabled: anySold });
   const payoutOf = (itemId: string) => {
@@ -287,7 +291,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                   {/* Owner request 11-05: how many people saw it (unique, the seller only). */}
                   {item.status !== "draft" && <ItemViewsCount sellerId={userId} itemId={item.id} />}
                 </div>
-                <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} />
+                <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} agreed={agreed.get(item.id)} />
               </Link>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
                 {item.status === "draft" ? (

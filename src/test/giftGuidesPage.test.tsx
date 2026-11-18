@@ -57,6 +57,8 @@
  * @mutate src/pages/info/Index.tsx |       <SectionsShowcase />\n |       <SectionsShowcase />\n      <GiftGuidesBand />\n
  * @mutate src/components/Footer.tsx |               <Link to="/safety" className={FOOTER_LINK}> |               <Link to="/gift-guides" className={FOOTER_LINK}>
  * @mutate src/components/sponsor/Sections.tsx |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n        <Link to={C.links.giftGuides}>{C.footer.giftGuidesLink}</Link>\n
+ * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
+ * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  */
 import { readFileSync, existsSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -84,7 +86,7 @@ afterEach(cleanup);
 const src = (p: string) => blankComments(readFileSync(p, "utf8"));
 const DISCLOSURE = "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.";
 const AMAZON_STATEMENT = "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.";
-const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
+const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Experiences", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
 // @two-way src/test/giftGuidesPage.test.tsx:stale allowed host
 const ALLOWED_HOSTS = ["shopmy.us", "www.pinterest.com", "www.amazon.com", "amazon.com", "amzn.to", ...BRAND_SITES];
 const isAmazon = (href: string) => ["www.amazon.com", "amazon.com", "amzn.to"].includes(new URL(href).hostname);
@@ -168,7 +170,7 @@ describe("gift guides: the content inventory", () => {
   });
 
   it("each store guide with picks holds every pick on its store, and only those", () => {
-    const byStore: [string, keyof typeof STORES][] = [["store-amazon", "amazon"], ["store-shopmy", "shopmy"], ["store-zchocolat", "zchocolat"], ["store-diecast-models", "diecast"]];
+    const byStore: [string, keyof typeof STORES][] = [["store-amazon", "amazon"], ["store-zchocolat", "zchocolat"], ["store-diecast-models", "diecast"]];
     for (const [slug, store] of byStore) {
       const g = guideBySlug(slug)!;
       expect(g?.row, slug).toBe("by-store");
@@ -181,6 +183,29 @@ describe("gift guides: the content inventory", () => {
     expect(guidesIn("by-store")[0].slug).toBe("store-amazon");
     expect(guidesIn("by-store")[1].slug).toBe("store-walmart");
     expect(Object.keys(STORES).sort()).toEqual(["amazon", "diecast", "shopmy", "zchocolat"]);
+  });
+
+  it("syncs the owner's 2026-11-18 list: Experiences after Louisiana, Stay-at-Home Parents, Gift Wrap after Stocking Stuffers, no ShopMy store tile", () => {
+    const rows = ROWS.map((r) => r.label);
+    expect(rows.indexOf("Experiences")).toBe(rows.indexOf("Louisiana") + 1);
+    expect(guidesIn("experiences").map((g) => g.slug)).toEqual([
+      "gift-cards", "louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "subscriptions", "family-fun-days",
+    ]);
+    expect(guideBySlug("stay-at-home-parents")?.row).toBe("by-career");
+    const budget = guidesIn("by-budget").map((g) => g.slug);
+    expect(budget.indexOf("gift-wrap-and-cards")).toBe(budget.indexOf("stocking-stuffers") + 1);
+    // The By store row is the list's store entries, in its order (Louisiana popularity).
+    const listed = GUIDE_INDEX.filter((g) => g.group === "By store").map((g) => g.slug);
+    expect(listed.length).toBeGreaterThan(200);
+    expect(guidesIn("by-store").map((g) => g.slug)).toEqual(listed);
+    // No "ShopMy" tile: each brand from her ShopMy links is its own store (Target, Tractor Supply, Dillard's ...).
+    const tiles = guidesIn("by-store");
+    expect(tiles.some((g) => g.slug === "store-shopmy" || /^shopmy$/i.test(g.title))).toBe(false);
+    expect(guideBySlug("store-shopmy")).toBeUndefined();
+    const viaShopMy = GUIDE_INDEX.filter((g) => g.via === "shopmy").map((g) => g.slug);
+    expect(viaShopMy.length).toBeGreaterThan(50);
+    for (const s of ["store-target", "store-tractor-supply", "store-dillards"]) expect(viaShopMy, s).toContain(s);
+    for (const s of viaShopMy) expect(guideBySlug(s)?.row, s).toBe("by-store");
   });
 
   it("Kids is a hub of Boys / Girls / Gender-Neutral, each a hub of its five age guides; removed guides are gone", () => {
@@ -203,7 +228,7 @@ describe("gift guides: the content inventory", () => {
 
   it("the owner's guide list drives the order and the palettes; every listed guide with content is shown", () => {
     expect(ROWS.map((r) => r.label)).toEqual(ROW_LABELS);
-    expect(ROWS.map((r) => r.tint)).toEqual(["green", "red", "oat", "green", "red", "oat", "green", "red", "oat", "green"]);
+    expect(ROWS.map((r) => r.tint)).toEqual(["green", "red", "oat", "green", "oat", "red", "oat", "green", "red", "oat", "green"]);
     const shown = GUIDES.filter((g) => GUIDE_INDEX.some((x) => x.slug === g.slug)).map((g) => g.slug);
     expect(shown).toEqual(GUIDE_INDEX.filter((x) => shown.includes(x.slug)).map((x) => x.slug));
     expect(shown).toEqual(GUIDE_INDEX.filter((x) => !REMOVED_GUIDES.includes(x.slug)).map((x) => x.slug));

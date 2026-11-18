@@ -109,7 +109,7 @@ export const OLD_SLUGS: Record<string, string> = {
   "for-cook": "home-cook", "for-book": "book-lover", "for-golf": "golfer", "for-gamer": "gamer", "for-traveler": "traveler",
   "for-beach": "beach-lover", "for-mountain": "mountain-lover", "for-hunters": "hunters", "for-fishermen": "fishermen",
   "for-workaholic": "workaholic", "for-pink": "pink-lover", "for-blue": "blue-lover", "last-minute": "last-minute-gifts",
-  "amazon": "store-amazon", "amazon-finds": "store-amazon", shopmy: "store-shopmy", "brand-shops": "store-zchocolat",
+  "amazon": "store-amazon", "amazon-finds": "store-amazon", "brand-shops": "store-zchocolat",
 };
 const slugOf = (old: string) => OLD_SLUGS[old] ?? old;
 
@@ -170,7 +170,6 @@ const DRAFTS: Draft[] = [
   ...GUIDE_INDEX.filter((g) => !amazonGuides.some((a) => a.slug === g.slug) && shopmyLinkFor(g.slug).length > 0)
     .map((g) => ({ slug: g.slug, lead: g.lead, title: g.title, line: `The ${g.title} collection on ShopMy.`, picks: [], links: shopmyLinkFor(g.slug) })),
   storeGuide(["amazon"], "store-amazon", STORES.amazon.name, "Every Amazon find from every guide."),
-  storeGuide(["shopmy"], "store-shopmy", STORES.shopmy.name, "Picks from the ShopMy collections.", [giftGuides.allLinks[0]]),
   storeGuide(["zchocolat"], "store-zchocolat", STORES.zchocolat.name, "French chocolate gift boxes."),
   storeGuide(["diecast"], "store-diecast-models", STORES.diecast.name, "Diecast model cars, for collectors."),
 ];

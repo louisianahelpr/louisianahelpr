@@ -41,15 +41,17 @@ function goToTradeCheckout(itemId: string | null | undefined): boolean {
 function Pair({ t }: { t: MyTrade }) {
   const give = t.my_side === "seller" ? t.item : t.offered;
   const get = t.my_side === "seller" ? t.offered : t.item;
+  // Area 06 L8 (11-18): a finished trade says what happened, not what will.
+  const done = t.status === "completed";
   return (
     <ul className="divide-y divide-border text-sm" data-trade-pair="">
       <li className="flex min-h-11 items-center gap-3 py-2">
-        <span className="shrink-0 text-muted-foreground">You give</span>
+        <span className="shrink-0 text-muted-foreground">{done ? "You gave" : "You give"}</span>
         <span className="min-w-0 flex-1 line-clamp-2 break-words font-semibold">{give?.title ?? "An item"}</span>
         {give && <span className="shrink-0 tabular-nums text-muted-foreground">{itemPriceLabel(give.current_price_cents)}</span>}
       </li>
       <li className="flex min-h-11 items-center gap-3 py-2">
-        <span className="shrink-0 text-muted-foreground">You get</span>
+        <span className="shrink-0 text-muted-foreground">{done ? "You got" : "You get"}</span>
         {get ? (
           <Link to={`/declutter/item/${get.id}`} className="min-w-0 flex-1 line-clamp-2 break-words font-semibold underline-offset-2 hover:underline" title={get.title}>{get.title}</Link>
         ) : <span className="min-w-0 flex-1 font-semibold">An item</span>}
@@ -142,7 +144,10 @@ export function ItemTradeOffers({ itemId, userId }: { itemId: string; userId: st
 /** only (audit 11-10 F374, Buying's chips): just the trades that chip files (tradeBucket); nothing at all when none. */
 export function TradeOffersSection({ side, userId, only = null }: { side: "buyer" | "seller"; userId: string | null; only?: OrderBucket | null }) {
   const q = useMyTrades(side, userId);
-  const rows = underChip(q.data ?? [], only, (t) => tradeBucket(t, side));
+  // Area 06 L9 (11-18): a trade that ran out (or ended) sat on top of the ones still to answer; it goes below them.
+  const now = Date.now();
+  const ended = (t: MyTrade) => (t.status === "open" ? new Date(t.respond_by).getTime() <= now : t.status !== "accepted");
+  const rows = [...underChip(q.data ?? [], only, (t) => tradeBucket(t, side))].sort((a, b) => Number(ended(a)) - Number(ended(b)));
   // A failed read says nothing here: the offers and orders around it are what the tab is for.
   if (!rows.length) return null;
   const title = side === "seller" ? "Trade offers" : "Your trade offers";

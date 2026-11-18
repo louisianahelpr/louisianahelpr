@@ -43,6 +43,7 @@ function Row({ id, title, items, cover, from }: { id?: string; title: string; it
               photoPath={cover.get(it.id)}
               miles={from ? milesBetween(from, { lat: Number(it.area_lat), lng: Number(it.area_lng) }) : null}
               approximate={!!from?.approximate}
+              noPhotoTags
             />
           </li>
         ))}

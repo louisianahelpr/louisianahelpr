@@ -126,7 +126,7 @@ export function SellMeetupSpots() {
         <SpotForm initial={draft} onDone={() => setDraft(null)} />
       ) : spots.length < MAX_MY_MEETUP_SPOTS && (
         <div className="space-y-3">
-          <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft({ name: "", address: "", area: "", windows: START_HOURS })}>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setDraft({ name: "", address: "", area: "", windows: START_HOURS })}>
             {t("lp.ms.add")}
           </Button>
           {suggestions.length > 0 && (

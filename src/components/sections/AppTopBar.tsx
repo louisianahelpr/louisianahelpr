@@ -17,6 +17,7 @@ import { COMPACT_TOP_ROW, TITLE_TOP_ROW } from "@/components/sections/browseHead
 import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
+import { useGuestPublicFrame } from "@/hooks/useGuestPublicFrame";
 import { GuestAuthActions } from "@/pages/home/GuestAuthActions";
 
 // "My Declutter" (etc.) loads on the photo's first tap, never on the first screen.
@@ -59,7 +60,9 @@ function TopBarInbox() {
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
 
 /** The soft create look (the light olive tint, the olive glyph) of the desktop "+ Post a job". */
-const SECTION_ADD_TINT = "rounded-full shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
+// Design audit 11-17 #23: the bare 12% tint read as a grey, disabled pill beside the rail's olive "+ Create"; an olive
+// edge makes it read as the lighter-green button it is (still no fill, no shadow: second to Create).
+const SECTION_ADD_TINT = "rounded-full shadow-none border border-[hsl(var(--bark)/0.55)] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
 
 /** The section's soft "+ Post a job" (etc.) for the DESKTOP bar; the /jobs loading frame draws the same one so the bar
  *  does not change when the page settles (src/test/sectionLoadingHeaderIsSettled.test.tsx). */
@@ -147,6 +150,9 @@ export function AppTopBar({
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const isWebDesktop = useIsWebDesktop();
+  // Design audit 11-17 #1 (High): under the public header (a guest on /declutter, /helprs, /search on the web) the
+  // header already carries Log in / Join free, so this bar draws no second pair.
+  const publicFrame = useGuestPublicFrame();
   const [mineOpen, setMineOpen] = useState(false);
   const [mineAsked, setMineAsked] = useState(false);
   const mineToDo = mineToDoCount(mine);
@@ -166,7 +172,7 @@ export function AppTopBar({
       {/* M13 (owner 11-16: guests get the same search as members in one consistent header): a guest's right side is
           Log in and Join free where a member's Inbox and photo sit. Only when no session is stored, so a member's cold
           start never flashes them. */}
-      {!user && !hasPersistedAuthToken() && !isWebDesktop && (
+      {!user && !hasPersistedAuthToken() && !isWebDesktop && !publicFrame && (
         <div className="flex items-center" data-testid="top-bar-guest">
           <GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />
         </div>

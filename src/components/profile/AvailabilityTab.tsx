@@ -213,9 +213,10 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
           ? wordInLang("jh.a.startsAt", `Your hours today start at ${todaysHours.startLabel}`, { time: todaysHours.startLabel })
           : wordInLang("jh.a.freeUntil", `Turn on to show you're free until ${todaysHours.endLabel}`, { time: todaysHours.endLabel });
       case "off":
-        return wordInLang("jh.a.notToday", `You're not scheduled today · signal ${FALLBACK_HOURS} hours anyway`, { n: FALLBACK_HOURS });
+        // design audit 11-17 #29: "Turn on for", not "· signal".
+        return wordInLang("jh.a.notToday", `You're not scheduled today. Turn on for ${FALLBACK_HOURS} hours anyway.`, { n: FALLBACK_HOURS });
       case "past":
-        return wordInLang("jh.a.ended", `Today's hours ended at ${todaysHours.endLabel} · signal ${FALLBACK_HOURS} more hours`, { time: todaysHours.endLabel, n: FALLBACK_HOURS });
+        return wordInLang("jh.a.ended", `Your hours ended at ${todaysHours.endLabel}. Turn on for ${FALLBACK_HOURS} more hours.`, { time: todaysHours.endLabel, n: FALLBACK_HOURS });
       default:
         return wordInLang("jh.a.signal", "Signal you're ready to start a job today");
     }

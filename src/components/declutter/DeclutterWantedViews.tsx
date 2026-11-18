@@ -78,6 +78,10 @@ const FORM_ID = "wanted-form";
  */
 const WANTED_DRAFT_KEY = "helpr_wanted_draft";
 
+/** Design audit 11-17 #10: the shared form-label size (ui/label: 13 px semibold), the same as Edit profile, Sign up and
+ * the photo picker's "Photos (optional, up to 3)"; the 15 px labels read 17 px beside a 12 px one. */
+const FIELD_LABEL = "block text-ds-13 font-semibold text-foreground/80";
+
 function readWantedDraft(): WantedForm {
   try {
     const raw = safeStorage.getItem(WANTED_DRAFT_KEY);
@@ -154,7 +158,7 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
       }}
     >
       <div className="space-y-1">
-        <label className="block text-ds-15 font-semibold" htmlFor="wanted-what">I'm looking for</label>
+        <label className={FIELD_LABEL} htmlFor="wanted-what">I'm looking for</label>
         <Input id="wanted-what" className="w-full min-w-0" maxLength={60} value={form.what} placeholder="Kids bike" enterKeyHint="next" aria-required="true"
           aria-invalid={problems.what ? true : undefined} aria-describedby={problems.what ? "wanted-what-problem" : undefined}
           onChange={(e) => setForm((f) => ({ ...f, what: e.target.value }))} />
@@ -163,13 +167,13 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
       {/* Its own row (tester 10-30): beside "Up to" at 375 its subs wrapped in a half-width column, and opening it left
           an empty column under "Up to". */}
       <div className="min-w-0 space-y-1" data-wanted-category-row="">
-        <label className="block text-ds-15 font-semibold" htmlFor="wanted-category">Category</label>
+        <label className={FIELD_LABEL} htmlFor="wanted-category">Category</label>
         <TwoStepCategoryPicker id="wanted-category" value={form.category} placeholder="Pick one"
           onChange={(category) => setForm((f) => ({ ...f, category }))} groups={CATEGORY_PICKER_GROUPS} triggerClassName="border-input" />
         <FieldProblem id="wanted-category-problem" text={problems.category} />
       </div>
       <div className="min-w-0 space-y-1">
-        <label className="block text-ds-15 font-semibold" htmlFor="wanted-max">The most you'd pay for the item</label>
+        <label className={FIELD_LABEL} htmlFor="wanted-max">The most you'd pay for the item</label>
         <div className={`${input} flex items-center gap-1`}>
           {/* Audit W8: the "$" turns rust only once a price is typed, so the grey 30 never reads as a set price. */}
           <span aria-hidden className={`font-semibold ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"}`} data-wanted-dollar="">$</span>
@@ -182,7 +186,7 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
         <FieldProblem id="wanted-max-problem" text={problems.maxPrice} />
       </div>
       <div className="space-y-1">
-        <p id="wanted-within" className="text-ds-15 font-semibold">Within</p>
+        <p id="wanted-within" className={FIELD_LABEL}>Within</p>
         <p className="text-ds-13 text-muted-foreground" data-wanted-where="">{where}</p>
         {/* Browse's distance chips (DeclutterFilterPanel's Chip), not an 11px segmented control (lead walkthrough
             2026-10-28, shot 39: "Within" read tiny beside the 15px fields). */}

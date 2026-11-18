@@ -480,7 +480,10 @@ export function EndedLine({ line }: { line: CartLine }) {
       {/* DB-19: the price and the day it ended, as on the seller's ended rows. */}
       <div className="flex items-baseline gap-3">
         <p className="min-w-0 flex-1 truncate text-ds-15 font-semibold" title={line.item_title}>{line.item_title}</p>
-        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{line.source === "swap" ? "Trade" : itemPriceLabel(line.price_cents)}</span>
+        {/* Design audit 11-17 #33: a trade has no price, so "Trade offer" is a small chip, not a word in the price slot. */}
+        {line.source === "swap"
+          ? <span className="shrink-0 self-center rounded-full bg-muted px-2 py-0.5 text-ds-12 font-semibold text-muted-foreground" data-ended-trade="">Trade offer</span>
+          : <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{itemPriceLabel(line.price_cents)}</span>}
       </div>
       <p className="text-ds-13 text-muted-foreground">{endedOnPrefix(line.closed_at)}{endedWords(line)}</p>
     </li>

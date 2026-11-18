@@ -58,8 +58,9 @@ export function shareListing(it: Pick<ShareableListing, "id" | "title" | "curren
 /** Owner request 11-05: the Share button on each of the seller's live listings (Selling → Your listings). */
 export function ListingShareButton({ item }: { item: Pick<ShareableListing, "id" | "title" | "current_price_cents"> }) {
   return (
-    <Button type="button" variant="outline" size="sm" className="gap-1.5" aria-label={`Share ${item.title}`} data-listing-share="" onClick={() => shareListing(item)}>
-      <Share2 className="h-4 w-4" aria-hidden /> Share
+    // Design audit 11-17 #20: a 44px icon button beside the row's one labelled button (Manage).
+    <Button type="button" variant="outline" size="iconCompact" className="rounded-full" aria-label={`Share ${item.title}`} data-listing-share="" onClick={() => shareListing(item)}>
+      <Share2 aria-hidden /><span className="sr-only">Share</span>
     </Button>
   );
 }

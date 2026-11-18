@@ -65,11 +65,11 @@ beforeEach(() => {
 });
 
 describe("TRUST MARKS (board 41)", () => {
-  it("all three done: Added, Done, Done", () => {
+  it("all three done: Added, Verified, Added (design audit 11-17 #9)", () => {
     inRouter(<TrustMarksCard profile={P({ idv_status: "verified", stripe_payouts_enabled: true })} phone="(337) 555-0142" />);
     expect(text()).toContain("PhoneAdded");
-    expect(text()).toContain("Photo IDDone");
-    expect(text()).toContain("Payout bankDone");
+    expect(text()).toContain("Photo IDVerified");
+    expect(text()).toContain("Payout bankAdded");
   });
 
   it("nothing done: each row is its next step", () => {

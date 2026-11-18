@@ -94,7 +94,8 @@ export default function FindHelprs() {
             <Label htmlFor="helpr-town">Town or parish</Label>
             <Input id="helpr-town" value={townDraft} maxLength={60} onChange={(e) => setTownDraft(e.target.value)} placeholder="e.g. Lafayette" autoComplete="address-level2" />
           </div>
-          <Button type="submit" variant="outline">
+          {/* Design audit 11-17 #31: md (48px), the input's own height; the default 56px stood taller than the field. */}
+          <Button type="submit" variant="outline" size="md">
             <Search className="h-4 w-4" aria-hidden />
             Search
           </Button>
@@ -167,10 +168,15 @@ export default function FindHelprs() {
                         {f.place && (
                           <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" aria-hidden />{f.place}</span>
                         )}
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="h-3.5 w-3.5" aria-hidden />
-                          {f.rating}
-                        </span>
+                        {/* Design audit 11-17 #31: "☆ New" with an empty star read like a zero rating; New is a chip. */}
+                        {f.rating === "New" ? (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-ds-12 font-semibold text-foreground" data-helpr-new="">New</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1">
+                            <Star className="h-3.5 w-3.5" aria-hidden />
+                            {f.rating}
+                          </span>
+                        )}
                         {f.jobsDone && <span>{f.jobsDone}</span>}
                       </p>
                       {f.skills.length > 0 && (

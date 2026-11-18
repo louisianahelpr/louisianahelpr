@@ -254,7 +254,7 @@ describe("the 8-step bar reads the card's own line and button (lead review 2026-
       const c = posterCard(STATES[name]);
       expect({ name, bar: c.bar }).toMatchObject({ name, bar: { stage: 3, tone: "problem", label: "No-show?", waitingOnYou: false } });
       // The job page's line is the card's own sentence, not the tracker's "Tap I'm still on to confirm".
-      expect(c.page.next).toMatch(/^Hallie never (arrived — No-Show\?|started — cancel\?)$/);
+      expect(c.page.next).toMatch(/^Hallie (didn't show up|never started — cancel\?)$/); // design audit 11-17 #29
     }
   });
 

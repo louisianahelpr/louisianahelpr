@@ -112,7 +112,7 @@ function SellSteps({ itemId }: { itemId: string }) {
   return (
     <AppPage title={tr("sf.sellAnItem")} onBack={back} phoneHidesTitle>
       {/* Board 31a/48/31b/49/158: one question per step, "n of 5" progress (spec §3 "Step-by-step flows"). */}
-      <div className="mx-auto w-full max-w-xl space-y-5">
+      <div className="w-full max-w-xl space-y-5">
       <div className="flex items-center gap-3" data-sell-progress={step}>
         <div className="flex flex-1 gap-1.5" aria-hidden>
           {[1, 2, 3, 4, 5].map((n) => (

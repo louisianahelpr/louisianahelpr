@@ -73,11 +73,13 @@ export function OrderTalkRow({ row }: { row: OrderTalkListRow }) {
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-1.5">
           <span className="font-sans font-semibold truncate min-w-0 grow text-ds-15" title={orderTalkRowTitle(row)}>{orderTalkRowTitle(row)}</span>
-          {!row.open && <span className="text-ds-11 font-semibold px-1.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground">{t("msg.ot.ended")}</span>}
           <span className="ml-auto shrink-0 text-ds-11 text-muted-foreground whitespace-nowrap">{rowAge(row.last_at)}</span>
         </span>
         <span className="block text-ds-12 text-muted-foreground line-clamp-2 [overflow-wrap:anywhere]" data-order-talk-line=""
           title={`${row.side !== "buyer" ? t("msg.ot.sold") : t("msg.ot.bought")} · ${orderTalkRowLine(row)}`}>
+          {/* Design audit 11-17 #6: "Ended" rides this second line (as a job row's status chip does), so the title
+              keeps the whole first line instead of truncating at ~12 characters. */}
+          {!row.open && <span className="mr-1.5 inline-block align-middle text-ds-11 font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground" data-order-talk-ended="">{t("msg.ot.ended")}</span>}
           {row.side === "buyer" ? t("msg.ot.bought") : t("msg.ot.sold")} · {orderTalkRowLine(row)}
         </span>
       </span>

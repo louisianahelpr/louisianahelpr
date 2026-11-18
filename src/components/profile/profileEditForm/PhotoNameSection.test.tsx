@@ -67,7 +67,7 @@ describe("avatarCaption", () => {
   });
 
   it("falls back to the neutral caption when a photo is showing", () => {
-    expect(avatarCaption(null)).toBe("Click or tap the photo to change it.");
+    expect(avatarCaption(null)).toBe("Tap your photo to change it.");
   });
 });
 

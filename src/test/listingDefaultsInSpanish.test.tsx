@@ -83,7 +83,7 @@ describe("listing settings rows, Sell a bunch and Listing defaults follow the me
     expect(enListingParts["lp.ld.tradesOff"]).toBe("Off. Buyers can't offer a trade.");
     expect(dayWords([6, 0])).toBe("Sundays and Saturdays");
     expect(dayWords([1, 3, 5])).toBe("Mondays, Wednesdays and Fridays");
-    expect(makeFreeValue(null)).toBe("Never");
+    expect(makeFreeValue(null)).toBe("Off"); // design audit 11-17 #21
     expect(pickupLines({ ways: ["porch", "meetup"], places: [], areaLabel: "Lafayette", windows: [{ weekday: 6, starts: "09:00", ends: "12:00" }] }))
       .toEqual(["Porch, Safe meeting spot · Lafayette · Saturdays 9:00 AM–12:00 PM"]);
     show();
@@ -103,7 +103,7 @@ describe("listing settings rows, Sell a bunch and Listing defaults follow the me
     await ensureLangLoaded();
     expect(dayWords([6, 0])).toBe("domingos y sábados");
     expect(dayWords([0, 1, 2, 3, 4, 5, 6])).toBe("Todos los días");
-    expect(makeFreeValue(null)).toBe("Nunca");
+    expect(makeFreeValue(null)).toBe("Apagado");
     expect(pickupLines({ ways: ["porch", "meetup"], places: [], areaLabel: "Lafayette", windows: [{ weekday: 6, starts: "09:00", ends: "12:00" }] }))
       .toEqual(["Porche, Lugar de encuentro seguro · Lafayette · sábados 9:00 AM–12:00 PM"]);
     show();

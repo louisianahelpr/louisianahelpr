@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/SellPorchPlaces.tsx | t("lp.pp.nowLast", { area: lastArea, hours: placeHoursLine(usual, null) }) | t("lp.pp.nowEach", { hours: placeHoursLine(usual, null) })
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellPorchPlaces card />\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx |     return card ? inCard(<><span className="block text-sm font-semibold">{t("lp.pp.title")}</span><span className="block text-xs text-muted-foreground">{t("lp.f.loading")}</span></>) : null; |     return null;
- * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label={t("lp.pp.title")} data-porch-places-card="">{body}</section>\n    : body) | body
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-[20px] border border-border bg-card p-4" aria-label={t("lp.pp.title")} data-porch-places-card="">{body}</section>\n    : body) | body
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             to="/profile?tab=notifications&show=declutter"\n |             to="/profile?tab=notifications"\n
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | setWays={(w) => change({ handovers: w })} onSettingsPage /> | setWays={(w) => change({ handovers: w })} />
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |   if (saved.isError) return <ErrorState variant="inline" title={t("lp.ld.loadFail")} body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;\n |

@@ -19,6 +19,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { dollarsInputToCents } from "@/lib/declutter/money";
 import { BuyerTotal } from "./BuyerTotal";
 import { NoSellerOffers, SectionHeading } from "./DeclutterTabParts";
+import { ChevronDown } from "lucide-react";
 import { GOOD_NEWS_NOTE } from "./goodNews";
 import { orderWhen, timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
@@ -350,15 +351,18 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
       {mine.length === 0 ? (
         seller ? <NoSellerOffers /> : <p className="text-sm text-muted-foreground">{t("dof.noneMade")}</p>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("dof.noneOpen")}</p>
+        // Design audit 11-17 #19: with closed offers to show, the link row below is the whole answer.
+        !closed.length && <p className="text-sm text-muted-foreground">{t("dof.noneOpen")}</p>
       ) : (
         <ul className="space-y-3">{shown.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>
       )}
       {closed.length > 0 && (
         <>
-          <InlineTextButton className="text-sm font-medium" aria-expanded={closedOpen}
+          {/* Design audit 11-17 #19: it read as body text; olive, semibold, with a chevron, it reads as the link it is. */}
+          <InlineTextButton className="inline-flex items-center gap-0.5 text-sm font-semibold text-[hsl(var(--olivewood))]" aria-expanded={closedOpen}
             onClick={() => setShowClosed(!closedOpen)} data-closed-offers-toggle="">
             {closedOpen ? t("dof.hideClosed") : closed.length === 1 ? t("dof.showClosed1", { n: 1 }) : t("dof.showClosedN", { n: closed.length })}
+            <ChevronDown aria-hidden className={`h-4 w-4 shrink-0 transition-transform ${closedOpen ? "rotate-180" : ""}`} />
           </InlineTextButton>
           {closedOpen && <ul className="space-y-3" data-closed-offers="">{closed.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} closed />)}</ul>}
         </>

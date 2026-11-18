@@ -41,7 +41,7 @@ export function avatarCaption(rejection: AvatarPhotoRejection | null, uploadedTh
       return "We couldn't load your photo — tap to try another.";
     default:
       // F099 (owner UI audit 11-09): the screen is used on a computer too, so it says click or tap.
-      return "Click or tap the photo to change it.";
+      return "Tap your photo to change it."; // design audit 11-17 #29
   }
 }
 

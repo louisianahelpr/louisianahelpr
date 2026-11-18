@@ -198,7 +198,7 @@ describe("Sell a bunch: listing choices", () => {
     expect(value("pickup")).toBe("Safe meeting spot · Saturdays 9:00 AM–12:00 PM");
     expect(value("drops")).toBe("Off");
     // Sell a bunch never sets "make it free" on what it lists, whatever is saved: the row says what will happen.
-    expect(value("free")).toBe("Never");
+    expect(value("free")).toBe("Off"); // design audit 11-17 #21
     expect(within(card).getAllByRole("link").map((l) => [l.textContent, l.getAttribute("href")])).toEqual([["Change", "/declutter/settings"]]);
     expect(card.textContent).not.toMatch(/Uses your settings|Price drops: |Pickup at /);
     expect(screen.queryByText(/Tick every way that works for you/)).toBeNull();

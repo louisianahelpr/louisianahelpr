@@ -33,13 +33,25 @@ export function SectionHeading({ title, todo, todoWords }: { title: string; todo
   );
 }
 
-/** "You have N of 3 strikes" (rows 7, 16, 17). Nothing when there are none. */
-export function StrikeCount({ userId }: { userId: string }) {
+/**
+ * "You have N of 3 strikes" (rows 7, 16, 17). Nothing when there are none.
+ * Design audit 11-17 #2: the full card sat above every tab's feed. It is full on Selling (`full`) and whenever
+ * Declutter is paused (3 strikes); every other tab gets the one line, in the same warning tone.
+ */
+export function StrikeCount({ userId, full = true }: { userId: string; full?: boolean }) {
   const strikes = useQuery({ queryKey: ["declutter", "strikes", userId], queryFn: () => fetchMyActiveStrikes(userId) });
   const n = strikes.data ?? 0;
   if (n === 0) return null;
+  const title = `You have ${Math.min(n, 3)} of 3 strikes.`;
+  if (!full && n < 3) {
+    return (
+      <p role="status" data-strike-line="" className="rounded-xl border border-[hsl(var(--burnt-sienna)/0.3)] bg-[hsl(var(--burnt-sienna)/0.06)] px-3 py-2 text-ds-13 font-semibold text-foreground">
+        {title}
+      </p>
+    );
+  }
   return (
-    <DeclutterNotice tone="warn" title={`You have ${Math.min(n, 3)} of 3 strikes.`}>
+    <DeclutterNotice tone="warn" title={title}>
       {n >= 3
         ? "Declutter is paused for you until one of them goes away. Each strike goes away 1 year after you got it."
         : "Each strike goes away 1 year after you got it. At 3 strikes you can't buy or sell on Declutter until one goes away."}

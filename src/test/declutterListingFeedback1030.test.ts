@@ -63,7 +63,7 @@ describe("the form can't be misread as never-drop", () => {
     expect(autoFreeExplainer(null)).not.toMatch(/stays at your price/i);
     // F125 (UI audit 11-09): the extra "nothing to do with price drops" sentence confused more than it helped.
     expect(autoFreeExplainer(null)).toBe("It won't become free on its own.");
-    expect(makeFreeValue(null)).toBe("Never");
+    expect(makeFreeValue(null)).toBe("Off"); // design audit 11-17 #21
     expect(makeFreeValue(14)).toBe("After 14 days");
   });
 });

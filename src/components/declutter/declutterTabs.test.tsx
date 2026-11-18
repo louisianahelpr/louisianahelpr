@@ -803,7 +803,11 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(ended.querySelectorAll("[data-ended-line]").length).toBe(2);
     expect(container.querySelector("[data-status-box]")).toBeNull();
     expect(container.querySelector("[data-status-all]")).toBeNull();
-    expect(within(ended).getByRole("link", { name: "Find something in Browse" })).toHaveAttribute("href", "/declutter");
+    // Design audit 11-17 #33: "Nothing in progress." and the centred button come before the Ended list.
+    const empty = container.querySelector("[data-buying-nothing-active]") as HTMLElement;
+    expect(empty.textContent).toContain("Nothing in progress.");
+    expect(within(empty).getByRole("link", { name: "Find something in Browse" })).toHaveAttribute("href", "/declutter");
+    expect(empty.compareDocumentPosition(ended) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     unmount();
     // A live order beside them: the chips are back (two groups) and no Browse pointer.
     state.cart = [...state.cart, { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-x", order_status: "paid", handover: "pickup_home" }];

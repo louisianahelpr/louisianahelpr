@@ -19,7 +19,7 @@ export const enNotifications = {
   "notif.nothingNew": "Nothing new yet.",
   "notif.switchToAll": "Switch to All to see everything.",
   "notif.landHere": "Applications, messages and payouts land here.",
-  "notif.showingNewest": "Showing your newest {count}. Mark all read clears all {unread} unread.",
+  "notif.showingNewest": "Showing the newest {count}. Mark all read clears all {unread}.",
   "notif.turnOnPush": "Turn on push notifications",
   "notif.more": "More",
   "notif.less": "Less",

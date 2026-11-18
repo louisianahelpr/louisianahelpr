@@ -125,10 +125,12 @@ export function JobDetailBadgeRow({ job, isRecommended, railIsCrowded, iconLaneR
             className="inline-flex min-w-0 shrink items-center gap-1.5 text-ds-12 font-semibold leading-none"
             style={{ color: "hsl(var(--bark))" }}
           >
+            {/* Design audit 11-17 #34: when the word steps aside (below), a lone 16px glyph at the top-left read as a
+                stray mark, so the glyph steps aside with it; the title says what the work is. */}
             <CategoryIcon
               category={job.category}
               aria-hidden
-              className="w-3.5 h-3.5 shrink-0"
+              className={`w-3.5 h-3.5 shrink-0 ${railIsCrowded ? "max-[399px]:hidden" : ""}`}
             />
             {/* Below 400px the rail is ~173px after the icon lane's reserve,
                 and "Moving" + URGENT is 200 — so the category shrank to "M…"

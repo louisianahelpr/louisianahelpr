@@ -136,19 +136,24 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {/* Declutter trades slice 3: the buyer's trade offers from the last 7 days, with Take it back while open. */}
       <TradeOffersSection side="buyer" userId={user?.id ?? null} only={only} />
       <PaidOrders side="buyer" views={trk.views} scope={(id) => !refunded(id)} show={(id) => only === null || trk.views.get(id)?.bucket === only} />
+      {/* Design audit 11-17 #33: only ended orders left one card, a left-aligned button and a blank screen. The empty
+          state's line and its centred button come first, then the Ended list. */}
+      {nothingActive && (ended.length > 0 || endedOrders > 0) && (
+        <div className="flex flex-col items-center gap-3 py-4 text-center" data-buying-nothing-active="">
+          <p className="text-ds-15 text-muted-foreground">{t("decl.mv.nothingActive")}</p>
+          {/* M5 (iOS audit 11-16): a real button, not a bare underlined link (the empty states' one action style). */}
+          <Button asChild variant="outline" size="sm" className="rounded-full">
+            <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>
+          </Button>
+        </div>
+      )}
       {(ended.length > 0 || endedOrders > 0) && (
         <section className="space-y-2" aria-label={t("decl.mv.ended")}>
           {/* "Ended", not "Ended before paying": an order cancelled after it was paid or claimed is kept here too (A2-4). */}
           <SectionHeading title={t("decl.mv.ended")} />
           {endedOrders > 0 && <PaidOrders side="buyer" views={trk.views} scope={refunded} ended />}
           {ended.length > 0 && <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>}
-          {/* Q2569: only ended orders, nothing on the way and no offer out: a way back to shopping. */}
-          {nothingActive && (
-            // M5 (iOS audit 11-16): a real button, not a bare underlined link (the empty states' one action style).
-            <Button asChild variant="outline" size="sm" className="rounded-full">
-              <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>
-            </Button>
-          )}
+          {/* Q2569: only ended orders, nothing on the way and no offer out: the way back to shopping is above the list. */}
         </section>
       )}
       {offers.has && !offers.toAnswer && <OffersSection side="buyer" only={only} />}

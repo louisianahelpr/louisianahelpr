@@ -13,10 +13,10 @@ import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedN
  *   - Phone: "Added" once a phone is saved (there is no phone verification,
  *     so the board's "Done" would claim a check nobody ran); else "Add",
  *     which focuses the phone field above.
- *   - Photo ID: from profiles.idv_status (identityView): "Done" when verified,
+ *   - Photo ID: from profiles.idv_status (identityView): "Verified" when verified,
  *     "Checking" while Stripe or our team is on it, else "Verify now", which
  *     opens the ID check sheet.
- *   - Payout bank: from profiles.stripe_payouts_enabled: "Done", else "Set up",
+ *   - Payout bank: from profiles.stripe_payouts_enabled: "Added", else "Set up",
  *     which opens Money, where payouts are set up.
  */
 export function TrustMarksCard({ profile, phone }: { profile: Profile | null; phone: string }) {
@@ -35,10 +35,12 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
       ? { key: "phone", label: "Phone", done: true, state: "Added" }
       : { key: "phone", label: "Phone", done: false, state: "Add", onClick: () => document.getElementById("phone")?.focus() },
     view === "verified"
-      ? { key: "id", label: "Photo ID", done: true, state: "Done" }
+      // Design audit 11-17 #9: "Added" / "Done" on neighbouring rows read inconsistent. A checked ID says Verified,
+      // the bank and the phone say Added.
+      ? { key: "id", label: "Photo ID", done: true, state: "Verified" }
       : { key: "id", label: "Photo ID", done: false, state: "Checking" },
     profile?.stripe_payouts_enabled
-      ? { key: "bank", label: "Payout bank", done: true, state: "Done" }
+      ? { key: "bank", label: "Payout bank", done: true, state: "Added" }
       : bankPaused
         ? { key: "bank", label: "Payout bank", done: false, state: "Later" }
         : { key: "bank", label: "Payout bank", done: false, state: "Set up", onClick: () => navigate("/profile?tab=earnings") },

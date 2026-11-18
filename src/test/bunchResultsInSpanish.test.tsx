@@ -30,7 +30,7 @@ vi.mock("@/lib/declutter/moves", () => ({
 vi.mock("@/components/declutter/DeclutterMovingSaleDetails", () => ({ MovingSaleDetails: () => null }));
 vi.mock("@/lib/nativeShare", () => ({ shareNative: vi.fn() }));
 
-const { BunchMovingSale, bunchIntro } = await import("@/components/declutter/DeclutterBunchMovingSale");
+const { BunchMovingDayHelp, BunchMovingSale, bunchIntro } = await import("@/components/declutter/DeclutterBunchMovingSale");
 const { BunchResults } = await import("@/components/declutter/DeclutterBunchResults");
 
 const show = () => {
@@ -39,6 +39,7 @@ const show = () => {
     <QueryClientProvider client={qc}>
       <MemoryRouter>
         <BunchMovingSale userId="u1" date="" setDate={() => {}} today="2026-11-12" />
+        <BunchMovingDayHelp userId="u1" date="" />
         <BunchResults userId="u1" inSale={false} onFix={() => {}} onListMore={() => {}}
           results={[{ key: "a", title: "Lamp", status: "live", id: "i1" }, { key: "b", title: "Rug", status: "pending_review", id: "i2" }, { key: "c", title: "Desk", error: new Error("x"), draftId: null, stays: true }]} />
       </MemoryRouter>

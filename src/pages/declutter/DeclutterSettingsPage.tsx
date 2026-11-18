@@ -15,7 +15,6 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeature } from "@/hooks/useFeature";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { fetchMyPickupWindows } from "@/lib/declutter/api";
 import { fetchBundleRule } from "@/lib/declutter/bundle";
 import { fetchLastSetup } from "@/lib/declutter/lastSetup";
@@ -25,7 +24,9 @@ import { fetchSellerDefaults } from "@/lib/declutter/sellerDefaults";
 import { fetchMySellerDelivery } from "@/lib/declutter/sellerDelivery";
 
 /** The page's index (F346): each name is the aria-label of a section on this page. */
-const SETTINGS_INDEX = ["Pickup places", "Listing defaults", "Notifications"] as const;
+const SETTINGS_INDEX = ["Pickup places", "Meet spots", "Listing defaults", "Notifications"] as const;
+/** Area 06b L6: Meet spots is headed by its own h2 (aria-labelledby), so its index chip finds it by its test id. */
+const INDEX_TARGET: Partial<Record<(typeof SETTINGS_INDEX)[number], string>> = { "Meet spots": '[data-testid="sell-meetup-spots"]' };
 
 /**
  * ONE SETTLED PAINT (Q169; prod-audit 43691657529 on 2026-11-15 page-settle): each card read its own data and grew when it landed
@@ -94,12 +95,12 @@ function DeclutterSettingsBody({ user }: { user: { id: string } }) {
           <SectionHeading title="Selling" />
           {/* Audit 11-10 F346: "Notifications ... are at the end." was an odd first line; a short index says what is on
               the page and still takes a buyer straight to Notifications (Q2574). */}
-          <nav aria-label="On this page" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-ds-13 text-muted-foreground" data-settings-index="">
-            {SETTINGS_INDEX.map((name, i) => (
-              <span key={name} className="inline-flex items-center gap-2">
-                {i > 0 && <span aria-hidden>·</span>}
-                <InlineTextButton className="font-medium text-foreground" onClick={() => document.querySelector(`section[aria-label="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{name}</InlineTextButton>
-              </span>
+          {/* Area 06b L6 (design audit 11-18): 44px chips, Meet spots included (were 19px text links that skipped it). */}
+          <nav aria-label="On this page" className="flex flex-wrap items-center gap-2" data-settings-index="">
+            {SETTINGS_INDEX.map((name) => (
+              <button key={name} type="button" data-settings-index-chip=""
+                className="inline-flex min-h-11 items-center rounded-full border border-border bg-card px-4 text-ds-14 font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{name}</button>
             ))}
           </nav>
           <div className="space-y-section">

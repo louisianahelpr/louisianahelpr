@@ -59,7 +59,10 @@ import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
 import { recordItemView } from "@/lib/declutter/itemViews";
 import { ItemViewsCount } from "./ItemViewsCount";
-import { PriceInclFee } from "./PriceInclFee";
+import { exactDollars, PriceInclFee } from "./PriceInclFee";
+import { buyNowTotalCents } from "@/lib/declutter/money";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
+import "@/lib/i18n/enDeclSell";
 import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
 import { SellerTrustBadges } from "./SellerTrustBadges";
 import { useAfterPaint } from "./useAfterPaint";
@@ -242,16 +245,19 @@ export default function ItemView({ itemId }: { itemId: string }) {
           <Heart className="w-5 h-5" fill={isWatching ? "currentColor" : "none"} />
         </Button>
       )}
-      <Button
-        type="button"
-        variant="ghost"
-        size="iconCompact"
-        aria-label={t("decl.item.share")}
-        className="border border-border bg-card"
-        onClick={() => shareListing(it)}
-      >
-        <Share2 className="w-5 h-5" aria-hidden />
-      </Button>
+      {/* Area 06b L2: the seller's live listing already has the Share row in its own card; one share control, not two. */}
+      {!(isSeller && it.status === "live") && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="iconCompact"
+          aria-label={t("decl.item.share")}
+          className="border border-border bg-card"
+          onClick={() => shareListing(it)}
+        >
+          <Share2 className="w-5 h-5" aria-hidden />
+        </Button>
+      )}
     </div>
   );
 
@@ -298,8 +304,14 @@ export default function ItemView({ itemId }: { itemId: string }) {
                 ) : (
                   <span className="text-ds-28 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</span>
                 )}
-                {it.current_price_cents > 0 && (
+                {it.current_price_cents > 0 && !isSeller && (
                   <PriceInclFee priceCents={it.current_price_cents} className="mt-0.5 text-ds-13 font-medium tabular-nums text-muted-foreground" />
+                )}
+                {/* Area 06b M9: the seller reads who pays the total ("Buyers pay $26.95 with the fee"), not a bare "incl. fee". */}
+                {it.current_price_cents > 0 && isSeller && (
+                  <span data-item-buyers-pay="" className="mt-0.5 text-ds-13 font-medium tabular-nums text-muted-foreground">
+                    {t("dsl.item.buyersPay", { amount: exactDollars(buyNowTotalCents(it.current_price_cents)) })}
+                  </span>
                 )}
               </p>
               <ConditionChip stars={it.condition_stars} />
@@ -323,6 +335,12 @@ export default function ItemView({ itemId }: { itemId: string }) {
               </p>
             )}
             {isSeller && <ItemViewsCount sellerId={it.seller_id} itemId={it.id} />}
+            {/* Area 06b M9: the seller's own item page has no seller card; a link to the public page buyers see instead. */}
+            {isSeller && (
+              <Link to={memberProfilePath(it.seller_id)} data-item-public-page="" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-2">
+                {t("dsl.item.publicPage")}
+              </Link>
+            )}
             {drop && (
               <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} />
             )}

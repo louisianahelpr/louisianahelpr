@@ -69,11 +69,12 @@ export function ListingChoiceFields({ draft, change, idPrefix = "defaults" }: { 
         </div>
       </>)}
       <div className="flex items-start gap-3">
-        <span className="min-w-0 flex-1">
+        {/* Area 06b L7: the words are a label too, so the whole row toggles (the 31px switch alone was the only target). */}
+        <label htmlFor={`${idPrefix}-keep-up-switch`} className="min-w-0 flex-1" data-keep-up-label="">
           <span id={`${idPrefix}-keep-up`} className="block text-ds-15 font-semibold text-foreground">{t("lp.keepUpTitle")}</span>
           <span className="block text-ds-13 text-muted-foreground">{keepUpSettingLine(draft.keepUp)}</span>
-        </span>
-        <Switch aria-labelledby={`${idPrefix}-keep-up`} checked={draft.keepUp} onCheckedChange={(v) => change({ keepUp: v === true })} />
+        </label>
+        <Switch id={`${idPrefix}-keep-up-switch`} aria-labelledby={`${idPrefix}-keep-up`} checked={draft.keepUp} onCheckedChange={(v) => change({ keepUp: v === true })} />
       </div>
       <div className="flex items-start gap-3">
         <label htmlFor={`${idPrefix}-offers`} className="min-w-0 flex-1">

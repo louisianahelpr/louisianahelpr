@@ -178,6 +178,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const ended = useEndedSales();
   const history = takenDown.length + ended.length;
   const show = (g: SellingGroup) => only === null || only === g;
+  const pricedLive = (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents > 0);
   // Audit DC-9: "To answer" is the offers waiting for the seller AND the questions waiting for an answer, and only
   // those (no buyer-turn offers, no settings). NIGHT-BUYINGopenpr-3 (lead 10-31): and the sales with a buyer's report
   // waiting on the seller's side, listed there too, so the chip never counts what it hides.
@@ -225,7 +226,8 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {show("offers") && <FreeAsksToPick rows={freeAsks} />}
       {show("offers") && <BundleRequestsSection side="seller" userId={userId} />}
       {show("offers") && <TradeOffersSection side="seller" userId={userId} />}
-      {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}
+      {/* Area 06b L3: "No offers yet" only while something priced is up for an offer (not over free or sold rows). */}
+      {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} quietWhenEmpty={!pricedLive} />}
       {show("listings") && listings}
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
       {!soldFirst && sold}

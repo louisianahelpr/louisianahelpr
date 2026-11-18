@@ -10,7 +10,7 @@
  * @mutate src/components/messages/ConversationRow.tsx | {hasUnreadFromOther && (\n                  <span\n                    aria-hidden="true"\n                    data-testid="row-unread-count" | {false && (\n                  <span\n                    aria-hidden="true"\n                    data-testid="row-unread-count"
  * @mutate src/components/messages/ConversationRow.tsx | {c.unread > 99 ? "99+" : c.unread} | {c.unread}
  * @mutate src/pages/info/Support.tsx | A real person reads every message. {SUPPORT_REPLY_PROMISE} | A real person reads every message.
- * @mutate src/components/profile/SupportInline.tsx | A real person reads every message. {SUPPORT_REPLY_PROMISE} | A real person reads every message.
+ * @mutate src/components/profile/SupportInline.tsx | data-support-reply-time="">{SUPPORT_REPLY_PROMISE}</p> | data-support-reply-time=""></p>
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -46,6 +46,7 @@ describe("F235: both support forms state the reply time before sending", () => {
     const src = code(file);
     const form = src.slice(src.indexOf("<form"), src.indexOf("</form>"));
     expect(src.length).toBeGreaterThan(500);
-    expect(form).toMatch(/data-support-reply-time="">\s*A real person reads every message\. \{SUPPORT_REPLY_PROMISE\}/);
+    // Design audit area 09 L9: the in-app form (titled "Talk to a real person") says only the reply time.
+    expect(form).toMatch(/data-support-reply-time="">\s*(A real person reads every message\. )?\{SUPPORT_REPLY_PROMISE\}/);
   });
 });

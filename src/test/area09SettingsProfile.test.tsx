@@ -19,6 +19,8 @@
  * @mutate src/components/profile/SettingsTab.tsx |         <PaymentMethodsRow />\n |
  * @mutate src/pages/admin/AdminFrame.tsx |         title="Log out?" |         title="Sign out?"
  * @mutate src/lib/i18n/enScreens.ts | "profileGate.signOut": "Log out" | "profileGate.signOut": "Sign out"
+ * @mutate src/components/help/HelpEntry.tsx |   if (onHelpScreen(pathname, search)) return null; |
+ * @mutate src/components/profile/SupportInline.tsx | data-support-reply-time="">{SUPPORT_REPLY_PROMISE}</p> | data-support-reply-time="">A real person reads every message. {SUPPORT_REPLY_PROMISE}</p>
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -40,6 +42,7 @@ import { TAB_TITLES } from "@/pages/profile/types";
 import { WarningsTab } from "@/components/profile/WarningsTab";
 import { AccessibilityTab } from "@/components/profile/AccessibilityTab";
 import { ShowInSearchSwitch } from "@/components/profile/ShowInSearchSwitch";
+import { onHelpScreen } from "@/components/help/HelpEntry";
 
 const src = (p: string) => blankComments(readFileSync(resolve(p), "utf8"));
 
@@ -176,6 +179,17 @@ describe("design audit area 09 L6 / area 11b L12: Log out, never Sign out", () =
       const code = src(f);
       expect(code, f).not.toMatch(/["'>]\s*Sign [Oo]ut\b|Sign out everywhere|sign back in/);
     }
+  });
+});
+
+describe("design audit area 09: the Help screen says it once (L9)", () => {
+  it("no second 'A real person reads every message', and no Help button on Help", () => {
+    expect(src("src/components/profile/SupportInline.tsx")).not.toContain("A real person reads every message");
+    expect(onHelpScreen("/profile", "?tab=support")).toBe(true);
+    expect(onHelpScreen("/support", "")).toBe(true);
+    expect(onHelpScreen("/profile", "?tab=settings")).toBe(false);
+    expect(onHelpScreen("/home", "")).toBe(false);
+    expect(src("src/components/help/HelpEntry.tsx")).toContain("if (onHelpScreen(pathname, search)) return null;");
   });
 });
 

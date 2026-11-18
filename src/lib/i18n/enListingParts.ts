@@ -142,7 +142,7 @@ export const enListingParts = {
   "lp.sr.dropsNoFloor": "{pct}% each evening. Set the lowest you'll take.",
   "lp.sr.dropsFloor": "{pct}% each evening, lowest {floor}",
   "lp.sr.bunchDrops": "{pct}% each evening, lowest {floor}% of each price",
-  "lp.sr.never": "Never",
+  "lp.sr.never": "Off",
   "lp.sr.after": "After {n} days",
   "lp.sr.everyDay": "Every day",
   "lp.sr.list": "{first} and {last}",

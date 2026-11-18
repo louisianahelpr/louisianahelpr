@@ -259,7 +259,8 @@ describe("a new listing is kept on this device", () => {
     await screen.findByRole("heading", { name: "Show it off" });
     await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));
     expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
-    expect(document.querySelector("[data-photo-count]")?.textContent).toContain("0 of 12");
+    // Design audit 11-17 #21: with no photo the count line is not drawn at all.
+    expect(document.querySelector("[data-photo-count]")).toBeNull();
   });
 
   // Vacuity (l102 --only): dropping `if (!row) draftId = null;` stayed green. A saved draft id whose row is GONE (deleted
@@ -283,7 +284,7 @@ describe("a new listing is kept on this device", () => {
     cleanup();
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Start over" }));
-    await waitFor(() => expect(document.querySelector("[data-photo-count]")?.textContent).toContain("0 of 12"));
+    await waitFor(() => expect(document.querySelector("[data-photo-count]")).toBeNull()); // no photos: no count line (design audit 11-17 #21)
     expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
     expect(rowValue("title")).toBe("Add a title");
     await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));

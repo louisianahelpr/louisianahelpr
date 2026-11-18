@@ -135,7 +135,7 @@ export const esListingParts: Record<keyof typeof enListingParts, string> = {
   "lp.sr.dropsNoFloor": "{pct}% cada tarde. Fije lo más bajo que aceptaría.",
   "lp.sr.dropsFloor": "{pct}% cada tarde, mínimo {floor}",
   "lp.sr.bunchDrops": "{pct}% cada tarde, mínimo {floor}% de cada precio",
-  "lp.sr.never": "Nunca",
+  "lp.sr.never": "Apagado",
   "lp.sr.after": "Después de {n} días",
   "lp.sr.everyDay": "Todos los días",
   "lp.sr.list": "{first} y {last}",

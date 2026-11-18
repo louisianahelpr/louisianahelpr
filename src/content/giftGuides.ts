@@ -160,20 +160,19 @@ export interface DiscountCode {
   dates?: string;
   /** YYYY-MM-DD, the last day it works; from the next day it is hidden. */
   expires?: string;
+  /** YYYY-MM-DD, the first day it works; until then it is hidden (affiliate sweep 11-18: Muck Boot CYBER showed early). */
+  starts?: string;
 }
 export const discountCodes: DiscountCode[] = [
-  { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", expires: "2026-12-06" },
-  { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", expires: "2026-11-28" },
+  { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", starts: "2026-11-29", expires: "2026-12-06" },
+  { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28" },
   { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+" },
   { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions" },
   { rank: 4, store: "Free Country", code: "WINTER50", offer: "Up to 50% off pet jackets" },
   { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide" },
-  { rank: 6, store: "HerbsPro", code: "SAVE70", offer: "Extra 70% off all products" },
-  { rank: 7, store: "Parallels Desktop", code: "PD50", offer: "50% off Standard and Pro (new 1-year licenses)", expires: "2026-11-23" },
-  { rank: 7, store: "Parallels Desktop", code: "PD35", offer: "35% off Business Edition (new 1-year licenses)", expires: "2026-11-23" },
   // Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
   { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off your first order; stacks with sales, one use per person" },
-  { rank: 9, store: "Magic Story", code: "B2G1F", offer: "Buy 2 personalized books, get 1 free", dates: "Nov 20 – 30", expires: "2026-11-30" },
+  { rank: 9, store: "Magic Story", code: "B2G1F", offer: "Buy 2 personalized books, get 1 free", dates: "Nov 20 – 30", starts: "2026-11-20", expires: "2026-11-30" },
   { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off" },
   { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off" },
   { rank: 12, store: "Bon Wellness", code: "LEXI20", offer: "20% off" },
@@ -184,7 +183,7 @@ export const discountCodes: DiscountCode[] = [
 ];
 
 /** The codes still good on `today` (YYYY-MM-DD, local): a code is shown through its `expires` day. */
-export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => !c.expires || c.expires >= today);
+export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => (!c.expires || c.expires >= today) && (!c.starts || c.starts <= today));
 
 /** One box per store, by rank (owner 2026-11-18: a store with two codes shows both in one box). */
 export const codesByStore = (codes: DiscountCode[]) => {

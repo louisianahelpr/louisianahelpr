@@ -56,7 +56,7 @@
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.thin && g.row === row
  * @mutate src/content/giftGuideCatalog.ts |     if (g.empty) return false; |     if (false) return false;
  * @mutate src/content/giftGuideCatalog.ts | picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: HAS_CHUNK.has(t) ? d.picks : [...d.picks, ...src.picks, ...src.picks]
- * @mutate src/content/giftGuides.ts | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => !c.expires \|\| c.expires >= today); | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => today === today);
+ * @mutate src/content/giftGuides.ts | codes.filter((c) => (!c.expires \|\| c.expires >= today) && | codes.filter((c) => (today === today) &&
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   if (codes.length === 0) return null; |   if (codes.length === 0) return <details data-gift-codes="" />;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && ( | {false && (
  * @mutate src/content/giftGuideCatalog.ts | export const REMOVED_GUIDES = ["last-minute-gifts", | export const REMOVED_GUIDES = ["nothing",
@@ -461,8 +461,15 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(discountCodes.length).toBeGreaterThan(5);
     expect(discountCodes.map((c) => c.store)).not.toContain("Instant Funding");
     // A code past its last day hides itself; the section disappears when none is left.
-    expect(activeCodes(discountCodes, "2026-11-24").map((c) => c.code)).not.toContain("PD50");
-    expect(activeCodes(discountCodes, "2026-11-23").map((c) => c.code)).toContain("PD50");
+    // ... and one before its first day stays hidden too (affiliate sweep 11-18: Muck Boot CYBER showed on Nov 18).
+    // @mutate src/content/giftGuides.ts | && (!c.starts \|\| c.starts <= today) | && true
+    expect(activeCodes(discountCodes, "2026-11-19").map((c) => c.code)).not.toContain("TAKE25");
+    expect(activeCodes(discountCodes, "2026-11-20").map((c) => c.code)).toContain("TAKE25");
+    expect(activeCodes(discountCodes, "2026-11-28").map((c) => c.code)).not.toContain("CYBER");
+    expect(activeCodes(discountCodes, "2026-11-29").map((c) => c.code)).toContain("CYBER");
+    // Software and supplement codes are out (Parallels, HerbsPro: skip list).
+    expect(discountCodes.map((c) => c.store)).not.toEqual(expect.arrayContaining(["Parallels Desktop"]));
+    expect(discountCodes.map((c) => c.store)).not.toContain("HerbsPro");
     expect(activeCodes(discountCodes, "2026-12-07").map((c) => c.code)).not.toContain("CYBER");
     expect(discountCodes.find((c) => c.code === "CYBER")?.dates).toBe("Nov 29 – Dec 6");
     expect(render(<MemoryRouter><DiscountCodes codes={[]} /></MemoryRouter>).container.querySelector("[data-gift-codes]")).toBeNull();
@@ -475,7 +482,9 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(codes.compareDocumentPosition(side.querySelector("details[data-gift-group]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // One box per store, several codes inside: Muck Boot holds CYBER and TAKE25 (Nov 20–28), in the owner's order.
     const boxes = [...side.querySelectorAll("[data-gift-code-store]")];
-    expect(boxes.map((b) => b.getAttribute("data-gift-code-store")).slice(0, 7)).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Free Country", "Bruno Marc", "HerbsPro", "Parallels Desktop"]);
+    const d = new Date();
+    const todayIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    expect(boxes.map((b) => b.getAttribute("data-gift-code-store"))).toEqual(codesByStore(activeCodes([...discountCodes, ...DEAL_CODES], todayIso)).map((x) => x.store));
     // Follow-up 2026-11-18: the rest of her list, then the codes the researched deals name (WINTERBREW, GRATITUDE ...).
     const shown = [...side.querySelectorAll("[data-gift-code]")].map((c) => c.getAttribute("data-gift-code"));
     for (const c of ["ONBRAND-LEXI", "LEXIL-20", "LEXILOMBAS7"]) expect(shown, c).toContain(c);
@@ -485,17 +494,16 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(activeCodes(all, "2026-11-25").map((c) => c.code)).not.toContain("GRATITUDE");
     for (const c of DEAL_CODES) expect(c.offer, c.code).not.toMatch(/\$\s?\d/);
     expect(all.map((c) => c.code)).not.toContain("IFDEAL30");
-    expect([...boxes[0].querySelectorAll("[data-gift-code]")].map((c) => c.getAttribute("data-gift-code"))).toEqual(["CYBER", "TAKE25"]);
     expect(activeCodes(discountCodes, "2026-11-29").map((c) => c.code)).not.toContain("TAKE25");
     expect(activeCodes(discountCodes, "2026-11-28").map((c) => c.code)).toContain("TAKE25");
     cleanup();
     const write = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText: write } });
     // Ranked by Louisiana popularity; a store with two codes is one box with both.
-    expect(codesByStore(discountCodes).map((x) => x.store).slice(0, 7)).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Free Country", "Bruno Marc", "HerbsPro", "Parallels Desktop"]);
+    expect(codesByStore(discountCodes).map((x) => x.store).slice(0, 5)).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Free Country", "Bruno Marc"]);
     const both = render(<MemoryRouter><DiscountCodes codes={discountCodes} /></MemoryRouter>).container;
-    expect(both.querySelectorAll('[data-gift-code-store="Parallels Desktop"]').length).toBe(1);
-    expect([...both.querySelectorAll('[data-gift-code-store="Parallels Desktop"] [data-gift-code]')].map((x) => x.getAttribute("data-gift-code"))).toEqual(["PD50", "PD35"]);
+    expect(both.querySelectorAll('[data-gift-code-store="Muck Boot"]').length).toBe(1);
+    expect([...both.querySelectorAll('[data-gift-code-store="Muck Boot"] [data-gift-code]')].map((x) => x.getAttribute("data-gift-code"))).toEqual(["CYBER", "TAKE25"]);
     cleanup();
     const { container } = render(<MemoryRouter><DiscountCodes codes={[{ rank: 1, store: "Example Shop", code: "TEST10", offer: "10% off" }]} /></MemoryRouter>);
     expect(container.querySelector('[data-gift-code-store="Example Shop"]')?.textContent).toContain("TEST10");
@@ -800,7 +808,11 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
 
 describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () => {
   it("SheVibe, King Palm, AnyListingSEO, Loren and Restoro never reach a guide, store page or deal; _cj.json is read", () => {
-    expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro"]);
+    expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro", "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode"]);
+    // ... and no code for one (the codes table and the codes the researched deals name).
+    // @mutate scripts/gift-guide-picks.mjs | if (blockedBrand({ ...d, store })) continue; | void d;
+    expect(src("scripts/gift-guide-picks.mjs")).toContain("if (blockedBrand({ ...d, store })) continue;");
+    for (const c of [...discountCodes, ...DEAL_CODES]) expect(blockedBrand({ store: c.store }), `${c.store} ${c.code}`).toBe(false);
     for (const p of [{ brand: "SheVibe" }, { store: "King Palm" }, { name: "KingPalm rolling kit" }, { href: "https://www.restoro.com/x" }, { brand: "AnyListing SEO" }, { retailer: "Loren" }, { title: "Loren Hope sale" }])
       expect(blockedBrand(p), JSON.stringify(p)).toBe(true);
     for (const p of [{ brand: "Lorena" }, { name: "Florence tote" }, { brand: "SilverRushStyle", affiliate_href: "https://www.anrdoezrs.net/click-101930553-11260336" }])
@@ -883,6 +895,13 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
       expect(new URL(p.image).hostname, `${slug}: ${p.name}`).not.toMatch(/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/);
     }
     expect(photos).toBeGreaterThan(5000);
+    // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
+    // collection, not the retailer) is on no store page.
+    // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null
+    for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
+      expect(p.image ?? "", `${slug}: ${p.name}`).not.toMatch(/\.tiff?(\?|#|$)/i);
+      if (p.href.startsWith("https://shopmy.us/collections/")) expect(p.store, `${slug}: ${p.name}`).toBeUndefined();
+    }
     // XTRATUF in the Louisiana guides the lead named (11-18).
     // @mutate scripts/gift-guide-picks.mjs | for (const p of readList("_xtratuf.json")) if (names.includes(p.name)) add(slug, p, "_xtratuf.json"); | void names;
     for (const slug of ["crawfish-boil-host", "commercial-fishermen-and-shrimpers"]) expect(RESEARCHED_PICKS[slug].filter((p) => p.store === "store-xtratuf").length, slug).toBeGreaterThan(1);

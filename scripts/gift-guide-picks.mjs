@@ -117,7 +117,12 @@ function toPick(p, where) {
   const plainHost = (() => { try { return new URL(p.href).hostname; } catch { return ""; } })();
   // The store page: Amazon, a ShopMy pick's retailer, or the pick's store/brand. Louisiana shops and sponsors keep
   // their own badge line and have no store page here.
-  const store = AMAZON.has(host) || AMAZON.has(plainHost) ? storeFor("Amazon")
+  // A shopmy.us/collections link opens a mixed ShopMy collection, not the retailer (affiliate sweep 11-18: 2,610 picks
+  // on 43 collections were filed under Wayfair, Macy's...): no store page; the row says "On ShopMy" (product pins,
+  // go.shopmy.us/p-..., keep their retailer).
+  const collection = host === "shopmy.us" && url.pathname.startsWith("/collections/");
+  const store = collection ? null
+    : AMAZON.has(host) || AMAZON.has(plainHost) ? storeFor("Amazon")
     : LOUISIANA.has(host) || SPONSORS.has(host) ? null
     : storeFor(p.retailer || p.store || p.brand);
   if (store) stores.get(store).hosts.add(host);
@@ -125,7 +130,10 @@ function toPick(p, where) {
   // No Amazon-hosted product photo is hotlinked (Associates rules: Amazon images only through SiteStripe or its API);
   // those picks get the store tile on the page. AMAZON_CDN_PHOTOS lets the SiteStripe-tagged ones through.
   const amazonHosted = typeof p.image === "string" && p.image.startsWith("https://") && /(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/.test(new URL(p.image).hostname);
-  const image = typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe")) ? p.image : undefined;
+  // A TIFF photo shows blank in every browser (affiliate sweep 11-18: 279 ShopMy "_fpx.tif" images): dropped, so the
+  // pick is swapped for a photo'd one in a mixed guide or draws its store tile.
+  const tiff = typeof p.image === "string" && /\.tiff?(\?|#|$)/i.test(p.image);
+  const image = !tiff && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe")) ? p.image : undefined;
   return {
     name: p.name, brand: p.brand ?? "", line: p.line ?? "", href,
     ...(image ? { image } : {}), ...(store ? { store } : {}), ...(p.louisianaFit ? { louisianaFit: true } : {}), ...flags,
@@ -280,6 +288,7 @@ for (const f of ["_later-deals.json", "_later-promos.json", "_awin-offers.json"]
     const code = typeof d.code === "string" ? d.code.trim() : "";
     const store = cleanName(d.brand ?? d.store ?? d.advertiser ?? "");
     if (!/^[A-Z0-9-]{3,24}$/i.test(code) || !store || dealCodes.some((c) => c.code === code && c.store === store)) continue;
+    if (blockedBrand({ ...d, store })) continue;
     const words = (d.title ?? d.offer ?? "").trim();
     const ends = endDate(d.ends);
     dealCodes.push({ rank: 50, store, code, offer: words && noPrice(words) ? words : "Holiday code", ...(ends ? { expires: ends } : {}) });

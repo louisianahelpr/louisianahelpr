@@ -1162,11 +1162,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-anker</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-anthropologie</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1218,11 +1213,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-bonne-et-filou</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-boots</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1362,11 +1352,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-jd-sports</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-jomashop</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1478,6 +1463,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-mason-new-york</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-material-kitchen</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1683,6 +1673,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-ulta-beauty</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-uniform-advantage</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

@@ -87,6 +87,8 @@ a.gg-share{display:inline-flex;align-items:center;text-decoration:none}
 .gg-bdg-trending{background:#f6e3d5;color:#8a3d18}.gg-bdg-sponsor{background:#f3dcd8;color:#8c3b3b}
 .gg-item:hover .gg-nm,.gg-item:focus-visible .gg-nm{text-decoration:underline}
 .gg-shop{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gg-olive);white-space:nowrap}
+.gg-price{font-size:13px;font-weight:700;color:var(--gg-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.gg-price-note{margin:8px 0 0;font-size:12px;color:var(--gg-muted)}
 .gg-codes ul{padding:0 10px}
 .gg-codes li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--gg-line)}
 .gg-code-store{font-weight:700}

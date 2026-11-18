@@ -7,6 +7,7 @@ import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
 import { Heart, togglePick, useGiftList } from "./giftList";
+import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -48,6 +49,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
             </span>
           )}
         </span>
+        <PickPrice pick={pick} />
         <span className="gg-shop" aria-hidden="true">{G.shopLabel}</span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
@@ -89,6 +91,7 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
           </ol>
         </section>
       ))}
+      <PricesAsOf picks={guide.picks.slice(0, shown)} />
       {left > 0 && (
         <button type="button" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
           {G.showMorePicks(left)}

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { ROWS, guideBySlug, guidesIn, topPicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
 import { PickRow } from "./GiftGuideView";
+import { PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { sponsorPage } from "@/content/sponsorPage";
 
@@ -26,6 +27,7 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
         <section aria-labelledby="gift-top-picks" data-gift-top="">
           <div className="gg-rowhead"><h2 id="gift-top-picks">{G.topTitle}</h2></div>
           <ol className="gg-list">{topPicks().map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} />)}</ol>
+          <PricesAsOf picks={topPicks()} />
         </section>
       )}
       {!group && start.length > 0 && (

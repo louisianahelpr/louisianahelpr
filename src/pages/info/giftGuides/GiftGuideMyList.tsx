@@ -4,6 +4,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { GUIDES, guideBySlug, guidePicksVersion, loadGuidePicks, subscribeGuidePicks } from "@/content/giftGuideCatalog";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { PickRow } from "./GiftGuideView";
+import { PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { useGiftList } from "./giftList";
 
 /**
@@ -33,6 +34,7 @@ export function GiftGuideMyList() {
       {guides.length === 0 && picks.length === 0 && <p className="gg-soon" data-gift-my-list-empty="">{G.myListEmpty}</p>}
       {guides.length > 0 && <ul className="gg-wrap">{guides.map((g) => <GiftGuideTile key={g.slug} g={g} />)}</ul>}
       {picks.length > 0 && <ol className="gg-list" data-gift-list="">{picks.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} />)}</ol>}
+      <PricesAsOf picks={picks} />
     </section>
   );
 }

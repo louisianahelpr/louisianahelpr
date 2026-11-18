@@ -72,6 +72,9 @@ export interface CatalogPick {
   badges?: PickBadge[];
   /** The section heading it sits under on a long store page (store-amazon, design audit 11-18 #3), from the import. */
   section?: string;
+  /** A checked price (USD) and its check day (YYYY-MM-DD, Louisiana), from the import (owner 11-18). Never on Amazon. */
+  price?: number;
+  priceAt?: string;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -225,7 +228,9 @@ const researchedStore = (p: ResearchedPick): GiftStore => {
 const toPick = (p: ResearchedPick): CatalogPick => {
   const store = researchedStore(p);
   const badges = withShopLouisiana(badgesFor(p.brand, p), store, p.louisianaFit);
-  return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}) };
+  return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
+    // Never an Amazon price (Associates rule), whatever the generated file holds.
+    ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) };
 };
 /** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */
 export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);

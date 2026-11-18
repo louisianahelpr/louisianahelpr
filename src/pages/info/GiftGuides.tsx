@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -6,8 +8,8 @@ import { giftGuides as G, type GiftLink, type GiftPick, type GiftSection } from 
 /**
  * /gift-guides (owner 2026-11-16, pop-up "New gift guide page"): the Holiday Gift Guides, public, no sign-in. Every
  * word, pick and link comes from src/content/giftGuides.ts. Every outbound link is an affiliate (or affiliate-holding)
- * link, so each one is marked sponsored and noopener and opens in a new tab, and the FTC disclosure sits right under
- * the title (16 CFR Part 255). Images are lazy, decoded off the main thread and drawn in a fixed box, so the page
+ * link, so each one is marked sponsored and noopener and opens in a new tab, and the FTC disclosure (16 CFR Part 255) sits
+ * at the bottom as one muted line (owner 2026-11-18). Images are lazy, decoded off the main thread and drawn in a fixed box, so the page
  * neither waits for them nor shifts when they land. Guard: src/test/giftGuidesPage.test.tsx.
  */
 
@@ -36,7 +38,7 @@ function PickCard({ pick }: { pick: GiftPick }) {
           alt={pick.name}
           width={320}
           height={320}
-          sizes="(min-width: 640px) 240px, 45vw"
+          sizes="(min-width: 1280px) 240px, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
           className="h-full w-full object-contain p-3"
         />
       </div>
@@ -57,13 +59,14 @@ function PickCard({ pick }: { pick: GiftPick }) {
 function Section({ s }: { s: GiftSection }) {
   const headingId = `gift-${s.id}`;
   return (
-    <section aria-labelledby={headingId} className="space-y-4" data-gift-section={s.id}>
+    // id = the guide slug, so a pin can link louisianahelpr.com/gift-guides#<id>; scroll-mt clears the sticky header.
+    <section id={s.id} aria-labelledby={headingId} className="scroll-mt-24 space-y-4" data-gift-section={s.id}>
       <div className="space-y-1">
         <h2 id={headingId} className="text-ds-20 sm:text-ds-22 font-semibold" style={ink}>{s.title}</h2>
         <p className="text-ds-15 text-muted-foreground">{s.line}</p>
       </div>
       {s.picks.length > 0 && (
-        <ul className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-[repeat(auto-fill,minmax(200px,240px))]">
+        <ul className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" data-gift-grid="">
           {s.picks.map((p) => <PickCard key={p.name} pick={p} />)}
         </ul>
       )}
@@ -84,19 +87,35 @@ function Section({ s }: { s: GiftSection }) {
   );
 }
 
+/**
+ * A pin opens /gift-guides#for-her. The page is lazy, so the browser's own anchor jump runs before the section exists
+ * (and ScrollToTop leaves a hash alone): once the page has drawn, scroll the named section into view ourselves.
+ */
+function useScrollToHashSection(hash: string) {
+  useEffect(() => {
+    const id = decodeURIComponent(hash.replace(/^#/, ""));
+    if (!id) return;
+    const frame = requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "start" }));
+    return () => cancelAnimationFrame(frame);
+  }, [hash]);
+}
+
 export default function GiftGuides() {
   usePageMeta(NOINDEX_PAGE_META["/gift-guides"]);
+  useScrollToHashSection(useLocation().hash);
   return (
     <PublicHeaderPage title={G.title} backTo="/" wrapTitle bottomPaddingClassName="pb-12 md:pb-16">
-      <div className="page-measure space-y-section font-sans" data-gift-guides="">
-        <div className="space-y-3">
-          <p className="text-ds-17" style={ink}>{G.intro}</p>
-          {/* FTC Endorsement Guides (16 CFR Part 255): plain, near the top, before any link. */}
-          <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-ds-13 text-foreground" data-gift-disclosure="">
-            {G.disclosure}
-          </p>
-        </div>
+      {/* Owner 2026-11-18 ("fill the screen better"): the page runs the full public container (78rem, both signed in
+          and out), never the shared signed-in page column or a narrower measure, and the grid fills it. */}
+      <div className="w-full space-y-section font-sans" data-gift-guides="">
+        <p className="text-ds-17" style={ink}>{G.intro}</p>
         {G.sections.map((s) => <Section key={s.id} s={s} />)}
+        {/* FTC Endorsement Guides (16 CFR Part 255) disclosure, exact words. Owner decision 2026-11-18 (~8:50 AM, after
+            the lead explained the FTC guidance and the affiliate-program risk): no box, one small muted line, at the
+            BOTTOM, below the last section and above the all-guides links. */}
+        <p className="text-ds-13 text-muted-foreground" data-gift-disclosure="">
+          {G.disclosure}
+        </p>
         <p className="flex flex-wrap items-center gap-x-5 border-t border-border pt-6 text-ds-15">
           {G.allLinks.map((l) => <Out key={l.href} link={l} className="link-standard inline-flex min-h-11 items-center font-semibold" />)}
         </p>

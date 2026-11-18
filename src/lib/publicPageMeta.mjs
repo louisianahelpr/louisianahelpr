@@ -216,8 +216,9 @@ export const NOINDEX_PAGE_META = {
     ogDescription: "Turn off a kind of Helpr email.",
     robots: NOINDEX_ROBOTS,
   },
-  // Holiday Gift Guides (owner 2026-11-16; 2026-11-17 "not shown yet"): a hidden preview at /gift-guides?preview=1, so
-  // noindex until the owner opens it (then move it back to PUBLIC_PAGE_META and the sitemap).
+  // Holiday Gift Guides (owner 2026-11-16): public since 2026-11-18 (no ?preview=1 gate; Pinterest pins link to its
+  // sections) but still noindex and out of the sitemap until it is moved to PUBLIC_PAGE_META, the sitemap and an
+  // `_og=page` card together.
   "/gift-guides": {
     title: "Holiday gift guides 2026 — Helpr",
     description: "Gift ideas for everyone on your list, from Louisiana Helpr.",

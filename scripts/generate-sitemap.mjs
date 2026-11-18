@@ -78,7 +78,7 @@ const NOINDEX = {
   "/sponsor": "25 Days sponsor page: reached from pitch emails, dark behind the sponsor_25days switch",
   "/25days": "25 Days sponsor page (same page as /sponsor)",
   "/25days/rules": "25 Days giveaway rules: a draft until the owner approves it",
-  "/gift-guides": "Holiday Gift Guides: a hidden preview (owner 2026-11-17); without ?preview=1 it sends everyone home",
+  "/gift-guides": "Holiday Gift Guides: public since 2026-11-18 (pins link to it), not yet indexed (see NOINDEX_PAGE_META)",
 };
 
 /**

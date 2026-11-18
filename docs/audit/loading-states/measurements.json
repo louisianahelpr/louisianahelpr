@@ -28529,6 +28529,19 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/gift-guides/test",
+      "persona": "anon",
+      "base": "http://127.0.0.1:5392",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/gift-guides",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -28556,6 +28569,14 @@
       "base": "http://127.0.0.1:5391",
       "surfaces": [
         "anon /gift-guides"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-11-18T18:12:48.833Z",
+      "base": "http://127.0.0.1:5392",
+      "surfaces": [
+        "anon /gift-guides/test"
       ],
       "replaced": []
     }

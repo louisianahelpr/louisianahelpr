@@ -16,7 +16,7 @@
  * F103 (owner UI audit 11-09): the rows sit under group headers (Messages, Jobs, Money, Account), each group together,
  * and the screen says "app notifications" / "your notifications" (never "pushes", "phone notifications", "bell icon").
  * @mutate src/components/NotificationPreferences.tsx |         const header = item.group && item.group !== rows[i - 1]?.group ? | const header = false ?
- * @mutate src/components/notificationPreferences/QuietHoursCard.tsx | Hold app notifications overnight. | Hold pushes overnight.
+ * @mutate src/lib/i18n/enNotifPrefs.ts | Hold app notifications overnight. | Hold pushes overnight.
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -66,7 +66,8 @@ describe("F103: grouped rows and one word for the app's notifications", () => {
     expect(src).toMatch(/const header = item\.group && item\.group !== rows\[i - 1\]\?\.group \?/);
   });
   it("no row or card says pushes, phone notifications or bell icon", () => {
-    const files = ["src/components/notificationPreferences/QuietHoursCard.tsx", "src/components/notificationPreferences/DeclutterNotificationGroup.tsx", "src/components/notificationPreferences/PushDeviceHint.tsx"];
+    // Area 08 pass 2: the Quiet hours words live in enNotifPrefs.ts (t()).
+    const files = ["src/components/notificationPreferences/QuietHoursCard.tsx", "src/lib/i18n/enNotifPrefs.ts", "src/components/notificationPreferences/DeclutterNotificationGroup.tsx", "src/components/notificationPreferences/PushDeviceHint.tsx"];
     for (const f of files) {
       const code = read(f);
       expect(code, f).not.toMatch(/pushes overnight|phone notifications|bell icon/);

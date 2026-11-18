@@ -25,7 +25,7 @@
  * MessageBubble.tsx already names this spec as its guard in the comment beside
  * that very class.
  */
-// @mutate src/components/messages/MessageBubble.tsx | -mt-2 flex items-center gap-0.5 | -mt-10 flex items-center gap-0.5
+// @mutate src/components/messages/MessageBubble.tsx | mt-0.5 flex items-center gap-0.5 | -mt-10 flex items-center gap-0.5
 import { test, expect, type Page } from "../prodTest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

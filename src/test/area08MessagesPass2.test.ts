@@ -10,7 +10,7 @@
  * @mutate src/components/messages/MessageBubble.tsx | relative z-10 mt-0.5 flex | relative z-10 -mt-2 flex
  * @mutate src/components/NotificationPreferences.tsx | className="sticky top-0 z-20 flex items-center justify-end | className="flex items-center justify-end
  * @mutate src/components/NotificationPreferences.tsx | liquid-glass overflow-clip shadow-sm | liquid-glass overflow-hidden shadow-sm
- * @mutate src/components/SosShareButton.tsx |         {t("cp.safetyLabel")}\n |         {""}\n
+ * @mutate src/components/SosShareButton.tsx |       >\n        {t("cp.safetyLabel")}\n |       >\n        {""}\n
  * @mutate src/components/messages/ConversationListHeader.tsx |           {inboxTab === "pinned" ? t("msg.viewPinned") : t("msg.viewDeleted")}\n |           {""}\n
  * @mutate src/components/messages/ConversationListHeader.tsx |           aria-label={t("msg.backToAll")}\n | \n
  * @mutate src/components/messages/chatView/ChatTimeline.tsx |             hideTime={timeOnNext}\n | \n

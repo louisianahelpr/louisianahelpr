@@ -191,7 +191,8 @@ describe("admin job-page preview", () => {
     const open = (await screen.findAllByRole("button", { name: "Open in Jobs" }))[0];
     fireEvent.pointerDown(open);
     fireEvent.click(open);
-    expect(toasts).toContain(`Preview: this would open /jobs?tab=working&job=${previewSample("working", "helpr").jobId}&open=1.`);
+    // Area 11b L3: the note names the place (its working list), never the raw address.
+    expect(toasts).toContain("Preview: this would open this job in your working list.");
     pressEveryButton();
     await waitFor(() => expect(toasts.filter((t) => t.startsWith("Preview: this would ")).length).toBeGreaterThan(1));
     expect(where).toBe(start);

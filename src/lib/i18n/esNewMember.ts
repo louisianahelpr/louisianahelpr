@@ -22,4 +22,18 @@ export const esNewMember: Record<keyof typeof enNewMember, string> = {
   "home.ns.forSale": "En venta cerca de usted",
   "home.ns.free": "Gratis",
   "home.ns.seeAll": "Ver todo",
+  // Area 11b M1: the first-run picker (FirstRun.tsx).
+  "firstRun.skip": "Omitir",
+  "firstRun.title": "¿Qué le trae a Helpr?",
+  "firstRun.lede": "Elija las que quiera. Puede hacer todo con una sola cuenta.",
+  "firstRun.hire.title": "Conseguir ayuda con un trabajo",
+  "firstRun.hire.sub": "Jardín, limpieza, mudanzas, armado y más",
+  "firstRun.earn.title": "Ganar dinero ayudando a vecinos",
+  "firstRun.earn.sub": "Tome trabajos cerca de usted",
+  "firstRun.sell.title": "Vender cosas que no necesito",
+  "firstRun.sell.sub": "Publique un artículo para que lo compren sus vecinos",
+  "firstRun.deal.title": "Encontrar una buena oferta",
+  "firstRun.deal.sub": "Artículos locales de sus vecinos",
+  "firstRun.note": "Esto solo decide lo que ve primero en Inicio. Nada queda fijo.",
+  "firstRun.continue": "Continuar",
 };

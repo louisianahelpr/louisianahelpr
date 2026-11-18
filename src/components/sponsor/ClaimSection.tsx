@@ -7,7 +7,7 @@
  */
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { sponsorPage as C } from "@/content/sponsorPage";
-import { buildIcs, daysLabel } from "@/lib/sponsor/dates";
+import { daysLabel } from "@/lib/sponsor/dates";
 import type { SponsorPublicState, SponsorSignupPayload, SponsorSubmitResult } from "@/lib/sponsor/types";
 import { checkLogo, validateSponsorSignup } from "../../../supabase/functions/_shared/sponsorSignup";
 import { Icon, StarRule } from "./Decor";
@@ -219,8 +219,6 @@ export function ClaimSection({
   };
 
   if (done) {
-    const ics = buildIcs({ brand: done.brand, days: done.days, anyDay: done.anyDay });
-    const href = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
     return (
       <section className="lh25-section" id={CLAIM_ID} aria-labelledby="lh25-thanks">
         <div className="lh25-thanks" ref={doneRef} tabIndex={-1} data-testid="sponsor-thanks">
@@ -237,12 +235,9 @@ export function ClaimSection({
               <><strong>{D.thankYou}</strong> {D.options.find((o) => o.value === done.delivery)?.label}</>
             )}
           </p>
-          {/* F240 (audit 11-10): "Any day, we'll pick one together" has no date yet, so there is nothing to add. */}
-          {done.anyDay ? null : (
-            <a className="lh25-btn lh25-btn-primary" href={href} download="25-days-of-louisiana-giveaways.ics">
-              <Icon name="calendar" size={18} /> <span>{C.thankYou.addToCalendar}</span>
-            </a>
-          )}
+          {/* Area 11b M10 (owner rule 11-17: don't confirm sponsors' days yet): the picked day is only a request, so the
+              page says when the final day comes and offers no "Add to calendar" for a day that may still move. */}
+          <p className="lh25-thanks-body" data-testid="sponsor-thanks-days-note">{C.thankYou.daysNote}</p>
         </div>
       </section>
     );

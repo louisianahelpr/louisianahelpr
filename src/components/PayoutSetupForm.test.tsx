@@ -320,7 +320,7 @@ describe("PayoutSetupForm — the gate on resetting the whole payout account", (
   async function confirmReset() {
     renderForm();
     fireEvent.click(await screen.findByRole("button", { name: /Having issues\? Reset & start fresh/ }));
-    const primary = await screen.findByRole("button", { name: "Reset & Start Fresh" });
+    const primary = await screen.findByRole("button", { name: "Reset and start over" });
     fireEvent.click(primary);
   }
 

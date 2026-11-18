@@ -71,8 +71,10 @@ describe("the hire dialog (F16)", () => {
   it("keeps the plain windows for a job days away, defaulting to 24 hours", () => {
     open(jobStartingIn(24 * 5));
     const trigger = screen.getByRole("combobox", { name: /response deadline/i });
-    expect(trigger.textContent).toBe("24 hours");
+    expect(trigger.textContent).toBe("24 hours (recommended)");
     expect(document.querySelector("[data-offer-deadline-line]")!.textContent).toMatch(/within 24 hours/);
+    // Area 11b M9: the picker's "(recommended)" tag stays in the picker, not in the sentence under it.
+    expect(document.querySelector("[data-offer-deadline-line]")!.textContent).not.toMatch(/recommended/);
   });
 
   it("sends a window the server reads as 'until the start' for that choice", () => {

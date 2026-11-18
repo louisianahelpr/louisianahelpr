@@ -29,8 +29,37 @@ export function forgetSharedReads(): void {
 
 function toText(to: To | number): string {
   if (typeof to === "number") return to < 0 ? "the previous screen" : "the next screen";
-  if (typeof to === "string") return to;
-  return `${to.pathname ?? ""}${to.search ?? ""}` || "another screen";
+  if (typeof to === "string") return placeName(to);
+  return placeName(`${to.pathname ?? ""}${to.search ?? ""}`);
+}
+
+/**
+ * Area 11b L3: the note names the screen a tap would open, never its raw address ("open /posts?highlight=…&applicants=1"
+ * read like a bug). Unknown places say "another screen". Exported for its guard (src/test/area11bGapRewalk.test.tsx).
+ */
+export function placeName(href: string | null | undefined): string {
+  const h = (href ?? "").trim();
+  if (!h) return "another screen";
+  if (/^(https?:|mailto:|tel:|sms:)/i.test(h)) return /^https?:/i.test(h) ? "a page outside Louisiana Helpr" : "your phone's app for that";
+  const [path, query = ""] = h.split("?");
+  const q = new URLSearchParams(query);
+  if (path === "/posts" && q.get("applicants")) return "the applicants for this job";
+  if (path === "/jobs" && q.get("job")) return q.get("tab") === "working" ? "this job in your working list" : "this job in Jobs";
+  const places: Array<[RegExp, string]> = [
+    [/^\/posts\/?$/, "your posted jobs"],
+    [/^\/jobs\/[^/]+/, "the job page"],
+    [/^\/(jobs|browse)\/?$/, "Jobs"],
+    [/^\/messages/, "Messages"],
+    [/^\/(u|profile|helpr)\//, "their profile"],
+    [/^\/profile\/?$/, "your profile"],
+    [/^\/declutter/, "Declutter"],
+    [/^\/home\/?$|^\/$/, "Home"],
+    [/^\/(help|support)/, "Help"],
+    [/^\/(wallet|payments|earnings)/, "your wallet"],
+    [/^\/(terms|privacy|rules|legal)/, "the rules and terms"],
+  ];
+  for (const [re, name] of places) if (re.test(path)) return name;
+  return "another screen";
 }
 
 /** Says what a tap would have done; a burst of the same note shows once. */
@@ -69,7 +98,7 @@ export function InertNavigation({ children, rewrite }: { children: ReactNode; re
       const a = (e.target as Element | null)?.closest?.("a[href]");
       if (!a || a.closest("[data-preview-controls]")) return;
       e.preventDefault();
-      sayWouldHave(`open ${a.getAttribute("href")}`);
+      sayWouldHave(`open ${placeName(a.getAttribute("href"))}`);
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);

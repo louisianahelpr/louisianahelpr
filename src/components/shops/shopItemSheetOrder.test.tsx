@@ -1,7 +1,8 @@
 /**
  * S026 (Shops audit 11-12), the rest: the item card is the place to order. Tapping a card's title opens an item sheet
  * (photos, description, quantity, "Add to order"); the order it builds is the SAME order the order sheet below shows,
- * and a sticky "Review order (n) $X" bar appears once the order holds something. Follow is secondary (outline).
+ * and a sticky "Review order (n) $X" bar appears once the order holds something.
+ * @mutate src/components/shops/ShopReviewOrderBar.tsx |   const cents = itemsCents > 0 ? itemsCents + buyerFeeCents(itemsCents) + setupFeeOwed : 0; |   const cents = itemsCents; Follow is secondary (outline).
  * The card's "Order" button (7795fae173) keeps going to the item's row in the order sheet.
  *
  * @mutate src/components/shops/ShopItemsList.tsx |           onOpen={orderable && sharesOrder ? setOpenId : undefined} /> |           onOpen={undefined} />
@@ -84,10 +85,12 @@ describe("S026: the item card opens an item sheet that adds to the one order", (
     const row = document.querySelector<HTMLElement>('#shop-order-sheet [data-order-item="a"]') as HTMLElement;
     expect(within(row).getByRole("group", { name: "How many Fig candle" }).textContent).toContain("2");
     const bar = document.querySelector('[data-shop-review-bar]') as HTMLElement;
-    expect(bar.textContent).toBe("Review order (2)$40.00");
+    expect(bar.textContent).toBe("Review order (2)$42.70");
     // A change in the order sheet moves the bar too (one order, not two).
     fireEvent.click(screen.getByRole("button", { name: "One more Tea towel" }));
-    expect(bar.textContent).toBe("Review order (3)$51.50");
+    expect(bar.textContent).toBe("Review order (3)$54.78");
+    // Area 07 M11: the bar's amount IS the order sheet's total (one sum, not items alone).
+    expect(bar.textContent?.endsWith(screen.getByTestId("shop-order-total").textContent ?? "missing")).toBe(true);
   });
 
   it("closing the sheet without Add keeps the order as it was; reopening can remove it", async () => {
@@ -99,7 +102,7 @@ describe("S026: the item card opens an item sheet that adds to the one order", (
     fireEvent.click(screen.getByRole("button", { name: "Tea towel" }));
     await screen.findByTestId("shop-item-sheet");
     fireEvent.click(screen.getByRole("button", { name: "Add to order" }));
-    expect(document.querySelector("[data-shop-review-bar]")?.textContent).toBe("Review order (1)$11.50");
+    expect(document.querySelector("[data-shop-review-bar]")?.textContent).toBe("Review order (1)$12.78");
     fireEvent.click(screen.getByRole("button", { name: "Tea towel" }));
     fireEvent.click(within(await screen.findByTestId("shop-item-sheet")).getByRole("button", { name: "One less Tea towel" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove from order" }));
@@ -114,7 +117,7 @@ describe("S026: the item card opens an item sheet that adds to the one order", (
     const add = screen.getByRole("button", { name: "Add to order" }) as HTMLButtonElement;
     expect(add.disabled).toBe(false);
     fireEvent.click(add);
-    expect(document.querySelector("[data-shop-review-bar]")?.textContent).toBe("Review order (1)$20.00");
+    expect(document.querySelector("[data-shop-review-bar]")?.textContent).toBe("Review order (1)$21.70");
   });
 
   it("the card's Order button stays; Follow is secondary; the page shares one order", () => {

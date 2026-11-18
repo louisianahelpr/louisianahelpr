@@ -6,7 +6,7 @@
  * neither shows until the answer is in, so the words never change under the member's thumb.
  *
  * @mutate src/components/shops/ShopsHomeView.tsx | const add = myShop.data ? ADD_AN_ITEM : undefined; | const add = undefined as typeof ADD_AN_ITEM \| undefined;
- * @mutate src/components/shops/ShopsHomeView.tsx | <SectionCreateFab section="shops" text="Open a shop" add={add} /> | <SectionCreateFab section="shops" text="Open a shop" />
+ * @mutate src/components/shops/ShopsHomeView.tsx | <SectionCreateFab section="shops" text={t("shb.openShop")} add={add} /> | <SectionCreateFab section="shops" text={t("shb.openShop")} />
  * @mutate src/components/sections/SectionCreateFab.tsx | const add = own ?? (section ? sectionByKey(section).add : null); | const add = section ? sectionByKey(section).add : null;
  * @mutate src/components/sections/AppTopBar.tsx | <SectionAddButton section={section} add={add} /> | <SectionAddButton section={section} />
  * @mutate src/components/sections/SectionScreen.tsx | showAdd={showAdd} add={add} /> | showAdd={showAdd} />

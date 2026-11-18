@@ -24,12 +24,15 @@ import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes"
 import { OrderGroup } from "./shopsUi";
 import { BuyerCancelOrder, BuyerCancelPreorder } from "./ShopOrderCancel";
 import ShopCustomRequestsList from "./ShopCustomRequestsList";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enShopsBrowse";
 
 /** The buyer's order groups under Shops > Orders (owner, 2026-10-19). */
 const BUYER_GROUPS = ["waiting", "accepted", "done"] as const;
 type BuyerGroup = (typeof BUYER_GROUPS)[number];
-const BUYER_GROUP_LABEL: Record<BuyerGroup, string> = { waiting: "Waiting", accepted: "Accepted", done: "Done" };
-const BUYER_GROUP_TITLE: Record<BuyerGroup, string> = { waiting: "Waiting for the shop", accepted: "Accepted", done: "Done" };
+const BUYER_GROUP_LABEL: Record<BuyerGroup, MsgKey> = { waiting: "shb.ord.waiting", accepted: "shb.ord.accepted", done: "shb.ord.done" };
+const BUYER_GROUP_TITLE: Record<BuyerGroup, MsgKey> = { waiting: "shb.ord.waitingTitle", accepted: "shb.ord.accepted", done: "shb.ord.done" };
 function buyerGroup(o: Pick<ShopOrder, "status">): BuyerGroup {
   if (o.status === "held") return "waiting";
   // S012 (Shops audit 11-12): a handed-over order is final (picked up, closed_at set), so it is Done, not Accepted.
@@ -57,11 +60,12 @@ function checkoutReturnToast(params: URLSearchParams): { param: "sent" | "bought
  * plain underlined link). The loading placeholder is this same card, hidden (Q2558).
  */
 function NoOrdersYet() {
+  const { t } = useLanguage();
   return (
-    <ShopsNotice title="No orders yet.">
-      <p>Order from a local shop and it shows here.</p>
+    <ShopsNotice title={t("shb.ord.none")}>
+      <p>{t("shb.ord.noneBody")}</p>
       <Button asChild variant="outline" size="sm" className="mt-2 rounded-full">
-        <Link to="/shops">Browse shops</Link>
+        <Link to="/shops">{t("shb.ord.browse")}</Link>
       </Button>
     </ShopsNotice>
   );
@@ -73,6 +77,7 @@ function NoOrdersYet() {
  * (/shops/orders) it is unchanged.
  */
 export default function ShopMyOrdersView({ embedded = false }: { embedded?: boolean } = {}) {
+  const { t } = useLanguage();
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
@@ -96,7 +101,7 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
   const withdraw = useMutation({
     mutationFn: (id: string) => cancelOrderRequest(id),
     onSuccess: () => {
-      toast.success("Order withdrawn. Nothing was charged.");
+      toast.success(t("shb.ord.withdrawn"));
       setWithdrawing(null);
       void qc.invalidateQueries({ queryKey: ["shops", "my-orders"] });
     },
@@ -107,10 +112,10 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
   });
 
   const renderOrder = (o: ShopOrder, uid: string) => (
-    <ShopOrderCard key={o.id} order={o} side="buyer" heading={o.shops?.name ?? "A shop"}>
+    <ShopOrderCard key={o.id} order={o} side="buyer" heading={o.shops?.name ?? t("shb.ord.aShop")}>
       {o.status === "held" && (
         <Button type="button" size="sm" variant="outline" disabled={withdraw.isPending} onClick={() => setWithdrawing(o)}>
-          Withdraw order
+          {t("shb.ord.withdraw")}
         </Button>
       )}
       {(o.status === "accepted" || o.status === "handed_over") && <ShopHandoverActions order={o} side="buyer" userId={uid} />}
@@ -125,12 +130,12 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
           waiting to be ordered is not buried under the orders or "No orders yet.". */}
       <ShopCustomRequestsList side="buyer" />
       {orders.isError ? (
-        <ErrorState variant="inline" title="We couldn't load your orders." body={shopsErrorMessage(orders.error)} onRetry={() => void orders.refetch()} />
+        <ErrorState variant="inline" title={t("shb.ord.loadFailed")} body={shopsErrorMessage(orders.error)} onRetry={() => void orders.refetch()} />
       ) : orders.isLoading || !user ? (
         // Q2558: the placeholder is the "No orders yet." card itself, hidden under one bone, so it is exactly
         // that card's height at every width and theme (two 144px order bones once collapsed 202px into it;
         // a fixed 98px went stale with the card's words). A list of orders grows below.
-        <div className="relative" role="status" aria-label="Loading your orders">
+        <div className="relative" role="status" aria-label={t("shb.ord.loading")}>
           <div className="invisible" aria-hidden>
             <NoOrdersYet />
           </div>
@@ -142,7 +147,7 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
         embedded ? (
           <>
             <StatusBoxes
-              boxes={BUYER_GROUPS.map((g) => ({ key: g, label: BUYER_GROUP_LABEL[g], count: (orders.data ?? []).filter((o) => buyerGroup(o) === g).length, hot: g === "accepted" }))}
+              boxes={BUYER_GROUPS.map((g) => ({ key: g, label: t(BUYER_GROUP_LABEL[g]), count: (orders.data ?? []).filter((o) => buyerGroup(o) === g).length, hot: g === "accepted" }))}
               value={status}
               onToggle={toggleStatus}
               // Every order falls in exactly one buyer group, so All is the whole list.
@@ -151,7 +156,7 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
             {BUYER_GROUPS.filter((g) => status === null || status === g).map((g) => {
               const rows = (orders.data ?? []).filter((o) => buyerGroup(o) === g);
               return (
-                <OrderGroup key={g} title={BUYER_GROUP_TITLE[g]} count={rows.length} empty="Nothing here right now.">
+                <OrderGroup key={g} title={t(BUYER_GROUP_TITLE[g])} count={rows.length} empty={t("shb.ord.nothingHere")}>
                   {rows.map((o) => renderOrder(o, user.id))}
                 </OrderGroup>
               );
@@ -166,22 +171,23 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
       <BrandConfirmDialog
         open={!!withdrawing}
         onOpenChange={(open) => { if (!open) setWithdrawing(null); }}
-        title="Withdraw this order?"
-        description="The shop hasn't answered yet. The hold on your card drops and nothing is charged."
-        primaryLabel={withdraw.isPending ? "Withdrawing…" : "Withdraw order"}
+        title={t("shb.ord.withdrawQ")}
+        description={t("shb.ord.withdrawBody")}
+        primaryLabel={withdraw.isPending ? t("shb.ord.withdrawing") : t("shb.ord.withdraw")}
         primaryDisabled={withdraw.isPending}
         onPrimary={(e) => {
           e.preventDefault();
           if (withdrawing) withdraw.mutate(withdrawing.id);
         }}
-        secondaryLabel="Keep it"
+        secondaryLabel={t("shb.ord.keep")}
       />
     </Frame>
   );
 }
 
 function StandaloneFrame({ children }: { children: ReactNode }) {
-  return <AppPage title="My orders" backTo="/shops">{children}</AppPage>;
+  const { t } = useLanguage();
+  return <AppPage title={t("shb.ord.myOrders")} backTo="/shops">{children}</AppPage>;
 }
 function EmbeddedFrame({ children }: { children: ReactNode }) {
   return <div className="flex flex-col gap-4" data-testid="shops-orders-tab">{children}</div>;

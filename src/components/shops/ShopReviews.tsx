@@ -21,14 +21,16 @@ import { fetchMyOrderReview, fetchShopReviews, leaveShopReview, myOrderReviewKey
 import { ShopCard } from "./ShopProfile";
 import { ShopRating } from "./shopsUi";
 import { ReviewStars } from "@/components/profile/reviewCard";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enShopsBrowse";
 
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
-const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
 const monthYear = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Chicago" });
 
 /** "Leave a review" on a handed-over order's card, for either side. Nothing before the handover. */
 export function ShopOrderReview({ orderId, handedOver }: { orderId: string; handedOver: boolean }) {
+  const { t } = useLanguage();
   const qc = useQueryClient();
   const state = useQuery({ queryKey: myOrderReviewKey(orderId), queryFn: () => fetchMyOrderReview(orderId), enabled: handedOver });
   const [open, setOpen] = useState(false);
@@ -38,7 +40,7 @@ export function ShopOrderReview({ orderId, handedOver }: { orderId: string; hand
     mutationFn: () => leaveShopReview(orderId, stars, comment.trim() || null),
     onSuccess: () => {
       setOpen(false);
-      toast(`Thanks. ${REVIEW_SHOWS}`);
+      toast(t("shb.rev.thanks"));
       void qc.invalidateQueries({ queryKey: myOrderReviewKey(orderId) });
       void qc.invalidateQueries({ queryKey: ["shops", "reviews"] });
     },
@@ -48,24 +50,24 @@ export function ShopOrderReview({ orderId, handedOver }: { orderId: string; hand
     },
   });
   if (!handedOver || !state.data) return null;
-  if (state.data.mine) return <p className="text-ds-13 text-muted-foreground" data-shop-review-sent="">Review sent. {REVIEW_SHOWS}</p>;
+  if (state.data.mine) return <p className="text-ds-13 text-muted-foreground" data-shop-review-sent="">{t("shb.rev.sent")}</p>;
   if (!state.data.can_review) return null;
   const buyer = state.data.side === "buyer";
   return (
     <>
       <Button type="button" className="w-full sm:w-auto" onClick={() => setOpen(true)} data-shop-review-open="">
-        Leave a review
+        {t("shb.rev.leave")}
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-shop-review-sheet="">
-          <SheetHero title="Leave a review" />
+          <SheetHero title={t("shb.rev.leave")} />
           <div className="flex flex-col items-center gap-3 pt-1 text-center">
-            <p className="text-ds-20 font-bold leading-snug">{buyer ? "How was this shop?" : "How was this buyer?"}</p>
-            <StarRow value={stars} onChange={setStars} label="Stars" />
+            <p className="text-ds-20 font-bold leading-snug">{buyer ? t("shb.rev.howShop") : t("shb.rev.howBuyer")}</p>
+            <StarRow value={stars} onChange={setStars} label={t("shb.rev.stars")} />
           </div>
           <div className="space-y-2 pt-4">
             <label htmlFor={`shop-review-${orderId}`} className="block text-ds-15 font-semibold">
-              A few words <span className="font-normal text-muted-foreground">(optional)</span>
+              {t("shb.rev.words")} <span className="font-normal text-muted-foreground">{t("shb.rev.optional")}</span>
             </label>
             <Textarea
               id={`shop-review-${orderId}`}
@@ -73,14 +75,14 @@ export function ShopOrderReview({ orderId, handedOver }: { orderId: string; hand
               maxLength={1000}
               rows={3}
               value={comment}
-              placeholder={buyer ? "Shown on the shop's page" : "Shown to the buyer"}
+              placeholder={buyer ? t("shb.rev.phShop") : t("shb.rev.phBuyer")}
               onChange={(e) => setComment(e.target.value)}
             />
-            <p className="text-ds-13 text-muted-foreground">{REVIEW_SHOWS}</p>
+            <p className="text-ds-13 text-muted-foreground">{t("shb.rev.shows")}</p>
           </div>
           <SheetFooter>
             <SheetPrimaryAction disabled={send.isPending || stars === 0} onClick={() => send.mutate()}>
-              Send review
+              {t("shb.rev.send")}
             </SheetPrimaryAction>
           </SheetFooter>
         </SheetContent>
@@ -91,17 +93,18 @@ export function ShopOrderReview({ orderId, handedOver }: { orderId: string; hand
 
 /** The shop page's reviews: its buyers' public reviews and the shop's own rating (shown at 3 or more). */
 export function ShopReviewsCard({ shopId }: { shopId: string }) {
+  const { t } = useLanguage();
   const reviews = useQuery({ queryKey: shopReviewsKey(shopId), queryFn: () => fetchShopReviews(shopId) });
   const [reporting, setReporting] = useState<string | null>(null);
   const d = reviews.data;
   return (
-    <ShopCard id="shop-reviews" title="Reviews">
+    <ShopCard id="shop-reviews" title={t("shb.rev.title")}>
       {reviews.isError ? (
-        <ErrorState variant="inline" title="We couldn't load the reviews." body={shopsErrorMessage(reviews.error)} onRetry={() => void reviews.refetch()} />
+        <ErrorState variant="inline" title={t("shb.rev.loadFailed")} body={shopsErrorMessage(reviews.error)} onRetry={() => void reviews.refetch()} />
       ) : reviews.isPending || !d ? (
-        <p className="text-ds-13 text-muted-foreground" role="status">Loading…</p>
+        <p className="text-ds-13 text-muted-foreground" role="status">{t("shb.rev.loading")}</p>
       ) : d.reviews.length === 0 ? (
-        <p className="text-ds-13 text-muted-foreground">No reviews yet. Buyers review a shop after they get their order.</p>
+        <p className="text-ds-13 text-muted-foreground">{t("shb.rev.none")}</p>
       ) : (
         <div className="space-y-3" data-shop-reviews="">
           <ShopRating rating={d.rating} count={d.review_count} />
@@ -117,7 +120,7 @@ export function ShopReviewsCard({ shopId }: { shopId: string }) {
                     <span className="text-ds-12 text-muted-foreground">{monthYear(r.created_at)}</span>
                   </div>
                   <Button type="button" variant="ghost" size="sm" className="shrink-0 pl-4 pr-0 text-ds-13 font-normal text-muted-foreground" onClick={() => setReporting(r.id)} data-report="shop_review">
-                    Report
+                    {t("shb.rev.report")}
                   </Button>
                 </div>
                 {r.comment && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{r.comment}</p>}

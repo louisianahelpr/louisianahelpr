@@ -120,9 +120,9 @@ describe("the buyer's Cancel order (M3)", () => {
     ]);
     renderAt("/shops/orders", <ShopOrdersPage />);
     await screen.findByText("Not charged yet");
-    await waitFor(() => expect(screen.getAllByRole("button", { name: "Cancel order" })).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /^Cancel order/ })).toHaveLength(1));
     const cards = screen.getAllByTestId("shop-order-card");
-    expect(within(cards[1]).queryByRole("button", { name: "Cancel order" })).toBeNull();
+    expect(within(cards[1]).queryByRole("button", { name: /^Cancel order/ })).toBeNull();
   });
 
   it("is hidden while a problem report is open", async () => {
@@ -130,13 +130,13 @@ describe("the buyer's Cancel order (M3)", () => {
     handover.fetchHandovers.mockResolvedValue(new Map([["o1", { order_id: "o1", problem_at: "2026-10-23T12:00:00Z" }]]) as never);
     renderAt("/shops/orders", <ShopOrdersPage />);
     await screen.findByText(/You reported a problem/);
-    expect(screen.queryByRole("button", { name: "Cancel order" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Cancel order/ })).toBeNull();
   });
 
   it("free: says the exact net refund with no cost words, and sends expect 'free'", async () => {
     orders.fetchMyOrders.mockResolvedValue([order({})]);
     renderAt("/shops/orders", <ShopOrdersPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Cancel order/ }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
     // 11-12: the quote's refund_cents is already the net refund, so the dialog says exactly that and nothing about costs.
     // S2-033: both numbers, the gap named, and no "free".
@@ -153,7 +153,7 @@ describe("the buyer's Cancel order (M3)", () => {
     invoke.mockResolvedValue({ data: { cancelled: true, refund_cents: 0 }, error: null });
     orders.fetchMyOrders.mockResolvedValue([order({})]);
     renderAt("/shops/orders", <ShopOrdersPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Cancel order/ }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
     await within(dialog).findByText(/time to cancel for a refund is over\. If you cancel now, nothing is refunded and the shop is paid\./);
     fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel without a refund" }));
@@ -166,7 +166,7 @@ describe("the buyer's Cancel order (M3)", () => {
     invoke.mockResolvedValue({ data: { cancelled: true, refund_cents: 600 }, error: null });
     orders.fetchMyOrders.mockResolvedValue([order({})]);
     renderAt("/shops/orders", <ShopOrdersPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Cancel order/ }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
     await within(dialog).findByText(/If you cancel now, you get \$6\.00 back for the delivery and the shop is paid for the order\./);
     expect(within(dialog).queryByRole("button", { name: "confirm Cancel without a refund" })).toBeNull();
@@ -180,7 +180,7 @@ describe("the buyer's Cancel order (M3)", () => {
     rpc.mockResolvedValue({ data: null, error: { code: "PGRST202", message: "Could not find the function public.shops_order_cancel_quote" } });
     orders.fetchMyOrders.mockResolvedValue([order({})]);
     renderAt("/shops/orders", <ShopOrdersPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Cancel order/ }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
     await within(dialog).findByText(/isn't available yet/);
     expect((within(dialog).getByRole("button", { name: /^confirm/ }) as HTMLButtonElement).disabled).toBe(true);
@@ -194,7 +194,7 @@ describe("the buyer's Cancel order (M3)", () => {
       error: { context: new Response(JSON.stringify({ error: "cancel_terms_changed" }), { status: 409 }) },
     } as never);
     renderAt("/shops/orders", <ShopOrdersPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Cancel order/ }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
     await within(dialog).findByText(/get \$22\.50 back/);
     expect(quoteCalls()).toHaveLength(1);
@@ -212,7 +212,7 @@ describe("the shop's Cancel order and Buyer didn't show (M3)", () => {
   it("Cancel order warns of the full refund, fee and strike, and sends the reason", async () => {
     orders.fetchShopOrders.mockResolvedValue([order({ ready_date: "2999-01-01" })]);
     renderAt("/shops/dashboard", <ShopDashboardPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Cancel order/ }));
     // A future ready date: no no-show yet.
     expect(screen.queryByRole("button", { name: "Buyer didn't show" })).toBeNull();
     const dialog = await screen.findByRole("dialog", { name: "Cancel this accepted order?" });
@@ -296,10 +296,11 @@ describe("S028: the badge read's seed never replaces the shop dashboard's orders
         <MemoryRouter initialEntries={["/shops/dashboard"]}><Routes><Route path="/shops/dashboard" element={<ShopDashboardPage />} /></Routes></MemoryRouter>
       </QueryClientProvider>,
     );
-    await screen.findByText(/^Accepted order/);
+    // Area 07 M3: the seller card's title is the item (no buyer name here), "2 × Candle".
+    await screen.findByText("2 × Candle");
     qc.setQueryData(badgeSectionKey("shop_orders", "u1"), []);
     await new Promise((r) => setTimeout(r, 50));
-    expect(screen.getByText(/^Accepted order/)).toBeTruthy();
+    expect(screen.getByText("2 × Candle")).toBeTruthy();
     expect(screen.queryByText("Accepted: make these")).toBeTruthy();
     expect(orders.fetchShopOrders).toHaveBeenCalledTimes(1);
   });

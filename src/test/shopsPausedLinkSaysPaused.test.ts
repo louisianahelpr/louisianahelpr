@@ -28,7 +28,8 @@ describe("S044: a paused shop's link says paused", () => {
   it("the public page shows '<Shop> is paused for now' with Browse shops", () => {
     const view = readFileSync(resolve(__dirname, "../components/shops/PublicShopView.tsx"), "utf8");
     expect(view).toContain(") : isPausedShop(shop.data) ? (");
-    expect(view).toContain("<ShopUnavailable title={`${shop.data.name} is paused for now`}");
+    // Area 07 H1: the words come from the dictionary (enShopsBrowse.ts "{name} is paused for now").
+    expect(view).toContain('<ShopUnavailable title={t("shb.pub.paused", { name: shop.data.name })}');
     const ui = readFileSync(resolve(__dirname, "../components/shops/shopsUi.tsx"), "utf8");
     expect(ui).toContain("title={title ?? SHOP_UNAVAILABLE_TITLE}");
     expect(ui).toContain('<Link to="/shops">Browse shops</Link>');

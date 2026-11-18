@@ -135,11 +135,30 @@ const CONVERTED = [
   "src/components/declutter/SellAiDraft.tsx",
   // F260q: the job page's list-it-for-the-seller panel (enListForSeller.ts).
   "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx",
+  // Area 07 H1 (design audit 11-18): the Shops order card and the shop page (enShopOrders.ts).
+  "src/components/shops/ShopOrderCard.tsx",
+  "src/components/shops/ShopView.tsx",
+  // Area 07 H1 (design audit 11-18): Shops (browse, its cards, the buyer's orders, reviews, the public shop page; enShopsBrowse.ts).
+  "src/components/shops/ShopsHomeView.tsx",
+  "src/components/shops/ShopBrowseCard.tsx",
+  "src/components/shops/ShopMyOrdersView.tsx",
+  "src/components/shops/ShopReviews.tsx",
+  "src/components/shops/PublicShopView.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */
 // @two-way src/test/spanishScreensUseDictionary.test.ts:stale ALLOWED
 const ALLOWED: Record<string, string[]> = {
+  // Area 07 H1: the share sheet's cancel error name (DOMException), never shown.
+  // "Shops" is the section's header, which ShopsPage's loading frame draws word for word (sectionLoadingHeaderIsSettled);
+  // both move to t() together, in a follow-up (the dock already says "Tiendas").
+  "src/components/shops/ShopsHomeView.tsx": ["AbortError", "Shops"],
+  // Area 07 H1: Stripe's checkout-return toast stays as it is here; PR #4702 (Shops launch pass 1) rewrites that effect.
+  "src/components/shops/ShopMyOrdersView.tsx": ["Order sent. The shop has 24 hours to answer; your card is held, not charged."],
+  // The time zone the review dates are read in (Intl), not words.
+  "src/components/shops/ShopReviews.tsx": ["America/Chicago"],
+  // A report tag (ReportErrorScreen source), never shown.
+  "src/components/shops/PublicShopView.tsx": ["PublicShopView.load"],
   // The keyboard key name the price box listens for; never shown.
   "src/components/declutter/DeclutterBunchRow.tsx": ["Enter"],
   // Placeholder values postProblems feeds formProblem while the AI is still writing; never shown.
@@ -166,6 +185,7 @@ const ALLOWED: Record<string, string[]> = {
   // The time zone the dates are read in (Intl), not words.
   "src/components/declutter/DeclutterFreeClaim.tsx": ["America/Chicago", "America/Chicago"],
   "src/components/declutter/FreeAskSheet.tsx": ["America/Chicago"],
+  "src/components/shops/ShopOrderCard.tsx": ["America/Chicago"],
   "src/components/declutter/ItemPickupBlock.tsx": ["Pickup times", "Pickup and meetup times", "Meetup times", "Pickup and meetup times"],
 };
 

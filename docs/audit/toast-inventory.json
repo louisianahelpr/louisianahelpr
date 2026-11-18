@@ -11753,7 +11753,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 115,
+      "line": 127,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11773,7 +11773,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 120,
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11783,7 +11783,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 128,
+      "line": 140,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11793,7 +11793,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 134,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12033,7 +12033,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 82,
+      "line": 83,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12043,7 +12043,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 88,
+      "line": 89,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -12053,7 +12053,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 94,
+      "line": 95,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -12063,7 +12063,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 103,
+      "line": 104,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -12073,7 +12073,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 112,
+      "line": 113,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -12083,7 +12083,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 127,
+      "line": 128,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12403,7 +12403,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 73,
+      "line": 78,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -12413,17 +12413,17 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 83,
+      "line": 88,
       "kind": "toast.success",
       "title": {
-        "form": "literal",
-        "text": "Order withdrawn. Nothing was charged."
+        "form": "dynamic",
+        "text": "t(\"shb.ord.withdrawn\")"
       },
       "renders": false
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 88,
+      "line": 93,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12433,7 +12433,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 99,
+      "line": 109,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -12453,7 +12453,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 111,
+      "line": 121,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12463,7 +12463,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 157,
+      "line": 172,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -12483,7 +12483,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 164,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12493,7 +12493,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 205,
+      "line": 221,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -12513,7 +12513,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 209,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12523,7 +12523,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 145,
+      "line": 152,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12533,17 +12533,17 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 369,
+      "line": 416,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "We told the Helpr. They have 24 hours to answer, and the money waits until this is sorted out."
+        "form": "dynamic",
+        "text": "t(\"sho.noShowSent\")"
       },
       "renders": true
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 371,
+      "line": 418,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12633,35 +12633,17 @@
     },
     {
       "file": "src/components/shops/ShopReviews.tsx",
-      "line": 41,
+      "line": 43,
       "kind": "toast",
       "title": {
-        "form": "template",
-        "text": "Thanks. ${REVIEW_SHOWS}",
-        "holes": {
-          "REVIEW_SHOWS": [
-            {
-              "form": "literal",
-              "text": "Reviews show once you both leave one, or after 14 days."
-            }
-          ]
-        }
+        "form": "dynamic",
+        "text": "t(\"shb.rev.thanks\")"
       },
       "renders": true
     },
     {
       "file": "src/components/shops/ShopReviews.tsx",
-      "line": 47,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "shopsErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/shops/ShopView.tsx",
-      "line": 82,
+      "line": 49,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12672,26 +12654,6 @@
     {
       "file": "src/components/shops/ShopView.tsx",
       "line": 87,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "paused ? \"Your shop is paused.\" : \"Your shop is open again.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Your shop is paused."
-          },
-          {
-            "form": "literal",
-            "text": "Your shop is open again."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/shops/ShopView.tsx",
-      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12701,7 +12663,37 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 194,
+      "line": 92,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "paused ? t(\"shv.pausedToast\") : t(\"shv.openAgainToast\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "t(\"shv.pausedToast\")"
+          },
+          {
+            "form": "dynamic",
+            "text": "t(\"shv.openAgainToast\")"
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopView.tsx",
+      "line": 95,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopView.tsx",
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12711,21 +12703,55 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 75,
+      "line": 81,
       "kind": "toast.success",
       "title": {
-        "form": "literal",
-        "text": "Link copied."
+        "form": "dynamic",
+        "text": "tr(\"shb.linkCopied\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": false
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 77,
+      "line": 83,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't copy your shop's link"
+        "form": "dynamic",
+        "text": "tr(\"shb.linkCopyFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "description": {
         "form": "dynamic",

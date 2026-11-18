@@ -196,7 +196,7 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false,
           e.preventDefault();
           if (takeDown) withdraw.mutate(takeDown.id);
         }}
-        secondaryLabel="Cancel"
+        secondaryLabel="Keep it"
       />
     </section>
   );

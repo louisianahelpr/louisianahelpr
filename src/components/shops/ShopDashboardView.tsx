@@ -54,6 +54,19 @@ const SHOP_GROUPS = ["answer", "make", "earlier"] as const;
 type ShopGroup = (typeof SHOP_GROUPS)[number];
 const SHOP_GROUP_LABEL: Record<ShopGroup, string> = { answer: "Needs you", make: "To make", earlier: "Done" };
 import { ShopCancelOrder } from "./ShopOrderCancel";
+import { t as tr } from "@/lib/i18n/language";
+import "@/lib/i18n/enShopsBrowse";
+
+/**
+ * A seller's order card title (Area 07 M3): the buyer's first name and the first item, "Ann · 2 × Pecan pralines",
+ * "+ N more" for more lines; just the item when the server gives no name (Q2104: a blocked pair or a deleted buyer).
+ */
+function orderTitle(o: Pick<ShopOrder, "shop_order_lines">, name: string | null | undefined): string {
+  const [first, ...rest] = o.shop_order_lines ?? [];
+  const one = first ? tr("shb.dash.item", { qty: first.quantity, title: first.title }) : tr("shb.dash.order");
+  const item = rest.length > 0 ? tr("shb.dash.more", { item: one, n: rest.length }) : one;
+  return name ? tr("shb.dash.title", { name, item }) : item;
+}
 
 const REASON_MAX = 200;
 
@@ -94,10 +107,9 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
     queryFn: () => fetchShopOrderBuyerNames(orderIds),
     enabled: orderIds.length > 0,
   });
-  const from = (o: ShopOrder, base: string, word: string) => {
-    const name = buyerNames.data?.[o.id];
-    return name ? `${base} ${word} ${name}` : base;
-  };
+  // Area 07 M3 (design audit 11-18): the card's title is who and what ("Ann · 2 × Pecan pralines"); the stage is the
+  // group it sits in and the card's status pill, never the title ("New order from Ann" read as a stage).
+  const from = (o: ShopOrder) => orderTitle(o, buyerNames.data?.[o.id]);
   const [status, toggleStatus] = useStatusFilter(SHOP_GROUPS);
   const show = (g: ShopGroup) => status === null || status === g;
   // S2-017 (Shops audit 2): new custom requests need an answer (they end after 7 days), so they count in "Waiting for
@@ -204,7 +216,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
               ) : (
                 <ul className="space-y-3">
                   {waiting.map((o) => (
-                    <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o, "New order", "from")}>
+                    <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o)}>
                       <p className="text-ds-11 font-semibold" data-testid="shop-order-time-left">
                         {timeLeftText(o.accept_by, now) ?? "The time to answer has passed; this order is closing."}
                       </p>
@@ -238,7 +250,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
                 <h2 id="shop-accepted" className="text-ds-13 font-semibold">Accepted: make these</h2>
                 <ul className="space-y-3">
                   {accepted.map((o) => (
-                    <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o, "Accepted order", "for")}>
+                    <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o)}>
                       {user && <ShopHandoverActions order={o} side="shop" userId={user.id} />}
                       <ShopCancelOrder order={o} />
                     </ShopOrderCard>
@@ -251,7 +263,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
                 <h2 id="shop-earlier" className="text-ds-13 font-semibold">Earlier orders</h2>
                 <ul className="space-y-3">
                   {earlier.map((o) => (
-                    <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o, "Order", "from")}>
+                    <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o)}>
                       {user && o.status === "handed_over" && <ShopHandoverActions order={o} side="shop" userId={user.id} />}
                     </ShopOrderCard>
                   ))}
@@ -290,12 +302,15 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
           e.preventDefault();
           if (accepting) accept.mutate(accepting.id);
         }}
-        secondaryLabel="Cancel"
+        // Area 07 M12: dismiss says "Not now", never a "Cancel" beside order words.
+        secondaryLabel="Not now"
       />
       <BrandConfirmDialog
         open={!!declining}
         onOpenChange={(open) => { if (!open) setDeclining(null); }}
         title="Decline this order?"
+        // Area 07 M12: declining a buyer's order cannot be undone, so it wears the destructive tone.
+        primaryTone="sienna"
         description="The hold on the buyer's card drops and nothing is charged."
         primaryLabel={decline.isPending ? "Declining…" : "Decline order"}
         primaryDisabled={decline.isPending}

@@ -22,13 +22,16 @@ import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import {
   buyerCancelOrder,
+  cancelPolicyText,
   fetchCancelQuote,
   formatCents,
+  orderCancelLine,
   reportNoShow,
   shopCancelOrder,
   type CancelQuote,
@@ -65,6 +68,13 @@ function cancelQuoteText(q: CancelQuote): string {
     return `The time to cancel for a refund is over. If you cancel now, you get ${formatCents(q.refund_cents ?? 0)} back for the delivery and the shop is paid for the order.`;
   }
   return "The time to cancel for a refund is over. If you cancel now, nothing is refunded and the shop is paid.";
+}
+
+/** Area 07 M14: an accepted, non-preorder order whose cancel-for-a-refund time has passed (orderCancelLine's own answer). */
+export function refundTimeOver(order: ShopOrder, now: Date = new Date()): boolean {
+  if (order.status !== "accepted" || order.preorder_item_id) return false;
+  const line = orderCancelLine(order, now);
+  return line !== null && line !== `${cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label}.`;
 }
 
 function useOpenOrder(order: ShopOrder): { cancellable: boolean; markedReady: boolean } {
@@ -114,10 +124,14 @@ export function BuyerCancelOrder({ order }: { order: ShopOrder }) {
   });
   if (!cancellable) return null;
   const q = quote.data;
+  // Area 07 M14 (design audit 11-18): once the refund time is over the card still showed a plain "Cancel order",
+  // a trap. orderCancelLine says the policy itself only while the refund window is open; any other line means it
+  // closed, so the button names the consequence (the dialog's quote still says the exact amounts).
+  const refundOver = refundTimeOver(order);
   return (
     <>
-      <Button type="button" size="sm" variant="outline" onClick={() => { setChanged(false); setAsking(true); }}>
-        Cancel order
+      <Button type="button" size="sm" variant="outline" onClick={() => { setChanged(false); setAsking(true); }} data-testid="shop-buyer-cancel">
+        {refundOver ? "Cancel order (refund time over)" : "Cancel order"}
       </Button>
       <BrandConfirmDialog
         open={asking}
@@ -125,6 +139,7 @@ export function BuyerCancelOrder({ order }: { order: ShopOrder }) {
         title="Cancel this order?"
         description={quote.isLoading || !q ? (quote.isError ? shopsErrorMessage(quote.error) : "Checking the shop's cancel terms…") : cancelQuoteText(q)}
         primaryLabel={cancel.isPending ? "Cancelling…" : q?.can_cancel && !q.free && !(q.refund_cents ?? 0) ? "Cancel without a refund" : "Cancel order"}
+        primaryTone="sienna"
         primaryDisabled={cancel.isPending || !q?.can_cancel || quote.isFetching}
         onPrimary={(e) => {
           e.preventDefault();
@@ -176,6 +191,7 @@ export function BuyerCancelPreorder({ order }: { order: ShopOrder }) {
         title="Cancel this preorder?"
         description={preorderCancelText(order, louisianaToday())}
         primaryLabel={cancel.isPending ? "Cancelling…" : "Cancel preorder"}
+        primaryTone="sienna"
         primaryDisabled={cancel.isPending}
         onPrimary={(e) => {
           e.preventDefault();
@@ -223,15 +239,17 @@ export function ShopCancelOrder({ order }: { order: ShopOrder }) {
           Buyer didn't show
         </Button>
       )}
-      <Button type="button" size="sm" variant="outline" disabled={act.isPending} onClick={() => { setReason(""); setAsking("cancel"); }}>
+      {/* Area 07 M1 (design audit 11-18): the shop's cancel is a text link, so the stage's one primary leads. */}
+      <InlineTextButton className="text-ds-13 underline" disabled={act.isPending} onClick={() => { setReason(""); setAsking("cancel"); }} data-testid="shop-seller-cancel">
         Cancel order
-      </Button>
+      </InlineTextButton>
       <BrandConfirmDialog
         open={asking === "cancel"}
         onOpenChange={(o) => { if (!o) setAsking(null); }}
         title="Cancel this accepted order?"
         description="The buyer gets everything back. The card processing cost comes out of your next payout, and it counts as a Shops strike (3 strikes pause Shops for you)."
         primaryLabel={act.isPending ? "Cancelling…" : "Cancel and refund"}
+        primaryTone="sienna"
         primaryDisabled={act.isPending || reason.length > REASON_MAX}
         onPrimary={(e) => {
           e.preventDefault();
@@ -255,7 +273,7 @@ export function ShopCancelOrder({ order }: { order: ShopOrder }) {
           e.preventDefault();
           act.mutate("no_show");
         }}
-        secondaryLabel="Cancel"
+        secondaryLabel="Not now"
       />
     </div>
   );

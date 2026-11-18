@@ -23,6 +23,7 @@ import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -139,7 +140,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         e.preventDefault();
         report.mutate();
       }}
-      secondaryLabel="Cancel"
+      secondaryLabel="Not now"
     >
       <div className="space-y-1">
         <Label htmlFor={`${fileId}-note`}>What happened?</Label>
@@ -186,6 +187,10 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
     : order.preorder_item_id ? preorderReadyFrom(order.ready_date)
     : !service ? addDays(order.ready_date, -1) : null;
   const tooEarly = readyFrom !== null && today < readyFrom;
+  // Area 07 M2 (design audit 11-18, UI only): a half-paid custom order whose second charge failed cannot be handed
+  // over until the buyer pays the rest (DepositRest says so), so the shop is offered neither "Mark ready" nor
+  // "Handed over" while it waits. The money rules stay on the server.
+  const restOwed = order.payment_plan === "deposit_50" && (order.balance_cents ?? 0) > 0 && !order.balance_captured_at && !!order.balance_failed_at;
 
   if (side === "shop" && order.status === "handed_over") {
     const p = (payouts.data ?? []).find((x) => x.order_id === order.id);
@@ -214,7 +219,11 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
       {side === "buyer" && buyerHandoverSafety(order, h) && (
         <p className="text-ds-11 text-muted-foreground" data-testid="shop-handover-safety">{buyerHandoverSafety(order, h)}</p>
       )}
-      {side === "shop" && tooEarly && readyFrom ? (
+      {side === "shop" && restOwed ? (
+        <p className="text-ds-11 font-semibold" data-testid="shop-handover-rest-owed">
+          Waiting for the buyer to pay the rest. You can mark it ready and hand it over once it&apos;s paid.
+        </p>
+      ) : side === "shop" && tooEarly && readyFrom ? (
         <p className="text-ds-11 text-muted-foreground" data-testid="shop-preorder-ready-from">
           {order.preorder_item_id
             ? `This is a preorder. You can mark it ready from ${shortDate(readyFrom)}.`
@@ -247,18 +256,36 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
               if (f) ready.mutate(f);
             }}
           />
-          <Button type="button" size="sm" variant={porch && !h?.ready_at ? "default" : "outline"}
-            className={porch && !h?.ready_at ? "btn-grad-primary" : undefined}
-            disabled={busy} onClick={() => document.getElementById(fileId)?.click()}>
-            {ready.isPending ? "Saving…" : h?.ready_photo_path ? "Retake ready photo" : porch ? "Take photo and mark ready" : "Add a ready photo"}
-          </Button>
-          {!porch && !h?.ready_at && (
-            <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => ready.mutate(null)}>Mark ready</Button>
-          )}
-          {!porch && !byHelpr && due && !h?.shop_confirmed_at && (
-            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setHandingOver(true)}>
-              {service ? "Mark complete" : "Handed over"}
-            </Button>
+          {/* Area 07 M1 (design audit 11-18): one primary per stage. Before the ready mark it is "Mark ready" (a
+              left-out order's photo IS its ready mark); after it, "Handed over". The ready photo of an in-person
+              order is an optional link, never a second big button. */}
+          {porch ? (
+            h?.ready_at ? (
+              <InlineTextButton className="w-full text-left text-ds-13 underline" disabled={busy} onClick={() => document.getElementById(fileId)?.click()}>
+                {ready.isPending ? "Saving…" : "Retake ready photo"}
+              </InlineTextButton>
+            ) : (
+              <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => document.getElementById(fileId)?.click()}>
+                {ready.isPending ? "Saving…" : "Take photo and mark ready"}
+              </Button>
+            )
+          ) : (
+            <>
+              {!h?.ready_at && (
+                <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => ready.mutate(null)} data-testid="shop-mark-ready">
+                  {ready.isPending ? "Saving…" : "Mark ready"}
+                </Button>
+              )}
+              {!byHelpr && due && !h?.shop_confirmed_at && (
+                <Button type="button" size="sm" variant={h?.ready_at ? "default" : "outline"} className={h?.ready_at ? "btn-grad-primary" : undefined}
+                  disabled={busy} onClick={() => setHandingOver(true)} data-testid="shop-handed-over">
+                  Handed over
+                </Button>
+              )}
+              <InlineTextButton className="w-full text-left text-ds-13 underline" disabled={busy} onClick={() => document.getElementById(fileId)?.click()}>
+                {h?.ready_photo_path ? "Retake ready photo" : "Add a ready photo (optional)"}
+              </InlineTextButton>
+            </>
           )}
           <p className="w-full text-ds-11 text-muted-foreground" data-testid="shop-handover-wait">
             {porch
@@ -300,7 +327,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           e.preventDefault();
           handedOver.mutate();
         }}
-        secondaryLabel="Cancel"
+        secondaryLabel="Not now"
       />
       <BrandConfirmDialog
         open={confirming}
@@ -313,7 +340,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           e.preventDefault();
           finish.mutate();
         }}
-        secondaryLabel="Cancel"
+        secondaryLabel="Not now"
       />
       {photoUrl && <img src={photoUrl} alt="The shop's photo of your order, ready" className="max-h-64 w-full rounded-xl object-cover" />}
       {reportDialog}

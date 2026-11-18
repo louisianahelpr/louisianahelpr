@@ -128,6 +128,7 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
         title={side === "buyer" ? "Withdraw this request?" : "Decline this request?"}
         description={side === "buyer" ? "The shop won't send a price for it. This can't be undone." : "The buyer is told. This can't be undone."}
         primaryLabel={side === "buyer" ? "Withdraw request" : "Decline request"}
+        primaryTone="sienna"
         onPrimary={() => { if (closing) close.mutate(closing); setClosing(null); }}
         secondaryLabel="Keep it"
       />

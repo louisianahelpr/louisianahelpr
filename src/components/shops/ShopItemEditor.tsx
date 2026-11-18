@@ -469,7 +469,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         </div>
         )}
       </div>
-      {!digital && (
+      {/* Area 07 M10 (design audit 11-18): a service is booked, never kept ready, so it has no "ready now" stock. */}
+      {!digital && d.kind !== "service" && (
       <div className="space-y-2">
         {hasOptions ? (
           <>
@@ -482,14 +483,14 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         <div className="flex items-center gap-2" data-testid="item-ready-row">
           <Checkbox id="item-ready" checked={d.readyNow} onCheckedChange={(v) => set("readyNow", v === true)} aria-describedby="item-ready-hint" />
           <Label htmlFor="item-ready" className="flex min-h-11 flex-1 flex-col justify-center font-normal leading-snug">
-            <span>I have some ready now</span>
+            <span>{d.kind === "rental" ? "I have some to rent out now" : "I have some ready now"}</span>
             <span id="item-ready-hint" className="text-ds-11 text-muted-foreground">{STOCK_HINT}</span>
           </Label>
         </div>
         )}
         {d.readyNow && !hasOptions && (
           <div className="space-y-1.5">
-            <Label htmlFor="item-stock">How many are ready</Label>
+            <Label htmlFor="item-stock">{d.kind === "rental" ? "How many you can rent out" : "How many are ready"}</Label>
             <Input id="item-stock" type="number" min={0} max={9999} value={d.stock} onChange={(e) => set("stock", e.target.value)} {...fieldErrorProps("stock")} />
             {fieldErrorLine("stock")}
           </div>
@@ -503,7 +504,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           Its main button now says what comes next, and a line names the steps before Publish. */}
       {!id && (
         <p className="text-ds-13 text-muted-foreground" data-testid="item-new-next-steps">
-          Saves it as a draft. Next: 3 or more photos, then Publish.
+          {/* M10: a download also needs its file (shops_publish_item: 3 to 12 photos, and 1 to 5 files for digital). */}
+          {digital ? "Saves it as a draft. Next: 3 or more photos and the file, then Publish." : "Saves it as a draft. Next: 3 or more photos, then Publish."}
         </p>
       )}
       <div className="flex flex-wrap gap-2">

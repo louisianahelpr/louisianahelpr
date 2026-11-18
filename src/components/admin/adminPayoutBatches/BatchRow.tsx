@@ -114,6 +114,10 @@ export const BatchRow = ({
               <Send className="w-3 h-3 mr-1" />
               {paying === batch.helper_id ? "Sending…" : "Pay Out"}
             </Button>
+            {/* Design audit area 10 #32 (11-18): a disabled Pay Out says why. Display only. */}
+            {!batch.stripe_account_id && (
+              <p data-testid="payout-disabled-reason" className="basis-full text-ds-11 text-muted-foreground">No Stripe payout account yet</p>
+            )}
           </div>
         ) : (
           <div className="flex gap-1.5 justify-end flex-wrap">

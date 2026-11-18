@@ -119,7 +119,7 @@ export const computeMetrics = (
   // meaningful given current scale).
   const now = new Date();
   const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-  const monthLabel = (d: Date) => d.toLocaleString("en-US", { month: "short", year: "2-digit", timeZone: "UTC" });
+  const monthLabel = (d: Date) => chartMonthLabel(d, "UTC");
   const sixMonthsAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
   const thirtyDaysAgoMs = now.getTime() - 30 * 24 * 60 * 60 * 1000;
 
@@ -284,7 +284,7 @@ export const computeMetrics = (
     d.setMonth(d.getMonth() - i);
     const year = d.getFullYear();
     const month = d.getMonth();
-    const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    const label = chartMonthLabel(d);
 
     const monthCaptured = capturedJobs.filter(j => {
       const jd = new Date(j.created_at);
@@ -397,3 +397,12 @@ export const computeMetrics = (
     verifiedUsers,
   };
 };
+
+/**
+ * Design audit area 10 #27 (11-18): a chart month reads "Jun '26", never "Jun 26" (which reads as the 26th of June).
+ */
+export function chartMonthLabel(d: Date, timeZone?: string): string {
+  const month = d.toLocaleString("en-US", { month: "short", ...(timeZone ? { timeZone } : {}) });
+  const year = d.toLocaleString("en-US", { year: "2-digit", ...(timeZone ? { timeZone } : {}) });
+  return `${month} '${year}`;
+}

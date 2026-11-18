@@ -40,7 +40,10 @@ export const DateRangeBar = ({
               const n = parseInt(e.target.value, 10);
               if (Number.isFinite(n) && n > 0 && n <= 365) setCustomDays(n);
             }}
-            className="w-14 h-9 px-1.5 text-ds-11 font-semibold tabular-nums rounded-sm bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+            inputMode="numeric"
+            // Design audit area 10 #36 (11-18): the browser's number stepper sat half outside the pill; it is hidden
+            // (the field takes typed digits) and the box is a little wider for three digits.
+            className="w-16 h-9 px-2 text-center text-ds-11 font-semibold tabular-nums rounded-sm bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
       )}

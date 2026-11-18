@@ -333,8 +333,10 @@ const AdminReports = () => {
                   {/* Calm "sienna" accent badge, not destructive: a new/pending
                       report isn't a danger/delete action — the mauve destructive
                       color is reserved for genuinely destructive controls. */}
-                  <Badge variant="sienna">
-                    {report.status === "pending" ? "new" : report.status}
+                  {/* Design audit area 10 #33 (11-18): the tab's own label in sentence case ("New", "Resolved"), and the
+                      same two colours as Support: sienna while it waits, grey once handled. */}
+                  <Badge variant={report.status === "pending" || report.status === "new" ? "sienna" : "secondary"}>
+                    {REPORT_FILTERS.find((f) => f.value === report.status)?.label ?? (report.status.charAt(0).toUpperCase() + report.status.slice(1))}
                   </Badge>
                   {report.assigned_to_name && (
                     <Badge variant="outline" className="text-ds-10 gap-0.5">

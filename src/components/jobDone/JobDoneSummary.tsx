@@ -45,7 +45,8 @@ type Side = "poster" | "helper";
 const RELEASED = new Set(["released", "payout_pending"]);
 
 const MONEY = "hsl(var(--burnt-sienna))";
-const MONEY_TINT = "hsl(var(--burnt-sienna) / 0.08)";
+const DONE_TINT = "hsl(var(--bark) / 0.08)";
+const DONE_INK = "hsl(var(--bark))";
 
 interface JobDoneRow {
   title: string;
@@ -167,9 +168,10 @@ export function JobDoneSummary({
         // Only an undisputed job: a dispute split or a crew refund pays out
         // less than the price, and showing what WAS paid would reveal the
         // Helpr's take-home (lh-money-escrow review, findings 3, 4, 6).
-        <div className="rounded-ds-lg px-4 py-3" style={{ background: MONEY_TINT }}>
+        // Area 11b L7: an olive "done" box (the app's done colour), not a pink one; only the price keeps the money rust.
+        <div className="rounded-ds-lg px-4 py-3" style={{ background: DONE_TINT }} data-job-done-paid="">
           <div className="flex items-center justify-between gap-3">
-            <p className="font-sans font-bold text-ds-15 flex items-center gap-1.5" style={{ color: MONEY }}>
+            <p className="font-sans font-bold text-ds-15 flex items-center gap-1.5" style={{ color: DONE_INK }}>
               <Check className="w-4 h-4 shrink-0" aria-hidden="true" />
               {job.payment_status === "released"
                 ? (job.is_group_job ? "Paid to your crew" : `Paid to ${firstName}`)
@@ -182,7 +184,7 @@ export function JobDoneSummary({
               </p>
             )}
           </div>
-          <p className="font-sans text-ds-12 mt-0.5" style={{ color: MONEY }}>
+          <p className="font-sans text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {job.payment_status === "released"
               ? (job.is_group_job ? "It's on its way to their banks." : waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName || firstName) : "It's on its way to their bank.")
               : job.payout_scheduled_at

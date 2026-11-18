@@ -104,4 +104,17 @@ describe("Area 11b gap re-walk", () => {
       expect(close, f).toBeGreaterThan(card);
     }
   });
+
+  // @mutate src/components/jobDone/JobDoneSummary.tsx | <div className="rounded-ds-lg px-4 py-3" style={{ background: DONE_TINT }} data-job-done-paid=""> | <div className="rounded-ds-lg px-4 py-3" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-job-done-paid="">
+  // @mutate src/components/reviewPanel/ReviewForm.tsx |                 <AddPhotoTile\n | <button\n
+  it("L7: the Job done paid box is olive, and the review sheet's Add photo is the shared tile", () => {
+    const summary = code("src/components/jobDone/JobDoneSummary.tsx");
+    const box = summary.match(/<div className="rounded-ds-lg px-4 py-3" style=\{\{ background: ([A-Z_]+|"[^"]*") \}\} data-job-done-paid="">/);
+    expect(box).not.toBeNull();
+    expect(box![1]).toBe("DONE_TINT");
+    expect(summary).toMatch(/const DONE_TINT = "hsl\(var\(--bark\) \/ 0\.08\)"/);
+    const form = code("src/components/reviewPanel/ReviewForm.tsx");
+    expect(form).toContain("<AddPhotoTile");
+    expect(form).not.toMatch(/text-ds-9[^"]*"[^>]*>\s*\{photoFiles\.length === 0 \? "Add photo"/);
+  });
 });

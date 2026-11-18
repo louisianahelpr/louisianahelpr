@@ -33,7 +33,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate(checkoutLinkFor(item.seller_id)); |       void checkoutLinkFor;
  * @mutate src/lib/declutter/buyNowHold.ts |   return sellerId ? `/declutter?tab=buying&checkout=${encodeURIComponent(sellerId)}` : "/declutter?tab=buying"; |   return "/declutter?tab=buying";
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents; | && o.floor_price_cents < o.current_price_cents;
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setDeclining(true)}> | disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })}>
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setDeclining(true)} data-offer-say-no=""> | disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })} data-offer-say-no="">
  * @mutate src/components/declutter/DeclutterOffersSection.tsx |   const wantedReply = o.from_wanted === true && o.my_side === "buyer"; |   const wantedReply = false;
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | o.my_side === "buyer" && o.awaiting === "seller" && ( | o.my_side === "buyer" && (
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? t("dof.theirPrice") : t("dof.theirCounter")) | : t("dof.theirCounter"))

@@ -21,7 +21,7 @@
  * #9 the floating + Sell steps aside on Browse's no-results state; #10 a free ask's item name wraps to two lines;
  * #12 the custom offer field has a "$" and an invalid amount is marked (#5 and #11 are guarded in
  * declutterOrderCardDuringRefund.test.tsx and declutterOfferActionsShared.test.ts).
- * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {!forDelivery && <p className="text-xs text-muted-foreground">{free ? t("ppk.afterConfirm") : t("ppk.afterPay")}</p>}\n      </div> | {!forDelivery && <p className="text-xs text-muted-foreground">{t("ppk.afterPay")}</p>}\n      </div>
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | data-porch-one-address="">{free ? t("ppk.afterConfirm") : t("ppk.afterPay")}</p>} | data-porch-one-address="">{t("ppk.afterPay")}</p>}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |                   free={itemsTotalCents === 0} forDelivery | forDelivery
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |           <HideSectionCreateFab />\n          <BrowseEmptyState |           <BrowseEmptyState
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | <span className="line-clamp-2 break-words text-ds-15 font-semibold" data-free-ask-title="" | <span className="block truncate text-ds-15 font-semibold" data-free-ask-title=""
@@ -130,7 +130,7 @@ describe("Area 05 Mediums (source reads; the screens' own tests render them)", (
   it("#4: one porch place on a $0 claim or trade says once you confirm", () => {
     const porch = code("src/components/declutter/DeclutterPorchPlaces.tsx");
     expect(porch.match(/\{free \? t\("ppk\.afterConfirm"\) : t\("ppk\.afterPay"\)\}/g)?.length).toBe(2);
-    expect(porch).not.toContain('<p className="text-xs text-muted-foreground">{t("ppk.afterPay")}</p>');
+    expect(porch).toContain('data-porch-one-address="">{free ? t("ppk.afterConfirm") : t("ppk.afterPay")}</p>}');
     expect(code("src/components/declutter/DeclutterTradeViews.tsx")).toContain("free={itemsTotalCents === 0} forDelivery");
   });
   it("#9: Browse's no-results state hides the floating + Sell", () => {

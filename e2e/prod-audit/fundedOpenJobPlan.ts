@@ -80,8 +80,40 @@ export const UNKNOWN_MODE_HOLD_WHY = "Stripe mode not known yet this run: a cs_t
  * until poster-e2e hit the 5-open-jobs cap (core-loop-canary 38619494580).
  * Only RETIRING it (cancel_escrow) still waits for a known mode.
  */
-export function isUnknownModeTestRow(row: { stripe_session_id?: string | null }, mode: StripeMode): boolean {
-  return mode === "unknown" && /^cs_test_/.test(row.stripe_session_id ?? "");
+export function isUnknownModeTestRow(row: { stripe_session_id?: string | null; payment_status?: string | null }, mode: StripeMode): boolean {
+  return mode === "unknown" && /^cs_test_/.test(row.stripe_session_id ?? "") && !releasesWithoutMoney(row);
+}
+
+/**
+ * Q1779 (2026-11-18, prod-audit 44194466954): a card only HELD (Q2399) is
+ * released, never refunded. cancel_escrow's held branch closes the job and
+ * drops the hold (a scheduled hold has no PaymentIntent at all; an authorized
+ * one is cancelled, which charges nothing), and create-payment picks the Stripe
+ * key from the parties, not from this run, so no key can refund the wrong
+ * account. A mode mismatch inside releaseCardHold only leaves the release to
+ * card-hold-sweep; the job is cancelled either way. So an unknown mode never
+ * blocks retiring a held fixture: holding them instead left three held
+ * cs_test_ fixtures (11-05, 11-07, 11-14) open on poster-e2e for good.
+ */
+export function releasesWithoutMoney(row: { payment_status?: string | null }): boolean {
+  return row.payment_status === "held";
+}
+
+/**
+ * How old an open "Prod audit applicant fixture" must be before a run that did
+ * not mint it may retire it. Its lifetime is one messy-input run (a leg is
+ * capped at 55 minutes); six hours is far past any live run, so only a fixture
+ * whose own run died before its afterAll is swept.
+ */
+export const STALE_APPLICANT_FIXTURE_MS = 6 * 3_600_000;
+
+/** The open applicant-fixture rows a run that did not mint them may retire (older than STALE_APPLICANT_FIXTURE_MS). */
+export function staleApplicantFixtures<T extends { title: string; status: string; created_at: string }>(
+  rows: readonly T[],
+  title: string,
+  nowMs: number,
+): T[] {
+  return rows.filter((r) => r.title.startsWith(title) && r.status === "open" && Date.parse(r.created_at) < nowMs - STALE_APPLICANT_FIXTURE_MS);
 }
 
 /**

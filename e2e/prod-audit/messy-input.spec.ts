@@ -159,6 +159,13 @@ const PENDING_APPLICANT_SWEEPS = ["pending-application-section", "withdraw-appli
  * 2026-09-27), or undefined. Only the tests that open that fixture skip.
  */
 const livePay: { openJob?: string | null; applicant?: string | null; disputedJob?: string | null } = {};
+/**
+ * Q1779 (prod-audit 44194466954): set BEFORE the applicant fixture is minted.
+ * afterAll used to retire only when `runtime.applicantJob` was set, i.e. only
+ * after ensureFundedApplicantJob returned; a beforeAll that died after fund()
+ * (apply, ageing, a timeout) left the held fixture open for good (11-05).
+ */
+let applicantMintTried = false;
 
 test.beforeAll(async ({ request, browser }) => {
   test.setTimeout(30 * 60_000); // a fresh fixture waits out the 20-minute early-access window
@@ -174,6 +181,7 @@ test.beforeAll(async ({ request, browser }) => {
   // only from a FUNDED open job with a PENDING applicant; minted per run,
   // released in afterAll through cancel_escrow.
   if (!SCOPE_RE || APPLICANT_SWEEPS.some((t) => SCOPE_RE.test(`sweep: ${t}`))) {
+    applicantMintTried = true;
     const a = await unlessLivePay(() => ensureFundedApplicantJob(request, browser, sessions.get("poster")!, sessions.get("helper")!));
     livePay.applicant = a.livePay;
     runtime.applicantJob = a.value?.job ?? null;
@@ -211,11 +219,12 @@ test.beforeAll(async ({ request, browser }) => {
 test.afterAll(async ({ playwright }) => {
   const api = await playwright.request.newContext();
   try {
-    if (runtime.applicantJob) {
+    if (applicantMintTried || runtime.applicantJob) {
       // Fresh session: the beforeAll one may be near expiry after a long run.
       const retired = await retireApplicantFixtures(api, await sessionFor(api, "poster"), await sessionFor(api, "helper"));
       console.log(`[messy-input] applicant fixture cleanup: ${retired.join("; ") || "nothing open"}`);
       runtime.applicantJob = null;
+      applicantMintTried = false;
     }
     if (declutterFx) {
       console.log(`[messy-input] declutter fixture cleanup: ${(await declutterFx.undo(api)).join("; ")}`);

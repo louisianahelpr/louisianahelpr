@@ -22,7 +22,7 @@ export function PickRow({ pick }: { pick: CatalogPick }) {
     <li data-gift-pick="">
       <GiftOut href={pick.href} className="gg-item">
         {pick.image ? (
-          <img className="gg-thumb" src={pick.image} alt="" width={52} height={52} loading="lazy" decoding="async" />
+          <img className="gg-thumb" loading="lazy" decoding="async" src={pick.image} alt="" width={52} height={52} />
         ) : (
           <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{pick.name.trim().charAt(0).toUpperCase()}</span>
         )}

@@ -76,6 +76,23 @@ export const enDeclPanels = {
   "sell.addField.condition": "Add a condition",
   "sell.addField.size": "Add a size",
   "sell.addField.description": "Add details",
+  // The order tracker's step words (OrderSteps.tsx, the one reader): here, beside the panel words OrderSteps already
+  // loads, so the bar never prints a raw key where enDeclBuy has not loaded (train 11-18).
+  "dbuy.step.Paid": "Paid",
+  "dbuy.step.Time booked": "Time booked",
+  "dbuy.step.On the porch": "On the porch",
+  "dbuy.step.Picked up": "Picked up",
+  "dbuy.step.Done": "Done",
+  "dbuy.step.Met": "Met",
+  "dbuy.step.Delivered": "Delivered",
+  "dbuy.step.Helpr found": "Helpr found",
+  "dbuy.step.Packed": "Packed",
+  "dbuy.step.Shipped": "Shipped",
+  "dbuy.step.Trade": "Trade",
+  "dbuy.step.Claimed": "Claimed",
+  "dbuy.step.Problem reported": "Problem reported",
+  "dbuy.step.Refund asked": "Refund asked",
+  "dbuy.step.Refund offered": "Refund offered",
 } as const;
 
 addEnglish(enDeclPanels);

@@ -65,7 +65,15 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
           </p>
           {/* Design audit 11-17 #13: the two calls were 48 px / 17 px and 40 px / 13 px. One row, one size now. */}
           <div className="flex flex-wrap gap-3" data-town-ctas="">
-          <Button asChild size="wrap" className="rounded-full">
+          {/* Train 11-18: the green primary on the right of the pair, both on one line (buttonPairsPrimaryRight). */}
+          {/* L014: the page named no Helprs; the directory, filtered to this town, is one tap away. */}
+          {/* F260t (audit 11-10): read as plain text at 1440 and in dark; now the secondary button it is. */}
+          <Button asChild variant="outline" size="default" className="rounded-full">
+            <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} data-town-helprs="">
+              See Helprs in {town.name}
+            </Link>
+          </Button>
+          <Button asChild size="default" className="rounded-full">
             <Link
               to={post}
               onClick={(e) => {
@@ -76,13 +84,6 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
               {...gatedProps("post")}
             >
               Post a job
-            </Link>
-          </Button>
-          {/* L014: the page named no Helprs; the directory, filtered to this town, is one tap away. */}
-          {/* F260t (audit 11-10): read as plain text at 1440 and in dark; now the secondary button it is. */}
-          <Button asChild variant="outline" size="wrap" className="rounded-full">
-            <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} data-town-helprs="">
-              See Helprs in {town.name}
             </Link>
           </Button>
           </div>

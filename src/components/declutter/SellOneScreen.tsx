@@ -149,8 +149,8 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             <p className="text-ds-14 font-semibold text-foreground">{tr("sf.freeOrDraft")}</p>
             <p className="text-ds-13 text-muted-foreground">{tr("sf.freeOrDraftSub")}</p>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" className="rounded-full" onClick={s.freeChoice.startFree}>{tr("sf.startFree")}</Button>
               <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={s.freeChoice.continueDraft}>{tr("sf.continueDraft")}</Button>
+              <Button type="button" size="sm" className="rounded-full" onClick={s.freeChoice.startFree}>{tr("sf.startFree")}</Button>
             </div>
           </div>
         )}

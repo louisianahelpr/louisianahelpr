@@ -8,7 +8,7 @@ import type { CatalogGuide } from "@/content/giftGuideCatalog";
  */
 export function GiftGuideCover({ guide }: { guide: CatalogGuide }) {
   if (guide.cover) {
-    return <img className="gg-cover" src={guide.cover} alt="" width={480} height={480} loading="lazy" decoding="async" data-gift-cover="" />;
+    return <img className="gg-cover" loading="lazy" decoding="async" src={guide.cover} alt="" width={480} height={480} data-gift-cover="" />;
   }
   return (
     <span className={`gg-cover gg-check gg-textcover gg-${guide.tint}`} aria-hidden="true" data-gift-textcover="">

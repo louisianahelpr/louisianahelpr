@@ -1,4 +1,5 @@
 import { jobLocalStartMs } from "../../supabase/functions/_shared/cancellationFee";
+import { getLang } from "@/lib/i18n/language";
 
 /**
  * Parse a date string like "2026-04-12" into a local Date without timezone shifts.
@@ -26,7 +27,8 @@ export function parseLocalDate(dateStr: string): Date {
  * all job-date rendering through this so the same job reads identically.
  */
 export function formatJobDate(dateStr: string): string {
-  return parseLocalDate(dateStr).toLocaleDateString("en-US", {
+  // Design audit r2 #33: a Spanish reader reads Spanish dates ("mié, 18 nov"), through Intl, not English.
+  return parseLocalDate(dateStr).toLocaleDateString(getLang() === "es" ? "es-US" : "en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",

@@ -1,4 +1,6 @@
 import { categoryColors, categoryLabels } from "@/components/job-card/activityConstants";
+import "@/lib/i18n/enJobCats";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatCategory } from "@/lib/format";
 
@@ -58,7 +60,8 @@ export function JobCategoryTab({
         className={`w-3.5 h-3.5 shrink-0 ${catStyle.title}`}
       />
       <span className="font-sans truncate">
-        {categoryLabels[category] || formatCategory(category)}
+        {/* Design audit r2 #33: the name in the reader's language. */}
+        {wordInLang(`jc.${category}`, categoryLabels[category] || formatCategory(category))}
       </span>
     </span>
   );

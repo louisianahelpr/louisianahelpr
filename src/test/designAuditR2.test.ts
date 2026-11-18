@@ -442,3 +442,39 @@ describe("design audit r2 #32: the price and when steps in Spanish", () => {
     expect(where).not.toMatch(/>(No set time|Other time)</);
   });
 });
+
+/**
+ * #33 (rest): the Jobs feed card showed English category names and English dates to a Spanish reader. Category names
+ * come from enJobCats/esJobCats (the English equal to JOB_CATEGORY_LABELS), and formatJobDate formats with es-US.
+ * @mutate src/lib/dateUtils.ts | toLocaleDateString(getLang() === "es" ? "es-US" : "en-US", { | toLocaleDateString("en-US", {
+ * @mutate src/components/job/JobCategoryTab.tsx |         {wordInLang(`jc.${category}`, categoryLabels[category] \|\| formatCategory(category))} |         {categoryLabels[category] \|\| formatCategory(category)}
+ */
+describe("design audit r2 #33: Spanish job categories and dates", () => {
+  it("the English category words equal JOB_CATEGORY_LABELS, and every one has Spanish", async () => {
+    const { JOB_CATEGORY_LABELS } = await import("@/lib/jobCategories");
+    const entries = Object.entries(JOB_CATEGORY_LABELS);
+    expect(entries.length).toBeGreaterThan(20);
+    for (const [k, v] of entries) {
+      expect(en[`jc.${k}` as keyof typeof en]).toBe(v);
+      expect(es[`jc.${k}` as keyof typeof es]).toBeTruthy();
+    }
+  });
+  it("the card's category and date read Spanish for a Spanish reader", async () => {
+    const { setLang, ensureLangLoaded } = await import("@/lib/i18n/language");
+    const { formatJobDate } = await import("@/lib/dateUtils");
+    const { render, screen } = await import("@testing-library/react");
+    const { createElement } = await import("react");
+    const { JobCategoryTab } = await import("@/components/job/JobCategoryTab");
+    try {
+      setLang("es");
+      await ensureLangLoaded();
+      expect(formatJobDate("2026-11-18")).toMatch(/mi[eé]/i);
+      expect(formatJobDate("2026-11-18")).toMatch(/nov/i);
+      render(createElement(JobCategoryTab, { category: "yard_work" }));
+      expect(screen.getByText("Jardinería")).toBeTruthy();
+    } finally {
+      setLang("en");
+    }
+    expect(formatJobDate("2026-11-18")).toBe("Wed, Nov 18");
+  });
+});

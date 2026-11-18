@@ -36,7 +36,7 @@ import { useUnblock } from "./useUnblock";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 /** Your own public profile is a preview, titled by what it is (app audit A3-C7). */
-const OWN_PROFILE_TITLE = "How others see you";
+const OWN_PROFILE_TITLE = "Public profile"; // design audit area 09 M3/M4 (was "How others see you", cut at 390)
 
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();

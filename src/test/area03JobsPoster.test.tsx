@@ -7,6 +7,10 @@
  * @mutate src/components/job-card/embeddedActivity.tsx | tab === "posted" ? postedGroupWords(t) : WORKING_CHIP_LABEL | tab === "posted" ? POSTED_GROUP_LABEL : WORKING_CHIP_LABEL
  * @mutate src/components/job-card/ActivityBucketGroups.tsx | {all ? t("jp.showLess") : t("jp.seeAll", { n: list.length })} | {all ? "Show less" : `See all ${list.length}`}
  * @mutate src/lib/i18n/es.ts |   ...esJobPoster,\n |
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx | no Helpr has opened it yet. Share the link or boost it to reach more Helprs.` | no Helpr has opened it yet. Getting it in front of people is the first problem to solve.`
+ * @mutate src/components/SuggestCategory.tsx | &ldquo;Something else&rdquo; and post right now. | &ldquo;Other&rdquo; and post right now.
+ * @mutate src/components/job-card/ActivityEmptyState.tsx |     : isPosted && !hasSearch && POSTED_EMPTY_TITLE[statusFilter] ? POSTED_EMPTY_TITLE[statusFilter]\n | 
+ * @mutate src/components/TipDialog.tsx |       <DialogContent keepClose>\n        <DialogHero moment title={first |       <DialogContent>\n        <DialogHero moment title={first
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { render, screen, act } from "@testing-library/react";
@@ -17,6 +21,11 @@ import { esJobPoster } from "@/lib/i18n/esJobPoster";
 import { EmbeddedActivityHeader } from "@/components/job-card/embeddedActivity";
 import { ActivityBucketGroups, postedGroupWords } from "@/components/job-card/ActivityBucketGroups";
 import { t } from "@/lib/i18n/language";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
+
+const code = (f: string) => blankComments(readFileSync(join(process.cwd(), f), "utf8"));
 
 async function spanish() {
   await act(async () => {
@@ -63,5 +72,29 @@ describe("Area 03: Jobs > Posted and the poster's job page in Spanish", () => {
     expect(screen.getByRole("button", { name: "Ver los 5" })).toBeTruthy();
     expect(screen.queryByText(/See all/)).toBeNull();
     expect(screen.getByRole("heading", { level: 2 }).textContent).toContain("Te toca");
+  });
+
+  it("M12 plain empty words; M16 names the real tile; L11 the tip sheet has its X", () => {
+    const states = code("src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx");
+    expect(states).not.toMatch(/first problem to solve/);
+    expect(states).toMatch(/Share the link or boost it to reach more Helprs\./);
+    const suggest = code("src/components/SuggestCategory.tsx");
+    expect(suggest).not.toMatch(/&ldquo;Other&rdquo;|Pick \\"Other\\"/);
+    expect((suggest.match(/Something else/g) ?? []).length).toBeGreaterThan(1);
+    expect(code("src/components/TipDialog.tsx")).toMatch(/<DialogContent keepClose>\s*<DialogHero moment title=\{first/);
+  });
+
+  it("L13 an empty Posted chip names itself (No upcoming jobs), not 'No jobs in this view'", async () => {
+    const { ActivityEmptyState } = await import("@/components/job-card/ActivityEmptyState");
+    const { MemoryRouter } = await import("react-router-dom");
+    render(
+      <MemoryRouter>
+        <ActivityEmptyState tab="posted" loadError={false} postedJobsCount={3} appliedAppsCount={0} statusFilter="scheduled" hasSearch={false}
+          statusCounts={{ needs_you: 3, scheduled: 0 }} searchMatchCounts={{}} statusLabels={[{ key: "needs_you", label: "Needs you" }, { key: "scheduled", label: "Upcoming" }] as never}
+          onRetry={() => {}} onNavigate={() => {}} onSelectStatusFilter={() => {}} onClearSearch={() => {}} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("No upcoming jobs")).toBeTruthy();
+    expect(screen.queryByText("No jobs in this view")).toBeNull();
   });
 });

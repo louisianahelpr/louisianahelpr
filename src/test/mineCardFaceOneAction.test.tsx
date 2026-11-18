@@ -22,6 +22,8 @@
  * @mutate src/pages/posts/PostedJobCard.tsx | action={isExpanded ? null : continueDayAnswer.faceAction ?? faceAction} | action={continueDayAnswer.faceAction ?? faceAction}
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | openApplicants: () => a.onLoadApplications(job), | openApplicants: () => {},
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | confirmArrival: () => a.onConfirmArrival(job.id), | confirmArrival: () => toggle(job.id),
+ * @mutate src/pages/posts/PostedJobCard.tsx |   const onConfirmArrival = (id: string) => setArriveAsk(id); |   const onConfirmArrival = confirmArrivalNow;
+ * @mutate src/pages/posts/PostedJobCard.tsx | onPrimary={() => { setArriveAsk(null); confirmArrivalNow(job.id); }} | onPrimary={() => setArriveAsk(null)}
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | h.confirmingArrival ? "Confirming…" : "Confirm they've arrived", | h.confirmingArrival ? "Confirming…" : "Confirm arrival",
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | if (!a.isExpanded) toggle(job.id);\n      setCompletionRequest | void 0;\n      setCompletionRequest
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: "Leave a review", onClick: h.review, tone: "primary" }; | return { label: "Manage job", onClick: h.manage, tone: "secondary" };
@@ -170,6 +172,10 @@ describe("the Posted card face (board 14)", () => {
     expect(btn.textContent).toBe("Confirm");
     expect(btn.getAttribute("aria-label")).toBe("Confirm they've arrived");
     fireEvent.click(btn);
+    // Area 03 M8 (design audit 11-18): one tap asks first; "Not yet" writes nothing, "Yes, they're here" confirms.
+    expect(h.onConfirmArrival).not.toHaveBeenCalled();
+    expect(screen.getByText("Did Hallie arrive?")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Yes, they're here" }));
     expect(h.onConfirmArrival).toHaveBeenCalledWith("job-1");
   });
 

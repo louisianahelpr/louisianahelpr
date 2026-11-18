@@ -331,10 +331,11 @@ export function ApplicantsEmptyState({
     case "quiet":
       title = "Still no applications";
       body = views > 0
+        // Area 03 M12 (design audit 11-18): plain words, no "the first problem to solve".
         // The honest read of "looked at and passed over". Stated as the two
         // things the poster can change, not as a verdict on the job.
         ? `It has been up ${daysUp} days, and ${views} Helprs have opened it without applying.${budget ? ` When a post gets looked at and skipped, it is usually the ${budget} or a description that doesn't say enough to price the work.` : ""}`
-        : `It has been up ${daysUp} days and no Helpr has opened it yet. Getting it in front of people is the first problem to solve.`;
+        : `It has been up ${daysUp} days and no Helpr has opened it yet. Share the link or boost it to reach more Helprs.`;
       if (editLever) levers.push(editLever);
       if (boostLever) levers.push(boostLever);
       break;

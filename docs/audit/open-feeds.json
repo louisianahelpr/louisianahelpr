@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-17T13:02Z",
+  "measured_at": "2026-11-18T06:00Z",
   "issues": {
     "readable": true,
     "open": [
@@ -43,7 +43,7 @@
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43430382667",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44101977703",
         "runTruncated": false
       },
       {
@@ -57,21 +57,14 @@
         "number": 3454,
         "title": "nightly-red: slow-network",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44053689473",
-        "runTruncated": false
-      },
-      {
-        "number": 3491,
-        "title": "nightly-red: ui-sweep",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43427222509",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44194371146",
         "runTruncated": false
       },
       {
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43956613799",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44163736782",
         "runTruncated": false
       },
       {
@@ -85,14 +78,14 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44019606215",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44108363727",
         "runTruncated": false
       },
       {
         "number": 4253,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43990736717",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44202912023",
         "runTruncated": false
       },
       {
@@ -100,13 +93,6 @@
         "title": "nightly-red: nightly-live-smoke",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44021551725",
-        "runTruncated": false
-      },
-      {
-        "number": 4340,
-        "title": "nightly-red: e2e-abuse-notifications",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42860928141",
         "runTruncated": false
       },
       {
@@ -118,21 +104,7 @@
         "number": 4451,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43956384541",
-        "runTruncated": false
-      },
-      {
-        "number": 4453,
-        "title": "nightly-red: main: Sensitive review record",
-        "label": "nightly-red",
-        "run": null,
-        "runTruncated": true
-      },
-      {
-        "number": 4651,
-        "title": "nightly-red: db-backup",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43981987678",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44163484641",
         "runTruncated": false
       }
     ]
@@ -140,14 +112,6 @@
   "ledger": {
     "readable": true,
     "open": [
-      {
-        "fingerprint": "36bcfb8c2391617950fa4b575b25409a",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
-        "status": "open",
-        "title": "job stalled with escrow held",
-        "issue": null
-      },
       {
         "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
         "source_kind": "nightly_red",
@@ -179,14 +143,6 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 4253
-      },
-      {
-        "fingerprint": "0fa6c60d7a29c7cb3d1e008672334f57",
-        "source_kind": "sql_slack",
-        "source": "slack-ops-alert:custom",
-        "status": "open",
-        "title": "# cron http failure(s) in the last hour",
-        "issue": null
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -245,68 +201,12 @@
         "issue": 2375
       },
       {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: sensitive review record",
-        "issue": 4453
-      },
-      {
-        "fingerprint": "0bebf0385b3e217facd52bb36536de1f",
-        "source_kind": "sentry",
-        "source": "sentry:assets/supabase",
-        "status": "open",
-        "title": "functionsfetcherror: failed to send a request to the edge function",
-        "issue": null
-      },
-      {
-        "fingerprint": "2e4f3e726722e14159d0b5cf50568f30",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: ui-sweep",
-        "issue": 3491
-      },
-      {
-        "fingerprint": "07e2a58f38a211fe4b6f8d32417eb4ba",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: zip # resolved to no louisiana parish",
-        "issue": null
-      },
-      {
         "fingerprint": "18539240a894224e952b88b2b21bb927",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
-      },
-      {
-        "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: e2e-abuse-notifications",
-        "issue": 4340
-      },
-      {
-        "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: review-nag-cron returned 500 (# defect(s) reported)",
-        "issue": null
-      },
-      {
-        "fingerprint": "8a5eda1d93db04a8bc5310caf5150938",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-backup",
-        "issue": 4651
+        "issue": 4222
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -317,14 +217,6 @@
         "issue": 2366
       },
       {
-        "fingerprint": "88b4addefbcd1dc226926886a24bff50",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load jobs.",
-        "issue": null
-      },
-      {
         "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
         "source_kind": "nightly_red",
         "source": "schedule-stalled",
@@ -333,139 +225,19 @@
         "issue": 4450
       },
       {
-        "fingerprint": "acf4ea2ff2836a53bb404727997b217a",
-        "source_kind": "error_logs",
-        "source": "stripe-connect",
-        "status": "open",
-        "title": "stripe-connect cleared unusable payout account <id>",
-        "issue": null
-      },
-      {
-        "fingerprint": "fad6897fcfae4dbab07ce7af920ad671",
-        "source_kind": "nightly_red",
-        "source": "prod-errors",
-        "status": "open",
-        "title": "prod-errors: real users are hitting error screens",
-        "issue": 4553
-      },
-      {
-        "fingerprint": "b8b42cf124da685c1fe0087a97455b48",
+        "fingerprint": "905ec49763b55835fe7340b16107b79e",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
         "status": "open",
-        "title": "error: usesearchparammirror runaway writes",
+        "title": "error: profile request timed out",
         "issue": null
       },
       {
-        "fingerprint": "41f88aeb227f0f23692853cc857a3f79",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: auto-expire-jobs returned 500 (# defect(s) reported)",
-        "issue": null
-      },
-      {
-        "fingerprint": "8f6eb3360000fd0c4b5ad2c0e8a40a29",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for table recurring_visit_payments",
-        "issue": null
-      },
-      {
-        "fingerprint": "bbdaee370c357aa8519122123865a017",
-        "source_kind": "sentry",
-        "source": "sentry:assets/main",
-        "status": "open",
-        "title": "error: unexpected sign-out",
-        "issue": null
-      },
-      {
-        "fingerprint": "3c0d6b003e080de5479e1faf4a1df45a",
-        "source_kind": "sentry",
-        "source": "sentry:assets/Signup",
-        "status": "open",
-        "title": "error: your account is created, but your details didn't save — the connection dropped. log in to finish your profile.",
-        "issue": null
-      },
-      {
-        "fingerprint": "15cc2d7f63f3c53e80755673bf18e8c0",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: held a signed-in request while the sign-in refreshed",
-        "issue": null
-      },
-      {
-        "fingerprint": "3c528ace98fd0d19c1fcdd1e9fe424e2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: no error message",
-        "issue": null
-      },
-      {
-        "fingerprint": "cae29df0662b839817a9ea111d74efb5",
+        "fingerprint": "4840f1c5d1e74cf39f68000b5c6580da",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/declutter · error screen shown: we couldn't load deliveries.",
-        "issue": null
-      },
-      {
-        "fingerprint": "3712b62a98396cc4bf31f5d158cbb6f2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: loading jobs timed out",
-        "issue": null
-      },
-      {
-        "fingerprint": "c540527c8265b56e664f823f4805b1ec",
-        "source_kind": "sentry",
-        "source": "sentry:assets/supabase",
-        "status": "open",
-        "title": "error: channel error: transport failure",
-        "issue": null
-      },
-      {
-        "fingerprint": "c5d2aafd1f77b05a9c85a4064ef2e2b5",
-        "source_kind": "sentry",
-        "source": "sentry:assets/lucide",
-        "status": "open",
-        "title": "typeerror: undefined is not an object (evaluating 'e._result.default')",
-        "issue": null
-      },
-      {
-        "fingerprint": "5a28db44e9121ab2e59627768b979035",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/messages · undefined is not an object (evaluating 'e._result.default')",
-        "issue": null
-      },
-      {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
-        "fingerprint": "ba04c0f07725165f0b8657b1d49abd9d",
-        "source_kind": "sentry",
-        "source": "sentry:assets/adminRailBadges",
-        "status": "open",
-        "title": "typeerror: cannot read properties of undefined (reading 'fetchsupporttickets')",
+        "title": "/ · boot stalled #s on the startup screen (boot scripts unfinished: #)",
         "issue": null
       },
       {
@@ -474,7 +246,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: nightly-live-smoke",
-        "issue": null
+        "issue": 4270
       },
       {
         "fingerprint": "b757f9393658386f1d245a1055db0291",
@@ -482,46 +254,6 @@
         "source": "user-error-screen",
         "status": "open",
         "title": "/sponsor · boot stalled #s on the startup screen (boot scripts unfinished: #)",
-        "issue": null
-      },
-      {
-        "fingerprint": "4fa3a43d27c008020ff0b5e36d711915",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: stuck-payment-check returned 520",
-        "issue": null
-      },
-      {
-        "fingerprint": "227a345181980df60a2aed15f86dd3b0",
-        "source_kind": "sentry",
-        "source": "sentry:assets/NotFound",
-        "status": "open",
-        "title": "error: 404 — non-existent route: /sponsor.",
-        "issue": null
-      },
-      {
-        "fingerprint": "308b390594da5a46ef298d0dcdcaaf87",
-        "source_kind": "sentry",
-        "source": "sentry:assets/NotificationBell",
-        "status": "open",
-        "title": "typeerror: undefined is not an object (evaluating '(await p(()=>import(`./notificationpanel-digijvix.js`),__vite__mapdeps([#...",
-        "issue": null
-      },
-      {
-        "fingerprint": "428558972dc48df3a0bc1dba2a24d1b1",
-        "source_kind": "workflow",
-        "source": "analytics-freshness",
-        "status": "open",
-        "title": "analytics: review_left stopped recording (real users acted, zero events)",
-        "issue": null
-      },
-      {
-        "fingerprint": "18d08f75c165ca1b98b7adeeabf3ab4a",
-        "source_kind": "error_logs",
-        "source": "declutter_handover_sweep",
-        "status": "open",
-        "title": "declutter_handover_sweep: <id> failed: order_not_paid",
         "issue": null
       },
       {
@@ -539,6 +271,38 @@
         "status": "open",
         "title": "/gift-guides · boot recovered after a stall (reload attempt #)",
         "issue": null
+      },
+      {
+        "fingerprint": "6cb2d5a2d9cd8549b6ffbd115d6448e4",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "(unknown screen) · boot stalled #s on the startup screen (boot scripts unfinished: #)",
+        "issue": null
+      },
+      {
+        "fingerprint": "5a5fa056a6c77b244de44e48bf3291d2",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "(unknown screen) · boot failed: entry module graph did not load (/assets/index-cdmrrev0.js)",
+        "issue": null
+      },
+      {
+        "fingerprint": "259df5331023b58190a49aca8ebfe2b0",
+        "source_kind": "sentry",
+        "source": "sentry:assets/sentry",
+        "status": "open",
+        "title": "error: invalid call to runtime.sendmessage(). tab not found.",
+        "issue": null
+      },
+      {
+        "fingerprint": "84d67dfda60d84d40f85127a7367d75e",
+        "source_kind": "sentry",
+        "source": "sentry:assets/NotFound",
+        "status": "open",
+        "title": "error: 404 — non-existent route: /you",
+        "issue": null
       }
     ]
   },
@@ -551,18 +315,14 @@
     "issue #2436": "Q1816",
     "issue #2894": "Q1816",
     "issue #3454": "Q1816",
-    "issue #3491": "Q1816",
     "issue #3784": "Q1816",
     "issue #3813": "Q1816",
     "issue #4222": "Q1816",
     "issue #4253": "Q1816",
     "issue #4270": "Q1816",
-    "issue #4340": "Q1816",
     "issue #4450": "Q2800",
     "issue #4451": "Q1816",
-    "issue #4453": "Q1816",
     "issue #4553": "Q2802",
-    "issue #4651": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -573,7 +333,7 @@
     "ledger 18539240a894": "Q1816",
     "ledger 18d08f75c165": "Q2817",
     "ledger 227a34518198": "Q2801",
-    "ledger 2e4f3e726722": "Q1816",
+    "ledger 259df5331023": "Q2826",
     "ledger 308b390594da": "Q2804",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
@@ -583,21 +343,24 @@
     "ledger 41f88aeb227f": "Q1777",
     "ledger 428558972dc4": "Q2815",
     "ledger 43d77e26f272": "Q1816",
+    "ledger 4840f1c5d1e7": "Q2823",
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 4fa3a43d27c0": "Q2798",
     "ledger 5844c03737d1": "Q2819",
     "ledger 5a28db44e912": "Q2410",
-    "ledger 5be6011a46f6": "Q1816",
+    "ledger 5a5fa056a6c7": "Q2825",
     "ledger 60298a019ea3": "Q1776",
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
+    "ledger 6cb2d5a2d9cd": "Q2824",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
+    "ledger 84d67dfda60d": "Q2827",
     "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
     "ledger 8a2e802edbe7": "Q2800",
-    "ledger 8a5eda1d93db": "Q1816",
     "ledger 8f6eb3360000": "Q2507",
+    "ledger 905ec49763b5": "Q2822",
     "ledger 9078a39b3304": "Q1615",
     "ledger 99390a68ded7": "Q1615",
     "ledger a8ceee56bbd5": "Q1816",
@@ -614,7 +377,6 @@
     "ledger d13e663f2f12": "Q2820",
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
-    "ledger e41c806b9175": "Q1816",
     "ledger f1bfed973a2a": "Q2734",
     "ledger fad6897fcfae": "Q2802",
     "ledger feb363ff214a": "Q1816"

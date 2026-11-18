@@ -19,7 +19,7 @@
  * @mutate src/hooks/useDashboardJobsCount.ts | ${withWindow ? `,date_window_end.gte.${todayLocalDate}` : ""} | 
  * @mutate src/hooks/useDashboardFilters.ts |   const [locationFilter, setLocationFilter] = useState(() => param("loc")); |   const [locationFilter, setLocationFilter] = useState(() => param("loc") \|\| "nearby:25");
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |       key: "price", |       key: "price-x",
- * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |         title="Filter jobs" |         title="Filters"
+ * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |         title={wordInLang("jh.f.title", "Filter jobs")} |         title="Filters"
  * @mutate src/components/dashboard/FilterSheet.tsx |         floor\n        // The Filters button |         floor={false}\n        // The Filters button
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |           style={minBudget \|\| maxBudget ? { color: "hsl(var(--burnt-sienna))" } : undefined} |           style={{ color: "hsl(var(--burnt-sienna))" }}
  * @mutate src/components/ui/FilterChip.tsx | btn-press border min-h-11"; | btn-press border h-11";

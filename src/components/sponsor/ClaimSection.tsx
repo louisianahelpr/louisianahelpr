@@ -9,7 +9,7 @@ import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { buildIcs, daysLabel } from "@/lib/sponsor/dates";
 import type { SponsorPublicState, SponsorSignupPayload, SponsorSubmitResult } from "@/lib/sponsor/types";
-import { checkLogo, sponsorSignupsOpen, validateSponsorSignup } from "../../../supabase/functions/_shared/sponsorSignup";
+import { checkLogo, validateSponsorSignup } from "../../../supabase/functions/_shared/sponsorSignup";
 import { Icon, StarRule } from "./Decor";
 import { lineupCount } from "./Sections";
 import { Button } from "@/components/ui/button";
@@ -119,10 +119,7 @@ export function ClaimSection({
   greetingBrand,
   refCode,
   onSubmit,
-  nowMs,
 }: {
-  /** For tests and the local preview only; the real page passes nothing and reads the clock. */
-  nowMs?: number;
   state: SponsorPublicState;
   greetingBrand: string | null;
   refCode: string | null;
@@ -199,8 +196,6 @@ export function ClaimSection({
         setExtraFull((x) => [...new Set([...x, ...res.fullDays])]);
         setForm((f) => ({ ...f, days: f.days.filter((d) => !res.fullDays.includes(d)) }));
         setBanner(E.full.replace("{days}", daysLabel(res.fullDays)));
-      } else if (res.kind === "closed") {
-        setBanner(E.closed);
       } else if (res.kind === "rateLimited") {
         setBanner(E.rateLimited);
       } else if (res.kind === "invalid") {
@@ -253,17 +248,7 @@ export function ClaimSection({
     );
   }
 
-  if (!sponsorSignupsOpen(nowMs ?? Date.now(), C.event.signup_deadline)) {
-    return (
-      <section className="lh25-section" id={CLAIM_ID} aria-labelledby="lh25-closed">
-        <div className="lh25-thanks" data-testid="sponsor-closed">
-          <h2 id="lh25-closed">{C.claim.closedTitle}</h2>
-          <p className="lh25-thanks-body">{C.claim.closed}</p>
-        </div>
-      </section>
-    );
-  }
-
+  // Sign-ups never close (owner 2026-11-18): the form always shows; the deadline line only asks for Nov 22.
   const err = (k: FieldKey) => errors[k] ?? null;
   const describe = (id: string, k: FieldKey, hint?: boolean) => (errors[k] ? `${id}-error` : hint ? `${id}-hint` : undefined);
 
@@ -382,7 +367,8 @@ export function ClaimSection({
 
         <label className={`min-h-11 lh25-check${err("agree") ? " lh25-check-error" : ""}`}>
           <Checkbox id="lh25-agree" name="agree" checked={form.agree} onCheckedChange={(v) => set("agree", v === true)} aria-invalid={!!err("agree")} aria-describedby={err("agree") ? "lh25-agree-error" : undefined} />
-          <span>{F.agree} <span className="lh25-req" aria-hidden="true">*</span></span>
+          {/* Design audit area 01 #14: no lone "*" here; no other field marks itself required. */}
+          <span>{F.agree}</span>
         </label>
         {err("agree") ? <p className="lh25-error" id="lh25-agree-error" role="alert">{err("agree")}</p> : null}
         <label className="min-h-11 lh25-check">

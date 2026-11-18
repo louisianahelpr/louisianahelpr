@@ -108,6 +108,16 @@ export function cancelPolicyText(policy: CancelPolicy, readyTap: ReadyTapCancel 
   };
 }
 
+/** Midnight at the start of a `YYYY-MM-DD` day in Louisiana (America/Chicago, CST or CDT), as epoch ms; NaN for a bad date. */
+export function louisianaMidnightMs(iso: string): number {
+  const [y, m, d] = iso.split("-").map(Number);
+  for (const offsetH of [6, 5]) {
+    const t = Date.UTC(y, m - 1, d, offsetH);
+    if (Number.isFinite(t) && louisianaNow(new Date(t)).hhmm === "00:00") return t;
+  }
+  return Number.NaN;
+}
+
 /** S2-044 (Shops audit 2): the cancel line an order card shows the buyer, or null when there is none to show. An
  * accepted order only shows its rule while the window can still be open: under until_accept it closed at accept,
  * and under the date rules it closed once the cutoff passed (the ready date's start, or 24 hours before it). Then
@@ -120,8 +130,8 @@ export function orderCancelLine(
   if (order.preorder_item_id) return "You can cancel until the shop marks it ready.";
   if (order.status === "accepted") {
     if (order.cancel_policy === "until_accept") return "The free-cancel time ended when the shop accepted.";
-    const [y, m, d] = (order.ready_date.split("T")[0] ?? "").split("-").map(Number);
-    const readyStart = new Date(y, m - 1, d).getTime();
+    // The ready date begins at midnight in Louisiana (shop_order_free_cancel_until), whatever the device's zone.
+    const readyStart = louisianaMidnightMs(order.ready_date.split("T")[0] ?? "");
     const cutoff = order.cancel_policy === "until_24h_before_ready" ? readyStart - 24 * 3_600_000 : readyStart;
     if (Number.isFinite(cutoff) && now.getTime() >= cutoff) return "The cancel-for-a-refund time has ended.";
   }

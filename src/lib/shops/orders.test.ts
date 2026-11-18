@@ -13,6 +13,7 @@
  *
  * @mutate src/lib/shops/orders.ts |         return side === "buyer" ? "The shop didn't answer in time. Your card was never charged." : "Not answered in time (nothing charged)"; |         return "Not answered in time (nothing charged)";
  * @mutate src/lib/shops/orders.ts |   return { charged: data.charged === true }; |   return { charged: !!data.charged };
+ * @mutate src/lib/shops/orders.ts |     const readyStart = louisianaMidnightMs(order.ready_date.split("T")[0] ?? ""); |     const readyStart = Date.parse(order.ready_date.split("T")[0] ?? "");
  * @mutate src/lib/shops/orders.ts |   return addDaysIso(terms.today, Math.max(terms.closed_for_today ? 1 : 0, leadDays)); |   return addDaysIso(terms.today, Math.max(0, leadDays));
  * @mutate src/lib/shops/orders.ts |   return todays.length > 0 && todays.every((h) => h.closes.slice(0, 5) <= hhmm); |   return todays.length > 0 && todays.some((h) => h.closes.slice(0, 5) <= hhmm);
  */
@@ -63,6 +64,8 @@ import {
   fetchShopOrders,
   firstOpenReadyDate,
   orderStatusLabel,
+  louisianaMidnightMs,
+  orderCancelLine,
   readyDateProblem,
   shopClosedForToday,
   withClosedForToday,
@@ -362,5 +365,20 @@ describe("Q2793: today after the shop has closed", () => {
     expect(withClosedForToday(terms, undefined, evening).closed_for_today).toBe(false);
     expect(shopClosedForToday([], "2026-11-10", evening)).toBe(false);
     expect(shopClosedForToday(nineToFive, "2026-11-09", evening)).toBe(false);
+  });
+});
+
+describe("the order card's cancel cutoff is Louisiana midnight (shop_order_free_cancel_until)", () => {
+  it("louisianaMidnightMs is 06:00Z in CST and 05:00Z in CDT", () => {
+    expect(new Date(louisianaMidnightMs("2026-11-20")).toISOString()).toBe("2026-11-20T06:00:00.000Z");
+    expect(new Date(louisianaMidnightMs("2026-07-04")).toISOString()).toBe("2026-07-04T05:00:00.000Z");
+    expect(louisianaMidnightMs("nope")).toBeNaN();
+  });
+
+  it("a never_shortens order still offers a refund at 11:30 PM Louisiana the night before, and not at 12:30 AM", () => {
+    const order = { status: "accepted", handed_over_at: null, preorder_item_id: null, cancel_policy: "until_handover", ready_tap_cancel: "never_shortens", ready_date: "2026-11-20" } as const;
+    // 11:30 PM CST on the 19th is 05:30Z on the 20th: a UTC-midnight cutoff would already say it ended.
+    expect(orderCancelLine(order, new Date("2026-11-20T05:30:00Z"))).toBe("Cancel for a refund until your ready date.");
+    expect(orderCancelLine(order, new Date("2026-11-20T06:30:00Z"))).toBe("The cancel-for-a-refund time has ended.");
   });
 });

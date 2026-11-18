@@ -24,6 +24,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from 
 import UserAvatar from "@/components/UserAvatar";
 import { fetchIReviewed, leaveReview } from "@/lib/declutter/handover";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
+import { rememberReviewed, rememberedReviewed } from "./useFoldableSales";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
 import { fetchRefundRequestView, refundedInFull, refundHoldsTheItem, type RefundRequestView } from "@/lib/declutter/refundRequests";
@@ -41,23 +42,6 @@ const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
  * this order" for members yet (declutter_reviews is service-role only), so this device remembers each order it saw
  * reviewed (a send, or the server's already_reviewed); another device still learns it on its first try.
  */
-const reviewedKey = (orderId: string, side: "buyer" | "seller") => `declutter-reviewed:${orderId}:${side}`;
-function rememberedReviewed(orderId: string, side: "buyer" | "seller"): boolean {
-  try {
-    return localStorage.getItem(reviewedKey(orderId, side)) === "1";
-  } catch (err) {
-    // Storage blocked (private mode): the button shows, and the server still refuses a second review.
-    console.warn("[declutter] could not read the reviewed mark", err);
-    return false;
-  }
-}
-function rememberReviewed(orderId: string, side: "buyer" | "seller") {
-  try {
-    localStorage.setItem(reviewedKey(orderId, side), "1");
-  } catch (err) {
-    console.warn("[declutter] could not save the reviewed mark", err);
-  }
-}
 
 /**
  * Audit 1028 part 2, D2-15: a solid "Leave a review" under an open refund request pulled the eye from the refund

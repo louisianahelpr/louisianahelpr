@@ -8,7 +8,7 @@
  * @mutate src/lib/guarantee/index.ts |   return done ? new Date(done.getTime() + GUARANTEE_RULES.claimWindowHours * 3600_000) : null; |   return done;
  * @mutate src/components/guarantee/HelprGuaranteePanel.tsx |   const by = guaranteeClaimBy(job); |   const by = null as Date \| null;
  * @mutate src/components/guarantee/HelprGuaranteePanel.tsx | timeZone: "America/Chicago", weekday | timeZone: "UTC", weekday
- * @mutate src/components/guarantee/HelprGuaranteePanel.tsx |       we decide whether you get a refund of the job price. |       we decide, and a refund is of the job price.
+ * @mutate src/lib/i18n/enJobs.ts | If it can't be fixed, we decide whether you get a refund of the job price." | If it can't be fixed, we decide, and a refund is of the job price."
  * @mutate src/components/guarantee/HelprGuaranteePanel.tsx | An admin is deciding this, including whether you get a refund of the job price. | An admin is deciding this. A refund, if any, is of the job price.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

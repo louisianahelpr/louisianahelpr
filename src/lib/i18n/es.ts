@@ -507,6 +507,13 @@ export const es: Record<MsgKey, string> = {
   "jobPage.crew": "Su equipo",
   "jobPage.side": "Precio y acciones",
   "jobPage.postedBy": "Publicado por",
+  "jobPage.seeHelpr": "Ver al Helpr",
+  "jobPage.seePoster": "Ver a quien publicó",
+  "gu.title": "Garantía Helpr",
+  "gu.tellBy": "¿No quedó bien? Avísenos antes del {when}.",
+  "gu.tellWithin": "¿No quedó bien? Avísenos dentro de las 48 horas después de terminado el trabajo.",
+  "gu.explain": "Su Helpr regresa a arreglarlo, y su pago espera hasta que se resuelva. Si no se puede arreglar, nosotros decidimos si le reembolsamos el precio del trabajo.",
+  "gu.notDoneRight": "No quedó bien",
   "jobPage.yourHelpr": "Su Helpr",
   // You › Settings (F410c, audit 11-10): every row, heading and line of the screen where Spanish is chosen.
   "settings.title": "Ajustes",

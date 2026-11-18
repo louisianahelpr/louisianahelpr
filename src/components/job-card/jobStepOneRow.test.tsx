@@ -13,7 +13,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 // @mutate src/components/JobConfirmation.tsx |       {isOwner ? `Confirm the new time, ${newSlot}` : `Confirm you'll be there ${newSlot}`} |       {isOwner ? `Confirm the new time` : `Confirm you'll be there`}
 // @mutate src/components/JobConfirmation.tsx |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm ${newSlot}` |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm`
 // @mutate src/components/job-card/JobStepCard.tsx |           {moreChips.length > 1 ? ( |           {moreChips.length > 0 ? (
-// @mutate src/components/job-card/JobStepCard.tsx |               {moreChips} |               {moreChips.slice(1)}
+// @mutate src/components/job-card/JobStepCard.tsx |               {moreChips.map((c, i) => | {moreChips.slice(1).map((c, i) =>
 /**
  * VN-21 — EVERY BUTTON ON A STEP CARD SITS ON ONE ROW (owner, 2026-09-14).
  *
@@ -788,7 +788,7 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
       if (moreTrigger) {
         await act(async () => { fireEvent.click(moreTrigger); });
         const panel = document.querySelector("[data-job-step-overflow-panel]");
-        moreLabels = [...(panel?.querySelectorAll<HTMLElement>("button, a[href]") ?? [])].map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim());
+        moreLabels = [...(panel?.querySelectorAll<HTMLElement>("[data-job-step-overflow-list] button, [data-job-step-overflow-list] a[href]") ?? [])].map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim());
         await act(async () => { fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" }); });
       }
       // Counted the way the cases were written (Report a Problem / Dispute / SOS
@@ -942,7 +942,7 @@ describe("V2/V3 — the green primary trails, the destructive one never does", (
     // ways-out group near the bottom, never first.
     const trigger = container.querySelector<HTMLElement>("[data-job-step-overflow]")!;
     await act(async () => { fireEvent.click(trigger); });
-    const labels = [...document.querySelectorAll<HTMLElement>("[data-job-step-overflow-panel] button")].map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim());
+    const labels = [...document.querySelectorAll<HTMLElement>("[data-job-step-overflow-list] button")].map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim());
     const cancel = labels.findIndex((l) => /^Cancel/.test(l));
     expect(cancel, `Cancel is not under More — [${labels.join(" | ")}]`).toBeGreaterThan(0);
     expect(labels.slice(cancel + 1).every((l) => /^(SOS|Share location)/i.test(l)), `only SOS may follow Cancel — [${labels.join(" | ")}]`).toBe(true);

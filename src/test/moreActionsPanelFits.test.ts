@@ -10,8 +10,10 @@
  * screen minus a 0.75rem gutter each side, one column, anchored to the
  * button's start edge. Radix flips it above or below by itself.
  *
- * @mutate src/components/job-card/JobActionRow.tsx | className="w-max min-w-[9rem] max-w-[min(17rem,calc(100vw-1.5rem))] p-1.5" | className="w-[24rem] p-1.5"
- * @mutate src/components/job-card/JobActionRow.tsx | <div className="grid grid-cols-1 gap-1.5">{children}</div> | <div className="grid grid-cols-2 gap-1.5">{children}</div>
+ * Area 03 M11 (design audit 11-18): the panel is now the job page's bottom sheet (SheetContent side="bottom"), which
+ * spans the screen by construction and cannot run off it or overlap the next card; the rows stay one column.
+ * @mutate src/components/job-card/JobActionRow.tsx | <SheetContent side="bottom" aria-label="More actions for this job" | <SheetContent side="left" aria-label="More actions for this job"
+ * @mutate src/components/job-card/JobActionRow.tsx | <div data-job-step-overflow-list="" className="flex flex-col gap-2 pb-2" onClick | <div data-job-step-overflow-list="" className="grid grid-cols-2 gap-2 pb-2" onClick
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -21,24 +23,20 @@ import { blankComments } from "./helpers/blankNonCode";
 const SRC = blankComments(readFileSync(resolve(__dirname, "../components/job-card/JobActionRow.tsx"), "utf8"));
 
 describe("the job card's More panel fits the screen", () => {
-  const panel = SRC.match(/<PopoverContent[\s\S]*?data-job-step-overflow-panel=""[\s\S]*?<\/PopoverContent>/);
+  const panel = SRC.match(/<SheetContent[\s\S]*?data-job-step-overflow-panel=""[\s\S]*?<\/SheetContent>/);
 
   it("there is exactly one overflow panel", () => {
-    expect(panel, "PopoverContent with data-job-step-overflow-panel").not.toBeNull();
+    expect(SRC.length).toBeGreaterThan(5_000);
+    expect(panel, "SheetContent with data-job-step-overflow-panel").not.toBeNull();
     expect(SRC.match(/data-job-step-overflow-panel=""/g)?.length).toBe(1);
   });
 
-  it("its width is its contents', capped to the viewport minus a gutter", () => {
-    const cls = panel![0].match(/className="([^"]+)"/)![1].split(/\s+/);
-    expect(cls).toContain("w-max");
-    const cap = cls.find((c) => c.startsWith("max-w-"));
-    expect(cap, "a max-width").toBeDefined();
-    expect(cap).toMatch(/calc\(100vw-[\d.]+rem\)/);
-    expect(cls.some((c) => /^w-\[\d/.test(c)), "no fixed width").toBe(false);
+  it("it is a bottom sheet (the job page's More options), never a popover anchored beside the next card", () => {
+    expect(panel![0]).toMatch(/side="bottom"/);
+    expect(SRC).not.toMatch(/<PopoverContent/);
   });
 
-  it("its actions sit in one column, anchored to the button's start edge", () => {
-    expect(panel![0]).toMatch(/align="start"/);
-    expect(panel![0]).toMatch(/className="grid grid-cols-1 /);
+  it("its actions sit in one column", () => {
+    expect(panel![0]).toMatch(/data-job-step-overflow-list="" className="flex flex-col gap-2 /);
   });
 });

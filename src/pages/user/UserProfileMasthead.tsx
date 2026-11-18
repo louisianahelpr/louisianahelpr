@@ -81,7 +81,10 @@ export function UserProfileMasthead({
                   isIdVerified ||
                   (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true
                 }
-                payoutsSetUp={(profile as unknown as { is_payout_ready?: boolean }).is_payout_ready === true}
+                // Area 03 L16 (design audit 11-18): "Payouts set up" (owner 2026-10-21, its own badge) tells the member
+                // their own payouts are ready; to a poster weighing a hire it said nothing, so it shows on your own
+                // profile only. Guard: src/test/area03JobsPosterPass2.test.tsx.
+                payoutsSetUp={isOwnProfile && (profile as unknown as { is_payout_ready?: boolean }).is_payout_ready === true}
                 ladderProfile={tierProfile}
                 ladderStats={badgeStats}
                 credentials={profile as unknown as ComponentProps<typeof RecognitionRow>["credentials"]}

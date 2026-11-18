@@ -12,5 +12,6 @@ export async function openMore(root: ParentNode = document): Promise<HTMLElement
     if (t.getAttribute("aria-expanded") === "true") continue;
     await act(async () => { fireEvent.click(t); });
   }
-  return [...document.querySelectorAll<HTMLElement>("[data-job-step-overflow-panel] button, [data-job-step-overflow-panel] a[href]")];
+  // Area 03 M11 (11-18): the panel is a bottom sheet; its own Close is not one of the job's actions.
+  return [...document.querySelectorAll<HTMLElement>("[data-job-step-overflow-list] button, [data-job-step-overflow-list] a[href]")];
 }

@@ -120,7 +120,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/guarantee/HelprGuaranteePanel.tsx` | textarea×2 |  |  | Photos · guarantee-note · guarantee-photos · guarantee-reject · Day to fix it · Helpr Guarantee |
+| `src/components/guarantee/HelprGuaranteePanel.tsx` | textarea×2 |  |  | Photos · guarantee-note · guarantee-photos · guarantee-reject · Day to fix it |
 | `src/components/jobs/ContinueDaySheet.tsx` | textarea×1 |  | 300 | Day to finish |
 | `src/components/jobs/MissedReturnSheet.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/refund/RefundAnswerDialog.tsx` | input×2, date/calendar×2 | date, time |  |  |

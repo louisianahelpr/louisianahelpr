@@ -12,8 +12,10 @@
  *  - the actions come out in importance order with SOS last.
  * The class half is what jsdom can see; the rendered width is looked at on prod.
  *
- * @mutate src/components/job-card/JobActionRow.tsx | className="w-max min-w-[9rem] | className="w-full min-w-[9rem]
- * @mutate src/components/job-card/JobActionRow.tsx | <div className="grid grid-cols-1 gap-1.5">{children}</div> | <div className="grid grid-cols-3 gap-1.5">{children}</div>
+ * Area 03 M11 (design audit 11-18): More is now the job page's bottom sheet ("More options", one outlined full-width
+ * row per action), so the panel is a bottom sheet with the rows in one column; the order rule is unchanged.
+ * @mutate src/components/job-card/JobActionRow.tsx | <SheetContent side="bottom" aria-label="More actions for this job" | <SheetContent side="right" aria-label="More actions for this job"
+ * @mutate src/components/job-card/JobActionRow.tsx | <div data-job-step-overflow-list="" className="flex flex-col gap-2 pb-2" onClick | <div data-job-step-overflow-list="" className="grid grid-cols-3 gap-2 pb-2" onClick
  * @mutate src/components/job-card/JobStepCard.tsx | "report", "dispute", "cancel", "exit", "sos", | "sos", "report", "dispute", "cancel", "exit",
  * @mutate src/components/job-card/JobStepCard.tsx | "message", "directions", "photo", | "directions", "message", "photo",
  */
@@ -51,22 +53,21 @@ async function openMore() {
   return panel!;
 }
 
-describe("Q1569 — More is a fitted list, most important first, SOS last", () => {
-  it("the panel is as wide as its contents, capped to the screen, never row-wide", async () => {
+describe("Q1569 — More is one list, most important first, SOS last", () => {
+  it("the panel is the bottom sheet the job page's More options uses, its rows full width", async () => {
     const panel = await openMore();
-    const cls = panel.className.split(/\s+/);
-    expect(cls, `panel classes: ${panel.className}`).toContain("w-max");
-    expect(cls.some((c) => c.startsWith("max-w-")), "the fitted panel has no screen cap").toBe(true);
-    for (const bad of ["w-full", "w-screen", "w-[var(--radix-popover-trigger-width)]"]) {
-      expect(cls, `panel is row-wide (${bad})`).not.toContain(bad);
-    }
+    expect(panel.getAttribute("data-side") ?? panel.className, `panel: ${panel.className}`).toMatch(/bottom/);
+    expect(panel.textContent).toContain("More options");
+    const rows = [...panel.querySelectorAll<HTMLElement>("[data-menu-action]")];
+    expect(rows.length).toBeGreaterThan(3);
+    for (const r of rows) expect(r.className.split(/\s+/), r.textContent ?? "").toContain("w-full");
   });
 
   it("one column, in importance order, SOS at the bottom", async () => {
     const panel = await openMore();
-    const grid = panel.querySelector<HTMLElement>(".grid");
+    const grid = panel.querySelector<HTMLElement>("[data-menu-action]")?.parentElement ?? null;
     expect(grid, "the panel lost its list container").not.toBeNull();
-    expect(grid!.className.split(/\s+/)).toContain("grid-cols-1");
+    expect(grid!.className.split(/\s+/)).toContain("flex-col");
     const labels = [...grid!.querySelectorAll<HTMLElement>("button, a[href]")].map(
       (b) => (b.getAttribute("aria-label") || b.textContent || "").trim(),
     );

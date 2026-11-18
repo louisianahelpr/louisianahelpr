@@ -191,7 +191,8 @@ describe("every pop-up title is sentence case", () => {
     // first, S2-023) and +1 "Remove all options?" (ShopItemOptionsEditor, S2-003 a download drops its options).
     // 242 (Area 04 #2, 2026-11-18): -1 "Filter jobs" (BrowseTasksToolbar's FilterSheet) reads wordInLang now, for Spanish;
     // its English is still sentence case (enJobsHelpr.ts "jh.f.title").
-    expect(all.length).toBe(242);
+    // 243 (Area 03 M11, 11-18): +1 "More options" (the job card's More is the job page's bottom sheet, JobActionRow).
+    expect(all.length).toBe(243);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

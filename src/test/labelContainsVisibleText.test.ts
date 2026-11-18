@@ -13,7 +13,7 @@
  *
  * @mutate src/components/profile/profileLanding/YouCard.tsx | className="btn-press relative shrink-0 rounded-full" aria-hidden="true" tabIndex={-1}> | className="btn-press relative shrink-0 rounded-full">
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |       data-money-tile={kind} |       data-money-tile={kind} aria-label={`${label}: ${amount}. ${caption}`}
- * @mutate src/components/declutter/DeclutterSellerCard.tsx | aria-label={loading ? `See the ${noun}` : undefined} | aria-label={loading ? `See the ${noun}` : `See the ${noun}, ${name}`}
+ * @mutate src/components/declutter/DeclutterSellerCard.tsx | aria-label={loading ? see : undefined} | aria-label={loading ? see : `${see}, ${name}`}
  * @mutate src/components/declutter/DeclutterSellerCard.tsx | <span aria-hidden="true" className="contents"> | <span className="contents">
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 data-activity-tile={`${s.key}:${t.label}`}\n |                 data-activity-tile={`${s.key}:${t.label}`} aria-label={`${s.label} ${t.label}`}\n
  */
@@ -62,9 +62,10 @@ describe("#3491: a control's accessible name contains the words it shows (WCAG 2
   it("DeclutterSellerCard: loaded, the card's words are its name; the monogram is hidden", () => {
     const src = read("components/declutter/DeclutterSellerCard.tsx");
     const tag = openingTag(src, src.indexOf("<Link"));
-    expect(tag).toContain("aria-label={loading ? `See the ${noun}` : undefined}");
+    // Area 03 H4 (11-18): the words come from `see` (the job page hands them in the reader's language).
+    expect(tag).toContain("aria-label={loading ? see : undefined}");
     expect(src).toMatch(/<span aria-hidden="true" className="contents">\s*<UserAvatar /);
-    expect(src).toContain('<span className="sr-only">See the {noun}, </span>');
+    expect(src).toContain('<span className="sr-only">{see}, </span>');
   });
 
   it("YourActivity tiles have no aria-label: their two lines are their name", () => {

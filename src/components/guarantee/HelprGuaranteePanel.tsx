@@ -35,24 +35,33 @@ import {
   guaranteeExplainerApplies,
   guaranteeClaimBy,
 } from "@/lib/guarantee";
+import { getLang, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 
 // The summary panel's own card style (JobPageParts CARD): a card on a phone, a ruled section inside the panel from lg.
 const CARD = "space-y-3 rounded-2xl border border-border bg-card p-4 lg:rounded-none lg:border-0 lg:border-t lg:!border-border lg:bg-transparent lg:p-0 lg:pt-4 lg:!shadow-none";
 
 const laWhen = (d: Date) =>
-  new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(d);
+  new Intl.DateTimeFormat(getLang() === "es" ? "es-US" : "en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(d);
 const when = (iso: string | null) =>
   iso ? new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso)) : "";
 
 /** The poster's one-paragraph explainer (also in the Terms). A3-40: once the job is done, the window's end as a date. */
 function GuaranteeExplainer({ job }: { job: GuaranteeJob }) {
+  // Area 03 H4 (design audit 11-18): the poster's explainer in Spanish too (enJobs gu.*). Guard: src/test/area03JobsPosterPass2.test.tsx.
+  const { t } = useLanguage();
   const by = guaranteeClaimBy(job);
   return (
     <p data-guarantee-explainer="" className="text-ds-13 text-muted-foreground">
-      {by ? `Not done right? Tell us by ${laWhen(by)}.` : "Not done right? Tell us within 48 hours of the job being done."} Your Helpr comes back to fix it, and their pay waits until it's settled. If it can't be fixed,
-      we decide whether you get a refund of the job price.
+      {by ? t("gu.tellBy", { when: laWhen(by) }) : t("gu.tellWithin")} {t("gu.explain")}
     </p>
   );
+}
+
+/** The card's title row, "Helpr Guarantee" in the reader's language. */
+function GuaranteeTitle() {
+  const { t } = useLanguage();
+  return <p className="flex items-center gap-2 text-ds-15 font-semibold"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />{t("gu.title")}</p>;
 }
 
 function ClaimPhotos({ paths }: { paths: string[] }) {
@@ -82,6 +91,7 @@ function useGuaranteeAction(jobId: string) {
 }
 
 function AskForFix({ job, userId }: { job: GuaranteeJob; userId: string }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -96,7 +106,7 @@ function AskForFix({ job, userId }: { job: GuaranteeJob; userId: string }) {
   if (!open) {
     return (
       <Button type="button" variant="outline" className="w-full rounded-full" onClick={() => setOpen(true)}>
-        Not done right
+        {t("gu.notDoneRight")}
       </Button>
     );
   }
@@ -257,6 +267,7 @@ function HelprView({ claim, jobId }: { claim: GuaranteeClaim; jobId: string }) {
 }
 
 export function HelprGuaranteePanel({ job, userId, side }: { job: GuaranteeJob; userId: string; side: "poster" | "helpr" | null }) {
+  const { t } = useLanguage();
   // A claim exists only on a finished one-Helpr job: nothing to read before that (the poster still sees the explainer).
   const enabled = !!side && job.status !== "open" && !job.is_group_job;
   const claim = useQuery({ queryKey: ["guarantee", job.id], queryFn: () => fetchGuaranteeClaim(job.id), enabled });
@@ -264,8 +275,8 @@ export function HelprGuaranteePanel({ job, userId, side }: { job: GuaranteeJob; 
     // JA-28: an open job (posted, not yet worked) cannot use the guarantee: no explainer yet.
     if (!guaranteeExplainerApplies(job)) return null;
     return (
-      <section aria-label="Helpr Guarantee" data-guarantee-panel="poster" className={CARD}>
-        <p className="flex items-center gap-2 text-ds-15 font-semibold"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />Helpr Guarantee</p>
+      <section aria-label={t("gu.title")} data-guarantee-panel="poster" className={CARD}>
+        <GuaranteeTitle />
         <GuaranteeExplainer job={job} />
       </section>
     );
@@ -275,8 +286,8 @@ export function HelprGuaranteePanel({ job, userId, side }: { job: GuaranteeJob; 
   if (side === "helpr") {
     if (!c) return null;
     return (
-      <section aria-label="Helpr Guarantee" data-guarantee-panel="helpr" className={CARD}>
-        <p className="flex items-center gap-2 text-ds-15 font-semibold"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />Helpr Guarantee</p>
+      <section aria-label={t("gu.title")} data-guarantee-panel="helpr" className={CARD}>
+        <GuaranteeTitle />
         <HelprView claim={c} jobId={job.id} />
       </section>
     );
@@ -285,8 +296,8 @@ export function HelprGuaranteePanel({ job, userId, side }: { job: GuaranteeJob; 
   // JA-28: with no claim, the explainer only where the guarantee applies (Working to 48 h after Done, no open dispute).
   if (!c && !ask && !guaranteeExplainerApplies(job)) return null;
   return (
-    <section aria-label="Helpr Guarantee" data-guarantee-panel="poster" className={CARD}>
-      <p className="flex items-center gap-2 text-ds-15 font-semibold"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />Helpr Guarantee</p>
+    <section aria-label={t("gu.title")} data-guarantee-panel="poster" className={CARD}>
+      <GuaranteeTitle />
       {c ? <PosterView claim={c} jobId={job.id} /> : <GuaranteeExplainer job={job} />}
       {ask && <AskForFix job={job} userId={userId} />}
     </section>

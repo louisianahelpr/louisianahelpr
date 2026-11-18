@@ -35,6 +35,9 @@ import { useOpenProblemsRead } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
+import type { MsgKey } from "@/lib/i18n/en";
 import { ORDER_BUCKETS, OrderSteps, gotItOpen, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
 /** One paid order on the buyer's side, as the tracker files it. */
@@ -194,6 +197,20 @@ export function buyerNextStep(f: OrderFacts, when: string | null, helprName: str
       return info("Delivered.");
     }
   }
+}
+
+/**
+ * Area 05 #3 (design audit 11-18): once the buyer has reported that the seller didn't show (declutter_report_no_show:
+ * no_show_reported_at, with the seller's no_show_answer_by), the card said "Next: pick it up, then tap I got it · booked
+ * for <a past time>" with an I got it button. It now says where the report stands; Details is the only control. Null
+ * when no report is waiting (or the order already moved on: done, cancelled, or a problem took over).
+ */
+export function buyerNoShowStep(f: Pick<OrderFacts, "done" | "cancelled" | "problem">,
+  row: Pick<MyHandover, "no_show_reported_at" | "no_show_answer_by"> | null | undefined): NextStepValue | null {
+  if (!row?.no_show_reported_at || f.done || f.cancelled || f.problem) return null;
+  return { who: "info", text: row.no_show_answer_by
+    ? t("dbuy.noShow.until", { by: orderWhen(row.no_show_answer_by).replace(/\.$/, "") })
+    : t("dbuy.noShow.waiting") };
 }
 
 /** The Helpr task statuses of a delivery still under way or done (helpr_tasks.status); any other one is closed. */
@@ -372,16 +389,18 @@ export function useBuyingTracker(): BuyingTracker {
       : whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
     const total = paidCents?.get(o.orderId) ?? null;
     const back = facts.cancelled ? refundedCents.data?.get(o.orderId) ?? null : null;
+    // Area 05 #3 (design audit 11-18): after the buyer reports a no-show the card stops asking for "I got it".
+    const noShow = buyerNoShowStep(facts, handovers[pickups.indexOf(o)]?.data ?? null);
     views.set(o.orderId, {
       orderId: o.orderId,
       facts,
       bucket,
-      action: buyerNextAction(facts),
-      next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
+      action: noShow ? null : buyerNextAction(facts),
+      next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : noShow ?? buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
         o.handover === "delivery" ? task?.status ?? null : null,
         orderTimeWords(orderTimes, o.handover, slot), shipRows[shipOrders.indexOf(o)]?.data ?? null, checkUntil),
       // #6: a free item never reads like a paid order ("You paid $0").
-      money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
+      money: facts.free ? t("dbuy.order.free") : total != null && !facts.cancelled ? t("dbuy.order.paid", { amount: formatPrice(total) }) : null,
     });
   }
   const checkouts = openCheckouts(lines, Date.now());
@@ -427,34 +446,68 @@ export function bucketChips(counts: Record<OrderBucket, number>) {
  * the card (the pickup panel, the address, reporting a problem, the review) opens under "Details", and the next
  * action opens it at that control.
  */
-export function BuyerOrderHead({ view, standing, refundOpen = false, open, onOpen, onClose, onAction = onOpen }: {
+export function BuyerOrderHead({ view, standing, refundOpen = false, refundOffered = false, open, onOpen, onClose, onAction = onOpen }: {
   view: BuyerOrderView; open: boolean; onOpen: () => void; onClose: () => void;
   /** F366 (rest): a refund still being worked out; the step bar ends on "Refund asked", never "Done". */
   refundOpen?: boolean;
+  /** Area 05 #5: the seller offered part of the refund; the card's button is "See the offer" (it opens Details). */
+  refundOffered?: boolean;
   /** Says more than the tracker's sentence: a refund being worked out (refundStanding). */
   standing?: string | null;
   /** The next-action button; defaults to opening Details (D3-7: a Helpr delivery's "I got it" also asks at once). */
   onAction?: () => void;
 }) {
+  useLanguage();
+  // Area 05 #5: an offer to answer is the buyer's move even when the order itself asks nothing.
+  const action = view.action ?? (refundOffered && !view.facts.cancelled ? SEE_OFFER : null);
+  const details = (
+    <Button type="button" variant="link" size="sm" className="px-0 text-sm font-semibold underline decoration-current underline-offset-2 text-[color:inherit]" aria-expanded={open} onClick={open ? onClose : onOpen} data-order-details="">
+      {open ? t("dbuy.order.hideDetails") : t("dbuy.order.details")}
+    </Button>
+  );
+  // Area 05 #13: with no main button, Details sits at the end of the money line instead of on a row of its own.
+  const lone = !action || open;
   return (
     <div className="space-y-2" data-buyer-order={view.bucket}>
       {/* Q2630: a refunded order did not go ahead, so no step bar stopped at "Paid" as if it were still in progress. */}
-      {!view.facts.cancelled && <OrderSteps facts={view.facts} refundOpen={refundOpen} />}
+      {!view.facts.cancelled && <OrderSteps facts={view.facts} refundOpen={refundOpen} refundOffered={refundOffered} />}
       <NextStep value={standing ? { who: "info", text: standing } : view.next} className="!text-ds-14" />
-      {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
-      <div className="flex flex-wrap items-center gap-3">
-        {view.action && !open && (
-          <Button type="button" variant="primary" size="sm" className="px-5 text-sm font-semibold" onClick={onAction} data-next-action="">
-            {view.action}
-          </Button>
-        )}
-        <Button type="button" variant="link" size="sm" className="px-0 text-sm font-semibold underline decoration-current underline-offset-2 text-[color:inherit]" aria-expanded={open} onClick={open ? onClose : onOpen}>
-          {open ? "Hide details" : "Details"}
-        </Button>
-      </div>
+      {lone ? (
+        <div className="flex items-center justify-between gap-3" data-order-money-row="">
+          <p className="text-ds-13 text-muted-foreground">{view.money ?? ""}</p>
+          {details}
+        </div>
+      ) : (
+        <>
+          {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="primary" size="sm" className="px-5 text-sm font-semibold" onClick={action === SEE_OFFER ? onOpen : onAction} data-next-action="">
+              {actionWords(action)}
+            </Button>
+            {details}
+          </div>
+        </>
+      )}
     </div>
   );
 }
+
+/** Area 05 #5: the button a part-refund offer puts on the card. */
+const SEE_OFFER = "See the offer";
+
+/** Area 05 #1: buyerNextAction's English names, in the member's language at render (the rule keeps the English). */
+const ACTION_KEYS: Record<string, MsgKey> = {
+  "I got it": "dbuy.act.gotIt",
+  "Pick a pickup time": "dbuy.act.pickPorch",
+  "Book a pickup time": "dbuy.act.bookPickup",
+  "Book a time to meet": "dbuy.act.bookMeet",
+  "Pick a time": "dbuy.act.pickTime",
+  "Accept the new time": "dbuy.act.acceptTime",
+  "It wasn't delivered": "dbuy.act.notDelivered",
+  "Add your side": "dbuy.act.addSide",
+  [SEE_OFFER]: "dbuy.act.seeOffer",
+};
+export const actionWords = (action: string) => (ACTION_KEYS[action] ? t(ACTION_KEYS[action]) : action);
 
 /** A checkout that ended unpaid: nothing was charged (offers and checkouts charge only when paid). */
 /**

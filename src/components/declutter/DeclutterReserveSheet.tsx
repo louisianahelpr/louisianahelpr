@@ -13,6 +13,11 @@ import { holdHasNoStrike } from "@/lib/declutter/buyNowHold";
 import type { CartLine } from "@/lib/declutter/api";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { memberProfilePath, PROFILE_FROM_DECLUTTER } from "@/lib/profileLink/memberProfilePath";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
+
+/** Area 05 #1: a Spanish time can end in "p.m."; the sentence adds its own full stop, so the time drops its last one. */
+const noEndDot = (s: string) => s.replace(/\.$/, "");
 
 /**
  * The cart's hold line for one seller's checkout (lead 2026-10-28): "Reserved for you, not paid yet" and the time
@@ -25,14 +30,15 @@ import { memberProfilePath, PROFILE_FROM_DECLUTTER } from "@/lib/profileLink/mem
  */
 /** The cart's next step: choose a way to get it, then pay (or confirm a free item), before the hold runs out. */
 function cartNextStep(allFree: boolean, timeLeft: string): NextStepValue {
-  return { who: "you", text: allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: timeLeft || null };
+  return { who: "you", text: allFree ? t("dbuy.next.free") : t("dbuy.next.pay"), by: timeLeft || null };
 }
 
 export function CartHold({ sellerId, checkoutBy, allFree, lines, timeLeft }: {
   sellerId: string; checkoutBy: string; allFree: boolean; lines: readonly CartLine[]; timeLeft: string;
 }) {
   const rule = useQuery({ queryKey: ["declutter", "bundle-rule", sellerId], queryFn: () => fetchBundleRule(sellerId) });
-  const by = orderWhen(checkoutBy); // F367
+  useLanguage();
+  const by = noEndDot(orderWhen(checkoutBy)); // F367
   const noStrike = holdHasNoStrike(lines);
   const ref = useRef<HTMLDivElement>(null);
   const [params] = useSearchParams();
@@ -46,21 +52,21 @@ export function CartHold({ sellerId, checkoutBy, allFree, lines, timeLeft }: {
           checkout under this line, with the time left as its deadline. */}
       <NextStep value={cartNextStep(allFree, timeLeft)} />
       <p className="text-ds-13 text-muted-foreground">
-        {allFree ? "Reserved for you. " : noStrike ? "" : "Reserved for you, not paid yet. "}
+        {allFree ? t("dbuy.reserved") : noStrike ? "" : t("dbuy.reservedUnpaid")}
         {/* DA-12: a free item goes back up with no strike when its 48 hours run out (declutter_deadline_sweep).
             DB-5: so does a Buy now line; only an accepted offer still carries a strike.
             Audit 11-10 F351 (High): a Buy now hold read like a threat ("goes back up for sale") to a buyer who only
             wanted to see the total; it now says it is held, and that Remove (the line's button) costs nothing. */}
-        {allFree ? `Confirm it by ${by}. If you don't, it goes back up. No strike.`
-          : noStrike ? `Held for you until ${by}. Not ready? Remove it anytime, no strike.`
-            : `Check out by ${by}. If you don't, you get a strike and the item goes back up for sale.`}
+        {allFree ? t("dbuy.confirmBy", { by })
+          : noStrike ? t("dbuy.heldUntil", { by })
+            : t("dbuy.checkOutBy", { by })}
         {/* BUY-12 (audit 10-30): the hint had no way to do it from the cart; the seller's profile lists what else they
             have for sale (SellingNowRow on /user/:id). */}
         {!allFree && rule.data ? (
           <>
-            {" Add more from this seller first to save with their bundle discount. "}
+            {t("dbuy.bundleHint")}
             <Link to={memberProfilePath(sellerId, { from: PROFILE_FROM_DECLUTTER })} data-cart-bundle-more="" className="link-standard font-semibold text-foreground">
-              See their other items
+              {t("dbuy.seeOther")}
             </Link>
           </>
         ) : null}

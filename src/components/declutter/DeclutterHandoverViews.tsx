@@ -225,7 +225,7 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
       <OrderCardHead order={order} userId={userId} />
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
-      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} refundOpen={refundIsOpen(refundStatus)} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
+      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} refundOpen={refundIsOpen(refundStatus)} refundOffered={refundStatus === "offered"} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}
@@ -333,7 +333,9 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
             onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking, Date.now(), porchSeller)} />}
         </>
       )}
-      {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} handedOver={done} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
+      {/* Area 05 #2 (design audit 11-18): a refunded or cancelled order has nothing to move, so no "Need help moving it?"
+          chips (bookedOnly keeps a Helpr task already booked visible). */}
+      {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} handedOver={done} bookedOnly={order.status === "refunded" || !!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
       {/* D2-1: the paid order's chat (DeclutterOrderTalk, ?order_talk=). F397 (audit 1110): "Message the buyer" jumped around
           by stage; it is now the body's LAST control on every card (openpr-8); the open pickup sale keeps it in SellerAfterActions. */}
       {!sellerNextFirst && !(cancelled && order.side === "seller") && <div data-order-talk-row=""><OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} /></div>}

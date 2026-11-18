@@ -4,6 +4,8 @@ import { Bell, Check } from "lucide-react";
 import { extrasAsColumns, sameSearch, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { whenPageSettled } from "@/lib/routePrefetch";
+import "@/lib/i18n/enSearch";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * The sheet loads on its own (Q2705, 2026-11-14): imported statically, it and the shared sheet's dialog code rode in
@@ -19,6 +21,7 @@ const SaveSearchSheet = lazy(() => loadSheet().then((m) => (m ? { default: m.Sav
  * section Browse screens. Renders nothing without a signed-in member.
  */
 export function SaveSearchButton({ draft, sections, userId }: { draft: SearchDraft; sections?: SavedSearchSection[]; userId: string | null | undefined }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   // BUY-54: once this search is saved (or found saved already), the pill says so and opens the list; other filters
   // make it "Save this search" again.
@@ -42,7 +45,7 @@ export function SaveSearchButton({ draft, sections, userId }: { draft: SearchDra
         style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))" }}
       >
         <Check className="w-4 h-4" aria-hidden />
-        Search saved
+        {t("srch.savedPill")}
       </Link>
     );
   }
@@ -57,7 +60,7 @@ export function SaveSearchButton({ draft, sections, userId }: { draft: SearchDra
         style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))" }}
       >
         <Bell className="w-4 h-4" aria-hidden />
-        Save this search
+        {t("srch.save")}
       </button>
       {asked && <Suspense fallback={null}><SaveSearchSheet open={open} onOpenChange={setOpen} userId={userId} draft={draft} sections={sections} onSaved={setSaved} /></Suspense>}
     </>

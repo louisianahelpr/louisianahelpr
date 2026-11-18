@@ -21,7 +21,7 @@ export const enCore = {
   "g.joinFree": "Join free",
 
   // Main nav (desktop rail + phone dock)
-  "nav.home": "Dashboard",
+  "nav.home": "Home",
   // F146 (owner UI audit 11-09): the phone dock reads "Home · Jobs · Declutter · Messages · You".
   "nav.dockHome": "Home",
   "nav.posts": "Posts",
@@ -70,4 +70,8 @@ export const enCore = {
   "next.lead": "Next: {step}",
   // The shared confirm sheet's default way out (DeclutterConfirmSheet), on every Declutter screen.
   "core.notNow": "Not now",
+  // Home's route skeleton when the page never arrives (design audit area 02 #1): drawn before Home's chunk, so boot words.
+  "home.stuckTitle": "We couldn't load your Home.",
+  "home.stuckBody": "Tap Try again. If it sticks, our end is having a hiccup, not yours.",
+  "core.tryAgain": "Try again",
 } as const;

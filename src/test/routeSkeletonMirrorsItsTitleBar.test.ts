@@ -90,10 +90,10 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     // design audit r2 #44: the card also reserves the loaded Needs-you card's height (style={{ minHeight: ... }})
     expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up" style={{ minHeight: HOME_NEEDS_YOU_MIN_PX }}>');
     expect(skeleton).toMatch(/data-skeleton-part="next-up"[^>]*>[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
-    // The section chips (owner 11-08): the same wrapping row, 44px pills (Button size sm is h-11).
-    expect(home).toContain('<div data-section-chips="" className="flex flex-wrap gap-2">');
-    expect(skeleton).toContain('<div className="flex flex-wrap gap-2" data-skeleton-part="tiles">');
-    expect(skeleton).toMatch(/<Skeleton key=\{i\} className="h-11 w-32 rounded-full" \/>/);
+    // The section chips (owner 11-08; area 02 #20 two-column grid, 11-18): 44px pills (Button size sm is h-11).
+    expect(home).toContain('<div data-section-chips="" className="grid grid-cols-2 gap-2">');
+    expect(skeleton).toContain('<div className="grid grid-cols-2 gap-2" data-skeleton-part="tiles">');
+    expect(skeleton).toMatch(/<Skeleton key=\{i\} className="h-11 w-full rounded-full" \/>/);
     // Board 7: Coming up sits ABOVE the sections in both.
     expect(home.lastIndexOf('title={t("home.comingUp")}')).toBeGreaterThan(0);
     expect(home.lastIndexOf('title={t("home.comingUp")}')).toBeLessThan(home.indexOf('aria-label={t("home.yourSections")}'));

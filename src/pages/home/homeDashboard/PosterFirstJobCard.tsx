@@ -18,9 +18,14 @@ export interface PosterFirstJobState {
 }
 
 /** From the member's posted jobs (RLS: "Users can view their own jobs"). Exported for its test. */
+/**
+ * Design audit area 02 #11 (11-18): "Your first job posted · Next: Hire a Helpr" showed for a member whose every posted
+ * job was cancelled. A job that ended without being done (cancelled, expired, closed) does not count as posted here.
+ */
+const ENDED_UNDONE = new Set(["cancelled", "canceled", "expired", "closed"]);
 export function posterFirstJobState(jobs: { helper_id: string | null; status: string | null; poster_completed_at: string | null }[]): PosterFirstJobState {
   return {
-    posted: jobs.length > 0,
+    posted: jobs.some((j) => !ENDED_UNDONE.has(j.status ?? "")),
     hired: jobs.some((j) => !!j.helper_id),
     finished: jobs.some((j) => !!j.poster_completed_at || j.status === "completed"),
   };
@@ -64,7 +69,7 @@ export function PosterFirstJobCard({ userId }: { userId: string | undefined }) {
     { key: "approve", label: t("home.pf.approve"), done: false, go: () => navigate("/posts") },
   ];
   return (
-    <section aria-label={t("home.pf.title")} data-testid="poster-first-job" className="flex flex-col gap-1 px-1">
+    <section aria-label={t("home.pf.title")} data-testid="poster-first-job" className="liquid-glass p-card flex flex-col gap-1">
       <ChecklistProgress title={t("home.pf.title")} steps={steps} />
     </section>
   );

@@ -31,15 +31,15 @@
  * @mutate src/components/sections/SectionCreateFab.tsx |       {...(add ? {} : { "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen })} |       {...(add ? {} : { "aria-haspopup": "dialog" as const })}
  * @mutate src/components/create/CreateSheet.tsx |                 {on && ( |                 {true && (
  * @mutate src/components/create/CreateSheet.tsx |                         onClick={a.gated ? gate.gate("post", () => go(a.path)) : () => go(a.path)} |                         onClick={() => go(a.path)}
- * @mutate src/components/create/CreateSheet.tsx |       { label: "Post a Wanted", path: WANTED_POST_PATH },\n    ], |       { label: "Post a Wanted", path: WANTED_POST_PATH },\n      { label: "Moving out sale", path: "/declutter/sell?mode=move" },\n    ],
- * @mutate src/components/create/CreateSheet.tsx | label: hasShop ? "Add a product or service" : "Open a shop" | label: "Open a shop"
+ * @mutate src/components/create/CreateSheet.tsx |       { label: t("cs.postWanted"), path: WANTED_POST_PATH },\n    ], |       { label: t("cs.postWanted"), path: WANTED_POST_PATH },\n      { label: "Moving out sale", path: "/declutter/sell?mode=move" },\n    ],
+ * @mutate src/components/create/CreateSheet.tsx | label: hasShop ? t("cs.addProduct") : t("cs.openShop") | label: t("cs.openShop")
  * @mutate src/components/create/CreateSheet.tsx |   return { isOn, isPreview, actions }; |   return { isOn, isPreview, actions: { ...actions, jobs: [...actions.jobs, { label: "or describe it", path: "/post-job?start=ai" }] } };
  * @mutate src/pages/post-job/usePostJobForm.ts |     searchParams.get("start") === "ai" ? "ai" : null, |     null,
  * @mutate src/pages/explore/Explore.tsx |   const target = open.find((s) => s.key === last) ?? open[0] ?? sectionByKey("jobs"); |   const target = sectionByKey("jobs");
  * @mutate src/components/sections/ExploreSwitcher.tsx |   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]); |
  * Q104 (loading-states-refresh 42123572431, shops_my_shop_id x92): the closed phone sheet never reads the member's shop.
  * @mutate src/components/create/CreateSheet.tsx | enabled: shopsOn && open }); | enabled: shopsOn });
- * @mutate src/components/create/CreateSheet.tsx | <SheetHero moment title="What are we doing?" /> | <SheetHero title="What are we doing?" />
+ * @mutate src/components/create/CreateSheet.tsx | <SheetHero moment title={t("cs.title")} /> | <SheetHero title={t("cs.title")} />
  * @mutate src/index.css | .font-moment.font-moment.font-moment { | .font-moment {
  * @mutate src/components/sections/AppTopBar.tsx |   const title = sectionTitle; |   const title = explore ? "Explore" : sectionTitle;
  */
@@ -286,7 +286,7 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
   });
 
   // F135: Declutter's two outline buttons open the free Sell flow and the Wanted form.
-  // @mutate src/components/create/CreateSheet.tsx |       { label: "Give away free", path: SELL_FREE_PATH }, |       { label: "Give away free", path: SELL_CHOOSER_PATH },
+  // @mutate src/components/create/CreateSheet.tsx |       { label: t("cs.giveFree"), path: SELL_FREE_PATH }, |       { label: t("cs.giveFree"), path: SELL_CHOOSER_PATH },
   it.each([
     [1, "/declutter/sell?free=1"],
     [2, "/declutter?tab=wanted&post=1"],

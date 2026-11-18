@@ -12,6 +12,8 @@ export interface TodoProblem {
 }
 import { formatCents } from "@/lib/shops/formatCents";
 import type { TodoItem } from "@/pages/home/homeDashboard/needsYouTodos";
+import { wordInLang as w } from "@/lib/i18n/inLang";
+import { getLang } from "@/lib/i18n/language";
 
 /*
  * The Declutter half of the Home To-do list, on its own so the Declutter pages can read the same rows (owner 11-11,
@@ -20,14 +22,23 @@ import type { TodoItem } from "@/pages/home/homeDashboard/needsYouTodos";
  * (Q178 budget, lead 2026-11-11). TodoItem is a type-only import, erased at build.
  */
 
+/*
+ * Design audit area 02 #4 (11-18): these rows were English on a Spanish Home ("Pick up ...", "Buying · paid, waiting
+ * for the pickup", "Open order"). Each line is its English here and its Spanish by key (dt.*, esDeclTodos.ts) through
+ * wordInLang, so the /declutter path carries no English dictionary for them (Q178 budget).
+ */
+const side = (seller: boolean) => (seller ? w("dt.selling", "Selling") : w("dt.buying", "Buying"));
+const by = (ms: number) => w("dt.by", `by ${byWhen(ms)}`, { when: byWhen(ms) });
+
 /** "$30" for whole dollars (garage-sale prices), "$7.50" otherwise. */
 const dollars = (cents: number) => (cents % 100 === 0 ? `$${cents / 100}` : formatCents(cents));
 
 /** "Mon 2:00 PM" in Louisiana time: the Declutter to-do's "by" (the offer's respond_by, the cart's checkout_by). */
 function byWhen(ms: number): string {
   const d = new Date(ms);
-  const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short" });
-  const time = d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  const loc = getLang() === "es" ? "es-US" : "en-US";
+  const day = d.toLocaleDateString(loc, { timeZone: "America/Chicago", weekday: "short" });
+  const time = d.toLocaleTimeString(loc, { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
   return `${day} ${time}`;
 }
 
@@ -69,10 +80,10 @@ export function declutterTodos(
       item: {
         id: `dp-${p.order_id}`,
         section: "declutter",
-        title: `Add your side: the seller reported a problem with ${l.item_title}`,
-        meta: "Buying · the seller reported a problem",
+        title: w("dt.problemTitle", `Add your side: the seller reported a problem with ${l.item_title}`, { item: l.item_title }),
+        meta: w("dt.problemMeta", "Buying · the seller reported a problem"),
         to: "/declutter?tab=buying",
-        action: "Add your side",
+        action: w("dt.addSide", "Add your side"),
       },
     });
   }
@@ -83,7 +94,7 @@ export function declutterTodos(
     if (!Number.isFinite(due) || due < now) continue;
     const seller = r.my_side === "seller";
     if (ordersWithRow.has(r.order_id)) continue;
-    const what = r.title ? (r.item_count > 1 ? `${r.title} + ${r.item_count - 1} more` : r.title) : "your order";
+    const what = r.title ? (r.item_count > 1 ? w("dt.more", `${r.title} + ${r.item_count - 1} more`, { title: r.title, n: r.item_count - 1 }) : r.title) : w("dt.yourOrder", "your order");
     ordersWithRow.add(r.order_id);
     out.push({
       due,
@@ -91,10 +102,10 @@ export function declutterTodos(
       item: {
         id: `dr-${r.request_id}`,
         section: "declutter",
-        title: seller ? "Answer a refund request" : "Answer the seller's refund offer",
-        meta: `${seller ? "Selling" : "Buying"} · ${what} · by ${byWhen(due)}`,
+        title: seller ? w("dt.refundReq", "Answer a refund request") : w("dt.refundOffer", "Answer the seller's refund offer"),
+        meta: `${side(seller)} · ${what} · ${by(due)}`,
         to: `/declutter?tab=${seller ? "selling" : "buying"}`,
-        action: seller ? "Answer request" : "Answer offer",
+        action: seller ? w("dt.answerReq", "Answer request") : w("dt.answerOffer", "Answer offer"),
       },
     });
   }
@@ -111,10 +122,12 @@ export function declutterTodos(
         id: `do-${o.offer_id}`,
         section: "declutter",
         // The amount is in the task itself, so no money line repeats it (Home prints money as "order total").
-        title: seller ? `Answer a ${dollars(o.amount_cents)} offer` : `Answer the seller's ${dollars(o.amount_cents)} counteroffer`,
-        meta: `${seller ? "Selling" : "Buying"} · ${o.item_title}${live ? ` · by ${byWhen(live)}` : ""}`,
+        title: seller
+          ? w("dt.offer", `Answer a ${dollars(o.amount_cents)} offer`, { amount: dollars(o.amount_cents) })
+          : w("dt.counter", `Answer the seller's ${dollars(o.amount_cents)} counteroffer`, { amount: dollars(o.amount_cents) }),
+        meta: `${side(seller)} · ${o.item_title}${live ? ` · ${by(live)}` : ""}`,
         to: `/declutter?tab=${seller ? "selling" : "buying"}`,
-        action: "Answer offer",
+        action: w("dt.answerOffer", "Answer offer"),
       },
     });
   }
@@ -127,10 +140,12 @@ export function declutterTodos(
       item: {
         id: `dc-${k}`,
         section: "declutter",
-        title: lines.length === 1 ? `Check out ${lines[0].item_title}` : `Check out ${lines.length} items`,
-        meta: `Buying · by ${byWhen(due)}`,
+        title: lines.length === 1
+          ? w("dt.checkoutOne", `Check out ${lines[0].item_title}`, { item: lines[0].item_title })
+          : w("dt.checkoutN", `Check out ${lines.length} items`, { n: lines.length }),
+        meta: `${side(false)} · ${by(due)}`,
         to: "/declutter?tab=buying",
-        action: "Check out",
+        action: w("dt.checkout", "Check out"),
         money: dollars(lines.reduce((s, l) => s + l.price_cents, 0)),
       },
     });
@@ -149,10 +164,10 @@ export function declutterTodos(
       item: {
         id: `dh-${id}`,
         section: "declutter",
-        title: seller ? `Hand over ${l.item_title}` : `Pick up ${l.item_title}`,
-        meta: seller ? "Selling · sold, waiting for the handover" : "Buying · paid, waiting for the pickup",
+        title: seller ? w("dt.handOver", `Hand over ${l.item_title}`, { item: l.item_title }) : w("dt.pickUp", `Pick up ${l.item_title}`, { item: l.item_title }),
+        meta: seller ? w("dt.handOverMeta", "Selling · sold, waiting for the handover") : w("dt.pickUpMeta", "Buying · paid, waiting for the pickup"),
         to: `/declutter?tab=${seller ? "selling" : "buying"}`,
-        action: seller ? "Open sale" : "Open order",
+        action: seller ? w("dt.openSale", "Open sale") : w("dt.openOrder", "Open order"),
       },
     });
   }
@@ -165,10 +180,10 @@ export function declutterTodos(
       item: {
         id: `df-${f.item_id}`,
         section: "declutter",
-        title: `Pick who gets ${f.title}`,
-        meta: `Free · ${f.asked} asked`,
+        title: w("dt.pickWho", `Pick who gets ${f.title}`, { item: f.title }),
+        meta: w("dt.freeAsked", `Free · ${f.asked} asked`, { n: f.asked }),
         to: `/declutter/item/${f.item_id}`,
-        action: "Pick",
+        action: w("dt.pick", "Pick"),
       },
     });
   }

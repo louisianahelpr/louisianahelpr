@@ -517,7 +517,9 @@ function DeclutterMemberHome() {
     settings: { label: DECLUTTER_SETTINGS.label, to: DECLUTTER_SETTINGS.path },
   };
   // The tab row's tabs, on desktop and (F153) on a phone: Selling's to-dos are a dot beside its for-sale count.
-  const tabDefs = lists.map((l) => l.value === "selling" ? { ...l, countAsDot: true } : l);
+  // Design audit 11-17 #24: Buying's to-dos were a rose pill beside Selling's plain number and dot (three styles in one
+  // row). Every Declutter to-do is the dot now; a plain muted number is only ever a quiet count.
+  const tabDefs = lists.map((l) => l.value === "selling" || l.value === "buying" ? { ...l, countAsDot: true } : l);
   const chrome = (browse?: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
     tabs: (
       <SectionTabs

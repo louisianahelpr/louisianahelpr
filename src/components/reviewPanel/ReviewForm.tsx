@@ -278,7 +278,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             side={revieweeRole === "poster" ? "helper" : "poster"}
             otherName={revieweeName}
             viewerId={viewer?.id ?? ""}
-          />
+          >
           <ReviewQuestionCard
             question={revieweeRole === "poster" ? `How was working for ${firstName}?` : `How did ${firstName} do?`}
             rating={rating}
@@ -351,6 +351,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             />
           </div>
           </ReviewQuestionCard>
+          </JobDoneSummary>
           {revieweeRole === "poster" && (
             // Board 36: the Helpr's next step after a finished job. A text
             // link, not a second primary: "Send review" is this screen's one.

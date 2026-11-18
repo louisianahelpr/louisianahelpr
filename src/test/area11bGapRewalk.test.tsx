@@ -85,4 +85,23 @@ describe("Area 11b gap re-walk", () => {
     expect(desc).not.toBeNull();
     expect(desc![1]).not.toMatch(/onboarding|Stripe/i);
   });
+
+  // @mutate src/components/jobDone/JobDoneSummary.tsx |       <Fragment key="review">{children}</Fragment>\n | 
+  // @mutate src/components/reviewPanel/ReviewForm.tsx |           </ReviewQuestionCard>\n          </JobDoneSummary> |           </ReviewQuestionCard>
+  it("M4: the review sheet asks for the rating before it offers 'Book again'", () => {
+    const summary = code("src/components/jobDone/JobDoneSummary.tsx");
+    const slot = summary.indexOf('<Fragment key="review">{children}</Fragment>\n      {side === "poster"');
+    const rebook = summary.indexOf('data-testid="book-again"');
+    expect(slot).toBeGreaterThan(0);
+    expect(rebook).toBeGreaterThan(slot);
+    for (const f of ["src/components/reviewPanel/ReviewForm.tsx", "src/components/CompletionPrompts.tsx"]) {
+      const s = code(f);
+      const open = s.indexOf("<JobDoneSummary");
+      const card = s.indexOf("<ReviewQuestionCard", open);
+      const close = s.indexOf("</JobDoneSummary>", open);
+      expect(open, f).toBeGreaterThan(0);
+      expect(card, f).toBeGreaterThan(open);
+      expect(close, f).toBeGreaterThan(card);
+    }
+  });
 });

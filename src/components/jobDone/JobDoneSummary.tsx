@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
@@ -71,7 +72,10 @@ export function JobDoneSummary({
   side,
   otherName,
   viewerId,
+  children,
 }: {
+  /** The review card: drawn after the summary and before the rebook card (area 11b M4). */
+  children?: ReactNode;
   jobId: string;
   side: Side;
   /** The other person's display name ("Andre L."). */
@@ -118,7 +122,8 @@ export function JobDoneSummary({
     side === "poster" && job?.payment_status === "released" && !job.is_group_job ? job.helper_id : null,
   );
 
-  if (!job) return null;
+  // The review card keeps one keyed place, so it is not remounted (losing focus or a half-typed note) when the job arrives.
+  if (!job) return children ? <div className="space-y-3 min-w-0"><Fragment key="review">{children}</Fragment></div> : null;
 
   const released = job.status === "completed" && RELEASED.has(job.payment_status ?? "");
   const firstName = otherName.split(" ")[0] || otherName;
@@ -187,6 +192,17 @@ export function JobDoneSummary({
         </div>
       )}
 
+      {side === "helper" && released && transfers && (
+        <HelprPayNote
+          transfers={transfers}
+          held={job.dispute_status === "reversal_hold"}
+          scheduledAt={job.payout_scheduled_at}
+          viewerId={viewerId}
+        />
+      )}
+      {/* Area 11b M4: the review card (children) comes right after the job and its money note, so the rating is the
+          first thing to do; "Book <Helpr> again" waits under it instead of standing between the poster and the stars. */}
+      <Fragment key="review">{children}</Fragment>
       {side === "poster" && !job.is_group_job && job.helper_id && (
         // Board 185: hire the same Helpr again, for any job. A blank post
         // sent to this Helpr first as a direct offer (the saved-Helpr card's
@@ -229,15 +245,6 @@ export function JobDoneSummary({
               saved Helpr" (the heart above saves them). */}
           </div>
         </div>
-      )}
-
-      {side === "helper" && released && transfers && (
-        <HelprPayNote
-          transfers={transfers}
-          held={job.dispute_status === "reversal_hold"}
-          scheduledAt={job.payout_scheduled_at}
-          viewerId={viewerId}
-        />
       )}
     </div>
   );

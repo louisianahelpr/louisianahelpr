@@ -5448,3 +5448,14 @@ html.has-section-fab { --section-fab-clearance: 4rem; }
     padding-right: 1.25rem;
   }
 }
+
+/* DESIGN AUDIT 11-17 #12: the Working cards at 1440 had a ~20px blank band between a one-line title and the address
+   row under it: the 44px thumb set the title row's height, and the address (outside the face's link, since it holds
+   its own press-to-map control) started under the thumb. From 768px the thumb is drawn out of flow at the column's
+   top-left, the column keeps the thumb's height as its floor, and the title's 56px indent replaces the flex gap. The
+   phone card keeps its measured layout (mineFaceSkeletonMatchesFace). Guard: src/test/designAudit1117.test.ts. */
+@media (min-width: 768px) {
+  [data-mine-face-col] { position: relative; min-height: 2.75rem; }
+  [data-mine-face-col] [data-mine-face-thumb] { position: absolute; left: 0; top: 0; }
+  [data-mine-face-col] [data-mine-face-open] { padding-left: 3.5rem; }
+}

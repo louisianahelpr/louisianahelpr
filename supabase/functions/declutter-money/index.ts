@@ -219,6 +219,12 @@ type ShopPayoutDue = {
    */
   balance_payment_intent_id?: string | null;
   deposit_shop_cents?: number | null;
+  /**
+   * Q2105 step 3 (20261118060659): what the buyer's gift card paid toward the order (shop_orders.gift_cents; 0 or
+   * absent for a card-only order). A gift order's card charge is smaller than the shop's payout, so the payout is
+   * sent from the platform balance after giftCovers, never with source_transaction (Declutter's Q2106 rule).
+   */
+  gift_cents?: number | null;
 };
 /** What a declutter_delivery_refunds row gives back, in an ops page ("shipping refund", "delivery-fee refund"). */
 function refundPartWord(reason: string): string {
@@ -987,7 +993,11 @@ serve(async (req) => {
           if (await unpayableNow("shop", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, resolved.mode)) continue;
           // From the order's OWN charge, only while it is whole (paid, nothing refunded but what the app recorded
           // (Helpr delivery, 20261106194913: a delivery refund), not disputed).
-          const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents ?? 0);
+          // Q2105 step 3: a gift order is paid from the platform balance (giftCovers below), so its own charge is
+          // not the transfer's source. A gift on a deposit order is refused at checkout; never split one here.
+          const shopGiftCents = Math.max(0, Number(p.gift_cents ?? 0));
+          if (shopGiftCents > 0 && restPi) throw new GiftNotCovered("a gift order paid in two charges is never paid out here");
+          const charge = shopGiftCents > 0 ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents ?? 0);
           // 11-07: the rest's charge must be whole too (the app never refunds it: option B refunds by hand, which holds
           // the order), and the deposit's share must be known; otherwise nothing moves.
           const restCharge = restPi ? await wholeCharge(stripe, restPi, 0) : null;
@@ -1017,6 +1027,10 @@ serve(async (req) => {
           // split frozen at the hold), so a retry rebuilds the same amounts under the same keys.
           const depositLeg = restPi ? Math.min(p.amount_cents, Number(p.deposit_shop_cents)) : p.amount_cents;
           const restLeg = p.amount_cents - depositLeg;
+          // Q2105 step 3: the platform-balance guard, on the final amount, before the send is marked.
+          if (shopGiftCents > 0) {
+            await giftCovers(stripe, { group, paymentIntentId: p.payment_intent_id, refundsRecordedCents: p.refunds_recorded_cents ?? 0, giftCents: shopGiftCents, amountCents: p.amount_cents });
+          }
           if (!(await markSending("shop", p.payout_id, p.seller_id, p.amount_cents))) continue;
           beforeSend = false;
           if (!shopTransfer) {
@@ -1026,8 +1040,9 @@ serve(async (req) => {
                 currency: "usd",
                 destination: p.stripe_account_id as string,
                 transfer_group: group,
-                source_transaction: charge,
-                metadata: { kind: "shop_payout", payout_id: p.payout_id, order_id: p.order_id, ...(restPi ? { leg: "deposit" } : {}) },
+                ...(charge ? { source_transaction: charge } : {}),
+                metadata: { kind: "shop_payout", payout_id: p.payout_id, order_id: p.order_id, ...(restPi ? { leg: "deposit" } : {}),
+                  ...(shopGiftCents > 0 ? { gift_cents: String(shopGiftCents) } : {}) },
               },
               { idempotencyKey: `shop-payout-${p.payout_id}` },
             );
@@ -1073,6 +1088,11 @@ serve(async (req) => {
         else out.shop_payouts_sent++;
         await clearWait("shop", p.payout_id);
       } catch (e) {
+        if (e instanceof GiftNotCovered) {
+          defects.record(`shop payout ${p.payout_id}: ${e.message}`.slice(0, 200));
+          await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 1440, "data_defect", e.message);
+          continue;
+        }
         if (isPartyRefusal(e)) {
           out.mixed_parties++;
           defects.record(`shop payout ${p.payout_id}: ${partyWhy(e, "the order")}; settle it by hand`);

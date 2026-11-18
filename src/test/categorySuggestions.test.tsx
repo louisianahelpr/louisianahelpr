@@ -18,18 +18,19 @@
  * (43 PASS on the migrations; NEW_MIGRATION=skip 0 PASS / 43 FAIL; 8 planted
  * defects each caught, measured 2026-10-15).
  */
-// @mutate supabase/migrations/20261015051141_category_suggestions.sql | BEGIN\n  PERFORM public.require_feature('suggest_category');\n  IF v_uid IS NULL THEN | BEGIN\n  IF v_uid IS NULL THEN
-// @mutate supabase/migrations/20261015051141_category_suggestions.sql |   IF public.is_caller_banned() THEN | IF false THEN
+// @mutate supabase/migrations/20261118055848_shops_suggest_a_category.sql | BEGIN\n  PERFORM public.require_feature('suggest_category');\n  IF v_uid IS NULL THEN | BEGIN\n  IF v_uid IS NULL THEN
+// @mutate supabase/migrations/20261118055848_shops_suggest_a_category.sql |   IF public.is_caller_banned() THEN | IF false THEN
 // @mutate supabase/migrations/20261015051141_category_suggestions.sql | REVOKE ALL ON FUNCTION public.suggest_category(text, text) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.suggest_category(text, text) FROM PUBLIC;
 // @mutate supabase/migrations/20261015051141_category_suggestions.sql | VALUES ('suggest_category', 'testers', | VALUES ('suggest_category', 'off',
 // @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql | INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)\n  VALUES (v_uid, 'review_category_suggestion' | INSERT INTO public.audit_nothing (admin_id, action, target_type, target_id, details)\n  VALUES (v_uid, 'review_category_suggestion'
-// @mutate supabase/migrations/20261015051141_category_suggestions.sql |   PERFORM pg_advisory_xact_lock(hashtext('suggest_category'), hashtext(v_uid::text)); |   PERFORM 1;
+// @mutate supabase/migrations/20261118055848_shops_suggest_a_category.sql |   PERFORM pg_advisory_xact_lock(hashtext('suggest_category'), hashtext(v_uid::text)); |   PERFORM 1;
 // @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql |   SELECT * INTO v_row FROM public.category_suggestions WHERE id = p_id;\n |   SELECT * INTO v_row FROM public.category_suggestions WHERE id = p_id FOR UPDATE;\n
 // @mutate src/components/SuggestCategory.tsx |   if (!on) return null; |   if (false) return null;
 // @mutate src/components/declutter/SellSummaryCard.tsx |           <SuggestCategory area="declutter" /> | {null}
 // @mutate src/components/declutter/DeclutterSellView.tsx |           <SuggestCategory area="declutter" /> | {null}
 // @mutate src/components/declutter/DeclutterEditListing.tsx |       <SuggestCategory area="declutter" /> | {null}
 // @mutate src/components/postjob/JobCategoryGroups.tsx |           <SuggestCategory area="jobs" /> | {null}
+// @mutate src/components/shops/ShopEditView.tsx |       <SuggestCategory area="shops" /> | {null}
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -141,11 +142,13 @@ const PICKERS: ReadonlyArray<{ file: string; picker: RegExp; area: "jobs" | "dec
   { file: "src/components/declutter/SellSummaryCard.tsx", picker: /<CategoryDrillDown label=\{t\("sell\.category"\)\}/, area: "declutter" },
   { file: "src/components/declutter/DeclutterSellView.tsx", picker: /<CategoryDrillDown label=\{tr\("sf\.ds\.category"\)\}/, area: "declutter" },
   { file: "src/components/declutter/DeclutterEditListing.tsx", picker: /<ChipGroup label=\{t\("lp\.ed\.category"\)\}/, area: "declutter" },
+  // Q1953 (Shops launch pass 2, 2026-11-18; 20261118 shops_suggest_a_category widens the server to 'shops').
+  { file: "src/components/shops/ShopEditView.tsx", picker: /<ShopCategoryQuickPick id="shop-category"/, area: "shops" },
 ];
 
 describe("Suggest a category: every category picker renders the link (Q1836 a)", () => {
   it("reads a real inventory (floor)", () => {
-    expect(PICKERS.length).toBeGreaterThan(3);
+    expect(PICKERS.length).toBeGreaterThan(4);
   });
 
   for (const { file, picker, area } of PICKERS) {

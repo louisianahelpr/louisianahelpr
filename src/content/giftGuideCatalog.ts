@@ -174,7 +174,9 @@ const slugOf = (old: string) => OLD_SLUGS[old] ?? old;
 
 const sectionGuide = (id: string): Draft => {
   const s = section(id);
-  return { slug: slugOf(s.id), lead: "the gift guide", title: s.title, line: s.line, picks: fromSection(s), links: [s.shop, ...s.more] };
+  return { slug: slugOf(s.id), lead: "the gift guide", title: s.title, line: s.line, picks: fromSection(s),
+    // A section's links are other guides' collections (Her: Mom, Sister, Aunt, Friends), never its own full guide (design audit 11-18 #16).
+    links: [s.shop, ...s.more].map((l) => ({ ...l, related: true })) };
 };
 
 /**

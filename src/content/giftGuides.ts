@@ -23,6 +23,8 @@
 export interface GiftLink {
   label: string;
   href: string;
+  /** Another guide's collection (Her lists Mom, Sister, Aunt, Friends): shown under "More on ShopMy", never as this guide's own. */
+  related?: boolean;
 }
 
 export interface GiftPick {
@@ -204,6 +206,8 @@ export const giftGuides = {
   seeAllLabel: "See all",
   shopLabel: "Shop",
   fullGuideLabel: "Shop the full guide",
+  /** Before the other guides' collections a section links to (design audit 11-18 #16: Her's links are Mom, Sister...). */
+  relatedLabel: "More on ShopMy",
   /** A store page's live deal sections (follow-up batch 2026-11-18), after its picks. */
   dealsTitle: "Deals and holiday shops",
   /** A deal's end date, "2026-11-22" -> "Ends Nov 22". */

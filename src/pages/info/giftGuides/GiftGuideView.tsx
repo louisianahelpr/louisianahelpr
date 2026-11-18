@@ -86,9 +86,15 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
         // A sponsor whose gift is left out (lead 2026-11-18: Hilma's probiotic, a health product) is still named.
         <p className="gg-also" data-gift-also-sponsoring="">{G.alsoSponsoring(NAME_ONLY_SPONSORS[guide.slug].join(", "))}</p>
       )}
-      {guide.links.length > 0 && (
+      {guide.links.some((l) => !l.related) && (
         <p className="gg-more">
-          {guide.links.map((l) => <GiftOut key={l.href} href={l.href} className="gg-link">{G.fullGuideLabel}: {l.label}</GiftOut>)}
+          {guide.links.filter((l) => !l.related).map((l) => <GiftOut key={l.href} href={l.href} className="gg-link">{G.fullGuideLabel}: {l.label}</GiftOut>)}
+        </p>
+      )}
+      {guide.links.some((l) => l.related) && (
+        <p className="gg-more" data-gift-related="">
+          <span className="gg-more-label">{G.relatedLabel}:</span>
+          {guide.links.filter((l) => l.related).map((l) => <GiftOut key={l.href} href={l.href} className="gg-link">{l.label}</GiftOut>)}
         </p>
       )}
     </>

@@ -103,6 +103,7 @@ a.gg-share{display:inline-flex;align-items:center;text-decoration:none}
 .gg-helpr-btn{display:inline-flex;align-items:center;min-height:44px;background:hsl(var(--bark));color:#fff;font-weight:700;font-size:13px;padding:0 16px;border-radius:999px;white-space:nowrap;text-decoration:none}
 @media (max-width:480px){.gg-helpr{flex-direction:column;align-items:flex-start}}
 .gg-more{display:flex;flex-wrap:wrap;gap:0 20px;margin-top:12px}
+.gg-more-label{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:600;color:var(--gg-muted)}
 .gg-disc{border-top:1px solid var(--gg-line);margin-top:26px;padding-top:14px;font-size:12px;color:var(--gg-muted);text-align:center}
 .gg-disc p{margin:2px 0}
 .gg-disc .gg-more{justify-content:center}

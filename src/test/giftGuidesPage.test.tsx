@@ -812,3 +812,27 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
     expect(picks).toBeGreaterThan(500);
   });
 });
+
+describe("gift guides: Her and Him never call another guide's collection their full guide (design audit 11-18 #16)", () => {
+  it("Her lists Mom, Sister, Aunt and Friends under More on ShopMy; a guide's own collection keeps Shop the full guide", () => {
+    // @mutate src/content/giftGuideCatalog.ts | links: [s.shop, ...s.more].map((l) => ({ ...l, related: true })) | links: [s.shop, ...s.more]
+    for (const slug of ["her", "him"]) {
+      const g = guideBySlug(slug)!;
+      expect(g, slug).toBeTruthy();
+      expect(g.links.length, slug).toBeGreaterThan(1);
+      expect(g.links.every((l) => l.related), slug).toBe(true);
+      const { container, unmount } = render(<MemoryRouter><GiftGuideView guide={g} /></MemoryRouter>);
+      expect(container.textContent, slug).not.toContain("Shop the full guide");
+      const related = container.querySelector("[data-gift-related]")!;
+      expect(related.textContent, slug).toMatch(/^More on ShopMy:/);
+      unmount();
+    }
+    const her = render(<MemoryRouter><GiftGuideView guide={guideBySlug("her")!} /></MemoryRouter>).container;
+    expect([...her.querySelectorAll("[data-gift-related] a")].map((a) => a.textContent)).toEqual(["Gifts for Mom", "Gifts for Sister", "Gifts for Aunt", "Gifts for Friends"]);
+    cleanup();
+    // Dad's own ShopMy collection is still his full guide.
+    const dad = guideBySlug("dad")!;
+    expect(dad.links.some((l) => !l.related && l.label === "Gifts for Dad on ShopMy")).toBe(true);
+    expect(render(<MemoryRouter><GiftGuideView guide={dad} /></MemoryRouter>).container.textContent).toContain("Shop the full guide: Gifts for Dad on ShopMy");
+  });
+});

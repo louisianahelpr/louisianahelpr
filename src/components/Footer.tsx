@@ -72,10 +72,10 @@ const INSTAGRAM_URL = "https://www.instagram.com/louisianahelpr/";
  */
 /**
  * `landing` (owner-approved landing redesign, 2026-10-20): the footer's column
- * lines up with the landing's 72rem measure and wears its warm tokens. Every
- * other page keeps the full-width footer.
+ * lines up with the landing's 72rem measure. Since design audit 11-17 #16 every
+ * page's footer does, so the prop no longer changes anything; callers may still pass it.
  */
-const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
+const Footer = (_props: { landing?: boolean } = {}) => {
   // The footer renders on public AND authed surfaces (App.tsx, PageHeader,
   // AuthShell, PublicLayout), so its "Jobs" link cannot be a constant.
   const { user } = useAuthReady();
@@ -119,7 +119,9 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
       color: "hsl(var(--olivewood))",
     }}
   >
-    <div className={`page-measure pt-6 md:pt-8 pb-2${landing ? " max-w-6xl" : ""}`}>
+    {/* Design audit 11-17 #16: every public page's footer sits on the same 72rem column as its content (it was the
+        landing's only, so at 1440 the footer started at 48 px and the page at 144 px). */}
+    <div className="page-measure max-w-6xl pt-6 md:pt-8 pb-2">
       {/* Columns go side-by-side from sm (640px), not md (768px). At tablet
           widths the old md-only grid stacked brand + Company + Legal + Follow
           into ONE tall column, which made the footer dominate the page. From

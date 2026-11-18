@@ -173,8 +173,12 @@ const TopicSection = ({
           </span>
           {/* F035 (owner UI audit 11-09): the count beside the name looked like an unread badge. It is said in words,
               muted, on the line under the name ("4 questions"), after the topic's blurb. */}
-          <span className="font-sans text-ds-13 text-muted-foreground" data-help-topic-count="">
-            {topicDesc(section.topic) ? `${topicDesc(section.topic)} · ` : ""}
+          {/* Design audit 11-17 #14: "· 3 questions" wrapped onto an orphan line after the blurb. The blurb and the
+              count are two lines now, the count with no leading dot. */}
+          {topicDesc(section.topic) && (
+            <span className="font-sans text-ds-13 text-muted-foreground">{topicDesc(section.topic)}</span>
+          )}
+          <span className="block font-sans text-ds-13 text-muted-foreground" data-help-topic-count="">
             {section.items.length === 1 ? "1 question" : `${section.items.length} questions`}
           </span>
         </span>

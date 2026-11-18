@@ -24,7 +24,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |           <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {guide ? <GiftGuideView guide={guide} /> : <GiftGuideLanding group={group} />}{footer} | {footer}{guide ? <GiftGuideView guide={guide} /> : <GiftGuideLanding group={group} />}
+ * @mutate src/pages/info/GiftGuides.tsx | {guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details key={row} open={row === active?.row} | <details key={row} open
@@ -39,7 +39,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const { slug } = useParams<{ slug?: string }>(); |   const slug = undefined as string \| undefined; useParams();
  * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && fromHash) return | if (!slug && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
- * @mutate src/pages/info/GiftGuides.tsx | {guide && <Link to="/gift-guides" className="gg-link" | {guide && <Link to="/gift-guides/" className="gg-link"
+ * @mutate src/pages/info/GiftGuides.tsx | {guide ? <Link to="/gift-guides" className="gg-link" | {guide ? <Link to="/gift-guides/" className="gg-link"
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | loading="lazy" decoding="async" /> | decoding="async" />
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
@@ -48,12 +48,12 @@
  * @mutate src/pages/info/GiftGuides.tsx | "gg w-full" | "gg page-column"
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
- * @mutate src/content/giftGuideCatalog.ts | picks: uniqueByHref([...d.picks, ...src.picks]) | picks: [...d.picks, ...src.picks, ...src.picks]
+ * @mutate src/content/giftGuideCatalog.ts | picks: RESEARCHED_PICKS[t] ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: RESEARCHED_PICKS[t] ? d.picks : [...d.picks, ...src.picks, ...src.picks]
  * @mutate src/content/giftGuides.ts | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => !c.expires \|\| c.expires >= today); | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => today === today);
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   if (codes.length === 0) return null; |   if (codes.length === 0) return <details data-gift-codes="" />;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && ( | {false && (
  * @mutate src/content/giftGuideCatalog.ts | export const REMOVED_GUIDES = ["last-minute-gifts", | export const REMOVED_GUIDES = ["nothing",
- * @mutate src/pages/info/GiftGuides.tsx | <GiftGuidesWords lead={guide.lead} title={guide.title} | <GiftGuidesWords lead={guide.lead} title={guide.slug}
+ * @mutate src/pages/info/GiftGuides.tsx | : guide.lead} title={guide.title} titleId="gift-guide-title" | : guide.lead} title={guide.slug} titleId="gift-guide-title"
  * @mutate src/pages/info/Index.tsx |       <SectionsShowcase />\n |       <SectionsShowcase />\n      <GiftGuidesBand />\n
  * @mutate src/components/Footer.tsx |               <Link to="/safety" className={FOOTER_LINK}> |               <Link to="/gift-guides" className={FOOTER_LINK}>
  * @mutate src/components/sponsor/Sections.tsx |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n        <Link to={C.links.giftGuides}>{C.footer.giftGuidesLink}</Link>\n
@@ -437,7 +437,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
     let checked = 0;
     for (const g of GUIDES.filter((x) => !x.children)) {
       const { container } = renderAt(`/gift-guides/${g.slug}`);
-      // (querySelector, not getByRole: an accessibility-tree walk per guide over ~470 guides timed out.)
+      // (querySelector, not getByRole: an accessibility-tree walk per guide over ~470 guides timed out, 2026-11-18.)
       expect(container.querySelector("[data-gift-words] h2")?.textContent, g.slug).toBe(g.title);
       const rows = [...container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]")];
       expect(rows.length, g.slug).toBe(g.picks.length);
@@ -463,7 +463,8 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       cleanup();
     }
     expect(checked).toBeGreaterThan(50);
-  });
+    // Renders all ~470 guide pages (2026-11-18) one by one (~12 s alone, more under a parallel run): a per-test timeout, not a budget.
+  }, 90_000);
 
   it("every guide's palette is one of the three cover palettes; covers are the owner's files, two-way", () => {
     for (const g of GUIDES) expect(["green", "oat", "red"], g.slug).toContain(g.tint);
@@ -530,7 +531,8 @@ describe("gift guides: links and disclosures on every view", () => {
       cleanup();
     }
     expect(outbound).toBeGreaterThan(picks.length);
-  });
+    // Renders all ~470 guide pages (2026-11-18) one by one (~12 s alone, more under a parallel run): a per-test timeout, not a budget.
+  }, 90_000);
 
   it("fills the public container: no page column or narrower measure", () => {
     const { container } = renderAt("/gift-guides");

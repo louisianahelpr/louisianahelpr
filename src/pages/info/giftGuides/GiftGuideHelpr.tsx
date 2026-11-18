@@ -4,7 +4,7 @@ import type { JobCategory } from "@/lib/jobCategories";
 import { giftGuides as G } from "@/content/giftGuides";
 
 /** The gift-wrapping job (owner 2026-11-18): an existing category (no new one), titled "Gift wrapping". */
-export const GIFT_WRAP_CATEGORY: JobCategory = "errands";
+const GIFT_WRAP_CATEGORY: JobCategory = "errands";
 
 /**
  * Post a job, pre-filled, through the existing matchmaker deep link (src/lib/matchmakerLink.ts: `mm=1&cat=&t=`): it

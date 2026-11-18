@@ -16,7 +16,7 @@ export function FailedPayoutLink() {
  * Area 06 H2 (11-18): "You get $40 once you set up payouts in Settings." had no way there. The words link to the payout
  * settings, held back while setup is paused for everyone (the same rule as the failed-payout link above).
  */
-export function PayoutSetupLink({ line }: { line: string }) {
+function PayoutSetupLink({ line }: { line: string }) {
   const paused = usePayoutSetupBlock() === "paused";
   if (paused || !/(once you set up payouts in Settings|once your payout account is ready)\.$/.test(line)) return null;
   return <>{" "}<Link to="/profile?tab=payment" className="underline font-semibold" data-payout-setup-link="">Set up payouts</Link></>;

@@ -25,7 +25,7 @@ export function sponsorDeliveryOf(s: { shipTo: 'winner' | 'helpr' | null; notes:
   return 'helpr'
 }
 
-export const SPONSOR_SHIP_ADDRESS = 'Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528'
+const SPONSOR_SHIP_ADDRESS = 'Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528'
 
 /** The confirmation email's delivery row: label and the one line for the sponsor's choice. */
 export function sponsorDeliveryLine(d: SponsorDelivery, adminEmail: string): { label: string; line: string } {

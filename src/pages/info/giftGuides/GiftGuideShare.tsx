@@ -2,7 +2,7 @@ import { useState } from "react";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 
 /** The share links for a gift-guides page (owner 2026-11-18): Facebook's sharer and Pinterest's pin builder, no SDK script. */
-export const shareLinks = (path: string, title: string, image?: string) => {
+const shareLinks = (path: string, title: string, image?: string) => {
   const url = `${SITE_ORIGIN}${path}`;
   const pin = new URLSearchParams({ url, description: title });
   if (image) pin.set("media", `${SITE_ORIGIN}${image}`);

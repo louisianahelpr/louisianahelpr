@@ -14,7 +14,7 @@ export const SHIP_LINES = {
 } as const;
 
 /** The month and day in America/Chicago at `now`. */
-export const chicagoMonthDay = (now: Date): { month: number; day: number } => {
+const chicagoMonthDay = (now: Date): { month: number; day: number } => {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", month: "numeric", day: "numeric" }).formatToParts(now);
   const num = (t: string) => Number(parts.find((p) => p.type === t)?.value);
   return { month: num("month"), day: num("day") };

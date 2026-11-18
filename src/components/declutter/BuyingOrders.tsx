@@ -507,7 +507,7 @@ const ACTION_KEYS: Record<string, MsgKey> = {
   "Add your side": "dbuy.act.addSide",
   [SEE_OFFER]: "dbuy.act.seeOffer",
 };
-export const actionWords = (action: string) => (ACTION_KEYS[action] ? t(ACTION_KEYS[action]) : action);
+const actionWords = (action: string) => (ACTION_KEYS[action] ? t(ACTION_KEYS[action]) : action);
 
 /** A checkout that ended unpaid: nothing was charged (offers and checkouts charge only when paid). */
 /**

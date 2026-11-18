@@ -1,10 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
-import { fetchReferralData } from "@/hooks/useReferralData";
-import { prefetchActivityCores } from "@/hooks/useActivityData";
 import { isConstrainedNetwork, prefetchRoute, whenPageSettled } from "@/lib/routePrefetch";
-import { prefetchPayoutSetup } from "@/lib/payoutSetupQueries";
 
 /**
  * Warm caches for the screens a Dashboard user is most likely to tap next:
@@ -29,6 +26,13 @@ import { prefetchPayoutSetup } from "@/lib/payoutSetupQueries";
  * now waits the same way — the window `load` event AND a quiet network, then
  * an idle callback — and a Save-Data / 2G visitor gets none of it, as with
  * every other speculative fetch (`isConstrainedNetwork`).
+ *
+ * THE WARM-UP CODE LOADS WITH THE WARM-UP (Q2705 pass 2, 2026-11-17). The
+ * referral, Activity and payout readers were static imports, so signed-in
+ * /jobs downloaded useActivityData and its helpers (~13 KB raw) before its
+ * first job card, only to run them after the page settled. They now load in
+ * the same idle callback that runs them; the reads still go out then, so the
+ * next tap is as warm as before. src/test/jobsFirstScreenSkipsWarmUpCode.test.ts.
  */
 export function usePrefetchUserData(userId: string | undefined) {
   const queryClient = useQueryClient();
@@ -51,30 +55,41 @@ export function usePrefetchUserData(userId: string | undefined) {
       }
     };
 
+    let cancelled = false;
     const stopWaiting = whenPageSettled(() => idle(() => {
-      // Data caches — 60s staleTime means revisits are instant.
-      queryClient.prefetchQuery({
-        queryKey: queryKeys.referral.byUser(userId),
-        queryFn: () => fetchReferralData(userId),
-        staleTime: 60 * 1000,
-      });
-      // Both Activity tabs' CORE queries (the per-tab first-paint data). The
-      // deferred detail queries are keyed on the core result, so they can't be
-      // warmed from here — and nothing waits on them to paint.
-      prefetchActivityCores(queryClient, userId);
       // Route chunks — first paint of the destination is now ~instant.
       prefetchRoute("/posts");
       prefetchRoute("/jobs");
       prefetchRoute("/profile");
-      // The SLOW class. Everything above is PostgREST/RPC (~110ms); these two
-      // are edge fn → Stripe (395ms measured against prod) and are the whole
-      // reason /profile's payout card lands visibly after the rest of the
-      // screen. Warming them here spends that 395ms while the user is still
-      // looking at the Dashboard. Nothing else in the app warmed a
-      // Stripe-class query — this is the pattern the next one should copy.
-      prefetchPayoutSetup(queryClient, userId);
+      void Promise.all([
+        import("@/hooks/useReferralData"),
+        import("@/hooks/useActivityData"),
+        import("@/lib/payoutSetupQueries"),
+      ]).then(([{ fetchReferralData }, { prefetchActivityCores }, { prefetchPayoutSetup }]) => {
+        if (cancelled) return;
+        // Data caches — 60s staleTime means revisits are instant.
+        queryClient.prefetchQuery({
+          queryKey: queryKeys.referral.byUser(userId),
+          queryFn: () => fetchReferralData(userId),
+          staleTime: 60 * 1000,
+        });
+        // Both Activity tabs' CORE queries (the per-tab first-paint data). The
+        // deferred detail queries are keyed on the core result, so they can't be
+        // warmed from here — and nothing waits on them to paint.
+        prefetchActivityCores(queryClient, userId);
+        // The SLOW class. Everything above is PostgREST/RPC (~110ms); these two
+        // are edge fn → Stripe (395ms measured against prod) and are the whole
+        // reason /profile's payout card lands visibly after the rest of the
+        // screen. Warming them here spends that 395ms while the user is still
+        // looking at the Dashboard. Nothing else in the app warmed a
+        // Stripe-class query — this is the pattern the next one should copy.
+        prefetchPayoutSetup(queryClient, userId);
+      }).catch(() => {
+        // Speculative warm-up only: if a chunk fails to load, the next screen reads its own data as usual.
+      });
     }));
     return () => {
+      cancelled = true;
       stopWaiting();
       cancelIdle();
     };

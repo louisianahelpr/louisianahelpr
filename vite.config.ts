@@ -8,7 +8,7 @@ import { execSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, adminIconFiles, bootModules, clientReachers, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, sellingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, adminIconFiles, bootModules, clientReachers, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, sellingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, jobsBrowseReach, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 /** The register-on-import English screen dictionaries (src/lib/i18n/en*.ts minus enCore/enRegistry and the en.ts type). */
@@ -201,6 +201,8 @@ const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(p
 const { itemDeep: declutterItemDeep, itemPages: declutterItemPages, itemShared: declutterItemShared } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
 const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
 const jobsBrowseFirstScreen = jobsBrowseFirstScreenModules(process.cwd(), { homeOff });
+// Q2705 pass 2 (11-17): all of /jobs' Browse reach; the jobs-late, jobs-signed-in and jobs-dock groups read it.
+const jobsReach = jobsBrowseReach(process.cwd());
 const homeIcons = homeIconFiles(process.cwd());
 const bootIcons = bootIconFiles(process.cwd());
 const itemIcons = itemIconFiles(process.cwd());
@@ -1395,6 +1397,16 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false
             },
+            // Q2705 pass 2 (11-17): the leaves signed-in /jobs' Browse screen runs (the apply flow's lifecycle errors and
+            // online check, jobLinkRef, deepLinkRouter...). In leaves, /jobs also downloaded the next-step line, celebrate
+            // and the payout reads, and through NextStep's import the whole signed-in-shared chunk (20.6 KB gz).
+            {
+              name: "jobs-leaves",
+              test: (id: string) => profileSharedLeaves.has(norm(id)) && jobsReach.has(norm(id)),
+              priority: 15.85, // above leaves (15.8), below native-push (15.9)
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "leaves",
               // NextStep and jobNextStep (owner 11-01, the shared next-step line): the job page, Messages and Declutter's
@@ -1459,6 +1471,16 @@ export default defineConfig(({ mode, command }) => ({
             // (bootReach.mjs signedInSplit homeLate: MobileNav's unread counts and message previews, Legal's data
             // export, ...). Those load after Home's first paint, so it left Home's first round (B79, 11-01); the
             // every-page roots fetch it beside signed-in-shared. src/test/homeSkipsOtherScreensCode.test.ts.
+            // Q2705 pass 2 (11-17): the dock code signed-in /jobs' Browse screen also runs (needsYouStore, userBlocks). In
+            // signed-in-dock they put the dock's unread and archived conversation code (~3 KB gz) on /jobs' first round.
+            {
+              name: "jobs-dock",
+              test: (id: string) => homeLate.has(norm(id)) && dockSet.has(norm(id)) && jobsReach.has(norm(id)),
+              minShareCount: 2,
+              priority: 15.35,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "signed-in-dock",
               test: (id: string) => homeLate.has(norm(id)) && dockSet.has(norm(id)),
@@ -1474,6 +1496,17 @@ export default defineConfig(({ mode, command }) => ({
               priority: 15.2,
               minSize: 0,
               includeDependenciesRecursively: false
+            },
+            // Q2705 pass 2 (11-17): the part of signed-in-shared signed-in /jobs' Browse screen runs. In one chunk, /jobs
+            // downloaded the rest too (Profile's tab reads, poster spend, Declutter to-dos, the share sheet: ~33 KB raw).
+            // Home and the other screens fetch this beside signed-in-shared, in the same round.
+            {
+              name: "jobs-signed-in",
+              test: (id: string) => signedInOnly.has(norm(id)) && jobsReach.has(norm(id)),
+              minShareCount: 2,
+              priority: 15.05,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the modules alone, as in signed-in-shared */,
             },
             {
               name: "signed-in-shared",
@@ -1552,6 +1585,19 @@ export default defineConfig(({ mode, command }) => ({
               test: (id: string) => lateShared(id) && reachesClient.has(norm(id)),
               minShareCount: 2,
               priority: 10,
+              minSize: 0,
+              includeDependenciesRecursively: false /* their deps stay put, as in shared-late */,
+            },
+            // Q2705 pass 2 (11-17): the few shared-late modules signed-in /jobs' Browse screen runs (the search box's
+            // keyboard, job categories, the apply flow's error copy, lazyModule). In shared-late they made every cold
+            // /jobs download the whole chunk (13.7 KB gz: page meta, sponsor and card-hold copy, message scanner) for
+            // ~4 KB raw of it. Not the client reachers (shared-late-db keeps those, so a guest page that runs one of
+            // these never imports the client). Above shared-late so it wins them.
+            {
+              name: "jobs-late",
+              test: (id: string) => lateShared(id) && jobsReach.has(norm(id)) && !reachesClient.has(norm(id)),
+              minShareCount: 2,
+              priority: 10.5,
               minSize: 0,
               includeDependenciesRecursively: false /* their deps stay put, as in shared-late */,
             },

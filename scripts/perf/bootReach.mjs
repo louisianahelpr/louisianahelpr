@@ -344,6 +344,17 @@ export function jobsBrowseFirstScreenModules(root, split = signedInSplit(root)) 
 }
 
 /**
+ * Everything signed-in /jobs' Browse screen statically reaches (Q2705 pass 2, 11-17). vite.config.ts splits the part
+ * of each shared chunk /jobs runs into its own small chunk (jobs-late, jobs-signed-in, jobs-dock), so a cold /jobs
+ * stops downloading the rest of shared-late (page meta, sponsor and card-hold copy), signed-in-shared (Profile's tab
+ * reads, poster spend, Declutter to-dos) and signed-in-dock (archived and unread conversations) before its first job
+ * card. The other screens fetch the small chunk beside the big one, in the same round.
+ */
+export function jobsBrowseReach(root) {
+  return staticReach(root, [path.join(root, JOBS_BROWSE_ROOT)]);
+}
+
+/**
  * Home's PAGE roots (B88, 11-01): homeFirstScreenRoots without EVERY_PAGE_ROOTS. App mounts those (the dock, Legal,
  * the ID sheet, ...) lazily beside every page, after Home's first paint, so their shared code is not Home's first
  * round: vite.config.ts's app-shared admits Home's shared code by this reach, and signedInSplit's homeLate and

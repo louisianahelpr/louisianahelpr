@@ -96,7 +96,7 @@ export const esMessages: Record<keyof typeof enMessages, string> = {
   "msg.date": "Fecha: {date}",
   "msg.sectionEmpty": "Todavía no hay mensajes de {noun}",
   "msg.empty.declutter.body": "Cuando compre o venda un artículo, aquí aparecerán sus conversaciones con la otra persona.",
-  "msg.empty.declutter.browse": "Ver Ventas",
+  "msg.empty.declutter.browse": "Ver Declutter",
   "msg.empty.shops.body": "Aquí aparecerán las preguntas y los pedidos con tiendas locales.",
   "msg.empty.shops.browse": "Ver Tiendas",
   "msg.empty.homes.body": "Aquí aparecerán las conversaciones con dueños e inquilinos.",

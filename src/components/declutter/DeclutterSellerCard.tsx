@@ -16,6 +16,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchSellerCard, fetchSellerPickupCount, fetchSellerRating, fetchSellerReviewTags, pickupsLabel } from "@/lib/declutter/api";
 import { topReviewTags } from "@/lib/declutter/reviewTags";
 import { formatName } from "@/lib/utils";
+import "@/lib/i18n/enItemPage";
+import { getLang } from "@/lib/i18n/language";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { memberProfilePath, PROFILE_FROM_DECLUTTER } from "@/lib/profileLink/memberProfilePath";
 
 /** "Joined March 2025" from an ISO date; null when there is no usable date. */
@@ -23,7 +26,10 @@ function joinedLabel(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return `Joined ${d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "America/Chicago" })}`;
+  // Design audit r2 #35: "Joined March 2025" was English for a Spanish reader.
+  const es = getLang() === "es";
+  const date = d.toLocaleDateString(es ? "es-US" : "en-US", { month: "long", year: "numeric", timeZone: "America/Chicago" });
+  return wordInLang("ip.joined", `Joined ${date}`, { date });
 }
 
 /** `noun`: who the card is about, for its accessible name (the job page reuses this card for the poster). */

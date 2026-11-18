@@ -1,4 +1,4 @@
-/** Spanish for enHome.ts (F260q): Home (the Dashboard). Brand and section names follow nav.* (Ventas, Trabajos...). */
+/** Spanish for enHome.ts (F260q): Home (the Dashboard). Brand and section names follow nav.* (Declutter, Trabajos...). */
 import type { enHome } from "./enHome";
 
 export const esHome: Record<keyof typeof enHome, string> = {

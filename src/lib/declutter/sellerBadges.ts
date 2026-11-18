@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { unwrap } from "@/lib/supabaseResult";
 import { bandMap, type ActiveBand } from "@/lib/activeBand";
+import "@/lib/i18n/enItemPage";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 /** Listings for sale (this one included) from which "Lists often" shows. */
 const LISTS_OFTEN_FROM = 5;
@@ -21,33 +23,35 @@ const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
-/** "just now", "3 min ago", "2 h ago" or "5 days ago"; null for no date, a bad date or a date in the future past a minute. */
+/** "just now", "3 min ago", "2 h ago" or "5 days ago" (Spanish for a Spanish reader, design audit r2 #35); null for
+ * no date, a bad date or a date in the future past a minute. */
 function ago(iso: string | Date | null | undefined, now: Date): string | null {
   if (!iso) return null;
   const t = iso instanceof Date ? iso.getTime() : new Date(iso).getTime();
   if (Number.isNaN(t)) return null;
   const ms = now.getTime() - t;
   if (ms < -MIN) return null;
-  if (ms < MIN) return "just now";
-  if (ms < HOUR) return `${Math.floor(ms / MIN)} min ago`;
-  if (ms < DAY) return `${Math.floor(ms / HOUR)} h ago`;
+  if (ms < MIN) return wordInLang("ip.ago.now", "just now");
+  if (ms < HOUR) { const n = Math.floor(ms / MIN); return wordInLang("ip.ago.min", `${n} min ago`, { n }); }
+  if (ms < DAY) { const n = Math.floor(ms / HOUR); return wordInLang("ip.ago.h", `${n} h ago`, { n }); }
   const days = Math.floor(ms / DAY);
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days} days ago`;
+  if (days === 1) return wordInLang("ip.ago.yesterday", "yesterday");
+  if (days < 7) return wordInLang("ip.ago.days", `${days} days ago`, { n: days });
   const weeks = Math.floor(days / 7);
-  if (weeks < 9) return `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
+  if (weeks === 1) return wordInLang("ip.ago.week", "1 week ago");
+  if (weeks < 9) return wordInLang("ip.ago.weeks", `${weeks} weeks ago`, { n: weeks });
   return null;
 }
 
 /** "Listed 3 min ago" from the item's live_at; null when it has no live date or listed over two months back. */
 export function listedAgo(liveAt: string | null | undefined, now: Date = new Date()): string | null {
   const a = ago(liveAt, now);
-  return a ? `Listed ${a}` : null;
+  return a ? wordInLang("ip.listed", `Listed ${a}`, { when: a }) : null;
 }
 
 /** "Active today" for the "today" band, else null (an older or unknown band is thin data: no badge). */
-export function activeToday(band: ActiveBand | null | undefined): "Active today" | null {
-  return band === "today" ? "Active today" : null;
+export function activeToday(band: ActiveBand | null | undefined): string | null {
+  return band === "today" ? wordInLang("ip.badge.active", "Active today") : null;
 }
 
 export type SellerBadge = { key: "lists_often" | "on_time" | "active"; label: string };
@@ -55,8 +59,8 @@ export type SellerBadge = { key: "lists_often" | "on_time" | "active"; label: st
 /** The badges to show, in order; an empty list when nothing clears its bar. */
 export function sellerBadges(s: { othersForSale: number | null; onTime: boolean | null; activeBand: ActiveBand | null }): SellerBadge[] {
   const out: SellerBadge[] = [];
-  if (s.othersForSale !== null && s.othersForSale + 1 >= LISTS_OFTEN_FROM) out.push({ key: "lists_often", label: "Lists often" });
-  if (s.onTime === true) out.push({ key: "on_time", label: "On-time handovers" });
+  if (s.othersForSale !== null && s.othersForSale + 1 >= LISTS_OFTEN_FROM) out.push({ key: "lists_often", label: wordInLang("ip.badge.listsOften", "Lists often") });
+  if (s.onTime === true) out.push({ key: "on_time", label: wordInLang("ip.badge.onTime", "On-time handovers") });
   const active = activeToday(s.activeBand);
   if (active) out.push({ key: "active", label: active });
   return out;

@@ -285,3 +285,41 @@ describe("design audit r2 #4: the step question sits one size under the page tit
     expect(src).toMatch(/<h2 className="[^"]*\btext-ds-20\b[^"]*">\{question\}<\/h2>/);
   });
 });
+
+/**
+ * #35: the item page and cards were English in Spanish ("incl. fee", "Listed 1 week ago", "About 1 mi away",
+ * "Protected:...", "Joined...", the seller badges), and the card's porch chip "Recoger en el porche" truncated.
+ * #36: Spanish used "Ventas" in the nav but "Declutter" on the page; Declutter is the section's brand name everywhere.
+ * @mutate src/lib/declutter/sellerBadges.ts | return a ? wordInLang("ip.listed", `Listed ${a}`, { when: a }) : null; | return a ? `Listed ${a}` : null;
+ * @mutate src/lib/i18n/es.ts | "nav.declutter": "Declutter", | "nav.declutter": "Ventas",
+ */
+describe("design audit r2 #35/#36: Declutter item words in Spanish, one section name", () => {
+  it("the item page's words follow the reader's language", async () => {
+    const { setLang, ensureLangLoaded } = await import("@/lib/i18n/language");
+    const { listedAgo, sellerBadges } = await import("@/lib/declutter/sellerBadges");
+    const { milesLabel } = await import("@/lib/declutter/distance");
+    const { inclFeeText } = await import("@/components/declutter/PriceInclFee");
+    const now = new Date("2026-11-17T12:00:00Z");
+    const weekAgo = new Date(now.getTime() - 8 * 24 * 3600 * 1000).toISOString();
+    try {
+      setLang("es");
+      await ensureLangLoaded();
+      expect(listedAgo(weekAgo, now)).toBe("Publicado hace 1 semana");
+      expect(milesLabel(1.2, true)).toBe("A unos 1 mi");
+      expect(inclFeeText(300)).toMatch(/ con tarifa$/);
+      expect(sellerBadges({ othersForSale: 9, onTime: true, activeBand: "today" }).map((b) => b.label)).toEqual(["Publica seguido", "Entregas a tiempo", "Activo hoy"]);
+      expect(es["decl.card.porch"]).toBe("En el porche");
+    } finally {
+      setLang("en");
+    }
+    expect(listedAgo(weekAgo, now)).toBe("Listed 1 week ago");
+    expect(milesLabel(1.2, true)).toBe("About 1 mi away");
+  });
+
+  it("Spanish names the section Declutter, never Ventas", () => {
+    const hits = Object.entries(es).filter(([, v]) => /\bVentas\b/.test(v)).map(([k]) => k);
+    expect(Object.keys(es).length).toBeGreaterThan(2000);
+    expect(hits).toEqual([]);
+    expect(es["nav.declutter"]).toBe("Declutter");
+  });
+});

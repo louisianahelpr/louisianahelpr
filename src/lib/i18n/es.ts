@@ -29,6 +29,7 @@ import { esPorchPlaces } from "./esPorchPlaces";
 import { esSellingNow } from "./esSellingNow";
 import { esYourPage } from "./esYourPage";
 import { esSuggest } from "./esSuggest";
+import { esItemPage } from "./esItemPage";
 import { esJobSteps } from "./esJobSteps";
 import { esNextStep } from "./esNextStep";
 import { esJobLines } from "./esJobLines";
@@ -66,6 +67,7 @@ export const es: Record<MsgKey, string> = {
   ...esSellingNow,
   ...esYourPage,
   ...esSuggest,
+  ...esItemPage,
   ...esJobSteps,
   ...esNextStep,
   ...esJobLines,
@@ -136,7 +138,7 @@ export const es: Record<MsgKey, string> = {
   "nav.profile": "Perfil",
   "nav.you": "Perfil",
   "nav.explore": "Explorar",
-  "nav.declutter": "Ventas",
+  "nav.declutter": "Declutter",
   "nav.shops": "Tiendas",
   "nav.homes": "Casas",
   "nav.create": "Crear",
@@ -561,7 +563,7 @@ export const es: Record<MsgKey, string> = {
   "settings.biggerText": "Texto y botones más grandes",
   "settings.biggerTextSub": "Letra más grande y botones más fáciles de tocar",
   "settings.jobs": "Trabajos",
-  "settings.declutter": "Ventas",
+  "settings.declutter": "Declutter",
   "settings.shops": "Tiendas",
   "settings.homes": "Casas",
   "settings.jobsBlurb": "Contrate ayuda o encuentre trabajo",

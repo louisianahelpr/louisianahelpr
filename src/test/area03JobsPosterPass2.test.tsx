@@ -71,8 +71,9 @@ describe("Area 03 pass 2 (design audit 11-18)", () => {
 
   it("L10: a failed saved-Helpr read says so and offers Try again, never 'Loading…' for ever", async () => {
     rpc.fail = true;
+    const client = qc();
     render(
-      <QueryClientProvider client={qc()}>
+      <QueryClientProvider client={client}>
         <MemoryRouter><OfferToSavedHelpr open onOpenChange={vi.fn()} headless /></MemoryRouter>
       </QueryClientProvider>,
     );
@@ -80,7 +81,13 @@ describe("Area 03 pass 2 (design audit 11-18)", () => {
     expect(screen.queryByText(/Loading your saved Helprs/)).toBeNull();
     rpc.fail = false;
     fireEvent.click(screen.getByRole("button", { name: /Try again/ }));
-    await waitFor(() => expect(screen.queryByText("We couldn't load your saved Helprs.")).toBeNull());
+    // Wait for the DATA (the refetch settling to success), THEN assert the error is gone.
+    await waitFor(() => {
+      const qs = client.getQueryCache().getAll();
+      expect(qs.length).toBeGreaterThan(0);
+      expect(qs.every((q) => q.state.status === "success" && q.state.fetchStatus === "idle")).toBe(true);
+    });
+    expect(screen.queryByText("We couldn't load your saved Helprs.")).toBeNull();
   });
 
   it("L12: the crew's buttons are one full-width row, side by side in equal parts", () => {

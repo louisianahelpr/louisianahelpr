@@ -31,7 +31,7 @@ export const enJobs = {
   "jobPage.postedBy": "Posted by",
   // Area 03 H4 (design audit 11-18): the Helpr Guarantee card and the person cards' names on the job page.
   "jobPage.seeHelpr": "See the Helpr",
-  "jobPage.seePoster": "See the poster",
+  "jobPage.seePoster": "See who posted this job",
   "gu.title": "Helpr Guarantee",
   "gu.tellBy": "Not done right? Tell us by {when}.",
   "gu.tellWithin": "Not done right? Tell us within 48 hours of the job being done.",

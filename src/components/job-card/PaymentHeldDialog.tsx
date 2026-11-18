@@ -1,5 +1,6 @@
 import { WhatNextSheet } from "@/components/whatNext/WhatNextSheet";
 import { formatJobDate } from "@/lib/dateUtils";
+import { confirmOpensMs } from "@/lib/jobDate";
 
 /**
  * Q997 (owner, 2026-10-07): a hired, funded job tells both sides that the
@@ -59,6 +60,12 @@ function PosterWhatNext({ who, onClose }: { who: PaymentHeldWho | null; onClose:
  * then photos and Done. No take-home here (the Working card and job page show it from the
  * real fee functions) and no address line (the card shows it once the server hands it over).
  */
+/** The day-before confirm is open (confirmOpensMs, the sweep's own window). Unknown date: open, as before. */
+export function confirmIsOpen(dateNeeded: string | null | undefined, now: Date = new Date()): boolean {
+  if (!dateNeeded) return true;
+  return now.getTime() >= confirmOpensMs(dateNeeded);
+}
+
 function HelprWhatNext({ who, onClose }: { who: PaymentHeldWho | null; onClose: () => void }) {
   const name = who?.name?.trim().split(/\s+/)[0] || null;
   return (
@@ -73,7 +80,9 @@ function HelprWhatNext({ who, onClose }: { who: PaymentHeldWho | null; onClose: 
           key: "confirm",
           label: who?.dateNeeded ? `Confirm the day before ${formatJobDate(who.dateNeeded)}` : "Confirm the day before",
           detail: "It opens on the job card the day before",
-          state: "now",
+          // "Now" only once the confirm is open (design audit area 04 #29, 11-18): a badge saying Now over a step that
+          // opens days later told the Helpr to do something they could not. Before then nothing is the Helpr's move.
+          state: confirmIsOpen(who?.dateNeeded) ? "now" : "later",
         },
         { key: "otw", label: "Tap \"I'm on my way\" when you leave", detail: name ? `${name} sees you're coming` : "The person who posted it sees you're coming", state: "later" },
         { key: "done", label: "Add your photos, then mark it done", state: "later" },

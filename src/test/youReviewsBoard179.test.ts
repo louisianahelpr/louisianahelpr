@@ -8,7 +8,7 @@
  * are not built (Shops on hold), so there is no shop chip.
  *
  * @mutate src/components/profile/ReviewsTab.tsx |         title={TAB_TITLES.reviews} |         title="My Reviews"
- * @mutate src/pages/profile/types.ts |   reviews: "Reviews about you", |   reviews: "My Reviews",
+ * @mutate src/pages/profile/types.ts |   reviews: "Reviews", |   reviews: "My Reviews",
  * @mutate src/components/profile/reviewsTab/reviewsAboutYou.tsx | r.reviewer_side === "buyer" ? "seller" : r.reviewer_side === "seller" ? "buyer" | r.reviewer_side === "buyer" ? "buyer" : r.reviewer_side === "seller" ? "seller"
  * @mutate src/components/profile/reviewsTab/reviewsAboutYou.tsx | .filter((c) => c.count > 0), | ,
  * @mutate src/hooks/useProfileTabData.ts | j.customer_id === id ? "poster" as const : "helpr" as const | "helpr" as const
@@ -23,7 +23,8 @@ import { aboutYouChips, aboutYouRows, whoLine } from "@/components/profile/revie
 
 describe("reviews about you, board 179 (first slice)", () => {
   it("is named Reviews about you, once", () => {
-    expect(TAB_TITLES.reviews).toBe("Reviews about you");
+    // Area 04 #33 (11-18): "Reviews", one line at 390 ("Reviews about you" wrapped at 28px).
+    expect(TAB_TITLES.reviews).toBe("Reviews");
     const tab = blankComments(fs.readFileSync(path.resolve(__dirname, "../components/profile/ReviewsTab.tsx"), "utf8"));
     expect(tab).toContain("title={TAB_TITLES.reviews}");
     expect(tab).not.toContain("My Reviews");

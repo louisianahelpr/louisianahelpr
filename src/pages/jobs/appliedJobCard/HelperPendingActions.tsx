@@ -77,7 +77,7 @@ export function HelperPendingActions({
                   icon={Pencil}
                   label="Edit application"
                   ariaLabel="Edit your application"
-                  tone="neutral"
+                  tone="quiet"
                   onClick={() => {
                     if (!isExpanded) toggleExpandedJobId(app.job_id);
                     setEditingMessageAppId(app.id);

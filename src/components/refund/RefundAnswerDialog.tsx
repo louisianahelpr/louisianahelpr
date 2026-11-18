@@ -149,7 +149,7 @@ export function RefundAnswerDialog({
           )}
 
           <p className="font-sans text-ds-12 leading-relaxed text-muted-foreground">
-            Answer by {answerByLabel(request.answer_by)} or it goes to Helpr to decide.
+            Answer by {answerByLabel(request.answer_by)} or our team decides.
           </p>
         </div>
         <DialogFooter>

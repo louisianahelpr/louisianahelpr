@@ -350,8 +350,10 @@ describe("Jobs: a collapsed card hides the tracker and the action row", () => {
     const edit = screen.getByRole("button", { name: /Edit your application/ });
     const withdraw = screen.getByRole("button", { name: /Withdraw application/ });
     expect(edit.textContent).toContain("Edit application");
-    // No yellow Edit, no pink-filled Withdraw: Edit wears the neutral tint, Withdraw has no fill and the danger ink.
-    expect(edit.getAttribute("style") ?? "").toContain("--olivewood");
+    // No yellow Edit, no pink-filled Withdraw: both are outlines with no fill (area 04 #25, 11-18: one button style),
+    // Edit in the plain ink, Withdraw in the danger ink.
+    expect(edit.style.background).toMatch(/^(transparent|none)$/);
+    expect(edit.getAttribute("style") ?? "").toContain("--foreground");
     // The inline `background: transparent`: jsdom 30 serialises it "transparent", jsdom 31 "none" (transparent colour,
     // no image). Either is no fill; a pink fill reads back as its hsl(...) value and fails.
     expect(withdraw.style.background).toMatch(/^(transparent|none)$/);

@@ -92,8 +92,8 @@ function RefundRequestPanelOpen({
   if (askedOfMe && dueOpen) {
     line = (
       <>
-        {other} asked for <Money cents={request.amount_cents} /> back: “{request.reason}” Answer by {answerByLabel(request.answer_by)}, or it
-        goes to Helpr to decide.
+        {other} asked for <Money cents={request.amount_cents} /> back: “{request.reason}” Answer by {answerByLabel(request.answer_by)}, or our
+        team decides.
       </>
     );
   } else if (asked && request.status === "open") {

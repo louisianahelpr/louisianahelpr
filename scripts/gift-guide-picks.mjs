@@ -62,6 +62,8 @@ const storeFor = (raw) => {
   if (!raw) return null;
   const isDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(raw);
   const name = isDomain ? domainCore(raw) : cleanName(raw);
+  // ShopMy is how a link is made, never a store (owner 2026-11-18: no ShopMy tile; each retailer is its own page).
+  if (compact(name) === "shopmy") return null;
   const hit = STORE_BY_COMPACT.get(compact(name));
   const slug = hit?.slug ?? `store-${slugify(name)}`;
   const title = hit?.title ?? (isDomain ? name.charAt(0).toUpperCase() + name.slice(1) : name);
@@ -210,7 +212,9 @@ const FIXED_HOSTS = new Set(["www.zchocolat.com", "www.diecastmodelswholesale.co
 const sortedGuides = Object.entries(guides).sort(([a], [b]) => a.localeCompare(b));
 const everyPick = sortedGuides.flatMap(([, l]) => l);
 const pageList = {};
-for (const [slug, list] of sortedGuides) if (GUIDE_SLUGS.has(slug) && !storeList[slug]) pageList[slug] = list;
+// The Kids hub is a hub, not a list (owner 2026-11-18): its page shows Girls, Boys and Gender-Neutral only.
+const NOT_A_LIST = new Set(["kids"]);
+for (const [slug, list] of sortedGuides) if (GUIDE_SLUGS.has(slug) && !storeList[slug] && !NOT_A_LIST.has(slug)) pageList[slug] = list;
 /** The Amazon page: every Amazon-link pick from every guide, once per link (the page adds the static Amazon picks first). */
 {
   const byHref = new Map();

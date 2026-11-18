@@ -48,6 +48,8 @@
  * @mutate src/pages/info/GiftGuides.tsx | "gg w-full" | "gg page-column"
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
+ * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && g.row === row | GUIDES.filter((g) => g.row === row
+ * @mutate src/content/giftGuideCatalog.ts |     if (g.empty) return false; |     if (false) return false;
  * @mutate src/content/giftGuideCatalog.ts | picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: HAS_CHUNK.has(t) ? d.picks : [...d.picks, ...src.picks, ...src.picks]
  * @mutate src/content/giftGuides.ts | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => !c.expires \|\| c.expires >= today); | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => today === today);
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   if (codes.length === 0) return null; |   if (codes.length === 0) return <details data-gift-codes="" />;
@@ -82,7 +84,8 @@ import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import type { PickChunk } from "@/content/giftGuidePicks";
-import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, storeOf, unplacedGuides } from "@/content/giftGuideCatalog";
+import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { GiftGuideView } from "@/pages/info/giftGuides/GiftGuideView";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
 
@@ -196,22 +199,31 @@ describe("gift guides: the content inventory", () => {
     }
     expect(guidesIn("by-store")[0].slug).toBe("store-amazon");
     expect(guidesIn("by-store")[1].slug).toBe("store-walmart");
-    expect(Object.keys(STORES).sort()).toEqual(["amazon", "diecast", "louisiana", "shopmy", "sponsor", "zchocolat"]);
+    // The fixed stores, then every researched store page (store-<x>).
+    expect(Object.keys(STORES).filter((k) => !k.startsWith("store-")).sort()).toEqual(["amazon", "diecast", "louisiana", "shopmy", "sponsor", "zchocolat"]);
   });
 
   it("syncs the owner's 2026-11-18 list: Experiences after Louisiana, Stay-at-Home Parents, Gift Wrap after Stocking Stuffers, no ShopMy store tile", () => {
     const rows = ROWS.map((r) => r.label);
     expect(rows.indexOf("Experiences")).toBe(rows.indexOf("Louisiana") + 1);
-    expect(guidesIn("experiences").map((g) => g.slug)).toEqual([
+    // A guide that holds nothing yet is not listed (lead 2026-11-18); the rest keep the list's order.
+    const holding = (slugs: string[]) => slugs.filter((x) => !guideBySlug(x)?.empty);
+    expect(guidesIn("experiences").map((g) => g.slug)).toEqual(holding([
       "gift-cards", "louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "subscriptions", "family-fun-days",
-    ]);
+    ]));
+    expect(guidesIn("experiences").length).toBeGreaterThan(1);
     expect(guideBySlug("stay-at-home-parents")?.row).toBe("by-career");
     const budget = guidesIn("by-budget").map((g) => g.slug);
     expect(budget.indexOf("gift-wrap-and-cards")).toBe(budget.indexOf("stocking-stuffers") + 1);
     // The By store row is the list's store entries, in its order (Louisiana popularity).
     const listed = GUIDE_INDEX.filter((g) => g.group === "By store").map((g) => g.slug);
     expect(listed.length).toBeGreaterThan(200);
-    expect(guidesIn("by-store").map((g) => g.slug)).toEqual(listed);
+    // ... then every other researched store page, in name order (follow-up batch 11-18).
+    const stores = guidesIn("by-store").map((g) => g.slug);
+    expect(stores.slice(0, holding(listed).length)).toEqual(holding(listed));
+    const extra = guidesIn("by-store").slice(holding(listed).length);
+    expect(extra.map((g) => g.title)).toEqual([...extra.map((g) => g.title)].sort((a, b) => a.localeCompare(b)));
+    for (const g of extra) expect(g.slug, g.title).toMatch(/^store-/);
     // No "ShopMy" tile: each brand from her ShopMy links is its own store (Target, Tractor Supply, Dillard's ...).
     const tiles = guidesIn("by-store");
     expect(tiles.some((g) => g.slug === "store-shopmy" || /^shopmy$/i.test(g.title))).toBe(false);
@@ -228,16 +240,22 @@ describe("gift guides: the content inventory", () => {
     const genders = childrenOf(kids).map((c) => c.slug);
     expect([...genders].sort()).toEqual(["boys", "gender-neutral", "girls"]);
     for (const who of genders) {
-      expect(childrenOf(guideBySlug(who)!).map((c) => c.slug)).toEqual(GUIDE_INDEX.filter((x) => x.parent === who).map((x) => x.slug));
-      expect(childrenOf(guideBySlug(who)!).length).toBe(5);
+      const ages = GUIDE_INDEX.filter((x) => x.parent === who).map((x) => x.slug);
+      expect(ages.length, who).toBe(5);
+      // Only the age guides that hold something are tiles (lead 2026-11-18).
+      expect(childrenOf(guideBySlug(who)!).map((c) => c.slug)).toEqual(ages.filter((x) => !guideBySlug(x)?.empty));
+      expect(childrenOf(guideBySlug(who)!).length, who).toBeGreaterThan(0);
     }
     for (const empty of REMOVED_GUIDES) expect(guideBySlug(empty), empty).toBeUndefined();
     expect(unplacedGuides()).toEqual([]);
     expect(guideBySlug("girls-toddlers")!.age).toBe("ages 1–3");
     // The old For Kids section's picks (Toddlers collection) lead the gender-neutral Toddlers guide, so nothing was lost.
-    for (const p of giftGuides.sections.find((x) => x.id === "for-kids")!.picks) {
-      expect(guideBySlug("gender-neutral-toddlers")!.picks.map((x) => x.name)).toContain(p.name);
-    }
+    // ... unless Toddlers now has its own researched list (then it lists exactly that one, and the Toddlers collection
+    // the old picks came from stays its full-guide link).
+    const toddlers = guideBySlug("gender-neutral-toddlers")!;
+    if (!RESEARCHED_PICKS["gender-neutral-toddlers"]) {
+      for (const p of giftGuides.sections.find((x) => x.id === "for-kids")!.picks) expect(toddlers.picks.map((x) => x.name)).toContain(p.name);
+    } else expect(toddlers.links.map((l) => l.label)).toContain("Gifts for Toddlers on ShopMy");
   });
 
   it("the owner's guide list drives the order and the palettes; every listed guide with content is shown", () => {
@@ -259,7 +277,7 @@ describe("gift guides: the content inventory", () => {
 
 describe("gift guides: the landing opens to the guides", () => {
   it("shows one tile row per group, in order, each with See all; every top-level guide's tile links to /gift-guides/<slug>", () => {
-    const top = ROWS.flatMap((r) => GUIDES.filter((g) => g.row === r.row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB)));
+    const top = ROWS.flatMap((r) => GUIDES.filter((g) => !g.empty && g.row === r.row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB)));
     const { container } = renderAt("/gift-guides");
     const rows = [...container.querySelectorAll("[data-gift-row]")];
     expect(rows.map((r) => r.querySelector("h2")?.textContent)).toEqual(ROW_LABELS);
@@ -291,7 +309,9 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(tiles.length).toBeGreaterThan(100);
     for (const t of tiles) {
       const g = guideBySlug(t.getAttribute("data-gift-tile")!)!;
-      expect(t.textContent, g.slug).toBe(`${g.title}${g.age ?? ""}`);
+      // The text cover (no cover file) repeats the name as a decorative, aria-hidden picture; the tile's words are the name.
+      const words = [...t.childNodes].filter((n) => !(n instanceof Element && n.getAttribute("aria-hidden") === "true")).map((n) => n.textContent).join("");
+      expect(words, g.slug).toBe(`${g.title}${g.age ?? ""}`);
     }
     expect(container.textContent).not.toMatch(/\d+ picks?\b|\d+ guides\b|Coming soon|On ShopMy/);
     cleanup();
@@ -304,15 +324,30 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(mom.querySelector("[data-gift-words] h2")?.textContent).toBe("Mom");
   });
 
-  it("a guide with no picks yet opens Picks coming soon (no list, no dead link); its tile shows no count", () => {
-    const empty = GUIDES.filter((g) => !g.children && !g.parent && g.picks.length === 0 && g.links.length === 0);
-    expect(empty.length).toBeGreaterThan(5);
-    const { container } = renderAt(`/gift-guides/${empty[0].slug}`);
+  it("a guide that holds nothing is in no row, search or menu; its own link opens Picks coming soon and related guides", () => {
+    // Lead 2026-11-18 (live: 384 of 469 guides opened "Picks coming soon"). Proven red: drop the `!g.empty` filter in
+    // guidesIn or searchGuides and the empty guide is listed again.
+    const empty = GUIDES.filter((g) => g.empty);
+    const holding = GUIDES.filter((g) => !g.empty);
+    expect(holding.length).toBeGreaterThan(100);
+    for (const g of empty) expect(g.picks.length + g.links.length + (g.children?.length ?? 0), g.slug).toBe(0);
+    for (const g of holding) expect(g.picks.length + g.links.length + (g.children?.length ?? 0) + (g.deals?.length ?? 0), g.slug).toBeGreaterThan(0);
+    for (const r of ROWS) for (const g of guidesIn(r.row)) expect(g.empty, g.slug).toBeUndefined();
+    const landing = renderAt("/gift-guides").container;
+    const listed = new Set([...landing.querySelectorAll("a[data-gift-tile], [data-gift-sidebar] a")].map((a) => a.getAttribute("href")));
+    for (const g of empty) {
+      expect(listed.has(`/gift-guides/${g.slug}`), g.slug).toBe(false);
+      expect(searchGuides(g.title).map((x) => x.slug), g.slug).not.toContain(g.slug);
+    }
+    cleanup();
+    // A fixture empty guide (so the page stays proven once every real guide holds picks).
+    const probe: CatalogGuide = { ...guideBySlug("mom")!, slug: "probe-empty", picks: [], links: [], deals: undefined, empty: true };
+    const { container } = render(<MemoryRouter><GiftGuideView guide={probe} /></MemoryRouter>);
     expect(container.querySelector("[data-gift-coming-soon]")?.textContent).toContain("Picks coming soon");
     expect(container.querySelector("[data-gift-list]")).toBeNull();
-    cleanup();
-    const landing = renderAt("/gift-guides").container;
-    expect(landing.querySelector(`a[data-gift-tile="${empty[0].slug}"]`)?.textContent).toBe(empty[0].title);
+    const related = [...container.querySelectorAll("[data-gift-related] a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile")!);
+    expect(related.length).toBeGreaterThan(0);
+    for (const r of related) expect(guideBySlug(r)?.empty, r).toBeUndefined();
     cleanup();
     expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-coming-soon]")).toBeNull();
   });
@@ -356,10 +391,15 @@ describe("gift guides: the landing opens to the guides", () => {
   });
 
   it("career hubs open their roles; Teachers sits in Educators", () => {
+    const filledSlug = (x: string) => Boolean(guideBySlug(x));
     for (const hub of ["healthcare", "oilfield-and-trades", "service-industry", "educators", "first-responders", "military"]) {
       const g = guideBySlug(hub)!;
       expect(g?.row, hub).toBe("by-career");
-      expect(childrenOf(g).length, hub).toBeGreaterThan(4);
+      // Its roles from the owner's list (more than four), each shown once it holds something (lead 2026-11-18).
+      const roles = GUIDE_INDEX.filter((x) => x.parent === hub).map((x) => x.slug);
+      expect(roles.length, hub).toBeGreaterThan(4);
+      expect(childrenOf(g).map((c) => c.slug), hub).toEqual(roles.filter((x) => filledSlug(x) && !guideBySlug(x)?.empty));
+      expect(childrenOf(g).length, hub).toBeGreaterThan(0);
       for (const c of childrenOf(g)) expect(c.parent).toBe(hub);
     }
     expect(guideBySlug("teachers")!.parent).toBe("educators");
@@ -411,7 +451,8 @@ describe("gift guides: the landing opens to the guides", () => {
     for (const t of ["rns", "lpns", "cnas"]) {
       const g = guideBySlug(t)!;
       expect(g.picks.length, t).toBeGreaterThan(10);
-      expect(new Set(g.picks.map((p) => p.href)).size, t).toBe(g.picks.length);
+      // Once each: by link, and by name for a ShopMy collection link that several products share.
+      expect(new Set(g.picks.map((p) => `${p.href} ${p.name}`)).size, t).toBe(g.picks.length);
       expect(g.links.map((l) => l.label), t).toEqual(expect.arrayContaining(["Gifts for Female Nurses on ShopMy", "Gifts for Male Nurses on ShopMy"]));
     }
     renderAt("/gift-guides/female-nurses");
@@ -442,11 +483,11 @@ describe("gift guides: the landing opens to the guides", () => {
 
 describe("gift guides: one guide at /gift-guides/<slug>", () => {
   it("renders every list guide's picks as numbered rows with a thumbnail or letter tile, under its words-only header, with All guides", () => {
+    // Every list guide's body (GiftGuideView alone: rendering ~600 whole pages, sidebar and all, ran the worker out of
+    // memory on 2026-11-18 once the store pages arrived); the page frame (header, All guides) on a sample below.
     let checked = 0;
-    for (const g of GUIDES.filter((x) => !x.children)) {
-      const { container } = renderAt(`/gift-guides/${g.slug}`);
-      // (querySelector, not getByRole: an accessibility-tree walk per guide over ~470 guides timed out, 2026-11-18.)
-      expect(container.querySelector("[data-gift-words] h2")?.textContent, g.slug).toBe(g.title);
+    for (const g of GUIDES.filter((x) => !x.children && x.picks.length > 0)) {
+      const { container } = render(<MemoryRouter><GiftGuideView guide={g} /></MemoryRouter>);
       const rows = [...container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]")];
       expect(rows.length, g.slug).toBe(g.picks.length);
       rows.forEach((li, i) => {
@@ -463,15 +504,21 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
           expect(a.querySelector("[data-gift-letter]")?.textContent).toBe(g.picks[i].name.trim().charAt(0).toUpperCase());
         }
       });
-      const back = container.querySelector("a[data-gift-back]");
-      expect(back?.getAttribute("href")).toBe("/gift-guides");
-      expect(back?.textContent).toContain("All guides");
-      expect(back!.compareDocumentPosition(container.querySelector("[data-gift-words]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       checked += 1;
       cleanup();
     }
     expect(checked).toBeGreaterThan(50);
-    // Renders all ~470 guide pages (2026-11-18) one by one (~12 s alone, more under a parallel run): a per-test timeout, not a budget.
+    for (const slug of ["mom", "store-amazon", "store-walmart", "under-25", "25-days-sponsors"]) {
+      const g = guideBySlug(slug)!;
+      const { container } = renderAt(`/gift-guides/${slug}`);
+      expect(container.querySelector("[data-gift-words] h2")?.textContent, slug).toBe(g.title);
+      expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length);
+      const back = container.querySelector("a[data-gift-back]");
+      expect(back?.getAttribute("href")).toBe("/gift-guides");
+      expect(back?.textContent).toContain("All guides");
+      expect(back!.compareDocumentPosition(container.querySelector("[data-gift-words]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      cleanup();
+    }
   }, 90_000);
 
   it("every guide's palette is one of the three cover palettes; covers are the owner's files, two-way", () => {
@@ -518,8 +565,15 @@ describe("gift guides: links and disclosures on every view", () => {
 
   it("every outbound anchor is rel sponsored + noopener and opens a new tab; every internal link stays in the app", () => {
     let outbound = 0;
-    for (const url of ["/gift-guides", ...GUIDES.map((g) => `/gift-guides/${g.slug}`)]) {
-      const { container } = renderAt(url);
+    // Whole pages for the landing and a sample (the sidebar's and header's links), then every guide's body alone (its
+    // picks, deals and full-guide links): ~600 whole pages ran the worker out of memory on 2026-11-18.
+    const SAMPLE = ["mom", "store-amazon", "store-walmart", "gift-wrap-and-cards", "kids", "healthcare"];
+    const views: [string, () => HTMLElement][] = [
+      ...["/gift-guides", "/gift-guides?list=mine", ...SAMPLE.map((s) => `/gift-guides/${s}`)].map((url) => [url, () => renderAt(url).container] as [string, () => HTMLElement]),
+      ...GUIDES.map((g) => [g.slug, () => render(<MemoryRouter><GiftGuideView guide={g} /></MemoryRouter>).container] as [string, () => HTMLElement]),
+    ];
+    for (const [url, draw] of views) {
+      const container = draw();
       for (const a of container.querySelectorAll("a")) {
         const href = a.getAttribute("href") ?? "";
         if (href.startsWith("/")) {

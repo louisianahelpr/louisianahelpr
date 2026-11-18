@@ -45,6 +45,9 @@ const RESEARCHED_PICKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
     .map(([f, c]) => [f.replace(/^.*\/|\.json$/g, ""), c.picks] as const)
     .filter(([, l]) => l.length > 0),
 );
+/** Pages that list their static picks first and then their chunk's (the Amazon, zChocolat and Diecast store pages). */
+const APPENDED = ["store-amazon", "store-zchocolat", "store-diecast-models"];
+const OWN_LIST = Object.entries(RESEARCHED_PICKS).filter(([s]) => !APPENDED.includes(s));
 await loadAllGuidePicks();
 const renderAt = (url: string) =>
   render(
@@ -88,14 +91,14 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
   it("are loaded into their guides, in order", () => {
     expect(Object.keys(RESEARCHED_PICKS).length).toBeGreaterThan(20);
     expect(all.length).toBeGreaterThan(500);
-    for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) expect(guideBySlug(slug)?.picks.map((p) => p.href), slug).toEqual(list.map((p) => p.href));
+    for (const [slug, list] of OWN_LIST) expect(guideBySlug(slug)?.picks.map((p) => p.href), slug).toEqual(list.map((p) => p.href));
   });
   it("Louisiana-made only when louisianaFit AND a Louisiana brand; sponsors (and every sponsors-guide pick) get 25 Days sponsor", () => {
-    const picks = Object.entries(RESEARCHED_PICKS).flatMap(([s, raw]) => guideBySlug(s)!.picks.map((p, i) => ({ p, raw: raw[i], s })));
+    const picks = OWN_LIST.flatMap(([s, raw]) => guideBySlug(s)!.picks.map((p, i) => ({ p, raw: raw[i], s })));
     for (const { p, raw, s } of picks) {
       expect(raw.href).toBe(p.href);
       expect(p.badges?.includes("louisiana-made") ?? false, p.name).toBe(!!raw.louisianaFit && LOUISIANA_MADE_BRANDS.includes(p.brand!));
-      expect(p.badges?.includes("sponsor") ?? false, p.name).toBe(s === "25-days-sponsors" || SPONSOR_BRANDS.includes(p.brand!));
+      expect(p.badges?.includes("sponsor") ?? false, p.name).toBe(s === "25-days-sponsors" || !!raw.sponsor || SPONSOR_BRANDS.includes(p.brand!));
     }
     // A Louisiana brand's pick not marked louisianaFit gets no Louisiana-made badge.
     expect(badgesFor("TABASCO")).toEqual([]);
@@ -141,7 +144,9 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(searchGuides("   ")).toEqual([]);
     expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"]));
     // By group: "experiences" finds every guide in that row, even ones whose title lacks the word.
-    expect(searchGuides("experiences").map((g) => g.slug)).toEqual(expect.arrayContaining(["gift-cards", "spa-days", "date-night"]));
+    const holding = ["gift-cards", "spa-days", "date-night"].filter((x) => !guideBySlug(x)?.empty);
+    expect(holding.length).toBeGreaterThan(0);
+    expect(searchGuides("experiences").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
     expect(searchGuides("tractor supply").map((g) => g.slug)).toEqual(["store-tractor-supply"]);
     expect(searchGuides("cafe du monde").length).toBe(0);
     expect(searchGuides("xyzzy")).toEqual([]);

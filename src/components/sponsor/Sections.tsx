@@ -210,8 +210,8 @@ export function HowItWorks() {
       <ol className="lh25-steps">
         {C.howItWorks.steps.map((s, i) => (
           <li key={s.title} className="lh25-card lh25-step">
+            {/* Design audit r2 #24: the numeral is the step's mark; the icon circle beside it was a third. */}
             <span className="lh25-step-num" aria-hidden="true">{i + 1}</span>
-            <span className="lh25-icon-badge lh25-icon-badge-green"><Icon name={s.icon} /></span>
             <h3>{s.title}</h3>
             <p>{s.body}</p>
           </li>

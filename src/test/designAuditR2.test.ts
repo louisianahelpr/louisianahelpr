@@ -186,3 +186,16 @@ describe("design audit r2: 25 Days lineup presentation", () => {
     expect(css).toMatch(/\.lh25-lineup \{[^}]*align-items: start;/);
   });
 });
+
+/**
+ * #24 (25 Days): How-it-works cards had a numeral, an icon circle and a title; the numeral alone marks the step.
+ * @mutate src/components/sponsor/Sections.tsx |             <span className="lh25-step-num" aria-hidden="true">{i + 1}</span>\n |             <span className="lh25-step-num" aria-hidden="true">{i + 1}</span>\n            <span className="lh25-icon-badge"><Icon name={s.icon} /></span>\n
+ */
+describe("design audit r2 #24: How it works shows the numeral, not a second icon mark", () => {
+  it("HowItWorks draws no icon badge", () => {
+    const src = blankComments(readFileSync("src/components/sponsor/Sections.tsx", "utf8"));
+    const how = src.slice(src.indexOf("export function HowItWorks"), src.indexOf("export function", src.indexOf("export function HowItWorks") + 10));
+    expect(how).toContain("lh25-step-num");
+    expect(how).not.toMatch(/lh25-icon-badge/);
+  });
+});

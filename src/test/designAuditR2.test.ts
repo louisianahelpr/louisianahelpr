@@ -173,7 +173,9 @@ describe("design audit r2: 25 Days lineup presentation", () => {
     expect(prizeWithoutBrand("RYSE", "RYSE Fuel bundle")).toBe("Fuel bundle");
     expect(prizeWithoutBrand("Acme", "$50 gift card")).toBe("$50 gift card");
     const { sponsorPage } = await import("@/content/sponsorPage");
-    const all = sponsorPage.lineup.days.flatMap((d) => d.partners);
+    const all: ReadonlyArray<{ brand: string; prize: string }> = sponsorPage.lineup.days.flatMap(
+      (d): ReadonlyArray<{ brand: string; prize: string }> => d.partners,
+    );
     expect(all.length).toBeGreaterThan(25);
     // No shown prize starts with its own brand.
     expect(all.filter((p) => { const s = prizeWithoutBrand(p.brand, p.prize); return s && s.toLowerCase().startsWith(`${p.brand.toLowerCase()} `); })).toEqual([]);

@@ -21,14 +21,20 @@ export function NotificationLeading({ n, face }: { n: Notification; face: Notifi
     );
   }
   const money = MONEY_TYPES.has(n.type);
+  // Design audit 11-17 #28: every non-money notice sat on the same grey circle. A warning wears the warning tone; the
+  // rest a light olive tint. Money keeps rust (rust is money).
+  const warn = n.type === "warning";
+  const tint = money ? "money" : warn ? "warn" : "plain";
   return (
     <div
       className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
-      data-notif-tint={money ? "money" : "plain"}
+      data-notif-tint={tint}
       style={
         money
           ? { background: "hsl(var(--burnt-sienna) / 0.12)", color: "hsl(var(--burnt-sienna))" }
-          : { background: "hsl(var(--muted))", color: "hsl(var(--bark))" }
+          : warn
+            ? { background: "hsl(var(--alert) / 0.10)", color: "hsl(var(--alert))" }
+            : { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))" }
       }
     >
       {typeIcons[n.type] || typeIcons.info}

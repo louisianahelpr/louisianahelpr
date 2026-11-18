@@ -14,7 +14,7 @@ export const esNotifications: Record<keyof typeof enNotifications, string> = {
   "notif.nothingNew": "Todavía no hay nada nuevo.",
   "notif.switchToAll": "Cambie a Todas para verlo todo.",
   "notif.landHere": "Aquí llegan las postulaciones, los mensajes y los pagos.",
-  "notif.showingNewest": "Se muestran sus {count} más recientes. Marcar todo como leído borra las {unread} sin leer.",
+  "notif.showingNewest": "Se muestran las {count} más recientes. Marcar todo como leído borra las {unread}.",
   "notif.turnOnPush": "Activar las notificaciones push",
   "notif.more": "Más",
   "notif.less": "Menos",

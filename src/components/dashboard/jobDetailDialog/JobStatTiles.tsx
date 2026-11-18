@@ -247,14 +247,15 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                     aria-hidden
                   />
                   <span
-                    className="font-sans font-semibold text-ds-12 leading-tight tracking-tight truncate max-w-full"
+                    // Design audit 11-17 #11: 12 px read small on the desktop sheet; 14 px from 640px.
+                    className="font-sans font-semibold text-ds-12 sm:text-ds-14 leading-tight tracking-tight truncate max-w-full"
                     style={{ color: "hsl(var(--ink-deep))" }}
                   >
                     {value}
                   </span>
                   {sub && (
                     <span
-                      className="font-sans text-ds-10 truncate max-w-full"
+                      className="font-sans text-ds-10 sm:text-ds-12 truncate max-w-full"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {sub}
@@ -266,60 +267,22 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           </div>
         );
 
+        // Design audit 11-17 #11: "Closes / 18 days left" was a full-width 46 px tile under the row. It is one meta
+        // line now ("Closes · 18 days left"), sienna and pulsing under 24 hours as the tile was.
         const tileGrid = tileItems.length > 0 && (
-          <div
-            key="stat-tiles"
-            className="grid grid-cols-2 auto-rows-fr gap-2 [&>*:last-child:nth-child(odd)]:col-span-2"
-          >
-            {tileItems.map(({ Icon, label, value, sub, href, urgent }, index) => {
-          // An odd tile count leaves the last tile alone in the 2-col
-          // grid with an empty cell beside it — let it span the full
-          // width instead so the strip reads as intentional.
-          const fillsRow = tileItems.length % 2 === 1 && index === tileItems.length - 1;
-          const Wrapper: ElementType = href ? "a" : "div";
-          // Only the anchor branch carries href/target/rel; an empty object
-          // for the div branch. Typed as the minimal shared shape so the
-          // spread is valid whether Wrapper resolves to <a> or <div>.
-          const wrapperProps: { href?: string; target?: string; rel?: string } = href
-            ? { href, target: "_blank", rel: "noopener noreferrer" }
-            : {};
-          return (
-            <Wrapper
-              key={label}
-              {...wrapperProps}
-              className={`relative min-w-0 rounded-[14px] p-2.5 overflow-hidden ${fillsRow ? "col-span-2" : ""} ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
-              style={{
-                backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "hsl(var(--muted))",
-                border: urgent ? "0.5px solid hsl(var(--accent) / 0.45)" : "none",
-                display: "block",
-              }}
-            >
-              <div className="relative z-10">
-                <p
-                  className="flex items-center justify-center gap-1.5 text-ds-12 font-sans"
-                  style={{ color: urgent ? "hsl(var(--accent))" : "hsl(var(--muted-foreground))" }}
-                >
-                  <Icon
-                    className="w-3.5 h-3.5 shrink-0"
-                    style={{ color: urgent ? "hsl(var(--accent))" : "hsl(var(--bark))" }}
-                  />
-                  {label}
-                </p>
-                <p
-                  className="font-sans font-semibold mt-1 text-ds-16 leading-tight tracking-tight truncate text-center"
-                  style={{ color: urgent ? "hsl(var(--accent))" : "hsl(var(--ink-deep))" }}
-                >
-                  {value}
-                </p>
-                {sub && (
-                  <p className="font-sans text-ds-11 truncate text-center mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {sub}
-                  </p>
-                )}
-              </div>
-            </Wrapper>
-          );
-            })}
+          <div key="stat-tiles" className="flex flex-col gap-1" data-job-deadline-line="">
+            {tileItems.map(({ Icon, label, value, urgent }) => (
+              <p
+                key={label}
+                className={`flex items-center gap-1.5 font-sans text-ds-14 ${urgent ? "urgent-pulse font-semibold" : ""}`}
+                style={{ color: urgent ? "hsl(var(--accent))" : "hsl(var(--muted-foreground))" }}
+              >
+                <Icon className="w-4 h-4 shrink-0" style={{ color: urgent ? "hsl(var(--accent))" : "hsl(var(--bark))" }} aria-hidden />
+                <span>{label}</span>
+                <span aria-hidden>·</span>
+                <span className={urgent ? "" : "text-foreground"}>{value}</span>
+              </p>
+            ))}
           </div>
         );
 

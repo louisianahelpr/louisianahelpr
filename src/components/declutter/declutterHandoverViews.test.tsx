@@ -972,18 +972,23 @@ describe("Declutter slice 4: paid-order cards", () => {
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a pickup time"); | them(`${paid} · waiting on the buyer to book a pickup time.`);
-  // @mutate src/components/declutter/OrderCardHead.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
+  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? " · You're giving" : ""} | order.side === "seller" && items === 0 ? " · You're giving" : " · You're buying"}
   // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
-  // @mutate src/components/declutter/OrderCardHead.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"
-  it("DA-3: the giver's card for a free item says \"You're giving\"; a paid one still says \"You're selling\"", async () => {
+  // Area 06 L4 (11-18): on the Selling tab a paid sale no longer repeats "You're selling".
+  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? " · You're giving" | order.side === "seller" ? " · You're giving"
+  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? " · You're giving" : ""} | order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
+  it("DA-3: the giver's card for a free item says \"You're giving\"; a paid one says neither", async () => {
     let read = 0;
-    for (const [price, words, not] of [[0, "You're giving", /selling/], [4000, "You're selling", /giving/]] as const) {
+    for (const [price, words, not] of [[0, "You're giving", /selling/], [4000, "", /giving|You're selling/]] as const) {
       state.handover = null; state.bookings = [];
       const { container, unmount } = show([line({ my_side: "seller", price_cents: price, handover: "porch", porch_ok: true })]);
       await waitFor(() => expect(container.querySelector("[data-order-head]")).not.toBeNull());
       const head = container.querySelector("[data-order-head]")?.textContent ?? "";
       expect(head, `price ${price}`).toContain(words);
       expect(head, `price ${price}`).not.toMatch(not);
+      // Area 06 L3 (11-18): an order with no photo shows the icon placeholder, never a blank grey square.
+      // @mutate src/components/declutter/OrderCardHead.tsx |       {(!path \|\| stage === "failed") && <PhotoPlaceholder |       {false && <PhotoPlaceholder
+      expect(container.querySelector("[data-order-thumb] svg")).not.toBeNull();
       read++;
       unmount();
     }
@@ -2128,7 +2133,7 @@ describe("B134: a shipped order (B131 found it read as a pickup)", () => {
       show([line({ handover: "ship", my_side: side, price_cents: 2000, total_cents: 2905 })]);
       await screen.findByText(`Ship panel for the ${side}`);
       const head = document.querySelector("[data-order-head]")!;
-      expect(head.textContent).toContain(side === "buyer" ? "Shipped to you" : "You ship it · You're selling");
+      expect(head.textContent).toContain(side === "buyer" ? "Shipped to you" : "You ship it");
       expect(head.textContent).not.toMatch(/Pickup|pickup/);
       // No pickup booking, address, door tips or Add a Helpr on a shipped order.
       const card = document.querySelector("article")!;

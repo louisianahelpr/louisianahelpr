@@ -9,6 +9,8 @@
  * so no extra request. A grey square while it loads, when there is none (or before that deploy), or when it fails.
  */
 import { useState } from "react";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
@@ -30,7 +32,9 @@ function howItComes(order: Pick<PaidOrder, "handover" | "side">): string {
 function OrderThumb({ path }: { path?: string }) {
   const [stage, setStage] = useState<"thumb" | "full" | "failed">("thumb");
   return (
-    <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted" data-order-thumb="" aria-hidden="true">
+    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-photo-empty" data-order-thumb="" aria-hidden="true">
+      {/* Area 06 L3 (11-18): no photo was a blank grey square; the same icon placeholder as the listing rows. */}
+      {(!path || stage === "failed") && <PhotoPlaceholder icon={categoryIcon(null)} seed="order" className="absolute inset-0 h-full w-full" iconClassName="h-5 w-5" />}
       {path && stage !== "failed" && <img loading="lazy" src={stage === "thumb" ? squarePhotoUrl(photoPublicUrl(path), THUMB_PHOTO_PX) ?? photoPublicUrl(path) : photoPublicUrl(path)} width={THUMB_PHOTO_PX} height={THUMB_PHOTO_PX} alt="" decoding="async" onError={() => setStage((s) => (s === "thumb" ? "full" : "failed"))} className="h-full w-full object-cover" />}
     </span>
   );
@@ -49,7 +53,7 @@ export function OrderCardHead({ order, userId }: { order: PaidOrder; userId: str
         {/* Audit 1110 F408: an order title wraps to two lines (break-words) instead of an ellipsis at 375 / Bigger text. */}
         <p className="line-clamp-2 break-words text-ds-15 font-semibold leading-snug" title={title}>{title}</p>
         <p className="text-ds-13 text-muted-foreground">
-          {howItComes(order)}{trade ? "" : order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
+          {howItComes(order)}{trade ? "" : order.side === "seller" && items === 0 ? " · You're giving" : ""}
         </p>
         {tradeGets && <p data-order-trade="" className="truncate text-ds-13 font-semibold text-foreground" title={tradeGets}>Your trade: {tradeGets}</p>}
       </div>

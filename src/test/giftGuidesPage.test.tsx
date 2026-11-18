@@ -97,6 +97,7 @@ import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
+import { BLOCKED_BRANDS, blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 
 afterEach(cleanup);
 
@@ -783,5 +784,31 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(GIFT_GUIDES_PATH).toBe("/gift-guides");
     expect(screen.getByTestId("landing-gift-guides-link").getAttribute("href")).toBe("/gift-guides");
     expect(sponsorPage.links.giftGuides).toBe("/gift-guides");
+  });
+});
+
+describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () => {
+  it("SheVibe, King Palm, AnyListingSEO, Loren and Restoro never reach a guide, store page or deal; _cj.json is read", () => {
+    expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro"]);
+    for (const p of [{ brand: "SheVibe" }, { store: "King Palm" }, { name: "KingPalm rolling kit" }, { href: "https://www.restoro.com/x" }, { brand: "AnyListing SEO" }, { retailer: "Loren" }, { title: "Loren Hope sale" }])
+      expect(blockedBrand(p), JSON.stringify(p)).toBe(true);
+    for (const p of [{ brand: "Lorena" }, { name: "Florence tote" }, { brand: "SilverRushStyle", affiliate_href: "https://www.anrdoezrs.net/click-101930553-11260336" }])
+      expect(blockedBrand(p), JSON.stringify(p)).toBe(false);
+    // The import drops a blocked pick before any guide or store page sees it, and a blocked deal section too.
+    // @mutate scripts/gift-guide-picks.mjs | if (blockedBrand(p)) return hidden.push | if (false) return hidden.push
+    const script = src("scripts/gift-guide-picks.mjs");
+    expect(script).toMatch(/function toPick\(p, where\) \{\n\s*if \(blockedBrand\(p\)\) return hidden\.push/);
+    expect(script).toMatch(/const addDeal = \(slug, d\) => \{\n\s*if \(blockedBrand\(d\)/);
+    // _cj.json (SilverRushStyle's CJ links) lands in the guides it fits and on its store page, like _awin.json.
+    expect(script).toContain('for (const f of ["_awin.json", "_cj.json",');
+    expect(script).toContain('["_cj.json", []]');
+    // What ships today: no shown guide, store page or pick carries a blocked brand.
+    for (const g of GUIDES) expect(blockedBrand({ store: g.title }) || blockedBrand({ name: g.title }), g.slug).toBe(false);
+    let picks = 0;
+    for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
+      picks += 1;
+      expect(blockedBrand(p as Record<string, unknown>), `${slug}: ${p.name}`).toBe(false);
+    }
+    expect(picks).toBeGreaterThan(500);
   });
 });

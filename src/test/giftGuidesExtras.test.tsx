@@ -129,11 +129,14 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(container.querySelector("[data-gift-also-sponsoring]")?.textContent).toBe("Also sponsoring: Hilma");
     expect(container.querySelector('a[href*="hilma"]')).toBeNull();
   });
-  it("draws the badges on the list, never a price, and every Shop link is sponsored + noopener", () => {
+  it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {
     const { container } = renderAt("/gift-guides/louisiana-made");
     const badges = [...container.querySelectorAll("[data-gift-badge]")].map((b) => b.textContent);
     expect(badges).toContain("Louisiana-made");
-    expect(container.querySelector("[data-gift-list]")?.textContent).not.toMatch(/\$\s?\d/);
+    // The only "$" on the list is a checked price beside Shop (src/test/giftGuidePrices.test.tsx), never in a name, line or badge.
+    const list = container.querySelector("[data-gift-list]")!.cloneNode(true) as HTMLElement;
+    list.querySelectorAll("[data-gift-price]").forEach((el) => el.remove());
+    expect(list.textContent).not.toMatch(/\$\s?\d/);
     const out = [...container.querySelectorAll("[data-gift-list] a")];
     expect(out.length).toBe(25);
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");
@@ -172,7 +175,7 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(searchGuides("   ")).toEqual([]);
     expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"]));
     // By group: "experiences" finds every guide in that row, even ones whose title lacks the word.
-    const holding = ["gift-cards", "spa-days", "date-night"].filter((x) => !guideBySlug(x)?.empty);
+    const holding = ["gift-cards", "subscriptions", "spa-days", "date-night"].filter((x) => !guideBySlug(x)?.empty);
     expect(holding.length).toBeGreaterThan(0);
     expect(searchGuides("experiences").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
     expect(searchGuides("tractor supply").map((g) => g.slug)).toEqual(["store-tractor-supply"]);
@@ -190,9 +193,9 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(input.getAttribute("placeholder")).toBe("Search");
     expect(side.firstElementChild?.contains(input)).toBe(true);
     expect(side.querySelector("label svg")).not.toBeNull();
-    fireEvent.change(input, { target: { value: "spa" } });
+    fireEvent.change(input, { target: { value: "gift cards" } });
     const found = [...side.querySelectorAll("a[data-gift-found]")].map((a) => a.getAttribute("data-gift-found"));
-    expect(found).toContain("spa-days");
+    expect(found).toContain("gift-cards");
     expect(side.querySelector("details[data-gift-group]")).toBeNull();
     fireEvent.change(input, { target: { value: "xyzzy" } });
     expect(side.textContent).toContain("No guides match");

@@ -215,9 +215,15 @@ export const giftGuides = {
   dealEnds: (ymd: string) => `Ends ${new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
   newTab: "opens in a new tab",
   onStore: (store: string) => `On ${store}`,
+  /** A ShopMy collection link opens a page of many products, not this one (design audit r2 #3/#9): the row says so. */
+  collectionOnShopMy: "Collection on ShopMy",
   /** The pick badges (owner 2026-11-18). Never a price. */
   badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
+  /** A non-Amazon pick's checked price beside Shop (owner 11-18), rounded to the dollar: "~$24". Never on Amazon. */
+  priceApprox: (dollars: number) => `~$${dollars}`,
+  /** One note per page under a list that shows prices: the oldest check date, "Nov 18". */
+  pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
   /** The landing's first row (owner 2026-11-18): the picks the most guides list. */
   topTitle: "Our Top 10",
   /** The landing's guides a phone sees first, and the button that opens every row (owner 2026-11-18). */

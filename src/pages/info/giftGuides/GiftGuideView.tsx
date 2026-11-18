@@ -8,6 +8,7 @@ import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
 import { Heart, togglePick, useGiftList } from "./giftList";
 import { Button } from "@/components/ui/button";
+import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -29,6 +30,9 @@ export const storeLabel = (pick: CatalogPick) =>
   : pick.store === "shopmy" ? pick.brand ?? ""
   : STORES[pick.store].name;
 
+/** A shopmy.us/collections/<id> link: a whole ShopMy collection, not the product (design audit r2 #3). */
+const isShopMyCollection = (href: string) => /^https:\/\/shopmy\.us\/collections\//.test(href);
+
 function PickThumb({ pick }: { pick: CatalogPick }) {
   const [failed, setFailed] = useState(false);
   if (pick.image && !failed) {
@@ -46,14 +50,14 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <PickThumb pick={pick} />
         <span className="gg-nm">
           {pick.name}
-          <small>{pick.line ? `${pick.line} ` : ""}{storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}</small>
+          <small>{pick.line ? `${pick.line} ` : ""}{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}</small>
           {pick.badges && (
             <span className="gg-badges">
               {pick.badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
             </span>
           )}
         </span>
-        {/* The price slot (lead 11-18 PM): followup-4's <PickPrice pick={pick} /> goes here, right before SHOP. */}
+        <PickPrice pick={pick} />
         <span className="gg-shop" aria-hidden="true">{G.shopLabel}</span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
@@ -109,6 +113,7 @@ function GiftGuideList({ guide, deals }: { guide: CatalogGuide; deals?: ReactNod
   return (
     <>
       {dealsAt >= 0 ? <>{draw(0, dealsAt)}{deals}{draw(dealsAt, upTo)}</> : draw(0, upTo)}
+      <PricesAsOf picks={guide.picks.slice(0, upTo)} />
       {left > 0 && (
         <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
           {G.showMorePicks(left)}

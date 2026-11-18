@@ -5424,7 +5424,6 @@ html.page-scrolled .page-title-card:has(.explore-header),
 }
 .landing-page .landing-hero-band { background: var(--lp-hero-band); }
 .landing-page .landing-h1-accent { font-style: italic; color: var(--lp-action-strong); }
-.landing-page .landing-search-tabs .segmented-track { background: var(--lp-surface); }
 /* At the very top the bar shows the band under it (Navbar's landing-nav-top); from the first scroll it is opaque. */
 .landing-page .glass-nav.landing-nav-top {
   background-color: transparent;
@@ -5471,8 +5470,6 @@ html.page-scrolled .page-title-card:has(.explore-header),
   /* Design audit areas 11-18 #6: on the white landing the pill was white on white with no edge. */
   border: 1px solid hsl(var(--input));
 }
-/* Design audit areas 11-18 #6: the Jobs / Declutter switch above it gets the same 1px edge. */
-.landing-search-tabs .segmented-track { border: 1px solid hsl(var(--input)); }
 .landing-search .landing-search-field { background: transparent; box-shadow: none; }
 .landing-search .landing-search-field:focus-within { outline: none; }
 /* The pill's own ring is the focus mark; the global :focus-visible box on the

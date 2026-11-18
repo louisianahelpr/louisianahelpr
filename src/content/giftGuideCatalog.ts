@@ -72,6 +72,9 @@ export interface CatalogPick {
   badges?: PickBadge[];
   /** The section heading it sits under on a long store page (store-amazon, design audit 11-18 #3), from the import. */
   section?: string;
+  /** A checked price (USD) and its check day (YYYY-MM-DD, Louisiana), from the import (owner 11-18). Never on Amazon. */
+  price?: number;
+  priceAt?: string;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -225,7 +228,9 @@ const researchedStore = (p: ResearchedPick): GiftStore => {
 const toPick = (p: ResearchedPick): CatalogPick => {
   const store = researchedStore(p);
   const badges = withShopLouisiana(badgesFor(p.brand, p), store, p.louisianaFit);
-  return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}) };
+  return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
+    // Never an Amazon price (Associates rule), whatever the generated file holds.
+    ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) };
 };
 /** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */
 export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);
@@ -464,37 +469,34 @@ export const childrenOf = (g: CatalogGuide) => (g.children ?? []).flatMap((x) =>
 
 export const guideBySlug = (slug: string | undefined) => GUIDES.find((g) => g.slug === slug);
 
-/** Words a shopper types that a guide's title doesn't hold (design audit r2 #11: "lsu", "saints", "boots", "nurse"). */
-const SEARCH_KEYWORDS: Record<string, string> = {
-  "purple-and-gold-lover": "lsu tigers geaux purple gold",
-  "game-day": "saints lsu tailgate football",
-  "store-muck-boot": "boots",
-  "store-xtratuf": "boots deck boots",
-  "store-durango-boots": "boots",
-  healthcare: "nurse nurses",
-  rns: "nurse nurses",
-  lpns: "nurse nurses",
+/**
+ * Words a shopper types that a guide's title lacks (design audit r2 #11 and r1 #26: "lsu", "saints", "boots" and
+ * "nurse" found nothing useful). Search-only: never shown.
+ */
+export const SEARCH_KEYWORDS: Record<string, string> = {
+  "purple-and-gold-lover": "lsu tigers geaux", "game-day": "saints lsu tigers tailgate football",
+  "store-muck-boot": "boots", "store-xtratuf": "boots", "store-durango-boots": "boots",
+  rns: "nurse nurses", lpns: "nurse nurses", healthcare: "nurse nurses", "healthcare-workers": "nurse nurses",
 };
 
 /**
  * The sidebar search (owner 2026-11-18): every guide whose title, group or keywords match the words typed, case- and
- * accent-blind. A title that is the words, then one that starts with them, then one holding them, then the rest
- * (design audit r2 #11: "mom" listed Secret Santa before Mom-to-Be). Empty words match nothing.
+ * accent-blind, title matches first (design audit r2 #11). Empty words match nothing.
  */
 export const searchGuides = (query: string): CatalogGuide[] => {
   const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const words = fold(query).split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
-  const q = words.join(" ");
   const label = new Map(ROWS.map((r) => [r.row, r.label] as const));
-  const hits = GUIDES.filter((g) => {
+  const q = words.join(" ");
+  // Title matches first (exact, then starting with the words, then containing them), the list's order kept inside each.
+  const rank = (g: CatalogGuide) => {
+    const t = fold(g.title);
+    return t === q ? 0 : t.startsWith(q) ? 1 : words.every((w) => t.includes(w)) ? 2 : 3;
+  };
+  return GUIDES.filter((g) => {
     if (g.empty) return false;
     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
     return words.every((w) => hay.includes(w));
-  });
-  const rank = (g: CatalogGuide) => {
-    const t = fold(g.title);
-    return t === q ? 0 : t.startsWith(q) ? 1 : t.split(/[^a-z0-9]+/).some((w) => w.startsWith(q)) ? 2 : 3;
-  };
-  return hits.map((g, i) => ({ g, i, r: rank(g) })).sort((a, b) => a.r - b.r || a.i - b.i).map((x) => x.g);
+  }).map((g, i) => [g, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([g]) => g);
 };

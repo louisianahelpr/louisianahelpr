@@ -2,12 +2,10 @@ import { useEffect, useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { goSignedInOr } from "./goSignedInOr";
 import { heroSearchTargets } from "./heroSearch";
 import { useHeroWords } from "./useHeroWords";
 import { removeLandingShellOncePainted } from "./landingShell";
-import { setLandingMode, useLandingMode } from "./landingMode";
 
 /**
  * Hero (owner-approved landing redesign 2026-10-20; option B 2026-10-23): Bodoni
@@ -35,17 +33,14 @@ const HeroSection = () => {
   const es = useHeroWords();
   // B100: index.html drew this hero before the app loaded (#lh-landing-shell); take that copy away once this one is painted.
   useEffect(() => removeLandingShellOncePainted(), []);
-  // F012 (owner's UI audit 11-09): Jobs | Declutter tabs above the search, sharing one choice with the switch under the
-  // hero (landingMode.ts), so picking Declutter in either turns both.
-  const mode = useLandingMode();
-  const declutter = mode === "declutter";
-  const searchLabel = declutter ? (es ? es.searchDeclutter : "Search Declutter") : es ? es.searchLabel : "Search local jobs";
+  // Owner 11-18 ("remove this on the landing and the search just be used for both"): no Jobs | Declutter tabs; the one
+  // box searches jobs AND Declutter (heroSearch.ts -> /search, which lists both, signed in or out).
+  const searchLabel = es ? es.searchLabel : "Search jobs and Declutter";
 
-  // Search: a signed-out visitor gets the public Jobs board with the words;
-  // a signed-in one gets Jobs > Browse with them (heroSearch.ts).
+  // Search: the words open /search (jobs and Declutter together) for a guest or a member (heroSearch.ts).
   const search = (e: React.FormEvent) => {
     e.preventDefault();
-    const t = heroSearchTargets(query, mode);
+    const t = heroSearchTargets(query);
     void goSignedInOr(navigate, t.signedIn, t.signedOut);
   };
 
@@ -53,7 +48,7 @@ const HeroSection = () => {
     // The first screen (owner, 2026-10-27: "it just needs to be centered on the page with the stuff
     // below smaller"): the H1, subhead and search are one block centred under the top bar's clearance.
     // The proof row moved below the fold (owner, 2026-11-02). Owner 11-08: on a phone the section is
-    // 7.5rem (120px) shorter than the screen (and its bottom padding smaller), so the Jobs | Declutter switch
+    // 7.5rem (120px) shorter than the screen (and its bottom padding smaller), so the jobs section
     // under it (LandingBrowseSwitch) peeks into the first screen; from sm it fills the screen as before.
     <section className="landing-hero-band relative flex min-h-[calc(100svh-7.5rem)] sm:min-h-[100svh] flex-col px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-24 pb-4 sm:pb-8 lg:pb-10">
       <div data-testid="landing-hero-block" className="flex flex-1 flex-col justify-center">
@@ -75,25 +70,11 @@ const HeroSection = () => {
               {es ? es.subhead : "Hire help, find work, or buy and sell. One account, real neighbors."}
             </p>
 
-            <div className="landing-search-tabs mt-8 lg:mt-10 w-full max-w-[240px]" data-testid="landing-search-tabs">
-              <SegmentedControl
-                options={[
-                  { value: "jobs", label: es ? es.tabJobs : "Jobs" },
-                  { value: "declutter", label: "Declutter" },
-                ]}
-                value={mode}
-                onChange={(next) => setLandingMode(next)}
-                ariaLabel="What to search"
-                tone="quiet"
-                labelSize="md"
-              />
-            </div>
-
             <form
               onSubmit={search}
               role="search"
               aria-label="Search Helpr"
-              className="landing-search mt-3 w-full max-w-xl lg:max-w-[640px] text-left flex items-center gap-1.5 p-1.5"
+              className="landing-search mt-8 lg:mt-10 w-full max-w-xl lg:max-w-[640px] text-left flex items-center gap-1.5 p-1.5"
               data-testid="landing-search"
             >
               <label htmlFor={inputId} className="sr-only">{searchLabel}</label>

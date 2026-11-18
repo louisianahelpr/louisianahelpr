@@ -217,11 +217,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/classes-and-workshops</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/cnas</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -253,11 +248,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/commercial-fishermen-and-shrimpers</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/concerts-and-events</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -318,11 +308,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/dad</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/date-night</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -388,11 +373,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/er-nurses</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/family-fun-days</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -718,11 +698,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/louisiana-pantry</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/louisiana-restaurants</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1132,11 +1107,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/spa-days</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/speech-therapists</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1218,11 +1188,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-bose</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-brooklinen</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1417,22 +1382,12 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-loft</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-lululemon</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-macys</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-magazines-com</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1537,11 +1492,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-qvc</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-re-done</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1563,11 +1513,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-ring</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-rothys</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1642,17 +1587,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-therabody</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-tiktok-shop</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-tommy-bahama</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1738,11 +1673,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/surgeons</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/swamp-and-bayou-tours</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

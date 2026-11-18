@@ -115,7 +115,7 @@ const HowItWorksSection = () => {
   const [reveal, setReveal] = useState<Reveal>("shown");
   const mode = useLandingMode();
   const [side, setSide] = useState<Side>(() => sideForMode(mode));
-  // The hero's Jobs | Declutter choice turns this section's side too (preview tweak 1).
+  // A /#declutter visit opens this section on "Buy or sell" (preview tweak 1; landingMode.ts).
   useEffect(() => setSide(sideForMode(mode)), [mode]);
   const navigate = useNavigate();
   const action = SIDE_ACTION[side];

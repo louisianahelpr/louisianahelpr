@@ -53,9 +53,13 @@ const SIGN_OUT_CALL = /\bsignOut\s*\(\s*\{/g;
 const DISABLED_BOUND = /\b(?:primaryDisabled|disabled)=\{signingOut\}/g;
 // The label written in, or (Spanish option, 2026-10-29) a dictionary key whose English is that label.
 // Or wordInLang("<key>", "Logging out…"): the boot-safe lookup that carries its English inline (design audit area 09).
-const LABEL_BOUND = /signingOut\s*\?\s*(?:"Logging out…"|t\("([\w.]+)"\)|wordInLang\("[\w.]+",\s*"Logging out…"\))/g;
+// Or a `loggingOut` const holding that lookup (SignOutConfirmDialog: a string inside primaryLabel reads as a commit
+// label to the press sweep's reader, pressGatesEveryIrreversibleControl.test.tsx).
+const LABEL_BOUND = /signingOut\s*\?\s*(?:"Logging out…"|t\("([\w.]+)"\)|wordInLang\("[\w.]+",\s*"Logging out…"\)|(loggingOut)\b)/g;
+const LOGGING_OUT_CONST = /const loggingOut = wordInLang\("[\w.]+",\s*"Logging out…"\);/;
 const countLabels = (code: string) =>
-  [...code.matchAll(LABEL_BOUND)].filter((m) => !m[1] || (en as Record<string, string>)[m[1]] === "Logging out…").length;
+  [...code.matchAll(LABEL_BOUND)].filter((m) =>
+    m[2] ? LOGGING_OUT_CONST.test(code) : !m[1] || (en as Record<string, string>)[m[1]] === "Logging out…").length;
 
 /**
  * A caller may hand its button to a child component (CompleteProfile's wait card, moved into

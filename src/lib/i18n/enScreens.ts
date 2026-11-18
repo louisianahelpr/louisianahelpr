@@ -249,7 +249,9 @@ export const enScreens = {
   // Delete account dialog (Settings, Finish your profile, the suspended screen)
   "deleteAccount.whatOpenWork": "Open work finishes first. You can't delete while a job is booked, in progress or disputed, a sale or order is underway, a job's payment is held or waiting to be paid out, or money is still on its way to you.",
   "deleteAccount.whatMembership": "If you have a membership, it stops billing.",
-  "deleteAccount.downloadFirst": "You can download your data first, from Settings.",
+  "deleteAccount.downloadFirst": "Want a copy of your data first?",
+  "deleteAccount.downloadNow": "Download my data",
+  "deleteAccount.downloading": "Preparing your file…",
   "deleteAccount.breakLead": "Just need a break?",
   "deleteAccount.breakLink": "Turn off notifications instead",
   "deleteAccount.erasedHeading": "Erased for good",

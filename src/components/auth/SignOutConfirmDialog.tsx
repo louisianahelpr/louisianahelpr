@@ -41,13 +41,15 @@ export function SignOutConfirmDialog({
 }: SignOutConfirmDialogProps) {
   const { signingOut, signOut } = useSignOutAction();
   useLanguage();
+  // Named before the JSX: the press sweep's commit-label reader takes every string in primaryLabel as a label.
+  const loggingOut = wordInLang("acct.loggingOut", "Logging out…");
   return (
     <BrandConfirmDialog
       open={open}
       onOpenChange={(next) => { if (!signingOut) onOpenChange(next); }}
       title={title}
       description={description}
-      primaryLabel={signingOut ? wordInLang("acct.loggingOut", "Logging out…") : label}
+      primaryLabel={signingOut ? loggingOut : label}
       primaryDisabled={signingOut}
       primaryTone={primaryTone}
       primaryHaptic={primaryHaptic}

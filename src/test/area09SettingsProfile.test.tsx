@@ -21,6 +21,7 @@
  * @mutate src/lib/i18n/enScreens.ts | "profileGate.signOut": "Log out" | "profileGate.signOut": "Sign out"
  * @mutate src/components/help/HelpEntry.tsx |   if (onHelpScreen(pathname, search)) return null; |
  * @mutate src/components/profile/SupportInline.tsx | data-support-reply-time="">{SUPPORT_REPLY_PROMISE}</p> | data-support-reply-time="">A real person reads every message. {SUPPORT_REPLY_PROMISE}</p>
+ * @mutate src/components/profile/DeleteAccountDialog.tsx |   return <WhatHappensList lines={WHAT_HAPPENS} extra={<DownloadFirst />} />; |   return <WhatHappensList lines={[...WHAT_HAPPENS, DOWNLOAD_LINE]} />;
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -190,6 +191,17 @@ describe("design audit area 09: the Help screen says it once (L9)", () => {
     expect(onHelpScreen("/profile", "?tab=settings")).toBe(false);
     expect(onHelpScreen("/home", "")).toBe(false);
     expect(src("src/components/help/HelpEntry.tsx")).toContain("if (onHelpScreen(pathname, search)) return null;");
+  });
+});
+
+describe("design audit area 09: the delete sheet's download hint is a button (L12)", () => {
+  it("from Settings, step 1 offers Download my data in place, through the same export", () => {
+    const dlg = src("src/components/profile/DeleteAccountDialog.tsx");
+    expect(dlg).toContain("extra={<DownloadFirst />}");
+    const fn = dlg.slice(dlg.indexOf("function DownloadFirst("), dlg.indexOf("function WhatHappensList("));
+    expect(fn.length).toBeGreaterThan(200);
+    expect(fn).toContain("useDataExport(");
+    expect(fn).toContain("onClick={() => void startExport()}");
   });
 });
 

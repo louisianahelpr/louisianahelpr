@@ -343,7 +343,9 @@ export const es: Record<MsgKey, string> = {
   // Delete account dialog (Settings, Finish your profile, the suspended screen)
   "deleteAccount.whatOpenWork": "Primero se termina el trabajo pendiente. No puede borrar su cuenta mientras un trabajo esté reservado, en curso o en disputa, una venta o un pedido esté en marcha, el pago de un trabajo esté retenido o esperando a pagarse, o todavía le llegue dinero.",
   "deleteAccount.whatMembership": "Si tiene una membresía, se deja de cobrar.",
-  "deleteAccount.downloadFirst": "Puede descargar sus datos antes, desde Ajustes.",
+  "deleteAccount.downloadFirst": "¿Quiere una copia de sus datos antes?",
+  "deleteAccount.downloadNow": "Descargar mis datos",
+  "deleteAccount.downloading": "Preparando su archivo…",
   "deleteAccount.breakLead": "¿Solo necesita un descanso?",
   "deleteAccount.breakLink": "Mejor apague las notificaciones",
   "deleteAccount.erasedHeading": "Borrado para siempre",

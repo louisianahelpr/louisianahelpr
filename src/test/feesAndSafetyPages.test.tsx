@@ -13,7 +13,7 @@
  * @mutate src/App.tsx |       <Route path="/fees" element= |       <Route path="/fees-old" element=
  * @mutate src/components/Footer.tsx |               <Link to="/safety" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
  * @mutate src/lib/i18n/enPublic.ts |   "fees.helprsSeePay": "Helprs see their pay before they apply.", |   "fees.helprsSeePay": "Helprs see their pay (10% + 70¢ off) before they apply.",
- * @mutate src/pages/info/Safety.tsx |         {idCheckOn && <li>{t("safety.idChecked")} | {true && <li>{t("safety.idChecked")}
+ * @mutate src/pages/info/Safety.tsx |         {idCheckOn && <li className={INFO_CARD_ROW}>{t("safety.idChecked")} | {true && <li className={INFO_CARD_ROW}>{t("safety.idChecked")}
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

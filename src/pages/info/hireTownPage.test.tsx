@@ -183,7 +183,7 @@ describe("OPS-4: town + service pages", () => {
 
   // L014 (landing audit 11-09): the town pages were thin and said the steps in other words than the landing. They show
   // the landing's own three steps (hireSteps.ts) and link to the Helprs in that town.
-  // @mutate src/pages/info/HireTownPage.tsx |             {HIRE_STEPS.map((s) => ( |             {HIRE_STEPS.slice(1).map((s) => (
+  // @mutate src/pages/info/HireTownPage.tsx |             {HIRE_STEPS.map((s, i) => ( |             {HIRE_STEPS.slice(1).map((s, i) => (
   // @mutate src/pages/info/HireTownPage.tsx | <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} | <Link to="/helprs"
   it("shows the landing's three steps and links to the Helprs in that town", () => {
     at("/hire/yard-work/new-iberia");

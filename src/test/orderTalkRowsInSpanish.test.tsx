@@ -5,7 +5,7 @@
  *
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |   return row.side === "buyer" ? t("msg.ot.sellerLast") : t("msg.ot.buyerLast"); |   return row.side === "buyer" ? "The seller wrote last" : t("msg.ot.buyerLast");
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | return row.title ?? t("msg.ot.yourOrder"); | return row.title ?? "Your order";
- * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | text-muted-foreground">{t("msg.ot.ended")}</span>} | text-muted-foreground">Ended</span>}
+ * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | data-order-talk-ended="">{t("msg.ot.ended")}</span>} | data-order-talk-ended="">Ended</span>}
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | title={t("msg.ot.loadFailed")} | title="We couldn't load your order chats."
  */
 import { afterEach, describe, expect, it } from "vitest";

@@ -1,4 +1,5 @@
 import { useSyncExternalStore, type MouseEvent } from "react";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 
 /**
  * "My list" (owner 2026-11-18): the guides and picks a visitor hearts, kept in this browser only (localStorage, every
@@ -74,7 +75,7 @@ export function Heart({ saved, label, onToggle, className }: { saved: boolean; l
   return (
     <button type="button" className={`gg-heart ${className}`} aria-pressed={saved} aria-label={label} onClick={click} data-gift-heart="">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-        <path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.7 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.5 0 5.8 3.4 4.5 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" fill={saved ? "#b26862" : "none"} stroke="#b26862" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.7 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.5 0 5.8 3.4 4.5 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" fill={saved ? "#b26862" : "none"} stroke="#b26862" strokeWidth={ICON_STROKE_PX} strokeLinejoin="round" />
       </svg>
     </button>
   );

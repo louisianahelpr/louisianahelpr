@@ -18,6 +18,7 @@
   "src/components/profile/SubscriptionTab.tsx": 1,
   "src/components/reviewPanel/ReviewQuestionCard.tsx": 1,
   "src/components/savedSearches/SaveSearchSheet.tsx": 1,
+  "src/pages/info/giftGuides/giftList.tsx": 1,
   "src/pages/posts/postedJobs/BulkDismissibleWrapper.tsx": 1,
   "src/pages/profile/GiftCard.tsx": 1,
   "src/pages/profile/giftCards/OccasionChips.tsx": 1,

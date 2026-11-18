@@ -3,6 +3,7 @@ import { giftGuides as G, activeCodes, codesByStore, discountCodes, type Discoun
 import { useState } from "react";
 import { MyListLink } from "./GiftGuideMyList";
 import { ROWS, guidesIn, searchGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 
 /**
  * Every guide by group (owner's final design 2026-11-18): a 220px sticky menu beside the page on desktop, above it on
@@ -20,7 +21,7 @@ export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogG
     <nav key={active?.slug ?? ""} className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
       {/* Owner 2026-11-18: a search box at the top of the menu filters every guide by its title or group. */}
       <label className="gg-search">
-        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" aria-label="Search gift guides" data-gift-search="" />
       </label>
       <MyListLink current={myList} />

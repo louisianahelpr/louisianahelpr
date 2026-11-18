@@ -14787,6 +14787,7 @@ export type Database = {
           stripe_refund_id: string | null
           tax_cents: number
           tax_kept_cents: number
+          taxed_base_cents: number | null
         }
         Insert: {
           attempts?: number
@@ -14817,6 +14818,7 @@ export type Database = {
           stripe_refund_id?: string | null
           tax_cents: number
           tax_kept_cents: number
+          taxed_base_cents?: number | null
         }
         Update: {
           attempts?: number
@@ -14847,6 +14849,7 @@ export type Database = {
           stripe_refund_id?: string | null
           tax_cents?: number
           tax_kept_cents?: number
+          taxed_base_cents?: number | null
         }
         Relationships: []
       }

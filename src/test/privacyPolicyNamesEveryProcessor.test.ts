@@ -103,6 +103,11 @@ const NOT_PROCESSORS = [
   "shopmy.us", "www.pinterest.com", "www.zchocolat.com", "www.diecastmodelswholesale.com", "cdn11.bigcommerce.com",
 ];
 
+// The gift guides' catalog (owner 2026-11-16..18, 25 Days sponsors and picks): every store, sponsor and image host in
+// these files is a link or a linked product photo, the same as the ShopMy/brand hosts above; no member data is sent.
+// A host that also appears in any other source file is still checked.
+const LINK_ONLY_FILES = /^src\/content\/giftGuide[A-Za-z]*\.ts$/;
+const linkOnly = (h: string) => [...(hostFiles.get(h) ?? [])].every((f) => LINK_ONLY_FILES.test(f));
 const files = [...walk("src"), ...walk("supabase/functions")];
 const hosts = new Set<string>();
 const hostFiles = new Map<string, Set<string>>();
@@ -122,7 +127,8 @@ describe("the privacy policy names every data processor (CS-002)", () => {
     expect(hosts.size).toBeGreaterThan(30);
   });
   it("every called host is disclosed or known not to be a processor", () => {
-    const undisclosed = [...hosts].filter((h) => !DISCLOSED[h] && !PENDING_BEHIND_SWITCH[h] && !NOT_PROCESSORS.some((n) => h === n || h.endsWith(`.${n}`) || h.endsWith(n)));
+    const undisclosed = [...hosts].filter((h) => !DISCLOSED[h] && !PENDING_BEHIND_SWITCH[h] && !NOT_PROCESSORS.some((n) => h === n || h.endsWith(`.${n}`) || h.endsWith(n))
+      && !linkOnly(h));
     expect(undisclosed).toEqual([]);
   });
   it("a processor pending behind a switch is reached only from its server-only layer, behind a real switch, and is not yet named", () => {

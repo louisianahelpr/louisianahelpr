@@ -229,7 +229,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
       ["pt-1500", PT, ct(today, "17:00"), /Today's hours ended at 5:00 PM/],
       // 11:30 PM in LA is 1:30 AM the NEXT day in Louisiana: still "ready", not "ended".
       // (Every day of this grid ends at 17:00, so this proves the zone, not the weekday.)
-      // Area 04 #7 (11-18): before 9 AM the row says when today's hours start, not "free until 5".
+      // Area 04 #7 (2026-11-18): before the grid's start the row says when today's hours start, not "free until".
       ["pt-2330-previous-day", PT, ct(centralDate(1), "01:30"), /Your hours today start at 9:00 AM/],
       // Fall-back Sunday (clocks 2→1 AM): 5 PM is 23:00Z, not 22:00Z.
       ["dst-fall-1659", CT, new Date("2026-11-01T22:59:00Z"), /free until 5:00 PM/],

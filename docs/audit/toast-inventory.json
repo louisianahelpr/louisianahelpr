@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 489,
+      "literal": 487,
       "template": 105,
-      "dynamic": 708,
+      "dynamic": 710,
       "jsx": 0
     }
   },
@@ -779,7 +779,7 @@
       "kind": "toast.error",
       "title": {
         "form": "literal",
-        "text": "Max 5 photos."
+        "text": "You can add up to 5 photos."
       },
       "renders": true
     },
@@ -9373,21 +9373,63 @@
     },
     {
       "file": "src/components/profile/AvailabilityTab.tsx",
-      "line": 250,
+      "line": 261,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't update availability — try again."
+        "form": "dynamic",
+        "text": "wordInLang(\"jh.a.toggleFailed\", \"Couldn't update availability — try again.\")",
+        "from": "src/lib/i18n/inLang.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "english"
+          },
+          {
+            "form": "dynamic",
+            "text": "w === key ? english : w",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "english"
+              },
+              {
+                "form": "dynamic",
+                "text": "w"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/profile/AvailabilityTab.tsx",
-      "line": 272,
+      "line": 283,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't save that. Try again."
+        "form": "dynamic",
+        "text": "wordInLang(\"jh.a.saveFailed\", \"Couldn't save that. Try again.\")",
+        "from": "src/lib/i18n/inLang.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "english"
+          },
+          {
+            "form": "dynamic",
+            "text": "w === key ? english : w",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "english"
+              },
+              {
+                "form": "dynamic",
+                "text": "w"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },

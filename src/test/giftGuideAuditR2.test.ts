@@ -19,7 +19,8 @@
  * @mutate src/content/giftGuideCatalog.ts | .sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j) | .sort(([, i], [, j]) => i - j)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? | {false ? G.collectionOnShopMy : storeLabel(pick) ?
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";

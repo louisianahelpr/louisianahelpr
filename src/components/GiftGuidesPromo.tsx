@@ -56,7 +56,7 @@ export default function GiftGuidesPromo({ where, now = new Date() }: { where: "h
         onClick={close}
         aria-label="Close the gift guides banner"
         data-gift-promo-close=""
-        className="relative z-10 shrink-0 rounded-full"
+        className="relative z-10 shrink-0 ctl-exit"
         style={{ color: "#9a7b74" }}
       >
         <X className="h-4 w-4" aria-hidden />

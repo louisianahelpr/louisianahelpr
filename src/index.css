@@ -1453,6 +1453,20 @@ body {
   }
 }
 
+/* Design audit r2 #41 (tablet 768): Home, Inbox and Settings stretched to 736px under the 510px nav pill. From 640px
+   up to the 1024px desktop breakpoint the page's content column is capped at max-w-2xl (42rem) and centred; the frame
+   still fills (no grey gutter comes back), only the column inside it stops. Phone and desktop are unchanged.
+   Guard: src/test/designAuditR2.test.ts. */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  html.app-shell:not(.web-desktop) [data-app-page-scroll] > *,
+  html.app-shell:not(.web-desktop) .explore-header,
+  html.app-shell:not(.web-desktop) .page-column,
+  html.app-shell:not(.web-desktop) [data-scaffold-container] > .ds-desktop-wide {
+    max-width: 42rem;
+    margin-inline: auto;
+  }
+}
+
 /* ── Web-desktop (wide browser only — never native) ─────────────────────────
    Gated by the `web-desktop` class on <html>, set ONLY when
    `!Capacitor.isNativePlatform()` AND viewport ≥ 1024px (see

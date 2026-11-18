@@ -336,3 +336,25 @@ describe("design audit r2 #13: the photo tool's error is the shared Notice", () 
     expect(branch).toMatch(/variant="link"[^>]*onClick=\{onRun\}>\{t\("aid.tryAgain"\)\}/);
   });
 });
+
+/**
+ * #41: at 768 Home, Inbox and Settings stretched to 736px under a 510px nav pill. From 640px to the 1024px desktop
+ * breakpoint the content column (AppPage/SectionScreen scroll children, the explore header, the page column and
+ * PageScaffold's column) caps at 42rem (max-w-2xl), centred. The rule sits after the tablet band's own
+ * `.ds-desktop-wide { max-width: none }` so it wins on order at the same specificity.
+ * @mutate src/index.css |     max-width: 42rem;\n    margin-inline: auto; |     max-width: none;\n    margin-inline: auto;
+ */
+describe("design audit r2 #41: the tablet column caps at max-w-2xl", () => {
+  it("index.css caps every page column at 42rem from 640 to 1023px, after the band's uncap", () => {
+    const css = readFileSync("src/index.css", "utf8");
+    const at = css.indexOf("@media (min-width: 640px) and (max-width: 1023.98px) {\n  html.app-shell:not(.web-desktop) [data-app-page-scroll] > *");
+    expect(at).toBeGreaterThan(0);
+    const body = css.slice(at, css.indexOf("\n}\n", at));
+    for (const sel of ["[data-app-page-scroll] > *", ".explore-header", ".page-column", "[data-scaffold-container] > .ds-desktop-wide"]) {
+      expect(body).toContain(`html.app-shell:not(.web-desktop) ${sel}`);
+    }
+    expect(body).toMatch(/max-width: 42rem;\s*margin-inline: auto;/);
+    expect(at).toBeGreaterThan(css.indexOf("html.app-shell:not(.web-desktop) .app-shell-frame .ds-desktop-wide {\n    max-width: none;"));
+    expect(readFileSync("src/components/ui/PageScaffold.tsx", "utf8")).toContain('data-scaffold-container=""');
+  });
+});

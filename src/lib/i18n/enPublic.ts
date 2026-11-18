@@ -15,7 +15,6 @@ export const enPublic = {
   "footer.help": "Help center",
   "footer.fees": "Fees",
   "footer.safety": "Safety",
-  "footer.giftGuides": "Holiday Gift Guides",
   "footer.contact": "Contact us",
   "footer.legal": "Legal",
   "footer.terms": "Terms",
@@ -28,9 +27,7 @@ export const enPublic = {
   "footer.facebookTitle": "Follow us on Facebook",
   "footer.instagram": "Follow us on Instagram (opens in a new tab)",
   "footer.instagramTitle": "Follow us on Instagram",
-  "footer.madeWith": "Made with",
-  "footer.love": "love",
-  "footer.forCommunities": "for Louisiana communities",
+  "footer.place": "Delcambre, Louisiana",
 
   "fees.title": "Fees",
   "fees.postFree": "Posting a job is free.",

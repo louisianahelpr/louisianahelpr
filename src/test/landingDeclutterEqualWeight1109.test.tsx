@@ -7,7 +7,7 @@
  * Owner 11-10: "SHIP IT" with three tweaks (~/.lh-shots/landing-design-1110/FINDINGS.md):
  *   1. How it works opens on "Buy or sell" in Declutter mode (the hero's Jobs | Declutter choice, landingMode.ts);
  *   2. the Declutter money rule is folded into the band's headline, not a ninth claim (D009: one headline, three steps
- *      in one row, one row of trust badges);
+ *      in one row; the trust badges went 2026-11-17);
  *   3. "Shops and Homes are on the way" stays, as one line, and the Coming soon cards shrink away (D005,
  *      landingOpeningSoonCopy.test.tsx).
  * D008 (11-10): How it works wears the hero's quiet selected style, one look for "selected" on the landing.
@@ -96,7 +96,7 @@ describe("owner #7: the landing gives Declutter equal weight below the hero", ()
     expect(selected().className).not.toContain("btn-grad-primary");
   });
 
-  it("tweak 2 / D009: one band headline covers jobs and Declutter; three steps in a row; one row of badges", () => {
+  it("tweak 2 / D009: one band headline covers jobs and Declutter; three steps in a row; no badges (owner 2026-11-17)", () => {
     render(<MemoryRouter><TrustAndJoin /></MemoryRouter>);
     const band = screen.getByTestId("landing-money-band");
     expect(within(band).getByRole("heading", { level: 2 }).textContent).toBe("Nobody gets paid until it’s really done, or really handed over.");
@@ -104,10 +104,12 @@ describe("owner #7: the landing gives Declutter equal weight below the hero", ()
     const steps = within(screen.getByTestId("landing-money-steps")).getAllByRole("listitem");
     expect(steps).toHaveLength(3);
     expect(screen.getByTestId("landing-money-steps").className).toMatch(/\bsm:grid-cols-3\b/);
-    const badges = within(screen.getByTestId("landing-trust-badges")).getAllByRole("listitem");
-    expect(badges.length).toBeGreaterThan(2);
-    // A badge is a short label, never a tile with a paragraph of its own.
-    for (const b of badges) expect(b.querySelector("p, h3"), b.textContent!).toBeNull();
+    // Owner 2026-11-17: no row of trust badges, and no icon circle above each step (title and text stay).
+    expect(screen.queryByTestId("landing-trust-badges")).toBeNull();
+    for (const st of steps) {
+      expect(st.querySelector("svg"), st.textContent!).toBeNull();
+      expect(st.querySelector("h3")?.textContent, st.textContent!).toBeTruthy();
+    }
     // D015: no tracked-out eyebrow over the headline.
     expect(band.textContent).not.toMatch(/Your money, protected/i);
   });

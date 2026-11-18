@@ -488,7 +488,6 @@ export function Footer() {
         {group ? <a href={group} target="_blank" rel="noopener noreferrer">{C.footer.groupLink}</a> : show ? <mark className="lh25-ph">{C.footer.groupLink} {C.links.facebookGroup}</mark> : null}
         <Link to={C.links.rules}>{C.footer.rulesLink}</Link>
         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>
-        <Link to={C.links.giftGuides}>{C.footer.giftGuidesLink}</Link>
       </p>
     </footer>
   );

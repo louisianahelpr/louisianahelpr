@@ -626,12 +626,15 @@
      flash on every navigation. Measured by external QA 2026-09-07. One token,
      one dark override, and no rule can drift. */
   /* WARM ground (spec v2 §2 --ground #F4F2EE; owner adopted the rule book 2026-10-20;
-     lead go 2026-10-20). Guard: src/test/lightGroundIsWarm.test.ts. The two stops sit
+     lead go 2026-10-20). Guard: src/test/lightGroundIsWhite.test.ts. The two stops sit
      either side of #F4F2EE, as the old cool pair sat either side of #F0F2F4. */
   /* OWNER 11-12 ("the beige is too dull"): lighter, near-white warm ground #FCFBF8 (was #F4F2EE); cards stay pure white
      with their hairline border and shadow. Dark mode is untouched. */
-  --page-gradient: linear-gradient(135deg, #FDFCFA 0%, #FAF8F4 100%);
-  --parchment:    45 40% 98%; /* page canvas — WARM near-white #FCFBF8 (owner 11-12; was #F4F2EE, spec v2 §2). Was cool 220 14% 95%: the old note follows. Refined cool-neutral
+  /* OWNER 2026-11-17 ("white everywhere"): the page is plain white #FFFFFF, app-wide (web and the native shell); quiet
+     fills, lines and photo placeholders are neutral grey at the weight the warm ones had, never beige. Cards carry a
+     #ECECEA hairline (--card-hairline) so white-on-white still reads as a tile. Dark mode is untouched. */
+  --page-gradient: linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 100%);
+  --parchment:    0 0% 100%; /* page canvas — WHITE #FFFFFF (owner 2026-11-17; was warm #FCFBF8 from 11-12, #F4F2EE before). Was cool 220 14% 95%: the old note follows. Refined cool-neutral
                                     grey (hue 220, low sat) — the Linear/Stripe/Vercel
                                     premium register, never tacky cream. Held a touch
                                     below the 100%-white cards (~5% L gap) so every
@@ -641,7 +644,7 @@
   --ivory-sand:   0 0% 100%;    /* surface (cards) — pure crisp white. Sits brighter
                                     than the cool-grey canvas so it reads as a clean,
                                     elevated paper tile. */
-  --sand:         40 19% 87.8%; /* warm quiet surface / line #E6E2DA (spec v2 §2 --line; was cool 220 14% 90%, same weight on the ground) */
+  --sand:         60 4% 88%;    /* neutral quiet surface #E2E2DF (owner 2026-11-17: no beige; was warm #E6E2DA, same weight). bg-muted/30..60 bands land at ~#F7F7F5 on white */
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
   --sage:         78 9% 53%;    /* #8C947D — primary accent */
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */
@@ -725,9 +728,9 @@
   --muted-foreground:     var(--stormy-sky);
   --secondary:            var(--sand);
   --secondary-foreground: var(--olivewood);
-  --border:               40 19% 81.6%; /* line-strong #D9D3C7 (spec v2 §2), the same weight as the
+  --border:               60 4% 81.6%; /* neutral #D2D2CE (owner 2026-11-17: no beige; was warm line-strong #D9D3C7 (spec v2 §2), the same weight as the
                                             cool 220 14% 82% hairline it replaces (2026-10-20) */
-  --input:                40 19% 87.8%; /* field BORDER token: line #E6E2DA (spec v2 §2), warm at the
+  --input:                60 4% 88%; /* field BORDER token: neutral #E2E2DF (owner 2026-11-17; was warm line #E6E2DA (spec v2 §2), warm at the
                                             weight of the cool 220 13% 90% it replaces (2026-10-20) */
   --accent:               var(--burnt-sienna);
   --accent-foreground:    0 0% 100%;
@@ -977,8 +980,10 @@
      "Disputed" 3.52:1, both under AA. Light value is byte-identical to
      --burnt-sienna, so light mode does not move at all. */
   --sienna-ink: 19 75% 35%;   /* == --burnt-sienna in light */
-  /* Spec v2 §2 --photo-empty: an empty or loading photo, warm sand (#DCD5C7), never cool grey. */
-  --photo-empty: 40 23% 82%;
+  /* Spec v2 §2 --photo-empty: an empty or loading photo. Neutral #D3D3CF (owner 2026-11-17: no beige; was warm #DCD5C7). */
+  --photo-empty: 60 4% 82%;
+  /* The 1px hairline every white card wears on the white page (owner 2026-11-17), drawn as a box-shadow ring by T2. */
+  --card-hairline: 60 5% 92.2%; /* #ECECEA */
 
   /* Cancel red — destructive "Cancel job" action button. Warmer & more
      saturated than the muted system --destructive, kept as its own pair.
@@ -4918,7 +4923,7 @@ html.web-desktop .explore-switcher-bone { display: none; }
   border-color: transparent !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  box-shadow: 0 1px 2px hsl(220 14% 20% / 0.06), 0 4px 14px -6px hsl(220 14% 20% / 0.10) !important;
+  box-shadow: 0 0 0 1px hsl(var(--card-hairline)), 0 1px 2px hsl(220 14% 20% / 0.06), 0 4px 14px -6px hsl(220 14% 20% / 0.10) !important;
 }
 .page-panel { box-shadow: none !important; background-color: transparent !important; }
 [data-feed-card] > div, [data-activity-card] { border-radius: 1rem; }
@@ -5262,11 +5267,15 @@ html.page-scrolled .page-title-card:has(.explore-header),
    with the app's HSL tokens of the same name (`--muted` is an HSL triplet that
    bg-muted reads). Light, then the warm dark (#1C1A17), never cool grey. ── */
 .landing-page {
-  --lp-ground: #F4F2EE;
+  /* Owner 2026-11-17 ("white everywhere"): the page is white (--lp-page); --lp-ground, the bands and tiles that sat a
+     step darker than white, is the light neutral grey #F7F7F5; lines and placeholders are neutral, never beige. */
+  --lp-page: #FFFFFF;
+  --lp-ground: #F7F7F5;
   --lp-surface: #FFFFFF;
-  --lp-subtle: #EFEDE6;
-  --lp-line: #E6E2DA;
-  --lp-line-strong: #D9D3C7;
+  --lp-subtle: #EFEFED;
+  --lp-line: #ECECEA;
+  --lp-hairline: #ECECEA;
+  --lp-line-strong: #D2D2CE;
   --lp-ink: #2B2A26;
   --lp-body: #4F4C45;
   --lp-muted: #6B675F;
@@ -5275,25 +5284,25 @@ html.page-scrolled .page-title-card:has(.explore-header),
   --lp-on-action: #FFFFFF;
   --lp-money: #A1502C;
   --lp-money-tint: #F6E9E2;
-  --lp-photo-empty: #DCD5C7;
+  --lp-photo-empty: #D3D3CF;
   /* The money band: warm charcoal in light, one step up from the ground in dark. */
   --lp-band: #2B2A26;
   --lp-band-tile: #383631;
   --lp-band-ink: #F1EEE7;
   --lp-band-body: #D6D2C8;
   --lp-band-money: #E2A585;
-  /* The band's trust badges' outline (D009, 11-10). */
-  --lp-band-line: rgba(241, 238, 231, 0.32);
   --lp-shadow: 0 4px 18px rgba(32, 30, 26, 0.06);
   /* The app's olive primary reads these; on the landing it wears the spec's action olive. */
   --bark: 63 17% 37%;
   --parchment: 0 0% 100%;
-  background-color: var(--lp-ground) !important;
+  background-color: var(--lp-page) !important;
   background-image: none !important;
   color: var(--lp-body);
 }
 [data-theme="dark"] .landing-page {
+  --lp-page: #1C1A17;
   --lp-ground: #1C1A17;
+  --lp-hairline: transparent;
   --lp-surface: #262420;
   --lp-subtle: #3A3731;
   --lp-line: #3A3731;
@@ -5314,21 +5323,23 @@ html.page-scrolled .page-title-card:has(.explore-header),
   --lp-band-ink: #F1EEE7;
   --lp-band-body: #D6D2C8;
   --lp-band-money: #E2A585;
-  --lp-band-line: rgba(241, 238, 231, 0.32);
   --lp-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
   --bark: 66 20% 60%;
   --parchment: 36 16% 10%;
 }
 .landing-page .mesh-gradient-global { display: none; }
 
-/* Landing headlines in Bodoni Moda (spec §1.2: landing headlines are a Bodoni
-   moment). Three classes deep so it outranks T1's upright-Montserrat rule above;
-   the stack is the Tailwind `display` stack, Georgia's fallback first. */
+/* Landing headlines: the app's own heading face (owner 2026-11-17: "the same sans-serif heading font the signed-in
+   app uses", so the site feels one and modern), Montserrat 650, upright, -0.02em, exactly .text-page-title (T1). They
+   were Bodoni Moda (spec §1.2). Sizes are unchanged. The H1 (.landing-h1) joins here: T1 still exempts it by name, and
+   this rule, three classes deep with !important, outranks the Tailwind `font-display` stack it carries. The /sponsor
+   page has its own Christmas type and is not touched. Guard: src/test/landingHeadingsAreSans.test.ts. */
 :root .font-display.landing-serif,
+:root .font-display.landing-h1,
 .landing-serif-text {
-  font-family: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", Georgia, serif !important;
+  font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;
   font-style: normal !important;
-  font-weight: 600 !important;
+  font-weight: 650 !important;
   letter-spacing: -0.02em !important;
 }
 
@@ -5346,7 +5357,7 @@ html.page-scrolled .page-title-card:has(.explore-header),
 .landing-card {
   background: var(--lp-surface);
   border-radius: 20px;
-  box-shadow: var(--lp-shadow);
+  box-shadow: 0 0 0 1px var(--lp-hairline), var(--lp-shadow);
 }
 /* The search: ONE pill at every width with the button inside it (owner,
    2026-10-23: on a phone the Search button is a round icon in the box). */
@@ -5387,10 +5398,10 @@ html.page-scrolled .page-title-card:has(.explore-header),
    transparency (CLAUDE.md: each surface's OWN colour, per theme); that block
    stays because the generic reduced-transparency .glass-nav rule is
    !important. Guard: src/test/landingHeaderOpaque.test.ts. */
-.landing-page .glass-nav { background-color: var(--lp-ground); }
+.landing-page .glass-nav { background-color: var(--lp-page); }
 @media (prefers-reduced-transparency: reduce) {
   .landing-page .glass-nav,
-  [data-theme="dark"] .landing-page .glass-nav { background-color: var(--lp-ground) !important; }
+  [data-theme="dark"] .landing-page .glass-nav { background-color: var(--lp-page) !important; }
 }
 /* Board 24 price range (PayRangeSlider.tsx): two native range inputs on one
    track. Only the thumbs take pointer events, so either can be dragged where

@@ -78,6 +78,7 @@ const NOINDEX = {
   "/sponsor": "25 Days sponsor page: reached from pitch emails, dark behind the sponsor_25days switch",
   "/25days": "25 Days sponsor page (same page as /sponsor)",
   "/25days/rules": "25 Days giveaway rules: a draft until the owner approves it",
+  "/gift-guides": "Holiday Gift Guides: a hidden preview (owner 2026-11-17); without ?preview=1 it sends everyone home",
 };
 
 /**
@@ -92,7 +93,6 @@ const WEIGHTS = {
   "/sms-opt-in": { changefreq: "yearly", priority: "0.2" },
   "/fees": { changefreq: "yearly", priority: "0.4" },
   "/safety": { changefreq: "yearly", priority: "0.4" },
-  "/gift-guides": { changefreq: "weekly", priority: "0.6" },
   "/support": { changefreq: "monthly", priority: "0.5" },
   "/legal": { changefreq: "monthly", priority: "0.4" },
   "/legal?tab=community": { changefreq: "monthly", priority: "0.4" },

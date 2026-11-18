@@ -199,10 +199,6 @@
       "destination": "/api/share?_og=page&_id=safety"
     },
     {
-      "source": "/gift-guides",
-      "destination": "/api/share?_og=page&_id=gift-guides"
-    },
-    {
       "source": "/legal",
       "destination": "/api/share?_og=page&_id=legal"
     },
@@ -261,6 +257,10 @@
     {
       "source": "/unsubscribe",
       "destination": "/api/share?_og=noindex&_id=unsubscribe"
+    },
+    {
+      "source": "/gift-guides",
+      "destination": "/api/share?_og=noindex&_id=gift-guides"
     },
     {
       "source": "/sponsor",

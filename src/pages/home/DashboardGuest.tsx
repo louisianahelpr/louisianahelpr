@@ -540,7 +540,9 @@ const DashboardGuest = () => {
       title="Browse jobs"
       width="public"
       hideBack
-      bottomPaddingClassName="pb-16"
+      // Owner 2026-11-17: pb-4, not pb-16. With the feed's own pb-4 a short list left ~80px of blank page above the
+      // footer; now 32px. The raw-HTML shell (browseShellCards.mjs) draws the same padding.
+      bottomPaddingClassName="pb-4"
       footer={feedSettled}
     >
       <div className="mx-auto page-measure">

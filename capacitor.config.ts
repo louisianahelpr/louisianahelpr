@@ -130,7 +130,7 @@ const config: CapacitorConfig = {
       // src/lib/splashSafetyNet.ts as the backstop.
       launchShowDuration: 500,
       launchAutoHide: false,
-      backgroundColor: '#FCFBF8', // WARM ground (spec v2 §2, 2026-10-20) — the exact hex of hsl(40 21% 94.5%), i.e. --parchment in index.css. Matches StatusBar (below) and index.html's theme-color. The #root/#boot-loader shell and the app's page ground both paint the diagonal champagne gradient (#F7F5F1 -> #F0EDE7); this flat value sits between those two endpoints, so the splash-to-WebView handoff stays within a couple of RGB units instead of flashing a different surface.
+      backgroundColor: '#FFFFFF', // WHITE ground (owner 2026-11-17; was warm #FCFBF8) — the exact hex of --parchment (hsl(0 0% 100%)) in index.css. Matches StatusBar (below), index.html's theme-color and the #root/#boot-loader shell, so the splash-to-WebView handoff paints one colour.
       //
       // This comment used to read "Warm parchment (hsl(36 16% 91%))" while the
       // value beside it was already cool. That is how P2 happened the first
@@ -148,10 +148,10 @@ const config: CapacitorConfig = {
       // Capacitor semantics (counter-intuitive but correct):
       //   Style.Light => dark icons (for LIGHT backgrounds — what we want here)
       //   Style.Dark  => light icons (for DARK backgrounds)
-      // Helpr's default surface is the light canvas (#FCFBF8), so we want dark icons.
+      // Helpr's default surface is the white canvas (#FFFFFF), so we want dark icons.
       // Per-screen overrides live in src/hooks/useStatusBar.ts.
       style: 'LIGHT',
-      backgroundColor: '#FCFBF8',
+      backgroundColor: '#FFFFFF',
       // overlaysWebView is honoured on BOTH platforms — this comment used to
       // say "Android-only, no effect on iOS", and that is false against the
       // plugin's own iOS source (@capacitor/status-bar 8.0.3):

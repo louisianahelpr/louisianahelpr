@@ -78,7 +78,8 @@ describe("landing UI audit 2026-11-09", () => {
     const css = readFileSync(resolve(__dirname, "../index.css"), "utf8");
     const rule = css.match(/\n\.landing-card \{([^}]*)\}/)?.[1] ?? "";
     expect(rule).toMatch(/background:\s*var\(--lp-surface\)/);
-    expect(rule).toMatch(/box-shadow:\s*var\(--lp-shadow\)/);
+    // Owner 2026-11-17: a #ECECEA hairline ring (--lp-hairline) under the soft shadow, so the card still reads on white.
+    expect(rule).toMatch(/box-shadow:\s*0 0 0 1px var\(--lp-hairline\), var\(--lp-shadow\)/);
     const { container, unmount } = renderSections(null);
     const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
     expect(cards.length).toBeGreaterThan(1);

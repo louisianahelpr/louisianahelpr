@@ -72,7 +72,9 @@ describe("the guest landing's HTML-drawn first screen is the app's own hero (B10
   it("carries the LOCKED hero copy, font and colours (CLAUDE.md)", () => {
     const b = block(readFileSync(INDEX, "utf8"));
     expect(b).toMatch(/Louisiana(’|&rsquo;|&#x27;|')s local/);
-    expect(b).toContain('style="font-style:italic;color:var(--lp-money)">partner.</em>');
+    // Owner 2026-11-17: the H1 is one colour and style, no italic rust "partner.".
+    expect(b).toMatch(/Louisiana(’|&rsquo;|&#x27;|')s local partner\.<\/h1>/);
+    expect(b).not.toContain("<em");
     expect(b).toContain(">Hire help, find work, or buy and sell. One account, real neighbors.</p>");
     expect(b).toContain('class="landing-h1 relative z-10 font-display font-bold');
     expect(b).toContain("landing-page");

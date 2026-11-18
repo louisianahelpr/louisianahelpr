@@ -1,4 +1,4 @@
-import { Apple, Heart } from "lucide-react";
+import { Apple } from "lucide-react";
 import { Suspense, useEffect } from "react";
 import { Link } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
@@ -129,11 +129,14 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
           than stacking one-per-row. At ~400-640px that was four full-width
           blocks of vertical scroll for content that fits in two columns.
           The brand block spans both so its tagline keeps one measure. */}
-      <div className="grid grid-cols-2 min-[360px]:grid-cols-[auto_auto_auto] min-[360px]:justify-between min-[500px]:grid-cols-3 min-[500px]:justify-normal gap-x-4 gap-y-6 md:gap-8 min-[620px]:grid-cols-12">
+      {/* Owner 2026-11-17: below 620px Explore takes the full row with its links in TWO columns (each link its 44px tap
+          height, no extra gap), and Legal and Follow sit side by side under it. It was one long Explore column of
+          ~52px rows beside Legal and Follow. Guard: src/test/footerExploreTwoColumns.test.ts. */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-6 md:gap-8 min-[620px]:grid-cols-12">
         {/* Brand — uses the shared HelprMark component so the mark
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
-        <div className="col-span-2 min-[360px]:col-span-3 min-[620px]:col-span-4 space-y-3">
+        <div className="col-span-2 min-[620px]:col-span-4 space-y-3">
           {/* The H logo, never the "Helpr" wordmark (owner, 2026-10-20 08:30Z). */}
           <HelprMark to="/" size="md" emblemOnly />
           {/* Break after the first sentence so the tagline wraps predictably
@@ -148,14 +151,8 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
         </div>
 
         {/* Company */}
-        {/* col-span-2 + order-1 below 500 ONLY: Company takes the full row to
-            itself there (its "Help Center" link is the longest label in the
-            footer), which frees Follow to sit beside Legal on the row below
-            instead of stranded alone with 3 icons in a whole empty row (owner:
-            "follow can fit on the left of legal"). order-none from 500 up
-            restores the natural DOM order the 3-col/4-col layouts already rely
-            on. */}
-        <div className="col-span-2 order-1 min-[360px]:col-span-1 min-[360px]:order-none min-[620px]:col-span-3">
+        {/* Full row below 620px, its links in two columns (owner 2026-11-17). */}
+        <div className="col-span-2 min-[620px]:col-span-3">
           <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--muted-foreground))" }}
@@ -181,10 +178,8 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               upgraded. Membership lives inside the app at
               /profile?tab=subscription (the standalone /subscription route
               was removed in 49f4f2f30). */}
-          {/* Single column, matching Legal and Follow. Uneven column LENGTHS
-              are normal in a footer — three different list treatments side by
-              side is what looks unfinished. */}
-          <ul className="space-y-2 [@media(pointer:coarse)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
+          {/* Two columns below 620px (owner 2026-11-17); one column, matching Legal and Follow, from 620px. */}
+          <ul data-footer-explore="" className="grid grid-cols-2 gap-x-4 min-[620px]:block min-[620px]:space-y-2 min-[620px]:[@media(pointer:coarse)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
             <li>
               {/* Named, not bounced: a signed-in reader goes straight to the
                   authed feed and a visitor to the guest one. Same label either
@@ -222,12 +217,6 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
                 {w("footer.safety", "Safety")}
               </Link>
             </li>
-            {/* Owner 2026-11-16: the Holiday Gift Guides, reachable from every public page. */}
-            <li>
-              <Link to="/gift-guides" className={FOOTER_LINK}>
-                {w("footer.giftGuides", "Holiday Gift Guides")}
-              </Link>
-            </li>
             <li>
               {/* /contact redirects here too (vercel.json); this is where a
                   person who wants to reach us lands. */}
@@ -261,7 +250,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
             two-row footer even though all four columns fit side by side there.
             One split from 640px up, instead of a tier that only existed to
             wrap. */}
-        <div className="order-3 min-[360px]:order-none min-[620px]:col-span-2">
+        <div className="min-[620px]:col-span-2">
           <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--muted-foreground))" }}
@@ -289,7 +278,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
 
         {/* Follow — App Store icon (download) + Facebook + Instagram (socials).
             Compact squircle chips, one row. */}
-        <div className="order-2 min-[360px]:order-none min-[620px]:col-span-3">
+        <div className="min-[620px]:col-span-3">
           <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--muted-foreground))" }}
@@ -363,22 +352,8 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
         <Suspense fallback={null}>
           <LanguageToggle />
         </Suspense>
-        <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 flex items-center gap-1.5">
-          {w("footer.madeWith", "Made with")}{" "}
-          {/* L018 (landing audit 11-09): the icon was aria-hidden, so it read "Made with for Louisiana communities". */}
-          <Heart
-            className="w-3 h-3"
-            role="img"
-            aria-hidden={false}
-            aria-label={w("footer.love", "love")}
-            style={{
-              // Olive, not rust: rust is for money only (audit #14).
-              color: "hsl(var(--bark))",
-              fill: "hsl(var(--bark))",
-            }}
-          />{" "}
-          {w("footer.forCommunities", "for Louisiana communities")}
-        </p>
+        {/* Owner 2026-11-17: the plain place name, not "Made with ♥ for Louisiana communities". */}
+        <p className="text-ds-11 text-[hsl(var(--olivewood))]/80">{w("footer.place", "Delcambre, Louisiana")}</p>
       </div>
     </div>
   </footer>

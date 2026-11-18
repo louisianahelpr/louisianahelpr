@@ -9,7 +9,7 @@
  * 2. Tighter header rhythm, shared: search -> tabs 6px, tabs -> chips 4px, chips -> content 8px (browseHeaderSpacing).
  *    Since the compact top (owner 11-14) the search row is the top bar itself (COMPACT_TOP_ROW, its 2px under-pad).
  * 3. The Declutter tabs have no "N more" pill: one sideways strip (sectionTabsNeverCutAWord).
- * 4. The light app background is near-white #FCFBF8 (lightGroundIsWarm).
+ * 4. The light app background is white #FFFFFF (lightGroundIsWhite, owner 2026-11-17).
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -46,8 +46,8 @@ describe("owner 11-12: Jobs and Declutter Browse share one layout", () => {
     expect(tabs).not.toMatch(/data-tabs-more-button|tabs\.nMore|data-tabs-less-button|ChevronRight/);
     expect(tabs).toContain('data-tabs-strip=""');
   });
-  it("the light background token is the near-white #FCFBF8", () => {
-    expect(read("src/index.css")).toMatch(/--parchment:\s+45 40% 98%;/);
-    expect(readFileSync(resolve(__dirname, "../../index.html"), "utf8")).toContain('<meta name="theme-color" content="#FCFBF8" />');
+  it("the light background token is white #FFFFFF", () => {
+    expect(read("src/index.css")).toMatch(/--parchment:\s+0 0% 100%;/);
+    expect(readFileSync(resolve(__dirname, "../../index.html"), "utf8")).toContain('<meta name="theme-color" content="#FFFFFF" />');
   });
 });

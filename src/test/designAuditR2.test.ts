@@ -237,3 +237,24 @@ describe("design audit r2 #42/#17: toasts clear the bottom nav on a tablet", () 
     expect(src).toContain("[&_svg]:!w-4 [&_svg]:!h-4");
   });
 });
+
+/**
+ * #50: the filter sheet's "Clear all" was 13px next to a 56px primary; it is 16px semibold olive.
+ * #33 part: the job card swipe underlays ("Not interested", "Apply") follow the member's language.
+ * #34 part: the Spanish inbox title is "Mensajes" ("Bandeja de entrada" was cut at 390).
+ * @mutate src/components/dashboard/filterSheet/FilterSheetFooter.tsx | "min-h-11 text-ds-16"} px-1 font-semibold | "min-h-11 text-ds-14"} px-1 font-bold
+ * @mutate src/components/dashboard/SwipeMotionLayer.tsx |             {tr("jobCard.swipeApply")}\n |             Apply\n
+ */
+describe("design audit r2 #50/#33/#34", () => {
+  it("Clear all is 16px semibold", () => {
+    expect(readFileSync("src/components/dashboard/filterSheet/FilterSheetFooter.tsx", "utf8")).toContain('"min-h-11 text-ds-16"} px-1 font-semibold');
+  });
+  it("the swipe labels and the inbox title are Spanish in Spanish", () => {
+    const src = blankComments(readFileSync("src/components/dashboard/SwipeMotionLayer.tsx", "utf8"));
+    expect(src).toContain('{tr("jobCard.swipeNo")}');
+    expect(src).toContain('{tr("jobCard.swipeApply")}');
+    expect(src).not.toMatch(/>\s*(Not interested|Apply)\s*</);
+    expect(es["jobCard.swipeNo"]).toBe("No me interesa");
+    expect(es["inbox.title"]).toBe("Mensajes");
+  });
+});

@@ -134,7 +134,7 @@ describe("owner 11-09: browsing Jobs and browsing Declutter look the same", () =
     render(<MemoryRouter><FreshDeclutterSkeleton /></MemoryRouter>);
     const sk = screen.getByTestId("landing-fresh-declutter-skeleton");
     expect(sk.getAttribute("aria-hidden")).toBe("true");
-    expect(sk.querySelectorAll("ul > li").length).toBe(8);
+    expect(sk.querySelectorAll("ul > li").length).toBe(12); // owner 11-18 ("Make these smaller"): 12 small cards (was 8)
     expect(sk.querySelector("h2")).toBeNull();
     cleanup();
     render(<MemoryRouter><FreshDeclutterStrip items={Array.from({ length: 8 }, (_, i) => item(i + 1))} /></MemoryRouter>);

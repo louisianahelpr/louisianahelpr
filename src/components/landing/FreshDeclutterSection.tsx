@@ -24,9 +24,9 @@ const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m)
 /** Owner 11-18 ("Make these smaller"): 12 small cards, so every row is full at 3, 4 and 6 across. */
 export const FRESH_DECLUTTER_LIMIT = 12;
 /** How many of declutter_popular_items' best to ask for (the function caps p_limit at 24). */
-export const FRESH_POPULAR_LIMIT = 24;
+const FRESH_POPULAR_LIMIT = 24;
 /** The live pool the cute picks come from (225 live listings on prod 11-18; the read is below the fold, after load). */
-export const FRESH_POOL_LIMIT = 300;
+const FRESH_POOL_LIMIT = 300;
 /**
  * The card grid, shared by the strip and its placeholder so they are the same size. Owner 11-18 ("Make these
  * smaller"): 3 across on a phone, 4 from sm, 6 from lg (it was 2 / 3 / 4). Each whole card is the link, far over 44px.

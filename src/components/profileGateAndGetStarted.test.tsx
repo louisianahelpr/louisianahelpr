@@ -77,7 +77,7 @@ describe("the public top bar: Jobs | Declutter | Log in · Join free on every pa
 // Jobs opens the job list on every page.
 // @mutate src/components/Navbar.tsx |                 to="/browse" |                 to={location.pathname === "/browse" ? "/signup" : "/browse"}
 // Holiday Gift Guides is in the bar on every page (owner 2026-11-18).
-// @mutate src/components/Navbar.tsx |                 to="/gift-guides" |                 to="/gift-guide"
+// @mutate src/components/Navbar.tsx |                 to="/gift-guides"\n                aria-current={location.pathname.startsWith("/gift-guides") ? "page" : undefined}\n                data-testid="nav-gift-guides"\n |                 to="/gift-guide"\n                aria-current={location.pathname.startsWith("/gift-guides") ? "page" : undefined}\n                data-testid="nav-gift-guides"\n
 // Join free is the sign-up on every page.
 // @mutate src/components/Navbar.tsx |                 to="/signup" |                 to={landing ? "/signup" : "/browse"}
 // The landing gets no bar of its own.

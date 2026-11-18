@@ -319,7 +319,8 @@ export const useCurrentUser = (): CurrentUser => {
     // and a pre-ban copy under 30s old rehydrated as FRESH let a just-banned
     // account into /post-job (e2e journeys-webkit, ban-enforcement). Every load
     // reads it from the server; queryPersister refuses the key as well.
-    meta: { persist: false },
+    // warnOnMessage: timeout on a backgrounded phone is not a defect (Q2822).
+    meta: { persist: false, warnOnMessage: PROFILE_TIMEOUT_MESSAGE },
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     // NO LOCAL `retry` OVERRIDE — inherit the client policy in

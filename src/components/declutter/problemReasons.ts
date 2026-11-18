@@ -18,6 +18,6 @@ export const PROBLEM_REASONS: Record<"buyer" | "seller", Record<ProblemStage, [P
   seller: {
     waiting: [["no_show", "The buyer didn't come"], ["safety", "I felt unsafe"], ["other", "Something else"]],
     handover: [["no_show", "The buyer didn't come"], ["safety", "I felt unsafe"], ["other", "Something else"]],
-    delivery: [["other", "Something else"], ["safety", "I felt unsafe"]],
+    delivery: [["safety", "I felt unsafe"], ["other", "Something else"]],
   },
 };

@@ -1,0 +1,42 @@
+/**
+ * Design audit area 02 #3 (11-18): /search was all English in Español (title, Save this search, saved searches,
+ * Browse by category, Nothing matches). Its words, and the Save this search pill's. Importing this file registers
+ * them with t() (enRegistry.ts). Spanish: esSearch.ts.
+ */
+import { addEnglish } from "./enRegistry";
+
+export const enSearch = {
+  "srch.title": "Search",
+  "srch.pageTitle": "Search — Helpr",
+  "srch.formAria": "Search Helpr",
+  "srch.field": "Search jobs, items and shops",
+  "srch.fieldJI": "Search jobs and items",
+  "srch.fieldJS": "Search jobs and shops",
+  "srch.fieldJ": "Search jobs",
+  "srch.clear": "Clear search",
+  "srch.showFrom": "Show results from",
+  "srch.all": "All",
+  "srch.failed": "Search didn't load.",
+  "srch.tryAgain": "Try again",
+  "srch.searching": "Searching…",
+  "srch.nothing": "Nothing matches “{q}” yet",
+  "srch.nothingMember": "Save this search and we'll tell you when something new matches, or look through everything open now.",
+  "srch.nothingGuest": "Try fewer words, or look through everything open now.",
+  "srch.browseJobs": "Browse all jobs",
+  "srch.browseDeclutter": "Browse Declutter",
+  "srch.seeMore": "See more",
+  "srch.seeAllN": "See all {n}",
+  "srch.seeAllJobs": "See all {n} in Jobs",
+  "srch.parish": "{parish} Parish",
+  "srch.soonOne": "{name} is coming soon.",
+  "srch.soonMany": "{names} are coming soon.",
+  "srch.and": "and",
+  "srch.everySection": "Search every section at once.",
+  "srch.recent": "Recent searches",
+  "srch.saved": "Your saved searches",
+  "srch.byCategory": "Browse by category",
+  "srch.save": "Save this search",
+  "srch.savedPill": "Search saved",
+} as const;
+
+addEnglish(enSearch);

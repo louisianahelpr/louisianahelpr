@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../../../supabase/functions/_shared/escrowTiming";
 import { getLang, t, useLanguage } from "@/lib/i18n/language";
@@ -145,9 +146,12 @@ function MoneyTile({ kind, span, label, cents, caption, stack, disabled = false,
       // voice user say the same words (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491).
       onClick={onClick}
       disabled={disabled}
-      className={`p-card lg:p-4 gap-0.5 ${span}`}
+      className={`relative p-card lg:p-4 gap-0.5 ${span}`}
     >
-      <span className="text-ds-13 text-muted-foreground">{label}</span>
+      {/* Design audit area 02 #23 (11-18): the tile opens You › Money but looked like a plain card; the chevron says
+          it goes somewhere. Not drawn where the tile is not a control (openKind). */}
+      {!disabled && <ChevronRight data-money-chevron aria-hidden className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />}
+      <span className="text-ds-13 text-muted-foreground pr-5">{label}</span>
       {/* M12 (iOS audit 11-16): a zero amount is the neutral ink; rust is for money that is really moving or held. */}
       <span data-money-amount className="text-ds-24 font-bold tabular-nums leading-tight" style={{ color: cents === 0 ? "hsl(var(--ink-deep))" : "hsl(var(--accent-ink))" }}>{amount}</span>
       <span className="text-ds-13 text-muted-foreground leading-snug">{caption}</span>

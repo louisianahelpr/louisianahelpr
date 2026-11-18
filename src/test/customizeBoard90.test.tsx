@@ -5,10 +5,10 @@
  * shared sheet footer. The copy never says "drag" (reorder is the arrows).
  *
  * @mutate src/components/sections/CustomizeSheet.tsx |                 {on ? ( |                 {true ? (
- * @mutate src/components/sections/CustomizeSheet.tsx |           <SheetPrimaryAction onClick={() => onOpenChange(false)}>Done</SheetPrimaryAction> |           <SheetPrimaryAction>Done</SheetPrimaryAction>
- * @mutate src/components/sections/CustomizeSheet.tsx |           Use the arrows to reorder. |           Drag to reorder.
- * @mutate src/components/sections/CustomizeSheet.tsx | data-always-on="Inbox">Inbox</span> | data-always-on="Inbox">Messages</span>
- * @mutate src/components/sections/CustomizeSheet.tsx | Hidden sections leave Home, the bottom bar and Create. | Hidden sections leave Dashboard, Explore and the + menu.
+ * @mutate src/components/sections/CustomizeSheet.tsx |           <SheetPrimaryAction onClick={() => onOpenChange(false)}>{t("cz.done")}</SheetPrimaryAction> |           <SheetPrimaryAction>{t("cz.done")}</SheetPrimaryAction>
+ * @mutate src/lib/i18n/enCreateSheets.ts | "cz.howTo": "Use the arrows to reorder. | "cz.howTo": "Drag to reorder.
+ * @mutate src/lib/i18n/enCreateSheets.ts |   "cz.inbox": "Inbox", |   "cz.inbox": "Messages",
+ * @mutate src/lib/i18n/enCreateSheets.ts | Hidden sections leave Home, the bottom bar and Create. | Hidden sections leave Dashboard, Explore and the + menu.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";

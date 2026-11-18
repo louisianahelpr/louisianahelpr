@@ -1,4 +1,5 @@
 import { ListRow, ListRowLink } from "@/components/ui/ListRow";
+import { formatUnreadBadge } from "@/lib/format";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
@@ -269,7 +270,8 @@ const DesktopSidebarRail = () => {
                         color: "#fff",
                       }}
                     >
-                      {count > 9 ? "9+" : count}
+                      {/* Design audit area 02 #16 (11-18): the header said 99+ while this said 9+; one cap, the shared one. */}
+                      {formatUnreadBadge(count)}
                     </span>
                   )}
                 </span>

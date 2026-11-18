@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, Clock } from "lucide-react";
 import { SAVED_SEARCHES_KEY } from "@/components/savedSearches/SaveSearchSheet";
 import { SavedSearchNewPill } from "@/components/savedSearches/SavedSearchNewPill";
-import { fetchNewCounts, fetchSavedSearches, markSeen, resultsPath, SECTION_LABEL, type SavedSearch } from "@/lib/savedSearches";
+import { fetchNewCounts, fetchSavedSearches, markSeen, resultsPath, type SavedSearch } from "@/lib/savedSearches";
 import { report } from "@/lib/errorLogger";
 import { JOB_CATEGORIES } from "@/lib/jobCategories";
 import { CATEGORIES } from "@/lib/declutter/categoryIcons";
@@ -12,6 +12,10 @@ import { getRecentSearches } from "@/lib/searchHistory";
 import { SEARCH_PARAM } from "@/components/landing/heroSearch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
+import "@/lib/i18n/enSearch";
+import "@/lib/i18n/enDeclutter";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 /** How many saved searches the first screen lists; the rest stay in You › Settings › Saved searches. */
 const START_SAVED_MAX = 5;
@@ -37,6 +41,7 @@ function jobsCategoryHref(cat: string, signedIn: boolean): string {
 }
 
 export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: string | null; declutterOn: boolean; signedIn?: boolean }) {
+  const { t } = useLanguage();
   // The same cache entry as Settings › Saved searches. A failed read shows no saved list (the chips and the box
   // still work); Settings shows the error and its retry.
   const saved = useQuery({ queryKey: [...SAVED_SEARCHES_KEY, "list", userId ?? ""], enabled: !!userId, queryFn: () => fetchSavedSearches(userId!) });
@@ -56,8 +61,8 @@ export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: 
       });
   };
   const groups: { key: string; title: string; chips: { key: string; label: string; to: string }[] }[] = [
-    { key: "jobs", title: "Jobs", chips: JOB_CATEGORIES.slice(0, START_CHIPS_PER_SECTION).map((c) => ({ key: `jobs-${c.value}`, label: c.label, to: jobsCategoryHref(c.value, signedIn) })) },
-    ...(declutterOn ? [{ key: "declutter", title: "Declutter", chips: CATEGORIES.slice(0, START_CHIPS_PER_SECTION).map((c) => ({ key: `declutter-${c.key}`, label: c.label, to: `/declutter?cat=${c.key}` })) }] : []),
+    { key: "jobs", title: t("nav.jobs"), chips: JOB_CATEGORIES.slice(0, START_CHIPS_PER_SECTION).map((c) => ({ key: `jobs-${c.value}`, label: c.label, to: jobsCategoryHref(c.value, signedIn) })) },
+    ...(declutterOn ? [{ key: "declutter", title: t("nav.declutter"), chips: CATEGORIES.slice(0, START_CHIPS_PER_SECTION).map((c) => ({ key: `declutter-${c.key}`, label: t(`decl.cat.${c.key}` as MsgKey), to: `/declutter?cat=${c.key}` })) }] : []),
   ];
   // Read once per visit: the list only changes when a search is run, which leaves this screen.
   const [recent] = useState(getRecentSearches);
@@ -71,12 +76,12 @@ export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: 
 
   return (
     <div className="space-y-4" data-testid="search-start">
-      <p className="font-sans text-ds-13 text-muted-foreground px-1">Search every section at once.</p>
+      <p className="font-sans text-ds-13 text-muted-foreground px-1">{t("srch.everySection")}</p>
       {!ready && <SearchStartBones groups={groups.length} />}
       {ready && (<>
       {recent.length > 0 && (
-        <section aria-label="Recent searches" className="space-y-2">
-          <h2 className="font-sans font-bold text-ds-15 px-1" style={{ color: "hsl(var(--ink-deep))" }}>Recent searches</h2>
+        <section aria-label={t("srch.recent")} className="space-y-2">
+          <h2 className="font-sans font-bold text-ds-15 px-1" style={{ color: "hsl(var(--ink-deep))" }}>{t("srch.recent")}</h2>
           <div className="rounded-2xl overflow-hidden" style={{ background: "hsl(var(--card))" }}>
             {recent.map((r) => (
               <Link key={r} to={`/search?${SEARCH_PARAM}=${encodeURIComponent(r)}`} title={r} data-recent-search="" className="flex items-center gap-3 px-4 py-3 min-h-[48px] border-b border-border last:border-b-0 ctl-tint">
@@ -88,15 +93,15 @@ export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: 
         </section>
       )}
       {rows.length > 0 && (
-        <section aria-label="Your saved searches" className="space-y-2">
-          <h2 className="font-sans font-bold text-ds-15 px-1" style={{ color: "hsl(var(--ink-deep))" }}>Your saved searches</h2>
+        <section aria-label={t("srch.saved")} className="space-y-2">
+          <h2 className="font-sans font-bold text-ds-15 px-1" style={{ color: "hsl(var(--ink-deep))" }}>{t("srch.saved")}</h2>
           <div className="rounded-2xl overflow-hidden" style={{ background: "hsl(var(--card))" }}>
             {rows.map((s) => (
-              <Link key={s.id} to={resultsPath(s)} title={`${s.name} · ${SECTION_LABEL[s.section as keyof typeof SECTION_LABEL]}`} onClick={() => openSaved(s)} className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border last:border-b-0 ctl-tint">
+              <Link key={s.id} to={resultsPath(s)} title={`${s.name} · ${t(`nav.${s.section}` as MsgKey)}`} onClick={() => openSaved(s)} className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border last:border-b-0 ctl-tint">
                 <Bookmark className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="flex-1 min-w-0">
                   <span className="block font-sans font-semibold text-ds-14 leading-snug truncate" style={{ color: "hsl(var(--ink-deep))" }}>{s.name}</span>
-                  <span className="block font-sans text-ds-12 text-muted-foreground truncate">{SECTION_LABEL[s.section as keyof typeof SECTION_LABEL]}</span>
+                  <span className="block font-sans text-ds-12 text-muted-foreground truncate">{t(`nav.${s.section}` as MsgKey)}</span>
                 </span>
                 <SavedSearchNewPill n={counts.data?.get(s.id) ?? 0} />
               </Link>
@@ -104,8 +109,8 @@ export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: 
           </div>
         </section>
       )}
-      <section aria-label="Browse by category" className="space-y-2">
-        <h2 className="font-sans font-bold text-ds-15 px-1" style={{ color: "hsl(var(--ink-deep))" }}>Browse by category</h2>
+      <section aria-label={t("srch.byCategory")} className="space-y-2">
+        <h2 className="font-sans font-bold text-ds-15 px-1" style={{ color: "hsl(var(--ink-deep))" }}>{t("srch.byCategory")}</h2>
         {groups.map((g) => (
           <div key={g.key} data-category-group={g.key} className="space-y-1.5">
             <h3 className="font-sans font-semibold text-ds-13 text-muted-foreground px-1">{g.title}</h3>

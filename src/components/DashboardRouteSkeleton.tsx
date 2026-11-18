@@ -2,6 +2,25 @@ import AppShell from "@/components/AppShell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useEffect, useState } from "react";
+import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+import { useLanguage } from "@/lib/i18n/language";
+
+/**
+ * Design audit area 02 #1 (11-18): with Home's reads failing (forced errors on every table, live main c3efd4d67f) a
+ * signed-in visitor at `/` sat on these bones for good: no error, no Try again, no nav. Bones that outlive this wait
+ * are not "still loading", so they give way to an error card with Try again (a fresh load: whatever is stuck, the
+ * auth check, the profile read or Home's chunk, starts again).
+ */
+export const HOME_SKELETON_STUCK_MS = 8000;
+function useStuck(ms: number): boolean {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setStuck(true), ms);
+    return () => clearTimeout(id);
+  }, [ms]);
+  return stuck;
+}
 
 /**
  * Suspense / auth-pending fallback for the `/home` route, which is the Home
@@ -26,9 +45,34 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
  */
 const DashboardRouteSkeleton = () => {
   const desktop = useIsWebDesktop();
+  const stuck = useStuck(HOME_SKELETON_STUCK_MS);
+  const { t } = useLanguage();
+  // Design audit area 02 #1: on `/` (and /browse) the signed-in rail is not mounted (not a rail route), so the desktop
+  // bones spanned the whole window and then jumped right when Home arrived with its rail. Off a rail route the bones
+  // draw the rail's place too, so the page lands where Home will be.
+  const railBones = desktop && typeof window !== "undefined" && !isDesktopRailRoute(window.location.pathname);
   return (
-  <div role="status" aria-live="polite" aria-busy="true" data-testid="dashboard-route-skeleton">
-    <span className="sr-only">Loading…</span>
+  <div role="status" aria-live="polite" aria-busy={!stuck} data-testid="dashboard-route-skeleton" style={railBones ? { paddingLeft: "var(--desktop-sidebar-w)" } : undefined}>
+    <span className="sr-only">{stuck ? t("home.stuckTitle") : "Loading…"}</span>
+    {railBones && (
+      <aside aria-hidden data-testid="dashboard-route-skeleton-rail" className="fixed inset-y-0 left-0 z-10 flex flex-col gap-3 border-r border-border/70 bg-background px-4 pt-6" style={{ width: "var(--desktop-sidebar-w)" }}>
+        <Skeleton className="h-8 w-32 rounded-ds-md mb-4" />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-10 w-full rounded-ds-md" />
+        ))}
+      </aside>
+    )}
+    {stuck && (
+      <div className="fixed inset-x-0 top-24 z-20 flex justify-center px-4" style={railBones ? { left: "var(--desktop-sidebar-w)" } : undefined}>
+        <div data-testid="home-stuck-card" className="liquid-glass p-card flex w-full max-w-md flex-col items-start gap-2 shadow-lg">
+          <p className="text-ds-18 font-bold leading-snug">{t("home.stuckTitle")}</p>
+          <p className="text-ds-14 text-muted-foreground">{t("home.stuckBody")}</p>
+          <button type="button" onClick={() => window.location.reload()} className="btn-press mt-1 h-11 rounded-full bg-primary px-5 text-ds-14 font-semibold text-primary-foreground">
+            {t("core.tryAgain")}
+          </button>
+        </div>
+      </div>
+    )}
     {/* SectionScreen's frame, class for class. */}
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
       <div className="container mx-auto px-4 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" aria-hidden>
@@ -87,9 +131,9 @@ const DashboardRouteSkeleton = () => {
                   <Skeleton className="h-4 w-28 rounded-ds-md" />
                   <Skeleton className="h-4 w-16 rounded-ds-md" />
                 </div>
-                <div className="flex flex-wrap gap-2" data-skeleton-part="tiles">
+                <div className="grid grid-cols-2 gap-2" data-skeleton-part="tiles">
                   {[0, 1].map((i) => (
-                    <Skeleton key={i} className="h-11 w-32 rounded-full" />
+                    <Skeleton key={i} className="h-11 w-full rounded-full" />
                   ))}
                 </div>
               </div>

@@ -221,5 +221,18 @@ const del = await svc(`DELETE FROM auth.users WHERE id = '${TESTER2}'`);
 const orphan = await svc(`SELECT user_id FROM public.category_suggestions WHERE id = '${id2}'`);
 ok(Array.isArray(del) && Array.isArray(orphan) && orphan.length === 1 && orphan[0].user_id === null, "deleting the suggester keeps the row with user_id NULL");
 
+// Q1953 (Shops launch pass 2, 2026-11-18): 20261118055848_shops_suggest_a_category.sql widens the area list to 'shops'.
+// SHOPS_MIGRATION=skip leaves it out: the two shops checks FAIL.
+const SHOPS_MIG = readFileSync(process.env.SHOPS_SUGGEST_PATH ?? `${MIG_DIR}20261118055848_shops_suggest_a_category.sql`, "utf8");
+if (process.env.SHOPS_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(SHOPS_MIG);
+const shopsRaw = await as("authenticated", ADMIN, `SELECT public.suggest_category('shops', 'Pottery classes')`);
+const shopsId = one(shopsRaw);
+ok(typeof shopsId === "string", "a Shops suggestion is accepted");
+const shopsRow = await svc(`SELECT suggested_in FROM public.category_suggestions WHERE suggested_in = 'shops'`);
+ok(Array.isArray(shopsRow) && shopsRow.length === 1, "it is stored with suggested_in = 'shops'");
+ok(refused(await as("authenticated", ORDINARY, `SELECT public.suggest_category('shops', 'Pottery')`), /feature_disabled/, "42501"),
+  "the switch still refuses an ordinary account in Shops");
+ok(refused(await as("authenticated", ADMIN, `SELECT public.suggest_category('rentals', 'Pottery')`), /invalid_area/), "an unknown area is still refused");
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail === 0 ? 0 : 1);

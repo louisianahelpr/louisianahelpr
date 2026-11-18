@@ -30,6 +30,7 @@
 // @mutate src/components/declutter/DeclutterSellView.tsx |           <SuggestCategory area="declutter" /> | {null}
 // @mutate src/components/declutter/DeclutterEditListing.tsx |       <SuggestCategory area="declutter" /> | {null}
 // @mutate src/components/postjob/JobCategoryGroups.tsx |           <SuggestCategory area="jobs" /> | {null}
+// @mutate src/components/shops/ShopEditView.tsx |       <SuggestCategory area="shops" /> | {null}
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -141,11 +142,13 @@ const PICKERS: ReadonlyArray<{ file: string; picker: RegExp; area: "jobs" | "dec
   { file: "src/components/declutter/SellSummaryCard.tsx", picker: /<CategoryDrillDown label=\{t\("sell\.category"\)\}/, area: "declutter" },
   { file: "src/components/declutter/DeclutterSellView.tsx", picker: /<CategoryDrillDown label=\{tr\("sf\.ds\.category"\)\}/, area: "declutter" },
   { file: "src/components/declutter/DeclutterEditListing.tsx", picker: /<ChipGroup label=\{t\("lp\.ed\.category"\)\}/, area: "declutter" },
+  // Q1953 (Shops launch pass 2, 2026-11-18; 20261118 shops_suggest_a_category widens the server to 'shops').
+  { file: "src/components/shops/ShopEditView.tsx", picker: /<ShopCategoryQuickPick id="shop-category"/, area: "shops" },
 ];
 
 describe("Suggest a category: every category picker renders the link (Q1836 a)", () => {
   it("reads a real inventory (floor)", () => {
-    expect(PICKERS.length).toBeGreaterThan(3);
+    expect(PICKERS.length).toBeGreaterThan(4);
   });
 
   for (const { file, picker, area } of PICKERS) {

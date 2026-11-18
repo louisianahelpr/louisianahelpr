@@ -1201,7 +1201,7 @@
       "kind": "toast.success",
       "title": {
         "form": "literal",
-        "text": "Thanks, we'll look at your suggestion. Pick \"Other\" for now."
+        "text": "Thanks, we'll look at your suggestion. Pick \"Something else\" for now."
       },
       "renders": false
     },

@@ -251,6 +251,8 @@ describe("gift guides: the content inventory", () => {
     // Owner 11-18 PM ("No just get rid of the expernices"): the Experiences row and its seven guides are gone, not
     // hidden; Gift Cards and Subscriptions stay as their own guides, in By budget after Gift Wrap & Cards.
     expect(rows).not.toContain("Experiences");
+    // A guide that holds nothing yet is not listed (lead 2026-11-18); the rest keep the list's order.
+    const holding = (slugs: string[]) => slugs.filter((x) => guideBySlug(x) && !guideBySlug(x)!.empty && !guideBySlug(x)!.thin);
     expect(guidesIn("experiences")).toEqual([]);
     const gone = ["louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "family-fun-days"];
     for (const slug of gone) {
@@ -310,7 +312,7 @@ describe("gift guides: the content inventory", () => {
 
   it("the owner's guide list drives the order and the palettes; every listed guide with content is shown", () => {
     expect(ROWS.map((r) => r.label)).toEqual(ROW_LABELS);
-    expect(ROWS.map((r) => r.tint)).toEqual(["green", "red", "oat", "green", "oat", "red", "oat", "green", "red", "oat", "green"]);
+    expect(ROWS.map((r) => r.tint)).toEqual(["green", "red", "oat", "green", "red", "oat", "green", "red", "oat", "green"]);
     const shown = GUIDES.filter((g) => GUIDE_INDEX.some((x) => x.slug === g.slug)).map((g) => g.slug);
     expect(shown).toEqual(GUIDE_INDEX.filter((x) => shown.includes(x.slug)).map((x) => x.slug));
     expect(shown).toEqual(GUIDE_INDEX.filter((x) => !REMOVED_GUIDES.includes(x.slug)).map((x) => x.slug));
@@ -1043,7 +1045,7 @@ describe("gift guides: rows read in order (design audit 11-18 #8, #9)", () => {
   it("By budget runs Under $5 up to $100 & Up, then Stocking Stuffers and Gift Wrap; each kids hub runs Babies to Teens", () => {
     // @mutate src/content/giftGuideIndex.ts | slug: "under-5", | slug: "under-5x",
     const budget = GUIDE_INDEX.filter((g) => g.group === "By budget").map((g) => g.slug);
-    expect(budget).toEqual(["under-5", "under-10", "under-15", "under-20", "under-25", "under-30", "under-40", "under-50", "under-75", "under-100", "100-and-up", "stocking-stuffers", "gift-wrap-and-cards"]);
+    expect(budget).toEqual(["under-5", "under-10", "under-15", "under-20", "under-25", "under-30", "under-40", "under-50", "under-75", "under-100", "100-and-up", "stocking-stuffers", "gift-wrap-and-cards", "gift-cards", "subscriptions"]);
     for (const hub of ["boys", "girls", "gender-neutral"]) {
       expect(GUIDE_INDEX.filter((g) => g.parent === hub).map((g) => g.slug.slice(hub.length + 1)), hub).toEqual(["babies", "toddlers", "little-kids", "big-kids", "teens"]);
       expect(GUIDE_INDEX.filter((g) => g.parent === hub).every((g) => /^ages \d+(–\d+|\+)$/.test(g.age ?? "")), hub).toBe(true);

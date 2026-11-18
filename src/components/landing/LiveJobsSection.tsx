@@ -217,7 +217,10 @@ export function LiveJobsSection() {
               <li key={j.id} data-live-job="">
                 <Link
                   to={`/browse?job=${encodeURIComponent(j.id)}`}
-                  className="h-full rounded-2xl p-4 lg:p-6 flex lg:flex-col items-center lg:items-stretch justify-between gap-3 transition-colors"
+                  // Design audit 11-17 #32: at 1440 the prices sat at different heights (a two-line place under one
+                  // price pushed it up). From lg the card stacks from the top and the title keeps two lines' room, so
+                  // every price starts on one line across the row.
+                  className="h-full rounded-2xl p-4 lg:p-6 flex lg:flex-col items-center lg:items-stretch justify-between lg:justify-start gap-3 transition-colors"
                   style={{ background: "var(--lp-ground)", color: "var(--lp-ink)" }}
                 >
                   <span className="flex flex-col gap-1 lg:gap-3 min-w-0">
@@ -226,7 +229,7 @@ export function LiveJobsSection() {
                         {jobCategoryLabel(j.category)}
                       </span>
                     )}
-                    <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words" title={j.title}>{j.title}</span>
+                    <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words lg:min-h-[2lh]" title={j.title}>{j.title}</span>
                     {where && (
                       <span className="lg:hidden text-ds-13" style={{ color: "var(--lp-body)" }}>{where}</span>
                     )}

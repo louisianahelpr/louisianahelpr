@@ -86,7 +86,8 @@ import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
-import { GiftGuideView } from "@/pages/info/giftGuides/GiftGuideView";
+import { GiftGuideView, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
+import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META, giftGuidePageMeta } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
@@ -304,7 +305,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector(".gg-band")).toBeNull();
     const words = container.querySelector("[data-gift-words]");
-    expect([...(words?.children ?? [])].map((c) => c.textContent)).toEqual(["top-rated finds", "Holiday Gift Guides", "Share"]);
+    expect([...(words?.children ?? [])].map((c) => c.textContent)).toEqual(["top-rated finds", "Holiday Gift Guides", "ShareText this guide"]);
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
     // age guide keeps its age band).
     const tiles = [...container.querySelectorAll("a[data-gift-tile]")];
@@ -318,7 +319,13 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.textContent).not.toMatch(/\d+ picks?\b|\d+ guides\b|Coming soon|On ShopMy/);
     cleanup();
     const wordsOf = (path: string) => [...(renderAt(path).container.querySelector("[data-gift-words]")?.children ?? [])].map((c) => c.textContent);
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts for", "Mom", "Share"]);
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts for", "Mom", "ShareText this guide"]);
+    cleanup();
+    // "Text this guide" (owner 2026-11-18): an sms: link carrying the guide's URL; iOS's form, else Android's.
+    const text = renderAt("/gift-guides/mom").container.querySelector("a[data-gift-text]")!;
+    expect(text.getAttribute("href")).toMatch(/^sms:[?&]body=.*https%3A%2F%2Fwww\.louisianahelpr\.com%2Fgift-guides%2Fmom$/);
+    expect(smsHref("https://x.test/g", "Mom", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)")).toBe("sms:&body=Mom%20https%3A%2F%2Fx.test%2Fg");
+    expect(smsHref("https://x.test/g", "Mom", "Mozilla/5.0 (Linux; Android 15)")).toBe("sms:?body=Mom%20https%3A%2F%2Fx.test%2Fg");
     cleanup();
     cleanup();
     const mom = renderAt("/gift-guides/mom").container;
@@ -478,6 +485,15 @@ describe("gift guides: the landing opens to the guides", () => {
     for (const g of thin) expect(landing.querySelector(`a[data-gift-tile="${g.slug}"]`), g.slug).toBeNull();
   });
 
+  it("the landing carries the 25 Days card, linking to the Facebook page in a new tab", () => {
+    const card = renderAt("/gift-guides").container.querySelector("[data-gift-giveaways]")!;
+    expect(card.textContent).toContain("25 Days of Louisiana Giveaways");
+    const a = card.querySelector("a[data-gift-social]")!;
+    expect(a.getAttribute("href")).toBe("https://www.facebook.com/louisianahelpr");
+    expect(a.getAttribute("target")).toBe("_blank");
+    expect(a.getAttribute("rel")).toContain("noopener");
+  });
+
   it("Sales sit under Discount codes, collapsed, soonest end first; a sale past its end day hides", () => {
     expect(SALES.length).toBeGreaterThan(20);
     for (let i = 1; i < SALES.length; i++) expect(SALES[i - 1].ends <= SALES[i].ends, SALES[i].offer).toBe(true);
@@ -553,7 +569,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
           expect(Number(img?.getAttribute("height"))).toBeGreaterThan(0);
         } else {
           expect(img).toBeNull();
-          expect(a.querySelector("[data-gift-letter]")?.textContent).toBe(g.picks[i].name.trim().charAt(0).toUpperCase());
+          expect(a.querySelector("[data-gift-letter]")?.textContent).toBe(storeLabel(g.picks[i]));
         }
       });
       checked += 1;
@@ -628,6 +644,13 @@ describe("gift guides: links and disclosures on every view", () => {
       const container = draw();
       for (const a of container.querySelectorAll("a")) {
         const href = a.getAttribute("href") ?? "";
+        // "Text this guide" opens the visitor's own messages app (an sms: link, not a shop).
+        if (href.startsWith("sms:") && a.hasAttribute("data-gift-text")) continue;
+        // The 25 Days card's Facebook page (a social follow, not a shop: no affiliate rel).
+        if (a.hasAttribute("data-gift-social")) {
+          expect(href, url).toBe(sponsorPage.links.facebookPage);
+          continue;
+        }
         if (href.startsWith("/")) {
           // The one link out of the guides: the Hire-a-Helpr box's pre-filled Post a job (owner 2026-11-18).
           if (href === GIFT_WRAP_JOB_PATH) continue;

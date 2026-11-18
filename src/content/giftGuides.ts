@@ -211,8 +211,14 @@ export const giftGuides = {
   newTab: "opens in a new tab",
   onStore: (store: string) => `On ${store}`,
   /** The pick badges (owner 2026-11-18). Never a price. */
-  badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup" },
+  badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
+  /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
+  giveaways: {
+    title: "25 Days of Louisiana Giveaways",
+    body: "A new Louisiana giveaway every day, December 1 to 25. Follow us on Facebook so you don't miss one.",
+    cta: "Follow on Facebook",
+  },
   helpr: {
     title: "No time to wrap?",
     body: "Hire a local Helpr to wrap your gifts, assemble toys or hang the Christmas lights.",

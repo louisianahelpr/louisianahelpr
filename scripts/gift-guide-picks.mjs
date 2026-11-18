@@ -98,7 +98,9 @@ function toPick(p, where) {
     : storeFor(p.retailer || p.store || p.brand);
   if (store) stores.get(store).hosts.add(host);
   const flags = Object.fromEntries(["trending", "shipsFast", "localPickup"].filter((k) => p[k] === true).map((k) => [k, true]));
-  const image = typeof p.image === "string" && p.image.startsWith("https://") ? p.image : undefined;
+  // No Amazon-hosted product photo is hotlinked (Associates rules: Amazon images only through SiteStripe or its API);
+  // those picks get the store tile on the page.
+  const image = typeof p.image === "string" && p.image.startsWith("https://") && !/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/.test(new URL(p.image).hostname) ? p.image : undefined;
   return {
     name: p.name, brand: p.brand ?? "", line: p.line ?? "", href,
     ...(image ? { image } : {}), ...(store ? { store } : {}), ...(p.louisianaFit ? { louisianaFit: true } : {}), ...flags,

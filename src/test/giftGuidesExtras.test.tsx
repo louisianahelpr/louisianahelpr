@@ -32,6 +32,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
+import { storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { MATCHMAKER_PARAM, readMatchmakerLink } from "@/lib/matchmakerLink";
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
@@ -99,6 +100,9 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
       expect(raw.href).toBe(p.href);
       expect(p.badges?.includes("louisiana-made") ?? false, p.name).toBe(!!raw.louisianaFit && LOUISIANA_MADE_BRANDS.includes(p.brand!));
       expect(p.badges?.includes("sponsor") ?? false, p.name).toBe(s === "25-days-sponsors" || !!raw.sponsor || SPONSOR_BRANDS.includes(p.brand!));
+      // "Shop Louisiana" (owner 2026-11-18): louisianaFit or a Louisiana shop, unless already Louisiana-made.
+      const made = p.badges?.includes("louisiana-made") ?? false;
+      expect(p.badges?.includes("shop-louisiana") ?? false, p.name).toBe(!made && (!!raw.louisianaFit || p.store === "louisiana"));
     }
     // A Louisiana brand's pick not marked louisianaFit gets no Louisiana-made badge.
     expect(badgesFor("TABASCO")).toEqual([]);
@@ -110,6 +114,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(fitNotMade.some((p) => p.brand === "YETI")).toBe(true);
     expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(50);
     expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
+    expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(20);
   });
   it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
     expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);
@@ -149,7 +154,7 @@ describe("gift guides: a pick's photo that fails to load falls back to its initi
     expect(img.getAttribute("width")).toBe("52");
     fireEvent.error(img);
     expect(row.querySelector("img.gg-thumb")).toBeNull();
-    expect(row.querySelector("[data-gift-letter]")?.textContent).toBe(g.picks[withPhoto].name.trim().charAt(0).toUpperCase());
+    expect(row.querySelector("[data-gift-letter]")?.textContent).toBe(storeLabel(g.picks[withPhoto]));
   });
 });
 
@@ -243,7 +248,7 @@ describe("gift guides: pick badges come from optional fields, never a price", ()
     expect(badgesFor("Crew Dog")).toEqual(["sponsor"]);
     expect(badgesFor("YETI")).toEqual([]);
     expect(badgesFor(undefined, { localPickup: true })).toEqual(["local-pickup"]);
-    expect(Object.values(giftGuides.badges)).toEqual(["Trending", "Louisiana-made", "25 Days sponsor", "Ships fast", "Local pickup"]);
+    expect(Object.values(giftGuides.badges)).toEqual(["Trending", "Louisiana-made", "25 Days sponsor", "Ships fast", "Local pickup", "Shop Louisiana"]);
     for (const label of Object.values(giftGuides.badges)) expect(label).not.toMatch(/\$/);
   });
 });

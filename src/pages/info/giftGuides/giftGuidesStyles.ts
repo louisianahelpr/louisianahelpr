@@ -57,7 +57,8 @@ color:var(--gg-ink)}
 .gg-words h2{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-weight:500;font-size:34px;line-height:1.1;margin:0 0 8px;color:#3b2a20;text-wrap:balance}
 .gg-top{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px}
 .gg-ship{margin:0;font-size:12px;font-weight:600;color:#3f5a1c;background:#eef2e6;border-radius:999px;padding:5px 12px}
-.gg-share-wrap{position:relative;display:inline-block}
+.gg-share-wrap{position:relative;display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+a.gg-share{display:inline-flex;align-items:center;text-decoration:none}
 .gg-share{min-height:32px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid #ddd8cc;background:#fff;color:var(--gg-ink);border-radius:999px;padding:5px 14px}
 .gg-share-menu{position:absolute;z-index:5;top:calc(100% + 6px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;min-width:150px;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px}
 .gg-share-menu a,.gg-share-menu button{display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:13px;font-weight:600;color:var(--gg-ink);text-decoration:none;background:none;border:0;text-align:left;border-radius:8px}
@@ -74,7 +75,7 @@ color:var(--gg-ink)}
 .gg-item{display:flex;align-items:center;gap:14px;padding:11px 0;color:var(--gg-ink);text-decoration:none;font-size:15px;min-height:44px}
 .gg-item::before{content:counter(gg);width:20px;flex:none;font-size:12px;color:var(--gg-muted);font-variant-numeric:tabular-nums}
 .gg-thumb{width:52px;height:52px;flex:none;border-radius:10px;border:1px solid var(--gg-line);background:#fff;object-fit:contain}
-.gg-letter{display:flex;align-items:center;justify-content:center;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:22px;color:var(--gg-olive)}
+.gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}
 .gg-nm{flex:1;min-width:0;overflow-wrap:anywhere}
 .gg-nm small{display:block;font-size:12px;color:var(--gg-muted)}
 .gg-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}

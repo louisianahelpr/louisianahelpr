@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { ROWS, guidesIn, type GuideRow } from "@/content/giftGuideCatalog";
 import { GiftGuideTile } from "./GiftGuideTile";
+import { sponsorPage } from "@/content/sponsorPage";
 
 /**
  * /gift-guides opens to the guides, not their items (owner 2026-11-18: "open to the sections first"; final design):
@@ -31,6 +32,17 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
           </section>
         );
       })}
+      {!group && (
+        // Owner 2026-11-18: the 25 Days card. App.tsx has no shopper giveaway page (/25days is the sponsors' page), so
+        // it links to the Facebook page the giveaways run on.
+        <aside className="gg-helpr" aria-label={G.giveaways.title} data-gift-giveaways="">
+          <div>
+            <b>{G.giveaways.title}</b>
+            <span>{G.giveaways.body}</span>
+          </div>
+          <a href={sponsorPage.links.facebookPage} target="_blank" rel="noopener noreferrer" className="gg-helpr-btn" data-gift-social="">{G.giveaways.cta}</a>
+        </aside>
+      )}
     </>
   );
 }

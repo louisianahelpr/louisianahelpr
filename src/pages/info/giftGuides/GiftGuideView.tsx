@@ -18,15 +18,19 @@ import { Heart, togglePick, useGiftList } from "./giftList";
  */
 
 /**
- * A pick's square thumbnail on the left (52px, lazy, contained on white, sized so nothing shifts), or its initial on a
- * tile when it has no photo or the photo fails to load (lead 2026-11-18: never a blank gap).
+ * A pick's square thumbnail on the left (52px, lazy, contained on white, sized so nothing shifts), or a white tile with
+ * its store's name when it has no photo or the photo fails to load (lead 2026-11-18: never a blank gap).
  */
+/** The name a pick's row shows for its store: the brand for a Louisiana shop or a sponsor, else the store's. */
+export const storeLabel = (pick: CatalogPick) => ((pick.store === "louisiana" || pick.store === "sponsor") && pick.brand ? pick.brand : STORES[pick.store].name);
+
 function PickThumb({ pick }: { pick: CatalogPick }) {
   const [failed, setFailed] = useState(false);
   if (pick.image && !failed) {
     return <img className="gg-thumb" loading="lazy" decoding="async" src={pick.image} alt="" width={52} height={52} onError={() => setFailed(true)} />;
   }
-  return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{pick.name.trim().charAt(0).toUpperCase()}</span>;
+  // Lead 2026-11-18: a clean white tile with the store's name ("Amazon", "Walmart"), never a blank gap.
+  return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{storeLabel(pick)}</span>;
 }
 
 export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
@@ -37,7 +41,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <PickThumb pick={pick} />
         <span className="gg-nm">
           {pick.name}
-          <small>{pick.line ? `${pick.line} ` : ""}{G.onStore((pick.store === "louisiana" || pick.store === "sponsor") && pick.brand ? pick.brand : STORES[pick.store].name)}</small>
+          <small>{pick.line ? `${pick.line} ` : ""}{G.onStore(storeLabel(pick))}</small>
           {pick.badges && (
             <span className="gg-badges">
               {pick.badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}

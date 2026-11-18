@@ -73,7 +73,14 @@ export interface CatalogPick {
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
-export type PickBadge = "trending" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup";
+export type PickBadge = "trending" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup" | "shop-louisiana";
+
+/**
+ * "Shop Louisiana" (owner 2026-11-18): a pick marked louisianaFit or sold by a Louisiana shop, unless it already
+ * carries the stronger "Louisiana-made" badge.
+ */
+const withShopLouisiana = (badges: PickBadge[], store: GiftStore, louisianaFit?: unknown): PickBadge[] =>
+  (store === "louisiana" || louisianaFit) && !badges.includes("louisiana-made") ? [...badges, "shop-louisiana"] : badges;
 
 /**
  * A pick's badges, in this order: Trending (its optional `trending` flag), "Louisiana-made" only when the pick is
@@ -139,7 +146,11 @@ const section = (id: string): GiftSection => {
 };
 
 const fromSection = (s: GiftSection): CatalogPick[] =>
-  s.picks.map((p) => ({ name: p.name, href: p.href, store: storeOf(p.href), line: p.line, image: p.image }));
+  s.picks.map((p) => {
+    const store = storeOf(p.href);
+    const badges = withShopLouisiana([], store);
+    return { name: p.name, href: p.href, store, line: p.line, image: p.image, ...(badges.length ? { badges } : {}) };
+  });
 
 type Draft = { slug: string; lead: string; title: string; line: string; picks: CatalogPick[]; links: GiftLink[] };
 
@@ -208,8 +219,9 @@ const researchedStore = (p: ResearchedPick): GiftStore => {
   throw new Error(`gift guides: ${p.href} is on no store in STORES`);
 };
 const toPick = (p: ResearchedPick): CatalogPick => {
-  const badges = badgesFor(p.brand, p);
-  return { name: p.name, href: p.href, store: researchedStore(p), line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}) };
+  const store = researchedStore(p);
+  const badges = withShopLouisiana(badgesFor(p.brand, p), store, p.louisianaFit);
+  return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}) };
 };
 /** The static picks (content files). The researched picks arrive per guide, from its chunk (loadGuidePicks). */
 const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks)];

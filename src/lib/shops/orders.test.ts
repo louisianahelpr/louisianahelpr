@@ -13,6 +13,9 @@
  *
  * @mutate src/lib/shops/orders.ts |         return side === "buyer" ? "The shop didn't answer in time. Your card was never charged." : "Not answered in time (nothing charged)"; |         return "Not answered in time (nothing charged)";
  * @mutate src/lib/shops/orders.ts |   return { charged: data.charged === true }; |   return { charged: !!data.charged };
+ * @mutate src/lib/shops/orders.ts |     const readyStart = louisianaMidnightMs(order.ready_date.split("T")[0] ?? ""); |     const readyStart = Date.parse(order.ready_date.split("T")[0] ?? "");
+ * @mutate src/lib/shops/orders.ts |   return addDaysIso(terms.today, Math.max(terms.closed_for_today ? 1 : 0, leadDays)); |   return addDaysIso(terms.today, Math.max(0, leadDays));
+ * @mutate src/lib/shops/orders.ts |   return todays.length > 0 && todays.every((h) => h.closes.slice(0, 5) <= hhmm); |   return todays.length > 0 && todays.some((h) => h.closes.slice(0, 5) <= hhmm);
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -61,6 +64,11 @@ import {
   fetchShopOrders,
   firstOpenReadyDate,
   orderStatusLabel,
+  louisianaMidnightMs,
+  orderCancelLine,
+  readyDateProblem,
+  shopClosedForToday,
+  withClosedForToday,
   reportNoShow,
   requestOrder,
   setCancelPolicy,
@@ -320,5 +328,57 @@ describe("firstOpenReadyDate", () => {
     // 2026-10-29 is a Thursday (4); Friday is full; Saturday closed; Sunday open.
     const terms = { today: "2026-10-29", last_day: "2026-11-05", open_weekdays: [0, 4, 5], full_days: ["2026-10-30"] };
     expect(firstOpenReadyDate(terms, 1)).toBe("2026-11-01");
+  });
+});
+
+describe("Q2793: today after the shop has closed", () => {
+  // 2026-11-10 is a Tuesday (2). 20:20 Louisiana (CST, UTC-6) is 02:20Z on the 11th.
+  const evening = new Date("2026-11-11T02:20:00Z");
+  const morning = new Date("2026-11-10T15:00:00Z"); // 9:00 AM Louisiana
+  const nineToFive = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, opens: "09:00", closes: "17:00" }));
+  const terms = { today: "2026-11-10", last_day: "2027-02-08", open_weekdays: [0, 1, 2, 3, 4, 5, 6], full_days: [] };
+
+  it("after closing, a 0-day item no longer offers today; the next day is first", () => {
+    const t = withClosedForToday(terms, nineToFive, evening);
+    expect(t.closed_for_today).toBe(true);
+    expect(readyDateProblem("2026-11-10", t, 0)).toBe("too_soon");
+    expect(readyDateProblem("2026-11-11", t, 0)).toBeNull();
+    expect(firstOpenReadyDate(t, 0)).toBe("2026-11-11");
+  });
+
+  it("while the shop is still open, today stays a ready date", () => {
+    const t = withClosedForToday(terms, nineToFive, morning);
+    expect(t.closed_for_today).toBe(false);
+    expect(readyDateProblem("2026-11-10", t, 0)).toBeNull();
+    expect(firstOpenReadyDate(t, 0)).toBe("2026-11-10");
+  });
+
+  it("a split day counts as closed only once its last hours end", () => {
+    const split = [{ weekday: 2, opens: "08:00", closes: "12:00" }, { weekday: 2, opens: "18:00", closes: "22:00" }];
+    expect(shopClosedForToday(split, "2026-11-10", evening)).toBe(false);
+    expect(shopClosedForToday(split, "2026-11-10", new Date("2026-11-11T04:30:00Z"))).toBe(true);
+  });
+
+  it("a longer lead time is unchanged, and no hours or a stale today never close the day", () => {
+    const t = withClosedForToday(terms, nineToFive, evening);
+    expect(firstOpenReadyDate(t, 2)).toBe("2026-11-12");
+    expect(withClosedForToday(terms, undefined, evening).closed_for_today).toBe(false);
+    expect(shopClosedForToday([], "2026-11-10", evening)).toBe(false);
+    expect(shopClosedForToday(nineToFive, "2026-11-09", evening)).toBe(false);
+  });
+});
+
+describe("the order card's cancel cutoff is Louisiana midnight (shop_order_free_cancel_until)", () => {
+  it("louisianaMidnightMs is 06:00Z in CST and 05:00Z in CDT", () => {
+    expect(new Date(louisianaMidnightMs("2026-11-20")).toISOString()).toBe("2026-11-20T06:00:00.000Z");
+    expect(new Date(louisianaMidnightMs("2026-07-04")).toISOString()).toBe("2026-07-04T05:00:00.000Z");
+    expect(louisianaMidnightMs("nope")).toBeNaN();
+  });
+
+  it("a never_shortens order still offers a refund at 11:30 PM Louisiana the night before, and not at 12:30 AM", () => {
+    const order = { status: "accepted", handed_over_at: null, preorder_item_id: null, cancel_policy: "until_handover", ready_tap_cancel: "never_shortens", ready_date: "2026-11-20" } as const;
+    // 11:30 PM CST on the 19th is 05:30Z on the 20th: a UTC-midnight cutoff would already say it ended.
+    expect(orderCancelLine(order, new Date("2026-11-20T05:30:00Z"))).toBe("Cancel for a refund until your ready date.");
+    expect(orderCancelLine(order, new Date("2026-11-20T06:30:00Z"))).toBe("The cancel-for-a-refund time has ended.");
   });
 });

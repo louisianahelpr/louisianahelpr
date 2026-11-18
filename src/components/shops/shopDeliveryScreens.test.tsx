@@ -23,8 +23,8 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 vi.mock("@/components/DatePickerField", () => ({
-  DatePickerField: ({ onChange }: { onChange: (v: string) => void }) => (
-    <button type="button" onClick={() => onChange("2026-10-21")}>day 2026-10-21</button>
+  DatePickerField: ({ onChange, placeholder }: { onChange: (v: string) => void; placeholder?: string }) => (
+    <button type="button" data-placeholder={placeholder} data-testid="ready-date" onClick={() => onChange("2026-10-21")}>day 2026-10-21</button>
   ),
 }));
 const ext = vi.hoisted(() => ({ openExternalUrl: vi.fn(async (_url: string, _onReturn?: () => void) => undefined) }));
@@ -103,6 +103,25 @@ describe("the order sheet when the shop delivers", () => {
     renderIt(<ShopOrderSheet shopId="s1" />);
     await screen.findByRole("button", { name: "One more Fig candle" });
     expect(screen.queryByTestId("shop-order-delivery")).toBeNull();
+  });
+});
+
+describe("the ready-date prompt names how the order reaches the buyer (launch pass 1)", () => {
+  // @mutate src/components/shops/ShopOrderSheet.tsx |     : delivering \|\| helpring ? "Pick the delivery day" : "Pick the day you'll pick it up"; |     : "Pick the day you'll pick it up";
+  // @mutate src/components/shops/ShopOrderSheet.tsx |   const dayPlaceholder = chosen.some((l) => l.item.kind === "service" \|\| l.item.at_buyer === true) ? "Pick the day" |   const dayPlaceholder = false ? "Pick the day"
+  it("pickup says pick it up; a delivery says the delivery day", async () => {
+    renderIt(<ShopOrderSheet shopId="s1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "One more Fig candle" }));
+    expect(screen.getByTestId("ready-date").getAttribute("data-placeholder")).toBe("Pick the day you'll pick it up");
+    fireEvent.click(await screen.findByRole("button", { name: "Delivery, $8.00" }));
+    expect(screen.getByTestId("ready-date").getAttribute("data-placeholder")).toBe("Pick the delivery day");
+  });
+
+  it("a service never says pick it up", async () => {
+    items.fetchShopItems.mockResolvedValue([item({ id: "v1", kind: "service", subtype: "home_service", title: "Gutter cleaning" })]);
+    renderIt(<ShopOrderSheet shopId="s1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "One more Gutter cleaning" }));
+    expect(screen.getByTestId("ready-date").getAttribute("data-placeholder")).toBe("Pick the day");
   });
 });
 

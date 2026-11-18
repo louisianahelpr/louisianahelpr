@@ -53,6 +53,9 @@
  * @mutate supabase/functions/export-my-data/index.ts |       storage_objects: storageObjects, |       files: storageObjects,
  * @mutate scripts/lib/privacyJourney.mjs | KNOWN_NOT_EXPORTED = []; | KNOWN_NOT_EXPORTED = ["reports"];
  * @mutate supabase/migrations/20261112081700_shops_export_rest.sql |       WHERE t.payer_id = v_uid OR t.helper_id = v_uid)); |       WHERE t.helper_id = v_uid));
+ * Q2109: a sub-select section's residue may hold only AND / OR / brackets: NOT and OR 1=1 each turn it red.
+ * @mutate supabase/migrations/20261112081700_shops_export_rest.sql |       WHERE t.order_id IN (SELECT o.id FROM public.shop_orders o WHERE o.buyer_id = v_uid OR o.seller_id = v_uid))); |       WHERE NOT t.order_id IN (SELECT o.id FROM public.shop_orders o WHERE o.buyer_id = v_uid OR o.seller_id = v_uid)));
+ * @mutate supabase/migrations/20261112081700_shops_export_rest.sql |       WHERE t.order_id IN (SELECT o.id FROM public.shop_orders o WHERE o.buyer_id = v_uid OR o.seller_id = v_uid))); |       WHERE t.order_id IN (SELECT o.id FROM public.shop_orders o WHERE o.buyer_id = v_uid OR o.seller_id = v_uid) OR 1=1));
  * @mutate supabase/migrations/20261112081700_shops_export_rest.sql |       WHERE t.helper_id = v_uid OR t.parent_job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments' |       WHERE t.helper_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments'
  * @mutate supabase/migrations/20261112081700_shops_export_rest.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'stripe_transfer_id' - 'status' - 'paid_at' - 'failure_reason' - 'failed_transfer_ids' END | to_jsonb(t)
  * @mutate supabase/migrations/20261112081700_shops_export_rest.sql | AND NOT public.are_users_blocked(t.helper_id, v_uid)))); | )));
@@ -241,7 +244,10 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
       // Every legitimate sub-select was stripped above, so a SELECT left over is
       // unknown (`t.job_id IN (SELECT j.id ... WHERE j.status = 'open')` would
       // hand every caller those rows).
-      return /\bt\.\w+|\btrue\b|\bSELECT\b/i.test(residue.replace(/^WHERE/i, ""));
+      // Q2109: and what is left may only join those comparisons (AND / OR, brackets, the statement's end). A leftover
+      // NOT (everyone else's rows) or `OR 1=1` passed the old bare-predicate check.
+      const left = residue.replace(/^WHERE/i, "");
+      return /\bt\.\w+|\btrue\b|\bSELECT\b/i.test(left) || !/^[\s();]*(?:(?:AND|OR)[\s();]*)*$/i.test(left);
     });
     expect(unscoped.map((s) => s.name)).toEqual([]);
     expect(body).toMatch(/v_uid\s+uuid\s*:=\s*p_user_id;/);

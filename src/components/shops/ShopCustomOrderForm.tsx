@@ -97,7 +97,8 @@ export default function ShopCustomOrderForm({ request, onDone }: { request: Cust
           onChange={setReadyDate}
           min={earliestReadyDate(t, lead)}
           isDateDisabled={(iso) => readyDateProblem(iso, t, lead) !== null}
-          placeholder={firstDate ? "Pick the day you'll pick it up" : "No open days in the next 90 days"}
+          // Launch pass 1: a custom order can be a service, so the prompt doesn't assume a pickup.
+          placeholder={firstDate ? "Pick the day it's ready" : "No open days in the next 90 days"}
           aria-invalid={dateProblem !== null}
           aria-describedby={id("date-help")}
         />

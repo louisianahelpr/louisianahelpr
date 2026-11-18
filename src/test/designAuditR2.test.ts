@@ -44,3 +44,25 @@ describe("design audit r2 #1: no English or Spanish string renders 'undefined'",
     expect(bad).toEqual([]);
   });
 });
+
+/**
+ * #2 (High): the price on Post a job step 4 drew a 15px number inside a pill: the hero CurrencyInput used the shared
+ * field surface (glass-field, rounded-2xl border, text-ds-15), and tailwind-merge does not treat text-ds-40 as a
+ * font size, so ds-15 won. The hero field is now bare: no surface, one font size, the text colour.
+ * @mutate src/components/ui/currency-input.tsx |             look="bare"\n | \n
+ */
+describe("design audit r2 #2: the price field is a big bare number, not a pill", () => {
+  it("the hero input carries no field surface and only the top text size", async () => {
+    const { render } = await import("@testing-library/react");
+    const { createElement } = await import("react");
+    const { CurrencyInput } = await import("@/components/ui/currency-input");
+    const { container } = render(createElement(CurrencyInput, { hero: true, value: 60, onChange: () => {}, "aria-label": "Job budget in dollars" }));
+    const input = container.querySelector("input")!;
+    expect(input).not.toBeNull();
+    const cls = input.className.split(/\s+/);
+    expect(cls).not.toContain("glass-field");
+    expect(cls).not.toContain("text-ds-15");
+    expect(cls).toContain("text-ds-40");
+    expect(input.getAttribute("style") ?? "").not.toMatch(/burnt-sienna/);
+  });
+});

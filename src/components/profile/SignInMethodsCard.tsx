@@ -123,7 +123,8 @@ export function SignInMethodsCard() {
       )}
 
       {!unknown && (
-      <ul className="mt-3 space-y-2">
+      // Design audit r3 #39: the rows start under the title (32 px tile + 8 px gap), not 40 px left of it.
+      <ul className="mt-3 space-y-2 pl-10" data-sign-in-rows="">
         <MethodRow label="Email and password" state={isLoading ? "loading" : hasEmail ? "on" : "off"} />
         {CONNECTABLE_PROVIDERS.map((p) => {
           const identity = (identities ?? []).find((i) => i.provider === p);

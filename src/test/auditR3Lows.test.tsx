@@ -7,6 +7,8 @@
  * @mutate src/pages/auth/ResetPassword.tsx | ready \|\| verifying ? "Set a new password" : "Reset your password" | "Set a new password"
  * @mutate src/pages/auth/ResetPassword.tsx | <Button asChild variant="primary" className="w-full rounded-full"> | <Button asChild variant="outline" className="w-full rounded-full">
  * @mutate src/components/profile/earningsTab/DeclutterSalesEarned.tsx | className="py-2 flex flex-col gap-0.5"> | className="py-2 flex items-baseline justify-between gap-3 text-ds-13">
+ * @mutate src/components/profile/SignInMethodsCard.tsx | <ul className="mt-3 space-y-2 pl-10" data-sign-in-rows=""> | <ul className="mt-3 space-y-2" data-sign-in-rows="">
+ * @mutate src/components/profile/SecurityTab.tsx |           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0" data-security-tile="">\n            <Monitor | <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0" data-security-tile="">\n            <Monitor
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -40,5 +42,12 @@ describe("design audit round 3, Lows", () => {
     const rows = code("src/components/profile/earningsTab/DeclutterSalesEarned.tsx");
     expect(rows).toMatch(/data-sale-payout=\{r\.order_id\} className="py-2 flex flex-col gap-0\.5">/);
     expect(rows).not.toMatch(/min-w-0 truncate/);
+  });
+
+  it("#39 Account and security: one 32 px icon tile, sign-in rows start under the title", () => {
+    const sec = code("src/components/profile/SecurityTab.tsx");
+    expect(sec).toMatch(/w-8 h-8 rounded-full bg-primary\/10 flex items-center justify-center shrink-0" data-security-tile="">\s*<Monitor/);
+    expect(sec).not.toMatch(/w-9 h-9 rounded-full bg-primary\/10/);
+    expect(code("src/components/profile/SignInMethodsCard.tsx")).toMatch(/<ul className="mt-3 space-y-2 pl-10" data-sign-in-rows="">/);
   });
 });

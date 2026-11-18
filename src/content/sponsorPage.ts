@@ -481,7 +481,7 @@ export const sponsorPage = {
       url: "Enter a full web address that starts with https://",
       full: "Sorry, {days} just filled up. Pick another day?",
       rateLimited: "Too many tries in a short time. Please wait a few minutes and try again.",
-      generic: "Something went wrong and your sign-up was NOT saved. Please try again, or email admin@louisianahelpr.com.",
+      generic: "Something went wrong and your sign-up wasn't saved. Please try again, or email admin@louisianahelpr.com.",
     },
   },
 

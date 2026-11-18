@@ -111,7 +111,7 @@ export const enScreens = {
   "forgot.backToLogin": "Back to log in",
   "forgot.close": "Close",
   "forgot.captchaFailed": "The security check didn't finish. Try again.",
-  "forgot.tooMany": "Too many requests — try again in a minute.",
+  "forgot.tooMany": "Too many attempts just now. Give it a moment and try again.", // area 11 L13: authErrors AUTH_RATE_LIMIT_MESSAGE
 
   // Sign up, step 1
   "signup.title": "Create your account",

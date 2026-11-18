@@ -1686,7 +1686,7 @@ describe("one row of buttons at every stage (B93)", () => {
     // The review window is IN the next-step line (owner 11-01, live Done-stage screenshot), never a second panel.
     const line = document.querySelector("[data-next-step]") as HTMLElement;
     await waitFor(() => expect(line.textContent).toMatch(/Rhonda/));
-    expect(line.textContent).toMatch(/^Next: approve Rhonda's work · 23h 5\dm left, then Helpr support steps in$/);
+    expect(line.textContent).toMatch(/^Next: approve Rhonda's work · 23h 5\dm left to approve or ask for a change, then Helpr support steps in$/);
     expect(document.querySelector("[data-approve-by]")).toBeNull();
     expect(document.body.textContent).not.toMatch(/to review — then Helpr support steps in/);
   });

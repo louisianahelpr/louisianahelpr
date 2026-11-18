@@ -338,7 +338,7 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
                 <li key={d.id} className="flex items-center justify-between gap-3">
                   <span className="min-w-0">
                     <span className="block text-ds-14 font-semibold" style={ink}>
-                      {d.kind === "fault" ? "Amount owed from a job you were ruled at fault on" : "Amount owed from a refunded sale"}
+                      {d.kind === "fault" ? "Card cost owed after a ruling on one of your jobs" : "Amount owed from a refunded sale"}
                     </span>
                     <span className="block text-ds-12 mt-0.5" style={quiet}>Taken from your next payout</span>
                   </span>

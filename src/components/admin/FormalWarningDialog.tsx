@@ -115,9 +115,9 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
             </Select>
           </div>
           <div className="space-y-2">
-            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Internal note (sent to user)</p>
+            <p className="text-ds-13 font-medium text-muted-foreground">Note to the member (they'll see it)</p>
             <Textarea
-              aria-label="Internal note (sent to user)"
+              aria-label="Note to the member (they'll see it)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. Poster complaint: Helpr left gate open. Verified via phone call."

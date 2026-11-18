@@ -16,7 +16,7 @@ export function FeesOwedLine() {
   // take_helpr_fault_fee runs in the JOB payout paths; declutter_consume_fee_debt
   // in the Declutter/Shops SALE payout paths.
   const rows: { label: string; when: string; items: typeof data }[] = [
-    { label: "Amount owed from a job you were ruled at fault on", when: "Comes out of your next job payout", items: fault },
+    { label: "Card cost owed after a ruling on one of your jobs", when: "Comes out of your next job payout", items: fault },
     { label: "Amount owed from a sale that was refunded", when: "Comes out of your next sale payout", items: seller },
   ].filter((r) => r.items.length > 0);
   return (

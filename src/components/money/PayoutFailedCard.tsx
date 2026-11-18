@@ -37,9 +37,9 @@ export function PayoutFailedCard() {
       </p>
       <Link
         to="/profile?tab=earnings"
-        className="btn-grad-primary mt-3 inline-flex items-center justify-center h-10 px-5 rounded-full text-ds-13 font-bold"
+        className="btn-grad-primary mt-3 inline-flex items-center justify-center h-11 px-5 rounded-full text-ds-13 font-bold"
       >
-        Fix bank
+        Update payout method
       </Link>
     </div>
   );

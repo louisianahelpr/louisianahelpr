@@ -24,7 +24,11 @@ export function approveDeadlineMs(job: {
   return Number.isFinite(done) ? done + hoursToMs(APPROVAL_WINDOW_HOURS) : null;
 }
 
-/** "23h 52m left, then Helpr support steps in", or, once the window passed, that support reaches out. */
+/**
+ * "23h 52m left to approve or ask for a change, then Helpr support steps in", or, once the window passed, that support
+ * reaches out. Area 11 M10 (11-18): the line names what the window is FOR, as escrowTiming.ts THE RULE says it (rule 2:
+ * neither approved nor asked for a change within APPROVAL_WINDOW_HOURS, support steps in; the money stays held).
+ */
 export function reviewTimeLeft(deadlineMs: number, now = Date.now()): string {
   const ms = deadlineMs - now;
   // F273: past the window the poster can still approve (the admin alert closes itself on approval, 20261023143240),
@@ -33,5 +37,5 @@ export function reviewTimeLeft(deadlineMs: number, now = Date.now()): string {
   const mins = Math.floor(ms / 60_000);
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  return `${h > 0 ? `${h}h ${m}m` : `${m}m`} left, then Helpr support steps in`;
+  return `${h > 0 ? `${h}h ${m}m` : `${m}m`} left to approve or ask for a change, then Helpr support steps in`;
 }

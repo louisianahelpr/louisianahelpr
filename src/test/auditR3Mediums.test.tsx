@@ -17,6 +17,9 @@
  * @mutate src/components/ui/RadioCardList.tsx |             {o.media}\n |
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx | media: <ListingThumb small path={cover.get(c.id)} category={c.category} /> | media: null
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx | <SheetFooter className="sticky bottom-0 -mx-4 -mb-4 grid grid-cols-2 | <SheetFooter className="mt-4 -mx-4 -mb-4
+ * @mutate supabase/functions/_shared/email-templates/components.tsx | arcsize="50%" | arcsize="26%"
+ * @mutate supabase/functions/_shared/email-templates/components.tsx |         borderRadius: '999px', |         borderRadius: '12px',
+ * @mutate supabase/functions/_shared/email-templates/styles.ts | export const linkStyle = {\n  color: brand.bark, | export const linkStyle = {\n  color: brand.burntSienna,
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -80,5 +83,15 @@ describe("design audit round 3 fixes", () => {
     expect(trade).toMatch(/media: <ListingThumb small path=\{cover\.get\(c\.id\)\}/);
     expect(trade).toMatch(/<SheetFooter className="sticky bottom-0 [^"]*\bgrid grid-cols-2\b[^"]*"/);
     expect(code("src/components/declutter/ListingThumb.tsx")).toMatch(/small \? "h-11 w-11 rounded-lg"/);
+  });
+
+  it("#50 emails: the CTA is a full pill (VML too) and inline links are olive", () => {
+    const comp = code("supabase/functions/_shared/email-templates/components.tsx");
+    expect(comp).toContain('arcsize="50%"');
+    const cta = comp.slice(comp.indexOf('className="e-cta"'));
+    expect(cta).toMatch(/borderRadius: '999px',/);
+    const styles = code("supabase/functions/_shared/email-templates/styles.ts");
+    expect(styles).toMatch(/export const linkStyle = \{\s*color: brand\.bark,/);
+    expect(styles).toMatch(/const button = \{[^}]*borderRadius: '999px'/);
   });
 });

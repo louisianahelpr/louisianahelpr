@@ -12,6 +12,7 @@ import * as React from 'npm:react@18.3.1'
 import { Column, Heading, Hr, Link, Row, Section, Text } from 'npm:@react-email/components@0.0.22'
 import { brand, h1, text as textStyle } from './styles.ts'
 import { BaseLayout, TransactionalFooter } from './components.tsx'
+import { sponsorDeliveryAdminLabel, sponsorDeliveryLine, sponsorDeliveryOf } from './sponsorDelivery.ts'
 
 export interface SponsorEmailSignup {
   brandName: string
@@ -43,11 +44,12 @@ const Detail = ({ label, children }: { label: string; children: React.ReactNode 
   </Row>
 )
 
-// Owner 11-09: prizes ship to Louisiana Helpr by default; owner 11-17: or the sponsor gets it to the winner (ship_to 'winner').
-const SHIP_ADDRESS = 'Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528'
-
-const shipLabel = (s: SponsorEmailSignup['shipTo']) =>
-  s === 'winner' ? 'The winner directly' : s === 'helpr' ? 'Louisiana Helpr' : 'Not chosen yet'
+// Owner 11-09: prizes ship to Louisiana Helpr by default; owner 11-17: four delivery choices. Area 11 H4 (11-18):
+// one line per choice (sponsorDelivery.ts), never the Delcambre address for a digital gift card or local pickup.
+const DeliveryRow = ({ s, adminEmail }: { s: SponsorEmailSignup; adminEmail: string }) => {
+  const { label, line } = sponsorDeliveryLine(sponsorDeliveryOf(s), adminEmail)
+  return <Detail label={label}>{line}</Detail>
+}
 
 export const SponsorConfirmationEmail = ({ s, adminEmail }: { s: SponsorEmailSignup; adminEmail: string }) => (
   <BaseLayout
@@ -66,11 +68,7 @@ export const SponsorConfirmationEmail = ({ s, adminEmail }: { s: SponsorEmailSig
     <Section style={{ width: '100%', margin: '0 0 16px' }}>
       <Detail label="Your day(s)">{s.daysLabel}</Detail>
       <Detail label="Your prize">{s.prizeDescription}</Detail>
-      {s.shipTo === 'winner' ? (
-        <Detail label="Prize delivery">You get it to the winner. We send you their name and shipping address within 24 hours of the drawing.</Detail>
-      ) : (
-        <Detail label="Ship your prize to">{SHIP_ADDRESS}</Detail>
-      )}
+      <DeliveryRow s={s} adminEmail={adminEmail} />
     </Section>
     <Heading as="h2" className="e-h1" style={{ ...h1, fontSize: '18px' }}>What happens next</Heading>
     <Text className="e-text" style={textStyle}>
@@ -106,7 +104,7 @@ export const SponsorAdminEmail = ({ s, logoUrl }: { s: SponsorEmailSignup; logoU
       <Detail label="TikTok">{s.tiktok ?? '—'}</Detail>
       <Detail label="Prize">{s.prizeDescription}</Detail>
       {s.prizeValue != null ? <Detail label="Prize value">${s.prizeValue}</Detail> : null}
-      <Detail label="Ship to">{shipLabel(s.shipTo)}</Detail>
+      <Detail label="Prize delivery">{sponsorDeliveryAdminLabel(s)}</Detail>
       <Detail label="OK on wall">{s.showOnWall ? 'Yes' : 'No'}</Detail>
       <Detail label="Invite link">{s.ref ?? 'none (direct)'}</Detail>
       <Detail label="Logo">{logoUrl ? <Link href={logoUrl}>Download the logo (link works for 7 days)</Link> : 'none uploaded'}</Detail>

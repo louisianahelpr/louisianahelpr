@@ -240,10 +240,8 @@ describe("four prize delivery options, shipping to us first (owner 11-09, 11-17)
   it("the confirmation email gives our address for ship-to-us and the 24-hour promise for ship-to-winner", () => {
     const src = fs.readFileSync(path.resolve(__dirname, "../../supabase/functions/_shared/email-templates/sponsor-25days.tsx"), "utf8");
     const conf = src.slice(src.indexOf("export const SponsorConfirmationEmail"), src.indexOf("export const SponsorAdminEmail"));
-    expect(conf).toContain("Ship your prize to");
-    expect(conf).toContain("{SHIP_ADDRESS}");
-    expect(conf).toMatch(/s\.shipTo === 'winner' \?[\s\S]*within 24 hours of the drawing/);
-    expect(src).toContain("314 Lynn Street, Delcambre, LA 70528");
+    // Area 11 H4: the row now comes from sponsorDelivery.ts, one line per choice (sponsorDeliveryEmail.test.ts).
+    expect(conf).toContain("<DeliveryRow s={s} adminEmail={adminEmail} />");
   });
 });
 

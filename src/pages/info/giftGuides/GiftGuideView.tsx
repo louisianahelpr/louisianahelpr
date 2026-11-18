@@ -1,6 +1,7 @@
+import { useEffect, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
-import { STORES, guideBySlug, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
+import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, relatedGuides, subscribeGuidePicks, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
@@ -16,7 +17,7 @@ import { Heart, togglePick, useGiftList } from "./giftList";
  * child guides' cover tiles (the five ages), then any picks of its own.
  */
 
-export function PickRow({ pick }: { pick: CatalogPick }) {
+export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
   const saved = useGiftList().picks.some((p) => p.href === pick.href && p.name === pick.name);
   return (
     <li data-gift-pick="">
@@ -38,18 +39,20 @@ export function PickRow({ pick }: { pick: CatalogPick }) {
         <span className="gg-shop" aria-hidden="true">{G.shopLabel}</span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
-      <Heart saved={saved} label={`Save ${pick.name} to My list`} onToggle={() => togglePick({ href: pick.href, name: pick.name })} className="gg-heart-pick" />
+      <Heart saved={saved} label={`Save ${pick.name} to My list`} onToggle={() => togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })} className="gg-heart-pick" />
     </li>
   );
 }
 
-/** A guide's items: the numbered list, or "Picks coming soon", then its full-guide links. */
+/** A guide's items: the numbered list, or (holding nothing) related guides, then its full-guide links. */
 function GiftGuideList({ guide }: { guide: CatalogGuide }) {
+  if (!picksReady(guide.slug)) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
+  const related = guide.empty ? relatedGuides(guide) : [];
   return (
     <>
       {guide.picks.length > 0 && (
         <ol className="gg-list" data-gift-list="">
-          {guide.picks.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} />)}
+          {guide.picks.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
         </ol>
       )}
       {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && (
@@ -59,6 +62,13 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
           <p>{G.comingSoonBody}</p>
           <Link to="/gift-guides" className="gg-link">{G.allGuidesLabel}</Link>
         </div>
+      )}
+      {related.length > 0 && (
+        // Lead 2026-11-18: an empty guide's own link points to related guides that hold picks.
+        <section aria-label={G.relatedTitle} data-gift-related="">
+          <div className="gg-rowhead"><h3>{G.relatedTitle}</h3></div>
+          <ul className="gg-wrap">{related.map((r) => <GiftGuideTile key={r.slug} g={r} />)}</ul>
+        </section>
       )}
       {NAME_ONLY_SPONSORS[guide.slug] && (
         // A sponsor whose gift is left out (lead 2026-11-18: Hilma's probiotic, a health product) is still named.
@@ -109,6 +119,14 @@ function StoreDeals({ guide }: { guide: CatalogGuide }) {
 const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
 
 export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
+  // PERF: the guide's picks are its own lazy chunk; re-render when it lands.
+  useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
+  useEffect(() => {
+    loadGuidePicks(guide.slug).catch((e: unknown) => {
+      // A failed chunk (offline, a stale deploy) leaves the loading line; the route error boundary is for render errors.
+      console.warn("gift guides: picks chunk failed", guide.slug, e);
+    });
+  }, [guide.slug]);
   return (
     <article aria-labelledby="gift-guide-title" data-gift-guide={guide.slug}>
       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />}

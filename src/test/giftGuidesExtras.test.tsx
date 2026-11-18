@@ -18,15 +18,15 @@
  * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
  * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`); |     const hay = fold(`${g.title} ${g.lead}`);
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |       {query.trim() ? ( |       {false ? (
- * @mutate src/content/giftGuideCatalog.ts |   draftOf.set(slug, { ...d, picks: list.map(toPick) }); |   draftOf.set(slug, { ...d });
+ * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick), | loaded.set(slug, { picks: [],
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
-import { RESEARCHED_PICKS } from "@/content/giftGuidePicks";
+import type { PickChunk } from "@/content/giftGuidePicks";
 import { LOUISIANA_MADE_BRANDS, SPONSOR_BRANDS, giftGuides } from "@/content/giftGuides";
-import { badgesFor, guideBySlug, searchGuides } from "@/content/giftGuideCatalog";
+import { badgesFor, guideBySlug, loadAllGuidePicks, searchGuides } from "@/content/giftGuideCatalog";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -38,6 +38,14 @@ import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { PREFILL_OPENS_DETAILS } from "@/pages/post-job/usePrefillOpensDetails";
 
 afterEach(cleanup);
+
+/** Each guide's researched chunk, as generated (PERF split 11-18: one lazy file per guide), and every chunk loaded. */
+const RESEARCHED_PICKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
+  Object.entries(import.meta.glob<PickChunk>("../content/giftGuidePicks/*.json", { eager: true, import: "default" }))
+    .map(([f, c]) => [f.replace(/^.*\/|\.json$/g, ""), c.picks] as const)
+    .filter(([, l]) => l.length > 0),
+);
+await loadAllGuidePicks();
 const renderAt = (url: string) =>
   render(
     <MemoryRouter initialEntries={[url]}>

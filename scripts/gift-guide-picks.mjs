@@ -21,12 +21,14 @@
  * PHOTOS FIRST (owner 11:35 AM): within each guide, picks with a real product photo come first, the order inside each
  * group kept.
  */
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
+/** One lazy chunk per guide (PERF, follow-up 11-18: the single file grew to ~245 KB gz; the index page loads none). */
+const chunkDir = new URL("../src/content/giftGuidePicks/", import.meta.url);
 const content = readFileSync(new URL("../src/content/giftGuides.ts", import.meta.url), "utf8");
 const indexSrc = readFileSync(new URL("../src/content/giftGuideIndex.ts", import.meta.url), "utf8");
 const listed = (name) => [...(content.match(new RegExp(`export const ${name} = \\[([^\\]]*)\\]`))?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
@@ -39,6 +41,11 @@ const PLAIN_OK = new Set([...AMAZON, "shopmy.us", ...LOUISIANA, ...SPONSORS, ...
 const AFFILIATE = new Set([...listed("AFFILIATE_HOSTS"), ...AMAZON, "shopmy.us"]);
 
 const readJson = (f) => (existsSync(join(dir, f)) ? JSON.parse(readFileSync(join(dir, f), "utf8")) : null);
+/** A list file: a plain array, or a research file still in progress ({ _progress, links: [...] }). */
+const readList = (f) => {
+  const v = readJson(f);
+  return Array.isArray(v) ? v : Array.isArray(v?.links) ? v.links : [];
+};
 
 /** The guide slugs and store-page titles on the owner's list (giftGuideIndex.ts). */
 const INDEX = [...indexSrc.matchAll(/slug: "([^"]+)", title: "([^"]+)"/g)].map((m) => ({ slug: m[1], title: m[2] }));
@@ -117,13 +124,13 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.star
 }
 /** Extras that name their guides (`fits`); each also lands on its store page. */
 for (const f of ["_awin.json", "_later.json", "_later-mylinks.json", "_later-brands.json"]) {
-  for (const p of readJson(f) ?? []) for (const slug of p.fits ?? []) if (GUIDE_SLUGS.has(slug)) add(slug, p, f);
+  for (const p of readList(f)) for (const slug of p.fits ?? []) if (GUIDE_SLUGS.has(slug)) add(slug, p, f);
 }
 /** Store extras: the store page, and for Warby Parker the guides the owner named (11-18). */
 const WARBY_GUIDES = ["her", "him", "coworkers", "rns", "girls-teens", "boys-teens"];
 const storeExtras = [["_xtratuf.json", []], ["_warby-parker.json", WARBY_GUIDES], ["_walmart.json", []], ["_tiktok-shop.json", []], ["_amazon-trending.json", []], ["_later.json", []], ["_awin.json", []], ["_later-mylinks.json", []], ["_later-brands.json", []]];
 for (const [f, extraGuides] of storeExtras) {
-  for (const p of readJson(f) ?? []) {
+  for (const p of readList(f)) {
     const pick = toPick(p, f);
     if (!pick?.store) continue;
     add(pick.store, p, f);
@@ -132,7 +139,7 @@ for (const [f, extraGuides] of storeExtras) {
 }
 /** Amazon bounties (Prime, Audible, registries) in the guides they fit. */
 const BOUNTY_GUIDES = { "Try Prime free": ["store-amazon", "stocking-stuffers"], "Audible free trial": ["book-lover", "new-mom", "store-amazon"], "Start an Amazon Baby Registry": ["new-mom", "store-amazon"], "Start an Amazon Wedding Registry": ["newlyweds", "newly-engaged", "store-amazon"] };
-for (const b of readJson("_amazon-bounties.json") ?? []) {
+for (const b of readList("_amazon-bounties.json")) {
   const key = Object.keys(BOUNTY_GUIDES).find((k) => b.name.startsWith(k));
   for (const slug of key ? BOUNTY_GUIDES[key] : []) add(slug, { name: b.name, brand: "Amazon", line: "", href: b.href }, "_amazon-bounties.json");
 }
@@ -172,13 +179,13 @@ for (const [slug, list] of Object.entries(readJson("_store-deal-sections.json") 
   const title = INDEX.find((g) => g.slug === slug)?.title ?? slug.slice(6);
   for (const d of list) if (!d.hidden && d.affiliate_href) addDeal(slug, { storeName: title, title: d.title, href: d.affiliate_href, ends: endDate(d.ends) });
 }
-for (const c of readJson("_walmart-collections.json") ?? []) {
+for (const c of readList("_walmart-collections.json")) {
   const items = (c.items ?? []).filter((i) => i.affiliate_href && okLink(i.affiliate_href) && noPrice(i.name)).map((i) => ({ name: i.name, href: i.affiliate_href }));
   if (c.collection_affiliate_href) addDeal(storeFor("Walmart"), { storeName: "Walmart", title: c.collection.replace(/^Walmart\s+/, ""), href: c.collection_affiliate_href, items });
 }
-for (const h of readJson("_amazon-hub.json") ?? []) addDeal(storeFor("Amazon"), { storeName: "Amazon", title: h.name, href: h.affiliate_href, ends: endDate(h.ends) });
+for (const h of readList("_amazon-hub.json")) addDeal(storeFor("Amazon"), { storeName: "Amazon", title: h.name, href: h.affiliate_href, ends: endDate(h.ends) });
 for (const f of ["_later-deals.json", "_later-promos.json"]) {
-  for (const d of readJson(f) ?? []) {
+  for (const d of readList(f)) {
     const slug = storeFor(d.brand ?? d.store);
     if (slug) addDeal(slug, { storeName: stores.get(slug).name, title: d.title ?? d.offer, href: d.affiliate_href, ends: endDate(d.ends) });
   }
@@ -193,21 +200,58 @@ const storeList = Object.fromEntries([...stores.entries()].filter(([slug]) => gu
 
 if (Object.keys(guides).length === 0) process.exit(1);
 if (hidden.length && process.env.GIFT_PICKS_VERBOSE) console.error(`HIDDEN (no affiliate link yet, or a rule broken):\n${hidden.join("\n")}`);
-const body = Object.entries(guides).sort(([a], [b]) => a.localeCompare(b)).map(([slug, picks]) => `  ${JSON.stringify(slug)}: ${JSON.stringify(picks)},`).join("\n");
+
+/**
+ * Each page's FINAL list, so a guide's chunk is all it needs: a store page (not Amazon, whose page is its own file) is
+ * its own store-<x> file, then every pick on that store from every guide, once per link, photos first; any other
+ * guide is its own file. A pick on a fixed store's host (zChocolat, Diecast) stays on that fixed store's page.
+ */
+const FIXED_HOSTS = new Set(["www.zchocolat.com", "www.diecastmodelswholesale.com"]);
+const sortedGuides = Object.entries(guides).sort(([a], [b]) => a.localeCompare(b));
+const everyPick = sortedGuides.flatMap(([, l]) => l);
+const pageList = {};
+for (const [slug, list] of sortedGuides) if (GUIDE_SLUGS.has(slug) && !storeList[slug]) pageList[slug] = list;
+/** The Amazon page: every Amazon-link pick from every guide, once per link (the page adds the static Amazon picks first). */
+{
+  const byHref = new Map();
+  for (const p of [...(guides["store-amazon"] ?? []), ...everyPick]) if (AMAZON.has(new URL(p.href).hostname) && !byHref.has(p.href)) byHref.set(p.href, p);
+  if (byHref.size) pageList["store-amazon"] = [...byHref.values()];
+}
+for (const slug of Object.keys(storeList)) {
+  if (slug === "store-amazon") continue;
+  const byHref = new Map();
+  for (const p of [...(guides[slug] ?? []), ...everyPick.filter((x) => x.store === slug && !FIXED_HOSTS.has(new URL(x.href).hostname))]) if (!byHref.has(p.href)) byHref.set(p.href, p);
+  const firstWins = [...byHref.values()];
+  if (firstWins.length) pageList[slug] = [...firstWins.filter((p) => p.image), ...firstWins.filter((p) => !p.image)];
+}
+/** The fixed store pages (zChocolat, Diecast) list the static picks plus every researched pick on their host, by name. */
+for (const [slug, host] of [["store-zchocolat", "www.zchocolat.com"], ["store-diecast-models", "www.diecastmodelswholesale.com"]]) {
+  const onHost = [...new Map(everyPick.filter((p) => new URL(p.href).hostname === host).map((p) => [p.name, p])).values()];
+  if (onHost.length && !pageList[slug]) pageList[slug] = onHost;
+}
+rmSync(chunkDir, { recursive: true, force: true });
+mkdirSync(chunkDir, { recursive: true });
+const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();
+for (const slug of chunkSlugs) {
+  writeFileSync(new URL(`${slug}.json`, chunkDir), `${JSON.stringify({ picks: pageList[slug] ?? [], ...(deals[slug]?.length ? { deals: deals[slug] } : {}) })}\n`);
+}
 writeFileSync(
   out,
   `/** GENERATED by scripts/gift-guide-picks.mjs from ~/Desktop/Gift-guide-picks (re-run it after any change there). Do not edit. */\n` +
     `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true }\n` +
     `export interface StoreDeal { title: string; href: string; ends?: string; items?: { name: string; href: string }[] }\n` +
     `export interface Sale { store: string; slug: string; offer: string; ends: string; href: string }\n` +
+    `/** One guide's chunk (src/content/giftGuidePicks/<slug>.json): its final picks and, on a store page, its deal sections. */\n` +
+    `export interface PickChunk { picks: ResearchedPick[]; deals?: StoreDeal[] }\n` +
     `/** Sponsors listed by name only on their guide (their pick is left out). */\n` +
     `export const NAME_ONLY_SPONSORS: Record<string, string[]> = ${JSON.stringify(Object.fromEntries(NAME_ONLY.map((x) => [x.guide, NAME_ONLY.filter((y) => y.guide === x.guide).map((y) => y.brand)])))};\n` +
     `/** Every store page (slug -> the name shown and the link hosts its picks use). */\n` +
     `export const RESEARCHED_STORES: Record<string, { name: string; hosts: string[] }> = ${JSON.stringify(storeList)};\n` +
-    `/** Each store page's deal sections, after its picks (each hidden after its end date). */\n` +
-    `export const STORE_DEALS: Record<string, StoreDeal[]> = ${JSON.stringify(deals)};\n` +
+    `/** The guides with a researched chunk: their list (and deals) come only from it. */\n` +
+    `export const CHUNK_SLUGS: readonly string[] = ${JSON.stringify(chunkSlugs)};\n` +
     `/** The sidebar's Sales (each hidden after its end date). */\n` +
     `export const SALES: Sale[] = ${JSON.stringify(sales)};\n` +
-    `export const RESEARCHED_PICKS: Record<string, ResearchedPick[]> = {\n${body}\n};\n`,
+    `/** Each guide's chunk, fetched only when its page opens (Vite splits every file into its own chunk). */\n` +
+    `export const PICK_CHUNKS = import.meta.glob<PickChunk>("./giftGuidePicks/*.json", { import: "default" });\n`,
 );
-console.log(`gift-guide-picks: ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them)`);
+console.log(`gift-guide-picks: ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them)`);

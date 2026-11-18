@@ -10,7 +10,7 @@
 import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
-import { RESEARCHED_PICKS, RESEARCHED_STORES, STORE_DEALS, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
+import { CHUNK_SLUGS, PICK_CHUNKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
 
 /**
  * The owner's list plus every store page the researched picks name (follow-up batch 2026-11-18: every store or brand
@@ -116,6 +116,8 @@ export interface CatalogGuide {
   age?: string;
   /** A store page's live deal sections, after its picks (each hidden after its end date on the page). */
   deals?: StoreDeal[];
+  /** Holds nothing yet: left out of the rows, the search and the menu (its own link still opens). */
+  empty?: true;
 }
 
 const rowId = (label: string) => label.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -198,8 +200,8 @@ const amazonGuides: Draft[] = AMAZON_GUIDES.map((g) => ({
 const researchedStore = (p: ResearchedPick): GiftStore => {
   const host = new URL(p.href).hostname;
   const fixed = (Object.keys(FIXED_STORES) as FixedStore[]).find((s) => FIXED_STORES[s].hosts.includes(host));
-  if (fixed && !(fixed === "shopmy" && p.store)) return fixed;
-  if (p.store === "store-amazon") return "amazon";
+  // A ShopMy link to an Amazon product stays "On ShopMy" (the Amazon page lists Amazon links only).
+  if (fixed && !(fixed === "shopmy" && p.store && p.store !== "store-amazon")) return fixed;
   if (p.store && STORES[p.store]) return p.store;
   throw new Error(`gift guides: ${p.href} is on no store in STORES`);
 };
@@ -207,8 +209,36 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   const badges = badgesFor(p.brand, p);
   return { name: p.name, href: p.href, store: researchedStore(p), line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}) };
 };
-const researched = (): CatalogPick[] => Object.values(RESEARCHED_PICKS).flat().map(toPick);
-const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks), ...researched()];
+/** The static picks (content files). The researched picks arrive per guide, from its chunk (loadGuidePicks). */
+const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks)];
+
+/**
+ * PERF (follow-up 2026-11-18): the researched picks are one lazy chunk per guide (src/content/giftGuidePicks/<slug>.json,
+ * generated, each page's FINAL list), so /gift-guides loads no picks and /gift-guides/<slug> loads only its own.
+ * A guide in CHUNK_SLUGS shows "loading" until its chunk is in; a fixed store page (zChocolat, Diecast) adds its
+ * chunk's picks to its static ones (APPEND_CHUNK).
+ */
+const HAS_CHUNK = new Set(CHUNK_SLUGS);
+const APPEND_CHUNK = new Set(["store-amazon", "store-zchocolat", "store-diecast-models"]);
+const loaded = new Map<string, { picks: CatalogPick[]; deals?: StoreDeal[] }>();
+const listeners = new Set<() => void>();
+let version = 0;
+/** Whether a guide's picks are in hand (a guide with no chunk always is). */
+export const picksReady = (slug: string) => !HAS_CHUNK.has(slug) || loaded.has(slug);
+/** Fetch one guide's chunk (once); every guide object's `picks` and `deals` read it from then on. */
+export const loadGuidePicks = async (slug: string): Promise<void> => {
+  if (picksReady(slug)) return;
+  const load = PICK_CHUNKS[`./giftGuidePicks/${slug}.json`];
+  if (!load) throw new Error(`gift guides: no picks chunk for ${slug}`);
+  const chunk = await load();
+  loaded.set(slug, { picks: chunk.picks.map(toPick), ...(chunk.deals ? { deals: chunk.deals } : {}) });
+  version += 1;
+  listeners.forEach((l) => l());
+};
+/** Every chunk (tests, and nothing on the page). */
+export const loadAllGuidePicks = () => Promise.all(CHUNK_SLUGS.map(loadGuidePicks));
+export const subscribeGuidePicks = (l: () => void) => (listeners.add(l), () => listeners.delete(l));
+export const guidePicksVersion = () => version;
 
 /** One pick per link (several guides share an item), first occurrence wins. */
 const uniqueByHref = (picks: CatalogPick[]) => [...new Map(picks.map((p) => [p.href, p] as const)).values()];
@@ -236,16 +266,13 @@ const DRAFTS: Draft[] = [
 ];
 
 /**
- * Each researched store page (two taps, like Walmart): "Louisiana Helpr Picks" first (its own store-<x> file, then
- * every pick on that store from every guide, once each, photos first), then its deal sections (STORE_DEALS).
+ * Each researched store page (two taps, like Walmart): its list ("Louisiana Helpr Picks": its own store-<x> file, then
+ * every pick on that store from every guide, once each, photos first) and its deal sections come from its chunk.
  */
 for (const slug of Object.keys(RESEARCHED_STORES)) {
   if (slug === "store-amazon") continue;
-  const own = (RESEARCHED_PICKS[slug] ?? []).map(toPick);
-  const onStore = researched().filter((p) => p.store === slug);
-  const picks = uniqueByHref([...own, ...onStore]);
   const g = GUIDE_INDEX.find((x) => x.slug === slug)!;
-  DRAFTS.push({ slug, lead: g.lead, title: g.title, line: "", picks: [...picks.filter((p) => p.image), ...picks.filter((p) => !p.image)], links: [] });
+  DRAFTS.push({ slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] });
 }
 
 
@@ -277,12 +304,11 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
 export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"] };
 
 const draftOf = new Map(DRAFTS.map((d) => [d.slug, d] as const));
-/** The researched picks (src/content/giftGuidePicks.ts, generated) are each listed guide's list, in their order. */
-for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) {
+/** A guide with a researched chunk lists exactly the chunk's picks, in their order (APPEND_CHUNK: static, then chunk). */
+for (const slug of CHUNK_SLUGS) {
   const g = GUIDE_INDEX.find((x) => x.slug === slug);
-  if (!g || (RESEARCHED_STORES[slug] && slug !== "store-amazon")) continue;
-  const d = draftOf.get(slug) ?? { slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] };
-  draftOf.set(slug, { ...d, picks: list.map(toPick) });
+  if (!g || draftOf.has(slug)) continue;
+  draftOf.set(slug, { slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] });
 }
 /** Every guide on the owner's list shows, filled or not (owner 2026-11-18: an empty one opens "Picks coming soon"). */
 for (const g of GUIDE_INDEX) {
@@ -295,7 +321,7 @@ for (const [from, targets] of Object.entries(MERGED_GUIDES)) {
     const d = draftOf.get(t)!;
     // A guide with researched picks keeps exactly those (the folded guides' items stay in their store guides); it
     // still gets the folded guides' collection links.
-    draftOf.set(t, { ...d, picks: RESEARCHED_PICKS[t] ? d.picks : uniqueByHref([...d.picks, ...src.picks]), links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
+    draftOf.set(t, { ...d, picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]), links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
   }
 }
 const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug];
@@ -311,15 +337,30 @@ const parentOf = new Map(Object.entries(HUBS).flatMap(([hub, groups]) => groups.
 /** The cover files shipped in public/gift-guides/covers (one per GUIDE_INDEX slug that has a guide). */
 /** Every guide with content that no group shows (a test keeps this empty: nothing is dropped silently). */
 export const unplacedGuides = () =>
-  DRAFTS.filter((d) => filled(d.slug) && (d.picks.length > 0 || d.links.length > 0) && !GUIDES.some((g) => g.slug === d.slug)).map((d) => d.slug);
+  DRAFTS.filter((d) => filled(d.slug) && (d.picks.length > 0 || d.links.length > 0 || HAS_CHUNK.has(d.slug)) && !GUIDES.some((g) => g.slug === d.slug)).map((d) => d.slug);
 const hasCover = new Set(OWNER_INDEX.map((g) => g.slug));
 /** The folder in public/ the covers are served from (static files, not an app route). */
 const COVER_DIR = `${"/gift-guides"}/covers`;
 
+/**
+ * Whether a guide holds anything (lead 2026-11-18, live: 384 of 469 guides opened "Picks coming soon"): its picks
+ * (static, or a researched chunk), its collection links, or a child guide that holds something. A guide that holds
+ * nothing is left out of every row, the search and the menu; its own link still opens, pointing to related guides.
+ */
+const holdsMemo = new Map<string, boolean>();
+const holds = (slug: string): boolean => {
+  if (holdsMemo.has(slug)) return holdsMemo.get(slug)!;
+  const d = draftOf.get(slug);
+  const own = Boolean(d && (HAS_CHUNK.has(slug) || d.picks.length > 0 || d.links.length > 0));
+  const v = own || (HUBS[slug] ?? []).some((x) => x.slugs.some((c) => filled(c) && holds(c)));
+  holdsMemo.set(slug, v);
+  return v;
+};
+
 const build = (slug: string, group: string, tint: GuideTint, listed?: { title: string; lead: string; age?: string }): CatalogGuide => {
   const d = draftOf.get(slug)!;
-  const children = HUBS[slug]?.map((x) => ({ label: x.label, slugs: x.slugs.filter(filled) })).filter((x) => x.slugs.length > 0);
-  return {
+  const children = HUBS[slug]?.map((x) => ({ label: x.label, slugs: x.slugs.filter((c) => filled(c) && holds(c)) })).filter((x) => x.slugs.length > 0);
+  const g: CatalogGuide = {
     ...d,
     title: listed?.title ?? d.title,
     lead: listed?.lead ?? d.lead,
@@ -327,10 +368,21 @@ const build = (slug: string, group: string, tint: GuideTint, listed?: { title: s
     row: rowId(group),
     tint,
     cover: hasCover.has(slug) ? `${COVER_DIR}/${slug}.webp` : undefined,
-    ...(STORE_DEALS[slug]?.length ? { deals: STORE_DEALS[slug] } : {}),
     parent: parentOf.get(slug),
-    ...(children ? { children } : {}),
+    ...(children?.length ? { children } : {}),
+    ...(holds(slug) ? {} : { empty: true as const }),
   };
+  if (HAS_CHUNK.has(slug)) {
+    // Read from the guide's chunk once it is in (loadGuidePicks); until then the static picks (APPEND_CHUNK) or none.
+    const base = APPEND_CHUNK.has(slug) ? d.picks : [];
+    Object.defineProperty(g, "picks", { enumerable: true, get: () => {
+      const c = loaded.get(slug);
+      if (!c) return base;
+      return !APPEND_CHUNK.has(slug) ? c.picks : slug === "store-amazon" ? uniqueByHref([...base, ...c.picks]) : uniqueByName([...base, ...c.picks]);
+    } });
+    Object.defineProperty(g, "deals", { enumerable: true, get: () => loaded.get(slug)?.deals });
+  }
+  return g;
 };
 
 export const GUIDES: CatalogGuide[] = ROWS.flatMap((r) => [
@@ -340,8 +392,19 @@ export const GUIDES: CatalogGuide[] = ROWS.flatMap((r) => [
 /**
  * The guides a group's row and menu list, in order (owner 2026-11-18, "covers in two taps"): top-level guides, with
  * the Kids hub replaced by its own children (Girls, Boys, Gender-Neutral); each of those opens its five age guides.
+ * A guide that holds nothing is not listed.
  */
-export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => g.row === row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB));
+export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && g.row === row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB));
+
+/**
+ * The guides an empty guide's page points to (lead 2026-11-18): its siblings under the same hub, else its row, that
+ * hold something, up to six.
+ */
+export const relatedGuides = (g: CatalogGuide): CatalogGuide[] => {
+  const ok = (x: CatalogGuide) => !x.empty && x.slug !== g.slug && !x.children;
+  const siblings = g.parent ? GUIDES.filter((x) => ok(x) && x.parent === g.parent) : [];
+  return (siblings.length ? siblings : GUIDES.filter((x) => ok(x) && x.row === g.row)).slice(0, 6);
+};
 
 /** The Kids hub: its page shows Girls, Boys and Gender-Neutral; the rows and menu show those three in its place. */
 export const KIDS_HUB = "kids";
@@ -362,6 +425,7 @@ export const searchGuides = (query: string): CatalogGuide[] => {
   if (words.length === 0) return [];
   const label = new Map(ROWS.map((r) => [r.row, r.label] as const));
   return GUIDES.filter((g) => {
+    if (g.empty) return false;
     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`);
     return words.every((w) => hay.includes(w));
   });

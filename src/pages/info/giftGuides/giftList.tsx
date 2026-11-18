@@ -7,7 +7,8 @@ import { ICON_STROKE_PX } from "@/lib/iconWeight";
  * read and write in try/catch: a private window or blocked storage just means an empty list that lasts the visit).
  * Every heart on the page reads the same store, so a heart and the sidebar count change together.
  */
-export interface SavedPick { href: string; name: string }
+/** A hearted pick; `guide` is the guide it was saved from (its chunk is fetched to show it on My list). */
+export interface SavedPick { href: string; name: string; guide?: string }
 interface GiftList { guides: string[]; picks: SavedPick[] }
 
 const KEY = "lh-gift-list";

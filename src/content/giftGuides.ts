@@ -218,6 +218,8 @@ export const giftGuides = {
   codeValid: (dates: string) => `Valid ${dates}`,
   comingSoonTitle: "Picks coming soon",
   comingSoonBody: "We're gathering the best gifts for this guide. Check back soon, or browse another guide.",
+  relatedTitle: "Try these guides",
+  loadingPicks: "Loading picks…",
   allLinks: [
     { label: "Every collection on ShopMy", href: "https://shopmy.us/shop/lexilombas" },
     { label: "Every gift guide on Pinterest", href: `${PIN}/gift-guides/` },

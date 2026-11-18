@@ -48,7 +48,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | "gg w-full" | "gg page-column"
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
- * @mutate src/content/giftGuideCatalog.ts | picks: RESEARCHED_PICKS[t] ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: RESEARCHED_PICKS[t] ? d.picks : [...d.picks, ...src.picks, ...src.picks]
+ * @mutate src/content/giftGuideCatalog.ts | picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: HAS_CHUNK.has(t) ? d.picks : [...d.picks, ...src.picks, ...src.picks]
  * @mutate src/content/giftGuides.ts | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => !c.expires \|\| c.expires >= today); | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => today === today);
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   if (codes.length === 0) return null; |   if (codes.length === 0) return <details data-gift-codes="" />;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && ( | {false && (
@@ -81,12 +81,20 @@ import { DiscountCodes } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
-import { RESEARCHED_PICKS } from "@/content/giftGuidePicks";
-import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, storeOf, unplacedGuides } from "@/content/giftGuideCatalog";
+import type { PickChunk } from "@/content/giftGuidePicks";
+import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, storeOf, unplacedGuides } from "@/content/giftGuideCatalog";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
 
 afterEach(cleanup);
+
+/** Each guide's researched chunk, as generated (PERF split 11-18: one lazy file per guide), and every chunk loaded. */
+const RESEARCHED_PICKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
+  Object.entries(import.meta.glob<PickChunk>("../content/giftGuidePicks/*.json", { eager: true, import: "default" }))
+    .map(([f, c]) => [f.replace(/^.*\/|\.json$/g, ""), c.picks] as const)
+    .filter(([, l]) => l.length > 0),
+);
+await loadAllGuidePicks();
 
 const src = (p: string) => blankComments(readFileSync(p, "utf8"));
 const DISCLOSURE = "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.";

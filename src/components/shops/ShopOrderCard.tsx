@@ -24,6 +24,8 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopOrderMessageButton } from "./ShopTalk";
 import { ShopOrderReview } from "./ShopReviews";
 import ShopDigitalOrder from "./ShopDigitalOrder";
+import { t as tr, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enShopOrders";
 import { ShopsNotice } from "./shopsUi";
 
 /** The order statuses in which the buyer may read the shop's pickup address (shops_order_pickup_address). */
@@ -37,22 +39,23 @@ function PickupAddress({ orderId }: { orderId: string }) {
     queryFn: () => fetchOrderPickupAddress(orderId),
     staleTime: 5 * 60_000,
   });
-  if (q.isLoading) return <p className="text-ds-13 text-muted-foreground">Loading the pickup address…</p>;
+  const { t } = useLanguage();
+  if (q.isLoading) return <p className="text-ds-13 text-muted-foreground">{t("sho.loadingPickup")}</p>;
   if (q.isError) {
     return (
       <p className="text-ds-13">
-        We couldn't load the pickup address.{" "}
-        <InlineTextButton className="underline" onClick={() => void q.refetch()}>Try again</InlineTextButton>
+        {t("sho.pickupFailed")}{" "}
+        <InlineTextButton className="underline" onClick={() => void q.refetch()}>{t("sho.tryAgain")}</InlineTextButton>
       </p>
     );
   }
   const a = q.data;
-  if (!a) return <p className="text-ds-13 text-muted-foreground">The pickup address isn't available right now. Refresh the page in a minute.</p>;
+  if (!a) return <p className="text-ds-13 text-muted-foreground">{t("sho.pickupUnavailable")}</p>;
   return (
     <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-pickup-address">
       <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <p className="min-w-0 [overflow-wrap:anywhere]">
-        <span className="font-semibold">Pick up at</span>
+        <span className="font-semibold">{t("sho.pickUpAt")}</span>
         <br />
         {a.line1}
         {a.line2 ? `, ${a.line2}` : ""}
@@ -72,12 +75,13 @@ function ServiceAddress({ orderId }: { orderId: string }) {
     queryFn: () => fetchOrderServiceAddress(orderId),
     staleTime: 5 * 60_000,
   });
-  if (q.isLoading) return <p className="text-ds-13 text-muted-foreground">Loading the work address…</p>;
+  const { t } = useLanguage();
+  if (q.isLoading) return <p className="text-ds-13 text-muted-foreground">{t("sho.loadingWork")}</p>;
   if (q.isError) {
     return (
       <p className="text-ds-13">
-        We couldn't load the work address.{" "}
-        <InlineTextButton className="underline" onClick={() => void q.refetch()}>Try again</InlineTextButton>
+        {t("sho.workFailed")}{" "}
+        <InlineTextButton className="underline" onClick={() => void q.refetch()}>{t("sho.tryAgain")}</InlineTextButton>
       </p>
     );
   }
@@ -87,7 +91,7 @@ function ServiceAddress({ orderId }: { orderId: string }) {
     <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-service-address">
       <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <p className="min-w-0 [overflow-wrap:anywhere]">
-        <span className="font-semibold">Work done at</span>
+        <span className="font-semibold">{t("sho.workDoneAt")}</span>
         <br />
         {a.line1}
         <br />
@@ -103,12 +107,13 @@ function DeliveryAddress({ orderId, side }: { orderId: string; side: "buyer" | "
     queryFn: () => fetchOrderDeliveryAddress(orderId),
     staleTime: 5 * 60_000,
   });
-  if (q.isLoading) return <p className="text-ds-13 text-muted-foreground">Loading the delivery address…</p>;
+  const { t } = useLanguage();
+  if (q.isLoading) return <p className="text-ds-13 text-muted-foreground">{t("sho.loadingDelivery")}</p>;
   if (q.isError) {
     return (
       <p className="text-ds-13">
-        We couldn't load the delivery address.{" "}
-        <InlineTextButton onClick={() => void q.refetch()} className="underline">Try again</InlineTextButton>
+        {t("sho.deliveryFailed")}{" "}
+        <InlineTextButton onClick={() => void q.refetch()} className="underline">{t("sho.tryAgain")}</InlineTextButton>
       </p>
     );
   }
@@ -117,7 +122,7 @@ function DeliveryAddress({ orderId, side }: { orderId: string; side: "buyer" | "
     <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-delivery-address">
       <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <p className="min-w-0 [overflow-wrap:anywhere]">
-        <span className="font-semibold">{side === "shop" ? "Deliver to" : "Delivering to"}</span>
+        <span className="font-semibold">{side === "shop" ? t("sho.deliverTo") : t("sho.deliveringTo")}</span>
         <br />
         {formatDeliveryAddress(q.data)}
       </p>
@@ -132,6 +137,7 @@ function DeliveryAddress({ orderId, side }: { orderId: string; side: "buyer" | "
  */
 function DepositRest({ order, side }: { order: ShopOrder; side: "buyer" | "shop" }) {
   const [opening, setOpening] = useState(false);
+  const { t } = useLanguage();
   const rest = order.balance_cents ?? null;
   if (order.payment_plan !== "deposit_50" || rest === null || rest <= 0) return null;
   if (order.status !== "accepted" && order.status !== "handed_over") return null;
@@ -153,12 +159,12 @@ function DepositRest({ order, side }: { order: ShopOrder; side: "buyer" | "shop"
     return (
       <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-deposit">
         <p>
-          Half was charged to the buyer&apos;s card when you accepted.{" "}
+          {t("sho.depShopHalf")}{" "}
           {paid
-            ? "The other half is paid."
+            ? t("sho.depShopPaid")
             : owedNow
-              ? "The other half didn't go through on the buyer's card. We asked them to pay it; hand over the order once it's paid."
-              : "The other half is charged to the buyer's card on the ready date."}
+              ? t("sho.depShopOwed")
+              : t("sho.depShopLater")}
         </p>
       </div>
     );
@@ -167,11 +173,11 @@ function DepositRest({ order, side }: { order: ShopOrder; side: "buyer" | "shop"
     // Area 07 L9 (design audit 11-18): the unpaid rest is the shared warning notice, like a moved preorder date.
     return (
       <div className="space-y-2" data-testid="shop-order-deposit">
-        <ShopsNotice tone="warn" title={`The rest, ${formatCents(rest)}, didn't go through on your card.`}>
-          Paid when the shop accepted: {formatCents(order.deposit_cents ?? 0)}. Pay the rest to get your order.
+        <ShopsNotice tone="warn" title={t("sho.depOwedTitle", { rest: formatCents(rest) })}>
+          {t("sho.depOwedBody", { paid: formatCents(order.deposit_cents ?? 0) })}
         </ShopsNotice>
         <Button type="button" className="btn-grad-primary w-full" disabled={opening} onClick={() => void pay()}>
-          {opening ? "Opening…" : `Pay the rest (${formatCents(rest)})`}
+          {opening ? t("sho.opening") : t("sho.payRest", { rest: formatCents(rest) })}
         </Button>
       </div>
     );
@@ -179,20 +185,16 @@ function DepositRest({ order, side }: { order: ShopOrder; side: "buyer" | "shop"
   return (
     <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-deposit">
       <p>
-        {side === "buyer" ? "Paid when the shop accepted" : "The buyer paid when you accepted"}: {formatCents(order.deposit_cents ?? 0)}.{" "}
+        {t("sho.depPaidWhen", { paid: formatCents(order.deposit_cents ?? 0) })}{" "}
         {paid
-          ? `The rest, ${formatCents(rest)}, is paid.`
+          ? t("sho.depRestPaid", { rest: formatCents(rest) })
           : owedNow
-            ? side === "buyer"
-              ? `The rest, ${formatCents(rest)}, didn't go through on your card. Pay it to get your order.`
-              : `The rest, ${formatCents(rest)}, didn't go through on the buyer's card. We asked them to pay it; hand over the order once it's paid.`
-            : side === "buyer"
-              ? `The rest, ${formatCents(rest)}, is charged to your card on the ready date.`
-              : `The rest, ${formatCents(rest)}, is charged to the buyer's card on the ready date.`}
+            ? t("sho.depRestOwedBuyer", { rest: formatCents(rest) })
+            : t("sho.depRestLaterBuyer", { rest: formatCents(rest) })}
       </p>
       {side === "buyer" && owedNow && (
         <Button type="button" className="btn-grad-primary w-full" disabled={opening} onClick={() => void pay()}>
-          {opening ? "Opening…" : `Pay the rest (${formatCents(rest)})`}
+          {opening ? t("sho.opening") : t("sho.payRest", { rest: formatCents(rest) })}
         </Button>
       )}
     </div>
@@ -212,9 +214,9 @@ function stampDateText(iso: string): string {
  * from the order's own stamps (handed_over_at, closed_at); an open order keeps its ready date.
  */
 export function orderDateLine(order: Pick<ShopOrder, "status" | "ready_date" | "preorder_item_id" | "handed_over_at" | "closed_at">): string {
-  if (order.status === "handed_over" && order.handed_over_at) return `Handed over ${stampDateText(order.handed_over_at)}`;
-  if (order.status !== "held" && order.status !== "accepted" && order.closed_at) return `Closed ${stampDateText(order.closed_at)}`;
-  return `${order.preorder_item_id ? "Preorder, ready by" : "Ready"} ${readyDateText(order.ready_date)}`;
+  if (order.status === "handed_over" && order.handed_over_at) return tr("sho.dateHandedOver", { date: stampDateText(order.handed_over_at) });
+  if (order.status !== "held" && order.status !== "accepted" && order.closed_at) return tr("sho.dateClosed", { date: stampDateText(order.closed_at) });
+  return tr(order.preorder_item_id ? "sho.datePreorder" : "sho.dateReady", { date: readyDateText(order.ready_date) });
 }
 
 /** Area 07 M3: the order's status as a small pill (one style on both sides' cards). */
@@ -248,6 +250,7 @@ export function ShopOrderCard({
   const deliveryCents = order.delivery_cents ?? 0;
   const shopDeliveryCents = delivered ? deliveryCents : 0;
   const shopGets = order.items_cents + shopDeliveryCents;
+  const { t } = useLanguage();
   if (order.is_digital) return <DigitalOrderCard order={order} heading={heading} side={side} />;
   return (
     <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
@@ -261,8 +264,8 @@ export function ShopOrderCard({
       {/* Area 07 L9: the moved-date note is the shared warning notice (it was bold body text). */}
       {order.preorder_item_id && order.preorder_moved_at && order.status === "accepted" && (
         <div data-testid="shop-preorder-moved">
-          <ShopsNotice tone="warn" title={side === "buyer" ? "The shop moved the date." : "You moved this date."}>
-            {side === "buyer" ? "If it doesn't work for you, cancel for a full refund." : "The buyer can cancel for a full refund."}
+          <ShopsNotice tone="warn" title={side === "buyer" ? t("sho.movedBuyerTitle") : t("sho.movedShopTitle")}>
+            {side === "buyer" ? t("sho.movedBuyerBody") : t("sho.movedShopBody")}
           </ShopsNotice>
         </div>
       )}
@@ -273,8 +276,8 @@ export function ShopOrderCard({
           </li>
         ))}
       </ul>
-      {order.note && <p className="text-ds-13 whitespace-pre-line [overflow-wrap:anywhere]">Note: {order.note}</p>}
-      {order.decline_reason && <p className="text-ds-13 [overflow-wrap:anywhere]">Shop's reason: {order.decline_reason}</p>}
+      {order.note && <p className="text-ds-13 whitespace-pre-line [overflow-wrap:anywhere]">{t("sho.note", { note: order.note })}</p>}
+      {order.decline_reason && <p className="text-ds-13 [overflow-wrap:anywhere]">{t("sho.shopReason", { reason: order.decline_reason })}</p>}
       {side === "buyer" && !delivered && !byHelpr && !atBuyer && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
       {order.shop_order_lines.some((l) => l.at_buyer) && (side === "buyer" || SERVICE_VISIBLE_TO_SHOP.has(order.status)) && (
         <ServiceAddress orderId={order.id} />
@@ -284,11 +287,11 @@ export function ShopOrderCard({
       {side === "buyer" ? (
         <p className="text-ds-11 text-muted-foreground">
           {/* S010: no fee name or number (10-25 rule); S036: the one-time setup fee the card carried is its own part. */}
-          Items {formatCents(order.items_cents)}
-          {delivered ? ` + delivery ${deliveryCents > 0 ? formatCents(deliveryCents) : "(free)"}` : ""}
-          {byHelpr ? ` + Helpr delivery ${formatCents(deliveryCents)}` : ""}
-          {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}
-          {setupFeeChargedCents(order) > 0 ? ` + one-time account setup fee (charged once per account) ${formatCents(setupFeeChargedCents(order))}` : ""}.
+          {t("sho.items", { amount: formatCents(order.items_cents) })}
+          {delivered ? t("sho.plusDelivery", { amount: deliveryCents > 0 ? formatCents(deliveryCents) : t("sho.free") }) : ""}
+          {byHelpr ? t("sho.plusHelprDelivery", { amount: formatCents(deliveryCents) }) : ""}
+          {order.tax_cents > 0 ? t("sho.plusTax", { amount: formatCents(order.tax_cents) }) : ""}
+          {setupFeeChargedCents(order) > 0 ? t("sho.plusSetupFee", { amount: formatCents(setupFeeChargedCents(order)) }) : ""}.
           {` ${SHOP_SERVICE_FEE_INCLUDED}`}
           {/* S013 (Shops audit 11-12): the cancel rule only while the buyer can still cancel (waiting or accepted, not
               yet handed over); on a finished or closed order it read as if they still could. */}
@@ -303,12 +306,12 @@ export function ShopOrderCard({
         // own numbers, owner 11-11 F360b) needs the payout read on this card (money lane).
         <p className="text-ds-11 text-muted-foreground" data-testid="shop-order-your-price">
           {delivered && deliveryCents > 0
-            ? `Your price plus what the buyer paid for delivery: ${formatCents(shopGets)}. You deliver this order.`
+            ? t("sho.priceWithDelivery", { amount: formatCents(shopGets) })
             : delivered
-              ? `Your price: ${formatCents(shopGets)}. You deliver this order.`
+              ? t("sho.priceYouDeliver", { amount: formatCents(shopGets) })
               : byHelpr
-                ? `Your price: ${formatCents(shopGets)}. A Helpr picks it up at your pickup address.`
-                : `Your price: ${formatCents(shopGets)}.`}
+                ? t("sho.priceHelpr", { amount: formatCents(shopGets) })
+                : t("sho.price", { amount: formatCents(shopGets) })}
         </p>
       )}
       {side === "shop" && byHelpr && order.status === "accepted" && !order.handed_over_at && <HelprPickup orderId={order.id} />}
@@ -327,6 +330,7 @@ export function ShopOrderCard({
  * download can only be refunded through a problem report an admin decides). The chat and the review stay.
  */
 function DigitalOrderCard({ order, heading, side }: { order: ShopOrder; heading: string; side: "buyer" | "shop" }) {
+  const { t } = useLanguage();
   return (
     <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
       <div className="flex items-start justify-between gap-2">
@@ -336,7 +340,7 @@ function DigitalOrderCard({ order, heading, side }: { order: ShopOrder; heading:
       <OrderStatusPill text={orderStatusLabel(order, side)} />
       <ul className="text-ds-13 text-muted-foreground">
         {order.shop_order_lines.map((l) => (
-          <li key={l.id} className="[overflow-wrap:anywhere]">{l.title} (download) · {formatCents(l.line_cents)}</li>
+          <li key={l.id} className="[overflow-wrap:anywhere]">{t("sho.downloadLine", { title: l.title, amount: formatCents(l.line_cents) })}</li>
         ))}
       </ul>
       <ShopDigitalOrder order={order} side={side} />
@@ -370,6 +374,7 @@ function HelprPickup({ orderId }: { orderId: string }) {
   const opensAt = slot ? new Date(slot).getTime() + NO_SHOW_AFTER_MS : null;
   // The button appears on its own when the time comes, without a reload.
   const [now, setNow] = useState(() => Date.now());
+  const { t } = useLanguage();
   useEffect(() => {
     if (opensAt === null || opensAt <= now) return;
     const timer = window.setTimeout(() => setNow(Date.now()), Math.min(opensAt - now + 500, 2_147_000_000));
@@ -378,19 +383,19 @@ function HelprPickup({ orderId }: { orderId: string }) {
   if (task.isError || view.isError) {
     return (
       <p className="text-ds-13">
-        We couldn't load the Helpr's pickup time.{" "}
-        <InlineTextButton className="underline" onClick={() => { void task.refetch(); if (taskId) void view.refetch(); }}>Try again</InlineTextButton>
+        {t("sho.helprTimeFailed")}{" "}
+        <InlineTextButton className="underline" onClick={() => { void task.refetch(); if (taskId) void view.refetch(); }}>{t("sho.tryAgain")}</InlineTextButton>
       </p>
     );
   }
   const v = view.data;
   if (!taskId || !v) return null;
-  if (v.status === "open") return <p className="text-ds-13" data-testid="shop-helpr-pickup">No Helpr has taken this delivery yet.</p>;
+  if (v.status === "open") return <p className="text-ds-13" data-testid="shop-helpr-pickup">{t("sho.noHelprYet")}</p>;
   if (!slot) return null;
   const canReport = opensAt !== null && now >= opensAt && !v.problem_open && !v.handed_over_at;
   return (
     <>
-      <p className="text-ds-13" data-testid="shop-helpr-pickup">{v.helpr_first_name ?? "Your Helpr"} picks it up {pickupWhen(slot)}.</p>
+      <p className="text-ds-13" data-testid="shop-helpr-pickup">{t("sho.helprPicksUp", { name: v.helpr_first_name ?? t("sho.yourHelpr"), when: pickupWhen(slot) })}</p>
       {canReport && <HelprNoShowButton orderId={orderId} />}
     </>
   );
@@ -403,30 +408,31 @@ function HelprPickup({ orderId }: { orderId: string }) {
  */
 function HelprNoShowButton({ orderId }: { orderId: string }) {
   const [asking, setAsking] = useState(false);
+  const { t } = useLanguage();
   const report = useMutation({
     mutationFn: () => reportHelprNoShow(orderId),
     onSuccess: () => {
       setAsking(false);
-      toast("We told the Helpr. They have 24 hours to answer, and the money waits until this is sorted out.");
+      toast(t("sho.noShowSent"));
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
   if (!asking) {
     return (
       <InlineTextButton onClick={() => setAsking(true)} data-testid="shop-helpr-no-show">
-        The Helpr didn't come
+        {t("sho.helprDidntCome")}
       </InlineTextButton>
     );
   }
   return (
-    <div className="space-y-2 rounded-xl bg-muted/60 p-3" role="group" aria-label="The Helpr didn't come">
-      <p className="text-ds-13">Tell us the Helpr didn't come for the pickup? They get 24 hours to answer.</p>
+    <div className="space-y-2 rounded-xl bg-muted/60 p-3" role="group" aria-label={t("sho.helprDidntCome")}>
+      <p className="text-ds-13">{t("sho.noShowAsk")}</p>
       <div className="flex gap-2">
         <Button type="button" size="sm" variant="outline" disabled={report.isPending} onClick={() => report.mutate()}>
-          {report.isPending ? "Sending…" : "Yes, tell them"}
+          {report.isPending ? t("sho.sending") : t("sho.yesTellThem")}
         </Button>
         <Button type="button" size="sm" variant="ghost" disabled={report.isPending} onClick={() => setAsking(false)}>
-          Not now
+          {t("sho.notNow")}
         </Button>
       </div>
     </div>

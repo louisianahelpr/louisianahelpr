@@ -11,12 +11,15 @@
  * @mutate src/components/shops/ShopHandoverActions.tsx | && !order.balance_captured_at && !!order.balance_failed_at; | && !order.balance_captured_at;
  * @mutate src/components/shops/ShopHandoverActions.tsx | variant={h?.ready_at ? "default" : "outline"} className={h?.ready_at ? "btn-grad-primary" : undefined} | className="btn-grad-primary"
  * @mutate src/components/shops/ShopOrderCancel.tsx |         {refundOver ? "Cancel order (refund time over)" : "Cancel order"} |         Cancel order
- * @mutate src/components/shops/ShopOrderCard.tsx |   if (order.status === "handed_over" && order.handed_over_at) return `Handed over ${stampDateText(order.handed_over_at)}`; |
+ * @mutate src/components/shops/ShopOrderCard.tsx |   if (order.status === "handed_over" && order.handed_over_at) return tr("sho.dateHandedOver", { date: stampDateText(order.handed_over_at) }); |
+ * @mutate src/components/shops/ShopOrderCard.tsx |           {t("sho.items", { amount: formatCents(order.items_cents) })} |           Items {formatCents(order.items_cents)}
+ *   H1: the order card speaks Spanish (enShopOrders.ts / esShopOrders.ts).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import { MemoryRouter } from "react-router-dom";
 import type { ShopOrder } from "@/lib/shops/orders";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
@@ -34,7 +37,8 @@ vi.mock("@/lib/shops/handover", async (orig) => ({ ...(await orig<typeof import(
 
 import { ShopHandoverActions } from "./ShopHandoverActions";
 import { BuyerCancelOrder, refundTimeOver } from "./ShopOrderCancel";
-import { orderDateLine } from "./ShopOrderCard";
+import { orderDateLine, ShopOrderCard } from "./ShopOrderCard";
+import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 
 const order = (over: Partial<ShopOrder> = {}): ShopOrder => ({
   id: "o1", buyer_id: "u1", seller_id: "u2", shop_id: "s1", status: "accepted", close_reason: null, ready_date: "2026-01-01",
@@ -113,5 +117,22 @@ describe("L1: a finished card shows its final event", () => {
     expect(orderDateLine(order({ status: "handed_over", handed_over_at: "2026-01-02T18:00:00Z" }))).toMatch(/^Handed over /);
     expect(orderDateLine(order({ status: "expired", closed_at: "2026-01-02T18:00:00Z" }))).toMatch(/^Closed /);
     expect(orderDateLine(order())).toMatch(/^Ready /);
+  });
+});
+
+describe("H1: the order card in Spanish", () => {
+  it("reads its own words from the dictionary", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    try {
+      wrap(<MemoryRouter><ul><ShopOrderCard order={order({ status: "handed_over", handed_over_at: "2026-01-02T18:00:00Z", note: "Sin nueces", buyer_id: null } as Partial<ShopOrder>)} heading="Ana" side="buyer" /></ul></MemoryRouter>);
+      const card = await screen.findByTestId("shop-order-card");
+      expect(card.textContent).toContain("Artículos $60.00");
+      expect(card.textContent).toContain("Nota: Sin nueces");
+      expect(card.textContent).toContain("Entregado el");
+      expect(card.textContent).not.toContain("Items $60.00");
+    } finally {
+      __resetLangForTests();
+    }
   });
 });

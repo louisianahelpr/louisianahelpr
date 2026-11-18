@@ -135,6 +135,8 @@ const CONVERTED = [
   "src/components/declutter/SellAiDraft.tsx",
   // F260q: the job page's list-it-for-the-seller panel (enListForSeller.ts).
   "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx",
+  // Area 07 H1 (design audit 11-18): the Shops order card (enShopOrders.ts).
+  "src/components/shops/ShopOrderCard.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */
@@ -166,6 +168,7 @@ const ALLOWED: Record<string, string[]> = {
   // The time zone the dates are read in (Intl), not words.
   "src/components/declutter/DeclutterFreeClaim.tsx": ["America/Chicago", "America/Chicago"],
   "src/components/declutter/FreeAskSheet.tsx": ["America/Chicago"],
+  "src/components/shops/ShopOrderCard.tsx": ["America/Chicago"],
   "src/components/declutter/ItemPickupBlock.tsx": ["Pickup times", "Pickup and meetup times", "Meetup times", "Pickup and meetup times"],
 };
 

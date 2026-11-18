@@ -73,7 +73,7 @@ describe("the order card: a 50% deposit order's rest", () => {
   it("when the card did not take it, ONLY the buyer gets Pay the rest, which opens the page for exactly this order", async () => {
     invoke.mockResolvedValue({ data: { url: "https://checkout.stripe.com/rest", order_id: "o1" }, error: null });
     show(order({ balance_failed_at: "2026-11-09T15:00:00Z" }), "buyer");
-    expect(screen.getByTestId("shop-order-deposit").textContent).toContain("didn't go through on your card. Pay it to get your order.");
+    expect(screen.getByTestId("shop-order-deposit").textContent).toContain("didn't go through on your card.");
     fireEvent.click(screen.getByRole("button", { name: "Pay the rest ($31.45)" }));
     await waitFor(() => expect(ext.openExternalUrl).toHaveBeenCalledTimes(1));
     expect(invoke.mock.calls[0][0]).toBe("shop-checkout");

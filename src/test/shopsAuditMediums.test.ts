@@ -35,7 +35,7 @@
  * @mutate supabase/migrations/20261112084138_shops_service_no_show.sql |   IF NOT public.shop_order_is_service(o.id)\n |   IF true\n
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
- * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
+ * @mutate src/components/shops/ShopHandoverActions.tsx |               {!byHelpr && due && !h?.shop_confirmed_at && ( |               {due && !h?.shop_confirmed_at && (
  * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |   IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN\n    RAISE EXCEPTION 'helpr_delivers_handover' |   IF false THEN\n    RAISE EXCEPTION 'helpr_delivers_handover'
  * @mutate supabase/migrations/20261112084138_shops_service_no_show.sql | The shop says you weren''t there for the delivery | The shop says you didn''t receive the delivery
  */
@@ -65,7 +65,7 @@ describe("Shops audit 11-12 Mediums", () => {
     expect(body("shops_mark_handed_over")).toContain("IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN RAISE EXCEPTION 'helpr_delivers_handover'");
     const src = read("src/components/shops/ShopHandoverActions.tsx");
     expect(src).toContain('const byHelpr = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at;');
-    expect(src).toContain("{!porch && !byHelpr && due && !h?.shop_confirmed_at && (");
+    expect(src).toContain("{!byHelpr && due && !h?.shop_confirmed_at && (");
   });
   it("S019: the missed-delivery notice reads the right way round", () => {
     const b = body("shops_report_no_show");

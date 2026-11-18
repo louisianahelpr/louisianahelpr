@@ -51,7 +51,7 @@ describe("S036: the buyer's total is what the card carried", () => {
     show(order({ setup_fee_cents: 200, setup_fee_state: "claimed" }));
     const card = screen.getByTestId("shop-order-card");
     expect(card.textContent).toContain("$44.70");
-    expect(card.textContent).toContain("+ one-time account setup fee $2.00.");
+    expect(card.textContent).toContain("+ one-time account setup fee (charged once per account) $2.00.");
   });
 });
 

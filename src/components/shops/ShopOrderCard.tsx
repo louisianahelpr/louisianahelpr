@@ -24,6 +24,7 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopOrderMessageButton } from "./ShopTalk";
 import { ShopOrderReview } from "./ShopReviews";
 import ShopDigitalOrder from "./ShopDigitalOrder";
+import { ShopsNotice } from "./shopsUi";
 
 /** The order statuses in which the buyer may read the shop's pickup address (shops_order_pickup_address). */
 /** S013: the statuses where the buyer can still cancel, so the card shows the cancel rule. */
@@ -162,6 +163,19 @@ function DepositRest({ order, side }: { order: ShopOrder; side: "buyer" | "shop"
       </div>
     );
   }
+  if (side === "buyer" && owedNow) {
+    // Area 07 L9 (design audit 11-18): the unpaid rest is the shared warning notice, like a moved preorder date.
+    return (
+      <div className="space-y-2" data-testid="shop-order-deposit">
+        <ShopsNotice tone="warn" title={`The rest, ${formatCents(rest)}, didn't go through on your card.`}>
+          Paid when the shop accepted: {formatCents(order.deposit_cents ?? 0)}. Pay the rest to get your order.
+        </ShopsNotice>
+        <Button type="button" className="btn-grad-primary w-full" disabled={opening} onClick={() => void pay()}>
+          {opening ? "Opening…" : `Pay the rest (${formatCents(rest)})`}
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-deposit">
       <p>
@@ -189,6 +203,29 @@ function readyDateText(iso: string): string {
   return parseLocalDate(iso).toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric" });
 }
 
+function stampDateText(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { timeZone: "America/Chicago", weekday: "short", month: "long", day: "numeric" });
+}
+
+/**
+ * Area 07 L1 (design audit 11-18): a finished order shows its final event, not the ready date it once had. Built only
+ * from the order's own stamps (handed_over_at, closed_at); an open order keeps its ready date.
+ */
+export function orderDateLine(order: Pick<ShopOrder, "status" | "ready_date" | "preorder_item_id" | "handed_over_at" | "closed_at">): string {
+  if (order.status === "handed_over" && order.handed_over_at) return `Handed over ${stampDateText(order.handed_over_at)}`;
+  if (order.status !== "held" && order.status !== "accepted" && order.closed_at) return `Closed ${stampDateText(order.closed_at)}`;
+  return `${order.preorder_item_id ? "Preorder, ready by" : "Ready"} ${readyDateText(order.ready_date)}`;
+}
+
+/** Area 07 M3: the order's status as a small pill (one style on both sides' cards). */
+function OrderStatusPill({ text }: { text: string }) {
+  return (
+    <p className="inline-flex max-w-full rounded-full bg-muted px-2.5 py-0.5 text-ds-11 font-semibold text-foreground [overflow-wrap:anywhere]" data-testid="shop-order-status">
+      {text}
+    </p>
+  );
+}
+
 export function ShopOrderCard({
   order,
   heading,
@@ -214,21 +251,25 @@ export function ShopOrderCard({
   if (order.is_digital) return <DigitalOrderCard order={order} heading={heading} side={side} />;
   return (
     <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
+      {/* Area 07 M3 (design audit 11-18): the status is a pill beside the price, not a grey 11px line under the title. */}
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{heading}</p>
         <p className="shrink-0 text-ds-13 font-semibold">{formatCents(side === "buyer" ? buyerPaidCents(order) : shopGets)}</p>
       </div>
-      <p className="text-ds-11 text-muted-foreground">{orderStatusLabel(order, side)}</p>
-      <p className="text-ds-13">{order.preorder_item_id ? "Preorder, ready by" : "Ready"} {readyDateText(order.ready_date)}</p>
+      <OrderStatusPill text={orderStatusLabel(order, side)} />
+      <p className="text-ds-13">{orderDateLine(order)}</p>
+      {/* Area 07 L9: the moved-date note is the shared warning notice (it was bold body text). */}
       {order.preorder_item_id && order.preorder_moved_at && order.status === "accepted" && (
-        <p className="text-ds-11 font-semibold" data-testid="shop-preorder-moved">
-          {side === "buyer" ? "The shop moved the date. If it doesn't work for you, cancel for a full refund." : "You moved this date. The buyer can cancel for a full refund."}
-        </p>
+        <div data-testid="shop-preorder-moved">
+          <ShopsNotice tone="warn" title={side === "buyer" ? "The shop moved the date." : "You moved this date."}>
+            {side === "buyer" ? "If it doesn't work for you, cancel for a full refund." : "The buyer can cancel for a full refund."}
+          </ShopsNotice>
+        </div>
       )}
       <ul className="text-ds-13 text-muted-foreground">
         {order.shop_order_lines.map((l) => (
           <li key={l.id} className="[overflow-wrap:anywhere]">
-            {l.quantity} × {l.title} ({formatCents(l.line_cents)})
+            {l.quantity} × {l.title} · {formatCents(l.line_cents)}
           </li>
         ))}
       </ul>
@@ -247,7 +288,7 @@ export function ShopOrderCard({
           {delivered ? ` + delivery ${deliveryCents > 0 ? formatCents(deliveryCents) : "(free)"}` : ""}
           {byHelpr ? ` + Helpr delivery ${formatCents(deliveryCents)}` : ""}
           {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}
-          {setupFeeChargedCents(order) > 0 ? ` + one-time account setup fee ${formatCents(setupFeeChargedCents(order))}` : ""}.
+          {setupFeeChargedCents(order) > 0 ? ` + one-time account setup fee (charged once per account) ${formatCents(setupFeeChargedCents(order))}` : ""}.
           {` ${SHOP_SERVICE_FEE_INCLUDED}`}
           {/* S013 (Shops audit 11-12): the cancel rule only while the buyer can still cancel (waiting or accepted, not
               yet handed over); on a finished or closed order it read as if they still could. */}
@@ -292,10 +333,10 @@ function DigitalOrderCard({ order, heading, side }: { order: ShopOrder; heading:
         <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{heading}</p>
         <p className="shrink-0 text-ds-13 font-semibold">{formatCents(side === "buyer" ? buyerPaidCents(order) : order.items_cents)}</p>
       </div>
-      <p className="text-ds-11 text-muted-foreground">{orderStatusLabel(order, side)}</p>
+      <OrderStatusPill text={orderStatusLabel(order, side)} />
       <ul className="text-ds-13 text-muted-foreground">
         {order.shop_order_lines.map((l) => (
-          <li key={l.id} className="[overflow-wrap:anywhere]">{l.title} (download, {formatCents(l.line_cents)})</li>
+          <li key={l.id} className="[overflow-wrap:anywhere]">{l.title} (download) · {formatCents(l.line_cents)}</li>
         ))}
       </ul>
       <ShopDigitalOrder order={order} side={side} />

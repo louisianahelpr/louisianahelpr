@@ -25,12 +25,6 @@ export const sponsorPage = {
   /** The giveaway runs Dec 1–25, 2026, Louisiana time. */
   event: {
     year: 2026,
-    /**
-     * Last day to sign up (Louisiana time). After it the sign-up form is replaced by `claim.closed`, and the
-     * sponsor-25days function refuses new sign-ups too (SPONSOR_SIGNUP_DEADLINE in
-     * supabase/functions/_shared/sponsorSignup.ts must say the same date; src/test/sponsor25days.test.tsx checks).
-     */
-    signup_deadline: "2026-11-28",
     firstDay: 1,
     lastDay: 25,
     timeZone: "America/Chicago",
@@ -53,7 +47,7 @@ export const sponsorPage = {
     /** Shown only when ?ref= matches a brand added in /admin/sponsors. {brand} is that brand's name. */
     greeting: "Hey {brand}! 🎄 We'd love to have you.",
     eyebrow: "December 1–25 · Louisiana",
-    headlineLead: "You're Invited!",
+    headlineLead: "You're invited!",
     headline: "25 Days of Louisiana Giveaways",
     subhead:
       "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays.",
@@ -61,8 +55,11 @@ export const sponsorPage = {
     secondaryCta: "How It Works",
     countdownLabel: "Giveaways start in",
     countdownLive: "The giveaways are live! Day {day} of 25",
-    /** Under the countdown and in the sign-up section while sign-ups are open. */
-    deadline: "Sign up by Nov 28.",
+    /**
+     * Under the countdown (short: the hero has little room). Owner 2026-11-18: sign-ups never close; we only ask
+     * brands to sign up by Sunday, November 22 so they make the full lineup.
+     */
+    deadline: "Sign up by Sunday, Nov 22.",
     countdownUnits: { days: "days", hours: "hours", minutes: "min", seconds: "sec" },
   },
 
@@ -83,14 +80,15 @@ export const sponsorPage = {
      * and Shops are not open to everyone yet).
      */
     features: [
-      { icon: "briefcase", title: "Jobs", body: "Hire local help or find work near you.", href: "/jobs", soonLabel: null },
+      // /browse, not /jobs: /jobs asks a guest to sign in first (design audit area 01 #3, 2026-11-18).
+      { icon: "briefcase", title: "Jobs", body: "Hire local help or find work near you.", href: "/browse", soonLabel: null },
       // The section is called Homes everywhere in the app (owner 2026-10-18; src/test/homesNotRentalsInCopy.test.ts).
       { icon: "home", title: "Homes", body: "Local homes and rentals, from your neighbors.", href: null, soonLabel: "Coming soon" },
       { icon: "bag", title: "Shop & Declutter Local", body: "Buy and sell used things with Louisiana neighbors.", href: "/declutter", soonLabel: null },
     ],
     groupButton: "Visit our Facebook Group",
     pageButton: "Visit our Facebook Page",
-    websiteButton: "Explore louisianahelpr.com",
+    websiteButton: "Explore the site",
   },
 
   founder: {
@@ -111,7 +109,7 @@ export const sponsorPage = {
   },
 
   howItWorks: {
-    title: "How It Works",
+    title: "How it works",
     steps: [
       { icon: "calendar", title: "Pick a day", body: "Choose any day (or days!) from December 1–25. Brands share days, and each brand's prize gets its own winner." },
       { icon: "gift", title: "Tell us your prize", body: "Donate anything you'd like: a product, a gift card, a service or a bundle." },
@@ -121,7 +119,7 @@ export const sponsorPage = {
   },
 
   brandGets: {
-    title: "What Your Brand Gets",
+    title: "What your brand gets",
     items: [
       { icon: "star", title: "Featured on our socials", body: "Your brand and prize featured in the giveaway post on your day, alongside any other brands that share it." },
       { icon: "link", title: "Tags & links everywhere", body: "Your brand tagged and linked on our Facebook page, our group and our website." },
@@ -131,13 +129,13 @@ export const sponsorPage = {
   },
 
   whatWeAsk: {
-    title: "What We Ask",
+    title: "What we ask",
     body:
       "Donate a prize, anything you'd like (a product, a gift card, a service or a bundle). The easiest way is to ship it or drop it off to us in Delcambre, and we deliver it to the winner. You can also ship it straight to the winner, email a digital gift card, or have the winner pick it up from you. That's it. We handle the graphics, the posts and picking the winner.",
   },
 
   reach: {
-    title: "Our Reach",
+    title: "Our reach",
     /**
      * Each stat shows only when it is a real number (set here or in
      * /admin/sponsors, which wins). "[X]" = not filled = hidden. The whole
@@ -151,7 +149,7 @@ export const sponsorPage = {
   },
 
   preview: {
-    title: "A Peek at a Giveaway Post",
+    title: "A peek at a giveaway post",
     note: "A sample giveaway post. When brands share a day, every one of them is featured and tagged.",
     /** A sample card, so it shows a sample day number. */
     sampleDay: "5",
@@ -175,11 +173,18 @@ export const sponsorPage = {
    * Brand names and prizes ONLY: never a sponsor's contact name, email or phone (this page and repo are public).
    */
   lineup: {
-    title: "The Lineup",
+    title: "The lineup",
     intro: "25 days, one giveaway post a day. When brands share a day, each prize has its own winner, and every partner is featured and tagged on our socials.",
     // Owner 2026-11-17: shown under the intro and by the sign-up day picker (claim.daysNote), and in the FAQ.
     daysNote: "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.",
     winners: "{n} winners",
+    /**
+     * Design audit r2 #18: a brand with the same prize on most days (RYSE) is said once above the cards, with its
+     * days, instead of in every card. Display only: the days below still list every brand and prize as given.
+     */
+    recurring: "{brand} on most days: {prize}, Dec {days}",
+    /** Phone only: each later week of the lineup opens with this button. */
+    showWeek: "Show Dec {from}–{to}",
     days: [
       {
         day: 1,
@@ -419,19 +424,17 @@ export const sponsorPage = {
   },
 
   testimonials: {
-    title: "What Our Sponsors Say",
+    title: "What our sponsors say",
   },
 
   claim: {
-    title: "Join the Giveaways",
+    title: "Join the giveaways",
     intro: "Pick one day or as many as you like. Brands share days, and every partner is featured and tagged on our socials.",
     dayCount: { one: "{n} brand joined", many: "{n} brands joined", none: "Open" },
     full: "Full",
-    deadline: "Sign up by Nov 28.",
+    /** The sign-up section has room for the full ask (owner 2026-11-18: sign-ups never close). */
+    deadline: "Please sign up by Sunday, November 22 so we can include you in the full lineup.",
     daysNote: "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.",
-    /** Shown in place of the calendar and form after signup_deadline. */
-    closedTitle: "Sign-ups are closed",
-    closed: "Sign-ups for the 25 Days of Louisiana Giveaways closed on November 28. Thank you to every brand that joined! Questions? Email admin@louisianahelpr.com.",
     anyDay: "Any day is fine",
     selectedNone: "Pick at least one day, or tick the any-day box.",
     form: {
@@ -478,7 +481,6 @@ export const sponsorPage = {
       url: "Enter a full web address that starts with https://",
       full: "Sorry, {days} just filled up. Pick another day?",
       rateLimited: "Too many tries in a short time. Please wait a few minutes and try again.",
-      closed: "Sign-ups closed on November 28, so this one was not saved. Questions? Email admin@louisianahelpr.com.",
       generic: "Something went wrong and your sign-up was NOT saved. Please try again, or email admin@louisianahelpr.com.",
     },
   },
@@ -496,7 +498,7 @@ export const sponsorPage = {
   },
 
   faq: {
-    title: "Questions? We've Got Answers",
+    title: "Questions? We've got answers",
     items: [
       { q: "Is this really free?", a: "Yes. There's no fee to join; all we ask is a prize to give away." },
       { q: "Who can enter the giveaways?", a: "[Louisiana residents 18+ — confirm]. Full details are in the Official Giveaway Rules." },
@@ -530,7 +532,7 @@ export const sponsorPage = {
     pendingNote: "The official rules for 25 Days of Louisiana Giveaways will be posted here before the first giveaway on December 1. Questions? Email admin@louisianahelpr.com.",
     approved: false,
     draftBanner: "DRAFT – review before publishing",
-    title: "Official Giveaway Rules",
+    title: "Official giveaway rules",
     subtitle: "25 Days of Louisiana Giveaways · December 1–25, 2026",
     backLink: "Back to the sponsor page",
     sections: [

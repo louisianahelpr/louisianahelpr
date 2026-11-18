@@ -2,8 +2,7 @@ import { Suspense, useState, type Dispatch, type SetStateAction } from "react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { useDashboardData } from "@/hooks/useDashboardData";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
-import { ApplicationSentDialog, ApplyBody, ApplyConfirmDialog, BirthdayPopup, JobDetailDialog, ReportDialog } from "./dashboardLazyParts";
-import { QuickApplyHandler } from "./QuickApplyHandler";
+import { ApplicationSentDialog, ApplyBody, ApplyConfirmDialog, BirthdayPopup, JobDetailDialog, QuickApplyHandler, ReportDialog } from "./dashboardLazyParts";
 import type { useApplyFlow } from "./useApplyFlow";
 import type { useDetailJob } from "./useDetailJob";
 import type { useSaveJob } from "./useSaveJob";
@@ -185,6 +184,11 @@ export function DashboardDialogs({
   // round). Mounted from the first send on and kept mounted, so its close still animates.
   const [sentMounted, setSentMounted] = useState(false);
   if (applicationSent && !sentMounted) setSentMounted(true);
+  // Q2705 pass 3: the quick-apply deep link's handler is lazy (its sheet read and poster lookup rode on /jobs' first
+  // round for a link most visits never carry). Mounted from the first ?quickApply on and kept mounted, so it handles
+  // one link per visit, as before.
+  const [quickApplyMounted, setQuickApplyMounted] = useState(false);
+  if (searchParams.get("quickApply") && !quickApplyMounted) setQuickApplyMounted(true);
   return (
     <>
     {reportJobId && (
@@ -212,13 +216,17 @@ export function DashboardDialogs({
         `quickApply` param is then dropped with a functional REPLACE, which
         is what keeps this off the replaceState-throttle path: one write, no
         `setSearchParams` loop, and Back can't re-fire the link. */}
-    <QuickApplyHandler
-      searchParams={searchParams}
-      user={user}
-      allJobs={allJobs}
-      onOpenJob={openDetailJob}
-      onHandled={clearQuickApplyParam}
-    />
+    {quickApplyMounted && (
+      <Suspense fallback={null}>
+        <QuickApplyHandler
+          searchParams={searchParams}
+          user={user}
+          allJobs={allJobs}
+          onOpenJob={openDetailJob}
+          onHandled={clearQuickApplyParam}
+        />
+      </Suspense>
+    )}
 
 
     {/* STANDALONE apply sheet — only for the QuickApply deep link

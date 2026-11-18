@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatParts";
 import type { Conversation } from "./types";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
 
@@ -87,7 +89,11 @@ export function threadsForFilter(list: readonly Conversation[], filter: InboxFil
 const JOB_OVER_STATUSES: readonly string[] = ["completed", "cancelled"];
 export function threadRoleCaption(c: Pick<Conversation, "teamThread" | "viewerIsPoster" | "viewerIsAssignedHelper" | "jobStatus">): string | null {
   if (c.teamThread) return null;
-  if (c.viewerIsPoster) return "Your job";
-  if (c.viewerIsAssignedHelper) return c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : "You're working";
+  // Area 08 H2: in the app language. L5: a Helpr's completed thread says "You worked this" (it had no caption at all).
+  if (c.viewerIsPoster) return t("cp.role.yourJob");
+  if (c.viewerIsAssignedHelper) {
+    if (c.jobStatus === "completed") return t("cp.role.worked");
+    return c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : t("cp.role.working");
+  }
   return null;
 }

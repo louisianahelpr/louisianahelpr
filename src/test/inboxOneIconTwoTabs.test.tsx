@@ -250,7 +250,7 @@ describe("both tabs share one header (owner 11-15, Polish, then launch)", () => 
     expect(screen.getByTestId("app-top-bar").contains(screen.getByTestId("messages-search-row"))).toBe(true);
   });
 
-  it("the browser tab says Inbox on both tabs, and Bandeja de entrada in Spanish", async () => {
+  it("the browser tab says Inbox on both tabs, and Buzón in Spanish (area 08 L16: Bandeja de entrada was cut off)", async () => {
     function MessagesTitle() {
       useMessagesPageSetup();
       return null;
@@ -264,11 +264,11 @@ describe("both tabs share one header (owner 11-15, Polish, then launch)", () => 
     cleanup();
     await act(async () => { setLang("es"); await ensureLangLoaded(); });
     at("/messages", <MessagesTitle />);
-    expect(document.title).toBe("Bandeja de entrada — Helpr");
+    expect(document.title).toBe("Buzón — Helpr");
     cleanup();
     document.title = "";
     at("/messages?tab=notifications", <InboxNotifications />);
-    expect(document.title).toBe("Bandeja de entrada — Helpr");
+    expect(document.title).toBe("Buzón — Helpr");
   });
 
   it("the loading frame draws the same order: the visible-title row, the tabs, the search, the chips", () => {

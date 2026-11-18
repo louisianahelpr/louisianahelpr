@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatParts";
 import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, ShieldAlert, Megaphone, Tag, HandCoins, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search, MessageCircleQuestion, Store } from "lucide-react";
 import type { Notification } from "./types";
 
@@ -55,10 +57,11 @@ export const groupByDay = (items: Notification[]) => {
   const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const buckets: { key: string; label: string; items: Notification[] }[] = [
-    { key: "today", label: "Today", items: [] },
-    { key: "yesterday", label: "Yesterday", items: [] },
-    { key: "week", label: "This week", items: [] },
-    { key: "earlier", label: "Earlier", items: [] },
+    // Area 08 H3: the bell's day headers follow the app language.
+    { key: "today", label: t("cp.today"), items: [] },
+    { key: "yesterday", label: t("cp.yesterday"), items: [] },
+    { key: "week", label: t("cp.thisWeek"), items: [] },
+    { key: "earlier", label: t("cp.earlier"), items: [] },
   ];
 
   for (const n of items) {
@@ -75,12 +78,12 @@ export const groupByDay = (items: Notification[]) => {
 export const timeAgo = (date: string) => {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("cp.justNow");
+  if (mins < 60) return t("cp.minAgo", { n: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return t("cp.hrAgo", { n: hrs });
   const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return t("cp.dayAgo", { n: days });
 };
 
 /** Board 28 (2026-10-20): the notice kinds about money wear the money tint (rust = money only). */

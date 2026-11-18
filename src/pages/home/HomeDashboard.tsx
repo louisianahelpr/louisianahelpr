@@ -471,7 +471,8 @@ function HomeDashboardScreen() {
             {!holdBelowNextUp && <>
             <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
-              <h2 className="text-ds-15 font-semibold text-foreground">{t("home.yourSections")}</h2>
+              {/* Design audit 11-17 #27: the same eyebrow as "Needs you" and "Coming up" (GroupSection). */}
+              <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">{t("home.yourSections")}</h2>
               <Button type="button" variant="link" size="sm" data-testid="open-customize" onClick={() => setCustomize(true)} className="px-0 text-ds-13 font-semibold tracking-normal text-primary">
                 {t("home.customize")}
               </Button>

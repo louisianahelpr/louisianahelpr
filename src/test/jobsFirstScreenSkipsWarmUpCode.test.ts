@@ -20,7 +20,7 @@
  * @mutate vite.config.ts |               test: (id: string) => signedInOnly.has(norm(id)) && jobsReach.has(norm(id)), |               test: (id: string) => signedInOnly.has(norm(id)) && false,
  * @mutate vite.config.ts |               priority: 10.5, |               priority: 9.5,
  * @mutate vite.config.ts |               priority: 15.35, |               priority: 15.25,
- * @mutate vite.config.ts |               priority: 15.85, // above leaves (15.8), below native-push (15.9) |               priority: 15.75, // above leaves (15.8), below native-push (15.9)
+ * @mutate vite.config.ts |               priority: 15.85, // above leaves (15.8); native-push sits at 18 |               priority: 15.75, // above leaves (15.8); native-push sits at 16.7
  * @mutate scripts/perf/bootReach.mjs |   return staticReach(root, [path.join(root, JOBS_BROWSE_ROOT)]); |   return new Set();
  */
 import { describe, it, expect } from "vitest";

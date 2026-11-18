@@ -4,6 +4,8 @@
  * Pure presentation, extracted verbatim from FilterSheet.tsx (OPEN.md Q184).
  */
 import type { ReactNode } from "react";
+import "@/lib/i18n/enJobsHelpr";
+import { t } from "@/lib/i18n/language";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowUpRight, ChevronRight, Clock, FileText, type LucideIcon } from "lucide-react";
@@ -141,22 +143,22 @@ export function AvailabilityRow({
   return (
     <ToggleRow
       icon={Clock}
-      label="During my hours"
+      label={t("jh.f.myHours")}
       hint={
         hasAvailability ? (
           <p className="text-ds-11 text-muted-foreground leading-snug">
-            Only jobs inside your saved hours
+            {t("jh.f.myHoursOn")}
           </p>
         ) : (
           // Same grey line as the siblings, with the remedy inside the
           // sentence — not replacing it.
           <p className="text-ds-11 text-muted-foreground leading-snug">
-            Add your weekly hours first —{" "}
+            {t("jh.f.myHoursFirst")}{" "}
             <InlineTextButton
               onClick={() => navigate("/profile?tab=availability")}
               className="inline-flex items-center gap-0.5 font-semibold text-primary underline underline-offset-2 hover:text-primary/95 transition-colors btn-press"
             >
-              set hours
+              {t("jh.f.setHours")}
               <ArrowUpRight className="w-2.5 h-2.5" aria-hidden />
             </InlineTextButton>
           </p>
@@ -165,7 +167,7 @@ export function AvailabilityRow({
       checked={matchAvailability}
       onChange={setMatchAvailability}
       disabled={!hasAvailability}
-      ariaLabel="Match my availability"
+      ariaLabel={t("jh.f.myHoursAria")}
     />
   );
 }
@@ -175,11 +177,11 @@ export function WantsQuotesRow({ checked, onToggle }: { checked: boolean; onTogg
   return (
     <ToggleRow
       icon={FileText}
-      label="Quotes wanted"
-      hint={<p className="text-ds-11 text-muted-foreground leading-snug">Jobs where people ask for your price</p>}
+      label={t("jh.f.quotes")}
+      hint={<p className="text-ds-11 text-muted-foreground leading-snug">{t("jh.f.quotesHint")}</p>}
       checked={checked}
       onChange={() => onToggle()}
-      ariaLabel="Show jobs that want quotes"
+      ariaLabel={t("jh.f.quotesAria")}
     />
   );
 }

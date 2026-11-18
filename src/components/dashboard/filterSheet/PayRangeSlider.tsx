@@ -1,4 +1,6 @@
 import { hapticLight } from "@/lib/haptics";
+import "@/lib/i18n/enJobsHelpr";
+import { t } from "@/lib/i18n/language";
 
 /**
  * Board 24 "Price": a two-thumb range over the SAME min/max budget state the
@@ -19,7 +21,7 @@ function toNumber(raw: string, fallback: number): number {
 }
 
 export function payRangeLabel(minBudget: string, maxBudget: string): string {
-  if (!minBudget && !maxBudget) return "Any price";
+  if (!minBudget && !maxBudget) return t("jh.f.anyPrice");
   const lo = `$${toNumber(minBudget, 0)}`;
   if (!maxBudget) return `${lo}+`;
   return `${lo} – $${toNumber(maxBudget, TOP)}`;
@@ -72,7 +74,7 @@ export function PayRangeSlider({
           }}
         />
       </div>
-      <p className="text-ds-11 text-muted-foreground leading-snug">The price set on the job. Cards show what you would take home.</p>
+      <p className="text-ds-11 text-muted-foreground leading-snug">{t("jh.f.priceHint")}</p>
     </div>
   );
 }

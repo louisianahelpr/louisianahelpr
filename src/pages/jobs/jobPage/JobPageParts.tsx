@@ -113,6 +113,11 @@ function payoutWhen(iso: string): string {
   return `${day} at ${time}`;
 }
 
+/** Area 04 #31 (11-18): the payout DAY alone ("Thu, Nov 19"): payouts go out on a day, and "at 1:16 AM" read as a promise. */
+function payoutDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
+}
+
 /**
  * The poster's money once they approved (audit 2026-10-28 F32: a finished, released job still read "Your budget
  * $40" with no line at all, because payout_pending had none): that it was paid and released, when the Helpr's pay
@@ -284,7 +289,7 @@ export function HelprMoneyNotes({ job, hired, noShow = false }: { job: JobPageRo
   const at = approved && job.payout_scheduled_at && new Date(job.payout_scheduled_at).getTime() > Date.now() ? job.payout_scheduled_at : null;
   const paid = !approved ? null
     : job.payment_status === "released" ? "Approved and paid out to you."
-    : at ? `Approved. Your pay goes out ${payoutWhen(at)}.` : "Approved. Your pay goes out with the next payout.";
+    : at ? `Approved. Your pay goes out ${payoutDay(at)}.` : "Approved. Your pay goes out with the next payout.";
   if (!paid && lines.length === 0) return null;
   return (
     <div data-helpr-money-notes="" className="space-y-1.5">

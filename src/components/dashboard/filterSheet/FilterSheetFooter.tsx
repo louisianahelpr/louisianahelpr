@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { hapticLight } from "@/lib/haptics";
 
 /**
@@ -15,6 +16,13 @@ function filterResultsLabel(
   resultCount: number | null | undefined,
   [one, many]: readonly [string, string],
 ): string {
+  // Area 04 #2 (11-18): the jobs sheet's button in the reader's language (other sheets keep their English nouns).
+  if (many === "jobs") {
+    if (resultCount === null || resultCount === undefined) return wordInLang("jh.f.showJobs", "Show jobs");
+    if (resultCount === 0) return wordInLang("jh.f.noJobs", "No jobs match");
+    if (resultCount === 1) return wordInLang("jh.f.showOne", "Show 1 job");
+    return wordInLang("jh.f.showN", `Show ${resultCount} jobs`, { n: resultCount });
+  }
   if (resultCount === null || resultCount === undefined) return `Show ${many}`;
   if (resultCount === 0) return `No ${many} match`;
   return `Show ${resultCount} ${resultCount === 1 ? one : many}`;
@@ -57,7 +65,7 @@ export function FilterSheetFooter({
           className={`${compact ? "min-h-9 text-ds-13" : "min-h-11 text-ds-14"} px-1 font-bold btn-press disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-md`}
           style={{ color: "hsl(var(--bark))" }}
         >
-          Clear all
+          {wordInLang("jh.f.clearAll", "Clear all")}
         </button>
       ) : (
         <span />

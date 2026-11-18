@@ -45,7 +45,7 @@ export const PhotoProofDialog = ({
         <div className="space-y-4 max-h-[60vh] overflow-y-auto">
           {hasBefore && (
             <div className="space-y-2">
-              <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
+              <p className="text-ds-13 font-semibold text-muted-foreground">Before</p>
               <div className="grid grid-cols-3 gap-2">
                 {beforeUrls.map((url, i) => (
                   <PhotoOpenButton key={url ?? i} className={tile} disabled={!beforeSrcs[i]} aria-label={`Open before photo ${i + 1}`} data-proof-photo-open="" onClick={() => openPhoto(i)}>
@@ -57,7 +57,7 @@ export const PhotoProofDialog = ({
           )}
           {hasAfter && (
             <div className="space-y-2">
-              <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
+              <p className="text-ds-13 font-semibold text-muted-foreground">After</p>
               <div className="grid grid-cols-3 gap-2">
                 {afterUrls.map((url, i) => (
                   <PhotoOpenButton key={url ?? i} className={tile} disabled={!afterSrcs[i]} aria-label={`Open after photo ${i + 1}`} data-proof-photo-open="" onClick={() => openPhoto(beforeUrls.length + i)}>
@@ -67,8 +67,9 @@ export const PhotoProofDialog = ({
               </div>
             </div>
           )}
+          {/* Area 04 #35 (2026-11-18): labels and the empty line at 13px (were 11px uppercase). */}
           {!hasBefore && !hasAfter && (
-            <p className="text-ds-11 text-muted-foreground text-center py-6">No photos uploaded yet.</p>
+            <p className="text-ds-13 text-muted-foreground text-center py-6">No photos uploaded yet.</p>
           )}
         </div>
         {viewer}

@@ -24,7 +24,7 @@ export const enJobs = {
   "jobPage.where": "Where the job is",
   "jobPage.seeCase": "See the case",
   // F291a (audit 11-10): the hired Helpr's name for the same button while a case is open: the case sheet takes their photos.
-  "jobPage.addYourSide": "Add your side",
+  "jobPage.addYourSide": "Add photos", // Area 04 #16 (11-18): the case sheet takes photos only, no statement
   "jobPage.photos": "Photos from the job",
   "jobPage.crew": "Your crew",
   "jobPage.side": "Price and actions",

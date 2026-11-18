@@ -193,7 +193,10 @@ describe("every pop-up title is sentence case", () => {
     // "Edit job"); the Report dialog's titles read the dictionary (enReport.ts, r3 #8).
     // 244 (area 06b stack, 11-18): DeclutterOrderTalk's titles are dictionary branches now (#4720): "Message the buyer" /
     // "Message the seller" and "Your chat with the buyer" / "Your chat with the seller" each count as two.
-    expect(all.length).toBe(244);
+    // 242 (Area 04 #2, 2026-11-18): -1 "Filter jobs" (BrowseTasksToolbar's FilterSheet) reads wordInLang now, for Spanish;
+    // its English is still sentence case (enJobsHelpr.ts "jh.f.title").
+    // 243 (merge 11-18): 244 above, -1 for Filter jobs below.
+    expect(all.length).toBe(243);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

@@ -67,7 +67,7 @@ describe("/sponsor day tiles: the class is the height", () => {
   });
 
   it("each rendered tile carries min-h-[76px] sm:min-h-[96px] and not the chip's 44px min-h-11", () => {
-    render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />);
+    render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     const tiles = screen.getAllByRole("button", { name: /^December \d+,/ });
     expect(tiles.length).toBeGreaterThan(24);
     for (const t of tiles) {
@@ -88,7 +88,7 @@ describe("/sponsor form controls: the class is the size", () => {
 
   it("the textareas ask min-h-12, the 48px the field rule draws, and each tile's visible text sits in its name", () => {
     expect(/\.lh25-field textarea\s*\{[^}]*min-height:\s*48px/.test(css)).toBe(true);
-    const { container } = render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />);
+    const { container } = render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     const areas = [...container.querySelectorAll("textarea")];
     expect(areas.length).toBeGreaterThan(1);
     for (const a of areas) {

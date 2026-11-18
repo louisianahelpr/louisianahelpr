@@ -52,7 +52,7 @@ export function continueDayLabel(date: string, time: string): string {
  */
 export function continueDayNextStep(
   row: ContinueDay | null | undefined,
-  o: { side: "poster" | "helpr"; otherFirst?: string | null },
+  o: { side: "poster" | "helpr"; otherFirst?: string | null; now?: Date },
 ): NextStepValue | null {
   if (!row) return null;
   const when = continueDayLabel(row.new_date, row.new_start_time);
@@ -74,6 +74,11 @@ export function continueDayNextStep(
       : // F289a (audit 11-10): "Continuing … · waiting on Hallie to confirm" over Change day and Message left a
         // first-time poster unsure whether they owed something. It names the visit and says they owe nothing.
         { who: "them", text: `${other || "Your Helpr"} comes back ${when}`, by: `nothing for you to do; ${other || "your Helpr"} confirms next` };
+  }
+  // Area 04 #18 (11-18): a SET day whose date has gone by (Louisiana's date after it) no longer says "You're set" or
+  // "Confirm you'll be there"; the Helpr's two ways forward are finishing or asking for another day.
+  if (row.new_date && louisianaToday(o.now ?? new Date()) > row.new_date) {
+    return { who: "you", text: "The new day passed", by: "mark it done or ask for another day" };
   }
   return row.helper_confirmed_at
     ? { who: "info", text: `You're set for ${when}`, by: "mark it done when you finish" }

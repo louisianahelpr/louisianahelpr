@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import "@/lib/i18n/enJobsHelpr";
+import { t } from "@/lib/i18n/language";
 import { Bookmark, Clock, Rocket, SearchCheck, Zap } from "lucide-react";
 import type { FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import {
@@ -104,7 +106,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
   const sections: FilterSheetSection[] = [
     {
       key: "sort",
-      title: "Sort",
+      title: t("jh.f.sort"),
       content: <SortContent sortBy={sortBy} setSortBy={setSortBy} />,
     },
   ];
@@ -112,7 +114,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
   if (setMinBudget && setMaxBudget) {
     sections.push({
       key: "price",
-      title: "Price",
+      title: t("jh.f.price"),
       trailing: (
         // Rust only when it shows a real $ range (rust = money); "Any price" is muted ink.
         <span
@@ -137,7 +139,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
   if (showNearby && setLocationFilter) {
     sections.push({
       key: "nearby",
-      title: "Distance",
+      title: t("jh.f.distance"),
       content: (
         <NearbyContent
           locationFilter={locationFilter}
@@ -152,7 +154,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
   if (setJobWhen) {
     sections.push({
       key: "when",
-      title: "When",
+      title: t("jh.f.when"),
       content: (
         <WhenContent
           jobWhen={jobWhen}
@@ -167,7 +169,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
   sections.push(
     {
       key: "category",
-      title: "Category",
+      title: t("jh.f.category"),
       content: (
         <CategoryContent
           selectedCategory={selectedCategory}
@@ -177,46 +179,46 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     },
     {
       key: "show-only",
-      title: "Show only",
+      title: t("jh.f.showOnly"),
       content: (
         <div className="space-y-2.5">
           {onToggleWantsQuotes && <WantsQuotesRow checked={wantsQuotes} onToggle={onToggleWantsQuotes} />}
           {onToggleSavedOnly && (
             <ToggleRow
               icon={Bookmark}
-              label="Saved jobs only"
-              hint={<p className="text-ds-11 text-muted-foreground leading-snug">{savedCount > 0 ? `${savedCount} saved` : "None open right now"}</p>}
+              label={t("jh.f.savedOnly")}
+              hint={<p className="text-ds-11 text-muted-foreground leading-snug">{savedCount > 0 ? t("jh.f.savedN", { n: savedCount }) : t("jh.f.noneOpen")}</p>}
               checked={savedOnly}
               onChange={() => onToggleSavedOnly()}
-              ariaLabel="Show saved jobs only"
+              ariaLabel={t("jh.f.savedAria")}
             />
           )}
           <ToggleRow
             icon={Rocket}
-            label="Boosted jobs"
+            label={t("jh.f.boosted")}
             hint={
               <p className="text-ds-11 text-muted-foreground leading-snug">
-                Promoted by the person who posted it
+                {t("jh.f.boostedHint")}
               </p>
             }
             checked={boostedOnly}
             onChange={setBoostedOnly}
-            ariaLabel="Show boosted jobs only"
+            ariaLabel={t("jh.f.boostedAria")}
           />
           {/* Urgent is NOT a synonym for Boosted: Boosted is paid placement;
               Urgent is `urgent_fee` on top of the budget, which the Helpr
               takes home, so it is the one switch that finds better-paying work. */}
           <ToggleRow
             icon={Zap}
-            label="Urgent jobs"
+            label={t("jh.f.urgent")}
             hint={
               <p className="text-ds-11 text-muted-foreground leading-snug">
-                Pays a bonus on top of the price
+                {t("jh.f.urgentHint")}
               </p>
             }
             checked={urgentOnly}
             onChange={setUrgentOnly}
-            ariaLabel="Show urgent jobs only"
+            ariaLabel={t("jh.f.urgentAria")}
           />
           {signupHref && (
             <SignupRow

@@ -7,7 +7,7 @@
  *
  * Read:
  *   - <slug>.json: one guide's picks, in order (store-<x>.json is a store page's own "Louisiana Helpr Picks");
- *   - extras with a `fits` list of guide slugs: _awin.json, _cj.json (CJ links), _later.json, _later-mylinks.json (every Later link), _later-brands.json;
+ *   - extras with a `fits` list of guide slugs: _awin.json, _cj.json (CJ links), _impact.json and _shopify-collabs.json (when present), _later.json, _later-mylinks.json (every Later link), _later-brands.json;
  *   - store extras: _xtratuf.json, _warby-parker.json (+ Her/Him/Coworkers/RNs/Teens), _walmart.json,
  *     _tiktok-shop.json, _amazon-trending.json, _amazon-bounties.json (Prime/Audible/registries);
  *   - deal sections: _store-deal-sections.json, _walmart-collections.json, _amazon-hub.json, _later-deals.json,
@@ -132,12 +132,12 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.star
   for (const p of JSON.parse(readFileSync(join(dir, file), "utf8"))) if (!nameOnly(slug, p)) add(slug, p, file);
 }
 /** Extras that name their guides (`fits`); each also lands on its store page. */
-for (const f of ["_awin.json", "_cj.json", "_later.json", "_later-mylinks.json", "_later-brands.json"]) {
+for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json"]) {
   for (const p of readList(f)) for (const slug of p.fits ?? []) if (GUIDE_SLUGS.has(slug)) add(slug, p, f);
 }
 /** Store extras: the store page, and for Warby Parker the guides the owner named (11-18). */
 const WARBY_GUIDES = ["her", "him", "coworkers", "rns", "girls-teens", "boys-teens"];
-const storeExtras = [["_xtratuf.json", []], ["_warby-parker.json", WARBY_GUIDES], ["_walmart.json", []], ["_tiktok-shop.json", []], ["_amazon-trending.json", []], ["_later.json", []], ["_awin.json", []], ["_cj.json", []], ["_later-mylinks.json", []], ["_later-brands.json", []]];
+const storeExtras = [["_xtratuf.json", []], ["_warby-parker.json", WARBY_GUIDES], ["_walmart.json", []], ["_tiktok-shop.json", []], ["_amazon-trending.json", []], ["_later.json", []], ["_awin.json", []], ["_cj.json", []], ["_impact.json", []], ["_shopify-collabs.json", []], ["_later-mylinks.json", []], ["_later-brands.json", []]];
 for (const [f, extraGuides] of storeExtras) {
   for (const p of readList(f)) {
     const pick = toPick(p, f);

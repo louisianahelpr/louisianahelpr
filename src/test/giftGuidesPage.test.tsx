@@ -800,8 +800,11 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
     expect(script).toMatch(/function toPick\(p, where\) \{\n\s*if \(blockedBrand\(p\)\) return hidden\.push/);
     expect(script).toMatch(/const addDeal = \(slug, d\) => \{\n\s*if \(blockedBrand\(d\)/);
     // _cj.json (SilverRushStyle's CJ links) lands in the guides it fits and on its store page, like _awin.json.
-    expect(script).toContain('for (const f of ["_awin.json", "_cj.json",');
-    expect(script).toContain('["_cj.json", []]');
+    expect(script).toContain('for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json"]) {');
+    for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later-mylinks.json", "_later-brands.json"]) expect(script, f).toContain(`["${f}", []]`);
+    // Deals and bounties: _later-promos.json (deal sections) and _amazon-bounties.json (Prime, Audible, registries).
+    expect(script).toContain('for (const f of ["_later-deals.json", "_later-promos.json"]) {');
+    expect(script).toContain('readList("_amazon-bounties.json")');
     // What ships today: no shown guide, store page or pick carries a blocked brand.
     for (const g of GUIDES) expect(blockedBrand({ store: g.title }) || blockedBrand({ name: g.title }), g.slug).toBe(false);
     let picks = 0;

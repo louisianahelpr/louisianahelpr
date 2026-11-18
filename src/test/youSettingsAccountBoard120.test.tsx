@@ -6,7 +6,7 @@
  * No "Pause my account": it does not exist (lead 2026-10-21).
  *
  * @mutate src/components/profile/SettingsTab.tsx | {onRequestDelete && <Row testId="delete-account" | {false && <Row testId="delete-account"
- * @mutate src/components/profile/SettingsTab.tsx |   const NAMES: Record<string, string> = { email: "Password", google: "Google", apple: "Apple" }; |   const NAMES: Record<string, string> = {};
+ * @mutate src/components/profile/SettingsTab.tsx |   const NAMES: Record<string, string> = { email: wordInLang("settings.password", "Password"), google: "Google", apple: "Apple" }; |   const NAMES: Record<string, string> = {};
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";

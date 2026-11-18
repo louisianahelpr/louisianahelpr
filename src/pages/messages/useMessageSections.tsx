@@ -119,7 +119,12 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     { value: "all", label: t("msg.filterAll") },
     // The real unread-thread count, or no number at all (never "· 0").
     { value: "unread", label: unread > 0 ? t("msg.filterUnreadN", { n: unread }) : t("msg.filterUnread") },
-    ...chipTabs.map((k) => ({ value: k, label: sectionByKey(k).label })),
+    // Design audit r2 #34: the section chips in the reader's language (the nav word: "Trabajos", "Declutter"...).
+    ...chipTabs.map((k) => {
+      const def = sectionByKey(k);
+      const key = navKey(def.path, def.label);
+      return { value: k, label: key ? t(key) : def.label };
+    }),
   ];
   // M6 (iOS audit 11-16): the shared FilterChips, the same row the Notifications tab uses (All first).
   const strip = (

@@ -25,6 +25,7 @@ import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useLanguage } from "@/lib/i18n/language";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { enSettings } from "@/lib/i18n/enSettings";
 import type { MsgKey } from "@/lib/i18n/en";
 import { ProfileLinkRow } from "@/components/profile/ProfileLinkRow";
@@ -78,7 +79,8 @@ function Group({ title: english, children }: { title: string; children: ReactNod
 /** One settings row: label, a muted line under it, and either a chevron (it opens something) or a control. */
 /** "you@example.com · Password, Google": the account row's line, or null when nothing is known. */
 export function accountLine(email: string | null | undefined, identities: { provider: string }[] | null | undefined): string | null {
-  const NAMES: Record<string, string> = { email: "Password", google: "Google", apple: "Apple" };
+  // Design audit r2 #37: "Password" in the reader's language (Google and Apple are names).
+  const NAMES: Record<string, string> = { email: wordInLang("settings.password", "Password"), google: "Google", apple: "Apple" };
   const methods = [...new Set((identities ?? []).map((i) => NAMES[i.provider]).filter(Boolean))];
   const parts = [email || null, methods.length ? methods.join(", ") : null].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;

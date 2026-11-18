@@ -9623,7 +9623,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 139,
+      "line": 141,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9633,7 +9633,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 232,
+      "line": 234,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -13648,7 +13648,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 239,
+      "line": 243,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -13662,7 +13662,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 309,
+      "line": 313,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -13672,7 +13672,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 465,
+      "line": 469,
       "kind": "errorToast",
       "title": {
         "form": "literal",

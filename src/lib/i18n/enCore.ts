@@ -14,6 +14,12 @@ export const enCore = {
   "lang.switchTo": "Switch language to {lang}",
   "lang.legalInEnglish": "The legal terms are in English. A Spanish summary is on the Terms page.",
 
+  // The guest's way in on the public header and Declutter's guest cards (design audit r2 #37). Boot words, so the
+  // public header pays for no extra chunk.
+  "g.logIn": "Log in",
+  "g.signUp": "Sign up",
+  "g.joinFree": "Join free",
+
   // Main nav (desktop rail + phone dock)
   "nav.home": "Dashboard",
   // F146 (owner UI audit 11-09): the phone dock reads "Home · Jobs · Declutter · Messages · You".

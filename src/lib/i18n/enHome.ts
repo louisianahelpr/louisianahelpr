@@ -80,6 +80,20 @@ export const enHome = {
   "home.fj.howPaid": "How you get paid",
   "home.fj.readMore": "Read more",
   "home.fj.paidBody": "The person who posts the job pays when they hire you. It's held, and released only when they approve the work: it reaches your Helpr account {days} days after the job is approved, and your bank within {bankDays} business days after that. Every job shows what you'll take home before you apply, and tips are paid in full.",
+  // Design audit r2 #37: the Home section cards' count words ("15 need you", "241 items near you").
+  "home.c.needsYou": "needs you",
+  "home.c.needYou": "need you",
+  "home.c.upcoming": "upcoming",
+  "home.c.listed": "listed",
+  "home.c.inReview": "in review",
+  "home.c.toAnswer": "to answer",
+  "home.c.openOrder": "open order",
+  "home.c.openOrders": "open orders",
+  "home.c.property": "property",
+  "home.c.properties": "properties",
+  "home.c.openNear": "{n} open near you",
+  "home.c.itemNear": "{n} item near you",
+  "home.c.itemsNear": "{n} items near you",
 } as const;
 
 addEnglish(enHome);

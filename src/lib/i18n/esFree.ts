@@ -1,11 +1,11 @@
-/** Spanish for enFree.ts (F260q): Declutter's free-item ask panel. "Ventas" is Declutter's Spanish section name. */
+/** Spanish for enFree.ts (F260q): Declutter's free-item ask panel. Declutter keeps its brand name in Spanish (design audit r2 #36). */
 import type { enFree } from "./enFree";
 
 export const esFree: Record<keyof typeof enFree, string> = {
   "free.taken": "Retiró su solicitud.",
   "free.pickedSomeone": "Quien lo regala ya eligió a alguien para este artículo.",
   "free.pickedSomeoneBody": "Si esa persona no elige una hora de recogida a tiempo, vuelve a estar gratis.",
-  "free.underAge": "Debe tener 18 años o más para usar Ventas.",
+  "free.underAge": "Debe tener 18 años o más para usar Declutter.",
   "free.youAskedAria": "Usted pidió este artículo",
   "free.youAsked": "Usted pidió esto.",
   "free.pickup": "Recogida {time}",

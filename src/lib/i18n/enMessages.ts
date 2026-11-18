@@ -144,6 +144,26 @@ export const enMessages = {
   "msg.dc.openJob": "Open job",
   "msg.dc.theirApplication": "Their application",
   "msg.dc.attachment": "Attachment",
+  // Design audit r2 #34: the inbox row's age, role caption and job-status chip (keyed by the English chip word).
+  "msg.age.now": "now",
+  "msg.age.min": "{n}m",
+  "msg.age.h": "{n}h",
+  "msg.age.d": "{n}d",
+  "msg.c.yourJob": "Your job",
+  "msg.c.working": "You're working",
+  "msg.st.Open": "Open",
+  "msg.st.Accepted": "Accepted",
+  "msg.st.Hired": "Hired",
+  "msg.st.Working": "Working",
+  "msg.st.Done": "Done",
+  "msg.st.In progress": "In progress",
+  "msg.st.Completed": "Completed",
+  "msg.st.Cancelled": "Cancelled",
+  "msg.st.Revision requested": "Revision requested",
+  "msg.st.Disputed": "Disputed",
+  "msg.st.Awaiting approval": "Awaiting approval",
+  "msg.st.Expired": "Expired",
+  "msg.st.Closed": "Closed",
 } as const;
 
 addEnglish(enMessages);

@@ -24,7 +24,7 @@
  * @mutate src/components/messages/messageSections.ts |   return "all";\n} |   return "jobs";\n}
  * @mutate src/components/messages/messageSections.ts |   if (c.viewerIsAssignedHelper) return c.jobStatus |   if (!c.viewerIsPoster) return c.jobStatus
  * F24 (audit 2026-10-28): one status per row; a finished job's thread drops "You're working".
- * @mutate src/components/messages/messageSections.ts | c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : "You're working"; | false ? null : "You're working";
+ * @mutate src/components/messages/messageSections.ts | c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : wordInLang("msg.c.working", "You're working"); | false ? null : wordInLang("msg.c.working", "You're working");
  * @mutate src/pages/messages/useMessageSections.tsx | label: unread > 0 ? t("msg.filterUnreadN", { n: unread }) : t("msg.filterUnread") }, | label: t("msg.filterUnreadN", { n: unread }) },
  * @mutate src/pages/messages/Messages.tsx |       conversations={inbox.conversations} |       conversations={conversations}
  * @mutate src/components/messages/ConversationList.tsx |       {sectionTabs && ( |       {false && (

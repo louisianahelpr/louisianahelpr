@@ -23,16 +23,17 @@ export interface StripDay {
  * Built on UTC noon, never the device's clock: the date string is the fact, and
  * noon cannot slip a day in any zone or across a DST change.
  */
-export function dayStrip(todayIso: string, count = DAY_STRIP_LENGTH): StripDay[] {
+export function dayStrip(todayIso: string, count = DAY_STRIP_LENGTH, locale: "en-US" | "es-US" = "en-US"): StripDay[] {
   const [y, m, d] = todayIso.split("-").map(Number);
   const days: StripDay[] = [];
   for (let i = 0; i < count; i++) {
     const at = new Date(Date.UTC(y, m - 1, d + i, 12));
     days.push({
       iso: at.toISOString().slice(0, 10),
-      weekday: at.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+      // Design audit r2 #32: the weekday names follow the reader's language ("mié", not "Wed", in Spanish).
+      weekday: at.toLocaleDateString(locale, { weekday: "short", timeZone: "UTC" }),
       day: at.getUTCDate(),
-      long: at.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" }),
+      long: at.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" }),
     });
   }
   return days;

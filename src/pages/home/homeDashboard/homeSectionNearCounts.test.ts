@@ -4,7 +4,7 @@
  * line. The counts are head-only count reads with Browse's own rules, loaded after Home's first paint.
  *
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const jobsNear = jobTodos === 0 && (near.jobs ?? 0) > 0 ? | const jobsNear = (near.jobs ?? 0) > 0 ?
- * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterNear = (near.declutter ?? 0) > 0 ? | const declutterNear = near.declutter !== undefined ?
+ * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterNear = (near.declutter ?? 0) > 0\n | const declutterNear = near.declutter !== undefined\n
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |     enabled: !!uid && settled && !applied.loading, |     enabled: !!uid && !applied.loading,
  * @mutate src/pages/home/homeDashboard/sectionNearCounts.ts |     .neq("seller_id", userId); |     ;
  * @mutate src/pages/home/homeDashboard/sectionNearCounts.ts |     .select("id", { count: "exact", head: true }) |     .select("id")

@@ -9,7 +9,7 @@ import { lazy } from "react";
 import { AdminFrame } from "./AdminFrame";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHome } from "@/components/admin/dashboard/DashboardHome";
-import { homeStanding } from "@/components/admin/dashboard/homeStanding";
+import { attentionLine, homeStanding } from "@/components/admin/dashboard/homeStanding";
 import { useSeriousOpenAlertCount } from "@/components/admin/adminHealth/useOpenAlerts";
 import type { Stats, DateRange } from "@/components/admin/dashboard/types";
 import { RANGE_PRESETS } from "@/components/admin/dashboard/types";
@@ -545,6 +545,7 @@ const Admin = () => {
           dataError={homeDataError}
           seriousAlerts={seriousAlertCount}
           alertsPending={statsLoading || ([openQueues.disputes, openQueues.reports, openQueues.support].includes(undefined) && !pendingCounts.isError) || (seriousAlertCount === undefined && !seriousAlertsFailed)}
+          attention={attentionLine(openQueues, seriousAlertCount)}
           standing={homeStanding({
             queues: openQueues,
             seriousAlerts: seriousAlertCount,

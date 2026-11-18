@@ -38,6 +38,7 @@ import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
 import { useHomeTopSettled, useHoldWhileFirstVisitReads } from "./homeDashboard/homeTopSettled";
 import { HeldBlocksSkeleton } from "./homeDashboard/HeldBlocksSkeleton";
+import { HOME_NEEDS_YOU_MIN_PX } from "@/lib/homeSkeleton";
 import { optionalLazy } from "@/lib/optionalLazy";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { useLanguage, getLang, t as tNow } from "@/lib/i18n/language";
@@ -210,7 +211,7 @@ function HomeDashboardScreen() {
             too narrow for the Coming up table). Left (~60%): Next up, To do, Coming up (a table from
             900px). Right (~40%): the money tiles, then YOUR SECTIONS as a compact 2x2. The phone keeps one column in the same order. */}
         {!topSettled && (
-          <section data-testid="home-top-loading" aria-busy="true" aria-label={t("home.loadingAria")} className="liquid-glass p-card flex flex-col gap-1.5">
+          <section data-testid="home-top-loading" aria-busy="true" aria-label={t("home.loadingAria")} className="liquid-glass p-card flex flex-col gap-1.5" style={{ minHeight: HOME_NEEDS_YOU_MIN_PX }}>
             <span className="sr-only">{t("home.loadingSr")}</span>
             <p aria-hidden className="text-ds-12">&nbsp;</p>
             <p aria-hidden className="text-ds-18 font-bold leading-snug"><span className="inline-block w-3/4 rounded-md bg-muted animate-pulse">&nbsp;</span></p>

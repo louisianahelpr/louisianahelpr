@@ -1,5 +1,6 @@
 import AppShell from "@/components/AppShell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HOME_NEEDS_YOU_MIN_PX } from "@/lib/homeSkeleton";
 import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
@@ -57,8 +58,9 @@ const DashboardRouteSkeleton = () => {
                   <Skeleton className="h-[25px] w-56 max-w-full rounded-ds-md" />
                 </div>
               )}
-              {/* The Next up card: label, title, one line, the action pill. */}
-              <div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up">
+              {/* The Next up card: label, title, one line, the action pill. Design audit r2 #44: as tall as the loaded
+                  Needs-you card (~176px measured), so the page does not jump when it arrives (HOME_NEEDS_YOU_MIN_PX). */}
+              <div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up" style={{ minHeight: HOME_NEEDS_YOU_MIN_PX }}>
                 <Skeleton className="h-3.5 w-16 rounded-ds-md" />
                 <Skeleton className="h-6 w-48 max-w-full rounded-ds-md" />
                 <Skeleton className="h-4 w-40 max-w-full rounded-ds-md" />

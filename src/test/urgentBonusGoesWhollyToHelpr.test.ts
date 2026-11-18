@@ -23,7 +23,7 @@
  * @mutate src/lib/stripeFees.ts |   return cents / 100;\n} |   return (cents - stripePercentCostCents(cents)) / 100;\n}
  * @mutate supabase/migrations/20261015034233_payout_batches_flat_fee.sql |       + COALESCE(j.urgent_fee, 0)\n |       + (COALESCE(j.urgent_fee, 0) * (1 - 0.029))\n
  * @mutate supabase/functions/_shared/posterFees.ts |   const prepaid = Math.max(0, prepaidCostCents); |   const prepaid = 0;
- * @mutate src/components/postjob/BudgetSection.tsx | gets all of your bonus | gets your bonus less card processing
+ * @mutate src/lib/i18n/enPostJob.ts | gets all of your bonus | gets your bonus less card processing
  * @mutate supabase/functions/_shared/stripeFees.ts |   let fee = Math.ceil((urgentCents * STRIPE_PCT) / (1 - STRIPE_PCT));\n  while (fee > 0 && fee - 1 >= stripePercentCostCents(urgentCents + fee - 1)) fee--;\n  while (fee < stripePercentCostCents(urgentCents + fee)) fee++; |   const fee = stripePercentCostCents(urgentCents);
  */
 import { describe, it, expect } from "vitest";
@@ -131,11 +131,17 @@ describe("Q362: the urgent bonus goes wholly to the Helpr; the poster pays its c
   });
 
   it("(5) the Post job copy promises the whole bonus and names no fee (owner 2026-10-25)", () => {
-    const copy = readFileSync(resolve(ROOT, "src/components/postjob/BudgetSection.tsx"), "utf8");
-    const urgent = copy.match(/For jobs that need doing right away\.[^<]*/)?.[0] ?? "";
+    // design audit r2 #32: the words moved to the dictionary (postJob.f.urgentHelp, drawn by BudgetSection.tsx).
+    expect(readFileSync(resolve(ROOT, "src/components/postjob/BudgetSection.tsx"), "utf8")).toContain('{tr("postJob.f.urgentHelp")}');
+    const copy = readFileSync(resolve(ROOT, "src/lib/i18n/enPostJob.ts"), "utf8");
+    const urgent = copy.match(/For jobs that need doing right away\.[^"]*/)?.[0] ?? "";
     expect(urgent.length).toBeGreaterThan(0);
     expect(urgent).toMatch(/gets all of your bonus/);
     expect(urgent).toMatch(/Your total is shown at checkout before you pay/);
     expect(urgent).not.toMatch(/fee/i);
+    // The Spanish says the same: the whole bonus, no fee ("tarifa"/"comisión").
+    const esCopy = readFileSync(resolve(ROOT, "src/lib/i18n/es.ts"), "utf8").match(/"postJob\.f\.urgentHelp": "([^"]*)"/)?.[1] ?? "";
+    expect(esCopy).toMatch(/recibe todo su bono/);
+    expect(esCopy).not.toMatch(/tarifa|comisi[oó]n/i);
   });
 });

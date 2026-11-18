@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Gift, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /**
  * The in-app way to the Holiday Gift Guides, owner mockup option A (claude.ai/artifact/SACKyXWeZ5CnCv4RHAKf1U): a pink
@@ -48,16 +49,18 @@ export default function GiftGuidesPromo({ where, now = new Date() }: { where: "h
         <span className="block text-ds-15 font-bold">Holiday Gift Guides</span>
         <span className="block text-ds-13" style={{ color: "#6b5048" }}>Gifts, deals and codes, picked by a Louisiana nurse</span>
       </Link>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="iconCompact"
         onClick={close}
         aria-label="Close the gift guides banner"
         data-gift-promo-close=""
-        className="relative z-10 grid h-11 w-11 shrink-0 place-items-center rounded-full"
+        className="relative z-10 shrink-0 rounded-full"
         style={{ color: "#9a7b74" }}
       >
         <X className="h-4 w-4" aria-hidden />
-      </button>
+      </Button>
     </aside>
   );
 }

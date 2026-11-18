@@ -1,4 +1,4 @@
-import { Link, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -13,7 +13,6 @@ import { GiftGuideShare } from "./giftGuides/GiftGuideShare";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
-import { GiftOut } from "./giftGuides/GiftOut";
 
 /**
  * /gift-guides and /gift-guides/<slug> (owner 2026-11-16, public 2026-11-18; rebuilt 2026-11-18 to the owner's final
@@ -52,25 +51,22 @@ export default function GiftGuides() {
           Amazon links. */}
       <p data-gift-disclosure="">{G.disclosure}</p>
       <p data-gift-amazon-statement="">{G.amazonStatement}</p>
-      <p className="gg-more">
-        {G.allLinks.map((l) => <GiftOut key={l.href} href={l.href} className="gg-link">{l.label}</GiftOut>)}
-      </p>
+      {/* Owner 11-18 PM: no "Every collection on ShopMy" / "Every gift guide on Pinterest" links; the disclosures stay. */}
     </footer>
   );
 
   return (
-    <PublicHeaderPage title={G.pageTitle} backTo={guide ? "/gift-guides" : "/"} wrapTitle bottomPaddingClassName="pb-12 md:pb-16">
+    <PublicHeaderPage title={G.pageTitle} backTo={guide ? "/gift-guides" : "/"} wrapTitle bottomPaddingClassName="pb-12 md:pb-16"
+      titleActions={ship ? <p className="gg-ship" data-gift-ship="">{ship}</p> : undefined}>
       <style>{GIFT_GUIDES_CSS}</style>
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="">
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}
-        {/* Owner 2026-11-18: the shipping banner sits top-right, on the same line as "← All guides". */}
-        <div className="gg-top">
-          {guide ? <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link> : <span />}
-          {ship && <p className="gg-ship" data-gift-ship="">{ship}</p>}
-        </div>
+        {/* Owner 2026-11-18 PM: the shipping pill sits on the page header's own row ("← Gift guides"), right-aligned
+            (titleActions above), so no row of its own sits above the hero. A guide page has no second "← All guides"
+            link ("double back button?? does the same thing"): the header's back arrow goes to /gift-guides. */}
         {guide ? (
-          <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title"
+          <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint}
             share={<GiftGuideShare path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
         ) : (
           <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" share={<GiftGuideShare path="/gift-guides" title={G.title} />} />

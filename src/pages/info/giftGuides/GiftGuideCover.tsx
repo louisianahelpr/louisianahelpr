@@ -21,8 +21,27 @@ export function GiftGuideCover({ guide }: { guide: CatalogGuide }) {
  * Every page's header (owner 2026-11-18, compact): the italic lead, the title and a small Share pill, centred on white
  * over a thin rule. No subtitle and no count under the title (owner 2026-11-18: "remove every 25 picks count and every
  * subtitle").
+ *
+ * A guide's page (with `tint`) draws it as a short, wide banner in its cover's look (owner 2026-11-18 PM: "make the top
+ * ... like the gifts for mom that kind of matches the cover photo"): the guide's gingham, a cream arch holding the
+ * lead, the title and the LOUISIANA HELPR line, Share right under it. Real text and CSS only (no image); a
+ * fixed height, so nothing below moves. Guard: src/test/giftGuidesPage.test.tsx.
  */
-export function GiftGuidesWords({ lead, title, titleId, share }: { lead: string; title: string; titleId: string; share: ReactNode }) {
+export function GiftGuidesWords({ lead, title, titleId, share, tint }: { lead: string; title: string; titleId: string; share: ReactNode; tint?: CatalogGuide["tint"] }) {
+  if (tint) {
+    return (
+      <header className="gg-words gg-banner-wrap" data-gift-words="" data-gift-banner={tint}>
+        <div className={`gg-banner gg-check gg-${tint}`}>
+          <div className="gg-arch" data-gift-arch="">
+            <p className="gg-lead">{lead}</p>
+            <h2 id={titleId}>{title}</h2>
+            <p className="gg-arch-foot">Louisiana Helpr</p>
+          </div>
+        </div>
+        <div className="gg-banner-share">{share}</div>
+      </header>
+    );
+  }
   return (
     <header className="gg-words" data-gift-words="">
       <p className="gg-lead">{lead}</p>

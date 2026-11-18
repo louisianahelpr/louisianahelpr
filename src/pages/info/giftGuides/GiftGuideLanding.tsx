@@ -45,10 +45,12 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       <div className={!group && !more ? "gg-rows gg-rows-folded" : "gg-rows"} data-gift-rows="">
       {rows.map(({ row, label, tint }) => {
         const headingId = `gift-row-${row}`;
+        // Owner 11-18 PM: each heading carries its guide count, "By person (24)": the guides this row (and See all) shows.
+        const list = guidesIn(row);
         return (
           <section key={row} aria-labelledby={headingId} data-gift-row={row}>
             <div className="gg-rowhead">
-              <h2 id={headingId}><i className={`gg-dot gg-${tint}`} aria-hidden="true" />{label}</h2>
+              <h2 id={headingId}><i className={`gg-dot gg-${tint}`} aria-hidden="true" />{label}<span className="gg-rowcount" data-gift-row-count="">&nbsp;({list.length})</span></h2>
               {!group && (
                 <Link to={`/gift-guides?group=${row}`} className="gg-link" data-gift-see-all={row}>
                   {G.seeAllLabel} ›<span className="sr-only"> {label}</span>
@@ -56,7 +58,7 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
               )}
             </div>
             <ul className={group ? "gg-wrap" : "gg-row"}>
-              {guidesIn(row).map((g) => <GiftGuideTile key={g.slug} g={g} />)}
+              {list.map((g) => <GiftGuideTile key={g.slug} g={g} />)}
             </ul>
           </section>
         );

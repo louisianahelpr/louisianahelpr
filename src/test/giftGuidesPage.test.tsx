@@ -39,7 +39,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const { slug } = useParams<{ slug?: string }>(); |   const slug = undefined as string \| undefined; useParams();
  * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && fromHash) return | if (!slug && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
- * @mutate src/pages/info/GiftGuides.tsx | {guide ? <Link to="/gift-guides" className="gg-link" | {guide ? <Link to="/gift-guides/" className="gg-link"
+ * @mutate src/pages/info/GiftGuides.tsx | backTo={guide ? "/gift-guides" : "/"} | backTo={guide ? "/gift-guides/" : "/"}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading="lazy" decoding="async" | className="gg-thumb" decoding="async"
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
@@ -67,7 +67,7 @@
  * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <h2 id={titleId}>{title}</h2>\n |       <h2 id={titleId}>{title}</h2>\n      <p className="gg-line">25 picks</p>\n
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <p className="gg-lead">{lead}</p>\n      <h2 id={titleId}>{title}</h2>\n |       <p className="gg-lead">{lead}</p>\n      <h2 id={titleId}>{title}</h2>\n      <p className="gg-line">25 picks</p>\n
  * @mutate src/content/giftGuides.ts |   { rank: 1, store: "Muck Boot", code: "TAKE25", | { rank: 8, store: "Muck Boot US", code: "TAKE25",
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -78,7 +78,10 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
-  PublicHeaderPage: ({ title, children }: { title: string; children: React.ReactNode }) => <main><h1>{title}</h1>{children}</main>,
+  // The header's own row (back target, title, title actions) as PageHeader draws it, so a test can see what rides it.
+  PublicHeaderPage: ({ title, backTo, titleActions, children }: { title: string; backTo?: string; titleActions?: React.ReactNode; children: React.ReactNode }) => (
+    <main><div data-test-header-row="" data-back-to={backTo}><h1>{title}</h1>{titleActions}</div>{children}</main>
+  ),
 }));
 
 import GiftGuides from "@/pages/info/GiftGuides";
@@ -125,7 +128,6 @@ const isAmazon = (href: string) => ["www.amazon.com", "amazon.com", "amzn.to"].i
 
 const picks = GUIDES.flatMap((g) => g.picks);
 const contentLinks = [
-  ...giftGuides.allLinks.map((l) => l.href),
   ...giftGuides.sections.flatMap((s) => [s.shop.href, ...s.more.map((m) => m.href), ...s.picks.map((p) => p.href)]),
   ...AMAZON_GUIDES.flatMap((g) => g.items.map(([, href]) => href)),
   ...Object.values(RESEARCHED_PICKS).flat().map((p) => p.href),
@@ -143,6 +145,31 @@ function renderAt(url: string) {
     </MemoryRouter>,
   );
 }
+
+describe("gift guides: the shipping pill rides the page header's row (owner 11-18 PM)", () => {
+  // Owner: "the order by should be on the same line as gift guides but on the right, move the rest up". The pill is the
+  // header's title action (same row as "← Gift guides"), never a row of its own above the hero.
+  // @mutate src/pages/info/GiftGuides.tsx |       titleActions={ship ? <p className="gg-ship" data-gift-ship="">{ship}</p> : undefined}> |       >{ship && <p className="gg-ship" data-gift-ship="">{ship}</p>}
+  it("on the landing and on a guide, the pill sits in the header row beside the title, outside the page body", () => {
+    let checked = 0;
+    for (const url of ["/gift-guides", "/gift-guides/mom"]) {
+      const { container } = renderAt(url);
+      const pill = container.querySelector("[data-gift-ship]");
+      expect(pill, url).not.toBeNull();
+      expect(pill!.closest("[data-gift-guides]"), url).toBeNull();
+      const row = pill!.closest("[data-test-header-row]");
+      expect(row, url).not.toBeNull();
+      expect(row!.querySelector("h1")?.textContent, url).toBe(giftGuides.pageTitle);
+      checked += 1;
+      cleanup();
+    }
+    expect(checked).toBeGreaterThan(1);
+    // The landing has no row of its own above the hero any more.
+    expect(renderAt("/gift-guides").container.querySelector("[data-gift-guides] > .gg-top")).toBeNull();
+    cleanup();
+    expect(renderAt("/gift-guides/store-walmart").container.querySelector("[data-gift-guides] > .gg-top")).toBeNull();
+  });
+});
 
 describe("gift guides: the content inventory", () => {
   it("every link is https on an allowed host; every pick's store is its link host; no prices", () => {
@@ -296,7 +323,8 @@ describe("gift guides: the landing opens to the guides", () => {
     const top = ROWS.flatMap((r) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === r.row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB)));
     const { container } = renderAt("/gift-guides");
     const rows = [...container.querySelectorAll("[data-gift-row]")];
-    expect(rows.map((r) => r.querySelector("h2")?.textContent)).toEqual(ROW_LABELS);
+    // The heading is the group's name, then its guide count (owner 11-18 PM; checked in the row-count test).
+    expect(rows.map((r) => r.querySelector("h2")?.textContent?.replace(/\u00a0\(\d+\)$/, ""))).toEqual(ROW_LABELS);
     expect([...container.querySelectorAll("a[data-gift-see-all]")].map((a) => a.getAttribute("href"))).toEqual(ROWS.map((r) => `/gift-guides?group=${r.row}`));
     const tiles = [...container.querySelectorAll("[data-gift-rows] a[data-gift-tile]")];
     expect(tiles.length).toBeGreaterThan(30);
@@ -358,7 +386,28 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.textContent).not.toMatch(/\d+ picks?\b|\d+ guides\b|Coming soon|On ShopMy/);
     cleanup();
     const wordsOf = (path: string) => [...(renderAt(path).container.querySelector("[data-gift-words]")?.children ?? [])].map((c) => c.textContent);
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts for", "Mom", "ShareText this guide"]);
+    // A guide's header is its cover's look as a short banner (owner 11-18 PM): gingham in the guide's palette, a cream
+    // arch holding the lead, the title and the LOUISIANA HELPR line (real text, no image), Share right under it.
+    // @mutate src/pages/info/GiftGuides.tsx | titleId="gift-guide-title" tint={guide.tint} | titleId="gift-guide-title"
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", "ShareText this guide"]);
+    cleanup();
+    let banners = 0;
+    for (const slug of ["mom", "girls-toddlers", "store-walmart", "under-25"]) {
+      const g = guideBySlug(slug)!;
+      const c = renderAt(`/gift-guides/${slug}`).container;
+      const head = c.querySelector("[data-gift-words]")!;
+      expect(head.getAttribute("data-gift-banner"), slug).toBe(g.tint);
+      expect(head.querySelector(".gg-banner")?.className, slug).toBe(`gg-banner gg-check gg-${g.tint}`);
+      const arch = head.querySelector("[data-gift-arch]")!;
+      expect([...arch.children].map((x) => x.textContent), slug).toEqual([g.age ? `${g.lead}, ${g.age}` : g.lead, g.title, "Louisiana Helpr"]);
+      expect(arch.querySelector("h2")?.id, slug).toBe("gift-guide-title");
+      expect(head.querySelector("img"), slug).toBeNull();
+      banners += 1;
+      cleanup();
+    }
+    expect(banners).toBeGreaterThan(3);
+    // The landing keeps its plain header.
+    expect(renderAt("/gift-guides").container.querySelector("[data-gift-banner]")).toBeNull();
     cleanup();
     // "Text this guide" (owner 2026-11-18): an sms: link carrying the guide's URL; iOS's form, else Android's.
     const text = renderAt("/gift-guides/mom").container.querySelector("a[data-gift-text]")!;
@@ -483,6 +532,9 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(side.firstElementChild?.querySelector("[data-gift-search]")).not.toBeNull();
     const codes = side.querySelector(":scope > [data-gift-codes]")!;
     expect(codes).not.toBeNull();
+    // Owner 11-18 PM ("discount code shouldn't open expanded"): it starts collapsed; opening shows every code.
+    // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details className="gg-codes" data-gift-codes=""> | <details open className="gg-codes" data-gift-codes="">
+    expect((codes as HTMLDetailsElement).open).toBe(false);
     expect(codes.compareDocumentPosition(side.querySelector("details[data-gift-group]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // One box per store, several codes inside: Muck Boot holds CYBER and TAKE25 (Nov 20–28), in the owner's order.
     const boxes = [...side.querySelectorAll("[data-gift-code-store]")];
@@ -637,10 +689,9 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(Math.min(g.picks.length, PICKS_PAGE));
       expandAll(container);
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length);
-      const back = container.querySelector("a[data-gift-back]");
-      expect(back?.getAttribute("href")).toBe("/gift-guides");
-      expect(back?.textContent).toContain("All guides");
-      expect(back!.compareDocumentPosition(container.querySelector("[data-gift-words]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // Owner 11-18 PM ("double back button?? does the same thing"): one way back, the header's arrow, to All guides.
+      expect(container.querySelector("a[data-gift-back]"), slug).toBeNull();
+      expect(container.querySelector("[data-test-header-row]")?.getAttribute("data-back-to"), slug).toBe("/gift-guides");
       cleanup();
     }
   }, 90_000);
@@ -848,27 +899,68 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
   });
 });
 
-describe("gift guides: Her and Him never call another guide's collection their full guide (design audit 11-18 #16)", () => {
-  it("Her lists Mom, Sister, Aunt and Friends under More on ShopMy; a guide's own collection keeps Shop the full guide", () => {
-    // @mutate src/content/giftGuideCatalog.ts | links: [s.shop, ...s.more].map((l) => ({ ...l, related: true })) | links: [s.shop, ...s.more]
-    for (const slug of ["her", "him"]) {
-      const g = guideBySlug(slug)!;
-      expect(g, slug).toBeTruthy();
-      expect(g.links.length, slug).toBeGreaterThan(1);
-      expect(g.links.every((l) => l.related), slug).toBe(true);
-      const { container, unmount } = render(<MemoryRouter><GiftGuideView guide={g} /></MemoryRouter>);
-      expect(container.textContent, slug).not.toContain("Shop the full guide");
-      const related = container.querySelector("[data-gift-related]")!;
-      expect(related.textContent, slug).toMatch(/^More on ShopMy:/);
-      unmount();
+describe("gift guides: each row heading carries its guide count (owner 11-18 PM)", () => {
+  // Owner: "add the number in parentheses on the right of By Person". Computed: the tiles the row shows, the same
+  // number its See all page shows.
+  // @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | &nbsp;({list.length}) | &nbsp;(24)
+  it("every row's (n) equals its tiles, on the landing and on its See all page", () => {
+    const { container } = renderAt("/gift-guides");
+    const rows = [...container.querySelectorAll("section[data-gift-row]")];
+    expect(rows.length).toBeGreaterThan(5);
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      const n = r.querySelectorAll(":scope > ul > li a[data-gift-tile], :scope > ul a[data-gift-tile]").length;
+      const shown = r.querySelector("h2 [data-gift-row-count]")?.textContent?.replace(/\u00a0/g, " ").trim();
+      expect(shown, r.getAttribute("data-gift-row")!).toBe(`(${n})`);
+      counts.set(r.getAttribute("data-gift-row")!, n);
     }
-    const her = render(<MemoryRouter><GiftGuideView guide={guideBySlug("her")!} /></MemoryRouter>).container;
-    expect([...her.querySelectorAll("[data-gift-related] a")].map((a) => a.textContent)).toEqual(["Gifts for Mom", "Gifts for Sister", "Gifts for Aunt", "Gifts for Friends"]);
+    expect(new Set(counts.values()).size).toBeGreaterThan(2);
     cleanup();
-    // Dad's own ShopMy collection is still his full guide.
-    const dad = guideBySlug("dad")!;
-    expect(dad.links.some((l) => !l.related && l.label === "Gifts for Dad on ShopMy")).toBe(true);
-    expect(render(<MemoryRouter><GiftGuideView guide={dad} /></MemoryRouter>).container.textContent).toContain("Shop the full guide: Gifts for Dad on ShopMy");
+    for (const row of ["by-person", "by-store"]) {
+      const c = renderAt(`/gift-guides?group=${row}`).container;
+      expect(c.querySelector(`section[data-gift-row="${row}"] h2 [data-gift-row-count]`)?.textContent?.trim(), row).toBe(`(${counts.get(row)})`);
+      cleanup();
+    }
+  });
+});
+
+describe("gift guides: Discount codes stay closed while moving between guides (owner 11-18 PM)", () => {
+  // Owner: "if I click something like gift for her the discount codes open and expand again ... they should only open
+  // if clicked". Closed on the landing, still closed after opening Her from the menu; a click opens it.
+  it("landing -> Gifts for Her -> Mom keeps the codes collapsed, every code inside", () => {
+    const { container } = renderAt("/gift-guides");
+    const codesNow = () => container.querySelector("[data-gift-sidebar] > [data-gift-codes]") as HTMLDetailsElement;
+    expect(codesNow().open).toBe(false);
+    const her = [...container.querySelectorAll("[data-gift-sidebar] a")].find((a) => a.getAttribute("href") === "/gift-guides/her")!;
+    expect(her).toBeTruthy();
+    fireEvent.click(her);
+    expect(container.querySelector('[data-testid="where"]')?.textContent).toBe("/gift-guides/her");
+    expect(codesNow().open).toBe(false);
+    const mom = [...container.querySelectorAll("[data-gift-sidebar] a")].find((a) => a.getAttribute("href") === "/gift-guides/mom")!;
+    fireEvent.click(mom);
+    expect(codesNow().open).toBe(false);
+    // Every code is inside, for when it is opened.
+    expect(codesNow().querySelectorAll("[data-gift-code-store]").length).toBeGreaterThan(0);
+  });
+});
+
+describe("gift guides: no ShopMy collection lines on a guide page, no ShopMy/Pinterest links in the footer (owner 11-18 PM)", () => {
+  // Owner: "you can remove this because my full guides are already here with the links" (Shop the full guide / More
+  // on ShopMy), and "same for this" (Every collection on ShopMy / Every gift guide on Pinterest). The disclosures stay.
+  // @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n      <p className="gg-more"><a href="https://shopmy.us/shop/lexilombas">Every collection on ShopMy</a></p>\n
+  it("Her, Him, Dad and a store page show neither line; the footer keeps both disclosures and no other link", () => {
+    let pages = 0;
+    for (const slug of ["her", "him", "dad", "store-walmart"]) {
+      const { container } = renderAt(`/gift-guides/${slug}`);
+      expect(container.textContent, slug).not.toMatch(/Shop the full guide|More on ShopMy|Every collection on ShopMy|Every gift guide on Pinterest/);
+      const foot = container.querySelector("footer.gg-disc")!;
+      expect(foot.querySelector("[data-gift-disclosure]")?.textContent, slug).toBe(giftGuides.disclosure);
+      expect(foot.querySelector("[data-gift-amazon-statement]")?.textContent, slug).toBe(AMAZON_STATEMENT);
+      expect(foot.querySelectorAll("a").length, slug).toBe(0);
+      pages += 1;
+      cleanup();
+    }
+    expect(pages).toBeGreaterThan(3);
   });
 });
 

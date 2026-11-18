@@ -209,9 +209,6 @@ export const giftGuides = {
   sidebarLabel: "Gift guides",
   seeAllLabel: "See all",
   shopLabel: "Shop",
-  fullGuideLabel: "Shop the full guide",
-  /** Before the other guides' collections a section links to (design audit 11-18 #16: Her's links are Mom, Sister...). */
-  relatedLabel: "More on ShopMy",
   /** A store page's live deal sections (follow-up batch 2026-11-18), after its picks. */
   dealsTitle: "Deals and holiday shops",
   /** A deal's end date, "2026-11-22" -> "Ends Nov 22". */
@@ -254,11 +251,6 @@ export const giftGuides = {
   loadingPicks: "Loading picks…",
   /** Under a long list (design audit 11-18 #3: store-amazon drew 827 rows at once): the next 50. */
   showMorePicks: (left: number) => `Show more (${left} more)`,
-  allLinks: [
-    { label: "Every collection on ShopMy", href: "https://shopmy.us/shop/lexilombas" },
-    { label: "Every gift guide on Pinterest", href: `${PIN}/gift-guides/` },
-  ] satisfies GiftLink[],
-
   sections: [
     {
       id: "for-her",

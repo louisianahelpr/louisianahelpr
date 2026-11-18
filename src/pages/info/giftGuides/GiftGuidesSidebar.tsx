@@ -70,7 +70,8 @@ const localToday = () => {
 
 /**
  * The sidebar's "Discount codes" section (owner 2026-11-18): one box per store, by rank, each code with its own copy
- * button. Hidden while there are none.
+ * button. Hidden while there are none. Starts COLLAPSED (+) on every screen and page (owner 11-18: "discount code
+ * shouldn't open expanded"); opening it shows every code. No open/closed state is remembered.
  */
 export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
   const [copied, setCopied] = useState<string | null>(null);
@@ -83,7 +84,7 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
     );
   };
   return (
-    <details open className="gg-codes" data-gift-codes="">
+    <details className="gg-codes" data-gift-codes="">
       <summary>{G.codesLabel}</summary>
       <ul>
         {codesByStore(codes).map(({ store, codes: list }) => (

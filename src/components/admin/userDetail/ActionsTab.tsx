@@ -81,49 +81,55 @@ export function ActionsTab({
   // so a payouts-only member can still be manually verified (owner 2026-10-21).
   const alreadyVerified = hasIdBadge(viewProfile.idv_status);
 
+  const activityChip = showActivityChip ? (() => {
+    const hasLoggedIn = !!lastLoginSummary?.[viewProfile.user_id];
+    // "ID verified" is Stripe Identity or an approved ID only; a
+    // payouts-only account reads "Stripe payout connected" below.
+    const idvVerified = alreadyVerified;
+    const hasStripe = !!viewProfile.stripe_account_id;
+    const isActive = hasLoggedIn || idvVerified || hasStripe;
+    const activeLabel = idvVerified
+      ? "ID verified"
+      : hasLoggedIn
+      ? "Active — has logged in"
+      : "Stripe payout connected";
+    return isActive ? (
+      <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-ds-11 text-primary font-medium">
+        <CheckCircle2 className="w-3.5 h-3.5" />
+        {activeLabel}
+      </div>
+    ) : lastLoginSummary === null ? null : (
+      // "Awaiting first login" is a claim about login_history; with the
+      // map unknown (loading, or its read failed) there is no claim.
+      <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-muted/50 border border-border text-ds-11 text-muted-foreground font-medium">
+        <Clock className="w-3.5 h-3.5" />
+        Awaiting first login
+      </div>
+    );
+  })() : null;
+
   return (
     <TabsContent value="actions" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
-      {/* Primary lifecycle actions */}
+      {/* Primary lifecycle actions. Design audit area 10 #13 (11-18): the heading showed over an empty row when no
+          activity chip applied (a banned account, or the login map still unknown); the section now renders only
+          with its chip. */}
+      {activityChip && (
       <div className="space-y-2">
-        <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>
+        <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Account status</h4>
         <div className="flex gap-2 flex-wrap">
           {/* No Approve / Deny (Q193): every signup is auto-approved and
               bans are automated. */}
-          {showActivityChip && (() => {
-            const hasLoggedIn = !!lastLoginSummary?.[viewProfile.user_id];
-            // "ID verified" is Stripe Identity or an approved ID only; a
-            // payouts-only account reads "Stripe payout connected" below.
-            const idvVerified = alreadyVerified;
-            const hasStripe = !!viewProfile.stripe_account_id;
-            const isActive = hasLoggedIn || idvVerified || hasStripe;
-            const activeLabel = idvVerified
-              ? "ID verified"
-              : hasLoggedIn
-              ? "Active — has logged in"
-              : "Stripe payout connected";
-            return isActive ? (
-              <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-ds-11 text-primary font-medium">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                {activeLabel}
-              </div>
-            ) : lastLoginSummary === null ? null : (
-              // "Awaiting first login" is a claim about login_history; with the
-              // map unknown (loading, or its read failed) there is no claim.
-              <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-muted/50 border border-border text-ds-11 text-muted-foreground font-medium">
-                <Clock className="w-3.5 h-3.5" />
-                Awaiting first login
-              </div>
-            );
-          })()}
+          {activityChip}
         </div>
       </div>
+      )}
 
       {/* Trust & Verification + Support actions. Rendered directly below
           Account Actions (and above the note composer / verification
           history) so the primary admin controls are visible on first
           paint instead of requiring a scroll past notes and history. */}
       <div className="space-y-2">
-        <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
+        <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Admin tools</h4>
         {/* TWO columns, not three. `Button` is `whitespace-nowrap`, so a label
             that does not fit its cell cannot wrap — it is clipped, silently and
             at every breakpoint. At three columns inside this ~680px dialog that
@@ -142,7 +148,7 @@ export function ActionsTab({
           <Button
             variant="outline"
             size="sm"
-            className="h-9 justify-start sm:col-span-2"
+            className="h-11 justify-start sm:col-span-2"
             disabled={isSelf}
             title={isSelf ? "You can't message your own account." : undefined}
             onClick={() => setMessageProfile(viewProfile)}
@@ -153,26 +159,26 @@ export function ActionsTab({
           <Button
             variant="outline"
             size="sm"
-            className="h-9 justify-start"
+            className="h-11 justify-start"
             disabled={alreadyVerified}
             title={alreadyVerified ? "Identity already verified" : undefined}
             onClick={() => setManualVerifyProfile(viewProfile)}
           >
-            <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
+            <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually verify
           </Button>
-          <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setWarningProfile(viewProfile)}>
-            <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
+          <Button variant="outline" size="sm" className="h-11 justify-start" onClick={() => setWarningProfile(viewProfile)}>
+            <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal warning
           </Button>
-          <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
+          <Button variant="outline" size="sm" className="h-11 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
             <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset password
           </Button>
-          <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
-            <History className="w-4 h-4 mr-1.5" /> View History
+          <Button variant="outline" size="sm" className="h-11 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
+            <History className="w-4 h-4 mr-1.5" /> View history
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-9 justify-start"
+            className="h-11 justify-start"
             onClick={beginImpersonation}
             /* The old title said "read-only, all mutations blocked". It is not.
                useImpersonation's own header states the flag "is NOT a security
@@ -187,7 +193,7 @@ export function ActionsTab({
                useImpersonation.ts. */
             title="Open the customer-facing app as this user. NOT a sandbox — only messaging, applying and posting are blocked while impersonating; any other action you take here is real and is attributed to you."
           >
-            <Eye className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Impersonate (RO)
+            <Eye className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> View as this member
           </Button>
           {/* Applications restriction — the operating half of
               `helper_shadowbans`, whose table, RLS, is_helper_shadowbanned()
@@ -199,16 +205,16 @@ export function ActionsTab({
           <Button
             variant="outline"
             size="sm"
-            className="h-9 justify-start"
+            className="h-11 justify-start"
             onClick={() => setRestrictProfile(viewProfile)}
           >
-            <UserMinus className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Restrict Applications
+            <UserMinus className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Restrict applications
           </Button>
           {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
             <Button
               variant="outline"
               size="sm"
-              className="h-9 justify-center text-destructive-ink border-destructive/30 hover:bg-destructive/10 col-span-1"
+              className="h-11 justify-center text-destructive-ink border-destructive/30 hover:bg-destructive/10 col-span-1"
               disabled={isSelf}
               title={isSelf ? "You can't suspend or ban your own account — ask another admin." : undefined}
               onClick={() => setBanProfile(viewProfile)}
@@ -216,11 +222,11 @@ export function ActionsTab({
               <ShieldAlert className="w-4 h-4 mr-1.5" /> Suspend / Ban
             </Button>
           ) : (
-            <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => unbanUser(viewProfile)}>
+            <Button variant="outline" size="sm" className="h-11 justify-start" onClick={() => unbanUser(viewProfile)}>
               <CheckCircle2 className="w-4 h-4 mr-1.5 text-primary" /> Lift Ban
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-9 justify-center text-destructive-ink border-destructive/30 hover:bg-destructive/10 col-span-1"
+          <Button variant="outline" size="sm" className="h-11 justify-center text-destructive-ink border-destructive/30 hover:bg-destructive/10 col-span-1"
             disabled={isSelf}
             title={isSelf ? "You can't delete your own account from here — ask another admin." : undefined}
             onClick={() => setDeleteProfile(viewProfile)}

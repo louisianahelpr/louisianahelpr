@@ -98,7 +98,9 @@ export function AdminUserDetailDialog({
             />
             <ConfirmEmailRow viewProfile={viewProfile} resending={resending} resendVerificationEmail={resendVerificationEmail} />
 
-            <Tabs defaultValue="actions" className="w-full flex flex-col flex-1 min-h-0">
+            {/* Design audit area 10 #13 (11-18): the dialog opens on Overview (who this is), not Actions; the tools are
+                one tap away on the first tab. */}
+            <Tabs defaultValue="overview" className="w-full flex flex-col flex-1 min-h-0">
               {/* Scroll strip below `sm`, six equal cells from `sm` up. Six
                   fixed cells at 375 are 50px each, and "Overview" / "Reviews"
                   at text-ds-10 are wider than that — the selected pill sat

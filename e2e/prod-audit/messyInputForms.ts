@@ -303,8 +303,8 @@ const SEED_BANNED_EMAIL = "helpr-seed-banned-0912@mailinator.com";
  * the target; test=show, because every account this harness targets is a test
  * account and the list hides those by default, owner 2026-10-09) for one
  * account by email and open its detail dialog, which
- * lands on the Actions tab by default (AdminUserDetailDialog.tsx
- * `defaultValue="actions"`) — where AdminUserNotes and UserAuditLog render
+ * opens on Overview (design audit area 10 #13), so this then picks the Actions tab — where AdminUserNotes and
+ * UserAuditLog render
  * unconditionally, and Ban/Deny/Formal-Warning/Restrict-Applications are one
  * more click away.
  */
@@ -317,6 +317,7 @@ const openAdminUserByEmail = (email: string) => async (page: Page) => {
   const row = page.locator('[role="button"][tabindex="0"]').first();
   await row.waitFor({ state: "visible", timeout: 15_000 });
   await row.click();
+  await page.getByRole("tab", { name: "Actions" }).first().click();
 };
 
 const openAdminUserAction = (email: string, buttonName: RegExp) => async (page: Page) => {

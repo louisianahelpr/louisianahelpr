@@ -13,7 +13,7 @@
  * @mutate src/pages/auth/ForgotPassword.tsx | const SLOW_SEND_MS = 3000; | const SLOW_SEND_MS = 300000;
  * @mutate src/components/LanguageToggle.tsx | toast(t("lang.saved")) | void t("lang.saved")
  * @mutate src/components/LanguageToggle.tsx | {lang === l && <Check | {false && <Check
- * @mutate src/components/ReportDialog.tsx | ? `Report ${alsoBlock.name}` | ? `Report ${noun.toLowerCase()}`
+ * @mutate src/components/ReportDialog.tsx | ? t("rep.titleNamed", { name: alsoBlock.name }) | ? t(`rep.title.${reportedType}` as MsgKey)
  * @mutate src/components/ReportDialog.tsx | <DialogFooter className={REPORT_FOOTER_PINNED} | <DialogFooter
  * @mutate src/components/PayoutSetupForm.tsx | Add your bank (with Stripe) | Set up payouts with Stripe
  */

@@ -138,7 +138,7 @@ function msoOnlyButtonHtml(href: string, label: string, widthPx: number): string
   const safeHref = escapeForHtml(href)
   const safeLabel = escapeForHtml(label)
   return `<!--[if mso]>
-<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeHref}" style="height:48px;v-text-anchor:middle;width:${widthPx}px;" arcsize="26%" strokecolor="${brand.bark}" fillcolor="${brand.bark}">
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeHref}" style="height:48px;v-text-anchor:middle;width:${widthPx}px;" arcsize="50%" strokecolor="${brand.bark}" fillcolor="${brand.bark}">
 <w:anchorlock/>
 <center style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;">${safeLabel}</center>
 </v:roundrect>
@@ -171,7 +171,8 @@ export const BrandButton = ({
         color: '#ffffff',
         fontSize: '15px',
         lineHeight: '20px',
-        borderRadius: '12px',
+        // Design audit r3 #50: a full pill like the app's buttons (Outlook's VML above: arcsize 50%).
+        borderRadius: '999px',
         padding: '14px 28px',
         textDecoration: 'none',
         fontWeight: 600,

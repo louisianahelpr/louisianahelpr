@@ -8,7 +8,7 @@
  *
  * @mutate src/pages/posts/EditJobDialog.tsx | const payload: TablesUpdate<"jobs"> = job.helper_id ? { require_photo_proof: requirePhotoProof } : updateData; | const payload: TablesUpdate<"jobs"> = updateData;
  * @mutate src/pages/posts/EditJobDialog.tsx | The place and details are locked once a Helpr is booked. | These fields can change.
- * @mutate src/pages/posts/EditJobDialog.tsx | <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} | <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={false}
+ * @mutate src/pages/posts/EditJobDialog.tsx | <Input aria-label="Location" className="text-ellipsis" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} | <Input aria-label="Location" className="text-ellipsis" value={location} onChange={(e) => setLocation(e.target.value)} disabled={false}
  * @mutate src/pages/posts/EditJobDialog.tsx | disabled={hasHelper && !savedPhotoProof} | disabled={false}
  * @mutate src/pages/posts/EditJobDialog.tsx | maxLength={500} disabled={jobEnded} | maxLength={500} disabled={hasHelper}
  */

@@ -274,8 +274,13 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           Changes?" on top of it in the same click — so the save button
           silently never saved anything the confirm dialog didn't first
           survive. */}
-      <DialogContent>
-        <DialogHero title={title ? `"${title}"` : "Edit job"} />
+      {/* Design audit r3 #19: the title is "Edit job" (was the job name in straight quotes, and it changed as you
+          typed); the saved job name is a muted line under it; keepClose gives the sheet its X like Report, Trade,
+          Wanted and Edit listing. r3 #5: field labels are 14 px sentence case like every other form (were 11 px
+          uppercase eyebrows). Guard: src/test/auditR3Mediums.test.tsx. */}
+      <DialogContent keepClose>
+        <DialogHero title="Edit job" />
+        {job.title ? <p className="-mt-2 truncate text-ds-14 text-muted-foreground" data-edit-job-name="">{job.title}</p> : null}
         <div className="space-y-5">
           {locked && (
             <DialogCallout icon={Lock}>
@@ -295,15 +300,15 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           <section className="space-y-4">
             <SectionHeading>The job</SectionHeading>
             <div className="space-y-1.5">
-              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Title</Label>
+              <Label className="text-ds-14 font-sans font-semibold text-foreground">Title</Label>
               <Input aria-label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Description</Label>
+              <Label className="text-ds-14 font-sans font-semibold text-foreground">Description</Label>
               <Textarea aria-label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={hasHelper} autoCapitalize="sentences" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Category</Label>
+              <Label className="text-ds-14 font-sans font-semibold text-foreground">Category</Label>
               <Select value={category} onValueChange={setCategory} disabled={hasHelper || hasApplicants}>
                 <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -327,11 +332,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           <section className="space-y-4">
             <SectionHeading>When &amp; where</SectionHeading>
             <div className="space-y-1.5">
-              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Location</Label>
-              <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
+              <Label className="text-ds-14 font-sans font-semibold text-foreground">Location</Label>
+              <Input aria-label="Location" className="text-ellipsis" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor={dateId} className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Date needed</Label>
+              <Label htmlFor={dateId} className="text-ds-14 font-sans font-semibold text-foreground">Date needed</Label>
               {hasHelper ? (
                 // When a helpr is locked in, the field is read-only. Show a
                 // disabled Input mirroring the locked state of the other
@@ -353,18 +358,18 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Start time</Label>
+              <Label className="text-ds-14 font-sans font-semibold text-foreground">Start time</Label>
               <TimePickerWheel value={startTime} onChange={setStartTime} disabled={hasHelper} />
             </div>
             {/* Same control shape as the photo-proof row below, same copy as
                 the post wizard's Flexible Schedule box (LogisticsSection). */}
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <Label htmlFor="edit-flexible-schedule" className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                <Label htmlFor="edit-flexible-schedule" className="text-ds-14 font-sans font-semibold text-foreground">
                   Flexible schedule
                 </Label>
                 <p className="text-ds-11 mt-1 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  Any time that day works. Leave Start Time blank, or set one the Helpr can shift either way.
+                  Any time that day works. Leave the start time blank, or set one the Helpr can shift either way.
                 </p>
               </div>
               <Switch
@@ -383,11 +388,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             {/* Q1461: the post form's two notes, under the post form's labels.
                 Both lock with the other details once a Helpr is booked. */}
             <div className="space-y-1.5">
-              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Materials I'll provide</Label>
+              <Label className="text-ds-14 font-sans font-semibold text-foreground">Materials I'll provide</Label>
               <Textarea aria-label="Materials I'll provide" value={materialsNote} onChange={(e) => setMaterialsNote(e.target.value)} rows={2} maxLength={500} disabled={hasHelper} autoCapitalize="sentences" placeholder="Optional. Everyone viewing the job sees this." />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Access &amp; Parking notes</Label>
+              <Label className="text-ds-14 font-sans font-semibold text-foreground">Access &amp; Parking notes</Label>
               <Textarea aria-label="Access and parking notes" value={accessNote} onChange={(e) => { setAccessTouched(true); setAccessNote(e.target.value); }} rows={2} maxLength={500} disabled={jobEnded} autoCapitalize="sentences" placeholder="Gate codes, where to park, which door… Only your booked Helpr sees these." />
             </div>
             {/* PHOTO PROOF — can still be turned OFF once a Helpr is assigned
@@ -401,7 +406,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
                 back on is answerable by the Helpr, who can still add photos. */}
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <Label htmlFor="edit-require-photo-proof" className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                <Label htmlFor="edit-require-photo-proof" className="text-ds-14 font-sans font-semibold text-foreground">
                   Require before &amp; after photos
                 </Label>
                 {/* Olivewood, not shadcn's `text-muted-foreground` grey — the

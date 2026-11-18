@@ -374,14 +374,14 @@ function PriceEditor({
     >
       <div className="space-y-2">
         <label htmlFor="manage-price" className="block text-sm font-semibold">{t("lp.m.gPrice")}</label>
-        <div className={field}>
+        <div className={field} data-field-edge="">
           <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>
           <input id="manage-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} className={inputCls} />
         </div>
       </div>
       <div className="space-y-2">
         <label htmlFor="manage-floor" className="block text-sm font-semibold">{t("lp.m.lowestLabel")}</label>
-        <div className={field}>
+        <div className={field} data-field-edge="">
           <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>
           <input id="manage-floor" inputMode="decimal" value={floor} onChange={(e) => setFloor(e.target.value.replace(/[^0-9.]/g, ""))} className={inputCls} />
         </div>

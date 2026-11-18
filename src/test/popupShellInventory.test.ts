@@ -492,6 +492,7 @@ describe("one footer convention", () => {
       "ReportDialog.tsx no longer uses the shared dismiss primitive for " +
         "Cancel/Back. It is the reference for this suite, so it must be built " +
         "from DialogSecondaryAction like every other converted footer.",
-    ).toMatch(/<DialogSecondaryAction[\s\S]{0,80}(Cancel|Back|Done)/);
+    // Design audit r3 #8: the label may be the translated t("rep.cancel") (the dialog speaks Spanish).
+    ).toMatch(/<DialogSecondaryAction[\s\S]{0,80}(Cancel|Back|Done|t\("[\w.]*\.(cancel|back|done)"\))/);
   });
 });

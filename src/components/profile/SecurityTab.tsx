@@ -389,7 +389,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       {isAppLockSupported() && (
         <div className="rounded-2xl liquid-glass p-card space-y-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0" data-security-tile="">
               <Fingerprint className="w-4 h-4 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
@@ -473,7 +473,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
 
       <div className="rounded-2xl liquid-glass p-card space-y-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          {/* Design audit r3 #39: the 32 px icon tile every card on this page uses (was 36 px here). */}
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0" data-security-tile="">
             <Monitor className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">

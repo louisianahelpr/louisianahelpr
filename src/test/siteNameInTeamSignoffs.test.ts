@@ -7,7 +7,7 @@
  *
  * Inventory: every tracked non-test .ts/.tsx/.mjs under src/, comments blanked.
  *
- * @mutate src/components/ReportDialog.tsx | The Louisiana Helpr team reviews every report. | The Helpr team reviews every report.
+ * @mutate src/lib/i18n/enReport.ts | The Louisiana Helpr team reviews every report. | The Helpr team reviews every report.
  * @mutate src/components/admin/AdminMarketing.tsx | <p>— The Louisiana Helpr team</p> | <p>— The Helpr team</p>
  */
 import { describe, expect, it } from "vitest";

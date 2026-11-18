@@ -22,6 +22,8 @@ import { scheduleChangeAllowed, type SeriesCardJob } from "@/components/series/J
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { useWithdrawOffer } from "./useWithdrawOffer";
@@ -137,10 +139,10 @@ export function usePosterPageActions({
   // ONE ROW (owner 2026-11-01, JobPageActionRow.tsx): the step due now leads on the right; with none, Message leads on
   // the left. Every other action is the one button beside it, or "More options" opening them all in one tap.
   const pageExtras = (): RowAction[] => [
-    canEdit && { key: "edit", label: "Edit job", go: flows.edit, disabled: !flows.ready },
+    canEdit && { key: "edit", label: t("jobPage.editJob"), go: flows.edit, disabled: !flows.ready },
     canChange && { key: "change", label: "Change date or time", go: () => setChangeOpen(true) },
     withdrawOffer.action,
-    canCancel && { key: "cancel", label: "Cancel job", go: flows.cancel, disabled: !flows.ready, danger: true },
+    canCancel && { key: "cancel", label: t("jobPage.cancelJob"), go: flows.cancel, disabled: !flows.ready, danger: true },
   ].filter(Boolean) as RowAction[];
   const row = (override: PagePrimary | null | undefined, moreExtras: RowAction[] = [], opts: { noCardSteps?: boolean; menuHost?: HTMLElement | null } = {}) => {
     // A continue day still ahead (Auditor 11, 11-01): nobody is at the job, so the card's on-site actions (SOS) are

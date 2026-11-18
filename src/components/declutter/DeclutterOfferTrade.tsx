@@ -8,14 +8,15 @@
  * read into it) and the viewer can act on it; the buyer's own listings load only when the sheet opens, so the item page
  * reads nothing extra.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
-import type { DeclutterItem } from "@/lib/declutter/api";
+import { fetchPhotos, type DeclutterItem } from "@/lib/declutter/api";
+import { ListingThumb } from "./ListingThumb";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { offerSwap, tradeableListings } from "@/lib/declutter/trades";
@@ -35,6 +36,15 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
   const [picked, setPicked] = useState("");
   const mine = useQuery({ ...myItemsQuery(userId), enabled: open });
   const choices = tradeableListings(mine.data ?? [], item.id);
+  // Design audit r3 #10: each row shows its listing's cover, so "Throw pillows" and "Table lamp" don't look alike. The
+  // photos read the Selling list uses (fetchPhotos), only while the sheet is open.
+  const choiceIds = choices.map((c) => c.id);
+  const photos = useQuery({ queryKey: ["declutter", "photos", choiceIds.join(",")], queryFn: () => fetchPhotos(choiceIds), enabled: open && choiceIds.length > 0 });
+  const cover = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const p of photos.data ?? []) if (!out.has(p.item_id)) out.set(p.item_id, p.storage_path);
+    return out;
+  }, [photos.data]);
   // Audit 1110 F359f: an open trade offer of the viewer's on this item was invisible here ("Offer a trade" as if none
   // was sent), unlike a cash offer's "Your offer". The same read and key as Buying's trade section, only on a listing
   // that takes trades.
@@ -93,13 +103,15 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
               <RadioCardList
                 label={t("dp.tradeListLabel")}
                 required
-                options={choices.map((c) => ({ value: c.id, label: c.title, sub: formatPrice(c.current_price_cents) }))}
+                options={choices.map((c) => ({ value: c.id, label: c.title, sub: formatPrice(c.current_price_cents), media: <ListingThumb small path={cover.get(c.id)} category={c.category} /> }))}
                 value={picked}
                 onChange={(v) => setPicked(v)}
               />
             </div>
           )}
-          <SheetFooter className="mt-4">
+          {/* Design audit r3 #2: Cancel left + Send right side by side (was stacked full-width at 390), pinned to the
+              bottom of the scrolling sheet like the Report dialog's, so it isn't 9 rows down. */}
+          <SheetFooter className="sticky bottom-0 -mx-4 -mb-4 grid grid-cols-2 border-t border-border bg-background px-4 pb-4 pt-3 sm:-mx-5 sm:-mb-5 sm:px-5 sm:pb-5" data-offer-trade-footer="">
             <SheetSecondaryAction disabled={send.isPending} onClick={() => setOpen(false)}>{t("dp.cancel")}</SheetSecondaryAction>
             <SheetPrimaryAction disabled={!picked || send.isPending} onClick={() => picked && send.mutate(picked)}>
               {send.isPending ? t("dp.sending") : t("dp.sendTrade")}

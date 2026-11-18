@@ -39,6 +39,7 @@ import { esDeclErrors } from "./esDeclErrors";
 import { esSellerDeliveryErrors } from "./esSellerDeliveryErrors";
 import { esAiDraft } from "./esAiDraft";
 import { esListForSeller } from "./esListForSeller";
+import { esReport } from "./esReport";
 
 // The server-written notices' Spanish shapes ride this chunk, so they arrive with the words (language.ts, no flash)
 // and never sit on an English boot path.
@@ -78,6 +79,7 @@ export const es: Record<MsgKey, string> = {
   ...esSellerDeliveryErrors,
   ...esAiDraft,
   ...esListForSeller,
+  ...esReport,
   "chat.back": "Volver a las conversaciones",
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",
@@ -512,6 +514,21 @@ export const es: Record<MsgKey, string> = {
   "jobPage.side": "Precio y acciones",
   "jobPage.postedBy": "Publicado por",
   "jobPage.yourHelpr": "Su Helpr",
+  "jobPage.whenRow": "Cuándo",
+  "jobPage.whereRow": "Dónde",
+  "jobPage.noApplicants": "Aún no hay solicitudes",
+  "jobPage.sentToOne": "Enviado a 1 Helpr hasta ahora.",
+  "jobPage.sentToN": "Enviado a {n} Helprs hasta ahora.",
+  "jobPage.outNear": "Ya les llegó a los Helprs cerca de {city}.",
+  "jobPage.outNearby": "Ya les llegó a los Helprs cercanos.",
+  "jobPage.tellYou": "Le avisaremos cuando alguien se postule.",
+  "jobPage.repliesSooner": "¿Quiere respuestas más rápido?",
+  "jobPage.addPhoto": "Agregar una foto",
+  "jobPage.addPhotoWhy": "Es más fácil aceptar un trabajo con fotos",
+  "jobPage.changePrice": "Cambiar el precio",
+  "jobPage.youreAt": "Su precio:",
+  "jobPage.editJob": "Editar el trabajo",
+  "jobPage.cancelJob": "Cancelar el trabajo",
   // You › Settings (F410c, audit 11-10): every row, heading and line of the screen where Spanish is chosen.
   "settings.title": "Ajustes",
   "settings.look": "Apariencia",

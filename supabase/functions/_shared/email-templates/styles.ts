@@ -251,8 +251,9 @@ export const subtext = {
   borderTop: `1px solid ${brand.hairline}`,
 }
 
+// Design audit r3 #50: inline links are olive like the app's (were burnt sienna, the money colour).
 export const linkStyle = {
-  color: brand.burntSienna,
+  color: brand.bark,
   textDecoration: 'underline',
 }
 
@@ -260,7 +261,7 @@ const button = {
   backgroundColor: brand.bark,
   color: '#ffffff',
   fontSize: '15px',
-  borderRadius: '12px',
+  borderRadius: '999px', // design audit r3 #50: full pill like the app's buttons (was a 12 px-radius rectangle)
   padding: '14px 28px',
   textDecoration: 'none',
   fontWeight: '600' as const,

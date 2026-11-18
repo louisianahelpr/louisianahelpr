@@ -96,7 +96,7 @@
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql | r.refund_cents - r.gift_refund_cents, r.attempts, | r.paid_cents - r.gift_refund_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -639,7 +639,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q2259 lost sweep (20261103203204, lead PASS 11-03): verbatim (prod md5 58bfd657); only ship_lost joins v_seller_fault.
       // Q2106 S3b step 5 (Builder 3, LEAD REVIEW owed): restated verbatim in 20261105052751; the one change wraps the
       // buyer notice's text in declutter_refund_notice_names_gift (text only, no amount or fee). Was 20261103203204 3457a20c7372f9ed.
-      declutter_close_paid_order: "20261105052751_declutter_gift_delivery_refunds.sql d65267b1f839dcb6",
+      // Q?giftclose (20261118002340, Builder giftclose 11-17, lh-money-escrow review): verbatim; only the order_not_paid
+      // guard lets a gift-only order (no payment intent, gift_cents > 0) through. Reasons, amounts and fees unchanged
+      // (declutter_record_refund decides them). Was 20261105052751 d65267b1f839dcb6.
+      declutter_close_paid_order: "20261118002340_declutter_gift_only_close_and_refund.sql f24e03784deb8cc2",
       // Q2106 S3b step 5 (20261105052751): reads one refund row's gift share and total to word the buyer notice; it
       // records no refund, changes no amount, card fee or policy, and moves no money.
       declutter_refund_notice_names_gift: "20261105052751_declutter_gift_delivery_refunds.sql e2a84c5dc0583fe1",
@@ -851,7 +854,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q1928 gap 3 (20261102063343): restated from Shipping S6 2g with Q1935's prorated fee restored; admin_no_fault
       // becomes seller_out while the seller is out.
       // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
-      declutter_refund_after_handover: "20261109224952_notices_card_fee_and_our_team.sql db947dc71890c32e",
+      // Q?giftclose (20261118002340, Builder giftclose 11-17, lh-money-escrow review): a gift-only order is let through,
+      // its refund row found by order, the agreed part's gift share recorded (refund_cents and card_fee_cents 0 unchanged),
+      // the notice wrapped. Reasons, amounts and fees unchanged. Was 20261109224952 db947dc71890c32e.
+      declutter_refund_after_handover: "20261118002340_declutter_gift_only_close_and_refund.sql 49a6aa32782e543e",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       // Q2106 S2 (20261105032500, Builder 3 11-04, WIP: lead money review owed): restated verbatim, plus o.gift_cents in

@@ -79,7 +79,7 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(body("declutter_admin_decide_problem"))).toContain("o := public.declutter_lock_order(v_order);");
     expect(flat(body("declutter_handover_sweep"))).toContain("o := public.declutter_lock_order(r.id);");
     expect(flat(body("declutter_complete_handover"))).toContain("IF o.status IS DISTINCT FROM 'paid' THEN RAISE EXCEPTION 'order_not_paid'");
-    expect(flat(body("declutter_close_paid_order"))).toContain("IF o.status IS DISTINCT FROM 'paid' OR o.stripe_payment_intent_id IS NULL THEN RAISE EXCEPTION 'order_not_paid'");
+    expect(flat(body("declutter_close_paid_order"))).toContain("IF o.status IS DISTINCT FROM 'paid' OR (o.stripe_payment_intent_id IS NULL AND COALESCE(o.gift_cents, 0) <= 0) THEN RAISE EXCEPTION 'order_not_paid'");
     expect(flat(body("declutter_close_paid_order"))).toContain("RAISE EXCEPTION 'already_paid_out'");
   });
 

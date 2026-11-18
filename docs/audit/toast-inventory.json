@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 487,
+      "literal": 486,
       "template": 105,
-      "dynamic": 710,
+      "dynamic": 711,
       "jsx": 0
     }
   },
@@ -13967,8 +13967,8 @@
       "line": 197,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Too many requests — try again in a minute."
+        "form": "dynamic",
+        "text": "AUTH_RATE_LIMIT_MESSAGE"
       },
       "renders": true
     },

@@ -72,8 +72,9 @@ describe("the guest landing's HTML-drawn first screen is the app's own hero (B10
   it("carries the LOCKED hero copy, font and colours (CLAUDE.md)", () => {
     const b = block(readFileSync(INDEX, "utf8"));
     expect(b).toMatch(/Louisiana(’|&rsquo;|&#x27;|')s local/);
-    // Owner 2026-11-17: the H1 is one colour and style, no italic rust "partner.".
-    expect(b).toMatch(/Louisiana(’|&rsquo;|&#x27;|')s local partner\.<\/h1>/);
+    // Owner decision 11-18 (hero mockup B, "Color band"): "partner." is italic in the brand olive again, through the
+    // .landing-h1-accent span (landingHeroBand1118.test.ts); the words are unchanged. It replaced 11-17's one-style H1.
+    expect(b).toMatch(/Louisiana(’|&rsquo;|&#x27;|')s local <span class="landing-h1-accent">partner\.<\/span><\/h1>/);
     expect(b).not.toContain("<em");
     expect(b).toContain(">Hire help, find work, or buy and sell. One account, real neighbors.</p>");
     expect(b).toContain('class="landing-h1 relative z-10 font-display font-bold');

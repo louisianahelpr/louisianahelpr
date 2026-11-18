@@ -11,13 +11,17 @@ import { setLandingMode, useLandingMode } from "./landingMode";
 
 /**
  * Hero (owner-approved landing redesign 2026-10-20; option B 2026-10-23): Bodoni
- * H1 in one colour and style (owner 2026-11-17: no italic rust "partner."), the subhead (one line from 1024px), one
+ * H1, the subhead (one line from 1024px), one
  * search. ONE centered column (max 760px) at every width. The proof row
  * (LandingProof) is NOT here: it opens the next section, below the fold (owner,
  * 2026-11-02: the first screen is just the headline, subhead and search). No phone mock (owner,
  * 2026-10-20), no seasonal pill and no example chips (owner, 2026-10-23: "remove
  * the storm banner and job chips"). The live jobs sit in the next section
  * (LiveJobsSection), which also carries the "Browse local jobs" link.
+ *
+ * Owner decision 11-18 (hero mockup B, "Color band"; overrides the 11-17 "white everywhere" rule for the hero only):
+ * a soft olive-to-cream band (.landing-hero-band, pure CSS) behind the whole hero, the bar included, and "partner."
+ * italic in the brand olive (.landing-h1-accent). The wording is unchanged. Guard: landingHeroBand1118.test.ts.
  *
  * Honesty rules (LANDING-APPROVED.md): the search really searches
  * (heroSearch.ts); no parish select (owner, 2026-10-20); every proof line is a
@@ -51,7 +55,7 @@ const HeroSection = () => {
     // The proof row moved below the fold (owner, 2026-11-02). Owner 11-08: on a phone the section is
     // 7.5rem (120px) shorter than the screen (and its bottom padding smaller), so the Jobs | Declutter switch
     // under it (LandingBrowseSwitch) peeks into the first screen; from sm it fills the screen as before.
-    <section className="relative flex min-h-[calc(100svh-7.5rem)] sm:min-h-[100svh] flex-col px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-24 pb-4 sm:pb-8 lg:pb-10">
+    <section className="landing-hero-band relative flex min-h-[calc(100svh-7.5rem)] sm:min-h-[100svh] flex-col px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-24 pb-4 sm:pb-8 lg:pb-10">
       <div data-testid="landing-hero-block" className="flex flex-1 flex-col justify-center">
         <div className="relative mx-auto w-full max-w-[760px]">
           <div data-testid="landing-hero-column" className="flex flex-col items-center text-center min-w-0">
@@ -60,7 +64,7 @@ const HeroSection = () => {
               style={{ color: "var(--lp-ink)", letterSpacing: "-0.03em" }}
             >
               {es ? es.titleLead : <>Louisiana&rsquo;s local</>}{" "}
-              {es ? es.titleAccent : "partner."}
+              <span className="landing-h1-accent">{es ? es.titleAccent : "partner."}</span>
             </h1>
 
             <p

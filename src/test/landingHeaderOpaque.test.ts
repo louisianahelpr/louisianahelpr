@@ -38,7 +38,10 @@ const translucent = (v: string) => /transparent|hsla|rgba|\/\s*0?\.\d|,\s*0?\.\d
 
 describe("the landing's top bar is opaque (P5-7)", () => {
   const top = topLevel(CSS);
-  const rules = [...top.matchAll(/([^{}]*\.landing-page\s+\.glass-nav[^{}]*)\{([^}]*)\}/g)];
+  // Owner decision 11-18 (hero mockup B, "Color band"): at the very top of the landing (.landing-nav-top, set by
+  // Navbar only while scrollY is 0) the bar is see-through so the hero band runs behind it; nothing scrolls under it
+  // then. That one modifier is exempt; every other paint rule, including the scrolled bar, stays opaque.
+  const rules = [...top.matchAll(/([^{}]*\.landing-page\s+\.glass-nav[^{}]*)\{([^}]*)\}/g)].filter((r) => !/\.landing-nav-top\b/.test(r[1]));
 
   it("finds the landing bar's paint rule (not vacuous)", () => {
     expect(rules.length).toBeGreaterThan(0);

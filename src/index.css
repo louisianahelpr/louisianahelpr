@@ -5410,6 +5410,28 @@ html.page-scrolled .page-title-card:has(.explore-header),
 }
 .landing-page .mesh-gradient-global { display: none; }
 
+/* Owner decision 11-18 (hero mockup B, "Color band"; overrides the 11-17 "white everywhere" rule for the hero ONLY):
+   a soft olive-to-cream band behind the whole hero, from the top bar through the search; the page below stays white.
+   Pure CSS: no image, no font, no box change. "partner." is italic in the brand olive (synthesized from the upright
+   Montserrat already loaded; there is no italic face to fetch). --lp-action-strong on the band: 5.6:1 light, 5.9:1
+   dark. The search pill and the Jobs | Declutter switch keep their white surface and shadow on it.
+   Guard: src/test/landingHeroBand1118.test.ts. */
+.landing-page {
+  --lp-hero-band: linear-gradient(160deg, #dfe3c4 0%, #eef0de 45%, #faf6ee 100%);
+}
+[data-theme="dark"] .landing-page {
+  --lp-hero-band: linear-gradient(160deg, #2e2f22 0%, #262620 45%, #1c1a17 100%);
+}
+.landing-page .landing-hero-band { background: var(--lp-hero-band); }
+.landing-page .landing-h1-accent { font-style: italic; color: var(--lp-action-strong); }
+.landing-page .landing-search-tabs .segmented-track { background: var(--lp-surface); }
+/* At the very top the bar shows the band under it (Navbar's landing-nav-top); from the first scroll it is opaque. */
+.landing-page .glass-nav.landing-nav-top {
+  background-color: transparent;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 /* Landing headlines: the app's own heading face (owner 2026-11-17: "the same sans-serif heading font the signed-in
    app uses", so the site feels one and modern), Montserrat 650, upright, -0.02em, exactly .text-page-title (T1). They
    were Bodoni Moda (spec §1.2). Sizes are unchanged. The H1 (.landing-h1) joins here: T1 still exempts it by name, and

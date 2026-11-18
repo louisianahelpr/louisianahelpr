@@ -217,7 +217,7 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
   const [draft, setDraft] = useState<Draft | null>(null);
   if (mine.data === PORCH_PLACES_NOT_DEPLOYED) return null;
   const inCard = (body: ReactNode) => (card
-    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label={t("lp.pp.title")} data-porch-places-card="">{body}</section>
+    ? <section className="rounded-[20px] border border-border bg-card p-4" aria-label={t("lp.pp.title")} data-porch-places-card="">{body}</section>
     : body);
   // In settings a row holds the place, as its neighbours do, so Your delivery and Bundle discount are not pushed down from nothing.
   if (mine.isLoading) {
@@ -227,7 +227,10 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
   const places = mine.data ?? [];
   return inCard(
     <div className="space-y-2" data-porch-places="">
-      <p className="text-ds-14 font-semibold text-foreground">{t("lp.pp.title")}</p>
+      {/* Design audit 11-17 #8: in Declutter settings the card's title is the same 17px heading as Meet spots under it. */}
+      {card
+        ? <h2 className="text-base font-semibold text-foreground" data-porch-places-title="">{t("lp.pp.title")}</h2>
+        : <p className="text-ds-14 font-semibold text-foreground">{t("lp.pp.title")}</p>}
       <p className="text-ds-13 text-muted-foreground">{placesWords(places.length, free, helprOnly, card)}</p>
       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{t("lp.pp.daysRule")}</p>}
       {noPlaces && !usualRead.isLoading && !usualRead.isError && !last.isLoading && (
@@ -249,7 +252,7 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
           // Review 2026-10-31: a failed read of the usual times is said, with a retry, never a silent Sat 9-12.
           ? <ErrorState variant="inline" title={t("lp.pp.usualFail")} body={declutterErrorMessage(usualRead.error)} onRetry={() => void usualRead.refetch()} />
           : (
-            <Button type="button" variant="outline" className="rounded-full" disabled={usualRead.isLoading} aria-busy={usualRead.isLoading || undefined}
+            <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={usualRead.isLoading} aria-busy={usualRead.isLoading || undefined}
               onClick={() => setDraft({ id: null, label: "", address: "", area: "", windows: usual })}>
               {usualRead.isLoading ? t("lp.pp.loadingTimes") : t("lp.pp.add")}
             </Button>

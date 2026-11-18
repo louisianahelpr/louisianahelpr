@@ -14,6 +14,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <StrikeCount userId={user.id} full={view === "selling"} /> | <StrikeCount userId={user.id} />
  * @mutate src/pages/jobs/JobsSection.tsx | const fab = desktop \|\| tab === "working" ? null | const fab = desktop ? null
  * @mutate src/components/declutter/SellOneScreen.tsx | <div className="w-full max-w-xl space-y-6" data-sell-one-screen=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
+ * @mutate src/components/declutter/SellMeetupSpots.tsx | <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setDraft({ name: "" | <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft({ name: ""
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -105,5 +106,15 @@ describe("design audit 11-17", () => {
       expect(s, f).toMatch(/<div className="w-full max-w-xl space-y-\d/);
       expect(s, f).not.toContain("mx-auto w-full max-w-xl");
     }
+  });
+
+  it("#8: Declutter settings' Pickup places and Meet spots share one card header and the default outline size", () => {
+    const pp = src("src/components/declutter/SellPorchPlaces.tsx");
+    const ms = src("src/components/declutter/SellMeetupSpots.tsx");
+    expect(pp).toContain('<h2 className="text-base font-semibold text-foreground" data-porch-places-title="">');
+    expect(ms).toMatch(/<h2 id="meet-spots-title" className="text-base font-semibold text-foreground">/);
+    expect(pp).toMatch(/<Button type="button" variant="outline" size="sm" className="rounded-full" disabled=\{usualRead\.isLoading\}/);
+    expect(ms).toMatch(/<Button type="button" variant="outline" size="sm" className="rounded-full" onClick=\{\(\) => setDraft\(\{ name: ""/);
+    expect(pp).toContain('<section className="rounded-[20px] border border-border bg-card p-4" aria-label={t("lp.pp.title")} data-porch-places-card="">');
   });
 });

@@ -524,6 +524,8 @@ export const es: Record<MsgKey, string> = {
   "jobCard.boosted": "Destacado",
   "jobCard.urgent": "Urgente",
   "jobCard.today": "Hoy",
+  "jobCard.swipeNo": "No me interesa",
+  "jobCard.swipeApply": "Aplicar",
   "jobPage.title": "Trabajo",
   "jobPage.loading": "Cargando el trabajo",
   "jobPage.loadFailed": "No pudimos cargar este trabajo.",

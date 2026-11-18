@@ -1,6 +1,8 @@
 import type { ReactNode, Ref } from "react";
 import { motion, useMotionValue, useTransform, animate, useReducedMotion, type PanInfo } from "framer-motion";
 import { Send, X } from "lucide-react";
+import "@/lib/i18n/enJobCard";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * The swipe gesture of a SwipeableJobCard: the two reveal trails, their
@@ -35,6 +37,7 @@ export default function SwipeMotionLayer({
   onApply: () => void;
   onDismiss: () => void;
 }): ReactNode {
+  const { t: tr } = useLanguage();
   const reducedMotion = useReducedMotion();
   const x = useMotionValue(0);
   const backgroundOpacity = useTransform(x, [-150, -50, 0], [1, 0.6, 0]);
@@ -124,7 +127,7 @@ export default function SwipeMotionLayer({
             className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--danger-ink))" }}
           >
-            Not interested
+            {tr("jobCard.swipeNo")}
           </span>
         </motion.div>
       </motion.div>
@@ -151,7 +154,7 @@ export default function SwipeMotionLayer({
             className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--bark))" }}
           >
-            Apply
+            {tr("jobCard.swipeApply")}
           </span>
         </motion.div>
       </motion.div>

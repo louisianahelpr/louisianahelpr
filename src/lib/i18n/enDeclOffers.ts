@@ -31,7 +31,7 @@ export const enDeclOffers = {
 
   "dof.wantedReply": "Reply to your Wanted",
   "dof.from": "From {name}",
-  "dof.priceNow": "Price now {price}",
+  "dof.priceNow": "Listed at {price}",
   "dof.theirOffer": "their offer",
   "dof.theirPrice": "their price",
   "dof.theirCounter": "their counter",

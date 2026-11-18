@@ -58,13 +58,24 @@ function counterRange(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amou
   return { min, max };
 }
 
+/**
+ * Area 06 M8 (11-18): the range as it is SAID, in whole dollars inside the real one ("Between $33 and $40", not
+ * "$32.01"). Display only: counterProblem still checks the exact range the server takes.
+ */
+function shownRange(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">): { min: string; max: string } {
+  const { min, max } = counterRange(o);
+  const minW = Math.ceil(min / 100) * 100;
+  const maxW = Math.floor(max / 100) * 100;
+  return minW <= maxW ? { min: formatPrice(minW), max: formatPrice(maxW) } : { min: formatPrice(min), max: formatPrice(max) };
+}
+
 /** Why a typed counter can't be sent, in words; null when it can. */
 function counterProblem(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">, cents: number | null): string | null {
   if (!cents) return null;
   const { min, max } = counterRange(o);
   if (o.my_side === "seller" && cents <= o.amount_cents && cents >= 100) return tr("dof.alreadyOffered", { amount: formatPrice(o.amount_cents) });
   if (o.my_side === "buyer" && cents >= o.amount_cents && cents <= o.current_price_cents) return tr("dof.askingLess", { amount: formatPrice(o.amount_cents) });
-  if (cents < min || cents > max) return tr("dof.mustBeBetween", { min: formatPrice(min), max: formatPrice(max) });
+  if (cents < min || cents > max) return tr("dof.mustBeBetween", shownRange(o));
   return null;
 }
 
@@ -105,6 +116,12 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
   // NIGHT-SELL-offers,sale-4: opening the box puts the cursor in it (no second tap for the keyboard).
   const counterBox = useRef<HTMLInputElement>(null);
   useEffect(() => { if (countering) counterBox.current?.focus(); }, [countering]);
+  // Area 06 M8 (11-18): the box opened empty with a pale example and a grey Send, so it looked off. It opens with the
+  // example as a real value the seller can send or change.
+  const openCounter = () => {
+    if (!countering && !counter) setCounter(counterExample(o) ?? "");
+    setCountering((v) => !v);
+  };
   const counterCents = dollarsInputToCents(counter);
   const counterBad = counterProblem(o, counterCents);
   // Accept asks in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
@@ -217,9 +234,11 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
             {t("dof.sayNo")}
           </Button>
-          <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setCountering((v) => !v)} aria-expanded={countering}>
+          <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={openCounter} aria-expanded={countering}>
             {t("dof.answerPrice")}
           </Button>
+          {/* Area 06 M8: while the seller is writing a counter, Accept steps aside (one answer at a time). */}
+          {!countering && (
           <Button
             type="button"
             size="sm"
@@ -228,6 +247,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           >
             {t("dof.accept")}
           </Button>
+          )}
         </div>
       )}
       {myTurn && countering && (
@@ -260,7 +280,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
             </Button>
           </div>
           <p id={`counter-range-${o.offer_id}`} className={`text-ds-13 ${counterBad ? "text-[hsl(var(--destructive-ink))]" : "text-muted-foreground"}`}>
-            {counterBad ?? t("dof.between", { min: formatPrice(counterRange(o).min), max: formatPrice(counterRange(o).max) })}
+            {counterBad ?? t("dof.between", shownRange(o))}
           </p>
         </form>
       )}

@@ -5,7 +5,7 @@
  * first name from the same card read its Message button uses.
  *
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     otherFirst,\n    rescheduled, |     rescheduled,
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |             otherFirst={isPoster ? helperFirst : posterFirst} |             otherFirst={null}
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             otherFirst={isPoster ? helperFirst ?? noShowHelprFirst : posterFirst} |             otherFirst={null}
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

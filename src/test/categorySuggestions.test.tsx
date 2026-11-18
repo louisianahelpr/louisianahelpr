@@ -128,6 +128,10 @@ describe("Suggest a category: hidden, gated, closed (20261015051141)", () => {
     featureOn = true;
     const on1 = render(<SuggestCategory area="jobs" />);
     expect(on1.container.textContent).toMatch(/Suggest a category/);
+    // Owner 2026-11-17 (signed-in tweaks, item 7): body size (ds-15 = 16px, was ds-12 = 11px) on the 44px link row.
+    // @mutate src/components/SuggestCategory.tsx | className="gap-1.5 px-0 text-ds-15 font-sans | className="gap-1.5 px-0 text-ds-12 font-sans
+    const link = on1.container.querySelector("button")!;
+    expect(link.className.split(/\s+/)).toEqual(expect.arrayContaining(["text-ds-15", "h-11"]));
   });
 });
 

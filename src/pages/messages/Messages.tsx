@@ -493,7 +493,7 @@ const Messages = () => {
           desktop and phone alike keep the list -> full chat swap, and back returns
           to the list. The list pane is 360px; the open deal room takes the rest. */}
       {twoPane ? (
-        <MessagesTwoPane list={listEl} chat={chatEl} hasConversations={conversations.length > 0} />
+        <MessagesTwoPane list={listEl} chat={chatEl} hasConversations={conversations.length > 0} empty={!loading && !loadError && allConversations.length === 0} />
       ) : !activeConvo ? (
         <SectionBoundary label="conversations">{listEl}</SectionBoundary>
       ) : (

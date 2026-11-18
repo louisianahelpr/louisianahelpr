@@ -1,9 +1,12 @@
 /**
  * JA-41 (owner pick, 2026-11-01): Post a job opens on the GROUP GRID ("What do you need done?": Home, Yard,
- * Moving & errands, Trades, ...). "Use a template", "Hire a saved Helpr" and "Describe it with AI" are small
+ * Moving & errands, Trades, ...). "Use a template", "Hire a saved Helpr" and "Describe it in your own words" are
  * links on that same screen, not cards. Before: "How do you want to start?" (4 cards) -> "Start from scratch" ->
  * the groups: one tap more before the first field.
  *
+ * Owner 2026-11-17: the links are body size and the builder's link is "Describe it in your own words" with a pencil.
+ * @mutate src/pages/post-job/EntryChoice.tsx | font-sans text-ds-15 font-semibold text-[hsl(var(--bark))] | font-sans text-ds-14 font-semibold text-[hsl(var(--bark))]
+ * @mutate src/lib/categoryEmoji.ts | ai: PenLine, | ai: ClipboardList,
  * @mutate src/pages/post-job/EntryChoice.tsx |       {groupGrid}\n\n      {/* The other ways to start | \n      {/* The other ways to start
  * @mutate src/pages/post-job/EntryChoice.tsx |         form.startFresh();\n        form.setFormPage(1);\n        form.setCategoryGroup(g); |         form.setCategoryGroup(g);
  * @mutate src/pages/post-job/EntryChoice.tsx |         if (atOpenJobLimit) return;\n        form.startFresh();\n        form.setFormPage(2); |         form.startFresh();\n        form.setFormPage(2);
@@ -78,13 +81,18 @@ describe("JA-41: Post a job opens on the group grid", () => {
     const names = [...links.querySelectorAll("button")].map((b) =>
       [...b.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent).join("").trim(),
     );
-    expect(names).toEqual(["Use a template", "Hire a saved Helpr", "Describe it with AI"]);
+    expect(names).toEqual(["Use a template", "Hire a saved Helpr", "Describe it in your own words"]);
     // Small links, not the 104px choice cards.
     // 44px tap target: the shared Button at size="sm" (h-11).
     for (const b of links.querySelectorAll("button")) expect(b.className).toMatch(/\bh-11\b/);
+    // Owner 2026-11-17: body size (text-ds-15 = 16px, was ds-14 = 13px); the builder's link is a pencil, not a sparkle.
+    for (const b of links.querySelectorAll("button")) expect(b.className.split(/\s+/)).toContain("text-ds-15");
+    const ai = links.querySelector('[data-entry-link="ai"] svg')!;
+    expect(ai.getAttribute("class")).toMatch(/lucide-pen-line/);
+    expect(ai.getAttribute("class")).not.toMatch(/sparkles/);
     fireEvent.click(screen.getByRole("button", { name: /Use a template/ }));
     fireEvent.click(screen.getByRole("button", { name: /Hire a saved Helpr/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Describe it with AI/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Describe it in your own words/ }));
     expect(vi.mocked(form.setEntryPanel).mock.calls.map((c) => c[0])).toEqual(["templates", "offer", "ai"]);
   });
 

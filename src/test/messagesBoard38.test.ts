@@ -10,7 +10,7 @@
  *
  * @mutate src/pages/messages/Messages.tsx |       embedded={twoPane}\n      activeKey={ |       embedded={false}\n      activeKey={
  * @mutate src/pages/messages/Messages.tsx |       {twoPane ? ( |       {false ? (
- * @mutate src/pages/messages/MessagesTwoPane.tsx |           style={{ width: MESSAGES_LIST_PANE_PX }} |           style={{ width: 340 }}
+ * @mutate src/pages/messages/MessagesTwoPane.tsx |           style={spanAll ? undefined : { width: MESSAGES_LIST_PANE_PX }} |           style={spanAll ? undefined : { width: 340 }}
  * @mutate src/pages/messages/MessagesTwoPane.tsx |           ) : null} |           ) : <p>When you message someone, the conversation opens here.</p>}
  * @mutate src/pages/messages/useTwoPane.ts | export const TWO_PANE_MIN_WIDTH = 1140; | export const TWO_PANE_MIN_WIDTH = 900;
  * @mutate src/pages/messages/useTwoPane.ts |   return isWebDesktop && isWide; |   return isWide;
@@ -43,10 +43,10 @@ describe("Messages matches board 38 without ever cutting the chat off", () => {
     expect(page).toMatch(/const twoPane = useMessagesTwoPane\(\);/);
     expect(page).toMatch(/embedded=\{twoPane\}\s*activeKey=\{/);
     expect(page).toMatch(/jobSystemEvents=\{jobSystemEvents\}\s*embedded=\{twoPane\}/);
-    expect(page).toMatch(/\{twoPane \? \(\s*<MessagesTwoPane list=\{listEl\} chat=\{chatEl\} hasConversations=\{conversations\.length > 0\} \/>/);
+    expect(page).toMatch(/\{twoPane \? \(\s*<MessagesTwoPane list=\{listEl\} chat=\{chatEl\} hasConversations=\{conversations\.length > 0\} empty=\{!loading && !loadError && allConversations\.length === 0\} \/>/);
     expect(panes.length).toBeGreaterThan(800);
     expect(panes).toContain("<PageScaffold flushRight>"); // B107 (11-01): the open chat runs to the window edge on desktop
-    expect(panes).toMatch(/data-testid="messages-list-pane"[\s\S]*style=\{\{ width: MESSAGES_LIST_PANE_PX \}\}/);
+    expect(panes).toMatch(/data-testid="messages-list-pane"[\s\S]*style=\{spanAll \? undefined : \{ width: MESSAGES_LIST_PANE_PX \}\}/);
     expect(panes).toMatch(/data-testid="messages-chat-pane" className="flex-1 min-w-0/);
     // A resting state when no thread is open; with no conversations the pane
     // stays empty, the inbox pane's empty state is the only one (A3-C19).

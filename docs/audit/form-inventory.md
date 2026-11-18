@@ -228,7 +228,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/SellFormParts.tsx` | input×2, checkbox/switch/radio×3 | text |  | sell-price · sell-offers · sell-drops · sell-floor · sell-address · sell-pickup · sell-tax-head · sell-tax |
 | `src/components/declutter/SellSummaryCard.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-summary-head · sell-title · sell-desc |
 | `src/components/declutter/SellTradesRow.tsx` | checkbox/switch/radio×1 |  |  | sell-trades |
-| `src/components/SuggestCategory.tsx` | input×1 | text |  | suggest-category-input · e.g. Tutoring · suggest-category-help |
+| `src/components/SuggestCategory.tsx` | input×1 | text |  | suggest-category-input · suggest-category-help |
 
 ## /declutter/sell, /declutter/settings
 

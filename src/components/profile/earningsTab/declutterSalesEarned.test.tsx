@@ -5,18 +5,27 @@
  *
  * @mutate src/components/profile/EarningsTab.tsx |             earnedDollars={rangeEarnings + rangeSales.cents / 100} |             earnedDollars={rangeEarnings}
  * @mutate src/components/profile/EarningsTab.tsx |           <DeclutterSalesEarned rows={salePayouts ?? []} | <DeclutterSalesEarned rows={[]}
- * @mutate src/components/profile/earningsTab/EarningsSummaryCard.tsx |  · {saleCount} sale{saleCount === 1 ? "" : "s"} |
  * @mutate src/components/profile/earningsTab/DeclutterSalesEarned.tsx |   if (failed) return <ErrorState | if (false) return <ErrorState
+ * @mutate src/components/profile/earningsTab/DeclutterSalesEarned.tsx | {(r.status === "failed" \|\| (r.status === "pending" && !payoutReady)) && ( | {(r.status === "failed") && (
+ * @mutate src/components/profile/earningsTab/EarningsSummaryCard.tsx | {saleCount > 0 ? <> | {saleCount >= 0 ? <>
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import { render, screen } from "@testing-library/react";
+import { render as rtlRender, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import type { ReactElement } from "react";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { EarningsSummaryCard } from "./EarningsSummaryCard";
 import { DeclutterSalesEarned } from "./DeclutterSalesEarned";
 import type { SalePayout } from "@/lib/declutter/salePayouts";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+const hooks = vi.hoisted(() => ({ ready: true, paused: false }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: hooks.ready ? { stripe_account_id: "acct_1", payouts_enabled: true, charges_enabled: true, stripe_onboarding_complete: true } : {} }) }));
+vi.mock("@/lib/payoutAccountReady", () => ({ payoutAccountReady: () => hooks.ready }));
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupBlock: () => (hooks.paused ? "paused" : null) }));
+
+const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 const row = (order_id: string, title: string, status: SalePayout["status"], amount_cents: number, executed_at: string | null): SalePayout =>
   ({ order_id, title, status, amount_cents, executed_at, items_cents: amount_cents, delivery_cents: 0, refunded_cents: 0, debt_cents: 0 });
@@ -35,7 +44,26 @@ describe("Declutter sales in Money > Earned (A3-56)", () => {
     const rows = document.querySelectorAll("[data-sale-payout]");
     expect(rows).toHaveLength(2);
     expect(rows[0].textContent).toBe("Sold: Oak rocking chair$40.00 · Paid Oct 29");
-    expect(rows[1].textContent).toBe("Sold: Lamp$12.00 · Didn't go through");
+    expect(rows[1].textContent).toBe("Sold: Lamp$12.00 · Didn't go throughYour payout didn't go through yet. Check that your payout account is set up. If it still doesn't arrive, message Support. Check your payouts");
+  });
+
+  // Area 06b M8 (design audit 11-18, display only): each row opens its sale; an unsent payout says why with the fix.
+  it("each row links to its sale; a failed or waiting payout says why and links to payouts", () => {
+    hooks.ready = false;
+    render(<DeclutterSalesEarned rows={[row("o1", "Oak rocking chair", "succeeded", 4000, "2026-10-29T15:00:00Z"), row("o2", "Lamp", "pending", 1200, null)]}
+      failed={false} onRetry={() => {}} />);
+    const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-sale-payout-link]")].map((a) => a.getAttribute("href"));
+    expect(links).toEqual(["/declutter?tab=selling&order=o1", "/declutter?tab=selling&order=o2"]);
+    expect(document.querySelectorAll("[data-sale-payout-why]")).toHaveLength(1);
+    expect(document.querySelector("[data-sale-payout-why='pending']")?.textContent).toBe("It goes out once your payout account is ready. Set up payouts");
+    hooks.ready = true;
+  });
+
+  it("the caption leaves out '· 0 sales' for a member who has sold nothing", () => {
+    render(<EarningsSummaryCard loading={false} range="lifetime" onRangeChange={() => {}} earnedDollars={40} jobCount={2} saleCount={0}
+      tipsDollars={0} tipCount={0} inProgressCount={0} />);
+    expect(screen.getByText(/· 2 jobs$/)).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/0 sales/);
   });
 
   it("nothing sold: no card; a failed read: says so with Try again", () => {

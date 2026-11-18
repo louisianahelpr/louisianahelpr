@@ -13,7 +13,6 @@ import {
   shareMyProfile,
 } from "@/lib/profileLink/api";
 import { ShowInSearchSwitch } from "@/components/profile/ShowInSearchSwitch";
-import "@/lib/i18n/enSettings";
 import { wordInLang } from "@/lib/i18n/inLang";
 
 /**

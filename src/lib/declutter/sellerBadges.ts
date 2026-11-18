@@ -13,7 +13,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { unwrap } from "@/lib/supabaseResult";
 import { bandMap, type ActiveBand } from "@/lib/activeBand";
-import "@/lib/i18n/enItemPage";
 import { wordInLang } from "@/lib/i18n/inLang";
 
 /** Listings for sale (this one included) from which "Lists often" shows. */

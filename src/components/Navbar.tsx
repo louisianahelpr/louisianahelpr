@@ -9,7 +9,6 @@ import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { enGuest } from "@/lib/i18n/enGuest";
 import { wordInLang } from "@/lib/i18n/inLang";
 
 interface NavbarProps {
@@ -172,7 +171,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onMouseEnter={() => prefetchRoute("/login")}
                 onFocus={() => prefetchRoute("/login")}
               >
-                {wordInLang("g.logIn", enGuest["g.logIn"])}
+                {wordInLang("g.logIn", "Log in")}
               </Link>
             </Button>
             {/* "Join free" — explicit light-cream text. The `default` variant
@@ -192,7 +191,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onMouseEnter={() => prefetchRoute("/signup")}
                 onFocus={() => prefetchRoute("/signup")}
               >
-                {wordInLang("g.joinFree", enGuest["g.joinFree"])}
+                {wordInLang("g.joinFree", "Join free")}
               </Link>
             </Button>
           </div>

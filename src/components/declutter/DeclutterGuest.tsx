@@ -23,8 +23,11 @@ import { useGuestPublicFrame } from "@/hooks/useGuestPublicFrame";
 import { enGuest } from "@/lib/i18n/enGuest";
 import { wordInLang } from "@/lib/i18n/inLang";
 
-/** A guest word in the reader's language (design audit r2 #37), English from enGuest. */
-const gw = (k: keyof typeof enGuest) => wordInLang(k, enGuest[k]);
+/** The way-in words that are boot words (enCore), so the public header needs no extra chunk. */
+const CORE_GUEST = { "g.logIn": "Log in", "g.signUp": "Sign up" } as const;
+/** A guest word in the reader's language (design audit r2 #37), English from enGuest or enCore. */
+const gw = (k: keyof typeof enGuest | keyof typeof CORE_GUEST) =>
+  wordInLang(k, k in CORE_GUEST ? CORE_GUEST[k as keyof typeof CORE_GUEST] : enGuest[k as keyof typeof enGuest]);
 
 function here(location: { pathname: string; search: string }): string {
   return encodeURIComponent(location.pathname + location.search);

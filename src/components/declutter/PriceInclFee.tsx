@@ -13,7 +13,6 @@
  * no account hooks (BuyerTotal reads the viewer's setup fee). Guard: src/test/declutterPriceInclFee.test.ts.
  */
 import { buyNowTotalCents } from "@/lib/declutter/money";
-import "@/lib/i18n/enItemPage";
 import { wordInLang } from "@/lib/i18n/inLang";
 
 /** "incl. fee", or its Spanish for a Spanish reader (design audit r2 #35). */

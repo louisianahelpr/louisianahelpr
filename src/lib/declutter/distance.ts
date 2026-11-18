@@ -4,7 +4,6 @@
  * (2 decimals, ~1 km, B7), so the figure is approximate by design and never
  * locates the seller's door. Shown rounded: "< 1 mi", then whole miles.
  */
-import "@/lib/i18n/enItemPage";
 import { wordInLang } from "@/lib/i18n/inLang";
 
 const EARTH_RADIUS_MI = 3958.8;

@@ -16,7 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchSellerCard, fetchSellerPickupCount, fetchSellerRating, fetchSellerReviewTags, pickupsLabel } from "@/lib/declutter/api";
 import { topReviewTags } from "@/lib/declutter/reviewTags";
 import { formatName } from "@/lib/utils";
-import "@/lib/i18n/enItemPage";
 import { getLang } from "@/lib/i18n/language";
 import { wordInLang } from "@/lib/i18n/inLang";
 import { memberProfilePath, PROFILE_FROM_DECLUTTER } from "@/lib/profileLink/memberProfilePath";

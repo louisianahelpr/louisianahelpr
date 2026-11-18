@@ -2,9 +2,6 @@
 import type { enGuest } from "./enGuest";
 
 export const esGuest: Record<keyof typeof enGuest, string> = {
-  "g.logIn": "Iniciar sesión",
-  "g.signUp": "Registrarse",
-  "g.joinFree": "Únase gratis",
   "g.signedOut": "Se cerró su sesión. Inicie sesión de nuevo para administrar esta publicación.",
   "g.askItem": "Pedir este artículo",
   "g.buyOrOffer": "Comprar o hacer una oferta",

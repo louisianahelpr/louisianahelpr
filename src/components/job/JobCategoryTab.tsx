@@ -1,5 +1,4 @@
 import { categoryColors, categoryLabels } from "@/components/job-card/activityConstants";
-import "@/lib/i18n/enJobCats";
 import { wordInLang } from "@/lib/i18n/inLang";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatCategory } from "@/lib/format";

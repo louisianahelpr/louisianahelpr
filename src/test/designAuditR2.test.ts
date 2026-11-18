@@ -503,9 +503,41 @@ describe("design audit r2 #37: the stragglers follow the reader's language", () 
     expect(guest).not.toMatch(/>(Log in|Sign up|Make offer)</);
     expect(guest).not.toMatch(/"Log in to see your/);
     const nav = blankComments(readFileSync("src/components/Navbar.tsx", "utf8"));
-    expect(nav).toContain('{wordInLang("g.joinFree", enGuest["g.joinFree"])}');
+    expect(nav).toContain('{wordInLang("g.joinFree", "Join free")}');
     expect(es["g.joinFree"]).toBe("Únase gratis");
     expect(blankComments(readFileSync("src/components/profile/ProfileLinkRow.tsx", "utf8"))).toContain('wordInLang("settings.profileLink", "Your profile link")');
     expect(blankComments(readFileSync("src/pages/post-job/GiftCardTeaser.tsx", "utf8"))).toContain('"postJob.gift.many"');
+  });
+});
+
+/**
+ * #34 (rest): the Spanish inbox's section chips ("Jobs"), job-status pills ("Completed", "Disputed"), role caption
+ * ("Your job") and row dates ("Nov 5", "10h") were English.
+ * @mutate src/components/messages/rowAge.ts |     new Date(lastAt).toLocaleDateString(getLang() === "es" ? "es-US" : "en-US", { month: "short", day: "numeric" }); |     new Date(lastAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+ * @mutate src/components/messages/ConversationRow.tsx |     const label = wordInLang(`msg.st.${english}`, english); |     const label = english;
+ */
+describe("design audit r2 #34: the inbox rows in Spanish", () => {
+  it("row age, role caption and every status chip word read Spanish for a Spanish reader", async () => {
+    const { setLang, ensureLangLoaded } = await import("@/lib/i18n/language");
+    const { rowAge } = await import("@/components/messages/rowAge");
+    const { threadRoleCaption } = await import("@/components/messages/messageSections");
+    const { JOB_STATUS_LABELS } = await import("@/lib/statusLabels");
+    const now = new Date("2026-11-17T18:00:00Z").getTime();
+    try {
+      setLang("es");
+      await ensureLangLoaded();
+      expect(rowAge(new Date(now - 3 * 3600_000).toISOString(), now)).toBe("3 h");
+      expect(rowAge("2026-11-05T18:00:00Z", now)).toMatch(/nov/i);
+      expect(rowAge("2026-11-05T18:00:00Z", now)).not.toMatch(/Nov 5/);
+      expect(threadRoleCaption({ teamThread: false, viewerIsPoster: true, viewerIsAssignedHelper: false, jobStatus: "open" })).toBe("Su trabajo");
+    } finally {
+      setLang("en");
+    }
+    expect(rowAge(new Date(now - 3 * 3600_000).toISOString(), now)).toBe("3h");
+    for (const w of Object.values(JOB_STATUS_LABELS)) expect(es[`msg.st.${w}` as keyof typeof es], w).toBeTruthy();
+    const row = blankComments(readFileSync("src/components/messages/ConversationRow.tsx", "utf8"));
+    expect(row).toContain("const label = wordInLang(`msg.st.${english}`, english);");
+    const chips = blankComments(readFileSync("src/pages/messages/useMessageSections.tsx", "utf8"));
+    expect(chips).toContain("return { value: k, label: key ? t(key) : def.label };");
   });
 });

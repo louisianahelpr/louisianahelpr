@@ -6,9 +6,6 @@
 import { addEnglish } from "./enRegistry";
 
 export const enGuest = {
-  "g.logIn": "Log in",
-  "g.signUp": "Sign up",
-  "g.joinFree": "Join free",
   "g.signedOut": "You've been signed out. Log in again to manage this listing.",
   "g.askItem": "Ask for this item",
   "g.buyOrOffer": "Buy or make an offer",

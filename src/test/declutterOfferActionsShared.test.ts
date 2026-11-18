@@ -81,7 +81,8 @@ describe("Declutter's offer answers use the shared Button, primary on the right 
     expect(take!, "it keeps its drawn underline").toMatch(/\bunderline underline-offset-2\b/);
     const closed = tags.find((t) => /data-closed-offers-toggle/.test(t));
     expect(closed, "the closed-offers toggle is an InlineTextButton").toBeDefined();
-    expect(closed!.match(/className="([^"]*)"/)?.[1], "the toggle keeps its own classes only").toBe("text-sm font-medium");
+    // Design audit 11-17 #19: olive, semibold, with a chevron, so it reads as a link.
+    expect(closed!.match(/className="([^"]*)"/)?.[1], "the toggle keeps its own classes only").toBe("inline-flex items-center gap-0.5 text-sm font-semibold text-[hsl(var(--olivewood))]");
     expect(src, "a hand-made <button> is back").not.toMatch(/<button\b/);
   });
 });

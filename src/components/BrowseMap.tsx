@@ -61,7 +61,7 @@ import {
   type MKAnnotation,
   type MKMap,
 } from "./browseMap/mapkitRuntime";
-import { useBusyAreaShading, useFitPinsOnChange, useMapFollowsTheme } from "./browseMap/useMapLayersSync";
+import { useBusyAreaShading, useFitPinsOnChange, useMapFollowsTheme, useMapSettled } from "./browseMap/useMapLayersSync";
 import type { BrowseMapProps } from "./browseMap/browseMapProps";
 import { useHoveredPinHighlight, usePinFocusability } from "./browseMap/usePinFocusability";
 import { usePinPreviewPlacement } from "./browseMap/usePinPreviewPlacement";
@@ -214,7 +214,9 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   }, []);
 
   useMapFollowsTheme(mapRef, mapReady);
-  const busyShown = useBusyAreaShading(mapRef, mapReady, visibleJobs); // Q2435; BusyAreasMapKey says what they are
+  // Owner 11-17: the circles wait for the tiles, so a loading map is never a grey grid with circles (useMapSettled).
+  const tilesSettled = useMapSettled(mapRef, mapReady);
+  const busyShown = useBusyAreaShading(mapRef, tilesSettled, visibleJobs); // Q2435; BusyAreasMapKey says what they are
 
   /** Remove every job annotation currently on the map. */
   const clearAnnotations = useCallback(() => {
@@ -480,22 +482,27 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           first paint is a soft transition rather than a flash of half-drawn
           map. Pointer events bypass so users can still pan even while it
           fades. */}
+      {/* Owner 11-17: a FLAT SOLID veil (no grid showing through), as Declutter's map (F122), held until the tiles
+          have had their first framing (useMapSettled), then faded. */}
       {!mapKitUnusable && (
         <div
-          aria-hidden
-          className="absolute inset-0 z-[300] flex items-center justify-center pointer-events-none transition-opacity duration-500"
+          role={tilesSettled ? undefined : "status"}
+          aria-hidden={tilesSettled || undefined}
+          data-map-loading={tilesSettled ? undefined : ""}
+          className="absolute inset-0 z-[300] flex flex-col items-center justify-center gap-2 pointer-events-none transition-opacity duration-500"
           style={{
-            opacity: mapReady ? 0 : 1,
-            background: "hsl(var(--surface-band) / 0.55)",
-            backdropFilter: "blur(2px)",
-            WebkitBackdropFilter: "blur(2px)",
+            opacity: tilesSettled ? 0 : 1,
+            background: "hsl(var(--surface-band) / 0.96)",
           }}
         >
           {/* Plain neutral spinner, not the branded H — the wrought-iron
             emblem's asymmetric shape reads oddly mid-rotation on this
             surface (owner, 2026-08-30). HelprSpinner stays the default
             everywhere else. */}
-        <Loader2 className="w-5 h-5 animate-spin" style={{ color: "hsl(var(--bark) / 0.6)" }} />
+        {/* The spinner only until MapKit has built the map: the short tile wait after it is the flat veil and its words,
+            so the page-settle check (it waits on visible spinners) is not held by the tiles. */}
+        {!mapReady && <Loader2 className="w-5 h-5 animate-spin" style={{ color: "hsl(var(--bark) / 0.6)" }} aria-hidden />}
+          <p className="text-ds-13 font-medium text-muted-foreground">Loading map…</p>
         </div>
       )}
       {/* Zero-width probe: renders nothing, exists so the dock clearance can be
@@ -528,7 +535,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           The column itself is `pointer-events-none` so the map stays pannable
           through the empty space either side of the sheet; only the sheet and
           the button take pointer events back. */}
-      {!mapKitUnusable && mapReady && busyShown && <BusyAreasMapKey />}
+      {!mapKitUnusable && tilesSettled && busyShown && <BusyAreasMapKey />}
       {!mapKitUnusable && mapReady && <MyLocationCorner onLocate={showMyLocation} busy={locating} />}
       {/* ── Pin preview — a POPOVER anchored to the tapped pin ────────────────
           Owner, 2026-09-15: the card sits AT the pin (near/under it), not in a

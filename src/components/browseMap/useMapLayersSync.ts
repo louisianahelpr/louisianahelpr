@@ -35,6 +35,32 @@ export function useMapFollowsTheme(mapRef: RefObject<MKMap | null>, mapReady: bo
   }, [isDark, mapReady, mapRef]);
 }
 
+/** How long a just-built map may still be drawing its tiles before the veil lifts anyway (see useMapSettled). */
+export const MAP_SETTLE_FALLBACK_MS = 1200;
+
+/**
+ * Owner 2026-11-17 (signed-in tweaks, item 2): on /jobs the map was a grey grid with the busy circles floating on it
+ * while Apple's tiles were still arriving, which read as a broken map. MapKit JS has no "tiles loaded" event, so the
+ * map counts as settled at its first `region-change-end` after it is built (the first framing has finished) or after
+ * MAP_SETTLE_FALLBACK_MS, whichever comes first. Until then BrowseMap keeps a flat solid veil ("Loading map…", as
+ * Declutter's map does, F122) over the grid, and draws no circles.
+ */
+export function useMapSettled(mapRef: RefObject<MKMap | null>, mapReady: boolean): boolean {
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || settled) return;
+    const done = () => setSettled(true);
+    const timer = window.setTimeout(done, MAP_SETTLE_FALLBACK_MS);
+    map.addEventListener("region-change-end", done);
+    return () => {
+      window.clearTimeout(timer);
+      map.removeEventListener("region-change-end", done);
+    };
+  }, [mapReady, mapRef, settled]);
+  return settled;
+}
+
 /**
  * Q2435 "Busy right now": shade each parish where the pins on this map are
  * waiting (counts by the job's parish, drawn at the parish centroid), so the

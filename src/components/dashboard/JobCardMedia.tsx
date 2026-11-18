@@ -3,19 +3,20 @@ import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryLabels } from "@/components/job-card/activityConstants";
 import UserAvatar from "@/components/UserAvatar";
 import { STAR_ON } from "@/lib/starColor";
+import { jobCategoryTint } from "@/lib/jobCategoryTint.mjs";
 
 /** Shared with the pre-boot Browse shell (src/lib/browseShellCards.mjs), which must match byte for byte. */
 export const JOB_CARD_MEDIA_ROW = "flex items-stretch";
 export const JOB_CARD_MEDIA_PAD = "pl-3 pt-3 pb-3";
-const JOB_CARD_MEDIA = "relative shrink-0 self-start w-14 h-14 overflow-hidden rounded-xl";
-const JOB_CARD_MEDIA_TINT = "linear-gradient(140deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.06))";
+// Owner 2026-11-17 (signed-in tweaks, item 5): 48 px (was 56) and a soft per-category tint (src/lib/jobCategoryTint.mjs).
+const JOB_CARD_MEDIA = "relative shrink-0 self-start w-12 h-12 overflow-hidden rounded-xl";
 export const JOB_CARD_TEXT_COL = "job-card-media-col min-w-0 flex-1";
 const JOB_CARD_FACE_ROW = "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11 text-muted-foreground";
 
 /**
  * Photo-first job cards (owner 2026-10-17, Q2043 + Q2036): every Browse card
  * leads with a picture. The job's OWN first photo when it has one; otherwise
- * the category image, a soft olive tile carrying the category's own icon (the
+ * the category image, a soft tile in the category's own tint carrying its icon (the
  * owner's "category image when a job has no photo"). Never a stock photo, and
  * never a grey empty block: the tile is a fixed small square beside the text,
  * so a job without a photo costs no extra height (lead review 2026-10-21).
@@ -25,18 +26,19 @@ const JOB_CARD_FACE_ROW = "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11
  */
 export function JobCardMedia({ photo, category }: { photo: string | null | undefined; category: string }) {
   const label = categoryLabels[category] ?? categoryLabels.other ?? "Job";
+  const tint = jobCategoryTint(category);
   return (
     <div
       data-testid="job-card-media"
       data-media={photo ? "photo" : "category"}
       className={JOB_CARD_MEDIA}
-      style={photo ? undefined : { background: JOB_CARD_MEDIA_TINT }}
+      style={photo ? undefined : { background: tint.background }}
     >
       {photo ? (
         <img loading="lazy" decoding="async" src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <span className="absolute inset-0 flex items-center justify-center" role="img" aria-label={label}>
-          <CategoryIcon category={category} aria-hidden className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+          <CategoryIcon category={category} aria-hidden className="w-6 h-6" style={{ color: tint.color }} />
         </span>
       )}
     </div>

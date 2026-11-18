@@ -350,14 +350,41 @@ describe("BrowseMap — viewer-local exclusions (B1/B3, and 2026-09-19)", () => 
 // blank grey box.
 // NIGHT-JOBSMA5-4 (audit 10-30 night): the shaded "Busy right now" circles had no label on the map. A key says what
 // they are while a circle is drawn, and is absent when no pin has a parish to shade.
-// @mutate src/components/BrowseMap.tsx | {!mapKitUnusable && mapReady && busyShown && <BusyAreasMapKey />} | {null}
+// @mutate src/components/BrowseMap.tsx | {!mapKitUnusable && tilesSettled && busyShown && <BusyAreasMapKey />} | {null}
 // @mutate src/components/browseMap/useMapLayersSync.ts |       setShown(overlaysRef.current.length > 0); |       setShown(true);
+// Owner 2026-11-17 (signed-in tweaks, item 2): while Apple's tiles load, a flat solid "Loading map…" veil, and no
+// circles on the grey grid; both lift at the map's first framing (region-change-end) or the fallback.
+// @mutate src/components/BrowseMap.tsx |   const busyShown = useBusyAreaShading(mapRef, tilesSettled, visibleJobs); |   const busyShown = useBusyAreaShading(mapRef, mapReady, visibleJobs);
+// @mutate src/components/BrowseMap.tsx |             opacity: tilesSettled ? 0 : 1, |             opacity: mapReady ? 0 : 1,
+// @mutate src/components/BrowseMap.tsx |             background: "hsl(var(--surface-band) / 0.96)", |             background: "hsl(var(--surface-band) / 0.55)",
+describe("BrowseMap loading veil (owner 11-17)", () => {
+  it("holds a solid veil and draws no circles until the map's first framing ends", async () => {
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+    await screen.findByTestId("browse-map-surface");
+    await waitFor(() => expect(mapInstances.length).toBeGreaterThan(0));
+    const map = mapInstances[mapInstances.length - 1] as unknown as { addOverlays: ReturnType<typeof vi.fn>; addAnnotations: ReturnType<typeof vi.fn>; addEventListener: ReturnType<typeof vi.fn> };
+    await waitFor(() => expect(map.addAnnotations).toHaveBeenCalled());
+    const veil = document.querySelector("[data-map-loading]") as HTMLElement;
+    expect(veil).not.toBeNull();
+    expect(veil.textContent).toContain("Loading map…");
+    expect(veil.style.opacity).toBe("1");
+    expect(veil.style.background).toContain("0.96");
+    expect(map.addOverlays).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("browse-map-busy-key")).toBeNull();
+    act(() => map.addEventListener.mock.calls.filter((c) => c[0] === "region-change-end").forEach((c) => (c[1] as () => void)()));
+    await waitFor(() => expect(map.addOverlays).toHaveBeenCalled());
+    expect(document.querySelector("[data-map-loading]")).toBeNull();
+    expect(await screen.findByTestId("browse-map-busy-key")).toBeTruthy();
+  });
+});
+
 describe("BrowseMap busy-area key (NIGHT-JOBSMA5-4)", () => {
   it("says what the shaded circles are while one is drawn", async () => {
     const { BrowseMap } = await import("./BrowseMap");
     render(<BrowseMap />);
     await screen.findByTestId("browse-map-surface");
-    expect(await screen.findByTestId("browse-map-busy-key")).toHaveTextContent("Shaded circles: parishes busy right now");
+    expect(await screen.findByTestId("browse-map-busy-key", {}, { timeout: 3000 })).toHaveTextContent("Shaded circles: parishes busy right now");
     const map = mapInstances[mapInstances.length - 1];
     expect(map.addOverlays).toHaveBeenCalled();
   });
@@ -367,7 +394,7 @@ describe("BrowseMap busy-area key (NIGHT-JOBSMA5-4)", () => {
   it("dims the circles once the map is zoomed in to street level, and restores them zoomed out", async () => {
     const { BrowseMap } = await import("./BrowseMap");
     render(<BrowseMap />);
-    await screen.findByTestId("browse-map-busy-key");
+    await screen.findByTestId("browse-map-busy-key", {}, { timeout: 3000 });
     const map = mapInstances[mapInstances.length - 1] as unknown as {
       addOverlays: ReturnType<typeof vi.fn>; addEventListener: ReturnType<typeof vi.fn>; region?: unknown;
     };

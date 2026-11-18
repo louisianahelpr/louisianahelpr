@@ -27,7 +27,7 @@ export const storeLabel = (pick: CatalogPick) => ((pick.store === "louisiana" ||
 function PickThumb({ pick }: { pick: CatalogPick }) {
   const [failed, setFailed] = useState(false);
   if (pick.image && !failed) {
-    return <img className="gg-thumb" loading="lazy" decoding="async" src={pick.image} alt="" width={52} height={52} onError={() => setFailed(true)} />;
+    return <img className="gg-thumb" loading="lazy" decoding="async" src={pick.image} alt="" width={52} height={52} referrerPolicy="no-referrer-when-downgrade" onError={() => setFailed(true)} />;
   }
   // Lead 2026-11-18: a clean white tile with the store's name ("Amazon", "Walmart"), never a blank gap.
   return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{storeLabel(pick)}</span>;

@@ -109,7 +109,7 @@ a.gg-share{display:inline-flex;align-items:center;text-decoration:none}
 @media (max-width:767px){
 .gg-top{flex-wrap:wrap}
 .gg-layout{grid-template-columns:minmax(0,1fr)}
-.gg-side{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--gg-line);padding:8px 0}
-.gg-main{padding:4px 0 24px}
+.gg-side{position:static;max-height:none;border-right:0;border-top:1px solid var(--gg-line);padding:8px 0;order:2}
+.gg-main{padding:4px 0 24px;order:1}
 }
 `;

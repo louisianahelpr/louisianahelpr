@@ -312,7 +312,9 @@ for (const g of GUIDE_INDEX) {
  * items stay in the Amazon and ShopMy store guides, so no pick is lost; the guide itself is not shown, and an old
  * link to it lands on the main page.
  */
-export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic", "home-finds", "nurses", "pet-lovers", "for-the-home"];
+export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic", "home-finds", "nurses", "pet-lovers", "for-the-home",
+  // Design audit 2026-11-18 (trust): software, VPN and "PC cleaner" stores are no gift stores; never a tile or a page.
+  "store-restoro", "store-nordvpn", "store-surfshark", "store-nordpass", "store-hide-me-vpn", "store-parallels-desktop", "store-oando-software", "store-paragon-software"];
 
 /**
  * Guides the owner folded into others (2026-11-18: Female Nurses and Male Nurses go into RNs, LPNs and CNAs). Each

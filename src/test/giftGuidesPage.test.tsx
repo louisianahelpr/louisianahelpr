@@ -48,6 +48,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | "gg w-full" | "gg page-column"
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | padding:8px 0;order:2} | padding:8px 0}
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | !group && !more ? "gg-rows gg-rows-folded" : "gg-rows" | "gg-rows"
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | /iPhone\|iPad\|iPod/.test(userAgent) ? "&" : "?" | "?"
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | {!group && topPicks().length > 0 && ( | {false && (
@@ -214,7 +215,7 @@ describe("gift guides: the content inventory", () => {
     const rows = ROWS.map((r) => r.label);
     expect(rows.indexOf("Experiences")).toBe(rows.indexOf("Louisiana") + 1);
     // A guide that holds nothing yet is not listed (lead 2026-11-18); the rest keep the list's order.
-    const holding = (slugs: string[]) => slugs.filter((x) => !guideBySlug(x)?.empty && !guideBySlug(x)?.thin);
+    const holding = (slugs: string[]) => slugs.filter((x) => guideBySlug(x) && !guideBySlug(x)!.empty && !guideBySlug(x)!.thin);
     expect(guidesIn("experiences").map((g) => g.slug)).toEqual(holding([
       "gift-cards", "louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "subscriptions", "family-fun-days",
     ]));
@@ -306,6 +307,10 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelector("button[data-gift-more]")!.getAttribute("aria-expanded")).toBe("true");
     expect(GIFT_GUIDES_CSS).toMatch(/@media \(max-width:767px\)\{\.gg-more-btn\{display:flex[^}]*\}\.gg-rows-folded\{display:none\}\}/);
     expect(GIFT_GUIDES_CSS).toContain(".gg-more-btn{display:none}");
+    // Design audit 11-18 (High): on a phone the menu sat 2,000–3,100 px above the picks; it now follows the page.
+    const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.lastIndexOf("@media (max-width:767px){"));
+    expect(phone).toMatch(/\.gg-side\{[^}]*order:2/);
+    expect(phone).toMatch(/\.gg-main\{[^}]*order:1/);
     expect(tiles.map((a) => a.getAttribute("href"))).toEqual(top.map((g) => `/gift-guides/${g.slug}`));
     // No guide's list on the landing; only the "Top 10 most-loved" row (owner 2026-11-18), first, ten picks at most.
     const topRow = container.querySelector("[data-gift-top]")!;

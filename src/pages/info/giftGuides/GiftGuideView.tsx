@@ -25,6 +25,9 @@ import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 /** The name a pick's row shows for its store: the brand for a Louisiana shop or a sponsor, else the store's. */
 export const storeLabel = (pick: CatalogPick) => ((pick.store === "louisiana" || pick.store === "sponsor") && pick.brand ? pick.brand : STORES[pick.store].name);
 
+/** A shopmy.us/collections/<id> link: a whole ShopMy collection, not the product (design audit r2 #3). */
+const isShopMyCollection = (href: string) => /^https:\/\/shopmy\.us\/collections\//.test(href);
+
 function PickThumb({ pick }: { pick: CatalogPick }) {
   const [failed, setFailed] = useState(false);
   if (pick.image && !failed) {
@@ -42,7 +45,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <PickThumb pick={pick} />
         <span className="gg-nm">
           {pick.name}
-          <small>{pick.line ? `${pick.line} ` : ""}{G.onStore(storeLabel(pick))}</small>
+          <small>{pick.line ? `${pick.line} ` : ""}{isShopMyCollection(pick.href) ? G.collectionOnShopMy : G.onStore(storeLabel(pick))}</small>
           {pick.badges && (
             <span className="gg-badges">
               {pick.badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}

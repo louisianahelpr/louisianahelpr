@@ -898,7 +898,8 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
       photos += 1;
       expect(new URL(p.image).hostname, `${slug}: ${p.name}`).not.toMatch(/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/);
     }
-    expect(photos).toBeGreaterThan(5000);
+    // Floor re-measured 2026-11-18 after design audit r2 dropped page titles, store names and promos (4,397 photos).
+    expect(photos).toBeGreaterThan(4000);
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
     // collection, not the retailer) is on no store page.
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null

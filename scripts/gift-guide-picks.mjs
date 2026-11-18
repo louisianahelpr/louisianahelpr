@@ -26,6 +26,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
+import { BRAND_CASE, NOT_LOUISIANA_BUSINESS, brokenImage, fitsGuide, productName } from "./giftGuideRules.mjs";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -98,6 +99,28 @@ export const AMAZON_CDN_PHOTOS = process.env.GIFT_AMAZON_PHOTOS === "on" || fals
 /** The link library (~/Desktop/Link-library): unused-by-guide.json holds each guide's links not yet on it. */
 const LIB = process.env.GIFT_LINK_LIBRARY ?? join(homedir(), "Desktop", "Link-library");
 const hidden = [];
+/**
+ * A stock line used on more than LINE_MAX_PRODUCTS different products ("The cup that goes everywhere…" on 109 rows on 2026-11-18,
+ * design audit r2 #6) reads as filler and lands on the wrong product: it is left blank, never replaced.
+ */
+const LINE_MAX_PRODUCTS = 3;
+const lineProducts = new Map();
+for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+  let v;
+  try {
+    v = JSON.parse(readFileSync(join(dir, f), "utf8"));
+  } catch {
+    // A file another agent is mid-writing: its lines are counted on the next run.
+    continue;
+  }
+  for (const r of Array.isArray(v) ? v : Array.isArray(v?.links) ? v.links : []) {
+    if (!r || typeof r.line !== "string" || !r.line.trim() || typeof r.name !== "string") continue;
+    const set = lineProducts.get(r.line.trim()) ?? new Set();
+    set.add(compact(r.name));
+    lineProducts.set(r.line.trim(), set);
+  }
+}
+const stockLine = (line) => (lineProducts.get(String(line ?? "").trim())?.size ?? 0) > LINE_MAX_PRODUCTS;
 /** One raw pick -> the page's pick, or null (hidden: the reason is listed). */
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
@@ -129,6 +152,9 @@ function toPick(p, where) {
     : AMAZON.has(host) || AMAZON.has(plainHost) ? storeFor("Amazon")
     : LOUISIANA.has(host) || SPONSORS.has(host) ? null
     : storeFor(p.retailer || p.store || p.brand);
+  // A Louisiana shop or a 25 Days sponsor keeps its own words: those rows name the local business on purpose.
+  const name = LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host));
+  if (!name) return hidden.push(`${where}: "${p.name}" is a page title, store name or promo, not a product`), null;
   if (store) stores.get(store).hosts.add(host);
   const flags = Object.fromEntries(["trending", "shipsFast", "localPickup"].filter((k) => p[k] === true).map((k) => [k, true]));
   // No Amazon-hosted product photo is hotlinked (Associates rules: Amazon images only through SiteStripe or its API);
@@ -140,12 +166,14 @@ function toPick(p, where) {
   // ShopMy's own S3 photos answer 403 AccessDenied (all 639 distinct URLs, curl 11-18 PM): dropped like the TIFFs, so
   // mixed guides swap in photo'd picks and no row makes a failed request.
   const deadHost = typeof p.image === "string" && /^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(p.image);
-  const image = !tiff && !deadHost && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe")) ? p.image : undefined;
+  const image = !tiff && !deadHost && !(typeof p.image === "string" && brokenImage(p.image)) && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe")) ? p.image : undefined;
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);
+  const brand = BRAND_CASE[compact(p.brand ?? "")] ?? p.brand ?? "";
+  const louisianaFit = p.louisianaFit && ![p.brand, p.store, p.retailer].some((x) => typeof x === "string" && NOT_LOUISIANA_BUSINESS.test(x.trim()));
   return {
-    name: p.name, brand: p.brand ?? "", line: p.line ?? "", href,
-    ...(image ? { image } : {}), ...(priced ?? {}), ...(store ? { store } : {}), ...(p.louisianaFit ? { louisianaFit: true } : {}), ...flags,
+    name, brand, line: stockLine(p.line) ? "" : (p.line ?? ""), href,
+    ...(image ? { image } : {}), ...(priced ?? {}), ...(store ? { store } : {}), ...(louisianaFit ? { louisianaFit: true } : {}), ...flags,
   };
 }
 
@@ -155,16 +183,26 @@ export const SPONSORS_GUIDE = "25-days-sponsors";
 export const NAME_ONLY = [{ guide: SPONSORS_GUIDE, brand: "Hilma" }];
 const nameOnly = (slug, p) => NAME_ONLY.some((x) => x.guide === slug && x.brand === p.brand);
 
+/** Near-duplicate variants (design audit r2 #7: "…Coffee Pods, 12 Boxes" and "…Coffee Pods"): same brand, same first 24 letters. */
+const variantKey = (p) => `${compact(p.brand ?? "")} ${compact(p.name).slice(0, 24)}`;
 const guides = {};
 const add = (slug, raw, where) => {
   const p = toPick(raw, where);
   if (!p) return;
+  if (!fitsGuide(slug, p)) return hidden.push(`${where}: ${p.name} does not fit ${slug}`);
   if (slug === SPONSORS_GUIDE) p.sponsor = true;
   const list = (guides[slug] ??= []);
   // One row per link in a guide (a ShopMy collection link is shared by several products, so those match by name too).
   const shared = new URL(p.href).hostname === "shopmy.us";
   // ... and one row per product name (design audit 11-18: UGG Tasman at #1 on Amazon and again at #23 on ShopMy).
-  if (!list.some((x) => (x.href === p.href && (!shared || x.name === p.name)) || compact(x.name) === compact(p.name))) list.push(p);
+  if (list.some((x) => (x.href === p.href && (!shared || x.name === p.name)) || compact(x.name) === compact(p.name))) return;
+  // A near-duplicate variant: the one with a photo stays (the first, when both or neither have one).
+  const twin = list.findIndex((x) => variantKey(x) === variantKey(p));
+  if (twin >= 0) {
+    if (!list[twin].image && p.image) list[twin] = p;
+    return;
+  }
+  list.push(p);
 };
 
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.startsWith("_")).sort()) {
@@ -225,7 +263,7 @@ const swappedOut = [];
       if (u.type !== "product" || !u.image) continue;
       const raw = { brand: u.brand, name: u.name, line: u.line ?? "", image: u.image, image_source: u.image_source, href: u.store_href || u.affiliate_href, affiliate_href: u.affiliate_href };
       const p = toPick(raw, `unused-by-guide ${slug}`);
-      if (!p?.image || used.has(p.href) || names.has(compact(p.name))) continue;
+      if (!p?.image || used.has(p.href) || names.has(compact(p.name)) || !fitsGuide(slug, p) || list.some((x) => variantKey(x) === variantKey(p))) continue;
       pool.push(p);
       names.add(compact(p.name));
     }

@@ -218,6 +218,8 @@ export const giftGuides = {
   dealEnds: (ymd: string) => `Ends ${new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
   newTab: "opens in a new tab",
   onStore: (store: string) => `On ${store}`,
+  /** A ShopMy collection link opens a page of many products, not this one (design audit r2 #3/#9): the row says so. */
+  collectionOnShopMy: "Collection on ShopMy",
   /** The pick badges (owner 2026-11-18). Never a price. */
   badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,

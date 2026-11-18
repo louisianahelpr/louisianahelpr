@@ -175,7 +175,7 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(searchGuides("   ")).toEqual([]);
     expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"]));
     // By group: "experiences" finds every guide in that row, even ones whose title lacks the word.
-    const holding = ["gift-cards", "spa-days", "date-night"].filter((x) => !guideBySlug(x)?.empty);
+    const holding = ["gift-cards", "subscriptions", "spa-days", "date-night"].filter((x) => !guideBySlug(x)?.empty);
     expect(holding.length).toBeGreaterThan(0);
     expect(searchGuides("experiences").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
     expect(searchGuides("tractor supply").map((g) => g.slug)).toEqual(["store-tractor-supply"]);
@@ -193,9 +193,9 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(input.getAttribute("placeholder")).toBe("Search");
     expect(side.firstElementChild?.contains(input)).toBe(true);
     expect(side.querySelector("label svg")).not.toBeNull();
-    fireEvent.change(input, { target: { value: "spa" } });
+    fireEvent.change(input, { target: { value: "gift cards" } });
     const found = [...side.querySelectorAll("a[data-gift-found]")].map((a) => a.getAttribute("data-gift-found"));
-    expect(found).toContain("spa-days");
+    expect(found).toContain("gift-cards");
     expect(side.querySelector("details[data-gift-group]")).toBeNull();
     fireEvent.change(input, { target: { value: "xyzzy" } });
     expect(side.textContent).toContain("No guides match");

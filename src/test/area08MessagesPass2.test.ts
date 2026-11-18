@@ -16,6 +16,9 @@
  * @mutate src/components/messages/chatView/ChatTimeline.tsx |             hideTime={timeOnNext}\n | \n
  * @mutate src/components/messages/MessageBubble.tsx |             {!hideTime ? ( |             {true ? (
  * @mutate src/components/messages/chatView/ChatTimeline.tsx | export const TIME_GROUP_MS = 10 * 60 * 1000; | export const TIME_GROUP_MS = 0;
+ * @mutate supabase/functions/_shared/email-templates/email-changed.tsx |         Questions? Write to us at <SupportAddress />.\n      </TransactionalFooter>\n    }\n  >\n    <Heading className="e-h1" style={h1}>\n      {SELF_CHANGE_HEADING} |         Questions? Contact us at <SupportAddress />.\n      </TransactionalFooter>\n    }\n  >\n    <Heading className="e-h1" style={h1}>\n      {SELF_CHANGE_HEADING}
+ * @mutate supabase/functions/_shared/email-templates/drip.tsx |       Questions? Write to us at admin@louisianahelpr.com.\n |       Questions? admin@louisianahelpr.com.\n
+ * @mutate supabase/functions/_shared/email-templates/confirmReminder.tsx | create an account on Louisiana Helpr | create an account on Helpr
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -109,5 +112,18 @@ describe("L3: one time per 10-minute stretch, on its last message", () => {
     const bubble = code("src/components/messages/MessageBubble.tsx");
     expect(bubble).toContain("{!hideTime ? (");
     expect(bubble).not.toMatch(/\{!grouped && \(\s*<span>\s*\{new Date/);
+  });
+});
+
+describe("L17: one contact line across the emails, the full name first", () => {
+  const T = "supabase/functions/_shared/email-templates/";
+  it("every contact line reads the same", () => {
+    const changed = code(`${T}email-changed.tsx`);
+    const drip = code(`${T}drip.tsx`);
+    expect((changed.match(/Questions\? Write to us at <SupportAddress \/>\./g) ?? []).length).toBe(2);
+    expect((drip.match(/Questions\? Write to us at admin@louisianahelpr\.com\./g) ?? []).length).toBe(2);
+    for (const src of [changed, drip]) expect(src).not.toMatch(/Reach out any time at|Just reply to this email|Questions\? Contact us at|Questions\? admin@/);
+    expect(code(`${T}confirmReminder.tsx`)).toContain("create an account on Louisiana Helpr");
+    expect(code(`${T}gift-card.tsx`)).toContain("sent you a {amount} Louisiana Helpr credit");
   });
 });

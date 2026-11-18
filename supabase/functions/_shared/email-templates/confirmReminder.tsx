@@ -29,7 +29,7 @@ export const ConfirmReminderEmail = ({ step, confirmationUrl }: ConfirmReminderE
       <BrandButton href={confirmationUrl} label={copy.button} />
       <Text className="e-text e-rule" style={subtext}>{copy.after}</Text>
       <TransactionalFooter>
-        If you didn't create an account on Helpr, you can safely ignore this email.
+        If you didn't create an account on Louisiana Helpr, you can safely ignore this email.
       </TransactionalFooter>
     </BaseLayout>
   )

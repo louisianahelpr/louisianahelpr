@@ -63,7 +63,8 @@ export const GiftCardEmail = ({ donorName, amount, claimUrl, note, expiresOn }: 
     }
   >
     <Heading className="e-h1" style={h1}>
-      {donorName} sent you a {amount} Helpr credit
+      {/* Area 08 L17: the brand's full name on first mention. */}
+      {donorName} sent you a {amount} Louisiana Helpr credit
     </Heading>
     <Text className="e-text" style={textStyle}>
       {/* F172 (owner's message review 11-09): the giver by first name, not "Someone" under a heading naming them;

@@ -175,7 +175,7 @@ export const es: Record<MsgKey, string> = {
   "login.verify": "Verificar",
   "login.verifying": "Verificando…",
   "login.differentAccount": "Usar otra cuenta",
-  "login.confirmEmailFirst": "Revise su correo primero: debe confirmar su correo electrónico antes de iniciar sesión.",
+  "login.confirmEmailFirst": "Confirme su correo primero. El enlace está en su bandeja de entrada.",
   "login.mfaCheckFailed": "No pudimos verificar su configuración de seguridad. ¿Lo intenta de nuevo?",
   "login.tooManyAttempts": "Demasiados intentos. Inténtelo de nuevo en {minutes} min.",
   "login.mfaWrongCode": "Ese código no coincide. Revise su app e inténtelo de nuevo.",

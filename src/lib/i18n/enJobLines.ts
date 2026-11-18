@@ -89,6 +89,13 @@ export const enJobLines = {
   "jl.hours": "{h} h",
   "jl.hoursMin": "{h} h {n} min",
   "jl.at": "{day} at {clock}",
+  // Area 11 M12 (11-18): the poster's on-the-way block (OnTheWayNow.tsx) and the approve clock (reviewTimeLeft.ts).
+  "jl.nowArrived": "{name} arrived",
+  "jl.nowOnWay": "{name} is on the way",
+  "jl.nowSince": "since {when}",
+  "jl.nowConfirmNote": "You'll confirm once they say they've arrived.",
+  "jl.approveLeft": "{left} left to approve or ask for a change, then Helpr support steps in",
+  "jl.approveLate": "You can still approve. Helpr support will check in; your payment stays held",
 } as const;
 
 addEnglish(enJobLines);

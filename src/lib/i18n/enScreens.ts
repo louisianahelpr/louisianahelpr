@@ -85,7 +85,7 @@ export const enScreens = {
   "login.verify": "Verify",
   "login.verifying": "Verifying…",
   "login.differentAccount": "Use a different account",
-  "login.confirmEmailFirst": "Check your inbox first — you'll need to confirm your email before signing in.",
+  "login.confirmEmailFirst": "Confirm your email first. The link is in your inbox.",
   "login.mfaCheckFailed": "Couldn't verify your security settings — try again?",
   "login.tooManyAttempts": "Too many attempts \u2014 try again in {minutes} min.",
   "login.mfaWrongCode": "That code didn't match. Check your app and try again.",

@@ -83,4 +83,10 @@ export const esJobLines: Record<keyof typeof enJobLines, string> = {
   "jl.hours": "{h} h",
   "jl.hoursMin": "{h} h {n} min",
   "jl.at": "{day} a las {clock}",
+  "jl.nowArrived": "{name} llegó",
+  "jl.nowOnWay": "{name} va en camino",
+  "jl.nowSince": "desde {when}",
+  "jl.nowConfirmNote": "Usted confirmará cuando diga que ya llegó.",
+  "jl.approveLeft": "Le quedan {left} para aprobar o pedir un cambio; después interviene el soporte de Helpr",
+  "jl.approveLate": "Todavía puede aprobar. El soporte de Helpr se comunicará con usted; su pago sigue retenido",
 };

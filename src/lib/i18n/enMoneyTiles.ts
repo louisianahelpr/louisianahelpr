@@ -23,6 +23,24 @@ export const enMoneyTiles = {
   "mt.nothingYet": "Nothing on its way yet",
   "mt.waiting": "Waiting for approval",
   "mt.dispute": "Held in a dispute",
+  // Area 11 M13 (11-18): Home's "Your payout didn't go through" card (PayoutFailedCard.tsx) and its bank reasons.
+  "mt.pf.needsYou": "Needs you",
+  "mt.pf.title": "Your payout didn't go through",
+  "mt.pf.cameBack": "came back",
+  "mt.pf.moreOne": ", and {n} more payout too",
+  "mt.pf.moreMany": ", and {n} more payouts too",
+  "mt.pf.back": "It's back in your payout balance. Update your bank or card so it can be sent again.",
+  "mt.pf.update": "Update payout method",
+  "mt.pf.account_closed": "The bank account is closed.",
+  "mt.pf.account_frozen": "The bank account is frozen.",
+  "mt.pf.bank_account_restricted": "The bank account can't take this payout.",
+  "mt.pf.bank_ownership_changed": "The bank account changed owners.",
+  "mt.pf.could_not_process": "The bank couldn't process it.",
+  "mt.pf.debit_not_authorized": "The bank didn't allow it.",
+  "mt.pf.incorrect_account_holder_name": "The name on the bank account doesn't match.",
+  "mt.pf.invalid_account_number": "The account number isn't right.",
+  "mt.pf.invalid_currency": "The bank account can't take US dollars.",
+  "mt.pf.no_account": "The bank couldn't find that account.",
 } as const;
 
 addEnglish(enMoneyTiles);

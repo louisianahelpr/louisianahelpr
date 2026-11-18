@@ -5,7 +5,7 @@
  * once the job no longer waits on an approval, 20261023143240), so the line says so. The Posted card's countdown
  * says the same words.
  *
- * @mutate src/pages/jobs/jobPage/reviewTimeLeft.ts | return "You can still approve. Helpr support will check in; your payment stays held"; | return "24 hours passed. Helpr support will reach out; your payment stays held";
+ * @mutate src/lib/i18n/enJobLines.ts | "jl.approveLate": "You can still approve. Helpr support will check in; your payment stays held", | "jl.approveLate": "24 hours passed. Helpr support will reach out; your payment stays held",
  * @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | expiredText="You can still approve. Helpr support will check in; your payment stays held." | expiredText="24 hours passed — Helpr support will reach out. Your payment stays held."
  */
 import { describe, it, expect } from "vitest";

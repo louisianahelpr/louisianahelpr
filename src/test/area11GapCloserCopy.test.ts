@@ -9,18 +9,20 @@
 //   L3  "Paid and released" -> "Paid. Your Helpr's pay goes out ..."
 //
 // @mutate src/components/admin/FormalWarningDialog.tsx | Note to the member (they'll see it)</p> | Internal note (sent to user)</p>
-// @mutate src/components/money/PayoutFailedCard.tsx |         Update payout method |         Fix bank
+// @mutate src/lib/i18n/enScreens.ts | "login.confirmEmailFirst": "Confirm your email first. The link is in your inbox.", | "login.confirmEmailFirst": "Check your inbox first — you'll need to confirm your email before signing in.",
+// @mutate src/lib/i18n/enMoneyTiles.ts | "mt.pf.update": "Update payout method", | "mt.pf.update": "Fix bank",
 // @mutate src/content/sponsorPage.ts | your sign-up wasn't saved. | your sign-up was NOT saved.
 // @mutate src/pages/profile/Receipts.tsx | "Card cost owed after a ruling on one of your jobs" | "Amount owed from a job you were ruled at fault on"
 // @mutate src/pages/auth/SignupPending.tsx | toast.error(AUTH_RATE_LIMIT_MESSAGE); | toast.error("Too many requests — try again in a minute.");
-// @mutate src/pages/jobs/jobPage/reviewTimeLeft.ts | left to approve or ask for a change, then Helpr support steps in`; | left, then Helpr support steps in`;
+// @mutate src/lib/i18n/enJobLines.ts | "jl.approveLeft": "{left} left to approve or ask for a change, then Helpr support steps in", | "jl.approveLeft": "{left} left, then Helpr support steps in",
 // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | `Paid. Your Helpr's pay goes out ${payoutWhen(at)}.` | `Paid and released to your Helpr. Their pay goes out ${payoutWhen(at)}.`
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { AUTH_RATE_LIMIT_MESSAGE, recognizedAuthError } from "@/lib/authErrors";
+import { AUTH_RATE_LIMIT_MESSAGE, EMAIL_NOT_CONFIRMED_MESSAGE, recognizedAuthError } from "@/lib/authErrors";
 import { enScreens } from "@/lib/i18n/enScreens";
+import { enMoneyTiles } from "@/lib/i18n/enMoneyTiles";
 import { sponsorPage } from "@/content/sponsorPage";
 import { reviewTimeLeft } from "@/pages/jobs/jobPage/reviewTimeLeft";
 
@@ -44,7 +46,9 @@ describe("area 11 gap-closer copy", () => {
   });
   it("L14: the payout card's button names the payout method at 44 px", () => {
     expect(files.payout).not.toMatch(/>\s*Fix bank\s*</);
-    expect(files.payout).toMatch(/h-11 px-5[^>]*>\s*Update payout method\s*</);
+    // The words moved to enMoneyTiles.ts with Area 11 M13 (Spanish); the button reads them by key.
+    expect(files.payout).toMatch(/h-11 px-5[^>]*>\s*\{t\("mt\.pf\.update"\)\}\s*</);
+    expect(enMoneyTiles["mt.pf.update"]).toBe("Update payout method");
   });
   it("L16: the sponsor error doesn't shout", () => {
     expect(sponsorPage.claim.errors.generic).not.toMatch(/\bNOT\b/);
@@ -70,5 +74,10 @@ describe("area 11 gap-closer copy", () => {
   it("L3: the released line never says 'released' before the pay goes out", () => {
     expect(files.parts).not.toMatch(/Paid and released/);
     expect(files.parts).toContain("`Paid. Your Helpr's pay goes out ${payoutWhen(at)}.`");
+  });
+  // Area 11 L13 (11-18): one confirm-your-email sentence, from the server's error and from Login's own check.
+  it("L13: one confirm-email message", () => {
+    expect(EMAIL_NOT_CONFIRMED_MESSAGE).toBe(enScreens["login.confirmEmailFirst"]);
+    expect(recognizedAuthError("Email not confirmed")).toBe(EMAIL_NOT_CONFIRMED_MESSAGE);
   });
 });

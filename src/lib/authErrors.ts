@@ -18,7 +18,8 @@
  * machine-shape filter trusts them and passes them through verbatim.
  */
 /** F259f (audit 11-10): Login offers "Send the email again" beside this one message, instead of Forgot password. */
-export const EMAIL_NOT_CONFIRMED_MESSAGE = "Please verify your email first — check your inbox for the link.";
+// Area 11 L13 (11-18): the same sentence as Login's own unconfirmed toast (enScreens login.confirmEmailFirst): one message, not two.
+export const EMAIL_NOT_CONFIRMED_MESSAGE = "Confirm your email first. The link is in your inbox.";
 
 /** Area 11 L13 (11-18): ONE rate-limit sentence on every auth screen (login, sign-up resend, forgot password). */
 export const AUTH_RATE_LIMIT_MESSAGE = "Too many attempts just now. Give it a moment and try again.";

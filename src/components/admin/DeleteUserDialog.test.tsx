@@ -71,8 +71,11 @@ describe("DeleteUserDialog", () => {
       <DeleteUserDialog profile={sampleProfile} onClose={vi.fn()} />,
     );
     expect(screen.getByText(/Delete account/)).toBeInTheDocument();
-    // formatName outputs "First L." for two-part names.
-    expect(screen.getByText(/Lexi L\./)).toBeInTheDocument();
+    // Design audit area 10 #40: the full name, so the admin knows exactly whose account goes; no placeholder that
+    // reads as already typed.
+    // @mutate src/components/admin/DeleteUserDialog.tsx | {profile?.full_name?.trim() \|\| formatName(profile?.full_name)} | {formatName(profile?.full_name)}
+    expect(screen.getByText(sampleProfile.full_name!)).toBeInTheDocument();
+    expect(screen.getByRole("textbox").getAttribute("placeholder")).toBeNull();
     expect(
       screen.getByText(/permanent and cannot be undone/i),
     ).toBeInTheDocument();

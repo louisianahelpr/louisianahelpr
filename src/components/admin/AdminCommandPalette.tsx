@@ -125,7 +125,8 @@ export function AdminCommandPalette({ onSelect }: { onSelect: (view: string) => 
                     // title so a search for the group surfaces its sections.
                     value={`${it.label} ${g.title}`}
                     onSelect={() => choose(it.id)}
-                    className="text-ds-13"
+                    // Design audit area 10 #35: the active row is the admin rail's olive (primary), not burnt sienna.
+                    className="text-ds-13 data-[selected=true]:bg-primary/10 data-[selected=true]:text-foreground"
                   >
                     {it.label}
                   </CommandItem>

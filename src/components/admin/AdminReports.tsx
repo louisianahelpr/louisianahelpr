@@ -34,7 +34,8 @@ import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
 import { reportsQueueKey, type ReportQueueFilter } from "@/components/admin/adminQueueKeys";
 import { REPORT_FILTERS } from "@/components/admin/adminReports/reportFilters";
 import { WANTED_REPORT } from "@/components/admin/adminReports/reportedWanted";
-import { fetchReports } from "@/components/admin/adminReports/fetchReports";
+import { countedReports, fetchReports } from "@/components/admin/adminReports/fetchReports";
+import { Switch } from "@/components/ui/switch";
 import { DeclutterTakeDown } from "@/components/admin/adminReports/DeclutterTakeDown";
 import { WantedReportPanel } from "@/components/admin/adminReports/WantedReportPanel";
 import { ReportedCopy } from "@/components/admin/adminReports/ReportedCopy";
@@ -73,17 +74,20 @@ const AdminReports = () => {
 
   const queryKey = reportsQueueKey(filter);
   // Owner 2026-10-27: each pill carries the number of reports it lists.
-  const counts = useFilterCounts(REPORT_FILTER_VALUES, reportsQueueKey, fetchReports, (rows) => rows.length);
+  // Design audit area 10 #5: a test-marked report is never counted, and listed only with "Show test rows" on.
+  const counts = useFilterCounts(REPORT_FILTER_VALUES, reportsQueueKey, fetchReports, (rows) => countedReports(rows).length);
+  const [showTest, setShowTest] = useState(false);
   // isError/refetch, not a swallowed toast. This caught the error, told the
   // user once, and returned [] — so a failed read rendered "No pending
   // reports", which is the same screen as a genuinely empty queue. An admin
   // looking at an outage saw an all-clear and moved on. AdminIDVReview.tsx
   // already ships the right shape; this matches it.
-  const { data: reports, isInitialLoading, isError, refetch } = useInstantQuery<Report[]>({
+  const { data: allReports, isInitialLoading, isError, refetch } = useInstantQuery<Report[]>({
     key: queryKey,
     fallback: [],
     fetcher: () => fetchReports(filter),
   });
+  const reports = showTest ? allReports : countedReports(allReports);
 
   // Every status tab: a status change moves a report between tabs, and each pill counts its own (useFilterCounts).
   const loadReports = () => qc.invalidateQueries({ queryKey: ["admin-reports"] });
@@ -232,11 +236,7 @@ const AdminReports = () => {
 
   return (
     <AdminViewShell>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate("/admin/preview/messages")}>Preview the Messages page</Button>
-        {/* Q2664 (b): the sign-up screens after step 2 no test account can reach. */}
-        <Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate("/admin/preview/onboarding")}>Preview sign-up</Button>
-      </div>
+      {/* Design audit area 10 #3: the Messages and sign-up previews are listed under System > Stage previews. */}
       {/* Five chips wrapped to two ragged rows at 375. One scrollable strip with the shared edge fade instead — a
           cut-off chip then reads as "there is more this way" rather than as a broken layout. */}
       {/* Real Title Case text, not CSS `capitalize` over a lowercase status
@@ -261,6 +261,10 @@ const AdminReports = () => {
           </Button>
         ))}
       </AdminFilterStrip>
+      <label htmlFor="reports-show-test" className="flex items-center gap-2 text-sm font-medium cursor-pointer self-start">
+        Show test rows
+        <Switch id="reports-show-test" checked={showTest} onCheckedChange={setShowTest} />
+      </label>
 
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading reports…</p>
@@ -275,7 +279,8 @@ const AdminReports = () => {
         <EmptyState
           variant="inline"
           icon={AlertTriangle}
-          title={filter !== "all" ? `No ${filter} reports` : "No reports"}
+          // Design audit area 10 #33: the tab's own label ("New"), never the raw status key ("pending").
+          title={filter !== "all" ? `No ${(REPORT_FILTERS.find((f) => f.value === filter)?.label ?? filter).toLowerCase()} reports` : "No reports"}
           body={
             filter !== "all"
               ? "Nothing matches this filter — try All."
@@ -328,8 +333,10 @@ const AdminReports = () => {
                   {/* Calm "sienna" accent badge, not destructive: a new/pending
                       report isn't a danger/delete action — the mauve destructive
                       color is reserved for genuinely destructive controls. */}
-                  <Badge variant="sienna">
-                    {report.status === "pending" ? "new" : report.status}
+                  {/* Design audit area 10 #33 (11-18): the tab's own label in sentence case ("New", "Resolved"), and the
+                      same two colours as Support: sienna while it waits, grey once handled. */}
+                  <Badge variant={report.status === "pending" || report.status === "new" ? "sienna" : "secondary"}>
+                    {REPORT_FILTERS.find((f) => f.value === report.status)?.label ?? (report.status.charAt(0).toUpperCase() + report.status.slice(1))}
                   </Badge>
                   {report.assigned_to_name && (
                     <Badge variant="outline" className="text-ds-10 gap-0.5">

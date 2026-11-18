@@ -279,12 +279,13 @@ const AdminUsers = () => {
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "all", label: "All", count: allCount },
     { key: "approved", label: "Active", count: approvedCount },
-    { key: "awaiting_email", label: "Email", count: awaitingEmailCount },
+    // Design audit area 10 #25: "Email" alone was unclear.
+    { key: "awaiting_email", label: "Email not confirmed", count: awaitingEmailCount },
     { key: "banned", label: "Banned", count: bannedCount },
   ];
 
   const tabCountLabel: Record<Tab, string> = {
-    awaiting_email: "pending email verification",
+    awaiting_email: "unconfirmed-email",
     approved: "active",
     banned: "banned",
     all: "total",

@@ -386,6 +386,8 @@ test.describe.serial("admin and safety journeys", () => {
       // The dialog shows a formatted name ("SEED e."), so it is found by its title.
       const detail = ap.getByRole("dialog", { name: "User profile" }).first();
       await expect(detail, "the user's detail never opened from ?user=").toBeVisible({ timeout: 60_000 });
+      // The detail opens on Overview (design audit area 10 #13); the tools are on the Actions tab.
+      await detail.getByRole("tab", { name: "Actions" }).click();
       await detail.getByRole("button", { name: /Suspend \/ Ban/ }).click();
       const ban = ap.getByRole("dialog").filter({ has: ap.getByRole("radiogroup", { name: "Action type" }) }).first();
       await expect(ban).toBeVisible({ timeout: 20_000 });

@@ -32,8 +32,33 @@ export const statusBadge = (profile: Profile) => {
   if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive-ink text-ds-11">Temp Banned</Badge>;
   // "warned" status is intentionally not surfaced as a status badge — the strike chip
   // ("1st Strike", "Final Warning", etc.) already conveys this without duplication.
-  if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] text-ds-11">Pending Email Verification</Badge>;
-  return <Badge className="bg-primary/10 text-primary text-ds-11">Active</Badge>;
+  // Design audit area 10 #25 (11-18): plain words ("Email not confirmed"), and no "Active" chip on every row; only a
+  // status that needs a look gets a chip.
+  if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] text-ds-11">Email not confirmed</Badge>;
+  return null;
+};
+
+/**
+ * Design audit area 10 #24 (11-18): the Users row's name. An all-lowercase name ("marie beaumont") shows title-cased,
+ * and a member with no name reads "No name (their email)" instead of a bare "—". Display only.
+ */
+export const adminRowName = (fullName: string | null | undefined, email: string | null | undefined): string => {
+  const name = (fullName ?? "").trim().replace(/\s+/g, " ");
+  if (!name) return email ? `No name (${email})` : "No name";
+  if (name !== name.toLowerCase()) return name;
+  return name.replace(/(^|[\s'-])(\p{L})/gu, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
+};
+
+/** Alphabetical order for the Users list: named members A to Z, nameless members last (they sorted first). */
+export const compareAdminNames = (
+  a: { full_name?: string | null; email?: string | null },
+  b: { full_name?: string | null; email?: string | null },
+): number => {
+  const an = (a.full_name ?? "").trim().toLowerCase();
+  const bn = (b.full_name ?? "").trim().toLowerCase();
+  if (!an !== !bn) return an ? -1 : 1;
+  if (!an) return (a.email ?? "").toLowerCase().localeCompare((b.email ?? "").toLowerCase());
+  return an.localeCompare(bn);
 };
 
 // Stripe Identity verification badge — green / yellow / gray.

@@ -6,7 +6,7 @@
  * the fan-out functions and the cron that ran them.
  */
 // @mutate src/pages/home/Dashboard.tsx | import { usePullToRefresh } from "@/hooks/usePullToRefresh"; | import { usePullToRefresh } from "@/hooks/usePullToRefresh"; void supabase.from("broadcasts").select("id");
-// @mutate src/components/admin/adminNavGroups.tsx | { id: "notifications", label: "Notifications", icon: BellRing }, | { id: "broadcasts", label: "Broadcasts", icon: BellRing }, { id: "notifications", label: "Notifications", icon: BellRing },
+// @mutate src/components/admin/adminNavGroups.tsx | { id: "notifications", label: "My notifications", icon: BellRing }, | { id: "broadcasts", label: "Broadcasts", icon: BellRing }, { id: "notifications", label: "My notifications", icon: BellRing },
 // @mutate supabase/migrations/20260924174847_drop_broadcasts_feature.sql | DROP TABLE IF EXISTS public.broadcast_messages; | SELECT 1;
 // @mutate supabase/migrations/20260924174847_drop_broadcasts_feature.sql | PERFORM cron.unschedule('sweep-pending-broadcast-fan-outs'); | PERFORM 1;
 import { describe, expect, it } from "vitest";

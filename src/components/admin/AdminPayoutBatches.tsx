@@ -353,8 +353,9 @@ const AdminPayoutBatches = () => {
         </div>
       )}
 
+      {/* Design audit area 10 #32: 13px, not 11px, for the select-all line. */}
       {tab === "ready" && readyBatches.length > 0 && (
-        <div className="flex items-center justify-between text-ds-11 px-1">
+        <div className="flex items-center justify-between text-ds-13 px-1">
           <InlineTextButton onClick={selectAllReady} className="text-primary">
             Select All with Stripe ({readyBatches.filter((b) => b.stripe_account_id).length})
           </InlineTextButton>

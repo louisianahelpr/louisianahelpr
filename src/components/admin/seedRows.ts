@@ -39,3 +39,20 @@ export async function withoutTestPeople<T>(rows: T[], people: (row: T) => (strin
   if (seed.size === 0) return rows;
   return rows.filter((r) => !people(r).some((id) => !!id && seed.has(id)));
 }
+
+/**
+ * Design audit area 10 #5 (11-18): test rows that no seed ACCOUNT gives away. Measured on prod 11-18 (read-only SQL):
+ * the Audit log's table-write rows for user_bans read "SEED audit fixture." / "E2E ban journey lg0izi" (System actor,
+ * so no seed admin to match), and Reports had "SEED audit fixture report." and "E2E-0905 automated test report" rows
+ * whose reporter was deleted. Upper-case on purpose: a member writing "seed" or "e2e" in a real report is not matched.
+ */
+const TEST_TEXT_MARKER = /\bSEED audit fixture\b|\bE2E[-\s]/;
+
+/** True when any text in `value` (a string, or JSON such as audit details) carries a test-run marker. */
+export function mentionsTestMarker(...values: unknown[]): boolean {
+  return values.some((v) => {
+    if (v == null) return false;
+    const text = typeof v === "string" ? v : JSON.stringify(v);
+    return TEST_TEXT_MARKER.test(text);
+  });
+}

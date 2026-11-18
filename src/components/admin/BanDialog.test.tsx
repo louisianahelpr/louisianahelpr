@@ -119,7 +119,7 @@ describe("BanDialog", () => {
   it.each([
     ["Temp Ban", /Ban for 7 days/],
     ["Perm Ban", /Permanently Ban/],
-    [null, /Issue Warning/],
+    ["^Warning$", /Issue Warning/],
   ] as const)("an account under an open ban review: %s writes nothing and says why (Q1414)", async (tier, cta) => {
     reviewResult = { data: [{ id: "review-1" }], error: null };
     const onSuccess = vi.fn();
@@ -147,15 +147,17 @@ describe("BanDialog", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("starts on the warning action by default", () => {
+  // Design audit area 10 #14: opened from "Suspend / Ban", the dialog starts on Temp Ban, not Warning.
+  // @mutate src/components/admin/BanDialog.tsx |   const [banType, setBanType] = useState<BanType>("temporary"); |   const [banType, setBanType] = useState<BanType>("warning");
+  it("starts on the temp ban action by default", () => {
     render(<BanDialog profile={sampleProfile} onClose={vi.fn()} />);
-    // Confirm button copy reflects warning mode initially
-    expect(screen.getByRole("button", { name: /Issue Warning/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Ban for 7 days/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Issue Warning/ })).toBeNull();
   });
 
   it("submit is enabled by default — reason picker defaults to a valid category", () => {
     render(<BanDialog profile={sampleProfile} onClose={vi.fn()} />);
-    const btn = screen.getByRole("button", { name: /Issue Warning/ });
+    const btn = screen.getByRole("button", { name: /Ban for 7 days/ });
     // The reason picker defaults to "tos", which produces a usable label
     // for the audit row even without a freeform note.
     expect(btn).not.toBeDisabled();
@@ -167,7 +169,7 @@ describe("BanDialog", () => {
   // leave a ban row and a strike behind a refused status write.
   // @mutate src/components/admin/BanDialog.tsx |         await applyAdminAccountAction({\n          userId: profile.user_id,\n          action: "warning", |         await supabase.from("user_violations").insert({ user_id: profile.user_id, violation_type: "admin_warning", action_taken: "warning", reported_by: user.id });\n        await applyAdminAccountAction({\n          userId: profile.user_id,\n          action: "warning",
   it.each([
-    [null, /Issue Warning/, "warning"],
+    ["^Warning$", /Issue Warning/, "warning"],
     ["Temp Ban", /Ban for 7 days/, "temporary"],
     ["Perm Ban", /Permanently Ban/, "permanent"],
   ] as const)("%s is one apply_account_action call and no direct table write (Q1494)", async (tier, cta, kind) => {
@@ -240,6 +242,7 @@ describe("BanDialog", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: sampleProfile.user_id } } });
     const onSuccess = vi.fn();
     render(<BanDialog profile={sampleProfile} onClose={vi.fn()} onSuccess={onSuccess} />);
+    fireEvent.click(screen.getByText(/^Warning$/));
     fireEvent.click(screen.getByRole("button", { name: /Issue Warning/ }));
 
     await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/your own account/i)));

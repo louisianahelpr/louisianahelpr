@@ -10,9 +10,15 @@ import { hydrateReportedQuestions, isQuestionReport, questionAuthor, questionSub
 import { hydrateReportedShops, isShopReport, shopSubject } from "@/components/admin/adminReports/reportedShops";
 import { hydrateReportedHomes, homeSubject, HOME_LISTING_REPORT, HOME_TALK_MESSAGE_REPORT } from "@/components/admin/adminReports/reportedHomes";
 import type { Report } from "@/components/admin/adminReports/reportType";
+import { mentionsTestMarker } from "@/components/admin/seedRows";
+
+/** Design audit area 10 #5: the reports a count or a default list shows (no test-marked row). */
+export const countedReports = (rows: Report[]): Report[] => rows.filter((r) => !r.test_marked);
 
 // The moderation queue's read, moved out of AdminReports.tsx unchanged (Q806, componentSizeRatchet). The list AND
 // its pill counts (useFilterCounts) and the admin rail's pending badge (adminRailBadges) all read this one function.
+
+const markTestText = <R extends Report>(r: R): R => ({ ...r, test_marked: mentionsTestMarker(r.reason, r.description) });
 
 /** One status tab's reports, test accounts left out: the list AND its pill count (useFilterCounts) read this. */
 export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]> {
@@ -182,7 +188,7 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
         || (r.reporter_id !== null && seedIds.has(r.reporter_id))
         || (r.reported_type === "application"
           && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
-    })).filter(r => !r.is_test);
+    })).filter(r => !r.is_test).map(markTestText);
   }
-  return reportRows;
+  return reportRows.map(markTestText);
 }

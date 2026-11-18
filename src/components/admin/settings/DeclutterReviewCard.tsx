@@ -83,7 +83,7 @@ function PendingItem({ row }: { row: PendingRow }) {
 }
 
 /**
- * "Show test listings" is held by the parent (FeatureSwitchesCard) when it passes `showTest`, so the same switch also
+ * "Show test listings" is held by the parent (AdminDeclutter) when it passes `showTest`, so the same switch also
  * shows test accounts' problems on the Declutter problems card (audit 1028 part 2, D2-4). Alone, the card holds it.
  */
 export function DeclutterReviewCard({ showTest: shown, onShowTestChange }: { showTest?: boolean; onShowTestChange?: (on: boolean) => void } = {}) {

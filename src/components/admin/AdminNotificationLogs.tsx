@@ -137,9 +137,12 @@ interface AdminNotificationLogsProps {
 function LogsPlaceholder({
   isInitialLoading,
   isError,
+  filtered = false,
 }: {
   isInitialLoading: boolean;
   isError: boolean;
+  /** Design audit area 10 #34: a search or a filter is set. With none, "match your filters" was wrong. */
+  filtered?: boolean;
 }) {
   if (isInitialLoading) {
     return (
@@ -165,8 +168,8 @@ function LogsPlaceholder({
     <EmptyState
       variant="inline"
       icon={Inbox}
-      title="No logs match your filters"
-      body="Nothing has been sent that fits the current selection."
+      title={filtered ? "No logs match your filters" : "No notifications sent yet"}
+      body={filtered ? "Nothing has been sent that fits the current selection." : "Each in-app, email and push send lands here."}
     />
   );
 }
@@ -322,7 +325,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger aria-label="Status filter"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="sent">Sent</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
               <SelectItem value="suppressed">Suppressed</SelectItem>
@@ -336,7 +339,8 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
           <Select value={channel} onValueChange={setChannel}>
             <SelectTrigger aria-label="Channel filter"><SelectValue placeholder="Channel" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
+              {/* Design audit area 10 #34: the third select said only "All". */}
+              <SelectItem value="all">All channels</SelectItem>
               <SelectItem value="in_app">In-App</SelectItem>
               <SelectItem value="email">Email</SelectItem>
               <SelectItem value="push">Push</SelectItem>
@@ -362,7 +366,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
             <tbody>
               {filtered.length === 0 && (
                 <tr><td colSpan={6} className="px-4 py-6">
-                  <LogsPlaceholder isInitialLoading={isInitialLoading} isError={isError} />
+                  <LogsPlaceholder isInitialLoading={isInitialLoading} isError={isError} filtered={!!search.trim() || category !== "all" || status !== "all" || channel !== "all"} />
                 </td></tr>
               )}
               {filtered.map((row) => (
@@ -421,7 +425,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         <div className="md:hidden">
           {filtered.length === 0 ? (
             <div className="px-4 py-6">
-              <LogsPlaceholder isInitialLoading={isInitialLoading} isError={isError} />
+              <LogsPlaceholder isInitialLoading={isInitialLoading} isError={isError} filtered={!!search.trim() || category !== "all" || status !== "all" || channel !== "all"} />
             </div>
           ) : (
             <div className="divide-y divide-border">

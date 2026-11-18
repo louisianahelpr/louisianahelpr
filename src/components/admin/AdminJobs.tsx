@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { functionErrorMessage, unwrap } from "@/lib/supabaseResult";
@@ -462,7 +462,7 @@ const AdminJobs = () => {
 
   return (
     <AdminViewShell>
-      <Button asChild variant="outline" size="sm" className="gap-1.5 self-start rounded-full"><Link to="/admin/preview/job">Preview the job page at every stage</Link></Button>
+      {/* Design audit area 10 #3: the job preview is listed under System > Stage previews. */}
       <AdminFilterStrip label="Job filter">
         {FILTERS.map((f) => (
           <Button
@@ -515,7 +515,7 @@ const AdminJobs = () => {
             }
             body={
               filter === "active"
-                ? "No paid job is open or in progress right now."
+                ? "No paid or card-on-hold job is open or in progress right now. Unpaid, finished and cancelled jobs are under All."
                 : filter === "flagged"
                 ? "Nothing has tripped a moderation flag."
                 : filter === "ghost"

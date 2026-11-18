@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render as rtlRender, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import type { ReactElement } from "react";
 import { AdminUserDetailDialog } from "./AdminUserDetailDialog";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -85,6 +86,14 @@ function makeProps(viewProfile: Profile | null) {
   };
 }
 
+/** The dialog opens on Overview (design audit area 10 #13); these tests drive the Actions tab. Radix Tabs switch on
+ *  mousedown. */
+function renderOnActions(ui: ReactElement) {
+  const r = render(ui);
+  fireEvent.mouseDown(screen.getByRole("tab", { name: "Actions" }));
+  return r;
+}
+
 describe("AdminUserDetailDialog", () => {
   beforeEach(() => {
     // Default: the acting admin is someone OTHER than the profile on screen,
@@ -108,20 +117,31 @@ describe("AdminUserDetailDialog", () => {
     }
   });
 
-  it("opens on the Actions tab", () => {
+  // Design audit area 10 #13 (11-18): opens on Overview; the Actions tab holds the tools, and its status heading
+  // shows only with a status chip under it (no empty heading).
+  // @mutate src/components/admin/AdminUserDetailDialog.tsx | <Tabs defaultValue="overview" | <Tabs defaultValue="actions"
+  // @mutate src/components/admin/userDetail/ActionsTab.tsx |       {activityChip && (\n | {true && (\n
+  it("opens on the Overview tab", () => {
     render(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
-    expect(screen.getByText("Account Actions")).toBeInTheDocument();
-    expect(screen.getByText("Admin Tools")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Overview" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByText("Bio")).toBeInTheDocument();
+    expect(screen.queryByText("Admin tools")).toBeNull();
+  });
+
+  it("the Actions tab has no empty status heading while the login map is unknown", () => {
+    renderOnActions(<AdminUserDetailDialog {...{ ...makeProps(pendingProfile), lastLoginSummary: null }} />);
+    expect(screen.getByText("Admin tools")).toBeInTheDocument();
+    expect(screen.queryByText("Account status")).toBeNull();
   });
 
   it("renders Admin Tools above the note composer and verification history", () => {
     // Admin Tools (Suspend/Ban, Delete, Manually Verify, etc.) must be
     // visible on first paint — previously it sat below the note composer
     // and verification history, off-screen until scrolled.
-    render(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
+    renderOnActions(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
     const positions = [
-      screen.getByText("Account Actions"),
-      screen.getByText("Admin Tools"),
+      screen.getByText("Account status"),
+      screen.getByText("Admin tools"),
       screen.getByTestId("admin-user-notes"),
       screen.getByTestId("user-verification-history"),
     ];
@@ -132,18 +152,18 @@ describe("AdminUserDetailDialog", () => {
   });
 
   it("offers no Approve / Deny, even on a leftover pending profile (Q193)", () => {
-    render(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
+    renderOnActions(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
     expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Deny" })).toBeNull();
   });
 
   it("wires every Admin Tools button to its opener prop", () => {
     const props = makeProps(pendingProfile);
-    render(<AdminUserDetailDialog {...props} />);
-    fireEvent.click(screen.getByRole("button", { name: /Manually Verify/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Formal Warning/ }));
+    renderOnActions(<AdminUserDetailDialog {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /Manually verify/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Formal warning/ }));
     fireEvent.click(screen.getByRole("button", { name: /Reset password/ }));
-    fireEvent.click(screen.getByRole("button", { name: /View History/ }));
+    fireEvent.click(screen.getByRole("button", { name: /View history/ }));
     fireEvent.click(screen.getByRole("button", { name: /Suspend \/ Ban/ }));
     fireEvent.click(screen.getByRole("button", { name: /Delete Account/ }));
     expect(props.setManualVerifyProfile).toHaveBeenCalledWith(pendingProfile);
@@ -156,8 +176,8 @@ describe("AdminUserDetailDialog", () => {
 
   it("keeps Manually Verify open for a payouts-only account: payout setup is not an ID check (owner 2026-10-21)", () => {
     const payoutsOnly = { ...pendingProfile, stripe_identity_verified: true, idv_status: "not_started" } as typeof pendingProfile;
-    render(<AdminUserDetailDialog {...makeProps(payoutsOnly)} />);
-    expect(screen.getByRole("button", { name: /Manually Verify/ })).not.toBeDisabled();
+    renderOnActions(<AdminUserDetailDialog {...makeProps(payoutsOnly)} />);
+    expect(screen.getByRole("button", { name: /Manually verify/ })).not.toBeDisabled();
   });
 
   it.each([
@@ -165,8 +185,8 @@ describe("AdminUserDetailDialog", () => {
   ])("disables Manually Verify on an already-verified account: %s (Q234)", (_label, patch) => {
     const verified = { ...pendingProfile, ...patch } as typeof pendingProfile;
     const props = makeProps(verified);
-    render(<AdminUserDetailDialog {...props} />);
-    const btn = screen.getByRole("button", { name: /Manually Verify/ });
+    renderOnActions(<AdminUserDetailDialog {...props} />);
+    const btn = screen.getByRole("button", { name: /Manually verify/ });
     expect(btn).toBeDisabled();
     fireEvent.click(btn);
     expect(props.setManualVerifyProfile).not.toHaveBeenCalled();
@@ -179,7 +199,7 @@ describe("AdminUserDetailDialog", () => {
     // anyway means the only feedback is a raw Postgres string.
     getUserMock.mockResolvedValue({ data: { user: { id: pendingProfile.user_id } } });
     const props = makeProps(pendingProfile);
-    render(<AdminUserDetailDialog {...props} />);
+    renderOnActions(<AdminUserDetailDialog {...props} />);
     const banBtn = await screen.findByRole("button", { name: /Suspend \/ Ban/ });
     await waitFor(() => expect(banBtn).toBeDisabled());
     fireEvent.click(banBtn);
@@ -191,7 +211,7 @@ describe("AdminUserDetailDialog", () => {
 
   it("wires the edit-email pencil to setEditEmailProfile", () => {
     const props = makeProps(pendingProfile);
-    render(<AdminUserDetailDialog {...props} />);
+    renderOnActions(<AdminUserDetailDialog {...props} />);
     fireEvent.click(screen.getByRole("button", { name: "Edit email" }));
     expect(props.setEditEmailProfile).toHaveBeenCalledWith(pendingProfile);
   });
@@ -205,7 +225,7 @@ describe("AdminUserDetailDialog", () => {
   });
 
   it("offers no Move to Pending / denial resend (Q193; the column is dropped, Q288)", () => {
-    render(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
+    renderOnActions(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
     expect(screen.queryByRole("button", { name: /Move to Pending/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Resend Denial Email/ })).toBeNull();
   });

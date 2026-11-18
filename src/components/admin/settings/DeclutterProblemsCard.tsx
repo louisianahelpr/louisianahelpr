@@ -292,7 +292,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
   );
 }
 
-/** `includeTest`: the "Show test listings" switch on the Declutter review card (FeatureSwitchesCard holds it, D2-4). */
+/** `includeTest`: the "Show test listings" switch on the Declutter review card (AdminDeclutter holds it, D2-4). */
 export function DeclutterProblemsCard({ includeTest = false }: { includeTest?: boolean }) {
   const on = useFeature("declutter");
   const open = useQuery({

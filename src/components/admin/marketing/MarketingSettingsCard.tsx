@@ -245,8 +245,9 @@ export function MarketingSettingsCard({
             </div>
 
             {/* OFF is the stop button: instant, no confirm, never gated behind
-                a dialog. ON goes through a confirm. */}
-            <div className="flex shrink-0 items-center gap-3">
+                a dialog. ON goes through a confirm. Design audit area 10 #41: on a phone the switch sits at the right,
+                where every other switch in the app is, not stranded at the left under the text. */}
+            <div className="flex shrink-0 items-center gap-3 self-end sm:self-auto">
               {busy && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               <Label htmlFor="auto-publish" className="sr-only">
                 Auto-publish
@@ -327,7 +328,7 @@ export function MarketingSettingsCard({
             </Button>
           </div>
           <p className="text-ds-11 text-muted-foreground">
-            Maximum posts published per channel per UTC day. Counted against posts that actually
+            Maximum posts published per channel per day (the count resets at 6 PM Louisiana time in winter, 7 PM in summer). Counted against posts that actually
             went out, not against what's queued.
             {!capValid && capChanged ? " Enter a whole number of 0 or more." : ""}
           </p>

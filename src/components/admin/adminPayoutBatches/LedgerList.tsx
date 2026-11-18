@@ -21,9 +21,8 @@ export const LedgerList = ({ ledger }: LedgerListProps) => {
         <Badge variant="sienna" className="text-ds-10">last {ledger.length}</Badge>
       </div>
       <p className="text-ds-11 text-muted-foreground">
-        Authoritative ledger from <code className="text-ds-10">payout_transfers</code>.
-        Written by <code className="text-ds-10">release-payout</code> on every
-        <code className="text-ds-10"> stripe.transfers.create()</code> call.
+        {/* Design audit area 10 #31 (11-18): plain words, not table and function names. */}
+        Every payout sent to a Helpr through Stripe, newest first.
       </p>
       <div className="space-y-1.5">
         {ledger.map((t) => {

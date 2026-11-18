@@ -240,5 +240,23 @@ const grants = await svc(`SELECT p.proname, has_function_privilege('authenticate
                       'shop_refund_amounts', 'shop_refunds_two_charge_hold', 'shop_orders_two_charge_hold_refunds', 'shop_record_hand_refund')`);
 ok(Array.isArray(grants) && grants.length === 8 && grants.every((x) => !x.m && !x.a), `service only (${JSON.stringify(grants)})`);
 
+// --- Q2105 step 3 (20261118060659_shops_gift_payout_from_balance, Shops launch pass 2, 2026-11-18): the due row carries
+// the order's gift share, so declutter-money sends a gift order's payout from the platform balance.
+// GIFT_PAYOUT_MIGRATION=skip leaves it out: the gift checks FAIL.
+if (!skip) {
+  await svc(`ALTER TABLE public.shop_orders ADD COLUMN IF NOT EXISTS gift_cents integer NOT NULL DEFAULT 0`);
+  const GIFT_PAYOUT = readFileSync(process.env.GIFT_PAYOUT_PATH ?? url("20261118060659_shops_gift_payout_from_balance.sql"), "utf8");
+  if (process.env.GIFT_PAYOUT_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(GIFT_PAYOUT);
+  await svc(`UPDATE public.shop_orders SET gift_cents = 800 WHERE id = '${full}'`);
+  const due2 = await svc(`SELECT * FROM public.shop_payouts_due(50)`);
+  const g = Array.isArray(due2) ? due2.find((d) => d.order_id === full) : undefined;
+  ok(g?.gift_cents === 800, `a gift order's due row carries its gift share (${JSON.stringify(g ?? due2)})`);
+  const c = Array.isArray(due2) ? due2.find((d) => d.order_id === a) : undefined;
+  ok(c?.gift_cents === 0 && c?.balance_payment_intent_id === "pi_rest_1", "a card-only order's due row says 0 and is otherwise unchanged");
+  const acl = await svc(`SELECT has_function_privilege('authenticated', 'public.shop_payouts_due(integer)', 'EXECUTE') AS m,
+    has_function_privilege('anon', 'public.shop_payouts_due(integer)', 'EXECUTE') AS a`);
+  ok(Array.isArray(acl) && acl[0] && !acl[0].m && !acl[0].a, "shop_payouts_due stays service only after the restatement");
+}
+
 console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (TWO_CHARGE_MIGRATION=skip)" : ""}`);
 process.exit(fail ? 1 : 0);

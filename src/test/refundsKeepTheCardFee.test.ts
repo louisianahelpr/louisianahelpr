@@ -113,7 +113,7 @@
  * @mutate supabase/migrations/20261112220952_shops_preorder_buyer_cancel_full_refund.sql |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault', 'unpaid_close_tax') THEN 'keep_card_fee' |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault', 'unpaid_close_tax') THEN 'full_platform_absorbs'
  * @mutate supabase/migrations/20261112220952_shops_preorder_buyer_cancel_full_refund.sql |     WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs' |     WHEN p_reason IN ('problem_our_mistake', 'shop_removed') THEN 'full_platform_absorbs'
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   CONSTRAINT shop_refunds_policy CHECK (fee_policy = public.shop_refund_fee_policy(reason)), |   CONSTRAINT shop_refunds_policy CHECK (fee_policy IN ('keep_card_fee', 'full_shop_pays_fee', 'full_platform_absorbs')),
- * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql |     SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept, |     SELECT o.*, 0 AS kept,
+ * @mutate supabase/migrations/20261118060158_shops_refund_tax_on_taxed_base.sql |     SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept, |     SELECT o.*, 0 AS kept,
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', 'goodwill',
  * @mutate supabase/functions/_shared/shopRefunds.ts |           amount: row.refund_cents, |           amount: row.refund_cents + 30,
  * @mutate supabase/functions/declutter-money/index.ts |         const done = await sendShopRefund(stripe, admin, r); |         r.refund_cents = r.refund_cents + 30;\n        const done = await sendShopRefund(stripe, admin, r);
@@ -963,7 +963,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Shops M3: the ONE refund formula for a Shops order (quote, write and CHECKs read it): keep_card_fee keeps the
       // card fee and its tax for buyer_cancelled / problem_no_fault; full otherwise (the shop is billed the fee as debt
       // for its own faults; the platform carries it only for problem_our_mistake).
-      shop_refund_amounts: "20261112082518_shops_setup_fee_refund.sql 6ee7c41d5e3a04f4", // S035 (20261112082518, lh-money-escrow): + the setup fee back on full_shop_pays_fee / full_platform_absorbs when the charge carried it (never keep_card_fee). Before that: Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged. 11-07 (20261107162454, money review change 1): once the rest is paid the card fee is BOTH charges' fees (more kept, never less)
+      shop_refund_amounts: "20261118060158_shops_refund_tax_on_taxed_base.sql b80d90a76747b6ab", // Q2111 (20261118060158, pass 2 11-18): tax kept on items + fee, never the delivery; fee policy per reason unchanged. Before that: S035 (20261112082518, lh-money-escrow): + the setup fee back on full_shop_pays_fee / full_platform_absorbs when the charge carried it (never keep_card_fee). Before that: Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged. 11-07 (20261107162454, money review change 1): once the rest is paid the card fee is BOTH charges' fees (more kept, never less)
       // the payout run holds a pending / failed row for review (status + reason); no amount.
       payout_hold_for_review: "20261101233256_declutter_manager_payout_kind.sql a620256e1b71a72e",
       // deletes wait / send-mark bookkeeping rows of ended payouts; reads declutter_refunds status only.
@@ -1047,7 +1047,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // Custom orders slice 2a (money review owed): restated so "paid" is the deposit while a deposit order's rest is unpaid.
     // 11-07 (20261107162454): both charges' card fees once a deposit order's rest is paid.
     // S035 (20261112082518): + the one-time setup fee back when the refund is not the buyer's doing (keep_card_fee unchanged).
-    functionMigration: "20261112082518_shops_setup_fee_refund.sql",
+    // Q2111 (20261118060158): the tax kept on the kept fee is read on items + buyer fee, never the delivery.
+    functionMigration: "20261118060158_shops_refund_tax_on_taxed_base.sql",
     proofs: ["src/test/pglite/shopsRefunds.pglite.mjs", "src/test/pglite/shopsHelprDelivery.pglite.mjs", "src/test/pglite/shopsCustomBalanceEdge.pglite.mjs", "src/test/pglite/shopsCustomTwoCharge.pglite.mjs", "src/test/pglite/shopsPreorders.pglite.mjs", "src/test/pglite/shopsPreorderBuyerCancelFull.pglite.mjs"],
     reasonCheck: "shop_refunds_reason_check",
     policySources: [
@@ -1078,7 +1079,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       { name: "shop_refunds_policy", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "fee_policy = public.shop_refund_fee_policy(reason)" },
       { name: "shop_refunds_fee_policy_check", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "fee_policy IN ('keep_card_fee', 'full_shop_pays_fee', 'full_platform_absorbs')" },
       { name: "shop_refunds_kept", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "kept_cents = CASE WHEN fee_policy = 'keep_card_fee' THEN card_fee_cents ELSE 0 END" },
-      { name: "shop_refunds_tax_kept", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "tax_kept_cents = public.shop_refund_tax_kept(kept_cents, tax_cents, paid_cents)" },
+      { name: "shop_refunds_tax_kept", file: "20261118060158_shops_refund_tax_on_taxed_base.sql", text: "tax_kept_cents = CASE WHEN taxed_base_cents IS NULL THEN public.shop_refund_tax_kept(kept_cents, tax_cents, paid_cents) ELSE public.shop_refund_tax_kept_on_base(kept_cents, tax_cents, taxed_base_cents) END" }, // Q2111 11-18: the base when the row has one
       { name: "shop_refunds_amount", file: "20261112082518_shops_setup_fee_refund.sql", text: "refund_cents = paid_cents - kept_cents - tax_kept_cents + setup_fee_refund_cents AND refund_cents > 0" }, // S035: + the setup fee back (0 on keep_card_fee: shop_refunds_setup_fee_refund)
       { name: "shop_refunds_settled_in_full", file: "20261019071055_shops_refunds_cancels_strikes.sql", text: "settled_by_hand_cents IS NULL OR settled_by_hand_cents = refund_cents" },
     ],
@@ -1113,7 +1114,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // amount is shop_refund_amounts', unchanged), and releasing it to the queue is refused.
       shop_refunds_two_charge_hold: "20261107162454_shops_custom_two_charge_payout.sql 746e06a19382376b",
       shop_orders_two_charge_hold_refunds: "20261107162454_shops_custom_two_charge_payout.sql 4efec5d23992ab63",
-      shop_refund_amounts: "20261112082518_shops_setup_fee_refund.sql 6ee7c41d5e3a04f4", // S035 (20261112082518, lh-money-escrow): + the setup fee back on full_shop_pays_fee / full_platform_absorbs when the charge carried it (never keep_card_fee). Before that: Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged. 11-07 (20261107162454, money review change 1): once the rest is paid the card fee is BOTH charges' fees (more kept, never less)
+      shop_refund_amounts: "20261118060158_shops_refund_tax_on_taxed_base.sql b80d90a76747b6ab", // Q2111 (20261118060158, pass 2 11-18): tax kept on items + fee, never the delivery; fee policy per reason unchanged. Before that: S035 (20261112082518, lh-money-escrow): + the setup fee back on full_shop_pays_fee / full_platform_absorbs when the charge carried it (never keep_card_fee). Before that: Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged. 11-07 (20261107162454, money review change 1): once the rest is paid the card fee is BOTH charges' fees (more kept, never less)
       shop_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql e33914e554c0bfea", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
       shop_refund_fee_policy: "20261112220952_shops_preorder_buyer_cancel_full_refund.sql 65c6d12ecddcccb2", // S2-019: + preorder_buyer_cancelled under full_shop_pays_fee (PGlite shopsPreorderBuyerCancelFull). Before: orders 2b: + unpaid_close_tax under keep_card_fee. Preorders (money review owed): + preorder_shop_late / preorder_date_moved / preorder_goal_missed under full_shop_pays_fee; every other reason unchanged
       // Preorders (money review owed): goal missed / 7 days late -> shop_write_refund under full_shop_pays_fee, each order under its lock.
@@ -1135,7 +1136,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_refund_to_send: "20261019071055_shops_refunds_cancels_strikes.sql b349bdd3f8d3b813",
       shop_refunds_due: "20261019071055_shops_refunds_cancels_strikes.sql bbfc70978e922056",
       // S035 (20261112082518): writes setup_fee_refund_cents and puts the account's fee back when it is refunded; the card-fee debt is unchanged.
-      shop_write_refund: "20261112082518_shops_setup_fee_refund.sql 89a095d1638ab39d",
+      // Q2111 (20261118060158): also writes taxed_base_cents.
+      shop_write_refund: "20261118060158_shops_refund_tax_on_taxed_base.sql 29b18b00589a5fd0",
       // S001 (20261112074135, lh-money-escrow PASS-with-notes): hiding a shop refunds every charged open order IN FULL as
       // 'shop_removed' (full_shop_pays_fee: the shop pays the card fee) through shop_write_refund; it decides no amount.
       shops_admin_set_hidden: "20261112074135_shops_hide_refunds_open_orders.sql 761b532181ff736b",
@@ -1145,7 +1147,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shops_admin_refund_order: "20261109224952_notices_card_fee_and_our_team.sql 879b8d45f720051c",
       shops_admin_settle_held_refund: "20261019071055_shops_refunds_cancels_strikes.sql 6d0001f095b1ff76",
       // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
-      shops_buyer_cancel_order: "20261109224952_notices_card_fee_and_our_team.sql 94a1a93d8482aa86", // Q2390 11-04: ERRCODE P0002 -> PT404 only
+      shops_buyer_cancel_order: "20261118055756_shops_cancel_notices_refund_words.sql e60d9bad27c396b9", // 11-18 pass 2: four notice strings say refund time (wording only). Before: Q2390 11-04: ERRCODE P0002 -> PT404 only
       shops_order_cancel_quote: "20261106194913_shops_helpr_delivery.sql 68b55433d93cc393", // Q2390 p22 read-only quote; Helpr delivery (20261106194913, money review owed): a late cancel quotes the delivery no Helpr picked up coming back
       shop_order_refunds_recorded_cents: "20261106194913_shops_helpr_delivery.sql 0637300959ca02d6", // Helpr delivery money review: a read-only sum of the Stripe-confirmed delivery and order refunds on the charge, so a payout from it reads it whole; records no refund
       shops_shop_cancel_order: "20261112200351_shops_card_cost_words.sql 8ab48d1da9d2827a", // 11-12 S010 leftover (lh-money-escrow PASS-with-notes): only the shop notice words changed; refund via shop_write_refund unchanged
@@ -1163,6 +1165,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // S2-019: the reason check restated with preorder_buyer_cancelled (its fee policy is the one function's).
       "shop_refunds 20261112220952_shops_preorder_buyer_cancel_full_refund.sql": ["f816e6c9fcdfc078", "2f92b9bd67fe141a"],
       "shop_refunds 20261112082518_shops_setup_fee_refund.sql": ["d838aa9dd7062ad9", "06d12bf1c0a366c1", "511ff99ac8b7eaee", "56b26d17a3ee08b8", "8660e79976dde420"],
+      // Q2111: the taxed_base_cents column, its bounds CHECK, and the tax-kept CHECK reading it (no fee rule changes).
+      "shop_refunds 20261118060158_shops_refund_tax_on_taxed_base.sql": ["501b5e5c58a71e13", "0a1a29b184c61ac1", "adc46e78f951cf08", "531a040e03c210ac", "782a69b4fa29a981"],
     },
     bodies: {
       shop_refund_amounts: [
@@ -1170,7 +1174,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
         "p.paid, p.reserved) AS fee,",
         "public.shop_refund_fee_policy(p_reason) AS policy",
         "CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept",
-        "k.total_cents - k.kept - public.shop_refund_tax_kept(k.kept, k.tax_cents, k.total_cents)",
+        "k.total_cents - k.kept - k.tax_kept + k.fee_back",
+        "ELSE public.shop_refund_tax_kept_on_base(k.kept, k.tax_cents, k.taxed_base) END AS tax_kept",
       ],
       // The one writer of a Shops refund row reads the amounts from shop_refund_amounts and bills the shop's fee.
       shop_write_refund: [

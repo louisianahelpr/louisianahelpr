@@ -55,6 +55,7 @@ import ShopFaqsEditor from "./ShopFaqsEditor";
 import { UnsavedSectionsProvider } from "./unsavedSections";
 import ShopPermitSection from "./ShopPermitSection";
 import ShopOpenIntro from "./ShopOpenIntro";
+import { SuggestCategory } from "@/components/SuggestCategory";
 import { EMPTY, EMPTY_HOURS, FIELD_ORDER, FieldError, type FieldErrors, type FieldKey, fieldOfError, focusField, type Form, invalidProps, validate } from "./shopEditForm";
 
 /**
@@ -306,6 +307,7 @@ export default function ShopEditView() {
       <ShopCategoryQuickPick id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups}
         invalid={!!errors.category} describedBy={errors.category ? "shop-category-error" : undefined} />
       <FieldError field="category" errors={errors} />
+      <SuggestCategory area="shops" />
     </div>
     <div className="space-y-1.5">
       <Label htmlFor="shop-about">About</Label>

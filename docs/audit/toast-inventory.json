@@ -11943,7 +11943,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 233,
+      "line": 234,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11953,7 +11953,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 234,
+      "line": 235,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -11963,7 +11963,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 260,
+      "line": 261,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11973,7 +11973,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 265,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11983,7 +11983,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 271,
+      "line": 272,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11993,7 +11993,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 275,
+      "line": 276,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

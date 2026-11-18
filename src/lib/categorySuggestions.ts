@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 
-export type SuggestionArea = "jobs" | "declutter";
+export type SuggestionArea = "jobs" | "declutter" | "shops";
 export type SuggestionStatus = "pending" | "approved" | "declined";
 
 export interface CategorySuggestionRow {

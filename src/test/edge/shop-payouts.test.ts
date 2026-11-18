@@ -23,9 +23,11 @@
  * @mutate supabase/functions/declutter-money/index.ts |       if (shopHold.kind === "held") { |       if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |       if ((p.seller_id && underReview.has(p.seller_id)) \|\| (p.buyer_id && underReview.has(p.buyer_id))) { |       if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |           if (byParties !== mode) throw new Error(`shop order says ${mode} but its parties are ${byParties}`); |
- * @mutate supabase/functions/declutter-money/index.ts |           const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents ?? 0); |           const charge = "ch_any";
+ * @mutate supabase/functions/declutter-money/index.ts |          const charge = shopGiftCents > 0 ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents ?? 0); |          const charge = shopGiftCents > 0 ? null : "ch_any";
  * @mutate supabase/functions/declutter-money/index.ts |     const finished = await admin.rpc("shop_handover_sweep", {}); |     const finished = { error: null, data: null };
  * @mutate supabase/functions/declutter-money/index.ts |         if (p.attempts + 1 >= 12) { |         if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |          const charge = shopGiftCents > 0 ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents ?? 0); |          const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents ?? 0);
+ * @mutate supabase/functions/declutter-money/index.ts |          if (shopGiftCents > 0) {\n            await giftCovers( |          if (false) {\n            await giftCovers(
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -311,6 +313,39 @@ describe("declutter-money: Shops M2 handovers and payouts", () => {
       await run({ shopPayouts: [twoCharge()] });
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(2);
       expect(rpcs("shop_payout_executed")).toHaveLength(0);
+    });
+  });
+
+  // Q2105 step 3 (20261118060659): a gift card paid part of the order, so its card charge is smaller than the payout.
+  describe("a gift order (Q2105 step 3)", () => {
+    const giftCharge = (amount: number) => stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_shop1", status: "succeeded", latest_charge: { id: "ch_shop1", amount, amount_refunded: 0, disputed: false },
+    });
+
+    it("is paid from the platform balance (no source_transaction) when card + gift cover it, and says the gift share", async () => {
+      giftCharge(1000);
+      stripeMock.transfers.list.mockResolvedValue({ data: [], has_more: false });
+      const { body } = await run({ shopPayouts: [shopPayoutRow({ gift_cents: 800 })] });
+      expect(body.shop_payouts_sent).toBe(1);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      const [params, opts] = stripeMock.transfers.create.mock.calls[0];
+      expect(params).toMatchObject({ amount: 1800, destination: "acct_shop1", transfer_group: `shop_order_${ORDER}`,
+        metadata: { kind: "shop_payout", payout_id: PAYOUT, order_id: ORDER, gift_cents: "800" } });
+      expect(params).not.toHaveProperty("source_transaction");
+      expect(opts).toEqual({ idempotencyKey: `shop-payout-${PAYOUT}` });
+    });
+
+    it("is never sent when card + gift do not cover it: held a day as a data defect, no try used", async () => {
+      giftCharge(500);
+      stripeMock.transfers.list.mockResolvedValue({ data: [], has_more: false });
+      await run({ shopPayouts: [shopPayoutRow({ gift_cents: 800 })] });
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(rpcs("shop_payout_executed")).toHaveLength(0);
+    });
+
+    it("a card-only order still pays from its own charge", async () => {
+      await run({ shopPayouts: [shopPayoutRow({ gift_cents: 0 })] });
+      expect(stripeMock.transfers.create.mock.calls[0][0]).toMatchObject({ source_transaction: "ch_shop1" });
     });
   });
 });

@@ -325,6 +325,12 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (byHelpr && (!delivery || !Number.isInteger(shownHelprCents) || shownHelprCents <= 0)) {
     return json({ error: "invalid_delivery_choice" }, 400);
   }
+  // Q2105 step 3 (lh-money-escrow 11-18, Medium 2): a Helpr's delivery pay is sent from the order's card charge
+  // (helpr_task_payouts_due has no gift part), which a gift makes smaller or removes. Until that path is gift-aware,
+  // a gift card never pays for an order a Helpr delivers; refused before anything freezes.
+  if (giftCardId && byHelpr) {
+    return json({ error: "gift_card_not_accepted", hint: "Gift cards can't pay for an order a Helpr delivers yet. Pay this order by card." }, 409);
+  }
   const native = isNativeRequest(body);
   const serviceAddress = parseServiceAddress(body.service_address);
   if (serviceAddress === "invalid") return json({ error: "invalid_service_address" }, 400);

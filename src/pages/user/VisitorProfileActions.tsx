@@ -43,10 +43,11 @@ export function VisitorProfileActions({ userId, currentUserId, onReport, onBlock
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={onReport}>
+                  {/* Design audit area 09 L16: 44px rows (the menu's default rows measured about 32px). */}
+                  <DropdownMenuItem onClick={onReport} className="min-h-11">
                     <Flag className="w-4 h-4 mr-2" /> Report user
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={onBlock}>
+                  <DropdownMenuItem onClick={onBlock} className="min-h-11">
                     <Ban className="w-4 h-4 mr-2" /> Block user
                   </DropdownMenuItem>
                 </DropdownMenuContent>

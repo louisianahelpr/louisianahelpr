@@ -171,6 +171,8 @@ const SaveHelperButton = ({
       disabled={working}
       className={`h-10 w-10 shrink-0 ${className}`}
       aria-label={saved ? "Unsave Helpr" : "Save Helpr"}
+      // Design audit area 09 L17: the heart says its state to a screen reader too, not only by its fill.
+      aria-pressed={saved}
       title={saved ? "Saved — tap to remove" : "Save this Helpr"}
     >
       {working ? (

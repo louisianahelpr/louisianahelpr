@@ -20,6 +20,7 @@ vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null }));
 // Log out itself is SignOutConfirmDialog's (its own test); here only that the menu opens it.
 vi.mock("@/components/auth/SignOutConfirmDialog", () => ({
   SignOutConfirmDialog: ({ open, title }: { open: boolean; title: string }) => (open ? <div role="alertdialog">{title}</div> : null),
+  LogOutConfirmDialog: ({ open }: { open: boolean }) => (open ? <div role="alertdialog">Log out?</div> : null),
 }));
 
 import DesktopTopNav from "@/components/DesktopTopNav";

@@ -320,7 +320,7 @@ const AccountBanned = () => {
           disabled={signingOut}
           className="text-muted-foreground"
         >
-          <LogOut className="w-4 h-4 mr-1" /> {signingOut ? "Logging out…" : "Sign out"}
+          <LogOut className="w-4 h-4 mr-1" /> {signingOut ? "Logging out…" : "Log out"}
         </Button>
         <Button
           variant="ghost"

@@ -130,7 +130,7 @@ export function useProfileLandingDerived({
         ...((mayStillBeBilled(profile) && !MEMBERSHIPS_HIDDEN_IN_THIS_APP)
           ? [{ key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money }]
           : []),
-        { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },
+        { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends and earn credits", tint: SECTION_TINT.money },
         // "Book me on Helpr" (B59): your own public page. H5 (audit 11-05, one profile link): /u/<handle>; the old
         // /book/<id> (which forwards there) only for a member whose handle is not loaded yet.
         ...(profile?.user_id
@@ -151,7 +151,7 @@ export function useProfileLandingDerived({
       items: [
         { key: "support", label: TAB_TITLES.support, icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
         { key: "report_bug", label: REPORT_BUG_TITLE, icon: <Bug className="w-5 h-5" />, desc: "Tell us what isn't working", tint: SECTION_TINT.legal, href: "/profile?tab=support&topic=report" },
-        { key: "legal", label: TAB_TITLES.legal, icon: <Gavel className="w-5 h-5" />, desc: "Terms, rules & privacy", tint: SECTION_TINT.legal },
+        { key: "legal", label: TAB_TITLES.legal, icon: <Gavel className="w-5 h-5" />, desc: "Terms, rules and privacy", tint: SECTION_TINT.legal },
         { key: "warnings", label: TAB_TITLES.warnings, icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: SECTION_TINT.danger },
         ...(isAdmin
           ? [
@@ -159,7 +159,7 @@ export function useProfileLandingDerived({
                 key: "admin",
                 label: "Admin",
                 icon: <ShieldAlert className="w-5 h-5" />,
-                desc: "Moderation, payouts & platform health",
+                desc: "Moderation, payouts and platform health",
                 tint: SECTION_TINT.legal,
                 href: "/admin",
               },

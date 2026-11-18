@@ -35,7 +35,7 @@ export function PublicProfileOwnerSteps({ p }: { p: Pick<PublicProfile, "handle"
     else toast.error("Couldn't copy the link. Try Share instead.");
   };
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm" aria-label="Your page" data-testid="pp-owner">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm" aria-label="Your public profile" data-testid="pp-owner">
       <p className="text-ds-14 text-muted-foreground">This is what others see when you share your link.</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button asChild variant="outline" size="sm" className="rounded-full">

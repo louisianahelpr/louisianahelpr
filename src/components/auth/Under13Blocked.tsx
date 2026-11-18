@@ -29,7 +29,7 @@ export function Under13Blocked() {
           onClick={() => { void signOut({ after: () => navigate("/") }); }}
           disabled={signingOut}
         >
-          <LogOut className="w-4 h-4 mr-1" /> {signingOut ? "Logging out…" : "Sign out"}
+          <LogOut className="w-4 h-4 mr-1" /> {signingOut ? "Logging out…" : "Log out"}
         </Button>
       </div>
     </AuthShell>

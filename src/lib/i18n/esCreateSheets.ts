@@ -1,4 +1,4 @@
-/** Spanish for enCreateSheets.ts (design audit area 02 #2). Section names follow nav.* (Trabajos, Ventas...). */
+/** Spanish for enCreateSheets.ts (design audit area 02 #2). Section names follow nav.* (Trabajos, Declutter...). */
 import type { enCreateSheets } from "./enCreateSheets";
 
 export const esCreateSheets: Record<keyof typeof enCreateSheets, string> = {

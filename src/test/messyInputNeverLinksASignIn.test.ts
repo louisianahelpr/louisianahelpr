@@ -20,6 +20,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(__dirname, "../..");
 const harness = readFileSync(resolve(ROOT, "e2e/prod-audit/harness.ts"), "utf8");
 const card = readFileSync(resolve(ROOT, "src/components/profile/SignInMethodsCard.tsx"), "utf8");
+const account = readFileSync(resolve(ROOT, "src/lib/i18n/enAccount.ts"), "utf8");
 
 describe("explore never links a sign-in", () => {
   const lit = /export const NEVER_PRESS = \/(.+)\/([a-z]*);/.exec(harness);
@@ -27,7 +28,9 @@ describe("explore never links a sign-in", () => {
 
   it("reads the card's provider names (floor)", () => {
     expect(lit).not.toBeNull();
-    expect(card).toMatch(/`Connect \$\{NAME\[p\]\}`/);
+    // Design audit area 09 H1: the label is t("sim.connectName", { name }), whose English is "Connect {name}".
+    expect(card).toContain('t("sim.connectName", { name: NAME[p] })');
+    expect(account).toContain('"sim.connectName": "Connect {name}"');
     const names = [...(/const NAME[^=]*=\s*\{([^}]+)\}/.exec(card)?.[1] ?? "").matchAll(/:\s*"([^"]+)"/g)].map((m) => m[1]);
     expect(names.length).toBeGreaterThanOrEqual(2);
     for (const n of names) expect(NEVER_PRESS.test(`Connect ${n}`), `Connect ${n}`).toBe(true);

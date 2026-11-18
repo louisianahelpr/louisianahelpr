@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Dialog, DialogDestructiveAction, DialogPrimaryAction, DialogSecondaryAction, DialogContent, DialogDescription, DialogFooter, DialogHero } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Check, Loader2, X } from "lucide-react";
@@ -6,6 +7,9 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { hapticError } from "@/lib/haptics";
 import { useDeleteReauth } from "@/components/profile/DeleteAccountReauth";
 import { useLanguage } from "@/lib/i18n/language";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDataExport } from "@/hooks/useDataExport";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
@@ -83,8 +87,26 @@ function WhatHappens() {
 
 function WhatHappensRouted() {
   const { pathname } = useLocation();
-  const lines = pathname.startsWith("/profile") ? [...WHAT_HAPPENS, DOWNLOAD_LINE] : WHAT_HAPPENS;
-  return <WhatHappensList lines={lines} />;
+  if (!pathname.startsWith("/profile")) return <WhatHappensList lines={WHAT_HAPPENS} />;
+  return <WhatHappensList lines={WHAT_HAPPENS} extra={<DownloadFirst />} />;
+}
+
+/** Design audit area 09 L12: the download hint is the download itself (the same export as Settings' row), not a pointer to Settings. */
+function DownloadFirst() {
+  const { t } = useLanguage();
+  const { user } = useCurrentUser();
+  const { exporting, startExport } = useDataExport(user?.id);
+  return (
+    <li className="flex items-start gap-2 text-ds-13 leading-snug text-foreground" data-delete-download="">
+      <Check aria-hidden="true" className="w-4 h-4 shrink-0 mt-[2px]" style={{ color: "hsl(var(--bark))" }} />
+      <span>
+        {t(DOWNLOAD_LINE)}{" "}
+        <InlineTextButton type="button" onClick={() => void startExport()} disabled={exporting || !user} aria-busy={exporting} className="font-semibold underline underline-offset-2">
+          {exporting ? t("deleteAccount.downloading") : t("deleteAccount.downloadNow")}
+        </InlineTextButton>
+      </span>
+    </li>
+  );
 }
 
 /**
@@ -111,7 +133,7 @@ function TakeABreakLine({ onGo }: { onGo: () => void }) {
   );
 }
 
-function WhatHappensList({ lines }: { lines: readonly MsgKey[] }) {
+function WhatHappensList({ lines, extra }: { lines: readonly MsgKey[]; extra?: ReactNode }) {
   const { t } = useLanguage();
   return (
     <ul
@@ -126,6 +148,7 @@ function WhatHappensList({ lines }: { lines: readonly MsgKey[] }) {
           <span>{t(line)}</span>
         </li>
       ))}
+      {extra}
     </ul>
   );
 }

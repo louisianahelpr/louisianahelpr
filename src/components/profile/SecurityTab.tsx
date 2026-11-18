@@ -43,6 +43,8 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { sessionSeenWords } from "@/components/profile/sessionSeenWords";
+import "@/lib/i18n/enAccount";
+import { t, useLanguage } from "@/lib/i18n/language";
 
 /**
  * Short display labels for the "Lock again" segmented control, keyed by the
@@ -73,6 +75,7 @@ interface SecurityTabProps {
 }
 
 export function SecurityTab({ email, onBack }: SecurityTabProps) {
+  useLanguage();
   const { sessionGroups, sessionsLoading, sessionsFetchFailed, sessionsOffline } = useSecuritySessions();
   const { isLoading: factorLoading } = useVerifiedFactor();
   const securityReady = useArrivalGate(!sessionsLoading, !factorLoading);
@@ -96,7 +99,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   const navigate = useNavigate();
   const afterSignOutEverywhere = (result: { error: unknown } | undefined) => {
     if (result?.error) {
-      toast.error("Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign out everywhere again.");
+      toast.error(t("acct.everywhereFailed"));
       navigate("/login", { replace: true });
       return;
     }
@@ -240,15 +243,16 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHero
-            title="Change email address"
+            title={t("acct.emailTitle")}
           />
 
           <div className="space-y-1.5">
+            {/* Design audit area 09 L5: a plain field label (was an 11px capitals eyebrow), and help that says what happens. */}
             <Label
               htmlFor="new-email-input"
-              className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground"
+              className="text-ds-14 font-sans font-semibold text-foreground"
             >
-              New email address
+              {t("acct.newEmail")}
             </Label>
             <Input
               id="new-email-input"
@@ -268,8 +272,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                 {emailError}
               </p>
             )}
-            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              We'll send a confirmation link to verify changes.
+            <p className="text-ds-13 font-sans" data-email-help="" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              {t("acct.emailHelp")}
             </p>
           </div>
 
@@ -285,13 +289,14 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               keeps the commit last in the tab sequence. */}
           <DialogFooter>
             <DialogSecondaryAction onClick={() => setEmailDialogOpen(false)}>
-              Cancel
+              {t("acct.cancel")}
             </DialogSecondaryAction>
+            {/* L5: off until the address is a whole email (the checks in handleEmailChange still run). */}
             <DialogPrimaryAction
               onClick={handleEmailChange}
-              disabled={submitting || !newEmail.trim()}
+              disabled={submitting || !validateEmail(newEmail)}
             >
-              {submitting ? "Sending…" : "Confirm change"}
+              {submitting ? t("acct.sending") : t("acct.emailConfirm")}
             </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
@@ -303,9 +308,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       <SignOutConfirmDialog
         open={signOutDialogOpen}
         onOpenChange={setSignOutDialogOpen}
-        title="Sign out everywhere?"
-        description="This signs out every device, including this one. You'll need to sign back in here."
-        label="Sign out everywhere"
+        title={t("acct.everywhereTitle")}
+        description={t("acct.everywhereBody")}
+        label={t("acct.everywhere")}
         primaryTone="sienna"
         primaryHaptic="warning"
         scope="global"
@@ -572,7 +577,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             onClick={() => setSignOutDialogOpen(true)}
             className="w-full"
           >
-            <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign out everywhere
+            <LogOut className="w-3.5 h-3.5 mr-1.5" /> {t("acct.everywhere")}
           </Button>
         )}
       </div>

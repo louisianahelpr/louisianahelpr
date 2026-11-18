@@ -34,6 +34,7 @@ vi.mock("@/hooks/useAgeGate", () => ({
   useAgeGate: () => ({ underAge: false, explain: () => {}, gate: (_k: string, f: () => void) => f, gatedProps: () => ({}) }),
 }));
 vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => null }));
+vi.mock("@/pages/post-job/useSavedJobAddress", () => ({ useSavedJobAddress: () => ({ savedAddress: null, otherSavedAddresses: [] }) }));
 
 import { hidesLastOpenSection, KEEP_ONE_OPEN_TOAST } from "@/components/sections/useSectionPrefs";
 import { SettingsTab } from "@/components/profile/SettingsTab";

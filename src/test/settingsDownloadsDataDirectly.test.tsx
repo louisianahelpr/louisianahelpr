@@ -16,6 +16,8 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
 const invoke = vi.hoisted(() => vi.fn());
+// Settings › Privacy's Saved address row (design audit area 09 M14) reads the member's own jobs; none here.
+vi.mock("@/pages/post-job/useSavedJobAddress", () => ({ useSavedJobAddress: () => ({ savedAddress: null, otherSavedAddresses: [] }) }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null, isAdmin: false }) }));

@@ -132,7 +132,8 @@ export function ConsentStep({
           <label htmlFor="accept-policies" className="flex min-h-11 items-start gap-2.5 text-ds-13 cursor-pointer" style={{ color: "hsl(var(--olivewood))" }}>
             <Checkbox id="accept-policies" aria-labelledby="accept-policies-label" checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} className="mt-px shrink-0" />
             <span id="accept-policies-label" className="leading-relaxed">
-              {t("signup.agreeLead")} {link("/terms", t("signup.terms"))}, {link("/rules", t("signup.rules"))}{` ${t("signup.and")} `}
+              {/* Design audit area 09 M12: with the 18+ box below, this box does not say 18+ a second time. */}
+              {ageBoxShown ? t("profileGate.agreeLead") : t("signup.agreeLead")} {link("/terms", t("signup.terms"))}, {link("/rules", t("signup.rules"))}{` ${t("signup.and")} `}
               {link("/privacy", t("signup.privacy"))}.
               {lang === "es" && <span className="block" data-testid="legal-in-english">{t("lang.legalInEnglish")}</span>}
             </span>

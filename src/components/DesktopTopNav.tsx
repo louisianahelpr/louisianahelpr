@@ -14,7 +14,9 @@ import { avatarButtonLabel } from "@/lib/avatarImage";
 import { useState } from "react";
 import { LogOut, Settings, UserRound } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
+import { LogOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
+import { wordInLang } from "@/lib/i18n/inLang";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE: the notification bell and the
@@ -47,6 +49,7 @@ import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
  */
 const DesktopTopNav = () => {
   const isWebDesktop = useIsWebDesktop();
+  useLanguage(); // the menu words follow a language switch
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
@@ -108,28 +111,21 @@ const DesktopTopNav = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48" data-testid="desktop-top-profile-menu">
               <DropdownMenuItem onSelect={() => navigate("/profile")}>
-                <UserRound className="w-4 h-4 mr-2" aria-hidden /> Profile
+                <UserRound className="w-4 h-4 mr-2" aria-hidden /> {wordInLang("acct.profile", "Profile")}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => navigate("/profile?tab=settings")}>
-                <Settings className="w-4 h-4 mr-2" aria-hidden /> Settings
+                <Settings className="w-4 h-4 mr-2" aria-hidden /> {wordInLang("settings.title", "Settings")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setLogoutOpen(true)}>
-                <LogOut className="w-4 h-4 mr-2" aria-hidden /> Log out
+                <LogOut className="w-4 h-4 mr-2" aria-hidden /> {wordInLang("acct.logout", "Log out")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
       {/* The same confirm You > Log out opens (Profile.tsx). */}
-      <SignOutConfirmDialog
-        open={logoutOpen}
-        onOpenChange={setLogoutOpen}
-        title="Log out?"
-        description="You can sign back in anytime — your account stays intact."
-        label="Log out"
-        after={() => navigate("/")}
-      />
+      <LogOutConfirmDialog open={logoutOpen} onOpenChange={setLogoutOpen} after={() => navigate("/")} />
     </header>
   );
 };

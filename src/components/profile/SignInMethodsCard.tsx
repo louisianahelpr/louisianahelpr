@@ -16,6 +16,8 @@ import { report } from "@/lib/errorLogger";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { takeOAuthRedirectError } from "@/lib/oauthRedirectError";
 import { connectProvider, type SocialProvider } from "@/lib/socialAuth";
+import "@/lib/i18n/enAccount";
+import { t, useLanguage } from "@/lib/i18n/language";
 
 /**
  * Q446 — Profile > Security > Sign-in methods. Shows which ways in open THIS
@@ -42,6 +44,7 @@ function useIdentities() {
 }
 
 export function SignInMethodsCard() {
+  useLanguage();
   const queryClient = useQueryClient();
   const { data: identities, isLoading, isError, refetch } = useIdentities();
   // Q1771: a failed read with nothing cached is UNKNOWN, not "no linked
@@ -54,7 +57,7 @@ export function SignInMethodsCard() {
   // A web connect returns here; say what happened (once).
   useEffect(() => {
     const back = takeOAuthRedirectError();
-    if (back?.message) toast.error(userFacingError(back.message, "That sign-in couldn't be connected. Try again."), { id: "connect-provider" });
+    if (back?.message) toast.error(userFacingError(back.message, t("sim.connectFailed")), { id: "connect-provider" });
   }, []);
 
   const asked = params.get("connect");
@@ -69,13 +72,13 @@ export function SignInMethodsCard() {
     setBusy(null);
     if (result.kind === "success") {
       await queryClient.invalidateQueries({ queryKey: SECURITY_AUTH_USER_KEY });
-      confirmConsequential(`${NAME[provider]} connected. It now opens this account.`);
+      confirmConsequential(t("sim.connected", { name: NAME[provider] }));
     } else if (result.kind === "error") {
-      toast.error(userFacingError(result.message, "That sign-in couldn't be connected. Try again."), { id: "connect-provider" });
+      toast.error(userFacingError(result.message, t("sim.connectFailed")), { id: "connect-provider" });
     } else if (result.kind === "cancelled") {
       // Same small signal as the main sign-in's cancel: the tap registered.
       hapticError();
-      toast(`Connecting ${NAME[provider]} cancelled. Nothing changed.`, { id: "connect-provider" });
+      toast(t("sim.cancelled", { name: NAME[provider] }), { id: "connect-provider" });
     }
   };
 
@@ -86,13 +89,15 @@ export function SignInMethodsCard() {
     const { error } = await supabase.auth.unlinkIdentity(identity);
     if (error) {
       report(error, { severity: "error", tags: { area: "auth", op: "unlinkIdentity", provider: identity.provider } });
-      toast.error("Couldn't remove that sign-in method — try again?", { id: "connect-provider" });
+      toast.error(t("sim.removeFailed"), { id: "connect-provider" });
       return;
     }
     await queryClient.invalidateQueries({ queryKey: SECURITY_AUTH_USER_KEY });
-    confirmConsequential("Sign-in method removed.");
+    confirmConsequential(t("sim.removed"));
   };
 
+  // Named before the JSX: the press sweep reads every string inside primaryLabel as a commit label.
+  const removeLabel = t("sim.remove");
   return (
     <div className="rounded-2xl liquid-glass p-3.5" id="sign-in-methods">
       <div className="flex items-center gap-2">
@@ -101,31 +106,31 @@ export function SignInMethodsCard() {
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-            Sign-in methods
+            {t("sim.title")}
           </h2>
           <p className="text-ds-11 font-sans mt-0.5" style={{ color: isError ? "hsl(var(--destructive-ink))" : "hsl(var(--olivewood) / 0.8)" }}>
-            {isError ? "We couldn't load your sign-in methods." : "Each one opens this same account."}
+            {isError ? t("sim.loadFailed") : t("sim.sameAccount")}
           </p>
-          {isError && <ReportErrorScreen source="SignInMethodsCard.identities" title="We couldn't load your sign-in methods." />}
+          {isError && <ReportErrorScreen source="SignInMethodsCard.identities" title={t("sim.loadFailed")} />}
         </div>
         {/* Retry in the action slot, the two-step card's shape (TwoFactorCard). */}
         {unknown && (
-          <Button size="sm" variant="outline" className="shrink-0" aria-label="Retry loading sign-in methods" onClick={() => void refetch()}>
-            Retry
+          <Button size="sm" variant="outline" className="shrink-0" aria-label={t("sim.retryLabel")} onClick={() => void refetch()}>
+            {t("sim.retry")}
           </Button>
         )}
       </div>
 
       {asked && !isLoading && !isError && CONNECTABLE_PROVIDERS.some((p) => (asked === p || asked === "any") && !has(p)) && (
         <p className="text-ds-13 leading-snug mt-3 rounded-xl px-3 py-2" style={{ background: "hsl(var(--bark) / 0.06)", color: "hsl(var(--ink-deep))" }} role="status">
-          {asked === "any" ? "Connect Apple or Google" : `Connect ${NAME[asked as SocialProvider]}`} below so it signs you in to this account from now on.
+          {asked === "any" ? t("sim.askAny") : t("sim.askOne", { name: NAME[asked as SocialProvider] })}
         </p>
       )}
 
       {!unknown && (
       // Design audit r3 #39: the rows start under the title (32 px tile + 8 px gap), not 40 px left of it.
       <ul className="mt-3 space-y-2 pl-10" data-sign-in-rows="">
-        <MethodRow label="Email and password" state={isLoading ? "loading" : hasEmail ? "on" : "off"} />
+        <MethodRow label={t("sim.emailPassword")} state={isLoading ? "loading" : hasEmail ? "on" : "off"} />
         {CONNECTABLE_PROVIDERS.map((p) => {
           const identity = (identities ?? []).find((i) => i.provider === p);
           return (
@@ -140,11 +145,11 @@ export function SignInMethodsCard() {
                     variant="outline"
                     className="shrink-0"
                     disabled={count < 2}
-                    title={count < 2 ? "Add another way in first" : undefined}
-                    aria-label={`Remove ${NAME[p]} sign-in`}
+                    title={count < 2 ? t("sim.addFirst") : undefined}
+                    aria-label={t("sim.removeName", { name: NAME[p] })}
                     onClick={() => setRemoving(identity)}
                   >
-                    Remove
+                    {removeLabel}
                   </Button>
                 ) : (
                   <Button
@@ -152,10 +157,10 @@ export function SignInMethodsCard() {
                     variant="outline"
                     className="shrink-0"
                     disabled={busy !== null}
-                    aria-label={`Connect ${NAME[p]}`}
+                    aria-label={t("sim.connectName", { name: NAME[p] })}
                     onClick={() => void connect(p)}
                   >
-                    {busy === p ? "Connecting…" : `Connect ${NAME[p]}`}
+                    {busy === p ? t("sim.connecting") : t("sim.connectName", { name: NAME[p] })}
                   </Button>
                 )
               }
@@ -170,12 +175,12 @@ export function SignInMethodsCard() {
         onOpenChange={(open) => {
           if (!open) setRemoving(null);
         }}
-        title={`Remove ${removing ? NAME[removing.provider as SocialProvider] ?? removing.provider : ""} sign-in?`}
-        description="You'll still sign in with your other method. You can connect it again any time."
-        primaryLabel="Remove"
+        title={t("sim.removeTitle", { name: removing ? NAME[removing.provider as SocialProvider] ?? removing.provider : "" })}
+        description={t("sim.removeBody")}
+        primaryLabel={removeLabel}
         primaryTone="sienna"
         onPrimary={() => void remove()}
-        secondaryLabel="Keep it"
+        secondaryLabel={t("sim.keep")}
       />
     </div>
   );
@@ -192,7 +197,7 @@ function MethodRow({ label, state, action = null }: { label: string; state: "loa
           <Skeleton className="h-3 w-20 mt-1 rounded-full" />
         ) : (
           <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            {state === "on" ? "Connected" : "Not connected"}
+            {state === "on" ? t("sim.on") : t("sim.off")}
           </p>
         )}
       </div>

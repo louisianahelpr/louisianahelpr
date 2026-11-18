@@ -189,6 +189,7 @@ describe("every pop-up title is sentence case", () => {
     // 240: +1 "Leave without saving?" (ShopEditView's back arrow asks before unsaved edits are lost, lead 11-12).
     // 243 (train 1112-j, 2026-11-12): +2 "Withdraw this request?" / "Decline this request?" (ShopCustomRequestsList asks
     // first, S2-023) and +1 "Remove all options?" (ShopItemOptionsEditor, S2-003 a download drops its options).
+    // 241 with the next line (design audit area 09, 11-18): -1, Profile's and DesktopTopNav's two "Log out?" are one LogOutConfirmDialog.
     // 242 (Area 04 #2, 2026-11-18): -1 "Filter jobs" (BrowseTasksToolbar's FilterSheet) reads wordInLang now, for Spanish;
     // its English is still sentence case (enJobsHelpr.ts "jh.f.title").
     // 242 (design audit r3, 11-18): EditJobDialog's title is the one literal "Edit job" (was the job name in quotes or

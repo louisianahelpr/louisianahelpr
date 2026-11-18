@@ -13,7 +13,7 @@
  * @mutate src/lib/publicPageMeta.mjs | title: "Log in — Helpr", | title: "Log In — Helpr",
  * @mutate src/pages/post-job/paymentReturnCopy.ts | "Confirming payment — Helpr" | "Confirming Payment — Helpr"
  * @mutate src/pages/admin/Admin.tsx | payouts: "Payout batches", | payouts: "Payout Batches",
- * @mutate src/pages/profile/types.ts | legal: "Legal & policies", | legal: "Legal & Policies",
+ * @mutate src/pages/profile/types.ts | legal: "Legal and policies", | legal: "Legal and Policies",
  *
  * One suffix (audit 2026-10-28 P5-8): /terms/full and /privacy/full said
  * "— Louisiana Helpr" while every other tab title says "— Helpr" (AppPage's

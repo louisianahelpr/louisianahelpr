@@ -50,7 +50,8 @@ export function RecentWorkSection({
           is the pattern the rest of this form already uses (see the "Next: …"
           line in ProfileEditForm). */}
       <p className="font-sans leading-snug -mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Show off recent jobs — applicants see these when deciding to apply.
+        {/* Design audit area 09 M10: neighbors, not "applicants" (posters see these when choosing a Helpr). */}
+        Photos of work you've done, shown on your public profile.
         {" "}<span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Photos save automatically.</span>
       </p>
       <div className="grid grid-cols-3 gap-2">

@@ -93,7 +93,8 @@ describe("design audit r2 #31: the You page follows the member's language", () =
       for (const en of ["Money", "Notifications", "Settings", "Talk to a real person", "Alerts and email"]) expect(text).not.toContain(en);
       cleanup();
       const card = render(createElement(MemoryRouter, null, createElement(YouCard, { profile: null, userId: "u1", displayName: "", avgRating: null, reviewCount: 0 })));
-      expect(card.container.textContent).toContain("Ver mi perfil público");
+      // Owner 11-18 (train): the link reads "Public profile" / "Perfil público" (area 09), through t().
+      expect(card.container.textContent).toContain("Perfil público");
       expect(card.container.textContent).not.toContain("View my public profile");
     } finally {
       cleanup();
@@ -257,7 +258,8 @@ describe("design audit r2 #50/#33/#34", () => {
     expect(src).toContain('{tr("jobCard.swipeApply")}');
     expect(src).not.toMatch(/>\s*(Not interested|Apply)\s*</);
     expect(es["jobCard.swipeNo"]).toBe("No me interesa");
-    expect(es["inbox.title"]).toBe("Mensajes");
+    // Area 08 L16: "Buzón" (short enough at 390; "Bandeja de entrada" was cut off).
+    expect(es["inbox.title"]).toBe("Buzón");
   });
 });
 
@@ -491,12 +493,12 @@ describe("design audit r2 #37: the stragglers follow the reader's language", () 
   it("Home's counts, the profile line and the guest words read Spanish for a Spanish reader", async () => {
     const { setLang, ensureLangLoaded } = await import("@/lib/i18n/language");
     const { sectionCardLines } = await import("@/pages/home/homeDashboard/useHomeSummary");
-    const { accountLine } = await import("@/components/profile/SettingsTab");
+    const { accountLines } = await import("@/components/profile/SettingsTab");
     try {
       setLang("es");
       await ensureLangLoaded();
       expect(sectionCardLines({ jobs: null, declutter: null }, 0, { jobs: 3, declutter: 241 })).toEqual({ jobs: "3 abiertos cerca de usted", declutter: "241 artículos cerca de usted" });
-      expect(accountLine("a@b.co", [{ provider: "email" }])).toBe("a@b.co · Contraseña");
+      expect(accountLines("a@b.co", [{ provider: "email" }])).toEqual(["a@b.co", "Contraseña"]);
     } finally {
       setLang("en");
     }
@@ -507,7 +509,8 @@ describe("design audit r2 #37: the stragglers follow the reader's language", () 
     const nav = blankComments(readFileSync("src/components/Navbar.tsx", "utf8"));
     expect(nav).toContain('{wordInLang("g.joinFree", "Join free")}');
     expect(es["g.joinFree"]).toBe("Únase gratis");
-    expect(blankComments(readFileSync("src/components/profile/ProfileLinkRow.tsx", "utf8"))).toContain('wordInLang("settings.profileLink", "Your profile link")');
+    // Area 09 moved the profile link row to the dictionary (enAccount.ts "acct.linkTitle"), app language.
+    expect(blankComments(readFileSync("src/components/profile/ProfileLinkRow.tsx", "utf8"))).toContain('{t("acct.linkTitle")}');
     expect(blankComments(readFileSync("src/pages/post-job/GiftCardTeaser.tsx", "utf8"))).toContain('"postJob.gift.many"');
   });
 });
@@ -540,6 +543,7 @@ describe("design audit r2 #34: the inbox rows in Spanish", () => {
     const row = blankComments(readFileSync("src/components/messages/ConversationRow.tsx", "utf8"));
     expect(row).toContain("const label = wordInLang(`msg.st.${english}`, english);");
     const chips = blankComments(readFileSync("src/pages/messages/useMessageSections.tsx", "utf8"));
-    expect(chips).toContain("return { value: k, label: key ? t(key) : def.label };");
+    // Area 08 H2: the chips read the nav keys through SECTION_CHIP_KEY.
+    expect(chips).toContain("label: SECTION_CHIP_KEY[k] ? t(SECTION_CHIP_KEY[k]) : sectionByKey(k).label");
   });
 });

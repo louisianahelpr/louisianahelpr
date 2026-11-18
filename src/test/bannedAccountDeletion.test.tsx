@@ -107,9 +107,9 @@ describe("/account-banned — what sits around the card (owner, 2026-10-03)", ()
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
-  it("keeps Sign out: a banned account stays signed in (Q281), and on a shared computer it is the only way to end the session", async () => {
+  it("keeps Log out: a banned account stays signed in (Q281), and on a shared computer it is the only way to end the session", async () => {
     renderScreen();
-    expect(await screen.findByRole("button", { name: /sign out/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /log out/i })).toBeInTheDocument();
   });
 });
 

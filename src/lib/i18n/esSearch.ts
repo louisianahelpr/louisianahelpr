@@ -1,4 +1,4 @@
-/** Spanish for enSearch.ts (design audit area 02 #3). Section names follow nav.* (Trabajos, Ventas...). */
+/** Spanish for enSearch.ts (design audit area 02 #3). Section names follow nav.* (Trabajos, Declutter...). */
 import type { enSearch } from "./enSearch";
 
 export const esSearch: Record<keyof typeof enSearch, string> = {
@@ -19,7 +19,7 @@ export const esSearch: Record<keyof typeof enSearch, string> = {
   "srch.nothingMember": "Guarde esta búsqueda y le avisaremos cuando haya algo nuevo, o vea todo lo que hay ahora.",
   "srch.nothingGuest": "Pruebe con menos palabras, o vea todo lo que hay ahora.",
   "srch.browseJobs": "Ver todos los trabajos",
-  "srch.browseDeclutter": "Ver Ventas",
+  "srch.browseDeclutter": "Ver Declutter",
   "srch.seeMore": "Ver más",
   "srch.seeAllN": "Ver los {n}",
   "srch.seeAllJobs": "Ver los {n} en Trabajos",

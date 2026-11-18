@@ -34,6 +34,7 @@ import { esSuggest } from "./esSuggest";
 import { esItemPage } from "./esItemPage";
 import { esJobCats } from "./esJobCats";
 import { esGuest } from "./esGuest";
+import { esAccount } from "./esAccount";
 import { esJobSteps } from "./esJobSteps";
 import { esJobPoster } from "./esJobPoster";
 import { esNextStep } from "./esNextStep";
@@ -84,6 +85,7 @@ export const es: Record<MsgKey, string> = {
   ...esItemPage,
   ...esJobCats,
   ...esGuest,
+  ...esAccount,
   ...esJobSteps,
   ...esJobPoster,
   ...esNextStep,
@@ -324,11 +326,12 @@ export const es: Record<MsgKey, string> = {
   "profileGate.stillNeeded": "Todavía falta",
   "profileGate.stepName": "agregue su nombre completo",
   "profileGate.stepPolicies": "acepte las reglas, los términos y la privacidad",
-  "profileGate.nextStep": "Siguiente: {step} · paso {n} de {total}",
+  "profileGate.nextStep": "Siguiente: {step}",
   "profileGate.saving": "Guardando…",
-  "profileGate.enterApp": "Entrar a la app",
-  "profileGate.completeRequired": "Complete los campos obligatorios",
+  "profileGate.finish": "Terminar",
   "profileGate.deleteAccount": "Eliminar cuenta",
+  "profileGate.agreeLead": "Acepto los",
+  "profileGate.notForYou": "¿No es para usted?",
   "profileGate.stuck": "¿Se le complicó algo?",
   "profileGate.contactSupport": "Contactar a soporte",
   "profileGate.intro": "Necesitamos algunos datos antes de que pueda usar Helpr. Así la comunidad se mantiene segura.",
@@ -368,7 +371,9 @@ export const es: Record<MsgKey, string> = {
   // Delete account dialog (Settings, Finish your profile, the suspended screen)
   "deleteAccount.whatOpenWork": "Primero se termina el trabajo pendiente. No puede borrar su cuenta mientras un trabajo esté reservado, en curso o en disputa, una venta o un pedido esté en marcha, el pago de un trabajo esté retenido o esperando a pagarse, o todavía le llegue dinero.",
   "deleteAccount.whatMembership": "Si tiene una membresía, se deja de cobrar.",
-  "deleteAccount.downloadFirst": "Puede descargar sus datos antes, desde Ajustes.",
+  "deleteAccount.downloadFirst": "¿Quiere una copia de sus datos antes?",
+  "deleteAccount.downloadNow": "Descargar mis datos",
+  "deleteAccount.downloading": "Preparando su archivo…",
   "deleteAccount.breakLead": "¿Solo necesita un descanso?",
   "deleteAccount.breakLink": "Mejor apague las notificaciones",
   "deleteAccount.erasedHeading": "Borrado para siempre",
@@ -637,10 +642,11 @@ export const es: Record<MsgKey, string> = {
   "settings.updates": "Avisos",
   "settings.yourAccount": "Su cuenta",
   "settings.more": "Más",
-  "settings.colorMode": "Modo de color",
+  "settings.privacy": "Privacidad",
+  "settings.colorMode": "Color y texto",
   "settings.light": "Claro",
   "settings.dark": "Oscuro",
-  "settings.matchPhone": "Igual que mi teléfono",
+  "settings.matchPhone": "Igual que el teléfono",
   "settings.biggerText": "Texto y botones más grandes",
   "settings.biggerTextSub": "Letra más grande y botones más fáciles de tocar",
   "settings.jobs": "Trabajos",

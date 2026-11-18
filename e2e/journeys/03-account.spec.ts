@@ -186,8 +186,8 @@ test(j7, async ({ browser, request, journey }) => {
     // The bio is on the member's public profile (the You landing is a menu
     // since board 18): open it the way a member does, from the You card.
     await hp.goto("/profile");
-    await hp.getByRole("button", { name: "View my public profile" }).filter({ visible: true }).first().click();
-    await expect(hp, "View my public profile did not open the public profile").toHaveURL(new RegExp(`/user/${helper.user.id}`), { timeout: 30_000 });
+    await hp.getByRole("button", { name: "Public profile", exact: true }).filter({ visible: true }).first().click();
+    await expect(hp, "Public profile did not open the public profile").toHaveURL(new RegExp(`/user/${helper.user.id}`), { timeout: 30_000 });
     await expect(hp.getByText(`Journey ${RUN}.`), "the edited bio is not on the profile").toBeVisible({ timeout: 30_000 });
     await assertHealthy(hp, "profile after edit");
     await journey.milestone(hp, "profile-edited");
@@ -511,7 +511,7 @@ test(j8, async ({ browser, request, journey }) => {
     ["/profile", /^Talk to a real person/, "Help"],
     ["/profile", /^Settings/, "Settings"],
     ["/profile?tab=settings", /^Account and security/, "Account Security"],
-    ["/profile?tab=settings", /^Color mode/, "Accessibility"],
+    ["/profile?tab=settings", /^Color and text/, "Color and text"],
     ["/profile?tab=settings", /^Legal/, "Legal"],
     ["/profile?tab=settings", /^Warnings and strikes/, "Warnings"],
   ] as const) {

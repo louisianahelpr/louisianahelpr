@@ -52,9 +52,14 @@ const CALLS_HOOK = /\buseSignOutAction\s*\(/g;
 const SIGN_OUT_CALL = /\bsignOut\s*\(\s*\{/g;
 const DISABLED_BOUND = /\b(?:primaryDisabled|disabled)=\{signingOut\}/g;
 // The label written in, or (Spanish option, 2026-10-29) a dictionary key whose English is that label.
-const LABEL_BOUND = /signingOut\s*\?\s*(?:"Logging out…"|t\("([\w.]+)"\))/g;
+// Or wordInLang("<key>", "Logging out…"): the boot-safe lookup that carries its English inline (design audit area 09).
+// Or a `loggingOut` const holding that lookup (SignOutConfirmDialog: a string inside primaryLabel reads as a commit
+// label to the press sweep's reader, pressGatesEveryIrreversibleControl.test.tsx).
+const LABEL_BOUND = /signingOut\s*\?\s*(?:"Logging out…"|t\("([\w.]+)"\)|wordInLang\("[\w.]+",\s*"Logging out…"\)|(loggingOut)\b)/g;
+const LOGGING_OUT_CONST = /const loggingOut = wordInLang\("[\w.]+",\s*"Logging out…"\);/;
 const countLabels = (code: string) =>
-  [...code.matchAll(LABEL_BOUND)].filter((m) => !m[1] || (en as Record<string, string>)[m[1]] === "Logging out…").length;
+  [...code.matchAll(LABEL_BOUND)].filter((m) =>
+    m[2] ? LOGGING_OUT_CONST.test(code) : !m[1] || (en as Record<string, string>)[m[1]] === "Logging out…").length;
 
 /**
  * A caller may hand its button to a child component (CompleteProfile's wait card, moved into
@@ -111,6 +116,9 @@ describe("pressed Log Out buttons show progress (owner, 2026-10-09)", () => {
     // A dictionary key counts only when its English is the progress label.
     expect(bindingProblem(bound.replace('"Logging out…"', 't("profileGate.loggingOut")'))).toBeNull();
     expect(bindingProblem(bound.replace('"Logging out…"', 't("profileGate.signOut")'))).toMatch(/Logging out/);
+    // wordInLang counts only with the progress label as its English.
+    expect(bindingProblem(bound.replace('"Logging out…"', 'wordInLang("acct.loggingOut", "Logging out…")'))).toBeNull();
+    expect(bindingProblem(bound.replace('"Logging out…"', 'wordInLang("acct.logout", "Log out")'))).toMatch(/Logging out/);
     // A hand-off to a child counts only when the child binds both.
     const handing = `const { signingOut, signOut } = useSignOutAction();
       <Card signingOut={signingOut} onSignOut={() => { void signOut({ after }); }} />`;
@@ -142,6 +150,6 @@ describe("pressed Log Out buttons show progress (owner, 2026-10-09)", () => {
 // "nothing happened" wiring and fails this guard (and so did checking out the
 // five wired files from origin/main: both inventory tests failed).
 // @mutate src/components/auth/SignOutConfirmDialog.tsx | primaryDisabled={signingOut} |
-// @mutate src/pages/auth/AccountBanned.tsx | {signingOut ? "Logging out…" : "Sign out"} | Sign Out
+// @mutate src/pages/auth/AccountBanned.tsx | {signingOut ? "Logging out…" : "Log out"} | Log out
 // @mutate src/pages/profile/Profile.tsx | after={() => navigate("/")} | after={async () => { await signOutWithPushCleanup(); navigate("/"); }}
 // @mutate src/pages/auth/completeProfile/CheckingProfileCard.tsx |         disabled={signingOut}\n |

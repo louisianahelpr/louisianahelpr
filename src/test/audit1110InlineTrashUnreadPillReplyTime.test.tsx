@@ -12,7 +12,8 @@
  * @mutate src/pages/info/Support.tsx |                     We reply by email. {SUPPORT_REPLY_PROMISE} |                     We reply by email.
  * Area 08 L15 (design audit 11-18): on /support the promise is said ONCE in the form (under Send), not twice.
  * @mutate src/pages/info/Support.tsx |                   A real person reads every message.\n |                   A real person reads every message. {SUPPORT_REPLY_PROMISE}\n
- * @mutate src/components/profile/SupportInline.tsx | A real person reads every message. {SUPPORT_REPLY_PROMISE} | A real person reads every message.
+ * Design audit area 09 L9: the in-app form says only the reply time.
+ * @mutate src/components/profile/SupportInline.tsx | data-support-reply-time="">{SUPPORT_REPLY_PROMISE}</p> | data-support-reply-time=""></p>
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -48,7 +49,9 @@ describe("F235: both support forms state the reply time before sending", () => {
     const src = code(file);
     const form = src.slice(src.indexOf("<form"), src.indexOf("</form>"));
     expect(src.length).toBeGreaterThan(500);
-    expect(form).toMatch(/data-support-reply-time="">\s*A real person reads every message\./);
+    // /support: "A real person reads every message." heads the form (area 08 L15); the in-app form (titled "Talk to a
+    // real person") says only the reply time (design audit area 09 L9).
+    expect(form).toMatch(/data-support-reply-time="">\s*(A real person reads every message\.|\{SUPPORT_REPLY_PROMISE\})/);
     // Area 08 L15: the reply-time promise is in the form exactly once (it was said twice on /support).
     expect(form.split("{SUPPORT_REPLY_PROMISE}").length - 1).toBe(1);
   });

@@ -22,6 +22,7 @@ export function ConfirmSheet({
   onConfirm,
   onClose,
   testId,
+  plain = false,
 }: {
   open: boolean;
   title: string;
@@ -35,6 +36,8 @@ export function ConfirmSheet({
   onConfirm: () => void;
   onClose: () => void;
   testId?: string;
+  /** Area 05 #21 (11-18): nothing to warn about (no money, no strike): the body is plain text, not the tinted note. */
+  plain?: boolean;
 }) {
   const webDesktop = useIsWebDesktop();
   return (
@@ -47,7 +50,8 @@ export function ConfirmSheet({
         data-confirm-sheet={testId ?? ""}
       >
         <SheetHero title={title} />
-        <p className="mt-2 rounded-xl px-3 py-2 text-ds-14 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-sheet-note="">
+        <p className={plain ? "mt-2 text-ds-14 text-foreground" : "mt-2 rounded-xl px-3 py-2 text-ds-14 text-foreground"}
+          style={plain ? undefined : { background: "hsl(var(--burnt-sienna) / 0.08)" }} data-sheet-note={plain ? "plain" : ""}>
           {children}
         </p>
         <SheetFooter className="mt-4">

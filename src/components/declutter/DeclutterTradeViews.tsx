@@ -291,7 +291,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               <span className="block text-ds-13 text-muted-foreground">{handoverWords(h)}</span>
             </span>
             <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--accent-ink))]">
-              {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>)
+              {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-medium text-muted-foreground">Get a price</span>)
                 : h === "ship" ? (shipQuote ? formatPrice(shipQuote.rate_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>)
                 : h === "seller_delivery" ? (sdState === "no_times"
                   ? <span className="font-semibold text-muted-foreground">{sellerDeliveryPriceWords(sdOffer.data, sdState)}</span>
@@ -459,7 +459,11 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           }
         }}
       >
-        {held ? "Confirming your payment…" : opening ? "Opening…" : split?.onCardCents === 0 ? "Pay with gift card" : `Pay ${formatPrice(split ? split.onCardCents : payCents)}`}
+        {/* Area 05 #19 (11-18): with the delivery or postage not priced yet, the figure would leave it out; the button
+            names the step instead (it is disabled until then: payWaitsOn). */}
+        {held ? "Confirming your payment…" : opening ? "Opening…" : delivering && !liveQuote ? "Get the delivery price first"
+          : shipping && !shipQuote ? "Get shipping prices first"
+          : split?.onCardCents === 0 ? "Pay with gift card" : `Pay ${formatPrice(split ? split.onCardCents : payCents)}`}
       </Button>
       </div>
       {/* Q2633 (owner rule: no line under the buttons): Pay is the last thing in the bill. The secure-page line went, and

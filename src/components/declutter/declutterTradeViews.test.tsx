@@ -996,7 +996,10 @@ describe("Declutter slice 3 screens", () => {
     show(<CartView />);
     fireEvent.click(await screen.findByRole("button", { name: "Remove Rug from your cart" }));
     const sheet = await screen.findByRole("dialog");
-    expect(within(sheet).getByText(/"Rug" goes back on sale for everyone\. Nothing is charged, and you get no strike\./)).toBeInTheDocument();
+    // @mutate src/components/declutter/DeclutterCartRemove.tsx |           : <>“{line.item_title}” goes back on sale |           : <>&quot;{line.item_title}&quot; goes back on sale
+    // @mutate src/components/declutter/DeclutterCartRemove.tsx |         testId="declutter-remove-cart-line" plain onConfirm |         testId="declutter-remove-cart-line" onConfirm
+    expect(sheet.querySelector('[data-sheet-note="plain"]')).not.toBeNull(); // area 05 #21: no warning tint
+    expect(within(sheet).getByText(/“Rug” goes back on sale for everyone\. Nothing is charged, and you get no strike\./)).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Keep it" }));
     expect(screen.queryByRole("dialog")).toBeNull(); // the sheet closes on the press itself
     expect(state.removed).toEqual([]);
@@ -1311,7 +1314,8 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByLabelText(/Porch pickup/)).toBeChecked();
     fireEvent.click(screen.getByLabelText(/Helpr delivery/));
     // No price yet: Pay waits for the server's quote.
-    expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeDisabled();
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | : opening ? "Opening…" : delivering && !liveQuote ? "Get the delivery price first" | : opening ? "Opening…" : false ? "Get the delivery price first"
+    expect(screen.getByRole("button", { name: "Get the delivery price first" })).toBeDisabled(); // area 05 #19
     // ...and the bill says the total is not complete yet (money review #4).
     // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |           {unpriced && <span | {false && <span
     expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/Total\$3\.85\+ delivery/);
@@ -1613,7 +1617,7 @@ describe("Declutter slice 3 screens", () => {
     show(<CartView />);
     fireEvent.click(await screen.findByLabelText(/Ship it to me/));
     expect(screen.getByText("Get shipping prices above to pay.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Get shipping prices first" })).toBeDisabled(); // area 05 #19
     fireEvent.change(screen.getByLabelText("Street address"), { target: { value: "12 Oak St" } });
     fireEvent.change(screen.getByLabelText("City"), { target: { value: "Baton Rouge" } });
     fireEvent.change(screen.getByLabelText("ZIP"), { target: { value: "70801" } });
@@ -1632,7 +1636,7 @@ describe("Declutter slice 3 screens", () => {
     // A changed address drops the old prices.
     fireEvent.change(screen.getByLabelText("ZIP"), { target: { value: "70802" } });
     expect(screen.queryByText("UPS Ground")).toBeNull();
-    expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Get shipping prices first" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Get prices" }));
     await screen.findByText("UPS Ground");
     fireEvent.click(screen.getByRole("button", { name: "Pay $29.40" }));
@@ -1731,7 +1735,7 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Get price" }));
     await screen.findByRole("button", { name: "Pay $43.85" });
     fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "12 Other St, Zachary, LA" } });
-    expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Get the delivery price first" })).toBeDisabled(); // area 05 #19
     state.deliveryOn = false;
   });
 

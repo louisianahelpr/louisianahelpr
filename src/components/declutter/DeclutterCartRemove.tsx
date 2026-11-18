@@ -34,10 +34,11 @@ export function RemoveFromCart({ line }: { line: Pick<CartLine, "line_id" | "ite
       </Button>
       <ConfirmSheet open={asking} title={trade ? "Back out of this trade?" : "Remove it from your cart?"} confirmLabel={trade ? "Back out" : "Remove"}
         cancelLabel={trade ? "Keep the trade" : "Keep it"} pending={remove.isPending}
-        testId="declutter-remove-cart-line" onConfirm={() => remove.mutate()} onClose={() => setAsking(false)}>
+        testId="declutter-remove-cart-line" plain onConfirm={() => remove.mutate()} onClose={() => setAsking(false)}>
         {trade
-          ? <>The trade ends now: &quot;{line.item_title}&quot; and your item both go back up. Nothing changes hands, and nobody gets a strike.</>
-          : <>&quot;{line.item_title}&quot; goes back on sale for everyone. Nothing is charged, and you get no strike.</>}
+          // Area 05 #21 (11-18): curly quotes around the title, and a plain body (no warning tint: nothing is lost).
+          ? <>The trade ends now: “{line.item_title}” and your item both go back up. Nothing changes hands, and nobody gets a strike.</>
+          : <>“{line.item_title}” goes back on sale for everyone. Nothing is charged, and you get no strike.</>}
       </ConfirmSheet>
     </>
   );

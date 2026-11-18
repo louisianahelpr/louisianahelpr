@@ -514,14 +514,21 @@ export const actionWords = (action: string) => (ACTION_KEYS[action] ? t(ACTION_K
  * free order its card left Buying with no record; the record now kept here must not read like an unpaid checkout
  * ("The time to check out ran out. Nothing was charged." on a paid sale that is being refunded would be false).
  */
-function endedWords(line: Pick<CartLine, "status" | "order_id" | "order_status" | "total_cents">): string {
+function endedWords(line: Pick<CartLine, "status" | "order_id" | "order_status" | "total_cents" | "price_cents"> & { source?: CartLine["source"] }): string {
   const closedAfterPaying = !!line.order_id && line.order_status === "refunded";
+  const sellerFault = line.status === "cancelled_by_seller";
+  // Area 05 #17 (design audit 11-18): a free claim or a trade never had a charge, so it never says "Nothing was
+  // charged", and it says what really ended it.
+  const trade = line.source === "swap";
+  const free = !trade && line.price_cents === 0;
   if (!closedAfterPaying) {
+    if (trade) return sellerFault ? "The other person called off the trade." : "A pickup wasn't chosen, so the trade closed.";
+    if (free) return sellerFault ? "The giver called it off." : "You didn't pick it up in time.";
     return line.status === "missed" ? "The time to check out ran out. Nothing was charged." : "The seller called off the sale. Nothing was charged.";
   }
-  const sellerFault = line.status === "cancelled_by_seller";
+  if (trade) return sellerFault ? "The other person cancelled this trade." : "This trade was cancelled.";
   if ((line.total_cents ?? 0) === 0) {
-    return sellerFault ? "The seller cancelled this free pickup. Nothing was charged." : "This free pickup was cancelled. Nothing was charged.";
+    return sellerFault ? "The seller cancelled this free pickup." : "This free pickup was cancelled.";
   }
   return sellerFault ? "The seller cancelled this sale. Your refund is on its way to your card." : "This sale was cancelled. Your refund is on its way to your card.";
 }

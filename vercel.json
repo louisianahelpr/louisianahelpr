@@ -259,6 +259,10 @@
       "destination": "/api/share?_og=noindex&_id=unsubscribe"
     },
     {
+      "source": "/gift-guides",
+      "destination": "/api/share?_og=noindex&_id=gift-guides"
+    },
+    {
       "source": "/sponsor",
       "destination": "/api/share?_og=noindex&_id=sponsor"
     },
@@ -548,6 +552,10 @@
     },
     {
       "source": "/safety",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/gift-guides",
       "destination": "/index.html"
     },
     {

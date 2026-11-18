@@ -53,6 +53,7 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
   "/storage": "Supabase Storage path",
   "/s": "the typed-signature mark on a signed lease PDF (\"/s/ Dana Smith\", src/lib/rentals/leasePdf.ts), not an address",
   "/landing": "public/landing/ static photos on the landing page (LandingProof.tsx), served as files, not an app address",
+  "/gift-guide-covers": "public/gift-guide-covers/ the owner's gift guide covers as webp (src/content/giftGuideList.ts), served as files, not an app address",
   "/fonts": "public/fonts/ self-hosted brand font files the emails load (email-templates/styles.ts @font-face), served as files, not an app address",
   "/ti": "Apple MapKit CDN path (cdn.apple-mapkit.com/ti/csr/) that csp-report classifies as vendor noise",
 };
@@ -64,8 +65,6 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
  */
 // @two-way src/test/everyLinkIsARealRoute.test.ts:stale OWNER_REDIRECT_ROUTES entry
 const OWNER_REDIRECT_ROUTES: Record<string, string> = {
-  "/gift-guides":
-    "owner 2026-11-17 (relayed by the lead): the gift guides are not visible yet; \"Make the /gift-guides route redirect to / for now\" while the next version is built on feat/gift-guides-v2",
   "/declutter/wanted/new":
     "owner 2026-11-09 (UI audit F130, the owner-approved fix list: \"Route it to the Wanted composer (or redirect to /declutter?tab=wanted)\"): the obvious address for a new Wanted post opens the composer (wantedAskHref(\"\")) instead of the 404",
   "/helpdesk":

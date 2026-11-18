@@ -97,10 +97,11 @@ const NOT_PROCESSORS = [
   "www.twilio.com",
   // Links only: a shipped Declutter order's tracking number opens the carrier's own tracking page (src/lib/declutter/shipOrder.ts).
   "www.ups.com", "tools.usps.com",
-  // /gift-guides (owner 2026-11-16): links only to the owner's ShopMy collections, her Pinterest boards and two brand
-  // sites (src/content/giftGuides.ts); no data is sent to them. The product photos load from ShopMy's and the brands'
-  // image hosts the way any linked image does; nothing of the member's is passed.
-  "shopmy.us", "www.pinterest.com", "www.zchocolat.com", "www.diecastmodelswholesale.com", "cdn11.bigcommerce.com",
+  // /gift-guides (owner 2026-11-16; rebuilt 11-17): links only, straight to each product's own affiliate link (Amazon,
+  // go.shopmy.us) and to partner brand sites (src/content/giftGuides.ts, giftGuideItems/); no data is sent to them.
+  // Product photos load from Pinterest's and ShopMy's image hosts the way any linked image does (covers are ours);
+  // nothing of the member's is passed.
+  "www.amazon.com", "go.shopmy.us", "static.shopmy.us", "i.pinimg.com", "cookmagnifique.com",
 ];
 
 const files = [...walk("src"), ...walk("supabase/functions")];

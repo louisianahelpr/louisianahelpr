@@ -25,8 +25,7 @@
  * go red.
  *
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | { path: "/rentals", icon: KeyRound, label: "Homes", feature: "rentals" as const }, | { path: "/rentals", icon: KeyRound, label: "Rentals", feature: "rentals" as const },
- * @mutate src/components/mobileNav/useSectionTabs.ts |     return { ...s, on: on[s.feature], preview, listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview }) }; |     return { ...s, on: true, preview, listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview }) };
- * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !unknown && (!on \|\| isPreview(s)); |     const soon = !unknown && (!on);
+ * @mutate src/components/mobileNav/useSectionTabs.ts |     return { ...s, on: on[s.feature], preview, listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview: unlaunched }) }; |     return { ...s, on: true, preview, listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview: unlaunched }) };
  * (Owner 2026-10-21: on Explore a closed section says "Soon" ON its tab and a
  * tap does nothing, no toast popping up elsewhere; the row is the LIGHTER
  * control, tone="quiet", under which the section's own solid switch sits.)
@@ -131,14 +130,16 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(sectionItems.some((s) => /rental/i.test(s.label))).toBe(false);
   });
 
-  it("Explore lists Jobs, Declutter, Shops, Homes with every switch on; never Rentals", () => {
+  it("Explore lists Jobs, Declutter, Shops, Homes with every switch on and every section launched; never Rentals", () => {
     switches.on = new Set(["declutter", "shops", "rentals"]);
+    everyone.open = new Set(["declutter", "shops", "rentals"]);
     renderExplore();
     expect(exploreLabels()).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
   });
 
   it("a switched-OFF section says 'Coming soon' under its name, muted; a tap neither navigates nor fires a toast", () => {
     switches.on = new Set(["shops"]);
+    everyone.open = new Set(["shops"]); // Shops launched; Declutter's switch reads off for this viewer
     renderExplore();
     const declutter = screen.getByRole("radio", { name: "Declutter, coming soon" });
     expect(declutter.querySelector("[data-soon]")).toBeTruthy();
@@ -167,6 +168,7 @@ describe("the section tabs (owner 2026-10-18)", () => {
 
   it("a switched-ON section is live: no aria-disabled, its plain name, and a tap navigates", () => {
     switches.on = new Set(["shops"]);
+    everyone.open = new Set(["shops"]);
     renderExplore();
     const shops = screen.getByRole("radio", { name: "Shops" });
     expect(shops.querySelector("[data-soon]")).toBeNull();
@@ -175,16 +177,13 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(toasts).toEqual([]);
   });
 
-  it("a live section open to testers only ALSO says 'Coming soon' (one word for everyone, owner 2026-10-22), and still opens for the tester", () => {
+  // Owner 2026-10-22 had a tester's preview say "Soon"; owner 2026-11-17 (signed-in tweaks, item 1): it is not listed.
+  it("a section open to testers only is not in Explore until it opens to everyone", () => {
     switches.on = new Set(["rentals", "shops"]);
     everyone.open = new Set(["shops"]);
     renderExplore();
-    const homes = screen.getByRole("radio", { name: "Homes, coming soon" });
-    expect(homes.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Soon");
-    expect(homes.querySelector("[data-preview-pill]")).toBeNull();
+    expect(screen.queryByRole("radio", { name: /Homes/ })).toBeNull();
     expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-coming-soon]")).toBeNull();
-    fireEvent.click(homes);
-    expect(screen.getByTestId("where").textContent).toBe("/rentals");
   });
 
   // Owner 2026-10-30 (via the lead): the owner and admins HAVE Declutter, yet the chip said "Declutter / Soon".
@@ -208,11 +207,12 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(screen.getByTestId("where").textContent).not.toBe("/declutter");
   });
 
-  it("while the open-to-everyone answer is loading or failed, no open tab says 'Coming soon'", () => {
+  it("while the open-to-everyone answer is loading or failed, no tab says 'Coming soon' and no unlaunched tab shows", () => {
     switches.on = new Set(["declutter", "shops", "rentals"]);
     renderExplore();
     expect(document.querySelector("[data-coming-soon]")).toBeNull();
-    expect(exploreLabels()).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
+    // Owner 2026-11-17: Shops and Homes stay hidden until they are known to be open to everyone (no flash in and out).
+    expect(exploreLabels()).toEqual(["Jobs", "Declutter"]);
   });
 
   // The desktop website's soft section "+" (owner 2026-10-28) is guarded in topBarAddMatchesBell.test.tsx.

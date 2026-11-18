@@ -73,7 +73,7 @@ export const enPostJob = {
   "postJob.otherWays": "Other ways to start",
   "postJob.useTemplate": "Use a template",
   "postJob.hireSaved": "Hire a saved Helpr",
-  "postJob.describeAi": "Describe it with AI",
+  "postJob.describeAi": "Describe it in your own words",
   "postJob.repost": "Repost a recent job",
   "postJob.templatesQ": "Pick a template",
   "postJob.templatesH": "Start from a common job, then edit anything.",

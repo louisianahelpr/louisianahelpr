@@ -740,6 +740,15 @@
      across the in-app surfaces the same authority as the marketing CTAs. */
   --primary:              var(--bark);
   --primary-foreground:   var(--parchment);
+  /* Job category tile tints (owner 2026-11-17; src/lib/jobCategoryTint.mjs): a soft background and a darker icon of
+     one hue per category group. Contrast is guarded in both themes (src/test/jobCategoryTints.test.ts). */
+  --cat-tint-sage-bg:   95 32% 91%;   --cat-tint-sage-fg:   100 38% 26%;
+  --cat-tint-sky-bg:    205 62% 93%;  --cat-tint-sky-fg:    208 62% 30%;
+  --cat-tint-amber-bg:  38 80% 90%;   --cat-tint-amber-fg:  28 75% 28%;
+  --cat-tint-rose-bg:   350 65% 94%;  --cat-tint-rose-fg:   350 52% 34%;
+  --cat-tint-violet-bg: 265 50% 94%;  --cat-tint-violet-fg: 265 38% 38%;
+  --cat-tint-teal-bg:   175 42% 90%;  --cat-tint-teal-fg:   178 55% 22%;
+  --cat-tint-stone-bg:  40 16% 91%;   --cat-tint-stone-fg:  30 12% 30%;
   --ring:                 var(--bark);
   --success: 110 12% 35%;  /* was 110 5% 65% — measured 2.38:1 as text, barely half of
                               WCAG AA. 35% = 4.78:1 on a #dedfdf card, 6.38:1 on white.
@@ -1083,6 +1092,14 @@
   --accent-foreground:    0 0% 100%;
   --primary:              var(--bark);
   --primary-foreground:   var(--parchment);
+  /* Job category tile tints, dark: a deep background and a light icon of the same hue. */
+  --cat-tint-sage-bg:   95 18% 20%;   --cat-tint-sage-fg:   95 40% 72%;
+  --cat-tint-sky-bg:    208 30% 20%;  --cat-tint-sky-fg:    205 65% 75%;
+  --cat-tint-amber-bg:  32 30% 19%;   --cat-tint-amber-fg:  38 80% 70%;
+  --cat-tint-rose-bg:   350 25% 20%;  --cat-tint-rose-fg:   350 70% 78%;
+  --cat-tint-violet-bg: 265 22% 21%;  --cat-tint-violet-fg: 265 55% 78%;
+  --cat-tint-teal-bg:   178 28% 18%;  --cat-tint-teal-fg:   175 45% 68%;
+  --cat-tint-stone-bg:  36 8% 20%;    --cat-tint-stone-fg:  40 15% 72%;
   --ring:                 var(--bark);
   --success:              110 12% 50%;
   --success-foreground:   0 0% 100%;

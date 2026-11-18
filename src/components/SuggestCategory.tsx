@@ -60,16 +60,16 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
 
   return (
     <>
-      {/* Q2709: the shared link Button (44px, h-11), same ink, 12px/600 type and 14px glyph as before. */}
+      {/* Q2709: the shared link Button (44px, h-11). Owner 2026-11-17: body size (16px, was 11px) and a 20px glyph. */}
       <Button
         type="button"
         variant="link"
         size="sm"
         onClick={() => setOpen(true)}
-        className="gap-1.5 px-0 text-ds-12 font-sans font-semibold [&_svg]:size-3.5"
+        className="gap-1.5 px-0 text-ds-15 font-sans font-semibold [&_svg]:size-5"
         style={{ color: "hsl(var(--bark))" }}
       >
-        <Lightbulb className="w-3.5 h-3.5" aria-hidden />
+        <Lightbulb className="w-5 h-5" aria-hidden />
         Don&apos;t see yours? Suggest a category
       </Button>
       <Dialog open={open} onOpenChange={(o) => !sending && setOpen(o)}>

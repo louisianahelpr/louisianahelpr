@@ -56,9 +56,9 @@ const switches = vi.hoisted(() => ({ on: new Set<string>() }));
 vi.mock("@/integrations/supabase/client", async () => (await import("./helpers/emptySupabaseClient")).emptySupabaseModule());
 const toasts = vi.hoisted(() => [] as string[]);
 const age = vi.hoisted(() => ({ under: false, explained: [] as string[] }));
-// The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
-// F134 sets an answer (Shops and Homes open to testers only) to check the Create sheet's greyed preview buttons.
-const openAll = vi.hoisted(() => ({ set: null as ReadonlySet<string> | null }));
+// Launched by default (owner 2026-11-17: a section not open to everyone is not listed, even for a tester).
+const LAUNCHED: ReadonlySet<string> = new Set(["declutter", "shops", "rentals"]);
+const openAll = vi.hoisted(() => ({ set: new Set(["declutter", "shops", "rentals"]) as ReadonlySet<string> | null }));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => openAll.set }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
@@ -317,6 +317,9 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
   // OFF for the viewer has no row at all (it was a greyed "Coming soon" row), and the line counts the rows shown.
   it("a section switched OFF for the viewer has no row, and the line counts the sections shown (M8)", () => {
     switches.on = new Set(["shops"]);
+    // Shops launched; Declutter's switch reads off (and this file's real useAuthReady reads a guest, for whom an
+    // open-to-everyone Declutter is live, so the answer leaves Declutter out here).
+    openAll.set = new Set(["shops", "rentals"]);
     renderDock();
     openSheet();
     expect(row("homes")).toBeNull();
@@ -336,28 +339,20 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     expect(screen.getByText("One account, two ways to get things done.")).toBeTruthy();
   });
 
-  // F134 (owner UI audit 11-09): "Open a shop" and "List for rent" were solid olive under a "Coming soon" mark.
-  // @mutate src/components/create/CreateSheet.tsx |             const soon = on && isPreview(s); |             const soon = false;
-  it("a section open to testers only keeps its 'Coming soon' mark and its buttons are grey and disabled (F134)", () => {
+  // F134 (owner UI audit 11-09) made a tester's unlaunched rows grey "Coming soon"; owner 2026-11-17 (signed-in tweaks,
+  // item 1): an unlaunched section has no row at all, for a tester too, until it opens to everyone.
+  // @mutate src/lib/hideUnopenedInApp.ts |   return !tab.preview; |   return true;
+  it("a section open to testers only (not launched) has no row; Jobs and Declutter stay live", () => {
     openAll.set = new Set(["declutter"]);
     try {
       renderDock();
       openSheet();
-      for (const key of ["shops", "homes"]) {
-        expect(row(key).textContent).toContain("Coming soon");
-        const btn = action(key);
-        expect(btn.getAttribute("aria-disabled")).toBe("true");
-        expect(btn.className).not.toContain("btn-grad-primary");
-        expect(btn.className).toContain("text-muted-foreground");
-      }
-      fireEvent.click(action("shops"));
-      expect(where()).toBe("/home");
-      expect(toasts).toEqual(["Shops is coming soon"]);
-      // Jobs and Declutter (open to everyone) stay live.
+      expect(row("jobs")).toBeTruthy();
+      for (const key of ["shops", "homes"]) expect(row(key)).toBeNull();
       expect(action("jobs").className).toContain("btn-grad-primary");
       expect(action("declutter").getAttribute("aria-disabled")).toBeNull();
     } finally {
-      openAll.set = null;
+      openAll.set = LAUNCHED;
     }
   });
 
@@ -375,7 +370,7 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
       expect(solid).toEqual([action("jobs")]);
       expect(action("declutter").className).toContain("border");
     } finally {
-      openAll.set = null;
+      openAll.set = LAUNCHED;
     }
   });
 
@@ -417,10 +412,11 @@ function renderAt(ui: React.ReactNode, at: string) {
 }
 
 describe("Explore", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => { localStorage.clear(); openAll.set = LAUNCHED; });
 
   it("opens on the first shown section that is open to the member", () => {
     switches.on = new Set();
+    openAll.set = new Set(["shops", "rentals"]); // Declutter closed here (see the M8 test above)
     localStorage.setItem("helpr_section_prefs:u-create", JSON.stringify({ order: ["declutter", "jobs", "shops", "homes"] }));
     renderAt(<Explore />, "/explore");
     expect(where()).toBe("/jobs");

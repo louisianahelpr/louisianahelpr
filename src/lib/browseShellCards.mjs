@@ -19,6 +19,8 @@
  * Types: browseShellCards.d.mts.
  */
 
+import { jobCategoryTint } from "./jobCategoryTint.mjs";
+
 /** TIER_PERKS.free.platformFeePercent: the rate every guest card is priced at (DashboardGuest, GUEST_FEE_PERCENT). */
 export const SHELL_GUEST_FEE_PERCENT = 12;
 /** helprFlatFee.ts HELPR_FLAT_FEE_PERCENT / HELPR_FLAT_FEE_CENTS / the giveaway stamp. */
@@ -254,8 +256,7 @@ export const SHELL_CARD_CLASSES = {
   // Photo-first cards (Q2043 + Q2036): the picture tile beside the text and the poster-face row, same size as the app's.
   mediaRow: "flex items-stretch",
   mediaPad: "py-3",
-  media: "relative shrink-0 self-start w-14 h-14 overflow-hidden rounded-xl",
-  mediaTint: "linear-gradient(140deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.06))",
+  media: "relative shrink-0 self-start w-12 h-12 overflow-hidden rounded-xl",
   textCol: "job-card-media-col min-w-0 flex-1",
   face: "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11 text-muted-foreground",
 };
@@ -326,7 +327,7 @@ function cardHtml(job) {
   const net = shellTakeHomeDollars(job).toLocaleString("en-US");
   return (
     `<div data-feed-card="" data-feed-row="" class="${c.root}"><div class="${c.inner}">` +
-    `<div class="${c.mediaRow}"><div class="${c.mediaPad}"><div class="${c.media}" style="background:${c.mediaTint}"></div></div><div class="${c.textCol}">` +
+    `<div class="${c.mediaRow}"><div class="${c.mediaPad}"><div class="${c.media}" style="background:${jobCategoryTint(job.category).background}"></div></div><div class="${c.textCol}">` +
     `<div data-job-badge-line="" class="${c.badgeLine}"></div>` +
     `<div class="${c.body}"><div class="${c.titleRow}">` +
     `<h2 class="${c.title}" style="color:hsl(var(--ink-deep));letter-spacing:-0.02em">${title}</h2>` +

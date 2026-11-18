@@ -1,15 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { leftItems, rightItems, sectionItems } from "@/components/mobileNav/mobileNavHelpers";
 
-/**
- * THE ONE FLAG for a tester's PREVIEW section in the NATIVE app's dock. M8/M9 (owner 11-16): "hide Shops and Homes
- * from members everywhere ... until they launch", so a section CLOSED to the viewer is never in the dock, on the
- * website or in the app. Admins and testers keep their existing access (owner 11-16): in the app their preview tab is
- * listed with NO "Soon" mark (owner 11-06/11-14, hideUnopenedInApp). False leaves previews out of the app's dock too.
- * Guard: src/test/navSoonAndTopMessages.test.tsx.
- */
-export const DOCK_LISTS_PREVIEWS_IN_APP = true;
-
 export type DockItem = { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "todo" | "todoJobs" | "todoShops" | "todoDeclutter"; comingSoon?: boolean };
 
 /**

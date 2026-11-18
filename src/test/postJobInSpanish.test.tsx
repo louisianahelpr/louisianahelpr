@@ -104,7 +104,7 @@ describe("Post a job in Spanish", () => {
     expect(gq).toContain("t(`postJob.kindQ.${id}` as MsgKey)");
     expect(gq).not.toMatch(/What kind/);
     for (const g of JOB_CATEGORY_GROUPS) expect(es[`postJob.kindQ.${g.id}` as keyof typeof es], g.id).toMatch(/^¿/);
-    for (const lit of ['"Use a template"', '"Hire a saved Helpr"', '"Describe it with AI"', '"Other ways to start"']) {
+    for (const lit of ['"Use a template"', '"Hire a saved Helpr"', '"Describe it in your own words"', '"Other ways to start"']) {
       expect(entry, lit).not.toContain(lit);
     }
   });

@@ -174,10 +174,12 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(searchGuides("")).toEqual([]);
     expect(searchGuides("   ")).toEqual([]);
     expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"]));
-    // By group: "experiences" finds every guide in that row, even ones whose title lacks the word.
-    const holding = ["gift-cards", "subscriptions", "spa-days", "date-night"].filter((x) => !guideBySlug(x)?.empty);
+    // By group: "by budget" finds every guide in that row, even ones whose title lacks the word (Gift Cards, Subscriptions).
+    const holding = ["gift-cards", "subscriptions", "stocking-stuffers"].filter((x) => !guideBySlug(x)?.empty);
     expect(holding.length).toBeGreaterThan(0);
-    expect(searchGuides("experiences").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
+    expect(searchGuides("by budget").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
+    // The Experiences row is gone (owner 11-18 PM): searching for it finds none of its old guides.
+    expect(searchGuides("experiences").map((g) => g.slug)).not.toContain("spa-days");
     expect(searchGuides("tractor supply").map((g) => g.slug)).toEqual(["store-tractor-supply"]);
     // Every word must match (one that matches nothing empties the list).
     expect(searchGuides("tractor supply xyzzy").length).toBe(0);

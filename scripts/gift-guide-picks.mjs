@@ -360,7 +360,7 @@ if (hidden.length && process.env.GIFT_PICKS_VERBOSE) console.error(`HIDDEN (no a
  * guide is its own file. A pick on a fixed store's host (zChocolat, Diecast) stays on that fixed store's page.
  */
 /** The Amazon page's sections, in order (design audit 11-18 #3); a pick in no listed group goes under "More finds". */
-export const AMAZON_SECTIONS = ["Louisiana Helpr Picks", "By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Experiences", "Colors", "Pets", "More finds"];
+export const AMAZON_SECTIONS = ["Louisiana Helpr Picks", "By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Colors", "Pets", "More finds"];
 const FIXED_HOSTS = new Set(["www.zchocolat.com", "www.diecastmodelswholesale.com"]);
 const sortedGuides = Object.entries(guides).sort(([a], [b]) => a.localeCompare(b));
 const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut];

@@ -325,7 +325,9 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
   // Design audit 2026-11-18 (trust): software, VPN and "PC cleaner" stores are no gift stores; never a tile or a page.
   "store-restoro", "store-nordvpn", "store-surfshark", "store-nordpass", "store-hide-me-vpn", "store-parallels-desktop", "store-oando-software", "store-paragon-software",
   // Affiliate sweep 11-18 PM: supplements (HerbsPro) are on the skip list.
-  "store-herbspro"];
+  "store-herbspro",
+  // Owner 11-18 PM ("No just get rid of the expernices"): the Experiences row and its guides are gone; an old link lands on the main page.
+  "louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "family-fun-days"];
 
 /**
  * Guides the owner folded into others (2026-11-18: Female Nurses and Male Nurses go into RNs, LPNs and CNAs). Each

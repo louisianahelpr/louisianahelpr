@@ -121,7 +121,7 @@ const expandAll = (root: HTMLElement) => {
 };
 const DISCLOSURE = "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.";
 const AMAZON_STATEMENT = "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.";
-const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Experiences", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
+const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
 // @two-way src/test/giftGuidesPage.test.tsx:stale allowed host
 const ALLOWED_HOSTS = ["shopmy.us", "www.pinterest.com", "www.amazon.com", "amazon.com", "amzn.to", ...AFFILIATE_HOSTS, ...BRAND_SITES, ...LOUISIANA_SHOPS, ...SPONSOR_SITES];
 const isAmazon = (href: string) => ["www.amazon.com", "amazon.com", "amzn.to"].includes(new URL(href).hostname);
@@ -246,15 +246,22 @@ describe("gift guides: the content inventory", () => {
     expect(Object.keys(STORES).filter((k) => !k.startsWith("store-")).sort()).toEqual(["amazon", "diecast", "louisiana", "shopmy", "sponsor", "zchocolat"]);
   });
 
-  it("syncs the owner's 2026-11-18 list: Experiences after Louisiana, Stay-at-Home Parents, Gift Wrap after Stocking Stuffers, no ShopMy store tile", () => {
+  it("syncs the owner's 2026-11-18 list: no Experiences row, Stay-at-Home Parents, Gift Wrap after Stocking Stuffers, no ShopMy store tile", () => {
     const rows = ROWS.map((r) => r.label);
-    expect(rows.indexOf("Experiences")).toBe(rows.indexOf("Louisiana") + 1);
-    // A guide that holds nothing yet is not listed (lead 2026-11-18); the rest keep the list's order.
-    const holding = (slugs: string[]) => slugs.filter((x) => guideBySlug(x) && !guideBySlug(x)!.empty && !guideBySlug(x)!.thin);
-    expect(guidesIn("experiences").map((g) => g.slug)).toEqual(holding([
-      "gift-cards", "louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "subscriptions", "family-fun-days",
-    ]));
-    expect(guidesIn("experiences").length).toBeGreaterThan(1);
+    // Owner 11-18 PM ("No just get rid of the expernices"): the Experiences row and its seven guides are gone, not
+    // hidden; Gift Cards and Subscriptions stay as their own guides, in By budget after Gift Wrap & Cards.
+    expect(rows).not.toContain("Experiences");
+    expect(guidesIn("experiences")).toEqual([]);
+    const gone = ["louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "family-fun-days"];
+    for (const slug of gone) {
+      expect(GUIDE_INDEX.some((g) => g.slug === slug), slug).toBe(false);
+      expect(guideBySlug(slug), slug).toBeUndefined();
+      expect(REMOVED_GUIDES, slug).toContain(slug);
+      expect(searchGuides(slug.replace(/-/g, " ")).map((g) => g.slug), slug).not.toContain(slug);
+    }
+    expect(GUIDE_INDEX.some((g) => g.group === "Experiences")).toBe(false);
+    expect(guideBySlug("gift-cards")?.row).toBe("by-budget");
+    expect(guideBySlug("subscriptions")?.row).toBe("by-budget");
     expect(guideBySlug("stay-at-home-parents")?.row).toBe("by-career");
     const budget = guidesIn("by-budget").map((g) => g.slug);
     expect(budget.indexOf("gift-wrap-and-cards")).toBe(budget.indexOf("stocking-stuffers") + 1);
@@ -1099,7 +1106,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
 describe("gift guides: the Amazon page in sections (design audit 11-18 #3)", () => {
   it("opens on Louisiana Helpr Picks, then By person, For kids and the rest, in order, each once", () => {
     // @mutate scripts/gift-guide-picks.mjs | pageList["store-amazon"] = [...byHref.values()].map((p) => ({ ...p, section: sectionOf(p) })) | pageList["store-amazon"] = [...byHref.values()].map((p) => ({ ...p }))
-    const order = ["Louisiana Helpr Picks", "By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Experiences", "Colors", "Pets", "More finds"];
+    const order = ["Louisiana Helpr Picks", "By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Colors", "Pets", "More finds"];
     const amazon = RESEARCHED_PICKS["store-amazon"];
     expect(amazon.every((p) => p.section && order.includes(p.section))).toBe(true);
     const runs = amazon.map((p) => p.section).filter((x, i, all) => x !== all[i - 1]);

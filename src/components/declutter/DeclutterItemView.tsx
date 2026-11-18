@@ -59,8 +59,7 @@ import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
 import { recordItemView } from "@/lib/declutter/itemViews";
 import { ItemViewsCount } from "./ItemViewsCount";
-import { exactDollars, PriceInclFee } from "./PriceInclFee";
-import { buyNowTotalCents } from "@/lib/declutter/money";
+import { oneItemTotalDollars, PriceInclFee } from "./PriceInclFee";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
 import { SellerTrustBadges } from "./SellerTrustBadges";
@@ -312,7 +311,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
                 {/* Area 06b M9: the seller reads who pays the total ("Buyers pay $26.95 with the fee"), not a bare "incl. fee". */}
                 {it.current_price_cents > 0 && isSeller && (
                   <span data-item-buyers-pay="" className="mt-0.5 text-ds-13 font-medium tabular-nums text-muted-foreground">
-                    {t("dsl.item.buyersPay", { amount: exactDollars(buyNowTotalCents(it.current_price_cents)) })}
+                    {t("dsl.item.buyersPay", { amount: oneItemTotalDollars(it.current_price_cents) })}
                   </span>
                 )}
               </p>

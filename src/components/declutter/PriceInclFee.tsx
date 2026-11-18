@@ -23,9 +23,16 @@ export function exactDollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+/** "$14.88": the one-item checkout total (no setup fee, see above) as exact dollars; the seller's own item page names
+ *  it ("Buyers pay $14.88 with the fee", Area 06b M9). Built here so src/components keeps one buyNowTotalCents( caller
+ *  per figure family (guard: src/test/declutterBuyNowShowsTotal.test.ts). */
+export function oneItemTotalDollars(priceCents: number): string {
+  return exactDollars(buyNowTotalCents(priceCents));
+}
+
 /** "$14.88 incl. fee": the words PriceInclFee draws, as plain text (an aria-label). */
 export function inclFeeText(priceCents: number): string {
-  return `${exactDollars(buyNowTotalCents(priceCents))} ${inclFeeWords()}`;
+  return `${oneItemTotalDollars(priceCents)} ${inclFeeWords()}`;
 }
 
 export function PriceInclFee({

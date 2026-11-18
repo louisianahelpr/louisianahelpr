@@ -25,7 +25,8 @@ import { formatCategory, formatPriceFloor } from "@/lib/format";
 import { isGiveawayFixedPayJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { getCity } from "@/lib/locationUtils";
-import { parishForCity, parishLabel } from "@/lib/parishes";
+import { parishForTown, parishLabel } from "@/lib/parishes";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 import { FLEXIBLE_TIME_LABEL, jobStartTimeLabel } from "@/lib/jobDate";
 
@@ -84,9 +85,22 @@ export function guestTakeHome(job: GuestJob, firstPayoutFeeDollars = 0): number 
 export function guestJobArea(location: string | null | undefined): string | null {
   const town = location ? getCity(location).trim() : "";
   if (!town) return null;
-  const parish = parishForCity(town);
+  // Design audit areas 11-18 #5: "New Orleans" is Orleans Parish (parishForTown knows a parish's primary city).
+  const parish = parishForTown(town);
   return parish ? parishLabel(parish) : town;
 }
+
+/** Design audit areas 11-18 #1: a fact's label in the reader's language (the labels stay English as data). */
+const FACT_KEYS: Record<string, string> = {
+  Category: "pub.fact.Category",
+  Town: "pub.fact.Town",
+  Parish: "pub.fact.Parish",
+  Area: "pub.fact.Area",
+  When: "pub.fact.When",
+  Pay: "pub.fact.Pay",
+  [GUEST_PAY_LABEL]: "pub.fact.earn",
+};
+export const guestFactLabel = (label: string): string => (FACT_KEYS[label] ? wordInLang(FACT_KEYS[label], label) : label);
 
 /** The facts, in order, as label and value. Empty values are left out rather than guessed. */
 export function guestJobFacts(job: GuestJob, firstPayoutFeeDollars = 0): Array<{ label: string; value: string }> {
@@ -95,7 +109,8 @@ export function guestJobFacts(job: GuestJob, firstPayoutFeeDollars = 0): Array<{
   const town = job.location ? getCity(job.location).trim() : "";
   const area = guestJobArea(job.location);
   if (town && area && area !== town) facts.push({ label: "Town", value: town });
-  if (area) facts.push({ label: "Parish", value: area });
+  // Design audit areas 11-18 #5: "Area" when the town names no single parish (it said "Parish: Nowhere Special").
+  if (area) facts.push({ label: town && parishForTown(town) ? "Parish" : "Area", value: area });
   // The card's own "when": its day (or window) and clock time, else Flexible (JobCard's meta row).
   const day = jobDayLabel(job);
   const time = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
@@ -127,21 +142,21 @@ export function GuestJobPreview({ job, onClose, onSignUp, onLogIn }: {
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 font-sans text-ds-13">
           {facts.map((f) => (
             <div key={f.label} className="contents">
-              <dt className="text-muted-foreground">{f.label}</dt>
+              <dt className="text-muted-foreground">{guestFactLabel(f.label)}</dt>
               <dd className="font-semibold text-foreground text-right">{f.value}</dd>
             </div>
           ))}
         </dl>
         {/* No "Not now": the sheet's X closes it (owner 10-31, every sheet has the X). */}
         <DialogFooter>
-          <DialogPrimaryAction onClick={() => onSignUp(job.id)}>Sign up to apply</DialogPrimaryAction>
+          <DialogPrimaryAction onClick={() => onSignUp(job.id)}>{wordInLang("pub.job.signUpApply", "Sign up to apply")}</DialogPrimaryAction>
         </DialogFooter>
         {onLogIn && (
           // F268a (audit 11-10): someone with an account had to find Log in behind the blur.
           <p className="text-center font-sans text-ds-13 text-muted-foreground" data-guest-log-in="">
-            Already a member?{" "}
+            {wordInLang("pub.job.member", "Already a member?")}{" "}
             <Button type="button" variant="link" size="sm" className="px-1 text-ds-13 font-semibold" onClick={() => onLogIn(job.id)}>
-              Log in
+              {wordInLang("pub.logIn", "Log in")}
             </Button>
           </p>
         )}

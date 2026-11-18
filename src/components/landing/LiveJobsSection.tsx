@@ -213,6 +213,15 @@ export function LiveJobsSection() {
             const date = liveJobDate(j.date_needed, es ? "es-US" : "en-US");
             const parish = j.parish ? w("landing.live.parish", "{parish} Parish").replace("{parish}", j.parish) : null;
             const where = [parish, date].filter(Boolean).join(" · ");
+            // Design audit areas 11-18 #7: the date never breaks inside itself ("Sat, Dec" over a lone "5"); the line
+            // may still wrap between the parish and the date.
+            const whereLine = (
+              <>
+                {parish}
+                {parish && date ? " · " : null}
+                {date && <span className="whitespace-nowrap" data-live-job-date="">{date}</span>}
+              </>
+            );
             return (
               <li key={j.id} data-live-job="">
                 <Link
@@ -231,13 +240,13 @@ export function LiveJobsSection() {
                     )}
                     <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words lg:min-h-[2lh]" title={j.title}>{j.title}</span>
                     {where && (
-                      <span className="lg:hidden text-ds-13" style={{ color: "var(--lp-body)" }}>{where}</span>
+                      <span className="lg:hidden text-ds-13" style={{ color: "var(--lp-body)" }}>{whereLine}</span>
                     )}
                   </span>
                   <span className="flex flex-col gap-3 shrink-0 text-right lg:text-left">
                     <span className="landing-serif-text text-ds-24 lg:text-ds-32">{priceWords(liveJobPrice(j))}</span>
                     {where && (
-                      <span className="hidden lg:block text-ds-14" style={{ color: "var(--lp-body)" }}>{where}</span>
+                      <span className="hidden lg:block text-ds-14" style={{ color: "var(--lp-body)" }}>{whereLine}</span>
                     )}
                   </span>
                 </Link>

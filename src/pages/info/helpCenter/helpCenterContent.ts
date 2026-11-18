@@ -135,6 +135,17 @@ export const COMMON_PROBLEMS: readonly CommonProblem[] = [
       "If the receipt doesn't match what you were told, contact support below with the receipt. If the mistake was ours, you get everything back.",
     ],
   },
+  // Design audit areas 11-18 #10: every tile was about Jobs. Declutter's commonest problem, in the words of its own
+  // Help answers ("How do I get the item?", "What if something's wrong with my item?").
+  {
+    id: "item-never-came",
+    title: "My item never came",
+    steps: [
+      "Open the order under Declutter › Buying. Every pickup or delivery happens within 7 days of paying.",
+      "If no Helpr takes a delivery within 48 hours, what you paid for delivery comes back, and you pick it up at the seller's door or cancel the sale for a refund.",
+      "If the seller doesn't show, report a problem from the order before the sale is final. The money stays held while we look at both sides, and a seller who doesn't show means everything back at the seller's cost.",
+    ],
+  },
 ];
 
 // ─── Topic blurbs ─────────────────────────────────────────────────────────────

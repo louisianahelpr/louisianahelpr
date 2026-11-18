@@ -7,6 +7,8 @@ import { report } from "@/lib/errorLogger";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { setNotFoundPathname } from "@/hooks/useAppShellViewport";
+import { wordInLang as w } from "@/lib/i18n/inLang";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * NotFound — the catch-all `path="*"` route.
@@ -37,16 +39,17 @@ import { setNotFoundPathname } from "@/hooks/useAppShellViewport";
 export function notFoundCopy(pathname: string): { title: string; body: string; primary: string; primaryTo: string } {
   if (/^\/messages\/[^/]+/.test(pathname)) {
     return {
-      title: "We couldn't find that conversation",
-      body: "It may have been removed, or the link may be old.",
-      primary: "Go to my messages",
+      title: w("pub.nf.msgTitle", "We couldn't find that conversation"),
+      body: w("pub.nf.msgBody", "It may have been removed, or the link may be old."),
+      primary: w("pub.nf.msgPrimary", "Go to my messages"),
       primaryTo: "/messages",
     };
   }
   return {
-    title: "Page not found",
-    body: "This page doesn't exist or has moved. The link may be old.",
-    primary: "Go home",
+    // Design audit areas 11-18 #1: Spanish for a Spanish reader (English otherwise, word for word as before).
+    title: w("pub.nf.title", "Page not found"),
+    body: w("pub.nf.body", "This page doesn't exist or has moved. The link may be old."),
+    primary: w("pub.goHome", "Go home"),
     primaryTo: "/",
   };
 }
@@ -96,13 +99,15 @@ const NotFound = () => {
   // The SPA serves unknown paths with a 200 status, so the 404 page must
   // be explicitly non-indexable to keep junk URLs out of search results.
   usePageMeta({
-    title: "Page not found — Helpr",
+    // Design audit areas 11-18 #20: one tab title for every not-found screen.
+    title: "Not found — Helpr",
     description: "The page you're looking for doesn't exist or has been moved.",
     robots: "noindex",
     noCanonical: true,
   });
   const location = useLocation();
   const navigate = useNavigate();
+  useLanguage(); // re-render when the reader switches language or the Spanish words arrive
   const copy = notFoundCopy(location.pathname);
   const meant = useMemo(() => mangledLinkTarget(location.pathname, location.search), [location.pathname, location.search]);
 
@@ -158,10 +163,10 @@ const NotFound = () => {
                 {/* F032 (owner UI audit 11-09): most old links pointed at Jobs or Declutter, so both are one tap away. */}
                 <div className="flex flex-wrap justify-center gap-2 w-full" data-not-found-quick-links="">
                   <Button asChild variant="outline" size="sm" className="rounded-full">
-                    <Link to="/declutter">Browse Declutter</Link>
+                    <Link to="/declutter">{w("pub.browseDeclutter", "Browse Declutter")}</Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="rounded-full">
-                    <Link to="/browse">Browse jobs</Link>
+                    <Link to="/browse">{w("pub.browseJobs", "Browse jobs")}</Link>
                   </Button>
                 </div>
                 <Button
@@ -175,7 +180,7 @@ const NotFound = () => {
                   // to home so the link always does something.
                   onClick={() => (window.history.length <= 1 ? navigate("/") : window.history.back())}
                 >
-                  Go back
+                  {w("pub.goBack", "Go back")}
                 </Button>
               </div>
             }

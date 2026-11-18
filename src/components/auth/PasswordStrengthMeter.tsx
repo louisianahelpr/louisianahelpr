@@ -1,4 +1,5 @@
 import { passwordStrength } from "@/pages/auth/signup/signupHelpers";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 /**
  * The ONE password strength meter (owner 2026-10-21), shared by Sign up step 1
@@ -29,8 +30,9 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
           />
         ))}
       </div>
-      <span className="text-ds-11 font-sans w-10 text-right" style={{ color: barColor }}>
-        {label}
+      <span className="text-ds-11 font-sans min-w-10 text-right" style={{ color: barColor }}>
+        {/* Design audit areas 11-18 #1: "Strong" was English for a Spanish reader. */}
+        {score > 0 ? wordInLang(`pub.pw.${score}`, label) : label}
       </span>
     </div>
   );

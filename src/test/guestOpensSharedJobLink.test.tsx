@@ -205,9 +205,9 @@ describe("a guest opening a shared link", () => {
   it("a job that is not public leads with Log in carrying the job, and still offers Browse", async () => {
     state.row = null;
     openLink();
-    expect(await screen.findByText("Log in to see this job.")).toBeTruthy();
+    expect(await screen.findByText("Log in to see this job")).toBeTruthy();
     expect(screen.getByText(/only visible to the person who posted it and the person doing it/)).toBeTruthy();
-    expect(screen.queryByText("This job isn't available.")).toBeNull();
+    expect(screen.queryByText("This job isn't available")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Log in" }));
     expect(screen.getByTestId("where").textContent).toBe(`/login?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}`);
   });
@@ -215,15 +215,15 @@ describe("a guest opening a shared link", () => {
   it("the Browse way out stays on the not-public state", async () => {
     state.row = null;
     openLink();
-    await screen.findByText("Log in to see this job.");
-    fireEvent.click(screen.getByRole("button", { name: /browse open jobs/i }));
+    await screen.findByText("Log in to see this job");
+    fireEvent.click(screen.getByRole("button", { name: /^browse jobs$/i })); // design audit areas 11-18 #19: "Browse jobs", the 404's words
     expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 
   it("an id that is not a job id at all keeps 'isn't available' (nothing to log in for)", async () => {
     state.row = null;
     openLink("/jobs/abc");
-    expect(await screen.findByText("This job isn't available.")).toBeTruthy();
+    expect(await screen.findByText("This job isn't available")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Log in" })).toBeNull();
   });
 
@@ -280,12 +280,12 @@ describe("the Log in screen's sign-up link (item 2)", () => {
 });
 
 // F254 (audit 11-10): /jobs/abc was a refused read that said "our end is having a hiccup" with a Try again that could
-// never work. A malformed id now reads as "This job isn't available." and is never sent to the server.
+// never work. A malformed id now reads as "This job isn't available" and is never sent to the server.
 describe("F254: a malformed job id", () => {
   it("says the job isn't available, with no Try again, and asks the server nothing", async () => {
     state.row = null;
     openLink("/jobs/abc");
-    expect(await screen.findByText("This job isn't available.")).toBeTruthy();
+    expect(await screen.findByText("This job isn't available")).toBeTruthy();
     expect(screen.queryByText(/having a hiccup/)).toBeNull();
     expect(screen.queryByRole("button", { name: /try again/i })).toBeNull();
     expect(state.columns).toEqual([]);

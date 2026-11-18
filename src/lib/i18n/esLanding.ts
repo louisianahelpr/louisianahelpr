@@ -32,9 +32,10 @@ export const esLanding: Record<keyof typeof enLanding, string> = {
   "landing.memberLogin": "¿Ya es miembro? Inicie sesión",
   "landing.how.title": "Cómo funciona",
   "landing.how.sidesLabel": "¿Qué busca en Helpr?",
-  "landing.how.side.hire": "Necesito ayuda",
-  "landing.how.side.work": "Quiero trabajar",
-  "landing.how.side.sell": "Comprar o vender",
+  // Design audit areas 11-18 #8: short enough that the three tabs fit 390px (the longer words clipped to "Comprar o ven...").
+  "landing.how.side.hire": "Busco ayuda",
+  "landing.how.side.work": "Busco trabajo",
+  "landing.how.side.sell": "Compra y venta",
   "landing.how.hire1Title": "Publique lo que necesita",
   "landing.how.hire1Desc": "Describa el trabajo y ponga su precio.",
   "landing.how.hire2Title": "Elija a su Helpr",

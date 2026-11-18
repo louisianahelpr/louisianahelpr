@@ -995,7 +995,7 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByText("We couldn't find that item.")).toBeInTheDocument();
     expect(screen.getByText("The link may be broken.")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/It sold or is no longer on Declutter/);
-    expect(document.title).toBe("Item not found — Helpr");
+    expect(document.title).toBe("Not found — Helpr");
     await act(async () => { await Promise.resolve(); });
     expect(state.soldReads).toBe(0);
     expect(document.querySelector("[data-sold-item]")).toBeNull();

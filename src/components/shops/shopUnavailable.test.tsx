@@ -11,7 +11,8 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
+const who = vi.hoisted(() => ({ user: { id: "member" } as null | { id: string } }));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: who.user, isReady: true }) }));
 
 import { SHOP_UNAVAILABLE_TITLE, ShopUnavailable } from "./shopsUi";
 import { shopsErrorMessage } from "@/lib/shops/errors";
@@ -37,5 +38,19 @@ describe("a shop link that leads nowhere (F3)", () => {
     expect(SHOP_UNAVAILABLE_TITLE).toBe("This shop isn't taking orders right now.");
     show();
     expect(screen.getByText("Check back later, or find another local shop.")).toBeTruthy();
+  });
+
+  // Design audit areas 11-18 #11: /shops is behind sign-in, so a signed-out visitor gets Browse Declutter and Go home.
+  // @mutate src/components/shops/shopsUi.tsx |           user ? ( |           true ? (
+  it("a signed-out visitor gets Browse Declutter and Go home, never the login-walled Browse shops", () => {
+    who.user = null;
+    try {
+      show();
+      expect(screen.getByRole("link", { name: "Browse Declutter" }).getAttribute("href")).toBe("/declutter");
+      expect(screen.getByRole("link", { name: "Go home" }).getAttribute("href")).toBe("/");
+      expect(screen.queryByRole("link", { name: "Browse shops" })).toBeNull();
+    } finally {
+      who.user = { id: "member" };
+    }
   });
 });

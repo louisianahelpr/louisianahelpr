@@ -2349,9 +2349,10 @@ body[data-scroll-locked] .preview-dock {
 
    Lives here rather than inline on the <img> because an inline `style` filter
    always beats a stylesheet rule, so the dark override could never apply. */
+/* Design audit areas 11-18 #26: no drop-shadow in light mode; on the white app it drew a grey-green halo
+   around the H. Dark mode keeps its lift below. */
 .helpr-emblem {
-  filter: drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18))
-          drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1));
+  filter: none;
 }
 
 /* Dark: the mark is dark metal, and brightness(1.9) left it a charcoal
@@ -5445,7 +5446,11 @@ html.page-scrolled .page-title-card:has(.explore-header),
   background: var(--lp-surface);
   box-shadow: var(--lp-shadow);
   border-radius: 999px;
+  /* Design audit areas 11-18 #6: on the white landing the pill was white on white with no edge. */
+  border: 1px solid hsl(var(--input));
 }
+/* Design audit areas 11-18 #6: the Jobs / Declutter switch above it gets the same 1px edge. */
+.landing-search-tabs .segmented-track { border: 1px solid hsl(var(--input)); }
 .landing-search .landing-search-field { background: transparent; box-shadow: none; }
 .landing-search .landing-search-field:focus-within { outline: none; }
 /* The pill's own ring is the focus mark; the global :focus-visible box on the

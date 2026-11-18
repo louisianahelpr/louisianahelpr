@@ -23,6 +23,8 @@ export default function Safety() {
         {idCheckOn && <li className={INFO_CARD_ROW}>{t("safety.idChecked")}</li>}
         <li className={INFO_CARD_ROW}>{t("safety.moneyHeld")}</li>
         <li className={INFO_CARD_ROW}>{t("safety.report")}</li>
+        {/* Design audit areas 11-18 #9: the Declutter side. */}
+        <li className={INFO_CARD_ROW} data-safety-declutter="">{t("safety.declutter")}</li>
       </ul>
     </PublicHeaderPage>
   );

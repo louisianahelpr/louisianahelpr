@@ -192,6 +192,9 @@ export const SHOP_UNAVAILABLE_TITLE = "This shop isn't taking orders right now."
  */
 export function ShopUnavailable({ body, title }: { body?: string; title?: string }) {
   const sameAsTitle = !body || body === SHOPS_ERROR_COPY.shop_not_found;
+  // Design audit areas 11-18 #11: Browse shops is behind sign-in while Shops is not open to guests, so a signed-out
+  // visitor met a login wall. They get Browse Declutter and Go home; a member keeps Browse shops.
+  const { user } = useAuthReady();
   return (
     <div className="flex" role="alert">
       <EmptyState
@@ -200,9 +203,20 @@ export function ShopUnavailable({ body, title }: { body?: string; title?: string
         title={title ?? SHOP_UNAVAILABLE_TITLE}
         body={sameAsTitle ? "Check back later, or find another local shop." : body}
         action={
-          <Button asChild variant="primary" size="lg" className="rounded-full px-8">
-            <Link to="/shops">Browse shops</Link>
-          </Button>
+          user ? (
+            <Button asChild variant="primary" size="lg" className="rounded-full px-8">
+              <Link to="/shops">Browse shops</Link>
+            </Button>
+          ) : (
+            <div className="flex flex-col items-center gap-3 w-full" data-shop-unavailable-guest="">
+              <Button asChild variant="primary" size="lg" className="w-full max-w-[280px] rounded-full">
+                <Link to="/declutter">Browse Declutter</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="rounded-full">
+                <Link to="/">Go home</Link>
+              </Button>
+            </div>
+          )
         }
       />
     </div>

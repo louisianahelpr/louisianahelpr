@@ -255,7 +255,7 @@ export function DeclutterItemUnavailable({ detail, more, top, notFound }: { deta
   // Audit 11-10 F316: a link whose id is not an item id at all (/declutter/item/abc) is a broken link, not a sale:
   // "We couldn't find that item." and a tab titled for it, never "It sold". This effect runs after AppPage's own
   // usePageTitle (a child's effect runs first), so its title wins.
-  usePageTitle(notFound ? "Item not found — Helpr" : "Declutter — Helpr");
+  usePageTitle(notFound ? "Not found — Helpr" : "Declutter — Helpr");
   return (
     <AppPage title="Declutter" backTo="/declutter">
       {/* F061 (lead rule 11-09): a sold item's greyed card (the item page passes SoldItemCard); nothing else of a

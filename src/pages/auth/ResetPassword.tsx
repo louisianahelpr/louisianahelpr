@@ -264,12 +264,13 @@ const ResetPassword = () => {
           </p>
         ) : !ready ? (
           <div className="text-center space-y-4">
+            {/* Design audit areas 11-18 #18: plain sentences, no em dash. */}
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {linkError === "expired"
-                ? "This password-reset link has expired. Reset links are single-use and time-limited — request a fresh one below."
+                ? "This password-reset link has expired. Reset links work once and only for a short time. Request a new one below."
                 : linkError === "used"
                   ? "This password-reset link has already been used. Request a new one if you still need to change your password."
-                  : "To set a new password, use the reset link from your email — or request one below."}
+                  : "Open the reset link from your email, or request a new one."}
             </p>
             {/* Button asChild, not <Link><Button>: a button inside an anchor
                 is two nested interactive elements, and the inline <a> took

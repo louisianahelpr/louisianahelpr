@@ -37,7 +37,11 @@ const read = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8")
 describe("F255: /fees and /safety (owner 2026-11-11)", () => {
   it("/fees: the owner's exact sentences, words only (no number, no rate)", () => {
     const { container } = render(<MemoryRouter><Fees /></MemoryRouter>);
-    const body = container.querySelector("[data-fees-body]")!.textContent!;
+    // The Jobs sentences only: Declutter's own line (design audit areas 11-18 #9) names its fee, owner 11-07, and is
+    // pinned by area01LandingGuest1118.test.tsx.
+    const bodyEl = container.querySelector("[data-fees-body]")!.cloneNode(true) as HTMLElement;
+    bodyEl.querySelector("[data-fees-declutter]")?.remove();
+    const body = bodyEl.textContent!;
     expect(body).toBe("Posting a job is free.A small one-time setup fee applies to your first paid job.Any service fee is shown before you pay.Helprs see their pay before they apply.");
     expect(body).not.toMatch(/\d|%|¢|\$/);
     // Design audit 11-17 #15: the lines are rows of Help's white rounded list card, in a 672px column.
@@ -45,7 +49,9 @@ describe("F255: /fees and /safety (owner 2026-11-11)", () => {
     expect(list.tagName).toBe("UL");
     expect(list.className).toMatch(/\bmax-w-2xl\b/);
     expect(list.className).toMatch(/\brounded-\[20px\] border border-border bg-card\b/);
-    expect(list.querySelectorAll("li").length).toBe(4);
+    // Four Jobs rows plus Declutter's fee row (design audit areas 11-18 #9).
+    expect(list.querySelectorAll("li").length).toBe(5);
+    expect(list.querySelectorAll("li:not([data-fees-declutter])").length).toBe(4);
   });
 
   it("/safety: ID check (switch on), money held until you approve, report from any job", () => {

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { forwardRef } from "react";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import HelprMark from "@/components/HelprMark";
+import { wordInLang as navWord } from "@/lib/i18n/inLang";
 import { cn } from "@/lib/utils";
 import { PUBLIC_CONTAINER } from "@/lib/publicContainer";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
@@ -139,7 +140,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onMouseEnter={() => prefetchRoute("/browse")}
                 onFocus={() => prefetchRoute("/browse")}
               >
-                Jobs
+                {/* Design audit areas 11-18 #1: Spanish for a Spanish reader (the footer's own word). */}
+                {navWord("footer.jobs", "Jobs")}
               </Link>
             </Button>
             {/* Owner 11-04: Declutter next to Jobs. A guest reads its Browse too (BUY-16). */}

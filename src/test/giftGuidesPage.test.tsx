@@ -815,7 +815,7 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
     let picks = 0;
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
       picks += 1;
-      expect(blockedBrand(p as Record<string, unknown>), `${slug}: ${p.name}`).toBe(false);
+      expect(blockedBrand(p as unknown as Record<string, unknown>), `${slug}: ${p.name}`).toBe(false);
     }
     expect(picks).toBeGreaterThan(500);
   });
@@ -872,5 +872,8 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
       expect(new URL(p.image).hostname, `${slug}: ${p.name}`).not.toMatch(/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/);
     }
     expect(photos).toBeGreaterThan(5000);
+    // XTRATUF in the Louisiana guides the lead named (11-18).
+    // @mutate scripts/gift-guide-picks.mjs | for (const p of readList("_xtratuf.json")) if (names.includes(p.name)) add(slug, p, "_xtratuf.json"); | void names;
+    for (const slug of ["crawfish-boil-host", "commercial-fishermen-and-shrimpers"]) expect(RESEARCHED_PICKS[slug].filter((p) => p.store === "store-xtratuf").length, slug).toBeGreaterThan(1);
   });
 });

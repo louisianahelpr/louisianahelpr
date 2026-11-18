@@ -89,9 +89,9 @@ const storeFor = (raw) => {
 };
 
 /**
- * THE switch for Amazon CDN product photos (m.media-amazon.com, tagged image_source "amazon-sitestripe"), held OFF by
- * the lead 2026-11-18 while the owner decides the Amazon Associates question. Turn on here, or for one run with
- * GIFT_AMAZON_PHOTOS=on. Off: those picks have no photo (the page draws the store tile), so mixed guides swap them.
+ * THE switch for Amazon CDN product photos (m.media-amazon.com, tagged image_source "amazon-sitestripe"): OFF for good
+ * (owner 2026-11-18, the safe route: Amazon images only through Amazon's official tools, after the account's first 3
+ * sales). Off: those picks have no photo (the page draws the store tile), so mixed guides swap them for photo'd picks.
  */
 export const AMAZON_CDN_PHOTOS = process.env.GIFT_AMAZON_PHOTOS === "on" || false;
 /** The link library (~/Desktop/Link-library): unused-by-guide.json holds each guide's links not yet on it. */
@@ -168,6 +168,14 @@ for (const [f, extraGuides] of storeExtras) {
     add(pick.store, p, f);
     for (const g of extraGuides) add(g, p, f);
   }
+}
+/** XTRATUF in the Louisiana guides the lead named (2026-11-18), by product, from _xtratuf.json. */
+export const XTRATUF_GUIDES = {
+  "crawfish-boil-host": ["Men's Ankle Deck Boot", "Women's Ankle Deck Boot"],
+  "commercial-fishermen-and-shrimpers": ['Men\'s 15" Legacy Boot', "Men's Ankle Deck Boot", "Women's Ankle Deck Boot"],
+};
+for (const [slug, names] of Object.entries(XTRATUF_GUIDES)) {
+  for (const p of readList("_xtratuf.json")) if (names.includes(p.name)) add(slug, p, "_xtratuf.json");
 }
 /** Amazon bounties (Prime, Audible, registries) in the guides they fit. */
 const BOUNTY_GUIDES = { "Try Prime free": ["store-amazon", "stocking-stuffers"], "Audible free trial": ["book-lover", "new-mom", "store-amazon"], "Start an Amazon Baby Registry": ["new-mom", "store-amazon"], "Start an Amazon Wedding Registry": ["newlyweds", "newly-engaged", "store-amazon"] };

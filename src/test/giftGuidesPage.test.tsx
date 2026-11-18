@@ -79,11 +79,11 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuidesBand, GIFT_GUIDES_PATH } from "@/components/landing/GiftGuidesBand";
 import { giftGuides, AFFILIATE_HOSTS, BRAND_SITES, LOUISIANA_SHOPS, SPONSOR_SITES, SHOPMY_COLLECTIONS, activeCodes, codesByStore, discountCodes } from "@/content/giftGuides";
-import { DiscountCodes } from "@/pages/info/giftGuides/GiftGuidesSidebar";
+import { DiscountCodes, SalesList, liveSales } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
-import type { PickChunk } from "@/content/giftGuidePicks";
+import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GiftGuideView } from "@/pages/info/giftGuides/GiftGuideView";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -427,7 +427,16 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(codes.compareDocumentPosition(side.querySelector("details[data-gift-group]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // One box per store, several codes inside: Muck Boot holds CYBER and TAKE25 (Nov 20–28), in the owner's order.
     const boxes = [...side.querySelectorAll("[data-gift-code-store]")];
-    expect(boxes.map((b) => b.getAttribute("data-gift-code-store"))).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Free Country", "Bruno Marc", "HerbsPro", "Parallels Desktop"]);
+    expect(boxes.map((b) => b.getAttribute("data-gift-code-store")).slice(0, 7)).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Free Country", "Bruno Marc", "HerbsPro", "Parallels Desktop"]);
+    // Follow-up 2026-11-18: the rest of her list, then the codes the researched deals name (WINTERBREW, GRATITUDE ...).
+    const shown = [...side.querySelectorAll("[data-gift-code]")].map((c) => c.getAttribute("data-gift-code"));
+    for (const c of ["ONBRAND-LEXI", "LEXIL-20", "LEXILOMBAS7"]) expect(shown, c).toContain(c);
+    const all = [...discountCodes, ...DEAL_CODES];
+    expect(all.map((c) => c.code)).toEqual(expect.arrayContaining(["WINTERBREW", "GRATITUDE"]));
+    expect(activeCodes(all, "2026-11-24").map((c) => c.code)).toContain("GRATITUDE");
+    expect(activeCodes(all, "2026-11-25").map((c) => c.code)).not.toContain("GRATITUDE");
+    for (const c of DEAL_CODES) expect(c.offer, c.code).not.toMatch(/\$\s?\d/);
+    expect(all.map((c) => c.code)).not.toContain("IFDEAL30");
     expect([...boxes[0].querySelectorAll("[data-gift-code]")].map((c) => c.getAttribute("data-gift-code"))).toEqual(["CYBER", "TAKE25"]);
     expect(activeCodes(discountCodes, "2026-11-29").map((c) => c.code)).not.toContain("TAKE25");
     expect(activeCodes(discountCodes, "2026-11-28").map((c) => c.code)).toContain("TAKE25");
@@ -435,7 +444,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const write = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText: write } });
     // Ranked by Louisiana popularity; a store with two codes is one box with both.
-    expect(codesByStore(discountCodes).map((x) => x.store)).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Free Country", "Bruno Marc", "HerbsPro", "Parallels Desktop"]);
+    expect(codesByStore(discountCodes).map((x) => x.store).slice(0, 7)).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Free Country", "Bruno Marc", "HerbsPro", "Parallels Desktop"]);
     const both = render(<MemoryRouter><DiscountCodes codes={discountCodes} /></MemoryRouter>).container;
     expect(both.querySelectorAll('[data-gift-code-store="Parallels Desktop"]').length).toBe(1);
     expect([...both.querySelectorAll('[data-gift-code-store="Parallels Desktop"] [data-gift-code]')].map((x) => x.getAttribute("data-gift-code"))).toEqual(["PD50", "PD35"]);
@@ -444,6 +453,26 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelector('[data-gift-code-store="Example Shop"]')?.textContent).toContain("TEST10");
     fireEvent.click(screen.getByRole("button", { name: "Copy TEST10" }));
     expect(write).toHaveBeenCalledWith("TEST10");
+  });
+
+  it("Sales sit under Discount codes, collapsed, soonest end first; a sale past its end day hides", () => {
+    expect(SALES.length).toBeGreaterThan(20);
+    for (let i = 1; i < SALES.length; i++) expect(SALES[i - 1].ends <= SALES[i].ends, SALES[i].offer).toBe(true);
+    const last = SALES[SALES.length - 1].ends;
+    expect(liveSales(SALES, last).length).toBeGreaterThan(0);
+    const next = new Date(`${last}T12:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    expect(liveSales(SALES, next.toISOString().slice(0, 10))).toEqual([]);
+    expect(render(<MemoryRouter><SalesList sales={[]} /></MemoryRouter>).container.querySelector("[data-gift-sales]")).toBeNull();
+    cleanup();
+    const side = renderAt("/gift-guides").container.querySelector("[data-gift-sidebar]")!;
+    const sales = side.querySelector(":scope > details[data-gift-sales]") as HTMLDetailsElement | null;
+    expect(sales).not.toBeNull();
+    expect(sales!.open).toBe(false);
+    const codes = side.querySelector(":scope > [data-gift-codes]")!;
+    expect(codes.compareDocumentPosition(sales!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const a of sales!.querySelectorAll("a[data-gift-out]")) expect(ALLOWED_HOSTS, a.getAttribute("href")!).toContain(new URL(a.getAttribute("href")!).hostname);
+    expect(sales!.textContent).not.toMatch(/\$\s?\d/);
   });
 
   it("Female and Male Nurses fold into RNs, LPNs and CNAs (each pick once), and their old links open RNs", () => {

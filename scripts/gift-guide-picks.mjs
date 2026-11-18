@@ -193,6 +193,22 @@ for (const f of ["_later-deals.json", "_later-promos.json"]) {
   }
 }
 
+/**
+ * Codes a deal names (follow-up 11-18: WINTERBREW, GRATITUDE, ...), for the sidebar's Discount codes: the store, the
+ * code, the deal's own words (or a plain "Holiday code" when they carry a price), and its end date (hidden after).
+ */
+const dealCodes = [];
+for (const f of ["_later-deals.json", "_later-promos.json", "_awin-offers.json"]) {
+  for (const d of readList(f)) {
+    const code = typeof d.code === "string" ? d.code.trim() : "";
+    const store = cleanName(d.brand ?? d.store ?? d.advertiser ?? "");
+    if (!/^[A-Z0-9-]{3,24}$/i.test(code) || !store || dealCodes.some((c) => c.code === code && c.store === store)) continue;
+    const words = (d.title ?? d.offer ?? "").trim();
+    const ends = endDate(d.ends);
+    dealCodes.push({ rank: 50, store, code, offer: words && noPrice(words) ? words : "Holiday code", ...(ends ? { expires: ends } : {}) });
+  }
+}
+
 /** The Sales list (sidebar): one line per store with a live deal, soonest end first; the page hides expired ones. */
 const sales = Object.entries(deals).flatMap(([slug, list]) => list.filter((d) => d.ends).map((d) => ({ store: stores.get(slug).name, slug, offer: d.title, ends: d.ends, href: d.href })))
   .sort((a, b) => a.ends.localeCompare(b.ends) || a.store.localeCompare(b.store));
@@ -253,6 +269,8 @@ writeFileSync(
     `export const RESEARCHED_STORES: Record<string, { name: string; hosts: string[] }> = ${JSON.stringify(storeList)};\n` +
     `/** The guides with a researched chunk: their list (and deals) come only from it. */\n` +
     `export const CHUNK_SLUGS: readonly string[] = ${JSON.stringify(chunkSlugs)};\n` +
+    `/** Codes the researched deals name (the sidebar's Discount codes, after the owner's; each hidden after its end date). */\n` +
+    `export const DEAL_CODES: { rank: number; store: string; code: string; offer: string; expires?: string }[] = ${JSON.stringify(dealCodes)};\n` +
     `/** The sidebar's Sales (each hidden after its end date). */\n` +
     `export const SALES: Sale[] = ${JSON.stringify(sales)};\n` +
     `/** Each guide's chunk, fetched only when its page opens (Vite splits every file into its own chunk). */\n` +

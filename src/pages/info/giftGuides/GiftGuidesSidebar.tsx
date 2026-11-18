@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { giftGuides as G, activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { useState } from "react";
 import { MyListLink } from "./GiftGuideMyList";
-import { ROWS, guidesIn, searchGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { ROWS, guideBySlug, guidesIn, searchGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
+import { GiftOut } from "./GiftOut";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 
 /**
@@ -38,7 +40,8 @@ export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogG
         </ul>
       ) : (<>
       {/* Owner 2026-11-18: the codes sit at the TOP of the menu; a code past its last day hides itself. */}
-      <DiscountCodes codes={activeCodes(discountCodes, localToday())} />
+      <DiscountCodes codes={activeCodes([...discountCodes, ...DEAL_CODES], localToday())} />
+      <SalesList sales={liveSales(SALES, localToday())} />
       <ul>
         <li><Link to="/gift-guides" {...current(null)} data-gift-side="">{G.allGuidesLabel}</Link></li>
       </ul>
@@ -89,7 +92,7 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
             {list.map((c) => (
               <span key={c.code} className="gg-code-one" data-gift-code={c.code}>
                 <span className="gg-code-offer">{c.offer}</span>
-                {c.dates ? <span className="gg-code-offer">{G.codeValid(c.dates)}</span> : c.expires && <span className="gg-code-offer">{G.codeEnds(c.expires)}</span>}
+                {c.dates ? <span className="gg-code-offer">{G.codeValid(c.dates)}</span> : c.expires && <span className="gg-code-offer">{G.dealEnds(c.expires)}</span>}
                 <span className="gg-code-row">
                   <code>{c.code}</code>
                   <InlineTextButton className="no-underline" onClick={() => copy(c.code)} aria-label={`${G.copyCode} ${c.code}`}>
@@ -98,6 +101,32 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
                 </span>
               </span>
             ))}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/** The sales still on `today` (YYYY-MM-DD): a sale shows through its end day. */
+export const liveSales = (sales: readonly Sale[], today: string) => sales.filter((x) => x.ends >= today);
+
+/**
+ * The sidebar's "Sales" section (follow-up batch 2026-11-18), under Discount codes: one line per live store sale,
+ * soonest end first, the offer opening the sale (affiliate link) and the store opening its guide page. Starts
+ * collapsed (it is long); hidden while there are none.
+ */
+export function SalesList({ sales }: { sales: readonly Sale[] }) {
+  if (sales.length === 0) return null;
+  return (
+    <details className="gg-codes" data-gift-sales="">
+      <summary>{G.salesLabel}</summary>
+      <ul>
+        {sales.map((x) => (
+          <li key={`${x.slug} ${x.href}`} data-gift-sale={x.slug}>
+            {guideBySlug(x.slug) && !guideBySlug(x.slug)!.empty ? <Link to={`/gift-guides/${x.slug}`} className="gg-code-store">{x.store}</Link> : <span className="gg-code-store">{x.store}</span>}
+            <GiftOut href={x.href} className="gg-link">{x.offer}</GiftOut>
+            <span className="gg-code-offer">{G.dealEnds(x.ends)}</span>
           </li>
         ))}
       </ul>

@@ -169,6 +169,16 @@ export const discountCodes: DiscountCode[] = [
   { rank: 6, store: "HerbsPro", code: "SAVE70", offer: "Extra 70% off all products" },
   { rank: 7, store: "Parallels Desktop", code: "PD50", offer: "50% off Standard and Pro (new 1-year licenses)", expires: "2026-11-23" },
   { rank: 7, store: "Parallels Desktop", code: "PD35", offer: "35% off Business Edition (new 1-year licenses)", expires: "2026-11-23" },
+  // Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
+  { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off for new customers; stacks with sales, one use per person" },
+  { rank: 9, store: "Magic Story", code: "B2G1F", offer: "Buy 2 personalized books, get 1 free", dates: "Nov 20 – 30", expires: "2026-11-30" },
+  { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off" },
+  { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off" },
+  { rank: 12, store: "Bon Wellness", code: "LEXI20", offer: "20% off" },
+  { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off" },
+  { rank: 14, store: "Thrive Creative", code: "LEXIL20", offer: "20% off" },
+  { rank: 15, store: "YVO Warrior", code: "LEXI15", offer: "15% off" },
+  { rank: 16, store: "Daily Crunch Snacks", code: "LEXI15", offer: "15% off" },
 ];
 
 /** The codes still good on `today` (YYYY-MM-DD, local): a code is shown through its `expires` day. */
@@ -212,6 +222,8 @@ export const giftGuides = {
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
   searchNone: "No guides match. Try another word.",
   codesLabel: "Discount codes",
+  /** The sidebar's Sales (follow-up 2026-11-18): every live store sale, soonest end first; each hidden after it ends. */
+  salesLabel: "Sales",
   copyCode: "Copy",
   copiedCode: "Copied",
   codeEnds: (date: string) => `Ends ${date}`,

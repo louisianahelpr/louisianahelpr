@@ -5,9 +5,9 @@
  * declutter_refund_after_handover. Behaviour proven in PGlite: src/test/pglite/shippingBuyerFaultAfterDelivery.pglite.mjs
  * (50/50; skip 5 FAIL incl. refund_amount_unknown; plants RED).
  *
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   v_paid := o.total_cents - v_reserved - v_ship; |   v_paid := o.total_cents - v_reserved;
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF p_reason = 'admin_buyer_fault' THEN\n    v_ship | IF p_reason IN ('admin_buyer_fault', 'admin_no_fault') THEN\n    v_ship
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | THEN format(' The $%s for shipping is not refunded: the parcel was sent.', | THEN format(' %s',
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql |   v_paid := o.total_cents - v_reserved - v_ship; |   v_paid := o.total_cents - v_reserved;
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql |   IF p_reason = 'admin_buyer_fault' THEN\n    v_ship | IF p_reason IN ('admin_buyer_fault', 'admin_no_fault') THEN\n    v_ship
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql | THEN format(' The $%s for shipping is not refunded: the parcel was sent.', | THEN format(' %s',
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";

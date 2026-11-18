@@ -33,7 +33,9 @@ describe("BUY-2: the buyer's cancel after no Helpr", () => {
     // declutter_cancel_after_no_helpr is read from whichever file restates it last (Q2390 p28 restated it ERRCODE-only),
     // so only the two helpers still pin BUY-2's file; the cancel's body is asserted below.
     for (const n of ["declutter_no_helpr_refusal", "declutter_no_helpr_choice", "declutter_cancel_after_no_helpr"]) {
-      if (n !== "declutter_cancel_after_no_helpr") expect(newestFunction(n).file, n).toContain("20261031133938");
+      // Q?giftclose (20261118002340) restated declutter_no_helpr_refusal verbatim plus the gift-only order.
+      if (n === "declutter_no_helpr_refusal") expect(newestFunction(n).file, n).toContain("20261118002340");
+      else if (n !== "declutter_cancel_after_no_helpr") expect(newestFunction(n).file, n).toContain("20261031133938");
       expect(flat(n).length, n).toBeGreaterThan(600);
     }
   });

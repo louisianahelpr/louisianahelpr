@@ -34,10 +34,10 @@
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '72 hours'\n     WHERE id = r.id; |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '1 hours'\n     WHERE id = r.id;
  * @mutate supabase/migrations/20261103150842_q2390_returns_withdraw_fee_waiver_visit_lease_not_found_is_404.sql |   IF r.status <> 'returning' THEN | IF false THEN
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |         OR (x.status = 'returning' AND x.return_by <= now() AND public.declutter_return_backstop_at(x) <= now()) | 
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   PERFORM public.declutter_rebook_payout(o.id, v_refunded);\n | \n
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |     RAISE EXCEPTION 'already_refunded' USING ERRCODE = '55000';\n  END IF;\n  PERFORM 1 FROM public.declutter_payouts p WHERE p.order_id = o.id FOR UPDATE;\n  IF NOT public.declutter_payout_unsent(o.id) THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT |     RAISE EXCEPTION 'already_refunded' USING ERRCODE = '55000';\n  END IF;\n  PERFORM 1 FROM public.declutter_payouts p WHERE p.order_id = o.id FOR UPDATE;\n  IF false THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents >= o.items_cents THEN |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents > o.items_cents THEN
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents) |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents + 1)
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql |   PERFORM public.declutter_rebook_payout(o.id, v_refunded);\n | \n
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql |     RAISE EXCEPTION 'already_refunded' USING ERRCODE = '55000';\n  END IF;\n  PERFORM 1 FROM public.declutter_payouts p WHERE p.order_id = o.id FOR UPDATE;\n  IF NOT public.declutter_payout_unsent(o.id) THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT |     RAISE EXCEPTION 'already_refunded' USING ERRCODE = '55000';\n  END IF;\n  PERFORM 1 FROM public.declutter_payouts p WHERE p.order_id = o.id FOR UPDATE;\n  IF false THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents >= o.items_cents THEN |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents > o.items_cents THEN
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents, |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents + 1,
  * @mutate supabase/migrations/20261103150842_q2390_returns_withdraw_fee_waiver_visit_lease_not_found_is_404.sql |   PERFORM public.require_feature('declutter_refund_requests');\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id | IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id
  * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql |     IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN |     IF v_side <> 'buyer' THEN
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |      WHERE (x.status = 'open' AND x.answer_by <= now()) OR (x.status = 'offered' AND x.offer_answer_by <= now()) |      WHERE (x.status = 'offered' AND x.offer_answer_by <= now())
@@ -126,7 +126,7 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
     // handed-over sale (it refuses anything but a paid order, or it answers that same payment 'already_paid').
     const PROOF: Record<string, string> = {
       declutter_admin_decide_delivery_damage: "IF o.status <> 'paid' OR o.handover <> 'delivery'",
-      declutter_close_paid_order: "IF o.status IS DISTINCT FROM 'paid' OR o.stripe_payment_intent_id IS NULL THEN RAISE EXCEPTION 'order_not_paid'",
+      declutter_close_paid_order: "IF o.status IS DISTINCT FROM 'paid' OR (o.stripe_payment_intent_id IS NULL AND COALESCE(o.gift_cents, 0) <= 0) THEN RAISE EXCEPTION 'order_not_paid'",
       declutter_refund_paid_order: "IF o.status <> 'paid' OR o.stripe_payment_intent_id IS NULL THEN",
       // 141d fixed a replay: a second delivery of the paid event for a handed-over sale refunded it in full.
       declutter_mark_order_paid: "IF o.status IN ('paid', 'refunded', 'handed_over') THEN IF o.stripe_payment_intent_id IS NOT DISTINCT FROM p_payment_intent_id THEN RETURN jsonb_build_object('result', 'already_paid');",
@@ -140,7 +140,8 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
   it("4. a part refund is EXACTLY the offered amount, and below the item price", () => {
     const after = flat(body("declutter_refund_after_handover"));
     expect(after).toMatch(/p_part_cents >= o\.items_cents THEN RAISE EXCEPTION 'invalid_amount'/);
-    expect(after).toMatch(/VALUES \(o\.id, o\.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents\)/);
+    // Q?giftclose (20261118002340): the agreed part also carries its gift share (declutter_refund_gift_split).
+    expect(after).toMatch(/VALUES \(o\.id, o\.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents, COALESCE\(public\.declutter_refund_gift_split\(o\.id, p_part_cents\), 0\)\)/);
     expect(flat(body("declutter_answer_refund"))).toMatch(/p_offer_cents >= o\.items_cents THEN RAISE EXCEPTION 'invalid_amount'/);
   });
 

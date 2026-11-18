@@ -6,16 +6,16 @@
  * each function. Behaviour proven in PGlite: src/test/pglite/shippingRefundAfterVoid.pglite.mjs (66/66; skip and plants
  * RED).
  *
- * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql | v_fee_reason, o.total_cents - v_reserved - v_ship, | v_fee_reason, o.total_cents - v_reserved,
- * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql |   IF v_fee_reason IN ('buyer_no_show', 'admin_buyer_fault', 'buyer_cancelled', 'buyer_restarted_checkout') THEN  -- CHANGED (Q1928 gap 3)\n    v_ship | IF v_fee_reason IN ('buyer_no_show') THEN  -- CHANGED (Q1928 gap 3)\n    v_ship
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql | v_fee_reason, o.total_cents - v_reserved - v_ship, | v_fee_reason, o.total_cents - v_reserved,
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql |   IF v_fee_reason IN ('buyer_no_show', 'admin_buyer_fault', 'buyer_cancelled', 'buyer_restarted_checkout') THEN  -- CHANGED (Q1928 gap 3)\n    v_ship | IF v_fee_reason IN ('buyer_no_show') THEN  -- CHANGED (Q1928 gap 3)\n    v_ship
  * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql | AND s.label_state IN ('bought', 'void_requested', 'voided', 'void_rejected')) THEN o.shipping_cents | AND s.label_state IN ('voided')) THEN o.shipping_cents
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |                                         + v_order.shipping_cents - public.declutter_shipping_reserved_cents(p_order_id) THEN |                                         THEN
  * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql |   VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.shipping_cents, v_gift) |   VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.total_cents, v_gift)
  * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql |                        AND d.paid_cents <= o.total_cents - o.shipping_cents) THEN |                        AND d.paid_cents <= o.total_cents) THEN
  * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |   IF NEW.label_state = 'voided' AND OLD.label_state IS DISTINCT FROM 'voided' | IF NEW.label_state IN ('voided', 'void_rejected') AND OLD.label_state IS DISTINCT FROM NEW.label_state
- * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql |       IF v_label.label_mode = 'test' THEN\n        UPDATE public.shipments SET label_state = 'void_requested', last_error = NULL, next_attempt_at = now() |       IF true THEN\n        UPDATE public.shipments SET label_state = 'void_requested', last_error = NULL, next_attempt_at = now()
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql |       IF v_label.label_mode = 'test' THEN\n        UPDATE public.shipments SET label_state = 'void_requested', last_error = NULL, next_attempt_at = now() |       IF true THEN\n        UPDATE public.shipments SET label_state = 'void_requested', last_error = NULL, next_attempt_at = now()
  * Q2106 S3b step 5 (the gift share named in the buyer's refund notice):
- * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql | 'Refund on its way', public.declutter_refund_notice_names_gift(v_refund,\n    CASE | 'Refund on its way', (\n    CASE
+ * @mutate supabase/migrations/20261118002340_declutter_gift_only_close_and_refund.sql | 'Refund on its way', public.declutter_refund_notice_names_gift(v_refund,\n    CASE WHEN v_seller_fault AND v_reserved > 0 | 'Refund on its way', (\n    CASE WHEN v_seller_fault AND v_reserved > 0
  * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql |   IF p_text IS NULL OR COALESCE(v_gift, 0) <= 0 THEN | IF true THEN
  */
 import { readFileSync, readdirSync } from "node:fs";

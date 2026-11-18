@@ -79,7 +79,8 @@ describe("the Declutter Free section", () => {
     // Then the A3 reconcile (20261102084222): 063343 plus A3-72's two delivery_never_booked lines; free branch untouched.
     // Q2259 lost sweep (20261103203204): verbatim plus ship_lost in v_seller_fault (the free-claim branch unchanged).
     // Q2106 S3b step 5 (20261105052751): verbatim plus the gift-share wrap of the buyer's refund notice.
-    expect(newestFunction("declutter_close_paid_order").file).toContain("20261105052751_declutter_gift_delivery_refunds.sql");
+    // Q?giftclose (20261118002340): verbatim plus a gift-only order (no payment intent, gift_cents > 0) counted as paid.
+    expect(newestFunction("declutter_close_paid_order").file).toContain("20261118002340_declutter_gift_only_close_and_refund.sql");
     // declutter_buy_now: owner 11-07 (20261107174801, ONE Stripe page) restated it with only its lock call changed (no
     // saved card needed); the free-item refusal below still reads that newest definition.
     expect(newestFunction("declutter_buy_now").file).toContain("20261107174801_declutter_buy_now_one_page.sql");

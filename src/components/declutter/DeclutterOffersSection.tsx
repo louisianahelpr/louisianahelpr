@@ -109,7 +109,8 @@ function AcceptedOfferNext({ o }: { o: MyOffer }) {
  * Area 05 #16 (design audit 11-18): an accepted offer whose checkout time ran out (its cart line went "missed") still
  * read "Accepted". It reads "Expired", muted. Words only: the offer and the cart line are the server's (no money here).
  */
-export function offerLapsed(o: Pick<MyOffer, "status" | "item_id" | "my_side">, cart: readonly Pick<CartLine, "item_id" | "my_side" | "status">[] | undefined): boolean {
+type LapseCartLine = Pick<CartLine, "item_id" | "my_side" | "status">;
+export function offerLapsed(o: Pick<MyOffer, "status" | "item_id" | "my_side">, cart: readonly LapseCartLine[] | undefined): boolean {
   if (o.status !== "accepted" || !cart) return false;
   const mine = cart.filter((l) => l.item_id === o.item_id && l.my_side === o.my_side);
   return mine.length > 0 && mine.every((l) => l.status === "missed");

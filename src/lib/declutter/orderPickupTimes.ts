@@ -9,6 +9,8 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { getLang, t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
 
 export type OrderPickupTimes = {
   id: string;
@@ -55,6 +57,12 @@ export function pickupWhenWords(startIso: string, endIso: string | null, porch: 
 /** "by Sun 11/8, 5:07 PM". */
 export function bookByWords(iso: string): string {
   const d = new Date(iso);
+  // Area 06b H1 (design audit 11-18): Spanish read "Siguiente: … · by Thu 11/19"; the "by" and the date are in the
+  // member's language ("antes de jue, 19/11, 5:07 p. m."), the same dp.byTime words timeLeft uses.
+  if (getLang() === "es") {
+    const es = new Intl.DateTimeFormat("es-US", { timeZone: TZ, weekday: "short", day: "numeric", month: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).format(d).replace(/[\u202f\u00a0]/g, " ");
+    return t("dp.byTime", { time: es });
+  }
   return `by ${day(d)}, ${part(d, { hour: "numeric", minute: "2-digit", hour12: true })}`;
 }
 

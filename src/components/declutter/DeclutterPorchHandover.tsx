@@ -44,6 +44,10 @@ import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useSellerSetupFee } from "./useSellerSetupFee";
 import { preHandoverSellerCents } from "./declutterPayoutWords";
+import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclSell";
 
 type Pickup = "porch" | "pickup_home" | "meetup";
 
@@ -75,63 +79,64 @@ export function standing(handover: Pickup, side: "buyer" | "seller", at: number,
   times: TimeWords = { chosen: null, by: null }): NextStepValue {
   // Owner 11-01 12:02 PM: the line is the shared next step. The viewer's own move reads "Next: <step>"; the other
   // side's move reads "Waiting on the buyer to …" / where it stands. #6: a free claim was never paid ("Claimed.").
-  const paid = free ? "Claimed." : "Paid.";
+  const paid = free ? t("dsl.nx.claimed") : t("dsl.nx.paid");
   const you = (text: string, by: string | null = null): NextStepValue => ({ who: "you", text, by });
   const them = (text: string, by: string | null = null): NextStepValue => ({ who: "them", text, by });
   const info = (text: string): NextStepValue => ({ who: "info", text });
   const { chosen, by } = times;
   // A3-49: the seller's one waiting line names the buyer ("Waiting on Ann to …"); "the buyer" until the name is in.
-  const buyer = times.buyer || "the buyer";
+  const buyer = times.buyer || t("dsl.nx.theBuyer");
   // Nothing booked yet: the other side's line drops its full stop so " · by <date>" follows it.
-  const waiting = (what: string) => them(`${paid} Waiting on ${buyer} to ${what}${by ? "" : "."}`, by);
+  // Area 06b H1 (design audit 11-18): the seller's lines in the member's language (enDeclSell dsl.nx.*).
+  const waiting = (key: MsgKey) => them(`${t(key, { paid, buyer })}${by ? "" : "."}`, by);
   // The booked day or time is the booking panel's line, right below; it is not repeated here.
   if (handover === "porch") {
     // LEAD-PLACE-TIMES: a porch pickup is booked for a time inside the place's hours (a day booked before stays a day).
-    if (at === 0) return side === "buyer" ? you("Pick a time to collect it from the porch", by) : waiting("pick a pickup time");
+    if (at === 0) return side === "buyer" ? you("Pick a time to collect it from the porch", by) : waiting("dsl.nx.waitPickTime");
     if (at === 1) {
       // Q2626 (audit 1102c R1): booked for tomorrow, "put it out" read as tonight. Before the photo day, the day.
       const early = side === "seller" && !day && times.photoDay && !porchDayIsNow(times.photoDay) ? times.photoDay : null;
-      if (side === "seller" && chosen) return you(early ? `Put it out ${onDay(early)}, then post the porch photo` : "Put it out and post the porch photo", `Pickup ${chosen}`);
-      if (side === "seller") return day ? you(`Put it out ${onDay(day)} and post the porch photo`)
-        : early ? you(`Put it out ${onDay(early)}, then take one photo where the buyer will find it`) : you("Put it out and take one photo where the buyer will find it");
+      if (side === "seller" && chosen) return you(early ? t("dsl.nx.putOutThenPhoto", { day: onDay(early) }) : t("dsl.nx.putOutPhoto"), t("dsl.nx.pickupAt", { when: chosen }));
+      if (side === "seller") return day ? you(t("dsl.nx.putOutDayPhoto", { day: onDay(day) }))
+        : early ? you(t("dsl.nx.putOutThenOne", { day: onDay(early) })) : you(t("dsl.nx.putOutOne"));
       if (chosen) return them("Not out yet. We'll tell you when it's on the porch", `Pickup ${chosen}`);
       return them("Not out yet. We'll tell you when it's on the porch. Don't go before then.");
     }
     if (at === 2) {
-      if (side === "seller") return them("It's out. Waiting on the buyer to pick it up; they see your photo.");
+      if (side === "seller") return them(t("dsl.nx.itsOut"));
       if (!day) return you("Pick it up at your pickup time");
       return porchDayIsNow(day) ? you("Pick it up today") : you(`Pick it up ${onDay(day)}`);
     }
-    return info("Picked up.");
+    return info(t("dsl.nx.pickedUp"));
   }
   if (handover === "meetup") {
-    if (at === 0) return side === "buyer" ? you("Book a time to meet", by) : waiting("book a time to meet");
-    if (at === 1 && chosen) return side === "seller" ? you("Meet the buyer at the place below", `Meet ${chosen}`) : info(`Meet ${chosen}`);
-    if (at === 1) return side === "seller" ? you("Meet the buyer at the time and place below") : info("Booked. The time and place are below.");
-    return info(at === 2 ? "Met." : "Handed over.");
+    if (at === 0) return side === "buyer" ? you("Book a time to meet", by) : waiting("dsl.nx.waitBookMeet");
+    if (at === 1 && chosen) return side === "seller" ? you(t("dsl.nx.meetPlaceBelow"), t("dsl.nx.meetAt", { when: chosen })) : info(`Meet ${chosen}`);
+    if (at === 1) return side === "seller" ? you(t("dsl.nx.meetTimePlaceBelow")) : info("Booked. The time and place are below.");
+    return info(at === 2 ? t("dsl.nx.met") : t("dsl.nx.handedOver"));
   }
-  if (at === 0) return side === "buyer" ? you("Book a pickup time", by) : waiting("book a pickup time");
-  if (at === 1 && chosen) return side === "seller" ? you("Have it ready at the door", `Pickup ${chosen}`) : info(`Pickup ${chosen} · at the door`);
-  if (at === 1) return side === "seller" ? you("Have it ready at the pickup time below") : info("Booked. The pickup time is below.");
-  return info(at === 2 ? "Picked up." : "Handed over.");
+  if (at === 0) return side === "buyer" ? you("Book a pickup time", by) : waiting("dsl.nx.waitBookPickup");
+  if (at === 1 && chosen) return side === "seller" ? you(t("dsl.nx.readyAtDoor"), t("dsl.nx.pickupAt", { when: chosen })) : info(`Pickup ${chosen} · at the door`);
+  if (at === 1) return side === "seller" ? you(t("dsl.nx.readyAtTime")) : info("Booked. The pickup time is below.");
+  return info(at === 2 ? t("dsl.nx.pickedUp") : t("dsl.nx.handedOver"));
 }
 
 /** DC-16: a seller-delivers sale, in the same words (OrderSteps: Paid -> Time booked -> Delivered -> Done). */
 const answerByWords = orderWhen; // F367: date and Central time
 
 /** A3-71: the seller's line once the hour has passed (late), or once the buyer says it never came (reported). */
-const SELLER_DELIVERY_LATE = "Late: deliver it now or ask for a new time. The buyer can now say it didn't come.";
-const sellerDeliveryReported = (by: string) => `Answer the buyer by ${answerByWords(by)}. They say it wasn't delivered.`;
+const SELLER_DELIVERY_LATE = () => t("dsl.nx.deliveryLate");
+const sellerDeliveryReported = (by: string) => t("dsl.nx.deliveryReported", { by: answerByWords(by) });
 
 export function deliveryStanding(side: "buyer" | "seller", at: number, free: boolean, late = false, reportedBy: string | null = null,
   bookBy: string | null = null): NextStepValue {
   if (at === 1 && side === "seller" && reportedBy) return { who: "you", text: sellerDeliveryReported(reportedBy) };
-  if (at === 1 && side === "seller" && late) return { who: "info", text: SELLER_DELIVERY_LATE };
+  if (at === 1 && side === "seller" && late) return { who: "info", text: SELLER_DELIVERY_LATE() };
   // A3-72 (lead 11-01 5:34 PM): no time yet carries book_by (paid + 7 days); at it the order is closed and refunded in full.
   const by = bookBy ? bookByWords(bookBy) : null;
-  if (at === 0) return side === "buyer" ? { who: "you", text: "Pick a delivery time", by } : { who: "them", text: `${free ? "Claimed" : "Paid"}. Waiting on the buyer to pick a delivery time`, by };
-  if (at === 1) return side === "seller" ? { who: "you", text: "Deliver it at the time below" } : { who: "info", text: "Booked. The delivery time is below." };
-  if (at === 2) return side === "buyer" ? { who: "you", text: "Tap I got it once you have it" } : { who: "them", text: "Delivered. Waiting on the buyer to say they have it." };
+  if (at === 0) return side === "buyer" ? { who: "you", text: "Pick a delivery time", by } : { who: "them", text: t("dsl.nx.waitDeliveryTime", { paid: free ? t("dsl.nx.claimed") : t("dsl.nx.paid") }), by };
+  if (at === 1) return side === "seller" ? { who: "you", text: t("dsl.nx.deliverBelow") } : { who: "info", text: "Booked. The delivery time is below." };
+  if (at === 2) return side === "buyer" ? { who: "you", text: "Tap I got it once you have it" } : { who: "them", text: t("dsl.nx.deliveredWaiting") };
   return { who: "info", text: "Handed over." };
 }
 
@@ -211,8 +216,14 @@ export function PickupStatus({
 /** A3-78: the seller's move on a refund request: answer it, or confirm the item came back; by its deadline. */
 function sellerRefundStep(v: RefundRequestView): NextStepValue {
   const r = v.request!;
-  if (r.status === "open") return { who: "you", text: "Answer the refund request", by: r.answer_by ? bookByWords(r.answer_by) : null };
-  return { who: "you", text: "Confirm you got the item back", by: r.return_deadline ? bookByWords(r.return_deadline) : null };
+  if (r.status === "open") return { who: "you", text: t("dsl.nx.answerRefund"), by: r.answer_by ? bookByWords(r.answer_by) : null };
+  return { who: "you", text: t("dsl.nx.confirmBack"), by: r.return_deadline ? bookByWords(r.return_deadline) : null };
+}
+
+/** Area 06b H1: a translated money line with its amount still in bold, as the English line had it. */
+function strongAmount(line: string, amount: string) {
+  const i = line.indexOf(amount);
+  return i < 0 ? line : <>{line.slice(0, i)}<strong className="tabular-nums">{amount}</strong>{line.slice(i + amount.length)}</>;
 }
 
 /** F394: the seller's handed-over line: the payout day while the buyer's 24 hours run, or that they are over. */
@@ -221,12 +232,12 @@ function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolea
   // F360b (lh-money-escrow review): with no ready payout account the run puts the payout off, so no day is promised.
   // While payout setup is not offered (usePayoutSetupPaused), the line never sends the seller to set it up.
   if (!payoutReady) return setupPaused
-    ? <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> once your payout account is ready.</>
-    : <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> once you set up payouts in Settings.{" "}<Link to="/profile?tab=payment" className="underline font-semibold" data-payout-setup-link="">Set up payouts</Link></>;
+    ? <>{strongAmount(t("dsl.getOnceReady", { amount: formatPrice(cents) }), formatPrice(cents))}</>
+    : <>{strongAmount(t("dsl.getOnceSetup", { amount: formatPrice(cents) }), formatPrice(cents))}{" "}<Link to="/profile?tab=payment" className="underline font-semibold" data-payout-setup-link="">{t("dsl.setUpPayouts")}</Link></>;
   const ends = checkWindowEnds(handedOverAt);
   return ends
-    ? <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong>, paid on {payoutDayAfterWindow(ends)} unless the buyer reports a problem before then.</>
-    : <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong>. The buyer's 24 hours to report a problem are over.</>;
+    ? <>{strongAmount(t("dsl.getPaidOn", { amount: formatPrice(cents), day: payoutDayAfterWindow(ends) }), formatPrice(cents))}</>
+    : <>{strongAmount(t("dsl.getWindowOver", { amount: formatPrice(cents) }), formatPrice(cents))}</>;
 }
 
 /** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */
@@ -249,7 +260,7 @@ function MoneyNote({ orderId, side, kind, free, done, problemOpen, refunded = fa
   const feeHere = itemsCents + Math.max(0, deliveryCents) - sellerCents;
   // F398 (owner 11-11 ~2:10 PM): "You get $50 ($45 + $5 delivery)", the payout's own parts (items + v_rate); not
   // shown when the fee comes off, so the parts never fail to add up and no fee words appear.
-  const parts = deliveryCents > 0 && feeHere === 0 ? ` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)` : "";
+  const parts = deliveryCents > 0 && feeHere === 0 ? t("dsl.deliveryParts", { items: formatPrice(itemsCents), delivery: formatPrice(deliveryCents) }) : "";
   const money = free ? null
     : side === "buyer"
       // NIGHT-BUYINGopenpr-8 (buyer's held card): while a problem is open the note says "Nobody is paid until they
@@ -259,13 +270,13 @@ function MoneyNote({ orderId, side, kind, free, done, problemOpen, refunded = fa
         ? sellerPaidWhen(sellerCents, handedOverAt, refunded || problemOpen, payoutReady, setupPaused)
         : setupFee.unknown ? null
         : problemOpen
-          ? <>Your <strong className="tabular-nums">{formatPrice(sellerCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
+          ? <>{strongAmount(t("dsl.heldWhile", { amount: formatPrice(sellerCents) }), formatPrice(sellerCents))}</>
         // Deep audit #31: one payout rule, the live one. LEAD-DOOR-PAYLINE: said per handover kind from the owner's
         // 10-30 rule and the server it describes (sellerPayoutRule): "I got it" pays 24 hours later; the seller's own
         // step plus the buyer's silence about 48 hours; nobody speaks, the money stays held.
         // Q2634 (owner 11-02): one line; the 10-30 rule, word for word, opens under "Details".
-        : <>You get <strong className="tabular-nums">{formatPrice(sellerCents)}</strong>{parts} after the handover.{" "}
-          <InlineTextButton className="font-semibold underline underline-offset-2" aria-expanded={ruleOpen} data-payout-details="" onClick={() => setRuleOpen((o) => !o)}>{ruleOpen ? "Hide details" : "Details"}</InlineTextButton>
+        : <>{strongAmount(t("dsl.youGetAfter", { amount: formatPrice(sellerCents), parts }), formatPrice(sellerCents))}{" "}
+          <InlineTextButton className="font-semibold underline underline-offset-2" aria-expanded={ruleOpen} data-payout-details="" onClick={() => setRuleOpen((o) => !o)}>{ruleOpen ? t("dbuy.order.hideDetails") : t("dbuy.order.details")}</InlineTextButton>
           {ruleOpen && <span className="mt-1 block" data-payout-rule="">{sellerPayoutRule(kind)}</span>}</>;
   // The seller's "You get $X once the sale is final" is good news: the sage tint, not the rust one a held payout
   // keeps (audit 1030 DC-13).

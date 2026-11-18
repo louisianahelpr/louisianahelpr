@@ -5,6 +5,7 @@
  * @mutate src/pages/info/HelpCenter.tsx | <span className="block font-sans text-ds-13 text-muted-foreground" data-help-topic-count=""> | <span className="font-sans text-ds-13 text-muted-foreground" data-help-topic-count="">{"· "}
  * @mutate src/components/Footer.tsx | <div className="page-measure max-w-6xl pt-6 md:pt-8 pb-2"> | <div className="page-measure pt-6 md:pt-8 pb-2">
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | const FIELD_LABEL = "block text-ds-13 font-semibold text-foreground/80"; | const FIELD_LABEL = "block text-ds-15 font-semibold";
+ * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | <span className="ml-auto shrink-0 text-ds-11 | {!row.open && <span data-order-talk-ended="">x</span>}<span className="ml-auto shrink-0 text-ds-11
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -36,5 +37,15 @@ describe("design audit 11-17", () => {
     expect((w.match(/className=\{FIELD_LABEL\}/g) ?? []).length).toBeGreaterThan(3);
     expect(w).not.toMatch(/text-ds-15 font-semibold" htmlFor=/);
     expect(src("src/components/declutter/DeclutterProblemPhotos.tsx")).toContain('<p className="text-ds-13 font-semibold text-foreground/80">Photos (optional');
+  });
+
+  it("#6: a Declutter thread's Ended pill sits on the second line, never the title line", () => {
+    const s = src("src/components/messages/DeclutterOrderTalkInbox.tsx");
+    const title = s.indexOf("title={orderTalkRowTitle(row)}");
+    const line = s.indexOf('data-order-talk-line=""');
+    const ended = s.indexOf('data-order-talk-ended=""');
+    expect(title).toBeGreaterThan(0);
+    expect(ended).toBeGreaterThan(line);
+    expect(s.indexOf("data-order-talk-ended")).toBe(ended);
   });
 });

@@ -214,7 +214,7 @@ describe("Q2585: /admin/preview/declutter", () => {
       ["offer_countered", "buyer", /their counter/],
       ["offer_countered", "seller", /Waiting on the buyer to answer/],
       ["offer_accepted", "buyer", /Reserved for you, not paid yet/],
-      ["offer_accepted", "seller", /Sold, waiting for the buyer to pay/],
+      ["offer_accepted", "seller", /Waiting for the buyer to pay/],
       ["cart_two", "buyer", /One checkout for 2 items/],
       ["refund_asked", "buyer", /You asked for a refund/],
       ["refund_asked", "seller", /Next: answer the refund request/],

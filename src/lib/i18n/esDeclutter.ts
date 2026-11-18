@@ -208,6 +208,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.st.pending_review": "Esperando una revisión",
   "decl.st.live": "A la venta",
   "decl.st.paused": "En pausa",
+  "decl.st.reservedSeller": "Esperando a que el comprador pague",
   "decl.st.reserved": "Alguien lo está comprando",
   "decl.st.sold": "Vendido",
   "decl.st.completed": "Entregado",

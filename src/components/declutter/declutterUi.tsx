@@ -36,6 +36,9 @@ export function sellerStatusLabel(item: { status: DeclutterStatus; current_price
   if (tradedFor && (item.status === "reserved" || item.status === "sold" || item.status === "completed")) return tr("decl.st.tradedFor", { item: tradedFor });
   if (item.current_price_cents === 0 && item.status === "reserved") return tr("decl.st.claimed");
   if (item.current_price_cents === 0 && item.status === "sold") return tr("decl.st.claimedWaiting");
+  // Area 06 M2 (11-18): the seller's row said "Someone is buying it" under the checkout box's "Waiting for the buyer to
+  // pay"; one wording on both.
+  if (item.status === "reserved") return tr("decl.st.reservedSeller");
   return statusLabel(item.status);
 }
 

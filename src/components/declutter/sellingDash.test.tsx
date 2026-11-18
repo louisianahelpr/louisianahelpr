@@ -473,7 +473,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     state.cart = [{ line_id: "l-w1", item_id: "i-w1", item_title: "Oak rocking chair", my_side: "seller", seller_id: "u1", price_cents: 4000, status: "in_cart",
       checkout_by: new Date(Date.now() + 3_600_000).toISOString(), order_id: null, order_status: null, handover: "porch", premium_cents: 0, total_cents: 4000 }];
     at("/declutter?tab=selling");
-    expect(await screen.findByText(/Sold, waiting for the buyer to pay/)).toBeInTheDocument();
+    expect(await screen.findByText(/Waiting for the buyer to pay/)).toBeInTheDocument();
     await screen.findByRole("region", { name: "Offers on your items" });
     expect(screen.queryByText("Nothing sold yet")).toBeNull();
   });

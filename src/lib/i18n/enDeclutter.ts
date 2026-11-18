@@ -109,6 +109,7 @@ export const enDeclutter = {
   "decl.st.pending_review": "Waiting for a review",
   "decl.st.live": "For sale",
   "decl.st.paused": "Paused",
+  "decl.st.reservedSeller": "Waiting for the buyer to pay",
   "decl.st.reserved": "Someone is buying it",
   "decl.st.sold": "Sold",
   "decl.st.completed": "Handed over",

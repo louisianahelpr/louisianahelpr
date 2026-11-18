@@ -23,7 +23,7 @@ import { DeclutterNotice } from "./declutterUi";
 /** The words for one kind of waiting line: a paid sale, or a free item someone claimed. */
 const WORDS = {
   paid: {
-    heading: "Sold, waiting for the buyer to pay",
+    heading: "Waiting for the buyer to pay",
     line: "Waiting on the buyer to pay",
     cancel: "Cancel sale",
     sheetTitle: "Cancel this sale?",

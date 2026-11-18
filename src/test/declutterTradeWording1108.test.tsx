@@ -49,7 +49,9 @@ describe("lead 11-08: a trade order reads as a trade", () => {
 
   it("a traded listing says Traded for <item>, never Someone is buying it", () => {
     expect(sellerStatusLabel({ status: "reserved", current_price_cents: 500 }, "Blue lamp")).toBe("Traded for Blue lamp");
-    expect(sellerStatusLabel({ status: "reserved", current_price_cents: 500 })).toBe("Someone is buying it");
+    // Area 06 M2 (11-18): the seller reads the checkout box's own words.
+    // @mutate src/components/declutter/declutterUi.tsx |   if (item.status === "reserved") return tr("decl.st.reservedSeller"); |
+    expect(sellerStatusLabel({ status: "reserved", current_price_cents: 500 })).toBe("Waiting for the buyer to pay");
   });
 
   it("the viewer's own listing maps to the item they get, from either side; open or closed trades map nothing", () => {

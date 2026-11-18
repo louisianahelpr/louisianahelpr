@@ -108,7 +108,7 @@ describe("A3-24: the seller's sale waiting for payment", () => {
     const end = new Date(Date.now() + 25 * 60_000).toISOString();
     state.cart = [{ ...LINE, checkout_by: end }];
     show(<SalesWaiting />);
-    const region = await screen.findByRole("region", { name: "Sold, waiting for the buyer to pay" });
+    const region = await screen.findByRole("region", { name: "Waiting for the buyer to pay" });
     const line = region.querySelector("[data-next-step]");
     expect(line?.getAttribute("data-next-step")).toBe("them");
     expect(line?.textContent).toBe(`Waiting on the buyer to pay · ${byClock(end)}`);

@@ -18,7 +18,7 @@
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}> | <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="submit" size="sm" disabled={act.isPending \|\| !counterCents \|\| !!counterBad}> | <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending \|\| !counterCents \|\| !!counterBad}>
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="text-sm underline underline-offset-2" disabled={act.isPending} | <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending}
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="text-sm font-medium" aria-expanded={closedOpen} | <button type="button" className="link-standard text-sm font-medium" aria-expanded={closedOpen}
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="inline-flex items-center gap-0.5 text-sm font-semibold text-[hsl(var(--olivewood))]" aria-expanded={closedOpen} | <button type="button" className="link-standard text-sm font-medium" aria-expanded={closedOpen}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

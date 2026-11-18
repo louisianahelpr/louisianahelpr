@@ -604,7 +604,7 @@ describe("Selling tab: Taken down, with Relist", () => {
   // the item (a draft's opens Finish listing). LEAD-ONE-PREVIEW (owner 2026-10-31): View and See what buyers see are
   // one button, Preview (the listing as buyers read it), on every listed row and at every width; a draft has none.
   // @mutate src/components/declutter/DeclutterHomeView.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}> | <p className="truncate text-ds-15 font-semibold" title={item.title}>
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}>{t("decl.sl.preview")}</Link> | <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}><Eye aria-hidden /><span className="sr-only">{t("decl.sl.preview")}</span></Link> | <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
   // @mutate src/components/declutter/DeclutterHomeView.tsx | {item.status !== "draft" && ( | {item.status === "live" && (
   // @mutate src/components/declutter/DeclutterHomeView.tsx | to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`} | to="/declutter"
   it("a listing row: the title takes two lines, the row opens the item, one Preview (Sellinglist-4, LEAD-ONE-PREVIEW)", async () => {

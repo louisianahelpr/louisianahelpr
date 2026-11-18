@@ -14,7 +14,7 @@
 // @mutate src/components/sponsor/ClaimSection.tsx |   return { ...form, shipTo: "winner", notes }; |   return { ...form, shipTo: "winner" };
 // @mutate src/components/sponsor/ClaimSection.tsx |   const [delivery, setDelivery] = useState<PrizeDelivery>("helpr"); |   const [delivery, setDelivery] = useState<PrizeDelivery>("winner");
 // @mutate src/content/sponsorPage.ts | are shared with that day's sponsor only to deliver the prize, and are not used for anything else. | are shared with that day's sponsor.
-// @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |   const { label, line } = sponsorDeliveryLine(sponsorDeliveryOf(s), adminEmail) |   const { label, line } = sponsorDeliveryLine('helpr', adminEmail)
+// @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <DeliveryRow s={s} adminEmail={adminEmail} /> |       <Detail label="Ship your prize to">Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528</Detail>
 // @mutate supabase/functions/_shared/sponsorSignup.ts |     // Not given: stays null (sponsor_signups.prize_value is nullable since 20261110171648). |     errors.prizeValue = "required";
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <Detail label="Your prize">{s.prizeDescription}</Detail> |       <Detail label="Your prize">{s.prizeDescription} (about ${s.prizeValue})</Detail>
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       {s.prizeValue != null ? <Detail label="Prize value">${s.prizeValue}</Detail> : null} |       <Detail label="Prize value">${s.prizeValue}</Detail>

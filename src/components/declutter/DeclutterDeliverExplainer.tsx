@@ -39,21 +39,31 @@ export function DeliverExplainer({ collapsed = false }: { collapsed?: boolean })
         </h2>
       </div>
       <CollapsibleContent className="space-y-2">
-      <p className="text-sm text-muted-foreground">
-        When a neighbor buys an item on Declutter and picks Helpr delivery, a nearby driver brings it. You pick it up at
-        the seller's, take a photo there, and leave it at the buyer's door with a photo. You need a car, and a truck for
-        large items.
-      </p>
+      {/* Design audit 11-17 #18: three dense paragraphs (~110 words) opened the tab. Two short lines now; the steps and
+          the rules sit behind "How deliveries work". */}
+      <p className="text-sm text-muted-foreground" data-deliver-what="">Pick up from a neighbor, drop at the buyer&apos;s door.</p>
       <p className="text-sm text-foreground" data-deliver-pay="">
         A {EXAMPLE_MILES}-mile trip pays you <span className="font-semibold tabular-nums">{formatPrice(small)}</span>, or{" "}
-        <span className="font-semibold tabular-nums">{formatPrice(large)}</span> for a large item. Every delivery shows
-        your pay before you take it, and tips are all yours.
+        <span className="font-semibold tabular-nums">{formatPrice(large)}</span> for a large item. Tips are all yours.
       </p>
-      {/* BUY-45: the rules helpr_task_accept and helpr_task_sweep apply (20261031102758, 20261031014011). */}
-      <p className="text-sm text-muted-foreground" data-deliver-rules="">
-        You can have 2 deliveries taken and not yet picked up at a time. If you don&apos;t pick it up within 2 hours of the
-        pickup time, it goes to another Helpr and you get a delivery strike.
-      </p>
+      <details className="group" data-deliver-how="">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold text-[hsl(var(--olivewood))] [&::-webkit-details-marker]:hidden">
+          How deliveries work
+          <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <div className="space-y-2 pb-1">
+          <p className="text-sm text-muted-foreground">
+            When a neighbor buys an item and picks Helpr delivery, a nearby driver brings it. You pick it up at the
+            seller&apos;s, take a photo there, and leave it at the buyer&apos;s door with a photo. You need a car, and a
+            truck for large items. Every delivery shows your pay before you take it.
+          </p>
+          {/* BUY-45: the rules helpr_task_accept and helpr_task_sweep apply (20261031102758, 20261031014011). */}
+          <p className="text-sm text-muted-foreground" data-deliver-rules="">
+            You can have 2 deliveries taken and not yet picked up at a time. If you don&apos;t pick it up within 2 hours of the
+            pickup time, it goes to another Helpr and you get a delivery strike.
+          </p>
+        </div>
+      </details>
       </CollapsibleContent>
     </section>
     </Collapsible>

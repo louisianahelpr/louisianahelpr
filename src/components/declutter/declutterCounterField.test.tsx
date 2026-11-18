@@ -158,7 +158,7 @@ describe("the counter box says its range and refuses a price outside it (NIGHT-S
     // Area 06 M8 (11-18): the box opens with the halfway example as a real value, Accept steps aside, and the range
     // reads in whole dollars (the exact check still refuses $22).
     // @mutate src/components/declutter/DeclutterOffersSection.tsx |     if (!countering && !counter) setCounter(counterExample(o) ?? ""); |     void counter;
-    // @mutate src/components/declutter/DeclutterOffersSection.tsx |           {!countering && (\n          <Button | {(\n          <Button
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx |       {myTurn && !countering && ( |       {myTurn && (
     // @mutate src/components/declutter/DeclutterOffersSection.tsx |   return minW <= maxW ? { min: formatPrice(minW), max: formatPrice(maxW) } | return true ? { min: formatPrice(min), max: formatPrice(max) }
     expect((input as HTMLInputElement).value).toBe("34");
     expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();

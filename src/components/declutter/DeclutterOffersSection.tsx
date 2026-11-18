@@ -261,8 +261,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={openCounter} aria-expanded={countering} data-offer-counter="">
             {t("dof.answerPrice")}
           </Button>
-          {/* Area 06 M8: while the seller is writing a counter, Accept steps aside (one answer at a time). */}
-          {!countering && (
+          {/* Area 06 M8: while the seller is writing a counter, Accept steps aside: the whole row gives way to the price box. */}
           <Button
             type="button"
             size="sm"
@@ -271,7 +270,6 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           >
             {t("dof.accept")}
           </Button>
-          )}
         </div>
       )}
       {myTurn && countering && (

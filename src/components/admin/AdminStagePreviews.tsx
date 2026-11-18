@@ -21,7 +21,7 @@ export default function AdminStagePreviews() {
         <ul className="divide-y divide-border">
           {STAGE_PREVIEWS.map((p) => (
             <li key={p.href}>
-              <a href={p.href} data-stage-preview-link="" className="flex min-h-[44px] items-center gap-3 py-3 hover:bg-muted/40 rounded-ds-md px-2 -mx-2">
+              <a href={p.href} data-stage-preview-link="" className="flex min-h-[44px] items-center gap-3 py-3 ctl-tint rounded-ds-md px-2 -mx-2">
                 <span className="flex-1 min-w-0">
                   <span className="block text-ds-14 font-semibold text-foreground">{p.title}</span>
                   <span className="block text-ds-12 text-muted-foreground">{p.body}</span>

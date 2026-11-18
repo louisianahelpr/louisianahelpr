@@ -99,7 +99,7 @@ function DeclutterSettingsBody({ user }: { user: { id: string } }) {
           <nav aria-label="On this page" className="flex flex-wrap items-center gap-2" data-settings-index="">
             {SETTINGS_INDEX.map((name) => (
               <button key={name} type="button" data-settings-index-chip=""
-                className="inline-flex min-h-11 items-center rounded-full border border-border bg-card px-4 text-ds-14 font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="inline-flex min-h-11 items-center rounded-full border border-border bg-card px-4 text-ds-14 font-medium text-foreground ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{name}</button>
             ))}
           </nav>

@@ -64,7 +64,7 @@ describe("area 06b: Declutter selling gaps", () => {
   it("M9: the seller's own item page links their public page and says who pays the fee", () => {
     const src = code(FILES.item);
     expect(src).toMatch(/\{isSeller && \(\s*<Link to=\{memberProfilePath\(it\.seller_id\)\}[^>]*>\s*\{t\("dsl\.item\.publicPage"\)\}/);
-    expect(src).toContain('t("dsl.item.buyersPay", { amount: exactDollars(buyNowTotalCents(it.current_price_cents)) })');
+    expect(src).toContain('t("dsl.item.buyersPay", { amount: oneItemTotalDollars(it.current_price_cents) })');
     // The bare "incl. fee" is a buyer's line only.
     expect(src).toMatch(/\{it\.current_price_cents > 0 && !isSeller && \(\s*<PriceInclFee/);
     expect(enDeclutter["dsl.item.buyersPay"]).toBe("Buyers pay {amount} with the fee");

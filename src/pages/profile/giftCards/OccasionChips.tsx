@@ -54,7 +54,7 @@ export function OccasionChips({ occasionId, setOccasionId }: { occasionId: strin
                         ? { color: "hsl(var(--parchment))" }
                         : {
                             background: "var(--surface-premium)",
-                            border: "1px solid hsl(var(--bark) / 0.18)",
+                            border: "1px solid hsl(var(--border))",
                             color: "hsl(var(--bark))",
                           }
                     }

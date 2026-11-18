@@ -42,7 +42,7 @@ describe("F468: every saved-search row has its own Alerts switch", () => {
     expect(fn).toContain("updateSavedSearch(userId, search.id, { notify_enabled })");
     expect(fn).toContain("checked={search.notify_enabled}");
     expect(fn).toContain("disabled={paused || change.isPending}");
-    expect(fn).toContain('aria-label={`Alerts for ${search.name}`}');
+    expect(fn).toContain('aria-label={t("ss.alertsForName", { name: search.name })}');
     expect(fn).toContain('data-saved-search-alerts=""');
   });
 });

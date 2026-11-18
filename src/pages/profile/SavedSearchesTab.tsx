@@ -16,6 +16,8 @@ import { SavedSearchNewPill } from "@/components/savedSearches/SavedSearchNewPil
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { mutationErrorMessage } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
+import "@/lib/i18n/enAccount";
+import { t, useLanguage } from "@/lib/i18n/language";
 import { hapticError, hapticLight } from "@/lib/haptics";
 import {
   deleteSavedSearch,
@@ -35,6 +37,7 @@ const card = { background: "hsl(var(--card))" } as const;
 
 /** F468: the per-row "Alerts" switch; its own mutation so a failed flip puts that one row back. */
 function RowAlertSwitch({ search, userId, paused }: { search: SavedSearch; userId: string; paused: boolean }) {
+  useLanguage();
   const qc = useQueryClient();
   const change = useMutation({
     mutationFn: (notify_enabled: boolean) => updateSavedSearch(userId, search.id, { notify_enabled }),
@@ -42,7 +45,7 @@ function RowAlertSwitch({ search, userId, paused }: { search: SavedSearch; userI
     onError: (err) => {
       report(err, { tags: { source: "SavedSearchesTab.rowAlert" } });
       hapticError();
-      toast.error(mutationErrorMessage(err, "We couldn't change that alert. Please try again."));
+      toast.error(mutationErrorMessage(err, t("ss.alertFailed")));
       void qc.invalidateQueries({ queryKey: SAVED_SEARCHES_KEY });
     },
   });
@@ -51,7 +54,7 @@ function RowAlertSwitch({ search, userId, paused }: { search: SavedSearch; userI
       checked={search.notify_enabled}
       disabled={paused || change.isPending}
       onCheckedChange={(v) => change.mutate(v)}
-      aria-label={`Alerts for ${search.name}`}
+      aria-label={t("ss.alertsForName", { name: search.name })}
       data-saved-search-alerts=""
       className="shrink-0"
     />
@@ -60,6 +63,7 @@ function RowAlertSwitch({ search, userId, paused }: { search: SavedSearch; userI
 
 /** One search's settings: its alerts, its email, and delete. */
 function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; userId: string; onClose: () => void }) {
+  useLanguage();
   const qc = useQueryClient();
   const change = useMutation({
     mutationFn: (patch: { notify_enabled?: boolean; notify_email?: boolean }) => updateSavedSearch(userId, search!.id, patch),
@@ -67,7 +71,7 @@ function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; 
     onError: (err) => {
       report(err, { tags: { source: "SavedSearchesTab.change" } });
       hapticError();
-      toast.error(mutationErrorMessage(err, "We couldn't change that alert. Please try again."));
+      toast.error(mutationErrorMessage(err, t("ss.alertFailed")));
       void qc.invalidateQueries({ queryKey: SAVED_SEARCHES_KEY });
     },
   });
@@ -80,7 +84,7 @@ function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; 
     onError: (err) => {
       report(err, { tags: { source: "SavedSearchesTab.remove" } });
       hapticError();
-      toast.error(mutationErrorMessage(err, "We couldn't delete that search. Please try again."));
+      toast.error(mutationErrorMessage(err, t("ss.deleteFailed")));
     },
   });
   const busy = change.isPending || remove.isPending;
@@ -96,31 +100,31 @@ function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; 
             <div className="rounded-2xl overflow-hidden" style={card}>
               <label className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border">
                 <span className="flex-1 min-w-0">
-                  <span className="block font-sans font-semibold text-ds-15">Alerts for this search</span>
-                  <span className="block font-sans text-ds-13 text-muted-foreground">In the app when something new matches</span>
+                  <span className="block font-sans font-semibold text-ds-15">{t("ss.alertsThis")}</span>
+                  <span className="block font-sans text-ds-13 text-muted-foreground">{t("ss.alertsThisBody")}</span>
                 </span>
-                <Switch checked={search.notify_enabled} disabled={busy} onCheckedChange={(v) => change.mutate({ notify_enabled: v })} aria-label="Alerts for this search" />
+                <Switch checked={search.notify_enabled} disabled={busy} onCheckedChange={(v) => change.mutate({ notify_enabled: v })} aria-label={t("ss.alertsThis")} />
               </label>
               <label className="flex items-center gap-3 px-4 py-3 min-h-[56px]">
                 <span className="flex-1 min-w-0">
-                  <span className="block font-sans font-semibold text-ds-15">Email</span>
-                  <span className="block font-sans text-ds-13 text-muted-foreground">Once a day, only if there's something new</span>
+                  <span className="block font-sans font-semibold text-ds-15">{t("ss.email")}</span>
+                  <span className="block font-sans text-ds-13 text-muted-foreground">{t("ss.emailBody")}</span>
                 </span>
-                <Switch checked={search.notify_email} disabled={busy || !search.notify_enabled} onCheckedChange={(v) => change.mutate({ notify_email: v })} aria-label="Email" />
+                <Switch checked={search.notify_email} disabled={busy || !search.notify_enabled} onCheckedChange={(v) => change.mutate({ notify_email: v })} aria-label={t("ss.email")} />
               </label>
             </div>
             <SheetFooter className="mt-4">
               {asking ? (
                 <>
-                  <p className="font-sans text-ds-13 text-muted-foreground">Delete this search? Its alerts stop, and it can't be brought back.</p>
-                  <SheetSecondaryAction disabled={busy} onClick={() => setAsking(false)}>Keep it</SheetSecondaryAction>
+                  <p className="font-sans text-ds-13 text-muted-foreground">{t("ss.deleteAsk")}</p>
+                  <SheetSecondaryAction disabled={busy} onClick={() => setAsking(false)}>{t("ss.keep")}</SheetSecondaryAction>
                   <SheetDestructiveAction onClick={() => remove.mutate()} disabled={busy} aria-busy={remove.isPending}>
-                    Yes, delete it
+                    {t("ss.yesDelete")}
                   </SheetDestructiveAction>
                 </>
               ) : (
                 <SheetDestructiveAction onClick={() => setAsking(true)} disabled={busy}>
-                  Delete search
+                  {t("ss.delete")}
                 </SheetDestructiveAction>
               )}
             </SheetFooter>
@@ -138,6 +142,7 @@ function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; 
  * "Pause all alerts" keeps the searches and stops the alerts.
  */
 export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
+  useLanguage();
   const { user } = useCurrentUser();
   const userId = user?.id ?? "";
   const navigate = useNavigate();
@@ -153,7 +158,7 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
     onError: (err) => {
       report(err, { tags: { source: "SavedSearchesTab.pause" } });
       hapticError();
-      toast.error(mutationErrorMessage(err, "We couldn't change that. Please try again."));
+      toast.error(mutationErrorMessage(err, t("ss.changeFailed")));
     },
   });
 
@@ -176,17 +181,17 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
 
   return (
     <ProfileTabBody data-testid="saved-searches-tab">
-      <ProfileTabHeader title="Saved searches" onBack={onBack} />
+      <ProfileTabHeader title={t("ss.title")} onBack={onBack} />
       {loading ? (
         <ProfileTabBodyReserve tab="saved_searches" />
       ) : list.isError ? (
-        <ErrorState variant="inline" title="We couldn't load your saved searches." onRetry={() => void list.refetch()} />
+        <ErrorState variant="inline" title={t("ss.loadFailed")} onRetry={() => void list.refetch()} />
       ) : (
         <>
           <p className="font-sans text-ds-13 text-muted-foreground px-1">
             {rows.length
-              ? "You get an alert when something new matches. Tap one to see results."
-              : "Search in Jobs or Declutter, then tap Save this search to be told when something new matches."}
+              ? t("ss.introSome")
+              : t("ss.introNone")}
           </p>
           {rows.length > 0 && (
             <ul className="rounded-2xl overflow-hidden" style={card}>
@@ -207,7 +212,7 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
                       the list; each row carries its own Alerts switch (the sheet keeps Email and Delete). */}
                   <RowAlertSwitch search={s} userId={userId} paused={!!paused.data} />
                   {/* The shared compact ghost icon (44 tap, 40 wash), not a hand-made button; 16px glyph kept (B47 10-31). */}
-                  <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} aria-label={`Settings for ${s.name}`}
+                  <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} aria-label={t("ss.settingsForName", { name: s.name })}
                     className="shrink-0 mr-1 rounded-full text-muted-foreground [&_svg]:size-4">
                     <MoreHorizontal aria-hidden />
                   </Button>
@@ -218,10 +223,10 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
           {rows.length > 0 && (
             <label className="flex items-center gap-3 rounded-2xl px-4 py-3 min-h-[60px]" style={card}>
               <span className="flex-1 min-w-0">
-                <span className="block font-sans font-semibold text-ds-15">Pause all alerts</span>
-                <span className="block font-sans text-ds-13 text-muted-foreground">Keep the searches, stop the alerts</span>
+                <span className="block font-sans font-semibold text-ds-15">{t("ss.pauseAll")}</span>
+                <span className="block font-sans text-ds-13 text-muted-foreground">{t("ss.pauseAllBody")}</span>
               </span>
-              <Switch checked={!!paused.data} disabled={paused.data === undefined || pause.isPending} onCheckedChange={(v) => pause.mutate(v)} aria-label="Pause all alerts" data-testid="pause-all-alerts" />
+              <Switch checked={!!paused.data} disabled={paused.data === undefined || pause.isPending} onCheckedChange={(v) => pause.mutate(v)} aria-label={t("ss.pauseAll")} data-testid="pause-all-alerts" />
             </label>
           )}
         </>

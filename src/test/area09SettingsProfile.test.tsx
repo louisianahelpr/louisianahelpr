@@ -12,6 +12,7 @@
  * @mutate src/components/SaveHelperButton.tsx |       aria-pressed={saved} |
  * @mutate src/lib/i18n/enSettings.ts | "Terms, rules and privacy" | "Terms, rules & privacy"
  * @mutate src/pages/profile/SavedSearchesTab.tsx | font-semibold text-ds-15 line-clamp-2 break-words | font-semibold text-ds-15 truncate
+ * @mutate src/pages/profile/SavedSearchesTab.tsx | title={t("ss.title")} | title="Saved searches"
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -111,6 +112,17 @@ describe("design audit area 09: one name each, and plain 'and' (L8, L19)", () =>
     const amp = Object.entries(enSettings).filter(([, v]) => v.includes("&"));
     expect(Object.keys(enSettings).length).toBeGreaterThan(40);
     expect(amp).toEqual([]);
+  });
+});
+
+describe("design audit area 09: Saved searches speaks Spanish (H1)", () => {
+  it("every word on the screen comes from t(), none is an English literal", () => {
+    const tab = src("src/pages/profile/SavedSearchesTab.tsx");
+    const keys = tab.match(/t\("ss\.[A-Za-z]+"/g) ?? [];
+    expect(keys.length).toBeGreaterThan(15);
+    for (const lit of ["Saved searches", "Pause all alerts", "Delete search", "Keep it", "Alerts for this search"]) {
+      expect(tab, lit).not.toMatch(new RegExp(`[>"]${lit}[<"]`));
+    }
   });
 });
 

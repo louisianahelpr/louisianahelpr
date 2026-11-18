@@ -66,6 +66,26 @@ export const enAccount = {
   // Settings › Privacy
   "acct.savedAddress": "Saved address",
   "acct.savedAddressNone": "None yet. The address of the next job you post shows here.",
+  // Saved searches
+  "ss.title": "Saved searches",
+  "ss.loadFailed": "We couldn't load your saved searches.",
+  "ss.introSome": "You get an alert when something new matches. Tap one to see results.",
+  "ss.introNone": "Search in Jobs or Declutter, then tap Save this search to be told when something new matches.",
+  "ss.alertFailed": "We couldn't change that alert. Please try again.",
+  "ss.deleteFailed": "We couldn't delete that search. Please try again.",
+  "ss.changeFailed": "We couldn't change that. Please try again.",
+  "ss.alertsForName": "Alerts for {name}",
+  "ss.settingsForName": "Settings for {name}",
+  "ss.alertsThis": "Alerts for this search",
+  "ss.alertsThisBody": "In the app when something new matches",
+  "ss.email": "Email",
+  "ss.emailBody": "Once a day, only if there's something new",
+  "ss.deleteAsk": "Delete this search? Its alerts stop, and it can't be brought back.",
+  "ss.keep": "Keep it",
+  "ss.yesDelete": "Yes, delete it",
+  "ss.delete": "Delete search",
+  "ss.pauseAll": "Pause all alerts",
+  "ss.pauseAllBody": "Keep the searches, stop the alerts",
 } as const;
 
 addEnglish(enAccount);

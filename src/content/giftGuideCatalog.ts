@@ -10,7 +10,7 @@
 import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
-import { CHUNK_SLUGS, PICK_CHUNKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
+import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
 
 /**
  * The owner's list plus every store page the researched picks name (follow-up batch 2026-11-18: every store or brand
@@ -118,6 +118,8 @@ export interface CatalogGuide {
   deals?: StoreDeal[];
   /** Holds nothing yet: left out of the rows, the search and the menu (its own link still opens). */
   empty?: true;
+  /** A store page with fewer than STORE_ROW_MIN_PICKS picks: not a By store tile or menu entry (search and its link still find it). */
+  thin?: true;
 }
 
 const rowId = (label: string) => label.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -358,6 +360,14 @@ const holds = (slug: string): boolean => {
   return v;
 };
 
+/** The fewest picks a store page needs to be a tile in the By store row and menu (lead 2026-11-18); its link still opens. */
+export const STORE_ROW_MIN_PICKS = 4;
+/** A guide's pick count without loading its chunk (static picks, plus its chunk's count). */
+const pickCount = (slug: string) => {
+  const d = draftOf.get(slug)!;
+  return HAS_CHUNK.has(slug) ? (APPEND_CHUNK.has(slug) ? d.picks.length : 0) + (CHUNK_PICK_COUNTS[slug] ?? 0) : d.picks.length;
+};
+
 const build = (slug: string, group: string, tint: GuideTint, listed?: { title: string; lead: string; age?: string }): CatalogGuide => {
   const d = draftOf.get(slug)!;
   const children = HUBS[slug]?.map((x) => ({ label: x.label, slugs: x.slugs.filter((c) => filled(c) && holds(c)) })).filter((x) => x.slugs.length > 0);
@@ -372,6 +382,7 @@ const build = (slug: string, group: string, tint: GuideTint, listed?: { title: s
     parent: parentOf.get(slug),
     ...(children?.length ? { children } : {}),
     ...(holds(slug) ? {} : { empty: true as const }),
+    ...(group === "By store" && holds(slug) && pickCount(slug) < STORE_ROW_MIN_PICKS ? { thin: true as const } : {}),
   };
   if (HAS_CHUNK.has(slug)) {
     // Read from the guide's chunk once it is in (loadGuidePicks); until then the static picks (APPEND_CHUNK) or none.
@@ -395,7 +406,8 @@ export const GUIDES: CatalogGuide[] = ROWS.flatMap((r) => [
  * the Kids hub replaced by its own children (Girls, Boys, Gender-Neutral); each of those opens its five age guides.
  * A guide that holds nothing is not listed.
  */
-export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && g.row === row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB));
+export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB));
+
 
 /**
  * The guides an empty guide's page points to (lead 2026-11-18): its siblings under the same hub, else its row, that

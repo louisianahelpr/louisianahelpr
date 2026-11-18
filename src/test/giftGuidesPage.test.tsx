@@ -48,7 +48,8 @@
  * @mutate src/pages/info/GiftGuides.tsx | "gg w-full" | "gg page-column"
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
- * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && g.row === row | GUIDES.filter((g) => g.row === row
+ * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.empty && g.row === row
+ * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.thin && g.row === row
  * @mutate src/content/giftGuideCatalog.ts |     if (g.empty) return false; |     if (false) return false;
  * @mutate src/content/giftGuideCatalog.ts | picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: HAS_CHUNK.has(t) ? d.picks : [...d.picks, ...src.picks, ...src.picks]
  * @mutate src/content/giftGuides.ts | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => !c.expires \|\| c.expires >= today); | export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => today === today);
@@ -84,7 +85,7 @@ import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
-import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GiftGuideView } from "@/pages/info/giftGuides/GiftGuideView";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
@@ -207,7 +208,7 @@ describe("gift guides: the content inventory", () => {
     const rows = ROWS.map((r) => r.label);
     expect(rows.indexOf("Experiences")).toBe(rows.indexOf("Louisiana") + 1);
     // A guide that holds nothing yet is not listed (lead 2026-11-18); the rest keep the list's order.
-    const holding = (slugs: string[]) => slugs.filter((x) => !guideBySlug(x)?.empty);
+    const holding = (slugs: string[]) => slugs.filter((x) => !guideBySlug(x)?.empty && !guideBySlug(x)?.thin);
     expect(guidesIn("experiences").map((g) => g.slug)).toEqual(holding([
       "gift-cards", "louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "subscriptions", "family-fun-days",
     ]));
@@ -277,7 +278,7 @@ describe("gift guides: the content inventory", () => {
 
 describe("gift guides: the landing opens to the guides", () => {
   it("shows one tile row per group, in order, each with See all; every top-level guide's tile links to /gift-guides/<slug>", () => {
-    const top = ROWS.flatMap((r) => GUIDES.filter((g) => !g.empty && g.row === r.row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB)));
+    const top = ROWS.flatMap((r) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === r.row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB)));
     const { container } = renderAt("/gift-guides");
     const rows = [...container.querySelectorAll("[data-gift-row]")];
     expect(rows.map((r) => r.querySelector("h2")?.textContent)).toEqual(ROW_LABELS);
@@ -453,6 +454,27 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelector('[data-gift-code-store="Example Shop"]')?.textContent).toContain("TEST10");
     fireEvent.click(screen.getByRole("button", { name: "Copy TEST10" }));
     expect(write).toHaveBeenCalledWith("TEST10");
+  });
+
+  it("a store page with fewer than 4 picks is no By store tile or menu entry, but search and its link still open it", () => {
+    // Proven red: drop `!g.thin` in guidesIn and the thin store pages are tiles again.
+    expect(STORE_ROW_MIN_PICKS).toBe(4);
+    const thin = GUIDES.filter((g) => g.thin);
+    for (const g of thin) {
+      expect(g.row, g.slug).toBe("by-store");
+      expect(g.picks.length, g.slug).toBeLessThan(4);
+    }
+    for (const g of guidesIn("by-store")) expect(g.picks.length + (g.deals?.length ?? 0) > 0 && (g.picks.length >= 4 || !g.thin), g.slug).toBe(true);
+    for (const g of guidesIn("by-store")) expect(g.thin, g.slug).toBeUndefined();
+    if (thin[0]) {
+      expect(searchGuides(thin[0].title).map((x) => x.slug)).toContain(thin[0].slug);
+      const { container } = renderAt(`/gift-guides/${thin[0].slug}`);
+      expect(container.querySelector("[data-gift-words] h2")?.textContent).toBe(thin[0].title);
+      expect(container.querySelector('[data-gift-row="by-store"]')).toBeNull();
+      cleanup();
+    }
+    const landing = renderAt("/gift-guides").container;
+    for (const g of thin) expect(landing.querySelector(`a[data-gift-tile="${g.slug}"]`), g.slug).toBeNull();
   });
 
   it("Sales sit under Discount codes, collapsed, soonest end first; a sale past its end day hides", () => {

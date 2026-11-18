@@ -352,7 +352,7 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
         seller ? <NoSellerOffers /> : <p className="text-sm text-muted-foreground">{t("dof.noneMade")}</p>
       ) : shown.length === 0 ? (
         // Design audit 11-17 #19: with closed offers to show, the link row below is the whole answer.
-        closed.length > 0 ? null : <p className="text-sm text-muted-foreground">{t("dof.noneOpen")}</p>
+        !closed.length && <p className="text-sm text-muted-foreground">{t("dof.noneOpen")}</p>
       ) : (
         <ul className="space-y-3">{shown.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>
       )}

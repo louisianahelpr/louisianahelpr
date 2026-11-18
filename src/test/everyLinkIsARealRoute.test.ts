@@ -64,6 +64,8 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
  */
 // @two-way src/test/everyLinkIsARealRoute.test.ts:stale OWNER_REDIRECT_ROUTES entry
 const OWNER_REDIRECT_ROUTES: Record<string, string> = {
+  "/gift-guides":
+    "owner 2026-11-17 (relayed by the lead): the gift guides are not visible yet; \"Make the /gift-guides route redirect to / for now\" while the next version is built on feat/gift-guides-v2",
   "/declutter/wanted/new":
     "owner 2026-11-09 (UI audit F130, the owner-approved fix list: \"Route it to the Wanted composer (or redirect to /declutter?tab=wanted)\"): the obvious address for a new Wanted post opens the composer (wantedAskHref(\"\")) instead of the 404",
   "/helpdesk":

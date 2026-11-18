@@ -170,7 +170,6 @@ const SmsOptIn = lazyWithPreload(() => import("./pages/info/SmsOptIn"));
 // F255 (audit 11-10, owner 2026-11-11): /fees, /safety (and 11-16 /gift-guides), lazy; critical path unchanged.
 const Fees = lazyWithPreload(() => import("./pages/info/Fees"));
 const Safety = lazyWithPreload(() => import("./pages/info/Safety"));
-const GiftGuides = lazyWithPreload(() => import("./pages/info/GiftGuides"));
 const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 /**
@@ -468,7 +467,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* F255 (owner 2026-11-11): costs, safety; 11-16 Holiday Gift Guides (src/content/giftGuides.ts). */}
       <Route path="/fees" element={<RouteErrorBoundary>{routeEl(<PageTransition><Fees /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/safety" element={<RouteErrorBoundary>{routeEl(<PageTransition><Safety /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Owner 2026-11-17: the gift guides are not visible yet; /gift-guides goes home. The page
+          (src/pages/info/GiftGuides.tsx) is kept for the next version (feat/gift-guides-v2). */}
+      <Route path="/gift-guides" element={<Navigate to="/" replace />} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).
           Same as above: no redirect exists, and none is warranted on current

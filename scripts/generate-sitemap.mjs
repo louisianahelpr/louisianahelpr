@@ -92,7 +92,6 @@ const WEIGHTS = {
   "/sms-opt-in": { changefreq: "yearly", priority: "0.2" },
   "/fees": { changefreq: "yearly", priority: "0.4" },
   "/safety": { changefreq: "yearly", priority: "0.4" },
-  "/gift-guides": { changefreq: "weekly", priority: "0.6" },
   "/support": { changefreq: "monthly", priority: "0.5" },
   "/legal": { changefreq: "monthly", priority: "0.4" },
   "/legal?tab=community": { changefreq: "monthly", priority: "0.4" },

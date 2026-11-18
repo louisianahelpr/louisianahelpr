@@ -194,7 +194,10 @@ describe("every sitemap URL serves its own head before JavaScript (SW-001/SW-002
   });
 
   it("two-way: every table route and every page rewrite canonicalises to a sitemap URL, and every table canonical is listed", async () => {
-    const tablePaths = [...Object.keys(PUBLIC_PAGE_META), "/legal", ...Object.keys(LEGAL_PATH_TAB)];
+    // Owner 2026-11-17: /gift-guides is hidden (App.tsx sends it home, no vercel rewrite, out of the sitemap) while the
+    // next version is built; its table entry stays for that page, so it is the one route left out here.
+    const HIDDEN = new Set(["/gift-guides"]);
+    const tablePaths = [...Object.keys(PUBLIC_PAGE_META).filter((p) => !HIDDEN.has(p)), "/legal", ...Object.keys(LEGAL_PATH_TAB)];
     const pageRewrites = vercel.rewrites
       .filter((r) => r.destination.includes("_og=page"))
       // OPS-4: the one parameterised page rewrite stands for its real town pages (allTownPagePaths).
@@ -208,7 +211,7 @@ describe("every sitemap URL serves its own head before JavaScript (SW-001/SW-002
       if (canonical && norm(canonical) === SITE_ORIGIN) failures.push(`${path}: canonical is the homepage`);
     }
     const tableCanonicals = [
-      ...Object.values(PUBLIC_PAGE_META).map((m) => m.canonical),
+      ...Object.entries(PUBLIC_PAGE_META).filter(([p]) => !HIDDEN.has(p)).map(([, m]) => m.canonical),
       ...Object.values(LEGAL_PAGE_META).map((m) => m.canonical),
       ...allTownPagePaths().map((p) => SITE_ORIGIN + p),
     ];

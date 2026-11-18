@@ -6,22 +6,26 @@
  * THE CLASS: an affiliate page that hides its disclosure, leaks a link without rel="sponsored", goes private, or has
  * no way in. Checked from the content inventory (src/content/giftGuides.ts) and the rendered page:
  *   1. the route is public (no ProtectedRoute), routed by vercel.json before the catch-all, indexed (sitemap, own head,
- *      no noindex);
+ *      no noindex) [hidden since 2026-11-17, see below];
  *   2. the FTC disclosure (16 CFR Part 255) renders, word for word, above the first link;
  *   3. EVERY anchor on the page is sponsored + noopener and opens a new tab, and every content link is drawn;
  *   4. content links are https on shopmy.us / pinterest.com / an approved brand site, picks carry no price, images are lazy with a fixed size;
  *   5. the landing (Index.tsx), the public footer and the /25days footer each link to /gift-guides.
  *
+ * OWNER 2026-11-17: the gift guides are NOT visible yet (the next version is being built on feat/gift-guides-v2). Until
+ * then 1 and 5 are inverted: /gift-guides redirects home (App.tsx and vercel.json), it is out of the sitemap, and the
+ * landing card, the public footer link and the /25days footer link are gone. The page code and its content stay, and
+ * 2-4 still hold for the page itself.
+ *
  * @mutate src/pages/info/GiftGuides.tsx | rel="sponsored noopener" | rel="noopener"
  * @mutate src/pages/info/GiftGuides.tsx | target="_blank" rel= | rel=
  * @mutate src/pages/info/GiftGuides.tsx |             {G.disclosure}\n |             {null}\n
  * @mutate src/pages/info/GiftGuides.tsx |           loading="lazy" |           loading="eager"
- * @mutate src/pages/info/Index.tsx |       <GiftGuidesBand />\n |
- * @mutate src/components/Footer.tsx |               <Link to="/gift-guides" className={FOOTER_LINK}> |               <Link to="/gifts" className={FOOTER_LINK}>
- * @mutate src/components/sponsor/Sections.tsx |         <Link to={C.links.giftGuides}>{C.footer.giftGuidesLink}</Link>\n |
- * @mutate src/lib/publicPageMeta.mjs |     canonical: `${SITE_ORIGIN}/gift-guides`, |     canonical: `${SITE_ORIGIN}/gift-guides`,\n    robots: "noindex, follow",
- * @mutate src/App.tsx | <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} /> | <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><GiftGuides /></ProtectedRoute>)}</RouteErrorBoundary>} />
- * @mutate vercel.json |       "source": "/gift-guides",\n      "destination": "/index.html" |       "source": "/gift-guides-moved",\n      "destination": "/index.html"
+ * @mutate src/pages/info/Index.tsx |       <SectionsShowcase />\n |       <SectionsShowcase />\n      <GiftGuidesBand />\n
+ * @mutate src/components/Footer.tsx |               <Link to="/safety" className={FOOTER_LINK}> |               <Link to="/gift-guides" className={FOOTER_LINK}>
+ * @mutate src/components/sponsor/Sections.tsx |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n        <Link to={C.links.giftGuides}>{C.footer.giftGuidesLink}</Link>\n
+ * @mutate src/App.tsx | <Route path="/gift-guides" element={<Navigate to="/" replace />} /> | <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<GiftGuides />)}</RouteErrorBoundary>} />
+ * @mutate src/App.tsx | <Route path="/gift-guides" element={<Navigate to="/" replace />} /> | <Route path="/gift-guides" element={<Navigate to="/home" replace />} />
  * @mutate src/content/giftGuides.ts | const shopmy = (id: number) => `https://shopmy.us/collections/${id}`; | const shopmy = (id: number) => `http://shopmy.us/collections/${id}`;
  */
 import { readFileSync } from "node:fs";
@@ -116,49 +120,31 @@ describe("gift guides: the rendered page", () => {
   });
 });
 
-describe("gift guides: public, routed and indexed", () => {
-  it("App.tsx serves /gift-guides with no ProtectedRoute around it", () => {
+describe("gift guides: hidden until the next version (owner 2026-11-17)", () => {
+  it("App.tsx sends /gift-guides home, and vercel.json no longer routes it to its own head or the app", () => {
     const app = src("src/App.tsx");
     const route = app.split("\n").find((l) => l.includes('path="/gift-guides"'));
-    expect(route).toBeTruthy();
-    expect(route).not.toMatch(/ProtectedRoute|AdminRoute/);
-    expect(route).toContain("<GiftGuides />");
-  });
-
-  it("vercel.json routes it to its own head and to the app, both before the catch-all", () => {
+    expect(route).toContain('element={<Navigate to="/" replace />}');
+    expect(app).not.toMatch(/<GiftGuides \/>/);
     const rewrites = (JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] }).rewrites;
-    const at = (dest: string) => rewrites.findIndex((r) => r.source === "/gift-guides" && r.destination === dest);
-    const catchAll = rewrites.findIndex((r) => r.destination === "/api/share?_og=notfound");
-    expect(at("/api/share?_og=page&_id=gift-guides")).toBeGreaterThan(-1);
-    expect(at("/index.html")).toBeGreaterThan(-1);
-    expect(at("/api/share?_og=page&_id=gift-guides")).toBeLessThan(catchAll);
-    expect(at("/index.html")).toBeLessThan(catchAll);
+    expect(rewrites.filter((x) => x.source === "/gift-guides")).toEqual([]);
   });
 
-  it("is indexed: in the sitemap, with its own head, and never noindex", () => {
-    const meta = PUBLIC_PAGE_META["/gift-guides"] as { canonical: string; robots?: string };
-    expect(meta.canonical).toBe("https://www.louisianahelpr.com/gift-guides");
-    expect(meta.robots ?? "").not.toMatch(/noindex/);
+  it("is out of the sitemap; the page keeps its own head for the next version", () => {
+    expect(readFileSync("public/sitemap.xml", "utf8")).not.toContain("/gift-guides");
+    expect(Object.keys(PUBLIC_PAGE_META)).toContain("/gift-guides");
     expect(Object.keys(NOINDEX_PAGE_META)).not.toContain("/gift-guides");
-    expect(readFileSync("public/sitemap.xml", "utf8")).toContain("<loc>https://www.louisianahelpr.com/gift-guides</loc>");
     expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(PUBLIC_PAGE_META["/gift-guides"])');
   });
-});
 
-describe("gift guides: the ways in", () => {
-  it("the landing renders the gift guides card, and it links to /gift-guides", () => {
-    expect(src("src/pages/info/Index.tsx")).toMatch(/<GiftGuidesBand \/>/);
+  it("no way in: not on the landing, not in the public footer, not in the /25days footer", () => {
+    expect(src("src/pages/info/Index.tsx")).not.toMatch(/GiftGuidesBand/);
+    expect(src("src/components/Footer.tsx")).not.toMatch(/gift-guides|giftGuides/);
+    expect(src("src/components/sponsor/Sections.tsx")).not.toMatch(/giftGuides/);
+    // The card component itself is kept (feat/gift-guides-v2) and still points at the page.
     render(<MemoryRouter><GiftGuidesBand /></MemoryRouter>);
     expect(GIFT_GUIDES_PATH).toBe("/gift-guides");
     expect(screen.getByTestId("landing-gift-guides-link").getAttribute("href")).toBe("/gift-guides");
-  });
-
-  it("the public footer links to /gift-guides", () => {
-    expect(src("src/components/Footer.tsx")).toMatch(/<Link to="\/gift-guides"/);
-  });
-
-  it("the /25days page's footer links to /gift-guides", () => {
     expect(sponsorPage.links.giftGuides).toBe("/gift-guides");
-    expect(src("src/components/sponsor/Sections.tsx")).toContain("<Link to={C.links.giftGuides}>{C.footer.giftGuidesLink}</Link>");
   });
 });

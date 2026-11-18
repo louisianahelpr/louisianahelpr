@@ -15,6 +15,8 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 import { openShopsIdentityCheckFor } from "./errors";
+import { louisianaNow } from "./hours";
+import type { ShopHour } from "./api";
 
 export type CancelPolicy = "until_24h_before_ready" | "until_accept" | "until_handover";
 
@@ -203,6 +205,11 @@ export interface OrderTerms {
   today: string;
   last_day: string;
   full_days: string[];
+  /**
+   * Q2793: the shop's hours for today have ended (Louisiana time), so today is no longer a ready date.
+   * Set on the client from the shop's own hours (withClosedForToday); the server does not send it.
+   */
+  closed_for_today?: boolean;
 }
 
 const ORDER_COLUMNS =
@@ -581,9 +588,30 @@ function addDaysIso(iso: string, days: number): string {
   return utcToIso(isoToUtc(iso) + days * DAY_MS);
 }
 
-/** The earliest ready date the server accepts (shops_request_order): the shop's today + the longest lead time chosen. */
-export function earliestReadyDate(terms: Pick<OrderTerms, "today">, leadDays: number): string {
-  return addDaysIso(terms.today, Math.max(0, leadDays));
+/**
+ * The earliest ready date: the shop's today + the longest lead time chosen (shops_request_order), and never
+ * today once the shop has closed for the day (Q2793, owner rule by recommendation 11-18: a same-day order
+ * after closing time waits for the next open day).
+ */
+export function earliestReadyDate(terms: Pick<OrderTerms, "today" | "closed_for_today">, leadDays: number): string {
+  return addDaysIso(terms.today, Math.max(terms.closed_for_today ? 1 : 0, leadDays));
+}
+
+/**
+ * Q2793: true when the shop's hours for its today have all ended, in Louisiana time. A day with no hours is
+ * already greyed out as closed, and a stale `today` (the device crossed midnight since the terms loaded) is left
+ * to the server's own check.
+ */
+export function shopClosedForToday(hours: readonly ShopHour[], today: string, now: Date = new Date()): boolean {
+  const { weekday, hhmm } = louisianaNow(now);
+  if (new Date(isoToUtc(today)).getUTCDay() !== weekday) return false;
+  const todays = hours.filter((h) => h.weekday === weekday);
+  return todays.length > 0 && todays.every((h) => h.closes.slice(0, 5) <= hhmm);
+}
+
+/** The terms with closed_for_today filled from the shop's hours (the order sheet passes the shop page's hours). */
+export function withClosedForToday<T extends Pick<OrderTerms, "today">>(terms: T, hours: readonly ShopHour[] | undefined, now: Date = new Date()): T & { closed_for_today: boolean } {
+  return { ...terms, closed_for_today: hours ? shopClosedForToday(hours, terms.today, now) : false };
 }
 
 /**
@@ -593,7 +621,7 @@ export function earliestReadyDate(terms: Pick<OrderTerms, "today">, leadDays: nu
  */
 export function readyDateProblem(
   iso: string,
-  terms: Pick<OrderTerms, "today" | "last_day" | "open_weekdays" | "full_days">,
+  terms: Pick<OrderTerms, "today" | "last_day" | "open_weekdays" | "full_days" | "closed_for_today">,
   leadDays: number,
 ): "too_soon" | "too_far" | "closed" | "full" | null {
   if (iso < earliestReadyDate(terms, leadDays)) return "too_soon";
@@ -605,7 +633,7 @@ export function readyDateProblem(
 
 /** The first date the shop can fill this order on, or null when none in its window. */
 export function firstOpenReadyDate(
-  terms: Pick<OrderTerms, "today" | "last_day" | "open_weekdays" | "full_days">,
+  terms: Pick<OrderTerms, "today" | "last_day" | "open_weekdays" | "full_days" | "closed_for_today">,
   leadDays: number,
 ): string | null {
   for (let d = earliestReadyDate(terms, leadDays); d <= terms.last_day; d = addDaysIso(d, 1)) {

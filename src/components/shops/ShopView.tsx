@@ -213,7 +213,7 @@ export default function ShopView() {
         )}
         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} orderable={!s.mine && !s.paused} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopDigitalBuy shopId={s.id} />}
-        {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
+        {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopReviewOrderBar shopId={s.id} />}
         {/* Custom orders: shown only while the shop takes them (its own setting, read by the sheet). */}
         {!s.mine && !s.paused && <ShopCustomRequestSheet shopId={s.id} />}

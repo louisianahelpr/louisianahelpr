@@ -43,10 +43,12 @@ import {
   firstOpenReadyDate,
   formatCents,
   readyDateProblem,
+  withClosedForToday,
   requestOrder,
   SHOP_SERVICE_FEE_INCLUDED,
 } from "@/lib/shops/orders";
 import { isLouisianaZip } from "@/lib/shipping/policy";
+import type { ShopHour } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { ShopsNotice } from "./shopsUi";
@@ -59,7 +61,7 @@ import { PreorderChargeBox } from "./ShopPreorderBits";
 
 const NOTE_MAX = 500;
 
-export default function ShopOrderSheet({ shopId }: { shopId: string }) {
+export default function ShopOrderSheet({ shopId, hours }: { shopId: string; /** The shop's hours (Q2793: today greys out after closing). */ hours?: readonly ShopHour[] }) {
   // The first-time account setup fee shop-checkout adds (20261105181603 B; Declutter's BuyerTotal reads the same hook).
   const setupFeeOwed = useFirstPayoutFeeCents();
   const setupFeeKnown = useFirstPayoutFeeKnown();
@@ -101,7 +103,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const preorderChosen = chosen.some((l) => preorders.data?.has(l.item.id));
   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0);
   const itemsCents = chosen.reduce((sum, l) => sum + l.unit * l.n, 0);
-  const t = terms.data;
+  const t = terms.data ? withClosedForToday(terms.data, hours) : undefined;
   const dateProblem = t && readyDate ? readyDateProblem(readyDate, t, leadDays) : null;
   const firstDate = t ? firstOpenReadyDate(t, leadDays) : null;
 

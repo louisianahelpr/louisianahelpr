@@ -14,6 +14,7 @@ import { esHome } from "./esHome";
 import { esNewMember } from "./esNewMember";
 import { esMessages } from "./esMessages";
 import { esChatParts } from "./esChatParts";
+import { esNotifPrefs } from "./esNotifPrefs";
 import { esOffer } from "./esOffer";
 import { esFree } from "./esFree";
 import { esQuestions } from "./esQuestions";
@@ -51,6 +52,7 @@ export const es: Record<MsgKey, string> = {
   ...esNewMember,
   ...esMessages,
   ...esChatParts,
+  ...esNotifPrefs,
   ...esOffer,
   ...esFree,
   ...esQuestions,

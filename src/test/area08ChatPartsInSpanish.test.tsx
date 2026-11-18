@@ -2,7 +2,10 @@
  * Area 08 H2/H3 (design audit 11-18): a Spanish thread, inbox and bell still read English: TODAY / YESTERDAY, "4m
  * ago", "Show progress", the safety banner, "Verified neighbor · 11 reviews", the Hired / Working / Completed chips,
  * "Your job", the Jobs chip, and the whole Declutter order chat. Each now reads t() (enChatParts.ts / esChatParts.ts).
- * Still English, on purpose for now: notification settings (skipped in the area 08 PR, see its skip list).
+ * Notification settings: the row labels, descriptions and group headers (enNotifPrefs.ts via notifPrefWords.ts); the rest
+ * of that screen is still English (area 08 PR skip list).
+ * @mutate src/components/notificationPreferences/CategoryRow.tsx |                 {notifPrefLabel(item.key, item.label)} |                 {item.label}
+ * @mutate src/components/notificationPreferences/NotificationGroupHeader.tsx |         {notifPrefGroup(title)} |         {title}
  *
  * @mutate src/components/messages/chatView/chatViewHelpers.ts |   if (diffDays === 0) return t("cp.today"); |   if (diffDays === 0) return "Today";
  * @mutate src/components/notificationPanel/notificationPanelHelpers.tsx |     { key: "today", label: t("cp.today"), items: [] }, |     { key: "today", label: "Today", items: [] },
@@ -31,6 +34,10 @@ import { threadJobChipLabel } from "@/lib/expiredListingInThread";
 import { threadRoleCaption } from "@/components/messages/messageSections";
 import { youCardFacts } from "@/components/profile/profileLanding/YouCard";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { enNotifPrefs } from "@/lib/i18n/enNotifPrefs";
+import { esNotifPrefs } from "@/lib/i18n/esNotifPrefs";
+import { notifPrefGroup, notifPrefLabel } from "@/lib/i18n/notifPrefWords";
+import { rows as jobRows, adminActivityRows, declutterRows, shopsRows } from "@/components/notificationPreferences/constants";
 import type { Notification } from "@/components/notificationPanel/types";
 
 const ROOT = resolve(__dirname, "../..");
@@ -84,5 +91,24 @@ describe("Area 08 H2/H3: chat, inbox and bell words follow the member's language
     const talk = src("src/components/declutter/DeclutterOrderTalk.tsx");
     for (const english of [">Close<", ">See the order<", "No messages yet.", "Only you two can read this", '"Send"', "Photo hidden", '"Order chat"'])
       expect(talk, english).not.toContain(english);
+  });
+
+  it("notification settings: every row and group has Spanish, the rows match constants.tsx, and the screen draws it", async () => {
+    const rows = [...jobRows, ...adminActivityRows, ...declutterRows, ...shopsRows];
+    expect(rows.length).toBeGreaterThan(20);
+    for (const r of rows) {
+      expect(enNotifPrefs[`np.l.${r.key}` as keyof typeof enNotifPrefs], r.key).toBe(r.label);
+      if (r.description) expect(enNotifPrefs[`np.d.${r.key}` as keyof typeof enNotifPrefs], r.key).toBe(r.description);
+    }
+    for (const k of Object.keys(enNotifPrefs) as (keyof typeof enNotifPrefs)[]) {
+      expect(es[k], k).toBe(esNotifPrefs[k]);
+      expect(esNotifPrefs[k], `${k} still English`).not.toBe(enNotifPrefs[k]);
+    }
+    setLang("es");
+    await ensureLangLoaded();
+    expect(notifPrefLabel("payments", "Receipts and refunds")).toBe("Recibos y reembolsos");
+    expect(notifPrefGroup("Money")).toBe("Dinero");
+    expect(src("src/components/notificationPreferences/CategoryRow.tsx")).toContain("{notifPrefLabel(item.key, item.label)}");
+    expect(src("src/components/notificationPreferences/NotificationGroupHeader.tsx")).toContain("{notifPrefGroup(title)}");
   });
 });

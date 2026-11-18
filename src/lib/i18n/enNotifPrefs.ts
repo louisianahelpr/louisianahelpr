@@ -1,0 +1,61 @@
+/**
+ * Area 08 H3 (design audit 11-18): Notification settings read entirely English in Spanish. These are the row labels,
+ * row descriptions and group headers (constants.tsx); CategoryRow and NotificationGroupHeader draw them through
+ * notifPrefWords(). Importing this file registers them with t() (enRegistry.ts). Spanish: esNotifPrefs.ts.
+ * The rest of the screen (quiet hours, text alerts, test send, job reminders) is still English: area 08 PR skip list.
+ */
+import { addEnglish } from "./enRegistry";
+
+export const enNotifPrefs = {
+  "np.g.Messages": "Messages",
+  "np.g.Jobs": "Jobs",
+  "np.g.Money": "Money",
+  "np.g.Account": "Account",
+  "np.g.Declutter": "Declutter",
+  "np.g.Shops": "Shops",
+  "np.l.messages": "Messages",
+  "np.l.new_offers": "Job offers",
+  "np.l.job_applications": "Applications",
+  "np.l.job_updates": "Changes to my jobs",
+  "np.l.job_matches": "New matches",
+  "np.l.transit_updates": "Helpr on the way",
+  "np.l.work_status": "Helpr's progress",
+  "np.l.payments": "Receipts and refunds",
+  "np.l.financial_alerts": "Payouts and tips",
+  "np.l.reviews": "Reviews",
+  "np.l.system_alerts": "Account and safety alerts",
+  "np.l.promotions": "Promotions",
+  "np.l.declutter_listings": "Listings",
+  "np.l.declutter_offers": "Offers",
+  "np.l.declutter_questions": "Questions",
+  "np.l.declutter_sales": "Buying & selling",
+  "np.l.declutter_pickups": "Pickups",
+  "np.l.declutter_refunds": "Refunds",
+  "np.l.declutter_price_drops": "Price drops",
+  "np.l.declutter_wanted": "Wanted matches",
+  "np.l.admin_activity": "Member activity",
+  "np.l.shops_orders": "Orders",
+  "np.l.shops_messages": "Shop messages",
+  "np.l.shops_updates": "Shop updates",
+  "np.l.shops_following": "Shops you follow",
+  "np.d.messages": "New messages, plus a reminder at 15 min and 2 h if a job message is still unread. Texts follow Text alerts.",
+  "np.d.transit_updates": "As your Helpr heads your way. Email is off unless you turn it on.",
+  "np.d.work_status": "When the work starts and when it's marked done.",
+  "np.d.payments": "Finished jobs, refunds and saved cards.",
+  "np.d.financial_alerts": "Money held for a job, payout setup, payouts and tips.",
+  "np.d.declutter_listings": "When a listing waits for a check or is taken down.",
+  "np.d.declutter_offers": "Offers and counteroffers, asks for your free items, and changes to items you offered on.",
+  "np.d.declutter_questions": "Questions on your listings, and sellers' answers to yours.",
+  "np.d.declutter_sales": "Both sides: checkout deadlines when you buy, items sold and order messages. Sale and payout receipts are always emailed.",
+  "np.d.declutter_pickups": "Pickup and delivery times, reminders and updates.",
+  "np.d.declutter_refunds": "Refund requests, reported problems and strikes. Refund receipts are always emailed.",
+  "np.d.declutter_price_drops": "An item you watch got cheaper or free.",
+  "np.d.declutter_wanted": "Your Wanted posts and saved Declutter searches.",
+  "np.d.admin_activity": "Listings, offers, sales, jobs and Shops orders by members. Always in the bell; push and email are off unless you turn them on.",
+  "np.d.shops_orders": "New orders, accepts, ready and handovers, payments, refunds and custom orders.",
+  "np.d.shops_messages": "New messages in a shop chat.",
+  "np.d.shops_updates": "Your shop's settings and Shops strikes.",
+  "np.d.shops_following": "New items from shops you follow, at most one notice per shop a day.",
+} as const;
+
+addEnglish(enNotifPrefs);

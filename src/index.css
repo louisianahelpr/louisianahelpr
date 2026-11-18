@@ -2324,6 +2324,22 @@ body[data-scroll-locked] .preview-dock {
           drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 
+/* Design audit r2 #39: on the desktop sidebar's dark card the lifted pewter H still all but vanished. There the mark
+   sits on a cream disc instead, in its own light-mode colours (dark iron, brass, verdigris), the way it reads on
+   parchment. Same 40px height as the plain emblem (the head row's level with the rail is measured from it); the
+   disc's last 3px is a box-shadow, so it adds no layout. The cream is light mode's parchment, fixed. */
+[data-theme="dark"] .helpr-emblem-disc .helpr-emblem {
+  box-sizing: border-box;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 3px;
+  object-fit: contain;
+  border-radius: 9999px;
+  background: hsl(45 40% 96%);
+  box-shadow: 0 0 0 3px hsl(45 40% 96%);
+  filter: none;
+}
+
 /* ── .squircle — intentionally a NO-OP marker class ────────────────────────
    `.squircle` rides on a handful of components. It rode on every Button via
    `buttonVariants` until 2026-10-29, when the Button base became `rounded-full`

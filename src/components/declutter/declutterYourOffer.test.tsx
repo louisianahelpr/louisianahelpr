@@ -26,7 +26,7 @@
  *   DA-5 (Declutter audit 2026-10-30): the free ask line names only the ways the giver ticked, by the same rule
  *   (freeWaysOffered) as the free checkout.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -519,7 +519,7 @@ describe("offers off = Buy only (smart offers)", () => {
 // server's offer rule would take it (at least half the price, under the price; declutter_make_offer checks again).
 // @mutate src/lib/declutter/money.ts |   return cents >= minOfferCents(currentPriceCents) && cents < currentPriceCents ? cents : null; |   return cents;
 // @mutate src/components/declutter/DeclutterOfferPanel.tsx | onClick={() => setAmount(centsToDollars(chip))} | onClick={() => setAmount(centsToDollars(item.current_price_cents))}
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-chip="custom" className="justify-center px-2" onClick={() => { setAmount(""); offerBox.current?.focus(); }}> | data-offer-chip="custom" className="justify-center px-2" onClick={() => undefined}>
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-chip="custom" className="justify-center rounded-2xl px-2" onClick={() => { setAmount(""); offerBox.current?.focus(); }}> | data-offer-chip="custom" className="justify-center rounded-2xl px-2" onClick={() => undefined}>
 // @mutate src/components/declutter/DeclutterOfferPanel.tsx | <PriceInclFee priceCents={chip} className="block text-ds-11 font-normal tabular-nums text-muted-foreground" /> | <span className="tabular-nums">{formatPrice(chip)}</span>
 // Owner 11-11 F358: the offer is the big figure, incl. fee small under it.
 // @mutate src/components/declutter/DeclutterOfferPanel.tsx | <span className="block text-ds-13 font-bold tabular-nums" data-offer-chip-amount="">{formatPrice(chip)}</span> | <span className="block text-ds-11 tabular-nums" data-offer-chip-amount="">{formatPrice(chip)}</span>
@@ -560,5 +560,46 @@ describe("owner 11-07: offer chips, the total incl. fee, one Send offer", () => 
     expect(document.activeElement).toBe(box);
     fireEvent.change(box, { target: { value: "30" } });
     expect(within(chips).getByRole("radio", { name: "Custom" })).toHaveAttribute("aria-checked", "true");
+  });
+});
+
+// Design audit r2 #16: the offer chips are rounded tiles (three stacked lines squeezed into a pill), and on a phone the
+// fixed Make offer / Buy now bar steps aside while the offer box is open; the box's Cancel closes it and brings it back.
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx | spacer={false} pinWide active={!(open && phone)}> | spacer={false} pinWide>
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx | className="flex-col justify-center rounded-2xl px-2 py-1 leading-tight" | className="flex-col justify-center px-2 py-1 leading-tight"
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-close="" onClick={() => setOpen(false)}> | data-offer-close="" onClick={() => undefined}>
+describe("r2 #16: offer tiles, and the phone bar while the offer box is open", () => {
+  const realMatch = window.matchMedia;
+  afterEach(() => { window.matchMedia = realMatch; });
+  const phoneWidth = () => {
+    window.matchMedia = ((q: string) => ({ matches: q === "(max-width: 639px)", media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+  };
+
+  it("on a phone the bar is gone while the box is open, and Cancel brings it back", async () => {
+    phoneWidth();
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Make offer" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Make offer" }));
+    await screen.findByRole("button", { name: "Send offer" });
+    expect(document.querySelector("[data-declutter-buybar]")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Buy now" })).toBeNull();
+    const tiles = document.querySelectorAll("[data-offer-chip]");
+    expect(tiles.length).toBeGreaterThan(1);
+    tiles.forEach((tile) => {
+      expect(tile.className).toContain("rounded-2xl");
+      expect(tile.className).not.toContain("rounded-full");
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("button", { name: "Send offer" })).toBeNull();
+    expect(document.querySelector('[data-declutter-buybar][data-sticky-action-bar="fixed"]')).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Buy now" })).toBeInTheDocument();
+  });
+
+  it("wider than a phone the in-page bar stays while the box is open", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Make offer" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Make offer" }));
+    await screen.findByRole("button", { name: "Send offer" });
+    expect(document.querySelector('[data-declutter-buybar][data-sticky-action-bar="inline"]')).not.toBeNull();
   });
 });

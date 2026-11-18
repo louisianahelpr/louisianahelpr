@@ -156,7 +156,7 @@ describe("C. The item page on a phone (Depop/Vinted item 9)", () => {
 
   it("the buyer's bar and the owner's actions are the fixed bottom bar, 44px buttons on a phone", () => {
     const offer = code("src/components/declutter/DeclutterOfferPanel.tsx");
-    expect(offer).toContain('<StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide>');
+    expect(offer).toContain('<StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide active={!(open && phone)}>');
     const bar = offer.slice(offer.indexOf("data-declutter-buybar"), offer.indexOf("</StickyActionBar>"));
     expect(bar.match(/size="wrapBar"/g)?.length).toBe(3);
     expect(bar).not.toMatch(/size="wrap"/);

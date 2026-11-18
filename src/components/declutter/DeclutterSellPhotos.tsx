@@ -137,11 +137,11 @@ export function SellPhotos({
         ))}
         {addTile}
       </ul>
-      {/* Design audit 11-17 #21: "0 of 12, at least 1" only repeated the subtitle above; the count shows once a photo is in. */}
+      {/* Design audit 11-17 #21: "0 of 12, at least 1" only repeated the subtitle above; the count shows once a photo is in.
+          Design audit r2 #15: "1 of 12 photos", the count alone ("· these go up when you post" read as a warning). */}
       {(count > 0 || held.length > 0) && (
       <p className="text-ds-13 text-muted-foreground" data-photo-count="">
-        {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
-        {held.length > 0 && !heldFailed ? " · these go up when you post" : ""}
+        {count} of {MAX_PHOTOS} photos{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
         {onReorderHeld && !heldFailed && held.length > 1 ? " · hold and drag a photo to move it" : ""}
       </p>
       )}

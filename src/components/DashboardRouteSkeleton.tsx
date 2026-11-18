@@ -49,7 +49,8 @@ const DashboardRouteSkeleton = () => {
             </div>
           </div>
           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">
-            <div className="flex flex-col gap-section">
+            {/* Design audit r2 #40: the same 10px over the first card as HomeDashboard on a phone. */}
+            <div className={`flex flex-col gap-section${desktop ? "" : " pt-2.5"}`}>
               {/* The desktop website's greeting line. A phone has none (owner 11-14, Depop/Vinted audit item 6), so its
                   copy here and in index.html (#lh-home-shell) opens on the Next up card. */}
               {desktop && (

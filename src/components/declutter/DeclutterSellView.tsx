@@ -110,7 +110,8 @@ function SellSteps({ itemId }: { itemId: string }) {
   };
   const back = () => (step > 1 ? setStep((n) => n - 1) : navigate("/declutter?tab=selling"));
   return (
-    <AppPage title={tr("sf.sellAnItem")} onBack={back} phoneHidesTitle>
+    // Design audit r2 #12: the phone app bar names the page ("Sell an item"); only "Show it off" read as a title.
+    <AppPage title={tr("sf.sellAnItem")} onBack={back}>
       {/* Board 31a/48/31b/49/158: one question per step, "n of 5" progress (spec §3 "Step-by-step flows"). */}
       <div className="w-full max-w-xl space-y-5">
       <div className="flex items-center gap-3" data-sell-progress={step}>

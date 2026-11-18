@@ -258,3 +258,19 @@ describe("design audit r2 #50/#33/#34", () => {
     expect(es["inbox.title"]).toBe("Mensajes");
   });
 });
+
+/**
+ * #11: the review's Helpr line said "have worked jobs in X Parish — your job will reach an active community"; it says
+ * "N Helprs work in X Parish." The step 3 tip is 13px and translated.
+ * @mutate src/components/postjob/HelprActivityNote.tsx | <span className="text-muted-foreground">work in {activity.parish} Parish.</span> | <span className="text-muted-foreground">have worked jobs in {activity.parish} Parish — your job will reach an active community.</span>
+ */
+describe("design audit r2 #11: plain copy on Post a job", () => {
+  it("the Helpr activity line is the plain fact, and the tip is 13px", () => {
+    const note = blankComments(readFileSync("src/components/postjob/HelprActivityNote.tsx", "utf8"));
+    expect(note).toContain("work in {activity.parish} Parish.");
+    expect(note).not.toMatch(/active community/);
+    const desc = blankComments(readFileSync("src/components/postjob/detailsSection/DescriptionField.tsx", "utf8"));
+    expect(desc).toContain('{tr("postJob.f.tip", { tips: unmet.join("; ") })}');
+    expect(desc).not.toMatch(/text-ds-11 font-sans leading-snug/);
+  });
+});

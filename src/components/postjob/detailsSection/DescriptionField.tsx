@@ -89,11 +89,12 @@ export function DescriptionField({
         ).slice(0, 2);
         if (unmet.length === 0) return null;
         return (
+          // Design audit r2 #11: 13px (was 11px), the tips as one sentence list rather than a "·" run-on.
           <p
-            className="text-ds-11 font-sans leading-snug"
+            className="text-ds-13 font-sans leading-snug"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Tip: {unmet.join(" · ")}
+            {tr("postJob.f.tip", { tips: unmet.join("; ") })}
           </p>
         );
       })()}

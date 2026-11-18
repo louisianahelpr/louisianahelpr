@@ -148,7 +148,7 @@ async function step(
 test.describe("time travel · deployed app, real backend, moved browser clock", () => {
   test.skip(!sessionsAvailable().ok, sessionsAvailable().why);
 
-  test("availability: 'Ready until' flips to 'ended' at 5:00 PM Central, from any zone, across DST", async ({
+  test("availability: 'free until' flips to 'ended' at 5:00 PM Central, from any zone, across DST", async ({
     browser,
     request,
     journey,
@@ -222,19 +222,20 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
 
     const today = centralDate(0);
     const cases: Array<[string, string, Date, RegExp]> = [
-      ["ct-1659", CT, ct(today, "16:59"), /Ready until 5:00 PM/],
+      ["ct-1659", CT, ct(today, "16:59"), /free until 5:00 PM/],
       ["ct-1700", CT, ct(today, "17:00"), /Today's hours ended at 5:00 PM/],
       // 2:59 PM in Los Angeles is 4:59 PM in Louisiana: still inside today's hours.
-      ["pt-1459", PT, ct(today, "16:59"), /Ready until 5:00 PM/],
+      ["pt-1459", PT, ct(today, "16:59"), /free until 5:00 PM/],
       ["pt-1500", PT, ct(today, "17:00"), /Today's hours ended at 5:00 PM/],
       // 11:30 PM in LA is 1:30 AM the NEXT day in Louisiana: still "ready", not "ended".
       // (Every day of this grid ends at 17:00, so this proves the zone, not the weekday.)
-      ["pt-2330-previous-day", PT, ct(centralDate(1), "01:30"), /Ready until 5:00 PM/],
+      // Area 04 #7 (11-18): before 9 AM the row says when today's hours start, not "free until 5".
+      ["pt-2330-previous-day", PT, ct(centralDate(1), "01:30"), /Your hours today start at 9:00 AM/],
       // Fall-back Sunday (clocks 2→1 AM): 5 PM is 23:00Z, not 22:00Z.
-      ["dst-fall-1659", CT, new Date("2026-11-01T22:59:00Z"), /Ready until 5:00 PM/],
+      ["dst-fall-1659", CT, new Date("2026-11-01T22:59:00Z"), /free until 5:00 PM/],
       ["dst-fall-1700", CT, new Date("2026-11-01T23:00:00Z"), /Today's hours ended at 5:00 PM/],
       // Spring-forward Sunday 2027-03-14: 5 PM CDT is 22:00Z.
-      ["dst-spring-1659", CT, new Date("2027-03-14T21:59:00Z"), /Ready until 5:00 PM/],
+      ["dst-spring-1659", CT, new Date("2027-03-14T21:59:00Z"), /free until 5:00 PM/],
       ["dst-spring-1700", CT, new Date("2027-03-14T22:00:00Z"), /Today's hours ended at 5:00 PM/],
     ];
     for (const [name, tz, at, want] of cases) {

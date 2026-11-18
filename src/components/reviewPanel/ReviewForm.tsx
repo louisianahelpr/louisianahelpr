@@ -1,4 +1,5 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { AddPhotoTile } from "@/components/ui/AddPhotoTile";
 import { storageExtFor } from "@/lib/storageExt";
 import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
@@ -278,7 +279,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             side={revieweeRole === "poster" ? "helper" : "poster"}
             otherName={revieweeName}
             viewerId={viewer?.id ?? ""}
-          />
+          >
           <ReviewQuestionCard
             question={revieweeRole === "poster" ? `How was working for ${firstName}?` : `How did ${firstName} do?`}
             rating={rating}
@@ -291,7 +292,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               {photoPreviews.map((url, i) => (
-                <div key={url} className="relative w-16 h-16 rounded-ds-sm overflow-hidden shrink-0"
+                <div key={url} className="relative w-20 h-20 rounded-2xl overflow-hidden shrink-0"
                   style={{ border: "0.5px solid hsl(var(--olivewood) / 0.18)" }}
                 >
                   <img
@@ -312,8 +313,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
                 </div>
               ))}
               {photoFiles.length < MAX_PHOTOS && (
-                <button
-                  type="button"
+                // Area 11b L7: the shared Add photo tile (80px, icon only; its name is the sr-only line), not a hand-made
+                // 64px one whose 9px "Add photo" ran into its edge.
+                <AddPhotoTile
                   onClick={() => {
                     if (isNativePlatform) {
                       void handleNativePhotoPick();
@@ -321,18 +323,10 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
                       fileInputRef.current?.click();
                     }
                   }}
-                  aria-label="Add review photo"
-                  className="w-16 h-16 rounded-ds-sm flex flex-col items-center justify-center gap-0.5 transition-opacity hover:opacity-80 active:scale-95"
-                  style={{
-                    border: "1px dashed hsl(var(--olivewood) / 0.3)",
-                    background: "var(--surface-premium)",
-                  }}
                 >
-                  <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
-                  <span className="font-sans text-ds-9" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {photoFiles.length === 0 ? "Add photo" : "Add more"}
-                  </span>
-                </button>
+                  <ImagePlus className="w-6 h-6" aria-hidden="true" style={{ color: "hsl(var(--bark))" }} />
+                  <span className="sr-only">Add review photo</span>
+                </AddPhotoTile>
               )}
             </div>
             {photoFiles.length > 0 && (
@@ -351,6 +345,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             />
           </div>
           </ReviewQuestionCard>
+          </JobDoneSummary>
           {revieweeRole === "poster" && (
             // Board 36: the Helpr's next step after a finished job. A text
             // link, not a second primary: "Send review" is this screen's one.

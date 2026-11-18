@@ -64,7 +64,7 @@ const deadlineOptions = [
   { value: "4", label: "4 hours" },
   { value: "8", label: "8 hours" },
   { value: "12", label: "12 hours" },
-  { value: "24", label: "24 hours" },
+  { value: "24", label: "24 hours (recommended)" },
   { value: "48", label: "48 hours" },
 ];
 
@@ -138,8 +138,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
     return () => { alive = false; };
   }, [holdJobId]);
   const [violations, setViolations] = useState<DetectedViolation[] | null>(null);
+  // The line under the picker says the window back without the picker's "(recommended)" tag (area 11b M9).
   const selectedLabel =
-    options.find((o) => o.value === hours)?.label ?? `${hours} hours`;
+    (options.find((o) => o.value === hours)?.label ?? `${hours} hours`).replace(/\s*\(recommended\)$/, "");
   const planned = job ? offerResponseDeadline(parseInt(hours), job) : null;
   // Sentence start: "Hallie can…", "Your Helpr can…".
   const They = them.charAt(0).toUpperCase() + them.slice(1);
@@ -296,7 +297,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
             {/* Says the window back to you the way JobBoostDialog says
                 "runs for 24 hours" — the choice you just made, in display type,
                 rather than a grey "in time". */}
-            <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-deadline-line="">
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-deadline-line="">
               {planned && !planned.ok ? (
                 JOB_STARTS_TOO_SOON_COPY
               ) : planned?.cappedByStart && startLabel ? (
@@ -334,7 +335,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
           {/* F16 (audit 2026-10-28): this was the Helpr strike ladder under "Denial policy", rules about
               the other person's account on the poster's money screen. What the poster needs is that an
               unanswered or refused offer costs the Helpr nothing (Q1281), so it is no surprise. */}
-          <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-no-strike="">
+          <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-no-strike="">
             {They} can turn this down or not answer, and it never counts against them.
           </p>
           {/* Inline failure block in the destructive tokens (text on --destructive-ink), so a refusal

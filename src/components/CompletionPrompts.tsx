@@ -319,7 +319,7 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
               side={isHelper ? "helper" : "poster"}
               otherName={revieweeName}
               viewerId={userId}
-            />
+            >
             <ReviewQuestionCard
               question={isHelper ? `How was working for ${firstName}?` : `How did ${firstName} do?`}
               rating={rating}
@@ -328,6 +328,7 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
               feedback={feedback}
               onFeedback={setFeedback}
             />
+            </JobDoneSummary>
           </div>
           <DialogFooter>
             <DialogSecondaryAction onClick={() => setStep("tip")}>Skip for now</DialogSecondaryAction>

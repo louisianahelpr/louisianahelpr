@@ -587,8 +587,8 @@ export function PayoutSetupForm({ onSettled }: {
         open={confirmReset}
         onOpenChange={setConfirmReset}
         title="Reset your payout account?"
-        description="This deletes your current Stripe account and starts a fresh one. You'll need to complete onboarding again before payouts can run. Only do this if onboarding is stuck."
-        primaryLabel={resetting ? "Resetting…" : "Reset & Start Fresh"}
+        description="This deletes your current payout account and starts a new one. You'll need to finish setting up again before payouts can run. Only do this if setup is stuck."
+        primaryLabel={resetting ? "Resetting…" : "Reset and start over"}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={resetting}

@@ -6,7 +6,7 @@
  *
  * @mutate src/components/CompletionPrompts.tsx |   const offerTip = !isHelper && !alreadyTipped; |   const offerTip = true;
  */
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -34,7 +34,7 @@ vi.mock("@/integrations/supabase/client", () => {
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 vi.mock("@/lib/haptics", () => ({ hapticMedium: vi.fn(), hapticSuccess: vi.fn(), hapticError: vi.fn(), hapticLight: vi.fn() }));
 vi.mock("@/hooks/useReferralData", () => ({ fetchReferralData: async () => ({ referralCode: "ABC123" }) }));
-vi.mock("@/components/jobDone/JobDoneSummary", () => ({ JobDoneSummary: () => null }));
+vi.mock("@/components/jobDone/JobDoneSummary", () => ({ JobDoneSummary: ({ children }: { children?: ReactNode }) => <>{children}</> }));
 vi.mock("@/components/feedback/NpsPrompt", () => ({ NpsPrompt: () => null }));
 
 import { CompletionPrompts } from "@/components/CompletionPrompts";

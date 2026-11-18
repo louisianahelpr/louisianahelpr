@@ -108,7 +108,6 @@ const CLASSIFIED: Record<string, string> = {
   // 25 Days sponsor page (owner 2026-11-09).
   "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,
   "pages/auth/completeProfile/ConsentStep.tsx::href": "link()'s prop: its only callers pass the fixed in-app paths \"/terms\", \"/rules\" and \"/privacy\"",
-  "components/sponsor/ClaimSection.tsx::href": "a data:text/calendar URL of an .ics file the page builds itself (buildIcs + encodeURIComponent)",
   "components/sponsor/Sections.tsx::href": "ExternalButton's prop: every caller passes C.links.* (our content file constants) or filledUrl() output (^https?:// only)",
   "components/sponsor/Sections.tsx::group": "filledUrl(C.links.facebookGroup): our content file value, only when it matches ^https?:// with no placeholder",
   "components/sponsor/Sections.tsx::C.links.facebookPage": "a constant https:// URL in src/content/sponsorPage.ts",

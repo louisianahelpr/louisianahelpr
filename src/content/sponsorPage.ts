@@ -488,10 +488,11 @@ export const sponsorPage = {
   thankYou: {
     title: "You're in! 🎉",
     body: "We'll be in touch within 48 hours.",
-    yourDays: "Your day(s):",
+    yourDays: "Your requested day(s):",
+    /** Area 11b M10: days are not final until we confirm them (owner rule 11-17). */
+    daysNote: "We'll confirm your final day before December 1.",
     shipTo: "Ship your prize to:",
     anyDay: "Any day — we'll pick one together.",
-    addToCalendar: "Add to calendar",
     calendarEventTitle: "25 Days of Louisiana Giveaways — {brand}'s giveaway day",
     calendarEventAnyDay: "25 Days of Louisiana Giveaways begins",
     calendarEventBody: "Your brand's giveaway day with Louisiana Helpr. Questions? Email admin@louisianahelpr.com.",

@@ -125,7 +125,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/jobs/MissedReturnSheet.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/refund/RefundAnswerDialog.tsx` | input×2, date/calendar×2 | date, time |  |  |
 | `src/components/refund/RefundRequestDialog.tsx` | textarea×1 |  | 1000 | refund-amount · e.g. 20.00 · refund-amount-of · refund-reason · refund-reason-hint |
-| `src/components/reviewPanel/ReviewForm.tsx` | input×1 | file |  | Add review photo |
+| `src/components/reviewPanel/ReviewForm.tsx` | input×1 | file |  |  |
 | `src/pages/posts/CompletionChoiceSheet.tsx` | input×1, textarea×1 | file | 1000 | Back to choices · Describe what needs to be redone · Remove photo |
 
 ## /admin/preview/job, /messages, /jobs/:id
@@ -554,7 +554,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/sponsor/ClaimSection.tsx` | input×9, textarea×2, checkbox/switch/radio×3 | other, text, email, tel, url |  | sponsor-thanks · lh25-thanks · sponsor-thanks-ship · calendar · lh25-claim · claim-days-note · lh25-days · check |
+| `src/components/sponsor/ClaimSection.tsx` | input×9, textarea×2, checkbox/switch/radio×3 | other, text, email, tel, url |  | sponsor-thanks · lh25-thanks · sponsor-thanks-ship · sponsor-thanks-days-note · lh25-claim · claim-days-note · lh25-days · check |
 
 ## /support
 

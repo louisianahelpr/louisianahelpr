@@ -6,6 +6,8 @@ import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enNewMember";
 import { saveFirstRunPicks, useFirstRunPicks, type FirstRunPick } from "./firstRunPicks";
 
 /**
@@ -151,12 +153,12 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-[480px] px-5 pt-[calc(var(--safe-area-top,0px)+12px)] pb-6">
           <div className="flex justify-end">
-            <Button type="button" variant="ghost" size="sm" onClick={onSkip} className="px-2 text-ds-15" style={{ color: "hsl(var(--bark))" }}>Skip</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={onSkip} className="px-2 text-ds-15" style={{ color: "hsl(var(--bark))" }}>{t("firstRun.skip")}</Button>
           </div>
           <h1 id="first-run-title" ref={headingRef} tabIndex={-1} style={{ outline: "none" }} className="font-moment text-page-title text-foreground mt-2">
-            What brings you to Helpr?
+            {t("firstRun.title")}
           </h1>
-          <p className="text-ds-14 text-muted-foreground mt-1">Pick any. You can do all of it with one account.</p>
+          <p className="text-ds-14 text-muted-foreground mt-1">{t("firstRun.lede")}</p>
           <ul className="mt-4 flex flex-col gap-3">
             {options.map((o) => {
               const on = picks.includes(o.id);
@@ -172,12 +174,13 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
                     style={{ border: `1px solid hsl(var(${on ? "--bark" : "--border"}))`, boxShadow: on ? "inset 0 0 0 1px hsl(var(--bark))" : undefined }}
                   >
                     <span className="flex-1 min-w-0">
-                      <span className="block text-ds-16 font-bold text-foreground">{o.title}</span>
-                      <span className="block text-ds-13 text-muted-foreground">{o.sub}</span>
+                      <span className="block text-ds-16 font-bold text-foreground">{t(`firstRun.${o.id}.title`)}</span>
+                      <span className="block text-ds-13 text-muted-foreground">{t(`firstRun.${o.id}.sub`)}</span>
                     </span>
                     <span
                       aria-hidden
-                      className="shrink-0 w-[18px] h-[18px] rounded-full flex items-center justify-center"
+                      data-first-run-check=""
+                      className="shrink-0 w-[18px] h-[18px] rounded-[5px] flex items-center justify-center"
                       style={on ? { background: "hsl(var(--bark))" } : { border: "1.5px solid hsl(var(--border))" }}
                     >
                       {on && <Check className="w-3 h-3" style={{ color: "hsl(var(--primary-foreground))" }} />}
@@ -187,13 +190,13 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
               );
             })}
           </ul>
-          <p className="text-ds-13 text-muted-foreground mt-3">This only sets what you see first on Home. Nothing is locked.</p>
+          <p className="text-ds-13 text-muted-foreground mt-3">{t("firstRun.note")}</p>
         </div>
       </div>
       <div className="border-t border-border bg-background px-5 pt-3 pb-[max(1rem,var(--safe-area-bottom,0px))]">
         <div className="mx-auto w-full max-w-[480px]">
           <Button type="button" variant="primary" onClick={onContinue} className="w-full">
-            Continue
+            {t("firstRun.continue")}
           </Button>
         </div>
       </div>

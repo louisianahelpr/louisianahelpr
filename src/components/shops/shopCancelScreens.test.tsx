@@ -296,10 +296,11 @@ describe("S028: the badge read's seed never replaces the shop dashboard's orders
         <MemoryRouter initialEntries={["/shops/dashboard"]}><Routes><Route path="/shops/dashboard" element={<ShopDashboardPage />} /></Routes></MemoryRouter>
       </QueryClientProvider>,
     );
-    await screen.findByText(/^Accepted order/);
+    // Area 07 M3: the seller card's title is the item (no buyer name here), "2 × Candle".
+    await screen.findByText("2 × Candle");
     qc.setQueryData(badgeSectionKey("shop_orders", "u1"), []);
     await new Promise((r) => setTimeout(r, 50));
-    expect(screen.getByText(/^Accepted order/)).toBeTruthy();
+    expect(screen.getByText("2 × Candle")).toBeTruthy();
     expect(screen.queryByText("Accepted: make these")).toBeTruthy();
     expect(orders.fetchShopOrders).toHaveBeenCalledTimes(1);
   });

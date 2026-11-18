@@ -34,9 +34,13 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 
 const read = (p: string) => blankComments(readFileSync(resolve(process.cwd(), p), "utf8"));
 
+/** A literal label is quoted; a dictionary label (Area 07 H1) is the t() call itself, e.g. {t("shb.ord.loading")}. */
+const ariaLabel = (label: string) => (label.startsWith("{") ? `aria-label=${label}` : `aria-label="${label}"`);
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /** The status block a placeholder renders, from its aria-label to the block's end (whitespace collapsed). */
 const statusBlock = (src: string, label: string): string => {
-  const at = src.indexOf(`aria-label="${label}"`);
+  const at = src.indexOf(ariaLabel(label));
   expect(at, `no loading block labelled "${label}"`).toBeGreaterThan(0);
   const start = src.lastIndexOf("<", at);
   return src.slice(start, src.indexOf("<Skeleton", at) + 200).replace(/\s+/g, " ");
@@ -45,11 +49,11 @@ const statusBlock = (src: string, label: string): string => {
 /** The one shape every /shops placeholder takes: the loaded shape, invisible, under one bone that covers it. */
 const HIDDEN_UNDER_ONE_BONE = (label: string, inner: string) =>
   new RegExp(
-    `^<div className="relative" role="status" aria-label="${label}"> <div className="invisible" aria-hidden> ${inner} </div> <Skeleton className="absolute inset-0 rounded-[\\w-]+" /> </div>`,
+    `^<div className="relative" role="status" ${escapeRe(ariaLabel(label))}> <div className="invisible" aria-hidden> ${inner} </div> <Skeleton className="absolute inset-0 rounded-[\\w-]+" /> </div>`,
   );
 
 const CASES = [
-  { file: "src/components/shops/ShopMyOrdersView.tsx", label: "Loading your orders", inner: "<NoOrdersYet />", loaded: /\.length === 0 \? \(\s*<NoOrdersYet \/>/ },
+  { file: "src/components/shops/ShopMyOrdersView.tsx", label: '{t("shb.ord.loading")}', inner: "<NoOrdersYet />", loaded: /\.length === 0 \? \(\s*<NoOrdersYet \/>/ },
   { file: "src/components/shops/ShopDashboardView.tsx", label: "Loading your shop's orders", inner: "<NoShopYet embedded=\\{embedded\\} placeholder />", loaded: /<NoShopYet embedded=\{embedded\} \/>/ },
   { file: "src/components/shops/ShopEditView.tsx", label: "Loading your shop", inner: "\\{children\\}", loaded: /<ShopEditSkeleton>\{formEl\}<\/ShopEditSkeleton>/ },
   { file: "src/components/shops/ShopView.tsx", label: "Loading the shop", inner: "<ShopUnavailable />", loaded: /<ShopUnavailable body=/ },

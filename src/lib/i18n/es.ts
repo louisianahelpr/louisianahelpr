@@ -37,6 +37,7 @@ import { esSellerDeliveryErrors } from "./esSellerDeliveryErrors";
 import { esAiDraft } from "./esAiDraft";
 import { esListForSeller } from "./esListForSeller";
 import { esShopOrders } from "./esShopOrders";
+import { esShopsBrowse } from "./esShopsBrowse";
 
 // The server-written notices' Spanish shapes ride this chunk, so they arrive with the words (language.ts, no flash)
 // and never sit on an English boot path.
@@ -74,6 +75,7 @@ export const es: Record<MsgKey, string> = {
   ...esAiDraft,
   ...esListForSeller,
   ...esShopOrders,
+  ...esShopsBrowse,
   "chat.back": "Volver a las conversaciones",
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",

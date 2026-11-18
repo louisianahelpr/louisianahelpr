@@ -10,10 +10,23 @@ import { openStatus } from "@/lib/shops/hours";
 import { shopGroupIcon } from "@/lib/shops/categoryIcons";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { ShopBadgeList, ShopRating } from "./shopsUi";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enShopsBrowse";
 
-function milesText(miles: number | null): string | null {
+type Tr = (key: MsgKey, vars?: Record<string, string | number>) => string;
+
+function milesText(miles: number | null, t: Tr): string | null {
   if (miles == null) return null;
-  return miles < 1 ? "under 1 mi" : `${Math.round(Number(miles))} mi`;
+  return miles < 1 ? t("shb.card.underMi") : t("shb.card.mi", { n: Math.round(Number(miles)) });
+}
+
+/** ", 3 miles away" for the card's link name (S2-040), in the member's language. */
+function milesAway(miles: number | null, t: Tr): string {
+  if (miles == null) return "";
+  if (miles < 1) return t("shb.card.underMile");
+  const n = Math.round(Number(miles));
+  return n === 1 ? t("shb.card.mile1") : t("shb.card.miles", { n });
 }
 
 /**
@@ -24,18 +37,19 @@ function milesText(miles: number | null): string | null {
  * the photo's rounded corners are the card, as on Declutter and Homes.
  */
 export function ShopBrowseCard({ shop, category, group, extras }: { shop: ShopCard; category: string; group: string | null; extras?: ShopCardExtras }) {
-  const away = milesText(shop.miles);
+  const { t } = useLanguage();
+  const away = milesText(shop.miles, t);
   const reviewed = shop.review_count > 0 && shop.rating != null;
-  const status = shop.paused ? { open: false, label: "Paused for now" } : openStatus(extras?.hours ?? []);
+  const status = shop.paused ? { open: false, label: t("shb.card.paused") } : openStatus(extras?.hours ?? []);
   const cover = extras?.cover_path ?? null;
   // S2-040 (Shops audit 2): a short link name (name, rating, category, open or not, place) instead of every line and
   // badge run together with the logo's letter; the card's text still reads as it shows.
   const label = [
     shop.name,
-    reviewed ? `rated ${Number(shop.rating).toFixed(1)} from ${shop.review_count} ${shop.review_count === 1 ? "review" : "reviews"}` : null,
+    reviewed ? t(shop.review_count === 1 ? "shb.card.rated1" : "shb.card.rated", { rating: Number(shop.rating).toFixed(1), count: shop.review_count }) : null,
     category,
     status?.label ?? null,
-    `${shop.area_label}${shop.miles == null ? "" : shop.miles < 1 ? ", under 1 mile away" : `, ${Math.round(Number(shop.miles))} ${Math.round(Number(shop.miles)) === 1 ? "mile" : "miles"} away`}`,
+    `${shop.area_label}${milesAway(shop.miles, t)}`,
   ].filter(Boolean).join(", ");
   return (
     <Link

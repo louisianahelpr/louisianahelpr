@@ -107,8 +107,8 @@ export function guestJobFacts(job: GuestJob, firstPayoutFeeDollars = 0): Array<{
   return facts;
 }
 
-/** F268a (audit 11-10): "Log in" from the guest preview comes back to this job after sign-in. */
-export const guestLogInUrl = (jobId: string) => `/login?redirect=${encodeURIComponent(`/jobs/${jobId}`)}`;
+/** F268a: "Log in" comes back to this job (src/lib/jobIntent.ts, so guest /browse names it without this dialog). */
+export { guestLogInUrl } from "@/lib/jobIntent";
 
 export function GuestJobPreview({ job, onClose, onSignUp, onLogIn }: {
   job: GuestJob;

@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, lazy, Suspense } from "react";
+import { useCallback, useEffect, useState, useRef, lazy, Suspense } from "react";
 import { browseFilteredEmptyCopy } from "@/lib/browseEmptyCopy";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useNavigate } from "react-router-dom";
@@ -23,13 +23,19 @@ const BrowseMap = lazy(() =>
 );
 
 // Guests may open a job preview (Apple "preview before signup"): title, category, parish, budget (JOBS-29).
-import { GuestJobPreview, guestLogInUrl } from "@/components/dashboard/GuestJobPreview";
+// Q2705 (11-17): loaded when first opened, and warmed once the page settles. A static import put the dialog stack
+// (dialog.tsx, Radix Dialog, react-remove-scroll, focus scope: ~12 KB gz) into browse-first-screen, the chunk signed-in
+// /jobs shares for JobCard, so every phone's /jobs and guest /browse downloaded it before the first card.
+// Guard: src/test/guestJobPreviewLoadsOnOpen.test.ts.
+const loadGuestJobPreview = () => import("@/components/dashboard/GuestJobPreview");
+const GuestJobPreview = lazy(() => loadGuestJobPreview().then((m) => ({ default: m.GuestJobPreview })));
 import { queryKeys } from "@/lib/queryKeys";
+import { whenPageSettled } from "@/lib/pageSettled";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { signupUrlFor, NOTIFY_SIGNUP_URL } from "@/lib/jobIntent";
+import { signupUrlFor, NOTIFY_SIGNUP_URL, guestLogInUrl } from "@/lib/jobIntent";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { GuestSectionSwitch } from "@/components/sections/GuestSectionSwitch";
@@ -221,6 +227,8 @@ const DashboardGuest = () => {
 
   // Read-only detail view for guests (JOBS-29); the sheet is its own history entry (F260u, useGuestJobSheet).
   const { detailJob, openDetailJob, closeDetailJob } = useGuestJobSheet(jobs);
+  // The preview's code arrives after the first screen is in, so a tap opens it without a wait.
+  useEffect(() => whenPageSettled(() => void loadGuestJobPreview().catch(() => { /* the tap retries the load */ })), []);
 
   // Anchors the desktop-web filter popover to the Filters button, exactly as
   // Dashboard does — the sheet is rendered by BrowseTasksToolbar, a different
@@ -435,7 +443,9 @@ const DashboardGuest = () => {
   );
 
   const detailDialog = detailJob && (
-    <GuestJobPreview job={detailJob} onClose={closeDetailJob} onSignUp={requireSignup} onLogIn={(id) => navigate(guestLogInUrl(id))} />
+    <Suspense fallback={null}>
+      <GuestJobPreview job={detailJob} onClose={closeDetailJob} onSignUp={requireSignup} onLogIn={(id) => navigate(guestLogInUrl(id))} />
+    </Suspense>
   );
 
   if (isNativePlatform) {

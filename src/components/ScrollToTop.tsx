@@ -28,6 +28,15 @@ function footerInView(): boolean {
 // always sat on card text). D019 (landing design audit 11-10): at 1440 it floated over the money band and the join
 // block too, so the rule now holds at every width. The landing is one marketing page a visitor scrolls straight
 // through, and the top bar's logo is one tap back to its top.
+/**
+ * Design audit r2 #22: the 25 Days page (classic Christmas look: cream, gold, hunter green) drew this as a white disc
+ * with a grey shadow over its FAQ chevrons. There it wears the page's cream with a 1px gold edge and no shadow.
+ */
+const GIVEAWAY_LOOK = { background: "#fbf7ee", border: "1px solid #b08d57", color: "#1f3a2b", boxShadow: "none" } as const;
+function onGiveawayPage(pathname: string): boolean {
+  return pathname === "/25days" || pathname.startsWith("/25days/");
+}
+
 function onLanding(pathname: string): boolean {
   return pathname === "/";
 }
@@ -229,6 +238,7 @@ const ScrollToTop = () => {
         transform: shown ? undefined : hiddenTransform,
         pointerEvents: shown ? undefined : "none",
         transition: `opacity ${duration}ms ${ease}, transform ${duration}ms ${ease}`,
+        ...(onGiveawayPage(pathname) ? GIVEAWAY_LOOK : null),
       }}
     >
       <ChevronUp className="h-5 w-5" />

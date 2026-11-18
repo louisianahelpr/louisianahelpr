@@ -21,6 +21,8 @@ import {
   suggestionProblem,
   type SuggestionArea,
 } from "@/lib/categorySuggestions";
+import "@/lib/i18n/enSuggest";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * "Suggest a category" (owner decision I1, 2026-10-14): a small link under any
@@ -33,6 +35,7 @@ import {
  */
 export function SuggestCategory({ area }: { area: SuggestionArea }) {
   const on = useFeature("suggest_category");
+  const { t: tr } = useLanguage();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [touched, setTouched] = useState(false);
@@ -70,26 +73,23 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
         style={{ color: "hsl(var(--bark))" }}
       >
         <Lightbulb className="w-3.5 h-3.5" aria-hidden />
-        Don&apos;t see yours? Suggest a category
+        {tr("sug.link")}
       </Button>
       <Dialog open={open} onOpenChange={(o) => !sending && setOpen(o)}>
         <DialogContent>
-          <DialogHero title="Suggest a category" />
+          <DialogHero title={tr("sug.title")} />
           <DialogBody>
-            <p>
-              Tell us what&apos;s missing and we&apos;ll look at adding it for everyone. You can pick
-              &ldquo;Other&rdquo; and post right now.
-            </p>
+            <p>{tr("sug.body")}</p>
           </DialogBody>
           <div className="space-y-1.5 mt-2">
             <label htmlFor="suggest-category-input" className="text-ds-12 font-sans font-semibold block">
-              Category name
+              {tr("sug.name")}
             </label>
             <Input
               id="suggest-category-input"
               value={text}
               maxLength={SUGGESTION_MAX + 10}
-              placeholder="e.g. Tutoring"
+              placeholder={tr("sug.placeholder")}
               autoComplete="off"
               onChange={(e) => setText(e.target.value)}
               onBlur={() => setTouched(true)}
@@ -108,16 +108,16 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
               role={touched && problem ? "alert" : undefined}
               style={{ color: touched && problem ? "hsl(var(--destructive-ink))" : "hsl(var(--olivewood) / 0.8)" }}
             >
-              {touched && problem ? problem : `Up to ${SUGGESTION_MAX} characters.`}
+              {touched && problem ? problem : tr("sug.max", { n: SUGGESTION_MAX })}
             </p>
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <DialogSecondaryAction disabled={sending}>Cancel</DialogSecondaryAction>
+              <DialogSecondaryAction disabled={sending}>{tr("sug.cancel")}</DialogSecondaryAction>
             </DialogClose>
             <DialogPrimaryAction onClick={() => void send()} disabled={sending}>
               {sending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : null}
-              Send suggestion
+              {tr("sug.send")}
             </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>

@@ -61,7 +61,7 @@ const SHELLS: { file: string; must: string[]; mustNot?: RegExp[] }[] = [
   // The Profile landing skeleton's title is the landing's own top bar (board 18,
   // 2026-10-20: the shared AppTopBar, was <PageHeader> since Q1173), not a
   // hand-copied row of its padding, so it reads the bar's own spacing.
-  { file: "src/components/profile/ProfilePageSkeleton.tsx", must: ["<AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} />"] },
+  { file: "src/components/profile/ProfilePageSkeleton.tsx", must: ["<AppTopBar title={profilePageTitle()} showProfile={false} />"] },
   { file: "src/components/LoginRouteSkeleton.tsx", must: ["pt-[calc(var(--safe-area-top,0px)_+_var(--shell-gap))]"] },
 ];
 

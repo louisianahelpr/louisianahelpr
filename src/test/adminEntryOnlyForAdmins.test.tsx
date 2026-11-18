@@ -167,7 +167,7 @@ describe("the Admin entry is for confirmed admins only, from the shared role sig
 
   it("the skeleton draws no admin row (it cannot know the role)", () => {
     const skel = blankComments(readFileSync(resolve(__dirname, "../components/profile/ProfilePageSkeleton.tsx"), "utf8"));
-    expect(skel).toContain("<YouMenuList captions={YOU_STATIC_CAPTIONS} />");
+    expect(skel).toContain("<YouMenuList captions={youStaticCaptions()} />");
     expect(skel).not.toMatch(/showAdmin/);
   });
 });

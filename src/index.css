@@ -1305,6 +1305,12 @@ html[data-theme="dark"].web-desktop:not(.app-shell) body:has(.app-shell-frame),
   border-color: hsl(var(--border) / 0.7);
   box-shadow: var(--card-shadow);
 }
+/* Design audit r2 #6 (11-17): the rule above dims every .bg-card's border to the card's own tone, so in dark an
+   unselected choice (ChoicePill, the day strip, "Need it today", all buttons on bg-card) had no edge at all. A
+   choice keeps a visible light hairline in dark. Guard: src/test/designAuditR2.test.ts. */
+:root[data-theme="dark"] button.bg-card:is([role="radio"], [aria-pressed]) {
+  border-color: hsl(0 0% 100% / 0.16);
+}
 
 /* iOS Safe Area Support
    Use the env() value directly (0 on browsers without notches; the actual

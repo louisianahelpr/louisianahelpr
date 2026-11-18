@@ -4,6 +4,8 @@ import { categoryTemplates, hasUnfilledPlaceholders } from "@/lib/postingTemplat
 import { DESCRIPTION_MAX } from "./detailsSectionConstants";
 import { FieldError } from "@/components/ui/FieldError";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
 
 /** One id for the placeholder line: it is the red error after Continue, else the neutral hint (never both). */
 const PLACEHOLDERS_ID = "description-placeholders";
@@ -22,6 +24,7 @@ export function DescriptionField({
   category,
   placeholdersRefused = false,
 }: DescriptionFieldProps) {
+  const { t: tr } = useLanguage();
   // Checklist/placeholder helpers only — the inline "Use <category>
   // template" link that used to sit in the label row is gone. Templates are
   // offered from the post-a-job entry screen ("Use a template", see
@@ -37,7 +40,7 @@ export function DescriptionField({
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor="description">Description <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+        <Label htmlFor="description">{tr("postJob.f.description")} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <span className="text-ds-11 tabular-nums text-muted-foreground">{description.length}/{DESCRIPTION_MAX}</span>
       </div>
       <Textarea
@@ -86,11 +89,12 @@ export function DescriptionField({
         ).slice(0, 2);
         if (unmet.length === 0) return null;
         return (
+          // Design audit r2 #11: 13px (was 11px), the tips as one sentence list rather than a "·" run-on.
           <p
-            className="text-ds-11 font-sans leading-snug"
+            className="text-ds-13 font-sans leading-snug"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Tip: {unmet.join(" · ")}
+            {tr("postJob.f.tip", { tips: unmet.join("; ") })}
           </p>
         );
       })()}

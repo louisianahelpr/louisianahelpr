@@ -57,7 +57,7 @@ describe("/profile landing heading contract (journeys read it)", () => {
     renderIdentity("E2E Helper");
     expect(screen.queryByRole("heading", { name: "E2E Helper", level: 1 })).toBeNull();
     expect(PROFILE_PAGE_TITLE).toBe("You"); // board 18 (2026-10-20)
-    expect(blankComments(read("src/components/profile/ProfileLanding.tsx"))).toMatch(/title=\{PROFILE_PAGE_TITLE\}/);
+    expect(blankComments(read("src/components/profile/ProfileLanding.tsx"))).toMatch(/title=\{profilePageTitle\(\)\}/);
   });
 
   it("the sign-back-in journey reads both levels from the contract, never a literal", () => {

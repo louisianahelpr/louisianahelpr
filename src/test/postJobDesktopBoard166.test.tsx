@@ -15,7 +15,7 @@ describe("board 166: the step rail", () => {
     const onPick = vi.fn();
     render(<PostJobStepRail screen="price" onPick={onPick} canPick={(s) => s === "groups" || s === "details"} />);
     const items = screen.getAllByRole("listitem");
-    expect(items.map((li) => li.textContent?.replace(/, done.*$/, ""))).toEqual(["What", "Kind of job", "Details", "4Price", "5When and where", "6Review"]);
+    expect(items.map((li) => li.textContent?.replace(/, done.*$/, ""))).toEqual(["What", "Kind of job", "Details", "4Price", "5When & where", "6Review"]);
     expect(screen.getByText("Price").closest("[aria-current]")?.getAttribute("aria-current")).toBe("step");
     const back = screen.getAllByRole("button");
     expect(back).toHaveLength(2);

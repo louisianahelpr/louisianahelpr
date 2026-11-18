@@ -2,6 +2,9 @@ import { useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { hapticLight } from "@/lib/haptics";
 import { CREDENTIAL_TIERS } from "./detailsSectionConstants";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 interface CredentialTierSelectorProps {
   credentialTier: number;
@@ -33,10 +36,18 @@ interface CredentialTierSelectorProps {
 // stretch to match, instead of a ragged row. Note these are bare <button>s,
 // NOT <Button>: `buttonVariants` starts with `whitespace-nowrap`, which would
 // make the wrap above impossible.
+/** Design audit r2 #32: each tier's label and meaning in the member's language (the English stays the tier's id). */
+const TIER_KEY: Record<number, readonly [MsgKey, MsgKey]> = {
+  0: ["postJob.f.tier.open", "postJob.f.tier.openSub"],
+  2: ["postJob.f.tier.licensed", "postJob.f.tier.licensedSub"],
+  3: ["postJob.f.tier.insured", "postJob.f.tier.insuredSub"],
+};
+
 export function CredentialTierSelector({
   credentialTier,
   setCredentialTier,
 }: CredentialTierSelectorProps) {
+  const { t: tr } = useLanguage();
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Real radio-group keyboard semantics: the group holds ONE tab stop (the
@@ -78,9 +89,9 @@ export function CredentialTierSelector({
   return (
     <div className="space-y-2.5">
       <div className="space-y-0.5">
-        <Label id="who-can-apply-label">Who can apply?</Label>
+        <Label id="who-can-apply-label">{tr("postJob.f.whoCanApply")}</Label>
         <p className="text-ds-11 font-sans leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-          Require credentials for licensed trade work.
+          {tr("postJob.f.whoCanApplyH")}
         </p>
       </div>
 
@@ -160,11 +171,11 @@ export function CredentialTierSelector({
                     : "hsl(var(--olivewood) / 0.85)",
                 }}
               >
-                {label}
+                {TIER_KEY[value] ? tr(TIER_KEY[value][0]) : label}
                 {/* Appends to the accessible name rather than replacing it, so
                     the chip still announces its visible label first
                     (WCAG 2.5.3) and then what it actually means. */}
-                <span className="sr-only"> — {sub}</span>
+                <span className="sr-only"> — {TIER_KEY[value] ? tr(TIER_KEY[value][1]) : sub}</span>
               </span>
             </button>
           );

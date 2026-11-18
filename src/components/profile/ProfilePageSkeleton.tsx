@@ -2,8 +2,9 @@ import { AppTopBar } from "@/components/sections/AppTopBar";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PayoutStatusRow } from "@/components/profile/profileLanding/PayoutStatusRow";
-import { PROFILE_PAGE_TITLE } from "@/components/profile/profileLanding/headingContract";
-import { YouMenuList, YOU_STATIC_CAPTIONS } from "@/components/profile/profileLanding/YouMenu";
+import { useLanguage } from "@/lib/i18n/language";
+import { YouMenuList, youStaticCaptions } from "@/components/profile/profileLanding/YouMenu";
+import { profilePageTitle } from "@/components/profile/profileLanding/profilePageTitle";
 
 const RESERVE = { kind: "reserve" } as const;
 const noop = () => {};
@@ -28,6 +29,7 @@ const YouCardSkeleton = () => (
  * drawn inert, so the loading frame cannot drift from the page.
  */
 export const ProfilePageSkeleton = () => {
+  useLanguage();
   // The reserve takes the paused row's height while payout setup is paused
   // (PayoutStatusRow setupPaused), so the landing does not shift under it.
   const setupPaused = usePayoutSetupPaused();
@@ -35,7 +37,7 @@ export const ProfilePageSkeleton = () => {
     <div className="flex flex-col gap-3 lg:gap-4" data-testid="profile-landing-skeleton">
       {/* ProfileLanding's top bar, with the same `-mb-3 lg:-mb-4` that cancels the column gap under it. */}
       <div className="-mb-3 lg:-mb-4">
-        <AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} />
+        <AppTopBar title={profilePageTitle()} showProfile={false} />
       </div>
       <YouCardSkeleton />
       {/* The payout row's own RESERVE: every state of that row is one height (StackedCopy). */}
@@ -51,7 +53,7 @@ export const ProfilePageSkeleton = () => {
         </div>
       </div>
       <div className="shrink-0" aria-hidden>
-        <YouMenuList captions={YOU_STATIC_CAPTIONS} />
+        <YouMenuList captions={youStaticCaptions()} />
       </div>
     </div>
   );

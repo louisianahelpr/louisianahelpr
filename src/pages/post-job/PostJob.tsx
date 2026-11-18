@@ -6,6 +6,7 @@ import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { resetLargeTitles } from "@/lib/largeTitles";
 import { usePostJobForm } from "./usePostJobForm";
 import { useSearchParams } from "react-router-dom";
+import { useLanguage } from "@/lib/i18n/language";
 import { postJobIntentKey } from "./useDeclutterIntent";
 import { RedirectingOverlay } from "./RedirectingOverlay";
 import { EntryChoice } from "./EntryChoice";
@@ -74,13 +75,15 @@ const PostJob = () => {
     resetLargeTitles();
   }, [form.step, form.formPage, form.categoryGroup, form.entryPanel]);
 
+  const { t: tr } = useLanguage();
   // Per-step header copy. The entry landing is the new first step where the
   // poster picks how to begin (start fresh / draft / template).
   // Each screen asks its own question under the bar (PostJobStepHeader), so
   // the bar just names the flow (sentence case, spec §2 Type).
   // The bar reads "Post a job" on all 7 screens (owner 2026-10-21); screen 3's question names the group,
   // and its back arrow still returns to the groups (handlePostJobBack).
-  const header = { title: "Post a job" };
+  // Design audit r2 #32: in the member's language (jobs.postAJob, the boot dictionary's "Post a job").
+  const header = { title: tr("jobs.postAJob") };
 
   return (
     /* ONE shell, like every other in-app sub-screen (owner, 2026-08-30:

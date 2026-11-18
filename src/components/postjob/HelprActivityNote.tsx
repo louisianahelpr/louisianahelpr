@@ -22,10 +22,8 @@ export function HelprActivityNote({ activity }: { activity: HelprActivity | null
         <span className="font-sans font-bold tabular-nums">
           {activity.count} Helprs
         </span>{" "}
-        <span className="text-muted-foreground">
-          have worked jobs in {activity.parish} Parish — your
-          job will reach an active community.
-        </span>
+        {/* Design audit r2 #11: the plain fact, without the brochure tail ("your job will reach an active community"). */}
+        <span className="text-muted-foreground">work in {activity.parish} Parish.</span>
       </p>
     </div>
   );

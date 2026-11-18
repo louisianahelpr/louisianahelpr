@@ -16,6 +16,17 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | bookedOnly={order.status === "refunded" \|\| !!problem | bookedOnly={!!problem
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (!row?.no_show_reported_at \|\| f.done \|\| f.cancelled \|\| f.problem) return null; |   return null;
  * @mutate src/components/declutter/BuyingOrders.tsx |       action: noShow ? null : buyerNextAction(facts), |       action: buyerNextAction(facts),
+ *
+ * Mediums: #4 a free claim or a trade with one porch place says "once you confirm"; #7 the checkout payout words;
+ * #9 the floating + Sell steps aside on Browse's no-results state; #10 a free ask's item name wraps to two lines;
+ * #12 the custom offer field has a "$" and an invalid amount is marked (#5 and #11 are guarded in
+ * declutterOrderCardDuringRefund.test.tsx and declutterOfferActionsShared.test.ts).
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {!forDelivery && <p className="text-xs text-muted-foreground">{free ? t("ppk.afterConfirm") : t("ppk.afterPay")}</p>}\n      </div> | {!forDelivery && <p className="text-xs text-muted-foreground">{t("ppk.afterPay")}</p>}\n      </div>
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |                   free={itemsTotalCents === 0} forDelivery | forDelivery
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |           <HideSectionCreateFab />\n          <BrowseEmptyState |           <BrowseEmptyState
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | <span className="line-clamp-2 break-words text-ds-15 font-semibold" data-free-ask-title="" | <span className="block truncate text-ds-15 font-semibold" data-free-ask-title=""
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               aria-invalid={amount.trim() && offerProblem ? true : undefined} |               aria-invalid={undefined}
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-muted-foreground">$</span>\n            <Input\n              id="declutter-offer" | <Input\n              id="declutter-offer"
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
@@ -109,5 +120,27 @@ describe("Area 05 #3: the buyer card after a no-show report", () => {
     const src = blankComments(readFileSync("src/components/declutter/BuyingOrders.tsx", "utf8"));
     expect(src).toContain("action: noShow ? null : buyerNextAction(facts),");
     expect(src).toContain(": noShow ?? buyerNextStep(");
+  });
+});
+
+describe("Area 05 Mediums (source reads; the screens' own tests render them)", () => {
+  const code = (f: string) => blankComments(readFileSync(f, "utf8"));
+  it("#4: one porch place on a $0 claim or trade says once you confirm", () => {
+    const porch = code("src/components/declutter/DeclutterPorchPlaces.tsx");
+    expect(porch.match(/\{free \? t\("ppk\.afterConfirm"\) : t\("ppk\.afterPay"\)\}/g)?.length).toBe(2);
+    expect(porch).not.toContain('<p className="text-xs text-muted-foreground">{t("ppk.afterPay")}</p>');
+    expect(code("src/components/declutter/DeclutterTradeViews.tsx")).toContain("free={itemsTotalCents === 0} forDelivery");
+  });
+  it("#9: Browse's no-results state hides the floating + Sell", () => {
+    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).toMatch(/data-browse-empty-slot="">\s*(?:\{\s*\}\s*)?<HideSectionCreateFab \/>\s*<BrowseEmptyState/);
+  });
+  it("#10: a free ask's title wraps to two lines", () => {
+    expect(code("src/components/declutter/DeclutterFreeClaim.tsx")).toContain('className="line-clamp-2 break-words text-ds-15 font-semibold" data-free-ask-title=""');
+  });
+  it("#12: the custom offer field has a $ and marks a wrong amount", () => {
+    const panel = code("src/components/declutter/DeclutterOfferPanel.tsx");
+    expect(panel).toMatch(/data-offer-field="">\s*<span aria-hidden[^>]*>\$<\/span>\s*<Input\s+id="declutter-offer"/);
+    expect(panel).toContain("aria-invalid={amount.trim() && offerProblem ? true : undefined}");
+    expect(panel).toContain('"font-medium text-[hsl(var(--destructive-ink))]"');
   });
 });

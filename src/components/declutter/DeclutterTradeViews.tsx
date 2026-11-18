@@ -307,7 +307,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             <div className="space-y-3 pl-4" data-places-under={needsPlace ? h : undefined} data-details-under={h}>
               {needsPlace && (
                 <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} refused={porchPlaces.refused} loadError={porchPlaces.query.error}
-                  forDelivery={h === "delivery"} onRetry={() => void porchPlaces.reread()} onChosen={() => { setQuote(null); setPickupPick(null); }} />
+                  free={itemsTotalCents === 0} forDelivery={h === "delivery"} onRetry={() => void porchPlaces.reread()} onChosen={() => { setQuote(null); setPickupPick(null); }} />
               )}
               {h === "ship" && <ShipToMe sellerId={sellerId} picked={shipQuote} onPick={setShipQuote} />}
               {h === "meetup" && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
@@ -369,14 +369,15 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           set-out photo: measured live with pg_get_functiondef), so never "held until you have your items". */}
       {/* Q2633 (audit 1102c R8): the seller's payout promise is information, not a warning: neutral ink, no rust box. */}
       <p className="text-ds-13 text-muted-foreground" data-checkout-note="">
-        The seller keeps the whole {formatPrice(netItemsCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
+        {/* Area 05 #7 (11-18): plainer words, the same rule (copy only); the no-tap case stays, as the money review asked. */}
+        The seller gets the full {formatPrice(netItemsCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
         {delivering
           ? "It's paid to the seller once the delivery is done."
           // Shipping S5 (20261102013630): the sale is final, and paid out, 48 hours after the carrier's delivered scan.
           : shipping ? "It's paid to the seller about 48 hours after the carrier delivers it, unless you report a problem."
           : sellerDelivering
-            ? "You have 24 hours after you get your items to report a problem. Then the seller is paid (about 48 hours after they mark it delivered if you don't say you have it)."
-            : "You have 24 hours after you say you have it to report a problem. Then the seller is paid (about 48 hours after the seller says you have it, if you don't)."}
+            ? "After you tap I got it, you have 24 hours to report a problem. Then the seller is paid. If you don't tap it, they're paid about 48 hours after they mark it delivered."
+            : "After you tap I got it, you have 24 hours to report a problem. Then the seller is paid. If you don't tap it, they're paid about 48 hours after the seller says you have it."}
       </p>
       {/* Owner 11-07 (Vinted review): ONE Pay button; on a phone it stays in reach at the bottom of the screen while the
           buyer scrolls the choices, above the floating dock (AppShell's own bottom clearance; measured 11-07: a bottom-3

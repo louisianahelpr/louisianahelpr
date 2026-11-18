@@ -1145,8 +1145,9 @@ describe("Declutter slice 3 screens", () => {
     const note = document.querySelector("[data-checkout-note]")!;
     // The real payout rule (declutter_handover_sweep, read live 2026-10-20): handover done, or 24 h after the slot
     // unless a problem is open.
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx | Then the seller is paid (about 48 hours after the seller says you have it, if you don't). | Then the seller is paid once you have your items.
-    expect(note.textContent).toMatch(/The seller keeps the whole \$7\. You have 24 hours after you say you have it to report a problem\. Then the seller is paid \(about 48 hours after the seller says you have it, if you don't\)\./);
+    // Area 05 #7 (11-18): the plainer words, the same rule.
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | If you don't tap it, they're paid about 48 hours after the seller says you have it." | Then the seller is paid once you have your items."
+    expect(note.textContent).toMatch(/The seller gets the full \$7\. After you tap I got it, you have 24 hours to report a problem\. Then the seller is paid\. If you don't tap it, they're paid about 48 hours after the seller says you have it\./);
     // Owner: no codes or QR for Declutter pickup.
     expect(document.body.textContent).not.toMatch(/\bcode\b|QR/i);
     // Never the false promise the money review found (the sweep can pay the seller with no buyer step).
@@ -1519,7 +1520,7 @@ describe("Declutter slice 3 screens", () => {
     // $58.50 after the discount, plus the fee on $58.50 (5% + 70¢ = $3.63): $62.13.
     expect(rows).toMatch(/Service fee\$3\.63/);
     expect(rows).toMatch(/Total\$62\.13/);
-    expect(document.querySelector("[data-checkout-note]")!.textContent).toMatch(/keeps the whole \$58\.50/);
+    expect(document.querySelector("[data-checkout-note]")!.textContent).toMatch(/gets the full \$58\.50/);
   });
 
   it("Q2427: one paid item: no preview asked, no discount row", async () => {
@@ -1921,7 +1922,7 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
     const after = Array.from(summary.querySelectorAll("*")).filter((el) => pay.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !pay.contains(el));
     expect(after.map((el) => el.textContent)).toEqual([]);
     const note = summary.querySelector("[data-checkout-note]")!;
-    expect(note.textContent).toMatch(/The seller keeps the whole \$40/);
+    expect(note.textContent).toMatch(/The seller gets the full \$40/);
     expect(note.className).not.toMatch(/sienna|destructive|warning/);
   });
   // Q2636 (audit 1102c R11): the row cut the title to "Oak rocking cha…" on one line to fit "$40 Remove", though it has

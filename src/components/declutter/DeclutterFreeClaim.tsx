@@ -300,7 +300,8 @@ export function MyFreeAsks() {
         {rows.map((r) => (
           <li key={r.id}>
             <Link to={`/declutter/item/${r.item_id}`} className="block px-4 py-3 min-h-11">
-              <span className="block truncate text-ds-15 font-semibold" title={t("free.youAskedFor", { title: r.declutter_items?.title ?? t("free.aFreeItem") })}>{t("free.youAskedFor", { title: r.declutter_items?.title ?? t("free.aFreeItem") })}</span>
+              {/* Area 05 #10 (11-18): the item's name wraps to two lines instead of cutting off. */}
+              <span className="line-clamp-2 break-words text-ds-15 font-semibold" data-free-ask-title="" title={t("free.youAskedFor", { title: r.declutter_items?.title ?? t("free.aFreeItem") })}>{t("free.youAskedFor", { title: r.declutter_items?.title ?? t("free.aFreeItem") })}</span>
               <span className="block text-ds-13 text-muted-foreground">{t("free.giverPicks")}</span>
             </Link>
           </li>

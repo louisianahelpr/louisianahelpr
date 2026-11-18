@@ -57,7 +57,10 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
   // Audit 11-10 F330: the written Details read as a bold heading; a paragraph of details is regular weight.
   return (
     <li ref={li} className="space-y-3 px-4 py-3.5" data-summary-row={field} data-sell-row={field}>
-      <div className="flex items-start gap-3">
+      {/* Design audit r2 #14: an open row's Done sits ON the label row. The global 44px button floor made it taller than
+          the 13px label, so it hung below it, on a line of its own above the box; centred, with the extra height
+          pulled back by -my-3 (the 44px tap area stays). */}
+      <div className={`flex gap-3 ${open ? "items-center" : "items-start"}`} data-sell-row-head="">
         <div className="min-w-0 flex-1">
           <p id={`sell-row-${field}-title`} className="text-ds-13 font-semibold text-muted-foreground">{title}</p>
           {!open && (
@@ -71,7 +74,7 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
         {instead ? (
           <Button type="button" variant="link" size="sm" onClick={instead.onClick} className="shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">{instead.label}</Button>
         ) : (
-          <Button type="button" variant="link" size="sm" onClick={onToggle} aria-expanded={open} aria-label={`${verb} ${fieldWord(field)}`} className="shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
+          <Button type="button" variant="link" size="sm" onClick={onToggle} aria-expanded={open} aria-label={`${verb} ${fieldWord(field)}`} className={`shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]${open ? " -my-3" : ""}`}>
             {verb}
           </Button>
         )}

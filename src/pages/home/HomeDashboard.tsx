@@ -198,7 +198,9 @@ function HomeDashboardScreen() {
     // to /search, which searches every open section), the bell (which holds Messages) and the photo; no crest. "+ Create"
     // floats over the page and opens the Create sheet.
     <SectionScreen search={<SectionSearchBar noun={t("home.searchNoun")} home="/search" />} fab={<SectionCreateFab />}>
-      <div data-testid="home-dashboard" className="flex flex-col gap-section">
+      {/* Design audit r2 #40: without a greeting row (phone) the first card sat 6px under the search bar (the bar's 2px +
+          the column's 4px) while the cards below sit 16px apart; 10px more, here and in its skeleton (index.html too). */}
+      <div data-testid="home-dashboard" className={`flex flex-col gap-section${isWebDesktop ? "" : " pt-2.5"}`}>
         {/* The search bar sits in the top bar above this (design audit A D1, owner 11-08: it replaced the H crest). */}
         {/* ONE header row (owner 2026-10-21): on the desktop website the greeting is the bar's title
             (spec v2: Home's greeting in the same slot as every title) and the date opens the page. */}

@@ -98,9 +98,9 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(home.lastIndexOf('title={t("home.comingUp")}')).toBeLessThan(home.indexOf('aria-label={t("home.yourSections")}'));
     expect(skeleton.indexOf('data-skeleton-part="coming-up"')).toBeGreaterThan(0);
     expect(skeleton.indexOf('data-skeleton-part="coming-up"')).toBeLessThan(skeleton.indexOf('data-skeleton-part="tiles"'));
-    // Same column gap as Home's stack.
-    expect(home).toContain('className="flex flex-col gap-section"');
-    expect(skeleton).toContain('<div className="flex flex-col gap-section">');
+    // Same column gap as Home's stack, and (design audit r2 #40) the same 10px over the first card on a phone.
+    expect(home).toContain('data-testid="home-dashboard" className={`flex flex-col gap-section${isWebDesktop ? "" : " pt-2.5"}`}');
+    expect(skeleton).toContain('<div className={`flex flex-col gap-section${desktop ? "" : " pt-2.5"}`}>');
   });
 
   it("never draws the retired feed bar (search, filters)", () => {

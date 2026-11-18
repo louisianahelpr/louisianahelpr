@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { StickyActionBar } from "@/components/ui/StickyActionBar";
+import { StickyActionBar, usePhoneWidth } from "@/components/ui/StickyActionBar";
 import { buyNow, fetchItemHandovers, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem, type DeliverySize } from "@/lib/declutter/api";
 import { noDeliveryWay, totalPhrase, type NoDeliveryWay } from "@/lib/declutter/pickupWords";
 import { deliveryPriceCents } from "@/lib/declutter/delivery";
@@ -157,6 +157,9 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   // DA-11: the amount typed before the trip to Stripe's page comes back with the member (router state, like the action).
   const [amount, setAmount] = useState(() => offerAmountFromState(location.state) ?? "");
   const [open, setOpen] = useState(() => !!offerAmountFromState(location.state));
+  // Design audit r2 #16: on a phone the fixed Make offer / Buy now bar covered the open offer box's own Send offer;
+  // while the box is open the bar steps aside (the dock comes back) and the box's Cancel closes it.
+  const phone = usePhoneWidth();
   // Make an offer opens the box ready to type: one tap, not two (audit BUY-19).
   const offerBox = useRef<HTMLInputElement>(null);
   useEffect(() => { if (open) offerBox.current?.focus(); }, [open]);
@@ -364,7 +367,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           offer" in Make offer's place. */}
       {/* F119 (UI audit 11-09): on a computer the pair stays pinned while the description and questions scroll. */}
       {/* Owner 11-14 (Depop/Vinted audit item 9): 44px buttons in the phone bar (size wrapBar), 56px wider. */}
-      <StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide>
+      <StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide active={!(open && phone)}>
         {myOffer ? (
           <Button type="button" variant="outline" size="wrapBar" className="whitespace-nowrap rounded-full px-3 font-semibold"
             onClick={() => panel.current?.querySelector("[data-your-offer]")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
@@ -409,9 +412,16 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           }}
         >
           {cardSaved && <p role="status" className="text-sm font-medium" data-card-saved="">{t("offer.cardSaved")}</p>}
-          <label htmlFor="declutter-offer" className="text-sm font-medium">{t("decl.buy.yourOffer")}</label>
+          <div className="flex items-center justify-between gap-3" data-offer-head="">
+            <label htmlFor="declutter-offer" className="text-sm font-medium">{t("decl.buy.yourOffer")}</label>
+            <Button type="button" variant="link" size="sm" className="-my-3 shrink-0 px-2 text-ds-14 font-semibold text-[hsl(var(--sage-ink))]"
+              data-offer-close="" onClick={() => setOpen(false)}>
+              {t("offer.close")}
+            </Button>
+          </div>
           {/* Owner 11-07 (Vinted review): quick chips, "10% off" and "20% off" the price (shown only where the server would
-              take them: at least half the price, under the price), and Custom, the amount field below. */}
+              take them: at least half the price, under the price), and Custom, the amount field below. Design audit r2
+              #16: three stacked lines in a pill read squeezed; they are rounded-2xl tiles. */}
           <div role="radiogroup" aria-label={t("offer.quickAmounts")} className="grid grid-cols-3 gap-2" data-offer-chips="">
             {OFFER_CHIP_PERCENTS.map((pct) => {
               const chip = offerChipCents(item.current_price_cents, pct);
@@ -420,7 +430,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
                 // Owner 11-11 (F358, the 11-09 rule as on the item page): the offer itself is the big figure and what the
                 // buyer would pay, "$X incl. fee", sits small under it. Display only: the offer sent is still `chip`.
                 <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={t("offer.chipAria", { pct, total: inclFeeText(chip), amount: formatPrice(chip) })}
-                  className="flex-col justify-center px-2 py-1 leading-tight" onClick={() => setAmount(centsToDollars(chip))}>
+                  className="flex-col justify-center rounded-2xl px-2 py-1 leading-tight" onClick={() => setAmount(centsToDollars(chip))}>
                   <span>{t("offer.pctOff", { pct })}</span>
                   <span className="block text-ds-13 font-bold tabular-nums" data-offer-chip-amount="">{formatPrice(chip)}</span>
                   <PriceInclFee priceCents={chip} className="block text-ds-11 font-normal tabular-nums text-muted-foreground" />
@@ -428,7 +438,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
               );
             })}
             <ChoicePill selected={amount.trim() !== "" && !OFFER_CHIP_PERCENTS.some((p) => offerChipCents(item.current_price_cents, p) === cents)}
-              data-offer-chip="custom" className="justify-center px-2" onClick={() => { setAmount(""); offerBox.current?.focus(); }}>
+              data-offer-chip="custom" className="justify-center rounded-2xl px-2" onClick={() => { setAmount(""); offerBox.current?.focus(); }}>
               {t("offer.custom")}
             </ChoicePill>
           </div>

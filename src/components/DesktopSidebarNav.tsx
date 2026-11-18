@@ -209,7 +209,8 @@ const DesktopSidebarRail = () => {
           (src/lib/desktopBar.ts), so the page title reads level with the H (owner 2026-10-28: "move the job title
           down so it's even with the H logo"; the title moves, not the logo). Create's middle (104px) is the section
           tabs row's. Guard: src/test/desktopHeadLevelWithRail.test.ts. */}
-      <div className="px-5 pt-5 pb-4 shrink-0">
+      {/* Design audit r2 #39: helpr-emblem-disc puts the H on a cream disc in dark mode (index.css). */}
+      <div className="helpr-emblem-disc px-5 pt-5 pb-4 shrink-0">
         <HelprMark to="/home" size="md" emblemOnly />
       </div>
       <div className="px-3 pb-3 shrink-0">

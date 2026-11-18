@@ -237,7 +237,9 @@ const DesktopSidebarRail = () => {
           const soon = "comingSoon" in item && !!item.comingSoon;
           const preview = !soon && "preview" in item && !!item.preview;
           const active = !soon && isActive(path);
-          const count = soon ? 0 : badgeFor(badgeKey);
+          // Design audit 11-17 #22: Explore's badge is the total of the section rows listed under it, so while they are
+          // listed it showed every to-do twice (Explore 9+, Jobs 9+, Declutter 4). Only the rows carry it then.
+          const count = soon || (path === exploreItem.path && visibleSections.length > 0) ? 0 : badgeFor(badgeKey);
           return (
             <li key={path}>
               {(() => {
@@ -262,7 +264,8 @@ const DesktopSidebarRail = () => {
                   {count > 0 && (
                     <span
                       data-sidebar-badge
-                      className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold"
+                      // Design audit 11-17 #22: off the glyph, on the icon's top-right corner.
+                      className="absolute -top-2 -right-3 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold ring-2 ring-[hsl(var(--background))]"
                       style={{
                         // Count badges are --alert, never rust (spec v2 §1.1).
                         background: "hsl(var(--alert))",

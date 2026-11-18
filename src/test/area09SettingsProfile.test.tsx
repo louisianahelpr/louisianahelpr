@@ -142,7 +142,9 @@ describe("design audit area 09: Saved searches speaks Spanish (H1)", () => {
 describe("design audit area 09: one name for the public profile (M3)", () => {
   it("You, the link card, Settings and the profile itself all say public profile", () => {
     const you = src("src/components/profile/profileLanding/YouCard.tsx");
-    expect(you).toMatch(/>\s*Public profile\s*<\/Button>/);
+    // Literal here; once #4703's Spanish You page lands it is t("yp.you.publicProfile"), whose English must say the same.
+    if (you.includes('t("yp.you.publicProfile")')) expect(src("src/lib/i18n/enYourPage.ts")).toContain('"yp.you.publicProfile": "Public profile"');
+    else expect(you).toMatch(/>\s*Public profile\s*<\/Button>/);
     expect(you).not.toContain("View my public profile");
     expect(enAccount["acct.linkTitle"]).toBe("Public profile link");
     expect(src("src/components/profile/ProfileLinkRow.tsx")).toContain('{t("acct.linkTitle")}');

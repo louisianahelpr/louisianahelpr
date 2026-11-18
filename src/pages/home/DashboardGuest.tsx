@@ -27,10 +27,12 @@ const BrowseMap = lazy(() =>
 // (dialog.tsx, Radix Dialog, react-remove-scroll, focus scope: ~12 KB gz) into browse-first-screen, the chunk signed-in
 // /jobs shares for JobCard, so every phone's /jobs and guest /browse downloaded it before the first card.
 // Guard: src/test/guestJobPreviewLoadsOnOpen.test.ts.
-const loadGuestJobPreview = () => import("@/components/dashboard/GuestJobPreview");
-const GuestJobPreview = lazy(() => loadGuestJobPreview().then((m) => ({ default: m.GuestJobPreview })));
+// loadModule: a prevented preload (recovery reload) answers null, and the tap waits on untilReload() instead of throwing.
+const loadGuestJobPreview = () => loadModule(() => import("@/components/dashboard/GuestJobPreview"));
+const GuestJobPreview = lazy(() => loadGuestJobPreview().then((m) => (m ? { default: m.GuestJobPreview } : untilReload())));
 import { queryKeys } from "@/lib/queryKeys";
 import { whenPageSettled } from "@/lib/pageSettled";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";

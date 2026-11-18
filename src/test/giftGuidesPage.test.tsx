@@ -467,6 +467,10 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(activeCodes(discountCodes, "2026-11-20").map((c) => c.code)).toContain("TAKE25");
     expect(activeCodes(discountCodes, "2026-11-28").map((c) => c.code)).not.toContain("CYBER");
     expect(activeCodes(discountCodes, "2026-11-29").map((c) => c.code)).toContain("CYBER");
+    // Sweep #10: Bonheur (a pick on Spa Days) has its live codes; its Black Friday code is embargoed to Nov 26.
+    expect(activeCodes(discountCodes, "2026-11-18").filter((c) => c.store === "Bonheur Jewelry").map((c) => c.code)).toEqual(["SHOPMY25", "BONHEUR15"]);
+    expect(activeCodes(discountCodes, "2026-11-25").map((c) => c.code)).not.toContain("BLKFRIDAY35");
+    expect(activeCodes(discountCodes, "2026-11-26").map((c) => c.code)).toContain("BLKFRIDAY35");
     // Software and supplement codes are out (Parallels, HerbsPro: skip list).
     expect(discountCodes.map((c) => c.store)).not.toEqual(expect.arrayContaining(["Parallels Desktop"]));
     expect(discountCodes.map((c) => c.store)).not.toContain("HerbsPro");
@@ -902,6 +906,26 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
       expect(p.image ?? "", `${slug}: ${p.name}`).not.toMatch(/\.tiff?(\?|#|$)/i);
       if (p.href.startsWith("https://shopmy.us/collections/")) expect(p.store, `${slug}: ${p.name}`).toBeUndefined();
     }
+    // Affiliate sweep 11-18 PM #6, #11, #14: no raw non-ASCII ("®") in a link (encoded by the import), no line naming
+    // a different size than its pick (Stanley 40 oz said "The 30 oz"), and the Anker Zolo Later link spelled as Later's
+    // own My Links export has it (5HUUxI9Na8b; the hand list had a lower-case L).
+    // @mutate scripts/gift-guide-picks.mjs |   if (/[^\x00-\x7f]/.test(href)) href = url.href; | 
+    let sized = 0;
+    let anker = 0;
+    for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
+      expect(p.href, `${slug}: ${p.name}`).toMatch(/^[\x21-\x7e]+$/);
+      const oz = (t: string) => [...t.matchAll(/(\d+)\s?oz\b/gi)].map((m) => m[1]);
+      if (oz(p.name).length && oz(p.line).length) {
+        sized += 1;
+        expect(oz(p.line).every((n) => oz(p.name).includes(n)), `${slug}: ${p.name} | ${p.line}`).toBe(true);
+      }
+      if (p.href.includes("mavely.app.link/5HUUx")) {
+        anker += 1;
+        expect(p.href, `${slug}: ${p.name}`).toBe("https://mavely.app.link/5HUUxI9Na8b");
+      }
+    }
+    expect(sized).toBeGreaterThan(5);
+    expect(anker).toBeGreaterThan(3);
     // XTRATUF in the Louisiana guides the lead named (11-18).
     // @mutate scripts/gift-guide-picks.mjs | for (const p of readList("_xtratuf.json")) if (names.includes(p.name)) add(slug, p, "_xtratuf.json"); | void names;
     for (const slug of ["crawfish-boil-host", "commercial-fishermen-and-shrimpers"]) expect(RESEARCHED_PICKS[slug].filter((p) => p.store === "store-xtratuf").length, slug).toBeGreaterThan(1);

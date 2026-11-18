@@ -100,7 +100,7 @@ const hidden = [];
 /** One raw pick -> the page's pick, or null (hidden: the reason is listed). */
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
-  const href = p.affiliate_href || p.href;
+  let href = p.affiliate_href || p.href;
   let url;
   try {
     url = new URL(href);
@@ -108,6 +108,9 @@ function toPick(p, where) {
     hidden.push(`${where}: bad link ${href}`);
     return null;
   }
+  // A raw "®" or "™" in a store path (affiliate sweep 11-18: two Community Coffee links) is percent-encoded, the way
+  // the URL parser writes it; an all-ASCII link keeps its exact bytes.
+  if (/[^\x00-\x7f]/.test(href)) href = url.href;
   const host = url.hostname;
   const isAffiliate = Boolean(p.affiliate_href);
   if (url.protocol !== "https:") return hidden.push(`${where}: ${href} is not https`), null;

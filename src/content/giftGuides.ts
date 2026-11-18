@@ -180,6 +180,11 @@ export const discountCodes: DiscountCode[] = [
   { rank: 14, store: "Thrive Creative", code: "LEXIL20", offer: "20% off" },
   { rank: 15, store: "YVO Warrior", code: "LEXI15", offer: "15% off" },
   { rank: 16, store: "Daily Crunch Snacks", code: "LEXI15", offer: "15% off" },
+  // Affiliate sweep 11-18 #10: the brands in her code list that have a pick here (Bonheur's Celine Huggy Hoops, Spa
+  // Days). EF Collection, Quip and The Foggy Dog have no pick, so their codes stay off. BLKFRIDAY35 is embargoed to Nov 26.
+  { rank: 17, store: "Bonheur Jewelry", code: "SHOPMY25", offer: "25% off" },
+  { rank: 17, store: "Bonheur Jewelry", code: "BONHEUR15", offer: "15% off" },
+  { rank: 17, store: "Bonheur Jewelry", code: "BLKFRIDAY35", offer: "35% off (Black Friday)", dates: "From Nov 26", starts: "2026-11-26" },
 ];
 
 /** The codes still good on `today` (YYYY-MM-DD, local): a code is shown through its `expires` day. */

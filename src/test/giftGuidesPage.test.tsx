@@ -13,9 +13,10 @@
  *   5. the landing (Index.tsx), the public footer and the /25days footer each link to /gift-guides.
  *
  * OWNER 2026-11-17: the gift guides are NOT visible yet (the next version is being built on feat/gift-guides-v2). Until
- * then 1 and 5 are inverted: /gift-guides redirects home (App.tsx and vercel.json), it is out of the sitemap, and the
- * landing card, the public footer link and the /25days footer link are gone. The page code and its content stay, and
- * 2-4 still hold for the page itself.
+ * then 1 and 5 are inverted: /gift-guides sends everyone home (App.tsx's GiftGuidesPreviewGate; only the owner's
+ * ?preview=1 renders the page), it is noindex and out of the sitemap, and the landing card, the public footer link and
+ * the /25days footer link are gone. vercel.json still gives it the app shell, as every App.tsx route gets
+ * (unknownUrlsAnswer404). The page code and its content stay, and 2-4 still hold for the page itself.
  *
  * @mutate src/pages/info/GiftGuides.tsx | rel="sponsored noopener" | rel="noopener"
  * @mutate src/pages/info/GiftGuides.tsx | target="_blank" rel= | rel=
@@ -24,8 +25,8 @@
  * @mutate src/pages/info/Index.tsx |       <SectionsShowcase />\n |       <SectionsShowcase />\n      <GiftGuidesBand />\n
  * @mutate src/components/Footer.tsx |               <Link to="/safety" className={FOOTER_LINK}> |               <Link to="/gift-guides" className={FOOTER_LINK}>
  * @mutate src/components/sponsor/Sections.tsx |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n        <Link to={C.links.giftGuides}>{C.footer.giftGuidesLink}</Link>\n
- * @mutate src/App.tsx | <Route path="/gift-guides" element={<Navigate to="/" replace />} /> | <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<GiftGuides />)}</RouteErrorBoundary>} />
- * @mutate src/App.tsx | <Route path="/gift-guides" element={<Navigate to="/" replace />} /> | <Route path="/gift-guides" element={<Navigate to="/home" replace />} />
+ * @mutate src/App.tsx |   if (params.get("preview") !== "1") return <Navigate to="/" replace />;\n |
+ * @mutate src/App.tsx |   if (params.get("preview") !== "1") return <Navigate to="/" replace />; |   if (params.get("preview") !== "1") return <Navigate to="/home" replace />;
  * @mutate src/content/giftGuides.ts | const shopmy = (id: number) => `https://shopmy.us/collections/${id}`; | const shopmy = (id: number) => `http://shopmy.us/collections/${id}`;
  */
 import { readFileSync } from "node:fs";
@@ -121,20 +122,23 @@ describe("gift guides: the rendered page", () => {
 });
 
 describe("gift guides: hidden until the next version (owner 2026-11-17)", () => {
-  it("App.tsx sends /gift-guides home, and vercel.json no longer routes it to its own head or the app", () => {
+  it("App.tsx: /gift-guides renders the gate, which sends anyone without ?preview=1 home", () => {
     const app = src("src/App.tsx");
-    const route = app.split("\n").find((l) => l.includes('path="/gift-guides"'));
-    expect(route).toContain('element={<Navigate to="/" replace />}');
-    expect(app).not.toMatch(/<GiftGuides \/>/);
-    const rewrites = (JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] }).rewrites;
-    expect(rewrites.filter((x) => x.source === "/gift-guides")).toEqual([]);
+    expect(app).toContain('<Route path="/gift-guides" element={<GiftGuidesPreviewGate><RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary></GiftGuidesPreviewGate>} />');
+    expect(app).toContain('if (params.get("preview") !== "1") return <Navigate to="/" replace />;');
+    expect(app.split("\n").filter((l) => l.includes("<GiftGuides />")).length).toBe(1);
   });
 
-  it("is out of the sitemap; the page keeps its own head for the next version", () => {
+  it("is noindex before and after JavaScript and out of the sitemap; vercel.json gives it its noindex head, then the app", () => {
     expect(readFileSync("public/sitemap.xml", "utf8")).not.toContain("/gift-guides");
-    expect(Object.keys(PUBLIC_PAGE_META)).toContain("/gift-guides");
-    expect(Object.keys(NOINDEX_PAGE_META)).not.toContain("/gift-guides");
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(PUBLIC_PAGE_META["/gift-guides"])');
+    expect(Object.keys(PUBLIC_PAGE_META)).not.toContain("/gift-guides");
+    expect(NOINDEX_PAGE_META["/gift-guides"].robots).toMatch(/noindex/);
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(NOINDEX_PAGE_META["/gift-guides"]);');
+    const rewrites = (JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] }).rewrites;
+    expect(rewrites.filter((x) => x.source.startsWith("/gift-guides"))).toEqual([
+      { source: "/gift-guides", destination: "/api/share?_og=noindex&_id=gift-guides" },
+      { source: "/gift-guides", destination: "/index.html" },
+    ]);
   });
 
   it("no way in: not on the landing, not in the public footer, not in the /25days footer", () => {

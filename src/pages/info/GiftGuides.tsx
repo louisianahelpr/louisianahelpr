@@ -1,6 +1,6 @@
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuides as G, type GiftLink, type GiftPick, type GiftSection } from "@/content/giftGuides";
 
 /**
@@ -85,7 +85,7 @@ function Section({ s }: { s: GiftSection }) {
 }
 
 export default function GiftGuides() {
-  usePageMeta(PUBLIC_PAGE_META["/gift-guides"]);
+  usePageMeta(NOINDEX_PAGE_META["/gift-guides"]);
   return (
     <PublicHeaderPage title={G.title} backTo="/" wrapTitle bottomPaddingClassName="pb-12 md:pb-16">
       <div className="page-measure space-y-section font-sans" data-gift-guides="">

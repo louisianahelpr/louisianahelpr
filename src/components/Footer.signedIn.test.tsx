@@ -18,7 +18,7 @@ describe("Footer", () => {
   it("renders for a signed-out visitor", () => {
     authState.user = null;
     const { container } = render(<MemoryRouter><Footer /></MemoryRouter>);
-    expect(container.textContent).toMatch(/Louisiana communities/);
+    expect(container.textContent).toMatch(/Delcambre, Louisiana/);
   });
   it("renders NOTHING for a signed-in member", () => {
     authState.user = { id: "u1" };

@@ -140,3 +140,21 @@ describe("design audit r2 #32: Post a job steps 3-6 follow the member's language
     expect(same).toEqual([]);
   });
 });
+
+/**
+ * #6 (Medium): in dark mode the unselected Post a job chips had no border: `[data-theme="dark"] :where(.bg-card)`
+ * dims every .bg-card border to the card's own tone. A choice button on bg-card keeps a light hairline in dark.
+ * @mutate src/index.css | :root[data-theme="dark"] button.bg-card:is([role="radio"], [aria-pressed]) { | :root[data-theme="dark"] button.bg-card:is([data-never]) {
+ */
+describe("design audit r2 #6: unselected choices keep an edge in dark mode", () => {
+  it("index.css gives a dark-mode choice button on bg-card a visible border, after the rule that dims it", () => {
+    const css = readFileSync("src/index.css", "utf8");
+    const dim = css.indexOf('[data-theme="dark"] :where(.bg-card) {');
+    const fix = css.indexOf(':root[data-theme="dark"] button.bg-card:is([role="radio"], [aria-pressed]) {');
+    expect(dim).toBeGreaterThan(-1);
+    expect(fix).toBeGreaterThan(dim);
+    expect(css.slice(fix, css.indexOf("}", fix))).toMatch(/border-color:\s*hsl\(0 0% 100% \/ 0\.1[2-9]\)/);
+    // The chips it reaches: ChoicePill is role="radio" on bg-card when unselected.
+    expect(readFileSync("src/components/ui/ChoicePill.tsx", "utf8")).toMatch(/role="radio"[\s\S]*bg-card/);
+  });
+});

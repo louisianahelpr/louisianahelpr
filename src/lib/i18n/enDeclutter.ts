@@ -189,6 +189,7 @@ export const enDeclutter = {
   "decl.mv.history": "History",
   "decl.mv.nothingToAnswer": "Nothing to answer right now.",
   "decl.mv.findBrowse": "Find something in Browse",
+  "decl.mv.nothingActive": "Nothing in progress.",
   "decl.hv.moreWays": "More ways to sell",
   "decl.hv.sellOne": "Sell an item",
   "decl.hv.otherWays": "Free, a bunch, or moving out?",

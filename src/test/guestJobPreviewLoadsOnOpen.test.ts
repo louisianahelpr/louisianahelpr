@@ -12,7 +12,7 @@
 // @mutate src/pages/home/DashboardGuest.tsx | import { whenPageSettled } from "@/lib/pageSettled"; | import { whenPageSettled } from "@/lib/pageSettled";\nimport "@/components/dashboard/GuestJobPreview";
 // @mutate src/lib/jobIntent.ts | export const guestLogInUrl = (jobId: string) => | import "@/components/ui/dialog";\nexport const guestLogInUrl = (jobId: string) =>
 // @mutate src/pages/home/DashboardGuest.tsx |   useEffect(() => whenPageSettled(() => void loadGuestJobPreview() | useEffect(() => (() => void loadGuestJobPreview()
-// @mutate src/pages/home/DashboardGuest.tsx | const loadGuestJobPreview = () => import("@/components/dashboard/GuestJobPreview"); | const loadGuestJobPreview = () => import("@/components/dashboard/GuestJobPage");
+// @mutate src/pages/home/DashboardGuest.tsx | const loadGuestJobPreview = () => loadModule(() => import("@/components/dashboard/GuestJobPreview")); | const loadGuestJobPreview = () => loadModule(() => import("@/components/dashboard/GuestJobPage"));
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -40,8 +40,8 @@ describe("guest /browse loads the job preview on open (Q2705)", () => {
 
   it("the preview is still opened from the tap, and its code is warmed once the page settles", () => {
     const page = code("src/pages/home/DashboardGuest.tsx");
-    expect(page).toContain('const loadGuestJobPreview = () => import("@/components/dashboard/GuestJobPreview");');
-    expect(page).toMatch(/const GuestJobPreview = lazy\(\(\) => loadGuestJobPreview\(\)\.then\(\(m\) => \(\{ default: m\.GuestJobPreview \}\)\)\);/);
+    expect(page).toContain('const loadGuestJobPreview = () => loadModule(() => import("@/components/dashboard/GuestJobPreview"));');
+    expect(page).toContain("const GuestJobPreview = lazy(() => loadGuestJobPreview().then((m) => (m ? { default: m.GuestJobPreview } : untilReload())));");
     expect(page).toMatch(/useEffect\(\(\) => whenPageSettled\(\(\) => void loadGuestJobPreview\(\)/);
     expect(page).toMatch(/<Suspense fallback=\{null\}>\s*<GuestJobPreview job=\{detailJob\}/);
     // Log in still comes back to the job, from the dialog-free module.

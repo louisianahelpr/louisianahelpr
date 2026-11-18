@@ -429,12 +429,12 @@ describe("/shops/dashboard", () => {
     const group = await screen.findByRole("radiogroup", { name: "If you mark an order ready early" });
     const choices = within(group).getAllByRole("radio");
     expect(choices.map((b) => b.textContent?.split("Buyers")[0].split("If you")[0])).toEqual([
-      "Marking it ready ends free cancel",
+      "Marking it ready ends the refund time",
       "Marking it ready counts from the day before (default)",
-      "Marking it ready never ends free cancel early",
+      "Marking it ready never ends the refund time early",
     ]);
     expect(choices.map((b) => b.getAttribute("aria-checked"))).toEqual(["false", "false", "true"]);
-    expect(group.textContent).toContain("Buyers can cancel for free until the ready date begins, however early you mark the order ready.");
+    expect(group.textContent).toContain("Buyers can cancel for a refund until the ready date begins, however early you mark the order ready.");
     fireEvent.click(choices[0]);
     await waitFor(() => expect(orders.setReadyTapCancel).toHaveBeenCalledWith("ends_at_tap"));
     expect(orders.setReadyTapCancel).toHaveBeenCalledTimes(1);

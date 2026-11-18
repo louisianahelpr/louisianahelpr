@@ -23,13 +23,15 @@ export type CancelPolicy = "until_24h_before_ready" | "until_accept" | "until_ha
 /** The three presets a shop picks from (O2). S2-030 (Shops audit 2): a rule whose cancel keeps the small card
  * processing cost is worded "Cancel for a refund until ...", never "Free to cancel"; only until_accept is free
  * (the card is only held).  `label`/`detail` are the words a buyer reads before paying; `shop` is
- * the shop's own settings words (S022, Shops audit 11-12: the picker spoke to the buyer, "your order"). */
+ * the shop's own settings words (S022, Shops audit 11-12: the picker spoke to the buyer, "your order"). The shop's
+ * words follow S2-030 too (launch pass 1): only until_accept says "free", so a shop never promises a free cancel the
+ * buyer then pays a card cost on. */
 export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: string; shop: { label: string; hint: string } }> = {
   until_24h_before_ready: {
     label: "Cancel for a refund until 24 hours before the ready date",
     detail: "After the shop accepts, you can cancel for a refund of the price until 24 hours before the ready date. A small card processing cost isn't refunded.",
     shop: {
-      label: "Free cancel until 24 hours before the ready date",
+      label: "Refund until 24 hours before the ready date",
       hint: "After you accept, buyers can cancel for a refund of the price until 24 hours before the ready date.",
     },
   },
@@ -48,7 +50,7 @@ export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: s
     label: "Cancel for a refund until your order is ready",
     detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, or until the shop marks your order ready if its rule says so. A small card processing cost isn't refunded.",
     shop: {
-      label: "Free cancel until the order is ready",
+      label: "Refund until the order is ready",
       hint: "After you accept, buyers can cancel for a refund of the price until the ready date begins. Below, choose whether marking an order ready ends it sooner.",
     },
   },
@@ -61,18 +63,18 @@ export const CANCEL_POLICIES = Object.keys(CANCEL_POLICY_TEXT) as CancelPolicy[]
 export type ReadyTapCancel = "ends_at_tap" | "from_day_before" | "never_shortens";
 export const READY_TAP_CANCEL_TEXT: Record<ReadyTapCancel, { label: string; hint: string; buyer: string }> = {
   ends_at_tap: {
-    label: "Marking it ready ends free cancel",
-    hint: "Buyers can cancel for free until you mark the order ready, or until the ready date begins if that comes first.",
+    label: "Marking it ready ends the refund time",
+    hint: "Buyers can cancel for a refund until you mark the order ready, or until the ready date begins if that comes first.",
     buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready sooner, the refund ends then. A small card processing cost isn't refunded.",
   },
   from_day_before: {
     label: "Marking it ready counts from the day before (default)",
-    hint: "If you mark an order ready early, buyers can still cancel for free until the day before the ready date begins.",
+    hint: "If you mark an order ready early, buyers can still cancel for a refund until the day before the ready date begins.",
     buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready, the refund ends then, but never before the day before your ready date. A small card processing cost isn't refunded.",
   },
   never_shortens: {
-    label: "Marking it ready never ends free cancel early",
-    hint: "Buyers can cancel for free until the ready date begins, however early you mark the order ready.",
+    label: "Marking it ready never ends the refund time early",
+    hint: "Buyers can cancel for a refund until the ready date begins, however early you mark the order ready.",
     buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, even if the shop marks your order ready sooner. A small card processing cost isn't refunded.",
   },
 };
@@ -512,7 +514,7 @@ export { formatCents } from "./formatCents";
 
 /** M3's endings of a charged order, in each side's words. */
 const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
-  buyer_cancelled_free: { buyer: "Cancelled by you (refunded, less a small card processing cost)", shop: "Cancelled by the buyer in your free-cancel time" },
+  buyer_cancelled_free: { buyer: "Cancelled by you (refunded, less a small card processing cost)", shop: "Cancelled by the buyer in time for a refund" },
   buyer_cancelled_late: { buyer: "Cancelled by you late (not refunded; the shop is paid)", shop: "Cancelled by the buyer late (you are paid)" },
   buyer_no_show: { buyer: "Missed pickup (not refunded; the shop is paid)", shop: "Buyer didn't show (you are paid)" },
   shop_cancelled: { buyer: "Cancelled by the shop (refunded in full)", shop: "Cancelled by you (buyer refunded in full)" },

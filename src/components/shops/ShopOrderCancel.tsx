@@ -134,7 +134,7 @@ export function BuyerCancelOrder({ order }: { order: ShopOrder }) {
       >
         {changed && (
           <p className="text-ds-13 font-semibold" role="alert" data-testid="shop-cancel-terms-changed">
-            The free-cancel time for this order changed while you were looking. Here's what happens now.
+            The cancel terms for this order changed while you were looking. Here's what happens now.
           </p>
         )}
       </BrandConfirmDialog>

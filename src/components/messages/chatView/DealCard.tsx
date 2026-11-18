@@ -24,6 +24,7 @@ import type { Job } from "@/components/job-card/activityConstants";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 import { getLang, t } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatParts";
 import "@/lib/i18n/enMessages";
 
 /**
@@ -309,7 +310,7 @@ export function DealCard({ convo, userId, hasMessages = false }: { convo: Conver
         {folded ? (
           <div className="min-w-0 flex-1">
             <Button type="button" variant="ghost" size="sm" data-deal-expand="" aria-expanded={false} onClick={() => setShowProgress(true)} className="-ml-3 text-muted-foreground">
-              Show progress
+              {t("cp.showProgress")}
               <ChevronDown className="ml-1 h-4 w-4" aria-hidden />
             </Button>
           </div>

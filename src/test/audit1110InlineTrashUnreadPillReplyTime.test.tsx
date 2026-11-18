@@ -9,7 +9,9 @@
  *
  * @mutate src/components/messages/ConversationRow.tsx | {hasUnreadFromOther && (\n                  <span\n                    aria-hidden="true"\n                    data-testid="row-unread-count" | {false && (\n                  <span\n                    aria-hidden="true"\n                    data-testid="row-unread-count"
  * @mutate src/components/messages/ConversationRow.tsx | {c.unread > 99 ? "99+" : c.unread} | {c.unread}
- * @mutate src/pages/info/Support.tsx | A real person reads every message. {SUPPORT_REPLY_PROMISE} | A real person reads every message.
+ * @mutate src/pages/info/Support.tsx |                     We reply by email. {SUPPORT_REPLY_PROMISE} |                     We reply by email.
+ * Area 08 L15 (design audit 11-18): on /support the promise is said ONCE in the form (under Send), not twice.
+ * @mutate src/pages/info/Support.tsx |                   A real person reads every message.\n |                   A real person reads every message. {SUPPORT_REPLY_PROMISE}\n
  * @mutate src/components/profile/SupportInline.tsx | A real person reads every message. {SUPPORT_REPLY_PROMISE} | A real person reads every message.
  */
 import { describe, expect, it } from "vitest";
@@ -46,6 +48,8 @@ describe("F235: both support forms state the reply time before sending", () => {
     const src = code(file);
     const form = src.slice(src.indexOf("<form"), src.indexOf("</form>"));
     expect(src.length).toBeGreaterThan(500);
-    expect(form).toMatch(/data-support-reply-time="">\s*A real person reads every message\. \{SUPPORT_REPLY_PROMISE\}/);
+    expect(form).toMatch(/data-support-reply-time="">\s*A real person reads every message\./);
+    // Area 08 L15: the reply-time promise is in the form exactly once (it was said twice on /support).
+    expect(form.split("{SUPPORT_REPLY_PROMISE}").length - 1).toBe(1);
   });
 });

@@ -71,7 +71,7 @@ const EmailHead = () => (
  * honoured the attribute (Outlook) or the CSS (most webmail).
  */
 const HMark = () => (
-  <img src={LOGO_URL} alt="Louisiana Helpr" width="80" height="auto" className="e-logo" style={logo} />
+  <img src={LOGO_URL} alt="Louisiana Helpr" width="80" height="69" className="e-logo" style={logo} />
 )
 
 /**
@@ -155,7 +155,8 @@ export const BrandButton = ({
   label: string
   widthPx?: number
 }) => (
-  <div style={{ margin: '0 0 4px' }}>
+  // Area 08 L18 (design audit 11-18): 20px above the button and below it, so the next line does not sit flush on it.
+  <div style={{ margin: '20px 0 20px' }}>
     <div
       dangerouslySetInnerHTML={{
         __html: msoOnlyButtonHtml(href, label, widthPx ?? Math.max(180, label.length * 10 + 60)),

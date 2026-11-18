@@ -1,3 +1,4 @@
+import { notifPrefGroup } from "@/lib/i18n/notifPrefWords";
 // F103 (owner UI audit 11-09): the header over each group of rows on Notification settings (Messages, Jobs, Money,
 // Account), in the Declutter group's own heading style.
 export function NotificationGroupHeader({ title }: { title: string }) {
@@ -8,7 +9,7 @@ export function NotificationGroupHeader({ title }: { title: string }) {
       data-notification-group={title}
     >
       <h2 className="font-sans font-semibold text-ds-13 mb-0" style={{ color: "hsl(var(--ink-deep))" }}>
-        {title}
+        {notifPrefGroup(title)}
       </h2>
     </div>
   );

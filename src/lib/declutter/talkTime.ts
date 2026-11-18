@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatParts";
 /**
  * When a Declutter chat line was sent, or until when a chat is open (order chat, handover chat). AUD31-12 (audit
  * 2026-10-31): a message from 9 days ago read "Thu 1:06 AM", the weekday alone, so it looked like this week. Within
@@ -27,7 +29,8 @@ export function talkTime(iso: string, now: Date = new Date()): string {
 /** "Today" or "Yesterday" by the calendar (local time), else null. */
 function dayWord(d: Date, now: Date): string | null {
   const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  if (sameDay(d, now)) return "Today";
+  // Area 08 H3: in the app language (the Declutter chat read Today / Yesterday in Spanish).
+  if (sameDay(d, now)) return t("cp.today");
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  return sameDay(d, yesterday) ? "Yesterday" : null;
+  return sameDay(d, yesterday) ? t("cp.yesterday") : null;
 }

@@ -149,6 +149,7 @@ export interface DiscountCode {
 }
 export const discountCodes: DiscountCode[] = [
   { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", expires: "2026-12-06" },
+  { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", expires: "2026-11-28" },
   { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+" },
   { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions" },
   { rank: 4, store: "Free Country", code: "WINTER50", offer: "Up to 50% off pet jackets" },
@@ -185,6 +186,7 @@ export const giftGuides = {
   onStore: (store: string) => `On ${store}`,
   /** The pick badges (owner 2026-11-18). Never a price. */
   badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup" },
+  searchNone: "No guides match. Try another word.",
   codesLabel: "Discount codes",
   copyCode: "Copy",
   copiedCode: "Copied",

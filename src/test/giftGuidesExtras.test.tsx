@@ -9,16 +9,19 @@
  * @mutate src/content/giftGuideCatalog.ts |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand ? (["louisiana-made"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []), |   ...([] as const),
  * @mutate src/content/giftGuideCatalog.ts |   if (d) draftOf.set(slug, { ...d, picks: [], links: [] }); |   if (d && false) draftOf.set(slug, { ...d, picks: [], links: [] });
+ * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
+ * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`); |     const hay = fold(`${g.title} ${g.lead}`);
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |       {query.trim() ? ( |       {false ? (
  * @mutate scripts/gift-guide-picks.mjs |   if (HELD.includes(slug)) continue; |   if (HELD.includes(slug) && false) continue;
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
 import { RESEARCHED_PICKS } from "@/content/giftGuidePicks";
 import { LOUISIANA_MADE_BRANDS, SPONSOR_BRANDS } from "@/content/giftGuides";
-import { HELD_PICK_GUIDES, guideBySlug } from "@/content/giftGuideCatalog";
+import { HELD_PICK_GUIDES, guideBySlug, searchGuides } from "@/content/giftGuideCatalog";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -101,5 +104,35 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
       expect(container.querySelector("[data-gift-coming-soon]"), slug).not.toBeNull();
       cleanup();
     }
+  });
+});
+
+describe("gift guides: the sidebar search filters guides by title and group", () => {
+  it("matches titles and group names, case- and accent-blind; empty words match nothing", () => {
+    expect(searchGuides("")).toEqual([]);
+    expect(searchGuides("   ")).toEqual([]);
+    expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"]));
+    // By group: "experiences" finds every guide in that row, even ones whose title lacks the word.
+    expect(searchGuides("experiences").map((g) => g.slug)).toEqual(expect.arrayContaining(["gift-cards", "spa-days", "date-night"]));
+    expect(searchGuides("tractor supply").map((g) => g.slug)).toEqual(["store-tractor-supply"]);
+    expect(searchGuides("cafe du monde").length).toBe(0);
+    expect(searchGuides("xyzzy")).toEqual([]);
+    expect(searchGuides("dillards").length + searchGuides("dillard's").length).toBeGreaterThan(0);
+  });
+  it("the box sits at the top of the sidebar and typing replaces the groups with the matches", () => {
+    const { container } = renderAt("/gift-guides");
+    const side = container.querySelector("[data-gift-sidebar]")!;
+    const input = screen.getByRole("searchbox", { name: "Search gift guides" });
+    expect(input.getAttribute("placeholder")).toBe("Search");
+    expect(side.firstElementChild?.contains(input)).toBe(true);
+    expect(side.querySelector("label svg")).not.toBeNull();
+    fireEvent.change(input, { target: { value: "spa" } });
+    const found = [...side.querySelectorAll("a[data-gift-found]")].map((a) => a.getAttribute("data-gift-found"));
+    expect(found).toContain("spa-days");
+    expect(side.querySelector("details[data-gift-group]")).toBeNull();
+    fireEvent.change(input, { target: { value: "xyzzy" } });
+    expect(side.textContent).toContain("No guides match");
+    fireEvent.change(input, { target: { value: "" } });
+    expect(side.querySelectorAll("details[data-gift-group]").length).toBeGreaterThan(5);
   });
 });

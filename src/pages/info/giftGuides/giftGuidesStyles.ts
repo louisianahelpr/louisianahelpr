@@ -14,6 +14,10 @@ export const GIFT_GUIDES_CSS = `
 color:var(--gg-ink)}
 .gg-layout{display:grid;grid-template-columns:220px minmax(0,1fr)}
 .gg-side{border-right:1px solid var(--gg-line);padding:16px 16px 20px 0;font-size:13px;position:sticky;top:var(--gg-side-top,72px);align-self:start;max-height:calc(100dvh - var(--gg-side-top,72px));overflow-y:auto;overscroll-behavior:contain}
+.gg-search{position:relative;display:block;margin:0 0 8px}
+.gg-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gg-muted)}
+.gg-search input{width:100%;min-height:40px;font:500 13px Montserrat,sans-serif;padding:9px 12px 9px 34px;border:1px solid #ddd8cc;border-radius:999px;background:hsl(var(--background));color:var(--gg-ink)}
+.gg-search-none{padding:8px 10px;color:var(--gg-muted)}
 .gg-side details{border-top:1px solid var(--gg-line)}
 .gg-side summary{list-style:none;cursor:pointer;display:flex;align-items:center;min-height:44px;padding:0 10px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gg-muted)}
 .gg-side summary::-webkit-details-marker{display:none}

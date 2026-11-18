@@ -306,3 +306,18 @@ export const KIDS_HUB = "kids";
 export const childrenOf = (g: CatalogGuide) => (g.children ?? []).flatMap((x) => x.slugs).map((c) => guideBySlug(c)!).filter(Boolean);
 
 export const guideBySlug = (slug: string | undefined) => GUIDES.find((g) => g.slug === slug);
+
+/**
+ * The sidebar search (owner 2026-11-18): every guide whose title or group matches the words typed, case- and
+ * accent-blind, in the page's order. Empty words match nothing (the sidebar then shows its groups).
+ */
+export const searchGuides = (query: string): CatalogGuide[] => {
+  const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const label = new Map(ROWS.map((r) => [r.row, r.label] as const));
+  return GUIDES.filter((g) => {
+    const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`);
+    return words.every((w) => hay.includes(w));
+  });
+};

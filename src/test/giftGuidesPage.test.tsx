@@ -61,6 +61,7 @@
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <h2 id={titleId}>{title}</h2>\n |       <h2 id={titleId}>{title}</h2>\n      <p className="gg-line">25 picks</p>\n
+ * @mutate src/content/giftGuides.ts |   { rank: 1, store: "Muck Boot", code: "TAKE25", | { rank: 8, store: "Muck Boot US", code: "TAKE25",
  */
 import { readFileSync, existsSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -369,9 +370,16 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(discountCodes.find((c) => c.code === "CYBER")?.dates).toBe("Nov 29 – Dec 6");
     expect(render(<MemoryRouter><DiscountCodes codes={[]} /></MemoryRouter>).container.querySelector("[data-gift-codes]")).toBeNull();
     cleanup();
-    // At the top of the menu.
+    // At the top of the menu, under the search box (owner 2026-11-18).
     const side = renderAt("/gift-guides").container.querySelector("[data-gift-sidebar]")!;
-    expect(side.firstElementChild?.hasAttribute("data-gift-codes")).toBe(true);
+    expect(side.firstElementChild?.querySelector("[data-gift-search]")).not.toBeNull();
+    expect(side.children[1]?.hasAttribute("data-gift-codes")).toBe(true);
+    // One box per store, several codes inside: Muck Boot holds CYBER and TAKE25 (Nov 20–28), in the owner's order.
+    const boxes = [...side.querySelectorAll("[data-gift-code-store]")];
+    expect(boxes.map((b) => b.getAttribute("data-gift-code-store"))).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Free Country", "Bruno Marc", "HerbsPro", "Parallels Desktop"]);
+    expect([...boxes[0].querySelectorAll("[data-gift-code]")].map((c) => c.getAttribute("data-gift-code"))).toEqual(["CYBER", "TAKE25"]);
+    expect(activeCodes(discountCodes, "2026-11-29").map((c) => c.code)).not.toContain("TAKE25");
+    expect(activeCodes(discountCodes, "2026-11-28").map((c) => c.code)).toContain("TAKE25");
     cleanup();
     const write = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText: write } });

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { giftGuides as G, activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { useState } from "react";
-import { ROWS, guidesIn, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { ROWS, guidesIn, searchGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
 
 /**
  * Every guide by group (owner's final design 2026-11-18): a 220px sticky menu beside the page on desktop, above it on
@@ -13,8 +13,25 @@ import { ROWS, guidesIn, type CatalogGuide } from "@/content/giftGuideCatalog";
  */
 export function GiftGuidesSidebar({ active }: { active: CatalogGuide | null }) {
   const current = (slug: string | null) => ((active?.slug ?? null) === slug ? ({ "aria-current": "page" } as const) : {});
+  const [query, setQuery] = useState("");
+  const found = searchGuides(query);
   return (
     <nav key={active?.slug ?? ""} className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
+      {/* Owner 2026-11-18: a search box at the top of the menu filters every guide by its title or group. */}
+      <label className="gg-search">
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" aria-label="Search gift guides" data-gift-search="" />
+      </label>
+      {query.trim() ? (
+        <ul data-gift-search-results="" aria-live="polite">
+          {found.length === 0 && <li className="gg-search-none">{G.searchNone}</li>}
+          {found.map((g) => (
+            <li key={g.slug}>
+              <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-found={g.slug}>{g.age ? `${g.title}, ${g.lead.replace(/^gifts for /, "")}` : g.title}</Link>
+            </li>
+          ))}
+        </ul>
+      ) : (<>
       {/* Owner 2026-11-18: the codes sit at the TOP of the menu; a code past its last day hides itself. */}
       <DiscountCodes codes={activeCodes(discountCodes, localToday())} />
       <ul>
@@ -32,6 +49,7 @@ export function GiftGuidesSidebar({ active }: { active: CatalogGuide | null }) {
           </ul>
         </details>
       ))}
+      </>)}
     </nav>
   );
 }

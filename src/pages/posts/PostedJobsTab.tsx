@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { type Job, type EnrichedApplication } from "../../components/job-card/activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
-import { ActivityBucketGroups, POSTED_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
+import { ActivityBucketGroups, postedGroupWords } from "@/components/job-card/ActivityBucketGroups";
 import { PagedActivityList } from "@/components/job-card/PagedActivityList";
 import { postedActivityBucket } from "@/components/job-card/activityFilters";
 import { useBulkDismiss } from "@/pages/posts/useBulkDismiss";
@@ -19,6 +19,7 @@ import { useJobAnalytics } from "./postedJobs/useJobAnalytics";
 import { ApplicantsPanel } from "./postedJobs/ApplicantsPanel";
 import { RecurringVisitPayments } from "./postedJobs/RecurringVisitPayments";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { useLanguage } from "@/lib/i18n/language";
 
 export interface PostedJobsTabProps {
   jobs: Job[];
@@ -117,6 +118,8 @@ export const PostedJobsTab = ({
   onActionComplete, groupByStatus = false,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
+  // Area 03 H3: the group headings in the viewer's language (esJobPoster.ts).
+  const { t } = useLanguage();
   // Q1586(c): a saved birthday under 18 greys this Post entry out; a tap says why.
   const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
 
@@ -250,7 +253,7 @@ export const PostedJobsTab = ({
       getKey={(job) => job.id}
       bucketOf={(job) => postedActivityBucket(job, pendingApplicantCounts?.[job.id] ?? 0)}
       renderItem={renderJobCard}
-      labels={POSTED_GROUP_LABEL}
+      labels={postedGroupWords(t)}
       revealKey={highlightJobId ?? null}
     />
   ) : visibleJobs.length === 0 ? (

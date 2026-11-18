@@ -7,6 +7,14 @@ import type { ActivityBucket } from "@/lib/activityBuckets";
 // The words live in the leaf module so the browser specs read the same list (e2e/prod-audit/activity-tabs-visible).
 import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL } from "@/lib/activityBuckets";
 export { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL };
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobPoster";
+
+/** Posted's bucket words in the viewer's language (POSTED_GROUP_LABEL's English; esJobPoster.ts's Spanish). */
+export function postedGroupWords(t: (k: "jp.g.needs_you" | "jp.g.waiting" | "jp.g.scheduled" | "jp.g.done" | "jp.g.cancelled") => string): Record<string, string> {
+  return { needs_you: t("jp.g.needs_you"), waiting: t("jp.g.waiting"), scheduled: t("jp.g.scheduled"), done: t("jp.g.done"), cancelled: t("jp.g.cancelled") };
+}
+
 
 const OPEN_GROUPS: ActivityBucket[] = ["needs_you", "waiting", "scheduled"];
 const PREVIEW = 3;
@@ -34,6 +42,7 @@ export function ActivityBucketGroups<T>({
   revealKey?: string | null;
   labels: Record<ActivityBucket, string>;
 }) {
+  const { t } = useLanguage();
   const groups = useMemo(() => {
     const acc: Record<ActivityBucket, T[]> = { needs_you: [], waiting: [], scheduled: [], done: [], cancelled: [] };
     for (const it of items) acc[bucketOf(it)].push(it);
@@ -73,7 +82,7 @@ export function ActivityBucketGroups<T>({
                    harness /posts 201 -> 227). Text-sized, the row is 28px with or without it; its 44px touch overlay
                    reaches 8px past the row: the list's `gap-2` below, half the sections' `gap-4` above, over no card. */
                 <InlineTextButton onClick={() => toggle(b)} className="text-ds-13 font-semibold text-primary">
-                  {all ? "Show less" : `See all ${list.length}`}
+                  {all ? t("jp.showLess") : t("jp.seeAll", { n: list.length })}
                 </InlineTextButton>
               )}
             </div>

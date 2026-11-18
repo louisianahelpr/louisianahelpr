@@ -3,7 +3,7 @@
  * and "You cancelled · Plans changed · Your payment was refunded" on the tracker. It is said once, on the tracker.
  * An expired listing's tracker says only "No Helpr was hired in time", so its page keeps the money line (once).
  *
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | : refundInTracker ? null : refundLine ?? HELD_LINE[status] | : refundLine ?? HELD_LINE[status]
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | : refundInTracker ? null : refundLine ?? heldWords[status] | : refundLine ?? heldWords[status]
  */
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";

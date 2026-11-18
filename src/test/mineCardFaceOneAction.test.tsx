@@ -25,7 +25,7 @@
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | h.confirmingArrival ? "Confirming…" : "Confirm they've arrived", | h.confirmingArrival ? "Confirming…" : "Confirm arrival",
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | if (!a.isExpanded) toggle(job.id);\n      setCompletionRequest | void 0;\n      setCompletionRequest
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: "Leave a review", onClick: h.review, tone: "primary" }; | return { label: "Manage job", onClick: h.manage, tone: "secondary" };
- * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary" }; | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "primary" };
+ * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: t("jp.messageName", { name: first(h.helperName) }), onClick: h.message, tone: "secondary" }; | return { label: t("jp.messageName", { name: first(h.helperName) }), onClick: h.message, tone: "primary" };
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts | if (s.isMinimalCard \|\| s.isOffered) return null; | if (s.isMinimalCard) return null;
  * @mutate src/pages/posts/PostedJobCard.tsx | expandable={false}\n            expanded={isExpanded} | expandable\n            expanded={isExpanded}
  */

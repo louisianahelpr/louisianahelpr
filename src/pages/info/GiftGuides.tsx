@@ -7,7 +7,8 @@ import { ROWS, guideBySlug, newSlugFor, type GuideRow } from "@/content/giftGuid
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
 import { GiftGuideLanding } from "./giftGuides/GiftGuideLanding";
-import { countOf } from "./giftGuides/GiftGuideTile";
+import { GiftGuideShare } from "./giftGuides/GiftGuideShare";
+import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GiftOut } from "./giftGuides/GiftOut";
@@ -28,6 +29,7 @@ export default function GiftGuides() {
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
   const groupParam = params.get("group");
+  const ship = shippingLine(new Date());
   const group = ROWS.find((r) => r.row === groupParam)?.row ?? (null as GuideRow | null);
 
   // Pins link to /gift-guides#for-her, /gift-guides/for-her or a folded guide (/gift-guides/female-nurses): send each
@@ -58,11 +60,16 @@ export default function GiftGuides() {
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="">
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}
-        {guide && <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>}
+        {/* Owner 2026-11-18: the shipping banner sits top-right, on the same line as "← All guides". */}
+        <div className="gg-top">
+          {guide ? <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link> : <span />}
+          {ship && <p className="gg-ship" data-gift-ship="">{ship}</p>}
+        </div>
         {guide ? (
-          <GiftGuidesWords lead={guide.lead} title={guide.title} titleId="gift-guide-title" line={[guide.age, guide.line, countOf(guide)].filter(Boolean).join(" · ")} />
+          <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title"
+            share={<GiftGuideShare path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
         ) : (
-          <GiftGuidesWords lead={G.bandLead} title={G.title} line={G.intro} titleId="gift-guides-title" />
+          <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" share={<GiftGuideShare path="/gift-guides" title={G.title} />} />
         )}
         <div className="gg-layout">
           <GiftGuidesSidebar active={guide} />

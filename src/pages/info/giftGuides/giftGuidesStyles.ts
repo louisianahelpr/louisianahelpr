@@ -39,10 +39,16 @@ color:var(--gg-ink)}
 .gg-cover{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .gg-tile:hover .gg-cover,.gg-tile:focus-visible .gg-cover{outline:2px solid var(--gg-olive);outline-offset:2px}
 .gg-green{--c-dark:rgba(124,148,118,.55);--c-dot:#7c9476}.gg-red{--c-dark:rgba(178,104,98,.55);--c-dot:#b26862}.gg-oat{--c-dark:rgba(206,186,152,.55);--c-dot:#ceba98}
-.gg-words{text-align:center;padding:22px 16px 18px;border-bottom:1px solid var(--gg-line);margin-bottom:4px}
+.gg-words{text-align:center;padding:10px 16px 14px;border-bottom:1px solid var(--gg-line);margin-bottom:4px}
 .gg-words .gg-lead{font-family:"Bodoni Moda","Bodoni Moda Fallback",Georgia,serif;font-style:italic;font-size:22px;color:#6b5a48;margin:0}
-.gg-words h2{font-family:"Bodoni Moda","Bodoni Moda Fallback",Georgia,serif;font-weight:500;font-size:38px;line-height:1.1;margin:2px 0 6px;color:#3b2a20;text-wrap:balance}
-.gg-words p.gg-line{margin:0;font-size:13px;color:var(--gg-muted)}
+.gg-words h2{font-family:"Bodoni Moda","Bodoni Moda Fallback",Georgia,serif;font-weight:500;font-size:34px;line-height:1.1;margin:0 0 8px;color:#3b2a20;text-wrap:balance}
+.gg-top{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px}
+.gg-ship{margin:0;font-size:12px;font-weight:600;color:#3f5a1c;background:#eef2e6;border-radius:999px;padding:5px 12px}
+.gg-share-wrap{position:relative;display:inline-block}
+.gg-share{min-height:32px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid #ddd8cc;background:#fff;color:var(--gg-ink);border-radius:999px;padding:5px 14px}
+.gg-share-menu{position:absolute;z-index:5;top:calc(100% + 6px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;min-width:150px;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px}
+.gg-share-menu a,.gg-share-menu button{display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:13px;font-weight:600;color:var(--gg-ink);text-decoration:none;background:none;border:0;text-align:left;border-radius:8px}
+.gg-share-menu a:hover,.gg-share-menu button:hover{background:hsl(var(--muted) / .6)}
 :root[data-theme="dark"] .gg-words .gg-lead,:root[data-theme="dark"] .gg-words h2{color:var(--gg-ink)}
 .gg-check{background-color:#faf7f0;background-image:repeating-linear-gradient(0deg,var(--c-dark) 0 30px,transparent 30px 60px),repeating-linear-gradient(90deg,var(--c-dark) 0 30px,transparent 30px 60px)}
 .gg-dot{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.1);margin-right:8px;flex:none;background:var(--c-dot)}
@@ -76,6 +82,7 @@ color:var(--gg-ink)}
 .gg-disc p{margin:2px 0}
 .gg-disc .gg-more{justify-content:center}
 @media (max-width:767px){
+.gg-top{flex-wrap:wrap}
 .gg-layout{grid-template-columns:minmax(0,1fr)}
 .gg-side{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--gg-line);padding:8px 0}
 .gg-main{padding:4px 0 24px}

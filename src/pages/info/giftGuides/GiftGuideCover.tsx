@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { CatalogGuide } from "@/content/giftGuideCatalog";
 
 /**
@@ -16,13 +17,17 @@ export function GiftGuideCover({ guide }: { guide: CatalogGuide }) {
   );
 }
 
-/** Every page's header (owner 2026-11-18): just the words, centred on white, over a thin rule. No band. */
-export function GiftGuidesWords({ lead, title, line, titleId }: { lead: string; title: string; line: string; titleId: string }) {
+/**
+ * Every page's header (owner 2026-11-18, compact): the italic lead, the title and a small Share pill, centred on white
+ * over a thin rule. No subtitle and no count under the title (owner 2026-11-18: "remove every 25 picks count and every
+ * subtitle").
+ */
+export function GiftGuidesWords({ lead, title, titleId, share }: { lead: string; title: string; titleId: string; share: ReactNode }) {
   return (
     <header className="gg-words" data-gift-words="">
       <p className="gg-lead">{lead}</p>
       <h2 id={titleId}>{title}</h2>
-      <p className="gg-line">{line}</p>
+      {share}
     </header>
   );
 }

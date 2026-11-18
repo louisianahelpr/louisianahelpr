@@ -158,7 +158,6 @@ export const giftGuides = {
   pageTitle: "Gift guides",
   bandLead: "top-rated finds",
   title: "Holiday Gift Guides",
-  intro: "Pick a row, then a guide.",
   disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
   /** Amazon Associates Operating Agreement: the exact statement every site with Amazon links must show. */
   amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",
@@ -169,9 +168,6 @@ export const giftGuides = {
   fullGuideLabel: "Shop the full guide",
   newTab: "opens in a new tab",
   onStore: (store: string) => `On ${store}`,
-  picksCount: (n: number) => `${n} ${n === 1 ? "pick" : "picks"}`,
-  onShopMy: "On ShopMy",
-  comingSoon: "Coming soon",
   codesLabel: "Discount codes",
   copyCode: "Copy",
   copiedCode: "Copied",
@@ -179,7 +175,6 @@ export const giftGuides = {
   codeValid: (dates: string) => `Valid ${dates}`,
   comingSoonTitle: "Picks coming soon",
   comingSoonBody: "We're gathering the best gifts for this guide. Check back soon, or browse another guide.",
-  guidesCount: (n: number) => `${n} ${n === 1 ? "guide" : "guides"}`,
   allLinks: [
     { label: "Every collection on ShopMy", href: "https://shopmy.us/shop/lexilombas" },
     { label: "Every gift guide on Pinterest", href: `${PIN}/gift-guides/` },

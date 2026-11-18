@@ -59,6 +59,8 @@
  * @mutate src/components/sponsor/Sections.tsx |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n        <Link to={C.links.giftGuides}>{C.footer.giftGuidesLink}</Link>\n
  * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
+ * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <h2 id={titleId}>{title}</h2>\n |       <h2 id={titleId}>{title}</h2>\n      <p className="gg-line">25 picks</p>\n
  */
 import { readFileSync, existsSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -266,18 +268,31 @@ describe("gift guides: the landing opens to the guides", () => {
     for (const t of text) expect(t.textContent).not.toMatch(/LOUISIANA HELPR/i);
   });
 
-  it("every header is just the words (no band): the main page and each guide", () => {
+  it("every header is compact: italic lead, title and a small Share pill; no subtitle, no pick count anywhere", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector(".gg-band")).toBeNull();
     const words = container.querySelector("[data-gift-words]");
-    expect([...(words?.children ?? [])].map((c) => c.textContent)).toEqual(["top-rated finds", "Holiday Gift Guides", "Pick a row, then a guide."]);
+    expect([...(words?.children ?? [])].map((c) => c.textContent)).toEqual(["top-rated finds", "Holiday Gift Guides", "Share"]);
+    // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
+    // age guide keeps its age band).
+    const tiles = [...container.querySelectorAll("a[data-gift-tile]")];
+    expect(tiles.length).toBeGreaterThan(100);
+    for (const t of tiles) {
+      const g = guideBySlug(t.getAttribute("data-gift-tile")!)!;
+      expect(t.textContent, g.slug).toBe(`${g.title}${g.age ?? ""}`);
+    }
+    expect(container.textContent).not.toMatch(/\d+ picks?\b|\d+ guides\b|Coming soon|On ShopMy/);
+    cleanup();
+    const wordsOf = (path: string) => [...(renderAt(path).container.querySelector("[data-gift-words]")?.children ?? [])].map((c) => c.textContent);
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts for", "Mom", "Share"]);
+    cleanup();
     cleanup();
     const mom = renderAt("/gift-guides/mom").container;
     expect(mom.querySelector(".gg-band")).toBeNull();
     expect(mom.querySelector("[data-gift-words] h2")?.textContent).toBe("Mom");
   });
 
-  it("a guide with no picks yet opens Picks coming soon (no list, no dead link), and its tile says Coming soon", () => {
+  it("a guide with no picks yet opens Picks coming soon (no list, no dead link); its tile shows no count", () => {
     const empty = GUIDES.filter((g) => !g.children && !g.parent && g.picks.length === 0 && g.links.length === 0);
     expect(empty.length).toBeGreaterThan(5);
     const { container } = renderAt(`/gift-guides/${empty[0].slug}`);
@@ -285,7 +300,7 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelector("[data-gift-list]")).toBeNull();
     cleanup();
     const landing = renderAt("/gift-guides").container;
-    expect(landing.querySelector(`a[data-gift-tile="${empty[0].slug}"]`)?.textContent).toContain("Coming soon");
+    expect(landing.querySelector(`a[data-gift-tile="${empty[0].slug}"]`)?.textContent).toBe(empty[0].title);
     cleanup();
     expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-coming-soon]")).toBeNull();
   });

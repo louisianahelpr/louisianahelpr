@@ -15,6 +15,14 @@ import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { focusSheetItself } from "@/components/declutter/focusSheetItself";
+import "@/lib/i18n/enCreateSheets";
+import { t, useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+
+/** A section's name in the viewer's language (nav.* words: Trabajos, Ventas...; design audit area 02 #2). */
+export function sectionName(key: SectionKey): string {
+  return t(`nav.${key}` as MsgKey);
+}
 
 interface CreateAction {
   label: string;
@@ -52,14 +60,14 @@ function useCreateRows(open: boolean) {
   const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: () => shopsApi().then((m) => (m ? m.fetchMyShopId() : untilReload())), enabled: shopsOn && open });
   const hasShop = !!myShop.data;
   const actions: Record<SectionKey, CreateAction[]> = {
-    jobs: [{ label: "Post a job", path: "/post-job", gated: true }],
+    jobs: [{ label: t("cs.postJob"), path: "/post-job", gated: true }],
     declutter: [
-      { label: "Sell an item", path: SELL_CHOOSER_PATH },
-      { label: "Give away free", path: SELL_FREE_PATH },
-      { label: "Post a Wanted", path: WANTED_POST_PATH },
+      { label: t("cs.sellItem"), path: SELL_CHOOSER_PATH },
+      { label: t("cs.giveFree"), path: SELL_FREE_PATH },
+      { label: t("cs.postWanted"), path: WANTED_POST_PATH },
     ],
-    shops: [{ label: hasShop ? "Add a product or service" : "Open a shop", path: "/shops/mine" }],
-    homes: [{ label: "List for rent", path: "/rentals?tab=own&add=1" }],
+    shops: [{ label: hasShop ? t("cs.addProduct") : t("cs.openShop"), path: "/shops/mine" }],
+    homes: [{ label: t("cs.listRent"), path: "/rentals?tab=own&add=1" }],
   };
   return { isOn, isPreview, actions };
 }
@@ -74,14 +82,15 @@ function useCreateRows(open: boolean) {
  * "Moving out sale" (Sell an item's chooser has it), no "No shop yet" beside Shops, no "or describe it" under Jobs
  * (Post a job offers it). Guard: src/test/centerCreateNav.test.tsx.
  */
-const WAYS: Record<number, string> = { 2: "two", 3: "three", 4: "four" };
+const WAYS: Record<number, MsgKey> = { 2: "cs.ways2", 3: "cs.ways3", 4: "cs.ways4" };
 /** "One account, two ways to get things done." from the number of sections listed (M8, owner 11-16). */
 export function waysLine(n: number): string {
-  return WAYS[n] ? `One account, ${WAYS[n]} ways to get things done.` : "One account to get things done.";
+  return t(WAYS[n] ?? "cs.ways1");
 }
 
 export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
+  useLanguage();
   const gate = useAgeGate();
   const { visible: shownSections, prefs, setHidden } = useSectionPrefs();
   const { isOn, isPreview, actions } = useCreateRows(open);
@@ -100,13 +109,13 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" floor data-testid="create-sheet" onOpenAutoFocus={focusSheetItself}>
-        <SheetHero moment title="What are we doing?" />
+        <SheetHero moment title={t("cs.title")} />
         {/* M8 (owner 11-16): the count is the sections this viewer is shown, so a member reads "two ways". */}
         <p className="text-ds-14 text-muted-foreground">{waysLine(visible.length)}</p>
         {hiddenOpen.length > 0 && (
           <div className="mt-4 liquid-glass px-4 py-3 flex flex-col items-start gap-2" data-testid="create-all-hidden">
             <p className="text-ds-14 text-foreground">
-              You hid {hiddenOpen.map((s) => s.label).join(" and ")} in Settings, so there's nothing to start here yet.
+              {t("cs.hidAll", { names: hiddenOpen.map((s) => sectionName(s.key)).join(` ${t("cs.and")} `) })}
             </p>
             <div className="flex flex-wrap gap-2">
               {hiddenOpen.map((s) => (
@@ -118,7 +127,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                   data-create-unhide={s.key}
                   onClick={() => setHidden(s.key, false)}
                 >
-                  Show {s.label}
+                  {t("cs.show", { name: sectionName(s.key) })}
                 </Button>
               ))}
             </div>
@@ -143,12 +152,12 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
               >
                 <div className="flex items-center gap-2.5 min-h-6">
                   <Icon className="w-5 h-5 shrink-0" aria-hidden style={{ color: on ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }} />
-                  <span className={`flex-1 min-w-0 text-ds-16 font-bold truncate ${on ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
+                  <span className={`flex-1 min-w-0 text-ds-16 font-bold truncate ${on ? "text-foreground" : "text-muted-foreground"}`}>{sectionName(s.key)}</span>
                   {on && isPreview(s) && <PreviewPill data-create-preview={s.key} />}
                   {!on && (
                     <ListRow variant="flush"
                       data-create-soon={s.key}
-                      onClick={() => sayComingSoon(s.label)}
+                      onClick={() => sayComingSoon(sectionName(s.key))}
                       className="w-auto py-0 gap-0 text-center min-h-11 -my-2.5 px-1 flex items-center"
                     >
                       <SoonPill />
@@ -168,7 +177,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                           aria-disabled
                           data-create-action={`${s.key}:${j}`}
                           data-create-action-soon=""
-                          onClick={() => sayComingSoon(s.label)}
+                          onClick={() => sayComingSoon(sectionName(s.key))}
                           className="rounded-full px-3 min-[360px]:px-4 text-ds-13 min-[360px]:text-ds-14 font-semibold tracking-normal border text-muted-foreground cursor-not-allowed shadow-none"
                           style={{ borderColor: "hsl(var(--border))", background: "hsl(var(--muted))" }}
                         >

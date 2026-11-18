@@ -480,7 +480,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/savedSearches/SaveSearchSheet.tsx` | checkbox/switch/radio×1 |  |  | save-search-sheet · Which section · save-search-summary · Email · save-search-email |
-| `src/pages/search/SearchPage.tsx` | input×1 | search |  | search-loading · search-loading-row · search-loading-chips · search-page · Search Helpr · Clear search · Show results from |
+| `src/pages/search/SearchPage.tsx` | input×1 | search |  | search-loading · search-loading-row · search-loading-chips · search-page |
 
 ## /shops
 

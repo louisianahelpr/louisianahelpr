@@ -116,7 +116,7 @@ describe("the LEFT sidebar (board 11)", () => {
     const badges = [...document.querySelectorAll("[data-sidebar-badge]")];
     expect(badges.length).toBeGreaterThan(1);
     for (const b of badges) expect(b.getAttribute("style")).toContain("hsl(var(--alert))");
-    expect(document.querySelector('[data-sidebar-item="/messages"] [data-sidebar-badge]')?.textContent).toBe("9+");
+    expect(document.querySelector('[data-sidebar-item="/messages"] [data-sidebar-badge]')?.textContent).toBe("12"); // area 02 #16: the shared 99+ cap, as the header
   });
 
   it("the Messages row is Inbox (owner 11-15): the last tab viewed, the icon's combined badge", () => {

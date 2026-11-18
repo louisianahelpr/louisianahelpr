@@ -5,7 +5,7 @@
 // @mutate src/components/NotificationPanelView.tsx | <div data-record-id="notifications-panel" | <div
 // @mutate scripts/audit/pressProdSafety.mjs |   if (meta.accountSetting === true) return true; |   void meta.accountSetting;
 // @mutate scripts/audit/press-every-control.mjs |       accountSetting: el.hasAttribute("data-account-setting"), |       accountSetting: false,
-// @mutate src/components/sections/CustomizeSheet.tsx | aria-label={`Move ${s.label} up`} data-account-setting | aria-label={`Move ${s.label} up`}
+// @mutate src/components/sections/CustomizeSheet.tsx | aria-label={t("cz.moveUp", { name })} data-account-setting | aria-label={t("cz.moveUp", { name })}
 // @mutate scripts/audit/press-every-control.mjs |   if (!selfValidated) return false; |   if (selfValidated === "never") return false;
 // @mutate scripts/audit/press-every-control.mjs |               !isInlineValidationRefusal({ toast: t, selfValidated, formText }) && |               true &&
 // @mutate e2e/a11y-prod/abortProdWrites.ts | u.searchParams.get("tab") === e.tab && aborted.has(e.fn)); | u.searchParams.get("tab") === e.tab);
@@ -117,7 +117,8 @@ describe("2. Customize's section-order buttons are gated as an account setting",
 
   it("both Move buttons carry the marker and ENUMERATE reads it", () => {
     const sheet = code("src/components/sections/CustomizeSheet.tsx");
-    const moves = sheet.match(/aria-label=\{`Move \$\{s\.label\} (?:up|down)`\}[^>]*/g) ?? [];
+    // The labels are t("cz.moveUp"/"cz.moveDown") since design audit area 02 #2 (Spanish), still "Move <section> up/down".
+    const moves = sheet.match(/aria-label=\{t\("cz\.move(?:Up|Down)", \{ name \}\)\}[^>]*/g) ?? [];
     expect(moves.length).toBe(2);
     for (const m of moves) expect(m).toContain("data-account-setting");
     expect(code("scripts/audit/press-every-control.mjs")).toMatch(/accountSetting: el\.hasAttribute\("data-account-setting"\)/);

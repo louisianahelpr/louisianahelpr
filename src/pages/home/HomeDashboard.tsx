@@ -8,7 +8,9 @@ import { takeHomeOwnPagePrefetch } from "./homeDashboard/homePrefetchTake";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Search } from "lucide-react";
+import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "@/components/sections/searchPill";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
@@ -199,6 +201,14 @@ function HomeDashboardScreen() {
           moment
           desktopGap={false}
           title={first ? `${greeting()}, ${first}` : greeting()}
+          // Design audit area 02 #6 (11-18): the desktop website's Home had no search at all (the phone's sits in its top
+          // row). The same /search link, as the desktop search pill, beside the greeting in the bar.
+          actions={
+            <Link to="/search" data-testid="home-desktop-search" className={`${DESKTOP_SEARCH_PILL_SURFACE} ${DESKTOP_SEARCH_PILL_WIDTH} inline-flex items-center gap-2 px-4 text-ds-15 text-muted-foreground ctl-tint`}>
+              <Search className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">{`${t("section.search")} ${t("section.noun.jobsAndItems")}`}</span>
+            </Link>
+          }
           // Phone: no greeting (owner 11-14, Depop/Vinted audit item 6: the page opens straight on Next up under the
           // search bar). The page's name is a hidden h1 like every section's (one page-title size, Q236e); index.html's
           // copy of this page (#lh-home-shell) draws no greeting either. Guard: src/test/homeGreetingShell.test.tsx.
@@ -348,8 +358,10 @@ function HomeDashboardScreen() {
 
             {todoOpen && (
               <div data-testid="todo-list" id="home-todo-list">
-                <GroupSection title={t("home.todo")} count={todoCount}>
-                  {summary.todos.map((td, i, arr) => (
+                {/* Design audit area 02 #8 (11-18): the list repeated the to-do the card above still shows; it lists the
+                    others ("rest") and the card keeps its own. */}
+                <GroupSection title={t("home.todo")} count={rest}>
+                  {summary.todos.filter((_, i) => i !== at).map((td, i, arr) => (
                     <GroupRow key={td.id} title={td.title} meta={td.meta} onClick={() => navigate(todoTarget(td, requestHelperStep))} last={i === arr.length - 1} />
                   ))}
                 </GroupSection>
@@ -480,7 +492,8 @@ function HomeDashboardScreen() {
                 count line when there is one ("Jobs · 1 needs you"); the bottom bar already holds every section, so the
                 old 2x2 boxes repeated it. The rest share ONE compact line (owner, 2026-10-21: no "Opening soon" cards). */}
             {chipsReady ? <>
-            <div data-section-chips="" className="flex flex-wrap gap-2">
+            {/* Design audit area 02 #20 (11-18): at 390 the chips wrapped 1/2/1; a two-column grid keeps them in even rows. */}
+            <div data-section-chips="" className="grid grid-cols-2 gap-2">
               {visible.filter(isLive).map((s) => {
                 // Only a real line (spec v2 §1.5: never a "0"); with none the chip is the section's name alone.
                 const line = summary.tiles[s.key];
@@ -493,7 +506,7 @@ function HomeDashboardScreen() {
                     size="sm"
                     data-section-tile={s.key}
                     onClick={() => navigate(s.path)}
-                    className="max-w-full gap-1.5 rounded-full px-3.5 text-ds-13 font-semibold tracking-normal"
+                    className="w-full min-w-0 justify-start gap-1.5 rounded-full px-3.5 text-ds-13 font-semibold tracking-normal"
                   >
                     <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                     <span className="truncate" title={line ? `${sectionLabel(s)} · ${line}` : sectionLabel(s)}>

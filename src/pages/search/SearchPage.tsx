@@ -36,6 +36,11 @@ import { pushRecentSearch } from "@/lib/searchHistory";
 import { searchJobPrice, type PricedJobHit } from "./searchJobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
+import "@/lib/i18n/enSearch";
+import { t, useLanguage } from "@/lib/i18n/language";
+
+/** Design audit area 02 #5: the box searches as you type, this long after the last key. */
+export const SEARCH_AS_YOU_TYPE_MS = 300;
 
 /**
  * /search?q= — one search across the sections (board 89).
@@ -189,7 +194,7 @@ function Group({ title, count, onSeeAll, children }: { title: string; count: num
         {onSeeAll && count > PER_SECTION && (
           <InlineTextButton onClick={onSeeAll} className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--bark))" }}>
             {/* Q2644: "See 20 of 59" read like a count of what is shown, not an action. */}
-            {count > MAX_ROWS ? "See more" : `See all ${count}`}
+            {count > MAX_ROWS ? t("srch.seeMore") : t("srch.seeAllN", { n: count })}
           </InlineTextButton>
         )}
       </div>
@@ -239,8 +244,8 @@ function ChipsSkeleton() {
 /** "Shops and Homes are coming soon." from the closed sections, in order; "" when none is closed. */
 function soonSentence(names: string[]): string {
   if (names.length === 0) return "";
-  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-  return `${list} ${names.length === 1 ? "is" : "are"} coming soon.`;
+  if (names.length === 1) return t("srch.soonOne", { name: names[0] });
+  return t("srch.soonMany", { names: `${names.slice(0, -1).join(", ")} ${t("srch.and")} ${names[names.length - 1]}` });
 }
 
 /**
@@ -254,7 +259,8 @@ function SoonLine({ names }: { names: string[] }) {
 }
 
 export default function SearchPage() {
-  usePageTitle("Search — Helpr");
+  useLanguage();
+  usePageTitle(t("srch.pageTitle"));
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const q = (params.get(SEARCH_PARAM) ?? "").trim();
@@ -289,6 +295,16 @@ export default function SearchPage() {
   const shopsOn = shops.on && !!user;
   const shopHits = useShopHits(q, shopsOn);
 
+  // Design audit area 02 #5 (11-18): it searched only on Enter, so the last results stayed under new words. The box
+  // now searches as you type (a pause of SEARCH_AS_YOU_TYPE_MS); Enter still searches at once and saves the words
+  // to Recent searches.
+  useEffect(() => {
+    const next = draft.trim();
+    if (next === q) return;
+    const id = setTimeout(() => setParams(next ? { [SEARCH_PARAM]: next } : {}, { replace: true }), SEARCH_AS_YOU_TYPE_MS);
+    return () => clearTimeout(id);
+  }, [draft]);
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const next = draft.trim();
@@ -316,20 +332,20 @@ export default function SearchPage() {
   const failed = jobs.isError || (declutterOn && items.isError) || (shopsOn && shopHits.isError);
   const qs = `${SEARCH_PARAM}=${encodeURIComponent(q)}`;
   const chips: { key: SearchSection; label: string; count?: number }[] = [
-    { key: "all", label: "All" },
-    ...(jobCount > 0 ? [{ key: "jobs" as const, label: "Jobs", count: jobCount }] : []),
-    ...(itemCount > 0 ? [{ key: "declutter" as const, label: "Declutter", count: itemCount }] : []),
-    ...(shopCount > 0 ? [{ key: "shops" as const, label: "Shops", count: shopCount }] : []),
+    { key: "all", label: t("srch.all") },
+    ...(jobCount > 0 ? [{ key: "jobs" as const, label: t("nav.jobs"), count: jobCount }] : []),
+    ...(itemCount > 0 ? [{ key: "declutter" as const, label: t("nav.declutter"), count: itemCount }] : []),
+    ...(shopCount > 0 ? [{ key: "shops" as const, label: t("nav.shops"), count: shopCount }] : []),
   ];
   const show = (s: SearchSection) => section === "all" || section === s;
   // AUD31-39: the box named Shops and Homes, both Coming soon, and was cut at 375; it names what it searches.
-  const fieldLabel = declutterOn ? (shopsOn ? "Search jobs, items and shops" : "Search jobs and items") : shopsOn ? "Search jobs and shops" : "Search jobs";
+  const fieldLabel = t(declutterOn ? (shopsOn ? "srch.field" : "srch.fieldJI") : shopsOn ? "srch.fieldJS" : "srch.fieldJ");
 
   return (
     // L005 (landing audit 11-09): a cold-opened link had no in-app entry behind it, so back went to about:blank.
-    <AppPage title="Search" onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
+    <AppPage title={t("srch.title")} onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
       <div className="space-y-4 pb-6" data-testid="search-page">
-        <form role="search" aria-label="Search Helpr" onSubmit={submit} className="flex items-center gap-2 h-12 pl-4 pr-1 rounded-full border border-border focus-within:ring-2 focus-within:ring-ring" style={{ background: "hsl(var(--card))" }}>
+        <form role="search" aria-label={t("srch.formAria")} onSubmit={submit} className="flex items-center gap-2 h-12 pl-4 pr-1 rounded-full border border-border focus-within:ring-2 focus-within:ring-ring" style={{ background: "hsl(var(--card))" }}>
           <Search className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
             type="search"
@@ -343,7 +359,7 @@ export default function SearchPage() {
             className="flex-1 min-w-0 bg-transparent outline-none focus-visible:outline-none font-sans text-ds-15"
           />
           {draft && (
-            <Button type="button" variant="ghost" size="iconCompact" onClick={() => setDraft("")} aria-label="Clear search" className="shrink-0 text-muted-foreground ctl-exit [&_svg]:size-4">
+            <Button type="button" variant="ghost" size="iconCompact" onClick={() => setDraft("")} aria-label={t("srch.clear")} className="shrink-0 text-muted-foreground ctl-exit [&_svg]:size-4">
               <X />
             </Button>
           )}
@@ -351,7 +367,7 @@ export default function SearchPage() {
 
         {q && loading && !failed && <ChipsSkeleton />}
         {q && chips.length > 1 && (
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Show results from">
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t("srch.showFrom")}>
             {chips.map((c) => {
               const on = section === c.key;
               return (
@@ -383,15 +399,15 @@ export default function SearchPage() {
         {!q && <SearchStart userId={user?.id ?? null} declutterOn={declutterOn} signedIn={!!user} />}
         {q && failed && (
           <div className="flex items-center justify-between gap-3 px-1" role="alert">
-            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--alert-ink))" }}>Search didn't load.</p>
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--alert-ink))" }}>{t("srch.failed")}</p>
             <button type="button" onClick={() => { void jobs.refetch(); if (declutterOn) void items.refetch(); if (shopsOn) void shopHits.refetch(); }} className="font-sans font-semibold text-ds-13 min-h-[44px] px-2" style={{ color: "hsl(var(--bark))" }}>
-              Try again
+              {t("srch.tryAgain")}
             </button>
           </div>
         )}
         {q && loading && !failed && (
           <>
-            <p role="status" className="sr-only">Searching…</p>
+            <p role="status" className="sr-only">{t("srch.searching")}</p>
             <GroupSkeleton />
           </>
         )}
@@ -399,18 +415,18 @@ export default function SearchPage() {
           // A real empty state (audit #27): what happened, and the way on.
           <EmptyState
             icon={Search}
-            title={`Nothing matches “${q}” yet`}
+            title={t("srch.nothing", { q })}
             // F221 (audit 11-10): a guest has no Save button (SaveSearchButton needs an account), so the guest copy
             // makes no promise there is nothing to tap for.
             body={user
-              ? "Save this search and we'll tell you when something new matches, or look through everything open now."
-              : "Try fewer words, or look through everything open now."}
+              ? t("srch.nothingMember")
+              : t("srch.nothingGuest")}
             // AUD31-32: it searched Declutter too, so it offers Declutter's Browse as well.
             action={
               <span className="inline-flex flex-wrap justify-center gap-x-4 gap-y-2">
-                <Link to="/jobs" className="font-sans font-semibold text-ds-14 underline underline-offset-2" style={{ color: "hsl(var(--bark))" }}>Browse all jobs</Link>
+                <Link to="/jobs" className="font-sans font-semibold text-ds-14 underline underline-offset-2" style={{ color: "hsl(var(--bark))" }}>{t("srch.browseJobs")}</Link>
                 {declutterOn && (
-                  <Link to="/declutter" className="font-sans font-semibold text-ds-14 underline underline-offset-2" style={{ color: "hsl(var(--bark))" }}>Browse Declutter</Link>
+                  <Link to="/declutter" className="font-sans font-semibold text-ds-14 underline underline-offset-2" style={{ color: "hsl(var(--bark))" }}>{t("srch.browseDeclutter")}</Link>
                 )}
               </span>
             }
@@ -418,7 +434,7 @@ export default function SearchPage() {
         )}
 
         {q && declutterOn && itemCount > 0 && show("declutter") && (
-          <Group title="Declutter" count={itemCount} onSeeAll={section === "all" ? () => setSection("declutter") : undefined}>
+          <Group title={t("nav.declutter")} count={itemCount} onSeeAll={section === "all" ? () => setSection("declutter") : undefined}>
             {items.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((it) => {
               const cents = it.current_price_cents ?? it.price_cents;
               return (
@@ -429,7 +445,7 @@ export default function SearchPage() {
         )}
 
         {q && shopsOn && shopCount > 0 && show("shops") && (
-          <Group title="Shops" count={shopCount} onSeeAll={section === "all" ? () => setSection("shops") : undefined}>
+          <Group title={t("nav.shops")} count={shopCount} onSeeAll={section === "all" ? () => setSection("shops") : undefined}>
             {shopHits.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((s) => (
               <Row key={s.id} to={`/shops/${s.id}`} title={s.name} sub={s.area_label} thumb={<Thumb icon={Store} seed={s.category} />} />
             ))}
@@ -437,14 +453,14 @@ export default function SearchPage() {
         )}
 
         {q && jobCount > 0 && show("jobs") && (
-          <Group title="Jobs" count={jobCount} onSeeAll={section === "all" ? () => setSection("jobs") : undefined}>
+          <Group title={t("nav.jobs")} count={jobCount} onSeeAll={section === "all" ? () => setSection("jobs") : undefined}>
             {jobs.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((j) => (
               <Row
                 key={j.id}
                 to={`/jobs/${j.id}`}
                 title={j.title}
                 thumb={<Thumb icon={getCategoryIcon(j.category)} seed={j.category} />}
-                sub={[j.parish ? `${j.parish} Parish` : null, j.date_needed ? jobDayLabel(j) : null].filter(Boolean).join(" · ") || null}
+                sub={[j.parish ? t("srch.parish", { parish: j.parish }) : null, j.date_needed ? jobDayLabel(j) : null].filter(Boolean).join(" · ") || null}
                 price={searchJobPrice(j, user?.id ?? null, viewerFee, firstPayoutFee)}
               />
             ))}
@@ -452,13 +468,13 @@ export default function SearchPage() {
         )}
         {q && section === "jobs" && jobCount > MAX_ROWS && (
           <Link to={user ? `/jobs?tab=browse&${qs}` : `/browse?${qs}`} className="block text-center font-sans font-semibold text-ds-13 min-h-[44px] leading-[44px]" style={{ color: "hsl(var(--bark))" }}>
-            See all {jobCount} in Jobs
+            {t("srch.seeAllJobs", { n: jobCount })}
           </Link>
         )}
 
         {/* M8/M9 (owner 11-16): Shops and Homes are hidden from members until they launch, so the line never names them. */}
         {q && section === "all" && switchesSettled && (
-          <SoonLine names={declutter.on ? [] : ["Declutter"]} />
+          <SoonLine names={declutter.on ? [] : [t("nav.declutter")]} />
         )}
       </div>
     </AppPage>

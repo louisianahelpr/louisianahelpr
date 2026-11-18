@@ -1,0 +1,31 @@
+/** Spanish for enDeclTodos.ts (design audit area 02 #4): Home's Declutter to-dos. */
+import type { enDeclTodos } from "./enDeclTodos";
+
+export const esDeclTodos: Record<keyof typeof enDeclTodos, string> = {
+  "dt.selling": "Vendiendo",
+  "dt.buying": "Comprando",
+  "dt.by": "antes del {when}",
+  "dt.problemTitle": "Agregue su versión: el vendedor reportó un problema con {item}",
+  "dt.problemMeta": "Comprando · el vendedor reportó un problema",
+  "dt.addSide": "Agregar su versión",
+  "dt.more": "{title} y {n} más",
+  "dt.yourOrder": "su pedido",
+  "dt.refundReq": "Responda una solicitud de reembolso",
+  "dt.refundOffer": "Responda la oferta de reembolso del vendedor",
+  "dt.answerReq": "Responder solicitud",
+  "dt.answerOffer": "Responder oferta",
+  "dt.offer": "Responda una oferta de {amount}",
+  "dt.counter": "Responda la contraoferta de {amount} del vendedor",
+  "dt.checkoutOne": "Pague {item}",
+  "dt.checkoutN": "Pague {n} artículos",
+  "dt.checkout": "Pagar",
+  "dt.handOver": "Entregue {item}",
+  "dt.pickUp": "Recoja {item}",
+  "dt.handOverMeta": "Vendiendo · vendido, falta la entrega",
+  "dt.pickUpMeta": "Comprando · pagado, falta recogerlo",
+  "dt.openSale": "Abrir venta",
+  "dt.openOrder": "Abrir pedido",
+  "dt.pickWho": "Elija quién se lleva {item}",
+  "dt.freeAsked": "Gratis · {n} lo pidieron",
+  "dt.pick": "Elegir",
+} as const;

@@ -11,8 +11,8 @@
  * free giver's "Pick who gets <item>", with how many asked.
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [], i.declutterProblems ?? [])) { |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, [], [], i.declutterProblems ?? [])) {
  * @mutate src/lib/declutter/declutterTodos.ts |     if (!Number.isFinite(due) \|\| due < now) continue;\n    const seller = r.my_side === "seller"; |     const seller = r.my_side === "seller";
- * @mutate src/lib/declutter/declutterTodos.ts |         meta: `${seller ? "Selling" : "Buying"} · ${what} · by ${byWhen(due)}`, |         meta: `${seller ? "Selling" : "Buying"} · ${what}`,
- * @mutate src/lib/declutter/declutterTodos.ts |         meta: `Free · ${f.asked} asked`, |         meta: "Free",
+ * @mutate src/lib/declutter/declutterTodos.ts |         meta: `${side(seller)} · ${what} · ${by(due)}`, |         meta: `${side(seller)} · ${what}`,
+ * @mutate src/lib/declutter/declutterTodos.ts |         meta: w("dt.freeAsked", `Free · ${f.asked} asked`, { n: f.asked }), |         meta: "Free",
  * @mutate src/lib/declutter/declutterTodos.ts |     if (f.asked < 1) continue; |     continue;
  * @mutate src/lib/declutter/declutterTodos.ts |     if (o.status !== "open" \|\| o.awaiting !== o.my_side) continue; |     if (o.status !== "open") continue;
  * @mutate src/lib/declutter/tabs.ts |     if (l.my_side !== "buyer" \|\| l.status !== "in_cart" \|\| !(new Date(l.checkout_by).getTime() > now)) continue; |     if (l.my_side !== "buyer" \|\| l.status !== "in_cart") continue;

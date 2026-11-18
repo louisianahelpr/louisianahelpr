@@ -36,6 +36,9 @@ import { esDeclErrors } from "./esDeclErrors";
 import { esSellerDeliveryErrors } from "./esSellerDeliveryErrors";
 import { esAiDraft } from "./esAiDraft";
 import { esListForSeller } from "./esListForSeller";
+import { esCreateSheets } from "./esCreateSheets";
+import { esSearch } from "./esSearch";
+import { esDeclTodos } from "./esDeclTodos";
 
 // The server-written notices' Spanish shapes ride this chunk, so they arrive with the words (language.ts, no flash)
 // and never sit on an English boot path.
@@ -72,6 +75,9 @@ export const es: Record<MsgKey, string> = {
   ...esSellerDeliveryErrors,
   ...esAiDraft,
   ...esListForSeller,
+  ...esCreateSheets,
+  ...esSearch,
+  ...esDeclTodos,
   "chat.back": "Volver a las conversaciones",
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",
@@ -121,7 +127,7 @@ export const es: Record<MsgKey, string> = {
   "lang.switchTo": "Cambiar el idioma a {lang}",
   "lang.legalInEnglish": "Los términos legales están en inglés. Hay un resumen en español en la página de Términos.",
 
-  "nav.home": "Panel",
+  "nav.home": "Inicio",
   "nav.dockHome": "Inicio",
   "nav.posts": "Publicaciones",
   "nav.jobs": "Trabajos",
@@ -396,6 +402,9 @@ export const es: Record<MsgKey, string> = {
   "soon.full": "Muy pronto",
   "next.lead": "Siguiente: {step}",
   "core.notNow": "Ahora no",
+  "home.stuckTitle": "No pudimos cargar su Inicio.",
+  "home.stuckBody": "Toque Intentar de nuevo. Si sigue igual, el problema es nuestro, no suyo.",
+  "core.tryAgain": "Intentar de nuevo",
 
   // Post a job (A3-3 part 2, 11-01). Money wording stays English (enPostJob.ts).
   "postJob.progress": "Progreso de publicar un trabajo",

@@ -28,7 +28,7 @@
  * @mutate src/pages/declutter/DeclutterMovePage.tsx |   return <Navigate to={SELL_MOVE_PATH} replace />; |   return <Navigate to="/declutter" replace />;
  * @mutate src/lib/declutter/sellChooser.ts |   return params.get("mode") === "choose"; |   return params.get("mode") !== "bunch";
  * @mutate src/components/sections/sectionsConfig.ts | add: { label: "Sell an item", path: SELL_CHOOSER_PATH } | add: { label: "Sell an item", path: "/declutter/sell" }
- * @mutate src/components/create/CreateSheet.tsx |       { label: "Sell an item", path: SELL_CHOOSER_PATH }, |       { label: "Sell an item", path: "/declutter/sell" },
+ * @mutate src/components/create/CreateSheet.tsx |       { label: t("cs.sellItem"), path: SELL_CHOOSER_PATH }, |       { label: t("cs.sellItem"), path: "/declutter/sell" },
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: t("decl.sellSomething"), to: SELL_CHOOSER_PATH } | { label: t("decl.sellSomething"), to: "/declutter/sell" }
  * @mutate src/components/declutter/SellChooserEntry.tsx |       to={SELL_CHOOSER_PATH} |       to="/declutter/sell"
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];

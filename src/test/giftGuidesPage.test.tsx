@@ -36,7 +36,9 @@ import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
-  PublicHeaderPage: ({ title, children }: { title: string; children: React.ReactNode }) => <main><h1>{title}</h1>{children}</main>,
+  PublicHeaderPage: ({ title, children, hidesTitle, phoneHidesTitle }: { title: string; children: React.ReactNode; hidesTitle?: boolean; phoneHidesTitle?: boolean }) => (
+    <main data-hides-title={String(!!hidesTitle)} data-phone-hides-title={String(!!phoneHidesTitle)}><h1>{title}</h1>{children}</main>
+  ),
 }));
 
 import GiftGuides from "@/pages/info/GiftGuides";
@@ -114,6 +116,34 @@ describe("gift guides: every pick links straight to its own affiliate link", () 
   });
 });
 
+describe("gift guides: sanity of the data (owner review 2026-11-17)", () => {
+  // @mutate src/content/giftGuideItems/christmas.ts | "Butterblu Matching Family Jammies Christmas Pajamas, Sage Trees" | "Butterblu Matching Family Jammies Christmas Pajamas, Navy Plaid"
+  it("no guide lists the same product twice: not the same link, not the same name", () => {
+    expect(Object.keys(BY_SECTION).length).toBeGreaterThan(5);
+    for (const m of Object.values(BY_SECTION)) {
+      for (const [id, list] of Object.entries(m)) {
+        const keys = list.map((it) => (it.asin ? `a:${it.asin}` : it.shopmy ? `s:${it.shopmy}` : `b:${it.brand}`));
+        const names = list.map((it) => (it.name ?? "").toLowerCase().replace(/[^a-z0-9]/g, "")).filter(Boolean);
+        expect(keys.filter((k, i) => keys.indexOf(k) !== i), id).toEqual([]);
+        expect(names.filter((n, i) => names.indexOf(n) !== i), id).toEqual([]);
+      }
+    }
+  });
+
+  it("every product photo is an https image address (no relative or broken path)", () => {
+    const withImage = ALL.filter(([, it]) => it.image !== undefined);
+    expect(withImage.length).toBeGreaterThan(1500);
+    for (const [id, it] of withImage) expect(it.image, id).toMatch(/^https:\/\/(static\.shopmy\.us|i\.pinimg\.com)\/\S+$/);
+  });
+
+  // @mutate src/content/giftGuides.ts | ?tag=${AMAZON_TAG}` | `
+  it("every Amazon link carries the website tag (tag=louisianahelpr-20)", () => {
+    const amazon = ALL.filter(([, it]) => it.asin);
+    expect(amazon.length).toBeGreaterThan(500);
+    for (const [id, it] of amazon) expect(toProduct(it).href, id).toBe(`https://www.amazon.com/dp/${it.asin}?tag=louisianahelpr-20`);
+  });
+});
+
 describe("gift guides: no banned brand, no Walmart, no prices", () => {
   const text = (it: ItemData) => `${it.name ?? ""} | ${it.store ?? ""} | ${it.brand ?? ""}`;
 
@@ -140,7 +170,10 @@ describe("gift guides: no banned brand, no Walmart, no prices", () => {
 describe("gift guides: covers and budget tiers", () => {
   it("every cover is a webp under public/gift-guide-covers/, small, with its size set", () => {
     const covered = GUIDE_LIST.filter((g) => g.cover);
-    expect(covered.length).toBeGreaterThan(80);
+    expect(covered.length).toBeGreaterThan(140);
+    // Owner review 2026-11-17: every guide has a cover (her pins, or one rendered with her generator).
+    // @mutate src/content/giftGuideList.ts | "cover": {"src": "/gift-guide-covers/amazon-brother.webp", "w": 600, "h": 900} | "cover": null
+    expect(GUIDE_LIST.filter((g) => !g.cover).map((g) => g.id)).toEqual([]);
     for (const g of covered) {
       const c = g.cover!;
       expect(c.src, g.id).toBe(`/gift-guide-covers/${g.id}.webp`);
@@ -180,6 +213,18 @@ describe("gift guides: the rendered page", () => {
       expect(a.getAttribute("target"), a.getAttribute("href")!).toBe("_blank");
     }
   };
+
+  // @mutate src/pages/info/GiftGuides.tsx | wrapTitle hidesTitle bottom | wrapTitle phoneHidesTitle bottom
+  it("the title shows once: the shared header keeps its h1 for screen readers at every width; the band paints it", () => {
+    const { container } = at(GIFT_GUIDES_PREVIEW);
+    const main = container.querySelector("main") as HTMLElement;
+    expect(main.getAttribute("data-hides-title")).toBe("true");
+    expect(main.getAttribute("data-phone-hides-title")).toBe("false");
+    // The shell forwards it to PageHeader, whose h1 then gets sr-only at every width.
+    // @mutate src/components/marketing/PublicHeaderPage.tsx | hidesTitle={hidesTitle} | hidesTitle={false}
+    expect(src("src/components/marketing/PublicHeaderPage.tsx")).toContain("hidesTitle={hidesTitle}");
+    expect(src("src/components/PageHeader.tsx")).toContain('hidesTitle ? " sr-only"');
+  });
 
   it("home: disclosure and the Amazon price note, codes with copy buttons, sections closed until opened", () => {
     const { container } = at(GIFT_GUIDES_PREVIEW);

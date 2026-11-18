@@ -361,7 +361,7 @@ export default function GiftGuides() {
     window.scrollTo(0, 0);
   }, [guide?.id]);
   return (
-    <PublicHeaderPage title={G.title} backTo="/" wrapTitle phoneHidesTitle bottomPaddingClassName="pb-12 md:pb-16">
+    <PublicHeaderPage title={G.title} backTo="/" wrapTitle hidesTitle bottomPaddingClassName="pb-12 md:pb-16">
       <div className="mx-auto w-full max-w-5xl space-y-6 font-sans" data-gift-guides="">
         {guide ? (
           <GuideView g={guide} />

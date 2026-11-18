@@ -71,8 +71,8 @@ export const ITEMS: Record<string, ItemData[]> = {
     {"name": "Capri Blue Volcano Stacking Candle Gift Set", "asin": "B000YBFJQU", "image": "https://i.pinimg.com/564x/54/c4/74/54c474a2d0684f092801b6b0260b2468.jpg"},
   ],
   "pajamas": [
-    {"name": "Butterblu Matching Family Jammies Christmas Pajamas", "shopmy": 106341108, "store": "Maisonette", "image": "https://static.shopmy.us/pins/zoom-106341108-1794866643902-kjmde977Ge42rQiEYGmsrrwHA.jpg"},
-    {"name": "Butterblu Matching Family Jammies Christmas Pajamas", "shopmy": 106341135, "store": "Maisonette", "image": "https://static.shopmy.us/pins/zoom-106341135-1794866646680-FobF_iqXKUtb3N6orooDjOjB8.jpg"},
+    {"name": "Butterblu Matching Family Jammies Christmas Pajamas, Navy Plaid", "shopmy": 106341108, "store": "Maisonette", "image": "https://static.shopmy.us/pins/zoom-106341108-1794866643902-kjmde977Ge42rQiEYGmsrrwHA.jpg"},
+    {"name": "Butterblu Matching Family Jammies Christmas Pajamas, Sage Trees", "shopmy": 106341135, "store": "Maisonette", "image": "https://static.shopmy.us/pins/zoom-106341135-1794866646680-FobF_iqXKUtb3N6orooDjOjB8.jpg"},
     {"name": "Caden Lane Christmas Bamboo Zipper Footies", "shopmy": 106341258, "store": "Caden Lane", "image": "https://static.shopmy.us/pins/zoom-106341258-1794866659894-CozyClaus_Products_041.jpg"},
     {"name": "Butterblu Dreamers Matching Family Coat Style Christmas Pajamas", "shopmy": 106341281, "store": "Maisonette", "image": "https://static.shopmy.us/uploads/img-product-1792509410880"},
     {"name": "Carter'S Carters Christmas Tree Sibling Family Matching Pajamas Collection", "shopmy": 106341427, "store": "Macy's", "image": "https://static.shopmy.us/pins/zoom-106341427-1794866678557-25319888_fpx.tif"},

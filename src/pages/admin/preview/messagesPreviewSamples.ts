@@ -86,6 +86,19 @@ function jobMatchNotices(me: string, ago: (min: number) => string) {
   ];
 }
 
+/** Area 05 #24: four made-up Declutter order chats (declutter_my_order_talks rows), newest first. */
+function declutterOrderTalks(ago: (minutes: number) => string) {
+  const row = (n: number, title: string, side: "buyer" | "seller", minAgo: number, lastMine: boolean, open = true) => ({
+    order_id: `00000000-0000-4000-d000-${String(n).padStart(12, "0")}`, side, title, photo_path: null, last_at: ago(minAgo), last_mine: lastMine, open,
+  });
+  return [
+    row(1, "Oak rocking chair (paid, pick a time)", "buyer", 12, false),
+    row(2, "Wicker basket (pickup booked)", "seller", 95, true),
+    row(3, "Box fan (problem reported)", "buyer", 60 * 6, false),
+    row(4, "Lamp (ended, chat closed)", "buyer", 60 * 30, true, false),
+  ];
+}
+
 /** The sample for one stage and side, around the admin's own id. `now` is injectable so a test can pin the clock. */
 export function messagesPreviewSample(stage: MessagesPreviewStage, side: MessagesPreviewSide, me: string, now: number = Date.now()): MessagesPreviewSample {
   const ago = (min: number) => new Date(now - min * 60_000).toISOString();
@@ -152,7 +165,9 @@ export function messagesPreviewSample(stage: MessagesPreviewStage, side: Message
       get_off_job_thread_state: null,
       get_muted_threads: [],
       get_job_offer_targets: [],
-      declutter_my_order_talks: [],
+      // Area 05 #24 (design audit 11-18): Declutter order chats in the inbox, so the order rows can be looked at here
+      // (a paid order, a booked pickup, one with a problem open, and an ended one whose chat is closed). Made-up ids.
+      declutter_my_order_talks: stage === "inbox" ? declutterOrderTalks(ago) : [],
       get_message_thread_job_titles: (body: Record<string, unknown>) => {
         const ids = Array.isArray(body.p_job_ids) ? (body.p_job_ids as string[]) : [];
         return jobs.filter((j) => ids.includes(j.id)).map((j) => ({ job_id: j.id, title: j.title }));

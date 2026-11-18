@@ -490,6 +490,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         ) : rows.length === 0 ? (
           // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place), in Jobs' slot (owner 11-12).
           <div className={BROWSE_EMPTY_SLOT} data-browse-empty-slot="">
+          {/* Area 05 #9 (11-18): the floating "+ Sell" covered this state's own "Ask for…" link; it steps aside here. */}
+          <HideSectionCreateFab />
           <BrowseEmptyState
             icon={Sofa}
             title={zipSearch ? t("decl.empty.zip", { q }) : q ? t("decl.empty.search") : filters.freeOnly && filterCount === 1 ? t("decl.empty.free") : filters.tradesOnly && filterCount === 1 ? t("decl.empty.trades") : filters.category && filterCount === 1 ? t("decl.empty.category", { category: CATEGORY_LABEL[filters.category] ? t(`decl.cat.${filters.category}` as MsgKey) : t("decl.empty.thisCategory") }) : filterCount > 0 ? t("decl.empty.filters") : others.length === 0 ? t("decl.empty.none") : t("decl.empty.close")}

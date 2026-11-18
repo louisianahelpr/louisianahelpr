@@ -169,11 +169,14 @@ const OWNER_1111_RECEIPT_FEE = "owner 2026-11-11 ~12:25 AM (audit 11-10 F380): D
 const RECEIPT_FEE_SURFACE = "src/pages/profile/Receipts.tsx";
 // @two-way src/test/membersSeeNoFeeWords.test.ts:the allowlist is exact: no entry nobody hits any more
 export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
-  "src/components/declutter/DeclutterCheckoutSummary.tsx::Service fee": `${OWNER_1107_DECLUTTER_FEE}: the checkout summary's "Service fee" line with its amount and an info tip`,
+  "src/lib/i18n/enDeclPanels.ts::Service fee": `${OWNER_1107_DECLUTTER_FEE}: the checkout summary's "Service fee" line (area 05 #1: its words moved to the dictionary for Spanish) with its amount and an info tip`,
   "supabase/functions/_shared/declutterSellerEmail.ts::Service fee": `${OWNER_1107_DECLUTTER_FEE}: the Declutter receipt email's "Service fee" line, the same line and amount as the checkout summary (owner's message review 11-09, F179)`,
   "src/components/declutter/DeclutterCheckoutSummary.tsx::$0.70 plus 5% of the items, once per checkout, however many items you buy from this seller. It pays for card processing and keeps Declutter running. The seller gets the full item price.": `${OWNER_1107_DECLUTTER_FEE}: the info tip on the checkout summary's "Service fee" line, with how it is worked out (audit 11-10 F354)`,
+  "src/lib/i18n/enDeclPanels.ts::$0.70 plus 5% of the items, once per checkout, however many items you buy from this seller. It pays for card processing and keeps Declutter running. The seller gets the full item price.": `${OWNER_1107_DECLUTTER_FEE}: the info tip on the checkout summary's "Service fee" line, with how it is worked out (audit 11-10 F354)`,
   "src/components/declutter/DeclutterCheckoutSummary.tsx::$0.70 plus 5% of the items and the seller's delivery, once per checkout. It pays for card processing and keeps Declutter running. The seller gets the full item price.": `${OWNER_1107_DECLUTTER_FEE}: the info tip on the checkout summary's "Service fee" line for a seller delivery (audit 11-10 F354)`,
+  "src/lib/i18n/enDeclPanels.ts::$0.70 plus 5% of the items and the seller's delivery, once per checkout. It pays for card processing and keeps Declutter running. The seller gets the full item price.": `${OWNER_1107_DECLUTTER_FEE}: the info tip on the checkout summary's "Service fee" line for a seller delivery (audit 11-10 F354)`,
   "src/components/declutter/DeclutterCheckoutSummary.tsx::$0.70 plus 5% of the items and the shipping, once per checkout. It pays for card processing and keeps Declutter running. The seller gets the full item price.": `${OWNER_1107_DECLUTTER_FEE}: the info tip on the checkout summary's "Service fee" line for shipping (audit 11-10 F354)`,
+  "src/lib/i18n/enDeclPanels.ts::$0.70 plus 5% of the items and the shipping, once per checkout. It pays for card processing and keeps Declutter running. The seller gets the full item price.": `${OWNER_1107_DECLUTTER_FEE}: the info tip on the checkout summary's "Service fee" line for shipping (audit 11-10 F354)`,
   "src/lib/i18n/enJobLines.ts::Card processing cost isn't refunded.": "owner decision 2026-11-09 (UI audit F089, via the lead): the same plain no-number line as refundWords' CARD_COST_NOT_REFUNDED, drawn by the job tracker's cancelled line from its dictionary (Spanish 14, F260q)",
   "src/lib/refundWords.ts::Card processing cost isn't refunded.": "owner decision 2026-11-09 (UI audit F089, via the lead): an expired, never-hired job keeps the card fee, and Receipts may say so in these plain words, no number",
   "src/lib/refundWords.ts::If no one is hired, you get your money back, less the small card processing cost if your card was already charged.": "owner decision 2026-11-09 (UI audit F089/F105, via the lead): Help's cancel answer says the card processing cost is kept when nobody is hired, no number",
@@ -299,7 +302,9 @@ describe("members see no fee words (owner 2026-10-25)", () => {
     expect(scoped.length).toBeGreaterThan(0);
     const outside = scoped.map(([k]) => k.split("::")[0]).filter((f) => !f.startsWith("src/components/declutter/")
       // F179 (11-09): Declutter's own receipt email, the one edge file the allowance covers.
-      && f !== "supabase/functions/_shared/declutterSellerEmail.ts");
+      && f !== "supabase/functions/_shared/declutterSellerEmail.ts"
+      // Area 05 #1 (11-18): the Declutter checkout summary's words, moved to the Declutter panels dictionary for Spanish.
+      && f !== "src/lib/i18n/enDeclPanels.ts");
     expect(outside, "the 11-07 fee allowance is for Declutter only").toEqual([]);
   });
 

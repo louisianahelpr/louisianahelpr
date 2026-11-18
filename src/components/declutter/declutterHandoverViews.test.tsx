@@ -18,7 +18,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
  * B134: a shipped order is its own card (never "Pickup at the seller's home" with a pickup booking).
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "ship" ? ( |       ) : false ? (
- * @mutate src/components/declutter/OrderCardHead.tsx |     case "ship": return order.side === "buyer" ? "Shipped to you" : "You ship it"; |     case "ship": return "Porch pickup";
+ * @mutate src/components/declutter/OrderCardHead.tsx |     case "ship": return order.side === "buyer" ? t("dbuy.how.shippedToYou") : t("dbuy.how.youShip"); |     case "ship": return t("ho.title.porch");
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel
  */
 // @mutate src/components/declutter/DeclutterFoldedTime.tsx |       <DateTimeField id={id} label={fieldLabel} value={value} onChange={setValue} /> |       <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} />

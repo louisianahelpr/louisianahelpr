@@ -16,15 +16,17 @@ import { photoPublicUrl } from "@/lib/declutter/api";
 import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
 import { isTradeOrder, type PaidOrder } from "./paidOrders";
 import { useTradedFor } from "./useMyTrades";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
 
 function howItComes(order: Pick<PaidOrder, "handover" | "side">): string {
   switch (order.handover) {
-    case "ship": return order.side === "buyer" ? "Shipped to you" : "You ship it";
-    case "porch": return "Porch pickup";
-    case "delivery": return "Helpr delivery";
-    case "seller_delivery": return "Seller delivers";
-    case "meetup": return "Meet at a safe spot";
-    default: return "Pickup at the seller's home";
+    case "ship": return order.side === "buyer" ? t("dbuy.how.shippedToYou") : t("dbuy.how.youShip");
+    case "porch": return t("ho.title.porch");
+    case "delivery": return t("ho.title.delivery");
+    case "seller_delivery": return t("ho.title.seller_delivery");
+    case "meetup": return t("dbuy.how.meetup");
+    default: return t("dbuy.how.home");
   }
 }
 
@@ -41,6 +43,7 @@ function OrderThumb({ path }: { path?: string }) {
 }
 
 export function OrderCardHead({ order, userId }: { order: PaidOrder; userId: string }) {
+  useLanguage();
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const trade = isTradeOrder(order);

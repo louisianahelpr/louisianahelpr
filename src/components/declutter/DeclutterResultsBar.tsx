@@ -21,7 +21,8 @@ export function DeclutterResultsHead({ query, count }: { query: string; count: n
   return (
     <div className="min-w-0" data-results-head="">
       <h2 className={`${TYPE.lg} truncate font-bold`} data-results-query="">{`“${query.trim()}”`}</h2>
-      {count !== null && (
+      {/* Area 05 #23 (11-18): with nothing found the empty state below says so; "0 items" above it said it twice. */}
+      {count !== null && count > 0 && (
         <p className={`${TYPE.sm} text-muted-foreground`} data-results-count="">
           {count === 1 ? t("decl.results.one") : t("decl.results.many", { n: count })}
         </p>

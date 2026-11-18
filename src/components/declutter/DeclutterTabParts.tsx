@@ -14,6 +14,8 @@ import { HandCoins, PackageCheck, type LucideIcon } from "lucide-react";
 import { fetchMyCart } from "@/lib/declutter/api";
 import { declutterTodo } from "@/lib/declutter/tabs";
 import { SectionHeading } from "./DeclutterTabHeads";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
 import type { BuyerOrderView } from "./BuyingOrders";
 import { useLinkedOrder, useLinkedOrderOutcome } from "./useLinkedOrder";
 import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
@@ -140,7 +142,7 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   const paidLabel = ended ? "Ended orders" : side === "buyer" ? "Purchases" : sellerTitle;
   const paidHeading = ended ? <></>
     : side === "buyer"
-      ? views ? <SectionHeading title="Your orders" /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
+      ? views ? <SectionHeading title={t("dbuy.order.yours")} /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
       : <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />;
   return (
     <>

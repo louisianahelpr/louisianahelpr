@@ -42,7 +42,7 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.star
     const url = new URL(p.href);
     if (url.protocol !== "https:") errors.push(`${slug}: ${p.href} is not https`);
     if (!hosts.has(url.hostname)) errors.push(`${slug}: ${url.hostname} is not allowlisted (add it to LOUISIANA_SHOPS)`);
-    if (url.hostname.endsWith("amazon.com") && url.searchParams.get("tag") !== "louisianahelpr-20") errors.push(`${slug}: ${p.href} lacks tag=louisianahelpr-20`);
+    if ((url.hostname === "amazon.com" || url.hostname.endsWith(".amazon.com")) && url.searchParams.get("tag") !== "louisianahelpr-20") errors.push(`${slug}: ${p.href} lacks tag=louisianahelpr-20`);
     for (const v of [p.name, p.line, p.why_trending]) if (/\$\s?\d/.test(v ?? "")) errors.push(`${slug}: price in "${v}"`);
     // Optional flags the research may add later (owner 2026-11-18 badges): copied only when true.
     const flags = Object.fromEntries(["trending", "shipsFast", "localPickup"].filter((k) => p[k] === true).map((k) => [k, true]));

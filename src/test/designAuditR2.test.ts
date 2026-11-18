@@ -414,3 +414,31 @@ describe("design audit r2 #48: phone sponsors list", () => {
     expect(css).toMatch(/@media \(max-width: 639px\) \{\s*\.admin-tabs-scroll \{\s*-webkit-mask-image: linear-gradient/);
   });
 });
+
+/**
+ * #32 (rest): the price step (minimum, cap, gift, urgent lines, the budget buttons' names), Set a price / Get quotes,
+ * the day strip's weekday names and the No set time / Other time chips were English in Spanish.
+ * @mutate src/components/postjob/whenChoices.ts |       weekday: at.toLocaleDateString(locale, { weekday: "short", timeZone: "UTC" }), |       weekday: at.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           { value: "price", label: tr("postJob.f.priceSet") }, |           { value: "price", label: "Set a price" },
+ */
+describe("design audit r2 #32: the price and when steps in Spanish", () => {
+  it("the weekday names follow the locale", async () => {
+    const { dayStrip } = await import("@/components/postjob/whenChoices");
+    expect(dayStrip("2026-11-18", 1, "es-US")[0].weekday.toLowerCase()).toMatch(/^mi[eé]/);
+    expect(dayStrip("2026-11-18", 1)[0].weekday).toBe("Wed");
+  });
+  it("the price step and the price choice draw dictionary words", () => {
+    const budget = blankComments(readFileSync("src/components/postjob/BudgetSection.tsx", "utf8"));
+    for (const k of ["budgetMin", "budgetSetTo", "budgetCap", "urgent", "urgentHelp", "urgentBonusRange", "customBonus", "giftPre", "giftPost", "budgetAria"]) {
+      expect(budget).toContain(`tr("postJob.f.${k}"`);
+      expect(es[`postJob.f.${k}` as keyof typeof es]).toBeTruthy();
+    }
+    expect(budget).not.toMatch(/>\s*Mark as urgent\s*</);
+    const choice = blankComments(readFileSync("src/components/quotes/PostJobQuoteChoice.tsx", "utf8"));
+    expect(choice).not.toMatch(/label: "(Set a price|Get quotes)"/);
+    expect(es["postJob.f.priceSet"]).toBe("Poner un precio");
+    const where = blankComments(readFileSync("src/components/postjob/LogisticsSection.tsx", "utf8"));
+    expect(where).toContain('dayStrip(todayYmd(), undefined, lang === "es" ? "es-US" : "en-US")');
+    expect(where).not.toMatch(/>(No set time|Other time)</);
+  });
+});

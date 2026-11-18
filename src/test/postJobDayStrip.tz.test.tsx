@@ -6,7 +6,7 @@
  * the 26th it already is in UTC. Runs in the `tz-sweep` vitest project (forks
  * pool), where assigning process.env.TZ moves the runtime zone; checked below.
  *
- * @mutate src/components/postjob/LogisticsSection.tsx | const strip = dayStrip(todayYmd()); | const strip = dayStrip(todayLocalISO());
+ * @mutate src/components/postjob/LogisticsSection.tsx | const strip = dayStrip(todayYmd(), | const strip = dayStrip(todayLocalISO(),
  * @mutate src/components/postjob/whenChoices.ts |     const at = new Date(Date.UTC(y, m - 1, d + i, 12)); |     const at = new Date(y, m - 1, d + i, 12);
  */
 import { useState } from "react";

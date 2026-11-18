@@ -27,7 +27,7 @@
  * @mutate supabase/migrations/20260923154148_job_budget_cap_1000.sql | ADD CONSTRAINT jobs_budget_range CHECK (budget >= 10 AND budget <= 1000); | ADD CONSTRAINT jobs_budget_range CHECK (budget >= 10 AND budget <= 5000);
  * @mutate supabase/migrations/20260923154148_job_budget_cap_1000.sql | IF NEW.budget IS NOT NULL AND NEW.budget > 1000 THEN | IF NEW.budget IS NOT NULL AND NEW.budget > 5000 THEN
  * @mutate supabase/functions/create-payment/index.ts | if (jobBudgetOutOfRange(job.budget)) { | if (false) {
- * @mutate src/components/postjob/BudgetSection.tsx | The most a job can be is {formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}. | The most a job can be is $5,000.
+ * @mutate src/components/postjob/BudgetSection.tsx | {tr("postJob.f.budgetCap", { max: formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS) })} | {tr("postJob.f.budgetCap", { max: "$5,000" })}
  * @mutate src/pages/post-job/useJobDerived.ts | && parseFloat(budget) <= MAX_JOB_BUDGET_DOLLARS); | );
  * @mutate scripts/audit/prod-seed.mjs | budget: [10, 45, 180, 450, 750, 999, 1000][i % 7], | budget: [10, 45, 180, 450, 750, 999, 5000][i % 7],
  */
@@ -115,7 +115,8 @@ describe("job price cap — one constant shared by client, server and DB (Q202)"
 
   it("the post-job budget field states the cap from the constant", () => {
     const src = blankComments(read("src/components/postjob/BudgetSection.tsx"));
-    expect(src).toMatch(/The most a job can be is \{formatDollarsWhole\(MAX_JOB_BUDGET_DOLLARS\)\}/);
+    // design audit r2 #32: the words are postJob.f.budgetCap (English and Spanish); the number is still the constant
+    expect(src).toContain('{tr("postJob.f.budgetCap", { max: formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS) })}');
     expect(src).toMatch(/>\s*MAX_JOB_BUDGET_DOLLARS/);
     // …and the step does not read "Done" on a budget submit will refuse.
     const derived = blankComments(read("src/pages/post-job/useJobDerived.ts"));

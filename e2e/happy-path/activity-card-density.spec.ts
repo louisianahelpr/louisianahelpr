@@ -502,8 +502,10 @@ test.describe("My Posts — card density + header", () => {
     // assertion here is about tap-target height, not wording — anchoring it to
     // the visible label keeps it green through the next re-phrasing of the
     // trailing context while still failing if the chip disappears.
-    for (const name of [/^Message\b/, /^No-show\b/]) {
-      const box = await page.getByRole("button", { name }).first().boundingBox();
+    // Area 03 H1 (design audit 11-18, money safety): a Helpr who never checked in puts "Report no-show" in the row's
+    // main button, and Message moves into More options with the release, so the row's own button is what is measured.
+    for (const name of [/^Report no-show\b/]) {
+      const box = await page.locator(POSTER_ROW).getByRole("button", { name }).first().boundingBox();
       expect(box, `${name} has no box`).not.toBeNull();
       expect(box!.height, `${name} tap target`).toBeGreaterThanOrEqual(44);
     }
@@ -706,8 +708,10 @@ test.describe("My Posts — card density + header", () => {
     });
     await openJobPage(page, IN_PROGRESS_ID);
 
-    // Message is the job page's main button while nothing is confirmable (owner rule 2026-10-21).
-    await page.getByRole("button", { name: /^Message\b/ }).first().click();
+    // The job started yesterday and the Helpr never checked in, so the row leads with "Report no-show" (Area 03 H1,
+    // design audit 11-18) and Message sits in More options (openMoreOptions returns the row itself when there is none).
+    const moves = await openMoreOptions(page);
+    await moves.getByRole("button", { name: /^Message\b/ }).first().click();
     await page.waitForURL(/\/messages\?/);
     const url = new URL(page.url());
     // Landing on the bare list — the old behaviour — leaves both params null.

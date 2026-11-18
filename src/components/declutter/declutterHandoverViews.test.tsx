@@ -394,7 +394,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // A3-49 (audit 11-01): the seller's unbooked sale says "waiting on the buyer" ONCE, naming the buyer.
   // @mutate src/components/declutter/DeclutterBookingPanel.tsx |   if (!booked && order.side === "seller") return null; |   if (!booked && order.side === "seller") return <p>Waiting for the buyer to book a pickup time (within 7 days of paying).</p>;
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const buyer = times.buyer \|\| "the buyer"; |   const buyer = "the buyer";
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const buyer = times.buyer \|\| t("dsl.nx.theBuyer"); |   const buyer = t("dsl.nx.theBuyer");
   it("the seller's unbooked sale says the wait once, with the buyer's first name (A3-49)", async () => {
     for (const handover of ["porch", "pickup_home", "meetup"]) {
       const { unmount } = show([line({ my_side: "seller", handover })]);
@@ -408,7 +408,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   });
 
   // B48 live check 2026-10-29: a safe-spot meetup's seller card said "book a pickup time".
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : waiting("book a time to meet") | : waiting("book a pickup time")
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : waiting("dsl.nx.waitBookMeet") | : waiting("dsl.nx.waitBookPickup")
   it("meetup: the seller waits for the buyer to book a time to meet", async () => {
     show([line({ my_side: "seller", handover: "meetup" })]);
     expect(await screen.findByText("Paid. Waiting on Dana to book a time to meet.")).toBeInTheDocument();
@@ -536,7 +536,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     // LEAD-DOOR-PAYLINE: said once, in the money note, with the owner's 10-30 rule; never "24 hours after you tap Picked up".
     // Q2634 (owner 11-02): one line; the rule, word for word, under Details.
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {ruleOpen && <span className="mt-1 block" data-payout-rule=""> | {true && <span className="mt-1 block" data-payout-rule="">
-    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {parts} after the handover.{" "} | {parts}. {sellerPayoutRule(kind)}{" "}
+    // @mutate src/lib/i18n/enDeclSell.ts | "dsl.youGetAfter": "You get {amount}{parts} after the handover.", | "dsl.youGetAfter": "You get {amount}{parts}. Paid after you tap Picked up.",
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | onClick={() => setRuleOpen((o) => !o)}> | onClick={() => undefined}>
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | <InlineTextButton className="font-semibold underline underline-offset-2" aria-expanded={ruleOpen} | <InlineTextButton aria-expanded={ruleOpen}
     expect((await screen.findByText(/^You get/)).textContent).toBe("You get $40 after the handover. Details");
@@ -962,21 +962,21 @@ describe("Declutter slice 4: paid-order cards", () => {
   // Next-step line (owner 11-01 12:02 PM): on a sale card the viewer's own move reads "Next: <step>" in the shared
   // NextStep line; the other side's move reads "Waiting on the buyer to …". Pinned by board 72, the free-claim loop,
   // the seller-delivers and meetup cases below.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : you("Put it out and take one photo where the buyer will find it"); | : info("Put it out and take one photo where the buyer will find it.");
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : you(t("dsl.nx.putOutOne")); | : info(t("dsl.nx.putOutOne"));
   // Audit 1110 F405: a booked door pickup names the booking's own time even with no order times read, so the line is
   // "Next: have it ready at the door · Pickup <time>" / "Pickup <time> · at the door".
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | ? you("Have it ready at the door", `Pickup ${chosen}`) : | ? info(`Have it ready at the door · Pickup ${chosen}`) :
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | { who: "you", text: "Deliver it at the time below" } | { who: "info", text: "Booked. The delivery time is below." }
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a time to meet") | them(`${paid} The buyer books a time to meet.`)
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | ? you(t("dsl.nx.readyAtDoor"), t("dsl.nx.pickupAt", { when: chosen })) : | ? info(`${t("dsl.nx.readyAtDoor")} · Pickup ${chosen}`) :
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | { who: "you", text: t("dsl.nx.deliverBelow") } | { who: "info", text: "Booked. The delivery time is below." }
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("dsl.nx.waitBookMeet") | them(`${paid} The buyer books a time to meet.`)
   // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a pickup time"); | them(`${paid} · waiting on the buyer to book a pickup time.`);
-  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? " · You're giving" : ""} | order.side === "seller" && items === 0 ? " · You're giving" : " · You're buying"}
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("dsl.nx.waitBookPickup"); | them(`${paid} · waiting on the buyer to book a pickup time.`);
+  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? t("dsl.giving") : ""} | order.side === "seller" && items === 0 ? t("dsl.giving") : " · You're buying"}
   // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
   // Area 06 L4 (11-18): on the Selling tab a paid sale no longer repeats "You're selling".
-  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? " · You're giving" | order.side === "seller" ? " · You're giving"
-  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? " · You're giving" : ""} | order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
+  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? t("dsl.giving") | order.side === "seller" ? t("dsl.giving")
+  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? t("dsl.giving") : ""} | order.side === "seller" ? (items === 0 ? t("dsl.giving") : " · You're selling") : ""}
   it("DA-3: the giver's card for a free item says \"You're giving\"; a paid one says neither", async () => {
     let read = 0;
     for (const [price, words, not] of [[0, "You're giving", /selling/], [4000, "", /giving|You're selling/]] as const) {
@@ -1246,7 +1246,7 @@ describe("boards 159 + 160: handover sheets", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && !((holdUnknown | {order.side === "seller" && payout && !((holdUnknown
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${payWords ? "; they're paid 24 hours later." : "."} | you have it${"; they're paid 24 hours later."}
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const paid = free ? "Claimed." : "Paid."; |   const paid = false ? "Claimed." : "Paid.";
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const paid = free ? t("dsl.nx.claimed") : t("dsl.nx.paid"); |   const paid = false ? t("dsl.nx.claimed") : t("dsl.nx.paid");
 describe("#6: a free claim never reads like a paid order", () => {
   // No leading \b: textContent runs the step labels together ("DonePaid").
   const MONEY = /paid\b|refund|payout|order total|\$\d/i;

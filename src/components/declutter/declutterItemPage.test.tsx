@@ -248,7 +248,7 @@ describe("the photo-first Declutter item page", () => {
   });
 
   // Owner 11-11 F229: a protection line under a paid price, naming porch pickup only where the listing offers it.
-  // @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && !isSeller && ( |  {false && (
+  // @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && !isSeller && (\n              <p data-item-protected="" |  {false && (\n              <p data-item-protected=""
   // @mutate src/components/declutter/DeclutterItemView.tsx | ${it.porch_ok !== false ? ", pick up from the porch" : ""} | , pick up from the porch
   it("F229: a paid listing says what protects the buyer; porch only where it is offered; none on a free item", async () => {
     const { unmount } = open();

@@ -13,7 +13,7 @@
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {t.talk_order_id && t.my_line_status !== "paid" && <TradeTalkButton orderId={t.talk_order_id} />}\n |
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx | {t.talk_order_id && t.my_line_status !== "paid" && | {t.talk_order_id &&
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |     next.set("order_talk", orderId); |     next.set("talk", orderId);
- * @mutate src/components/declutter/DeclutterTradeOffers.tsx | "Answer by" : "Waiting on the seller until" | "Answer:" : "Waiting on the seller until"
+ * @mutate src/lib/i18n/enDeclSell.ts | "dsl.tr.answerBy": "Answer by | "dsl.tr.answerBy": "Answer:
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx | variant="outline" data-trade-decline="" | variant="ghost" data-trade-decline=""
  * Audit 11-10 F360c: the accepted trade's link opens the cart's trade checkout (the one pickup step), not a reload.
  * Area 06 L8/L9 (11-18): a finished trade reads in the past; an ended trade sits below the ones still to answer.

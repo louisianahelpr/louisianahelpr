@@ -30,7 +30,7 @@ export function DeclutterSalesEarned({ rows, failed, onRetry }: { rows: SalePayo
             {/* Area 06b M8 (design audit 11-18, display only): each row opens its sale on Selling, and a payout that did
                 not go out says why, with the one place to fix it. The payout run and its rules are untouched. */}
             <Link to={`/declutter?tab=selling&order=${encodeURIComponent(r.order_id)}`} data-sale-payout-link=""
-              className="min-h-11 min-w-0 text-ds-14 font-semibold underline-offset-2 hover:underline [overflow-wrap:anywhere]" style={{ color: "hsl(var(--ink-deep))" }}>Sold: {r.title}</Link>
+              className="min-h-11 min-w-0 text-ds-14 font-semibold underline underline-offset-2 [overflow-wrap:anywhere]" style={{ color: "hsl(var(--ink-deep))" }}>Sold: {r.title}</Link>
             <span className="tabular-nums text-ds-13" style={{ color: r.status === "failed" ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.9)" }}>
               {formatCents(r.amount_cents)} · {salePayoutWords(r)}
             </span>

@@ -8,8 +8,8 @@
  * money ink), distance.
  *
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | onClick={() => setPosting(true)}>Post what you're looking for</Button> | onClick={() => setPosting(false)}>Post what you're looking for</Button>
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>{WANTED_SELLERS_SEE}</p> |
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>Your Wanted stays up 30 days. You can edit or close it anytime.</p> |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>{WANTED_SELLERS_SEE()}</p> |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>{t("dsl.w.stays")}</p> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold outline-none
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });\n      onClose(); |       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <DeclutterEmptyCard icon={Search} title="No Wanted posts yet" data-wanted-mine-empty="">Each post lasts 30 days, and sellers near you can answer it.</DeclutterEmptyCard> | <p />
@@ -21,7 +21,7 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {yourTurn && <Link | {false && <Link
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {userId && <WantedPostPhotos post={post} userId={userId} />} |       {null}
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         try { await addWantedPhoto(userId, id, f); } |         try { void f; }
- * @mutate src/components/declutter/DeclutterWantedViews.tsx | photos={editing ? null : <ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where= | photos={null} where=
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | photos={editing ? null : <ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} fieldLabel />} where= | photos={null} where=
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |             {w.photo_path && ( |             {false && (
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"} | text-[hsl(var(--burnt-sienna))]
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p className="text-ds-13 text-muted-foreground" data-wanted-where="">{where}</p> |
@@ -38,7 +38,7 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <FieldProblem id="wanted-what-problem" text={problems.what} /> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | {feeLine(form.maxPrice)} |
  * Q2578 (audit 1102a): the empty field's line is an example, not "A $30 item".
- * @mutate src/components/declutter/DeclutterWantedViews.tsx | return `${valid ? "A" : "For example, a"} | return `${"A"}
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | return t(valid ? "dsl.w.feeTyped" : "dsl.w.feeExample", | return t("dsl.w.feeTyped",
  * @mutate src/lib/i18n/enDeclSell.ts | "dsl.w.example": "e.g. kids bike" | "dsl.w.example": "Kids bike"
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | inputMode="numeric" value={form.maxPrice} enterKeyHint | inputMode="numeric" value={form.maxPrice} placeholder="30" enterKeyHint
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |   useEffect(() => { saveWantedDraft(form); }, [form, editing]);

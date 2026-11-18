@@ -30,38 +30,36 @@ import type { SponsorPublicState } from "@/lib/sponsor/types";
 import { blankComments } from "./helpers/blankNonCode";
 
 /**
- * The owner's lineup, day -> brands: her 2026-11-16 list plus (2026-11-17) every sponsor who said yes by email or
- * Facebook on their tracker day, and RYSE on every day the tracker lists it (the owner confirmed the tracker);
- * owner 2026-11-17 later: five unconfirmed sponsors pulled (Candle Bloom, Summar T., Aeva, Berkana, Pass the Everything);
- * then three added (Written on the River Dec 8, Summar T. Photography Dec 12, Crew Dog Dec 14);
- * then (owner 2026-11-17, batch 3) Oil Center Dec 1 and R&R Wedding Co. Dec 5 added, Manta Sleep moved Dec 10 -> Dec 3.
+ * The owner's lineup, day -> brands, exactly her 25 Days Sponsor Tracker's calendar (const D) as of 2026-11-17
+ * 11:20 PM: 109 giveaways (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
+ * itself: `node scripts/check-25days-lineup.mjs` (manual; the tracker lives on the owner's Desktop, not in CI).
  */
 const FINAL: Record<number, string[]> = {
-  1: ["homerunPET", "RYSE", "CMI Entertainment: A Christmas Carol", "Oil Center"],
-  2: ["Boston Mints", "RYSE", "World Ballet Company: The Nutcracker"],
-  3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Manta Sleep"],
-  4: ["K18 Hair", "RYSE", "Megan Benoit's Closet"],
-  5: ["Oyu Botanica", "RYSE", "R&R Wedding Co."],
-  6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery"],
-  7: ["Whimsies from Within", "RYSE"],
-  8: ["RYSE", "Written on the River"],
-  9: ["Peigneur Property Rentals", "RYSE", "Let's Create LLC"],
-  10: ["GentleStyle Brush", "RYSE"],
-  11: ["Boston Mints", "RYSE", "IDRA Wellness"],
-  12: ["Oyu Botanica", "RYSE", "Summar T. Photography"],
-  13: ["SRI Labs", "RYSE", "Hello Darlin'"],
-  14: ["The Sculpt Society", "Crew Dog"],
-  15: ["RYSE", "Britt Creates"],
-  16: ["SRI Labs", "RYSE", "3 Redneck Tenors"],
-  17: ["Cajun Belle Studio", "RYSE", "LMNT", "Bayou Grace Outfitters"],
-  18: ["Boston Mints", "RYSE"],
-  19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography"],
-  20: ["RYSE", "Cher Bebe Embroidery"],
-  21: ["The Soft Life Collective", "RYSE", "Bourque's Cajun Country Seasoning"],
-  22: ["RYSE", "LMNT", "Krazy Bull Kreations"],
-  23: ["Tiffany Morton Cosmetic Tattooing", "Faith & Fire BBQ"],
-  24: ["RYSE", "LMNT", "Hilma", "Playtopia Lafayette"],
-  25: ["Louisiana Helpr"],
+  1: ["homerunPET", "RYSE", "CMI Entertainment: A Christmas Carol", "Oil Center (Lafayette Festival of Lights)", "Faith & Fire BBQ"],
+  2: ["Boston Mints", "RYSE", "World Ballet Company: The Nutcracker", "David Rabalais (The Fois)", "Cher Bebe Embroidery"],
+  3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Manta Sleep", "Crabtrap Functional Fitness", "RoseMae Eimear Creations"],
+  4: ["K18 Hair", "RYSE", "Megan Benoit's Closet", "Kate McLeod", "Britt Creates"],
+  5: ["Oyu Botanica", "RYSE", "R&R Wedding Co.", "Breads and Sweets by Babs"],
+  6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery", "Rusty's Seasoning"],
+  7: ["Whimsies from Within", "RYSE", "Rock Bottom Golf", "Ripley's Crawfish"],
+  8: ["RYSE", "Written on the River", "Timeless Skin Care", "David Rabalais (The Fois)"],
+  9: ["Peigneur Property Rentals", "RYSE", "Let's Create LLC", "David Rabalais (The Fois)"],
+  10: ["GentleStyle Brush (CLM Creations)", "RYSE", "Handmade By Hayli", "Bake & Brush"],
+  11: ["Boston Mints", "RYSE", "IDRA Wellness", "Victoria Nicole Fine Art Portraits"],
+  12: ["Oyu Botanica", "RYSE", "Summar T. Photography", "RoseMae Eimear Creations", "Rip Van Winkle Gardens"],
+  13: ["SRI Labs", "RYSE", "Hello Darlin'", "Kee's Pretty Little Things"],
+  14: ["The Sculpt Society", "Crew Dog", "Aeva Beauty", "The Humble Home Decor & Candles"],
+  15: ["RYSE", "Britt Creates", "Zydeco Chop Chop", "Proof & Pour Wax Co."],
+  16: ["SRI Labs", "RYSE", "3 Redneck Tenors", "Haylie Rudisill (custom wreath sashes)"],
+  17: ["Cajun Belle Studio", "LMNT", "Bayou Grace Outfitters", "Dolly's Boutique"],
+  18: ["Boston Mints", "RYSE", "HOTWORX Baton Rouge (Millerville)", "Basic Bee"],
+  19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography", "Tushbaby"],
+  20: ["RYSE", "Cher Bebe Embroidery", "Dupuy's Abbeville", "Salty Cat", "Rip Van Winkle Gardens"],
+  21: ["The Soft Life Collective", "RYSE", "Bourque's Cajun Country Seasoning", "Rusty's Seasoning"],
+  22: ["LMNT", "RYSE", "Krazy Bull Kreations", "Bashi", "Handmade By Hayli"],
+  23: ["Tiffany Morton Cosmetic Tattooing", "Faith & Fire BBQ", "Bashi", "Mary Kay", "IDRA Wellness"],
+  24: ["LMNT", "Hilma", "Playtopia Lafayette", "Bashi", "K18 Hair"],
+  25: ["Louisiana Helpr", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)", "Proof & Pour Wax Co.", "Bashi"],
 };
 
 const NO_DB: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
@@ -74,6 +72,9 @@ describe("the final lineup", () => {
     const got = Object.fromEntries(days.map((d) => [d.day, d.partners.map((p) => p.brand)]));
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
+    // 109 giveaways, and no brand twice on one day (each partner's row is keyed by its brand).
+    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(109);
+    for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
 
   it("renders each day's brands and prizes; a shared day says how many winners", () => {
@@ -103,20 +104,20 @@ describe("the final lineup", () => {
   });
 
   it("a day the lineup lists never reads Open on the sign-up calendar, even with no sign-up row", () => {
-    expect(tileCount(NO_DB, 4)).toBe(3);
-    expect(tileCount(NO_DB, 25)).toBe(1);
-    expect(tileCount(NO_DB, 24)).toBe(4);
-    expect(tileCount(NO_DB, 14)).toBe(2);
-    expect(tileCount(NO_DB, 8)).toBe(2);
-    expect(tileCount(NO_DB, 12)).toBe(3);
-    expect(tileCount(NO_DB, 1)).toBe(4);
-    expect(tileCount(NO_DB, 3)).toBe(3);
-    expect(tileCount(NO_DB, 5)).toBe(3);
-    expect(tileCount(NO_DB, 10)).toBe(2);
-    expect(tileCount({ dayCounts: { 2: 5 } }, 2)).toBe(5);
+    expect(tileCount(NO_DB, 4)).toBe(5);
+    expect(tileCount(NO_DB, 25)).toBe(4);
+    expect(tileCount(NO_DB, 24)).toBe(5);
+    expect(tileCount(NO_DB, 14)).toBe(4);
+    expect(tileCount(NO_DB, 8)).toBe(4);
+    expect(tileCount(NO_DB, 12)).toBe(5);
+    expect(tileCount(NO_DB, 1)).toBe(5);
+    expect(tileCount(NO_DB, 3)).toBe(5);
+    expect(tileCount(NO_DB, 5)).toBe(4);
+    expect(tileCount(NO_DB, 10)).toBe(4);
+    expect(tileCount({ dayCounts: { 2: 7 } }, 2)).toBe(7);
     render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} nowMs={Date.UTC(2026, 10, 16)} />);
     const day4 = screen.getByRole("button", { name: /^December 4,/ });
-    expect(day4.textContent).toContain("3 brands joined");
+    expect(day4.textContent).toContain("5 brands joined");
     expect(screen.getByRole("button", { name: /^December 17,/ }).textContent).toContain("4 brands joined");
   });
 });

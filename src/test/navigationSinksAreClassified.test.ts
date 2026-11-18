@@ -105,6 +105,13 @@ const OBJECT_URL = "URL.createObjectURL() of a Blob the app built itself (blob: 
 const MAPS = "mapsSearchUrl(): a fixed https://maps.apple.com / maps:// / geo: prefix + encodeURIComponent(address)";
 
 const CLASSIFIED: Record<string, string> = {
+  // Gift guides (owner 2026-11-18) and the admin stage-preview list (design audit area 10).
+  "components/admin/AdminStagePreviews.tsx::p.href": "STAGE_PREVIEWS: a fixed list of in-app /admin/preview/... paths in the same file",
+  "pages/info/GiftGuides.tsx::l.href": "GiftOut's prop (G.allLinks, our content file); GiftOut forces https:// onto it (`https://${href.replace(/^https:\\/\\//, \"\")}`)",
+  "pages/info/giftGuides/GiftGuideView.tsx::pick.href": "GiftOut's prop (a guide's picks, our content file); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideView.tsx::l.href": "GiftOut's prop (a guide's links, our content file); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideShare.tsx::links.facebook": "shareLinks(): a fixed https://www.facebook.com/sharer/... prefix + URLSearchParams",
+  "pages/info/giftGuides/GiftGuideShare.tsx::links.pinterest": "shareLinks(): a fixed https://www.pinterest.com/pin/create/... prefix + URLSearchParams",
   // 25 Days sponsor page (owner 2026-11-09).
   "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,
   "pages/auth/completeProfile/ConsentStep.tsx::href": "link()'s prop: its only callers pass the fixed in-app paths \"/terms\", \"/rules\" and \"/privacy\"",

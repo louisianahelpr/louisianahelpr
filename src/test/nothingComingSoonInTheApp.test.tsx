@@ -161,7 +161,8 @@ describe("(c) every soon mark reads the helper", () => {
     );
   // Files that draw a soon mark for a section or a disabled quote button.
   // F260q: a landing mark can read its Spanish from the dictionary: {w("landing.comingSoon", "Coming soon")}.
-  const MARK = /<SoonPill\b|<PreviewPill\b|>\s*Coming soon\s*<|>\s*\{w\("[\w.]+", "Coming soon"\)\}\s*</;
+  // Train 11-18: a mark can also be a plain dictionary word: {tr("postJob.f.comingSoon")} (PostJobQuoteChoice).
+  const MARK = /<SoonPill\b|<PreviewPill\b|>\s*Coming soon\s*<|>\s*\{w\("[\w.]+", "Coming soon"\)\}\s*<|>\s*\{tr?\("[\w.]*comingSoon"\)\}\s*</;
   // Reads the helper, or the `listed` answer it feeds (useSectionTabs / useSectionIsListed).
   const READS = /hideUnopenedInApp\(|\.listed\b|useSectionIsListed\(|isListed\(/;
   // Web-only pages: the marketing landing (the app opens on sign-in, never the landing). Exact both ways.
@@ -169,7 +170,8 @@ describe("(c) every soon mark reads the helper", () => {
 
   it("finds the marks, and each file outside the web-only list hides them in the app", () => {
     const files = walk("src").filter((f) => !f.startsWith("src/test/") && MARK.test(blankComments(readFileSync(resolve(ROOT, f), "utf8"))));
-    expect(files.length).toBeGreaterThan(6);
+    // 6 today: the You landing's preview tiles and their marks went away for everyone until launch (train 11-18).
+    expect(files.length).toBeGreaterThan(5);
     const missing = files.filter((f) => !WEB_ONLY.has(f) && !READS.test(blankComments(readFileSync(resolve(ROOT, f), "utf8"))));
     expect(missing).toEqual([]);
     for (const f of WEB_ONLY) expect(files).toContain(f);

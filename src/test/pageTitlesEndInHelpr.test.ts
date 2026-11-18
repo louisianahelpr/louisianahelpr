@@ -36,7 +36,8 @@ function literalTitles(): Array<{ file: string; title: string }> {
 describe("tab titles read '<Page> — Helpr' (F137)", () => {
   it("the inventory is real: many screens, some literal titles", () => {
     expect(screens.length).toBeGreaterThan(500);
-    expect(literalTitles().length).toBeGreaterThan(5);
+    // 5 today: Search's title moved to the dictionary (usePageTitle(t("srch.pageTitle")), train 11-18).
+    expect(literalTitles().length).toBeGreaterThan(4);
   });
 
   it("every literal usePageTitle ends with ' — Helpr'", () => {

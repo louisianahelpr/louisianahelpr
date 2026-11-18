@@ -127,6 +127,8 @@ function renderSites(): RenderSite[] {
           ? `${expression} /* = */ ${consts.get(n.expression.text)}`
           : expression;
       if (!READS_START_TIME.test(resolved)) return;
+      // A dictionary lookup by a literal key (tr("postJob.f.startTime")) prints a label word, never a time value.
+      if (/^(?:t|tr)\("[\w.]+"\)$/.test(resolved)) return;
       sites.push({
         file: rel,
         line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1,

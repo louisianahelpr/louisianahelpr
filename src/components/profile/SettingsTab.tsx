@@ -25,6 +25,7 @@ import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
 import { ShowInSearchSwitch } from "@/components/profile/ShowInSearchSwitch";
 import { useSavedJobAddress } from "@/pages/post-job/useSavedJobAddress";
+import { composeLocationString } from "@/pages/post-job/postJobFormHelpers";
 import "@/lib/i18n/enAccount";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useLanguage } from "@/lib/i18n/language";
@@ -320,7 +321,7 @@ function SavedAddressRow() {
   const { t } = useLanguage();
   const { savedAddress } = useSavedJobAddress();
   const line = savedAddress
-    ? `${savedAddress.streetAddress}, ${savedAddress.city}, ${savedAddress.addrState} ${savedAddress.zipCode}`
+    ? composeLocationString(savedAddress)
     : t("acct.savedAddressNone");
   return (
     <div data-settings-row="saved-address" className="w-full min-h-[56px] flex items-center gap-3 px-4 py-3 text-left">

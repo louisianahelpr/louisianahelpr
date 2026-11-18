@@ -25,7 +25,8 @@ interface WarningsTabProps {
 //   3rd strike — 7-day account restriction while an admin reviews it
 import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
-import { TAB_TITLES } from "@/pages/profile/types";
+import "@/lib/i18n/enAccount";
+import { t, useLanguage } from "@/lib/i18n/language";
 
 const STRIKE_LABELS = ["Written warning", "Final warning", "7-day restriction"] as const;
 
@@ -36,6 +37,7 @@ function actionLabel(action: string): string {
 }
 
 export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
+  useLanguage();
   const strikeCount = violations.filter((v) => v.action_taken === "warning" || v.action_taken === "final_warning").length;
   const hasBan = violations.some((v) => v.action_taken === "permanent_ban");
   // `temp_ban` is the value that is ACTUALLY written — BanDialog.tsx:175 —
@@ -75,7 +77,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   return (
     <ProfileTabBody>
       <ProfileTabHeader
-        title={TAB_TITLES.warnings}
+        title={t("acct.warningsTitle")}
         onBack={onBack}
       />
 
@@ -140,7 +142,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                     {body}
                   </p>
                   {showProgress && (
-                    <div className="pt-1 space-y-1.5" role="img" aria-label={`${strikesOf3} of 3 strikes on the 3-strike system`}>
+                    <div className="pt-1 space-y-1.5" role="img" aria-label={t("acct.strikesOf3Label", { n: strikesOf3 })}>
                       <div className="flex items-center justify-center gap-1.5">
                         {STRIKE_LABELS.map((label, i) => (
                           <span
@@ -151,16 +153,16 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                           />
                         ))}
                       </div>
-                      {/* 0.65 measured 4.46:1 — a 0.04 miss on the 4.5 AA bar at 11px. */}
-                      <p className="text-ds-11 font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                        {strikesOf3} of 3 strikes
+                      {/* Design audit area 09 L13: a 13px sentence-case line (was 11px "0 OF 3 STRIKES" in capitals). */}
+                      <p className="text-ds-13 font-semibold" data-strikes-line="" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                        {t("acct.strikesOf3", { n: strikesOf3 })}
                       </p>
                     </div>
                   )}
                 </div>
               );
             };
-            if (hasBan) return renderHero(Shield, "destructive", "Account banned", "Permanently banned due to policy violations.", true);
+            if (hasBan) return renderHero(Shield, "destructive", t("acct.banned"), t("acct.bannedBody"), true);
             // The rung sentences come from CANCELLATION_LADDER_RUNGS, not from
             // here. Three surfaces used to hand-type this ladder and all three
             // were TRUE — which is exactly why it needed a constant rather than
@@ -170,15 +172,16 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
             // `where` is the rung the account is ON; `next` is what the one
             // after it costs, which is the part that changes behaviour.
             const rung = (i: number) => CANCELLATION_LADDER_RUNGS[i]?.replace(/^\S+\s+—\s+/, "") ?? "";
-            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Suspended", `3rd strike: ${rung(2)}.`, true);
+            if (hasSuspension) return renderHero(AlertTriangle, "orange", t("acct.suspended"), `3rd strike: ${rung(2)}.`, true);
             if (strikeCount > 0) return renderHero(
-              AlertTriangle, "amber", `Strike ${strikeCount} of 3`,
+              AlertTriangle, "amber", t("acct.strikeN", { n: strikeCount }),
               strikeCount === 1
                 ? `1st strike: ${rung(0)}. A 2nd strike is a ${rung(1)}.`
                 : `2nd strike: ${rung(1)}. A 3rd strike means ${rung(2)}.`,
               true,
             );
-            return renderHero(CheckCircle2, "primary", "Good standing", "No warnings or violations on record. Keep it up.", true);
+            // Design audit area 09 L13: no trailing "Keep it up." (it sat alone on its own line).
+            return renderHero(CheckCircle2, "primary", t("acct.good"), t("acct.goodBody"), true);
           })()}
 
           {/* Violation history — only when there's actual history. With

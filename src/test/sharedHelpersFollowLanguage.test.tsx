@@ -22,6 +22,7 @@ import { MemoryRouter } from "react-router-dom";
 
 const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (m: string) => toastError(m), info: vi.fn(), success: vi.fn(), warning: vi.fn(), message: vi.fn() }) }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null }) }));
 vi.mock("@/components/profile/DeleteAccountReauth", () => ({
   useDeleteReauth: () => ({ fields: null, ready: true, confirm: async () => true }),
 }));

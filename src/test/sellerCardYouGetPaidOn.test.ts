@@ -40,7 +40,7 @@
  * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "held_for_review", "unknown"]) | new Set(["pending", "failed", "unknown", "settled_by_hand"])
  * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "held_for_review", "unknown"]) | new Set(["pending", "failed", "unknown"])
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, | refundAgreed: null,
- * @mutate src/components/declutter/DeclutterPorchHandover.tsx | ` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)` | ` (${formatPrice(itemsCents)} for the sale and ${formatPrice(deliveryCents)} for delivering it)`
+ * @mutate src/components/declutter/DeclutterPorchHandover.tsx | t("dsl.deliveryParts", { items: formatPrice(itemsCents), delivery: formatPrice(deliveryCents) }) | t("dsl.deliveryParts", { items: formatPrice(itemsCents + deliveryCents), delivery: formatPrice(deliveryCents) })
  * Owner 11-11 ~3:25 PM: the fee comes out of the FIRST payout actually sent; every card shows it on that sale only. The
  * server names the sale (declutter_my_setup_fee, 20261111212343); the card takes the fee off only there, including the
  * pre-handover "You get".
@@ -165,7 +165,9 @@ describe("F360b: the seller card's one money line", () => {
     expect(views).toContain("holdUnknown={feeUnknown || !problemsSettled || feeUnsure.has(o.orderId)}");
     expect(views).toMatch(/!\(\(holdUnknown \|\| \(refundRequests && !refund\.isSuccess\) \|\| lastProblem\.isLoading\) && \(payout\.status === "pending" \|\| payout\.status === "failed"\)\) && <p/);
     expect(views).toMatch(/setupFeeAhead=\{feeAhead\.get\(o\.orderId\) \?\? 0\}/);
-    expect(code("src/components/declutter/DeclutterPorchHandover.tsx")).toContain("` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)`");
+    // Area 06b H1: the parts' words live in enDeclSell (Spanish in esDeclSell); the card fills in the two amounts.
+    expect(code("src/components/declutter/DeclutterPorchHandover.tsx")).toContain('t("dsl.deliveryParts", { items: formatPrice(itemsCents), delivery: formatPrice(deliveryCents) })');
+    expect(code("src/lib/i18n/enDeclSell.ts")).toContain('"dsl.deliveryParts": " ({items} + {delivery} delivery)"');
   });
 
   it("owner 11-11 ~3:25 PM: the fee shows only on the sale the server names, before and after the handover", () => {

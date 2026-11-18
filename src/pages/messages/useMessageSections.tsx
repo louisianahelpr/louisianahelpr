@@ -5,7 +5,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, type ReactNode } from 
 import { FilterChips } from "@/components/ui/FilterChips";
 import { useSearchParams } from "react-router-dom";
 import { MailCheck } from "lucide-react";
-import { sectionByKey } from "@/components/sections/sectionsConfig";
+import { sectionByKey, type SectionKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
@@ -27,6 +27,11 @@ import {
 
 // Q1947: Messages -> Shops lists the member's shop chats (ShopTalkInbox). Its own chunk: only a member with Shops on
 // the Shops chip loads it, so the inbox every signed-in member opens does not carry the Shops chat sheet.
+/** The section chips' words: the nav's own keys, so Spanish reads Trabajos / Declutter / Tiendas / Casas. */
+const SECTION_CHIP_KEY: Partial<Record<SectionKey, "nav.jobs" | "nav.declutter" | "nav.shops" | "nav.homes">> = {
+  jobs: "nav.jobs", declutter: "nav.declutter", shops: "nav.shops", homes: "nav.homes",
+};
+
 const ShopTalkRows = lazy(() => import("@/components/messages/ShopTalkInbox").then((m) => ({ default: m.ShopTalkRows })));
 function ShopTalkLead({ empty }: { empty: ReactNode }) {
   return <Suspense fallback={null}><ShopTalkRows empty={empty} /></Suspense>;
@@ -119,7 +124,8 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     { value: "all", label: t("msg.filterAll") },
     // The real unread-thread count, or no number at all (never "· 0").
     { value: "unread", label: unread > 0 ? t("msg.filterUnreadN", { n: unread }) : t("msg.filterUnread") },
-    ...chipTabs.map((k) => ({ value: k, label: sectionByKey(k).label })),
+    // Area 08 H2: the section chips in the app language (the nav's own words: Trabajos, Declutter, Tiendas, Casas).
+    ...chipTabs.map((k) => ({ value: k, label: SECTION_CHIP_KEY[k] ? t(SECTION_CHIP_KEY[k]) : sectionByKey(k).label })),
   ];
   // M6 (iOS audit 11-16): the shared FilterChips, the same row the Notifications tab uses (All first).
   const strip = (

@@ -18,6 +18,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { en } from "@/lib/i18n/en";
 
 const ROOT = resolve(__dirname, "../..");
 const read = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
@@ -38,7 +39,11 @@ describe("Q132: messy-input reaches the post-job price field", () => {
     expect(rx, "BUDGET_FIELD_LABEL not found").not.toBeNull();
     const re = new RegExp(rx![1], rx![2]);
     const field = budget.slice(budget.indexOf('<CurrencyInput\n            id="budget"') >= 0 ? budget.indexOf('<CurrencyInput\n            id="budget"') : budget.search(/<CurrencyInput\s+id="budget"/));
-    const label = /aria-label="([^"]+)"/.exec(field.slice(0, 600))?.[1];
+    // design audit r2 #32: the label is a dictionary word (aria-label={tr("postJob.f.budgetAria")}); the spec runs in
+    // English, so it must match the English value.
+    const literal = /aria-label="([^"]+)"/.exec(field.slice(0, 600))?.[1];
+    const key = /aria-label=\{tr\("([^"]+)"\)\}/.exec(field.slice(0, 600))?.[1];
+    const label = literal ?? (key ? (en as Record<string, string>)[key] : undefined);
     expect(label, "budget field aria-label").toBeTruthy();
     expect(re.test(label!), `"${label}" vs ${re}`).toBe(true);
   });

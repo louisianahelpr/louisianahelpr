@@ -3,7 +3,7 @@
  * rule is tested apart from the screen (src/lib/declutter/payoutWords.test.ts). Moved out of DeclutterHandoverViews.tsx
  * for D2-6 (audit 1b #6). Never a fee figure: only what was refunded and what the seller owed.
  */
-import { formatPrice } from "@/lib/declutter/distance";
+import { formatPrice } from "@/lib/declutter/formatPrice";
 import type { MyPayout } from "@/lib/declutter/handover";
 
 /**

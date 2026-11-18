@@ -579,11 +579,14 @@ describe("a job-card action row is ONE kind of control", () => {
       const panel = document.querySelector("[data-job-step-overflow-panel]");
       // The panel is a popover (role=dialog), which rowControls skips; read it directly.
       const inMore = panel ? [...panel.querySelectorAll<HTMLElement>("button, a[href]")] : [];
-      const controls = [...rowControls(row!).filter((el) => el !== trigger), ...inMore];
-      widths.push(controls.length);
+      // Area 03 M11 (11-18): More is the job page's bottom sheet now, its actions drawn as that sheet's outlined rows
+      // (MenuAction), so they count toward the row's controls but are held to the sheet's look, not the chip's.
+      const counted = [...rowControls(row!).filter((el) => el !== trigger), ...inMore];
+      const controls = rowControls(row!);
+      widths.push(counted.length);
       expect(
-        controls.length,
-        `expected at least ${c.minControls} controls in the row, got [${controls.map(nameOf).join(" | ")}]`,
+        counted.length,
+        `expected at least ${c.minControls} controls in the row, got [${counted.map(nameOf).join(" | ")}]`,
       ).toBeGreaterThanOrEqual(c.minControls);
 
       // EVERY CHIP CARRIES THE DENSITY-GATE HOOK (Q1080). The 320px "no action

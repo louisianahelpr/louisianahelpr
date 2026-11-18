@@ -4,11 +4,11 @@
  * nothing is booked, on the buyer's order card (BuyingOrders) and on both sides' sale card (DeclutterPorchHandover).
  * Backend proof (book_by, the paid notice, the reminders): src/test/pglite/declutterBookBy.pglite.mjs.
  */
-// @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time", by) |       return at === 0 ? you("Pick a pickup time")
-// @mutate src/components/declutter/BuyingOrders.tsx |         : at === 1 && chosen ? info(`Pickup ${chosen} · porch`) |         : at === 1 && false ? info(`Pickup ${chosen} · porch`)
-// @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a time to meet at the safe spot", by); |       if (at === 0) return you("Book a time to meet at the safe spot");
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const waiting = (what: string) => them(`${paid} Waiting on ${buyer} to ${what}${by ? "" : "."}`, by); |   const waiting = (what: string) => them(`${paid} Waiting on ${buyer} to ${what}.`);
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx | : "Put it out and post the porch photo", `Pickup ${chosen}`); | : "Put it out and post the porch photo");
+// @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you(t("dbuy.act.pickPorch"), by) |       return at === 0 ? you(t("dbuy.act.pickPorch"))
+// @mutate src/components/declutter/BuyingOrders.tsx |         : at === 1 && chosen ? info(t("dbuy.nx.porchChosen", { chosen })) |         : at === 1 && false ? info(t("dbuy.nx.porchChosen", { chosen }))
+// @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you(t("dbuy.nx.bookMeet"), by); |       if (at === 0) return you(t("dbuy.nx.bookMeet"));
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const waiting = (key: MsgKey) => them(`${t(key, { paid, buyer })}${by ? "" : "."}`, by); |   const waiting = (key: MsgKey) => them(`${t(key, { paid, buyer })}.`);
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx | : t("dsl.nx.putOutPhoto"), t("dsl.nx.pickupAt", { when: chosen })); | : t("dsl.nx.putOutPhoto"));
 // @mutate src/lib/declutter/orderPickupTimes.ts |   return { chosen, by: !booked && t.book_by ? bookByWords(t.book_by) : null }; |   return { chosen, by: t.book_by ? bookByWords(t.book_by) : null };
 // @mutate src/lib/declutter/orderPickupTimes.ts |     ? `${day(a)}, ${clock(a)}–${clock(b)} ${ampm(b)}` |     ? `${day(a)}, ${clock(a)} ${ampm(a)}`
 import { describe, it, expect } from "vitest";
@@ -93,7 +93,7 @@ describe("A3-18: the sale card, both sides", () => {
   // Q2626 (audit 1102c R1): a porch pickup booked for a TIME tomorrow told the seller "put it out" tonight. Before the
   // photo day (the slot's day, the server's rule) the step names the day; from that day on, the words are unchanged.
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | side === "seller" && !day && times.photoDay && !porchDayIsNow(times.photoDay) ? times.photoDay : null; | null;
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : early ? you(`Put it out ${onDay(early)}, then take one photo where the buyer will find it`) | : early ? you("Put it out and take one photo where the buyer will find it")
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : early ? you(t("dsl.nx.putOutThenOne", { day: onDay(early) })) | : early ? you(t("dsl.nx.putOutOne"))
   it("Q2626: booked for a time tomorrow, the seller is told the day, not to put it out now", () => {
     const now = new Date();
     const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

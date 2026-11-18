@@ -19,7 +19,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isHired && isSellForMeJob(job.category) && !job.helper_completed_at && hiredFace && ( |             {false && (
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {hasVideo && <ScopeVideo url={job.scope_video_url} />} |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const posterStep = posterWait === "confirm_arrival" |   const posterStep = false && posterWait === "confirm_arrival"
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | arrival.confirming ? "Confirming…" : "Confirm they've arrived" | arrival.confirming ? "Confirming…" : "Confirm arrival"
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | arrival.confirming ? t("jp.confirming") : t("jp.confirmArrived") | arrival.confirming ? t("jp.confirming") : t("jp.markDoneRelease")
  * @mutate src/pages/jobs/jobPage/usePageConfirmArrival.ts |       await confirmPosterArrival(job); |       void job;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const hiredFace = isHired && viewer.action.kind === "open_working" |   const hiredFace = false && viewer.action.kind === "open_working"
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     workUnderway: helperProgress(job as unknown as Job, trackingStatus).workUnderway, |     workUnderway: undefined,
@@ -28,7 +28,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire. |   escrow: "Paid. Louisiana Helpr holds it until the job is done.",
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | releasedLine(job)) : refundInTracker ? null : refundLine ?? HELD_LINE[status] ?? null; | releasedLine(job)) : status === "held" \|\| refundInTracker ? null : refundLine ?? HELD_LINE[status] ?? null;
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | releasedLine(job)) : refundInTracker ? null : refundLine ?? heldWords[status] ?? HELD_LINE[status] ?? null; | releasedLine(job)) : status === "held" \|\| refundInTracker ? null : refundLine ?? heldWords[status] ?? HELD_LINE[status] ?? null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
@@ -210,7 +210,7 @@ vi.mock("./usePosterPageFlows", () => ({
     setLeadHost: (el: HTMLElement | null) => { if (el) flowCalls.push("lead-host"); },
     setAskHost: () => {},
     setTextHost: (el: HTMLElement | null) => { if (el) flowCalls.push("text-host"); },
-    approve: () => flowCalls.push("approve"), finish: () => flowCalls.push("finish"), notRight: () => flowCalls.push("not-right"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
+    approve: () => flowCalls.push("approve"), finish: () => flowCalls.push("finish"), noShow: () => flowCalls.push("no-show"), notRight: () => flowCalls.push("not-right"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
     crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, crewNames: state.crewNames, panel: <div data-testid="card-panel" />, dialogs: null,
   }),
@@ -585,7 +585,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(document.querySelector("[data-job-progress] [data-job-steps]")).toBeNull();
     // The next step (owner 11-01 12:05 PM): "Next: choose a Helpr · 2 applied".
     expect(document.querySelector("[data-next-step]")?.textContent).toBe("Next: choose a Helpr · 2 applied");
-    fireEvent.click(screen.getByRole("button", { name: "Review 2 applicants" }));
+    fireEvent.click(screen.getByRole("button", { name: "See applicants (2)" }));
     expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${row().id}&applicants=1`);
   });
 
@@ -622,7 +622,9 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(screen.getByText("Not paid yet. Helprs can't see this job until it's paid.")).toBeTruthy();
     // JOBS-9: not "Waiting for Helprs to apply", and the button goes somewhere, not to a list without this job.
     expect(screen.queryByText("Waiting for Helprs to apply")).toBeNull();
-    expect(screen.getByRole("button", { name: "Post this job again" })).toBeTruthy();
+    // Area 03 H2: "Pay to post", never "Post this job again" on a job that reads open.
+    expect(screen.getByRole("button", { name: "Pay to post" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Post this job again" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
     unmount();
     // payout_pending was this "unverified" example until F32 gave it its line (posterMoneyAfterRelease.test.tsx);
@@ -863,7 +865,7 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
 describe("job page, the poster sees who they hired (AUD31-80)", () => {
   // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <HiredHelpr helprId={job.helper_id} />} |
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && | {isPoster && job.helper_id && !job.is_group_job &&
-  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <DeclutterSellerCard sellerId={helprId} noun="Helpr" /> |       <DeclutterSellerCard sellerId={helprId} noun="poster" />
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <DeclutterSellerCard sellerId={helprId} noun="Helpr" seeLabel={t("jobPage.seeHelpr")} /> |       <DeclutterSellerCard sellerId={helprId} noun="poster" seeLabel={t("jobPage.seeHelpr")} />
   const hired = () => row({ customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z" });
 
   it("a hired job shows the Helpr's own person card, linked to their profile, beside Message <name>", async () => {
@@ -1155,7 +1157,7 @@ describe("job page, the street address follows the Working card", () => {
 
   // Owner 11-01 kept the category on its own line; owner pick 11-08 (JP1) moved the day, time and town out of a muted
   // line of dots into label/value facts rows under it (When / Where), poster and Helpr alike.
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {when && <FactRow label="When" data-job-meta="">{when}</FactRow>} |             {false && <FactRow label="When" data-job-meta="">{when}</FactRow>}
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {when && <FactRow label={t("jobPage.whenRow")} data-job-meta="">{when}</FactRow>} |             {false && <FactRow label={t("jobPage.whenRow")} data-job-meta="">{when}</FactRow>}
   // @mutate src/pages/jobs/jobPage/JobPage.tsx |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}</p> |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}{when ? ` · ${when}` : ""}</p>
   it("the head: the category alone on its line, then the When and Where rows (poster and Helpr)", () => {
     for (const job of [row({ customer_id: ME }), row({ helper_id: ME, status: "accepted", helper_confirmed_at: null, date_needed: DAY })]) {
@@ -1365,7 +1367,7 @@ describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () =
     expect(screen.queryByRole("button", { name: "Get help now" })).toBeNull();
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       ? { label: "Confirm it's still on", go: () => setConfirmAsk((n) => n + 1) } |       ? { label: "Confirm it's still on", go: flows.approve }
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       ? { label: tr("jp.confirmStillOn"), go: () => setConfirmAsk((n) => n + 1) } |       ? { label: tr("jp.confirmStillOn"), go: flows.approve }
   // @mutate src/components/posterConfirmWarning.ts |   if (!isOwner) return "No-shows | if (true) return "No-shows
   // @mutate src/components/posterConfirmWarning.ts |   return helperConfirmedAt\n    ? | return !helperConfirmedAt\n    ?
   // @mutate src/components/JobConfirmation.tsx |     if (owed && (openNow \|\| takeFaceAction(jobId, "confirm"))) setShowConfirmDialog(true); |     if (owed && takeFaceAction(jobId, "confirm")) setShowConfirmDialog(true);
@@ -1467,7 +1469,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     expect(screen.queryByTestId("where")).toBeNull();
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: "Cancel job", go: flows.cancel, | label: "Cancel job", go: () => navigate(`/posts?highlight=${id}&manage=1`),
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: t("jobPage.cancelJob"), go: flows.cancel, | label: t("jobPage.cancelJob"), go: () => navigate(`/posts?highlight=${id}&manage=1`),
   it("Cancel job runs the card's own cancel flow (on-the-way check, fee quote, refund) ON the page", () => {
     state.job = booked();
     state.party = true;
@@ -1564,13 +1566,15 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       : status === "cancelled" |       : false
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const draft = jobIsUnfundedDraft(job); |   const draft = false;
-  it("an unpaid draft (on no Posted list) offers Post this job again and no Edit or Cancel", () => {
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |     ? { label: t("jp.payToPost"), go: | ? { label: t("jp.postThisAgain"), go:
+  it("an unpaid draft (on no Posted list) offers Pay to post and no Edit or Cancel", () => {
     state.job = row({ customer_id: ME, payment_status: "unpaid" });
     renderPage();
-    expect(screen.getByRole("button", { name: "Post this job again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Pay to post" })).toBeTruthy();
     // Read through More options too: since the one-row rule, Edit and Cancel would sit in its sheet.
     const offered = pageActions();
-    expect(offered).toContain("Post this job again");
+    expect(offered).toContain("Pay to post");
+    expect(offered).not.toContain("Post this job again");
     expect(offered).not.toContain("Edit job");
     expect(offered).not.toContain("Cancel job");
   });
@@ -1597,7 +1601,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canEdit = !draft && status === "open" && !job.is_group_job && job.direct_offer_status !== "pending"; |   const canEdit = false;
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | <NoApplicantsYet job={job} onManage={posterActions.edit} /> | <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: "Edit job", go: flows.edit, | label: "Edit job", go: () => navigate(`/posts?highlight=${id}&manage=1`),
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: t("jobPage.editJob"), go: flows.edit, | label: t("jobPage.editJob"), go: () => navigate(`/posts?highlight=${id}&manage=1`),
   it("an open job: Edit job, and the no-applicants rows (photo, price) open the card's own edit ON the page", () => {
     state.job = row({ customer_id: ME });
     state.applicants = { total: 0, pending: 0 };
@@ -1686,7 +1690,7 @@ describe("one row of buttons at every stage (B93)", () => {
     // The review window is IN the next-step line (owner 11-01, live Done-stage screenshot), never a second panel.
     const line = document.querySelector("[data-next-step]") as HTMLElement;
     await waitFor(() => expect(line.textContent).toMatch(/Rhonda/));
-    expect(line.textContent).toMatch(/^Next: approve Rhonda's work · 23h 5\dm left, then Helpr support steps in$/);
+    expect(line.textContent).toMatch(/^Next: approve Rhonda's work · 23h 5\dm left to approve or ask for a change, then Helpr support steps in$/);
     expect(document.querySelector("[data-approve-by]")).toBeNull();
     expect(document.body.textContent).not.toMatch(/to review — then Helpr support steps in/);
   });
@@ -2122,6 +2126,31 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     expect(flowCalls).not.toContain("finish");
     fireEvent.click(within(sheet).getByRole("button", { name: "Mark done and release $100" }));
     await waitFor(() => expect(flowCalls).toContain("finish"));
+  });
+
+  // Area 03 H1 (design audit 11-18, money safety): a Helpr who never arrived. The sticky lead is "Report no-show" (the card's
+  // NoShowDialog), and "Mark done and release" (which pays the no-show Helpr) is only a "..." menu row, never the lead.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const noShowLead = !job.is_group_job && (posterWait === "overdue_no_show" \|\| posterWait === "started_no_checkin"); |   const noShowLead = false;
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |     ? { label: t("jp.reportNoShow"), go: posterFlows.noShow, disabled: !posterFlows.ready } |     ? { label: t("jp.reportNoShow"), go: posterFlows.finish, disabled: !posterFlows.ready }
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | ...(noShowLead && posterFinish.lead ? | ...(false && posterFinish.lead ?
+  it("a no-show job: Report no-show leads the bar and the release is never the primary action", async () => {
+    continueState.row = null;
+    state.job = underWay({ budget: 90, date_needed: jobLocalDateISO(-8), helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_arrival_at: null });
+    state.party = true;
+    flowCalls.length = 0;
+    renderPage();
+    const btn = await screen.findByRole("button", { name: "Report no-show" });
+    const rowEl = document.querySelector('[data-job-row="poster"]') as HTMLElement;
+    const names = barNames(rowEl);
+    expect(names.length).toBeGreaterThan(0);
+    expect(names[names.length - 1]).toBe("Report no-show");
+    expect(within(rowEl).queryByRole("button", { name: "Mark done and release" })).toBeNull();
+    expect(within(rowEl).queryByRole("button", { name: "Approve and release" })).toBeNull();
+    fireEvent.click(btn);
+    expect(flowCalls).toContain("no-show");
+    expect(flowCalls).not.toContain("finish");
+    // The release is still reachable, in the "..." menu.
+    expect(pageActions()).toContain("Mark done and release");
   });
 
   it("no 'Mark done and release' while the set day is still ahead, once the Helpr marked done, or for the Helpr", async () => {

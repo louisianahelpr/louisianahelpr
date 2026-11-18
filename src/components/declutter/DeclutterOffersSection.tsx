@@ -10,7 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { noDeliveryWay, totalPhrase } from "@/lib/declutter/pickupWords";
-import { fetchItemHandovers, fetchMyCart, fetchMyOffers, respondOffer, type MyOffer } from "@/lib/declutter/api";
+import { fetchItemHandovers, fetchMyCart, fetchMyOffers, respondOffer, type CartLine, type MyOffer } from "@/lib/declutter/api";
 import { offerBucket, underChip } from "@/lib/declutter/buyingBucket";
 import type { OrderBucket } from "./OrderSteps";
 import { closeWanted } from "@/lib/declutter/wanted";
@@ -19,6 +19,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { dollarsInputToCents } from "@/lib/declutter/money";
 import { BuyerTotal } from "./BuyerTotal";
 import { NoSellerOffers, SectionHeading } from "./DeclutterTabParts";
+import { ChevronDown } from "lucide-react";
 import { GOOD_NEWS_NOTE } from "./goodNews";
 import { orderWhen, timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
@@ -58,13 +59,24 @@ function counterRange(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amou
   return { min, max };
 }
 
+/**
+ * Area 06 M8 (11-18): the range as it is SAID, in whole dollars inside the real one ("Between $33 and $40", not
+ * "$32.01"). Display only: counterProblem still checks the exact range the server takes.
+ */
+function shownRange(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">): { min: string; max: string } {
+  const { min, max } = counterRange(o);
+  const minW = Math.ceil(min / 100) * 100;
+  const maxW = Math.floor(max / 100) * 100;
+  return minW <= maxW ? { min: formatPrice(minW), max: formatPrice(maxW) } : { min: formatPrice(min), max: formatPrice(max) };
+}
+
 /** Why a typed counter can't be sent, in words; null when it can. */
 function counterProblem(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">, cents: number | null): string | null {
   if (!cents) return null;
   const { min, max } = counterRange(o);
   if (o.my_side === "seller" && cents <= o.amount_cents && cents >= 100) return tr("dof.alreadyOffered", { amount: formatPrice(o.amount_cents) });
   if (o.my_side === "buyer" && cents >= o.amount_cents && cents <= o.current_price_cents) return tr("dof.askingLess", { amount: formatPrice(o.amount_cents) });
-  if (cents < min || cents > max) return tr("dof.mustBeBetween", { min: formatPrice(min), max: formatPrice(max) });
+  if (cents < min || cents > max) return tr("dof.mustBeBetween", shownRange(o));
   return null;
 }
 
@@ -94,6 +106,27 @@ function AcceptedOfferNext({ o }: { o: MyOffer }) {
   return <p className="text-ds-13 text-foreground" data-accepted-next="seller">{t("dof.waitPay", { when: orderWhen(line.checkout_by) })}</p>;
 }
 
+/**
+ * Area 05 #16 (design audit 11-18): an accepted offer whose checkout time ran out (its cart line went "missed") still
+ * read "Accepted". It reads "Expired", muted. Words only: the offer and the cart line are the server's (no money here).
+ */
+type LapseCartLine = Pick<CartLine, "item_id" | "my_side" | "status">;
+export function offerLapsed(o: Pick<MyOffer, "status" | "item_id" | "my_side">, cart: readonly LapseCartLine[] | undefined): boolean {
+  if (o.status !== "accepted" || !cart) return false;
+  const mine = cart.filter((l) => l.item_id === o.item_id && l.my_side === o.my_side);
+  return mine.length > 0 && mine.every((l) => l.status === "missed");
+}
+
+function OfferStatusChip({ o }: { o: MyOffer }) {
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: o.status === "accepted" });
+  const lapsed = offerLapsed(o, cart.data);
+  return (
+    <span className={`inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium${lapsed ? " text-muted-foreground" : ""}`} data-offer-lapsed={lapsed ? "" : undefined}>
+      {lapsed ? tr("dof.st.lapsed") : offerStatusWords(o.status)}
+    </span>
+  );
+}
+
 function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: boolean; closed?: boolean }) {
   const qc = useQueryClient();
   const { t } = useLanguage();
@@ -105,6 +138,12 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
   // NIGHT-SELL-offers,sale-4: opening the box puts the cursor in it (no second tap for the keyboard).
   const counterBox = useRef<HTMLInputElement>(null);
   useEffect(() => { if (countering) counterBox.current?.focus(); }, [countering]);
+  // Area 06 M8 (11-18): the box opened empty with a pale example and a grey Send, so it looked off. It opens with the
+  // example as a real value the seller can send or change.
+  const openCounter = () => {
+    if (!countering && !counter) setCounter(counterExample(o) ?? "");
+    setCountering((v) => !v);
+  };
   const counterCents = dollarsInputToCents(counter);
   const counterBad = counterProblem(o, counterCents);
   // Accept asks in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
@@ -171,7 +210,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
         </div>
       </div>
       {o.status !== "open" && (
-        <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{offerStatusWords(o.status)}</span>
+        <OfferStatusChip o={o} />
       )}
       {o.status === "accepted" && <AcceptedOfferNext o={o} />}
       {/* Board 160: an offer that ended unpaid never charged anything (offers charge only at checkout). The item page says
@@ -208,18 +247,21 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           <p className="text-ds-12 text-muted-foreground">{t("dof.atMost")}</p>
         </dl>
       )}
-      {myTurn && (
+      {/* Area 05 #11 (11-18): Accept (filled) and Counter (outlined) side by side, Say no a quiet link; while the price box
+          is open it takes the row's place (its own Not now closes it). */}
+      {myTurn && !countering && (
         // Q2709: the shared Button (44px tap floor); the green primary on the RIGHT (owner 11-01), the row
         // right-aligned so a wrap keeps Accept at the bottom right.
         // Audit 11-10 F373: three outlined buttons competed and pushed Accept onto its own line at 375; the two
         // other answers are text links (still the shared Button, 44px), so Accept is the one button in the row.
         <div className="flex flex-wrap items-center justify-end gap-2" data-offer-actions="">
-          <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
+          <Button type="button" variant="link" size="sm" className="text-muted-foreground" disabled={act.isPending} onClick={() => setDeclining(true)} data-offer-say-no="">
             {t("dof.sayNo")}
           </Button>
-          <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setCountering((v) => !v)} aria-expanded={countering}>
+          <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={openCounter} aria-expanded={countering} data-offer-counter="">
             {t("dof.answerPrice")}
           </Button>
+          {/* Area 06 M8: while the seller is writing a counter, Accept steps aside: the whole row gives way to the price box. */}
           <Button
             type="button"
             size="sm"
@@ -259,8 +301,11 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
               {t("dof.send")}
             </Button>
           </div>
+          <Button type="button" variant="link" size="sm" className="px-0 text-muted-foreground" onClick={() => setCountering(false)} data-counter-close="">
+            {t("dof.notNow")}
+          </Button>
           <p id={`counter-range-${o.offer_id}`} className={`text-ds-13 ${counterBad ? "text-[hsl(var(--destructive-ink))]" : "text-muted-foreground"}`}>
-            {counterBad ?? t("dof.between", { min: formatPrice(counterRange(o).min), max: formatPrice(counterRange(o).max) })}
+            {counterBad ?? t("dof.between", shownRange(o))}
           </p>
         </form>
       )}
@@ -308,7 +353,8 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
  */
 /** onlyMyTurn (audit DC-9, Selling's "To answer"): only the open offers waiting for this member, nothing else. */
 /** only (audit 11-10 F374, Buying's chips): just the offers that chip files (offerBucket); nothing at all when none. */
-export function OffersSection({ side, onlyMyTurn = false, only = null }: { side: "buyer" | "seller"; onlyMyTurn?: boolean; only?: OrderBucket | null }) {
+/** quietWhenEmpty (area 06b L3): no section at all when there are no offers (Selling, while nothing priced is up). */
+export function OffersSection({ side, onlyMyTurn = false, only = null, quietWhenEmpty = false }: { side: "buyer" | "seller"; onlyMyTurn?: boolean; only?: OrderBucket | null; quietWhenEmpty?: boolean }) {
   const { t } = useLanguage();
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
   const seller = side === "seller";
@@ -321,7 +367,7 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
   }
   if (offers.isLoading) return <p className="text-sm text-muted-foreground" role="status">{t("dof.loading")}</p>;
   const mine = underChip((offers.data ?? []).filter((o) => o.my_side === side), only, (o) => offerBucket(o, side));
-  if (only && mine.length === 0) return null;
+  if ((only || quietWhenEmpty) && mine.length === 0) return null;
   const myTurn = (o: MyOffer) => o.status === "open" && o.awaiting === side;
   const toAnswer = mine.filter(myTurn).length;
   if (onlyMyTurn) {
@@ -350,15 +396,18 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
       {mine.length === 0 ? (
         seller ? <NoSellerOffers /> : <p className="text-sm text-muted-foreground">{t("dof.noneMade")}</p>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("dof.noneOpen")}</p>
+        // Design audit 11-17 #19: with closed offers to show, the link row below is the whole answer.
+        !closed.length && <p className="text-sm text-muted-foreground">{t("dof.noneOpen")}</p>
       ) : (
         <ul className="space-y-3">{shown.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>
       )}
       {closed.length > 0 && (
         <>
-          <InlineTextButton className="text-sm font-medium" aria-expanded={closedOpen}
+          {/* Design audit 11-17 #19: it read as body text; olive, semibold, with a chevron, it reads as the link it is. */}
+          <InlineTextButton className="inline-flex items-center gap-0.5 text-sm font-semibold text-[hsl(var(--olivewood))]" aria-expanded={closedOpen}
             onClick={() => setShowClosed(!closedOpen)} data-closed-offers-toggle="">
             {closedOpen ? t("dof.hideClosed") : closed.length === 1 ? t("dof.showClosed1", { n: 1 }) : t("dof.showClosedN", { n: closed.length })}
+            <ChevronDown aria-hidden className={`h-4 w-4 shrink-0 transition-transform ${closedOpen ? "rotate-180" : ""}`} />
           </InlineTextButton>
           {closedOpen && <ul className="space-y-3" data-closed-offers="">{closed.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} closed />)}</ul>}
         </>

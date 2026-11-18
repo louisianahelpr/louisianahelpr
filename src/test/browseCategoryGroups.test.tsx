@@ -211,7 +211,8 @@ describe("ONE search on every section's Browse (owner 2026-10-21)", () => {
     // header, owner 11-08), and on Browse the "Search shops" row draws itself in it (searchSlot).
     expect(shops).toMatch(/<SectionScreen section="shops"[^>]*globalSearch=\{desktop && tab !== "browse"\}/);
     expect(shops).toMatch(/<SectionScreen section="shops"[^>]*searchSlot=\{tab === "browse"\}/);
-    expect(shops).toContain('placeholder="Search shops"');
+    // Area 07 H1: the row's words come from the dictionary (enShopsBrowse.ts "Search shops").
+    expect(shops).toContain('placeholder={t("shb.search")}');
     const homes = code("src/components/rentals/RentalsHomeView.tsx");
     const browse = homes.slice(homes.indexOf('if (tab === "browse")'), homes.indexOf("<HomesBrowse />"));
     expect(browse).toMatch(/<SectionScreen section="homes"[^>]*globalSearch=\{false\}[^>]*>/);

@@ -70,6 +70,9 @@ const NO_X: Record<string, string> = {
   "src/components/landing/HeroSection.tsx": "landing hero search: a submit box that navigates, not a live filter; no ✕ by decision (Q2242)",
   // TRAIN24 (2026-10-20): J1's Post a job screen 1 filtered the category groups live with no ✕ (Q2260);
   // 2026-11-02 it got a "Clear search" ✕ and joined the press spec.
+  // Owner 2026-11-18: the gift guides' menu search (public /gift-guides pages, signed out like the hero, so the
+  // signed-in press specs never reach it). A native type="search" box: the browser's own clear control empties it.
+  "src/pages/info/giftGuides/GiftGuidesSidebar.tsx": "gift guides menu search: public signed-out pages the signed-in press specs never open; native type=search clear (owner 2026-11-18)",
 };
 
 /** ✕ files that render ONLY below the desktop breakpoint, so the press spec
@@ -246,7 +249,8 @@ describe("every search field is driven in a real browser (inventory minus checke
     // field with a "Clear search" ✕ (Declutter's phone InlineListSearch left; the file still serves desktop and Jobs).
     // 2026-11-09 (F034, owner UI audit): +1, the Help center's "Search help" (HelpCenter), a permanent field with a
     // "Clear search" ✕.
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(18);
+    // 2026-11-18 (owner): +1, the gift guides' menu search (GiftGuidesSidebar, on NO_X).
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(19);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",

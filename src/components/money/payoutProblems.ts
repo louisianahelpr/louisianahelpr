@@ -2,6 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import "@/lib/i18n/enMoneyTiles";
+import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 /**
  * Board 143: the member's own money problems, read from server records only.
@@ -69,19 +72,10 @@ export function useFeesOwed() {
 }
 
 /** Stripe's payout failure codes in plain words; unknown codes say nothing. */
-const FAILURE_WORDS: Record<string, string> = {
-  account_closed: "The bank account is closed.",
-  account_frozen: "The bank account is frozen.",
-  bank_account_restricted: "The bank account can't take this payout.",
-  bank_ownership_changed: "The bank account changed owners.",
-  could_not_process: "The bank couldn't process it.",
-  debit_not_authorized: "The bank didn't allow it.",
-  incorrect_account_holder_name: "The name on the bank account doesn't match.",
-  invalid_account_number: "The account number isn't right.",
-  invalid_currency: "The bank account can't take US dollars.",
-  no_account: "The bank couldn't find that account.",
-};
+// Area 11 M13 (11-18): the bank's reason in the member's language (enMoneyTiles.ts / esMoneyTiles.ts, "mt.pf.<code>").
+const FAILURE_CODES = new Set(["account_closed", "account_frozen", "bank_account_restricted", "bank_ownership_changed", "could_not_process",
+  "debit_not_authorized", "incorrect_account_holder_name", "invalid_account_number", "invalid_currency", "no_account"]);
 
 export function payoutFailureWords(code: string | null): string | null {
-  return code ? FAILURE_WORDS[code] ?? null : null;
+  return code && FAILURE_CODES.has(code) ? t(`mt.pf.${code}` as MsgKey) : null;
 }

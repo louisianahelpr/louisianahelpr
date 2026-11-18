@@ -11,7 +11,7 @@
  *     literal) reads the helper or the `listed` answer, so a new soon mark cannot reach the app unseen.
  *
  * @mutate src/lib/hideUnopenedInApp.ts |   return isNativePlatform; |   return false;
- * @mutate src/lib/hideUnopenedInApp.ts |   return !hideUnopenedInApp() \|\| !tab.preview; |   return true;
+ * @mutate src/lib/hideUnopenedInApp.ts |   return !tab.preview; |   return true;
  * @mutate src/lib/hideUnopenedInApp.ts |   if (!tab.on) return false; |   if (!tab.on && hideUnopenedInApp()) return false;
  * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.filter(isListed).map((s) => { |   const options = visible.map((s) => {
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |   if (quotesComingSoon && hideUnopenedInApp()) return null; |
@@ -90,9 +90,11 @@ afterEach(cleanup);
 describe("(a) the one helper", () => {
   it("answers true only in the app; lists a section in the app only when it is open to everyone", () => {
     expect(hideUnopenedInApp()).toBe(false);
-    // M8/M9 (owner 11-16): a section closed to the viewer is not listed on the website either; a tester's preview is.
+    // M8/M9 (owner 11-16): a section closed to the viewer is not listed on the website either; owner 2026-11-17: nor
+    // is a tester's unlaunched preview.
     expect(sectionListedHere({ on: false, preview: false })).toBe(false);
-    expect(sectionListedHere({ on: true, preview: true })).toBe(true);
+    expect(sectionListedHere({ on: true, preview: true })).toBe(false);
+    expect(sectionListedHere({ on: true, preview: false })).toBe(true);
     native.on = true;
     expect(hideUnopenedInApp()).toBe(true);
     expect(sectionListedHere(undefined)).toBe(true); // Jobs: no switch
@@ -159,7 +161,8 @@ describe("(c) every soon mark reads the helper", () => {
     );
   // Files that draw a soon mark for a section or a disabled quote button.
   // F260q: a landing mark can read its Spanish from the dictionary: {w("landing.comingSoon", "Coming soon")}.
-  const MARK = /<SoonPill\b|<PreviewPill\b|>\s*Coming soon\s*<|>\s*\{w\("[\w.]+", "Coming soon"\)\}\s*</;
+  // Train 11-18: a mark can also be a plain dictionary word: {tr("postJob.f.comingSoon")} (PostJobQuoteChoice).
+  const MARK = /<SoonPill\b|<PreviewPill\b|>\s*Coming soon\s*<|>\s*\{w\("[\w.]+", "Coming soon"\)\}\s*<|>\s*\{tr?\("[\w.]*comingSoon"\)\}\s*</;
   // Reads the helper, or the `listed` answer it feeds (useSectionTabs / useSectionIsListed).
   const READS = /hideUnopenedInApp\(|\.listed\b|useSectionIsListed\(|isListed\(/;
   // Web-only pages: the marketing landing (the app opens on sign-in, never the landing). Exact both ways.
@@ -167,7 +170,8 @@ describe("(c) every soon mark reads the helper", () => {
 
   it("finds the marks, and each file outside the web-only list hides them in the app", () => {
     const files = walk("src").filter((f) => !f.startsWith("src/test/") && MARK.test(blankComments(readFileSync(resolve(ROOT, f), "utf8"))));
-    expect(files.length).toBeGreaterThan(6);
+    // 6 today: the You landing's preview tiles and their marks went away for everyone until launch (train 11-18).
+    expect(files.length).toBeGreaterThan(5);
     const missing = files.filter((f) => !WEB_ONLY.has(f) && !READS.test(blankComments(readFileSync(resolve(ROOT, f), "utf8"))));
     expect(missing).toEqual([]);
     for (const f of WEB_ONLY) expect(files).toContain(f);

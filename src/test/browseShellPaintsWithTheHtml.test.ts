@@ -11,7 +11,7 @@
  * @mutate src/lib/browseShellCards.mjs |   if (typeof criticalCss !== "string" \|\| !criticalCss.includes(BROWSE_SHELL_SHOW_RULE)) return page; |   if (typeof criticalCss !== "string") return page;
  * @mutate api/share.ts | withBrowseShell(page, await fetchBrowseShellRows(), Date.now(), BROWSE_SHELL_CSS) | withBrowseShell(page, await fetchBrowseShellRows(), Date.now(), null)
  * @mutate scripts/build-og-shell.mjs |     `export const BROWSE_SHELL_CSS = ${JSON.stringify(browseCss)}; |     `export const BROWSE_SHELL_CSS = null;
- * @mutate scripts/inline-shell-css.mjs |   return shellCriticalCss([{ html: cards + empty, htmlAttr: "" }], css) + BROWSE_SHELL_SHOW_RULE; |   return shellCriticalCss([{ html: cards + empty, htmlAttr: "" }], css);
+ * @mutate scripts/inline-shell-css.mjs |   return shellCriticalCss([{ html: cards + empty + tints, htmlAttr: "" }], css) + BROWSE_SHELL_SHOW_RULE; |   return shellCriticalCss([{ html: cards + empty + tints, htmlAttr: "" }], css);
  * @mutate scripts/inline-shell-css.mjs |   writeFileSync(path.join(dist, BROWSE_CSS_FILE), browse); |
  */
 import { readFileSync } from "node:fs";

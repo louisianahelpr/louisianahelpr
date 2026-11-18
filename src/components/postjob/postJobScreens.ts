@@ -11,7 +11,7 @@ export const POST_JOB_SCREENS = [
   { key: "kind", rail: "Kind of job" },
   { key: "details", rail: "Details" },
   { key: "price", rail: "Price" },
-  { key: "where", rail: "When and where" },
+  { key: "where", rail: "When & where" },
   { key: "review", rail: "Review" },
 ] as const;
 

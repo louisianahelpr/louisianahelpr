@@ -31,7 +31,8 @@ describe("footer on a phone: Explore in two columns, Legal and Follow under it",
   });
 
   it("every footer link keeps its 44px tap height, and no group is re-ordered", () => {
-    expect(src).toContain('const FOOTER_LINK = "link-standard inline-flex items-center min-h-11";');
+    // Design audit areas 11-18 #12: a desktop with a mouse (lg, fine pointer) gets 32px rows; touch keeps 44px.
+    expect(src).toContain('const FOOTER_LINK = "link-standard inline-flex items-center min-h-11 lg:[@media(pointer:fine)]:min-h-8";');
     const links = src.match(/className=\{FOOTER_LINK\}/g) ?? [];
     expect(links.length).toBeGreaterThan(8);
     expect(src).not.toMatch(/\border-[123]\b/);

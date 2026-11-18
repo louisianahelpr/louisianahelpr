@@ -80,6 +80,12 @@ const VIEWS: Record<string, Rule> = {
   shops: { kind: "tags", render: [`${A}AdminShopsOrders.tsx`], resolve: [`${A}AdminShopsOrders.tsx`] },
   marketing: { kind: "none", why: "email campaign composer; no member rows" },
   social: { kind: "none", why: "Facebook/Instagram post queue; no member rows" },
+  // Design audit area 10 #2 (11-18): the Declutter cards moved out of Settings unchanged. Review and problems read
+  // test listings only with "Show test listings" on (D2-4, owner-approved toggle); spots, partners, claims and the
+  // funnel are platform rows.
+  declutter: { kind: "none", why: "Declutter cards moved from Settings; test listings only behind Show test listings (D2-4)" },
+  previews: { kind: "none", why: "a list of links to the stage previews; reads no rows" },
+  sponsors: { kind: "none", why: "redirects to /admin/sponsors (25 Days sponsors, businesses not member accounts)" },
   growth: { kind: "none", why: "the matchmaker link builder reads no rows; Who brings customers reads admin_booking_sources, which drops every test Helpr and test poster on the server (20261030013347; is_seed carve-out 'hides' in isSeedCarveOutsNeedEnrolment), so no test row reaches this view" },
 };
 

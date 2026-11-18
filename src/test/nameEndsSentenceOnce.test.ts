@@ -36,6 +36,7 @@ const NEVER_ENDS_IN_A_PERIOD: Record<string, string> = {
   "src/components/declutter/ManagerPanel.tsx::${g.seller_first_name}.": "declutter_manager_first_name(): the seller's first name only (manager mode, 20261101181005)",
   "src/components/declutter/ManagerPanel.tsx::${name}.": "firstName(picked.full_name) or \"them\": a first name only",
   "src/lib/i18n/enListingParts.ts::{name}.": "Sell a bunch's toasts (lp.bv.moved*/removed): {name} is an item's own title (nameOf), never a person",
+  "src/lib/i18n/esAccount.ts::{name}.": "sim.cancelled (SignInMethodsCard): {name} is a sign-in provider's name (Google, Apple), never a person",
   "src/lib/i18n/esListingParts.ts::{name}.": "the same toasts in Spanish: {name} is an item's own title (nameOf), never a person",
   "src/pages/auth/Unsubscribe.tsx::${who}.": "an email address or \"this address\"",
 };

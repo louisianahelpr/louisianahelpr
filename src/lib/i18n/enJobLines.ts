@@ -54,7 +54,7 @@ export const enJobLines = {
   "jl.onWay": "{name} is on the way",
   "jl.onWayLate": "{name} is on the way, {late} late",
   "jl.tapArrived": "Tap I've arrived when you get there",
-  "jl.bothConfirmOn": "You both confirm on {day}, the day before, that the job is still on",
+  "jl.bothConfirmOn": "On {day} you'll both confirm the job is still on",
   "jl.confirmOn": "Confirm on {day}, the day before, that you can still do this job",
   "jl.newTime": "New time {slot}. {wait}",
   "jl.confirmNewTime": "Confirm the new time, {slot}",
@@ -76,6 +76,9 @@ export const enJobLines = {
   "jl.cx.back": "${amount} was refunded",
   "jl.cx.rest": "The rest was refunded",
   "jl.cx.refundSent": "Refund sent to your card",
+  "jl.cx.noShow": "{name} didn't show up",
+  "jl.cx.noShowAnon": "Your Helpr didn't show up",
+  "jl.cx.fullRefundSent": "Full refund sent to your card",
   "jl.cx.cardCost": "Card processing cost isn't refunded.",
   "jl.todayAnyTime": "Today, any time — tap I'm on my way when you leave",
   "jl.itsTime": "It's time — tap I'm on my way",
@@ -86,6 +89,13 @@ export const enJobLines = {
   "jl.hours": "{h} h",
   "jl.hoursMin": "{h} h {n} min",
   "jl.at": "{day} at {clock}",
+  // Area 11 M12 (11-18): the poster's on-the-way block (OnTheWayNow.tsx) and the approve clock (reviewTimeLeft.ts).
+  "jl.nowArrived": "{name} arrived",
+  "jl.nowOnWay": "{name} is on the way",
+  "jl.nowSince": "since {when}",
+  "jl.nowConfirmNote": "You'll confirm once they say they've arrived.",
+  "jl.approveLeft": "{left} left to approve or ask for a change, then Helpr support steps in",
+  "jl.approveLate": "You can still approve. Helpr support will check in; your payment stays held",
 } as const;
 
 addEnglish(enJobLines);

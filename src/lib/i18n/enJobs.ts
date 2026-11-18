@@ -29,7 +29,31 @@ export const enJobs = {
   "jobPage.crew": "Your crew",
   "jobPage.side": "Price and actions",
   "jobPage.postedBy": "Posted by",
+  // Area 03 H4 (design audit 11-18): the Helpr Guarantee card and the person cards' names on the job page.
+  "jobPage.seeHelpr": "See the Helpr",
+  "jobPage.seePoster": "See who posted this job",
+  "gu.title": "Helpr Guarantee",
+  "gu.tellBy": "Not done right? Tell us by {when}.",
+  "gu.tellWithin": "Not done right? Tell us within 48 hours of the job being done.",
+  "gu.explain": "Your Helpr comes back to fix it, and their pay waits until it's settled. If it can't be fixed, we decide whether you get a refund of the job price.",
+  "gu.notDoneRight": "Not done right",
   "jobPage.yourHelpr": "Your Helpr",
+  // Design audit r3 #9: the job page's fact rows, the no-applicants card and the poster's Edit / Cancel buttons.
+  "jobPage.whenRow": "When",
+  "jobPage.whereRow": "Where",
+  "jobPage.noApplicants": "No applicants yet",
+  "jobPage.sentToOne": "Sent to 1 Helpr so far.",
+  "jobPage.sentToN": "Sent to {n} Helprs so far.",
+  "jobPage.outNear": "It's out to Helprs near {city}.",
+  "jobPage.outNearby": "It's out to Helprs nearby.",
+  "jobPage.tellYou": "We'll tell you when someone applies.",
+  "jobPage.repliesSooner": "Want replies sooner?",
+  "jobPage.addPhoto": "Add a photo",
+  "jobPage.addPhotoWhy": "Jobs with photos are easier to say yes to",
+  "jobPage.changePrice": "Change the price",
+  "jobPage.youreAt": "You're at",
+  "jobPage.editJob": "Edit job",
+  "jobPage.cancelJob": "Cancel job",
 } as const;
 
 addEnglish(enJobs);

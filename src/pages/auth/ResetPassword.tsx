@@ -228,7 +228,9 @@ const ResetPassword = () => {
       {/* role="status" on the whole card once done, so the announcement
           carries the heading ("Password updated.") as well as the detail. */}
       <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6" role={done ? "status" : undefined} aria-live={done ? "polite" : undefined}>
-        <AuthCardHead testId="reset-card-head" title={done ? "Password updated." : "Set a new password"} />
+        {/* Design audit r3 #47: with no usable link the page's only action is to request one, so it is titled like
+            /forgot-password and that button is the primary (was "Set a new password" over an outline button). */}
+        <AuthCardHead testId="reset-card-head" title={done ? "Password updated." : ready || verifying ? "Set a new password" : "Reset your password"} />
         {done ? (
           /* role="status" + aria-live: a screen-reader user gets the same
              evidence a sighted one does. Without it the panel is silent
@@ -241,7 +243,7 @@ const ResetPassword = () => {
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {othersSignedOut
                 ? "Anywhere else you were signed in will ask for the new password next time."
-                : "We couldn\u2019t sign out your other devices. Use \u201cSign out everywhere\u201d on your profile\u2019s Security tab."}
+                : "We couldn\u2019t log out your other devices. Use \u201cLog out everywhere\u201d in You \u203a Settings \u203a Account and security."}
             </p>
             <Button
               variant="primary"
@@ -262,19 +264,20 @@ const ResetPassword = () => {
           </p>
         ) : !ready ? (
           <div className="text-center space-y-4">
+            {/* Design audit areas 11-18 #18: plain sentences, no em dash. */}
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {linkError === "expired"
-                ? "This password-reset link has expired. Reset links are single-use and time-limited — request a fresh one below."
+                ? "This password-reset link has expired. Reset links work once and only for a short time. Request a new one below."
                 : linkError === "used"
                   ? "This password-reset link has already been used. Request a new one if you still need to change your password."
-                  : "To set a new password, use the reset link from your email — or request one below."}
+                  : "Open the reset link from your email, or request a new one."}
             </p>
             {/* Button asChild, not <Link><Button>: a button inside an anchor
                 is two nested interactive elements, and the inline <a> took
                 the space-y-4 margin, so the link sat flush against the
                 paragraph above it (0px, Q179). Guard:
                 src/test/noButtonInsideLink.test.ts. */}
-            <Button asChild variant="outline" className="w-full rounded-full">
+            <Button asChild variant="primary" className="w-full rounded-full">
               <Link to="/forgot-password">
                 {linkError ? "Request a new reset link" : "Request a reset link"}
               </Link>

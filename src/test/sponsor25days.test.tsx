@@ -14,7 +14,7 @@
 // @mutate src/components/sponsor/ClaimSection.tsx |   return { ...form, shipTo: "winner", notes }; |   return { ...form, shipTo: "winner" };
 // @mutate src/components/sponsor/ClaimSection.tsx |   const [delivery, setDelivery] = useState<PrizeDelivery>("helpr"); |   const [delivery, setDelivery] = useState<PrizeDelivery>("winner");
 // @mutate src/content/sponsorPage.ts | are shared with that day's sponsor only to deliver the prize, and are not used for anything else. | are shared with that day's sponsor.
-// @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       {s.shipTo === 'winner' ? ( |       {false ? (
+// @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <DeliveryRow s={s} adminEmail={adminEmail} /> |       <Detail label="Ship your prize to">Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528</Detail>
 // @mutate supabase/functions/_shared/sponsorSignup.ts |     // Not given: stays null (sponsor_signups.prize_value is nullable since 20261110171648). |     errors.prizeValue = "required";
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <Detail label="Your prize">{s.prizeDescription}</Detail> |       <Detail label="Your prize">{s.prizeDescription} (about ${s.prizeValue})</Detail>
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       {s.prizeValue != null ? <Detail label="Prize value">${s.prizeValue}</Detail> : null} |       <Detail label="Prize value">${s.prizeValue}</Detail>
@@ -240,10 +240,8 @@ describe("four prize delivery options, shipping to us first (owner 11-09, 11-17)
   it("the confirmation email gives our address for ship-to-us and the 24-hour promise for ship-to-winner", () => {
     const src = fs.readFileSync(path.resolve(__dirname, "../../supabase/functions/_shared/email-templates/sponsor-25days.tsx"), "utf8");
     const conf = src.slice(src.indexOf("export const SponsorConfirmationEmail"), src.indexOf("export const SponsorAdminEmail"));
-    expect(conf).toContain("Ship your prize to");
-    expect(conf).toContain("{SHIP_ADDRESS}");
-    expect(conf).toMatch(/s\.shipTo === 'winner' \?[\s\S]*within 24 hours of the drawing/);
-    expect(src).toContain("314 Lynn Street, Delcambre, LA 70528");
+    // Area 11 H4: the row now comes from sponsorDelivery.ts, one line per choice (sponsorDeliveryEmail.test.ts).
+    expect(conf).toContain("<DeliveryRow s={s} adminEmail={adminEmail} />");
   });
 });
 

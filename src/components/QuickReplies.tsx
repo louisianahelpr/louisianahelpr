@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle2, ThumbsUp, AlertTriangle, Navigation, X, HelpCircle, MapPin, Key, Car, Send } from "lucide-react";
+import { Clock, CheckCircle2, ThumbsUp, AlertTriangle, Navigation, X, HelpCircle, MapPin, Key, Send } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { getLang, t } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
@@ -22,7 +22,9 @@ import "@/lib/i18n/enMessages";
 type QuickReply = { label: MsgKey; icon: LucideIcon; message: MsgKey; mode?: "populate" | "send" };
 
 const helperReplies: QuickReply[] = [
-  { label: "msg.qr.late10", icon: Clock, message: "msg.qr.late10.m" },
+  // Area 08 M18 (design audit 11-18): one late reply (5 min, as the in-job chip says; it was 10 here), and the done
+  // reply asks the poster to approve, the step the app actually has.
+  { label: "msg.qr.late5", icon: Clock, message: "msg.qr.late5.m" },
   { label: "msg.qr.complete", icon: CheckCircle2, message: "msg.qr.complete.m" },
   { label: "msg.qr.good", icon: ThumbsUp, message: "msg.qr.good.m" },
   { label: "msg.qr.moreInfo", icon: AlertTriangle, message: "msg.qr.moreInfo.m" },
@@ -47,7 +49,8 @@ const posterReplies: QuickReply[] = [
 // fall back to the generic helper replies — no special status chip
 // makes sense once the job is wrapped.
 const helperSmartRepliesAccepted: QuickReply[] = [
-  { label: "msg.qr.onMyWay", icon: Car, message: "msg.qr.onMyWay.m", mode: "send" },
+  // Area 08 M18: no "On my way" chip. It only sent words and never set the job to on the way, so the poster's
+  // tracker disagreed with the chat; the job card's own On my way button does both.
   { label: "msg.qr.late5", icon: Clock, message: "msg.qr.late5.m", mode: "send" },
 ];
 

@@ -333,8 +333,8 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
       aria-modal="true"
       aria-label="Photo viewer"
     >
-      {/* Counter — top-left */}
-      {mode === "single" && (
+      {/* Counter — top-left. Design audit r3 #13: only with more than one photo ("1 / 1" told nothing). */}
+      {mode === "single" && photos.length > 1 && (
         <div
           className="absolute top-4 left-4 px-2.5 py-1 rounded-full text-ds-11 font-sans font-semibold tracking-[0.06em] pointer-events-none"
           style={{

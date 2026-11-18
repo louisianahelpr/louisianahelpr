@@ -6,12 +6,13 @@
  *
  * @mutate src/components/profile/SupportInline.tsx | useState(() => searchParams.get("topic") === "report") | useState(false)
  * @mutate src/components/profile/SupportInline.tsx | onClick={() => setTopicCollapsed(false)} data-support-change-topic="" | data-support-change-topic=""
+ * @mutate src/components/profile/SupportInline.tsx | <span aria-hidden className="text-muted-foreground"> · </span> |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 
-describe("F464: Report a bug hides the topic dropdown behind 'Not a bug? Change topic'", () => {
+describe("F464: Report a bug hides the topic dropdown behind Change", () => {
   it("collapses only for ?topic=report, shows the chosen topic, and the button restores the dropdown", () => {
     const src = blankComments(readFileSync("src/components/profile/SupportInline.tsx", "utf8"));
     expect(src).toContain('const [topicCollapsed, setTopicCollapsed] = useState(() => searchParams.get("topic") === "report");');
@@ -20,7 +21,9 @@ describe("F464: Report a bug hides the topic dropdown behind 'Not a bug? Change 
     const collapsed = src.slice(start, src.indexOf(") : (", start));
     expect(collapsed).toContain('data-support-topic-collapsed=""');
     expect(collapsed).toContain("{selected.label}");
-    expect(collapsed).toMatch(/onClick=\{\(\) => setTopicCollapsed\(false\)\} data-support-change-topic="">\s*Not a bug\? Change topic/);
+    // Design audit area 09 M6: "Topic: … · Change", Change a text link on the same line.
+    expect(collapsed).toMatch(/onClick=\{\(\) => setTopicCollapsed\(false\)\} data-support-change-topic="">\s*Change\s*<\/(?:button|InlineTextButton)>/);
+    expect(collapsed).toContain('<span aria-hidden className="text-muted-foreground"> · </span>');
     // The dropdown is the other branch of the same conditional, not gone.
     expect(src.slice(start)).toContain('<SelectTrigger id="support-reason"');
   });

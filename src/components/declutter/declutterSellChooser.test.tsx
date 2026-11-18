@@ -28,7 +28,7 @@
  * @mutate src/pages/declutter/DeclutterMovePage.tsx |   return <Navigate to={SELL_MOVE_PATH} replace />; |   return <Navigate to="/declutter" replace />;
  * @mutate src/lib/declutter/sellChooser.ts |   return params.get("mode") === "choose"; |   return params.get("mode") !== "bunch";
  * @mutate src/components/sections/sectionsConfig.ts | add: { label: "Sell an item", path: SELL_CHOOSER_PATH } | add: { label: "Sell an item", path: "/declutter/sell" }
- * @mutate src/components/create/CreateSheet.tsx |       { label: "Sell an item", path: SELL_CHOOSER_PATH }, |       { label: "Sell an item", path: "/declutter/sell" },
+ * @mutate src/components/create/CreateSheet.tsx |       { label: t("cs.sellItem"), path: SELL_CHOOSER_PATH }, |       { label: t("cs.sellItem"), path: "/declutter/sell" },
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: t("decl.sellSomething"), to: SELL_CHOOSER_PATH } | { label: t("decl.sellSomething"), to: "/declutter/sell" }
  * @mutate src/components/declutter/SellChooserEntry.tsx |       to={SELL_CHOOSER_PATH} |       to="/declutter/sell"
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
@@ -173,7 +173,7 @@ describe("What do you want to sell?", () => {
     at(SELL_CHOOSER_PATH);
     await screen.findByRole("heading", { name: "Sell something" });
     // Q2576 (audit 1102a): Post a Wanted is no way to sell, so the row is "More ways", never "More ways to sell".
-    // @mutate src/components/declutter/DeclutterSellChooser.tsx | <span className="w-full font-semibold">More ways:</span> | <span className="w-full font-semibold">More ways to sell:</span>
+    // @mutate src/components/declutter/DeclutterSellChooser.tsx | text-muted-foreground">More ways:</span> | text-muted-foreground">More ways to sell:</span>
     expect(document.querySelector("[data-sell-other]")!.textContent).toMatch(/^More ways:/);
     expect(document.querySelector('[data-sell-choice="wanted"]')!.textContent).toContain("Post a Wanted");
     fireEvent.click(document.querySelector('[data-sell-choice="helpr"]')!);

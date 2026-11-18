@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, packed: !!sh?.packed_at, pickedUp: !!sh?.accepted_at, delivered: !!sh?.delivered_at }; |       return { ...base, packed: !!sh?.packed_at, pickedUp: !!sh?.packed_at, delivered: !!sh?.delivered_at };
  * @mutate src/components/declutter/OrderSteps.tsx |       return f.delivered ? 3 : f.pickedUp ? 2 : f.packed ? 1 : 0; |       return f.delivered ? 3 : f.pickedUp ? 2 : 0;
  * @mutate src/components/declutter/OrderSteps.tsx |   ship: ["Paid", "Packed", "Shipped", "Delivered"], |   ship: ["Paid", "Time booked", "Picked up", "Done"],
- * @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1) return them(by ? `Packed. The seller drops it off by ${by}.` : "Packed. The seller drops it off next."); |
+ * @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1) return them(by ? t("dbuy.nx.packedBy", { by }) : t("dbuy.nx.packed")); |
  * @mutate src/components/declutter/ShipOrderPanel.tsx |   const canPack = !!l.label_url && !l.packed_at && !l.accepted_at; |   const canPack = !!l.label_url && !l.accepted_at;
  * @mutate src/components/declutter/ShipOrderPanel.tsx |     : { who: "you", text: "Print the label and pack it", by: by ? `Ship by ${by}` : null }; |     : { who: "you", text: "Print the label and pack it", by: null };
  * @mutate src/components/declutter/ShipOrderPanel.tsx |   if (l.accepted_at) return { who: "info", text: `On its way. ${trackingStatusWords(l.tracking_status) ?? "In transit"}.` }; |

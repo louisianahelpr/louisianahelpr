@@ -139,9 +139,22 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
 
   return (
     // Audit 11-10 F341: a giveaway keeps its title on a phone too, so the first heading there is not just "Show it off".
-    <AppPage title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free}>
-      <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
-        {s.keptWork.restored && (
+    // Area 06b L12: at 768 and up "Sell an item" was painted over the step's own "Show it off" (two headings, out of line);
+    // the step head is the one painted heading at every width now. A giveaway still says what it is (F341).
+    <AppPage title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free} hidesTitle={!form.free}>
+      <div className="w-full max-w-xl space-y-6" data-sell-one-screen="">
+        {s.freeChoice && (
+          // Area 06 H1 (11-18): "Give away free" with a priced draft kept on this device asks, never opens the draft.
+          <div role="status" className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-sell-free-or-draft="">
+            <p className="text-ds-14 font-semibold text-foreground">{tr("sf.freeOrDraft")}</p>
+            <p className="text-ds-13 text-muted-foreground">{tr("sf.freeOrDraftSub")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={s.freeChoice.continueDraft}>{tr("sf.continueDraft")}</Button>
+              <Button type="button" size="sm" className="rounded-full" onClick={s.freeChoice.startFree}>{tr("sf.startFree")}</Button>
+            </div>
+          </div>
+        )}
+        {s.keptWork.restored && !s.freeChoice && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-[20px] border border-border bg-card p-4" data-sell-kept="">
             <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{tr("sf.kept")}</p>
             <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void s.keptWork.finish().then(onStartOver)}>{tr("sf.startOver")}</Button>

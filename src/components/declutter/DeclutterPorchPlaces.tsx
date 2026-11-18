@@ -132,7 +132,8 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
         <p className="text-xs font-medium">{forDelivery ? t("ppk.helprPicks") : t("ppk.place")}</p>
         <p className="text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.area}</p>
         {!forDelivery && <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{shortDays(p.weekdays)}</p>}
-        {!forDelivery && <p className="text-xs text-muted-foreground">{t("ppk.afterPay")}</p>}
+        {/* Area 05 #4 (11-18): a free claim or a trade ($0, no payment) says "once you confirm", as the picker below. */}
+        {!forDelivery && <p className="text-xs text-muted-foreground" data-porch-one-address="">{free ? t("ppk.afterConfirm") : t("ppk.afterPay")}</p>}
       </div>
     );
   }

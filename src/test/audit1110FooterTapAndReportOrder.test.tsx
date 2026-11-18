@@ -7,7 +7,7 @@
  *         off-Helpr payment or harassment. The order is now Payment requested off Helpr, Harassment or abuse,
  *         Spam or scam, then the rest.
  *
- * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11"; | const FOOTER_LINK = "link-standard inline-flex items-center min-h-6 [@media(pointer:coarse)]:min-h-11";
+ * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11 lg:[@media(pointer:fine)]:min-h-8"; | const FOOTER_LINK = "link-standard inline-flex items-center min-h-6 [@media(pointer:coarse)]:min-h-11 lg:[@media(pointer:fine)]:min-h-8";
  * @mutate src/components/reportDialog/reportReasons.ts | { label: "Payment requested off Helpr" },\n    { label: "Harassment or abuse" },\n    { label: "Spam or scam" },\n    { label: "Fake profile or impersonation" }, | { label: "Fake profile or impersonation" },\n    { label: "Payment requested off Helpr" },\n    { label: "Harassment or abuse" },\n    { label: "Spam or scam" },
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -31,7 +31,7 @@ describe("F214: footer links are 44px tap areas on every pointer", () => {
       expect(classes, a.textContent!).not.toContain("[@media(pointer:coarse)]:min-h-11");
     }
     expect(SHELL_FOOTER_HTML).not.toContain("min-h-6 ");
-    expect(SHELL_FOOTER_HTML.match(/class="link-standard inline-flex items-center min-h-11"/g)?.length).toBe(10); // 8 + Fees and Safety (F255); the Holiday Gift Guides link is hidden until the next version (owner 2026-11-17)
+    expect(SHELL_FOOTER_HTML.match(/class="link-standard inline-flex items-center min-h-11 lg:\[@media\(pointer:fine\)\]:min-h-8"/g)?.length).toBe(10); // 8 + Fees and Safety (F255); the Holiday Gift Guides link is hidden until the next version (owner 2026-11-17)
   });
 });
 

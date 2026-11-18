@@ -22,7 +22,8 @@ export function DeliveryTalkButton({ taskId, label = "Message about this deliver
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button type="button" variant="outline" className="rounded-full" onClick={() => setOpen(true)}>{label}</Button>
+      {/* Area 06 M11 (11-18): the same size as the order card's Message button beside it (they were mismatched). */}
+      <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setOpen(true)}>{label}</Button>
       {open && <DeliveryTalkSheet taskId={taskId} onClose={() => setOpen(false)} />}
     </>
   );

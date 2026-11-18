@@ -22,6 +22,8 @@ import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { CheckoutGlanceCard } from "./CheckoutGlanceCard";
 import { HelprActivityNote } from "./HelprActivityNote";
 import { QuoteAskButton } from "@/components/quotes/QuoteAskButton";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
 
 interface CheckoutStepProps {
   title: string;
@@ -148,6 +150,7 @@ export function CheckoutStep({
   onSubmit,
   quoteAsk,
 }: CheckoutStepProps) {
+  const { t: tr } = useLanguage();
   // Q1586(c): a saved birthday under 18 greys the post button out (the server
   // refuses the jobs insert too).
   const { underAge } = useAgeGate();
@@ -572,13 +575,11 @@ export function CheckoutStep({
                 : giftLoading
                   ? "Checking your gift…"
                   // A3-96: the checkbox above is the one ask; the button never repeats it ("Confirm details to continue").
-                  // "Continue to payment" in front of a $0.00 total is the
-                    // screen arguing with itself — there is no payment step
-                    // when the gift covers the job; create-payment returns
-                    // straight to /payment-success.
+                  // "Continue to payment" before a $0.00 total argues with itself: a covered job has no payment
+                    // step (create-payment returns straight to /payment-success).
                     : giftCoversEverything
                       ? "Post job — covered by your gift"
-                      : "Continue to payment"}
+                      : tr("postJob.f.continuePay")}
         </Button>
         {underAge && <AgeGateNote kind="post" className="text-center" />}
         {/* Escrow-trust microline — sits right under the pay CTA so the

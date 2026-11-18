@@ -6,13 +6,15 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { Switch } from "@/components/ui/switch";
+import "@/lib/i18n/enAccount";
+import { t, useLanguage } from "@/lib/i18n/language";
 
-/** "Auto" is the visible label for `system` because the track is three cells
- *  wide on a phone; the accessible name spells it out. */
-const COLOR_MODES: SegmentedOption<Theme>[] = [
-  { value: "light", label: "Light", icon: <Sun className="w-4 h-4" /> },
-  { value: "system", label: "Auto", ariaLabel: "Match system", icon: <Monitor className="w-4 h-4" /> },
-  { value: "dark", label: "Dark", icon: <Moon className="w-4 h-4" /> },
+/** "Match phone": the same words Settings' Color mode row uses for `system` (design audit area 09 L8, was "Auto" here
+ *  and "Match my phone" in Settings). Built at render so it follows the reader's language. */
+const colorModes = (): SegmentedOption<Theme>[] => [
+  { value: "light", label: t("acct.light"), icon: <Sun className="w-4 h-4" /> },
+  { value: "system", label: t("acct.matchPhone"), icon: <Monitor className="w-4 h-4" /> },
+  { value: "dark", label: t("acct.dark"), icon: <Moon className="w-4 h-4" /> },
 ];
 
 interface AccessibilityTabProps {
@@ -23,13 +25,15 @@ interface AccessibilityTabProps {
 
 export function AccessibilityTab({ seniorMode, onToggleSeniorMode, onBack }: AccessibilityTabProps) {
   const { theme, setTheme } = useDarkMode();
+  useLanguage();
 
   return (
     <ProfileTabBody>
-      <ProfileTabHeader title="Accessibility" onBack={onBack} />
+      {/* "Color and text" (design audit area 09 L8): what the screen holds, and what Settings' row opens. */}
+      <ProfileTabHeader title={t("acct.colorTextTitle")} onBack={onBack} />
 
       <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 flex flex-col gap-2">
-        <p className="text-ds-12 font-semibold text-foreground leading-tight">Color mode</p>
+        <p className="text-ds-12 font-semibold text-foreground leading-tight">{t("acct.colorMode")}</p>
         {/* The app's shared segmented control. This was the outlier of four:
             a flat 12% bark tint at 0px radius, its type classes on an inner
             <span> so the button itself reported the browser default — three
@@ -37,11 +41,11 @@ export function AccessibilityTab({ seniorMode, onToggleSeniorMode, onBack }: Acc
             Earnings. Nothing about "which colour mode" justified its own
             language. */}
         <SegmentedControl
-          ariaLabel="Color mode"
+          ariaLabel={t("acct.colorMode")}
           iconPosition="top"
           layout="grid"
           gridClassName="grid-cols-3"
-          options={COLOR_MODES}
+          options={colorModes()}
           value={theme}
           onChange={setTheme}
         />

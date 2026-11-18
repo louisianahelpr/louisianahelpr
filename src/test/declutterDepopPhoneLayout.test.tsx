@@ -93,6 +93,11 @@ describe("B. The phone search results page (Depop/Vinted item 7)", () => {
     a.unmount();
     const b = render(<DeclutterResultsHead query="lamp" count={1} />);
     expect(b.container.querySelector("[data-results-count]")?.textContent).toBe("1 item");
+    b.unmount();
+    // Area 05 #23 (11-18): nothing found says so once, in the empty state, never "0 items" above it.
+    // @mutate src/components/declutter/DeclutterResultsBar.tsx |       {count !== null && count > 0 && ( |       {count !== null && (
+    const c = render(<DeclutterResultsHead query="lamp" count={0} />);
+    expect(c.container.querySelector("[data-results-count]")).toBeNull();
   });
 
   it("one 44px Filter | Sort bar: Filter opens the sheet, Sort offers the sheet's choices and sets one", async () => {
@@ -156,7 +161,7 @@ describe("C. The item page on a phone (Depop/Vinted item 9)", () => {
 
   it("the buyer's bar and the owner's actions are the fixed bottom bar, 44px buttons on a phone", () => {
     const offer = code("src/components/declutter/DeclutterOfferPanel.tsx");
-    expect(offer).toContain('<StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide>');
+    expect(offer).toContain('<StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide active={!(open && phone)}>');
     const bar = offer.slice(offer.indexOf("data-declutter-buybar"), offer.indexOf("</StickyActionBar>"));
     expect(bar.match(/size="wrapBar"/g)?.length).toBe(3);
     expect(bar).not.toMatch(/size="wrap"/);

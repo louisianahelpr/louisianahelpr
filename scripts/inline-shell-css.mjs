@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 import { JSDOM } from "jsdom";
 import { BROWSE_SHELL_SHOW_RULE, browseShellHtml } from "../src/lib/browseShellCards.mjs";
+import { JOB_CATEGORY_TINT_NAMES } from "../src/lib/jobCategoryTint.mjs";
 
 export const SHELL_START = '<div id="lh-landing-shell"';
 export const SHELL_END = '<span data-lh-shell="end" hidden></span>';
@@ -231,7 +232,10 @@ export function browseShellCriticalCss(css) {
   const cards = browseShellHtml([SAMPLE_ROW, SAMPLE_ROW_FLEXIBLE], SAMPLE_NOW, SAMPLE_EMBLEM);
   const empty = browseShellHtml([], SAMPLE_NOW, SAMPLE_EMBLEM);
   if (!cards.includes("job-card-title") || !empty.includes("data-shell-empty")) throw new Error("inline-shell-css: the /browse sample markup drew no card or no empty feed");
-  return shellCriticalCss([{ html: cards + empty, htmlAttr: "" }], css) + BROWSE_SHELL_SHOW_RULE;
+  // Every category tint the card tile can wear (owner 11-17, src/lib/jobCategoryTint.mjs), not only the sample's, so a
+  // real card's tile is never blank before the app sheet arrives.
+  const tints = JOB_CATEGORY_TINT_NAMES.map((n) => `<i style="background:hsl(var(--cat-tint-${n}-bg))"></i>`).join("");
+  return shellCriticalCss([{ html: cards + empty + tints, htmlAttr: "" }], css) + BROWSE_SHELL_SHOW_RULE;
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

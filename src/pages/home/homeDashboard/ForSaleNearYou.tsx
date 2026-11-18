@@ -55,7 +55,8 @@ function ForSaleTile({ item, photoPath }: { item: DeclutterItem; photoPath: stri
   );
 }
 
-export default function ForSaleNearYou({ userId }: { userId: string | undefined }) {
+/** `max`: how many tiles to draw (Home's quiet-day "Near you" shows 4; the read and its cache are the same). */
+export default function ForSaleNearYou({ userId, max = FOR_SALE_SHOWN }: { userId: string | undefined; max?: number }) {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const loc = getCachedUserLocation();
@@ -82,7 +83,7 @@ export default function ForSaleNearYou({ userId }: { userId: string | undefined 
       return { shown, cover };
     },
   });
-  const shown = near.data?.shown ?? [];
+  const shown = (near.data?.shown ?? []).slice(0, max);
   if (shown.length === 0) return null;
   return (
     <section aria-label={t("home.ns.forSale")} data-home-for-sale="" className="flex flex-col gap-2">

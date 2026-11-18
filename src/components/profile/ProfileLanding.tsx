@@ -3,8 +3,9 @@ import { SectionBoundary } from "@/components/SectionBoundary";
 import type { ProfileLandingProps } from "./profileLanding/types";
 import { YouCard } from "./profileLanding/YouCard";
 import { YouMenu } from "./profileLanding/YouMenu";
+import { profilePageTitle } from "./profileLanding/profilePageTitle";
+import { useLanguage } from "@/lib/i18n/language";
 import { PayoutSlot } from "./profileLanding/PayoutSlot";
-import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
 import { YourActivity } from "./profileLanding/YourActivity";
 import { YourPageLink } from "./YourPageLink";
 
@@ -18,6 +19,7 @@ export function ProfileLanding({
   onRequestDelete,
   onRequestLogout,
 }: ProfileLandingProps) {
+  useLanguage();
   return (
     <>
       {/* ── THE TOP BAR (board 18) ─────────────────────────────────
@@ -25,7 +27,7 @@ export function ProfileLanding({
           on the left, the bell on the right. No profile photo in the bar, since
           this IS your profile (spec v2 §3 top bar; board 18). */}
       <div className="-mb-3 lg:-mb-4">
-        <AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} />
+        <AppTopBar title={profilePageTitle()} showProfile={false} />
       </div>
 
       <YouCard

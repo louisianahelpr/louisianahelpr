@@ -24,9 +24,9 @@ import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { getCity } from "@/lib/locationUtils";
 import { formatJobDate } from "@/lib/dateUtils";
-import { jobStartTimeLabel } from "@/lib/jobDate";
+import { FactRow, whenLine } from "./jobFacts";
 import { jobEyebrow } from "./jobEyebrow";
-import { useJobPage, useMyInstantBooking, useOfferedToMe, useOwesReview, type JobPageRow } from "./useJobPage";
+import { useJobPage, useMyInstantBooking, useOfferedToMe, useOwesReview } from "./useJobPage";
 import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
@@ -44,9 +44,10 @@ import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel"
 import { jobPageViewerState } from "./viewerState";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useState } from "react";
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
+import { HIDE_WHEN_BLANK } from "./blankCard";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
@@ -64,6 +65,7 @@ import { PageApplySheet, usePageApply } from "./PageApplySheet";
 import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enJobs";
+import "@/lib/i18n/enJobPoster";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
@@ -76,7 +78,6 @@ import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { RefundRequestPanel } from "@/components/refund/RefundRequestPanel";
 import { useRefundRequest } from "@/components/refund/refundParts";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { jobDayLabel } from "@/lib/jobDateWindow";
 
 /** The hired Helpr's way to this job's card on the Jobs tab, one name everywhere (Q2598). */
 const OPEN_IN_JOBS = "Open in Jobs";
@@ -87,25 +88,8 @@ const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ 
 // From the job lists' chunk (it holds useActivityActions already), never a chunk of its own: see JobListPage.tsx.
 const PageOfferPanel = lazy(() => import("@/components/job-card/JobListPage").then((m) => ({ default: m.PageOfferPanel })));
 
-/** The When row: the day and the start time ("Wed, Nov 11 · 9:00 AM"). */
-function whenLine(job: JobPageRow): string {
-  return [
-    job.date_needed ? jobDayLabel(job) : null,
-    jobStartTimeLabel(job.start_time, job.is_flexible_schedule),
-  ].filter(Boolean).join(" · ");
-}
-
-/** One label/value row of the job's facts (owner pick 11-08, JP1: When / Where / Visits, like a listing's facts). */
-function FactRow({ label, children, ...rest }: { label: string; children: ReactNode } & Record<`data-${string}`, string>) {
-  return (
-    <div data-job-fact="" className="flex items-baseline justify-between gap-4 border-b border-border py-2 last:border-b-0">
-      <dt className="shrink-0 text-ds-14 text-muted-foreground">{label}</dt>
-      <dd {...rest} className="min-w-0 text-right text-ds-14 text-foreground [overflow-wrap:anywhere]">{children}</dd>
-    </div>
-  );
-}
-
 const CARD = "rounded-2xl border border-border bg-card";
+// Area 11 H2: no visible child (the phone bar portals out, step controls are hidden), no card.
 /** The hired Helpr's done step (helperFaceAction.ts, key "done"). */
 const DONE_FACE_LABEL = "Mark it done"; // helperFaceAction's done label (JA-56)
 /** A crew job whose roster the poster follows on the page (JA-32): filling, booked, under way, being fixed, done. */
@@ -149,6 +133,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const cancelledHelprId = isPoster && q.data?.job.status === "open" ? applicants.data?.helprCancelled?.helperId ?? null : null;
   const cancelledHelprCard = useQuery({ queryKey: ["declutter", "seller-card", cancelledHelprId], queryFn: () => fetchSellerCard(cancelledHelprId!), enabled: !!cancelledHelprId });
   const cancelledHelprFirst = (cancelledHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  // Area 11 H3: a job cancelled after a no-show names who didn't show (report_helper_no_show clears helper_id).
+  const noShowHelprId = isPoster && q.data?.job.status === "cancelled" && !q.data?.job.helper_id ? applicants.data?.noShowHelperId ?? null : null;
+  const noShowHelprCard = useQuery({ queryKey: ["declutter", "seller-card", noShowHelprId], queryFn: () => fetchSellerCard(noShowHelprId!), enabled: !!noShowHelprId });
+  const noShowHelprFirst = (noShowHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
   // The poster's Instant Release (the card's own read, PostedJobActions): the work is approved for them, so no clock.
   const { profile: ownProfile } = useCurrentUser();
   const instantRelease = !!(ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
@@ -265,11 +253,20 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     ? hiredHelprFace(dayJob, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data, markFixDone: () => void fixDone.mark(), markingFix: fixDone.marking })
     : null;
   // The poster's own step on this page, over posterPageActions' (undefined: theirs).
+  // Area 03 H1 (design audit 11-18, money safety): a Helpr who never arrived (No-show? / hasn't checked in) puts
+  // "Report no-show" in the sticky main button, never "Mark done and release" (that paid the no-show Helpr in one
+  // tap); the release moves into the "..." menu below. The report is the card's own NoShowDialog (posterFlows.noShow).
+  // Guard: src/test/area03JobsPoster.test.tsx.
+  const noShowLead = !job.is_group_job && (posterWait === "overdue_no_show" || posterWait === "started_no_checkin");
   const posterStep = posterWait === "confirm_arrival"
-    ? { label: arrival.confirming ? "Confirming…" : "Confirm they've arrived", go: () => void arrival.confirm(), disabled: arrival.confirming }
+    ? { label: arrival.confirming ? t("jp.confirming") : t("jp.confirmArrived"), go: () => void arrival.confirm(), disabled: arrival.confirming }
+    : noShowLead
+    ? { label: t("jp.reportNoShow"), go: posterFlows.noShow, disabled: !posterFlows.ready }
     : jobIsUnfundedDraft(job)
-    // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. The copy is the way on.
-    ? { label: "Post this job again", go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }
+    // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. Area 03 H2: it says
+    // what it does, "Pay to post" (the copy, paid at its own checkout; owner 2026-09-27: no "finish paying" on a server
+    // row), never "Post this job again" on a job that reads open.
+    ? { label: t("jp.payToPost"), go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }
     // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): the step due now, or the next useful thing; never "Manage job"
     // (posterPageActions.tsx: confirm, approve, cancel and the card's steps all on this page).
     : undefined;
@@ -413,7 +410,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
           {moneyNotes}
           <dl data-job-facts="" className="border-y border-border">
-            {when && <FactRow label="When" data-job-meta="">{when}</FactRow>}
+            {when && <FactRow label={t("jobPage.whenRow")} data-job-meta="">{when}</FactRow>}
             {/* JA-20: the hired Helpr's street opens Maps; JA-25: not once the job is cancelled. The street once,
                 here, for the hired Helpr (F7, JOBS2-39); the town for everyone else. */}
             {isHired && job.location && job.status !== "cancelled" ? (
@@ -422,7 +419,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                   {job.location}
                 </a>
               </FactRow>
-            ) : town ? <FactRow label="Where" data-job-town="">{town}</FactRow> : null}
+            ) : town ? <FactRow label={t("jobPage.whereRow")} data-job-town="">{town}</FactRow> : null}
             {/* JOBS-18: every visit, before they apply or answer; the hired Helpr and the poster read it in HiredSeriesSection (A3-44). */}
             {!isHired && !isPoster && seriesSummary(job) && <FactRow label="Visits" data-job-series="">{seriesSummary(job)}</FactRow>}
           </dl>
@@ -456,7 +453,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
           <JobTracker job={dayJob} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
             hideNext={refundOpen || (isPoster && !continueDay.row && showsNow(job, trackingStatus))}
-            otherFirst={isPoster ? helperFirst : posterFirst}
+            otherFirst={isPoster ? helperFirst ?? noShowHelprFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={offerUntil} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft} helprCancelled={helprCancelled}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined}
@@ -506,7 +503,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             EMPTY left column beside the card at 1440. The card (and the Guarantee under it) then sits right under the
             tracker at full content width, from 1024 up. */}
         <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
-          <section data-job-card="" className={`${CARD} space-y-4 p-4 empty:hidden lg:p-5`}>
+          <section data-job-card="" className={`${CARD} space-y-4 p-4 ${HIDE_WHEN_BLANK} lg:p-5`}>
             {/* CMP-4: the booked Helpr's card, the same one the Working offer card shows (InstantBookingCard). */}
             {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} sticky />}
             {viewer.status && !(!isPoster && instantUntil) && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
@@ -536,6 +533,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {/* Owner pick 11-08 (JP2): "Something's not right" and "Not finished? Set a day" are in the "..." menu. */}
             {isPoster && !repost.hideRow && posterActions.row(continueDay.posterLead ?? posterStep ?? posterFinish.lead ?? (seeCase ? { label: seeCase.label, go: seeCase.go } : undefined), [
               ...continueDay.posterExtras,
+              // Area 03 H1: on a no-show the release is a menu row, never the lead.
+              ...(noShowLead && posterFinish.lead ? [{ key: "finish", label: t("jp.markDoneRelease"), go: posterFinish.lead.go, disabled: posterFinish.lead.disabled, inMenu: true }] : []),
               ...(posterActions.notRight ? [{ key: "not-right", label: NOT_RIGHT_LABEL, go: posterActions.notRight, inMenu: true }] : []),
               ...(continueDay.setDay ? [continueDay.setDay] : []),
             ], { noCardSteps: continueDay.doneAhead, menuHost })}

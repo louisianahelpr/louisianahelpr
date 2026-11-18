@@ -72,11 +72,16 @@ describe("the guest landing's HTML-drawn first screen is the app's own hero (B10
   it("carries the LOCKED hero copy, font and colours (CLAUDE.md)", () => {
     const b = block(readFileSync(INDEX, "utf8"));
     expect(b).toMatch(/Louisiana(’|&rsquo;|&#x27;|')s local/);
-    // Owner 2026-11-17: the H1 is one colour and style, no italic rust "partner.".
-    expect(b).toMatch(/Louisiana(’|&rsquo;|&#x27;|')s local partner\.<\/h1>/);
+    // Owner decision 11-18 (hero mockup B, "Color band"): "partner." is italic in the brand olive again, through the
+    // .landing-h1-accent span (landingHeroBand1118.test.ts); the words are unchanged. It replaced 11-17's one-style H1.
+    expect(b).toMatch(/Louisiana(’|&rsquo;|&#x27;|')s local <span class="landing-h1-accent">partner\.<\/span><\/h1>/);
     expect(b).not.toContain("<em");
     expect(b).toContain(">Hire help, find work, or buy and sell. One account, real neighbors.</p>");
-    expect(b).toContain('class="landing-h1 relative z-10 font-display font-bold');
+    // 11-18: the H1 wears .landing-serif-text (index.css: Montserrat 650, upright, -0.02em, !important), the same
+    // computed font the old `font-display` + `:root .font-display.landing-h1` pair gave, without naming the Bodoni stack,
+    // so the inlined shell CSS no longer carries 20 unused Bodoni @font-face rules (inline-shell-css 8,500 B gz cap).
+    expect(b).toContain('class="landing-h1 relative z-10 landing-serif-text font-bold');
+    expect(b).not.toMatch(/class="landing-h1[^"]*font-display/);
     expect(b).toContain("landing-page");
   });
 

@@ -70,7 +70,9 @@ const LATER_PHOTO: Record<string, string> = { loading: "lazy" };
 /** The card's photo source, in order: the card-sized thumbnail, then the full photo if the thumbnail fails, then none. */
 type PhotoStage = "card" | "full" | "failed";
 
-export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, saves, tag, bundle, firstRow, aboveFold, guestSaveTo: guestSaveToProp, mine }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean;
+export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, saves, tag, bundle, firstRow, aboveFold, guestSaveTo: guestSaveToProp, mine, noPhotoTags = false }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean;
+  /** Design audit 11-17 #35: a carousel-size card (the item page's rows) wears no photo tags; they truncated to "Porch pick…". */
+  noPhotoTags?: boolean;
   /** F052 (UI audit 11-09): a guest's heart, a link to sign-up ("Sign up to save items.") that comes back here. */
   guestSaveTo?: string;
   /**
@@ -145,7 +147,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
         )}
         {/* Owner pick 4 (11-08): "Porch pickup" and "Trades OK" are tags on the photo (one PhotoTag style, shared with
             Builder 3's trades badge), with the card's one rule tag (drop / delivery / new) under them. */}
-        {(mine || item.porch_ok || item.accepts_trades === true || tag) && (
+        {!noPhotoTags && (mine || item.porch_ok || item.accepts_trades === true || tag) && (
           <PhotoTagStack>
             {mine && <PhotoTag data-card-mine="" tone="plain">{t("decl.card.yours")}</PhotoTag>}
             {item.porch_ok && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>}

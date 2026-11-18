@@ -12,8 +12,8 @@
  * @mutate src/pages/u/PublicProfilePage.tsx |     robots: p?.show_in_search === true ? ROBOTS_SHOWN : ROBOTS, |     robots: p?.show_in_search !== false ? ROBOTS_SHOWN : ROBOTS,
  * @mutate src/components/profile/ShowInSearchSwitch.tsx | .update({ show_in_search: next }).eq("user_id", userId).select("id") | .update({ show_in_search: next }).eq("user_id", userId)
  * @mutate src/components/profile/ShowInSearchSwitch.tsx |       setOn(next); |
- * @mutate src/components/profile/ProfileLinkRow.tsx | {userId && <ShowInSearchSwitch userId={userId} initial={showInSearch === true} />} |
- * @mutate src/components/profile/SettingsTab.tsx |  userId={profile.user_id} showInSearch={profile.show_in_search === true} /> |  />
+ * @mutate src/components/profile/SettingsTab.tsx | <ShowInSearchSwitch userId={profile.user_id} initial={profile.show_in_search === true} /> |
+ * @mutate src/components/profile/SettingsTab.tsx | <ShowInSearchSwitch userId={profile.user_id} initial={profile.show_in_search === true} /> | <ShowInSearchSwitch userId={profile.user_id} initial={false} />
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
@@ -74,11 +74,10 @@ describe("the Settings switch", () => {
     expect(sw.getAttribute("aria-checked")).toBe("false");
   });
 
-  it("Settings › Your profile link shows it with the member's saved value", () => {
-    const row = blankComments(readFileSync(resolve("src/components/profile/ProfileLinkRow.tsx"), "utf8"));
-    expect(row).toContain("{userId && <ShowInSearchSwitch userId={userId} initial={showInSearch === true} />}");
+  // Design audit area 09 M5: the switch lives in Settings › Privacy (it was inside the profile link panel).
+  it("Settings › Privacy shows it with the member's saved value", () => {
     const settings = blankComments(readFileSync(resolve("src/components/profile/SettingsTab.tsx"), "utf8"));
-    expect(settings).toContain("userId={profile.user_id} showInSearch={profile.show_in_search === true} />");
+    expect(settings).toContain("<ShowInSearchSwitch userId={profile.user_id} initial={profile.show_in_search === true} />");
   });
 });
 

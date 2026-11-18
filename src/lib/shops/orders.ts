@@ -15,19 +15,23 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 import { openShopsIdentityCheckFor } from "./errors";
+import { louisianaNow } from "./louisianaClock";
+import type { ShopHour } from "./api";
 
 export type CancelPolicy = "until_24h_before_ready" | "until_accept" | "until_handover";
 
 /** The three presets a shop picks from (O2). S2-030 (Shops audit 2): a rule whose cancel keeps the small card
  * processing cost is worded "Cancel for a refund until ...", never "Free to cancel"; only until_accept is free
  * (the card is only held).  `label`/`detail` are the words a buyer reads before paying; `shop` is
- * the shop's own settings words (S022, Shops audit 11-12: the picker spoke to the buyer, "your order"). */
+ * the shop's own settings words (S022, Shops audit 11-12: the picker spoke to the buyer, "your order"). The shop's
+ * words follow S2-030 too (launch pass 1): only until_accept says "free", so a shop never promises a free cancel the
+ * buyer then pays a card cost on. */
 export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: string; shop: { label: string; hint: string } }> = {
   until_24h_before_ready: {
     label: "Cancel for a refund until 24 hours before the ready date",
     detail: "After the shop accepts, you can cancel for a refund of the price until 24 hours before the ready date. A small card processing cost isn't refunded.",
     shop: {
-      label: "Free cancel until 24 hours before the ready date",
+      label: "Refund until 24 hours before the ready date",
       hint: "After you accept, buyers can cancel for a refund of the price until 24 hours before the ready date.",
     },
   },
@@ -46,7 +50,7 @@ export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: s
     label: "Cancel for a refund until your order is ready",
     detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, or until the shop marks your order ready if its rule says so. A small card processing cost isn't refunded.",
     shop: {
-      label: "Free cancel until the order is ready",
+      label: "Refund until the order is ready",
       hint: "After you accept, buyers can cancel for a refund of the price until the ready date begins. Below, choose whether marking an order ready ends it sooner.",
     },
   },
@@ -59,18 +63,18 @@ export const CANCEL_POLICIES = Object.keys(CANCEL_POLICY_TEXT) as CancelPolicy[]
 export type ReadyTapCancel = "ends_at_tap" | "from_day_before" | "never_shortens";
 export const READY_TAP_CANCEL_TEXT: Record<ReadyTapCancel, { label: string; hint: string; buyer: string }> = {
   ends_at_tap: {
-    label: "Marking it ready ends free cancel",
-    hint: "Buyers can cancel for free until you mark the order ready, or until the ready date begins if that comes first.",
+    label: "Marking it ready ends the refund time",
+    hint: "Buyers can cancel for a refund until you mark the order ready, or until the ready date begins if that comes first.",
     buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready sooner, the refund ends then. A small card processing cost isn't refunded.",
   },
   from_day_before: {
     label: "Marking it ready counts from the day before (default)",
-    hint: "If you mark an order ready early, buyers can still cancel for free until the day before the ready date begins.",
+    hint: "If you mark an order ready early, buyers can still cancel for a refund until the day before the ready date begins.",
     buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready, the refund ends then, but never before the day before your ready date. A small card processing cost isn't refunded.",
   },
   never_shortens: {
-    label: "Marking it ready never ends free cancel early",
-    hint: "Buyers can cancel for free until the ready date begins, however early you mark the order ready.",
+    label: "Marking it ready never ends the refund time early",
+    hint: "Buyers can cancel for a refund until the ready date begins, however early you mark the order ready.",
     buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, even if the shop marks your order ready sooner. A small card processing cost isn't refunded.",
   },
 };
@@ -104,6 +108,16 @@ export function cancelPolicyText(policy: CancelPolicy, readyTap: ReadyTapCancel 
   };
 }
 
+/** Midnight at the start of a `YYYY-MM-DD` day in Louisiana (America/Chicago, CST or CDT), as epoch ms; NaN for a bad date. */
+export function louisianaMidnightMs(iso: string): number {
+  const [y, m, d] = iso.split("-").map(Number);
+  for (const offsetH of [6, 5]) {
+    const t = Date.UTC(y, m - 1, d, offsetH);
+    if (Number.isFinite(t) && louisianaNow(new Date(t)).hhmm === "00:00") return t;
+  }
+  return Number.NaN;
+}
+
 /** S2-044 (Shops audit 2): the cancel line an order card shows the buyer, or null when there is none to show. An
  * accepted order only shows its rule while the window can still be open: under until_accept it closed at accept,
  * and under the date rules it closed once the cutoff passed (the ready date's start, or 24 hours before it). Then
@@ -116,8 +130,8 @@ export function orderCancelLine(
   if (order.preorder_item_id) return "You can cancel until the shop marks it ready.";
   if (order.status === "accepted") {
     if (order.cancel_policy === "until_accept") return "The free-cancel time ended when the shop accepted.";
-    const [y, m, d] = (order.ready_date.split("T")[0] ?? "").split("-").map(Number);
-    const readyStart = new Date(y, m - 1, d).getTime();
+    // The ready date begins at midnight in Louisiana (shop_order_free_cancel_until), whatever the device's zone.
+    const readyStart = louisianaMidnightMs(order.ready_date.split("T")[0] ?? "");
     const cutoff = order.cancel_policy === "until_24h_before_ready" ? readyStart - 24 * 3_600_000 : readyStart;
     if (Number.isFinite(cutoff) && now.getTime() >= cutoff) return "The cancel-for-a-refund time has ended.";
   }
@@ -203,6 +217,11 @@ export interface OrderTerms {
   today: string;
   last_day: string;
   full_days: string[];
+  /**
+   * Q2793: the shop's hours for today have ended (Louisiana time), so today is no longer a ready date.
+   * Set on the client from the shop's own hours (withClosedForToday); the server does not send it.
+   */
+  closed_for_today?: boolean;
 }
 
 const ORDER_COLUMNS =
@@ -505,7 +524,7 @@ export { formatCents } from "./formatCents";
 
 /** M3's endings of a charged order, in each side's words. */
 const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
-  buyer_cancelled_free: { buyer: "Cancelled by you (refunded, less a small card processing cost)", shop: "Cancelled by the buyer in your free-cancel time" },
+  buyer_cancelled_free: { buyer: "Cancelled by you (refunded, less a small card processing cost)", shop: "Cancelled by the buyer in time for a refund" },
   buyer_cancelled_late: { buyer: "Cancelled by you late (not refunded; the shop is paid)", shop: "Cancelled by the buyer late (you are paid)" },
   buyer_no_show: { buyer: "Missed pickup (not refunded; the shop is paid)", shop: "Buyer didn't show (you are paid)" },
   shop_cancelled: { buyer: "Cancelled by the shop (refunded in full)", shop: "Cancelled by you (buyer refunded in full)" },
@@ -581,9 +600,30 @@ function addDaysIso(iso: string, days: number): string {
   return utcToIso(isoToUtc(iso) + days * DAY_MS);
 }
 
-/** The earliest ready date the server accepts (shops_request_order): the shop's today + the longest lead time chosen. */
-export function earliestReadyDate(terms: Pick<OrderTerms, "today">, leadDays: number): string {
-  return addDaysIso(terms.today, Math.max(0, leadDays));
+/**
+ * The earliest ready date: the shop's today + the longest lead time chosen (shops_request_order), and never
+ * today once the shop has closed for the day (Q2793, owner rule by recommendation 11-18: a same-day order
+ * after closing time waits for the next open day).
+ */
+export function earliestReadyDate(terms: Pick<OrderTerms, "today" | "closed_for_today">, leadDays: number): string {
+  return addDaysIso(terms.today, Math.max(terms.closed_for_today ? 1 : 0, leadDays));
+}
+
+/**
+ * Q2793: true when the shop's hours for its today have all ended, in Louisiana time. A day with no hours is
+ * already greyed out as closed, and a stale `today` (the device crossed midnight since the terms loaded) is left
+ * to the server's own check.
+ */
+export function shopClosedForToday(hours: readonly ShopHour[], today: string, now: Date = new Date()): boolean {
+  const { weekday, hhmm } = louisianaNow(now);
+  if (new Date(isoToUtc(today)).getUTCDay() !== weekday) return false;
+  const todays = hours.filter((h) => h.weekday === weekday);
+  return todays.length > 0 && todays.every((h) => h.closes.slice(0, 5) <= hhmm);
+}
+
+/** The terms with closed_for_today filled from the shop's hours (the order sheet passes the shop page's hours). */
+export function withClosedForToday<T extends Pick<OrderTerms, "today">>(terms: T, hours: readonly ShopHour[] | undefined, now: Date = new Date()): T & { closed_for_today: boolean } {
+  return { ...terms, closed_for_today: hours ? shopClosedForToday(hours, terms.today, now) : false };
 }
 
 /**
@@ -593,7 +633,7 @@ export function earliestReadyDate(terms: Pick<OrderTerms, "today">, leadDays: nu
  */
 export function readyDateProblem(
   iso: string,
-  terms: Pick<OrderTerms, "today" | "last_day" | "open_weekdays" | "full_days">,
+  terms: Pick<OrderTerms, "today" | "last_day" | "open_weekdays" | "full_days" | "closed_for_today">,
   leadDays: number,
 ): "too_soon" | "too_far" | "closed" | "full" | null {
   if (iso < earliestReadyDate(terms, leadDays)) return "too_soon";
@@ -605,7 +645,7 @@ export function readyDateProblem(
 
 /** The first date the shop can fill this order on, or null when none in its window. */
 export function firstOpenReadyDate(
-  terms: Pick<OrderTerms, "today" | "last_day" | "open_weekdays" | "full_days">,
+  terms: Pick<OrderTerms, "today" | "last_day" | "open_weekdays" | "full_days" | "closed_for_today">,
   leadDays: number,
 ): string | null {
   for (let d = earliestReadyDate(terms, leadDays); d <= terms.last_day; d = addDaysIso(d, 1)) {

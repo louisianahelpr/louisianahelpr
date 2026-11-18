@@ -17,6 +17,7 @@ export const enDeclOffers = {
   "dof.st.expired": "Ran out of time",
   "dof.st.withdrawn": "Taken back",
   "dof.st.voided": "Item went to someone else",
+  "dof.st.lapsed": "Expired",
 
   "dof.inCart": "In your cart. Check out by {when}.",
   "dof.checkOut": "Check out",
@@ -31,7 +32,7 @@ export const enDeclOffers = {
 
   "dof.wantedReply": "Reply to your Wanted",
   "dof.from": "From {name}",
-  "dof.priceNow": "Price now {price}",
+  "dof.priceNow": "Listed at {price}",
   "dof.theirOffer": "their offer",
   "dof.theirPrice": "their price",
   "dof.theirCounter": "their counter",

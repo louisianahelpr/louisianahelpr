@@ -415,9 +415,11 @@ export function GroupJobHelpers({
                   {crewRosterPill(h)}
                 </span>
               </div>
-              {/* A3-34 (audit 11-01): one action group, right-aligned on every row: Message (outline) first, the
-                  step (green) last, so a wrap keeps the step on the right and the columns match row to row. */}
-              <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2" data-crew-actions="">
+              {/* A3-34 (audit 11-01): one action group on every row: Message (outline) first, the step (green) last.
+                  Area 03 L12 (design audit 11-18): the group is its own full-width row under the name with the buttons
+                  SIDE BY SIDE in equal halves; right-aligned, each chip wrapped onto its own line at 390 (Message over
+                  Didn't show, a column of narrow pills hugging the right edge). Guard: src/test/area03JobsPosterPass2.test.tsx. */}
+              <div className="flex w-full min-w-0 basis-full items-center gap-2 [&>[data-job-action-chip]]:min-w-0 [&>[data-job-action-chip]]:flex-1" data-crew-actions="">
                 {onMessage && h.helper_id && h.status === "accepted" && (
                   <JobActionChip
                     icon={MessageCircle}

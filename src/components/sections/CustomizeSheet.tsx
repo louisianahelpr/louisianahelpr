@@ -4,11 +4,14 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { useOpenSectionKeys, useSectionTabs } from "@/components/mobileNav/useSectionTabs";
-import { SECTION_INVITE } from "@/pages/home/homeDashboard/useHomeSummary";
 import { sectionByKey } from "./sectionsConfig";
 import { KEEP_ONE_OPEN_TOAST, useSectionPrefs } from "./useSectionPrefs";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { focusSheetItself } from "@/components/declutter/focusSheetItself";
+import "@/lib/i18n/enCreateSheets";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import { sectionName } from "@/components/create/CreateSheet";
 
 /**
  * Customize sections = board 90 (2026-10-20; first built 2026-10-19). Home and
@@ -22,49 +25,53 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
   const { prefs, setHidden, move } = useSectionPrefs();
   const live = useSectionTabs();
   const openKeys = useOpenSectionKeys();
+  const { t } = useLanguage();
   const row = "flex items-center gap-2 px-4 py-2 rounded-2xl border border-border/60";
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" floor data-testid="customize-sheet" onOpenAutoFocus={focusSheetItself}>
-        <SheetHero title="Customize sections" />
+        <SheetHero title={t("cz.title")} />
         {/* Fits without scrolling (owner 2026-10-25, "this doesn't need to scroll"):
             measured 730px of content in a 600px box at a 700px-tall window. Home and
             Messages, which have no control, are one line instead of two rows. */}
         {/* M7 (iOS design audit 11-16): the app's own names, Home, Inbox and Create (it said Dashboard, Messages,
             Explore and "the + menu", none of which the app shows by that name). */}
         <p className="text-ds-14 text-muted-foreground">
-          Use the arrows to reorder. Hidden sections leave Home, the bottom bar and Create. Nothing is deleted.
+          {t("cz.howTo")}
         </p>
         <p className="mt-2 text-ds-14 text-muted-foreground">
-          <span className="font-semibold text-foreground" data-always-on="Home">Home</span> and{" "}
-          <span className="font-semibold text-foreground" data-always-on="Inbox">Inbox</span> are always on.
+          {t("cz.alwaysOn", { home: "\uE000", inbox: "\uE001" }).split(/(\uE000|\uE001)/).map((part, i) =>
+            part === "\uE000" ? <span key={i} className="font-semibold text-foreground" data-always-on="Home">{t("cz.home")}</span>
+            : part === "\uE001" ? <span key={i} className="font-semibold text-foreground" data-always-on="Inbox">{t("cz.inbox")}</span>
+            : part)}
         </p>
 
-        <h3 className="mt-3 mb-2 px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your sections</h3>
+        <h3 className="mt-3 mb-2 px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("cz.yours")}</h3>
         <ul className="flex flex-col gap-2">
           {/* In the iPhone app a section not open to everyone is not listed (owner 10-31, hideUnopenedInApp). */}
           {prefs.order.filter((key) => live.find((t) => t.path === sectionByKey(key).path)?.listed !== false).map((key, i, order) => {
             const s = sectionByKey(key);
+            const name = sectionName(key);
             const shown = !prefs.hidden.includes(key);
             const on = s.feature === null || live.find((t) => t.path === s.path)?.on;
             return (
               <li key={key} className={row} style={{ background: "hsl(var(--card))" }}>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-ds-15 font-semibold truncate">{s.label}</span>
-                  <span className="block text-ds-13 text-muted-foreground truncate">{SECTION_INVITE[key]}</span>
+                  <span className="block text-ds-15 font-semibold truncate">{name}</span>
+                  <span className="block text-ds-13 text-muted-foreground" data-section-invite={key}>{t(`cz.inv.${key}` as MsgKey)}</span>
                 </span>
                 <span className="flex items-center">
-                  <Button type="button" variant="ghost" size="iconCompact" aria-label={`Move ${s.label} up`} data-account-setting disabled={i === 0} onClick={() => move(key, -1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
+                  <Button type="button" variant="ghost" size="iconCompact" aria-label={t("cz.moveUp", { name })} data-account-setting disabled={i === 0} onClick={() => move(key, -1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
                     <ChevronUp className="w-4 h-4" aria-hidden />
                   </Button>
-                  <Button type="button" variant="ghost" size="iconCompact" aria-label={`Move ${s.label} down`} data-account-setting disabled={i === order.length - 1} onClick={() => move(key, 1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
+                  <Button type="button" variant="ghost" size="iconCompact" aria-label={t("cz.moveDown", { name })} data-account-setting disabled={i === order.length - 1} onClick={() => move(key, 1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
                     <ChevronDown className="w-4 h-4" aria-hidden />
                   </Button>
                 </span>
                 {on ? (
                   <Switch
                     checked={shown}
-                    aria-label={`Show ${s.label}`}
+                    aria-label={t("cz.show", { name })}
                     data-section-toggle={key}
                     onCheckedChange={(next) => {
                       if (!setHidden(key, !next, openKeys)) toast(KEEP_ONE_OPEN_TOAST, { id: "customize-last" });
@@ -79,7 +86,7 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
         </ul>
 
         <SheetFooter className="mt-3">
-          <SheetPrimaryAction onClick={() => onOpenChange(false)}>Done</SheetPrimaryAction>
+          <SheetPrimaryAction onClick={() => onOpenChange(false)}>{t("cz.done")}</SheetPrimaryAction>
         </SheetFooter>
       </SheetContent>
     </Sheet>

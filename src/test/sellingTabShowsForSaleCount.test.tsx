@@ -5,7 +5,7 @@
  * "You're selling" line, so the two never disagree.
  *
  * @mutate src/components/declutter/DeclutterHomeView.tsx | quiet: forSale, count: | count:
- * @mutate src/components/declutter/DeclutterHomeView.tsx | l.value === "selling" ? { ...l, countAsDot: true } : l | l
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | l.value === "selling" \|\| l.value === "buying" ? { ...l, countAsDot: true } : l | l
  * @mutate src/lib/declutter/liveListingCount.ts | i.status === "live" | i.status !== "withdrawn"
  * @mutate src/components/sections/SectionTabs.tsx | {o.countAsDot && o.count !== undefined && o.count > 0 && ( | {false && (
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | selling: liveListingCount(items), | selling: items.length,
@@ -67,7 +67,8 @@ describe("Selling tab: how many items are for sale, to-dos as a dot", () => {
     // Vinted header, owner 11-08: the same quiet for-sale number beside the row).
     // Owner 11-11 (F363/F396): its to-do dot is the Home To-do Selling count (declutterBadgesReadHomeTodo.test.tsx).
     expect(home).toMatch(/\{ value: "selling", label: "Selling", labelKey: "decl\.tab\.selling", quiet: forSale, count: needsYou\.declutterSelling \}/);
-    expect(home).toContain('const tabDefs = lists.map((l) => l.value === "selling" ? { ...l, countAsDot: true } : l);');
+    // Design audit 11-17 #24: Buying's to-dos are the same dot (one count style in the row).
+    expect(home).toContain('const tabDefs = lists.map((l) => l.value === "selling" || l.value === "buying" ? { ...l, countAsDot: true } : l);');
     expect(home.match(/tabs=\{tabDefs\}/g)?.length, "desktop and (F153) phone rows").toBe(2);
     expect(home).toContain("count: l.count, quiet: l.quiet }))");
     expect(home).toMatch(/const forSale = mineForCount\.data \? liveListingCount\(mineForCount\.data\) : undefined;/);

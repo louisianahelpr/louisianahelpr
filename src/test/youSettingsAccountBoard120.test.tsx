@@ -6,7 +6,7 @@
  * No "Pause my account": it does not exist (lead 2026-10-21).
  *
  * @mutate src/components/profile/SettingsTab.tsx | {onRequestDelete && <Row testId="delete-account" | {false && <Row testId="delete-account"
- * @mutate src/components/profile/SettingsTab.tsx |   const NAMES: Record<string, string> = { email: "Password", google: "Google", apple: "Apple" }; |   const NAMES: Record<string, string> = {};
+ * @mutate src/components/profile/SettingsTab.tsx |   const NAMES: Record<string, string> = { email: wordInLang("settings.password", "Password"), google: "Google", apple: "Apple" }; |   const NAMES: Record<string, string> = {};
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
@@ -15,6 +15,8 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const user = vi.hoisted(() => ({ current: { id: "u1", email: "lexi@example.com", identities: [{ provider: "email" }, { provider: "google" }] } as unknown }));
+// Settings › Privacy's Saved address row (design audit area 09 M14) reads the member's own jobs; none here.
+vi.mock("@/pages/post-job/useSavedJobAddress", () => ({ useSavedJobAddress: () => ({ savedAddress: null, otherSavedAddresses: [] }) }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: user.current, profile: null, isAdmin: false }) }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
@@ -26,7 +28,7 @@ vi.mock("@/components/sections/useSectionPrefs", async () => {
   return { useSectionPrefs: () => ({ visible: SECTIONS, prefs: { order: SECTIONS.map((s) => s.key), hidden: [] }, setHidden: vi.fn() }) };
 });
 
-import { SettingsTab, accountLine } from "@/components/profile/SettingsTab";
+import { SettingsTab, accountLines } from "@/components/profile/SettingsTab";
 import type { Profile } from "@/components/profile/profileLanding/types";
 
 // These cases test the ID check while it is ON. The owner switched it off on
@@ -51,14 +53,17 @@ const renderIt = (profile: Partial<Profile> | null, onRequestDelete = vi.fn()) =
 
 describe("You › Settings › Your account, board 120", () => {
   it("the account line is the real email and sign-in methods, each only when known", () => {
-    expect(accountLine("lexi@example.com", [{ provider: "email" }, { provider: "google" }])).toBe("lexi@example.com · Password, Google");
-    expect(accountLine(null, [{ provider: "apple" }])).toBe("Apple");
-    expect(accountLine(undefined, [])).toBeNull();
+    // Design audit area 09 L7: two lines, the email on its own (it wrapped mid-word beside the methods).
+    expect(accountLines("lexi@example.com", [{ provider: "email" }, { provider: "google" }])).toEqual(["lexi@example.com", "Password, Google"]);
+    expect(accountLines(null, [{ provider: "apple" }])).toEqual(["Apple"]);
+    expect(accountLines(undefined, [])).toBeNull();
   });
 
   it("renders the line, no ID row when unverified, and Delete account opens the delete dialog", () => {
     const onDelete = renderIt(null);
-    expect(screen.getByText("lexi@example.com · Password, Google")).toBeTruthy();
+    const email = screen.getByText("lexi@example.com");
+    expect(email.className).toContain("truncate");
+    expect(screen.getByText("Password, Google")).toBeTruthy();
     expect(screen.queryByText("ID")).toBeNull();
     const del = screen.getByText("Delete account");
     expect(del.getAttribute("style")).toContain("--alert-ink");

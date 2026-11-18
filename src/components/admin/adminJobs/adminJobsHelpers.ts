@@ -206,7 +206,9 @@ export function detectFlags(job: Job, continueDate?: string | null): string[] {
  * completed / cancelled; never a test row. Measured on prod 2026-10-09: 4 jobs
  * (3 open + 1 in progress), against 25 rows on the old All tab.
  */
-const ACTIVE_PAYMENT_STATUSES = ["escrow", "payout_pending"] as const;
+// Design audit area 10 #1 (11-18): Active said "No active jobs" while All listed 4 open jobs whose card is on hold
+// ('held', Q2399: a completed checkout whose money is authorised, not yet captured). Admin filter only.
+const ACTIVE_PAYMENT_STATUSES = ["escrow", "payout_pending", "held"] as const;
 const FINISHED_STATUSES = ["completed", "cancelled"];
 export function isActivePaidJob(job: { status: string | null; payment_status: string | null; is_seed: boolean | null }): boolean {
   return (

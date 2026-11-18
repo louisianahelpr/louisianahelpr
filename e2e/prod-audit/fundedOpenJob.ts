@@ -43,6 +43,7 @@ import {
   FUNDED_FIXTURE_TITLE,
   isPreLive,
   openJobBudgetProblem,
+  releasesWithoutMoney,
   type CapRow,
   LIVE_PAY_SKIP,
   NEW_FIXTURE_DAYS,
@@ -155,7 +156,8 @@ export async function readRow(api: APIRequestContext, poster: Session, id: strin
 export async function retireFundedJob(api: APIRequestContext, poster: Session, jobId: string): Promise<string> {
   // A test-mode escrow cannot be refunded with the live key: never cancel_escrow it blind.
   const before = await readRow(api, poster, jobId);
-  if (isPreLive(before, stripeMode)) return `left ${jobId} untouched (${PRE_LIVE_WHY}; Stripe mode ${stripeMode})`;
+  // A held card is released, not refunded (releasesWithoutMoney): no mode blocks it.
+  if (!releasesWithoutMoney(before) && isPreLive(before, stripeMode)) return `left ${jobId} untouched (${PRE_LIVE_WHY}; Stripe mode ${stripeMode})`;
   const res = await invoke(api, poster, "create-payment", { action: "cancel_escrow", jobId });
   if (res.status !== 200 || res.json.success !== true) {
     throw new Error(`funded fixture: cancel_escrow on ${jobId} → HTTP ${res.status} ${res.text.slice(0, 300)} — the escrow is still held`);
@@ -163,6 +165,10 @@ export async function retireFundedJob(api: APIRequestContext, poster: Session, j
   // A 200 is a claim; the row is the fact (CLAUDE.md "A null error is not a write").
   const after = await readRow(api, poster, jobId);
   // Q86 (a): a refunded capture ends 'refunded' (before 2026-10-07 cancel_escrow wrote 'cancelled').
+  // Q2399: a released hold ends 'cancelled'; one whose release create-payment
+  // left to card-hold-sweep stays 'held' on the CANCELLED job (no cap slot).
+  const releaseDeferred = releasesWithoutMoney(before) && after.payment_status === "held";
+  if (releaseDeferred && after.status === "cancelled") return `retired ${jobId} (cancel_escrow → cancelled; hold release left to card-hold-sweep)`;
   if (after.status !== "cancelled" || !["refunded", "cancelled"].includes(after.payment_status ?? "")) {
     throw new Error(`funded fixture: cancel_escrow on ${jobId} answered success but the job is ${after.status}/${after.payment_status}`);
   }
@@ -312,17 +318,15 @@ export async function ensureFundedOpenJob(
   helper: Session,
 ): Promise<{ job: { id: string; title: string }; log: string[] }> {
   const log: string[] = [];
-  // Q1779: every run (the hourly canary included) first proves the shared
-  // poster is not accumulating open jobs, and fails by name while slots remain.
-  const capRows = await readJson<CapRow[]>(
-    await api.get(
-      `${SUPABASE_URL}/rest/v1/jobs?select=id,title,status,payment_status,created_at&customer_id=eq.${poster.user.id}&status=eq.open&limit=200`,
-      { headers: headers(poster) },
-    ),
-    "list poster-e2e open jobs (cap budget)",
-  );
-  const overBudget = openJobBudgetProblem(capRows);
-  if (overBudget) throw new Error(overBudget);
+  // Q1779 (prod-audit 44194466954): retire what earlier runs leaked BEFORE the
+  // budget is counted. The gate used to run first, so a leaked fixture failed
+  // every later run at the gate and the retire below it never ran.
+  //  1. Stale applicant fixtures: a messy-input run that died before its
+  //     afterAll left one open (11-05). Only ones past STALE_APPLICANT_FIXTURE_MS,
+  //     so a live run's fixture is never pulled from under it.
+  const { retireApplicantFixtures } = await import("./fundedApplicantJob");
+  for (const line of await retireApplicantFixtures(api, poster, helper, { staleOnly: true })) log.push(`stale applicant fixture: ${line}`);
+  //  2. The funded-fixture plan's own retires and discards (duplicates, short runway).
   const rows = await readJson<Row[]>(
     await api.get(
       `${SUPABASE_URL}/rest/v1/jobs?select=${COLS}&customer_id=eq.${poster.user.id}&is_seed=is.true&status=eq.open` +
@@ -337,8 +341,20 @@ export async function ensureFundedOpenJob(
   );
   const plan = planFundedOpenJob(rows, { today: centralDatePlus(0), appliedJobIds: new Set(apps.map((a) => a.job_id)), mode: stripeMode });
   for (const { row, why } of plan.preLive ?? []) log.push(`left ${row.id} untouched — ${why}`);
-  for (const { row, why } of plan.retire) log.push(`${await retireFundedJob(api, poster, row.id)} — ${why}`);
+  for (const { row, why } of plan.retire) log.push(`before the gate: ${await retireFundedJob(api, poster, row.id)} — ${why}`);
   for (const row of plan.discard ?? []) log.push(await discardNeverPaidFixture(api, poster, row));
+  // Q1779: then every run (the hourly canary included) proves the shared
+  // poster is not accumulating open jobs, and fails by name while slots remain,
+  // before it reuses or mints anything.
+  const capRows = await readJson<CapRow[]>(
+    await api.get(
+      `${SUPABASE_URL}/rest/v1/jobs?select=id,title,status,payment_status,created_at&customer_id=eq.${poster.user.id}&status=eq.open&limit=200`,
+      { headers: headers(poster) },
+    ),
+    "list poster-e2e open jobs (cap budget)",
+  );
+  const overBudget = openJobBudgetProblem(capRows);
+  if (overBudget) throw new Error(`${overBudget} [retired first this run: ${log.join("; ") || "nothing"}]`);
   if (plan.reuse) {
     log.push(`reused ${plan.reuse.id}`);
     await waitVisibleToHelper(api, helper, plan.reuse.id, plan.reuse.created_at, log);

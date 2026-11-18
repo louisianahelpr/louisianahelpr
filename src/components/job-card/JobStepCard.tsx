@@ -478,16 +478,10 @@ export function JobStepCard({
           {moreChips.length > 1 ? (
             <JobStepOverflowChip
               count={moreChips.length}
-              /* THE PANEL IS THE ROW'S BOX, not the viewport's. Anchored to
-                 the trigger and sized by `w-[min(17rem,calc(100vw-1.5rem))]`
-                 it was 272px wide inside a 244px card at 320, so Radix's
-                 collision detection shoved it to x=12 — off the card, over the
-                 page, pointing at nothing. Anchored to the ROW and given the
-                 ROW's width it lands exactly over the controls it came from,
-                 inside the card, at every width, and collision detection has
-                 nothing left to correct. */
+              /* Area 03 M11 (11-18): More opens the job page's bottom sheet ("More options"); each chip is drawn as
+                 that sheet's outlined full-width row (MenuAction), as on the job page. */
             >
-              {moreChips}
+              {moreChips.map((c, i) => <MenuAction key={isValidElement(c) && c.key != null ? String(c.key) : i} chip={c} className="w-full" />)}
             </JobStepOverflowChip>
           ) : null}
           {rowChips.trail}

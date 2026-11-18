@@ -25,6 +25,8 @@ import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { guestLogInUrl, type GuestJob } from "@/components/dashboard/GuestJobPreview";
 import { GuestJobPage } from "@/components/dashboard/GuestJobPage";
 import { jobShareDescription } from "@/lib/jobShareLine.mjs";
+import { wordInLang as w } from "@/lib/i18n/inLang";
+import { useLanguage } from "@/lib/i18n/language";
 
 // Signed in: the job page itself (boards 15, 42, 168, 169).
 const JobPage = lazy(() => import("./jobPage/JobPage"));
@@ -47,6 +49,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  *     rather than a blank backdrop.
  */
 const JobDetail = () => {
+  useLanguage(); // design audit areas 11-18 #1: re-render when the Spanish words arrive
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isLoading: authLoading, profileQuery, refresh: refreshCurrentUser } = useCurrentUser();
@@ -207,7 +210,7 @@ const JobDetail = () => {
                   onClick={() => navigate("/browse")}
                   className="squircle"
                 >
-                  Browse open Jobs
+                  {w("pub.browseJobs", "Browse jobs")}
                 </Button>
               }
             />
@@ -218,49 +221,48 @@ const JobDetail = () => {
                it, so this branch used to say "This job isn't available" with no way
                to log in: members read it as "my job was cancelled". Lead with Log in,
                carrying the job so Login lands back on it. */
-            <EmptyState
-              variant="inline"
-              icon={Briefcase}
-              title="Log in to see this job."
-              body="It's only visible to the person who posted it and the person doing it. If it was filled, expired or removed, Browse has what's open today."
-              action={
-                <div className="flex flex-col items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`)}
-                    className="squircle"
-                  >
-                    Log in
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate("/browse")}
-                    className="squircle"
-                  >
-                    Browse open Jobs
-                  </Button>
-                </div>
-              }
-            />
+            /* Design audit areas 11-18 #19: the 404's card (NotFound.tsx): 440px wide, no full stop on the title, Log in
+               the one big primary pill, "Browse jobs" an outline pill, and Spanish for a Spanish reader (#1). */
+            <div className="mx-auto w-full max-w-[440px] flex" data-job-not-found="login">
+              <EmptyState
+                variant="inline"
+                icon={Briefcase}
+                title={w("pub.job.loginTitle", "Log in to see this job")}
+                body={w("pub.job.loginBody", "It's only visible to the person who posted it and the person doing it. If it was filled, expired or removed, Browse has what's open today.")}
+                action={
+                  <div className="flex flex-col items-center gap-3 w-full">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`)}
+                      className="w-full max-w-[280px] rounded-full"
+                    >
+                      {w("pub.logIn", "Log in")}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => navigate("/browse")} className="rounded-full">
+                      {w("pub.browseJobs", "Browse jobs")}
+                    </Button>
+                  </div>
+                }
+              />
+            </div>
           ) : !job ? (
             /* Not a job id at all (/jobs/abc): nothing to log in for. */
-            <EmptyState
-              variant="inline"
-              icon={Briefcase}
-              title="This job isn't available."
-              body="It may have been filled, expired, or removed. New jobs are posted across Louisiana every day."
-              action={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/browse")}
-                  className="squircle"
-                >
-                  Browse open Jobs
-                </Button>
-              }
-            />
+            <div className="mx-auto w-full max-w-[440px] flex" data-job-not-found="unavailable">
+              <EmptyState
+                variant="inline"
+                icon={Briefcase}
+                title={w("pub.job.unavailable", "This job isn't available")}
+                body={w("pub.job.unavailableBody", "It may have been filled, expired, or removed. New jobs are posted across Louisiana every day.")}
+                action={
+                  <div className="flex flex-col items-center gap-3 w-full">
+                    <Button asChild variant="primary" size="lg" className="w-full max-w-[280px] rounded-full">
+                      <Link to="/browse">{w("pub.browseJobs", "Browse jobs")}</Link>
+                    </Button>
+                  </div>
+                }
+              />
+            </div>
           ) : (
             /* F268a (owner 11-12): the job's own read-only page, not the sheet over a blur. */
             <GuestJobPage job={job} onBrowse={() => navigate("/browse")} onSignUp={requireSignup} onLogIn={(id) => navigate(guestLogInUrl(id))} />

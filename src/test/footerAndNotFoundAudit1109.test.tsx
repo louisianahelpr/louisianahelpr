@@ -7,7 +7,7 @@
  *   L035 the Helpr directory had no link from the landing or the footer: the footer's Explore lists Find a Helpr.
  *   L038 the 404's canonical link pointed at the home page: the 404 drops it.
  *
- * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11"; | const FOOTER_LINK = "link-standard inline-flex items-center";
+ * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11 lg:[@media(pointer:fine)]:min-h-8"; | const FOOTER_LINK = "link-standard inline-flex items-center lg:[@media(pointer:fine)]:min-h-8";
  * @mutate src/components/Footer.tsx | {w("footer.place", "Delcambre, Louisiana")} | Made with love for Louisiana communities
  * @mutate src/pages/info/NotFound.tsx |     noCanonical: true, |
  * @mutate src/components/Footer.tsx |               <Link to="/helprs" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>

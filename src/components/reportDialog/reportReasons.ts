@@ -186,31 +186,6 @@ export const REPORTED_NOUN: Record<ReportedType, string> = {
 };
 
 /**
- * Lower-case noun for running prose. Separate from REPORTED_NOUN because the
- * title's noun and the sentence's noun genuinely differ for one case: the
- * popup is titled "Report User", but "decides what happens to the user" reads
- * wrong mid-sentence where "account" is the thing being acted on.
- */
-export const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
-  job: "job",
-  message: "message",
-  user: "account",
-  review: "review",
-  application: "application",
-  declutter_item: "listing",
-  declutter_wanted: "Wanted post",
-  declutter_question: "question",
-  declutter_answer: "answer",
-  declutter_review: "review",
-  shop_review: "review",
-  shop: "shop",
-  shop_item: "item",
-  shop_talk_message: "message",
-  home_listing: "listing",
-  home_talk_message: "message",
-};
-
-/**
  * The question the reason list answers, in the reporter's own terms. It is
  * the list's ACCESSIBLE name only — it is deliberately not painted (see the
  * reason step below); the dialog title and lede already say it on screen.

@@ -70,7 +70,7 @@ vi.mock("@/components/money/PayoutFailedCard", () => ({ PayoutFailedCard: () => 
 // Board 189's first-job Home has its own reads (applications); this file is about the shell.
 vi.mock("@/pages/home/homeDashboard/FirstJobHome", () => ({ FirstJobHome: () => null, useFirstJobState: () => null }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
-vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => new Set(["declutter", "shops", "rentals"]) })); // launched: an unlaunched section is not listed (owner 2026-11-17)
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
   useFeatureStatus: (key: string) => ({ on: switches.on.has(key), settled: true }),

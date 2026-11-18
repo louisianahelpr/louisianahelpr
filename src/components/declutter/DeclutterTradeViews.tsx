@@ -291,7 +291,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               <span className="block text-ds-13 text-muted-foreground">{handoverWords(h)}</span>
             </span>
             <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--accent-ink))]">
-              {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>)
+              {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-medium text-muted-foreground">Get a price</span>)
                 : h === "ship" ? (shipQuote ? formatPrice(shipQuote.rate_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>)
                 : h === "seller_delivery" ? (sdState === "no_times"
                   ? <span className="font-semibold text-muted-foreground">{sellerDeliveryPriceWords(sdOffer.data, sdState)}</span>
@@ -307,7 +307,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             <div className="space-y-3 pl-4" data-places-under={needsPlace ? h : undefined} data-details-under={h}>
               {needsPlace && (
                 <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} refused={porchPlaces.refused} loadError={porchPlaces.query.error}
-                  forDelivery={h === "delivery"} onRetry={() => void porchPlaces.reread()} onChosen={() => { setQuote(null); setPickupPick(null); }} />
+                  free={itemsTotalCents === 0} forDelivery={h === "delivery"} onRetry={() => void porchPlaces.reread()} onChosen={() => { setQuote(null); setPickupPick(null); }} />
               )}
               {h === "ship" && <ShipToMe sellerId={sellerId} picked={shipQuote} onPick={setShipQuote} />}
               {h === "meetup" && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
@@ -369,14 +369,15 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           set-out photo: measured live with pg_get_functiondef), so never "held until you have your items". */}
       {/* Q2633 (audit 1102c R8): the seller's payout promise is information, not a warning: neutral ink, no rust box. */}
       <p className="text-ds-13 text-muted-foreground" data-checkout-note="">
-        The seller keeps the whole {formatPrice(netItemsCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
+        {/* Area 05 #7 (11-18): plainer words, the same rule (copy only); the no-tap case stays, as the money review asked. */}
+        The seller gets the full {formatPrice(netItemsCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
         {delivering
           ? "It's paid to the seller once the delivery is done."
           // Shipping S5 (20261102013630): the sale is final, and paid out, 48 hours after the carrier's delivered scan.
           : shipping ? "It's paid to the seller about 48 hours after the carrier delivers it, unless you report a problem."
           : sellerDelivering
-            ? "You have 24 hours after you get your items to report a problem. Then the seller is paid (about 48 hours after they mark it delivered if you don't say you have it)."
-            : "You have 24 hours after you say you have it to report a problem. Then the seller is paid (about 48 hours after the seller says you have it, if you don't)."}
+            ? "After you tap I got it, you have 24 hours to report a problem. Then the seller is paid. If you don't tap it, they're paid about 48 hours after they mark it delivered."
+            : "After you tap I got it, you have 24 hours to report a problem. Then the seller is paid. If you don't tap it, they're paid about 48 hours after the seller says you have it."}
       </p>
       {/* Owner 11-07 (Vinted review): ONE Pay button; on a phone it stays in reach at the bottom of the screen while the
           buyer scrolls the choices, above the floating dock (AppShell's own bottom clearance; measured 11-07: a bottom-3
@@ -458,7 +459,11 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           }
         }}
       >
-        {held ? "Confirming your payment…" : opening ? "Opening…" : split?.onCardCents === 0 ? "Pay with gift card" : `Pay ${formatPrice(split ? split.onCardCents : payCents)}`}
+        {/* Area 05 #19 (11-18): with the delivery or postage not priced yet, the figure would leave it out; the button
+            names the step instead (it is disabled until then: payWaitsOn). */}
+        {held ? "Confirming your payment…" : opening ? "Opening…" : delivering && !liveQuote ? "Get the delivery price first"
+          : shipping && !shipQuote ? "Get shipping prices first"
+          : split?.onCardCents === 0 ? "Pay with gift card" : `Pay ${formatPrice(split ? split.onCardCents : payCents)}`}
       </Button>
       </div>
       {/* Q2633 (owner rule: no line under the buttons): Pay is the last thing in the bill. The secure-page line went, and

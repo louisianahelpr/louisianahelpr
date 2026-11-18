@@ -80,6 +80,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
     return () => mql.removeEventListener?.("change", update);
   }, []);
 
+  // Design audit r2 #42: from 768px the toaster moves bottom-right with a 24px offset, but the bottom nav stays up to
+  // 1023px, so a tablet's toasts sat on the nav. Below 1024px the offset clears the nav plus 16px.
+  const [navShown, setNavShown] = useState(() => typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const update = () => setNavShown(!mql.matches);
+    update();
+    mql.addEventListener?.("change", update);
+    return () => mql.removeEventListener?.("change", update);
+  }, []);
+
   return (
     <Sonner
       theme="light"
@@ -111,7 +123,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         top: "calc(var(--safe-area-top, 0px) + 8px)",
         bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))",
       }}
-      offset={{ top: "24px", bottom: "24px" }}
+      offset={{ top: "24px", bottom: navShown ? "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 16px)" : "24px" }}
       toastOptions={{
         unstyled: false,
         classNames: {
@@ -178,7 +190,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           closeButton:
             "!relative !order-last !left-auto !right-auto !top-auto !ml-1 !shrink-0 ![transform:none] " +
             "!w-7 !h-7 !min-h-0 !min-w-0 !p-0 !rounded-full " +
-            "!flex !items-center !justify-center after:absolute after:content-[''] after:-inset-2 " +
+            "!flex !items-center !justify-center after:absolute after:content-[''] after:-inset-2 [&_svg]:!w-4 [&_svg]:!h-4 " +
             "!bg-transparent !border-0 !shadow-none !text-[hsl(var(--olivewood)/0.65)] " +
             "hover:!bg-[hsl(var(--olivewood)/0.08)] hover:!text-[hsl(var(--ink-deep))] " +
             "!transition-colors !duration-150 focus-visible:!ring-2 focus-visible:!ring-[hsl(var(--bark)/0.45)]",

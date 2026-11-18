@@ -71,8 +71,8 @@ describe("the applicant sweeps' names match what the app renders", () => {
     const trigger = row.match(/aria-label=\{`(More — [^`]*)`\}/);
     expect(trigger, "JobStepOverflowChip's trigger aria-label moved").not.toBeNull();
     expect(fill(trigger![1], "4")).toMatch(MORE_BUTTON);
-    const panel = row.match(/<PopoverContent[\s\S]*?aria-label="([^"]+)"/);
-    expect(panel, "JobStepOverflowChip's PopoverContent lost its aria-label").not.toBeNull();
+    const panel = row.match(/<SheetContent[\s\S]*?aria-label="([^"]+)"/);
+    expect(panel, "JobStepOverflowChip's SheetContent lost its aria-label").not.toBeNull();
     expect(panel![1]).toMatch(MORE_PANEL);
   });
 

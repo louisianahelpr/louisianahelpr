@@ -42,7 +42,7 @@ export function DropoffAddressField({ id, value, onTyped, onPicked, invalid, des
         id={id}
         value={value}
         ariaLabel="Deliver to"
-        placeholder="Start typing, then pick the address"
+        placeholder="Delivery address" // Area 05 #19 (11-18): the longer hint was cut off at 375
         className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
         plainWithoutMapKit
         keepListInView

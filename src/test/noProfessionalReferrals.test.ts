@@ -31,6 +31,11 @@ const ATTORNEY_IN_A_DEFINITION: Record<string, string> = {
   "src/components/rentals/listings/SaleListingEditor.tsx": "the same closing fact in the sale editor",
 };
 
+/** Where "accountant" names a gift recipient's career, never advice to see one. Exact both ways. */
+const ACCOUNTANT_AS_A_CAREER: Record<string, string> = {
+  "src/content/giftGuideIndex.ts": "the gift guides' By career list: \"gifts for Accountants\"",
+};
+
 const files = trackedFiles("src").filter((f) => /\.(tsx?|mjs)$/.test(f) && !/\.(test|spec)\.|^src\/test\//.test(f));
 const code = new Map(files.map((f) => [f, blankComments(readFileSync(join(ROOT, f), "utf8"))]));
 
@@ -40,8 +45,13 @@ describe("no referral to a CPA, accountant or attorney (P5-11)", () => {
   });
 
   it("no 'CPA' or 'accountant' anywhere", () => {
-    const hits = files.filter((f) => /\bCPAs?\b|accountant/i.test(code.get(f)!));
+    const hits = files.filter((f) => /\bCPAs?\b|accountant/i.test(code.get(f)!) && !(f in ACCOUNTANT_AS_A_CAREER));
     expect(hits).toEqual([]);
+    for (const f of Object.keys(ACCOUNTANT_AS_A_CAREER)) {
+      const c = code.get(f)!;
+      expect(/\bCPAs?\b/.test(c), `${f}: a CPA is never a career entry`).toBe(false);
+      expect(c, `${f} no longer names the career: drop it from ACCOUNTANT_AS_A_CAREER`).toMatch(/accountant/i);
+    }
   });
 
   it("'attorney' only inside a legal definition, and that list is exact", () => {

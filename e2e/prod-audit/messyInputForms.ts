@@ -303,8 +303,8 @@ const SEED_BANNED_EMAIL = "helpr-seed-banned-0912@mailinator.com";
  * the target; test=show, because every account this harness targets is a test
  * account and the list hides those by default, owner 2026-10-09) for one
  * account by email and open its detail dialog, which
- * lands on the Actions tab by default (AdminUserDetailDialog.tsx
- * `defaultValue="actions"`) — where AdminUserNotes and UserAuditLog render
+ * opens on Overview (design audit area 10 #13), so this then picks the Actions tab — where AdminUserNotes and
+ * UserAuditLog render
  * unconditionally, and Ban/Deny/Formal-Warning/Restrict-Applications are one
  * more click away.
  */
@@ -317,6 +317,7 @@ const openAdminUserByEmail = (email: string) => async (page: Page) => {
   const row = page.locator('[role="button"][tabindex="0"]').first();
   await row.waitFor({ state: "visible", timeout: 15_000 });
   await row.click();
+  await page.getByRole("tab", { name: "Actions" }).first().click();
 };
 
 const openAdminUserAction = (email: string, buttonName: RegExp) => async (page: Page) => {
@@ -836,6 +837,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  "src/pages/info/giftGuides/GiftGuidesSidebar.tsx": "one search box that filters the gift-guide menu on the device (searchGuides over the bundled catalog); nothing is sent or written, so messy text can only change which guide links show (owner 2026-11-18).",
+  "src/components/admin/AdminAuditLog.tsx": "admin-only (Admin -> Audit log); a sweep account is not an admin. No text input: one \"Show test rows\" on/off switch (design audit area 10, 11-18) that filters the list on the device; nothing is written to the server.",
   // Shops paperwork queue (20261110195956, lead train 11-10): not swept yet (new 11-10).
   "src/pages/auth/completeProfile/ConsentStep.tsx": "no typed text: two checkboxes (Terms, 18+) and Continue / Sign out buttons; the Terms + 18+ record is written server-side by complete-signup (welcome-email-1114).",
   "src/components/shops/ShopPermitSection.tsx": "no typed text: a fixed permit-kind list, a file picker gated to pdf/png/jpg/webp/heic (PERMIT_DOC_EXT_BY_TYPE) and a date; shops_submit_permit refuses any kind outside its list and any path outside <uid>/shop-permits/.",

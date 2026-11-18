@@ -4,6 +4,9 @@
  * (2 decimals, ~1 km, B7), so the figure is approximate by design and never
  * locates the seller's door. Shown rounded: "< 1 mi", then whole miles.
  */
+import { wordInLang } from "@/lib/i18n/inLang";
+import { formatPrice } from "@/lib/declutter/formatPrice";
+
 const EARTH_RADIUS_MI = 3958.8;
 
 export function milesBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -28,12 +31,21 @@ export const MAX_SHOWN_MILES = 300;
  * a coarse device fix): the figure then says "About", and never "Less than
  * 1 mi", which a centre point cannot know.
  */
-export function milesLabel(miles: number | null, approximate = false): string | null {
+function milesLabelEnglish(miles: number | null, approximate = false): string | null {
   if (miles === null || !Number.isFinite(miles)) return null;
   if (miles > MAX_SHOWN_MILES) return null;
   if (approximate) return `About ${Math.max(1, Math.round(miles))} mi away`;
   if (miles < 1) return "Less than 1 mi away";
   return `${Math.round(miles)} mi away`;
+}
+
+/** The item page's distance, in the reader's language (design audit r2 #35: "About 1 mi away" was English in Spanish). */
+export function milesLabel(miles: number | null, approximate = false): string | null {
+  const english = milesLabelEnglish(miles, approximate);
+  if (english === null || miles === null) return null;
+  if (approximate) return wordInLang("ip.away.about", english, { n: Math.max(1, Math.round(miles)) });
+  if (miles < 1) return wordInLang("ip.away.under1", english);
+  return wordInLang("ip.away.n", english, { n: Math.round(miles) });
 }
 
 /**
@@ -42,7 +54,8 @@ export function milesLabel(miles: number | null, approximate = false): string | 
  * the same figure and the same "About" for a rough origin, without the words "away" that cost the condition its room.
  */
 export function milesLabelShort(miles: number | null, approximate = false): string | null {
-  const long = milesLabel(miles, approximate);
+  // The English form: the card's caller translates the short words itself.
+  const long = milesLabelEnglish(miles, approximate);
   if (long === null) return null;
   if (long === "Less than 1 mi away") return "Under 1 mi";
   return long.replace(/ away$/, "");
@@ -105,7 +118,4 @@ export function itemPriceLabel(cents: number): string {
   return cents === 0 ? "Free" : formatPrice(cents);
 }
 
-export function formatPrice(cents: number): string {
-  const dollars = cents / 100;
-  return Number.isInteger(dollars) ? `$${dollars}` : `$${dollars.toFixed(2)}`;
-}
+export { formatPrice };

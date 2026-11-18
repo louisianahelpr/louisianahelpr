@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/SellPorchPlaces.tsx | <p className="text-ds-14 font-semibold text-foreground">{t("lp.pp.title")}</p> | <p className="text-ds-14 font-semibold text-foreground">Pickup places</p>
  * @mutate src/components/declutter/SellPorchPlaces.tsx | aria-label={t("lp.pp.edit", { name: place.label })} | aria-label={`Edit ${place.label}`}
  * @mutate src/components/declutter/SellPorchPlaces.tsx | {usualRead.isLoading ? t("lp.pp.loadingTimes") : t("lp.pp.add")} | {usualRead.isLoading ? t("lp.pp.loadingTimes") : "Add a pickup place"}
- * @mutate src/components/declutter/SellPorchPlaces.tsx |             : t("lp.pp.nowEach", { hours: placeHoursLine(usual, null) })}{" "} |             : `New listings now use the address you give each one, with pickup ${placeHoursLine(usual, null)}.`}{" "}
+ * @mutate src/components/declutter/SellPorchPlaces.tsx |             : t("lp.pp.nowEach", { hours: placeHoursLine(usual, null) })}{" "} |             : `Your listings use the address you give each one, ${placeHoursLine(usual, null)}.`}{" "}
  * @mutate src/components/declutter/SellPorchPlaces.tsx | {save.isPending ? t("lp.f.saving") : t("lp.pp.save")} | {save.isPending ? t("lp.f.saving") : "Save place"}
  * @mutate src/components/declutter/SellPorchDays.tsx | text-foreground">{t("lp.pd.onlyQ")}</label> | text-foreground">Porch only on some of these days?</label>
  * @mutate src/components/declutter/SellPorchDays.tsx | text-muted-foreground">{t("lp.pd.any")}</p> | text-muted-foreground">Buyers can pick any of your pickup days for porch pickup.</p>
@@ -71,7 +71,7 @@ describe("the draft form's pickup cards follow the member's language (F260q)", (
 
   it("English reads the old words, word for word", async () => {
     show();
-    expect(await screen.findByText(/New listings now use the address you give each one, with pickup Every day 7:00 AM–9:00 PM\./)).toBeTruthy();
+    expect(await screen.findByText(/Your listings use the address you give each one, Every day 7:00 AM–9:00 PM\./)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add a pickup place" })).toBeTruthy();
     expect(await screen.findByText("Porch only on some of these days?")).toBeTruthy();
     expect(screen.getByText("Buyers can pick any of your pickup days for porch pickup.")).toBeTruthy();
@@ -85,8 +85,8 @@ describe("the draft form's pickup cards follow the member's language (F260q)", (
     setLang("es");
     await ensureLangLoaded();
     show();
-    expect(await screen.findByText(/Las publicaciones nuevas ahora usan la dirección que le dé a cada una, con recogida Todos los días 7:00 AM–9:00 PM\./)).toBeTruthy();
-    expect(screen.getByText(/Agregue un lugar de recogida para guardarlo aquí y cambiarlo\./)).toBeTruthy();
+    expect(await screen.findByText(/Sus publicaciones usan la dirección que le dé a cada una, Todos los días 7:00 AM–9:00 PM\./)).toBeTruthy();
+    expect(screen.getByText(/Agregue un lugar de recogida para cambiarlo\./)).toBeTruthy();
     expect(screen.getByText(/^¿Guarda cosas en más de un lugar\? Guarde hasta 5, cada uno con sus propios días y horas\. Los compradores eligen uno/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Agregar un lugar de recogida" }));
     expect(screen.getByRole("button", { name: "Guardar lugar" })).toBeTruthy();
@@ -100,7 +100,7 @@ describe("the draft form's pickup cards follow the member's language (F260q)", (
     expect(screen.getByText(esListingParts["lp.ms.body"])).toBeTruthy();
     expect(await screen.findByText(esListingParts["lp.ms.police"])).toBeTruthy();
     expect(placeHoursLine([{ weekday: 6, starts: "09:00", ends: "12:00" }], null)).toBe("sáb 9:00 AM–12:00 PM");
-    expect(document.body.textContent).not.toMatch(/Pickup places|New listings now use|Add a pickup place|Save place|Porch only|Buyers can pick any|Buyers won't see|Meet spots|police safe exchange|Every day|Days and hours/);
+    expect(document.body.textContent).not.toMatch(/Pickup places|Your listings use|Add a pickup place|Save place|Porch only|Buyers can pick any|Buyers won't see|Meet spots|police safe exchange|Every day|Days and hours/);
   });
 
   it("Spanish: a saved place's row, its words and its edit/remove names", async () => {

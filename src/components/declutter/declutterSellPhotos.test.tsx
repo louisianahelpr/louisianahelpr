@@ -82,9 +82,9 @@ vi.mock("@/hooks/useUserLocation", () => ({
 }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => ({ status: "exact", lat: 30.45, lng: -91.15 }) }));
 vi.mock("@/components/AppPage", () => ({
-  default: ({ title, children, phoneHidesTitle }: { title: string; children: React.ReactNode; phoneHidesTitle?: boolean }) => (
+  default: ({ title, children, phoneHidesTitle, hidesTitle }: { title: string; children: React.ReactNode; phoneHidesTitle?: boolean; hidesTitle?: boolean }) => (
     <main>
-      <h1 data-phone-hides-title={phoneHidesTitle ? "" : undefined}>{title}</h1>
+      <h1 data-phone-hides-title={phoneHidesTitle ? "" : undefined} data-hides-title={hidesTitle ? "" : undefined}>{title}</h1>
       {children}
     </main>
   ),
@@ -571,6 +571,26 @@ describe("photo-first selling, one screen", () => {
     expect(count.className).toContain("text-destructive");
   });
 
+  // Design audit r2 #14: the open row's Done sits on the label row, centred, its 44px tap area pulled into the row.
+  // @mutate src/components/declutter/SellSummaryCard.tsx | <div className={`flex gap-3 ${open ? "items-center" : "items-start"}`} data-sell-row-head=""> | <div className="flex items-start gap-3" data-sell-row-head="">
+  // @mutate src/components/declutter/SellSummaryCard.tsx | ${open ? " -my-3" : ""}`}> | `}>
+  it("r2 #14: an open row's Done is on the label row, centred, and adds no height of its own", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    const rows = document.querySelectorAll("[data-sell-row-head]");
+    expect(rows.length).toBeGreaterThan(3);
+    fireEvent.click(screen.getByRole("button", { name: /^(Add|Edit) title$/ }));
+    const done = screen.getByRole("button", { name: "Done title" });
+    const head = done.closest("[data-sell-row-head]")!;
+    expect(head.querySelector("#sell-row-title-title")).not.toBeNull();
+    expect(head.className).toContain("items-center");
+    expect(done.className).toContain("-my-3");
+    // A closed row keeps the two-line top alignment (label over value).
+    const closed = screen.getByRole("button", { name: /^(Add|Edit) price$/ });
+    expect(closed.closest("[data-sell-row-head]")!.className).toContain("items-start");
+    expect(closed.className).not.toContain("-my-3");
+  });
+
   it("opening a row puts the cursor in it, and tapping the value opens it too", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
@@ -645,15 +665,31 @@ describe("photo-first selling, one screen", () => {
 
   // Audit posting 1030 #12, #13: a giveaway talked about selling and offered a price.
   // @mutate src/components/declutter/SellOneScreen.tsx | title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} | title={tr("sf.sellAnItem")}
-  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free}> | phoneHidesTitle>
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free}> | phoneHidesTitle hidesTitle={!form.free}>
   // @mutate src/components/declutter/SellSummaryCard.tsx | : field === "description" ? "text-foreground" : "font-semibold text-foreground"} | : "font-semibold text-foreground"}
   // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: t("sell.chargeForIt"), onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
   // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />} | {<SellItForMeEntry />}
+  // Design audit r2 #12: a phone showed only back + help over "Show it off"; the app bar names the page.
+  // Train 11-18: on the one screen area 06b L12 (below) supersedes r2 #12 (the step head is the one painted heading); a
+  // giveaway still paints its title (F341).
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free}> | phoneHidesTitle hidesTitle>
+  // @mutate src/components/declutter/DeclutterSellView.tsx | <AppPage title={tr("sf.sellAnItem")} onBack={back}> | <AppPage title={tr("sf.sellAnItem")} onBack={back} phoneHidesTitle>
+  it("r2 #12: the saved draft's steps keep their \"Sell an item\" title on a phone (the one screen: L12 below)", async () => {
+    const first = open();
+    const title = await screen.findByRole("heading", { name: "Sell an item", level: 1 });
+    expect(title.hasAttribute("data-hides-title")).toBe(true);
+    first.unmount();
+    open("/declutter/sell?item=d1");
+    const stepTitle = await screen.findByRole("heading", { name: "Sell an item", level: 1 });
+    expect(stepTitle.hasAttribute("data-phone-hides-title")).toBe(false);
+  });
+
   it("Free: the words are a giveaway's, no price is suggested, and Edit price is Charge for it", async () => {
     open("/declutter/sell?free=1");
     const title = await screen.findByRole("heading", { name: "Give it away" });
     // Audit 11-10 F341: on a phone the giveaway still says what it is.
     expect(title.hasAttribute("data-phone-hides-title")).toBe(false);
+    expect(title.hasAttribute("data-hides-title")).toBe(false);
     expect(screen.queryByText("Photos that sell")).toBeNull();
     expect(screen.queryByText(/Sell it for me/)).toBeNull();
     expect(screen.getByText("Good photos")).toBeInTheDocument();
@@ -663,6 +699,16 @@ describe("photo-first selling, one screen", () => {
     expect(screen.queryByRole("button", { name: "Edit price" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Charge for it" }));
     expect(document.activeElement).toBe(document.querySelector('[data-summary-row="price"] input'));
+  });
+
+  // Area 06b L12 (design audit 11-18): selling one item paints one heading at every width, the step's "Show it off";
+  // "Sell an item" stays the page's h1 for screen readers only.
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free}> | phoneHidesTitle={!form.free}>
+  it("L12: Sell an item is not painted over Show it off at any width", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    const h1 = screen.getByRole("heading", { level: 1, name: "Sell an item" });
+    expect(h1.hasAttribute("data-hides-title")).toBe(true);
   });
 
   // Audit posting 1030 #19: Post reported one problem per tap.
@@ -854,14 +900,17 @@ describe("photo-first selling, one screen", () => {
   // Audit DC-1: the one-screen form still said "these go up when you save on step 4" and "change anything on the
   // next steps" (there are no steps). The class: nothing on the one screen talks about steps.
   // @mutate src/components/declutter/SellOneScreen.tsx | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen free={form.free} /> | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} free={form.free} />
-  // @mutate src/components/declutter/DeclutterSellPhotos.tsx | {held.length > 0 && !heldFailed ? " · these go up when you post" : ""} | {held.length > 0 && !heldFailed ? " · these go up when you post on step 4" : ""}
+  // @mutate src/components/declutter/DeclutterSellPhotos.tsx | {count} of {MAX_PHOTOS} photos{ | {count} of {MAX_PHOTOS} photos · these go up when you save on step 4{
+  // Area 06 L13 (11-18): "2 of 12 photos. Hold and drag to reorder."
+  // @mutate src/components/declutter/DeclutterSellPhotos.tsx | {onReorderHeld && !heldFailed && held.length > 1 ? ". Hold and drag to reorder." : ""} | {onReorderHeld && !heldFailed && held.length > 1 ? ". Hold and drag to reorder on step 2." : ""}
   it("the one screen never talks about steps (DC-1)", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg", "b.jpg");
     await screen.findByText("We wrote your listing. Check it before you post");
     expect(screen.getByText("Check it below and change anything.")).toBeInTheDocument();
-    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/these go up when you post( · hold and drag a photo to move it)?$/);
+    // Design audit r2 #15: the count line is "2 of 12 photos" (plus the drag hint, area 06 L13), nothing about when they go up.
+    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/^2 of 12 photos(\. Hold and drag to reorder\.)?$/);
     const words = document.body.textContent ?? "";
     expect(words.length).toBeGreaterThan(200);
     expect(words).not.toMatch(/\bsteps?\b|step \d|next steps/i);

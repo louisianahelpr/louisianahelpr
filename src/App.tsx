@@ -1,6 +1,6 @@
 import { lazy, Suspense, forwardRef, type ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { RoutedBoundary } from "@/components/RoutedBoundary";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
 // Q1816: every lazy piece mounted beside the routes (outside RoutedBoundary) fails quietly; guard chromeLaziesFailQuietly.
@@ -191,17 +191,6 @@ const LandingPlainFallback = () => <div className="min-h-screen bg-premium-page"
 const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFallback />) => (
   <Suspense fallback={fallback}>{node}</Suspense>
 );
-
-/**
- * Owner 2026-11-17: the Holiday Gift Guides are a hidden preview. Without ?preview=1, /gift-guides goes home exactly as
- * before (and loads nothing); with it, the lazy page renders (its element is only created, never loaded, on the way home). The param check is inline so the gift-guide content
- * never joins the entry chunk. Guard: src/test/giftGuidesPage.test.tsx.
- */
-function GiftGuidesPreviewGate({ children }: { children: ReactElement }) {
-  const [params] = useSearchParams();
-  if (params.get("preview") !== "1") return <Navigate to="/" replace />;
-  return children;
-}
 
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
@@ -466,9 +455,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* F255 (owner 2026-11-11): costs, safety; 11-16 Holiday Gift Guides (src/content/giftGuides.ts). */}
       <Route path="/fees" element={<RouteErrorBoundary>{routeEl(<PageTransition><Fees /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/safety" element={<RouteErrorBoundary>{routeEl(<PageTransition><Safety /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* Owner 2026-11-17: the gift guides are not visible yet; /gift-guides goes home. The owner reviews the page at
-          /gift-guides?preview=1 (GiftGuidesPreviewGate); nothing links there. */}
-      <Route path="/gift-guides" element={<GiftGuidesPreviewGate><RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary></GiftGuidesPreviewGate>} />
+      {/* Owner 2026-11-18: the gift guides are public (Pinterest pins link to /gift-guides#<section id>); the
+          2026-11-17 ?preview=1 gate is gone. Rebuilt 2026-11-18: /gift-guides lists the guides, /gift-guides/<slug> opens one. */}
+      <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).
           Same as above: no redirect exists, and none is warranted on current

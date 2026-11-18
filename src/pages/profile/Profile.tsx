@@ -42,7 +42,7 @@ import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers
 import { queryKeys } from "@/lib/queryKeys";
 import { joinName } from "@/lib/splitName";
 // speed7 (11-15): out of the first download; its Radix dialog stack (~13 KB gz) competed with the landing's chunks.
-const SignOutConfirmDialog = lazy(() => import("@/components/auth/SignOutConfirmDialog").then(m => ({ default: m.SignOutConfirmDialog })));
+const LogOutConfirmDialog = lazy(() => import("@/components/auth/SignOutConfirmDialog").then(m => ({ default: m.LogOutConfirmDialog })));
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 const ProfilePage = () => {
@@ -576,8 +576,7 @@ const ProfilePage = () => {
     {avatarCropDialog}
 
     {logoutDialogUsed && <Suspense fallback={null}>
-      <SignOutConfirmDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog} title="Log out?"
-        description="You can sign back in anytime — your account stays intact." label="Log out" after={() => navigate("/")} />
+      <LogOutConfirmDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog} after={() => navigate("/")} />
     </Suspense>}
 
       {/* Mounted only once the user opens it — the dialog chunk (and its

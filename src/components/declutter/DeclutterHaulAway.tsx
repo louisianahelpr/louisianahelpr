@@ -12,12 +12,14 @@ import { Button } from "@/components/ui/button";
 import { daysUntil, haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { DonatePicker, DonationReceipts } from "./DeclutterDonate";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclSell";
 
 /** "Dresser, 2 chairs, boxes": the first few titles, then how many more. */
 export function leftoversLine(titles: string[], shown = 3): string {
   const head = titles.slice(0, shown).join(", ");
   const more = titles.length - shown;
-  return more > 0 ? `${head} and ${more} more` : head;
+  return more > 0 ? t("dsl.haul.andMore", { head, n: more }) : head;
 }
 
 /**
@@ -27,8 +29,8 @@ export function leftoversLine(titles: string[], shown = 3): string {
  * the screen says so: under each paused listing, and on the card when the seller
  * has paused items it left out.
  */
-const PAUSED_HAUL_AWAY_CARD_LINE = "Paused items can't be hauled away. Relist an item first to add it.";
-const PAUSED_HAUL_AWAY_ITEM_LINE = "Paused items can't be hauled away. Relist it first to add it to a haul-away.";
+const PAUSED_HAUL_AWAY_CARD_LINE = () => t("dsl.haul.pausedCard");
+const PAUSED_HAUL_AWAY_ITEM_LINE = () => t("dsl.haul.pausedItem");
 
 /**
  * The one-tap card above the list (board 164, "Haul it away"): the items one
@@ -52,34 +54,34 @@ export function HaulAwayCard({ group, pausedCount = 0 }: { group: HaulAwayRow[];
           <Truck className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h2 id="haul-away-title" className="text-base font-semibold">Haul it away</h2>
-          <p className="text-ds-13 text-muted-foreground">A Helpr picks up what didn't sell.</p>
+          <h2 id="haul-away-title" className="text-base font-semibold">{t("dsl.haul.title")}</h2>
+          <p className="text-ds-13 text-muted-foreground">{t("dsl.haul.sub")}</p>
         </div>
       </div>
       <dl className="divide-y divide-border rounded-2xl border border-border">
         <div className="px-4 py-3 min-w-0">
-          <dt className="text-ds-15 font-semibold">{n === 1 ? "1 item hasn't sold" : `${n} items haven't sold`}</dt>
+          <dt className="text-ds-15 font-semibold">{n === 1 ? t("dsl.haul.notSoldOne") : t("dsl.haul.notSoldMany", { n })}</dt>
           <dd className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{leftoversLine(group.map((r) => r.title))}</dd>
         </div>
         <div className="px-4 py-3 min-w-0">
-          <dt className="text-ds-15 font-semibold">Where it goes</dt>
+          <dt className="text-ds-15 font-semibold">{t("dsl.haul.where")}</dt>
           <dd className="text-ds-13 text-muted-foreground">
-            To donation, or the dump if donation won't take {n === 1 ? "it" : "something"}. The Helpr sends a photo at drop-off.
+            {n === 1 ? t("dsl.haul.whereOne") : t("dsl.haul.whereMany")}
           </dd>
         </div>
       </dl>
       <p className="text-ds-13 text-muted-foreground">
-        Posted as a job: you pick the day and price, and pay like any job. Booking takes {n === 1 ? "it" : "them"} off sale.
+        {n === 1 ? t("dsl.haul.postedOne") : t("dsl.haul.postedMany")}
       </p>
       {pausedCount > 0 && (
         <p className="text-ds-13 text-muted-foreground" data-haul-paused="">
-          {PAUSED_HAUL_AWAY_CARD_LINE}
+          {PAUSED_HAUL_AWAY_CARD_LINE()}
         </p>
       )}
       {/* Q2638 (audit 1102c R13): secondary, so it does not compete with the listing's own next step (Drop the price?). */}
       <Button asChild variant="outline" className="w-full sm:w-auto" data-haul-away-post="">
         <Link to={haulAwayPostJobPath(group.map((r) => r.item_id))}>
-          {n === 1 ? "Post a haul-away job" : `Post a haul-away job for ${n} items`}
+          {n === 1 ? t("dsl.haul.postOne") : t("dsl.haul.postMany", { n })}
         </Link>
       </Button>
       <DonatePicker itemIds={group.map((r) => r.item_id)} />
@@ -104,10 +106,10 @@ export function HaulAwayItemActions({
   return (
     <>
       <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => onFinishBooking(row)}>
-        Finish booking
+        {t("dsl.haul.finish")}
       </Button>
       <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => onPutBack(row)}>
-        Put back on sale
+        {t("dsl.haul.putBack")}
       </Button>
     </>
   );
@@ -123,17 +125,17 @@ export function HaulAwayItemLine({ row, itemStatus }: { row: HaulAwayRow | undef
     if (itemStatus !== "paused") return null;
     return (
       <p className="text-xs text-muted-foreground" data-haul-state="paused">
-        {PAUSED_HAUL_AWAY_ITEM_LINE}
+        {PAUSED_HAUL_AWAY_ITEM_LINE()}
       </p>
     );
   }
   if (row.state === "hauled") {
     return (
       <p className="text-xs text-muted-foreground" data-haul-state="hauled">
-        A Helpr hauled this away.{" "}
+        {t("dsl.haul.hauled")}{" "}
         {row.job_id && (
           <Link to={`/jobs/${row.job_id}`} className="font-medium text-foreground underline underline-offset-2">
-            See the job
+            {t("dsl.haul.seeJob")}
           </Link>
         )}
       </p>
@@ -142,10 +144,10 @@ export function HaulAwayItemLine({ row, itemStatus }: { row: HaulAwayRow | undef
   if (row.state === "booked") {
     return (
       <p className="text-xs text-muted-foreground" data-haul-state="booked">
-        A Helpr is booked to haul this away.{" "}
+        {t("dsl.haul.booked")}{" "}
         {row.job_id && (
           <Link to={`/jobs/${row.job_id}`} className="font-medium text-foreground underline underline-offset-2">
-            See the job
+            {t("dsl.haul.seeJob")}
           </Link>
         )}
       </p>
@@ -154,14 +156,14 @@ export function HaulAwayItemLine({ row, itemStatus }: { row: HaulAwayRow | undef
   if (row.state === "paying") {
     return (
       <p className="text-xs text-muted-foreground" data-haul-state="paying">
-        A checkout for this haul-away is still open. Pay there, or come back in an hour when it runs out.
+        {t("dsl.haul.paying")}
       </p>
     );
   }
   if (row.state === "unpaid") {
     return (
       <p className="text-xs text-muted-foreground" data-haul-state="unpaid">
-        Off sale for a haul-away that isn't booked. Finish booking, or put the item back on sale.
+        {t("dsl.haul.unpaid")}
       </p>
     );
   }
@@ -177,11 +179,11 @@ export function HaulAwayTooSoonTip({ rows, isFree }: { rows: HaulAwayRow[]; isFr
   const waiting = rows.filter((r) => r.state === "too_soon");
   if (waiting.length === 0) return null;
   const d = Math.min(...waiting.map((r) => daysUntil(r.eligible_at)));
-  const days = `${d} ${d === 1 ? "day" : "days"}`;
+  const days = t(d === 1 ? "dsl.haul.day" : "dsl.haul.days", { n: d });
   const allFree = waiting.every((r) => isFree(r.item_id));
   return (
     <p className="text-xs text-muted-foreground" data-haul-tip="too_soon">
-      {allFree ? `Nobody's claimed it? In ${days} you can have a Helpr haul it away.` : `Not selling? In ${days} you can have a Helpr haul away what hasn't sold.`}
+      {allFree ? t("dsl.haul.tipFree", { days }) : t("dsl.haul.tipSell", { days })}
     </p>
   );
 }

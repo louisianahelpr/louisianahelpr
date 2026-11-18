@@ -9,7 +9,7 @@
  * @mutate src/pages/search/SearchStart.tsx |   return signedIn ? `/jobs?tab=browse&cat=${cat}` : `/browse?cat=${cat}`; |   return `/jobs?tab=browse&cat=${cat}`;
  * F224 (whole-app audit 2026-11-10): the closed sections are one small line ("Shops and Homes are coming soon."), not a
  * card-sized "Coming soon" row each.
- * @mutate src/pages/search/SearchPage.tsx |   return `${list} ${names.length === 1 ? "is" : "are"} coming soon.`; |   return `${names[0]} Coming soon`;
+ * @mutate src/pages/search/SearchPage.tsx |   if (names.length === 1) return t("srch.soonOne", { name: names[0] }); |   if (names.length === 1) return `${names[0]} Coming soon`;
  * @mutate src/pages/search/SearchPage.tsx |   if (hideUnopenedInApp() \|\| names.length === 0) return null; |   if (hideUnopenedInApp()) return null;
  * @mutate src/pages/search/SearchPage.tsx |   if (hideUnopenedInApp() \|\| names.length === 0) return null; |   if (names.length === 0) return null;
  */

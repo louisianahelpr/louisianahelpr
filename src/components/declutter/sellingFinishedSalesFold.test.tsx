@@ -4,7 +4,10 @@
  * A chip's own `show` (To answer's reported sales) is never folded.
  *
  * @mutate src/components/declutter/DeclutterTabParts.tsx |       show={done.size > 0 && !showDone ? (id) => !done.has(id) \|\| id === linked : show} |       show={show}
- * @mutate src/components/declutter/DeclutterTabParts.tsx | l.order_status === "handed_over" \|\| l.order_status === "refunded" | l.order_status === "refunded"
+ * @mutate src/components/declutter/DeclutterTabParts.tsx | (l.order_status === "handed_over" && foldable.has(l.order_id as string)) \|\| l.order_status === "refunded" | l.order_status === "refunded"
+ * @mutate src/components/declutter/DeclutterTabParts.tsx | (l.order_status === "handed_over" && foldable.has(l.order_id as string)) | (l.order_status === "handed_over")
+ * @mutate src/components/declutter/useFoldableSales.ts | (rememberedReviewed(id, "seller") \|\| reviewedOnServer.has(id)) | true
+ * @mutate src/components/declutter/useFoldableSales.ts | const PAID_OUT = new Set(["succeeded", "settled_by_hand", "nothing_due"]); | const PAID_OUT = new Set(["succeeded", "settled_by_hand", "nothing_due", "pending"]);
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   if (allDone && !showDone && !(linked && done.has(linked))) { |   if (false) {
  * @mutate src/components/declutter/DeclutterTabParts.tsx |  \|\| id === linked : show} |  : show}
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   if (allDone && !showDone && !(linked && done.has(linked))) { |   if (allDone && !showDone) {
@@ -21,12 +24,19 @@ const state = vi.hoisted(() => ({
   refunds: {} as Record<string, { request: Record<string, unknown> | null }>,
   /** Q2631: the open problems (declutter_problems_open); none unless a test sets them. */
   problems: [] as { id: string; order_id: string; reporter_side: string; reason: string }[],
+  /** Area 06 H2: a handed-over sale folds only reviewed and paid out; every order is both unless a test says not. */
+  notReviewed: new Set<string>(),
+  pending: new Set<string>(),
 }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "s" }, profile: {}, isLoading: false }) }));
+
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<object>()),
   fetchOpenProblems: async () => state.problems,
   fetchOrderProblem: async () => null,
+  fetchIReviewed: async (orderId: string) => !state.notReviewed.has(orderId),
+  fetchMyPayouts: async () => state.cart.map((l) => ({ order_id: l.order_id, status: state.pending.has(l.order_id as string) ? "pending" : "succeeded" })),
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null }),
 }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
@@ -55,7 +65,20 @@ function show(onlyShow?: (id: string) => boolean, url = "/declutter?tab=selling"
 }
 
 describe("soldstates-2: Selling folds finished sales", () => {
-  beforeEach(() => { state.cart = []; state.refunds = {}; state.problems = []; });
+  beforeEach(() => { state.cart = []; state.refunds = {}; state.problems = []; state.notReviewed = new Set(); state.pending = new Set(); });
+
+  // Area 06 H2 (11-18): a handed-over sale folded with "Leave a review" and "You get $40 once your payout account is
+  // ready" still on it. Not reviewed, or not paid out: it stays in the list.
+  it("Area 06 H2: a handed-over sale stays unfolded until it is reviewed and paid out", async () => {
+    state.cart = [line(1, "handed_over"), line(2, "handed_over"), line(3, "handed_over")];
+    state.notReviewed = new Set([line(1, "x").order_id]);
+    state.pending = new Set([line(2, "x").order_id]);
+    show();
+    expect(await screen.findByText("Sale 1 handed_over")).toBeInTheDocument();
+    expect(screen.getByText("Sale 2 handed_over")).toBeInTheDocument();
+    await screen.findByText("Show 1 finished sale");
+    expect(screen.queryByText("Sale 3 handed_over")).toBeNull();
+  });
 
   // Q2631 (audit 1102c R6): an order on hold for a problem still counted in "Sold: pickup and payout · 1 to hand over"
   // while its card said "On hold until the problem is decided." Held orders are left out of the count.
@@ -98,6 +121,9 @@ describe("soldstates-2: Selling folds finished sales", () => {
     state.cart = [line(1, "paid"), line(2, "handed_over"), line(3, "refunded")];
     show();
     expect(await screen.findByText("Sale 1 paid")).toBeInTheDocument();
+    // Area 06 H2: the handed-over sale folds once its review and payout reads say it is done.
+    // Wait for the fold itself (a first paint has no handed-over row either, so waiting for its absence waits for nothing).
+    expect(await screen.findByRole("button", { name: "Show 1 finished and 1 refunded sales" })).toBeInTheDocument();
     expect(screen.queryByText("Sale 2 handed_over")).toBeNull();
     expect(screen.queryByText("Sale 3 refunded")).toBeNull();
     // Q2630 (audit 1102c R5): the refunded one is never counted as a "finished sale".
@@ -123,7 +149,7 @@ describe("soldstates-2: Selling folds finished sales", () => {
   it("every sale finished: the heading stays, says nothing to hand over, and the fold opens them", async () => {
     state.cart = [line(2, "handed_over")];
     show();
-    expect(await screen.findByText("Nothing to hand over right now.")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing to hand over right now")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Sold: pickup and payout/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show 1 finished sale" }));
     expect(screen.getByText("Sale 2 handed_over")).toBeInTheDocument();
@@ -133,6 +159,8 @@ describe("soldstates-2: Selling folds finished sales", () => {
     state.cart = [line(1, "paid"), line(2, "handed_over"), line(3, "refunded")];
     show(undefined, "/declutter?tab=selling&order=00000000-0000-4000-8000-000000000003");
     expect(await screen.findByText("Sale 3 refunded")).toBeInTheDocument();
+    // The fold is up (so the finished sale had its chance to draw), and the finished sale is under it.
+    expect(await screen.findByRole("button", { name: /^Show 1 finished/ })).toBeInTheDocument();
     expect(screen.queryByText("Sale 2 handed_over")).toBeNull();
   });
 

@@ -13,17 +13,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |       if (stored !== change.to) throw | if (false) throw
 
 const requireBiometricMock = vi.fn<(reason: string) => Promise<boolean>>();
-// Audit 1028 part 2, D2-4: the two Declutter admin cards share one "Show test listings" switch, held here. The probes
-// show what each card is given (the cards' own reads have their own tests).
-vi.mock("./DeclutterReviewCard", () => ({
-  DeclutterReviewCard: ({ showTest, onShowTestChange }: { showTest?: boolean; onShowTestChange?: (on: boolean) => void }) => (
-    <button type="button" aria-pressed={!!showTest} onClick={() => onShowTestChange?.(!showTest)}>Show test listings (probe)</button>
-  ),
-}));
+// The Declutter cards (and their shared "Show test listings" switch, D2-4) moved to AdminDeclutter (design audit
+// area 10 #2); that test is src/components/admin/AdminDeclutter.test.tsx.
 vi.mock("./CategorySuggestionsCard", () => ({ CategorySuggestionsCard: () => null }));
-vi.mock("./DeclutterProblemsCard", () => ({
-  DeclutterProblemsCard: ({ includeTest }: { includeTest?: boolean }) => <p>Problems include test: {String(includeTest)}</p>,
-}));
 vi.mock("./RentalsOwnershipCard", () => ({ RentalsOwnershipCard: () => null }));
 vi.mock("./HomesListingsCard", () => ({ HomesListingsCard: () => null }));
 vi.mock("@/lib/biometricGate", () => ({
@@ -36,10 +28,12 @@ vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown
 
 let audience = "testers";
 let withDeclutter = false;
+let withPaypal = false;
 let declutterOn = false;
 const rpc = vi.fn(async (fn: string, args?: { p_key?: string; p_audience?: string; p_keys?: string[] }) => {
   if (fn === "admin_list_feature_switches") {
     const rows = [{ key: "switch_canary", audience, description: "Gates no feature.", created_at: "", updated_at: "" }];
+    if (withPaypal) rows.push({ key: "paypal_payments", audience: "off", description: "PayPal.", created_at: "", updated_at: "" });
     if (withDeclutter) rows.push({ key: "declutter", audience: "off", description: "Declutter.", created_at: "", updated_at: "" });
     return { data: rows, error: null };
   }
@@ -66,6 +60,7 @@ const setCalls = () => rpc.mock.calls.filter(([fn]) => fn === "admin_set_feature
 beforeEach(() => {
   audience = "testers";
   withDeclutter = false;
+  withPaypal = false;
   declutterOn = false;
   rpc.mockClear();
   requireBiometricMock.mockReset();
@@ -89,16 +84,6 @@ afterEach(async () => {
 });
 
 describe("FeatureSwitchesCard", () => {
-  // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <DeclutterProblemsCard includeTest={declutterShowTest} /> |     <DeclutterProblemsCard />
-  // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | <DeclutterReviewCard showTest={declutterShowTest} onShowTestChange={setDeclutterShowTest} /> | <DeclutterReviewCard />
-  it("D2-4: the review card's \"Show test listings\" also shows test accounts' problems", async () => {
-    render(wrap(<FeatureSwitchesCard />));
-    expect(await screen.findByText("Problems include test: false")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Show test listings (probe)" }));
-    expect(await screen.findByText("Problems include test: true")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Show test listings (probe)" }).getAttribute("aria-pressed")).toBe("true");
-  });
-
   // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     declutter: useFeature("declutter"), |     declutter: canaryReachesMe,
   it("says, per switch, what the SERVER answers for this account (declutter off, canary on)", async () => {
     withDeclutter = true;
@@ -111,12 +96,32 @@ describe("FeatureSwitchesCard", () => {
     expect(rpc.mock.calls.some(([fn, a]) => fn === "feature_switches_for_me" && a?.p_keys?.includes("declutter"))).toBe(true);
   });
 
-  it("lists each switch with its audience; the current one is pressed and disabled", async () => {
+  // Design audit area 10 #4: the current audience is full-strength (not a faded disabled button), with a check, and
+  // pressing it again opens no confirmation.
+  // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |                       disabled={saving}\n | disabled={saving \|\| selected}\n
+  // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | onClick={() => { if (!selected) setPending( | onClick={() => { setPending(
+  it("lists each switch with its audience; the current one is pressed, full-strength and inert", async () => {
     render(wrap(<FeatureSwitchesCard />));
     expect(await screen.findByText("switch_canary")).toBeTruthy();
     const current = screen.getByRole("button", { name: "Testers only" });
     expect(current.getAttribute("aria-pressed")).toBe("true");
-    expect((current as HTMLButtonElement).disabled).toBe(true);
+    expect(current.getAttribute("aria-disabled")).toBe("true");
+    expect((current as HTMLButtonElement).disabled).toBe(false);
+    expect(current.querySelector("svg")).toBeTruthy();
+    fireEvent.click(current);
+    expect(screen.queryByRole("button", { name: "Set to Testers only" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Everyone" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
+  // Design audit area 10 #12: a plain title leads; the retired PayPal switch is not listed (nothing flips it).
+  // @mutate src/config/featureSwitches.ts | = ["paypal_payments"]; | = [];
+  it("shows a plain title and hides the retired paypal_payments switch", async () => {
+    withPaypal = true;
+    render(wrap(<FeatureSwitchesCard />));
+    expect(await screen.findByText("Switch canary")).toBeTruthy();
+    expect(screen.getByText("switch_canary")).toBeTruthy();
+    expect(screen.queryByText("paypal_payments")).toBeNull();
+    expect(screen.getAllByRole("listitem").length).toBeGreaterThan(0);
   });
 
   it("a refused biometric prompt changes nothing: the RPC is never called", async () => {

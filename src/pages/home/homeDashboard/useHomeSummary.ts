@@ -24,6 +24,7 @@ import { useHomeDerive, useNeedsYouTodos } from "./useNeedsYouTodos";
 import { deriveComingUp, type ComingUpItem } from "./comingUp";
 import "@/lib/i18n/enHome";
 import { useLanguage } from "@/lib/i18n/language";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
 
 const DAY = 86_400_000;
@@ -62,13 +63,18 @@ export function sectionCardLines(
   jobTodos: number,
   near: { jobs?: number; declutter?: number },
 ): { jobs: string | null; declutter: string | null } {
-  const jobsNear = jobTodos === 0 && (near.jobs ?? 0) > 0 ? `${near.jobs} open near you` : null;
-  const declutterNear = (near.declutter ?? 0) > 0 ? `${near.declutter} ${near.declutter === 1 ? "item" : "items"} near you` : null;
+  // Design audit r2 #37: in the reader's language ("241 items near you" was English in Spanish).
+  const jobsNear = jobTodos === 0 && (near.jobs ?? 0) > 0 ? wordInLang("home.c.openNear", `${near.jobs} open near you`, { n: near.jobs! }) : null;
+  const declutterNear = (near.declutter ?? 0) > 0
+    ? near.declutter === 1
+      ? wordInLang("home.c.itemNear", `${near.declutter} item near you`, { n: 1 })
+      : wordInLang("home.c.itemsNear", `${near.declutter} items near you`, { n: near.declutter! })
+    : null;
   return { jobs: jobsNear ?? current.jobs, declutter: declutterNear ?? current.declutter };
 }
 
 /** True once the page has finished loading (routePrefetch's whenPageSettled): the cards' counts wait for it. */
-function usePageSettled(): boolean {
+export function usePageSettled(): boolean {
   const [settled, setSettled] = useState(false);
   useEffect(() => whenPageSettled(() => setSettled(true), 300, 4000), []);
   return settled;
@@ -203,20 +209,29 @@ export function useHomeSummary(user: SupaUser | null) {
           ? (cart.data ?? []).filter((l) => l.my_side === "buyer" && (l.status === "in_cart" || (l.status === "paid" && l.order_status === "paid"))).length
           : 0,
       },
+      // Owner 2026-11-17 (signed-in tweaks, item 8): a tile whose count has ANSWERED with 0 says "None yet"; one still
+      // loading (or failed) says nothing, so a tile never claims "None yet" for a read that has not come back.
+      countsKnown: {
+        posted: !posted.loading && !posted.loadError && posted.postedJobs !== undefined,
+        working: !applied.loading && !applied.loadError && applied.appliedApps !== undefined,
+        selling: declutter.data !== undefined,
+        shopOrders: orders.data !== undefined,
+        buying: cart.data !== undefined,
+      },
       tiles: {
         // H5 (Cowork audit 2026-10-20): "N in progress" counted open jobs still
         // WAITING for applicants as in progress. The second count is the jobs that
         // are booked and ahead of you, in the Jobs status boxes' own word.
         ...sectionCardLines(
           {
-            jobs: countLine([[jobTodos, "needs you", "need you"], [postedUpcoming.length + appliedLive.length, "upcoming"]]),
-            declutter: countLine([[items.filter((i) => i.status === "live").length, "listed"], [items.filter((i) => i.status === "pending_review").length, "in review"]]),
+            jobs: countLine([[jobTodos, wordInLang("home.c.needsYou", "needs you"), wordInLang("home.c.needYou", "need you")], [postedUpcoming.length + appliedLive.length, wordInLang("home.c.upcoming", "upcoming")]]),
+            declutter: countLine([[items.filter((i) => i.status === "live").length, wordInLang("home.c.listed", "listed")], [items.filter((i) => i.status === "pending_review").length, wordInLang("home.c.inReview", "in review")]]),
           },
           jobTodos,
           { jobs: jobsNear.data, declutter: declutterOn ? declutterNear.data : undefined },
         ),
-        shops: countLine([[shopTodos, "to answer"], [myOrders.length, "open order", "open orders"]]),
-        homes: countLine([[props.length, "property", "properties"]]),
+        shops: countLine([[shopTodos, wordInLang("home.c.toAnswer", "to answer")], [myOrders.length, wordInLang("home.c.openOrder", "open order"), wordInLang("home.c.openOrders", "open orders")]]),
+        homes: countLine([[props.length, wordInLang("home.c.property", "property"), wordInLang("home.c.properties", "properties")]]),
       },
     };
   }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, declutter.isLoading, declutterSettled, orders.data, orders.isError, todos, todosLoading, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, jobsNear.isError, declutterNear.data, declutterNear.isError, continueDays, derive, wordsKey]);

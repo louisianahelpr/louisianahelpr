@@ -11,6 +11,7 @@ export const enAiDraft = {
   "aid.busyBody": "It looks at your photos for the name, details, category, size, condition and a fair price. This takes a few seconds.",
   "aid.busyBodyFree": "It looks at your photos for the name, details, category, size, condition. This takes a few seconds.",
   "aid.tryAgain": "Try again",
+  "aid.errTitle": "We couldn't write your listing",
   "aid.noItem": "We couldn't see an item in this photo. Try another photo in good light.",
   "aid.done": "We wrote your listing. Check it before you post",
   "aid.photoTip": "One more photo would help:",

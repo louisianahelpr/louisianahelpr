@@ -1,14 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import HelprMark from "@/components/HelprMark";
+import { wordInLang as navWord } from "@/lib/i18n/inLang";
 import { cn } from "@/lib/utils";
 import { PUBLIC_CONTAINER } from "@/lib/publicContainer";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 interface NavbarProps {
   /**
@@ -53,6 +55,17 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
   // for the banner on document-scroll pages can't move a fixed element, so
   // shift the nav's own top down by the banner's reserved height. 0 normally.
   const bannerOffset = useOfflineBannerOffset();
+  // Owner decision 11-18 (hero mockup B, "Color band"): on the landing the hero's olive-to-cream band runs up behind
+  // the bar, so at the very top the bar is see-through (landing-nav-top); from the first scroll it is the opaque white
+  // bar again (P5-7, landingHeaderOpaque.test.ts). Starts true, so the HTML-drawn shell (index.html) matches.
+  const [atTop, setAtTop] = useState(true);
+  useEffect(() => {
+    if (!landing) return;
+    const read = () => setAtTop(window.scrollY <= 0);
+    read();
+    window.addEventListener("scroll", read, { passive: true });
+    return () => window.removeEventListener("scroll", read);
+  }, [landing]);
 
   if (railOwnsNav) return null;
 
@@ -63,6 +76,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
       className={cn(
         "fixed top-0 left-0 right-0 z-50 glass-nav",
         solid && "is-scrolled",
+        landing && atTop && "landing-nav-top",
       )}
       style={{
         // Subtle always-on backdrop blur so the nav reads as a floating
@@ -138,7 +152,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onMouseEnter={() => prefetchRoute("/browse")}
                 onFocus={() => prefetchRoute("/browse")}
               >
-                Jobs
+                {/* Design audit areas 11-18 #1: Spanish for a Spanish reader (the footer's own word). */}
+                {navWord("footer.jobs", "Jobs")}
               </Link>
             </Button>
             {/* Owner 11-04: Declutter next to Jobs. A guest reads its Browse too (BUY-16). */}
@@ -153,6 +168,22 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 aria-current={location.pathname === "/declutter" ? "page" : undefined}
               >
                 Declutter
+              </Link>
+            </Button>
+            {/* Owner 2026-11-18: "Holiday Gift Guides" in the public top bar. From md up only: below that the bar holds
+                exactly Jobs, Declutter, Log in and Join free beside the logo (measured at 320-375, owner 11-04). */}
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+            >
+              <Link
+                to="/gift-guides"
+                aria-current={location.pathname.startsWith("/gift-guides") ? "page" : undefined}
+                data-testid="nav-gift-guides"
+              >
+                Holiday Gift Guides
               </Link>
             </Button>
             {/* The divider between the public links and the auth actions. Below 400px the bar drops it and
@@ -170,7 +201,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onMouseEnter={() => prefetchRoute("/login")}
                 onFocus={() => prefetchRoute("/login")}
               >
-                Log in
+                {wordInLang("g.logIn", "Log in")}
               </Link>
             </Button>
             {/* "Join free" — explicit light-cream text. The `default` variant
@@ -190,7 +221,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onMouseEnter={() => prefetchRoute("/signup")}
                 onFocus={() => prefetchRoute("/signup")}
               >
-                Join free
+                {wordInLang("g.joinFree", "Join free")}
               </Link>
             </Button>
           </div>

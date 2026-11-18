@@ -1,4 +1,5 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { storageExtFor } from "@/lib/storageExt";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -125,7 +126,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     () => supportCategories.find((c) => c.key === searchParams.get("topic"))?.key ?? "message",
   );
   // F464 (audit 11-10): opened from "Report a bug", the seven-topic dropdown is noise under a page titled
-  // Report a bug; the topic is shown as one line with "Not a bug? Change topic" to bring the dropdown back.
+  // Report a bug; the topic is shown as one line with "Change" to bring the dropdown back.
   const [topicCollapsed, setTopicCollapsed] = useState(() => searchParams.get("topic") === "report");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -290,21 +291,21 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         className="rounded-2xl liquid-glass p-card space-y-4"
       >
         {/* F235 (audit 11-10): say the reply time before the member writes, not only after. */}
-        <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-support-reply-time="">
-          A real person reads every message. {SUPPORT_REPLY_PROMISE}
-        </p>
+        {/* Design audit area 09 L9: the title already says "Talk to a real person"; this line only adds the reply time. */}
+        <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-support-reply-time="">{SUPPORT_REPLY_PROMISE}</p>
         {/* Reason — the click-to-change control. Same three options the
             public /support <Select> renders, from the one shared list. */}
         {topicCollapsed ? (
-          <div className="flex items-center justify-between gap-3" data-support-topic-collapsed="">
-            <p className="font-sans text-ds-13 min-w-0">
-              <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Topic: </span>
-              <span className="font-semibold">{selected.label}</span>
-            </p>
-            <Button type="button" variant="ghost" size="sm" className="shrink-0 text-ds-13" onClick={() => setTopicCollapsed(false)} data-support-change-topic="">
-              Not a bug? Change topic
-            </Button>
-          </div>
+          // Design audit area 09 M6: one line, "Topic: Something's not working · Change", with Change as a text link (a
+          // ghost button beside the topic squeezed it onto two lines at 390).
+          <p className="font-sans text-ds-14" data-support-topic-collapsed="">
+            <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Topic: </span>
+            <span className="font-semibold">{selected.label}</span>
+            <span aria-hidden className="text-muted-foreground"> · </span>
+            <InlineTextButton className="font-semibold underline underline-offset-2 min-h-11" style={{ color: "hsl(var(--bark))" }} onClick={() => setTopicCollapsed(false)} data-support-change-topic="">
+              Change
+            </InlineTextButton>
+          </p>
         ) : (
         <div>
           {/* A real <Label htmlFor> now that the control is a <Select> — the

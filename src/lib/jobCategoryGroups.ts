@@ -55,7 +55,7 @@ const GROUP_OF: Record<JobCategory, JobCategoryGroupId> = {
 const GROUP_LABELS: Record<JobCategoryGroupId, string> = {
   home: "Home",
   yard: "Yard",
-  moving_errands: "Moving and errands",
+  moving_errands: "Moving & errands", // "&" everywhere: the chips, tiles and card meta say one name (design audit area 04 #27, 11-18)
   auto: "Auto",
   pets: "Pets",
   events: "Events",

@@ -5,7 +5,7 @@
  * first name from the same card read its Message button uses.
  *
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     otherFirst,\n    rescheduled, |     rescheduled,
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |             otherFirst={isPoster ? helperFirst : posterFirst} |             otherFirst={null}
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             otherFirst={isPoster ? helperFirst ?? noShowHelprFirst : posterFirst} |             otherFirst={null}
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -61,7 +61,7 @@ describe("the job page's tracker line names the Helpr the page names", () => {
   it("JobPage passes the poster the Helpr's first name and the Helpr the poster's", () => {
     const src = blankComments(readFileSync(resolve(import.meta.dirname, "JobPage.tsx"), "utf8"));
     const tracker = /<JobTracker\b[\s\S]*?\/>/.exec(src)?.[0] ?? "";
-    expect(tracker).toContain("otherFirst={isPoster ? helperFirst : posterFirst}");
+    expect(tracker).toContain("otherFirst={isPoster ? helperFirst ?? noShowHelprFirst : posterFirst}");
     expect(src).toMatch(/const helperFirst = \(helperCard\.data\?\.name/);
   });
 });

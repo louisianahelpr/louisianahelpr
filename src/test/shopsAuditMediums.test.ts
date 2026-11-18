@@ -28,14 +28,14 @@
  * @mutate supabase/migrations/20261112093000_shops_setup_fee_notice_exact.sql |     v_setup_fee := COALESCE(public.declutter_setup_fee_from_payout_cents(o.seller_id), 0); |     v_setup_fee := 0;
  * @mutate supabase/migrations/20261112093000_shops_setup_fee_notice_exact.sql |       WHEN public.payout_waits_on_identity(o.seller_id) THEN |       WHEN false THEN
  * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql | (l.kind = 'service' OR COALESCE(l.at_buyer, false)) | (l.kind = 'service')
- * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql | CASE WHEN o.policy IN ('full_shop_pays_fee', 'full_platform_absorbs') THEN o.setup_fee ELSE 0 END | o.setup_fee
- * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql | CASE WHEN so.setup_fee_state = 'claimed' THEN so.setup_fee_cents ELSE 0 END | so.setup_fee_cents
- * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql |     UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = o.buyer_id; | 
+ * @mutate supabase/migrations/20261118060158_shops_refund_tax_on_taxed_base.sql | CASE WHEN o.policy IN ('full_shop_pays_fee', 'full_platform_absorbs') THEN o.setup_fee ELSE 0 END | o.setup_fee
+ * @mutate supabase/migrations/20261118060158_shops_refund_tax_on_taxed_base.sql | CASE WHEN so.setup_fee_state = 'claimed' THEN so.setup_fee_cents ELSE 0 END | so.setup_fee_cents
+ * @mutate supabase/migrations/20261118060158_shops_refund_tax_on_taxed_base.sql |     UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = o.buyer_id; | 
  * @mutate src/components/shops/ShopDashboardView.tsx | formatCents(accepting.items_cents + (accepting.fulfillment === "shop_delivers" ? accepting.delivery_cents ?? 0 : 0)) | formatCents(accepting.items_cents)
  * @mutate supabase/migrations/20261112084138_shops_service_no_show.sql |   IF NOT public.shop_order_is_service(o.id)\n |   IF true\n
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
- * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
+ * @mutate src/components/shops/ShopHandoverActions.tsx |               {!byHelpr && due && !h?.shop_confirmed_at && ( |               {due && !h?.shop_confirmed_at && (
  * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |   IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN\n    RAISE EXCEPTION 'helpr_delivers_handover' |   IF false THEN\n    RAISE EXCEPTION 'helpr_delivers_handover'
  * @mutate supabase/migrations/20261112084138_shops_service_no_show.sql | The shop says you weren''t there for the delivery | The shop says you didn''t receive the delivery
  */
@@ -65,7 +65,7 @@ describe("Shops audit 11-12 Mediums", () => {
     expect(body("shops_mark_handed_over")).toContain("IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN RAISE EXCEPTION 'helpr_delivers_handover'");
     const src = read("src/components/shops/ShopHandoverActions.tsx");
     expect(src).toContain('const byHelpr = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at;');
-    expect(src).toContain("{!porch && !byHelpr && due && !h?.shop_confirmed_at && (");
+    expect(src).toContain("{!byHelpr && due && !h?.shop_confirmed_at && (");
   });
   it("S019: the missed-delivery notice reads the right way round", () => {
     const b = body("shops_report_no_show");
@@ -114,7 +114,8 @@ describe("Shops audit 11-12 Mediums", () => {
     const a = body("shop_refund_amounts");
     expect(a).toContain("CASE WHEN so.setup_fee_state = 'claimed' THEN so.setup_fee_cents ELSE 0 END AS setup_fee");
     expect(a).toContain("CASE WHEN o.policy IN ('full_shop_pays_fee', 'full_platform_absorbs') THEN o.setup_fee ELSE 0 END AS fee_back");
-    expect(a).toContain("+ k.fee_back, k.fee_back FROM k;");
+    // Q2111 (20261118060158): the tax kept is read once (k.tax_kept) and the base is a last column.
+    expect(a).toContain("k.total_cents - k.kept - k.tax_kept + k.fee_back, k.fee_back, k.taxed_base FROM");
     const w = body("shop_write_refund");
     expect(w).toContain("IF a.setup_fee_refund_cents > 0 AND o.buyer_id IS NOT NULL THEN UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = o.buyer_id;");
   });

@@ -11,7 +11,7 @@ import { blankCssComments, blankComments as blankTsComments } from "./helpers/bl
 // from the LOCKED hero H1 reds the last test, and putting a real `font-serif`
 // call site back reds the second one (at the right line number) while the same
 // token inside a COMMENT correctly stays green.
-// @mutate src/components/landing/HeroSection.tsx | relative z-10 font-display font-bold | relative z-10 font-bold
+// @mutate src/components/landing/HeroSection.tsx | relative z-10 landing-serif-text font-bold | relative z-10 font-bold
 
 /**
  * TWO TYPEFACES, NOT THREE — owner decision 2026-09-07.
@@ -142,7 +142,7 @@ describe("two-font type system", () => {
     expect(block).not.toMatch(/serif:/);
   });
 
-  it("the hero H1 carries font-display (drawn in Montserrat since owner 2026-11-17, landingHeadingsAreSans) and the subhead is Montserrat", () => {
+  it("the hero H1 carries landing-serif-text (Montserrat 650, owner 2026-11-17, landingHeadingsAreSans) and the subhead is Montserrat", () => {
     render(
       <MemoryRouter>
         <HeroSection />
@@ -150,9 +150,10 @@ describe("two-font type system", () => {
     );
     const h1 = screen.getByRole("heading", { level: 1 });
     expect(h1.textContent).toBe("Louisiana’s local partner.");
-    // jsdom has no stylesheet, so the class list is the contract here. The H1 keeps `font-display`; index.css draws
-    // the landing's font-display headings in Montserrat (owner 2026-11-17).
-    expect(h1.className.split(/\s+/)).toContain("font-display");
+    // jsdom has no stylesheet, so the class list is the contract here. The H1 wears `.landing-serif-text`, which
+    // index.css draws in Montserrat 650 (owner 2026-11-17); since 11-18 it no longer carries `font-display`, whose
+    // Bodoni stack put 20 unused @font-face rules into the inlined shell CSS.
+    expect(h1.className.split(/\s+/)).toContain("landing-serif-text");
     const subhead = screen.getByText("Hire help, find work, or buy and sell. One account, real neighbors.");
     expect(subhead.style.fontFamily).toMatch(/^Montserrat/);
     expect(subhead.className.split(/\s+/)).not.toContain("font-display");

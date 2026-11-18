@@ -71,11 +71,14 @@ export const RevenueLineChart = ({ data }: { data: MonthlyDatum[] }) => (
     <LineChart data={data}>
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
       <XAxis dataKey="month" tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
-      <YAxis tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
+      {/* Design audit area 10 #16 (11-18): dollars and a head count shared one axis, so a $2,000 month flattened the
+          sign-up line. Dollars read on the left axis, new users (whole numbers) on their own right axis. */}
+      <YAxis yAxisId="usd" tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v: number) => `$${v.toLocaleString()}`} />
+      <YAxis yAxisId="people" orientation="right" allowDecimals={false} tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
       <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "hsl(var(--foreground))" }} />
       <Legend formatter={legendLabel} />
-      <Line type="monotone" dataKey="revenue" name="Revenue ($)" stroke="hsl(var(--primary))" dot={{ r: 4 }} />
-      <Line type="monotone" dataKey="fees" name="Profit ($)" stroke="hsl(var(--accent))" dot={{ r: 4 }} />
+      <Line yAxisId="usd" type="monotone" dataKey="revenue" name="Revenue ($)" stroke="hsl(var(--primary))" dot={{ r: 4 }} />
+      <Line yAxisId="usd" type="monotone" dataKey="fees" name="Profit ($)" stroke="hsl(var(--accent))" dot={{ r: 4 }} />
       {/* --stormy-sky, not --secondary. --secondary is --sand, a surface
           token: as a 2px line it was invisible against the chart in both
           themes, so this series had no readable line AND no readable legend
@@ -83,7 +86,7 @@ export const RevenueLineChart = ({ data }: { data: MonthlyDatum[] }) => (
           light / 40 11% 69% dark since 2026-10-20: a near-neutral warm grey)
           and reads apart from the saturated bark green and burnt-sienna rust
           of the other two series. */}
-      <Line type="monotone" dataKey="signups" name="New Users" stroke="hsl(var(--stormy-sky))" dot={{ r: 4 }} />
+      <Line yAxisId="people" type="monotone" dataKey="signups" name="New users" stroke="hsl(var(--stormy-sky))" dot={{ r: 4 }} />
     </LineChart>
   </ResponsiveContainer>
 );
@@ -93,9 +96,10 @@ export const MonthlyJobsBarChart = ({ data }: { data: MonthlyDatum[] }) => (
     <BarChart data={data}>
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
       <XAxis dataKey="month" tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
-      <YAxis tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
+      {/* Design audit area 10 #27: a count axis ticks in whole numbers (it read 0.75, 1.5). */}
+      <YAxis allowDecimals={false} tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
       <Tooltip contentStyle={TOOLTIP_STYLE} />
-      <Bar dataKey="jobs" name="Completed Jobs" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+      <Bar dataKey="jobs" name="Completed jobs" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
     </BarChart>
   </ResponsiveContainer>
 );
@@ -104,7 +108,7 @@ export const CategoriesBarChart = ({ data }: { data: CategoryDatum[] }) => (
   <ResponsiveContainer width="100%" height="100%" minHeight={250}>
     <BarChart data={data} layout="vertical">
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-      <XAxis type="number" tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
+      <XAxis type="number" allowDecimals={false} tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
       <YAxis type="category" dataKey="name" tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" width={90} />
       <Tooltip contentStyle={TOOLTIP_STYLE} />
       <Bar dataKey="count" name="Jobs" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />

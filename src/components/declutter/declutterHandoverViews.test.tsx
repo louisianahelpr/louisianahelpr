@@ -18,7 +18,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
  * B134: a shipped order is its own card (never "Pickup at the seller's home" with a pickup booking).
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "ship" ? ( |       ) : false ? (
- * @mutate src/components/declutter/OrderCardHead.tsx |     case "ship": return order.side === "buyer" ? "Shipped to you" : "You ship it"; |     case "ship": return "Porch pickup";
+ * @mutate src/components/declutter/OrderCardHead.tsx |     case "ship": return order.side === "buyer" ? t("dbuy.how.shippedToYou") : t("dbuy.how.youShip"); |     case "ship": return t("ho.title.porch");
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel
  */
 // @mutate src/components/declutter/DeclutterFoldedTime.tsx |       <DateTimeField id={id} label={fieldLabel} value={value} onChange={setValue} /> |       <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} />
@@ -394,7 +394,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // A3-49 (audit 11-01): the seller's unbooked sale says "waiting on the buyer" ONCE, naming the buyer.
   // @mutate src/components/declutter/DeclutterBookingPanel.tsx |   if (!booked && order.side === "seller") return null; |   if (!booked && order.side === "seller") return <p>Waiting for the buyer to book a pickup time (within 7 days of paying).</p>;
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const buyer = times.buyer \|\| "the buyer"; |   const buyer = "the buyer";
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const buyer = times.buyer \|\| t("dsl.nx.theBuyer"); |   const buyer = t("dsl.nx.theBuyer");
   it("the seller's unbooked sale says the wait once, with the buyer's first name (A3-49)", async () => {
     for (const handover of ["porch", "pickup_home", "meetup"]) {
       const { unmount } = show([line({ my_side: "seller", handover })]);
@@ -408,7 +408,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   });
 
   // B48 live check 2026-10-29: a safe-spot meetup's seller card said "book a pickup time".
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : waiting("book a time to meet") | : waiting("book a pickup time")
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : waiting("dsl.nx.waitBookMeet") | : waiting("dsl.nx.waitBookPickup")
   it("meetup: the seller waits for the buyer to book a time to meet", async () => {
     show([line({ my_side: "seller", handover: "meetup" })]);
     expect(await screen.findByText("Paid. Waiting on Dana to book a time to meet.")).toBeInTheDocument();
@@ -536,13 +536,13 @@ describe("Declutter slice 4: paid-order cards", () => {
     // LEAD-DOOR-PAYLINE: said once, in the money note, with the owner's 10-30 rule; never "24 hours after you tap Picked up".
     // Q2634 (owner 11-02): one line; the rule, word for word, under Details.
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {ruleOpen && <span className="mt-1 block" data-payout-rule=""> | {true && <span className="mt-1 block" data-payout-rule="">
-    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {parts} after the handover.{" "} | {parts}. {sellerPayoutRule(kind)}{" "}
+    // @mutate src/lib/i18n/enDeclSell.ts | "dsl.youGetAfter": "You get {amount}{parts} after the handover.", | "dsl.youGetAfter": "You get {amount}{parts}. Paid after you tap Picked up.",
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | onClick={() => setRuleOpen((o) => !o)}> | onClick={() => undefined}>
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | <InlineTextButton className="font-semibold underline underline-offset-2" aria-expanded={ruleOpen} | <InlineTextButton aria-expanded={ruleOpen}
     expect((await screen.findByText(/^You get/)).textContent).toBe("You get $40 after the handover. Details");
     // It reads as a control: underlined, as the other in-line text links on Declutter cards ("How it works").
     expect(document.querySelector("[data-payout-details]")!.className).toMatch(/\bunderline\b/);
-    expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. If neither of you says anything, the money stays held.');
+    expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. Tap "Picked up" after the handover so you get paid.');
     expect(document.body.textContent).not.toMatch(/24 hours after you tap|paid 24 hours after the handover/);
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     expect(screen.queryByLabelText(/code/i)).toBeNull();
@@ -962,28 +962,33 @@ describe("Declutter slice 4: paid-order cards", () => {
   // Next-step line (owner 11-01 12:02 PM): on a sale card the viewer's own move reads "Next: <step>" in the shared
   // NextStep line; the other side's move reads "Waiting on the buyer to …". Pinned by board 72, the free-claim loop,
   // the seller-delivers and meetup cases below.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : you("Put it out and take one photo where the buyer will find it"); | : info("Put it out and take one photo where the buyer will find it.");
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : you(t("dsl.nx.putOutOne")); | : info(t("dsl.nx.putOutOne"));
   // Audit 1110 F405: a booked door pickup names the booking's own time even with no order times read, so the line is
   // "Next: have it ready at the door · Pickup <time>" / "Pickup <time> · at the door".
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | ? you("Have it ready at the door", `Pickup ${chosen}`) : | ? info(`Have it ready at the door · Pickup ${chosen}`) :
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | { who: "you", text: "Deliver it at the time below" } | { who: "info", text: "Booked. The delivery time is below." }
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a time to meet") | them(`${paid} The buyer books a time to meet.`)
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | ? you(t("dsl.nx.readyAtDoor"), t("dsl.nx.pickupAt", { when: chosen })) : | ? info(`${t("dsl.nx.readyAtDoor")} · Pickup ${chosen}`) :
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | { who: "you", text: t("dsl.nx.deliverBelow") } | { who: "info", text: "Booked. The delivery time is below." }
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("dsl.nx.waitBookMeet") | them(`${paid} The buyer books a time to meet.`)
   // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a pickup time"); | them(`${paid} · waiting on the buyer to book a pickup time.`);
-  // @mutate src/components/declutter/OrderCardHead.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("dsl.nx.waitBookPickup"); | them(`${paid} · waiting on the buyer to book a pickup time.`);
+  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? t("dsl.giving") : ""} | order.side === "seller" && items === 0 ? t("dsl.giving") : " · You're buying"}
   // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
-  // @mutate src/components/declutter/OrderCardHead.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"
-  it("DA-3: the giver's card for a free item says \"You're giving\"; a paid one still says \"You're selling\"", async () => {
+  // Area 06 L4 (11-18): on the Selling tab a paid sale no longer repeats "You're selling".
+  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? t("dsl.giving") | order.side === "seller" ? t("dsl.giving")
+  // @mutate src/components/declutter/OrderCardHead.tsx | order.side === "seller" && items === 0 ? t("dsl.giving") : ""} | order.side === "seller" ? (items === 0 ? t("dsl.giving") : " · You're selling") : ""}
+  it("DA-3: the giver's card for a free item says \"You're giving\"; a paid one says neither", async () => {
     let read = 0;
-    for (const [price, words, not] of [[0, "You're giving", /selling/], [4000, "You're selling", /giving/]] as const) {
+    for (const [price, words, not] of [[0, "You're giving", /selling/], [4000, "", /giving|You're selling/]] as const) {
       state.handover = null; state.bookings = [];
       const { container, unmount } = show([line({ my_side: "seller", price_cents: price, handover: "porch", porch_ok: true })]);
       await waitFor(() => expect(container.querySelector("[data-order-head]")).not.toBeNull());
       const head = container.querySelector("[data-order-head]")?.textContent ?? "";
       expect(head, `price ${price}`).toContain(words);
       expect(head, `price ${price}`).not.toMatch(not);
+      // Area 06 L3 (11-18): an order with no photo shows the icon placeholder, never a blank grey square.
+      // @mutate src/components/declutter/OrderCardHead.tsx |       {(!path \|\| stage === "failed") && <PhotoPlaceholder |       {false && <PhotoPlaceholder
+      expect(container.querySelector("[data-order-thumb] svg")).not.toBeNull();
       read++;
       unmount();
     }
@@ -1241,7 +1246,7 @@ describe("boards 159 + 160: handover sheets", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && !((holdUnknown | {order.side === "seller" && payout && !((holdUnknown
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${payWords ? "; they're paid 24 hours later." : "."} | you have it${"; they're paid 24 hours later."}
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const paid = free ? "Claimed." : "Paid."; |   const paid = false ? "Claimed." : "Paid.";
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const paid = free ? t("dsl.nx.claimed") : t("dsl.nx.paid"); |   const paid = false ? t("dsl.nx.claimed") : t("dsl.nx.paid");
 describe("#6: a free claim never reads like a paid order", () => {
   // No leading \b: textContent runs the step labels together ("DonePaid").
   const MONEY = /paid\b|refund|payout|order total|\$\d/i;
@@ -1473,6 +1478,7 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const porchSeller = order.handover === "porch" && order.side === "seller"; |   const porchSeller = false;
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | trigger={pickupTimeOver(booking, Date.now(), porchSeller)} /> | trigger={pickupTimeOver(booking)} />
   // @mutate src/components/declutter/DeclutterPorchDay.tsx | const until = booking.porch_until ? new Date(booking.porch_until) : | const until = false ? new Date(booking.porch_until ?? "") :
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {!(booking.porch_until && booking.porch_mode !== "all_day" && !posted) && <p | {<p
   it("Q2627: porch out until a time: the seller's They didn't show and Report a problem wait until it is over", async () => {
     const outUntil = (minsFromNow: number) => ({ ...slot(120), porch_mode: "until", porch_until: new Date(Date.now() + minsFromNow * 60_000).toISOString() });
     let checked = 0;
@@ -1480,7 +1486,10 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
       state.bookings = [outUntil(mins)];
       const { unmount } = show([line({ handover: "porch", my_side: "seller", porch_ok: true })]);
       await screen.findByText(/Pickup( day)?:/);
-      expect(await screen.findByText(/out until/)).toBeInTheDocument();
+      // Area 06 M4 (design audit 11-18): before the porch photo the booked line names the time, so "You said it's out
+      // until <time>" is not repeated (the Out until button stays to change it).
+      expect(screen.getByRole("button", { name: /Out until a time/ })).toBeInTheDocument();
+      expect(screen.queryByText(/You said it's out until/)).toBeNull();
       expect(`${mins}: ${!!screen.queryByRole("button", { name: "They didn't show" })}`).toBe(`${mins}: ${offered}`);
       expect(`${mins}: ${!!screen.queryByRole("button", { name: "Report a problem" })}`).toBe(`${mins}: ${offered}`);
       checked++;
@@ -2128,7 +2137,7 @@ describe("B134: a shipped order (B131 found it read as a pickup)", () => {
       show([line({ handover: "ship", my_side: side, price_cents: 2000, total_cents: 2905 })]);
       await screen.findByText(`Ship panel for the ${side}`);
       const head = document.querySelector("[data-order-head]")!;
-      expect(head.textContent).toContain(side === "buyer" ? "Shipped to you" : "You ship it · You're selling");
+      expect(head.textContent).toContain(side === "buyer" ? "Shipped to you" : "You ship it");
       expect(head.textContent).not.toMatch(/Pickup|pickup/);
       // No pickup booking, address, door tips or Add a Helpr on a shipped order.
       const card = document.querySelector("article")!;

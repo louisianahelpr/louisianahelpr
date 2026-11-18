@@ -24,13 +24,16 @@ import { ShopCard, ShopGallery, ShopHero, ShopHoursCard, ShopItemsGrid } from ".
 import ShopFaqs from "./ShopFaqs";
 import ShopPolicies from "./ShopPolicies";
 import { ShopReportShop } from "./ShopReport";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enShopsBrowse";
 
 const SHOP_PAGE_ROBOTS = "noindex, follow";
 
 function ShopMeta({ shop, id }: { shop: PublicShop | PausedPublicShop | null | undefined; id: string }) {
+  const { t } = useLanguage();
   usePageMeta({
-    title: shop ? `${shop.name} — Helpr` : "Shop — Helpr",
-    description: shop && !isPausedShop(shop) ? `${shop.category_label ?? "Local shop"} in ${shop.area_label}.` : "A local shop on Louisiana Helpr.",
+    title: shop ? t("shb.pub.metaTitle", { name: shop.name }) : t("shb.pub.metaShop"),
+    description: shop && !isPausedShop(shop) ? t("shb.pub.metaDesc", { category: shop.category_label ?? t("shb.pub.localShop"), area: shop.area_label }) : t("shb.pub.metaDefault"),
     canonical: shopLink(id),
     robots: SHOP_PAGE_ROBOTS,
   });
@@ -38,6 +41,7 @@ function ShopMeta({ shop, id }: { shop: PublicShop | PausedPublicShop | null | u
 }
 
 function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolean }) {
+  const { t } = useLanguage();
   const back = encodeURIComponent(`/shops/${shop.id}`);
   // S2-038 (Shops audit 2): "From $18" for an item with options, as members read it; signed out, an item opens a
   // read-only sheet with "Sign up to order" (signed in without Shops, the cards stay as they were).
@@ -49,7 +53,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
     <div className="mx-auto w-full max-w-5xl space-y-4 pb-8" data-public-shop-body="">
       <ShopHero
         name={shop.name}
-        categoryLabel={shop.category_label ?? "Local shop"}
+        categoryLabel={shop.category_label ?? t("shb.pub.localShop")}
         areaLabel={shop.area_label}
         storefront={shop.storefront}
         photos={shop.photos}
@@ -62,7 +66,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
           <button
             type="button"
             className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-md backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Share this shop"
+            aria-label={t("shb.pub.share")}
             onClick={() => void shareShop(shop)}
           >
             <Share2 className="h-[18px] w-[18px]" aria-hidden />
@@ -72,18 +76,18 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
           signedIn ? (
             // A member without Shops yet (testers-only today): they can look and share; ordering opens later.
             <p className="w-full rounded-xl bg-muted/70 px-3 py-2.5 text-center text-ds-13 text-muted-foreground">
-              Ordering from shops opens to everyone soon.
+              {t("shb.pub.opensSoon")}
             </p>
           ) : (
             // S2-039: sized like other primaries from sm up (not a full-width bar); the text link has a 44px tap area.
             <div className="w-full space-y-1 sm:w-auto">
               <Button asChild className="btn-grad-primary w-full rounded-full sm:w-auto sm:px-8">
-                <Link to={`/signup?redirect=${back}`}>Sign up to order or message</Link>
+                <Link to={`/signup?redirect=${back}`}>{t("shb.pub.signUp")}</Link>
               </Button>
               <p className="text-center text-ds-13 text-muted-foreground">
-                Already a member?{" "}
+                {t("shb.pub.member")}{" "}
                 <Link className="link-standard inline-flex min-h-11 items-center px-1 font-semibold" to={`/login?redirect=${back}`}>
-                  Sign in
+                  {t("shb.pub.signIn")}
                 </Link>
               </p>
             </div>
@@ -91,12 +95,12 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
         }
       />
       {shop.about && (
-        <ShopCard id="shop-about" title="About">
+        <ShopCard id="shop-about" title={t("shb.pub.about")}>
           <p className="text-ds-13 whitespace-pre-line break-words">{shop.about}</p>
         </ShopCard>
       )}
       {shop.offers_selling && (
-        <ShopCard id="shop-items" title="Items">
+        <ShopCard id="shop-items" title={t("shb.pub.items")}>
           <ShopItemsGrid items={shop.items} reportable={signedIn} withOptions={withOptions} onOpen={signedIn ? undefined : setOpenId} />
         </ShopCard>
       )}
@@ -106,7 +110,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
           is gone; the hero's "Sign up to order or message" is the way in. */}
       <ShopHoursCard hours={shop.hours} />
       {shop.parishes_served.length > 0 && (
-        <ShopCard id="shop-parishes" title="Parishes served">
+        <ShopCard id="shop-parishes" title={t("shb.pub.parishes")}>
           <ul className="flex flex-wrap gap-1.5">
             {shop.parishes_served.map((p) => (
               <li key={p} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-ds-11">{p}</li>
@@ -124,6 +128,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
 }
 
 export default function PublicShopView() {
+  const { t } = useLanguage();
   const { id = "" } = useParams();
   const { user } = useAuthReady();
   // A non-uuid id never asks the server (fetchPublicShop answers null for it):
@@ -131,28 +136,28 @@ export default function PublicShopView() {
   const shop = useQuery({ queryKey: ["shops", "public", id], queryFn: () => fetchPublicShop(id), enabled: isShopId(id) });
   return (
     // S2-039: the header says "Shop"; the card under it names the shop once (as the member page, S029).
-    <AppPage title="Shop" backTo={user ? "/home" : "/"}>
+    <AppPage title={t("shb.pub.shop")} backTo={user ? "/home" : "/"}>
       <ShopMeta shop={shop.data} id={id} />
       {!isShopId(id) ? (
         <ShopUnavailable />
       ) : shop.isPending ? (
-        <div className="space-y-4" role="status" aria-label="Loading the shop">
+        <div className="space-y-4" role="status" aria-label={t("shb.pub.loading")}>
           <Skeleton className="h-64 w-full rounded-2xl" />
           <Skeleton className="h-24 w-full rounded-2xl" />
         </div>
       ) : shop.isError ? (
-        <ShopsNotice title="We couldn't load this shop." tone="warn">
-          <ReportErrorScreen source="PublicShopView.load" title="We couldn't load this shop." />
+        <ShopsNotice title={t("shb.pub.loadFailed")} tone="warn">
+          <ReportErrorScreen source="PublicShopView.load" title={t("shb.pub.loadFailed")} />
           <p>{shopsErrorMessage(shop.error)}</p>
           <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => void shop.refetch()}>
-            Try again
+            {t("shb.pub.retry")}
           </Button>
         </ShopsNotice>
       ) : !shop.data ? (
         <ShopUnavailable />
       ) : isPausedShop(shop.data) ? (
         // S044: a paused shop's shared link says so, not "not found".
-        <ShopUnavailable title={`${shop.data.name} is paused for now`} body="The shop isn't taking orders right now. Check back later, or find another local shop." />
+        <ShopUnavailable title={t("shb.pub.paused", { name: shop.data.name })} body={t("shb.pub.pausedBody")} />
       ) : (
         <PublicShopBody shop={shop.data} signedIn={!!user} />
       )}

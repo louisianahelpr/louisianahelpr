@@ -90,7 +90,7 @@ describe("goods keep the goods step", () => {
   it("the shop still has the photo and Handed over", async () => {
     show(order({}, { kind: "made", title: "Candle" }), "shop");
     expect(await screen.findByRole("button", { name: "Handed over" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add a ready photo" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add a ready photo (optional)" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Mark complete" })).toBeNull();
   });
 

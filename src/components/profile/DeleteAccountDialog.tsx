@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Dialog, DialogDestructiveAction, DialogPrimaryAction, DialogSecondaryAction, DialogContent, DialogDescription, DialogFooter, DialogHero } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Check, Loader2, X } from "lucide-react";
@@ -6,6 +7,9 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { hapticError } from "@/lib/haptics";
 import { useDeleteReauth } from "@/components/profile/DeleteAccountReauth";
 import { useLanguage } from "@/lib/i18n/language";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDataExport } from "@/hooks/useDataExport";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
@@ -83,8 +87,26 @@ function WhatHappens() {
 
 function WhatHappensRouted() {
   const { pathname } = useLocation();
-  const lines = pathname.startsWith("/profile") ? [...WHAT_HAPPENS, DOWNLOAD_LINE] : WHAT_HAPPENS;
-  return <WhatHappensList lines={lines} />;
+  if (!pathname.startsWith("/profile")) return <WhatHappensList lines={WHAT_HAPPENS} />;
+  return <WhatHappensList lines={WHAT_HAPPENS} extra={<DownloadFirst />} />;
+}
+
+/** Design audit area 09 L12: the download hint is the download itself (the same export as Settings' row), not a pointer to Settings. */
+function DownloadFirst() {
+  const { t } = useLanguage();
+  const { user } = useCurrentUser();
+  const { exporting, startExport } = useDataExport(user?.id);
+  return (
+    <li className="flex items-start gap-2 text-ds-13 leading-snug text-foreground" data-delete-download="">
+      <Check aria-hidden="true" className="w-4 h-4 shrink-0 mt-[2px]" style={{ color: "hsl(var(--bark))" }} />
+      <span>
+        {t(DOWNLOAD_LINE)}{" "}
+        <InlineTextButton type="button" onClick={() => void startExport()} disabled={exporting || !user} aria-busy={exporting} className="font-semibold underline underline-offset-2">
+          {exporting ? t("deleteAccount.downloading") : t("deleteAccount.downloadNow")}
+        </InlineTextButton>
+      </span>
+    </li>
+  );
 }
 
 /**
@@ -106,12 +128,12 @@ function TakeABreakLine({ onGo }: { onGo: () => void }) {
   return (
     <p className="text-ds-13 text-foreground" data-delete-take-a-break="">
       {t("deleteAccount.breakLead")}{" "}
-      <Link to="/profile?tab=notifications" onClick={onGo} className="font-semibold underline underline-offset-2">{t("deleteAccount.breakLink")}</Link>
+      <Link to="/profile?tab=notifications" onClick={onGo} className="font-semibold text-primary underline underline-offset-2">{t("deleteAccount.breakLink")}</Link>
     </p>
   );
 }
 
-function WhatHappensList({ lines }: { lines: readonly MsgKey[] }) {
+function WhatHappensList({ lines, extra }: { lines: readonly MsgKey[]; extra?: ReactNode }) {
   const { t } = useLanguage();
   return (
     <ul
@@ -126,6 +148,7 @@ function WhatHappensList({ lines }: { lines: readonly MsgKey[] }) {
           <span>{t(line)}</span>
         </li>
       ))}
+      {extra}
     </ul>
   );
 }
@@ -185,20 +208,22 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
   ];
 
   return (
-    <div className="my-1 grid gap-3 sm:grid-cols-2">
+    // Design audit r3 #37: one column at every width, 14 px items and 12 px headings, the same size as the
+    // "Open work finishes first" card above (were 11 px lists squeezed into two 210 px columns on desktop).
+    <div className="my-1 grid gap-3" data-delete-lists="">
       <div>
         <p
-          className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5"
+          className="text-ds-12 font-semibold uppercase tracking-wide mb-1.5"
           style={{ color: "hsl(var(--alert-ink))" }}
         >
           {t("deleteAccount.erasedHeading")}
         </p>
         <ul className="space-y-1">
           {erased.map((item) => (
-            <li key={item} className="flex items-start gap-1.5 text-ds-11 leading-snug">
+            <li key={item} className="flex items-start gap-2 text-ds-14 leading-snug">
               <X
                 aria-hidden="true"
-                className="w-3 h-3 shrink-0 mt-[3px]"
+                className="w-3.5 h-3.5 shrink-0 mt-[3px]"
                 style={{ color: "hsl(var(--alert-ink))" }}
               />
               <span style={{ color: "hsl(var(--olivewood) / 0.9)" }}>{item}</span>
@@ -208,17 +233,17 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
       </div>
       <div>
         <p
-          className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5"
+          className="text-ds-12 font-semibold uppercase tracking-wide mb-1.5"
           style={{ color: "hsl(var(--olivewood))" }}
         >
           {t("deleteAccount.keptHeading")}
         </p>
         <ul className="space-y-1">
           {kept.map((item) => (
-            <li key={item} className="flex items-start gap-1.5 text-ds-11 leading-snug">
+            <li key={item} className="flex items-start gap-2 text-ds-14 leading-snug">
               <Check
                 aria-hidden="true"
-                className="w-3 h-3 shrink-0 mt-[3px]"
+                className="w-3.5 h-3.5 shrink-0 mt-[3px]"
                 style={{ color: "hsl(var(--olivewood))" }}
               />
               <span style={{ color: "hsl(var(--olivewood) / 0.9)" }}>{item}</span>

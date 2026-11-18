@@ -213,11 +213,23 @@ export function LiveJobsSection() {
             const date = liveJobDate(j.date_needed, es ? "es-US" : "en-US");
             const parish = j.parish ? w("landing.live.parish", "{parish} Parish").replace("{parish}", j.parish) : null;
             const where = [parish, date].filter(Boolean).join(" · ");
+            // Design audit areas 11-18 #7: the date never breaks inside itself ("Sat, Dec" over a lone "5"); the line
+            // may still wrap between the parish and the date.
+            const whereLine = (
+              <>
+                {parish}
+                {parish && date ? " · " : null}
+                {date && <span className="whitespace-nowrap" data-live-job-date="">{date}</span>}
+              </>
+            );
             return (
               <li key={j.id} data-live-job="">
                 <Link
                   to={`/browse?job=${encodeURIComponent(j.id)}`}
-                  className="h-full rounded-2xl p-4 lg:p-6 flex lg:flex-col items-center lg:items-stretch justify-between gap-3 transition-colors"
+                  // Design audit 11-17 #32: at 1440 the prices sat at different heights (a two-line place under one
+                  // price pushed it up). From lg the card stacks from the top and the title keeps two lines' room, so
+                  // every price starts on one line across the row.
+                  className="h-full rounded-2xl p-4 lg:p-6 flex lg:flex-col items-center lg:items-stretch justify-between lg:justify-start gap-3 transition-colors"
                   style={{ background: "var(--lp-ground)", color: "var(--lp-ink)" }}
                 >
                   <span className="flex flex-col gap-1 lg:gap-3 min-w-0">
@@ -226,15 +238,15 @@ export function LiveJobsSection() {
                         {jobCategoryLabel(j.category)}
                       </span>
                     )}
-                    <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words" title={j.title}>{j.title}</span>
+                    <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words lg:min-h-[2lh]" title={j.title}>{j.title}</span>
                     {where && (
-                      <span className="lg:hidden text-ds-13" style={{ color: "var(--lp-body)" }}>{where}</span>
+                      <span className="lg:hidden text-ds-13" style={{ color: "var(--lp-body)" }}>{whereLine}</span>
                     )}
                   </span>
                   <span className="flex flex-col gap-3 shrink-0 text-right lg:text-left">
                     <span className="landing-serif-text text-ds-24 lg:text-ds-32">{priceWords(liveJobPrice(j))}</span>
                     {where && (
-                      <span className="hidden lg:block text-ds-14" style={{ color: "var(--lp-body)" }}>{where}</span>
+                      <span className="hidden lg:block text-ds-14" style={{ color: "var(--lp-body)" }}>{whereLine}</span>
                     )}
                   </span>
                 </Link>

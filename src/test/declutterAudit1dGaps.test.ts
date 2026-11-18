@@ -20,7 +20,7 @@
  * @mutate src/components/declutter/DeclutterBunchRow.tsx | <span id={nameId} className="block break-words text-ds-14 font-semibold">{name}</span> | <span id={nameId} className="block truncate text-ds-14 font-semibold">{name}</span>
  * @mutate src/lib/declutter/errors.ts |   if (deviceOffline()) return inLang("offline", DECLUTTER_OFFLINE_COPY); |   if (false) return inLang("offline", DECLUTTER_OFFLINE_COPY);
  * @mutate src/lib/declutter/errors.ts |   if (isNetworkFailure(err)) return CONNECTION_TROUBLE_COPY; |   if (false) return CONNECTION_TROUBLE_COPY;
- * @mutate src/components/declutter/DeclutterWantedViews.tsx | ? `${msg} We kept what you typed.` : msg); | ? msg : msg);
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | ? t("dsl.w.keptTyped", { msg }) : msg); | ? msg : msg);
  */
 import { readFileSync } from "node:fs";
 import { setConnectivity } from "@/lib/connectivity";
@@ -130,6 +130,8 @@ describe("D4-14: a Declutter call that never reached the server says so", () => 
 
   it("the Wanted form adds that what was typed is kept", () => {
     const src = code("src/components/declutter/DeclutterWantedViews.tsx");
-    expect(src).toContain("msg === DECLUTTER_OFFLINE_COPY || msg === CONNECTION_TROUBLE_COPY ? `${msg} We kept what you typed.` : msg);");
+    expect(src).toContain('msg === DECLUTTER_OFFLINE_COPY || msg === CONNECTION_TROUBLE_COPY ? t("dsl.w.keptTyped", { msg }) : msg);');
+    // Area 06b H1: the words live in enDeclSell (Spanish in esDeclSell).
+    expect(code("src/lib/i18n/enDeclSell.ts")).toContain('"dsl.w.keptTyped": "{msg} We kept what you typed."');
   });
 });

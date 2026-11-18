@@ -107,6 +107,6 @@ describe("the buying audit's small findings", () => {
     expect(rowSummary(s, true).startsWith("Paused")).toBe(true);
     const tab = code("src/pages/profile/SavedSearchesTab.tsx");
     expect(tab).toContain("<SheetDestructiveAction onClick={() => setAsking(true)}");
-    expect(tab).toContain("Yes, delete it");
+    expect(tab).toContain("t(\"ss.yesDelete\")");
   });
 });

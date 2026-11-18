@@ -74,7 +74,7 @@ function MatchmakerBuilder() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="mm-title">Job title</Label>
-          <Input id="mm-title" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Fix a leaking faucet" />
+          <Input id="mm-title" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Fix a leaking faucet" />{/* Design audit area 10 #41: "e.g." so a placeholder never reads as a filled value. */}
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="mm-desc">Short description</Label>
@@ -82,16 +82,16 @@ function MatchmakerBuilder() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="mm-town">Town</Label>
-          <Input id="mm-town" value={town} maxLength={60} onChange={(e) => setTown(e.target.value)} placeholder="Lafayette" />
+          <Input id="mm-town" value={town} maxLength={60} onChange={(e) => setTown(e.target.value)} placeholder="e.g. Lafayette" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="mm-zip">ZIP</Label>
-            <Input id="mm-zip" value={zip} inputMode="numeric" maxLength={5} onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))} placeholder="70501" />
+            <Input id="mm-zip" value={zip} inputMode="numeric" maxLength={5} onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))} placeholder="e.g. 70501" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="mm-price">Price ($)</Label>
-            <Input id="mm-price" value={price} inputMode="numeric" maxLength={4} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} placeholder="80" />
+            <Input id="mm-price" value={price} inputMode="numeric" maxLength={4} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} placeholder="e.g. 80" />
           </div>
         </div>
       </div>

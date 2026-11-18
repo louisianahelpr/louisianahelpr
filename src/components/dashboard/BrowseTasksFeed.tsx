@@ -5,6 +5,7 @@ import { JOB_CATEGORY_GROUPS, groupTileLabel } from "@/lib/jobCategoryGroups";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Search } from "lucide-react";
+import { MapShowListPill } from "./MapShowListPill";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SavedOnlyState, type SavedRead } from "./SavedOnlyState";
@@ -40,6 +41,8 @@ type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 interface BrowseTasksFeedProps {
   /** List vs Map view — selects which body renders. */
   view: "list" | "map";
+  /** Back to the list, on the map (area 04 #9, MapShowListPill). Omitted on the desktop split map (list beside it). */
+  onShowList?: () => void;
   /** Card density: comfortable (default full cards) or compact (single-line rows). */
   density: FeedDensity;
   /** Dashboard filter state (from useDashboardFilters). */
@@ -115,6 +118,7 @@ interface BrowseTasksFeedProps {
  */
 export function BrowseTasksFeed({
   view,
+  onShowList,
   density,
   filters,
   user,
@@ -336,7 +340,8 @@ export function BrowseTasksFeed({
       </p>
 
       {view === "map" && (
-        <div className="flex-1 min-h-0 px-3 pt-2 pb-0">
+        <div className="relative flex-1 min-h-0 px-3 pt-2 pb-0">
+          {onShowList && <MapShowListPill onClick={onShowList} />}
           <Suspense fallback={<Skeleton className="h-full w-full rounded-t-2xl" />}>
             <BrowseMap
               // Apply from a pin opens the SAME job-detail dialog as tapping
@@ -505,6 +510,7 @@ export function BrowseTasksFeed({
             <BrowseEndCard
               onWiden={nearby ? () => filters.setLocationFilter(next ? `nearby:${next}` : "") : undefined}
               widenLabel={next ? `Widen to ${next} mi` : "Any distance"}
+              title={nearby ? "That's every open job near you." : "That's every open job for now."}
               onAlerts={() => void notifyWhenWorkLands()}
             />
           );

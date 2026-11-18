@@ -10,7 +10,7 @@
 // @mutate src/components/RichMessageInput.tsx |           accept="image/*" |           accept="audio/*"
 // @mutate src/components/messages/MessageBubble.tsx |                 readAt={m.read_at} |                 readAt={null}
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
@@ -20,11 +20,17 @@ import { TypingIndicator, ReadReceipt } from "@/components/ChatPresence";
 const code = (f: string) => blankComments(readFileSync(resolve(__dirname, "..", "..", f), "utf8"));
 
 describe("Q2044: iMessage-style messages", () => {
-  it("quick replies: a hired Helpr gets 'On my way' and 'Running 5 min late'; everyone gets 'Running late'", () => {
-    render(<QuickReplies onSelect={vi.fn()} onSend={vi.fn()} audience="helper" jobStatus="accepted" />);
-    expect(screen.getByText("On my way")).toBeTruthy();
+  // Area 08 M18 (design audit 11-18): one late reply (5 min), no words-only "On my way" chip (it never set the status),
+  // and the done reply asks for the approval step the app has.
+  // @mutate src/components/QuickReplies.tsx |   { label: "msg.qr.late5", icon: Clock, message: "msg.qr.late5.m" },\n  { label: "msg.qr.complete" |   { label: "msg.qr.late10", icon: Clock, message: "msg.qr.late10.m" },\n  { label: "msg.qr.complete"
+  it("quick replies: a hired Helpr gets one late reply, 'Running 5 min late', and no words-only 'On my way' chip", () => {
+    const onSelect = vi.fn();
+    render(<QuickReplies onSelect={onSelect} onSend={vi.fn()} audience="helper" jobStatus="accepted" />);
+    expect(screen.queryByText("On my way")).toBeNull();
     expect(screen.getAllByText("Running 5 min late").length).toBeGreaterThan(0);
-    expect(screen.getByText("Running late")).toBeTruthy();
+    expect(screen.queryByText("Running late")).toBeNull();
+    fireEvent.click(screen.getByText("Job complete"));
+    expect(onSelect).toHaveBeenCalledWith("✅ All done! Please check the work and approve it.");
   });
 
   it("typing: the indicator says typing, the timeline shows it while the other side types, and the composer broadcasts it", () => {

@@ -21,13 +21,13 @@
  *  5. The entries: Shops home and the Profile row link the dashboard once the
  *     member has a shop.
  *
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.paused && <ShopOrderSheet shopId={s.id} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />} |         {s.offers_selling && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />}
  * H8 (b) (lead 11-05): an at-home carpet or furniture cleaning asks where, is ordered on its own, and the shop sees the
  * address only once it accepted:
  * @mutate src/components/shops/ShopOrderSheet.tsx |     && (!atHome \|\| (svcOk && !atHomeMixed)) && (!helpring |     && (!helpring
  * @mutate src/components/shops/ShopOrderSheet.tsx |         ...(atHome ? { serviceAddress: | ...(false ? { serviceAddress:
  * @mutate src/components/shops/ShopOrderCard.tsx | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over"]); | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over", "held"]);
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} hours={s.hours} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} hours={s.hours} />}
  * @mutate src/components/shops/shopCart.tsx | i.kind !== "digital" && (i.stock_count == null \|\| i.stock_count > 0) | i.kind !== "digital"
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0); |   const leadDays = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0; |   const feeCents = 0;
@@ -41,15 +41,15 @@
  * @mutate src/lib/shops/orders.ts |   if (!terms.open_weekdays.includes(new Date(isoToUtc(iso)).getUTCDay())) return "closed"; |   if (false) return "closed";
  * @mutate src/lib/shops/orders.ts |   if (terms.full_days.includes(iso)) return "full"; |   if (false) return "full";
  * @mutate src/components/shops/ShopMyOrdersView.tsx |               {o.status === "held" && ( |               {o.status !== "declined" && (
- * @mutate src/components/shops/ShopMyOrdersView.tsx |     if (params.get("sent") !== "1") return; |     return;
- * @mutate src/components/shops/ShopHandoverActions.tsx | onClick={() => ready.mutate(null)}>Mark ready</Button> | onClick={() => finish.mutate()}>Mark ready</Button>
+ * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (sent === "1") return | if (sent === "never") return
+ * @mutate src/components/shops/ShopHandoverActions.tsx | onClick={() => ready.mutate(null)} data-testid="shop-mark-ready"> | onClick={() => finish.mutate()} data-testid="shop-mark-ready">
  * @mutate src/components/shops/ShopHandoverActions.tsx |       ) : side === "shop" ? ( |       ) : side === "shop" && false ? (
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (declining) decline.mutate({ id: declining.id, why: reason }); |           if (declining) decline.mutate({ id: declining.id, why: "" });
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (accepting) accept.mutate(accepting.id); |           void accepting;
  * @mutate src/pages/shops/ShopOrdersPage.tsx |         <ShopMyOrdersView embedded />\n | \n
- * @mutate src/components/shops/ShopDashboardView.tsx | side="shop" heading={from(o, "New order", "from")}> | side="shop" heading="New order">
- * @mutate src/components/shops/ShopDashboardView.tsx | side="shop" heading={from(o, "Accepted order", "for")}> | side="shop" heading="Accepted order">
- * @mutate src/components/shops/ShopDashboardView.tsx |     return name ? `${base} ${word} ${name}` : base; |     return base;
+ * @mutate src/components/shops/ShopDashboardView.tsx |   return name ? tr("shb.dash.title", { name, item }) : item; |   return item;
+ * @mutate src/components/shops/ShopDashboardView.tsx |   const item = rest.length > 0 ? tr("shb.dash.more", { item: one, n: rest.length }) : one; |   const item = one;
+ * @mutate src/components/shops/ShopDashboardView.tsx |   const from = (o: ShopOrder) => orderTitle(o, buyerNames.data?.[o.id]); |   const from = (_o: ShopOrder) => "New order";
  * @mutate src/pages/shops/ShopDashboardPage.tsx |         <ShopDashboardView embedded />\n | \n
  */
 import { readFileSync } from "node:fs";
@@ -368,6 +368,24 @@ describe("/shops/orders", () => {
   });
 });
 
+describe("/shops/orders: what each Stripe return says (launch pass 1)", () => {
+  // @mutate src/components/shops/ShopMyOrdersView.tsx |   if (params.get("bought") === "1") return | if (params.get("bought") === "never") return
+  // @mutate src/components/shops/ShopMyOrdersView.tsx |   if (sent === "preorder") return | if (sent === "never") return
+  for (const [url, words] of [
+    ["/shops/orders?bought=1", "Thanks for your order. Your download shows on the order below once the payment goes through."],
+    ["/shops/orders?paid=1", "The rest of your custom order is paid."],
+    ["/shops/orders?sent=preorder", "Preorder placed. Your card was charged in full; the shop has it ready by its ready-by date."],
+  ] as const) {
+    it(`${url} gets its own words, never the held-card line`, async () => {
+      orders.fetchMyOrders.mockResolvedValue([order({ id: "o1", status: "accepted", captured_at: "2026-10-19T12:00:00Z" })]);
+      renderAt(url, "/shops/orders", <ShopOrdersPage />);
+      expect(await screen.findAllByTestId("shop-order-card")).toHaveLength(1);
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith(words));
+      expect(toast.success).not.toHaveBeenCalledWith(expect.stringContaining("held, not charged"));
+    });
+  }
+});
+
 describe("/shops/dashboard", () => {
   it("H8 (b): the shop sees an at-home cleaning's address once it accepted, never while the order is only held", async () => {
     api.fetchMyShopId.mockResolvedValue("s1");
@@ -406,16 +424,22 @@ describe("/shops/dashboard", () => {
     expect(await screen.findByRole("radio", { name: /Free cancel until you accept/ })).toBeTruthy();
   });
 
-  it("says who ordered: the buyer's first name on each order, and the plain heading when the server gives none (Q2104)", async () => {
+  it("says who ordered and what: the buyer's first name and the first item, just the item when the server gives no name (Q2104, Area 07 M3)", async () => {
     api.fetchMyShopId.mockResolvedValue("s1");
     orders.fetchCancelPolicy.mockResolvedValue("until_accept");
-    orders.fetchShopOrders.mockResolvedValue([order({ id: "o1" }), order({ id: "o2" }), order({ id: "o3", status: "accepted" })]);
+    const extra = { id: "l2", item_id: "i2", title: "Soap", kind: "made", unit_cents: 500, quantity: 1, line_cents: 500 };
+    orders.fetchShopOrders.mockResolvedValue([
+      order({ id: "o1" }), order({ id: "o2" }),
+      order({ id: "o3", status: "accepted", shop_order_lines: [order({}).shop_order_lines[0], extra] }),
+    ]);
     orders.fetchShopOrderBuyerNames.mockResolvedValue({ o1: "Ana", o3: "Bob" });
     renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
-    expect(await screen.findByText("New order from Ana")).toBeTruthy();
-    expect(screen.getByText("Accepted order for Bob")).toBeTruthy();
-    // o2: a blocked pair or a deleted buyer has no name; the card still shows.
-    expect(screen.getAllByText("New order")).toHaveLength(1);
+    expect(await screen.findByText("Ana · 2 × Candle")).toBeTruthy();
+    expect(screen.getByText("Bob · 2 × Candle + 1 more")).toBeTruthy();
+    // o2: a blocked pair or a deleted buyer has no name; the card still shows, titled by its item.
+    expect(screen.getAllByText("2 × Candle")).toHaveLength(1);
+    // The stage words stay out of the title (the group and the card's status say it).
+    expect(screen.queryByText(/New order from|Accepted order for/)).toBeNull();
     expect(orders.fetchShopOrderBuyerNames).toHaveBeenCalledWith(["o1", "o2", "o3"]);
   });
 
@@ -429,12 +453,12 @@ describe("/shops/dashboard", () => {
     const group = await screen.findByRole("radiogroup", { name: "If you mark an order ready early" });
     const choices = within(group).getAllByRole("radio");
     expect(choices.map((b) => b.textContent?.split("Buyers")[0].split("If you")[0])).toEqual([
-      "Marking it ready ends free cancel",
+      "Marking it ready ends the refund time",
       "Marking it ready counts from the day before (default)",
-      "Marking it ready never ends free cancel early",
+      "Marking it ready never ends the refund time early",
     ]);
     expect(choices.map((b) => b.getAttribute("aria-checked"))).toEqual(["false", "false", "true"]);
-    expect(group.textContent).toContain("Buyers can cancel for free until the ready date begins, however early you mark the order ready.");
+    expect(group.textContent).toContain("Buyers can cancel for a refund until the ready date begins, however early you mark the order ready.");
     fireEvent.click(choices[0]);
     await waitFor(() => expect(orders.setReadyTapCancel).toHaveBeenCalledWith("ends_at_tap"));
     expect(orders.setReadyTapCancel).toHaveBeenCalledTimes(1);
@@ -554,7 +578,7 @@ describe("the dashboard entries", () => {
     expect(screen.getByTestId("shop-licensed-insured").getAttribute("href")).toBe("/profile?tab=credentials");
   });
   // Shops audit 11-10 F1 (lead): one message on an empty Browse, never "Coming soon" beside "open a free shop".
-  // @mutate src/components/shops/ShopsHomeView.tsx | : "No shops near you yet."} | : "Coming soon"}
+  // @mutate src/components/shops/ShopsHomeView.tsx | : t("shb.noneNear")} | : "Coming soon"}
   it("Browse with no shops says one thing: No shops near you yet. Be the first: open a free shop.", async () => {
     desktop.on = true;
     renderAt("/shops", "/shops", <ShopsPage />);
@@ -563,7 +587,7 @@ describe("the dashboard entries", () => {
     expect(screen.queryByText("Coming soon")).toBeNull();
   });
   // Shops audit 11-10 F16: the buyer's empty Orders leads on with a Browse shops BUTTON, not an underlined link.
-  // @mutate src/components/shops/ShopMyOrdersView.tsx |       <Button asChild variant="outline" size="sm" className="mt-2 rounded-full">\n        <Link to="/shops">Browse shops</Link>\n      </Button> |       <Link to="/shops" className="underline">Browse shops</Link>
+  // @mutate src/components/shops/ShopMyOrdersView.tsx |       <Button asChild variant="outline" size="sm" className="mt-2 rounded-full">\n        <Link to="/shops">{t("shb.ord.browse")}</Link>\n      </Button> |       <Link to="/shops" className="underline">{t("shb.ord.browse")}</Link>
   it("Orders with none yet: No orders yet, and Browse shops is a button", async () => {
     orders.fetchMyOrders.mockResolvedValue([]);
     renderAt("/shops/orders", "/shops/orders", <ShopOrdersPage />);

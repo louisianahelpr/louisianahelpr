@@ -16,6 +16,9 @@
  * task); nothing here guesses a step the data does not show.
  */
 import { StepTracker } from "@/components/tracker/StepTracker";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
+import type { MsgKey } from "@/lib/i18n/en";
 
 export type OrderHandover = "porch" | "pickup_home" | "meetup" | "delivery" | "seller_delivery" | "ship";
 export type OrderSide = "buyer" | "seller";
@@ -161,11 +164,14 @@ export function orderBucket(f: OrderFacts): OrderBucket {
 }
 
 /** The order's tracker bar: the shared StepTracker with this order's words and step. */
-export function OrderSteps({ facts, refundOpen = false }: {
+export function OrderSteps({ facts, refundOpen = false, refundOffered = false }: {
   facts: OrderFacts;
   /** F366 (rest): the buyer's refund request is still being worked out (refundIsOpen); no problem row is needed. */
   refundOpen?: boolean;
+  /** Area 05 #5: the seller answered the refund request with a part-refund offer (status "offered"). */
+  refundOffered?: boolean;
 }) {
+  useLanguage();
   const words = orderStepWords(facts);
   const last = words.length - 1;
   // Audit 11-10 F366: an open problem holds the money, so the bar never ends on "Done" (or "Delivered") over it. Once
@@ -174,11 +180,13 @@ export function OrderSteps({ facts, refundOpen = false }: {
   const handedOver = !!(facts.done || facts.pickedUp || facts.delivered);
   const marked = (!!facts.problem || refundOpen) && handedOver;
   // F366 (rest): a refund still being worked out holds the bar the same way, named for what it is.
-  const steps = marked ? [...words.slice(0, last), facts.problem ? "Problem reported" : "Refund asked"] : words;
+  // Area 05 #5: a counter-offer from the seller reads "Refund offered", not "Refund asked".
+  const steps = marked ? [...words.slice(0, last), facts.problem ? "Problem reported" : refundOffered ? "Refund offered" : "Refund asked"] : words;
   const at = marked ? last : orderStepAt(facts);
   return (
     <div data-order-steps={facts.handover} data-order-step={at} data-order-problem={facts.problem ? "" : undefined}>
-      <StepTracker steps={steps} at={at} />
+      {/* Area 05 #1: the step words in the member's language (dbuy.step.<English word>). */}
+      <StepTracker steps={steps.map((w) => t(`dbuy.step.${w}` as MsgKey))} at={at} />
     </div>
   );
 }

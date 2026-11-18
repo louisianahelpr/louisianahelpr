@@ -740,6 +740,15 @@
      across the in-app surfaces the same authority as the marketing CTAs. */
   --primary:              var(--bark);
   --primary-foreground:   var(--parchment);
+  /* Job category tile tints (owner 2026-11-17; src/lib/jobCategoryTint.mjs): a soft background and a darker icon of
+     one hue per category group. Contrast is guarded in both themes (src/test/jobCategoryTints.test.ts). */
+  --cat-tint-sage-bg:   95 32% 91%;   --cat-tint-sage-fg:   100 38% 26%;
+  --cat-tint-sky-bg:    205 62% 93%;  --cat-tint-sky-fg:    208 62% 30%;
+  --cat-tint-amber-bg:  38 80% 90%;   --cat-tint-amber-fg:  28 75% 28%;
+  --cat-tint-rose-bg:   350 65% 94%;  --cat-tint-rose-fg:   350 52% 34%;
+  --cat-tint-violet-bg: 265 50% 94%;  --cat-tint-violet-fg: 265 38% 38%;
+  --cat-tint-teal-bg:   175 42% 90%;  --cat-tint-teal-fg:   178 55% 22%;
+  --cat-tint-stone-bg:  40 16% 91%;   --cat-tint-stone-fg:  30 12% 30%;
   --ring:                 var(--bark);
   --success: 110 12% 35%;  /* was 110 5% 65% — measured 2.38:1 as text, barely half of
                               WCAG AA. 35% = 4.78:1 on a #dedfdf card, 6.38:1 on white.
@@ -1083,6 +1092,14 @@
   --accent-foreground:    0 0% 100%;
   --primary:              var(--bark);
   --primary-foreground:   var(--parchment);
+  /* Job category tile tints, dark: a deep background and a light icon of the same hue. */
+  --cat-tint-sage-bg:   95 18% 20%;   --cat-tint-sage-fg:   95 40% 72%;
+  --cat-tint-sky-bg:    208 30% 20%;  --cat-tint-sky-fg:    205 65% 75%;
+  --cat-tint-amber-bg:  32 30% 19%;   --cat-tint-amber-fg:  38 80% 70%;
+  --cat-tint-rose-bg:   350 25% 20%;  --cat-tint-rose-fg:   350 70% 78%;
+  --cat-tint-violet-bg: 265 22% 21%;  --cat-tint-violet-fg: 265 55% 78%;
+  --cat-tint-teal-bg:   178 28% 18%;  --cat-tint-teal-fg:   175 45% 68%;
+  --cat-tint-stone-bg:  36 8% 20%;    --cat-tint-stone-fg:  40 15% 72%;
   --ring:                 var(--bark);
   --success:              110 12% 50%;
   --success-foreground:   0 0% 100%;
@@ -1305,6 +1322,12 @@ html[data-theme="dark"].web-desktop:not(.app-shell) body:has(.app-shell-frame),
   border-color: hsl(var(--border) / 0.7);
   box-shadow: var(--card-shadow);
 }
+/* Design audit r2 #6 (11-17): the rule above dims every .bg-card's border to the card's own tone, so in dark an
+   unselected choice (ChoicePill, the day strip, "Need it today", all buttons on bg-card) had no edge at all. A
+   choice keeps a visible light hairline in dark. Guard: src/test/designAuditR2.test.ts. */
+:root[data-theme="dark"] button.bg-card:is([role="radio"], [aria-pressed]) {
+  border-color: hsl(0 0% 100% / 0.16);
+}
 
 /* iOS Safe Area Support
    Use the env() value directly (0 on browsers without notches; the actual
@@ -1449,6 +1472,20 @@ body {
      capping itself; no new numeric cap is needed here. */
   html.app-shell:not(.web-desktop) .app-shell-frame .ds-desktop-wide {
     max-width: none;
+  }
+}
+
+/* Design audit r2 #41 (tablet 768): Home, Inbox and Settings stretched to 736px under the 510px nav pill. From 640px
+   up to the 1024px desktop breakpoint the page's content column is capped at max-w-2xl (42rem) and centred; the frame
+   still fills (no grey gutter comes back), only the column inside it stops. Phone and desktop are unchanged.
+   Guard: src/test/designAuditR2.test.ts. */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  html.app-shell:not(.web-desktop) [data-app-page-scroll] > *,
+  html.app-shell:not(.web-desktop) .explore-header,
+  html.app-shell:not(.web-desktop) .page-column,
+  html.app-shell:not(.web-desktop) [data-scaffold-container] > .ds-desktop-wide {
+    max-width: 42rem;
+    margin-inline: auto;
   }
 }
 
@@ -2312,9 +2349,10 @@ body[data-scroll-locked] .preview-dock {
 
    Lives here rather than inline on the <img> because an inline `style` filter
    always beats a stylesheet rule, so the dark override could never apply. */
+/* Design audit areas 11-18 #26: no drop-shadow in light mode; on the white app it drew a grey-green halo
+   around the H. Dark mode keeps its lift below. */
 .helpr-emblem {
-  filter: drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18))
-          drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1));
+  filter: none;
 }
 
 /* Dark: the mark is dark metal, and brightness(1.9) left it a charcoal
@@ -2327,6 +2365,22 @@ body[data-scroll-locked] .preview-dock {
 [data-theme="dark"] .helpr-emblem {
   filter: brightness(3.4) contrast(0.85) saturate(0.7)
           drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+/* Design audit r2 #39: on the desktop sidebar's dark card the lifted pewter H still all but vanished. There the mark
+   sits on a cream disc instead, in its own light-mode colours (dark iron, brass, verdigris), the way it reads on
+   parchment. Same 40px height as the plain emblem (the head row's level with the rail is measured from it); the
+   disc's last 3px is a box-shadow, so it adds no layout. The cream is light mode's parchment, fixed. */
+[data-theme="dark"] .helpr-emblem-disc .helpr-emblem {
+  box-sizing: border-box;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 3px;
+  object-fit: contain;
+  border-radius: 9999px;
+  background: hsl(45 40% 96%);
+  box-shadow: 0 0 0 3px hsl(45 40% 96%);
+  filter: none;
 }
 
 /* ── .squircle — intentionally a NO-OP marker class ────────────────────────
@@ -4925,6 +4979,23 @@ html.web-desktop .explore-switcher-bone { display: none; }
   backdrop-filter: none !important;
   box-shadow: 0 0 0 1px hsl(var(--card-hairline)), 0 1px 2px hsl(220 14% 20% / 0.06), 0 4px 14px -6px hsl(220 14% 20% / 0.10) !important;
 }
+/* Design audit r3 #1 (HIGH, 11-18): a FIELD or a CHIP is not a card. T2 above clears the border of every .bg-card, so
+   on the white page (owner 11-17) the Edit listing / Sell title and description boxes, the Edit listing chips
+   (ChoicePill), the Open a shop category chips and other white controls were white on white with only a #ECECEA
+   hairline shadow: floating text. These keep a real 1 px edge (the --border hairline, #D2D2CE) and their own
+   Tailwind ring/shadow (T2's shadow is !important, so it would also hide their focus ring). Outranks T2's :where()
+   (0,0,0) with a typed selector. Guard: src/test/whiteFieldsAndChipsKeepAnEdge.test.ts. */
+input.bg-card,
+textarea.bg-card,
+select.bg-card,
+button[role="radio"].bg-card,
+button[aria-pressed].bg-card,
+button[aria-expanded].bg-card,
+label[for].bg-card,
+[data-field-edge].bg-card {
+  border-color: hsl(var(--border)) !important;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow, 0 0 #0000) !important;
+}
 .page-panel { box-shadow: none !important; background-color: transparent !important; }
 [data-feed-card] > div, [data-activity-card] { border-radius: 1rem; }
 /* Design audit A J2 (owner approved 11-08): the Browse feed is hairline ROWS on the page, not white cards. Higher
@@ -5229,6 +5300,16 @@ html.page-scrolled .page-title-card:has(.explore-header),
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
   mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
+/* Design audit r2 #48: the sponsor admin's tab strip clipped at the phone's edge. It scrolls sideways, and below 640px
+   its right edge fades the same way the Explore chips do, so a cut tab reads as "more". */
+.admin-tabs-scroll { overflow-x: auto; scrollbar-width: none; }
+.admin-tabs-scroll::-webkit-scrollbar { display: none; }
+@media (max-width: 639px) {
+  .admin-tabs-scroll {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+}
 /* A3-6 (2026-10-28): a phone row of five or more section tabs (SectionTabs `dense`) sets its words by the screen's
    width so it fits one line: 12px at 320, 13px from 361px, never over the row's own phone size (13px below 420px,
    Q2027 lead 11-04: the 16px scale size collapsed Jobs' three tabs into "2 more tabs" at 375). */
@@ -5329,6 +5410,28 @@ html.page-scrolled .page-title-card:has(.explore-header),
 }
 .landing-page .mesh-gradient-global { display: none; }
 
+/* Owner decision 11-18 (hero mockup B, "Color band"; overrides the 11-17 "white everywhere" rule for the hero ONLY):
+   a soft olive-to-cream band behind the whole hero, from the top bar through the search; the page below stays white.
+   Pure CSS: no image, no font, no box change. "partner." is italic in the brand olive (synthesized from the upright
+   Montserrat already loaded; there is no italic face to fetch). --lp-action-strong on the band: 5.6:1 light, 5.9:1
+   dark. The search pill and the Jobs | Declutter switch keep their white surface and shadow on it.
+   Guard: src/test/landingHeroBand1118.test.ts. */
+.landing-page {
+  --lp-hero-band: linear-gradient(160deg, #dfe3c4 0%, #eef0de 45%, #faf6ee 100%);
+}
+[data-theme="dark"] .landing-page {
+  --lp-hero-band: linear-gradient(160deg, #2e2f22 0%, #262620 45%, #1c1a17 100%);
+}
+.landing-page .landing-hero-band { background: var(--lp-hero-band); }
+.landing-page .landing-h1-accent { font-style: italic; color: var(--lp-action-strong); }
+.landing-page .landing-search-tabs .segmented-track { background: var(--lp-surface); }
+/* At the very top the bar shows the band under it (Navbar's landing-nav-top); from the first scroll it is opaque. */
+.landing-page .glass-nav.landing-nav-top {
+  background-color: transparent;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 /* Landing headlines: the app's own heading face (owner 2026-11-17: "the same sans-serif heading font the signed-in
    app uses", so the site feels one and modern), Montserrat 650, upright, -0.02em, exactly .text-page-title (T1). They
    were Bodoni Moda (spec §1.2). Sizes are unchanged. The H1 (.landing-h1) joins here: T1 still exempts it by name, and
@@ -5365,7 +5468,11 @@ html.page-scrolled .page-title-card:has(.explore-header),
   background: var(--lp-surface);
   box-shadow: var(--lp-shadow);
   border-radius: 999px;
+  /* Design audit areas 11-18 #6: on the white landing the pill was white on white with no edge. */
+  border: 1px solid hsl(var(--input));
 }
+/* Design audit areas 11-18 #6: the Jobs / Declutter switch above it gets the same 1px edge. */
+.landing-search-tabs .segmented-track { border: 1px solid hsl(var(--input)); }
 .landing-search .landing-search-field { background: transparent; box-shadow: none; }
 .landing-search .landing-search-field:focus-within { outline: none; }
 /* The pill's own ring is the focus mark; the global :focus-visible box on the
@@ -5458,4 +5565,15 @@ html.has-section-fab { --section-fab-clearance: 4rem; }
     padding-left: 1.25rem;
     padding-right: 1.25rem;
   }
+}
+
+/* DESIGN AUDIT 11-17 #12: the Working cards at 1440 had a ~20px blank band between a one-line title and the address
+   row under it: the 44px thumb set the title row's height, and the address (outside the face's link, since it holds
+   its own press-to-map control) started under the thumb. From 768px the thumb is drawn out of flow at the column's
+   top-left, the column keeps the thumb's height as its floor, and the title's 56px indent replaces the flex gap. The
+   phone card keeps its measured layout (mineFaceSkeletonMatchesFace). Guard: src/test/designAudit1117.test.ts. */
+@media (min-width: 768px) {
+  [data-mine-face-col] { position: relative; min-height: 2.75rem; }
+  [data-mine-face-col] [data-mine-face-thumb] { position: absolute; left: 0; top: 0; }
+  [data-mine-face-col] [data-mine-face-open] { padding-left: 3.5rem; }
 }

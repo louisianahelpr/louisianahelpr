@@ -19,7 +19,7 @@
  * @mutate src/components/messages/MessageActionSheet.tsx | size="iconCompact"\n                  aria-label | size="sm"\n                  aria-label
  * @mutate src/components/richMessageInput/AttachSourceSheet.tsx | variant="flush"\n | variant="card"\n
  * @mutate src/components/messages/chatView/JumpToBottomButton.tsx | variant="primary"\n        size="sm" | variant="ghost"\n        size="sm"
- * @mutate src/components/messages/ConversationListHeader.tsx | <Button\n        type="button"\n        variant="ghost" | <button\n        type="button"\n        data-variant="ghost"
+ * @mutate src/components/messages/ConversationListHeader.tsx | <Button\n          type="button"\n          variant="ghost" | <button\n          type="button"\n          data-variant="ghost"
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -67,7 +67,7 @@ const SITES: { file: string; anchor: string; tag: "Button" | "ListRow"; attrs?: 
   { file: "src/components/messages/RestoreConversationButton.tsx", anchor: "unarchiveConversation(", tag: "Button", attrs: { variant: "outline", size: "sm" } },
   { file: "src/components/messages/ConversationListBody.tsx", anchor: "setShowAllConvos(true)", tag: "Button", attrs: { variant: "outline", size: "sm" } },
   { file: "src/components/messages/ConversationListBody.tsx", anchor: "handleBatchDelete", tag: "Button", attrs: { variant: "primary", size: "sm" } },
-  { file: "src/components/messages/ConversationListHeader.tsx", anchor: 'setInboxFilter("all")', tag: "Button", attrs: { variant: "ghost", size: "sm" } },
+  { file: "src/components/messages/ConversationListHeader.tsx", anchor: 'setInboxFilter("all")', tag: "Button", attrs: { variant: "ghost", size: "iconCompact" } },
   { file: "src/components/messages/chatView/JumpToBottomButton.tsx", anchor: "scrollContainerRef.current", tag: "Button", attrs: { variant: "primary", size: "sm" } },
   { file: "src/components/jobs/MessageApplicantButton.tsx", anchor: "`Message ${helperName}`", tag: "Button", attrs: { variant: "outline", size: "sm" } },
 ];

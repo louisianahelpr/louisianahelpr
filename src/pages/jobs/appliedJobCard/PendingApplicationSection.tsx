@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Paperclip, Trash2, Pencil, Check, X } from "lucide-react";
+import { Paperclip, Trash2, Check, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { JobCardPhotoStrip } from "../../../components/job-card/JobCardPhotoStrip";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
@@ -130,26 +130,11 @@ export function PendingApplicationSection({
             </div>
           </div>
         ) : (
-          /* Read-back: the sentence, and a pencil. The pencil sits INSIDE the
-             text flow rather than in a header bar above it, because there is
-             no header bar any more — it is the only control here, so it rides
-             the end of the paragraph it edits. */
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-sans text-ds-14 leading-relaxed text-foreground min-w-0">
-              {app.message || <span className="text-muted-foreground">No message yet — add one</span>}
-            </p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="iconCompact"
-              aria-label="Edit your message"
-              /* `-m-2` keeps the 44px shared hit area from pushing the message line down. */
-              className="text-primary hover:text-primary/95 -m-2 shrink-0"
-              onClick={() => { setEditingMessageAppId(app.id); setEditMessageText(app.message || ""); }}
-            >
-              <Pencil />
-            </Button>
-          </div>
+          /* Read-back: the sentence only. The pencil that rode its end duplicated the "Edit application" button
+             right under it (design audit area 04 #25, 11-18): one control opens the editor, the button. */
+          <p className="font-sans text-ds-14 leading-relaxed text-foreground min-w-0">
+            {app.message || <span className="text-muted-foreground">No message yet — add one</span>}
+          </p>
         )}
       </section>
 

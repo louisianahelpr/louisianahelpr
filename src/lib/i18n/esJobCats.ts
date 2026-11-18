@@ -1,0 +1,30 @@
+/** Spanish for enJobCats.ts (design audit r2 #33): job category names. */
+import type { enJobCats } from "./enJobCats";
+
+export const esJobCats: Record<keyof typeof enJobCats, string> = {
+  "jc.cleaning": "Limpieza",
+  "jc.yard_work": "Jardinería",
+  "jc.handyman": "Arreglos",
+  "jc.moving": "Mudanzas",
+  "jc.errands": "Mandados",
+  "jc.declutter_help": "Ayuda con Declutter",
+  "jc.delivery": "Entregas",
+  "jc.pet_care": "Cuidado de mascotas",
+  "jc.assembly": "Armado",
+  "jc.painting": "Pintura",
+  "jc.storm_prep": "Preparación para tormentas",
+  "jc.events": "Eventos",
+  "jc.electrical": "Electricidad",
+  "jc.plumbing": "Plomería",
+  "jc.hvac": "Aire acondicionado y calefacción",
+  "jc.roofing": "Techos",
+  "jc.welding": "Soldadura",
+  "jc.carpentry": "Carpintería",
+  "jc.auto_repair": "Autos y motores pequeños",
+  "jc.appliance_repair": "Reparación de electrodomésticos",
+  "jc.flooring": "Pisos y azulejos",
+  "jc.concrete_masonry": "Concreto y albañilería",
+  "jc.fencing": "Cercas",
+  "jc.pressure_washing": "Lavado a presión",
+  "jc.other": "Otro",
+};

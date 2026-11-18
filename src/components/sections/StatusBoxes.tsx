@@ -75,6 +75,7 @@ export function StatusBoxes<K extends string>({
   end,
   emptyLine = true,
   fade = false,
+  allLabel = "All",
 }: {
   boxes: readonly StatusBoxDef<K>[];
   value: K | null;
@@ -94,6 +95,8 @@ export function StatusBoxes<K extends string>({
    * last chip scroll clear of it.
    */
   fade?: boolean;
+  /** The All chip's word (Area 03 H3: Jobs > Posted passes its Spanish). */
+  allLabel?: string;
 }) {
   const active = boxes.find((b) => b.key === value);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -139,7 +142,7 @@ export function StatusBoxes<K extends string>({
         role="group"
         aria-label="Filter by status"
       >
-        {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })}
+        {chip(ALL, allLabel, allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })}
         {boxes.map((b) => chip(b.key, b.label, b.count, b.key === value, () => onToggle(b.key)))}
       </div>
       {end}

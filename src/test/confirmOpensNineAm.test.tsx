@@ -7,7 +7,7 @@
  */
 // @mutate supabase/functions/_shared/confirmDeadline.ts |   return jobLocalMidnightMs(previousDay(dateNeeded)); |   return jobLocalMidnightMs(dateNeeded);
 // @mutate src/lib/i18n/enJobLines.ts | "jl.confirmOn": "Confirm on {day}, the day before, that you can still do this job", | "jl.confirmOn": "Confirm the day before, that you can still do this job.",
-// @mutate src/lib/i18n/enJobLines.ts | "jl.bothConfirmOn": "You both confirm on {day}, the day before, that the job is still on", | "jl.bothConfirmOn": "Your Helpr confirms on {day}, the day before, that the job is still on",
+// @mutate src/lib/i18n/enJobLines.ts | "jl.bothConfirmOn": "On {day} you'll both confirm the job is still on", | "jl.bothConfirmOn": "Your Helpr confirms on {day} that the job is still on",
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { confirmDeadlineMs, confirmOpensMs } from "@/lib/jobDate";
@@ -32,7 +32,7 @@ describe("a Thu 9:00 AM job's confirm window", () => {
   it("the tracker says when it opens, on both sides", () => {
     const job = { status: "accepted", helper_id: "h", helper_confirmed_at: "t", date_needed: DAY, start_time: "09:00" };
     // F442 (audit 11-10): the line says what is confirmed, not only when.
-    expect(jobProgress(job, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).toBe("You both confirm on Wed, the day before, that the job is still on"); // F270: never "Yusef confirms"
+    expect(jobProgress(job, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).toBe("On Wed you'll both confirm the job is still on"); // F270: never "Yusef confirms"
     expect(jobProgress(job, { viewer: "helpr", otherFirst: "Ben", now: NOW }).next).toBe("Confirm on Wed, the day before, that you can still do this job");
   });
 

@@ -22,6 +22,7 @@
  * @mutate supabase/functions/delete-own-account/index.ts |     const pages = await closeUnpaidShopPages(supabaseAdmin, user.id);\n    if (!pages.ok) { |     const pages = { ok: true };\n    if (!pages.ok) {
  * Shops M2 (20261018211820): a shop still owed a payout is blocked too (lh-money-escrow review of 819e55ce3 #3).
  * @mutate supabase/functions/_shared/accountPurge.ts |     return { ok: true, active: true, detail: `shop payout ${owed.data[0].id}`, reason: "shops" }; |     return { ok: true, active: false };
+ * @mutate supabase/functions/_shared/accountPurge.ts |   return e.code === "42P01" \|\| e.code === "PGRST205"; |   return /does not exist\|42P01\|PGRST205/i.test(`${e.code ?? ""} ${(e as { message?: string }).message ?? ""}`);
  * @mutate supabase/functions/admin-delete-user/index.ts |     const pages = await closeUnpaidShopPages(supabaseAdmin, userId);\n    if (!pages.ok) { |     const pages = { ok: true };\n    if (!pages.ok) {
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -119,6 +120,15 @@ describe("a Shops order in progress blocks deleting either party's account", () 
     expect(absent).toMatchObject({ ok: true, active: false });
     const down = await findActiveWork(fakeAdmin({ shop_orders: { error: { code: "08006", message: "connection reset" } } }), BUYER);
     expect(down.ok).toBe(false);
+  });
+
+  it("Q2108: a missing COLUMN (42703, also 'does not exist') fails each deletion check closed; only a missing table is absent", async () => {
+    const col = { error: { code: "42703", message: "column shop_orders.seller_id does not exist" } };
+    for (const table of ["shop_orders", "shop_payouts", "group_job_helpers", "series_visit_holds"]) {
+      const r = await findActiveWork(fakeAdmin({ [table]: col }), BUYER);
+      expect(r.ok, table).toBe(false);
+    }
+    expect((await closeUnpaidShopPages(updatingAdmin(col), BUYER)).ok).toBe(false);
   });
 
   it("a shop still owed a payout cannot delete its account; a paid or nothing-due payout and the buyer do not block", async () => {

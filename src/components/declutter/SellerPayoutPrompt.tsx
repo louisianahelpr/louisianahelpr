@@ -11,6 +11,8 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { DeclutterNotice } from "./declutterUi";
 import { needsIdentityCheck, openIdentityCheckOrSay, useMyIdentityProfile } from "@/lib/identityCheck";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/Notice";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 
 /**
  * The Declutter money that really waits for this seller (owner 2026-10-28, shots 12 + 19: the banner said "You have
@@ -112,10 +114,16 @@ function OwedPayoutPrompt({ cents, titles }: { cents: number; titles: string[] }
   if (paused) return <PayoutSetupPausedNotice />;
   return (
     <div data-declutter-payout-prompt="">
-      <DeclutterNotice tone="warn" title={`Set up payouts to get your ${formatPrice(cents)}.`}>
-        {titles.length ? `You sold ${soldWords(titles)}. ` : ""}The money is held safely until payouts are set up, one short step.{" "}
-        <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
-      </DeclutterNotice>
+      {/* Design audit 11-17 #3: the same warning as the You page's payout row (PayoutStatusRow): terracotta, the
+          warning icon and a trailing "Set up payouts >", not an amber box with an underlined inline link. */}
+      <Notice tone="warn" icon={AlertTriangle} title={`Set up payouts to get your ${formatPrice(cents)}.`}
+        action={(
+          <Link to="/profile?tab=payment" className="inline-flex min-h-11 items-center gap-0.5 font-semibold text-[hsl(var(--burnt-sienna))]" data-payout-prompt-action="">
+            Set up payouts <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
+        )}>
+        {titles.length ? `You sold ${soldWords(titles)}. ` : ""}The money is held safely until payouts are set up, one short step.
+      </Notice>
     </div>
   );
 }

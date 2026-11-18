@@ -56,9 +56,10 @@ describe("the public top bar: Jobs | Declutter | Log in · Join free on every pa
     unmount();
     return links;
   };
-  it.each(PAGES)("$path: the logo, then Jobs (/browse), Declutter (/declutter), Log in (/login), Join free (/signup)", ({ path, landing }) => {
+  // Owner 2026-11-18: Holiday Gift Guides joins the bar (from md up; the phone bar keeps the four).
+  it.each(PAGES)("$path: the logo, then Jobs (/browse), Declutter (/declutter), Holiday Gift Guides, Log in (/login), Join free (/signup)", ({ path, landing }) => {
     const links = barLinks(path, landing).filter(([, href]) => href !== "/");
-    expect(links).toEqual([["Jobs", "/browse"], ["Declutter", "/declutter"], ["Log in", "/login"], ["Join free", "/signup"]]);
+    expect(links).toEqual([["Jobs", "/browse"], ["Declutter", "/declutter"], ["Holiday Gift Guides", "/gift-guides"], ["Log in", "/login"], ["Join free", "/signup"]]);
   });
   it("no page's bar says Get started or How it works, and the landing's bar is the same bar", () => {
     expect(PAGES.length).toBeGreaterThan(3);
@@ -72,6 +73,8 @@ describe("the public top bar: Jobs | Declutter | Log in · Join free on every pa
 // @mutate src/components/ProtectedRoute.tsx |   { key: "full_name", label: "Full name" }, |   { key: "full_name", label: "Full name" }, { key: "phone", label: "Phone number" },
 // Jobs opens the job list on every page.
 // @mutate src/components/Navbar.tsx |                 to="/browse" |                 to={location.pathname === "/browse" ? "/signup" : "/browse"}
+// Holiday Gift Guides is in the bar on every page (owner 2026-11-18).
+// @mutate src/components/Navbar.tsx |                 to="/gift-guides" |                 to="/gift-guide"
 // Join free is the sign-up on every page.
 // @mutate src/components/Navbar.tsx |                 to="/signup" |                 to={landing ? "/signup" : "/browse"}
 // The landing gets no bar of its own.

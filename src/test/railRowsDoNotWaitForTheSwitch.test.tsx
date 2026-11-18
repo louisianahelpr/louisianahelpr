@@ -9,7 +9,7 @@
  *
  * M8/M9 (owner 11-16): Shops and Homes, closed to a member, are no longer listed anywhere; Declutter (open to
  * everyone) stays listed while its switch loads, so the row count still never changes when the answer arrives.
- * @mutate src/components/mobileNav/useSectionTabs.ts | listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview }) | listed: sectionListedHere({ on: on[s.feature], preview })
+ * @mutate src/components/mobileNav/useSectionTabs.ts | listed: sectionListedHere({ on: on[s.feature] \|\| OPEN_FOR_THOSE_WHO_HAVE_IT.has(s.feature), preview: unlaunched }) | listed: sectionListedHere({ on: on[s.feature], preview: unlaunched })
  * @mutate src/components/DesktopSidebarNav.tsx | ?.listed !== false); | ?.on === true);
  */
 import { describe, it, expect, vi } from "vitest";

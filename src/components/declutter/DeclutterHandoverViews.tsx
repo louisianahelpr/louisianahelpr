@@ -29,7 +29,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { useFeature } from "@/hooks/useFeature";
-import { FailedPayoutLink } from "./FailedPayoutLink";
+import { FailedPayoutLink, PayoutLineText } from "./FailedPayoutLink";
 import type { CartLine } from "@/lib/declutter/api";
 import { invalidate, isTradeOrder, liveSalesFirst, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
 import { OrderCardHead } from "./OrderCardHead";
@@ -85,6 +85,7 @@ import { DeclutterProblemDecided, DeclutterProblemSides, DeclutterRefundPanel, O
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
+import { BOOKING_ACTIONS, goToOrderControl } from "./orderControlScroll";
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel }))); // Add a Helpr: the buyer's card only (Q178).
 
 /** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews). */
@@ -209,9 +210,7 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open || !view) return;
-    const go = bodyRef.current?.querySelector<HTMLElement>(".btn-grad-primary:not([disabled]), input, select");
-    go?.scrollIntoView?.({ block: "center" });
-    go?.focus({ preventScroll: true });
+    return goToOrderControl(bodyRef.current, BOOKING_ACTIONS.has(view.action ?? ""));
   }, [open, view]);
   const body = !view || open;
   // NIGHT-SELL-soldstates-3 (B18's order): the seller's open pickup sale leads with what to do next. Tracker and line,
@@ -225,7 +224,7 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
       <OrderCardHead order={order} userId={userId} />
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
-      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} refundOpen={refundIsOpen(refundStatus)} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
+      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} refundOpen={refundIsOpen(refundStatus)} refundOffered={refundStatus === "offered"} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}
@@ -259,10 +258,10 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
           {order.side === "seller" && items > 0 && <ManagerSaleShareGate orderId={order.orderId} itemsCents={items} itemCount={order.lines.length} />}
           {/* An unsent payout's day waits on every hold read: the fee inputs, the open problems, and the refund request
               (declutter_payouts_due holds on an open problem or a running request; a declined one moves the day). */}
-          {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess) || lastProblem.isLoading) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm">{payoutLine(payout, !!problem, {
+          {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess) || lastProblem.isLoading) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm"><PayoutLineText line={payoutLine(payout, !!problem, {
             handedOverAt: handoverRow.data?.confirmed_at ?? null, refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady, setupPaused,
             declinedAt: refundStatus === "declined" ? refund.data?.request?.declined_at ?? null : null,
-            refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, saleDecided, })}
+            refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, saleDecided, })} />
             {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>
@@ -333,7 +332,9 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
             onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking, Date.now(), porchSeller)} />}
         </>
       )}
-      {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} handedOver={done} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
+      {/* Area 05 #2 (design audit 11-18): a refunded or cancelled order has nothing to move, so no "Need help moving it?"
+          chips (bookedOnly keeps a Helpr task already booked visible). */}
+      {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} handedOver={done} bookedOnly={order.status === "refunded" || !!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
       {/* D2-1: the paid order's chat (DeclutterOrderTalk, ?order_talk=). F397 (audit 1110): "Message the buyer" jumped around
           by stage; it is now the body's LAST control on every card (openpr-8); the open pickup sale keeps it in SellerAfterActions. */}
       {!sellerNextFirst && !(cancelled && order.side === "seller") && <div data-order-talk-row=""><OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} /></div>}
@@ -515,9 +516,11 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
       {/* A porch DAY is out all that day: no "out until" (owner 2026-10-28). A time booked before keeps it. */}
       {order.side === "seller" && !booking.pickup_day && (
         <>
-          <p className="text-sm">
+          {/* Area 06 M4 (design audit 11-18): the booked line above already names the time, so "out until <time>" is said
+              only once the porch photo is up (until then it repeated the same time a third way). */}
+          {!(booking.porch_until && booking.porch_mode !== "all_day" && !posted) && <p className="text-sm" data-porch-out-line="">
             {booking.porch_mode === "all_day" ? "You said it's out all day." : booking.porch_until ? `You said it's out until ${when(booking.porch_until)}.` : "When will it be out?"}
-          </p>
+          </p>}
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" disabled={timing.isPending} onClick={() => timing.mutate({ mode: "all_day", iso: null })}>Out all day</Button>
             <FoldedTimePicker id={`dcl-out-${order.orderId}`} openLabel="Out until a time…" title="Out until" fieldLabel="Out until"

@@ -13,6 +13,8 @@ import { esDeclutter } from "./esDeclutter";
 import { esHome } from "./esHome";
 import { esNewMember } from "./esNewMember";
 import { esMessages } from "./esMessages";
+import { esChatParts } from "./esChatParts";
+import { esNotifPrefs } from "./esNotifPrefs";
 import { esOffer } from "./esOffer";
 import { esFree } from "./esFree";
 import { esQuestions } from "./esQuestions";
@@ -22,13 +24,20 @@ import { esMoneyTiles } from "./esMoneyTiles";
 import { esChatEvents } from "./esChatEvents";
 import { esSellForm } from "./esSellForm";
 import { esDeclOffers } from "./esDeclOffers";
+import { esDeclSell } from "./esDeclSell";
 import { esTodos } from "./esTodos";
 import { esListingParts } from "./esListingParts";
 import { esTracker } from "./esTracker";
 import { esPorchPlaces } from "./esPorchPlaces";
 import { esSellingNow } from "./esSellingNow";
 import { esYourPage } from "./esYourPage";
+import { esSuggest } from "./esSuggest";
+import { esItemPage } from "./esItemPage";
+import { esJobCats } from "./esJobCats";
+import { esGuest } from "./esGuest";
+import { esAccount } from "./esAccount";
 import { esJobSteps } from "./esJobSteps";
+import { esJobPoster } from "./esJobPoster";
 import { esNextStep } from "./esNextStep";
 import { esJobLines } from "./esJobLines";
 import { esCardLines } from "./esCardLines";
@@ -36,7 +45,13 @@ import { esDeclErrors } from "./esDeclErrors";
 import { esSellerDeliveryErrors } from "./esSellerDeliveryErrors";
 import { esAiDraft } from "./esAiDraft";
 import { esListForSeller } from "./esListForSeller";
+import { esReport } from "./esReport";
 import { esJobsHelpr } from "./esJobsHelpr";
+import { esCreateSheets } from "./esCreateSheets";
+import { esSearch } from "./esSearch";
+import { esDeclTodos } from "./esDeclTodos";
+import { esShopOrders } from "./esShopOrders";
+import { esShopsBrowse } from "./esShopsBrowse";
 
 // The server-written notices' Spanish shapes ride this chunk, so they arrive with the words (language.ts, no flash)
 // and never sit on an English boot path.
@@ -50,6 +65,8 @@ export const es: Record<MsgKey, string> = {
   ...esHome,
   ...esNewMember,
   ...esMessages,
+  ...esChatParts,
+  ...esNotifPrefs,
   ...esOffer,
   ...esFree,
   ...esQuestions,
@@ -59,13 +76,20 @@ export const es: Record<MsgKey, string> = {
   ...esChatEvents,
   ...esSellForm,
   ...esDeclOffers,
+  ...esDeclSell,
   ...esTodos,
   ...esListingParts,
   ...esTracker,
   ...esPorchPlaces,
   ...esSellingNow,
   ...esYourPage,
+  ...esSuggest,
+  ...esItemPage,
+  ...esJobCats,
+  ...esGuest,
+  ...esAccount,
   ...esJobSteps,
+  ...esJobPoster,
   ...esNextStep,
   ...esJobLines,
   ...esCardLines,
@@ -73,7 +97,13 @@ export const es: Record<MsgKey, string> = {
   ...esSellerDeliveryErrors,
   ...esAiDraft,
   ...esListForSeller,
+  ...esReport,
   ...esJobsHelpr,
+  ...esCreateSheets,
+  ...esSearch,
+  ...esDeclTodos,
+  ...esShopOrders,
+  ...esShopsBrowse,
   "chat.back": "Volver a las conversaciones",
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",
@@ -123,12 +153,12 @@ export const es: Record<MsgKey, string> = {
   "lang.switchTo": "Cambiar el idioma a {lang}",
   "lang.legalInEnglish": "Los términos legales están en inglés. Hay un resumen en español en la página de Términos.",
 
-  "nav.home": "Panel",
+  "nav.home": "Inicio",
   "nav.dockHome": "Inicio",
   "nav.posts": "Publicaciones",
   "nav.jobs": "Trabajos",
   "nav.messages": "Mensajes",
-  "inbox.title": "Bandeja de entrada",
+  "inbox.title": "Buzón",
   "inbox.tabs": "Secciones de la bandeja",
   "inbox.messages": "Mensajes",
   "inbox.notifications": "Notificaciones",
@@ -136,7 +166,7 @@ export const es: Record<MsgKey, string> = {
   "nav.profile": "Perfil",
   "nav.you": "Perfil",
   "nav.explore": "Explorar",
-  "nav.declutter": "Ventas",
+  "nav.declutter": "Declutter",
   "nav.shops": "Tiendas",
   "nav.homes": "Casas",
   "nav.create": "Crear",
@@ -175,7 +205,7 @@ export const es: Record<MsgKey, string> = {
   "login.verify": "Verificar",
   "login.verifying": "Verificando…",
   "login.differentAccount": "Usar otra cuenta",
-  "login.confirmEmailFirst": "Revise su correo primero: debe confirmar su correo electrónico antes de iniciar sesión.",
+  "login.confirmEmailFirst": "Confirme su correo primero. El enlace está en su bandeja de entrada.",
   "login.mfaCheckFailed": "No pudimos verificar su configuración de seguridad. ¿Lo intenta de nuevo?",
   "login.tooManyAttempts": "Demasiados intentos. Inténtelo de nuevo en {minutes} min.",
   "login.mfaWrongCode": "Ese código no coincide. Revise su app e inténtelo de nuevo.",
@@ -201,7 +231,7 @@ export const es: Record<MsgKey, string> = {
   "forgot.backToLogin": "Volver a iniciar sesión",
   "forgot.close": "Cerrar",
   "forgot.captchaFailed": "La verificación de seguridad no terminó. Inténtelo de nuevo.",
-  "forgot.tooMany": "Demasiadas solicitudes: inténtelo de nuevo en un minuto.",
+  "forgot.tooMany": "Demasiados intentos por ahora. Espere un momento e inténtelo de nuevo.",
 
   // Sign up, step 1
   "signup.title": "Cree su cuenta",
@@ -298,11 +328,12 @@ export const es: Record<MsgKey, string> = {
   "profileGate.stillNeeded": "Todavía falta",
   "profileGate.stepName": "agregue su nombre completo",
   "profileGate.stepPolicies": "acepte las reglas, los términos y la privacidad",
-  "profileGate.nextStep": "Siguiente: {step} · paso {n} de {total}",
+  "profileGate.nextStep": "Siguiente: {step}",
   "profileGate.saving": "Guardando…",
-  "profileGate.enterApp": "Entrar a la app",
-  "profileGate.completeRequired": "Complete los campos obligatorios",
+  "profileGate.finish": "Terminar",
   "profileGate.deleteAccount": "Eliminar cuenta",
+  "profileGate.agreeLead": "Acepto los",
+  "profileGate.notForYou": "¿No es para usted?",
   "profileGate.stuck": "¿Se le complicó algo?",
   "profileGate.contactSupport": "Contactar a soporte",
   "profileGate.intro": "Necesitamos algunos datos antes de que pueda usar Helpr. Así la comunidad se mantiene segura.",
@@ -342,7 +373,9 @@ export const es: Record<MsgKey, string> = {
   // Delete account dialog (Settings, Finish your profile, the suspended screen)
   "deleteAccount.whatOpenWork": "Primero se termina el trabajo pendiente. No puede borrar su cuenta mientras un trabajo esté reservado, en curso o en disputa, una venta o un pedido esté en marcha, el pago de un trabajo esté retenido o esperando a pagarse, o todavía le llegue dinero.",
   "deleteAccount.whatMembership": "Si tiene una membresía, se deja de cobrar.",
-  "deleteAccount.downloadFirst": "Puede descargar sus datos antes, desde Ajustes.",
+  "deleteAccount.downloadFirst": "¿Quiere una copia de sus datos antes?",
+  "deleteAccount.downloadNow": "Descargar mis datos",
+  "deleteAccount.downloading": "Preparando su archivo…",
   "deleteAccount.breakLead": "¿Solo necesita un descanso?",
   "deleteAccount.breakLink": "Mejor apague las notificaciones",
   "deleteAccount.erasedHeading": "Borrado para siempre",
@@ -398,6 +431,9 @@ export const es: Record<MsgKey, string> = {
   "soon.full": "Muy pronto",
   "next.lead": "Siguiente: {step}",
   "core.notNow": "Ahora no",
+  "home.stuckTitle": "No pudimos cargar su Inicio.",
+  "home.stuckBody": "Toque Intentar de nuevo. Si sigue igual, el problema es nuestro, no suyo.",
+  "core.tryAgain": "Intentar de nuevo",
 
   // Post a job (A3-3 part 2, 11-01). Money wording stays English (enPostJob.ts).
   "postJob.progress": "Progreso de publicar un trabajo",
@@ -428,6 +464,75 @@ export const es: Record<MsgKey, string> = {
   "postJob.priceQ": "¿Cuánto va a pagar?",
   "postJob.whereQ": "¿Cuándo y dónde?",
   "postJob.whereH": "Los Helprs ven la zona ahora. Su dirección va solo al Helpr al que usted le ofrezca el trabajo.",
+
+  // Steps 3-6 field words (design audit r2 #32)
+  "postJob.f.jobTitle": "Título del trabajo",
+  "postJob.f.description": "Descripción",
+  "postJob.f.tip": "Consejo: {tips}",
+  "postJob.f.whoCanApply": "¿Quién puede aplicar?",
+  "postJob.f.whoCanApplyH": "Pida credenciales para trabajos de oficio con licencia.",
+  "postJob.f.tier.open": "Abierto",
+  "postJob.f.tier.openSub": "Cualquiera puede aplicar",
+  "postJob.f.tier.licensed": "Con licencia",
+  "postJob.f.tier.licensedSub": "Solo profesionales con licencia",
+  "postJob.f.tier.insured": "Con licencia y seguro",
+  "postJob.f.tier.insuredSub": "Con licencia y asegurados",
+  "postJob.f.photoProof": "Pedir fotos de antes y después",
+  "postJob.f.photoProofOn": "Su Helpr tiene que subir una foto antes de empezar y otra al terminar. Esas fotos son la prueba que libera su pago.",
+  "postJob.f.photoProofOff": "Su Helpr puede marcar este trabajo como hecho sin subir fotos. Bien para entregas, mandados y cuidado de mascotas, donde una foto de antes y después no muestra mucho.",
+  "postJob.f.jobType": "Tipo de trabajo",
+  "postJob.f.once": "Una vez",
+  "postJob.f.repeats": "Se repite",
+  "postJob.f.group": "Grupo",
+  "postJob.f.setTime": "A una hora fija",
+  "postJob.f.anyWeek": "Cualquier día esta semana",
+  "postJob.f.needToday": "Lo necesito hoy",
+  "postJob.f.dateNeeded": "Fecha",
+  "postJob.f.startDate": "Fecha de inicio",
+  "postJob.f.moreDates": "Más fechas",
+  "postJob.f.startTime": "Hora de inicio",
+  "postJob.f.lookGood": "¿Se ve bien?",
+  "postJob.f.glance": "Su publicación de un vistazo",
+  "postJob.f.row.job": "Trabajo",
+  "postJob.f.row.category": "Categoría",
+  "postJob.f.row.details": "Detalles",
+  "postJob.f.row.location": "Ubicación",
+  "postJob.f.row.when": "Cuándo",
+  "postJob.f.row.notes": "Notas",
+  "postJob.f.youPay": "Usted paga",
+  "postJob.f.continuePay": "Continuar al pago",
+  "postJob.f.priceHow": "¿Cómo quiere ponerle precio?",
+  "postJob.f.priceHowAria": "Cómo ponerle precio a este trabajo",
+  "postJob.f.priceSet": "Poner un precio",
+  "postJob.f.priceQuotes": "Pedir cotizaciones",
+  "postJob.f.priceQuotesSoonAria": "Pedir cotizaciones, muy pronto",
+  "postJob.f.comingSoon": "Muy pronto",
+  "postJob.f.priceNext.price": "Usted pone el precio. Los Helprs se postulan a su precio.",
+  "postJob.f.priceNext.quotes": "Todavía sin precio. Los Helprs cercanos envían el suyo; usted elige uno y paga solo al reservar.",
+  "postJob.f.quotesSoon": "Pedir cotizaciones a profesionales locales llegará muy pronto. Por ahora, ponga su precio.",
+  "postJob.f.noSetTime": "Sin hora fija",
+  "postJob.f.otherTime": "Otra hora",
+  "postJob.f.budgetLower": "Bajar el presupuesto $5",
+  "postJob.f.budgetAria": "Presupuesto del trabajo en dólares",
+  "postJob.f.budgetRaise": "Subir el presupuesto $5",
+  "postJob.f.giftPre": "Tiene una tarjeta de regalo de",
+  "postJob.f.giftPost": ". Ponga el presupuesto que valga el trabajo; el regalo se descuenta de su total al pagar.",
+  "postJob.f.budgetMin": "El presupuesto mínimo es {min}.",
+  "postJob.f.budgetSetTo": "Ponerlo en {min}",
+  "postJob.f.budgetCap": "Lo máximo para un trabajo es {max}. Divida un proyecto más grande en trabajos separados.",
+  "postJob.f.urgent": "Marcar como urgente",
+  "postJob.f.urgentHelp": "⚡ Para trabajos que hay que hacer ya. Los Helprs cercanos reciben un aviso en cuanto publica, y el Helpr que lo tome recibe todo su bono. Verá su total al pagar, antes de pagar. (Para llegar a más Helprs con el tiempo, mejor destaque la publicación después de publicarla.)",
+  "postJob.f.urgentBonusRange": "Bono por urgencia (mínimo {min}, máximo {max})",
+  "postJob.f.urgentBonus": "Bono por urgencia",
+  "postJob.f.customBonus": "Otro bono",
+  "postJob.f.customBonusAria": "Monto del bono por urgencia en dólares",
+  "postJob.f.urgentMinWarn": "El bono por urgencia debe ser de al menos $5",
+  "postJob.gift.one": "{n} tarjeta de regalo de Helpr lo espera",
+  "postJob.gift.many": "{n} tarjetas de regalo de Helpr lo esperan",
+  "postJob.gift.ready": "Lista para usar en su próximo trabajo ·",
+  "postJob.gift.seeIt": "Verla",
+  "postJob.gift.seeThem": "Verlas",
+  "postJob.gift.dismiss": "Cerrar",
   "postJob.searchCategories": "Buscar categorías",
   "postJob.searchPlaceholder": "p. ej., lavar mi entrada",
   "postJob.clearSearch": "Borrar la búsqueda",
@@ -456,7 +561,7 @@ export const es: Record<MsgKey, string> = {
   "postJob.otherWays": "Otras formas de empezar",
   "postJob.useTemplate": "Usar una plantilla",
   "postJob.hireSaved": "Contratar a un Helpr guardado",
-  "postJob.describeAi": "Describirlo con IA",
+  "postJob.describeAi": "Descríbelo con tus propias palabras",
   "postJob.repost": "Volver a publicar un trabajo reciente",
   "postJob.templatesQ": "Elija una plantilla",
   "postJob.templatesH": "Empiece con un trabajo común y luego cambie lo que quiera.",
@@ -489,6 +594,8 @@ export const es: Record<MsgKey, string> = {
   "jobCard.boosted": "Destacado",
   "jobCard.urgent": "Urgente",
   "jobCard.today": "Hoy",
+  "jobCard.swipeNo": "No me interesa",
+  "jobCard.swipeApply": "Aplicar",
   "jobPage.title": "Trabajo",
   "jobPage.loading": "Cargando el trabajo",
   "jobPage.loadFailed": "No pudimos cargar este trabajo.",
@@ -507,7 +614,29 @@ export const es: Record<MsgKey, string> = {
   "jobPage.crew": "Su equipo",
   "jobPage.side": "Precio y acciones",
   "jobPage.postedBy": "Publicado por",
+  "jobPage.seeHelpr": "Ver al Helpr",
+  "jobPage.seePoster": "Ver a quien publicó",
+  "gu.title": "Garantía Helpr",
+  "gu.tellBy": "¿No quedó bien? Avísenos antes del {when}.",
+  "gu.tellWithin": "¿No quedó bien? Avísenos dentro de las 48 horas después de terminado el trabajo.",
+  "gu.explain": "Su Helpr regresa a arreglarlo, y su pago espera hasta que se resuelva. Si no se puede arreglar, nosotros decidimos si le reembolsamos el precio del trabajo.",
+  "gu.notDoneRight": "No quedó bien",
   "jobPage.yourHelpr": "Su Helpr",
+  "jobPage.whenRow": "Cuándo",
+  "jobPage.whereRow": "Dónde",
+  "jobPage.noApplicants": "Aún no hay solicitudes",
+  "jobPage.sentToOne": "Enviado a 1 Helpr hasta ahora.",
+  "jobPage.sentToN": "Enviado a {n} Helprs hasta ahora.",
+  "jobPage.outNear": "Ya les llegó a los Helprs cerca de {city}.",
+  "jobPage.outNearby": "Ya les llegó a los Helprs cercanos.",
+  "jobPage.tellYou": "Le avisaremos cuando alguien se postule.",
+  "jobPage.repliesSooner": "¿Quiere respuestas más rápido?",
+  "jobPage.addPhoto": "Agregar una foto",
+  "jobPage.addPhotoWhy": "Es más fácil aceptar un trabajo con fotos",
+  "jobPage.changePrice": "Cambiar el precio",
+  "jobPage.youreAt": "Su precio:",
+  "jobPage.editJob": "Editar el trabajo",
+  "jobPage.cancelJob": "Cancelar el trabajo",
   // You › Settings (F410c, audit 11-10): every row, heading and line of the screen where Spanish is chosen.
   "settings.title": "Ajustes",
   "settings.look": "Apariencia",
@@ -515,14 +644,21 @@ export const es: Record<MsgKey, string> = {
   "settings.updates": "Avisos",
   "settings.yourAccount": "Su cuenta",
   "settings.more": "Más",
-  "settings.colorMode": "Modo de color",
+  "settings.privacy": "Privacidad",
+  "settings.colorMode": "Color y texto",
   "settings.light": "Claro",
   "settings.dark": "Oscuro",
-  "settings.matchPhone": "Igual que mi teléfono",
+  "settings.matchPhone": "Igual que el teléfono",
   "settings.biggerText": "Texto y botones más grandes",
   "settings.biggerTextSub": "Letra más grande y botones más fáciles de tocar",
   "settings.jobs": "Trabajos",
-  "settings.declutter": "Ventas",
+  "settings.declutter": "Declutter",
+  "g.logIn": "Iniciar sesión",
+  "g.signUp": "Registrarse",
+  "g.joinFree": "Únase gratis",
+  "settings.password": "Contraseña",
+  "settings.profileLink": "Su enlace de perfil",
+  "settings.profileLinkSub": "Un enlace a lo que publica y hace",
   "settings.shops": "Tiendas",
   "settings.homes": "Casas",
   "settings.jobsBlurb": "Contrate ayuda o encuentre trabajo",

@@ -6,7 +6,7 @@
  * refactor.
  */
 import type { Profile } from "../adminUserHelpers";
-import { isAwaitingEmail } from "../adminUserHelpers";
+import { compareAdminNames, isAwaitingEmail } from "../adminUserHelpers";
 
 // No "pending" / "denied" tabs: approval review was retired in Q193 (owner,
 // 2026-09-23). "approved" (labelled Active) = email confirmed and not banned.
@@ -108,11 +108,8 @@ export const filterAndSortProfiles = ({
 
     return true;
   }).sort((a, b) => {
-    if (sortDir === "alpha") {
-      const aName = (a.full_name || a.email || "").toLowerCase();
-      const bName = (b.full_name || b.email || "").toLowerCase();
-      return aName.localeCompare(bName);
-    }
+    // Design audit area 10 #24: nameless members sort last, not first.
+    if (sortDir === "alpha") return compareAdminNames(a, b);
     if (sortDir === "standing_worst" || sortDir === "standing_best") {
       const aStrikes = strikesSummary?.[a.user_id] || 0;
       const bStrikes = strikesSummary?.[b.user_id] || 0;

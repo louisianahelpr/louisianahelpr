@@ -38,14 +38,15 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // titles as the loading header: the placeholder said "Legal" and LegalTab
   // then said "Legal & Policies" in the same box. The browser tab was wrong
   // too, for as long as it had drifted.
-  legal: "Legal & policies",
-  reviews: "Reviews about you",
+  legal: "Legal and policies",
+  // "Reviews" (design audit area 04 #33, 11-18): the 28px page title "Reviews about you" wrapped to two lines at 390.
+  reviews: "Reviews",
   referral: "Referrals",
   subscription: "Membership",
   support: "Help",
   notifications: "Notifications",
   warnings: "Warnings and strikes",
-  credentials: "Licensed & Insured",
+  credentials: "Licenses & insurance",
   saved_helpers: "Saved Helprs",
   // Q2275 (board 91): You › Settings › Alerts › Saved searches.
   saved_searches: "Saved searches",
@@ -53,7 +54,8 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   blocked: "Blocked people",
   // CMP-4: Jobs settings › When you work › Instant book (the private floors).
   instant_book: "Instant book",
-  accessibility: "Accessibility",
+  // "Color and text" (design audit area 09 L8): what the screen holds; Settings' row says the same.
+  accessibility: "Color and text",
   // Was the standalone route /pets until 2026-09-02.
   pets: "My pets",
   // Six more standalone routes folded in 2026-09-02 — each was reached only

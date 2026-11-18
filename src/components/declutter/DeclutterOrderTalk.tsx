@@ -26,6 +26,8 @@ import { FallbackImg } from "./FallbackImg";
 import { focusSheetItself } from "./focusSheetItself";
 import { useMarkTalkRead } from "./useMarkTalkRead";
 import { Textarea } from "@/components/ui/textarea";
+import { getLang, t as tr } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatParts";
 
 // A3-27: the order card's step line, loaded only with the chat (it reads the cards' queries).
 const OrderTalkStep = lazy(() => import("./OrderTalkStep"));
@@ -37,7 +39,8 @@ const OrderTalkMessagePhoto = lazy(() => import("./OrderTalkPhotoParts").then((m
 const when = (iso: string) => talkTime(iso);
 // F424 (audit 11-10): each line said "Mon 12:32 PM" where the job chat has Today / Yesterday dividers. Lines now sit
 // under the job chat's own day dividers (dateDividerLabel) and carry the clock time only.
-const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const clock = (iso: string) => new Date(iso).toLocaleTimeString(getLang() === "es" ? "es-US" : [], { hour: "numeric", minute: "2-digit" });
+
 const dayKey = (iso: string) => new Date(iso).toDateString();
 
 /** "Message the seller" / "Message the buyer" on a paid order card: puts ?order_talk=<order id> on the address. */
@@ -57,7 +60,7 @@ function OrderTalkLinkButton({ orderId, side, trade = false }: { orderId: string
     // Q2634 (audit 1102c R9): the card's other secondary button, Get help now, is the small outline; this matches it.
     <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={open}>
       {/* Lead 11-08: a trade has no buyer or seller to speak of; both sides talk about the trade. */}
-      {trade ? "Message about the trade" : side === "buyer" ? "Message the seller" : "Message the buyer"}
+      {trade ? tr("cp.ot.msgTrade") : side === "buyer" ? tr("cp.ot.msgSeller") : tr("cp.ot.msgBuyer")}
     </Button>
   );
 }
@@ -120,6 +123,8 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   });
   const t = talk.data;
   const other = t?.side === "seller" ? "buyer" : "seller";
+  // Area 08 H3 (design audit 11-18): every word of this chat follows the app language (enChatParts.ts cp.ot.*).
+  const theOther = tr(other === "buyer" ? "cp.ot.theBuyer" : "cp.ot.theSeller");
   const open = !!t?.open;
   // AUD31-31: an ended chat is not titled as if it could still be sent to, and says when and why it ended.
   const endedAt = !open && t?.open_until && new Date(t.open_until).getTime() <= Date.now() ? t.open_until : null;
@@ -128,17 +133,19 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-order-talk="">
-        <SheetHero title={!t ? "Order chat" : open ? `Message the ${other}` : `Your chat with the ${other}`} />
+        <SheetHero title={!t ? tr("cp.ot.title") : open
+          ? tr(other === "buyer" ? "cp.ot.msgBuyer" : "cp.ot.msgSeller")
+          : tr(other === "buyer" ? "cp.ot.chatBuyer" : "cp.ot.chatSeller")} />
         {(itemTitle || itemPhoto) && (
           <div className="mt-1 flex items-center gap-3" data-order-talk-head="">
             {itemPhoto && <FallbackImg src={itemPhoto} alt="" className="h-11 w-11 shrink-0 rounded-xl bg-photo-empty object-cover" data-order-talk-photo="" />}
-            {itemTitle && <p className="min-w-0 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>}
+            {itemTitle && <p className="min-w-0 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">{tr("cp.ot.about", { title: itemTitle })}</p>}
           </div>
         )}
         {talk.isError ? (
-          <ErrorState variant="inline" title="We couldn't load this chat." body={declutterErrorMessage(talk.error)} onRetry={() => void talk.refetch()} />
+          <ErrorState variant="inline" title={tr("cp.ot.loadFailed")} body={declutterErrorMessage(talk.error)} onRetry={() => void talk.refetch()} />
         ) : talk.isPending || !t ? (
-          <p className="mt-2 text-ds-14 text-muted-foreground">Loading…</p>
+          <p className="mt-2 text-ds-14 text-muted-foreground">{tr("cp.ot.loading")}</p>
         ) : (
           <div className="mt-2 space-y-3">
             {/* A3-27 (audit 11-01): the same next step the order card shows, with its one button. */}
@@ -146,34 +153,33 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
             {/* Audit 11-10 F360e: from Messages there was no way back to the order itself; the order's own tab link
                 (BUY-30's &order=) opens and scrolls to its card, and leaving this address closes the chat. */}
             {(t.side === "buyer" || t.side === "seller") && (
-              <Link to={`/declutter?tab=${t.side === "seller" ? "selling" : "buying"}&order=${orderId}`} className="link-standard inline-flex min-h-11 items-center text-ds-14 font-semibold" data-order-talk-see-order="">See the order</Link>
+              <Link to={`/declutter?tab=${t.side === "seller" ? "selling" : "buying"}&order=${orderId}`} className="link-standard inline-flex min-h-11 items-center text-ds-14 font-semibold" data-order-talk-see-order="">{tr("cp.ot.seeOrder")}</Link>
             )}
             <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
               {/* Audit 11-10 F390: one short line; a phone number or email is flagged under the box as it is typed. */}
-              <span data-order-talk-rule="">Only you two can read this. Keep payment in the app.</span>
-              {open && t.open_until ? ` It's open until ${when(t.open_until)}.` : ""}
+              <span data-order-talk-rule="">{tr("cp.ot.rule")}</span>
+              {open && t.open_until ? tr("cp.ot.openUntil", { when: when(t.open_until) }) : ""}
             </p>
             {!open && (
               <p className="rounded-xl border border-border bg-card px-3 py-2 text-ds-13 text-foreground" data-order-talk-ended="">
-                {endedAt ? `This chat ended ${when(endedAt)}, 48 hours after the handover.` : "This chat has ended."} You can still read it.
-                {" "}For a problem with this order, use Report a problem on its card.
+                {endedAt ? tr("cp.ot.endedAt", { when: when(endedAt) }) : tr("cp.ot.ended")}{tr("cp.ot.stillRead")}
               </p>
             )}
-            <ol className="space-y-2" aria-label="Messages">
-              {t.messages.length === 0 && <li className="text-ds-13 text-muted-foreground">No messages yet.</li>}
+            <ol className="space-y-2" aria-label={tr("cp.ot.messages")}>
+              {t.messages.length === 0 && <li className="text-ds-13 text-muted-foreground">{tr("cp.ot.none")}</li>}
               {t.messages.map((m, i) => [
                 (i === 0 || dayKey(t.messages[i - 1].created_at) !== dayKey(m.created_at)) && (
-                  <li key={`day-${m.id}`} role="separator" aria-label={`Date: ${dateDividerLabel(new Date(m.created_at))}`} data-order-talk-day=""
+                  <li key={`day-${m.id}`} role="separator" aria-label={tr("cp.ot.date", { day: dateDividerLabel(new Date(m.created_at)) })} data-order-talk-day=""
                     className="pt-2 text-center text-ds-10 font-semibold uppercase tracking-wider text-muted-foreground">
                     {dateDividerLabel(new Date(m.created_at))}
                   </li>
                 ),
                 <li key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${m.mine ? "bg-[hsl(var(--bark)/0.1)]" : "border border-border bg-card"}`}>
-                    <p className="text-ds-12 font-semibold text-muted-foreground">{labels.data?.get(m.id) ?? (m.mine ? "You" : `The ${other}`)} · {clock(m.created_at)}</p>
+                    <p className="text-ds-12 font-semibold text-muted-foreground">{labels.data?.get(m.id) ?? (m.mine ? tr("cp.ot.you") : theOther)} · {clock(m.created_at)}</p>
                     {m.photo_path && <Suspense fallback={<div className="mt-1 h-40 w-40 rounded-xl bg-photo-empty" aria-hidden />}><OrderTalkMessagePhoto path={m.photo_path} /></Suspense>}
                     {/* F389: the other side's photo is hidden once either blocked the other or either is banned. */}
-                    {m.photo_hidden && <p className="text-ds-13 italic text-muted-foreground" data-order-talk-photo-hidden="">Photo hidden</p>}
+                    {m.photo_hidden && <p className="text-ds-13 italic text-muted-foreground" data-order-talk-photo-hidden="">{tr("cp.ot.photoHidden")}</p>}
                     {m.body && <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>}
                   </div>
                 </li>,
@@ -181,10 +187,10 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
             </ol>
             {open && (
               <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim() || photo) send.mutate(); }}>
-                <label htmlFor={`order-talk-${orderId}`} className="block text-ds-13 font-medium">Message</label>
+                <label htmlFor={`order-talk-${orderId}`} className="block text-ds-13 font-medium">{tr("cp.ot.message")}</label>
                 <Textarea id={`order-talk-${orderId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
-                  placeholder={`Write to the ${other}`}
+                  placeholder={tr(other === "buyer" ? "cp.ot.writeBuyer" : "cp.ot.writeSeller")}
                   aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : leak ? `order-talk-leak-${orderId}` : undefined} />
                 <Suspense fallback={null}><OrderTalkPhotoPicker file={photo} onChange={(f) => { setPhoto(f); setRefusal(null); }} disabled={send.isPending} /></Suspense>
                 {refusal && <p id={`order-talk-refusal-${orderId}`} role="alert" className="text-ds-13 text-destructive-ink" data-order-talk-refusal="">{refusal}</p>}
@@ -197,10 +203,10 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
         )}
         {/* The shared popup footer: Close, and Send while the chat is open (it submits the form above). */}
         <SheetFooter className="mt-4">
-          <SheetSecondaryAction onClick={onClose}>Close</SheetSecondaryAction>
+          <SheetSecondaryAction onClick={onClose}>{tr("cp.ot.close")}</SheetSecondaryAction>
           {open && (
             <SheetPrimaryAction type="submit" form={formId} disabled={send.isPending || (draft.trim().length === 0 && !photo)}>
-              {send.isPending ? "Sending…" : "Send"}
+              {send.isPending ? tr("cp.ot.sending") : tr("cp.ot.send")}
             </SheetPrimaryAction>
           )}
         </SheetFooter>

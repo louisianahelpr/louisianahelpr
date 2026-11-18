@@ -1,4 +1,5 @@
 import { ListRow, ListRowLink } from "@/components/ui/ListRow";
+import { formatUnreadBadge } from "@/lib/format";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
@@ -209,7 +210,8 @@ const DesktopSidebarRail = () => {
           (src/lib/desktopBar.ts), so the page title reads level with the H (owner 2026-10-28: "move the job title
           down so it's even with the H logo"; the title moves, not the logo). Create's middle (104px) is the section
           tabs row's. Guard: src/test/desktopHeadLevelWithRail.test.ts. */}
-      <div className="px-5 pt-5 pb-4 shrink-0">
+      {/* Design audit r2 #39: helpr-emblem-disc puts the H on a cream disc in dark mode (index.css). */}
+      <div className="helpr-emblem-disc px-5 pt-5 pb-4 shrink-0">
         <HelprMark to="/home" size="md" emblemOnly />
       </div>
       <div className="px-3 pb-3 shrink-0">
@@ -237,7 +239,9 @@ const DesktopSidebarRail = () => {
           const soon = "comingSoon" in item && !!item.comingSoon;
           const preview = !soon && "preview" in item && !!item.preview;
           const active = !soon && isActive(path);
-          const count = soon ? 0 : badgeFor(badgeKey);
+          // Design audit 11-17 #22: Explore's badge is the total of the section rows listed under it, so while they are
+          // listed it showed every to-do twice (Explore 9+, Jobs 9+, Declutter 4). Only the rows carry it then.
+          const count = soon || (path === exploreItem.path && visibleSections.length > 0) ? 0 : badgeFor(badgeKey);
           return (
             <li key={path}>
               {(() => {
@@ -262,14 +266,16 @@ const DesktopSidebarRail = () => {
                   {count > 0 && (
                     <span
                       data-sidebar-badge
-                      className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold"
+                      // Design audit 11-17 #22: off the glyph, on the icon's top-right corner.
+                      className="absolute -top-2 -right-3 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold ring-2 ring-[hsl(var(--background))]"
                       style={{
                         // Count badges are --alert, never rust (spec v2 §1.1).
                         background: "hsl(var(--alert))",
                         color: "#fff",
                       }}
                     >
-                      {count > 9 ? "9+" : count}
+                      {/* Design audit area 02 #16 (11-18): the header said 99+ while this said 9+; one cap, the shared one. */}
+                      {formatUnreadBadge(count)}
                     </span>
                   )}
                 </span>
@@ -396,7 +402,7 @@ const AdminNavGroup = () => {
                         // Indented to the parent's icon column, so the
                         // nesting reads structurally rather than needing
                         // a rule or a box.
-                        className="min-h-11 flex w-full items-center gap-2.5 rounded-ds-md py-1.5 pl-11 pr-3 text-left text-ds-12 ctl-tint"
+                        className="min-h-11 flex w-full items-center gap-2.5 rounded-ds-md py-1.5 pl-11 pr-3 text-left text-ds-13 ctl-tint"
                         style={{
                           background: on ? "hsl(var(--bark) / 0.08)" : "transparent",
                           color: on ? "hsl(var(--bark))" : "hsl(var(--ink-deep) / 0.78)",

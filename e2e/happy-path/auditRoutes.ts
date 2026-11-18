@@ -180,6 +180,8 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "safety", url: "/safety" },
   // Owner 2026-11-16: the Holiday Gift Guides.
   { name: "gift-guides", url: "/gift-guides" },
+  // 2026-11-18: one guide opens at /gift-guides/<slug>; "mom" stands in for the shared guide page.
+  { name: "gift-guide", url: "/gift-guides/mom" },
   // OPS-4 town + service pages (src/lib/townPages.mjs): one of the 40 stands in for the shared page.
   { name: "hire-town", url: "/hire/handyman/lafayette" },
   { name: "terms-full", url: "/terms/full" },
@@ -476,6 +478,9 @@ export const ADMIN_VIEWS = [
   "shops",
   // growth — matchmaker "Post this job" links and who brings customers (B59).
   "growth",
+  // Design audit area 10 #2/#3 (11-18): the Declutter queue (cards moved out of Settings), the one list of stage
+  // previews, and 25 Days (redirects to /admin/sponsors).
+  "declutter", "previews", "sponsors",
 ] as const;
 
 const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];

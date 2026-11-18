@@ -5,28 +5,31 @@
  * free listing's price and current price at 0 together; the cart line copies it).
  */
 import type { CartLine } from "@/lib/declutter/api";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclBuy";
 
 /** The cart section's title and its count words: "Claimed · 1 to choose a pickup" when every waiting line is free. */
 export function cartSectionWords(waiting: CartLine[]): { title: string; todoWords: string } {
   const claimsOnly = waiting.length > 0 && waiting.every((l) => l.price_cents === 0);
   // Trades audit 11-08 #2: a trade is not a claim. All trades: "Trades"; trades and claims together: "To pick up".
   const trades = waiting.filter((l) => l.source === "swap").length;
-  if (claimsOnly && trades > 0) return { title: trades === waiting.length ? "Trades" : "To pick up", todoWords: "to choose a pickup" };
-  return claimsOnly ? { title: "Claimed", todoWords: "to choose a pickup" } : { title: "Your cart", todoWords: "to check out" };
+  if (claimsOnly && trades > 0) return { title: trades === waiting.length ? t("dbuy.cart.trades") : t("dbuy.cart.toPickUp"), todoWords: t("dbuy.cart.toChoose") };
+  return claimsOnly ? { title: t("dbuy.cart.claimed"), todoWords: t("dbuy.cart.toChoose") } : { title: t("dbuy.cart.yours"), todoWords: t("dbuy.cart.toCheckOut") };
 }
 
-/** Trades audit 11-08 #2: a trade line's price reads "Trade", never "Free". */
-export const isTradeLine = (l: Pick<CartLine, "source">): boolean => l.source === "swap";
+/** Trades audit 11-08 #2: a trade line's price reads "Trade", never "Free" (src/lib/declutter/tradeLine.ts). */
+export { isTradeLine } from "@/lib/declutter/tradeLine";
 
 /** One seller's card: its heading, and (2+ items) what the items share. */
 function checkoutCardWords(allFree: boolean, count: number, trade: boolean): { heading: string; shared: string } {
   if (trade) {
-    return { heading: count > 1 ? `Your trade: choose how you'll get these ${count}` : "Your trade: choose how you'll get it", shared: "From the person you traded with: one pickup. No money changes hands." };
+    return { heading: count > 1 ? t("dbuy.card.tradeMany", { n: count }) : t("dbuy.card.tradeOne"), shared: t("dbuy.card.tradeShared") };
   }
   if (allFree) {
-    return { heading: count > 1 ? `Choose how you'll get these ${count}` : "Choose how you'll get it", shared: "From the same giver: one pickup." };
+    return { heading: count > 1 ? t("dbuy.card.freeMany", { n: count }) : t("dbuy.card.freeOne"), shared: t("dbuy.card.freeShared") };
   }
-  return { heading: count > 1 ? `One checkout for ${count} items` : "Checkout", shared: "From the same seller: one pickup, one payment." };
+  return { heading: count > 1 ? t("dbuy.card.paidMany", { n: count }) : t("dbuy.card.paidOne"), shared: t("dbuy.card.paidShared") };
 }
 
 /** The heading of one seller's card in the cart, and (2+ items) the line saying what they share. */

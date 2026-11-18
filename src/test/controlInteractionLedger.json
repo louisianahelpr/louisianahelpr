@@ -68,7 +68,6 @@
     "notTint  src/components/admin/dashboard/KpiCard.tsx:36 <button>  hover:border-primary/30 hover:shadow-md",
     "notTint  src/components/dashboard/filterSheet/FilterSheetRows.tsx:38 <Link>  hover:border-primary/50",
     "notTint  src/components/dashboard/PhotoLightbox.tsx:474 <button>  hover:opacity-100",
-    "notTint  src/components/reviewPanel/ReviewForm.tsx:357 <button>  hover:opacity-80",
     "notTint  src/pages/auth/Login.tsx:457 <button>  hover:opacity-70",
     "press  src/components/BirthdayPopup.tsx:142 <Button>  active:opacity-70",
     "press  src/components/JobBoostDialog.tsx:186 <Link>  active:opacity-70",

@@ -189,9 +189,18 @@ describe("every pop-up title is sentence case", () => {
     // 240: +1 "Leave without saving?" (ShopEditView's back arrow asks before unsaved edits are lost, lead 11-12).
     // 243 (train 1112-j, 2026-11-12): +2 "Withdraw this request?" / "Decline this request?" (ShopCustomRequestsList asks
     // first, S2-023) and +1 "Remove all options?" (ShopItemOptionsEditor, S2-003 a download drops its options).
+    // 241 with the next line (design audit area 09, 11-18): -1, Profile's and DesktopTopNav's two "Log out?" are one LogOutConfirmDialog.
     // 242 (Area 04 #2, 2026-11-18): -1 "Filter jobs" (BrowseTasksToolbar's FilterSheet) reads wordInLang now, for Spanish;
     // its English is still sentence case (enJobsHelpr.ts "jh.f.title").
-    expect(all.length).toBe(242);
+    // 242 (design audit r3, 11-18): EditJobDialog's title is the one literal "Edit job" (was the job name in quotes or
+    // "Edit job"); the Report dialog's titles read the dictionary (enReport.ts, r3 #8).
+    // 243 (Area 03 M11, 11-18): +1 "More options" (the job card's More is the job page's bottom sheet, JobActionRow).
+    // 244 (area 06b stack, 11-18): DeclutterOrderTalk's titles are dictionary branches now (#4720): "Message the buyer" /
+    // "Message the seller" and "Your chat with the buyer" / "Your chat with the seller" each count as two.
+    // 243 (merge 11-18): 244 above, -1 for Filter jobs below.
+    // 245 (train 11-18, one batch): the counts above added together once every 11-18 PR is in (area 06b +2 talk branches,
+    // area 03 +1 More options, area 04 -1 Filter jobs, area 09 -1 Log out?, r3 +/-0 ...), measured on the merged tree.
+    expect(all.length).toBe(245);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

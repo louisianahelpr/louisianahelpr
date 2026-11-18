@@ -7,6 +7,8 @@ import { SectionCard } from "@/components/postjob/SectionCard";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { formatPriceExact } from "@/lib/format";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
 import { MIN_JOB_BUDGET_DOLLARS, MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
 
 const URGENT_FEE_AMOUNTS = ["5", "10", "15", "20"] as const;
@@ -82,6 +84,9 @@ export function BudgetSection({
   budgetComplete,
   giftAmount = 0,
 }: BudgetSectionProps) {
+  // Design audit r2 #32: the price step's lines in the member's language (CARD_HOLD_COPY, the money promise shared with
+  // the edge functions, stays as written).
+  const { t: tr } = useLanguage();
   const budgetNum = parseFloat(budget) || 0;
 
   // Below the posting minimum. Owner, 2026-10-01: typed $5.00 and the button
@@ -133,7 +138,7 @@ export function BudgetSection({
               variant="outline"
               size="iconMd"
               type="button"
-              aria-label="Lower the budget by $5"
+              aria-label={tr("postJob.f.budgetLower")}
               disabled={budgetNum <= MIN_JOB_BUDGET_DOLLARS}
               onClick={() => setBudget(String(Math.max(MIN_JOB_BUDGET_DOLLARS, Math.min(MAX_JOB_BUDGET_DOLLARS, Math.ceil(budgetNum / BUDGET_STEP) * BUDGET_STEP - BUDGET_STEP))))}
             >
@@ -149,14 +154,14 @@ export function BudgetSection({
               // F302: a minus sign is dropped as it is typed (a price is never negative).
               onChange={(next) => setBudget(next === undefined ? "" : Math.abs(next).toString())}
               required
-              aria-label="Job budget in dollars"
+              aria-label={tr("postJob.f.budgetAria")}
               enterKeyHint="done"
             />
             <Button
               variant="outline"
               size="iconMd"
               type="button"
-              aria-label="Raise the budget by $5"
+              aria-label={tr("postJob.f.budgetRaise")}
               disabled={budgetNum >= MAX_JOB_BUDGET_DOLLARS}
               onClick={() => setBudget(String(budgetNum < MIN_JOB_BUDGET_DOLLARS ? MIN_JOB_BUDGET_DOLLARS : Math.min(MAX_JOB_BUDGET_DOLLARS, Math.floor(budgetNum / BUDGET_STEP) * BUDGET_STEP + BUDGET_STEP)))}
             >
@@ -174,10 +179,9 @@ export function BudgetSection({
             >
               <Gift className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden />
               <span>
-                You have a{" "}
-                <span className="font-semibold">${formatPriceExact(giftAmount)}</span>{" "}
-                gift card. Set whatever budget the job is worth — the gift comes
-                off your total at checkout.
+                {tr("postJob.f.giftPre")}{" "}
+                <span className="font-semibold">${formatPriceExact(giftAmount)}</span>
+                {tr("postJob.f.giftPost")}
               </span>
             </p>
           )}
@@ -199,7 +203,7 @@ export function BudgetSection({
               role="status"
             >
               <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                The minimum budget is {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}.
+                {tr("postJob.f.budgetMin", { min: formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS) })}
               </p>
               {/* Board 171: offer the fix, not only the rule. */}
               <button
@@ -207,7 +211,7 @@ export function BudgetSection({
                 onClick={() => setBudget(String(MIN_JOB_BUDGET_DOLLARS))}
                 className="ml-auto shrink-0 rounded-full border border-input bg-transparent px-3 py-1.5 text-ds-12 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Set it to {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}
+                {tr("postJob.f.budgetSetTo", { min: formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS) })}
               </button>
             </div>
           )}
@@ -230,7 +234,7 @@ export function BudgetSection({
               role="status"
             >
               <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                The most a job can be is {formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}. Split a bigger project into separate jobs.
+                {tr("postJob.f.budgetCap", { max: formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS) })}
               </p>
             </div>
           )}
@@ -267,19 +271,19 @@ export function BudgetSection({
                 pushes the text 4px ABOVE the switch's centre line. The W-9 row in
                 pages/post-job/FormStep.tsx sidesteps this by using a plain <p>; we
                 keep the real <Label> for the htmlFor association and drop the margin. */}
-            <Label htmlFor="urgent" className="mb-0 cursor-pointer">Mark as urgent</Label>
+            <Label htmlFor="urgent" className="mb-0 cursor-pointer">{tr("postJob.f.urgent")}</Label>
           </div>
           <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
         </div>
         {isUrgent && (
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">
-              ⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and the Helpr who takes it gets all of your bonus. Your total is shown at checkout before you pay. (To reach more Helprs over time, Boost the post after publishing instead.)
+              {tr("postJob.f.urgentHelp")}
             </p>
-            <Label className="text-ds-11">Urgent bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} maximum)</Label>
+            <Label className="text-ds-11">{tr("postJob.f.urgentBonusRange", { min: formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS), max: formatDollarsWhole(MAX_URGENT_FEE_DOLLARS) })}</Label>
             {/* Q2709: the four amounts + Custom are one pick-one set, so they are the shared switch (quiet tone). */}
             <SegmentedControl
-              ariaLabel="Urgent bonus"
+              ariaLabel={tr("postJob.f.urgentBonus")}
               tone="quiet"
               options={URGENT_FEE_OPTIONS}
               value={customUrgentFee ? "custom" : (URGENT_FEE_AMOUNTS as readonly string[]).includes(urgentFee) ? urgentFee : null}
@@ -291,7 +295,7 @@ export function BudgetSection({
             {customUrgentFee && (
               <div className="flex items-center gap-2 mt-1">
                 <Label htmlFor="custom-urgent-fee" className="text-ds-11 font-sans text-muted-foreground shrink-0">
-                  Custom bonus
+                  {tr("postJob.f.customBonus")}
                 </Label>
                 <Input
                   id="custom-urgent-fee"
@@ -303,7 +307,7 @@ export function BudgetSection({
                   value={urgentFee}
                   onChange={(e) => setUrgentFee(e.target.value)}
                   className="w-32"
-                  aria-label="Custom urgent fee amount in dollars"
+                  aria-label={tr("postJob.f.customBonusAria")}
                 />
               </div>
             )}
@@ -316,7 +320,7 @@ export function BudgetSection({
                 }}
               >
                 <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                  Urgent bonus must be at least $5
+                  {tr("postJob.f.urgentMinWarn")}
                 </p>
               </div>
             )}

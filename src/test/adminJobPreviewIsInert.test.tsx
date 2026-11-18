@@ -183,7 +183,7 @@ describe("admin job-page preview", () => {
     await screen.findAllByText(previewSample("working", "helpr").job.title, undefined, { timeout: 10000 });
     const start = where;
     // The sample's people are named on the page (get_safe_profiles and get_public_profile_stats answered from the sample).
-    expect((await screen.findAllByRole("link", { name: /^See the poster,\s*Lexi L\.\s*4\.8\s*stars from\s*9 reviews/ })).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("link", { name: /^See who posted this job,\s*Lexi L\.\s*4\.8\s*stars from\s*9 reviews/ })).length).toBeGreaterThan(0);
     // The hired Helpr's "Open in Jobs" (under More options; Q2598 one name) is a navigation: it stays here and says where it would have gone.
     const more = screen.getAllByRole("button", { name: "More options" })[0];
     fireEvent.pointerDown(more);
@@ -191,7 +191,8 @@ describe("admin job-page preview", () => {
     const open = (await screen.findAllByRole("button", { name: "Open in Jobs" }))[0];
     fireEvent.pointerDown(open);
     fireEvent.click(open);
-    expect(toasts).toContain(`Preview: this would open /jobs?tab=working&job=${previewSample("working", "helpr").jobId}&open=1.`);
+    // Area 11b L3: the note names the place (its working list), never the raw address.
+    expect(toasts).toContain("Preview: this would open this job in your working list.");
     pressEveryButton();
     await waitFor(() => expect(toasts.filter((t) => t.startsWith("Preview: this would ")).length).toBeGreaterThan(1));
     expect(where).toBe(start);

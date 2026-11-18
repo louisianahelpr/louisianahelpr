@@ -192,7 +192,7 @@ export function BusyAreasMapKey() {
       className="pointer-events-none absolute left-3 top-3 z-[420] rounded-full px-3 py-1 text-ds-12 font-medium"
       style={{ background: "hsl(var(--card) / 0.88)", border: "1px solid hsl(var(--olivewood) / 0.22)", color: "hsl(var(--olivewood))" }}
     >
-      Shaded circles: parishes busy right now
+      Shaded areas show where jobs are waiting
     </p>
   );
 }

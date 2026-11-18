@@ -25,6 +25,7 @@ export const enOffer = {
   "offer.inclFee": "incl. fee",
   "offer.help": "The seller has 48 hours to accept, say no or answer with another price. If they accept, you have 24 hours to check out. Nothing is charged until you pay.",
   "offer.send": "Send offer",
+  "offer.close": "Cancel",
   "offer.cardCheckFailed": "We couldn't check your saved card.",
   "offer.checkingCard": "Checking for your card…",
   "offer.atMost": "At most, {phrase}. A price drop or more items from this seller makes it less.",

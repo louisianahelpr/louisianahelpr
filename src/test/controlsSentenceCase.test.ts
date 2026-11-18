@@ -17,7 +17,7 @@
  * @mutate src/components/PayoutSetupForm.tsx | Add your bank (with Stripe) | Add Your Bank (with Stripe)
  * @mutate src/components/profile/earningsTab/EarningsRangeToggle.tsx | label: "This week" | label: "This Week"
  * @mutate src/pages/posts/EditJobDialog.tsx | <DialogPrimaryAction onClick={confirmDiscard}>Discard changes</DialogPrimaryAction> | <DialogPrimaryAction onClick={confirmDiscard}>Discard Changes</DialogPrimaryAction>
- * @mutate src/components/SuggestCategory.tsx |               Send suggestion\n | Send Suggestion\n
+ * @mutate src/pages/posts/EditJobDialog.tsx | <DialogPrimaryAction onClick={save}>Save changes</DialogPrimaryAction> | <DialogPrimaryAction onClick={save}>Save Changes</DialogPrimaryAction>
  * @mutate src/components/TermsReconsentDialog.tsx | "Saving…" : "I agree" | "Saving…" : "I Agree"
  */
 import { execFileSync } from "node:child_process";
@@ -87,7 +87,8 @@ const TITLE_PROPS = /<(PageHeader|PublicHeaderPage|EmptyState|ProfileTabHeader|A
 // "Find something in Browse" (B169 Q2569): Browse is the Declutter tab's name, written as on the tab row.
 // "Post a Wanted" (Sell chooser More ways, owner pick 5, 11-08): Wanted is the Declutter tab's name, as in "Your Wanted posts".
 // "Share your Book me link" (B99 UX-4): Book me is the profile button's name, written as on that button.
-const NAMES = new Set(["Licensed & Insured", "Licensed & Insured Only", "Top Rated", "Terms of Service", "Answer in Buying", "Your Wanted posts", "Share your Book me link", "Find something in Browse", "Post a Wanted", "See it in Buying"]);
+// "Holiday Gift Guides" (owner 2026-11-18, the top-bar link): the /gift-guides page's own title (src/content/giftGuides.ts), quoted by the owner.
+const NAMES = new Set(["Holiday Gift Guides", "Licensed & Insured", "Licensed & Insured Only", "Top Rated", "Terms of Service", "Answer in Buying", "Your Wanted posts", "Share your Book me link", "Find something in Browse", "Post a Wanted", "See it in Buying"]);
 
 function findings(): string[] {
   const bad: string[] = [];

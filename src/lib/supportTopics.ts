@@ -72,8 +72,10 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
   {
     key: "message",
     label: "Talk to a real person",
-    description: "Ask our team anything. A person reads every message.",
-    messagePlaceholder: "How can our team help you today?",
+    // Design audit areas 11-18 #22: the form's intro already says a real person reads every message, and the
+    // placeholder was a canned greeting.
+    description: "Ask our team anything.",
+    messagePlaceholder: "Tell us what happened.",
     messageLabel: "Your message",
     submitLabel: "Send message",
     reportLabel: "Admin Message",
@@ -93,9 +95,10 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
     // it attaches the screen, route, device, build and recent errors.
     label: "Something's not working",
     description: "A bug, or something in the app that isn't working",
-    messagePlaceholder: "Please describe the bug or technical problem…",
+    // Design audit area 09 L10: ask the two things a bug report needs, and send a "report".
+    messagePlaceholder: "What happened, and what did you expect?",
     messageLabel: "What went wrong?",
-    submitLabel: "Report issue",
+    submitLabel: "Send report",
     reportLabel: "Issue Report",
   },
   // F042 (owner UI audit 11-09; lead go-ahead 11-09): the most common reasons to write in had no topic. Each files

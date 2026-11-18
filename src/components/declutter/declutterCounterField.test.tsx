@@ -155,10 +155,18 @@ describe("the counter box says its range and refuses a price outside it (NIGHT-S
     fireEvent.click(await screen.findByRole("button", { name: "Answer with a price" }));
     const input = screen.getByLabelText("Your price");
     expect(input).toHaveFocus();
-    expect(input).toHaveAccessibleDescription("Between $22.01 and $45.");
+    // Area 06 M8 (11-18): the box opens with the halfway example as a real value, Accept steps aside, and the range
+    // reads in whole dollars (the exact check still refuses $22).
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx |     if (!countering && !counter) setCounter(counterExample(o) ?? ""); |     void counter;
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx |       {myTurn && !countering && ( |       {myTurn && (
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx |   return minW <= maxW ? { min: formatPrice(minW), max: formatPrice(maxW) } | return true ? { min: formatPrice(min), max: formatPrice(max) }
+    expect((input as HTMLInputElement).value).toBe("34");
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Accept" })).toBeNull();
+    expect(input).toHaveAccessibleDescription("Between $23 and $45.");
     fireEvent.change(input, { target: { value: "99" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
-    expect(input).toHaveAccessibleDescription("Your price has to be between $22.01 and $45.");
+    expect(input).toHaveAccessibleDescription("Your price has to be between $23 and $45.");
     fireEvent.change(input, { target: { value: "22" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
     expect(input).toHaveAccessibleDescription("They already offered $22. Answer with more than that, or tap Accept.");
@@ -177,7 +185,7 @@ describe("the counter box says its range and refuses a price outside it (NIGHT-S
     show("buyer");
     fireEvent.click(await screen.findByRole("button", { name: "Answer with a price" }));
     const input = screen.getByLabelText("Your price");
-    expect(input).toHaveAccessibleDescription("Between $22.50 and $39.99.");
+    expect(input).toHaveAccessibleDescription("Between $23 and $39.");
     fireEvent.change(input, { target: { value: "1" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
     fireEvent.change(input, { target: { value: "42" } });

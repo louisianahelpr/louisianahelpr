@@ -3,11 +3,11 @@
  * question, the group grid, the ways to start and the Continue button. Not on the boot path: only Post a job's
  * modules import this file (side effect), which registers the words with t() (enRegistry.ts) before they render.
  *
- * Money and price wording (the price screen's helper lines, totals, fees, the checkout) stays English until a
- * person translates it, as the chat screens do; only the question "What will you pay?" is here.
+ * Money and price wording (the price screen's helper lines, totals, fees, the checkout breakdown) stays English until
+ * a person translates it, as the chat screens do. Design audit r2 #32 (11-17) added steps 3-6's field words (labels,
+ * tiers, When chips, the review rows, "You pay", "Continue to payment").
  */
 import { addEnglish } from "./enRegistry";
-import { STREET_ADDRESS_RULE } from "@/lib/streetAddressRule";
 
 export const enPostJob = {
   // The step bar (phone) and the step rail (computer)
@@ -20,7 +20,7 @@ export const enPostJob = {
   "postJob.rail.kind": "Kind of job",
   "postJob.rail.details": "Details",
   "postJob.rail.price": "Price",
-  "postJob.rail.where": "When and where",
+  "postJob.rail.where": "When & where",
   "postJob.rail.review": "Review",
   "postJob.railDone": "{label}, done. Go back to this step",
 
@@ -40,7 +40,76 @@ export const enPostJob = {
   "postJob.detailsH": "A few words and a photo help Helprs say yes.",
   "postJob.priceQ": "What will you pay?",
   "postJob.whereQ": "When and where?",
-  "postJob.whereH": `Helprs see the area now. ${STREET_ADDRESS_RULE}`,
+  "postJob.whereH": "Helprs see the area now. Your street address goes only to the Helpr you offer the job to.",
+
+  // Steps 3-6 field words (design audit r2 #32)
+  "postJob.f.jobTitle": "Job title",
+  "postJob.f.description": "Description",
+  "postJob.f.tip": "Tip: {tips}",
+  "postJob.f.whoCanApply": "Who can apply?",
+  "postJob.f.whoCanApplyH": "Require credentials for licensed trade work.",
+  "postJob.f.tier.open": "Open",
+  "postJob.f.tier.openSub": "Anyone can apply",
+  "postJob.f.tier.licensed": "Licensed",
+  "postJob.f.tier.licensedSub": "Licensed pros only",
+  "postJob.f.tier.insured": "Licensed + Insured",
+  "postJob.f.tier.insuredSub": "Licensed & insured",
+  "postJob.f.photoProof": "Require before & after photos",
+  "postJob.f.photoProofOn": "Your Helpr has to upload a photo before they start and another when they finish. Those photos are the proof that releases your payment.",
+  "postJob.f.photoProofOff": "Your Helpr can mark this job done without uploading photos. Good for deliveries, errands and pet care, where a before-and-after shot doesn't show much.",
+  "postJob.f.jobType": "Job type",
+  "postJob.f.once": "One-time",
+  "postJob.f.repeats": "Repeats",
+  "postJob.f.group": "Group",
+  "postJob.f.setTime": "A set time",
+  "postJob.f.anyWeek": "Any time this week",
+  "postJob.f.needToday": "Need it today",
+  "postJob.f.dateNeeded": "Date needed",
+  "postJob.f.startDate": "Start date",
+  "postJob.f.moreDates": "More dates",
+  "postJob.f.startTime": "Start time",
+  "postJob.f.lookGood": "Look good?",
+  "postJob.f.glance": "Your post at a glance",
+  "postJob.f.row.job": "Job",
+  "postJob.f.row.category": "Category",
+  "postJob.f.row.details": "Details",
+  "postJob.f.row.location": "Location",
+  "postJob.f.row.when": "When",
+  "postJob.f.row.notes": "Notes",
+  "postJob.f.youPay": "You pay",
+  "postJob.f.continuePay": "Continue to payment",
+  "postJob.f.priceHow": "How do you want to price it?",
+  "postJob.f.priceHowAria": "How to price this job",
+  "postJob.f.priceSet": "Set a price",
+  "postJob.f.priceQuotes": "Get quotes",
+  "postJob.f.priceQuotesSoonAria": "Get quotes, coming soon",
+  "postJob.f.comingSoon": "Coming soon",
+  "postJob.f.priceNext.price": "You set the price. Helprs apply at your price.",
+  "postJob.f.priceNext.quotes": "No price yet. Helprs near you send theirs; you pick one and pay only when you book.",
+  "postJob.f.quotesSoon": "Getting quotes from local pros is coming soon. For now, set your price.",
+  "postJob.f.noSetTime": "No set time",
+  "postJob.f.otherTime": "Other time",
+  "postJob.f.budgetLower": "Lower the budget by $5",
+  "postJob.f.budgetAria": "Job budget in dollars",
+  "postJob.f.budgetRaise": "Raise the budget by $5",
+  "postJob.f.giftPre": "You have a",
+  "postJob.f.giftPost": " gift card. Set whatever budget the job is worth — the gift comes off your total at checkout.",
+  "postJob.f.budgetMin": "The minimum budget is {min}.",
+  "postJob.f.budgetSetTo": "Set it to {min}",
+  "postJob.f.budgetCap": "The most a job can be is {max}. Split a bigger project into separate jobs.",
+  "postJob.f.urgent": "Mark as urgent",
+  "postJob.f.urgentHelp": "⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and the Helpr who takes it gets all of your bonus. Your total is shown at checkout before you pay. (To reach more Helprs over time, Boost the post after publishing instead.)",
+  "postJob.f.urgentBonusRange": "Urgent bonus ({min} minimum, {max} maximum)",
+  "postJob.f.urgentBonus": "Urgent bonus",
+  "postJob.f.customBonus": "Custom bonus",
+  "postJob.f.customBonusAria": "Custom urgent fee amount in dollars",
+  "postJob.f.urgentMinWarn": "Urgent bonus must be at least $5",
+  "postJob.gift.one": "{n} Helpr gift card waiting for you",
+  "postJob.gift.many": "{n} Helpr gift cards waiting for you",
+  "postJob.gift.ready": "Ready to spend on your next job ·",
+  "postJob.gift.seeIt": "See it",
+  "postJob.gift.seeThem": "See them",
+  "postJob.gift.dismiss": "Dismiss",
 
   // The group grid
   "postJob.searchCategories": "Search categories",
@@ -73,7 +142,7 @@ export const enPostJob = {
   "postJob.otherWays": "Other ways to start",
   "postJob.useTemplate": "Use a template",
   "postJob.hireSaved": "Hire a saved Helpr",
-  "postJob.describeAi": "Describe it with AI",
+  "postJob.describeAi": "Describe it in your own words",
   "postJob.repost": "Repost a recent job",
   "postJob.templatesQ": "Pick a template",
   "postJob.templatesH": "Start from a common job, then edit anything.",

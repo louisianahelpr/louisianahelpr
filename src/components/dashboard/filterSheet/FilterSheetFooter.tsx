@@ -54,6 +54,7 @@ export function FilterSheetFooter({
           : "sticky bottom-0 z-10 shrink-0 flex items-center justify-between gap-4 px-5 pt-3 pb-[max(0.75rem,var(--safe-area-bottom,0px))] border-t border-[hsl(var(--bark)/0.12)] bg-premium-page"
       }
     >
+      {/* Design audit r2 #50: 16px semibold olive (was 13px), so it reads as an action beside the 56px primary. */}
       {onClearAll ? (
         <button
           type="button"
@@ -62,7 +63,7 @@ export function FilterSheetFooter({
             hapticLight();
             onClearAll();
           }}
-          className={`${compact ? "min-h-9 text-ds-13" : "min-h-11 text-ds-14"} px-1 font-bold btn-press disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-md`}
+          className={`${compact ? "min-h-9 text-ds-13" : "min-h-11 text-ds-16"} px-1 font-semibold btn-press disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-md`}
           style={{ color: "hsl(var(--bark))" }}
         >
           {wordInLang("jh.f.clearAll", "Clear all")}

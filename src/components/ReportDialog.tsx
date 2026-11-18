@@ -1,7 +1,10 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { reportSubmitError } from "@/lib/reportErrors";
-import { type ReportedType, REASONS, REPORTED_NOUN, REPORTED_NOUN_INLINE, REASON_PROMPT } from "./reportDialog/reportReasons";
+import { type ReportedType, REASONS } from "./reportDialog/reportReasons";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enReport";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -25,7 +28,14 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 // F260h (audit 11-10): the Cancel / Send report row sticks to the sheet's bottom
 // edge (the sheet scrolls, DialogContent is overflow-y-auto with p-4), so the
 // buttons stay in reach while the reason list and the details box are long.
-const REPORT_FOOTER_PINNED = "sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 bg-card";
+// Design audit r3 #3: the dialog's own colour plus a top hairline (was bg-card, a white slab on the dialog).
+const REPORT_FOOTER_PINNED = "sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 bg-background border-t border-border";
+
+/** A reason's words key: the stored value stays the English label; the member reads t(reasonKey(label)). */
+export const reasonKey = (label: string) =>
+  `rep.r.${label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")}` as MsgKey;
+/** Listing-like reports get a listing placeholder (design audit r3 #12); people and messages keep "when it happened". */
+const LISTING_TYPES: readonly ReportedType[] = ["declutter_item", "declutter_wanted", "shop_item", "home_listing"];
 
 /**
  * WHY THIS IS ONE COLUMN OF FULL-WIDTH ROWS, NOT A GRID OF CHIPS
@@ -90,6 +100,7 @@ export interface ReportDialogProps {
  * Shell: the shared `DialogContent` + `DialogHero` + a real `DialogFooter`.
  */
 const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: ReportDialogProps) => {
+  const { t } = useLanguage();
   const [blockAfter, setBlockAfter] = useState(false);
   const [step, setStep] = useState<Step>("form");
   const [reason, setReason] = useState("");
@@ -122,12 +133,11 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
   const charsLeft = MAX_LENGTH - description.length;
   const canSubmit = !!reason && trimmedLength >= MIN_LENGTH && !submitting;
 
-  const noun = REPORTED_NOUN[reportedType];
   const reasons = REASONS[reportedType];
 
   const handleSubmit = async () => {
-    if (!reason) { hapticError(); toast.error("Pick a reason first."); return; }
-    if (trimmedLength < MIN_LENGTH) { hapticError(); toast.error(`Add at least ${MIN_LENGTH} characters of detail.`); return; }
+    if (!reason) { hapticError(); toast.error(t("rep.pickReason")); return; }
+    if (trimmedLength < MIN_LENGTH) { hapticError(); toast.error(t("rep.addDetail", { n: MIN_LENGTH })); return; }
     hapticMedium();
     if (submitInFlight.current) return;
     submitInFlight.current = true;
@@ -139,12 +149,12 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
       // A thrown session read must not leave the dialog stuck "Sending…"
       // with Cancel and Escape disabled (lh-silent-failure note 5).
       hapticError();
-      toast.error("We couldn't send your report — please try again.");
+      toast.error(t("rep.failed"));
       submitInFlight.current = false;
       setSubmitting(false);
       return;
     }
-    if (!user) { toast.error("Sign in to continue."); submitInFlight.current = false; setSubmitting(false); return; }
+    if (!user) { toast.error(t("rep.signIn")); submitInFlight.current = false; setSubmitting(false); return; }
 
     const { data, error } = await supabase
       .from("reports")
@@ -160,7 +170,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
 
     if (error || !data) {
       hapticError();
-      toast.error(reportSubmitError(error, "We couldn't send your report — please try again."));
+      toast.error(reportSubmitError(error, t("rep.failed")));
       submitInFlight.current = false; // release after a refused insert
       setSubmitting(false);
       return;
@@ -194,16 +204,16 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
       hapticSuccess();
     } catch {
       hapticError();
-      toast.error("Couldn't copy — long-press the number to select it.");
+      toast.error(t("rep.copyFailed"));
     }
   };
 
   // F260h: a report about a person names them in the title ("Report Hallie H.").
   const title = step === "confirmation"
-    ? "Report sent"
+    ? t("rep.sent")
     : reportedType === "user" && alsoBlock
-      ? `Report ${alsoBlock.name}`
-      : `Report ${noun.toLowerCase()}`;
+      ? t("rep.titleNamed", { name: alsoBlock.name })
+      : t(`rep.title.${reportedType}` as MsgKey);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -229,20 +239,20 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 report goes is said once, under the list. */}
             <RadioCardList
               required
-              label={REASON_PROMPT[reportedType]}
-              options={reasons.map(({ label }) => ({ value: label, label }))}
+              label={t(`rep.q.${reportedType}` as MsgKey)}
+              options={reasons.map(({ label }) => ({ value: label, label: t(reasonKey(label)) }))}
               value={reason}
               onChange={(v, via) => { if (via === "click") hapticMedium(); setReason(v); }}
             />
 
             <div className="space-y-1.5">
               <label htmlFor={detailsId} className="font-sans font-semibold text-ds-13 block" style={{ color: "hsl(var(--ink-deep))" }}>
-                Tell us a little more
+                {t("rep.more")}
               </label>
               <Textarea
                 id={detailsId}
                 aria-describedby={detailsHintId}
-                placeholder="Start with when it happened…"
+                placeholder={LISTING_TYPES.includes(reportedType) ? t("rep.phListing") : t("rep.ph")}
                 value={description}
                 onChange={(e) => setDescription(e.target.value.slice(0, MAX_LENGTH))}
                 rows={3}
@@ -252,10 +262,10 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
               <div id={detailsHintId} className="flex items-center justify-between gap-2 text-ds-11">
                 <span className={tooShort ? "font-medium" : "text-muted-foreground"} style={tooShort ? { color: "hsl(var(--alert-ink))" } : undefined}>
                   {tooShort
-                    ? `${MIN_LENGTH - trimmedLength} more character${MIN_LENGTH - trimmedLength === 1 ? "" : "s"} needed`
+                    ? (MIN_LENGTH - trimmedLength === 1 ? t("rep.needOne") : t("rep.needN", { n: MIN_LENGTH - trimmedLength }))
                     : trimmedLength === 0
-                    ? `At least ${MIN_LENGTH} characters`
-                    : "Looks good"}
+                    ? t("rep.atLeast", { n: MIN_LENGTH })
+                    : t("rep.good")}
                 </span>
                 <span
                   className="tabular-nums shrink-0"
@@ -265,7 +275,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                       : "hsl(var(--muted-foreground))",
                   }}
                 >
-                  {charsLeft}
+                  {t("rep.count", { len: description.length, max: MAX_LENGTH })}
                 </span>
               </div>
             </div>
@@ -277,7 +287,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
               // states those consequences and asks again.
               <div className="flex items-center justify-between gap-3 rounded-2xl bg-card border border-border px-4 min-h-[52px]">
                 <label htmlFor={`${uid}-also-block`} className="font-sans font-semibold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
-                  Also block {alsoBlock.name}
+                  {t("rep.blockToo", { name: alsoBlock.name })}
                 </label>
                 <Switch id={`${uid}-also-block`} checked={blockAfter} onCheckedChange={setBlockAfter} />
               </div>
@@ -289,12 +299,12 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 person cannot read the row; the insert triggers only rate-limit,
                 notify ADMINS at 3+ reporters, and write the ops ledger. */}
             <p className="font-sans text-ds-12 leading-relaxed text-muted-foreground">
-              The Louisiana Helpr team reviews every report. We never tell the other person who reported them.
+              {t("rep.privacy")}
             </p>
 
             <DialogFooter className={REPORT_FOOTER_PINNED}>
               <DialogSecondaryAction type="button" onClick={handleClose} disabled={submitting}>
-                Cancel
+                {t("rep.cancel")}
               </DialogSecondaryAction>
               <DialogPrimaryAction
                 type="button"
@@ -304,10 +314,10 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Sending…
+                    {t("rep.sending")}
                   </>
                 ) : (
-                  "Send report"
+                  t("rep.send")
                 )}
               </DialogPrimaryAction>
             </DialogFooter>
@@ -362,17 +372,14 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 className="font-sans leading-relaxed text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Your report is in the trust &amp; safety queue. An admin reviews
-                every report and decides what happens to the {REPORTED_NOUN_INLINE[reportedType]} —
-                and the other person is never told who reported them.
+                {t("rep.inQueue", { noun: t(`rep.noun.${reportedType}` as MsgKey) })}
               </p>
               <p className="text-ds-12 text-muted-foreground leading-relaxed">
-                We&apos;ll send you a notice when we&apos;ve looked into it.
-                It quotes this case number.
+                {t("rep.notice")}
               </p>
               <div className="space-y-1">
                 <p className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                  Your case number
+                  {t("rep.caseLabel")}
                 </p>
                 <button
                   type="button"
@@ -386,7 +393,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                   }}
                   // WCAG 2.5.3: the accessible name CONTAINS the visible text
                   // (the case number itself), it does not replace it.
-                  aria-label={`Copy case number ${caseNumber}`}
+                  aria-label={t("rep.copyCase", { n: caseNumber })}
                 >
                   {caseNumber}
                   <Copy className="w-3.5 h-3.5 opacity-60" aria-hidden="true" />
@@ -394,22 +401,22 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
               </div>
               <DialogBody>
                 <p>
-                  Email{" "}
+                  {t("rep.email")}{" "}
                   <a href="mailto:admin@louisianahelpr.com" className="underline">
                     admin@louisianahelpr.com
                   </a>{" "}
-                  with this number if you have more to add.
+                  {t("rep.emailTail")}
                 </p>
               </DialogBody>
             </div>
             {blockAfter && alsoBlock && (
               <p className="font-sans text-ds-12 text-muted-foreground text-center">
-                Tap Block {alsoBlock.name} to finish blocking. Closing this skips it.
+                {t("rep.tapBlock", { name: alsoBlock.name })}
               </p>
             )}
             <DialogFooter>
               <DialogPrimaryAction type="button" onClick={finishReceipt}>
-                {blockAfter && alsoBlock ? `Block ${alsoBlock.name}` : "Done"}
+                {blockAfter && alsoBlock ? t("rep.block", { name: alsoBlock.name }) : t("rep.done")}
               </DialogPrimaryAction>
             </DialogFooter>
           </div>

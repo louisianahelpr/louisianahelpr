@@ -15,8 +15,10 @@ export const SOLD = new Set<DeclutterItem["status"]>(["sold", "completed"]);
  * A listing row's price. A sold one shows what it sold for (deep audit SE-5: $40 listed, sold for $32), and nothing
  * while that is unknown, never the list price in its place.
  */
-export function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | undefined }) {
-  const cents = SOLD.has(item.status) ? sold : item.current_price_cents;
+export function ListingPrice({ item, sold, agreed }: { item: DeclutterItem; sold: number | undefined; agreed?: number }) {
+  // Area 06 L7 (11-18): a listing whose offer was accepted showed its $40 list price beside a $36 sale; while the buyer
+  // pays, it shows the agreed price (the seller's own cart line).
+  const cents = SOLD.has(item.status) ? sold : item.status === "reserved" && agreed !== undefined ? agreed : item.current_price_cents;
   if (cents === undefined) return null;
   return (
     <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]" data-listing-price="">

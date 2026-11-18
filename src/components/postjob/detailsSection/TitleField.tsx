@@ -5,6 +5,8 @@ import { Check } from "lucide-react";
 import { TITLE_MAX, titlePlaceholders } from "./detailsSectionConstants";
 import { FieldError } from "@/components/ui/FieldError";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
 
 interface TitleFieldProps {
   title: string;
@@ -27,6 +29,7 @@ interface TitleFieldProps {
  * ever comes back.
  */
 export function TitleField({ title, setTitle, category }: TitleFieldProps) {
+  const { t: tr } = useLanguage();
   // `maxLength` stops TYPING past the limit, but not a programmatic prefill.
   // Repost (`?rebook=`) hands the form a previous job's title verbatim, and at
   // least 8 jobs in prod predate TITLE_MAX with titles up to 45 characters — so
@@ -51,7 +54,7 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor="title">Job title <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+        <Label htmlFor="title">{tr("postJob.f.jobTitle")} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         {/* The valid-tick sits in the LABEL row, beside the counter, not
             inside the field.
             Inside the field it cost `pr-10` — 40px of a 269px input at 375 —

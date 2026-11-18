@@ -203,3 +203,32 @@ export const FEATURE_AUDIENCE_LABEL: Record<FeatureAudience, string> = {
   testers: "Testers only",
   everyone: "Everyone",
 };
+
+/**
+ * Design audit area 10 #12 (11-18): switches that are retired and not listed on the admin Settings card. The row
+ * stays in the database (its server gate still reads it); only the list hides it, and nothing here flips it.
+ * paypal_payments: payments are on Stripe; PayPal is retired.
+ */
+export const RETIRED_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["paypal_payments"];
+
+/** A switch's plain title from its key: "declutter_shipping" -> "Declutter shipping". */
+export function featureSwitchTitle(key: string): string {
+  const words = key.replace(/[_-]+/g, " ").trim();
+  return words ? words[0].toUpperCase() + words.slice(1) : key;
+}
+
+/**
+ * The first sentence of a switch's description, without the tracker references the migrations wrote into it
+ * ("Q2399:", "Board 141", "(20261023223419)", "B23"), so the card reads as one plain line. Display only: the full text
+ * stays the element's title attribute.
+ */
+export function featureSwitchSummary(description: string | null | undefined): string {
+  let s = (description ?? "")
+    .replace(/\((?:[^()]*?\b(?:Q\d+|Board \d+|B\d+|\d{14})\b[^()]*?)\)/g, "")
+    .replace(/\b(?:Q\d+|Board \d+|B\d{2,})\s*[:.,-]?\s*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const end = s.search(/[.!?](\s|$)/);
+  if (end > 0) s = s.slice(0, end + 1);
+  return s;
+}

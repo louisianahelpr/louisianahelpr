@@ -31,9 +31,11 @@ import type { APIRequestContext, Browser } from "@playwright/test";
 import { SUPABASE_URL, type Session } from "../journeys/fixtures";
 import { createFixtureRow, fund, headers, retireFundedJob } from "./fundedOpenJob";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
+import { APPLICANT_FIXTURE_TITLE, staleApplicantFixtures } from "./fundedOpenJobPlan";
 
 /** Title prefix of the applicant fixture. Not FUNDED_FIXTURE_TITLE, and no sweeper marker. */
-export const APPLICANT_FIXTURE_TITLE = "Prod audit applicant fixture";
+// The title lives in the pure plan module, so unit tests read it without this file's Playwright imports (train 11-18).
+export { APPLICANT_FIXTURE_TITLE };
 
 export interface ApplicantFixture {
   job: { id: string; title: string };
@@ -53,15 +55,22 @@ async function json<T>(r: { ok(): boolean; status(): number; text(): Promise<str
  * cancelled job — measured 2026-09-23 on the first run's fixture), then funded
  * ones go through cancel_escrow.
  */
-export async function retireApplicantFixtures(api: APIRequestContext, poster: Session, helper: Session): Promise<string[]> {
-  const rows = await json<Array<{ id: string; payment_status: string | null }>>(
+export async function retireApplicantFixtures(
+  api: APIRequestContext,
+  poster: Session,
+  helper: Session,
+  opts: { staleOnly?: boolean } = {},
+): Promise<string[]> {
+  const listed = await json<Array<{ id: string; title: string; status: string; created_at: string; payment_status: string | null }>>(
     await api.get(
-      `${SUPABASE_URL}/rest/v1/jobs?select=id,payment_status&customer_id=eq.${poster.user.id}&is_seed=is.true&status=eq.open` +
+      `${SUPABASE_URL}/rest/v1/jobs?select=id,title,status,created_at,payment_status&customer_id=eq.${poster.user.id}&is_seed=is.true&status=eq.open` +
         `&title=like.${encodeURIComponent(`${APPLICANT_FIXTURE_TITLE}*`)}`,
       { headers: headers(poster) },
     ),
     "list applicant fixtures",
   );
+  // Q1779: a run that did not mint them (ensureFundedOpenJob's pre-gate sweep) retires only stale ones.
+  const rows = opts.staleOnly ? staleApplicantFixtures(listed, APPLICANT_FIXTURE_TITLE, Date.now()) : listed;
   const out: string[] = [];
   for (const r of rows) {
     const gone = await json<unknown[]>(

@@ -1,6 +1,6 @@
 import { LoginForgotNudge } from "./loginForgotNudge";
 import { useEffect, useRef, useState } from "react";
-import { loginNotice, takeOneShotFlag } from "./loginNotice";
+import { loginNotice, loginNoticeInLang, takeOneShotFlag } from "./loginNotice";
 import { hadSessionOnThisBrowser } from "@/lib/hadSession";
 import { AlertCircle, Clock } from "lucide-react";
 import { postAuthDestination, rememberSignupRedirect, signupUrlFor } from "@/lib/jobIntent";
@@ -316,7 +316,7 @@ const Login = () => {
           )}
           <div className="min-w-0 space-y-2">
             <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
-              {notice}
+              {loginNoticeInLang(notice)}
             </p>
             {/* AUD31-16: a shared Declutter link's guest is most likely new: sign-up first, here, not only the small last line. */}
             {leadWithSignup && (
@@ -537,7 +537,8 @@ const Login = () => {
         )}
         {/* Under the providers (owner). It has been outside the card and under
             both columns; back here, closing the social column. */}
-        <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        {/* Design audit areas 11-18 #16: 14px (was 12), the size of the form's own words; the link keeps its 44px row. */}
+        <p className="text-center text-ds-14 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-login-new-here="">
           {t("login.newHere")}{" "}
           {/* Carries the job forward. `rememberJobIntent` (called by
               ProtectedRoute when it bounced this visitor) already stores the id

@@ -64,7 +64,7 @@ import { useLastListingSetup } from "./SellLastSetup";
 import { useSavedPickup } from "./useSavedPickup";
 import { FULL_LISTING_COPY } from "@/lib/declutter/photoRules";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
-import { useSellSaved } from "./useSellSaved";
+import { useSellSaved, type SellOneWork } from "./useSellSaved";
 import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
 import { tradesOnIfChosen } from "@/lib/declutter/tradesOnPost";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
@@ -271,7 +271,17 @@ export function useSellFlowState(urlItemId: string | null) {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
   // Audit posting 1030 #1: a new listing is kept on this device from the first photo. Not one answering a Wanted post
   // (it belongs to that answer).
+  // Area 06 H1 (11-18): "Give away free" (?free=1) never silently opens a priced kept draft. A priced one waits for the
+  // seller's answer: start a free listing, or continue the draft.
+  const [freeOrDraft, setFreeOrDraft] = useState<(SellOneWork & { held: File[] }) | null>(null);
   const keptWork = useSellSaved(urlItemId || answer ? undefined : user?.id, { form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId, aiMemory: ai.memory.current, sizeKnown }, held, (back) => {
+    if (!urlItemId && startsFree(params) && !back.form.free) {
+      setFreeOrDraft(back);
+      return;
+    }
+    bringBack(back);
+  });
+  function bringBack(back: SellOneWork & { held: File[] }) {
     setSizePicked(back.sizeKnown === true);
     ai.remember(back.aiMemory ?? null, back.held.length);
     setBroughtBack(back.form.title.trim() ? "written" : "unwritten");
@@ -301,7 +311,19 @@ export function useSellFlowState(urlItemId: string | null) {
       setLoadedId(back.createdId);
       setCreatedId(back.createdId);
     }
-  });
+  }
+  const freeChoice = freeOrDraft && {
+    /** The free listing stays; the kept draft is cleared once the free one is saved over it. */
+    startFree: () => {
+      setFreeOrDraft(null);
+      keptWork.dismissRestored();
+    },
+    continueDraft: () => {
+      const back = freeOrDraft;
+      setFreeOrDraft(null);
+      bringBack(back);
+    },
+  };
 
   async function saveDetails(waiting: File[] = held): Promise<string | null> {
     if (problem) {
@@ -593,7 +615,7 @@ export function useSellFlowState(urlItemId: string | null) {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, place, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, offersWanted, setOffersWanted, tradesWanted, setTradesWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
-    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, postStage, failedHeld, photoFailure, keptWork, refusedNote, makeCover, reorderHeld, coverUndo, undoCover,
+    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, postStage, failedHeld, photoFailure, keptWork, freeChoice, refusedNote, makeCover, reorderHeld, coverUndo, undoCover,
   };
 }
 

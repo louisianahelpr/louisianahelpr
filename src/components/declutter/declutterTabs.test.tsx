@@ -16,7 +16,7 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const only = asked && trk.counts[asked] > 0 ? asked : null; |   const only = asked;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
  * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></> | {view === "buying" ? <WantedView />
- * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />} |       {show("offers") && null}
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} quietWhenEmpty={!pricedLive} />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: tr("tabs.browse") }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted", labelKey: "decl.tab.wanted" as const }] : []), |         ...[],
@@ -546,24 +546,24 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByRole("region", { name: "Offers on your items" })).toBeInTheDocument();
     expect(offers()).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByRole("heading", { name: /^Your listings/ })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Waiting for the buyer to pay" })).toBeNull();
     expect(where).toContain("status=offers");
     fireEvent.click(offers());
     expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
     expect(offers()).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Waiting for the buyer to pay" })).toBeInTheDocument();
   });
 
   // DA-3 + DA-4 (Declutter audit 2026-10-30, shots da-seller-claimed-mid-wk375, da-claim-after-wk375): a FREE item
-  // someone claimed read as a sale on both sides ("Sold, waiting for the buyer to pay", "Cancel sale", "To be paid",
+  // someone claimed read as a sale on both sides ("Waiting for the buyer to pay", "Cancel sale", "To be paid",
   // "Sold: pickup and payout"; the claimer's "Your cart · 1 to check out" over a "Checkout" card). Free lines now use
   // give-away words; a paid line beside them keeps the sale words (the class: every waiting kind on both tabs).
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     ["free", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")], |     ["paid", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")],
-  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |   return free === waiting.length ? "Claimed" : "Waiting"; |   return "To be paid";
-  // @mutate src/components/declutter/DeclutterTabParts.tsx | sold.every((l) => l.price_cents === 0) ? "Given away: pickup" | false ? "Given away: pickup"
-  // @mutate src/components/declutter/DeclutterCartWords.tsx |   return claimsOnly ? { title: "Claimed", todoWords: "to choose a pickup" } : | return false ? { title: "Claimed", todoWords: "to choose a pickup" } :
+  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |   return free === waiting.length ? t("dsl.sw.claimed") : t("dsl.sw.waiting"); |   return t("dsl.sw.toBePaid");
+  // @mutate src/components/declutter/DeclutterTabParts.tsx | sold.every((l) => l.price_cents === 0) ? t("dsl.givenTitle") | false ? t("dsl.givenTitle")
+  // @mutate src/components/declutter/DeclutterCartWords.tsx |   return claimsOnly ? { title: t("dbuy.cart.claimed"), todoWords: t("dbuy.cart.toChoose") } : | return false ? { title: t("dbuy.cart.claimed"), todoWords: t("dbuy.cart.toChoose") } :
   // @mutate src/components/declutter/DeclutterCartWords.tsx |   if (allFree) { |   if (false) {
-  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     body: "No strike for a free item. | body: "You'll get a Declutter strike. No strike for a free item.
+  // @mutate src/lib/i18n/enDeclSell.ts |   "dsl.sw.free.body": "No strike for a free item. |   "dsl.sw.free.body": "You'll get a Declutter strike. No strike for a free item.
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx | toast(kind === "paid" ? | toast(kind !== "never" ?
   it("DA-3/DA-4: a free claim reads as a give-away on Selling and on Buying, never as a sale", async () => {
     const FREE = { ...LINE, price_cents: 0, porch_ok: true };
@@ -578,7 +578,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const claimed = await screen.findByRole("region", { name: "Claimed, they're choosing a pickup" });
     expect(within(claimed).getByText(/They're choosing how to pick it up/)).toBeInTheDocument();
     expect(within(claimed).getByRole("button", { name: "Cancel claim" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Waiting for the buyer to pay" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Cancel sale" })).toBeNull();
     expect(container.querySelector('[data-status-box="waiting"]')?.textContent ?? "").toMatch(/^Claimed/);
     expect(screen.getByRole("heading", { name: /^Given away: pickup/ })).toBeInTheDocument();
@@ -601,7 +601,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     // A paid sale waiting beside the free claim keeps the sale words; the chip names both.
     state.cart = [...state.cart, { ...LINE, line_id: "p1", item_id: "ip1", item_title: "Paid lamp", my_side: "seller", seller_id: "u1" }];
     const both = at("/declutter?tab=selling");
-    expect(await screen.findByRole("region", { name: "Sold, waiting for the buyer to pay" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Waiting for the buyer to pay" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Claimed, they're choosing a pickup" })).toBeInTheDocument();
     expect(both.container.querySelector('[data-status-box="waiting"]')?.textContent ?? "").toMatch(/^Waiting/);
     both.unmount();
@@ -803,7 +803,11 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(ended.querySelectorAll("[data-ended-line]").length).toBe(2);
     expect(container.querySelector("[data-status-box]")).toBeNull();
     expect(container.querySelector("[data-status-all]")).toBeNull();
-    expect(within(ended).getByRole("link", { name: "Find something in Browse" })).toHaveAttribute("href", "/declutter");
+    // Design audit 11-17 #33: "Nothing in progress." and the centred button come before the Ended list.
+    const empty = container.querySelector("[data-buying-nothing-active]") as HTMLElement;
+    expect(empty.textContent).toContain("Nothing in progress.");
+    expect(within(empty).getByRole("link", { name: "Find something in Browse" })).toHaveAttribute("href", "/declutter");
+    expect(empty.compareDocumentPosition(ended) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     unmount();
     // A live order beside them: the chips are back (two groups) and no Browse pointer.
     state.cart = [...state.cart, { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-x", order_status: "paid", handover: "pickup_home" }];
@@ -824,7 +828,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(within(onMine).getByRole("button", { name: "Accept" })).toBeInTheDocument();
     expect(within(onMine).getByRole("button", { name: "Answer with a price" })).toBeInTheDocument();
     expect(within(onMine).getByRole("button", { name: "Say no" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Waiting for the buyer to pay" })).toBeInTheDocument();
     expect(screen.getByText("paid order ord-sold as seller")).toBeInTheDocument();
     // Nothing of the buyer's side.
     expect(screen.queryByText("paid order ord-bought as buyer")).toBeNull();

@@ -166,7 +166,9 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(DECLUTTER_PREVIEW_STAGES.map((x) => x.key)).toContain("problem_seller");
     r = open("?stage=problem_seller&side=buyer");
     await waitFor(() => expect(document.querySelector('[data-preview-view="problem_seller:buyer"]')).not.toBeNull());
-    expect(await screen.findByText(/, reported by the seller\./)).toBeInTheDocument();
+    // Area 06 L11 (11-18): a "Something else" report says who reported it, not "Something else, reported by …".
+    // @mutate src/components/declutter/DeclutterProblemOpen.tsx |     : problem.reason === "other" \|\| !REASON_WORDS[problem.reason] ? | : false ?
+    expect(await screen.findByText(/The seller reported a problem\./)).toBeInTheDocument();
     await new Promise((res) => setTimeout(res, 50));
     r.unmount();
     expect(supabaseCalls()).toEqual([]);
@@ -212,7 +214,7 @@ describe("Q2585: /admin/preview/declutter", () => {
       ["offer_countered", "buyer", /their counter/],
       ["offer_countered", "seller", /Waiting on the buyer to answer/],
       ["offer_accepted", "buyer", /Reserved for you, not paid yet/],
-      ["offer_accepted", "seller", /Sold, waiting for the buyer to pay/],
+      ["offer_accepted", "seller", /Waiting for the buyer to pay/],
       ["cart_two", "buyer", /One checkout for 2 items/],
       ["refund_asked", "buyer", /You asked for a refund/],
       ["refund_asked", "seller", /Next: answer the refund request/],
@@ -306,8 +308,17 @@ describe("Q2585: /admin/preview/declutter", () => {
       expect(within(card).queryByRole("button", { name: side === "seller" ? "Accept trade" : "Take it back" })).not.toBeNull();
       r.unmount();
       const r2 = open(`?stage=trade_one_checked_out&side=${side}`);
-      const talk = await waitFor(() => { const el = document.querySelector("[data-trade-talk]"); expect(el, side).not.toBeNull(); return el as HTMLElement; });
-      expect(talk.textContent).toBe("Message about the trade");
+      if (side === "seller") {
+        const talk = await waitFor(() => { const el = document.querySelector("[data-trade-talk]"); expect(el, side).not.toBeNull(); return el as HTMLElement; });
+        expect(talk.textContent).toBe("Message about the trade");
+      } else {
+        // Area 06b M7 (11-18): the buyer's line is checked out, so its order card carries the one chat button (under
+        // Details, the card's last control) and the trade card shows no second one.
+        fireEvent.click(await screen.findByRole("button", { name: "Details" }));
+        const row = await waitFor(() => { const el = document.querySelector("[data-order-talk-row]"); expect(el, side).not.toBeNull(); return el as HTMLElement; });
+        expect(row.textContent).toBe("Message about the trade");
+        expect(document.querySelector("[data-trade-talk]"), side).toBeNull();
+      }
       await new Promise((res) => setTimeout(res, 20));
       r2.unmount();
     }

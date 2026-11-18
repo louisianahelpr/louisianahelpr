@@ -8,7 +8,9 @@ import { takeHomeOwnPagePrefetch } from "./homeDashboard/homePrefetchTake";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Search } from "lucide-react";
+import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "@/components/sections/searchPill";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
@@ -16,7 +18,7 @@ import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useHomeSummary } from "./homeDashboard/useHomeSummary";
+import { useHomeSummary, usePageSettled } from "./homeDashboard/useHomeSummary";
 import { todoTarget } from "./homeDashboard/useNeedsYouTodos";
 import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { type ComingUpItem } from "./homeDashboard/comingUp";
@@ -38,11 +40,13 @@ import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
 import { useHomeTopSettled, useHoldWhileFirstVisitReads } from "./homeDashboard/homeTopSettled";
 import { HeldBlocksSkeleton } from "./homeDashboard/HeldBlocksSkeleton";
+import { HOME_NEEDS_YOU_MIN_PX } from "@/lib/homeSkeleton";
 import { optionalLazy } from "@/lib/optionalLazy";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { useLanguage, getLang, t as tNow } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
 import "@/lib/i18n/enHome";
+import "@/lib/i18n/enSections";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 // Drawn only when a Coming up read fails, so the error card (and EmptyState under it) loads on its own and never rides
@@ -61,6 +65,7 @@ function newMemberBlock<P extends object>(pick: (m: NewMemberBlocks) => Componen
 }
 const NewMemberHome = newMemberBlock((m) => m.NewMemberHome);
 const GetStartedGuide = newMemberBlock((m) => m.GetStartedGuide);
+const NearYouBlock = newMemberBlock((m) => m.NearYouBlock);
 
 // The desktop website's greeting: the hours rule and the date line (homeGreetingShell.mjs).
 const greeting = () => greetingFor(new Date(), getLang());
@@ -137,7 +142,8 @@ function HomeDashboardScreen() {
   }, [myHandle, myId, queryClient]);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
-  const isLive = (s: (typeof visible)[number]) => s.feature === null || !!live.find((tab) => tab.path === s.path)?.on;
+  // Owner 2026-11-17: an unlaunched section (Shops, Homes for a tester) gets no chip either, the same `listed` answer.
+  const isLive = (s: (typeof visible)[number]) => s.feature === null || (!!live.find((tab) => tab.path === s.path)?.on && live.find((tab) => tab.path === s.path)?.listed !== false);
   // M8 (owner 11-16): a closed section is not listed, so it is not named in the "opening soon" line either.
   const soonLine = openingSoonLine(visible.filter((s) => !isLive(s) && live.find((tab) => tab.path === s.path)?.listed !== false).map(sectionLabel), { and: t("home.and"), one: t("home.soonOne"), many: t("home.soonMany") });
   const isWebDesktop = useIsWebDesktop();
@@ -180,6 +186,11 @@ function HomeDashboardScreen() {
     <GetStartedGuide userId={user?.id} fresh={fresh} declutterOpen={sellOpen} hasPhoto={!!profile?.avatar_url} alertsOff={firstJob ? firstJob.alertsOff : null} />
   );
   const rest = Math.max(0, todoCount - 1);
+  // Owner 2026-11-17 (item 4): a quiet day (nothing needs you, nothing booked) shows "Near you" under Coming up, its
+  // chunk and reads asked only once the page has settled (usePageSettled), so Home's first paint is unchanged.
+  const pageSettled = usePageSettled();
+  // Not for a new member: their own blocks (NewMemberHome, FirstJobHome) already list the jobs near them.
+  const quietDay = !welcome && !firstJob?.isNew && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting && !summary.loading && summary.upcoming.length === 0 && !summary.upcomingFailed;
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
   const nextUpRef = useRef<HTMLElement>(null);
@@ -191,7 +202,9 @@ function HomeDashboardScreen() {
     // to /search, which searches every open section), the bell (which holds Messages) and the photo; no crest. "+ Create"
     // floats over the page and opens the Create sheet.
     <SectionScreen search={<SectionSearchBar noun={t("home.searchNoun")} home="/search" />} fab={<SectionCreateFab />}>
-      <div data-testid="home-dashboard" className="flex flex-col gap-section">
+      {/* Design audit r2 #40: without a greeting row (phone) the first card sat 6px under the search bar (the bar's 2px +
+          the column's 4px) while the cards below sit 16px apart; 10px more, here and in its skeleton (index.html too). */}
+      <div data-testid="home-dashboard" className={`flex flex-col gap-section${isWebDesktop ? "" : " pt-2.5"}`}>
         {/* The search bar sits in the top bar above this (design audit A D1, owner 11-08: it replaced the H crest). */}
         {/* ONE header row (owner 2026-10-21): on the desktop website the greeting is the bar's title
             (spec v2: Home's greeting in the same slot as every title) and the date opens the page. */}
@@ -199,6 +212,15 @@ function HomeDashboardScreen() {
           moment
           desktopGap={false}
           title={first ? `${greeting()}, ${first}` : greeting()}
+          // Design audit area 02 #6 (11-18): the desktop website's Home had no search at all (the phone's sits in its top
+          // row). The same /search link, as the desktop search pill, beside the greeting in the bar.
+          actions={
+            <Link to="/search" data-testid="home-desktop-search" className={`${DESKTOP_SEARCH_PILL_SURFACE} ${DESKTOP_SEARCH_PILL_WIDTH} inline-flex items-center gap-2 px-4 text-ds-15 text-muted-foreground ctl-tint`}>
+              <Search className="h-4 w-4 shrink-0" aria-hidden />
+              {/* title: the full words stay reachable where a narrow pill cuts them (Q108). */}
+              <span className="truncate" title={`${t("section.search")} ${t("section.noun.jobsAndItems")}`}>{`${t("section.search")} ${t("section.noun.jobsAndItems")}`}</span>
+            </Link>
+          }
           // Phone: no greeting (owner 11-14, Depop/Vinted audit item 6: the page opens straight on Next up under the
           // search bar). The page's name is a hidden h1 like every section's (one page-title size, Q236e); index.html's
           // copy of this page (#lh-home-shell) draws no greeting either. Guard: src/test/homeGreetingShell.test.tsx.
@@ -210,7 +232,7 @@ function HomeDashboardScreen() {
             too narrow for the Coming up table). Left (~60%): Next up, To do, Coming up (a table from
             900px). Right (~40%): the money tiles, then YOUR SECTIONS as a compact 2x2. The phone keeps one column in the same order. */}
         {!topSettled && (
-          <section data-testid="home-top-loading" aria-busy="true" aria-label={t("home.loadingAria")} className="liquid-glass p-card flex flex-col gap-1.5">
+          <section data-testid="home-top-loading" aria-busy="true" aria-label={t("home.loadingAria")} className="liquid-glass p-card flex flex-col gap-1.5" style={{ minHeight: HOME_NEEDS_YOU_MIN_PX }}>
             <span className="sr-only">{t("home.loadingSr")}</span>
             <p aria-hidden className="text-ds-12">&nbsp;</p>
             <p aria-hidden className="text-ds-18 font-bold leading-snug"><span className="inline-block w-3/4 rounded-md bg-muted animate-pulse">&nbsp;</span></p>
@@ -348,8 +370,10 @@ function HomeDashboardScreen() {
 
             {todoOpen && (
               <div data-testid="todo-list" id="home-todo-list">
-                <GroupSection title={t("home.todo")} count={todoCount}>
-                  {summary.todos.map((td, i, arr) => (
+                {/* Design audit area 02 #8 (11-18): the list repeated the to-do the card above still shows; it lists the
+                    others ("rest") and the card keeps its own. */}
+                <GroupSection title={t("home.todo")} count={rest}>
+                  {summary.todos.filter((_, i) => i !== at).map((td, i, arr) => (
                     <GroupRow key={td.id} title={td.title} meta={td.meta} onClick={() => navigate(todoTarget(td, requestHelperStep))} last={i === arr.length - 1} />
                   ))}
                 </GroupSection>
@@ -448,6 +472,7 @@ function HomeDashboardScreen() {
               )}
             </GroupSection>
             )}
+            {quietDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}
 
             {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one
                 progress line. Board 189: before a member's first job, the first-job checklist and jobs near them.
@@ -471,7 +496,8 @@ function HomeDashboardScreen() {
             {!holdBelowNextUp && <>
             <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
-              <h2 className="text-ds-15 font-semibold text-foreground">{t("home.yourSections")}</h2>
+              {/* Design audit 11-17 #27: the same eyebrow as "Needs you" and "Coming up" (GroupSection). */}
+              <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">{t("home.yourSections")}</h2>
               <Button type="button" variant="link" size="sm" data-testid="open-customize" onClick={() => setCustomize(true)} className="px-0 text-ds-13 font-semibold tracking-normal text-primary">
                 {t("home.customize")}
               </Button>
@@ -480,7 +506,8 @@ function HomeDashboardScreen() {
                 count line when there is one ("Jobs · 1 needs you"); the bottom bar already holds every section, so the
                 old 2x2 boxes repeated it. The rest share ONE compact line (owner, 2026-10-21: no "Opening soon" cards). */}
             {chipsReady ? <>
-            <div data-section-chips="" className="flex flex-wrap gap-2">
+            {/* Design audit area 02 #20 (11-18): at 390 the chips wrapped 1/2/1; a two-column grid keeps them in even rows. */}
+            <div data-section-chips="" className="grid grid-cols-2 gap-2">
               {visible.filter(isLive).map((s) => {
                 // Only a real line (spec v2 §1.5: never a "0"); with none the chip is the section's name alone.
                 const line = summary.tiles[s.key];
@@ -493,7 +520,7 @@ function HomeDashboardScreen() {
                     size="sm"
                     data-section-tile={s.key}
                     onClick={() => navigate(s.path)}
-                    className="max-w-full gap-1.5 rounded-full px-3.5 text-ds-13 font-semibold tracking-normal"
+                    className="w-full min-w-0 justify-start gap-1.5 rounded-full px-3.5 text-ds-13 font-semibold tracking-normal"
                   >
                     <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                     <span className="truncate" title={line ? `${sectionLabel(s)} · ${line}` : sectionLabel(s)}>

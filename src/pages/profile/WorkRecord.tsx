@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { formatPriceExact } from "@/lib/format";
 import HelprMark from "@/components/HelprMark";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import {
   buildWorkRecordPdf,
   buildWorkRecordSummaryLines,
@@ -61,6 +62,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
   const userId = user?.id;
 
   const firstPayoutFee = useFirstPayoutFeeDollars();
+  const idCheckOn = useIdentityCheckOnStore();
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["work-record", userId, firstPayoutFee],
     enabled: !!userId,
@@ -523,6 +525,22 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                 </Button>
               )}
             </div>
+            )}
+
+            {/* "Not verified" was a dead end (design audit area 04 #13, 11-18): nothing said how it changes. The ID check
+                is asked once, when the Helpr is first hired or at the first payout (owner 2026-10-30, identityCheckSwitch),
+                so say that, on screen only, and only while the check is switched on. Outside the sheet, so the printed
+                record and its loading reserve stay the same. */}
+            {idCheckOn && !data.identityVerified && (
+              <p
+                data-print-hide
+                data-testid="work-record-id-how"
+                className="font-sans text-ds-12 text-center leading-relaxed px-2"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                Your ID is checked once, when you&rsquo;re first hired or at your first payout. Then this record says
+                Verified.
+              </p>
             )}
 
             {/* No print dialog here (see `canPrintDocument` above). The share

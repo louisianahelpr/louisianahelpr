@@ -23,7 +23,7 @@
  * @mutate supabase/functions/_shared/email-templates/drip.tsx | Buyers pick up, or you deliver. You
       choose. | Buyers pick it up from your
       porch.
- * @mutate supabase/functions/_shared/email-templates/drip.tsx | Reach out any time at admin@louisianahelpr.com. - Louisiana Helpr | Reach out any time at admin@louisianahelpr.com.
+ * @mutate supabase/functions/_shared/email-templates/drip.tsx | Questions? Write to us at admin@louisianahelpr.com. - Louisiana Helpr | Questions? Write to us at admin@louisianahelpr.com.
  * @mutate supabase/functions/_shared/comeBackEmail.ts | "Describe the job and set your price. See who applied and chat before you hire." | "Describe the job and set your budget. See who applied and chat before you hire."
  */
 import { describe, expect, it } from "vitest";
@@ -83,7 +83,7 @@ describe("email copy, whole-app audit 11-10", () => {
     const drip = read("supabase/functions/_shared/email-templates/drip.tsx");
     const day1 = component(drip, "WelcomeDripStep1Email");
     expect(day1).toContain('label="Open Louisiana Helpr"');
-    expect(day1).toMatch(/Reach out any time at admin@louisianahelpr\.com\. - Louisiana Helpr\s*<\/Text>/);
+    expect(day1).toMatch(/Questions\? Write to us at admin@louisianahelpr\.com\. - Louisiana Helpr\s*<\/Text>/);
     expect(day1).not.toContain("Dashboard");
     // The same sign-off form as the day-14 and day-30 emails (2026-11-10).
     expect(drip.match(/ - Louisiana Helpr\s*<\/Text>/g)?.length).toBeGreaterThanOrEqual(3);

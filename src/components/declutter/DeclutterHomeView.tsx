@@ -23,11 +23,11 @@ import { YourPageLink } from "@/components/profile/YourPageLink";
 import { ManagerWaitingForOkGate } from "./ManagerWaitingForOkGate";
 import { ManagerPanelGate } from "./ManagerPanelGate";
 import { BoughtWhatNext } from "./BoughtWhatNext";
-import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
+import { fetchMyCart, fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyPayouts } from "@/lib/declutter/handover";
 import { listingNextStep, listingRowLine } from "./listingStatusLine";
-import { Search, Tags } from "lucide-react";
+import { Eye, Search, Tags } from "lucide-react";
 import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
 import { useTradedFor } from "./useMyTrades";
@@ -120,6 +120,10 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   // SE-5: a sold listing shows what it SOLD for (the paid line), never its list price; read only when one is sold.
   const anySold = (mine.data ?? []).some((i) => SOLD.has(i.status));
   const sales = useQuery({ queryKey: ["declutter", "sales", userId], queryFn: () => fetchMySales(userId), enabled: anySold });
+  // Area 06 L7: a reserved listing's agreed price, from the cart read Selling's checkout box already makes (same key).
+  const anyReserved = (mine.data ?? []).some((i) => i.status === "reserved");
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: anyReserved });
+  const agreed = new Map((cart.data ?? []).filter((l) => l.my_side === "seller" && l.status === "in_cart" && l.item_id).map((l) => [l.item_id as string, l.price_cents]));
   // #60: and where its payout stands (the same read and key as the sold cards' payout line).
   const payouts = useQuery({ queryKey: ["declutter", "payouts", userId], queryFn: () => fetchMyPayouts(userId), enabled: anySold });
   const payoutOf = (itemId: string) => {
@@ -211,6 +215,9 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   const searching = search.trim().length > 0;
   const list = searching ? all.filter((i) => matchesListingSearch(i, search)) : all;
   if (all.length === 0) {
+    // Area 06 M15 (11-18): a seller with past listings (taken down, sold, ended) is not new here; "You haven't listed
+    // anything yet" was wrong for them.
+    const returning = (mine.data ?? []).length > 0;
     return (
       <section className="space-y-2" aria-label={t("decl.sl.yours")}>
         <SectionHeading title={t("decl.sl.yours")} />
@@ -218,7 +225,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
             such button on screen (only the top bar's "+"). The action is here, as
             the section's own pill, to the same path as the "+". */}
         {/* Q2639 (audit 1102c R14): the same iconed empty card as "No offers yet" and "Nothing sold yet". */}
-        <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")} data-seller-empty=""
+        <DeclutterEmptyCard icon={Tags} title={t(returning ? "decl.sl.emptyNow" : "decl.sl.empty")} data-seller-empty=""
           action={<><HideSectionCreateFab /><SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>{sectionByKey("declutter").add.label}</SectionActionPill></>}>
           {t("decl.sl.emptyBody")}
         </DeclutterEmptyCard>
@@ -284,7 +291,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                   {/* Owner request 11-05: how many people saw it (unique, the seller only). */}
                   {item.status !== "draft" && <ItemViewsCount sellerId={userId} itemId={item.id} />}
                 </div>
-                <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} />
+                <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} agreed={agreed.get(item.id)} />
               </Link>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
                 {item.status === "draft" ? (
@@ -298,8 +305,10 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                 ) : null}
                 {/* LEAD-ONE-PREVIEW (owner 10-31): View and "See what buyers see" are one action, Preview: the listing as buyers read it. */}
                 {item.status !== "draft" && (
-                  <Button asChild variant="outline" size="sm" data-listing-preview="">
-                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}>{t("decl.sl.preview")}</Link>
+                  // Design audit 11-17 #20: three equal outline buttons were heavy; Manage is the one labelled button,
+                  // Preview and Share are 44px icon buttons (their names stay on aria-label and in the hidden word).
+                  <Button asChild variant="outline" size="iconCompact" className="rounded-full" data-listing-preview="">
+                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}><Eye aria-hidden /><span className="sr-only">{t("decl.sl.preview")}</span></Link>
                   </Button>
                 )}
                 {(item.status === "live" || item.status === "paused") && (
@@ -515,7 +524,9 @@ function DeclutterMemberHome() {
     settings: { label: DECLUTTER_SETTINGS.label, to: DECLUTTER_SETTINGS.path },
   };
   // The tab row's tabs, on desktop and (F153) on a phone: Selling's to-dos are a dot beside its for-sale count.
-  const tabDefs = lists.map((l) => l.value === "selling" ? { ...l, countAsDot: true } : l);
+  // Design audit 11-17 #24: Buying's to-dos were a rose pill beside Selling's plain number and dot (three styles in one
+  // row). Every Declutter to-do is the dot now; a plain muted number is only ever a quiet count.
+  const tabDefs = lists.map((l) => l.value === "selling" || l.value === "buying" ? { ...l, countAsDot: true } : l);
   const chrome = (browse?: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
     tabs: (
       <SectionTabs
@@ -549,7 +560,7 @@ function DeclutterMemberHome() {
   const ownMainButton = view === "wanted" || view === "deliver" || view === "buying";
   const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text={t("decl.hv.sell")} />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
-  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} />} fab={fab} /></Suspense>;
+  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} full={false} />} fab={fab} /></Suspense>;
   // Owner 11-13: Selling's bar is a field over the seller's own listings (desktop: the same field before the gear).
   const sellingBar = view === "selling"
     ? <SectionSearchBar noun="your listings" home="/declutter" value={sellingQ} onChange={setSellingQ} />
@@ -564,7 +575,7 @@ function DeclutterMemberHome() {
     <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
       {/* Q2562 (lead 11-02): pt-3 = Browse's first line, 12px into its 44px Miles-from row; guard declutterTabs.test.tsx. */}
       <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3">
-      <StrikeCount userId={user.id} />
+      <StrikeCount userId={user.id} full={view === "selling"} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       <Suspense fallback={<TabSkeleton />}>
       {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></>

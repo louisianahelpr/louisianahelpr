@@ -7,7 +7,7 @@
  * @mutate src/components/ui/GlassTileButton.tsx | const GLASS_TILE = "btn-press liquid-glass text-left flex flex-col min-w-0"; | const GLASS_TILE = "btn-press liquid-glass text-left flex flex-col min-w-0 rounded-xl";
  * @mutate src/components/ui/GlassTileButton.tsx |     <button ref={ref} type="button" {...props} | <button ref={ref} {...props}
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 className="px-4 py-3" |                 className="px-4"
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |       className={`p-card lg:p-4 gap-0.5 ${span}`} |       className={`p-card gap-0.5 ${span}`}
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |       className={`relative p-card lg:p-4 gap-0.5 ${span}`} |       className={`relative p-card gap-0.5 ${span}`}
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -27,14 +27,14 @@ describe("Home's glass tiles are the shared GlassTileButton, class for class the
   // The section tiles became a chip row (design audit A D4, owner approved 11-08): no glass tile on HomeDashboard now.
   it("Dashboard's sections are chips, not glass tiles, and keep no hand-made one", () => {
     const home = readFileSync("src/pages/home/HomeDashboard.tsx", "utf8");
-    expect(home).toContain('<div data-section-chips="" className="flex flex-wrap gap-2">');
+    expect(home).toContain('<div data-section-chips="" className="grid grid-cols-2 gap-2">');
     expect(home).not.toMatch(/<button[^>]*>?[^<]*liquid-glass/);
   });
 
   it("money tile: the same class set as the hand-made button (span passed through)", () => {
     const own = literal("src/pages/home/homeDashboard/HomeMoneyTiles.tsx", /data-money-tile=\{kind\}[\s\S]*?className=\{`([^`]+)`\}/).replace("${span}", "col-span-2");
     const { cls } = classOf(own);
-    expect(set(cls)).toEqual(set("btn-press liquid-glass text-left p-card lg:p-4 flex flex-col gap-0.5 min-w-0 col-span-2"));
+    expect(set(cls)).toEqual(set("btn-press liquid-glass text-left relative p-card lg:p-4 flex flex-col gap-0.5 min-w-0 col-span-2")); // relative: area 02 #23 chevron
   });
 
   it("Profile's activity tile (You page, 11-06 Profile packet): the same class set as the hand-made button", () => {

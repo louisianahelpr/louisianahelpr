@@ -1,4 +1,5 @@
 import { Label } from "@/components/ui/label";
+import { notifPrefDescription, notifPrefLabel } from "@/lib/i18n/notifPrefWords";
 import { SwitchSlot } from "./SwitchSlot";
 import type { Prefs, Row } from "./types";
 
@@ -38,11 +39,11 @@ export function CategoryRow({
                 className="font-sans font-semibold text-ds-14 mb-0"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                {item.label}
+                {notifPrefLabel(item.key, item.label)}
               </Label>
               {item.description && (
                 <p className="font-sans text-ds-12 leading-snug mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {item.description}
+                  {notifPrefDescription(item.key, item.description)}
                 </p>
               )}
             </div>

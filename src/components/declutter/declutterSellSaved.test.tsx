@@ -10,6 +10,8 @@
  * @mutate src/components/declutter/useSellFlowState.ts |       setCreatedId(back.createdId); |       void setCreatedId;
  * @mutate src/components/declutter/useSellSaved.ts |     warn: hasWork && !finished.current, |     warn: false,
  * @mutate src/components/declutter/useSellSaved.ts |           if (!row) draftId = null; |           void row;
+ * @mutate src/components/declutter/useSellFlowState.ts |     if (!urlItemId && startsFree(params) && !back.form.free) { |     if (false) {
+ * @mutate src/components/declutter/useSellFlowState.ts |       setFreeOrDraft(null);\n      bringBack(back); |       setFreeOrDraft(null);
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -259,7 +261,8 @@ describe("a new listing is kept on this device", () => {
     await screen.findByRole("heading", { name: "Show it off" });
     await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));
     expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
-    expect(document.querySelector("[data-photo-count]")?.textContent).toContain("0 of 12");
+    // Design audit 11-17 #21: with no photo the count line is not drawn at all.
+    expect(document.querySelector("[data-photo-count]")).toBeNull();
   });
 
   // Vacuity (l102 --only): dropping `if (!row) draftId = null;` stayed green. A saved draft id whose row is GONE (deleted
@@ -278,14 +281,37 @@ describe("a new listing is kept on this device", () => {
     expect(h.calls).toEqual(["createDraft", "publish"]);
   });
 
+  // Area 06 H1 (11-18): "Give away free" opened the priced kept draft (Price empty, Accept offers ON).
+  it("Give away free with a priced kept draft asks first; free stays free, Continue brings the draft back", async () => {
+    await startAndEdit();
+    cleanup();
+    open("/declutter/sell?free=1");
+    expect(await screen.findByText("Start a free listing or continue your draft?")).toBeInTheDocument();
+    expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
+    expect(rowValue("title")).not.toBe("Grandma's dresser");
+    fireEvent.click(screen.getByRole("button", { name: "Continue my draft" }));
+    await waitFor(() => expect(rowValue("title")).toBe("Grandma's dresser"));
+    expect(screen.queryByText("Start a free listing or continue your draft?")).toBeNull();
+    cleanup();
+    open("/declutter/sell?free=1");
+    await screen.findByText("Start a free listing or continue your draft?");
+    fireEvent.click(screen.getByRole("button", { name: "Start a free listing" }));
+    expect(screen.queryByText("Start a free listing or continue your draft?")).toBeNull();
+    expect(rowValue("title")).not.toBe("Grandma's dresser");
+  });
+
   it("Start over clears it and gives a fresh form", async () => {
     await startAndEdit();
     cleanup();
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Start over" }));
-    await waitFor(() => expect(document.querySelector("[data-photo-count]")?.textContent).toContain("0 of 12"));
+    const startOver = await screen.findByRole("button", { name: "Start over" });
+    // The kept listing's two photos are drawn before Start over, so the absence below is a real change.
+    expect(document.querySelector("[data-photo-count]")?.textContent).toContain("2 of 12");
+    fireEvent.click(startOver);
+    // Wait for the fresh form itself, then assert what is gone (waitForEmptyIsVacuous).
+    await waitFor(() => expect(rowValue("title")).toBe("Add a title"));
+    expect(document.querySelector("[data-photo-count]")).toBeNull(); // no photos: no count line (design audit 11-17 #21)
     expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
-    expect(rowValue("title")).toBe("Add a title");
     await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));
   });
   // LEAD-BUNCH-DROPS-IGNORED (owner 2026-10-31, prod c87b7de4): the owner turned price drops off in Settings at

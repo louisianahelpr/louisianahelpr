@@ -14,11 +14,13 @@
  * file's entry is gone).
  *
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <div className="flex flex-wrap items-center justify-end gap-2" data-offer-actions=""> | <div className="flex flex-wrap items-center gap-2" data-offer-actions="">
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}> | <Button type="button" variant="link" disabled={act.isPending} onClick={() => setDeclining(true)}>
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}> | <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="link" size="sm" className="text-muted-foreground" disabled={act.isPending} onClick={() => setDeclining(true)} data-offer-say-no=""> | <Button type="button" variant="link" className="text-muted-foreground" disabled={act.isPending} onClick={() => setDeclining(true)} data-offer-say-no="">
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="link" size="sm" className="text-muted-foreground" disabled={act.isPending} onClick={() => setDeclining(true)} data-offer-say-no=""> | <Button type="button" variant="outline" size="sm" className="text-muted-foreground" disabled={act.isPending} onClick={() => setDeclining(true)} data-offer-say-no="">
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={openCounter} | <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={openCounter}
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx |       {myTurn && !countering && ( |       {myTurn && (
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="submit" size="sm" disabled={act.isPending \|\| !counterCents \|\| !!counterBad}> | <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending \|\| !counterCents \|\| !!counterBad}>
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="text-sm underline underline-offset-2" disabled={act.isPending} | <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending}
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="text-sm font-medium" aria-expanded={closedOpen} | <button type="button" className="link-standard text-sm font-medium" aria-expanded={closedOpen}
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="inline-flex items-center gap-0.5 text-sm font-semibold text-[hsl(var(--olivewood))]" aria-expanded={closedOpen} | <button type="button" className="link-standard text-sm font-medium" aria-expanded={closedOpen}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -62,8 +64,11 @@ describe("Declutter's offer answers use the shared Button, primary on the right 
     expect(row!.kids.map((k) => k.tag)).toEqual(["Button", "Button", "Button"]);
     expect(row!.kids.map((k) => k.text)).toEqual(['{t("dof.sayNo")}', '{t("dof.answerPrice")}', '{t("dof.accept")}']);
     for (const k of row!.kids) expect(k.attrs.size, `${k.text} size`).toBe('"sm"');
-    // F373: text links, never outlined buttons beside the filled Accept.
-    expect(row!.kids.slice(0, 2).map((k) => k.attrs.variant)).toEqual(['"link"', '"link"']);
+    // F373 (11-10) made both answers text links; design audit 11-18 area 05 #11: Counter is the outlined partner of the
+    // filled Accept, Say no stays a quiet link, and the price box takes the row's place while it is open.
+    expect(row!.kids.slice(0, 2).map((k) => k.attrs.variant)).toEqual(['"link"', '"outline"']);
+    expect(src).toContain("{myTurn && !countering && (");
+    expect(src).toMatch(/onClick=\{\(\) => setCountering\(false\)\} data-counter-close="">\s*\{t\("dof\.notNow"\)\}/);
     expect(row!.kids[2].attrs.variant, "Accept is the default (green primary) Button").toBeUndefined();
     expect(row!.cls).toMatch(/\bjustify-end\b/);
   });
@@ -81,7 +86,8 @@ describe("Declutter's offer answers use the shared Button, primary on the right 
     expect(take!, "it keeps its drawn underline").toMatch(/\bunderline underline-offset-2\b/);
     const closed = tags.find((t) => /data-closed-offers-toggle/.test(t));
     expect(closed, "the closed-offers toggle is an InlineTextButton").toBeDefined();
-    expect(closed!.match(/className="([^"]*)"/)?.[1], "the toggle keeps its own classes only").toBe("text-sm font-medium");
+    // Design audit 11-17 #19: olive, semibold, with a chevron, so it reads as a link.
+    expect(closed!.match(/className="([^"]*)"/)?.[1], "the toggle keeps its own classes only").toBe("inline-flex items-center gap-0.5 text-sm font-semibold text-[hsl(var(--olivewood))]");
     expect(src, "a hand-made <button> is back").not.toMatch(/<button\b/);
   });
 });

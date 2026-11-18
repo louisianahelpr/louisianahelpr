@@ -13,7 +13,7 @@
  * @mutate src/components/postjob/JobCategoryGroups.tsx | tile(it.value, getCategoryIcon(it.value), it.label, | tile(it.value, getCategoryIcon("other"), it.label,
  * F113 (owner UI audit 11-09, owner decision 11-09, superseding the 10-21 emoji): line icons, not emoji.
  * @mutate src/components/postjob/JobCategoryGroups.tsx |         <Icon className="h-5 w-5" aria-hidden data-tile-glyph="" /> |         <span data-tile-glyph="">🧹</span>
- * @mutate src/pages/post-job/EntryChoice.tsx |       <Icon aria-hidden data-entry-glyph="" className="h-4 w-4 shrink-0" /> |       <span aria-hidden data-entry-glyph="">✏️</span>
+ * @mutate src/pages/post-job/EntryChoice.tsx |       <Icon aria-hidden data-entry-glyph="" className="h-5 w-5 shrink-0" /> |       <span aria-hidden data-entry-glyph="">✏️</span>
  * @mutate src/lib/i18n/enPostJob.ts |   "postJob.group.moving_errands": "Moving & errands", |   "postJob.group.moving_errands": "Moving and errands",
  */
 import { describe, it, expect, vi } from "vitest";
@@ -85,7 +85,7 @@ describe("Post a Job start (owner 2026-10-21)", () => {
     const entry = read("src/pages/post-job/EntryChoice.tsx");
     // A3-3 (Spanish): the links read t(); their English is unchanged (enPostJob.ts).
     for (const k of ["useTemplate", "hireSaved", "describeAi"]) expect(entry).toContain(`t("postJob.${k}")`);
-    expect([enPostJob["postJob.useTemplate"], enPostJob["postJob.hireSaved"], enPostJob["postJob.describeAi"]]).toEqual(["Use a template", "Hire a saved Helpr", "Describe it with AI"]);
+    expect([enPostJob["postJob.useTemplate"], enPostJob["postJob.hireSaved"], enPostJob["postJob.describeAi"]]).toEqual(["Use a template", "Hire a saved Helpr", "Describe it in your own words"]);
     expect(entry).not.toContain('"Start from scratch"');
     expect(entry).toContain('question={t("postJob.groupsQ")}');
     expect(enPostJob["postJob.groupsQ"]).toBe("What do you need done?");

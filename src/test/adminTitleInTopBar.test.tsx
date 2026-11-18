@@ -43,7 +43,7 @@ vi.mock("@/components/ui/sidebar", () => ({
 }));
 vi.mock("@/components/admin/AdminSidebar", () => ({ default: () => null }));
 vi.mock("@/components/admin/AdminCommandPalette", () => ({ AdminCommandPalette: () => null }));
-vi.mock("@/components/auth/SignOutConfirmDialog", () => ({ SignOutConfirmDialog: () => null }));
+vi.mock("@/components/auth/SignOutConfirmDialog", () => ({ SignOutConfirmDialog: () => null, LogOutConfirmDialog: () => null }));
 
 const VIEWS = ["support", "reports", "disputes", "stalled", "people", "settings"];
 const LABELS: Record<string, string> = {

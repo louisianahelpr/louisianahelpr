@@ -4,7 +4,7 @@
  *   - the section's link read "See 20 of 59", a count of what is shown rather than an action.
  *
  * @mutate src/pages/search/SearchPage.tsx | price={typeof cents === "number" ? itemPriceLabel(cents) : null} /> | price={typeof cents === "number" ? `$${cents / 100}` : null} />
- * @mutate src/pages/search/SearchPage.tsx |             {count > MAX_ROWS ? "See more" : `See all ${count}`} |             {count > MAX_ROWS ? `See ${MAX_ROWS} of ${count}` : `See all ${count}`}
+ * @mutate src/lib/i18n/enSearch.ts |   "srch.seeMore": "See more", |   "srch.seeMore": "See 20 of 59",
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";

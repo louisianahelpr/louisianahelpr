@@ -1,6 +1,6 @@
 /**
  * The settings rows' words (owner 2026-11-01: "Porch · Home, Mid-City, Baton Rouge · Saturdays", "5% each evening,
- * lowest $8" or "Off", "Never" or "After N days"). Full weekday names, joined naturally; the hours when there are any.
+ * lowest $8" or "Off", "Off" or "After N days"; "Never" until design audit 11-17 #21). Full weekday names, joined naturally; the hours when there are any.
  * Rendered in Your listing and Sell a bunch's list step: declutterSellLastSetup.test.tsx and declutterBunchChoices.test.tsx.
  *
  * @mutate src/components/declutter/SellingSettingsRows.tsx |   return names.length <= 1 ? (names[0] ?? "") : t("lp.sr.list", { first: names.slice(0, -1).join(", "), last: names[names.length - 1] }); |   return names.join(", ");
@@ -45,7 +45,7 @@ describe("the settings rows say it in full words", () => {
     expect(dropsValue({ ...f, price: "" })).toBeNull();
     expect(bunchDropsValue({ drops: true, dropPct: 5, floorPct: 50 })).toBe("5% each evening, lowest 50% of each price");
     expect(bunchDropsValue({ drops: false, dropPct: 5, floorPct: 50 })).toBe("Off");
-    expect(makeFreeValue(null)).toBe("Never");
+    expect(makeFreeValue(null)).toBe("Off"); // design audit 11-17 #21
     expect(makeFreeValue(14)).toBe("After 14 days");
   });
 });

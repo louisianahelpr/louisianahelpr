@@ -36,7 +36,7 @@ import { useUnblock } from "./useUnblock";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 /** Your own public profile is a preview, titled by what it is (app audit A3-C7). */
-const OWN_PROFILE_TITLE = "How others see you";
+const OWN_PROFILE_TITLE = "Public profile"; // design audit area 09 M3/M4 (was "How others see you", cut at 390)
 
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -160,7 +160,7 @@ const UserProfile = () => {
         : "Profile — Helpr",
   );
 
-  const headerEyebrow = isOwnProfile ? "How others see you" : "Helpr profile";
+  const headerEyebrow = isOwnProfile ? "What neighbors see" : "Helpr profile";
   // NOTE: PageHeader paints NEITHER `eyebrow` NOR `meta` — both were retired
   // app-wide (see the note in PageHeader.tsx); the props are kept only so the
   // ~140 existing call sites don't churn. So these two are passed for parity

@@ -112,7 +112,8 @@ export const WelcomeDripStep1Email = ({
     <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
       {/* F492 (audit 11-10): a sign-off with the name, the same form as days 14 and 30. */}
-      Reach out any time at admin@louisianahelpr.com. - Louisiana Helpr
+      {/* Area 08 L17 (design audit 11-18): one contact line across the emails. */}
+      Questions? Write to us at admin@louisianahelpr.com. - Louisiana Helpr
     </Text>
   </BaseLayout>
 )
@@ -178,7 +179,7 @@ export const WelcomeDripStep3Email = ({
     </ol>
     <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
-      Questions? admin@louisianahelpr.com.
+      Questions? Write to us at admin@louisianahelpr.com.
     </Text>
   </BaseLayout>
 )
@@ -190,21 +191,20 @@ export const ReEngagementEmail = ({
   unsubscribeUrl,
 }: CommercialEmailProps) => (
   <BaseLayout
-    preheader="It's been a minute — here's what's open near you."
+    preheader="See what's open near you on Louisiana Helpr"
     footer={<MarketingFooter unsubscribeUrl={unsubscribeUrl} />}
   >
+    {/* Area 08 M19 (design audit 11-18): no sales talk ("it's been a minute —", "now's a great time"), no claim the
+        email cannot count (it never knew how many jobs are new), no trailing full stop on the heading. */}
     <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>
-      New jobs are open in your area.
+      See what's open near you
     </Heading>
     <Text className="e-text" style={textStyle}>
-      Hey {greetingName || 'there'}, it's been a minute — here's what's open near you.
-    </Text>
-    <Text className="e-text" style={textStyle}>
-      There are new jobs posted in your area — whether you're looking for help or looking to
-      earn, now's a great time to check in.
+      Hi {greetingName || 'there'}, whether you need a hand or want to earn, Louisiana Helpr shows what's open
+      near you.
     </Text>
     {/* F495 (audit 11-10): the app's own words, no "feed"; the button names where it goes. */}
-    <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
+    <BrandButton href={dashboardUrl} label="See open jobs" widthPx={200} />
     <Text className="e-text" style={textStyle}>
       Open the app when you're ready. - Louisiana Helpr
     </Text>

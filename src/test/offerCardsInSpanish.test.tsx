@@ -69,7 +69,7 @@ describe("Declutter's offer cards follow the language (F260q)", () => {
     expect(await screen.findByText("From Ann S.")).toBeTruthy();
     expect(document.querySelector("h2")?.textContent).toBe("Offers on your items · 1 to answer");
     expect(screen.getByText("From Ann S.")).toBeTruthy();
-    expect(screen.getByText("Price now $10")).toBeTruthy();
+    expect(screen.getByText("Listed at $10")).toBeTruthy();
     expect(screen.getByText("their offer")).toBeTruthy();
     expect(document.querySelector("[data-offer-note]")?.textContent).toBe("If you accept and the buyer pays, you keep the whole $6.");
     expect(screen.getByRole("button", { name: "Accept" })).toBeTruthy();
@@ -85,15 +85,18 @@ describe("Declutter's offer cards follow the language (F260q)", () => {
     expect(await screen.findByText("De Ann S.")).toBeTruthy();
     expect(document.querySelector("h2")?.textContent).toBe("Ofertas por sus artículos · 1 por responder");
     expect(screen.getByText("De Ann S.")).toBeTruthy();
-    expect(screen.getByText("Precio actual $10")).toBeTruthy();
+    expect(screen.getByText("Anunciado a $10")).toBeTruthy();
     expect(screen.getByText("su oferta")).toBeTruthy();
     expect(document.querySelector("[data-offer-note]")?.textContent).toBe("Si acepta y el comprador paga, usted recibe los $6 completos.");
     expect(document.body.textContent).toMatch(/Siguiente: responda a su oferta · quedan 4\d horas/);
     fireEvent.click(screen.getByRole("button", { name: "Responder con un precio" }));
     expect(screen.getByLabelText("Su precio")).toBeTruthy();
-    expect(screen.getByText("Entre $6.01 y $10.")).toBeTruthy();
+    expect(screen.getByText("Entre $7 y $10.")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Su precio"), { target: { value: "5" } });
     expect(screen.getByText("Ya ofrecieron $6. Responda con más que eso, o toque Aceptar.")).toBeTruthy();
+    // Area 05 #11 (11-18): the price box takes the answers' place; its Ahora no brings them back.
+    expect(screen.queryByRole("button", { name: "Decir que no" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Ahora no" }));
     fireEvent.click(screen.getByRole("button", { name: "Decir que no" }));
     expect(await screen.findByText("¿Decir que no a $6?")).toBeTruthy();
     expect(screen.getByText("\"Blue enamel mug\": esta oferta termina y se le avisa al comprador que dijo que no.")).toBeTruthy();
@@ -104,7 +107,7 @@ describe("Declutter's offer cards follow the language (F260q)", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Mostrar 1 oferta cerrada de los últimos 30 días" }));
     expect(screen.getByText("Rechazada")).toBeTruthy();
-    expect(document.body.textContent).not.toMatch(/Offers on|to answer|From Ann|Price now|their offer|you keep|Say no|Not now|Declined|closed offer/);
+    expect(document.body.textContent).not.toMatch(/Offers on|to answer|From Ann|Price now|Listed at|their offer|you keep|Say no|Not now|Declined|closed offer/);
   });
 
   it("Spanish: the buyer waiting on the seller, and an empty Buying list", async () => {

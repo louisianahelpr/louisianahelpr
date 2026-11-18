@@ -1,5 +1,4 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import { DialogBody } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { EnrichedJob } from "../types";
 import { JobPrice } from "../JobPrice";
@@ -67,13 +66,16 @@ export function JobDetailTitleRow({ hero, job, viewerUserId, descExpanded, setDe
                     and we only clamp when the text is actually long enough to
                     need it so short descriptions stay plain blocks that wrap
                     cleanly. */}
-                <DialogBody>
+                {/* Design audit 11-17 #11: the description is the job's own content, not the dialog explaining
+                    itself, and at DialogBody's 12 px it read tiny on the desktop sheet. It reads at the app's
+                    15 px body size now. */}
+                <div className="font-sans text-ds-15 leading-relaxed text-foreground" data-job-description="">
                   <p
                     className={`break-words min-w-0 ${!descExpanded && job.description.length > 180 ? "line-clamp-3" : ""}`}
                   >
                     {job.description}
                   </p>
-                </DialogBody>
+                </div>
                 {job.description.length > 180 && (
                   <Button type="button" variant="link" size="sm" onClick={() => setDescExpanded((v) => !v)}
                     className="mt-1 -mb-2 px-0 text-ds-13 font-sans font-bold"

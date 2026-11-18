@@ -11,9 +11,9 @@
  *   5. Manager mode: a message the seller's manager wrote says "Dana (helping Kaci)", to the buyer and to the seller.
  *
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const orderId = params.get("order_talk"); |   const orderId = params.get("talk");
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx | : side === "buyer" ? "Message the seller" : "Message the buyer"} | : "Message the seller"}
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx | (m.mine ? "You" : `The ${other}`) | (m.mine ? `The ${other}` : "You")
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {labels.data?.get(m.id) ?? (m.mine ? "You" | {(m.mine ? "You"
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx | : side === "buyer" ? tr("cp.ot.msgSeller") : tr("cp.ot.msgBuyer")} | : tr("cp.ot.msgSeller")}
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx | (m.mine ? tr("cp.ot.you") : theOther) | (m.mine ? theOther : tr("cp.ot.you"))
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {labels.data?.get(m.id) ?? (m.mine ? tr("cp.ot.you") | {(m.mine ? tr("cp.ot.you")
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const labels = useManagerLabels("order_talk", (talk.data?.messages ?? []).map((m) => m.id)); |   const labels = useManagerLabels("order_talk", []);
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | return await sendOrderMessage(orderId, draft.trim(), photoPath); | return await sendOrderMessage(orderId, draft, photoPath);
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => setRefusal("Something went wrong."),
@@ -206,7 +206,7 @@ describe("D2-1: the paid-order chat", () => {
 
   // Audit 11-10 F390 (banner half): the rules banner took three lines on every open; the inline note above now
   // warns about a phone or email as it is typed, so the banner says the two things in one short line.
-  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | <span data-order-talk-rule="">Only you two can read this. Keep payment in the app.</span> | <span data-order-talk-rule="">Only you and the {other} can read this. Keep phone numbers, emails and payment out of the chat.</span>
+  // @mutate src/lib/i18n/enChatParts.ts | "cp.ot.rule": "Only you two can read this. Keep payment in the app.", | "cp.ot.rule": "Only you and the seller can read this. Keep phone numbers, emails and payment out of the chat.",
   it("the rules banner is one short line: who can read it, and payment stays in the app", async () => {
     renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
     await screen.findByLabelText("Message");
@@ -216,7 +216,7 @@ describe("D2-1: the paid-order chat", () => {
   });
 
   // AUD31-13 (audit 2026-10-31): the sheet said only "Message the seller", not which item.
-  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemTitle && <p className="min-w-0 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>} | {null}
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemTitle && <p className="min-w-0 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">{tr("cp.ot.about", { title: itemTitle })}</p>} | {null}
   // @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => {},
   it("the chat names the item it is about; with no title known it says nothing extra", async () => {
     renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
@@ -244,8 +244,8 @@ describe("D2-1: the paid-order chat", () => {
 
   // AUD31-31 (audit 2026-10-31): an ended chat was still titled "Message the seller", with "This chat has ended."
   // tacked onto the rules box and no date, reason or next step.
-  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | open ? `Message the ${other}` : `Your chat with the ${other}` | `Message the ${other}`
-  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | `This chat ended ${when(endedAt)}, 48 hours after the handover.` | "This chat has ended."
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx |           : tr(other === "buyer" ? "cp.ot.chatBuyer" : "cp.ot.chatSeller")} /> |           : tr(other === "buyer" ? "cp.ot.msgBuyer" : "cp.ot.msgSeller")} />
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | endedAt ? tr("cp.ot.endedAt", { when: when(endedAt) }) : tr("cp.ot.ended") | tr("cp.ot.ended")
   it("an ended chat is titled as a record, and says when it ended, why, and where to go for a problem", async () => {
     state.open = false;
     state.openUntil = "2026-10-29T12:00:00Z";

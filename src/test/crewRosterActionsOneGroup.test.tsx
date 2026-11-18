@@ -6,7 +6,7 @@
  * step last.
  *
  * @mutate src/components/GroupJobHelpers.tsx | label={confirmingId === h.id ? "Confirming…" : "Confirm they've arrived"} | label={confirmingId === h.id ? "Confirming…" : "Confirm Arrived"}
- * @mutate src/components/GroupJobHelpers.tsx | <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2" data-crew-actions=""> | <div className="contents">
+ * @mutate src/components/GroupJobHelpers.tsx | <div className="flex w-full min-w-0 basis-full items-center gap-2 [&>[data-job-action-chip]]:min-w-0 [&>[data-job-action-chip]]:flex-1" data-crew-actions=""> | <div className="contents">
  */
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";

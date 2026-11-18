@@ -10,11 +10,15 @@
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |   return (useMyTrades("seller", userId).data ?? []).filter((t) => t.status === "open").length; |   return 0;
  * @mutate src/components/declutter/DeclutterMineViews.tsx | + bundleAsks + tradeAsks + freeAsks.length; | + bundleAsks + freeAsks.length;
  * @mutate src/lib/declutter/trades.ts |     my_line_status: (side === "seller" ? seller_line : buyer_line)?.status ?? null, |     my_line_status: (side === "seller" ? buyer_line : seller_line)?.status ?? null,
- * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {t.talk_order_id && <TradeTalkButton orderId={t.talk_order_id} />}\n |
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {t.talk_order_id && t.my_line_status !== "paid" && <TradeTalkButton orderId={t.talk_order_id} />}\n |
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx | {t.talk_order_id && t.my_line_status !== "paid" && | {t.talk_order_id &&
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |     next.set("order_talk", orderId); |     next.set("talk", orderId);
- * @mutate src/components/declutter/DeclutterTradeOffers.tsx | "Answer by" : "Waiting on the seller until" | "Answer:" : "Waiting on the seller until"
+ * @mutate src/lib/i18n/enDeclSell.ts | "dsl.tr.answerBy": "Answer by | "dsl.tr.answerBy": "Answer:
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx | variant="outline" data-trade-decline="" | variant="ghost" data-trade-decline=""
  * Audit 11-10 F360c: the accepted trade's link opens the cart's trade checkout (the one pickup step), not a reload.
+ * Area 06 L8/L9 (11-18): a finished trade reads in the past; an ended trade sits below the ones still to answer.
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx |   const done = t.status === "completed"; |   const done = false;
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx | .sort((a, b) => Number(ended(a)) - Number(ended(b))) | .sort(() => 0)
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx | if (goToTradeCheckout((t.my_side === "seller" ? t.offered : t.item)?.id)) e.preventDefault(); | void e;
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -147,9 +151,12 @@ describe("Declutter trade cards (slice 3)", () => {
   });
 
   // Trades audit 11-08 #10: both trade cards open the trade's one existing order chat (?order_talk=, DeclutterPage).
-  it("both trade cards open the trade's one order chat once a side has checked out; none before", async () => {
+  // Area 06b M7 (design audit 11-18): once THIS side's line is checked out (paid), its order card carries the chat
+  // button, so the trade card shows none (the seller saw "Message" twice); before that the trade card has it.
+  it("both trade cards open the trade's one order chat once a side has checked out; none before, none beside the order card", async () => {
     state.rows = [row({ id: "a", status: "accepted", my_line_status: "in_cart", talk_order_id: null }),
-      row({ id: "b", status: "accepted", my_line_status: "paid", talk_order_id: "order-1" })];
+      row({ id: "b", status: "accepted", my_line_status: "in_cart", talk_order_id: "order-1" }),
+      row({ id: "c", status: "accepted", my_line_status: "paid", talk_order_id: "order-2" })];
     for (const side of ["seller", "buyer"] as const) {
       const r = render(
         <QueryClientProvider client={(client = new QueryClient({ defaultOptions: { queries: { retry: false } } }))}>
@@ -234,5 +241,20 @@ describe("Declutter trade cards (slice 3)", () => {
     for (const code of ["trade_not_open", "trade_expired", "trade_not_found", "invalid_action", "item_not_available"]) {
       expect(rpcErrorMessage("declutter_respond_swap", new Error(code)), code).toBeTruthy();
     }
+  });
+});
+
+describe("Area 06 L8/L9: finished and ended trades", () => {
+  beforeEach(() => { state.rows = []; state.sent = []; });
+  it("a completed trade reads You gave / You got; a lapsed one sits below the open one", async () => {
+    const past = new Date(Date.now() - 3_600_000).toISOString();
+    state.rows = [row({ id: "lapsed", respond_by: past }), row({ id: "done", status: "completed" }), row({ id: "open" })];
+    show("seller");
+    await screen.findByText("You gave");
+    expect(screen.getByText("You got")).toBeTruthy();
+    const order = [...document.querySelectorAll("[data-trade-card]")].map((e) => e.getAttribute("data-trade-card"));
+    expect(order.length).toBeGreaterThan(2);
+    expect(order[0]).toBe("open");
+    expect(order.indexOf("lapsed")).toBeGreaterThan(order.indexOf("open"));
   });
 });

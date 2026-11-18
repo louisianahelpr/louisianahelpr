@@ -10,7 +10,7 @@
  * so each run paid for another one.
  *
  * Two halves:
- *  1. openJobBudgetProblem (run first by ensureFundedOpenJob, so by the hourly
+ *  1. openJobBudgetProblem (run by ensureFundedOpenJob before it reuses or mints, so by the hourly
  *     canary and every prod-audit run) fails BY NAME while two slots are left.
  *     Its count mirrors enforce_open_job_limit, read from the migrations.
  *  2. The planners now REUSE a cs_test_ fixture in an unknown mode
@@ -18,7 +18,7 @@
  *
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (counted.length <= POSTER_OPEN_JOB_BUDGET) return null; | if (counted.length <= OPEN_JOB_CAP) return null;
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const NOT_COUNTED = new Set(["unpaid", "abandoned", "failed"]); | const NOT_COUNTED = new Set(["unpaid", "abandoned", "failed", "escrow"]);
- * @mutate e2e/prod-audit/fundedOpenJob.ts | if (overBudget) throw new Error(overBudget); | void overBudget;
+ * @mutate e2e/prod-audit/fundedOpenJob.ts | if (overBudget) throw new Error(`${overBudget} [retired first | if (false) throw new Error(`${overBudget} [retired first
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -86,14 +86,19 @@ describe("Q1779: the shared poster's open-job budget", () => {
     expect(body).toMatch(/status\s*=\s*'open'/);
   });
 
-  it("ensureFundedOpenJob checks the budget before it reads, reuses or mints any fixture", () => {
+  // Since 2026-11-18 (prod-audit 44194466954) the gate runs AFTER the run retires
+  // what earlier runs leaked, and before it reuses or mints anything
+  // (src/test/prodAuditFixturesRetireBeforeGate.test.ts pins the full order).
+  it("ensureFundedOpenJob checks the budget before it reuses or mints any fixture", () => {
     const src = blankComments(readFileSync(join(REPO, "e2e/prod-audit/fundedOpenJob.ts"), "utf8"));
     const fn = src.slice(src.indexOf("export async function ensureFundedOpenJob("));
     expect(fn.length).toBeGreaterThan(100);
-    const check = fn.search(/if \(overBudget\) throw new Error\(overBudget\);/);
-    const firstFixtureRead = fn.search(/FUNDED_FIXTURE_TITLE/);
+    const check = fn.search(/if \(overBudget\) throw new Error\(/);
+    const firstMint = fn.search(/createFixtureRow\(api, poster\)/);
+    const reuse = fn.search(/if \(plan\.reuse\)/);
     expect(check).toBeGreaterThan(0);
     expect(fn.search(/openJobBudgetProblem\(capRows\)/)).toBeGreaterThan(0);
-    expect(check).toBeLessThan(firstFixtureRead);
+    expect(check).toBeLessThan(firstMint);
+    expect(check).toBeLessThan(reuse);
   });
 });

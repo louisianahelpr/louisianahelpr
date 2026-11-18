@@ -5,7 +5,7 @@
  * (The jump from "1 of 6" to "3 of 6" for a one-kind group is the owner's 10-21 fixed numbering, postJobScreens.ts.)
  *
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx | optionClassName="text-ds-15" | optionClassName=""
- * @mutate src/components/quotes/PostJobQuoteChoice.tsx | <span className="text-ds-12 font-medium">Coming soon</span> | <span className="text-ds-10 font-medium">Coming soon</span>
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx | <span className="text-ds-12 font-medium">{tr("postJob.f.comingSoon")}</span> | <span className="text-ds-10 font-medium">{tr("postJob.f.comingSoon")}</span>
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

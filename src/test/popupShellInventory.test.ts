@@ -363,6 +363,8 @@ describe("one footer convention", () => {
   const FOOTERLESS_BY_DESIGN: Record<string, string> = {
     "src/components/declutter/DeclutterFreeClaim.tsx": "How free items work: words only, nothing to act on; the sheet's X is the exit (FreeAskSheet, the ask itself, has its footer)",
     "src/pages/jobs/jobPage/JobPageActionRow.tsx": "More options: a menu, each row acts and closes; the sheet's X is the exit",
+    // Area 03 M11 (11-18): the job card's More is the job page's same "More options" sheet.
+    "src/components/job-card/JobActionRow.tsx": "More options: a menu, each row acts and closes; the sheet's X is the exit",
     "src/components/declutter/DeclutterBunchPhotos.tsx": "a photo viewer: each action acts and closes, and Done sits in the same row",
     "src/components/create/CreateSheet.tsx": "a menu (board 1): each row's chips go straight to their flow; the sheet's close is the exit",
     "src/components/sections/MySectionSheet.tsx": "a menu (\"My …\" under the photo, owner 11-08): each row is a link that goes and closes; the sheet's X is the exit",
@@ -492,6 +494,7 @@ describe("one footer convention", () => {
       "ReportDialog.tsx no longer uses the shared dismiss primitive for " +
         "Cancel/Back. It is the reference for this suite, so it must be built " +
         "from DialogSecondaryAction like every other converted footer.",
-    ).toMatch(/<DialogSecondaryAction[\s\S]{0,80}(Cancel|Back|Done)/);
+    // Design audit r3 #8: the label may be the translated t("rep.cancel") (the dialog speaks Spanish).
+    ).toMatch(/<DialogSecondaryAction[\s\S]{0,80}(Cancel|Back|Done|t\("[\w.]*\.(cancel|back|done)"\))/);
   });
 });

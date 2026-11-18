@@ -47,7 +47,7 @@
  * @mutate supabase/migrations/20261111212343_declutter_my_setup_fee.sql | AND rh.status = 'held_for_review'\n | AND rh.status = 'held_for_reviewX'\n
  * @mutate supabase/functions/declutter-money/index.ts |     admin.rpc("declutter_payouts_due", { p_limit: BATCH }), |     admin.from("declutter_payouts").select("*"),
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {true && items > 0 && (
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx | then gets ${refundDollars(v.full_refund_cents)} back | then gets ${refundDollars(v.items_cents + 130)} back
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | returns it and gets ${refundDollars(v.full_refund_cents)} back | returns it and gets ${refundDollars(v.items_cents + 130)} back
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -188,7 +188,7 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
     expect(VIEWS).toMatch(/useFeature\("declutter_refund_requests"\)/);
     // #6: never on a free claim (nothing was paid, nothing to refund).
     expect(VIEWS).toMatch(/\{refundRequests && items > 0 && \(/);
-    expect(PANEL).toMatch(/then gets \$?\{refundDollars\(v\.full_refund_cents\)\} back/);
+    expect(PANEL).toMatch(/gets \$?\{refundDollars\(v\.full_refund_cents\)\} back/);
     expect(PANEL, "no refund arithmetic on screen").not.toMatch(/items_cents\s*[+*-]|full_refund_cents\s*[+*-]/);
   });
 });

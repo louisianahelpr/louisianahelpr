@@ -55,6 +55,7 @@ import ShopFaqsEditor from "./ShopFaqsEditor";
 import { UnsavedSectionsProvider } from "./unsavedSections";
 import ShopPermitSection from "./ShopPermitSection";
 import ShopOpenIntro from "./ShopOpenIntro";
+import { SuggestCategory } from "@/components/SuggestCategory";
 import { EMPTY, EMPTY_HOURS, FIELD_ORDER, FieldError, type FieldErrors, type FieldKey, fieldOfError, focusField, type Form, invalidProps, validate } from "./shopEditForm";
 
 /**
@@ -306,6 +307,7 @@ export default function ShopEditView() {
       <ShopCategoryQuickPick id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups}
         invalid={!!errors.category} describedBy={errors.category ? "shop-category-error" : undefined} />
       <FieldError field="category" errors={errors} />
+      <SuggestCategory area="shops" />
     </div>
     <div className="space-y-1.5">
       <Label htmlFor="shop-about">About</Label>
@@ -318,7 +320,7 @@ export default function ShopEditView() {
       <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="e.g. Broussard"
         onChange={(e) => set("areaLabel", e.target.value)} required {...invalidProps("area", errors)} />
       <FieldError field="area" errors={errors} />
-      <p className="text-ds-11 text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
+      <p className="text-ds-11 text-muted-foreground">Never your street address. Buyers see only this town or neighborhood.</p>
     </div>
     <div className="flex items-start gap-2">
       <Checkbox id="shop-storefront" checked={form.storefront} onCheckedChange={(v) => set("storefront", v === true)} />
@@ -585,7 +587,7 @@ export default function ShopEditView() {
           e.preventDefault();
           close.mutate();
         }}
-        secondaryLabel="Cancel"
+        secondaryLabel="Keep my shop"
       />
     </AppPage>
   );

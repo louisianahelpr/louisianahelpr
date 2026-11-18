@@ -140,7 +140,8 @@ describe("the shell: safety actions sit only inside More, and SOS still opens it
       const panel = screen.getByRole("dialog", { name: "More actions for this job" });
       expect(within(panel).getByRole("button", { name: label })).toBeTruthy();
       // Order: the pinned safety action leads, SOS follows it.
-      const names = within(panel).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent);
+      // Area 03 M11: the sheet's own close button is not one of the actions; the actions are its MenuAction rows.
+      const names = within(panel).getAllByRole("button").filter((b) => b.hasAttribute("data-menu-action")).map((b) => b.getAttribute("aria-label") ?? b.textContent);
       // Most important first, SOS LAST (owner, 2026-10-08); Message lives here too.
       expect(names.some((n) => /^Message/.test(n ?? ""))).toBe(true);
       expect(names.indexOf(label)).toBeLessThan(names.findIndex((n) => /^SOS/.test(n ?? "")));

@@ -266,7 +266,8 @@ describe("helper active card — exactly one way out of a live job", () => {
     await act(async () => { await Promise.resolve(); });
     const exit = exitIn(container);
     expect(exit, "the pre-on-the-way Cancel job disappeared").toBeTruthy();
-    expect(exit!.hasAttribute("data-job-action-chip")).toBe(true);
+    // Area 03 M11 (11-18): in More's bottom sheet a chip is drawn as the sheet's outlined row (MenuAction).
+    expect(exit!.hasAttribute("data-menu-action")).toBe(true);
     expect(reportIn(container), "Report a Problem is duplicating an exit that already exists").toBeUndefined();
     expect(
       [...container.querySelectorAll("button")].some((b) => /Can.t Finish/i.test(b.textContent || "")),
@@ -285,11 +286,11 @@ describe("helper active card — exactly one way out of a live job", () => {
       const report = reportIn(container);
       expect(report, `a job that is ${name} has no exit at all — not even a report path`).toBeTruthy();
       expect(report!.className).not.toContain("btn-grad-primary");
-      // Same chip primitive, but NOT on the row: it is inside More.
-      expect(report!.hasAttribute("data-job-action-chip"), "Report a Problem is not a job action chip").toBe(true);
+      // NOT on the row: it is inside More's sheet, drawn as the sheet's outlined row (Area 03 M11, 11-18).
+      expect(report!.hasAttribute("data-menu-action"), "Report a Problem is not a More row").toBe(true);
       expect(container.contains(report!), "Report a Problem is on the row instead of inside More").toBe(false);
       expect(report!.closest('[role="dialog"][aria-label="More actions for this job"]')).not.toBeNull();
-      const message = [...document.body.querySelectorAll("button[data-job-action-chip]")].find((b) =>
+      const message = [...document.body.querySelectorAll("button[data-menu-action]")].find((b) =>
         /Message/i.test(b.textContent || ""),
       );
       expect(message, "Message must stay reachable").toBeTruthy();

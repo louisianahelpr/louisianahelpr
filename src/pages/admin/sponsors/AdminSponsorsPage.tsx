@@ -137,6 +137,8 @@ export default function AdminSponsorsPage() {
         ) : null}
         {allowed && dataQ.data && backend ? (
           <>
+            {/* Design audit r2 #48: on a phone the five tabs scroll sideways with a right-edge fade, never a hard clip. */}
+            <div data-admin-tabs-scroll="" className="admin-tabs-scroll">
             <UnderlineTabs
               ariaLabel="Sponsor admin sections"
               value={tab}
@@ -149,6 +151,7 @@ export default function AdminSponsorsPage() {
                 { key: "content", label: "Page content" },
               ]}
             />
+            </div>
             {tab === "calendar" ? <CalendarView data={dataQ.data} run={(f) => act.mutate(f)} /> : null}
             {tab === "signups" ? <SignupsView data={dataQ.data} backend={backend} run={(f) => act.mutate(f)} /> : null}
             {tab === "links" ? <LinksView data={dataQ.data} run={(f) => act.mutateAsync(f)} /> : null}
@@ -168,7 +171,8 @@ function SponsorChip({ s, day, run }: { s: SponsorAdminSignup; day: number | nul
   return (
     <li className="rounded-xl border border-border bg-background p-2 text-sm">
       <div className="font-semibold">{s.brand_name}</div>
-      <div className="text-xs text-muted-foreground">{s.prize_description} · {prizeValueLabel(s.prize_value)}</div>
+      {/* Design audit r2 #48: no "· —" when the sponsor gave no value (or no description). */}
+      <div className="text-xs text-muted-foreground">{[s.prize_description, s.prize_value == null ? null : prizeValueLabel(s.prize_value)].filter(Boolean).join(" · ")}</div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.setStatus(s.id, st))} />
         <NativeSelect

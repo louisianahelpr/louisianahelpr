@@ -502,8 +502,10 @@ test.describe("My Posts — card density + header", () => {
     // assertion here is about tap-target height, not wording — anchoring it to
     // the visible label keeps it green through the next re-phrasing of the
     // trailing context while still failing if the chip disappears.
-    for (const name of [/^Message\b/, /^No-show\b/]) {
-      const box = await page.getByRole("button", { name }).first().boundingBox();
+    // Area 03 H1 (design audit 11-18, money safety): a Helpr who never checked in puts "Report no-show" in the row's
+    // main button, and Message moves into More options with the release, so the row's own button is what is measured.
+    for (const name of [/^Report no-show\b/]) {
+      const box = await page.locator(POSTER_ROW).getByRole("button", { name }).first().boundingBox();
       expect(box, `${name} has no box`).not.toBeNull();
       expect(box!.height, `${name} tap target`).toBeGreaterThanOrEqual(44);
     }
@@ -569,11 +571,12 @@ test.describe("My Posts — card density + header", () => {
     // the day someone drops the attribute. Since Q1080 every self-drawn chip
     // (SOS, Directions, Share, the photo chip) carries the hook too, and
     // src/test/jobRowControlSameness.test.tsx fails on a row chip without it;
-    // two is the floor the tap-target loop above names.
+    // One is the floor the tap-target loop above names: since Area 03 H1 (design audit 11-18) a no-show row holds only
+    // "Report no-show"; Message and the release are in the top bar's "..." menu ([data-row-more]).
     expect(
       await page.locator(`:is(${ACTIONS}):not([hidden] *)`).count(),
       "no action chips found at 320px — the gate above would pass on an empty row",
-    ).toBeGreaterThanOrEqual(2);
+    ).toBeGreaterThanOrEqual(1);
     await page.screenshot({ path: `${SHOTS}/actions-3up-320.png`, fullPage: true });
   });
 
@@ -706,8 +709,12 @@ test.describe("My Posts — card density + header", () => {
     });
     await openJobPage(page, IN_PROGRESS_ID);
 
-    // Message is the job page's main button while nothing is confirmable (owner rule 2026-10-21).
-    await page.getByRole("button", { name: /^Message\b/ }).first().click();
+    // The job started yesterday and the Helpr never checked in, so the row leads with "Report no-show" (Area 03 H1,
+    // design audit 11-18) and Message sits in the top bar's "..." menu ([data-row-more]): the bar first, then that menu.
+    const { bar, open } = await barThenMenu(page);
+    let message = bar.getByRole("button", { name: /^Message\b/ });
+    if (!(await message.count())) message = ((await open()) ?? bar).getByRole("button", { name: /^Message\b/ });
+    await message.first().click();
     await page.waitForURL(/\/messages\?/);
     const url = new URL(page.url());
     // Landing on the bare list — the old behaviour — leaves both params null.

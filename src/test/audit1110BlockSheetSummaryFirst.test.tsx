@@ -8,6 +8,8 @@
  * @mutate src/components/BlockUserDialog.tsx | (showAllJobs ? jobs : jobs.slice(0, 3)) | jobs
  * @mutate src/components/BlockUserDialog.tsx | {j.late && <> (starts within 24 hours)</>} | {null}
  * @mutate src/components/BlockUserDialog.tsx | which starts within 24 hours | which starts soon
+ * @mutate src/components/BlockUserDialog.tsx | <div role="alert" data-block-cost-notice="" | <div data-block-cost-notice=""
+ * @mutate src/components/BlockUserDialog.tsx | font-semibold text-ds-15 leading-snug text-foreground | font-medium text-foreground
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
@@ -56,6 +58,9 @@ describe("F260i: the block sheet says the summary first, then a short job list",
     const dialog = open();
     const summary = await within(dialog).findByText(/^Blocking Hallie also cancels 10 jobs\./);
     expect(summary.textContent).toMatch(/^Blocking Hallie also cancels 10 jobs\. You will pay about \$100 for the Helpr’s time and it counts as a strike against you\.$/);
+    // Design audit area 09 M13: the cost and the strike are a warn notice at 15px, not body text.
+    expect(summary.closest("[data-block-cost-notice]")?.getAttribute("role")).toBe("alert");
+    expect(summary.className).toContain("text-ds-15");
     // First thing after the title: before the generic "You won't see their messages" bullet.
     const seeLine = within(dialog).getByText(/You won.t see their messages/);
     expect(summary.compareDocumentPosition(seeLine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

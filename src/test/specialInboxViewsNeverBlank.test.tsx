@@ -66,7 +66,7 @@ function openOptions() {
 }
 
 const VIEWS: Array<[string, RegExp]> = [
-  ["Recently deleted", /Nothing hidden\./],
+  ["Recently deleted", /Nothing here\. Swipe a chat left/],
   ["Pinned", /No conversations are pinned\./],
 ];
 

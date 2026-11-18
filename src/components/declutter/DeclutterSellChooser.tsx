@@ -32,8 +32,8 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetSecondaryAction } fro
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 const ICON = "h-5 w-5";
-/** A "More ways" link: tertiary text (underlined, 44 px tap height), never a card. */
-const MORE_LINK = "inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm";
+/** A "More ways" row (area 06b L8: they were 13px underlined links): a 48px list row at body size, never a card. */
+const MORE_LINK = "flex min-h-12 w-full items-center justify-between gap-3 px-4 text-left text-ds-15 font-semibold text-foreground after:content-['›'] after:text-ds-17 after:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 
 /** Both kinds of kept work: which one to go back to (the chooser's one Continue row opens this). */
 function KeptWorkSheet({ open, onClose, bunchTo, bunchLine }: { open: boolean; onClose: () => void; bunchTo: string; bunchLine: string }) {
@@ -71,7 +71,7 @@ export default function DeclutterSellChooser() {
     : kept.data?.one ? { to: SELL_ONE_PATH } : null;
   return (
     <AppPage title="Sell" backTo="/declutter?tab=selling" phoneHidesTitle>
-      <div className="mx-auto w-full max-w-xl space-y-5" data-sell-chooser="">
+      <div className="w-full max-w-xl space-y-5" data-sell-chooser="">
         {underAge ? (
           <DeclutterNotice tone="warn" title="You must be 18 or older to sell on Declutter.">
             You can still look around. Selling opens when your birthday on file says you're 18.
@@ -91,13 +91,11 @@ export default function DeclutterSellChooser() {
             <ChoiceCard data-sell-choice="one" to={SELL_ONE_PATH} icon={<Package className={ICON} />} title="One item" line="Photos first; we write the listing." />
             <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Several at once" line="Photos of everything; we write each one." />
             <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give away free" line="Someone nearby picks it up." />
-            <nav aria-label="More ways" data-sell-other="" className="flex flex-wrap items-center gap-x-1.5 pt-1 text-ds-13 text-muted-foreground">
-              {/* The label on its own line, so the three links share one row at 375 (measured: they wrapped one off). */}
-              <span className="w-full font-semibold">More ways:</span>
+            <nav aria-label="More ways" data-sell-other="" className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card divide-y divide-border">
+              {/* Area 06b L8: the label heads a short list of rows (was a row of 13px links). */}
+              <span className="w-full px-4 pb-1 pt-3 text-ds-13 font-semibold text-muted-foreground">More ways:</span>
               {movingOut && <Link data-sell-choice="move" to={SELL_MOVE_PATH} className={MORE_LINK}>Moving sale</Link>}
-              {movingOut && <span aria-hidden>·</span>}
               <button type="button" data-sell-choice="helpr" onClick={() => setExplaining(true)} className={MORE_LINK}>A Helpr lists it</button>
-              {wanted && <span aria-hidden>·</span>}
               {wanted && <Link data-sell-choice="wanted" to={WANTED_POST_PATH} className={MORE_LINK}>Post a Wanted</Link>}
             </nav>
             <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />

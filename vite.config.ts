@@ -18,8 +18,11 @@ const I18N_SCREEN_DICTS = readdirSync(path.join(process.cwd(), "src/lib/i18n"))
 /**
  * One panel's words, imported by that one panel only (i18nDictionariesRideWithTheirScreens.test.ts checks it): no group,
  * so each is inlined into its panel's chunk instead of being one more small file on the item page (Q178).
+ * enMoneyTiles and enJobLines left this set in the 11-18 train: area 11 M12/M13 gave each three importers
+ * (HomeMoneyTiles, PayoutFailedCard, payoutProblems; OnTheWayNow, jobProgressState, reviewTimeLeft), so each is a
+ * grouped dictionary with its own chunk now.
  */
-const I18N_PANEL_DICTS = new Set(["enOffer", "enQuestions", "enFree", "enOfferTrade", "enSellSummary", "enFreeAsk", "enMoneyTiles", "enChatEvents", "enPorchPlaces", "enSellingNow", "enYourPage", "enJobSteps", "enNextStep", "enJobLines", "enAiDraft", "enListForSeller"]);
+const I18N_PANEL_DICTS = new Set(["enOffer", "enQuestions", "enFree", "enOfferTrade", "enSellSummary", "enFreeAsk", "enChatEvents", "enPorchPlaces", "enSellingNow", "enJobSteps", "enNextStep", "enAiDraft", "enListForSeller", "enItemPage", "enGuest"]);
 
 // Build identity — baked into the bundle at build time so any running app
 // can show exactly which commit it was built from without any API calls.
@@ -235,7 +238,7 @@ const HOME_SCHEDULE_READS = /[\\/]src[\\/]lib[\\/](scheduleChange|scheduleClashe
 // Q2706 (B98): Home's shop-order reads (useHomeSummary / useNeedsYouTodos import("@/lib/shops/orders")). In signed-in-deep
 // they fetched that chunk and its closure (browse-first-screen, declutter-first-screen, signed-in-pages, ...) ~180 KB gz
 // the moment the feature switches answered, before /home's money tile drew. src/test/homeLazyReadsStayLight.test.ts.
-const HOME_SHOP_READS = /[\\/]src[\\/]lib[\\/]shops[\\/](orders|rpcErrorCopy|errors)\.ts$/;
+const HOME_SHOP_READS = /[\\/]src[\\/]lib[\\/]shops[\\/](orders|rpcErrorCopy|errors|louisianaClock)\.ts$/;
 const HOME_DERIVE_LEAVES = /[\\/]src[\\/](pages[\\/]home[\\/]homeDashboard[\\/]useNeedsYouTodos|components[\\/]tracker[\\/]jobProgressSteps|components[\\/]job-card[\\/]helperStepRequest)\.ts$/;
 // Builder 1, 11-11: and BrowseViewToggle (the filter sheet's List/Map control): Declutter's browse bar imports it, and in
 // browse-first-screen that one 0.4 KB module put the whole 20.6 KB gz guest-browse chunk on /declutter (481 -> 456 KB gz
@@ -1399,6 +1402,28 @@ export default defineConfig(({ mode, command }) => ({
               // (sign-out, the Notify tap) preloaded that chunk's 77 files. Measured: 16.7 still lost to signed-in-deep
               // (the build acts as if only the whole number counts, the earlier group winning a tie); 18 wins.
               priority: 18,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // 11-18 train (Q178): the payout words Profile's Earnings tab and Declutter's sale cards share. In signed-in-deep
+            // they put that whole chunk and its closure (declutter-first-screen, browse-first-screen, rentals, sponsorPage...)
+            // on /profile?tab=earnings: 368 -> 576 KB gz, 5 -> 6 rounds. Their one dependency (formatPrice) has its own
+            // price-words chunk below. Above 16 for the reason native-push gives above:
+            // signed-in-deep (16) wins anything lower.
+            {
+              name: "payout-words",
+              test: /[\\/]src[\\/]lib[\\/]declutter[\\/]payoutWords\.ts$/,
+              priority: 19, // above signed-in-deep (16); 19, not 18, so jobsFirstScreen's @mutate on native-push stays unique
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // formatPrice (11-18 train, Q178): the dependency-free price words distance.ts and payoutWords share, on its own
+            // (~0.1 KB gz). Left to the bundler (or in leaves at 15.8) it fell into declutter-first-screen, and payout-words
+            // then imported that chunk (Earnings 367 -> 450 KB gz, 5 -> 6 rounds).
+            {
+              name: "price-words",
+              test: /[\\/]src[\\/]lib[\\/]declutter[\\/]formatPrice\.ts$/,
+              priority: 19, // above every group that wanted it (signed-in-deep 16, declutter-first-screen)
               minSize: 0,
               includeDependenciesRecursively: false
             },

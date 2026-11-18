@@ -26,8 +26,9 @@ export function StillNeededList({ checklist, allComplete, t }: { checklist: Item
     <div
       className="rounded-ds-md border p-3.5"
       style={{
-        borderColor: "hsl(var(--burnt-sienna) / 0.28)",
-        background: "hsl(var(--burnt-sienna) / 0.06)",
+        // Design audit area 11b M6: a neutral box, not a pink nag (it shows only after a first Finish).
+        borderColor: "hsl(var(--border))",
+        background: "hsl(var(--muted) / 0.5)",
       }}
     >
       {/* NOT `text-display-eyebrow` — that utility was `display: none`

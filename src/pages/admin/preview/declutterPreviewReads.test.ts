@@ -58,10 +58,12 @@ describe("Q2625: the preview tells a blocked read from a blocked write", () => {
     });
     expect(DECLUTTER_PREVIEW_READ_RPCS.has("declutter_price_hint")).toBe(true);
     expect(DECLUTTER_PREVIEW_READ_RPCS.has("declutter_set_watch")).toBe(false);
-    for (const name of ["declutter_price_hint", "declutter_set_watch"]) {
+    // Area 06 (11-18): the shell's badge read toasted "Preview: this would my badge reads."; it is a read.
+    // @mutate src/pages/admin/preview/declutterPreviewBackend.ts | SHELL_READ_RPCS.has(name) \|\| DECLUTTER_PREVIEW_READ_RPCS | DECLUTTER_PREVIEW_READ_RPCS
+    for (const name of ["declutter_price_hint", "declutter_set_watch", "my_badge_reads"]) {
       await fetch(`${BASE}/rest/v1/rpc/${name}`, { method: "POST", body: "{}" });
     }
-    expect(blocked).toEqual([["price hint", "read"], ["set watch", "write"]]);
+    expect(blocked).toEqual([["price hint", "read"], ["set watch", "write"], ["my badge reads", "read"]]);
     expect(realFetch).not.toHaveBeenCalled();
     // The page's toast words for each kind.
     expect(previewBlockedWords("price hint", "read")).toBe("Preview: not loaded (price hint).");

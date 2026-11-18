@@ -116,7 +116,7 @@ describe("the shop page's title row on a phone holds the name, not the owner's b
 
   // S029 (Shops audit 11-12): a visitor's page named the shop twice (title row, wrapping to 4 lines beside Follow
   // at 375, and the card right under it). The title row says "Shop"; the card names it once.
-  // @mutate src/components/shops/ShopView.tsx |       title={s.mine ? "My shop" : "Shop"} |       title={s.mine ? "My shop" : s.name}
+  // @mutate src/components/shops/ShopView.tsx |       title={s.mine ? t("shv.myShop") : t("shv.title")} |       title={s.mine ? t("shv.myShop") : s.name}
   it("a visitor's page names the shop once, in the card (S029)", async () => {
     bar.desktop = false;
     api.fetchShop.mockResolvedValue(page({ mine: false, owner_id: "u2" }));

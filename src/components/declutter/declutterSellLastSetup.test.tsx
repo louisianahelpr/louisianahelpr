@@ -176,7 +176,7 @@ describe("posting says what the settings will do, and asks nothing (owner 2026-1
     const labels = [...card.querySelectorAll("[data-settings-row] > div > div > p:first-child")].map((p) => p.textContent);
     expect(labels).toEqual(["Pickup", "Price drops", "Make it free"]);
     expect(settingsValue("drops")).toBe("5% each evening, lowest $23");
-    expect(settingsValue("free")).toBe("Never");
+    expect(settingsValue("free")).toBe("Off"); // design audit 11-17 #21
     const change = within(card).getAllByRole("link");
     expect(change.map((l) => [l.textContent, l.getAttribute("href")])).toEqual([["Change", "/declutter/settings"]]);
     const text = document.body.textContent ?? "";
@@ -193,7 +193,7 @@ describe("posting says what the settings will do, and asks nothing (owner 2026-1
     expect(screen.queryByLabelText("Pickup address")).toBeNull();
     expect(document.querySelector("[data-auto-free]")).toBeNull();
     await waitFor(() => expect(settingsValue("drops")).toBe("5% each evening, lowest $23"));
-    expect(settingsValue("free")).toBe("Never");
+    expect(settingsValue("free")).toBe("Off"); // design audit 11-17 #21
     expect(screen.getByRole("link", { name: "Change your selling settings" }).getAttribute("href")).toBe("/declutter/settings");
     expect(document.getElementById("sell-tax")).not.toBeNull();
   });

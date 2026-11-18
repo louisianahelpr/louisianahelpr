@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
  * list the next category release adds from. Shown only while the
  * 'suggest_category' switch reaches this admin; it lives beside that switch.
  */
-const AREA_LABEL: Record<CategorySuggestionRow["area"], string> = { jobs: "Jobs", declutter: "Declutter" };
+const AREA_LABEL: Record<CategorySuggestionRow["area"], string> = { jobs: "Jobs", declutter: "Declutter", shops: "Shops" };
 
 function SuggestionItem({ row }: { row: CategorySuggestionRow }) {
   const qc = useQueryClient();

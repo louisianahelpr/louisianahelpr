@@ -11,7 +11,9 @@
  */
 
 function StatusChips<K extends string>({ chips, value, onPick }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void }) {
-  const all = chips.reduce((n, c) => n + c.count, 0);
+  // Area 06 L2 (11-18): "All · 15" beside the tab's "Selling 5" counted History (taken down, ended) too; All counts
+  // what is still going.
+  const all = chips.reduce((n, c) => n + (c.key === "taken" ? 0 : c.count), 0);
   return (
     // AUD31-4 (lead 10-31): at 375 the last chip runs off the right edge on purpose: the row scrolls sideways. The right
     // edge fades so the cut chip reads as "more to scroll"; the end padding (>= the fade) lets the last chip scroll clear
@@ -136,19 +138,24 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {/* Declutter trades slice 3: the buyer's trade offers from the last 7 days, with Take it back while open. */}
       <TradeOffersSection side="buyer" userId={user?.id ?? null} only={only} />
       <PaidOrders side="buyer" views={trk.views} scope={(id) => !refunded(id)} show={(id) => only === null || trk.views.get(id)?.bucket === only} />
+      {/* Design audit 11-17 #33: only ended orders left one card, a left-aligned button and a blank screen. The empty
+          state's line and its centred button come first, then the Ended list. */}
+      {nothingActive && (ended.length > 0 || endedOrders > 0) && (
+        <div className="flex flex-col items-center gap-3 py-4 text-center" data-buying-nothing-active="">
+          <p className="text-ds-15 text-muted-foreground">{t("decl.mv.nothingActive")}</p>
+          {/* M5 (iOS audit 11-16): a real button, not a bare underlined link (the empty states' one action style). */}
+          <Button asChild variant="outline" size="sm" className="rounded-full">
+            <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>
+          </Button>
+        </div>
+      )}
       {(ended.length > 0 || endedOrders > 0) && (
         <section className="space-y-2" aria-label={t("decl.mv.ended")}>
           {/* "Ended", not "Ended before paying": an order cancelled after it was paid or claimed is kept here too (A2-4). */}
           <SectionHeading title={t("decl.mv.ended")} />
           {endedOrders > 0 && <PaidOrders side="buyer" views={trk.views} scope={refunded} ended />}
           {ended.length > 0 && <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>}
-          {/* Q2569: only ended orders, nothing on the way and no offer out: a way back to shopping. */}
-          {nothingActive && (
-            // M5 (iOS audit 11-16): a real button, not a bare underlined link (the empty states' one action style).
-            <Button asChild variant="outline" size="sm" className="rounded-full">
-              <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>
-            </Button>
-          )}
+          {/* Q2569: only ended orders, nothing on the way and no offer out: the way back to shopping is above the list. */}
         </section>
       )}
       {offers.has && !offers.toAnswer && <OffersSection side="buyer" only={only} />}
@@ -176,6 +183,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const ended = useEndedSales();
   const history = takenDown.length + ended.length;
   const show = (g: SellingGroup) => only === null || only === g;
+  const pricedLive = (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents > 0);
   // Audit DC-9: "To answer" is the offers waiting for the seller AND the questions waiting for an answer, and only
   // those (no buyer-turn offers, no settings). NIGHT-BUYINGopenpr-3 (lead 10-31): and the sales with a buyer's report
   // waiting on the seller's side, listed there too, so the chip never counts what it hides.
@@ -189,7 +197,9 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const waitingLabel = useWaitingChipLabel();
   // AUD31-4: a sale to hand over is the seller's next move, so on the whole tab it comes before the offers, the
   // listings and their empty cards (at 375 it sat at the very bottom, behind the floating +).
-  const soldFirst = only === null && (todo?.salesOpen ?? 0) > 0;
+  // Area 06 M1 (11-18): so do a refund request or report waiting on the seller and a Helpr delivery still to hand to its
+  // Helpr; they sat under "No offers yet" and Your listings. (Order only: the chip counts are unchanged.)
+  const soldFirst = only === null && ((todo?.salesOpen ?? 0) + (todo?.salesDelivering ?? 0) > 0 || reports.size > 0);
   const sold = show("sold") && <>
     {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
     <SellerPayoutPrompt />
@@ -221,7 +231,8 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {show("offers") && <FreeAsksToPick rows={freeAsks} />}
       {show("offers") && <BundleRequestsSection side="seller" userId={userId} />}
       {show("offers") && <TradeOffersSection side="seller" userId={userId} />}
-      {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}
+      {/* Area 06b L3: "No offers yet" only while something priced is up for an offer (not over free or sold rows). */}
+      {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} quietWhenEmpty={!pricedLive} />}
       {show("listings") && listings}
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
       {!soldFirst && sold}

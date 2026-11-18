@@ -26,6 +26,10 @@ export function jobNextStep(
   // Off the path (cancelled, expired, under review): where it stands, with its word.
   if (progress.stage === null) {
     if (!progress.word && !progress.next) return null;
+    // Area 11 L4 (11-18): a late cancel read as three bold lines ("You cancelled Wed 2:05 AM · Plans changed · $30 was
+    // kept for Eli's time · The rest was refunded"). Who cancelled and when stays the bold line; the details go under it.
+    const [head, ...details] = progress.word === "Cancelled" && !progress.body ? progress.next.split(" · ") : [progress.next];
+    if (details.length > 0) return { who: "info", text: `${progress.word} · ${head}`, body: details.join(" · ") };
     const off: NextStepValue = { who: "info", text: progress.next ? `${progress.word} · ${progress.next}` : progress.word };
     return progress.next && progress.body ? { ...off, body: progress.body } : off;
   }

@@ -11,8 +11,10 @@
  * @mutate src/pages/admin/AdminFrame.tsx | lg:p-8 lg:pr-[4.5rem] | lg:p-8
  * @mutate src/components/ScrollToTop.tsx | fixed right-4 z-30 active:scale-[0.94] | fixed right-12 z-30 active:scale-[0.94]
  * @mutate src/components/ui/RoundIconButton.tsx | md: "w-11 h-11" | md: "w-20 h-20"
- * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <DonationPartnersCard />\n    <DeclutterFunnelCard />\n    <DeclutterPreviewCard />\n    <ShopItemsReviewCard />\n | <ShopItemsReviewCard />\n    <DonationPartnersCard />\n    <DeclutterFunnelCard />\n    <DeclutterPreviewCard />\n
- * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <DeclutterProblemsCard includeTest={declutterShowTest} />\n    <MeetupSpotsCard />\n | <MeetupSpotsCard />\n    <CategorySuggestionsCard />\n    <DeclutterProblemsCard includeTest={declutterShowTest} />\n
+ * Design audit area 10 #2 (11-18): the Declutter cards now have their own view (AdminDeclutter, under Queues); none
+ * is left among the Settings cards, and the stage preview is still with them.
+ * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <ShopItemsReviewCard />\n |     <ShopItemsReviewCard />\n    <MeetupSpotsCard />\n
+ * @mutate src/components/admin/AdminDeclutter.tsx |       <DeclutterPreviewCard />\n |
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -56,15 +58,16 @@ describe("Q2583 admin scroll-to-top clears card actions; Declutter cards grouped
     expect(right + width).toBeGreaterThan(40);
   });
 
-  it("the Declutter admin cards render as one run, the stage preview included", () => {
-    const src = read("src/components/admin/settings/FeatureSwitchesCard.tsx");
-    const order = [...src.matchAll(/<([A-Z][A-Za-z]+Card)\b/g)].map((m) => m[1]).filter((n) => n !== "AdminCard");
-    expect(order.length).toBeGreaterThan(6);
+  it("the Declutter admin cards render as one run on their own view, the stage preview included", () => {
+    const cards = (p: string) => [...read(p).matchAll(/<([A-Z][A-Za-z]+Card)\b/g)].map((m) => m[1]).filter((n) => n !== "AdminCard");
     const isDeclutter = (n: string) => /^Declutter|^MeetupSpots|^DonationPartners/.test(n);
-    const idx = order.map((n, i) => (isDeclutter(n) ? i : -1)).filter((i) => i >= 0);
-    expect(idx.length).toBeGreaterThanOrEqual(5);
-    expect(idx[idx.length - 1] - idx[0]).toBe(idx.length - 1);
-    expect(order).toContain("DeclutterPreviewCard");
+    const view = cards("src/components/admin/AdminDeclutter.tsx");
+    expect(view.length).toBeGreaterThan(6);
+    expect(view.every(isDeclutter)).toBe(true);
+    expect(view).toContain("DeclutterPreviewCard");
+    const settings = cards("src/components/admin/settings/FeatureSwitchesCard.tsx");
+    expect(settings.length).toBeGreaterThan(2);
+    expect(settings.filter(isDeclutter)).toEqual([]);
     // Not rendered a second time, apart from the group, in Settings itself.
     expect(read("src/components/admin/AdminSettings.tsx")).not.toMatch(/<DeclutterPreviewCard\b/);
   });

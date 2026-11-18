@@ -16,6 +16,7 @@ import { JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
 import { HIRE_STEPS } from "@/components/landing/hireSteps";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 /** F063: the town page's column, and its header's (the column plus the shell's side padding at each breakpoint). */
 const TOWN_COLUMN = "max-w-[760px]";
@@ -62,7 +63,17 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
           <p className="text-ds-17" style={ink}>
             Need {service.phrase} in {town.name}? Post the job on Louisiana Helpr and a local Helpr can take it.
           </p>
-          <Button asChild size="wrap" className="rounded-full">
+          {/* Design audit 11-17 #13: the two calls were 48 px / 17 px and 40 px / 13 px. One row, one size now. */}
+          <div className="flex flex-wrap gap-3" data-town-ctas="">
+          {/* Train 11-18: the green primary on the right of the pair, both on one line (buttonPairsPrimaryRight). */}
+          {/* L014: the page named no Helprs; the directory, filtered to this town, is one tap away. */}
+          {/* F260t (audit 11-10): read as plain text at 1440 and in dark; now the secondary button it is. */}
+          <Button asChild variant="outline" size="default" className="rounded-full">
+            <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} data-town-helprs="">
+              See Helprs in {town.name}
+            </Link>
+          </Button>
+          <Button asChild size="default" className="rounded-full">
             <Link
               to={post}
               onClick={(e) => {
@@ -75,20 +86,16 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
               Post a job
             </Link>
           </Button>
-          {/* L014: the page named no Helprs; the directory, filtered to this town, is one tap away. */}
-          {/* F260t (audit 11-10): read as plain text at 1440 and in dark; now the secondary button it is. */}
-          <Button asChild variant="outline" size="sm" className="squircle">
-            <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} data-town-helprs="">
-              See Helprs in {town.name}
-            </Link>
-          </Button>
+          </div>
         </section>
         <section aria-labelledby="town-how" className="space-y-3">
           <h2 id="town-how" className="text-ds-17 font-semibold" style={ink}>How it works</h2>
           <ol className="space-y-3">
             {/* L014 (landing audit 11-09): the landing's own three steps, word for word (hireSteps.ts). */}
-            {HIRE_STEPS.map((s) => (
+            {HIRE_STEPS.map((s, i) => (
               <li key={s.title} className="rounded-2xl liquid-glass p-card">
+                {/* Design audit 11-17 #13: numbered 1-2-3 like the landing's step cards. */}
+                <span aria-hidden className="block text-ds-20 font-bold leading-none mb-2" style={{ color: "hsl(var(--olivewood))" }} data-town-step-n="">{i + 1}</span>
                 <p className="font-semibold" style={ink}>{s.title}</p>
                 <p className="text-ds-15 text-muted-foreground">{s.desc}</p>
               </li>
@@ -96,7 +103,7 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
           </ol>
         </section>
         <nav aria-labelledby="town-more" className="space-y-3">
-          <h2 id="town-more" className="text-ds-17 font-semibold" style={ink}>More near you</h2>
+          <h2 id="town-more" className="text-ds-17 font-semibold" style={ink}>{wordInLang("pub.town.moreNear", "More near you")}</h2>
           {/* F063: chips, not a run-on line of small links. */}
           <ul className="flex flex-wrap gap-2" data-town-more="towns">
             {TOWN_PAGE_TOWNS.filter((t) => t.slug !== town.slug).map((t) => (

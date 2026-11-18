@@ -21,6 +21,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { buildDonationPrefill } from "@/lib/declutter/haulAway";
 import { oneDonationPartner, type MyDonation } from "@/lib/declutter/donate";
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
+import { enDeclSell } from "@/lib/i18n/enDeclSell";
 
 const FILE = "20261027222743";
 const code = (name: string) => blankSqlComments(newestFunction(name).body).replace(/\s+/g, " ");
@@ -68,7 +69,9 @@ describe("Q2428 donate what doesn't sell: the server", () => {
 
   it("no value anywhere: the receipt table and reads carry no amount", () => {
     expect(SQL).not.toMatch(/value_cents|fair_market|estimated_value/);
-    expect(read("src/components/declutter/DeclutterDonate.tsx")).toContain("It doesn't state a value.");
+    // The words moved to i18n (enDeclSell, area 06b): the screen draws the key, the key says no value.
+    expect(read("src/components/declutter/DeclutterDonate.tsx")).toContain('t("dsl.don.record")');
+    expect(enDeclSell["dsl.don.record"]).toContain("It doesn't state a value.");
   });
 
   it("grants: members never read the tables or run the helpers; the partners table is admin-read only", () => {

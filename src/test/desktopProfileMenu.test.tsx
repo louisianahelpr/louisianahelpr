@@ -20,6 +20,7 @@ vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null }));
 // Log out itself is SignOutConfirmDialog's (its own test); here only that the menu opens it.
 vi.mock("@/components/auth/SignOutConfirmDialog", () => ({
   SignOutConfirmDialog: ({ open, title }: { open: boolean; title: string }) => (open ? <div role="alertdialog">{title}</div> : null),
+  LogOutConfirmDialog: ({ open }: { open: boolean }) => (open ? <div role="alertdialog">Log out?</div> : null),
 }));
 
 import DesktopTopNav from "@/components/DesktopTopNav";
@@ -41,7 +42,7 @@ describe("F086: the desktop top bar's photo opens Profile / Settings / Log out",
     mount();
     expect(screen.getByTestId("where").textContent).toBe("/home");
     await openMenu();
-    expect(screen.getAllByRole("menuitem").map((m) => m.textContent?.trim())).toEqual(["Profile", "Settings", "Log out"]);
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent?.trim())).toEqual(["Profile", "Settings", "Holiday Gift Guides", "Log out"]); // owner 2026-11-18: the gift guides for signed-in members
     expect(screen.getByTestId("where").textContent).toBe("/home");
   });
 

@@ -18,42 +18,23 @@ import { byClock, timeLeft } from "@/lib/declutter/timeLeft";
 import { NextStep } from "@/components/ui/NextStep";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { SellerTalks } from "./DeclutterHandoverTalk";
-import { DeclutterNotice } from "./declutterUi";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
+import { HandCoins } from "lucide-react";
+import { t, useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclSell";
 
-/** The words for one kind of waiting line: a paid sale, or a free item someone claimed. */
-const WORDS = {
-  paid: {
-    heading: "Sold, waiting for the buyer to pay",
-    line: "Waiting on the buyer to pay",
-    cancel: "Cancel sale",
-    sheetTitle: "Cancel this sale?",
-    keep: "Keep the sale",
-    done: "Sale cancelled.",
-    body: "You'll get a Declutter strike, and the buyer is told. Your listing comes down too; relist it from History. 3 strikes pause Declutter for you.",
-  },
-  free: {
-    heading: "Claimed, they're choosing a pickup",
-    line: "They're choosing how to pick it up",
-    cancel: "Cancel claim",
-    sheetTitle: "Cancel this claim?",
-    keep: "Keep the claim",
-    done: "Claim cancelled. It's back up.",
-    // Owner 2026-10-30 (B100, 20261030132149): no strike for cancelling a free claim; the item goes back up.
-    body: "No strike for a free item. The person who claimed it is told, and it goes back up so others can ask for it.",
-  },
-  // Trades audit 11-08 #2/#5: a trade line (source 'swap', 20261108195151) is not a give-away. Backing out ends the
-  // whole trade at once on the server (declutter_end_swap), with no strike.
-  swap: {
-    heading: "Traded, they're choosing a pickup",
-    line: "They're choosing how to pick up your item",
-    cancel: "Back out of trade",
-    sheetTitle: "Back out of this trade?",
-    keep: "Keep the trade",
-    done: "Trade cancelled. Both items are back up.",
-    body: "The trade ends for both of you and both items go back up. The other person is told. No strike.",
-  },
-} as const;
-type Kind = keyof typeof WORDS;
+type Kind = "paid" | "free" | "swap";
+const FIELDS = ["heading", "line", "cancel", "sheetTitle", "keep", "done", "body"] as const;
+/**
+ * The words for one kind of waiting line: a paid sale, a free item someone claimed, or a trade (area 06b H1: in the
+ * member's language, enDeclSell dsl.sw.*). Owner 2026-10-30 (B100, 20261030132149): no strike for cancelling a free
+ * claim. Trades audit 11-08 #2/#5: backing out ends the whole trade at once on the server (declutter_end_swap), no strike.
+ */
+function wordsFor(): Record<Kind, Record<(typeof FIELDS)[number], string>> {
+  const one = (k: Kind) => Object.fromEntries(FIELDS.map((f) => [f, t(`dsl.sw.${k}.${f}` as MsgKey)])) as Record<(typeof FIELDS)[number], string>;
+  return { paid: one("paid"), free: one("free"), swap: one("swap") };
+}
 
 /**
  * The Selling tab's chip for these lines (DA-3): "To be paid" over a free claim told a giver they would be paid.
@@ -65,14 +46,16 @@ export function useWaitingChipLabel(): string {
   const waiting = (cart.data ?? []).filter((l) => l.my_side === "seller" && l.status === "in_cart");
   const free = waiting.filter((l) => l.price_cents === 0 && l.source !== "swap").length;
   const swaps = waiting.filter((l) => l.source === "swap").length;
-  if (swaps === waiting.length && swaps > 0) return "Traded";
-  if (free === 0 && swaps === 0) return "To be paid";
-  return free === waiting.length ? "Claimed" : "Waiting";
+  if (swaps === waiting.length && swaps > 0) return t("dsl.sw.traded");
+  if (free === 0 && swaps === 0) return t("dsl.sw.toBePaid");
+  return free === waiting.length ? t("dsl.sw.claimed") : t("dsl.sw.waiting");
 }
 
 /** `emptyNotice`: on the seller's own chip (NIGHT-SELL-Sellinglist-3: an empty "To be paid" chip was a blank page). */
 export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } = {}) {
   const qc = useQueryClient();
+  useLanguage();
+  const WORDS = wordsFor();
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
   const [asking, setAsking] = useState<{ itemId: string; kind: Kind } | null>(null);
   const cancel = useMutation({
@@ -80,7 +63,7 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
     onSettled: () => setAsking(null),
     onSuccess: (n, { kind }) => {
       // A free claim gives no strike (20261030132149), so its toast names no strike count.
-      toast(kind === "paid" ? `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.` : WORDS[kind].done);
+      toast(kind === "paid" ? `${WORDS[kind].done} ${t("dsl.sw.strikesNow", { n: Math.min(n, 3) })}` : WORDS[kind].done);
       // The same as DeclutterTradeViews' invalidateTrades (not imported: that file imports this one).
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
@@ -89,9 +72,11 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
   // Paid sales are handled by PaidOrders side="seller" (slice 4), below this on the Selling tab.
   const waiting = (cart.data ?? []).filter((l) => l.my_side === "seller" && l.status === "in_cart");
   if (cart.isError) {
-    return <ErrorState variant="inline" title="We couldn't load your sales." body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
+    return <ErrorState variant="inline" title={t("dsl.sw.loadError")} body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
   }
-  if (waiting.length === 0) return emptyNotice && cart.isSuccess ? <DeclutterNotice title="Nothing waiting to be paid right now." /> : null;
+  if (waiting.length === 0) return emptyNotice && cart.isSuccess
+    // Area 06 M15 (design audit 11-18): the same iconed empty card as every other Selling list.
+    ? <DeclutterEmptyCard icon={HandCoins} title={t("dsl.sw.emptyWaiting")} data-seller-empty="">{null}</DeclutterEmptyCard> : null;
   const groups: [Kind, CartLine[]][] = [
     ["paid", waiting.filter((l) => l.price_cents !== 0)],
     ["swap", waiting.filter((l) => l.source === "swap")],
@@ -127,7 +112,7 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
           </ul>
         </section>
       ))}
-      <ConfirmSheet open={asking !== null} title={w.sheetTitle} confirmLabel={w.cancel} cancelLabel={w.keep} pending={cancel.isPending}
+      <ConfirmSheet open={asking !== null} title={w.sheetTitle} confirmLabel={w.cancel} cancelLabel={w.keep} pending={cancel.isPending} destructive
         onConfirm={() => { if (asking) cancel.mutate(asking); }} onClose={() => setAsking(null)} testId="cancel-sale">
         {/* Audit 1028 part 2, D2-10: a paid cancel also takes the listing down (declutter_seller_cancel_sale: withdrawn,
             with a strike). B100: a free claim cancel gives no strike and puts the item back up. */}

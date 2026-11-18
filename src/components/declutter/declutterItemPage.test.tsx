@@ -248,8 +248,8 @@ describe("the photo-first Declutter item page", () => {
   });
 
   // Owner 11-11 F229: a protection line under a paid price, naming porch pickup only where the listing offers it.
-  // @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && !isSeller && ( |  {false && (
-  // @mutate src/components/declutter/DeclutterItemView.tsx | ${it.porch_ok !== false ? ", pick up from the porch" : ""} | , pick up from the porch
+  // @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && !isSeller && (\n              <p data-item-protected="" |  {false && (\n              <p data-item-protected=""
+  // @mutate src/components/declutter/DeclutterItemView.tsx | {it.porch_ok !== false ? t("ip.protectedPorch") : t("ip.protected")} | {t("ip.protectedPorch")}
   it("F229: a paid listing says what protects the buyer; porch only where it is offered; none on a free item", async () => {
     const { unmount } = open();
     expect((await screen.findByText(/^Protected:/)).textContent).toBe("Protected: pay in the app, pick up from the porch, 24 hours to report a problem.");
@@ -919,7 +919,7 @@ describe("the photo-first Declutter item page", () => {
     expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
     const back = encodeURIComponent(`/declutter/item/${ID}`);
     // The real pair, in the member's order (Make offer, then the one filled Buy now), each to sign up and back here.
-    // @mutate src/components/declutter/DeclutterGuest.tsx |           <Link to={signup} data-guest-buy="">{free ? "Sign up to ask for it" : "Buy now"}</Link> |           <Link to="/signup" data-guest-buy="">{free ? "Sign up to ask for it" : "Buy now"}</Link>
+    // @mutate src/components/declutter/DeclutterGuest.tsx |           <Link to={signup} data-guest-buy="">{free ? gw("g.signUpAsk") : gw("g.buyNow")}</Link> |           <Link to="/signup" data-guest-buy="">{free ? gw("g.signUpAsk") : gw("g.buyNow")}</Link>
     const pair = join.querySelector("[data-guest-buttons]")!;
     expect(Array.from(pair.querySelectorAll("a")).map((a) => a.textContent)).toEqual(["Make offer", "Buy now"]);
     for (const a of pair.querySelectorAll("a")) expect(a).toHaveAttribute("href", `/signup?redirect=${back}`);
@@ -995,7 +995,7 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByText("We couldn't find that item.")).toBeInTheDocument();
     expect(screen.getByText("The link may be broken.")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/It sold or is no longer on Declutter/);
-    expect(document.title).toBe("Item not found — Helpr");
+    expect(document.title).toBe("Not found — Helpr");
     await act(async () => { await Promise.resolve(); });
     expect(state.soldReads).toBe(0);
     expect(document.querySelector("[data-sold-item]")).toBeNull();

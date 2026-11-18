@@ -11,11 +11,13 @@
  *     ShopMy's image host. A pick's Shop link opens the collection the product sits in.
  *
  * Rules (src/test/giftGuidesPage.test.tsx checks them):
- *   - Every link is https and on shopmy.us, pinterest.com, or a brand site in BRAND_SITES. The page gives every one
- *     rel="sponsored noopener" and opens it in a new tab.
+ *   - Every link is https and on shopmy.us, pinterest.com, amazon.com / amzn.to, or a brand site in BRAND_SITES. The
+ *     page gives every one rel="sponsored noopener" and opens it in a new tab. Every Amazon link carries
+ *     tag=louisianahelpr-20 (the Amazon guides live in src/content/giftGuidesAmazon.ts).
  *   - Never invent a product, a price or a claim. No prices here at all: they change, and a stale one misleads.
  *   - A section with no confirmed ShopMy collection links to the Pinterest board instead.
- *   - `disclosure` is the FTC affiliate disclosure (16 CFR Part 255). Keep it plain and keep it near the top.
+ *   - `disclosure` is the FTC affiliate disclosure (16 CFR Part 255) and `amazonStatement` the exact line the Amazon
+ *     Associates Operating Agreement requires. Both sit at the BOTTOM of the page as plain lines (owner 2026-11-18).
  */
 
 export interface GiftLink {
@@ -52,6 +54,27 @@ export interface GiftSection {
  */
 export const BRAND_SITES = ["www.zchocolat.com", "www.diecastmodelswholesale.com"] as const;
 
+/**
+ * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:
+ * each link a product page from the shop's own list, HTTP 200 when opened). Exact hosts, never a wildcard.
+ */
+export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "nolacouture.com", "www.communitycoffee.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.cajunpowersauce.com", "www.zydecochopchop.com", "shop.tabasco.com", "www.dirtycoast.com", "www.leahspralines.com", "shop.cafedumonde.com", "www.frenchtruckcoffee.com", "www.cajungrocer.com", "www.camelliabrand.com", "www.steenssyrup.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "poches.com", "savoiesfoods.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
+
+/**
+ * Brands made in Louisiana: only these get the "Louisiana-made" badge (a pick marked louisianaFit that is not one of
+ * them, e.g. YETI, gets none). Each is a Louisiana company making the product in Louisiana.
+ */
+export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du Monde", "Tony Chachere's", "Community Coffee", "NOLA Couture", "Aunt Sally's", "KREWE", "Leah's Pralines", "Southern Marsh", "Slap Ya Mama", "Zatarain's", "Joe Gambino's Bakery", "Cajun Power", "Savoie's", "Zapp's", "Magic Seasoning Blends", "French Market", "TABASCO", "Camellia Brand", "Steen's", "Kary's", "Abita", "Crystal", "Blue Plate", "Louisiana Fish Fry", "Bruce's", "Cafe Du Monde", "French Truck Coffee", "Red Stick Spice Company", "Panola Pepper Co.", "Poche's", "Randazzo King Cake", "Southern Candymakers"];
+
+/**
+ * The 25 Days of Giveaways sponsors' own sites (lead 2026-11-18, ~/Desktop/Gift-guide-picks/25-days-sponsors.json):
+ * the sponsors guide links each sponsor's gift. Exact hosts, never a wildcard.
+ */
+export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "tushbaby.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com"] as const;
+
+/** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
+export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop"];
+
 const shopmy = (id: number) => `https://shopmy.us/collections/${id}`;
 const PIN = "https://www.pinterest.com/lexilombas";
 
@@ -61,13 +84,130 @@ const TODDLERS = shopmy(9000035);
 const NEW_HOMEOWNER = shopmy(8988205);
 const LOUISIANA_PANTRY = shopmy(9000334);
 
+/**
+ * Every collection on the owner's ShopMy shop (read 2026-11-18 from shopmy.us/shop/lexilombas, one fetch per
+ * collection; collection 9000043 answered 502 and is left out). Each becomes a guide or the "full guide" link of the
+ * matching guide (src/content/giftGuideCatalog.ts).
+ */
+export const SHOPMY_COLLECTIONS: { id: number; label: string }[] = [
+  { id: 8978491, label: "Gifts for Mom" },
+  { id: 8987388, label: "Gifts for Dad" },
+  { id: 8987440, label: "Gifts for Sister" },
+  { id: 8987483, label: "Gifts for Friends" },
+  { id: 8987524, label: "Gifts for Aunt" },
+  { id: 8987579, label: "Gifts for Grandparents" },
+  { id: 8987631, label: "Gifts for Cousins" },
+  { id: 8987711, label: "Gifts for Female Nurses" },
+  { id: 8987757, label: "Gifts for Teachers" },
+  { id: 8987879, label: "Louisiana Kitchen" },
+  { id: 8987928, label: "Gifts for Hunters" },
+  { id: 8987957, label: "Gifts for Fishermen" },
+  { id: 8987968, label: "Gifts for Boys" },
+  { id: 8987983, label: "Gifts for Girls" },
+  { id: 8987998, label: "Gifts for Teens" },
+  { id: 8988029, label: "Gifts for the Homebody" },
+  { id: 8988040, label: "Gifts for the Beach Lover" },
+  { id: 8988060, label: "Gifts for the Traveler" },
+  { id: 8988084, label: "Gifts for Healthcare Workers" },
+  { id: 8988105, label: "Gifts for Male Nurses" },
+  { id: 8988114, label: "Gifts for the New Mom" },
+  { id: 8988131, label: "Gifts for the New Dad" },
+  { id: 8988150, label: "Gifts for Newlyweds" },
+  { id: 8988183, label: "Gifts for the Newly Engaged" },
+  { id: 8988205, label: "Gifts for the New Homeowner" },
+  { id: 8988243, label: "Gifts for the Mountain Lover" },
+  { id: 8988262, label: "Gifts for the Cat Person" },
+  { id: 8988283, label: "Gifts for the Dog Lover" },
+  { id: 8988297, label: "Gifts for the Workaholic" },
+  { id: 8988306, label: "Gifts for the Pink Lover" },
+  { id: 8988317, label: "Gifts for the Blue Lover" },
+  { id: 8999988, label: "Gifts for the Coffee Lover" },
+  { id: 9000033, label: "Gifts for Boyfriend or Husband" },
+  { id: 9000034, label: "Gifts for Brother" },
+  { id: 9000035, label: "Gifts for Toddlers" },
+  { id: 9000036, label: "Gifts for Coworkers" },
+  { id: 9000041, label: "Gifts for the Home Cook" },
+  { id: 9000042, label: "Gifts for the Book Lover" },
+  { id: 9000044, label: "Gifts for the Golfer" },
+  { id: 9000046, label: "Gifts for the Gamer" },
+  { id: 9000047, label: "Gifts for the Gardener" },
+  { id: 9000334, label: "Louisiana Pantry" },
+  { id: 9013686, label: "Creative Gifts for Big Sisters" },
+];
+
+export const shopmyCollection = (id: number) => shopmy(id);
+
+/**
+ * The owner's discount codes for the sidebar's "Discount codes" section (owner 2026-11-18). Copied from her list
+ * (~/Desktop/Gift-guide-discount-codes-1118.json: each code is in a brand's own email to her, named there), offers
+ * shortened to the brand's own words. Instant Funding is left out (owner). A code past `expires` hides itself.
+ */
+export interface DiscountCode {
+  /** The store's place in the list: Louisiana popularity, most popular first (owner 2026-11-18). */
+  rank: number;
+  store: string;
+  code: string;
+  offer: string;
+  /** When the code works, if the brand limited it ("Nov 29 – Dec 6"). */
+  dates?: string;
+  /** YYYY-MM-DD, the last day it works; from the next day it is hidden. */
+  expires?: string;
+}
+export const discountCodes: DiscountCode[] = [
+  { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", expires: "2026-12-06" },
+  { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", expires: "2026-11-28" },
+  { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+" },
+  { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions" },
+  { rank: 4, store: "Free Country", code: "WINTER50", offer: "Up to 50% off pet jackets" },
+  { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide" },
+  { rank: 6, store: "HerbsPro", code: "SAVE70", offer: "Extra 70% off all products" },
+  { rank: 7, store: "Parallels Desktop", code: "PD50", offer: "50% off Standard and Pro (new 1-year licenses)", expires: "2026-11-23" },
+  { rank: 7, store: "Parallels Desktop", code: "PD35", offer: "35% off Business Edition (new 1-year licenses)", expires: "2026-11-23" },
+];
+
+/** The codes still good on `today` (YYYY-MM-DD, local): a code is shown through its `expires` day. */
+export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => !c.expires || c.expires >= today);
+
+/** One box per store, by rank (owner 2026-11-18: a store with two codes shows both in one box). */
+export const codesByStore = (codes: DiscountCode[]) => {
+  const stores = new Map<string, DiscountCode[]>();
+  for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]);
+  return [...stores.entries()].map(([store, list]) => ({ store, codes: list }));
+};
+
 export const giftGuides = {
-  title: "Holiday Gift Guides 2026",
-  intro: "Gift ideas for everyone on your list. Pick a guide, then shop the full collection.",
+  /** The page header's short title; the band carries the full one. */
+  pageTitle: "Gift guides",
+  bandLead: "top-rated finds",
+  title: "Holiday Gift Guides",
   disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
+  /** Amazon Associates Operating Agreement: the exact statement every site with Amazon links must show. */
+  amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",
+  allGuidesLabel: "All guides",
+  sidebarLabel: "Gift guides",
+  seeAllLabel: "See all",
   shopLabel: "Shop",
   fullGuideLabel: "Shop the full guide",
-  moreLabel: "More guides:",
+  newTab: "opens in a new tab",
+  onStore: (store: string) => `On ${store}`,
+  /** The pick badges (owner 2026-11-18). Never a price. */
+  badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup" },
+  alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
+  helpr: {
+    title: "No time to wrap?",
+    body: "Hire a local Helpr to wrap your gifts, assemble toys or hang the Christmas lights.",
+    cta: "Post a job",
+  },
+  myListLabel: "My list",
+  myListEmpty: "Tap a heart on any guide or gift to save it here.",
+  searchNone: "No guides match. Try another word.",
+  codesLabel: "Discount codes",
+  copyCode: "Copy",
+  copiedCode: "Copied",
+  codeEnds: (date: string) => `Ends ${date}`,
+  codeValid: (dates: string) => `Valid ${dates}`,
+  comingSoonTitle: "Picks coming soon",
+  comingSoonBody: "We're gathering the best gifts for this guide. Check back soon, or browse another guide.",
   allLinks: [
     { label: "Every collection on ShopMy", href: "https://shopmy.us/shop/lexilombas" },
     { label: "Every gift guide on Pinterest", href: `${PIN}/gift-guides/` },

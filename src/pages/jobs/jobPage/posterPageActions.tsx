@@ -20,9 +20,11 @@ import { JobConfirmation } from "@/components/JobConfirmation";
 import { ChangeJobSheet } from "@/components/schedule/ChangeJobSheet";
 import { scheduleChangeAllowed, type SeriesCardJob } from "@/components/series/JobSeriesCardControls";
 import { fetchSellerCard } from "@/lib/declutter/api";
-import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
+import { t, t as tr } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import "@/lib/i18n/enJobPoster";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { useWithdrawOffer } from "./useWithdrawOffer";
 import type { JobPageRow } from "./useJobPage";
@@ -96,7 +98,7 @@ export function usePosterPageActions({
   const id = encodeURIComponent(job.id);
   const status = job.status ?? "";
   const message = job.helper_id && HAS_HELPR.has(status)
-    ? { label: helperFirst ? `Message ${helperFirst}` : "Message your Helpr", go: () => job.helper_id ? navigate(`/messages?jobId=${id}&userId=${job.helper_id}`) : undefined }
+    ? { label: helperFirst ? tr("jp.messageName", { name: helperFirst }) : tr("jp.messageHelpr"), go: () => job.helper_id ? navigate(`/messages?jobId=${id}&userId=${job.helper_id}`) : undefined }
     : null;
   // JA-6 (Jobs audit 11-01): not once the Helpr set off or arrived (the same rule as Cancel below).
   const canChange = !!job.date_needed && !job.helper_on_the_way_at && !job.helper_arrived_at
@@ -121,26 +123,27 @@ export function usePosterPageActions({
   const disputeOpen = status === "disputed" || !!job.has_active_dispute || refundOpen;
   const primaryOrMessage: PagePrimary | null =
     posterWait === "confirm_still_on"
-      ? { label: "Confirm it's still on", go: () => setConfirmAsk((n) => n + 1) }
+      ? { label: tr("jp.confirmStillOn"), go: () => setConfirmAsk((n) => n + 1) }
       : posterWait === "approve" && !disputeOpen
       // The card's own CompletionChoiceSheet (the confirm), then create-payment's release (usePosterPageFlows).
-      ? { label: RELEASE_ACTION, go: flows.approve, disabled: !flows.ready || flows.completing }
+      ? { label: tr("jp.approveRelease"), go: flows.approve, disabled: !flows.ready || flows.completing }
       : open && pending > 0
-      // Review opens the applicants themselves (useReviewApplicantsDeepLink), not just the card.
-      ? { label: `Review ${pending} applicant${pending === 1 ? "" : "s"}`, go: () => navigate(`/posts?highlight=${id}&applicants=1`) }
+      // Review opens the applicants themselves (useReviewApplicantsDeepLink), not just the card. Area 03 H2 (design audit
+      // 11-18): "See applicants (N)", the page's sticky lead to the list.
+      ? { label: tr("jp.seeApplicants", { n: pending }), go: () => navigate(`/posts?highlight=${id}&applicants=1`) }
       : message
       ? message
       : status === "cancelled"
-      ? { label: "Post this job again", go: ageGate("post", () => navigate(`/post-job?rebook=${id}`)) }
+      ? { label: tr("jp.postThisAgain"), go: ageGate("post", () => navigate(`/post-job?rebook=${id}`)) }
       : null;
 
   // ONE ROW (owner 2026-11-01, JobPageActionRow.tsx): the step due now leads on the right; with none, Message leads on
   // the left. Every other action is the one button beside it, or "More options" opening them all in one tap.
   const pageExtras = (): RowAction[] => [
-    canEdit && { key: "edit", label: "Edit job", go: flows.edit, disabled: !flows.ready },
-    canChange && { key: "change", label: "Change date or time", go: () => setChangeOpen(true) },
+    canEdit && { key: "edit", label: t("jobPage.editJob"), go: flows.edit, disabled: !flows.ready },
+    canChange && { key: "change", label: tr("jp.changeDate"), go: () => setChangeOpen(true) },
     withdrawOffer.action,
-    canCancel && { key: "cancel", label: "Cancel job", go: flows.cancel, disabled: !flows.ready, danger: true },
+    canCancel && { key: "cancel", label: t("jobPage.cancelJob"), go: flows.cancel, disabled: !flows.ready, danger: true },
   ].filter(Boolean) as RowAction[];
   const row = (override: PagePrimary | null | undefined, moreExtras: RowAction[] = [], opts: { noCardSteps?: boolean; menuHost?: HTMLElement | null } = {}) => {
     // A continue day still ahead (Auditor 11, 11-01): nobody is at the job, so the card's on-site actions (SOS) are

@@ -3,7 +3,7 @@
  * have to create", and easy to find. Every member's handle is made at sign-up and backfilled
  * (20261104142602_profile_handle_at_signup; PGlite proof src/test/pglite/profileHandleAtSignup.pglite.mjs,
  * --before red 6/6). This file pins:
- *  - "Your page: louisianahelpr.com/u/<handle>" with Copy and Share, on the member's own profile and on
+ *  - "Your public profile: louisianahelpr.com/u/<handle>" with Copy and Share, on the member's own profile and on
  *    Declutter's Selling tab;
  *  - Copy copies, and Share shares, the full https URL;
  *  - the migration's insert trigger, backfill and grants as the newest definitions.
@@ -61,7 +61,7 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     rpc.mockResolvedValue({ data: "eli-b", error: null });
     mount();
     await waitFor(() => expect(screen.getByText("louisianahelpr.com/u/eli-b")).toBeTruthy());
-    expect(screen.getByText(/Your page:/)).toBeTruthy();
+    expect(screen.getByText(/Your public profile:/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "louisianahelpr.com/u/eli-b" }).getAttribute("href")).toBe("/u/eli-b");
     expect(rpc).toHaveBeenCalledWith("rpc_ensure_my_handle");
   });
@@ -153,7 +153,7 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     // M1 (iOS audit 11-16): the shared notice card with a reason and one action, not loose text.
     const card = container.querySelector("[data-your-page-hidden]") as HTMLElement;
     expect(card.getAttribute("data-notice")).toBe("info");
-    expect(card.textContent).toContain("Your page is hidden right now");
+    expect(card.textContent).toContain("Your public profile is hidden right now");
     expect(card.textContent).toContain("under review");
     expect(screen.getByRole("link", { name: "Ask us why" })).toBeTruthy();
   });
@@ -200,10 +200,10 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     );
     await waitFor(() => expect(container.querySelector("[data-your-page-slim]")).not.toBeNull());
     expect(container.querySelector("section")).toBeNull();
-    expect(container.querySelector("[data-your-page-slim]")?.textContent).toBe("Your page· Copy· Share");
-    fireEvent.click(screen.getByRole("button", { name: "Copy your page link" }));
+    expect(container.querySelector("[data-your-page-slim]")?.textContent).toBe("Your public profile· Copy· Share");
+    fireEvent.click(screen.getByRole("button", { name: "Copy your public profile link" }));
     await waitFor(() => expect(copy).toHaveBeenCalledWith("https://www.louisianahelpr.com/u/eli-b"));
-    fireEvent.click(screen.getByRole("button", { name: "Share your page" }));
+    fireEvent.click(screen.getByRole("button", { name: "Share profile" }));
     await waitFor(() => expect(share).toHaveBeenCalled());
   });
 });

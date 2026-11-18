@@ -43,10 +43,12 @@ import {
   firstOpenReadyDate,
   formatCents,
   readyDateProblem,
+  withClosedForToday,
   requestOrder,
   SHOP_SERVICE_FEE_INCLUDED,
 } from "@/lib/shops/orders";
 import { isLouisianaZip } from "@/lib/shipping/policy";
+import type { ShopHour } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { ShopsNotice } from "./shopsUi";
@@ -59,7 +61,7 @@ import { PreorderChargeBox } from "./ShopPreorderBits";
 
 const NOTE_MAX = 500;
 
-export default function ShopOrderSheet({ shopId }: { shopId: string }) {
+export default function ShopOrderSheet({ shopId, hours }: { shopId: string; /** The shop's hours (Q2793: today greys out after closing). */ hours?: readonly ShopHour[] }) {
   // The first-time account setup fee shop-checkout adds (20261105181603 B; Declutter's BuyerTotal reads the same hook).
   const setupFeeOwed = useFirstPayoutFeeCents();
   const setupFeeKnown = useFirstPayoutFeeKnown();
@@ -101,7 +103,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const preorderChosen = chosen.some((l) => preorders.data?.has(l.item.id));
   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0);
   const itemsCents = chosen.reduce((sum, l) => sum + l.unit * l.n, 0);
-  const t = terms.data;
+  const t = terms.data ? withClosedForToday(terms.data, hours) : undefined;
   const dateProblem = t && readyDate ? readyDateProblem(readyDate, t, leadDays) : null;
   const firstDate = t ? firstOpenReadyDate(t, leadDays) : null;
 
@@ -153,6 +155,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const addrKey = JSON.stringify(dropoff);
   // The price shown is the price sent: only a quote for the address as typed now counts.
   const helprCents = helpring && quote && quote.for === addrKey ? quote.q.delivery_cents : null;
+  // Launch pass 1: "pick it up" only when the buyer picks it up (a service is done by the shop; a delivery comes to them).
+  const dayPlaceholder = chosen.some((l) => l.item.kind === "service" || l.item.at_buyer === true) ? "Pick the day"
+    : delivering || helpring ? "Pick the delivery day" : "Pick the day you'll pick it up";
   const canSend = preorder
     ? note.length <= NOTE_MAX && !opening
     : !preorderChosen && chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening && addrProblem === null
@@ -254,7 +259,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
           onChange={setReadyDate}
           min={earliestReadyDate(t, leadDays)}
           isDateDisabled={(iso) => readyDateProblem(iso, t, leadDays) !== null}
-          placeholder={firstDate ? "Pick the day you'll pick it up" : "No open days in the next 90 days"}
+          placeholder={firstDate ? dayPlaceholder : "No open days in the next 90 days"}
           aria-invalid={dateProblem !== null}
           aria-describedby="shop-order-date-help"
         />

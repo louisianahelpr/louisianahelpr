@@ -4,7 +4,7 @@
  * word for word. The source is checked by spanishScreensUseDictionary (CONVERTED).
  *
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {forDelivery ? t("ppk.helprPicks") : t("ppk.pick")} | {forDelivery ? t("ppk.helprPicks") : "Pick a pickup place"}
- * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {!forDelivery && <p className="text-xs text-muted-foreground">{t("ppk.afterPay")}</p>} | {!forDelivery && <p className="text-xs text-muted-foreground">You get the exact address after you pay.</p>}
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | data-porch-one-address="">{free ? t("ppk.afterConfirm") : t("ppk.afterPay")}</p>} | data-porch-one-address="">You get the exact address after you pay.</p>}
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx |       {t("ppk.orderPlace")} <span className="font-medium"> |       Pickup place: <span className="font-medium">
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {forDelivery ? t("ppk.helprPicks") : t("ppk.place")} | {forDelivery ? t("ppk.helprPicks") : "Pickup place"}
  * @mutate src/lib/i18n/es.ts |   ...esPorchPlaces,\n |

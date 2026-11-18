@@ -28,7 +28,7 @@
  * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!f.booked \|\| (!!f.gotItOpen && !f.pickedUp)); |      return buyer && !f.booked;
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet"; |   if (f.handover === "meetup") return "Book a time to meet";
  * @mutate src/components/declutter/OrderSteps.tsx |   return Number.isFinite(t) && now >= t - GOT_IT_OPENS_MINUTES_BEFORE * 60_000; |   return Number.isFinite(t) && now >= t;
- * @mutate src/components/declutter/BuyingOrders.tsx |       money: facts.free ? "Free." : total != null |       money: total != null
+ * @mutate src/components/declutter/BuyingOrders.tsx |       money: facts.free ? t("dbuy.order.free") : total != null |       money: total != null
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const body = !view \|\| open; |   const body = true;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!view && !cancelled && (order.handover === "porch" \|\| order.handover === "pickup_home" \|\| order.handover === "meetup") && ( |       {!cancelled && (order.handover === "porch" \|\| order.handover === "pickup_home" \|\| order.handover === "meetup") && (
  */
@@ -246,8 +246,8 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
 
   // Q2630 (audit 1102c R5): a refunded order read as one still in progress: the step bar stopped at "Paid" and the line
   // gave no amount. It now has no step bar and says what came back and when.
-  // @mutate src/components/declutter/BuyingOrders.tsx |       {!view.facts.cancelled && <OrderSteps facts={view.facts} refundOpen={refundOpen} />} |       {<OrderSteps facts={view.facts} refundOpen={refundOpen} />}
-  // @mutate src/components/declutter/BuyingOrders.tsx |       next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep( |       next: buyerNextStep(
+  // @mutate src/components/declutter/BuyingOrders.tsx |       {!view.facts.cancelled && <OrderSteps facts={view.facts} refundOpen={refundOpen} refundOffered={refundOffered} />} |       {<OrderSteps facts={view.facts} refundOpen={refundOpen} refundOffered={refundOffered} />}
+  // @mutate src/components/declutter/BuyingOrders.tsx |       next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : noShow ?? buyerNextStep( |       next: noShow ?? buyerNextStep(
   // @mutate src/components/declutter/BuyingOrders.tsx | return { who: "info", text: `Cancelled${day ? ` on ${day}` : ""}. Your payment is refunded to your card.${when}` }; | return { who: "info", text: "Cancelled and refunded to your card." };
   it("Q2630: a refunded order has no step bar and says the amount refunded and the day", async () => {
     const closed = new Date(NOW - 5 * 3_600_000);
@@ -283,8 +283,8 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   });
 
   // AUD31-7: the headline comes from the task once it ended without a delivery; a live one keeps its step line.
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return info("No Helpr took this delivery. What you paid for delivery was refunded."); |
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return info("This delivery was closed."); |
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return info(t("dbuy.nx.dUnfilled")); |
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return info(t("dbuy.nx.dClosed")); |
   // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null, |         null,
   it("AUD31-2: a seller delivery past its time says it is late, not booked", async () => {
     load([CASES.find((c) => c.id === "sd1late")!]);
@@ -373,9 +373,9 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // whose order waits on the buyer says "Next: <step>" in the shared NextStep line, above its one button; every
   // other card says who it waits on or where it stands, never "Next:". The late seller delivery is the one Needs-you
   // card whose line says why (its button, "It wasn't delivered", is the step).
-  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time", by) |       return at === 0 ? info("Pick a pickup time")
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time", by); |       if (at === 0) return info("Book a pickup time.");
-  // @mutate src/components/declutter/BuyingOrders.tsx |       return you("Tap I got it once you have it");\n    case "ship": { |       return info("Delivered.");\n    case "ship": {
+  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you(t("dbuy.act.pickPorch"), by) |       return at === 0 ? info(t("dbuy.act.pickPorch"))
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you(t("dbuy.act.bookPickup"), by); |       if (at === 0) return info(t("dbuy.act.bookPickup"));
+  // @mutate src/components/declutter/BuyingOrders.tsx |       return you(t("dbuy.nx.tapGotIt"));\n    case "ship": { |       return info(t("dbuy.nx.delivered"));\n    case "ship": {
   // @mutate src/components/declutter/BuyingOrders.tsx | value={standing ? { who: "info", text: standing } : view.next} | value={{ who: "info", text: view.next.text }}
   it("Next-step line: every card that waits on the buyer says 'Next: …'; the rest never do", async () => {
     load(CASES);
@@ -402,9 +402,9 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // The book-by deadline (owner 11-01: the next-step line carries the deadline when there is one). A porch, door or
   // meetup pickup with no booked time is closed and refunded at the order's book_by (the server's paid + 7 days, pinned
   // to declutter_handover_sweep), so its "Next:" line ends "· by <book_by>". A booked order never says "by".
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time", by); |       if (at === 0) return you("Book a pickup time");
-  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time", by) |       return at === 0 ? you("Pick a pickup time", null)
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a time to meet at the safe spot", by); |       if (at === 0) return you("Book a time to meet at the safe spot");
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you(t("dbuy.act.bookPickup"), by); |       if (at === 0) return you(t("dbuy.act.bookPickup"));
+  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you(t("dbuy.act.pickPorch"), by) |       return at === 0 ? you(t("dbuy.act.pickPorch"), null)
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you(t("dbuy.nx.bookMeet"), by); |       if (at === 0) return you(t("dbuy.nx.bookMeet"));
   // @mutate src/lib/declutter/orderPickupTimes.ts |   return { chosen, by: !booked && t.book_by ? bookByWords(t.book_by) : null }; |   return { chosen, by: null };
   it("book-by deadline: an unbooked pickup says 'Next: book a pickup time · by <book_by>'; booked ones never do", async () => {
     const unbooked = CASES.filter((c) => c.id === "home0" || c.id === "porch0" || c.id === "meet0");
@@ -425,7 +425,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // @mutate src/components/declutter/BuyingOrders.tsx |     const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day) |     const when = false ? "" 
   // B112 (B110 leftover 1) / A3-19: a porch order paid with a window picked at checkout says the WINDOW, never the
   // 30-minute booking made from its start (declutter_mark_order_paid books slot_start + 30 min).
-  // @mutate src/components/declutter/BuyingOrders.tsx |         : at === 1 && chosen ? info(`Pickup ${chosen} · porch`) |         : false ? info("")
+  // @mutate src/components/declutter/BuyingOrders.tsx |         : at === 1 && chosen ? info(t("dbuy.nx.porchChosen", { chosen })) |         : false ? info("")
   // @mutate src/lib/declutter/orderPickupTimes.ts |     ? `${day(a)}, ${clock(a)}–${clock(b)} ${ampm(b)}` |     ? `${day(a)}, ${clock(a)}–${clock(new Date(a.getTime() + 1_800_000))} ${ampm(b)}`
   it("porch window: a porch order booked at checkout reads 'Pickup Mon 11/2, 3–5 PM · porch', never the 30-minute booking", async () => {
     // 3 PM to 5 PM Chicago (CST, UTC-6) on Mon Nov 2 2026.
@@ -462,7 +462,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // Audit 1b D2-2 (1b-problem-after-375): after "Report a problem" the collapsed porch card still said "Pick the day
   // you'll come for it" with "Pick a pickup time" as its next action. Now it says the problem is open and asks nothing.
   // @mutate src/components/declutter/BuyingOrders.tsx |       problem: problems.has(o.orderId), |       problem: false,
-  // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem) return f.problemAwaitsYou ? you("Add your side to the problem") : info(PROBLEM_ON_HOLD); |
+  // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem) return f.problemAwaitsYou ? you(t("dbuy.nx.addSide")) : info(t("dbuy.nx.onHold")); |
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />} |
   it("an open problem: the collapsed card says so, with no next action and no booking (D2-2)", async () => {
     load(CASES.filter((c) => c.id === "porch0" || c.id === "home0"));
@@ -514,13 +514,13 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
 
   // Audit 1c D3-3 (1c-b3-buying-p1-375): two days before the booked pickup the buyer's card said "A Helpr is on the way
   // to pick it up". It now names the Helpr and the booked pickup time, as the seller's card already did.
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1) return them(`${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.`); |       if (at === 1) return them("A Helpr is on the way to pick it up.");
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1) return them(when ? t("dbuy.nx.dPicksAt", { name: helprName ?? t("dbuy.nx.yourHelpr"), when }) : t("dbuy.nx.dPicks", { name: helprName ?? t("dbuy.nx.yourHelpr") })); |       if (at === 1) return them("A Helpr is on the way to pick it up.");
   // @mutate src/components/declutter/BuyingOrders.tsx |       : o.handover === "delivery" ? task?.pickup_slot_start ?? null : slot; |       : slot;
   it("D3-3: a taken Helpr delivery names the Helpr and the booked pickup time, never 'on the way'", async () => {
     const pickup = iso(48);
     load([{ id: "hd1", line: { handover: "delivery", delivery_task_id: "t-hd1" }, task: { accepted_at: iso(-2), pickup_slot_start: pickup, helpr_first_name: "Hallie" }, step: 1, bucket: "upcoming", action: null }]);
     show();
-    const words = new Date(pickup).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    const words = new Date(pickup).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); // order times read in Louisiana time (orderWhen)
     expect(await screen.findByText(`Hallie picks it up from the seller ${words}.`)).toBeInTheDocument();
     expect(card("hd1").textContent).not.toMatch(/on the way/i);
   });
@@ -528,7 +528,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // Audit 1c D3-7 (1c-b4-gotit-press1-1440): the first tap on a delivered card's "I got it" only opened Details; a
   // second "I got it" inside opened "Do you have it?". One tap now opens Details AND the confirm sheet.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} /> |         onAction={() => { setOpen(true); }} />
-  // @mutate src/components/declutter/BuyingOrders.tsx | onClick={onAction} data-next-action=""> | onClick={onOpen} data-next-action="">
+  // @mutate src/components/declutter/BuyingOrders.tsx | onClick={action === SEE_OFFER ? onOpen : onAction} data-next-action=""> | onClick={onOpen} data-next-action="">
   it("D3-7: one tap on a delivered Helpr order's 'I got it' asks 'Do you have it?' at once; Details alone does not", async () => {
     load(CASES.filter((c) => c.id === "hd3" || c.id === "hd1"));
     show();

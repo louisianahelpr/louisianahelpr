@@ -76,6 +76,8 @@ export interface JobPageRow {
   revision_requested_at?: string | null;
   revision_completed_at?: string | null;
   revision_acceptance_deadline?: string | null;
+  /** Stamped by report_helper_no_show (Area 11 H3): the poster's cancelled line names the no-show. */
+  no_show_reported_at?: string | null;
   /** The photo rule and the photos taken (party read only): the hired Helpr's line and button hang on them, as on
    *  the Working card (audit 2026-10-28 F1/F26: without them every arrived job read "Take the before photo"). */
   require_photo_proof?: boolean | null;
@@ -101,7 +103,7 @@ export interface JobPageRow {
 const BASE_COLUMNS =
   "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, date_window_end, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date";
 const PARTY_COLUMNS =
-  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, date_window_end, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, cancelled_at, cancellation_fee, revision_note, revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude, revision_requested_at, revision_completed_at, revision_acceptance_deadline";
+  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, date_window_end, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, cancelled_at, cancellation_fee, revision_note, revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude, revision_requested_at, revision_completed_at, revision_acceptance_deadline, no_show_reported_at";
 
 function toRow(raw: Record<string, unknown>): JobPageRow {
   return {
@@ -189,7 +191,7 @@ async function fetchOnCrew(jobId: string, userId: string): Promise<{ on: boolean
  * the job back up; that row is no applicant any more, and its close time is when the job was reposted.
  */
 type ApplicantRow = { status: string; closed_reason?: string | null; updated_at?: string | null; helper_id?: string | null };
-export type ApplicantCounts = { total: number; pending: number; noShowAt: string | null; helprCancelled: { at: string; helperId: string | null } | null };
+export type ApplicantCounts = { total: number; pending: number; noShowAt: string | null; noShowHelperId?: string | null; helprCancelled: { at: string; helperId: string | null } | null };
 
 /**
  * Q2693 (audit 1102e row 2): the hired Helpr's cancel (helper_cancel_booking) closes their application (status
@@ -206,6 +208,8 @@ export function applicantCounts(rows: ApplicantRow[]): ApplicantCounts {
     total: live.length,
     pending: live.filter((r) => r.status === "pending").length,
     noShowAt,
+    // Area 11 H3: who didn't show (the latest no-show row), so the poster's cancelled line names them.
+    noShowHelperId: [...noShows].sort((a, b) => (a.updated_at ?? "").localeCompare(b.updated_at ?? "")).pop()?.helper_id ?? null,
     helprCancelled: last ? { at: last.updated_at ?? "", helperId: last.helper_id ?? null } : null,
   };
 }

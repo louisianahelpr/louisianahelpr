@@ -107,11 +107,11 @@ describe("the thread's job card reads a day set to finish (A3-114)", () => {
     await vi.waitFor(() => expect(line()).toMatch(/mark it done/i));
   });
 
-  it("the Helpr: 'Next: confirm you'll be there · continuing …', never 'Mark it done'", async () => {
+  it("the Helpr: 'Next: confirm you'll be there · for …' (Area 08 L7), never 'Mark it done'", async () => {
     day.row = setDay();
     show(false);
     await screen.findByTestId("deal-card");
-    await vi.waitFor(() => expect(line()).toMatch(/^Next: confirm you'll be there · continuing \w{3}, \w{3} \d+ at 9:00 AM$/));
+    await vi.waitFor(() => expect(line()).toMatch(/^Next: confirm you'll be there · for \w{3}, \w{3} \d+ at 9:00 AM$/));
   });
 
   it("the poster: who confirmed, once the Helpr did", async () => {

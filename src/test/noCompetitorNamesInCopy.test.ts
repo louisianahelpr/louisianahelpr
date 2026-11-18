@@ -60,6 +60,15 @@ function stringHits(file: string, source: string): string[] {
   return hits;
 }
 
+/**
+ * Where a retailer is named as a place the visitor shops, not a rival: the gift guides' "By store" directory (owner
+ * 11-18, gift-guide store mix: a Walmart guide of trending Louisiana items, links through the owner's own affiliate
+ * accounts). Exact both ways: each entry must still name a listed retailer.
+ */
+const STORE_DIRECTORY: Record<string, string> = {
+  "src/content/giftGuideIndex.ts": "the gift guides' By store directory (Walmart, Wayfair guides)",
+};
+
 const isSource = (f: string) =>
   /\.(ts|tsx)$/.test(f) && !/\.(test|spec)\.(ts|tsx)$/.test(f) && !f.endsWith(".d.ts") && !/\/(test|__tests__|tests)\//.test(f);
 
@@ -77,8 +86,11 @@ describe("no competitor names in user-facing copy", () => {
   it("no src/ string literal or JSX text names a competitor", () => {
     const files = trackedFiles("src").filter(isSource);
     expect(files.length).toBeGreaterThan(100);
-    const hits = files.flatMap((f) => stringHits(f, readFileSync(path.join(ROOT, f), "utf8")));
+    const hits = files.filter((f) => !(f in STORE_DIRECTORY)).flatMap((f) => stringHits(f, readFileSync(path.join(ROOT, f), "utf8")));
     expect(hits).toEqual([]);
+    for (const f of Object.keys(STORE_DIRECTORY)) {
+      expect(stringHits(f, readFileSync(path.join(ROOT, f), "utf8")).length, `${f} names no retailer now: drop it from STORE_DIRECTORY`).toBeGreaterThan(0);
+    }
   });
 
   it("index.html and public/*.html name no competitor", () => {

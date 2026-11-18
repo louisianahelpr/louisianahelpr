@@ -4,6 +4,7 @@
  * card (ShopsHomeView), so the two never disagree.
  */
 import type { ShopHour } from "@/lib/shops/api";
+import { louisianaNow } from "./louisianaClock";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -14,19 +15,8 @@ export function fmtTime(t: string): string {
   return mm ? `${h12}:${String(mm).padStart(2, "0")} ${ampm}` : `${h12} ${ampm}`;
 }
 
-/** Weekday (0 = Sunday) and HH:MM in Louisiana, whatever the device's zone. */
-export function louisianaNow(now: Date): { weekday: number; hhmm: string } {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(now);
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(get("weekday"));
-  return { weekday, hhmm: `${get("hour")}:${get("minute")}` };
-}
+// louisianaNow lives in its own leaf so Home's shop-order reads (home-shop-reads) can use it without this module.
+export { louisianaNow };
 
 /** "Open now · until 5 PM", "Closed · opens Tuesday 9 AM", or null when the shop set no hours. */
 export function openStatus(hours: ShopHour[], now: Date = new Date()): { open: boolean; label: string } | null {

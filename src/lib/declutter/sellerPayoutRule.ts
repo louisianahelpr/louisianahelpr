@@ -20,9 +20,9 @@ export function sellerPayoutRule(kind: SellerPayoutKind): string {
   switch (kind) {
     // Q2632 (audit 1102c R7): a safe-spot meeting is handed over, not picked up: the seller's button says "Handed over".
     case "meetup":
-      return `${AFTER_GOT_IT} If you tap "Handed over" and the buyer says nothing, you're paid about 48 hours later. If neither of you says anything, the money stays held.`;
+      return `${AFTER_GOT_IT} If you tap "Handed over" and the buyer says nothing, you're paid about 48 hours later. Tap "Handed over" after the handover so you get paid.`;
     case "pickup_home":
-      return `${AFTER_GOT_IT} If you tap "Picked up" and the buyer says nothing, you're paid about 48 hours later. If neither of you says anything, the money stays held.`;
+      return `${AFTER_GOT_IT} If you tap "Picked up" and the buyer says nothing, you're paid about 48 hours later. Tap "Picked up" after the handover so you get paid.`;
     case "porch":
       return "You're paid 24 hours after the buyer taps \"I got it\" or takes their pickup photo, unless they ask for a refund. If the buyer says nothing, you're paid about 48 hours after the later of the pickup time and your porch photo. With no porch photo, the money stays held until the buyer confirms.";
     case "seller_delivery":

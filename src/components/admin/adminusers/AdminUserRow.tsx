@@ -21,6 +21,7 @@ import {
   isVerifiedEmail,
   isAwaitingEmail,
   statusBadge,
+  adminRowName,
 } from "../adminUserHelpers";
 import { NotesIndicator } from "./NotesIndicator";
 import type { Tab } from "./useAdminUsersFilter";
@@ -127,7 +128,8 @@ const AdminUserRowBase = ({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <p title={formatName(p.full_name, "—")} className="font-semibold text-foreground text-ds-13 truncate">{formatName(p.full_name, "—")}</p>
+            {/* Design audit area 10 #24: title-cased when typed all lowercase; "No name (email)", not "—". */}
+            <p title={adminRowName(p.full_name, p.email)} className="font-semibold text-foreground text-ds-13 truncate">{p.full_name?.trim() ? formatName(adminRowName(p.full_name, p.email)) : adminRowName(null, p.email)}</p>
             {statusBadge(p)}
             
             <NotesIndicator userId={p.user_id} notesSummary={notesSummary} />

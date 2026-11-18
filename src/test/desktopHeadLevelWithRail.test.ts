@@ -12,7 +12,7 @@
  * from the class or constant that draws it, and the two pairs must agree within 2px. A layer that stops reading the
  * shared constants (src/lib/desktopBar.ts) fails here too.
  *
- * @mutate src/components/DesktopSidebarNav.tsx |       <div className="px-5 pt-5 pb-4 shrink-0"> |       <div className="px-5 pt-2 pb-4 shrink-0">
+ * @mutate src/components/DesktopSidebarNav.tsx |       <div className="helpr-emblem-disc px-5 pt-5 pb-4 shrink-0"> |       <div className="helpr-emblem-disc px-5 pt-2 pb-4 shrink-0">
  * @mutate src/lib/desktopBar.ts | export const DESKTOP_BAR_PAD_TOP = 14; | export const DESKTOP_BAR_PAD_TOP = 0;
  * @mutate src/components/header/PageTitleBar.tsx |         {desktopGap && <div aria-hidden className="h-2 shrink-0" data-page-title-gap="" />} |         {desktopGap && <div aria-hidden className="h-5 shrink-0" data-page-title-gap="" />}
  * @mutate src/components/ui/PageScaffold.tsx | ${headerInBar ? "lg:pt-3" : "lg:pt-5"} | ${headerInBar ? "lg:pt-5" : "lg:pt-5"}
@@ -38,7 +38,7 @@ const num = (re: RegExp, src: string, what: string) => {
 
 describe("the desktop page head is level with the rail (owner 2026-10-28)", () => {
   const rail = code("src/components/DesktopSidebarNav.tsx");
-  const logoBox = rail.match(/<div className="px-5 pt-(\d+(?:\.\d+)?) pb-(\d+(?:\.\d+)?) shrink-0">\s*<HelprMark to="\/home" size="md" emblemOnly \/>/);
+  const logoBox = rail.match(/<div className="helpr-emblem-disc px-5 pt-(\d+(?:\.\d+)?) pb-(\d+(?:\.\d+)?) shrink-0">\s*<HelprMark to="\/home" size="md" emblemOnly \/>/);
   // Create is the shared Button (Q2709, B119 11-04): its height is its named size's h- class in buttonVariants.
   const createSize = rail.match(/size="(\w+)"\s+data-testid="sidebar-create"/)?.[1] ?? "NaN";
   const createH = num(new RegExp(`\\b${createSize}: "h-(\\d+) `), code("src/components/ui/button.tsx"), "Create's height");

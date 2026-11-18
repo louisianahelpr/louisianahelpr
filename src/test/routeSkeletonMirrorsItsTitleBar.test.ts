@@ -87,20 +87,21 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     // The card measures and holds its own height while to-dos load (ref + a reserved minHeight style), so match
     // the tag's shell classes, not the whole tag.
     expect(home).toMatch(/<section (?:ref=\{nextUpRef\} )?data-testid="next-up" aria-label=\{t\(NEEDS_YOU_KEY\)\} className="liquid-glass p-card flex flex-col gap-1\.5"[ >]/);
-    expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up">');
-    expect(skeleton).toMatch(/data-skeleton-part="next-up">[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
-    // The section chips (owner 11-08): the same wrapping row, 44px pills (Button size sm is h-11).
-    expect(home).toContain('<div data-section-chips="" className="flex flex-wrap gap-2">');
-    expect(skeleton).toContain('<div className="flex flex-wrap gap-2" data-skeleton-part="tiles">');
-    expect(skeleton).toMatch(/<Skeleton key=\{i\} className="h-11 w-32 rounded-full" \/>/);
+    // design audit r2 #44: the card also reserves the loaded Needs-you card's height (style={{ minHeight: ... }})
+    expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up" style={{ minHeight: HOME_NEEDS_YOU_MIN_PX }}>');
+    expect(skeleton).toMatch(/data-skeleton-part="next-up"[^>]*>[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
+    // The section chips (owner 11-08; area 02 #20 two-column grid, 11-18): 44px pills (Button size sm is h-11).
+    expect(home).toContain('<div data-section-chips="" className="grid grid-cols-2 gap-2">');
+    expect(skeleton).toContain('<div className="grid grid-cols-2 gap-2" data-skeleton-part="tiles">');
+    expect(skeleton).toMatch(/<Skeleton key=\{i\} className="h-11 w-full rounded-full" \/>/);
     // Board 7: Coming up sits ABOVE the sections in both.
     expect(home.lastIndexOf('title={t("home.comingUp")}')).toBeGreaterThan(0);
     expect(home.lastIndexOf('title={t("home.comingUp")}')).toBeLessThan(home.indexOf('aria-label={t("home.yourSections")}'));
     expect(skeleton.indexOf('data-skeleton-part="coming-up"')).toBeGreaterThan(0);
     expect(skeleton.indexOf('data-skeleton-part="coming-up"')).toBeLessThan(skeleton.indexOf('data-skeleton-part="tiles"'));
-    // Same column gap as Home's stack.
-    expect(home).toContain('className="flex flex-col gap-section"');
-    expect(skeleton).toContain('<div className="flex flex-col gap-section">');
+    // Same column gap as Home's stack, and (design audit r2 #40) the same 10px over the first card on a phone.
+    expect(home).toContain('data-testid="home-dashboard" className={`flex flex-col gap-section${isWebDesktop ? "" : " pt-2.5"}`}');
+    expect(skeleton).toContain('<div className={`flex flex-col gap-section${desktop ? "" : " pt-2.5"}`}>');
   });
 
   it("never draws the retired feed bar (search, filters)", () => {
@@ -110,7 +111,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 
 // Proof this is able to fail: each restores a real way the two drift.
 // @mutate src/components/DashboardRouteSkeleton.tsx |           <div className={COMPACT_TOP_ROW}>\n            <div className="min-w-0 flex-1"> |           <div className={COMPACT_TOP_ROW}>\n            <Skeleton className="h-8 w-8 rounded-ds-md" />\n            <div className="min-w-0 flex-1">
-// @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up"> | data-skeleton-part="stats">
+// @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up" style | data-skeleton-part="stats" style
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
 // @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center shrink-0">\n              <span className="h-11 w-11 flex items-center justify-center">\n                <Skeleton className="h-6 w-6 rounded-full" />\n              </span>\n |             <div className="flex items-center shrink-0">\n
 // @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center shrink-0"> |             <div className="flex items-center gap-0.5 shrink-0">

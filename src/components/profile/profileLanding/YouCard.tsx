@@ -6,6 +6,10 @@ import { hasIdBadge } from "@/lib/awardGate";
 import type { Profile } from "./types";
 import { PROFILE_NAME_HEADING_LEVEL } from "./headingContract";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
+import "@/lib/i18n/enYourPage";
+import { useLanguage } from "@/lib/i18n/language";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatParts";
 
 /** Edit profile: You > Settings > Your account > Edit profile, opened directly. */
 export const EDIT_PROFILE_PATH = "/profile?tab=profile";
@@ -20,10 +24,11 @@ export const VERIFIED_NEIGHBOR = "Verified neighbor";
  */
 export function youCardFacts(verified: boolean, avgRating: number | null, reviewCount: number): string {
   const parts: string[] = [];
-  if (verified) parts.push(VERIFIED_NEIGHBOR);
+  // Area 08 H2: in the app language (the chat's job card read "Verified neighbor · 11 reviews" in Spanish).
+  if (verified) parts.push(t("cp.verified"));
   if (reviewCount > 0 && avgRating != null) {
     parts.push(avgRating.toFixed(1));
-    parts.push(`${reviewCount} review${reviewCount === 1 ? "" : "s"}`);
+    parts.push(t(reviewCount === 1 ? "cp.review" : "cp.reviews", { n: reviewCount }));
   }
   return parts.join(" · ");
 }
@@ -49,6 +54,7 @@ export function YouCard({
   reviewCount: number;
 }) {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   // Stripe Identity only (owner 2026-10-21); payout setup never draws the seal.
   const verified = hasIdBadge(profile?.idv_status);
   const facts = youCardFacts(verified, avgRating, reviewCount);
@@ -59,7 +65,7 @@ export function YouCard({
       {/* The photo repeats the "View my public profile" button beside it, so it is out of the tab order and the
           accessibility tree: its only visible text is the monogram, which an aria-label could not contain
           (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). */}
-      <button type="button" onClick={open} disabled={!userId} aria-label="View my public profile" className="btn-press relative shrink-0 rounded-full" aria-hidden="true" tabIndex={-1}>
+      <button type="button" onClick={open} disabled={!userId} aria-label={t("yp.you.publicProfile")} className="btn-press relative shrink-0 rounded-full" aria-hidden="true" tabIndex={-1}>
         <UserAvatar userId={userId ?? undefined} src={profile?.avatar_url} name={displayName} pixelSize={128} alt="" className="w-16 h-16" />
         {verified && (
           <span
@@ -74,12 +80,12 @@ export function YouCard({
       </button>
       <div className="min-w-0 flex flex-col items-start">
         {/* The member's name at PROFILE_NAME_HEADING_LEVEL: the sign-back-in journey reads it (headingContract.ts). */}
-        <Heading className="max-w-full text-ds-18 font-bold text-foreground leading-tight truncate" title={displayName || "Your profile"}>
-          {displayName || "Your profile"}
+        <Heading className="max-w-full text-ds-18 font-bold text-foreground leading-tight truncate" title={displayName || t("yp.you.yourProfile")}>
+          {displayName || t("yp.you.yourProfile")}
         </Heading>
         {facts && <p className="max-w-full text-ds-13 text-muted-foreground truncate mt-0.5" title={facts}>{facts}</p>}
         <Button type="button" variant="ghost" size="sm" onClick={open} disabled={!userId} className="-my-2 px-0 text-ds-13 tracking-normal disabled:opacity-100" style={{ color: "hsl(var(--bark))" }}>
-          View my public profile
+          {t("yp.you.publicProfile")}
         </Button>
       </div>
       <Button
@@ -87,14 +93,14 @@ export function YouCard({
         variant="ghost"
         size="sm"
         data-testid="you-card-edit"
-        aria-label="Edit profile"
+        aria-label={t("yp.you.editLabel")}
         onClick={() => navigate(EDIT_PROFILE_PATH)}
         className="btn-press ml-auto shrink-0 min-w-11 gap-1.5 px-2 text-ds-13 tracking-normal [&_svg]:size-4"
         style={{ color: "hsl(var(--bark))" }}
       >
         <Pencil aria-hidden />
         {/* Icon only on a phone: the word cost "View my public profile" its one line at 375. */}
-        <span className="max-sm:hidden">Edit</span>
+        <span className="max-sm:hidden">{t("yp.you.edit")}</span>
       </Button>
     </div>
   );

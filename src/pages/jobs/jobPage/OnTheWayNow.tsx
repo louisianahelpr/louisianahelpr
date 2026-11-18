@@ -19,6 +19,8 @@ import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchOnTheWayPosition } from "./onTheWayPosition";
 import type { JobPageRow } from "./useJobPage";
+import "@/lib/i18n/enJobLines";
+import { t } from "@/lib/i18n/language";
 
 const TrackingMap = lazy(() => import("@/components/TrackingMap").then((m) => ({ default: m.TrackingMap })));
 
@@ -65,20 +67,20 @@ export function OnTheWayNow({ job, helperFirst, trackingStatus = null }: { job: 
   });
   if (!on) return null;
   const p = pos.data;
-  const name = helperFirst ?? "Your Helpr";
+  const name = helperFirst ?? t("jl.yourHelpr");
   const mapped = p != null && (arrived ? p.status === "arrived" : p.status === "on_the_way") && p.latitude != null && p.longitude != null && job.latitude != null && job.longitude != null;
   return (
     <section aria-label={arrived ? "Arrived" : "On the way"} data-on-the-way={arrived ? undefined : ""} data-arrived-now={arrived ? "" : undefined} className="space-y-2">
       {arrived && job.helper_arrived_at ? (
         <p className="text-ds-16 font-semibold text-foreground">
-          {name} arrived <span className="font-normal text-muted-foreground">· {onTheWaySince(job.helper_arrived_at)}</span>
+          {t("jl.nowArrived", { name })} <span className="font-normal text-muted-foreground">· {onTheWaySince(job.helper_arrived_at)}</span>
         </p>
       ) : job.helper_on_the_way_at ? (
         <>
           <p className="text-ds-16 font-semibold text-foreground">
-            {name} is on the way <span className="font-normal text-muted-foreground">· since {onTheWaySince(job.helper_on_the_way_at)}</span>
+            {t("jl.nowOnWay", { name })} <span className="font-normal text-muted-foreground">· {t("jl.nowSince", { when: onTheWaySince(job.helper_on_the_way_at) })}</span>
           </p>
-          <p className="text-ds-13 text-muted-foreground">You'll confirm once they say they've arrived.</p>
+          <p className="text-ds-13 text-muted-foreground">{t("jl.nowConfirmNote")}</p>
         </>
       ) : null}
       {mapped && (

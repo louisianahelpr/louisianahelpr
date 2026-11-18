@@ -100,6 +100,7 @@ export function MessageBubble({
   replyParent,
   reveal = 0,
   grouped = false,
+  hideTime = false,
   activeConvo,
   retryMessage,
   setLightboxPhoto,
@@ -126,6 +127,8 @@ export function MessageBubble({
    *  reads as one group (iOS convention), with a larger gap on sender
    *  change. */
   grouped?: boolean;
+  /** Area 08 L3: the next message comes within 10 minutes, so it carries the time for both. */
+  hideTime?: boolean;
   activeConvo: Conversation;
   retryMessage: (clientId: string) => void;
   setLightboxPhoto: (url: string | null) => void;
@@ -244,13 +247,14 @@ export function MessageBubble({
           chromium, 23x16 webkit);
           guard: e2e/journeys/messages-thread.spec.ts tap-targets.
 
-          `-mt-2` tucks the chip 8px into the bubble's 10px bottom padding, so
-          it reads as attached without reaching a glyph.
+          Area 08 L4 (design audit 11-18): it used to tuck 8px into the bubble
+          (`-mt-2`) and read as covering it. It now hangs just outside the
+          bubble's edge (`mt-0.5`), still on the far corner.
           Guard: e2e/prod-audit/reaction-chip-clearance.spec.ts. */}
       {reactions && reactions.counts.length > 0 && (
         <div
           data-reaction-chips
-          className={`relative z-10 -mt-2 flex items-center gap-0.5 ${mine ? "self-start -ml-1.5" : "self-end -mr-1.5"}`}
+          className={`relative z-10 mt-0.5 flex items-center gap-0.5 ${mine ? "self-start -ml-1.5" : "self-end -mr-1.5"}`}
         >
           {reactions.counts.map(({ emoji, count }) => {
             const isMine = reactions.mine === emoji;
@@ -350,12 +354,16 @@ export function MessageBubble({
                 message carries the time. Every hidden time is still one
                 left-drag away (see useTimestampReveal), which is exactly the
                 trade iMessage makes. */}
-            {!grouped && (
+            {/* Area 08 L3: the time sits on the LAST message of a stretch (the next one is more than 10 minutes
+                later, or there is none); a hidden time keeps its Edited mark. */}
+            {!hideTime ? (
               <span>
                 {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
                 {m.edited_at && " · Edited"}
               </span>
-            )}
+            ) : m.edited_at ? (
+              <span>{t("msg.edited")}</span>
+            ) : null}
             {showReadReceipt && (
               <ReadReceipt
                 read={m.read}

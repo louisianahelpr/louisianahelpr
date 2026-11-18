@@ -160,7 +160,9 @@ const JobsSection = () => {
           src/test/jobsSearchIsAnIcon.test.tsx, src/test/jobsToolbarRowIsOneRow.test.tsx. */}
     </div>
   );
-  const fab = desktop ? null : <SectionCreateFab section="jobs" text={tr("jobs.postAJob")} />;
+  // Design audit 11-17 #5: no "+ Post a job" on the Helpr's Working tab (the work they took, not work they post), where
+  // it also sat on the cards' titles and prices.
+  const fab = desktop || tab === "working" ? null : <SectionCreateFab section="jobs" text={tr("jobs.postAJob")} />;
 
   // An old Manage job link opens the job page, before the list mounts (manageLinkOpensJobPage).
   const jobPage = tab === "posted" ? manageLinkOpensJobPage(params) : null;

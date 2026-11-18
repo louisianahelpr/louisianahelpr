@@ -1,0 +1,67 @@
+/**
+ * Area 08 H2/H3 (design audit 11-18): the words a Spanish thread, inbox row and bell still showed in English: the
+ * day labels (Today / Yesterday), the "4m ago" ages, the job card's "Show progress" and person line, the safety
+ * banner, and the inbox status chips and role captions. Importing this file registers them with t() (enRegistry.ts).
+ * Spanish: esChatParts.ts.
+ */
+import { addEnglish } from "./enRegistry";
+
+export const enChatParts = {
+  "cp.today": "Today",
+  "cp.yesterday": "Yesterday",
+  "cp.thisWeek": "This week",
+  "cp.earlier": "Earlier",
+  "cp.justNow": "just now",
+  "cp.minAgo": "{n}m ago",
+  "cp.hrAgo": "{n}h ago",
+  "cp.dayAgo": "{n}d ago",
+  "cp.showProgress": "Show progress",
+  "cp.safety": "Keep chats & payments on Helpr so your job stays covered.",
+  "cp.verified": "Verified neighbor",
+  "cp.review": "{n} review",
+  "cp.reviews": "{n} reviews",
+  "cp.chip.open": "Open",
+  "cp.chip.accepted": "Hired",
+  "cp.chip.assigned": "Assigned",
+  "cp.chip.in_progress": "Working",
+  "cp.chip.pending_approval": "Done",
+  "cp.chip.completed": "Completed",
+  "cp.chip.cancelled": "Cancelled",
+  "cp.chip.revision_requested": "Revision requested",
+  "cp.chip.disputed": "Disputed",
+  "cp.role.yourJob": "Your job",
+  "cp.role.working": "You're working",
+  "cp.role.worked": "You worked this",
+  // The Declutter order chat (DeclutterOrderTalk.tsx).
+  "cp.ot.title": "Order chat",
+  "cp.ot.msgSeller": "Message the seller",
+  "cp.ot.msgBuyer": "Message the buyer",
+  "cp.ot.msgTrade": "Message about the trade",
+  "cp.ot.chatSeller": "Your chat with the seller",
+  "cp.ot.chatBuyer": "Your chat with the buyer",
+  "cp.ot.about": "About \u201c{title}\u201d",
+  "cp.ot.loadFailed": "We couldn't load this chat.",
+  "cp.ot.loading": "Loading\u2026",
+  "cp.ot.seeOrder": "See the order",
+  "cp.ot.rule": "Only you two can read this. Keep payment in the app.",
+  "cp.ot.openUntil": " It's open until {when}.",
+  "cp.ot.endedAt": "This chat ended {when}, 48 hours after the handover.",
+  "cp.ot.ended": "This chat has ended.",
+  "cp.ot.stillRead": " You can still read it. For a problem with this order, use Report a problem on its card.",
+  "cp.ot.none": "No messages yet.",
+  "cp.ot.messages": "Messages",
+  "cp.ot.you": "You",
+  "cp.ot.theSeller": "The seller",
+  "cp.ot.theBuyer": "The buyer",
+  "cp.ot.photoHidden": "Photo hidden",
+  "cp.ot.message": "Message",
+  "cp.ot.writeSeller": "Write to the seller",
+  "cp.ot.writeBuyer": "Write to the buyer",
+  "cp.ot.close": "Close",
+  "cp.ot.send": "Send",
+  "cp.ot.sending": "Sending\u2026",
+  "cp.ot.date": "Date: {day}",
+  "cp.safetyLabel": "Safety",
+} as const;
+
+addEnglish(enChatParts);

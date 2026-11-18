@@ -33,7 +33,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate(checkoutLinkFor(item.seller_id)); |       void checkoutLinkFor;
  * @mutate src/lib/declutter/buyNowHold.ts |   return sellerId ? `/declutter?tab=buying&checkout=${encodeURIComponent(sellerId)}` : "/declutter?tab=buying"; |   return "/declutter?tab=buying";
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents; | && o.floor_price_cents < o.current_price_cents;
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setDeclining(true)}> | disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })}>
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setDeclining(true)} data-offer-say-no=""> | disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })} data-offer-say-no="">
  * @mutate src/components/declutter/DeclutterOffersSection.tsx |   const wantedReply = o.from_wanted === true && o.my_side === "buyer"; |   const wantedReply = false;
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | o.my_side === "buyer" && o.awaiting === "seller" && ( | o.my_side === "buyer" && (
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? t("dof.theirPrice") : t("dof.theirCounter")) | : t("dof.theirCounter"))
@@ -859,11 +859,12 @@ describe("Declutter slice 3 screens", () => {
     expect(within(yours).getByText("Porch swing")).toBeInTheDocument();
   });
 
-  it("deep audit #30: only closed offers left: 'No open offers.' and the fold, never the first-time empty state", async () => {
+  // Design audit 11-17 #19: with only closed offers, the fold's link row is the whole answer ("No open offers." went).
+  it("deep audit #30: only closed offers left: the fold alone, never the first-time empty state", async () => {
     state.offers = [{ ...OFFER, offer_id: "c1", status: "declined", item_title: "Old lamp" }];
     show(<OffersSection side="seller" />);
-    expect(await screen.findByText("No open offers.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Show 1 closed offer from the last 30 days" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Show 1 closed offer from the last 30 days" })).toBeInTheDocument();
+    expect(screen.queryByText("No open offers.")).toBeNull();
     expect(screen.queryByText("No offers yet")).toBeNull();
     expect(screen.queryByText("Old lamp")).toBeNull();
   });
@@ -996,7 +997,10 @@ describe("Declutter slice 3 screens", () => {
     show(<CartView />);
     fireEvent.click(await screen.findByRole("button", { name: "Remove Rug from your cart" }));
     const sheet = await screen.findByRole("dialog");
-    expect(within(sheet).getByText(/"Rug" goes back on sale for everyone\. Nothing is charged, and you get no strike\./)).toBeInTheDocument();
+    // @mutate src/components/declutter/DeclutterCartRemove.tsx |           : <>“{line.item_title}” goes back on sale |           : <>&quot;{line.item_title}&quot; goes back on sale
+    // @mutate src/components/declutter/DeclutterCartRemove.tsx |         testId="declutter-remove-cart-line" plain onConfirm |         testId="declutter-remove-cart-line" onConfirm
+    expect(sheet.querySelector('[data-sheet-note="plain"]')).not.toBeNull(); // area 05 #21: no warning tint
+    expect(within(sheet).getByText(/“Rug” goes back on sale for everyone\. Nothing is charged, and you get no strike\./)).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Keep it" }));
     expect(screen.queryByRole("dialog")).toBeNull(); // the sheet closes on the press itself
     expect(state.removed).toEqual([]);
@@ -1020,10 +1024,10 @@ describe("Declutter slice 3 screens", () => {
   });
 
   it("lead 2026-10-28: a reserved line says \"Reserved for you, not paid yet\" with the time left; the bundle hint only when the seller has one", async () => {
-    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {allFree ? "Reserved for you. " : noStrike ? "" : "Reserved for you, not paid yet. "} |         {allFree ? "Reserved for you. " : noStrike ? "" : "Reserved for you. "}
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {allFree ? t("dbuy.reserved") : noStrike ? "" : t("dbuy.reservedUnpaid")} |         {allFree ? t("dbuy.reserved") : noStrike ? "" : t("dbuy.reserved")}
     // Next-step line (owner 2026-11-01): the hold opens with the buyer's move and its deadline.
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |       <NextStep value={cartNextStep(allFree, timeLeft)} /> |       <NextStep value={null} />
-    // @mutate src/components/declutter/DeclutterReserveSheet.tsx | allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: timeLeft \|\| null | allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: null
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx | allFree ? t("dbuy.next.free") : t("dbuy.next.pay"), by: timeLeft \|\| null | allFree ? t("dbuy.next.free") : t("dbuy.next.pay"), by: null
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {!allFree && rule.data ? |         {!allFree ?
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |             <Link to={memberProfilePath(sellerId, { from: PROFILE_FROM_DECLUTTER })} data-cart-bundle-more="" |             <Link to="/declutter" data-cart-bundle-more=""
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
@@ -1077,8 +1081,8 @@ describe("Declutter slice 3 screens", () => {
 
   // DB-5 (owner 2026-10-30): a Buy now line (source "buy") is no strike; a checkout holding an accepted offer keeps it.
   // Audit 11-10 F351 (High): the Buy now hold is "Held for you until …. Not ready? Remove it anytime, no strike."
-  // @mutate src/components/declutter/DeclutterReserveSheet.tsx |           : noStrike ? `Held for you until ${by}. |           : false ? `Held for you until ${by}.
-  // @mutate src/components/declutter/DeclutterReserveSheet.tsx | : noStrike ? "" : "Reserved for you, not paid yet. " | : "Reserved for you, not paid yet. "
+  // @mutate src/components/declutter/DeclutterReserveSheet.tsx |           : noStrike ? t("dbuy.heldUntil", { by }) |           : false ? t("dbuy.heldUntil", { by })
+  // @mutate src/components/declutter/DeclutterReserveSheet.tsx | : noStrike ? "" : t("dbuy.reservedUnpaid") | : t("dbuy.reservedUnpaid")
   // @mutate src/lib/declutter/buyNowHold.ts |   return lines.length > 0 && lines.every((l) => l.price_cents === 0 \|\| l.source === "buy"); |   return lines.length > 0;
   // @mutate src/components/declutter/DeclutterTradeViews.tsx | allFree={allFree} lines={lines} timeLeft= | allFree={allFree} lines={[]} timeLeft=
   it("DB-5: a Buy now checkout says No strike; one with an accepted offer still warns of the strike", async () => {
@@ -1135,18 +1139,19 @@ describe("Declutter slice 3 screens", () => {
     expect(document.querySelector("[data-checkout-setup-fee]")).toBeNull();
     // Board 161: two items, one checkout, ONE service fee. Owner 11-07 ~5:10 PM (Vinted review, Declutter only): every
     // line shown, the service fee named "Service fee" with its amount, pickup Free, sales tax $0.00, then the Total.
-    // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |       <Line data="tax" label="Sales tax" tip={SUMMARY_TIPS.tax} value={exact(taxCents)} /> | {null}
+    // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |       <Line data="tax" label={t("dbuy.sum.tax")} tip={tipWords("tax")} value={exact(taxCents)} /> | {null}
     expect(bill.textContent).toMatch(/^2 items\$7\.00Service fee\$1\.05PickupFreeSales tax\$0\.00Total\$8\.05$/);
     // Lead 2026-10-28: the card says it once, the heading the checkout, the line what the items share.
-    // @mutate src/components/declutter/DeclutterCartWords.tsx | shared: "From the same seller: one pickup, one payment." }; | shared: "One checkout, one pickup, one payment." };
+    // @mutate src/lib/i18n/enDeclBuy.ts | "dbuy.card.paidShared": "From the same seller: one pickup, one payment.", | "dbuy.card.paidShared": "One checkout, one pickup, one payment.",
     expect(screen.getByText("From the same seller: one pickup, one payment.")).toBeInTheDocument();
     const card = screen.getByRole("region", { name: "Checkout 1" });
     expect((card.textContent ?? "").match(/checkout/gi)?.length ?? 0).toBeLessThanOrEqual(2);
     const note = document.querySelector("[data-checkout-note]")!;
     // The real payout rule (declutter_handover_sweep, read live 2026-10-20): handover done, or 24 h after the slot
     // unless a problem is open.
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx | Then the seller is paid (about 48 hours after the seller says you have it, if you don't). | Then the seller is paid once you have your items.
-    expect(note.textContent).toMatch(/The seller keeps the whole \$7\. You have 24 hours after you say you have it to report a problem\. Then the seller is paid \(about 48 hours after the seller says you have it, if you don't\)\./);
+    // Area 05 #7 (11-18): the plainer words, the same rule.
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | If you don't tap it, they're paid about 48 hours after the seller says you have it." | Then the seller is paid once you have your items."
+    expect(note.textContent).toMatch(/The seller gets the full \$7\. After you tap I got it, you have 24 hours to report a problem\. Then the seller is paid\. If you don't tap it, they're paid about 48 hours after the seller says you have it\./);
     // Owner: no codes or QR for Declutter pickup.
     expect(document.body.textContent).not.toMatch(/\bcode\b|QR/i);
     // Never the false promise the money review found (the sweep can pay the seller with no buyer step).
@@ -1310,7 +1315,8 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByLabelText(/Porch pickup/)).toBeChecked();
     fireEvent.click(screen.getByLabelText(/Helpr delivery/));
     // No price yet: Pay waits for the server's quote.
-    expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeDisabled();
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | : opening ? "Opening…" : delivering && !liveQuote ? "Get the delivery price first" | : opening ? "Opening…" : false ? "Get the delivery price first"
+    expect(screen.getByRole("button", { name: "Get the delivery price first" })).toBeDisabled(); // area 05 #19
     // ...and the bill says the total is not complete yet (money review #4).
     // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |           {unpriced && <span | {false && <span
     expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/Total\$3\.85\+ delivery/);
@@ -1519,7 +1525,7 @@ describe("Declutter slice 3 screens", () => {
     // $58.50 after the discount, plus the fee on $58.50 (5% + 70¢ = $3.63): $62.13.
     expect(rows).toMatch(/Service fee\$3\.63/);
     expect(rows).toMatch(/Total\$62\.13/);
-    expect(document.querySelector("[data-checkout-note]")!.textContent).toMatch(/keeps the whole \$58\.50/);
+    expect(document.querySelector("[data-checkout-note]")!.textContent).toMatch(/gets the full \$58\.50/);
   });
 
   it("Q2427: one paid item: no preview asked, no discount row", async () => {
@@ -1612,7 +1618,7 @@ describe("Declutter slice 3 screens", () => {
     show(<CartView />);
     fireEvent.click(await screen.findByLabelText(/Ship it to me/));
     expect(screen.getByText("Get shipping prices above to pay.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Get shipping prices first" })).toBeDisabled(); // area 05 #19
     fireEvent.change(screen.getByLabelText("Street address"), { target: { value: "12 Oak St" } });
     fireEvent.change(screen.getByLabelText("City"), { target: { value: "Baton Rouge" } });
     fireEvent.change(screen.getByLabelText("ZIP"), { target: { value: "70801" } });
@@ -1631,7 +1637,7 @@ describe("Declutter slice 3 screens", () => {
     // A changed address drops the old prices.
     fireEvent.change(screen.getByLabelText("ZIP"), { target: { value: "70802" } });
     expect(screen.queryByText("UPS Ground")).toBeNull();
-    expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Get shipping prices first" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Get prices" }));
     await screen.findByText("UPS Ground");
     fireEvent.click(screen.getByRole("button", { name: "Pay $29.40" }));
@@ -1730,7 +1736,7 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Get price" }));
     await screen.findByRole("button", { name: "Pay $43.85" });
     fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "12 Other St, Zachary, LA" } });
-    expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Get the delivery price first" })).toBeDisabled(); // area 05 #19
     state.deliveryOn = false;
   });
 
@@ -1781,6 +1787,10 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByRole("button", { name: "Pay $3.85" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel sale" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Buy now|Make an offer|Sell an item/ })).toBeNull();
+    // Area 06 M6 (11-18): the strike-giving cancel confirms with the red commit, as Delete does.
+    // @mutate src/components/declutter/DeclutterSalesWaiting.tsx | pending={cancel.isPending} destructive | pending={cancel.isPending}
+    fireEvent.click(screen.getByRole("button", { name: "Cancel sale" }));
+    expect((await screen.findAllByRole("button", { name: "Cancel sale" })).some((b) => b.hasAttribute("data-confirm-destructive"))).toBe(true);
   });
 
   it("strike count reads 'You have N of 3 strikes' and is absent at 0", async () => {
@@ -1792,6 +1802,20 @@ describe("Declutter slice 3 screens", () => {
     show(<StrikeCount userId="u1" />);
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByText(/of 3 strikes/)).toBeNull();
+  });
+
+  // Design audit 11-17 #2: off Selling the strikes are one line (the full card at 3, when Declutter is paused).
+  it("strike count off Selling is one line under 3 strikes, the full card at 3", async () => {
+    state.strikes = 2;
+    const { container, unmount } = show(<StrikeCount userId="u1" full={false} />);
+    expect(await screen.findByText("You have 2 of 3 strikes.")).toBeInTheDocument();
+    expect(container.querySelector("[data-strike-line]")).not.toBeNull();
+    expect(screen.queryByText(/goes away 1 year/)).toBeNull();
+    unmount();
+    state.strikes = 3;
+    const again = show(<StrikeCount userId="u1" full={false} />);
+    expect(await screen.findByText(/Declutter is paused for you/)).toBeInTheDocument();
+    expect(again.container.querySelector("[data-strike-line]")).toBeNull();
   });
 
   it("parses dollar amounts strictly", () => {
@@ -1921,7 +1945,7 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
     const after = Array.from(summary.querySelectorAll("*")).filter((el) => pay.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !pay.contains(el));
     expect(after.map((el) => el.textContent)).toEqual([]);
     const note = summary.querySelector("[data-checkout-note]")!;
-    expect(note.textContent).toMatch(/The seller keeps the whole \$40/);
+    expect(note.textContent).toMatch(/The seller gets the full \$40/);
     expect(note.className).not.toMatch(/sienna|destructive|warning/);
   });
   // Q2636 (audit 1102c R11): the row cut the title to "Oak rocking cha…" on one line to fit "$40 Remove", though it has

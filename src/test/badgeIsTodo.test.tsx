@@ -18,6 +18,7 @@
  * @mutate src/components/DesktopSidebarNav.tsx |     if (key === "todoShops") return todo.shops; |     if (key === "todoShops") return 0;
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |   const { todos, loading: todosLoading, onOldCall } = useNeedsYouTodos(user); |   const { loading: todosLoading, onOldCall } = useNeedsYouTodos(user); const todos = useNeedsYouTodos(user).todos.slice(1);
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   const postedNeeds = posted.filter((j) => (cd[j.id] ? contStep(j.id, "poster", null)?.who === "you" : postedActivityBucket(j, i.pendingApplicantCounts[j.id] ?? 0) === "needs_you")); |   const postedNeeds = posted.flatMap((j) => (postedActivityBucket(j, i.pendingApplicantCounts[j.id] ?? 0) === "needs_you" ? Array.from({ length: Math.max(1, i.pendingApplicantCounts[j.id] ?? 0) }, () => j) : []));
+ * @mutate src/components/DesktopSidebarNav.tsx | const count = soon \|\| (path === exploreItem.path && visibleSections.length > 0) ? 0 : badgeFor(badgeKey); | const count = soon ? 0 : badgeFor(badgeKey);
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, act } from "@testing-library/react";
@@ -52,7 +53,7 @@ vi.mock("@/components/money/PayoutFailedCard", () => ({ PayoutFailedCard: () => 
 // Board 189's first-job Home has its own reads (applications); not what this file is about.
 vi.mock("@/pages/home/homeDashboard/FirstJobHome", () => ({ FirstJobHome: () => null, useFirstJobState: () => null }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
-vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => new Set(["declutter", "shops", "rentals"]) })); // launched: an unlaunched section is not listed (owner 2026-11-17)
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => true }));
 vi.mock("@/hooks/useCurrentUser", () => ({
@@ -149,8 +150,9 @@ describe("badge = To-do (owner, 2026-10-20)", () => {
     expect(document.querySelector('[data-dock-badge="/shops"]')?.textContent).toBe("1");
     expect(document.querySelector('[data-dock-badge="/declutter"]')).toBeNull();
     expect(document.querySelector('[data-dock-badge="/home"]')).toBeNull();
-    // Desktop sidebar: Explore = total, Jobs and Shops = their share.
-    expect(sidebarCount("/explore")).toBe("2");
+    // Desktop sidebar: Jobs and Shops = their share. Explore (the total) carries none while its section rows are listed
+    // under it, or every to-do showed twice (design audit 11-17 #22).
+    expect(sidebarCount("/explore")).toBe("0");
     expect(sidebarCount("/jobs")).toBe("1");
     expect(sidebarCount("/shops")).toBe("1");
     expect(sidebarCount("/declutter")).toBe("0");

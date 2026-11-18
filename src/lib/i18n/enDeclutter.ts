@@ -109,6 +109,7 @@ export const enDeclutter = {
   "decl.st.pending_review": "Waiting for a review",
   "decl.st.live": "For sale",
   "decl.st.paused": "Paused",
+  "decl.st.reservedSeller": "Waiting for the buyer to pay",
   "decl.st.reserved": "Someone is buying it",
   "decl.st.sold": "Sold",
   "decl.st.completed": "Handed over",
@@ -189,6 +190,7 @@ export const enDeclutter = {
   "decl.mv.history": "History",
   "decl.mv.nothingToAnswer": "Nothing to answer right now.",
   "decl.mv.findBrowse": "Find something in Browse",
+  "decl.mv.nothingActive": "Nothing in progress.",
   "decl.hv.moreWays": "More ways to sell",
   "decl.hv.sellOne": "Sell an item",
   "decl.hv.otherWays": "Free, a bunch, or moving out?",
@@ -205,6 +207,7 @@ export const enDeclutter = {
   "decl.sl.takenDown": "Taken down.",
   "decl.sl.loadFail": "We couldn't load your listings.",
   "decl.sl.yours": "Your listings",
+  "decl.sl.emptyNow": "Nothing for sale right now.",
   "decl.sl.empty": "You haven't listed anything yet.",
   // Owner 11-13: Selling's search finds nothing among the seller's own listings (never a jump to Browse).
   "decl.sl.noMatch": "No listings match \u201c{q}\u201d",
@@ -228,6 +231,12 @@ export const enDeclutter = {
   "decl.sl.draftWords": "Its photos are removed and it moves to your selling history.",
   "decl.sl.takeDownWords": "Its photos are removed and open offers close. Nothing is charged. You can relist it from History, but you'll need new photos.",
   "decl.lwn.copy": "Copy link for local groups",
+  // The item page's owner lines and view count (11-18 train, Q178): here, not in enDeclSell, so a cold public item page
+  // does not fetch the whole seller dictionary (+3.3 KB gz on /declutter/item/:id) for four words.
+  "dsl.view": "{n} view",
+  "dsl.views": "{n} views",
+  "dsl.item.buyersPay": "Buyers pay {amount} with the fee",
+  "dsl.item.publicPage": "See your public page",
 } as const;
 
 addEnglish(enDeclutter);

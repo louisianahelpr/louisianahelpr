@@ -22,9 +22,11 @@
  * @mutate src/components/messages/messageSections.ts |   if (filter === "all") return [...list]; |   if (filter === "all") return list.filter((c) => !!c.teamThread);
  * @mutate src/components/messages/messageSections.ts |   if (filter === "unread") return list.filter((c) => c.unread > 0); |   if (filter === "unread") return [...list];
  * @mutate src/components/messages/messageSections.ts |   return "all";\n} |   return "jobs";\n}
- * @mutate src/components/messages/messageSections.ts |   if (c.viewerIsAssignedHelper) return c.jobStatus |   if (!c.viewerIsPoster) return c.jobStatus
+ * @mutate src/components/messages/messageSections.ts |   if (c.viewerIsAssignedHelper) { |   if (!c.viewerIsPoster) {
  * F24 (audit 2026-10-28): one status per row; a finished job's thread drops "You're working".
- * @mutate src/components/messages/messageSections.ts | c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : "You're working"; | false ? null : "You're working";
+ * @mutate src/components/messages/messageSections.ts | c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : t("cp.role.working"); | false ? null : t("cp.role.working");
+ * Area 08 L5 (design audit 11-18): a Helpr's completed thread says which side they were on, "You worked this".
+ * @mutate src/components/messages/messageSections.ts |     if (c.jobStatus === "completed") return t("cp.role.worked"); |     if (c.jobStatus === "completed") return null;
  * @mutate src/pages/messages/useMessageSections.tsx | label: unread > 0 ? t("msg.filterUnreadN", { n: unread }) : t("msg.filterUnread") }, | label: t("msg.filterUnreadN", { n: unread }) },
  * @mutate src/pages/messages/Messages.tsx |       conversations={inbox.conversations} |       conversations={conversations}
  * @mutate src/components/messages/ConversationList.tsx |       {sectionTabs && ( |       {false && (
@@ -163,7 +165,9 @@ describe("the rule: one inbox, filtered by chips", () => {
     // Inventory floor: the live states still carry the caption.
     expect(live.length).toBeGreaterThan(3);
     for (const s of live) expect(threadRoleCaption({ viewerIsAssignedHelper: true, jobStatus: s }), s).toBe("You're working");
-    for (const s of ["completed", "cancelled"]) expect(threadRoleCaption({ viewerIsAssignedHelper: true, jobStatus: s }), s).toBeNull();
+    // Area 08 L5: completed is a past side ("You worked this"), never the live "You're working"; cancelled has none.
+    expect(threadRoleCaption({ viewerIsAssignedHelper: true, jobStatus: "completed" })).toBe("You worked this");
+    expect(threadRoleCaption({ viewerIsAssignedHelper: true, jobStatus: "cancelled" })).toBeNull();
     // The poster's caption is a side, not a status: it stays.
     expect(threadRoleCaption({ viewerIsPoster: true, jobStatus: "completed" })).toBe("Your job");
   });

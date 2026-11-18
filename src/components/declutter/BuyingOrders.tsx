@@ -32,9 +32,12 @@ import { useMyPaidCents } from "./useMyPaidCents";
 import { fetchMyRefundedCents } from "@/lib/declutter/refundedCents";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { useOpenProblemsRead } from "./useOpenProblems";
-import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclBuy";
+import type { MsgKey } from "@/lib/i18n/en";
 import { ORDER_BUCKETS, OrderSteps, gotItOpen, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
 /** One paid order on the buyer's side, as the tracker files it. */
@@ -138,62 +141,76 @@ export function buyerNextStep(f: OrderFacts, when: string | null, helprName: str
   const info = (text: string): NextStepValue => ({ who: "info", text });
   // Audit 11-10 F370: the tracker passes the refund figure and day through cancelledStep; this is the words-only fallback.
   if (f.cancelled) return cancelledStep(null, null);
-  if (f.problem) return f.problemAwaitsYou ? you("Add your side to the problem") : info(PROBLEM_ON_HOLD);
+  if (f.problem) return f.problemAwaitsYou ? you(t("dbuy.nx.addSide")) : info(t("dbuy.nx.onHold"));
   // Audit 11-10 F365: inside the buyer's 24 hours the row says until when they can report a problem.
-  if (f.done && checkUntil) return info(`You have it. Check it over: you can report a problem until ${orderWhen(checkUntil)}, then the sale is final.`);
-  if (f.done) return info("Handed over. It's yours.");
+  if (f.done && checkUntil) return info(t("dbuy.nx.checkIt", { when: orderWhen(checkUntil) }));
+  if (f.done) return info(t("dbuy.nx.yours"));
   const at = orderStepAt(f);
   // A3-19 (lead 11-01 5:01 PM): nothing booked says "by <book_by>"; a checkout time once booked is named, no "by".
   const { chosen, by } = times;
   switch (f.handover) {
     case "porch":
-      return at === 0 ? you("Pick a pickup time", by)
-        : at === 1 && chosen ? info(`Pickup ${chosen} · porch`)
-        : at === 1 ? them(`The seller puts it out ${when ? `for ${when}` : "on your day"} and posts a photo.`)
-          : at === 2 ? you("Pick it up from the porch, then tap I got it")
-            : info("Picked up.");
+      return at === 0 ? you(t("dbuy.act.pickPorch"), by)
+        : at === 1 && chosen ? info(t("dbuy.nx.porchChosen", { chosen }))
+        : at === 1 ? them(when ? t("dbuy.nx.porchOutFor", { when }) : t("dbuy.nx.porchOutDay"))
+          : at === 2 ? you(t("dbuy.nx.porchPick"))
+            : info(t("dbuy.nx.pickedUp"));
     case "pickup_home":
-      if (at === 0) return you("Book a pickup time", by);
-      if (at === 1 && chosen && !f.gotItOpen) return info(`Pickup ${chosen} · at the door`);
-      if (at === 1) return f.gotItOpen ? you("Pick it up, then tap I got it", when ? `booked for ${when}` : null) : info(`Pickup booked${when ? ` for ${when}` : ""}.`);
-      return info("Picked up.");
+      if (at === 0) return you(t("dbuy.act.bookPickup"), by);
+      if (at === 1 && chosen && !f.gotItOpen) return info(t("dbuy.nx.doorChosen", { chosen }));
+      if (at === 1) return f.gotItOpen ? you(t("dbuy.nx.doorPick"), when ? t("dbuy.nx.bookedFor", { when }) : null) : info(when ? t("dbuy.nx.pickupBookedFor", { when }) : t("dbuy.nx.pickupBooked"));
+      return info(t("dbuy.nx.pickedUp"));
     case "meetup":
-      if (at === 0) return you("Book a time to meet at the safe spot", by);
-      if (at === 1 && chosen && !f.gotItOpen) return info(`Meet ${chosen}`);
-      if (at === 1) return f.gotItOpen ? you("Meet the seller, then tap I got it", when ? `booked for ${when}` : null) : info(`Meeting booked${when ? ` for ${when}` : ""}.`);
-      return info("Met.");
+      if (at === 0) return you(t("dbuy.nx.bookMeet"), by);
+      if (at === 1 && chosen && !f.gotItOpen) return info(t("dbuy.nx.meetChosen", { chosen }));
+      if (at === 1) return f.gotItOpen ? you(t("dbuy.nx.meetPick"), when ? t("dbuy.nx.bookedFor", { when }) : null) : info(when ? t("dbuy.nx.meetBookedFor", { when }) : t("dbuy.nx.meetBooked"));
+      return info(t("dbuy.nx.met"));
     case "seller_delivery":
-      if (at === 0) return f.needsTime ? you("Pick a delivery time") : them("Waiting on the seller to set the delivery time.");
+      if (at === 0) return f.needsTime ? you(t("dbuy.nx.sdPick")) : them(t("dbuy.nx.sdWaiting"));
       // AUD31-2: past its time and not marked delivered, it says it is late, never "booked".
       // The card's button ("It wasn't delivered") is the step; the line says why.
-      if (at === 1 && f.late) return info(`Late: it was due ${when ?? "earlier"} and the seller hasn't marked it delivered.`);
-      if (at === 1 && f.moveAsked) return you("Accept the new delivery time, or keep yours");
-      return at === 1 ? info(`Delivery booked${when ? ` for ${when}` : ""}.`) : you("Tap I got it once you have it");
+      if (at === 1 && f.late) return info(when ? t("dbuy.nx.sdLate", { when }) : t("dbuy.nx.sdLateEarlier"));
+      if (at === 1 && f.moveAsked) return you(t("dbuy.nx.sdMove"));
+      return at === 1 ? info(when ? t("dbuy.nx.sdBookedFor", { when }) : t("dbuy.nx.sdBooked")) : you(t("dbuy.nx.tapGotIt"));
     case "delivery":
       // AUD31-7: a delivery nobody took, or one that was closed, is never still "Finding a Helpr" (the task says so
       // under Details: DeclutterDeliveryViews' own lines).
-      if (taskStatus === "unfilled") return info("No Helpr took this delivery. What you paid for delivery was refunded.");
-      if (taskStatus && !LIVE_TASK.has(taskStatus)) return info("This delivery was closed.");
-      if (at === 0) return them("Finding a Helpr to bring it.");
+      if (taskStatus === "unfilled") return info(t("dbuy.nx.dUnfilled"));
+      if (taskStatus && !LIVE_TASK.has(taskStatus)) return info(t("dbuy.nx.dClosed"));
+      if (at === 0) return them(t("dbuy.nx.dFinding"));
       // Audit 1c D3-3: "<First> picks it up from the seller <day, time>" from the booked pickup (pickup_slot_start),
       // never "on the way" days before it.
-      if (at === 1) return them(`${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.`);
+      if (at === 1) return them(when ? t("dbuy.nx.dPicksAt", { name: helprName ?? t("dbuy.nx.yourHelpr"), when }) : t("dbuy.nx.dPicks", { name: helprName ?? t("dbuy.nx.yourHelpr") }));
       if (at === 2) {
         // LEAD-GOTIT30H: held 24 hours undelivered, the buyer may say they have it.
-        const held = stillInHandLine(helprName ?? "Your Helpr", taskPickedUpAt);
-        if (f.inHandLong) return you(`Tap I got it if you have it${held ? `. ${held}` : ""}`);
-        return held ? info(held) : them("Picked up. On its way to you.");
+        const held = stillInHandLine(helprName ?? t("dbuy.nx.yourHelpr"), taskPickedUpAt);
+        if (f.inHandLong) return you(held ? t("dbuy.nx.dIfHaveHeld", { held }) : t("dbuy.nx.dIfHave"));
+        return held ? info(held) : them(t("dbuy.nx.dOnWay"));
       }
-      return you("Tap I got it once you have it");
+      return you(t("dbuy.nx.tapGotIt"));
     case "ship": {
       // B134: the seller packs it and drops it off by the Ship-by day; then the carrier's scans say where it is.
       const by = shipByWords(ship?.ship_by);
-      if (at === 0) return them(by ? `The seller packs it and ships it by ${by}.` : "The seller packs it and ships it.");
-      if (at === 1) return them(by ? `Packed. The seller drops it off by ${by}.` : "Packed. The seller drops it off next.");
-      if (at === 2) return info(`Shipped. ${trackingStatusWords(ship?.tracking_status) ?? "On its way"}.`);
-      return info("Delivered.");
+      if (at === 0) return them(by ? t("dbuy.nx.shipBy", { by }) : t("dbuy.nx.ship"));
+      if (at === 1) return them(by ? t("dbuy.nx.packedBy", { by }) : t("dbuy.nx.packed"));
+      if (at === 2) return info(t("dbuy.nx.shipped", { status: trackingStatusWords(ship?.tracking_status) ?? t("dbuy.nx.onItsWay") }));
+      return info(t("dbuy.nx.delivered"));
     }
   }
+}
+
+/**
+ * Area 05 #3 (design audit 11-18): once the buyer has reported that the seller didn't show (declutter_report_no_show:
+ * no_show_reported_at, with the seller's no_show_answer_by), the card said "Next: pick it up, then tap I got it · booked
+ * for <a past time>" with an I got it button. It now says where the report stands; Details is the only control. Null
+ * when no report is waiting (or the order already moved on: done, cancelled, or a problem took over).
+ */
+export function buyerNoShowStep(f: Pick<OrderFacts, "done" | "cancelled" | "problem">,
+  row: Pick<MyHandover, "no_show_reported_at" | "no_show_answer_by"> | null | undefined): NextStepValue | null {
+  if (!row?.no_show_reported_at || f.done || f.cancelled || f.problem) return null;
+  return { who: "info", text: row.no_show_answer_by
+    ? t("dbuy.noShow.until", { by: orderWhen(row.no_show_answer_by).replace(/\.$/, "") })
+    : t("dbuy.noShow.waiting") };
 }
 
 /** The Helpr task statuses of a delivery still under way or done (helpr_tasks.status); any other one is closed. */
@@ -234,7 +251,8 @@ export function refundStanding(status: string | null | undefined, inFull = false
 
 /** "today", "tomorrow" or "Thu, Oct 30", to sit after "for". */
 const porchDayLower = (day: string) => porchDayWords(day).replace(/^(Today|Tomorrow)$/, (w) => w.toLowerCase());
-const whenWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+// Area 05 #15: the same date style as every other line on the card (orderWhen, Central).
+const whenWords = (iso: string) => orderWhen(iso);
 
 /** The buyer's paid orders in cart order (the same order, and so the same bookings key, as PaidOrdersSection). */
 function buyerPaidOrders(cart: CartLine[]) {
@@ -372,16 +390,18 @@ export function useBuyingTracker(): BuyingTracker {
       : whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
     const total = paidCents?.get(o.orderId) ?? null;
     const back = facts.cancelled ? refundedCents.data?.get(o.orderId) ?? null : null;
+    // Area 05 #3 (design audit 11-18): after the buyer reports a no-show the card stops asking for "I got it".
+    const noShow = buyerNoShowStep(facts, handovers[pickups.indexOf(o)]?.data ?? null);
     views.set(o.orderId, {
       orderId: o.orderId,
       facts,
       bucket,
-      action: buyerNextAction(facts),
-      next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
+      action: noShow ? null : buyerNextAction(facts),
+      next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : noShow ?? buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
         o.handover === "delivery" ? task?.status ?? null : null,
         orderTimeWords(orderTimes, o.handover, slot), shipRows[shipOrders.indexOf(o)]?.data ?? null, checkUntil),
       // #6: a free item never reads like a paid order ("You paid $0").
-      money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
+      money: facts.free ? t("dbuy.order.free") : total != null && !facts.cancelled ? t("dbuy.order.paid", { amount: formatPrice(total) }) : null,
     });
   }
   const checkouts = openCheckouts(lines, Date.now());
@@ -427,34 +447,68 @@ export function bucketChips(counts: Record<OrderBucket, number>) {
  * the card (the pickup panel, the address, reporting a problem, the review) opens under "Details", and the next
  * action opens it at that control.
  */
-export function BuyerOrderHead({ view, standing, refundOpen = false, open, onOpen, onClose, onAction = onOpen }: {
+export function BuyerOrderHead({ view, standing, refundOpen = false, refundOffered = false, open, onOpen, onClose, onAction = onOpen }: {
   view: BuyerOrderView; open: boolean; onOpen: () => void; onClose: () => void;
   /** F366 (rest): a refund still being worked out; the step bar ends on "Refund asked", never "Done". */
   refundOpen?: boolean;
+  /** Area 05 #5: the seller offered part of the refund; the card's button is "See the offer" (it opens Details). */
+  refundOffered?: boolean;
   /** Says more than the tracker's sentence: a refund being worked out (refundStanding). */
   standing?: string | null;
   /** The next-action button; defaults to opening Details (D3-7: a Helpr delivery's "I got it" also asks at once). */
   onAction?: () => void;
 }) {
+  useLanguage();
+  // Area 05 #5: an offer to answer is the buyer's move even when the order itself asks nothing.
+  const action = view.action ?? (refundOffered && !view.facts.cancelled ? SEE_OFFER : null);
+  const details = (
+    <Button type="button" variant="link" size="sm" className="px-0 text-sm font-semibold underline decoration-current underline-offset-2 text-[color:inherit]" aria-expanded={open} onClick={open ? onClose : onOpen} data-order-details="">
+      {open ? t("dbuy.order.hideDetails") : t("dbuy.order.details")}
+    </Button>
+  );
+  // Area 05 #13: with no main button, Details sits at the end of the money line instead of on a row of its own.
+  const lone = !action || open;
   return (
     <div className="space-y-2" data-buyer-order={view.bucket}>
       {/* Q2630: a refunded order did not go ahead, so no step bar stopped at "Paid" as if it were still in progress. */}
-      {!view.facts.cancelled && <OrderSteps facts={view.facts} refundOpen={refundOpen} />}
+      {!view.facts.cancelled && <OrderSteps facts={view.facts} refundOpen={refundOpen} refundOffered={refundOffered} />}
       <NextStep value={standing ? { who: "info", text: standing } : view.next} className="!text-ds-14" />
-      {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
-      <div className="flex flex-wrap items-center gap-3">
-        {view.action && !open && (
-          <Button type="button" variant="primary" size="sm" className="px-5 text-sm font-semibold" onClick={onAction} data-next-action="">
-            {view.action}
-          </Button>
-        )}
-        <Button type="button" variant="link" size="sm" className="px-0 text-sm font-semibold underline decoration-current underline-offset-2 text-[color:inherit]" aria-expanded={open} onClick={open ? onClose : onOpen}>
-          {open ? "Hide details" : "Details"}
-        </Button>
-      </div>
+      {lone ? (
+        <div className="flex items-center justify-between gap-3" data-order-money-row="">
+          <p className="text-ds-13 text-muted-foreground">{view.money ?? ""}</p>
+          {details}
+        </div>
+      ) : (
+        <>
+          {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="primary" size="sm" className="px-5 text-sm font-semibold" onClick={action === SEE_OFFER ? onOpen : onAction} data-next-action="">
+              {actionWords(action)}
+            </Button>
+            {details}
+          </div>
+        </>
+      )}
     </div>
   );
 }
+
+/** Area 05 #5: the button a part-refund offer puts on the card. */
+const SEE_OFFER = "See the offer";
+
+/** Area 05 #1: buyerNextAction's English names, in the member's language at render (the rule keeps the English). */
+const ACTION_KEYS: Record<string, MsgKey> = {
+  "I got it": "dbuy.act.gotIt",
+  "Pick a pickup time": "dbuy.act.pickPorch",
+  "Book a pickup time": "dbuy.act.bookPickup",
+  "Book a time to meet": "dbuy.act.bookMeet",
+  "Pick a time": "dbuy.act.pickTime",
+  "Accept the new time": "dbuy.act.acceptTime",
+  "It wasn't delivered": "dbuy.act.notDelivered",
+  "Add your side": "dbuy.act.addSide",
+  [SEE_OFFER]: "dbuy.act.seeOffer",
+};
+const actionWords = (action: string) => (ACTION_KEYS[action] ? t(ACTION_KEYS[action]) : action);
 
 /** A checkout that ended unpaid: nothing was charged (offers and checkouts charge only when paid). */
 /**
@@ -462,14 +516,21 @@ export function BuyerOrderHead({ view, standing, refundOpen = false, open, onOpe
  * free order its card left Buying with no record; the record now kept here must not read like an unpaid checkout
  * ("The time to check out ran out. Nothing was charged." on a paid sale that is being refunded would be false).
  */
-function endedWords(line: Pick<CartLine, "status" | "order_id" | "order_status" | "total_cents">): string {
+function endedWords(line: Pick<CartLine, "status" | "order_id" | "order_status" | "total_cents" | "price_cents"> & { source?: CartLine["source"] }): string {
   const closedAfterPaying = !!line.order_id && line.order_status === "refunded";
+  const sellerFault = line.status === "cancelled_by_seller";
+  // Area 05 #17 (design audit 11-18): a free claim or a trade never had a charge, so it never says "Nothing was
+  // charged", and it says what really ended it.
+  const trade = line.source === "swap";
+  const free = !trade && line.price_cents === 0;
   if (!closedAfterPaying) {
+    if (trade) return sellerFault ? "The other person called off the trade." : "A pickup wasn't chosen, so the trade closed.";
+    if (free) return sellerFault ? "The giver called it off." : "You didn't pick it up in time.";
     return line.status === "missed" ? "The time to check out ran out. Nothing was charged." : "The seller called off the sale. Nothing was charged.";
   }
-  const sellerFault = line.status === "cancelled_by_seller";
+  if (trade) return sellerFault ? "The other person cancelled this trade." : "This trade was cancelled.";
   if ((line.total_cents ?? 0) === 0) {
-    return sellerFault ? "The seller cancelled this free pickup. Nothing was charged." : "This free pickup was cancelled. Nothing was charged.";
+    return sellerFault ? "The seller cancelled this free pickup." : "This free pickup was cancelled.";
   }
   return sellerFault ? "The seller cancelled this sale. Your refund is on its way to your card." : "This sale was cancelled. Your refund is on its way to your card.";
 }
@@ -480,7 +541,10 @@ export function EndedLine({ line }: { line: CartLine }) {
       {/* DB-19: the price and the day it ended, as on the seller's ended rows. */}
       <div className="flex items-baseline gap-3">
         <p className="min-w-0 flex-1 truncate text-ds-15 font-semibold" title={line.item_title}>{line.item_title}</p>
-        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{line.source === "swap" ? "Trade" : itemPriceLabel(line.price_cents)}</span>
+        {/* Design audit 11-17 #33: a trade has no price, so "Trade offer" is a small chip, not a word in the price slot. */}
+        {line.source === "swap"
+          ? <span className="shrink-0 self-center rounded-full bg-muted px-2 py-0.5 text-ds-12 font-semibold text-muted-foreground" data-ended-trade="">Trade offer</span>
+          : <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{itemPriceLabel(line.price_cents)}</span>}
       </div>
       <p className="text-ds-13 text-muted-foreground">{endedOnPrefix(line.closed_at)}{endedWords(line)}</p>
     </li>

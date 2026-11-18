@@ -13,17 +13,26 @@
  * no account hooks (BuyerTotal reads the viewer's setup fee). Guard: src/test/declutterPriceInclFee.test.ts.
  */
 import { buyNowTotalCents } from "@/lib/declutter/money";
+import { wordInLang } from "@/lib/i18n/inLang";
 
-const INCL_FEE_WORDS = "incl. fee";
+/** "incl. fee", or its Spanish for a Spanish reader (design audit r2 #35). */
+const inclFeeWords = () => wordInLang("ip.inclFee", "incl. fee");
 
 /** Exact cents, always two decimals ("$3.85", "$21.70"). */
 function exactDollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+/** "$14.88": the one-item checkout total (no setup fee, see above) as exact dollars; the seller's own item page names
+ *  it ("Buyers pay $14.88 with the fee", Area 06b M9). Built here so src/components keeps one buyNowTotalCents( caller
+ *  per figure family (guard: src/test/declutterBuyNowShowsTotal.test.ts). */
+export function oneItemTotalDollars(priceCents: number): string {
+  return exactDollars(buyNowTotalCents(priceCents));
+}
+
 /** "$14.88 incl. fee": the words PriceInclFee draws, as plain text (an aria-label). */
 export function inclFeeText(priceCents: number): string {
-  return `${exactDollars(buyNowTotalCents(priceCents))} ${INCL_FEE_WORDS}`;
+  return `${oneItemTotalDollars(priceCents)} ${inclFeeWords()}`;
 }
 
 export function PriceInclFee({
@@ -41,7 +50,7 @@ export function PriceInclFee({
   return (
     <span data-price-incl-fee="" className={className}>
       {exactDollars(buyNowTotalCents(priceCents))}{" "}
-      {wordsClassName ? <span data-incl-fee-words="" className={wordsClassName}>{INCL_FEE_WORDS}</span> : INCL_FEE_WORDS}
+      {wordsClassName ? <span data-incl-fee-words="" className={wordsClassName}>{inclFeeWords()}</span> : inclFeeWords()}
     </span>
   );
 }

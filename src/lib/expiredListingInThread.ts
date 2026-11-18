@@ -15,6 +15,8 @@
  * wip/b3-1031 (e29358ec15); that file is not on main yet, so once both have landed this should call it instead
  * (B44 handoff). Guard: src/test/expiredListingInMessages.test.ts.
  */
+import { t } from "@/lib/i18n/language";
+import { enChatParts } from "@/lib/i18n/enChatParts";
 import { jobStatusLabel } from "@/lib/statusLabels";
 
 /** auto-expire-jobs' cancellation_reason starts with this (supabase/functions/auto-expire-jobs/index.ts). */
@@ -71,5 +73,8 @@ export function threadJobChipLabel(status: string, view: ExpiredView | null | un
     const expired = expiredCopyFor(view);
     if (expired) return expired.chip;
   }
+  // Area 08 H2: the chip in the app language (a Spanish inbox read Hired / Working / Completed).
+  const key = `cp.chip.${status}`;
+  if (key in enChatParts) return t(key as keyof typeof enChatParts);
   return TRACKER_WORD[status] ?? jobStatusLabel(status);
 }

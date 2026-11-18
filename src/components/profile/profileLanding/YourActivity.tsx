@@ -5,13 +5,36 @@ import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSecti
 import { useHomeSummary } from "@/pages/home/homeDashboard/useHomeSummary";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
 import { GlassTileButton } from "@/components/ui/GlassTileButton";
-import { PreviewPill } from "@/components/sections/PreviewPill";
+import "@/lib/i18n/enYourPage";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import { navKey } from "@/lib/i18n/navLabels";
+
+/** What the member reads on each tile (design audit r2 #31); the English labels stay the tiles' ids. */
+const TILE_KEY: Record<string, MsgKey> = {
+  Posted: "yp.you.tile.posted",
+  Working: "yp.you.tile.working",
+  Buying: "yp.you.tile.buying",
+  Selling: "yp.you.tile.selling",
+  Orders: "yp.you.tile.orders",
+  "My shop": "yp.you.tile.myShop",
+  Renting: "yp.you.tile.renting",
+  Owning: "yp.you.tile.owning",
+};
+const COUNT_KEY: Record<CountKey, MsgKey> = {
+  posted: "yp.you.count.posted",
+  working: "yp.you.count.working",
+  selling: "yp.you.count.selling",
+  shopOrders: "yp.you.count.shopOrders",
+  buying: "yp.you.count.buying",
+};
 
 type CountKey = "posted" | "working" | "selling" | "shopOrders" | "buying";
 
 /**
  * F088 (owner UI audit 11-09): a count alone ("Selling · 255") said nothing at a glance. Each count carries its status
- * word ("255 live", "1 booked"). Still only when real and non-zero (board 18).
+ * word ("255 live", "1 booked"). Owner 2026-11-17 (signed-in tweaks, item 8): a count that has answered 0 reads
+ * "None yet" rather than a bare label; a count still loading shows nothing (never a false "None yet").
  */
 const COUNT_WORD: Record<CountKey, string> = {
   posted: "live",
@@ -54,58 +77,50 @@ export function YourActivity() {
   const summary = useHomeSummary(user);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
+  const { t: tr } = useLanguage();
+  const sectionName = (s: { path: string; label: string }) => { const k = navKey(s.path, s.label); return k ? tr(k) : s.label; };
 
   const isOn = (s: (typeof visible)[number]) => s.feature === null || !!live.find((t) => t.path === s.path)?.on;
-  // F087 (owner UI audit 11-09): a section open to this viewer only as a tester preview (Shops, Homes: not yet open to
-  // everyone, sectionIsPreview) read as live. Its tiles carry the Coming soon badge inside, slightly dimmed (owner
-  // 11-09, the F002/F013 badge rule). A member never sees one: their live sections are open to everyone.
-  const isPreview = (s: (typeof visible)[number]) => !!live.find((t) => t.path === s.path)?.preview;
-  // In the iPhone app a section not yet open to everyone is not listed at all (owner 10-31, hideUnopenedInApp via the
-  // tab's `listed` answer), so its preview tiles and their Coming soon badge never reach the app.
+  // A section not yet open to everyone is not listed (owner 10-31 in the app; owner 2026-11-17 on the website too, for
+  // testers as well: Shops' and Homes' "Coming soon" tiles are gone until they launch), via the tab's `listed` answer.
   const isListedHere = (s: (typeof visible)[number]) => live.find((t) => t.path === s.path)?.listed !== false;
   const open = visible.filter((s) => isOn(s) && isListedHere(s));
   // M8/M9 (owner 11-16): a section closed to the viewer is not listed, so the line never names it.
   const soon = openingSoonLine(visible.filter((s) => !isOn(s) && isListedHere(s)).map((s) => s.label));
 
   return (
-    <section aria-label="Your activity" className="flex flex-col gap-2" data-testid="you-activity">
-      <h2 className="px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your activity</h2>
-      {/* Every row is one height (auto-rows-fr): a tester's preview row (count room + Coming soon mark) stood 115.9 px
-          beside 89.9 px count rows and 91.9 px Homes rows at 360-390 (b2-tiles-1115). A member, who has no preview
-          tiles, keeps 89.9 px rows. */}
+    <section aria-label={tr("yp.you.activity")} className="flex flex-col gap-2" data-testid="you-activity">
+      <h2 className="px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{tr("yp.you.activity")}</h2>
+      {/* Every row is one height (auto-rows-fr). */}
       <div className="grid grid-cols-2 auto-rows-fr gap-2.5">
         {open.flatMap((s) =>
           ACTIVITY_TILES[s.key].map((t) => {
             const n = t.count ? summary.counts[t.count] ?? 0 : 0;
             const word = t.count ? COUNT_WORD[t.count] : "";
-            const preview = isPreview(s);
+            const label = TILE_KEY[t.label] ? tr(TILE_KEY[t.label]) : t.label;
+            const countLine = t.count ? tr(COUNT_KEY[t.count], { n }) : `${n} ${word}`;
+            const section = sectionName(s);
+            const status = n > 0 ? countLine : t.count && summary.countsKnown?.[t.count] ? tr("yp.you.count.none") : "";
             return (
               <GlassTileButton
                 key={`${s.key}-${t.label}`}
                 data-activity-tile={`${s.key}:${t.label}`}
-                data-preview={preview ? "true" : undefined}
                 onClick={() => navigate(t.to)}
-                title={`${s.label} ${t.label}${n > 0 ? ` · ${n} ${word}` : ""}`}
+                title={`${section} ${label}${status ? ` · ${status}` : ""}`}
                 className="px-4 py-3"
-                style={preview ? { opacity: 0.75 } : undefined}
               >
                 {/* No aria-label: the tile's words ("Jobs Posted 2") are its name, so the visible text is in it (axe
                     label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The space keeps the two lines two words;
                     whitespace between flex items draws nothing. */}
-                <span className="text-ds-12 text-muted-foreground">{s.label}</span>{" "}
+                <span className="text-ds-12 text-muted-foreground">{section}</span>{" "}
                 {/* F449 (audit 11-10): at 375 "Buying · 1 in progress" was cut to "Buying · 1 in ..." by truncate; it wraps.
                     F260a (11-14): wrapped once its count came in, it grew its row 24 px under the reader at 360-390
                     (cwv-lab 375: 0.0114 of /profile's 0.1518). A tile that can carry a count keeps room for two lines
-                    on a phone (2 x line-height 1.5 = 3em); from sm up the longest one fits on one line. A preview's
-                    Coming soon mark sits at the tile's foot (mt-auto), so a row's two marks stay level when only one
-                    tile keeps that room (Shops: Orders counts, My shop does not). A preview count tile keeps it too:
-                    without it "Orders · 9 open" wrapped at 360 and, rows being one height, grew every row 91.9 -> 115.9
-                    px when the count came in (b2-tiles-1115). */}
-                <span className={`text-ds-15 font-bold text-foreground break-words${t.count ? " min-h-[3em] sm:min-h-0" : ""}${preview ? " mb-1" : ""}`}>
-                  {t.label}
-                  {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>}
+                    on a phone (2 x line-height 1.5 = 3em); from sm up the longest one fits on one line. */}
+                <span className={`text-ds-15 font-bold text-foreground break-words${t.count ? " min-h-[3em] sm:min-h-0" : ""}`}>
+                  {label}
+                  {status && <><span aria-hidden="true"> ·</span> <span data-activity-status="" className={n > 0 ? undefined : "font-normal text-muted-foreground"}>{status}</span></>}
                 </span>
-                {preview && <>{" "}<PreviewPill className="self-start mt-auto" /></>}
               </GlassTileButton>
             );
           }),

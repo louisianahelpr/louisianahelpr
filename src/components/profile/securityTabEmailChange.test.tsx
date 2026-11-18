@@ -9,7 +9,7 @@
  * @mutate src/components/profile/SecurityTab.tsx |     if (email && trimmed.toLowerCase() === email.trim().toLowerCase()) { |     if (email && trimmed === "never-the-same") {
  * @mutate src/components/profile/SecurityTab.tsx |     setSentTo(trimmed);\n |
  * @mutate src/components/profile/EmailChangeWaiting.tsx |     select: (u) => u.new_email ?? null, |     select: () => null,
- * @mutate src/components/profile/SecurityTab.tsx | {submitting ? "Sending…" : "Confirm change"} | {submitting ? "Sending…" : "Confirm Change"}
+ * @mutate src/components/profile/SecurityTab.tsx | disabled={submitting \|\| !validateEmail(newEmail)} | disabled={submitting}
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -115,11 +115,23 @@ function renderTab() {
 
 async function typeAndConfirm(address: string) {
   fireEvent.click(await screen.findByRole("button", { name: "Change email address" }));
-  fireEvent.change(await screen.findByLabelText("New email address"), { target: { value: address } });
+  fireEvent.change(await screen.findByLabelText("New email"), { target: { value: address } });
   fireEvent.click(screen.getByRole("button", { name: "Confirm change" }));
 }
 
 describe("change email: the same address is refused, a waiting change is said on the row (AUD31-70)", () => {
+  // Design audit area 09 L5: Confirm stays off until the address is a whole email; the label is "New email".
+  it("Confirm is off for a half-typed address and on for a whole one", async () => {
+    renderTab();
+    fireEvent.click(await screen.findByRole("button", { name: "Change email address" }));
+    const field = await screen.findByLabelText("New email");
+    fireEvent.change(field, { target: { value: "new@exam" } });
+    expect(screen.getByRole("button", { name: "Confirm change" })).toBeDisabled();
+    fireEvent.change(field, { target: { value: "new@example.com" } });
+    expect(screen.getByRole("button", { name: "Confirm change" })).toBeEnabled();
+    expect(document.querySelector("[data-email-help]")?.textContent).toBe("We'll email a link to the new address. Your email changes when you tap it.");
+  });
+
   it("refuses the address already on the account (any case), under the field, and sends nothing", async () => {
     renderTab();
     await typeAndConfirm("  Helper@Example.com ");

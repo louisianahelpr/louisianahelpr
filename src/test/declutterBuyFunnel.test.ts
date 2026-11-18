@@ -88,6 +88,7 @@ describe("H3: the Declutter buy funnel is wired end to end", () => {
   it("the admin card reads the 7-day counts", () => {
     const card = src("src/components/admin/settings/DeclutterFunnelCard.tsx");
     expect(card).toContain('supabase.rpc("declutter_funnel_counts", { p_days: 7 })');
-    expect(src("src/components/admin/settings/FeatureSwitchesCard.tsx")).toContain("<DeclutterFunnelCard />");
+    // Design audit area 10 #2: the Declutter cards live on the Declutter admin view.
+    expect(src("src/components/admin/AdminDeclutter.tsx")).toContain("<DeclutterFunnelCard />");
   });
 });

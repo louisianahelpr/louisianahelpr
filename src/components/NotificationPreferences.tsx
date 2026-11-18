@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enNotifPrefs";
 import type { ReactNode } from "react";
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
@@ -358,7 +360,9 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
         is registered; then the Text alerts card; then the switches. */}
     {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />}
     {textAlerts}
-    <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
+    {/* Area 08 M16: overflow-clip, not overflow-hidden, so the App / Email header below can stick (a hidden overflow
+        makes this card the sticky's scroller, and it never scrolls). It still clips the rounded corners. */}
+    <div className="rounded-2xl liquid-glass overflow-clip shadow-sm">
       {/* The saved settings could not be read: say so, offer a retry, and keep
           every switch below disabled so no press can save the defaults over
           them (Q2311). */}
@@ -370,10 +374,13 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
           the master row now carries its own two-column switch pair too.
           Fixed-width slots keep the labels aligned with their toggles
           regardless of icon/text rendering quirks across browsers. */}
+      {/* Area 08 M16 (design audit 11-18): the App / Email labels scrolled away for seven screens of switches. They stay
+          at the top while the switches scroll, on an opaque fill (the same tint laid over the card colour). */}
       <div
-        className="flex items-center justify-end px-4 py-1.5 shrink-0"
+        data-prefs-column-header=""
+        className="sticky top-0 z-20 flex items-center justify-end px-4 py-1.5 shrink-0"
         style={{
-          background: "hsl(var(--ivory-sand) / 0.4)",
+          background: "linear-gradient(hsl(var(--ivory-sand) / 0.4), hsl(var(--ivory-sand) / 0.4)), hsl(var(--card))",
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)",
         }}
       >
@@ -382,13 +389,13 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
             className="flex items-center justify-center gap-1 w-[51px] font-sans uppercase text-ds-10"
             style={{ color: "hsl(var(--muted-foreground))", letterSpacing: "0.08em" }}
           >
-            <Smartphone className="w-3 h-3 shrink-0" /> App
+            <Smartphone className="w-3 h-3 shrink-0" /> {t("np.h.app")}
           </div>
           <div
             className="flex items-center justify-center gap-1 w-[51px] font-sans uppercase text-ds-10"
             style={{ color: "hsl(var(--muted-foreground))", letterSpacing: "0.08em" }}
           >
-            <Mail className="w-3 h-3 shrink-0" /> Email
+            <Mail className="w-3 h-3 shrink-0" /> {t("np.h.email")}
           </div>
         </div>
       </div>
@@ -442,7 +449,7 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
               className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              All notifications
+              {t("np.all")}
             </Label>
           </div>
         </div>
@@ -471,7 +478,7 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
             // `toggle()` names its spinner after the column it writes, so the
             // id has to follow which path toggleEmailMaster took.
             savingId={emailMasterColumn ? "email_enabled" : "email_master"}
-            title="Off mutes every email below. Your per-category choices are kept."
+            title={t("np.emailMasterTitle")}
           />
         </div>
       </div>
@@ -570,9 +577,9 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
           className="font-sans leading-snug text-ds-11"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          Every alert above follows these switches — including safety and
-          dispute alerts, which arrive under System Alerts. Password and
-          sign-in emails come from our login system and aren't controlled here.
+          {/* Area 08 M17 (design audit 11-18): named a "System Alerts" row that does not exist, in system words. */}
+          {t("np.footer.safety")}{" "}
+          {t("np.footer.auth")}
         </p>
       </div>
     </div>

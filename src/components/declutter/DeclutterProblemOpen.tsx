@@ -53,7 +53,9 @@ export function ProblemOpenNote({ problem, side, answered = false, delivery = fa
   const reported = problem.reporter_side === "system" ? "Nobody has confirmed this handover for 60 days."
     : noShowAnswered ? noShowAnsweredWords(side, delivery)
     : noShowByBuyer ? noShowWords(side, delivery)
-    : `${REASON_WORDS[problem.reason] ?? REASON_WORDS.other}, reported by ${by}.`;
+    // Area 06 L11 (11-18): "Something else, reported by you." read oddly; a report with no named reason says who reported it.
+    : problem.reason === "other" || !REASON_WORDS[problem.reason] ? `${by === "you" ? "You" : by.charAt(0).toUpperCase() + by.slice(1)} reported a problem.`
+    : `${REASON_WORDS[problem.reason]}, reported by ${by}.`;
   return (
     <div role="status" className="rounded-xl border border-border px-3 py-2 text-ds-13" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-problem-open="">
       <p className="font-semibold">{PROBLEM_OPEN_HEADLINE}</p>

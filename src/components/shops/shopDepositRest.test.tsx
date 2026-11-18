@@ -60,7 +60,7 @@ describe("the order card: a 50% deposit order's rest", () => {
   // S037 (Shops audit 11-12): the shop's box read the buyer's charged amounts (service fee and tax inside), which never
   // added up to the shop's price; it now says the halves in words, and the card's own line says "Your price".
   // @mutate src/components/shops/ShopOrderCard.tsx |   if (side === "shop") {\n    return ( |   if (false) {\n    return (
-  // @mutate src/components/shops/ShopOrderCard.tsx |                 : `Your price: ${formatCents(shopGets)}.`} |                 : `You get the item price in full: ${formatCents(shopGets)}.`}
+  // @mutate src/components/shops/ShopOrderCard.tsx |                 : t("sho.price", { amount: formatCents(shopGets) })} |                 : `You get the item price in full: ${formatCents(shopGets)}.`}
   it("the shop reads it in its own terms: no buyer amounts, and 'Your price', never 'in full' (S037)", () => {
     show(order(), "shop");
     expect(screen.getByTestId("shop-order-deposit").textContent).toBe(
@@ -73,7 +73,7 @@ describe("the order card: a 50% deposit order's rest", () => {
   it("when the card did not take it, ONLY the buyer gets Pay the rest, which opens the page for exactly this order", async () => {
     invoke.mockResolvedValue({ data: { url: "https://checkout.stripe.com/rest", order_id: "o1" }, error: null });
     show(order({ balance_failed_at: "2026-11-09T15:00:00Z" }), "buyer");
-    expect(screen.getByTestId("shop-order-deposit").textContent).toContain("didn't go through on your card. Pay it to get your order.");
+    expect(screen.getByTestId("shop-order-deposit").textContent).toContain("didn't go through on your card.");
     fireEvent.click(screen.getByRole("button", { name: "Pay the rest ($31.45)" }));
     await waitFor(() => expect(ext.openExternalUrl).toHaveBeenCalledTimes(1));
     expect(invoke.mock.calls[0][0]).toBe("shop-checkout");

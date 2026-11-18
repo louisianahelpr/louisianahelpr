@@ -8,13 +8,15 @@
  * 38317156550, 2026-10-12) flagged it as a mount-wiring gap.
  *
  * @mutate src/pages/auth/CompleteProfile.tsx |             <CompleteProfileIntro />\n |             \n
- * A3-30 (audit 11-01): the page names the next step and how far along it is.
+ * A3-30 (audit 11-01): the page names the next step. Design audit area 11b M6: only after a first Finish (no nag
+ * before any typing), and without "step 2 of 2" (the Terms step before it made that count wrong).
  * @mutate src/pages/auth/completeProfile/StillNeededList.tsx |       <ProfileNextStep checklist={checklist} t={t} />\n |
- * @mutate src/pages/auth/CompleteProfile.tsx |             <StillNeededList checklist={checklist} allComplete={allComplete} t={t} />\n |
+ * @mutate src/pages/auth/CompleteProfile.tsx |             {attempted && <StillNeededList checklist={checklist} allComplete={allComplete} t={t} />}\n |
+ * @mutate src/pages/auth/CompleteProfile.tsx |             {attempted && <StillNeededList | {true && <StillNeededList
  * @mutate src/pages/auth/completeProfile/ProfileNextStep.tsx |   return { step: next.step, n: checklist.filter((c) => c.done).length + 1, total: checklist.length }; |   return { step: next.step, n: 1, total: checklist.length };
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CompleteProfile from "../CompleteProfile";
@@ -60,10 +62,16 @@ describe("Finish your profile mounts its intro", () => {
     expect(await screen.findByTestId("pre-verification-wipe-notice")).toBeInTheDocument();
   });
 
-  it("A3-30: it names the next step and how far along it is", async () => {
+  it("A3-30 + 11b M6: Finish is pressable, and only after a first press does it name the next step", async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={AT_POST}><CompleteProfile /></MemoryRouter></QueryClientProvider>);
-    expect((await screen.findByText(/^Next: /)).textContent).toMatch(/^Next: add your full name · step 2 of 2$/);
+    const finish = await screen.findByRole("button", { name: /^Finish$/ });
+    expect(screen.queryByText(/^Next: /)).toBeNull();
+    expect(screen.queryByText("Still needed")).toBeNull();
+    expect(finish).not.toBeDisabled();
+    fireEvent.click(finish);
+    expect((await screen.findByText(/^Next: /)).textContent).toBe("Next: add your full name");
+    expect(screen.getByText("Still needed")).toBeInTheDocument();
   });
 });
 

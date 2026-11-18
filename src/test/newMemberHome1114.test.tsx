@@ -19,6 +19,11 @@
  * @mutate src/pages/home/homeDashboard/ForSaleNearYou.tsx | ordered.filter((s) => cover.has(s.item.id)) | ordered
  * @mutate src/pages/home/homeDashboard/ForSaleNearYou.tsx | const open = (rows ?? []).filter((r) => !blocked.has(r.seller_id)); | const open = rows ?? [];
  * @mutate src/pages/home/homeDashboard/NewMemberHome.tsx | const ForSaleNearYou = lazy(() => import("./ForSaleNearYou")); | import ForSaleNearYouNow from "./ForSaleNearYou";\nconst ForSaleNearYou = ForSaleNearYouNow;
+ * Owner 2026-11-17 (signed-in tweaks, item 4): a quiet day (nothing needs you, nothing booked) shows "Near you" under
+ * Coming up: up to 3 jobs and up to 4 items, from the same reads and rows, after the page settles.
+ * @mutate src/pages/home/homeDashboard/NewMemberHome.tsx | <ForSaleNearYou userId={userId} max={4} /> | <ForSaleNearYou userId={userId} />
+ * @mutate src/pages/home/HomeDashboard.tsx |             {quietDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />} |             {quietDay && <NearYouBlock userId={user?.id} sell={sellOpen} />}
+ * @mutate src/pages/home/HomeDashboard.tsx | !welcome && !firstJob?.isNew && !summary.declutterPending && !next && | !welcome && !firstJob?.isNew && !summary.declutterPending &&
  * @mutate src/pages/home/HomeDashboard.tsx |             {welcome ? <NewMemberHome userId={user?.id} sell={sellOpen} guide={guide(true)} /> : ( |             {welcome ? <WelcomeCard sell={sellOpen} /> : (
  */
 import { readFileSync } from "node:fs";
@@ -46,7 +51,7 @@ vi.mock("@/integrations/supabase/client", () => {
     return c;
   };
   const storage = { from: () => ({ getPublicUrl: (p: string) => ({ data: { publicUrl: `https://photos.test/${p}` } }) }) };
-  return { supabase: { from: (t: string) => chain(t), rpc: () => Promise.resolve({ data: [], error: null }), storage } };
+  return { supabase: { from: (t: string) => chain(t), rpc: (fn: string) => Promise.resolve({ data: db.rows[`rpc:${fn}`] ?? [], error: null }), storage } };
 });
 const ageGate = vi.hoisted(() => ({ underAge: false, explain: vi.fn() }));
 vi.mock("@/hooks/useAgeGate", () => ({
@@ -59,7 +64,7 @@ import { TabButton } from "@/components/mobileNav/TabButton";
 import { readFirstRunPicks, saveFirstRunPicks } from "@/components/firstRun/firstRunPicks";
 import { GetStartedGuide, getStartedKey, guideSteps } from "@/pages/home/homeDashboard/GetStartedGuide";
 import ForSaleNearYou from "@/pages/home/homeDashboard/ForSaleNearYou";
-import { NewMemberHome } from "@/pages/home/homeDashboard/NewMemberHome";
+import { NearYouBlock, NewMemberHome } from "@/pages/home/homeDashboard/NewMemberHome";
 
 const src = (f: string) => blankComments(readFileSync(f, "utf8"));
 function Where() {
@@ -246,5 +251,31 @@ describe("1. a new member's Home leads with real things near them (owner 11-14)"
     expect(nm).toContain('const ForSaleNearYou = lazy(() => import("./ForSaleNearYou"));');
     expect(nm).not.toMatch(/^import .*ForSaleNearYou/m);
     expect(nm).toMatch(/<WelcomeCard sell=\{sell\} \/>\s*\{guide\}\s*<JobsNearYouList/);
+  });
+});
+
+describe("Home's quiet day: Near you under Coming up (owner 11-17, item 4)", () => {
+  it("NearYouBlock: up to 3 open jobs and up to 4 items for sale, from the existing reads", async () => {
+    db.rows = {
+      "rpc:get_ranked_open_jobs": [1, 2, 3, 4, 5].map((n) => ({ id: `j${n}`, title: `Job number ${n}`, budget: 50, pricing_mode: "set_price", location: "Lafayette, LA", helpers_needed: 1 })),
+      declutter_items: [1, 2, 3, 4, 5, 6].map((n) => ({ id: `i${n}`, seller_id: "s1", status: "live", title: `Item number ${n}`, category: "furniture", condition_stars: 4, delivery_size: "small", price_cents: 1000, current_price_cents: 1000, area_label: "Mid City", area_lat: 30.45, area_lng: -91.15, live_at: `2026-11-1${n}` })),
+      declutter_item_photos: [1, 2, 3, 4, 5, 6].map((n) => ({ item_id: `i${n}`, storage_path: `s1/i${n}/a.jpg`, position: 0 })),
+    };
+    const { container } = render(wrap(<NearYouBlock userId="me" sell />));
+    expect(await screen.findByText("Job number 1")).toBeTruthy();
+    expect((await screen.findAllByText(/Item number/)).length).toBeGreaterThan(0);
+    const jobs = container.querySelectorAll("[data-home-jobs-near] button");
+    expect(jobs.length).toBeGreaterThan(0);
+    expect(screen.queryByText("Job number 4")).toBeNull();
+    const items = container.querySelectorAll("[data-home-for-sale] li");
+    expect(items.length).toBe(4);
+  });
+
+  it("Home draws it only on a quiet day, after the page settles, from the new-member chunk", () => {
+    const home = src("src/pages/home/HomeDashboard.tsx");
+    expect(home).toContain("const NearYouBlock = newMemberBlock((m) => m.NearYouBlock);");
+    expect(home).toContain("{quietDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}");
+    expect(home).toMatch(/const quietDay = !welcome && !firstJob\?\.isNew && !summary\.declutterPending && !next && !summary\.todosLoading && !summary\.waiting && !summary\.loading && summary\.upcoming\.length === 0 && !summary\.upcomingFailed;/);
+    expect(home).not.toMatch(/^import .*NewMemberHome/m);
   });
 });

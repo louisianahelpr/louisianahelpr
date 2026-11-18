@@ -11,8 +11,8 @@
  */
 // @mutate src/lib/declutter/sellerBadges.ts | if (s.othersForSale !== null && s.othersForSale + 1 >= LISTS_OFTEN_FROM) | if (s.othersForSale !== null)
 // @mutate src/lib/declutter/sellerBadges.ts | if (s.onTime === true) | if (s.onTime !== false)
-// @mutate src/lib/declutter/sellerBadges.ts |   return band === "today" ? "Active today" : null; |   return band ? "Active today" : null;
-// @mutate src/lib/declutter/sellerBadges.ts |   if (ms < HOUR) return `${Math.floor(ms / MIN)} min ago`; |   if (ms < HOUR) return `${Math.floor(ms / HOUR)} min ago`;
+// @mutate src/lib/declutter/sellerBadges.ts |   return band === "today" ? wordInLang("ip.badge.active", "Active today") : null; |   return band ? wordInLang("ip.badge.active", "Active today") : null;
+// @mutate src/lib/declutter/sellerBadges.ts |   if (ms < HOUR) { const n = Math.floor(ms / MIN); |   if (ms < HOUR) { const n = Math.floor(ms / HOUR);
 // @mutate src/components/declutter/SellerTrustBadges.tsx | queryFn: () => fetchOnTimeHandovers(sellerId), enabled: after, | queryFn: () => fetchOnTimeHandovers(sellerId), enabled: true,
 // @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (!summary.offer) return null; |   if (false) return null;
 // @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && afterPaint && ( |       {!isSeller && (
@@ -124,8 +124,11 @@ describe("the item page wiring", () => {
     expect(src).toMatch(/\{!isSeller && afterPaint && \(\s*<div className="mt-8">\s*<DeclutterItemRows item=\{it\} viewerId=\{user\?\.id \?\? null\}/);
     expect(src).toMatch(/<SellerTrustBadges sellerId=\{it\.seller_id\} itemId=\{it\.id\} after=\{afterPaint\} \/>/);
   });
-  it("Listed beside the condition; Free porch pickup leads the where-line; the bundle box", () => {
-    expect(src).toMatch(/<ConditionChip stars=\{it\.condition_stars\} \/>\s*(?:\{\s*\}\s*)?\{forSale && listedAgo\(it\.live_at\) &&/);
+  // Design audit 11-17 #17: "Listed 1 week ago" moved from beside the condition chip into the grey where-line.
+  it("Listed ends the where-line; Free porch pickup leads it; the bundle box", () => {
+    const where = src.slice(src.indexOf('data-item-where=""'), src.indexOf("</p>", src.indexOf('data-item-where=""')));
+    expect(where).toMatch(/\{forSale && listedAgo\(it\.live_at\) && <span data-item-listed="">/);
+    expect(src).toMatch(/<div className="flex flex-wrap items-center gap-2" data-item-chips="">\s*<ConditionChip stars=\{it\.condition_stars\} \/>/);
     expect(src).toMatch(/\{it\.porch_ok !== false && <span data-item-porch-free=""[^>]*>\{t\("decl\.item\.freePorch"\)\} · <\/span>\}/);
     expect(src).toMatch(/<BundleSaveBox summary=\{bundle\} \/>/);
   });

@@ -13,6 +13,7 @@ import { OptimizedImage } from "@/components/ui/optimized-image";
 import type { Conversation } from "./types";
 import { rowAge } from "./rowAge";
 import { threadRoleCaption } from "./messageSections";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 interface ConversationRowProps {
   convo: Conversation;
@@ -166,7 +167,9 @@ const ConversationRowBase = ({
     // written to close. Owner dislikes "Awarded"; the canonical label is
     // what they get.
     // An expired listing is never "Cancelled": the poster reads Expired, anyone else Closed (owner 10-31).
-    const label = threadJobChipLabel(s, c);
+    // Design audit r2 #34: the chip word in the reader's language (keyed by the English word, which stays canonical).
+    const english = threadJobChipLabel(s, c);
+    const label = wordInLang(`msg.st.${english}`, english);
     return { label, color: palette.text, bg: palette.bg };
   })();
 

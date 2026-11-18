@@ -74,7 +74,7 @@ describe("/user/<id> while it decides where a member goes", () => {
   it("my own /user page: its own title, no action bones", async () => {
     await show(`/user/${ME}`);
     const wait = await screen.findByTestId("user-profile-forward-wait");
-    expect(wait.textContent).toContain("How others see you");
+    expect(wait.textContent).toContain("Public profile");
     expect(wait.querySelectorAll(".h-10.w-10.rounded-ds-md").length).toBe(0);
   });
 
@@ -99,9 +99,9 @@ describe("the wait frame is UserProfile's own loading frame (source parity)", ()
     expect(wait).toContain('className="min-h-screen bg-premium-page pb-safe-nav"');
     expect(count(page, BONE)).toBe(2);
     expect(count(wait, BONE)).toBe(2);
-    expect(page).toContain('const OWN_PROFILE_TITLE = "How others see you";');
+    expect(page).toContain('const OWN_PROFILE_TITLE = "Public profile";');
     expect(page).toContain('isOwnProfile ? OWN_PROFILE_TITLE : "Profile"');
-    expect(wait).toContain('own ? "How others see you" : "Profile"');
+    expect(wait).toContain('own ? "Public profile" : "Profile"');
     expect(page).toMatch(/<UserProfileLoadingBody proReturn=\{proReturn\} \/>/);
     expect(wait).toContain("<UserProfileLoadingBody proReturn={null} />");
   });

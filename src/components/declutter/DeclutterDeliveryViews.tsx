@@ -185,10 +185,9 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
   ].filter(Boolean) as { key: string; text: string; at: string }[];
   return (
     <div className="space-y-3">
-      <div className="space-y-0.5">
-        <p className="text-ds-15 font-semibold line-clamp-2" title={v.title}>{v.title}</p>
-        <p className="text-ds-13 text-muted-foreground">{v.pickup_area} to {v.dropoff_area} · {SIZE_WORDS[v.size]}</p>
-      </div>
+      {/* Area 06 M11 (design audit 11-18): the order card's head already names the item, so the delivery panel inside it
+          says only the route and size (the title was repeated). */}
+      <p className="text-ds-13 text-muted-foreground" data-delivery-route="">{v.pickup_area} to {v.dropoff_area} · {SIZE_WORDS[v.size]}</p>
       {at !== undefined && <StepTracker steps={DELIVERY_STEPS} at={at} />}
       <p className="text-sm">{line}</p>
       {events.length > 0 && (

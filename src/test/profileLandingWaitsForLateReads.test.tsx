@@ -88,10 +88,11 @@ describe("the You landing waits for its late answers (F260a)", () => {
     expect(landing).toMatch(/<YourPageLink [^>]*knownHandle=\{profile\?\.handle\}/);
   });
 
-  it("a tile that can carry a count keeps two lines on a phone; a row's Coming soon marks sit at the foot", () => {
+  it("a tile that can carry a count keeps two lines on a phone", () => {
     const tiles = blankComments(readFileSync("src/components/profile/profileLanding/YourActivity.tsx", "utf8"));
     expect(tiles).toContain('t.count ? " min-h-[3em] sm:min-h-0" : ""');
-    expect(tiles).toContain('<PreviewPill className="self-start mt-auto" />');
+    // No preview tile any more: a section not open to everyone is not listed (owner 2026-11-17), so no PreviewPill.
+    expect(tiles).not.toContain("PreviewPill");
     // One height for every tile, preview or not, with or without a count (b2-tiles-1115).
     expect(tiles).toMatch(/<div className="grid grid-cols-2 auto-rows-fr gap-2\.5">/);
     expect(tiles).not.toMatch(/t\.count && !preview \?/);

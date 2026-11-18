@@ -37,8 +37,8 @@ describe("Ended on Buying: every kind of ended order says what happened (A2-4)",
   });
 
   it("a free pickup cancelled after it was claimed (the no-show in the audit): cancelled, nothing charged", () => {
-    expect(words({ status: "missed", order_id: "o1", order_status: "refunded", total_cents: 0, price_cents: 0 })).toBe("This free pickup was cancelled. Nothing was charged.");
-    expect(words({ status: "cancelled_by_seller", order_id: "o1", order_status: "refunded", total_cents: 0, price_cents: 0 })).toBe("The seller cancelled this free pickup. Nothing was charged.");
+    expect(words({ status: "missed", order_id: "o1", order_status: "refunded", total_cents: 0, price_cents: 0 })).toBe("This free pickup was cancelled.");
+    expect(words({ status: "cancelled_by_seller", order_id: "o1", order_status: "refunded", total_cents: 0, price_cents: 0 })).toBe("The seller cancelled this free pickup.");
   });
 
   it("a paid sale cancelled after paying: a refund is on its way, never \"Nothing was charged\"", () => {
@@ -46,6 +46,16 @@ describe("Ended on Buying: every kind of ended order says what happened (A2-4)",
     expect(buyerFault).toBe("This sale was cancelled. Your refund is on its way to your card.");
     expect(words({ status: "cancelled_by_seller", order_id: "o1", order_status: "refunded", total_cents: 2170 })).toBe("The seller cancelled this sale. Your refund is on its way to your card.");
     expect(buyerFault).not.toMatch(/Nothing was charged|\$|fee/);
+  });
+
+  // @mutate src/components/declutter/BuyingOrders.tsx |     if (free) return sellerFault ? "The giver called it off." : "You didn't pick it up in time."; |
+  // @mutate src/components/declutter/BuyingOrders.tsx |     if (trade) return sellerFault ? "The other person called off the trade." : "A pickup wasn't chosen, so the trade closed."; |
+  it("area 05 #17: a free claim or a trade that ended says what ended it, never \"Nothing was charged\"", () => {
+    expect(words({ status: "missed", price_cents: 0 })).toBe("You didn't pick it up in time.");
+    expect(words({ status: "cancelled_by_seller", price_cents: 0 })).toBe("The giver called it off.");
+    expect(words({ status: "missed", price_cents: 0, source: "swap" })).toBe("A pickup wasn't chosen, so the trade closed.");
+    expect(words({ status: "missed", order_id: "o1", order_status: "refunded", total_cents: 0, price_cents: 0, source: "swap" })).toBe("This trade was cancelled.");
+    for (const p of [0, 2000]) expect(words({ status: "missed", price_cents: p, source: "swap" })).not.toMatch(/charged/);
   });
 
   it("the section is headed \"Ended\", not \"Ended before paying\"", () => {

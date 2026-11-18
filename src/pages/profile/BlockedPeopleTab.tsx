@@ -9,12 +9,13 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { useUnblock } from "@/pages/user/useUnblock";
-import { TAB_TITLES } from "@/pages/profile/types";
+import "@/lib/i18n/enAccount";
+import { t, useLanguage } from "@/lib/i18n/language";
 
 const card = { background: "hsl(var(--card))" } as const;
 
-/** Shown for someone you blocked whose profile is gone (deleted or removed). */
-const GONE_NAME = "A deleted account";
+/** Shown for someone you blocked whose profile is gone (deleted or removed); read when the list is fetched. */
+const goneName = () => t("acct.goneName");
 
 export type BlockedPerson = { id: string; name: string };
 
@@ -38,11 +39,13 @@ async function fetchBlockedPeople(me: string): Promise<BlockedPerson[]> {
   if (ids.length === 0) return [];
   const profiles = unwrap(await supabase.rpc("get_safe_profiles", { user_ids: ids })) ?? [];
   const byId = new Map(profiles.map((p) => [p.user_id, p.full_name]));
-  return ids.map((id) => ({ id, name: byId.has(id) ? formatName(byId.get(id), GONE_NAME) : GONE_NAME }));
+  const gone = goneName();
+  return ids.map((id) => ({ id, name: byId.has(id) ? formatName(byId.get(id), gone) : gone }));
 }
 
 function BlockedRow({ me, person }: { me: string; person: BlockedPerson }) {
   const { unblocking, handleUnblock } = useUnblock(me, person.id, blockedPeopleKey(me));
+  useLanguage();
   return (
     <li className="flex items-center gap-3 pl-4 pr-2 py-2 min-h-[60px] border-b border-border last:border-b-0" data-blocked-person={person.id}>
       <span className="flex-1 min-w-0 font-sans font-semibold text-ds-15 truncate" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -54,10 +57,10 @@ function BlockedRow({ me, person }: { me: string; person: BlockedPerson }) {
         size="sm"
         onClick={() => void handleUnblock()}
         disabled={unblocking}
-        aria-label={`Unblock ${person.name}`}
+        aria-label={t("acct.unblockName", { name: person.name })}
         className="shrink-0"
       >
-        {unblocking ? "Unblocking…" : "Unblock"}
+        {unblocking ? t("acct.unblocking") : t("acct.unblock")}
       </Button>
     </li>
   );
@@ -72,21 +75,22 @@ function BlockedRow({ me, person }: { me: string; person: BlockedPerson }) {
 export default function BlockedPeopleTab({ onBack }: { onBack: () => void }) {
   const { user } = useCurrentUser();
   const me = user?.id ?? "";
+  useLanguage();
   const list = useQuery({ queryKey: blockedPeopleKey(me), enabled: !!me, queryFn: () => fetchBlockedPeople(me) });
   const rows = list.data ?? [];
   return (
     <ProfileTabBody data-testid="blocked-people-tab">
-      <ProfileTabHeader title={TAB_TITLES.blocked} onBack={onBack} />
+      <ProfileTabHeader title={t("acct.blockedTitle")} onBack={onBack} />
       {list.isLoading ? (
         <ProfileTabBodyReserve tab="blocked" />
       ) : list.isError ? (
-        <ErrorState variant="inline" title="We couldn't load the people you blocked." onRetry={() => void list.refetch()} />
+        <ErrorState variant="inline" title={t("acct.blockedLoadFailed")} onRetry={() => void list.refetch()} />
       ) : (
         <>
           <p className="font-sans text-ds-13 text-muted-foreground px-1">
             {rows.length
-              ? "They can't message you or apply to your jobs, and you won't see their messages, applications or profile."
-              : "You haven't blocked anyone. You can block someone from the menu on their profile."}
+              ? t("acct.blockedSome")
+              : t("acct.blockedNone")}
           </p>
           {rows.length > 0 && (
             <ul className="rounded-2xl overflow-hidden" style={card}>

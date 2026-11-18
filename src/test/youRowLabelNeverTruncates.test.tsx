@@ -10,7 +10,7 @@
  * this pins the classes; the 375 measurement (label scrollWidth <= clientWidth for every row) is in the
  * Q2306 shots run.
  *
- * @mutate src/components/profile/profileLanding/YouMenu.tsx | className="shrink-0 whitespace-nowrap text-ds-15 font-semibold text-foreground" title={row.label} | className="flex-1 min-w-0 text-ds-15 font-semibold text-foreground truncate" title={row.label}
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx | className="shrink-0 whitespace-nowrap text-ds-15 font-semibold text-foreground" title={t(ROW_KEY[row.key])} | className="flex-1 min-w-0 text-ds-15 font-semibold text-foreground truncate" title={t(ROW_KEY[row.key])}
  * @mutate src/components/profile/profileLanding/YouMenu.tsx | className={`flex-1 min-w-0 truncate text-right text-ds-13 | className={`shrink-0 text-ds-13
  * @mutate src/components/profile/profileLanding/YouMenu.tsx | shrink-0 whitespace-nowrap text-ds-15 | whitespace-nowrap text-ds-15
  */

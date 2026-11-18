@@ -7,13 +7,14 @@
  * @mutate src/components/admin/AdminNotifications.tsx | Off mutes every push below. | Mutes every push below.
  * @mutate src/components/admin/AdminNotifications.tsx | Off mutes every email below. | Mutes every email below.
  * @mutate src/components/admin/AdminNotifications.tsx |                   All push |                   All In-App
- * @mutate src/components/NotificationPreferences.tsx | title="Off mutes every email below. | title="Mutes every email below.
+ * @mutate src/lib/i18n/enNotifPrefs.ts | "np.emailMasterTitle": "Off mutes every email below. | "np.emailMasterTitle": "Mutes every email below.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
-const FILES = ["src/components/admin/AdminNotifications.tsx", "src/components/NotificationPreferences.tsx"];
+// Area 08 pass 2: the member screen's email-master tooltip lives in enNotifPrefs.ts (t("np.emailMasterTitle")).
+const FILES = ["src/components/admin/AdminNotifications.tsx", "src/components/NotificationPreferences.tsx", "src/lib/i18n/enNotifPrefs.ts"];
 const code = (f: string) => blankComments(readFileSync(f, "utf8"));
 
 describe("AUD31-47: a master switch that is ON while sending says what Off does", () => {

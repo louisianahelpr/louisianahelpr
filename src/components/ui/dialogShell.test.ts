@@ -454,6 +454,7 @@ describe("Popup grammar — footer", () => {
     "src/pages/profile/SavedSearchesTab.tsx": "Delete search asks once in the sheet: \"Delete search\" or, after it, \"Yes, delete it\": exactly one renders (asking ? confirm : delete)",
     "src/components/admin/BanDialog.tsx": "warning commits glossy, ban commits red — exactly one renders",
     "src/components/declutter/DeclutterManageListing.tsx": "board 158's confirm step: \"Mark sold\" (view sold) or \"Delete listing\" (view delete) — exactly one renders (view === \"sold\" ? primary : destructive)",
+    "src/components/declutter/DeclutterConfirmSheet.tsx": "Area 06 M6 (11-18): a strike-costing or final action commits red, any other commits glossy: exactly one renders (destructive ? SheetDestructiveAction : SheetPrimaryAction)",
     "src/components/rentals/LeasePanel.tsx": "the lease editor's last step: \"Save and next\" until the landlord reads it, then \"Sign and send\" — exactly one renders (reviewing ? send : save)",
   };
 
@@ -1069,6 +1070,9 @@ describe("Popup grammar — footer", () => {
       // Area 04 #30 (2026-11-18, ActiveJobSection + ConfirmedSection): the Helpr's "Cancel this job?" sheet; "Cancel" beside
       // "Cancel job" read as two ways to cancel, so the dismiss names what stays, as "Keep editing" does.
       "Keep job",
+      // Shops launch pass 2 (ShopEditView, 2026-11-18): "Close your shop?" beside "Close my shop"; "Cancel" would read as a
+      // way to close, so the dismiss names what stays, as "Keep job" does.
+      "Keep my shop",
       // "It's gone" answers the still-available ask: it ends the listing as gone elsewhere (an answer, not a dismissal).
       "It's gone",
       // AUD31-71 (TwoFactorCard, f2aaec89f6): turning two-step off is a security downgrade; the dismiss names what stays.

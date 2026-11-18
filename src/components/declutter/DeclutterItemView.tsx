@@ -59,7 +59,8 @@ import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
 import { recordItemView } from "@/lib/declutter/itemViews";
 import { ItemViewsCount } from "./ItemViewsCount";
-import { PriceInclFee } from "./PriceInclFee";
+import { oneItemTotalDollars, PriceInclFee } from "./PriceInclFee";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
 import { SellerTrustBadges } from "./SellerTrustBadges";
 import { useAfterPaint } from "./useAfterPaint";
@@ -68,6 +69,7 @@ import { useTradedFor } from "./useMyTrades";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
+import "@/lib/i18n/enItemPage";
 
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
 // loads when it shows, not on every buyer's and guest's cold item page.
@@ -242,16 +244,19 @@ export default function ItemView({ itemId }: { itemId: string }) {
           <Heart className="w-5 h-5" fill={isWatching ? "currentColor" : "none"} />
         </Button>
       )}
-      <Button
-        type="button"
-        variant="ghost"
-        size="iconCompact"
-        aria-label={t("decl.item.share")}
-        className="border border-border bg-card"
-        onClick={() => shareListing(it)}
-      >
-        <Share2 className="w-5 h-5" aria-hidden />
-      </Button>
+      {/* Area 06b L2: the seller's live listing already has the Share row in its own card; one share control, not two. */}
+      {!(isSeller && it.status === "live") && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="iconCompact"
+          aria-label={t("decl.item.share")}
+          className="border border-border bg-card"
+          onClick={() => shareListing(it)}
+        >
+          <Share2 className="w-5 h-5" aria-hidden />
+        </Button>
+      )}
     </div>
   );
 
@@ -280,8 +285,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
               <h2 className="min-w-0 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere] lg:text-ds-28">{it.title}</h2>
               {saveShare}
             </div>
-            {/* The condition chip beside the price (board D5, owner mockup 11-01), not again as a Details row. */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {/* The condition chip under the price (board D5, owner mockup 11-01), not again as a Details row. Design
+                audit 11-17 #17: price, chip and "Listed 1 week ago" shared one line and "Trades OK" wrapped alone, so the
+                price stands alone, the chips (condition, Trades OK) are a row under it, and the age joins the place line. */}
+            <div className="space-y-2">
               {/* Owner 11-09 (10:35 PM, reverses pick 2 of 11-08): the LIST price is the big one (ink, the item page's
                   one t-xl), and "$3.85 incl. fee" sits under it, smaller; Free stays burnt sienna. */}
               <p data-item-price="" className="flex flex-col leading-tight">
@@ -298,31 +305,45 @@ export default function ItemView({ itemId }: { itemId: string }) {
                 ) : (
                   <span className="text-ds-28 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</span>
                 )}
-                {it.current_price_cents > 0 && (
+                {it.current_price_cents > 0 && !isSeller && (
                   <PriceInclFee priceCents={it.current_price_cents} className="mt-0.5 text-ds-13 font-medium tabular-nums text-muted-foreground" />
                 )}
+                {/* Area 06b M9: the seller reads who pays the total ("Buyers pay $26.95 with the fee"), not a bare "incl. fee". */}
+                {it.current_price_cents > 0 && isSeller && (
+                  <span data-item-buyers-pay="" className="mt-0.5 text-ds-13 font-medium tabular-nums text-muted-foreground">
+                    {t("dsl.item.buyersPay", { amount: oneItemTotalDollars(it.current_price_cents) })}
+                  </span>
+                )}
               </p>
+              <div className="flex flex-wrap items-center gap-2" data-item-chips="">
               <ConditionChip stars={it.condition_stars} />
-              {/* Owner 11-07 (Vinted review): how fresh the listing is, beside the condition. */}
-              {forSale && listedAgo(it.live_at) && <span data-item-listed="" className="text-sm text-muted-foreground">{listedAgo(it.live_at)}</span>}
               {/* Trades audit 11-08 #3: a listing Open to trades says so up front, for guests too. */}
               {it.accepts_trades === true && !free && (
                 <span data-item-trades="" className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-ds-13 font-medium text-foreground">{t("decl.card.trades")}</span>
               )}
+              </div>
             </div>
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {/* Owner 11-07: lead with free porch pickup where it applies (nothing is charged to pick it up). */}
               {it.porch_ok !== false && <span data-item-porch-free="" className="font-semibold text-foreground">{t("decl.item.freePorch")} · </span>}
               {[it.area_label, away].filter(Boolean).join(" · ")}
+              {/* Owner 11-07 (Vinted review): how fresh the listing is; in this grey meta line since design audit 11-17 #17. */}
+              {forSale && listedAgo(it.live_at) && <span data-item-listed="">{`${it.area_label || away ? " · " : ""}${listedAgo(it.live_at)}`}</span>}
             </p>
             {/* Owner 11-11 (F229): a buyer-protection line under a paid price, naming only what the app does: payment in
                 the app, porch pickup where this listing offers it, and 24 hours after the handover to report a problem. */}
             {it.current_price_cents > 0 && !isSeller && (
               <p data-item-protected="" className="text-ds-13 text-muted-foreground">
-                {`Protected: pay in the app${it.porch_ok !== false ? ", pick up from the porch" : ""}, 24 hours to report a problem.`}
+                {it.porch_ok !== false ? t("ip.protectedPorch") : t("ip.protected")}
               </p>
             )}
             {isSeller && <ItemViewsCount sellerId={it.seller_id} itemId={it.id} />}
+            {/* Area 06b M9: the seller's own item page has no seller card; a link to the public page buyers see instead. */}
+            {isSeller && (
+              <Link to={memberProfilePath(it.seller_id)} data-item-public-page="" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-2">
+                {t("dsl.item.publicPage")}
+              </Link>
+            )}
             {drop && (
               <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} />
             )}

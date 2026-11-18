@@ -17,7 +17,7 @@
  *  15 a dispute says "Dispute open · Payment on hold" and opens the dispute
  *
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return { label: "Confirm it's still on", onClick: h.confirm, tone: "primary" }; |       return { label: "Manage job", onClick: h.manage, tone: "secondary" };
- * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return { label: "Report no-show", onClick: h.noShow, tone: "secondary" }; |       return { label: "Manage job", onClick: h.manage, tone: "secondary" };
+ * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return { label: t("jp.reportNoShow"), onClick: h.noShow, tone: "secondary" }; |       return { label: "Manage job", onClick: h.manage, tone: "secondary" };
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |     if (start && start.getTime() - Date.now() > ON_MY_WAY_LEAD_MS) return null; |
  * @mutate src/components/job-card/jobStatusLine.ts |     if (!job.date_needed \|\| Date.now() < confirmOpensMs(job.date_needed)) return inLang("cl.pn.acceptedDayBefore", `${f} accepted · confirms the day before`, { name: f }); |     if (true) return `${f} accepted`;
  * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return posterConfirmDeadline(job); |     case "confirm_still_on":\n      return null;

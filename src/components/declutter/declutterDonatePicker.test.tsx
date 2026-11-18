@@ -45,7 +45,7 @@ describe("donate picker: one card per charity, not bare radios (deep audit #53)"
     state.picks = [];
   });
 
-  // @mutate src/components/declutter/DeclutterDonate.tsx |       <RadioCardList\n        label="Charity" |       <RadioCardListGone\n        label="Charity"
+  // @mutate src/components/declutter/DeclutterDonate.tsx |       <RadioCardList\n        label={t("dsl.don.charity")} |       <RadioCardListGone\n        label={t("dsl.don.charity")}
   it("each charity is a shared choice card; tapping one picks it and shows Post a donation job", async () => {
     const { container } = show();
     const group = await screen.findByRole("radiogroup", { name: "Charity" });

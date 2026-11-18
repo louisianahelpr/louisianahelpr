@@ -14787,6 +14787,7 @@ export type Database = {
           stripe_refund_id: string | null
           tax_cents: number
           tax_kept_cents: number
+          taxed_base_cents: number | null
         }
         Insert: {
           attempts?: number
@@ -14817,6 +14818,7 @@ export type Database = {
           stripe_refund_id?: string | null
           tax_cents: number
           tax_kept_cents: number
+          taxed_base_cents?: number | null
         }
         Update: {
           attempts?: number
@@ -14847,6 +14849,7 @@ export type Database = {
           stripe_refund_id?: string | null
           tax_cents?: number
           tax_kept_cents?: number
+          taxed_base_cents?: number | null
         }
         Relationships: []
       }
@@ -22842,6 +22845,7 @@ export type Database = {
         Returns: number
       }
       shop_badges: { Args: { p_shop_id: string }; Returns: Json }
+      shop_closed_for_today: { Args: { p_shop_id: string }; Returns: boolean }
       shop_contact_leak_reason: { Args: { p_text: string }; Returns: string }
       shop_cottage_cap_reached: {
         Args: { p_owner_id: string }
@@ -22857,6 +22861,10 @@ export type Database = {
         Returns: boolean
       }
       shop_extras_readable: { Args: { p_shop_id: string }; Returns: boolean }
+      shop_refund_tax_kept_on_base: {
+        Args: { p_base: number; p_kept: number; p_tax: number }
+        Returns: number
+      }
       shop_give_strike: {
         Args: { p_order: string; p_reason: string; p_side: string; p_user: string }
         Returns: string

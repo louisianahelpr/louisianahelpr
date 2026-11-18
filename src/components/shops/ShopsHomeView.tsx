@@ -43,16 +43,22 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { useDeclutterOrigin } from "@/components/declutter/useDeclutterOrigin";
 import { categoryGroups, categoryLabel, useShopCategories } from "./shopsUi";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
+import { t as tr, useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enShopsBrowse";
 
 /** The Browse grid: one card across on a phone, 2 on a tablet, 3-4 on a desktop. */
 // S2-043: phone rows sit closer (compact row cards); the photo cards keep their 24px.
 const SHOP_GRID = "grid gap-x-4 gap-y-4 sm:grid-cols-2 sm:gap-y-6 lg:grid-cols-3 xl:grid-cols-4";
 
 /** One word each, Browse always first (owner, 2026-10-19). */
+// Area 07 H1: each tab names its dictionary key; the member sees t(labelKey) (shopsTabs below).
 const SHOPS_TABS = [
-  { value: "orders", label: "Orders" },
-  { value: "shop", label: "Shop" },
-] as const;
+  { value: "orders", labelKey: "shb.tab.orders" },
+  { value: "shop", labelKey: "shb.tab.shop" },
+] as const satisfies readonly { value: string; labelKey: MsgKey }[];
+/** The tabs with their words in the member's language. */
+const shopsTabs = (t: (k: MsgKey) => string) => SHOPS_TABS.map((x) => ({ value: x.value, label: t(x.labelKey) }));
 const SHOPS_TAB_VALUES = SHOPS_TABS.map((t) => t.value);
 
 /** The public link of a shop. Its own public page is a later change; /shops/:id for now. */
@@ -64,7 +70,7 @@ async function shareShop(shopId: string) {
   const url = shopLink(shopId);
   if (typeof navigator.share === "function") {
     try {
-      await navigator.share({ title: "My shop on Louisiana Helpr", url });
+      await navigator.share({ title: tr("shb.shareTitle"), url });
       return;
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return; // the member closed the share sheet
@@ -72,41 +78,43 @@ async function shareShop(shopId: string) {
   }
   try {
     await navigator.clipboard.writeText(url);
-    toast.success("Link copied.");
+    toast.success(tr("shb.linkCopied"));
   } catch {
-    toast.error("Couldn't copy your shop's link", { description: url });
+    toast.error(tr("shb.linkCopyFailed"), { description: url });
   }
 }
 
 /** See my shop + Share my shop, on top of the Shop tab. */
 function MyShopActions({ shopId }: { shopId: string }) {
+  const { t } = useLanguage();
   return (
     <div className="flex gap-2" data-testid="my-shop-actions">
       <SectionActionPill asChild variant="outline" className="flex-1">
         <Link to={`/shops/${shopId}`}>
-          <ExternalLink className="w-4 h-4" aria-hidden /> See my shop
+          <ExternalLink className="w-4 h-4" aria-hidden /> {t("shb.seeMyShop")}
         </Link>
       </SectionActionPill>
       <SectionActionPill className="flex-1" onClick={() => void shareShop(shopId)}>
-        <Share2 className="w-4 h-4" aria-hidden /> Share my shop
+        <Share2 className="w-4 h-4" aria-hidden /> {t("shb.shareMyShop")}
       </SectionActionPill>
     </div>
   );
 }
 
-/** Shop settings: Licensed & Insured moved here from the Profile list (owner, 2026-10-19); same route. */
+/** Shop settings (the last row under the dashboard's "Shop settings" head): Licensed & Insured moved here from the Profile list (owner, 2026-10-19); same route. */
 function ShopSettings() {
+  const { t } = useLanguage();
   return (
-    <section className="flex flex-col gap-2" aria-label="Shop settings">
-      <h2 className="px-1 text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">Shop settings</h2>
+    <section className="flex flex-col gap-2" aria-label={t("shb.settings")}>
+      {/* Area 07 M5/M4: no head of its own; it sits under the dashboard's one "Shop settings" head (ShopSectionHead). */}
       <div className="liquid-glass overflow-hidden">
         <Link to="/profile?tab=credentials" className="btn-press flex items-center gap-3 px-4 py-3" data-testid="shop-licensed-insured">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <ShieldCheck className="w-[18px] h-[18px]" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-ds-15 font-semibold">Licensed &amp; Insured</span>
-            <span className="block text-ds-13 text-muted-foreground">Add your license and insurance</span>
+            <span className="block text-ds-15 font-semibold">{t("shb.licensed")}</span>
+            <span className="block text-ds-13 text-muted-foreground">{t("shb.licensedSub")}</span>
           </span>
           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
         </Link>
@@ -122,14 +130,18 @@ function ShopSettings() {
  * on "Edit my shop"). The center "+" sheet makes the same switch (CreateSheet). Until the answer is in, neither shows,
  * so the pill never changes its words under the member's thumb. Guard: src/test/shopOwnerAddNotOpenShop.test.tsx.
  */
-const ADD_AN_ITEM: SectionAdd = { label: "Add an item to my shop", cta: "Add an item", path: "/shops/mine#add-item" };
+const addAnItem = (t: (k: MsgKey) => string): SectionAdd => ({ label: t("shb.addItemLabel"), cta: t("shb.addItem"), path: "/shops/mine#add-item" });
 
+// Read with the plain t() (as tr): ShopsHomeView re-renders on a language change (useLanguage), so the words follow.
 const myShops = (shopToDo: number): SectionMineMenu => ({
-  title: "My Shops",
-  items: SHOPS_TABS.map((t) => ({ key: t.value, label: t.label, to: `/shops?tab=${t.value}`, count: t.value === "shop" ? shopToDo : undefined })),
+  title: tr("shb.myShops"),
+  items: shopsTabs(tr).map((t) => ({ key: t.value, label: t.label, to: `/shops?tab=${t.value}`, count: t.value === "shop" ? shopToDo : undefined })),
 });
 
 export default function ShopsHomeView() {
+  const { t } = useLanguage();
+  const ADD_AN_ITEM = addAnItem(t);
+  const tabsShown = shopsTabs(t);
   const [tab, setTab] = useSectionTab(SHOPS_TAB_VALUES);
   const desktop = useIsWebDesktop();
   const shopToDo = useNeedsYouCounts(useAuthReady().user?.id).shops;
@@ -139,16 +151,15 @@ export default function ShopsHomeView() {
   // PHONE (owner 11-08, the Vinted header): Browse's "Search shops" row draws itself in the bar (searchSlot) beside
   // the bell and the photo; Orders and Shop live in "My Shops" under the photo, and a list names itself with the way
   // back to Browse; "+ Open a shop" floats. DESKTOP keeps its tabs row.
-  const listLabel = SHOPS_TABS.find((t) => t.value === tab)?.label;
-  const tabs = desktop
-    ? <SectionTabs label="Shops" tabs={SHOPS_TABS} value={tab} onChange={setTab} />
-    : listLabel ? <SectionListBack label={listLabel} onBack={() => setTab("browse")} /> : undefined;
+  const listLabel = tabsShown.find((x) => x.value === tab)?.label;
+  const listBack = listLabel ? <SectionListBack label={listLabel} onBack={() => setTab("browse")} /> : undefined;
+  const tabs = desktop ? <SectionTabs label={t("shb.title")} tabs={tabsShown} value={tab} onChange={setTab} /> : listBack;
   return (
     // ONE search on Browse ("Search shops"); Explore's "Search all sections" only on the other tabs on desktop (owner 2026-10-21).
     <SectionScreen section="shops" title="Shops" tabs={tabs} globalSearch={desktop && tab !== "browse"}
       searchSlot={tab === "browse"} search={desktop || tab === "browse" ? undefined : <SectionSearchBar noun="shops" home="/shops" />}
       mine={desktop ? undefined : myShops(shopToDo)} showAdd={known} add={add}
-      fab={desktop || !known ? undefined : <SectionCreateFab section="shops" text="Open a shop" add={add} />}>
+      fab={desktop || !known ? undefined : <SectionCreateFab section="shops" text={t("shb.openShop")} add={add} />}>
       {tab === "orders" ? (
         <ShopMyOrdersView embedded />
       ) : tab === "shop" ? (
@@ -161,6 +172,7 @@ export default function ShopsHomeView() {
 }
 
 function ShopsBrowse() {
+  const { t } = useLanguage();
   const [group, setGroup] = useState<string | null>(null);
   // No location prompt on landing: miles come from what the app already knows.
   const { origin } = useDeclutterOrigin();
@@ -173,8 +185,8 @@ function ShopsBrowse() {
   const words = query.trim().toLowerCase();
   const [searched, setSearched] = useState("");
   useEffect(() => {
-    const t = setTimeout(() => setSearched(words), SHOPS_SEARCH_WAIT_MS);
-    return () => clearTimeout(t);
+    const wait = setTimeout(() => setSearched(words), SHOPS_SEARCH_WAIT_MS);
+    return () => clearTimeout(wait);
   }, [words]);
   // S043 (Shops audit 11-12): Browse held only the nearest page with no way past it, so search could never reach
   // a shop beyond it. Pages of SHOPS_BROWSE_PAGE (shops_browse's own cap), "Show more shops" asks for the next.
@@ -210,7 +222,7 @@ function ShopsBrowse() {
       <SectionSearchRow
         value={query}
         onChange={setQuery}
-        placeholder="Search shops"
+        placeholder={t("shb.search")}
         filterCount={group ? 1 : 0}
         filtersOpen={sheetOpen}
         onFilters={() => setSheetOpen(true)}
@@ -218,16 +230,16 @@ function ShopsBrowse() {
       <ChoiceSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        title="Category"
-        allLabel="All shops"
+        title={t("shb.category")}
+        allLabel={t("shb.allShops")}
         value={group}
         options={categoryGroups(categories.data).map((g) => ({ value: g.slug, label: g.label }))}
         onChange={setGroup}
       />
       {shops.isError ? (
-        <ErrorState variant="inline" title="We couldn't load shops." body={shopsErrorMessage(shops.error)} onRetry={() => void shops.refetch()} />
+        <ErrorState variant="inline" title={t("shb.loadFailed")} body={shopsErrorMessage(shops.error)} onRetry={() => void shops.refetch()} />
       ) : loading ? (
-        <ul className={SHOP_GRID} role="status" aria-label="Loading shops">
+        <ul className={SHOP_GRID} role="status" aria-label={t("shb.loading")}>
           {[0, 1, 2].map((i) => (
             <li key={i} aria-hidden>
               <Skeleton className="aspect-[2/1] w-full rounded-2xl" />
@@ -240,15 +252,15 @@ function ShopsBrowse() {
           ))}
         </ul>
       ) : phase === "offline-empty" ? (
-        <OfflineEmptyState body="Shops will show here once you're back online." onRetry={() => void shops.refetch()} />
+        <OfflineEmptyState body={t("shb.offline")} onRetry={() => void shops.refetch()} />
       ) : shown.length === 0 ? (
         // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
         <BrowseEmptyState
           icon={Store}
           // Shops audit 11-10 F1 (lead): one message. A tester who can already open a shop is never told "Coming soon"
           // beside "Be the first: open a free shop" (members without the switch get the gate's Coming soon instead).
-          title={searched ? "No shops match that search." : "No shops near you yet."}
-          body={searched ? "Try another word." : "Be the first: open a free shop."}
+          title={searched ? t("shb.noMatch") : t("shb.noneNear")}
+          body={searched ? t("shb.tryAnother") : t("shb.beFirst")}
         />
       ) : (
         <ul className={SHOP_GRID}>
@@ -266,13 +278,13 @@ function ShopsBrowse() {
       )}
       {!shops.isError && !loading && shops.hasNextPage && (
         <Button type="button" variant="outline" className="w-full rounded-full" disabled={shops.isFetchingNextPage} onClick={() => void shops.fetchNextPage()}>
-          {shops.isFetchingNextPage ? "Loading…" : "Show more shops"}
+          {shops.isFetchingNextPage ? t("shb.loadingMore") : t("shb.showMore")}
         </Button>
       )}
       {/* No distance filter in Shops and no shop alerts yet: just the friendly end. */}
       {!shops.isError && !loading && shown.length > 0 && !shops.hasNextPage && <BrowseEndCard />}
       {!from && origin.status !== "pending" && (
-        <p className="text-ds-11 text-muted-foreground">Add your ZIP code in your profile to see the nearest shops first.</p>
+        <p className="text-ds-11 text-muted-foreground">{t("shb.addZip")}</p>
       )}
     </>
   );

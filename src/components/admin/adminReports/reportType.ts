@@ -37,5 +37,8 @@ export type Report = {
   subject_user_id?: string | null;
   /** Q368: the reported person/job or the reporter is a seed row. */
   is_test?: boolean;
+  /** Design audit area 10 #5: its text carries a test-run marker ("SEED audit fixture", "E2E-…"); hidden unless
+   *  the screen's "Show test rows" is on, and never counted. */
+  test_marked?: boolean;
   assigned_to_name?: string;
 };

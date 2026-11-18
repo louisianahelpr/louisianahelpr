@@ -212,7 +212,9 @@ export const logo = {
   // the H mark oversized.
   width: '80px',
   maxWidth: '80px',
-  height: 'auto' as const,
+  // Area 08 L18 (design audit 11-18): fixed, not auto, so the layout does not jump while images load or when a
+  // client blocks them. brand-asset serves a 160x138 PNG, shown at half size.
+  height: '69px',
   margin: '0 0 24px',
   // The dark iron H on a light rounded tile of its own (owner's UI audit 11-09, F155): on a dark-mode client's dark
   // card the mark all but disappeared. White on the white light card shows nothing; EMAIL_CSS's dark block keeps the
@@ -249,8 +251,9 @@ export const subtext = {
   borderTop: `1px solid ${brand.hairline}`,
 }
 
+// Design audit r3 #50: inline links are olive like the app's (were burnt sienna, the money colour).
 export const linkStyle = {
-  color: brand.burntSienna,
+  color: brand.bark,
   textDecoration: 'underline',
 }
 
@@ -258,7 +261,7 @@ const button = {
   backgroundColor: brand.bark,
   color: '#ffffff',
   fontSize: '15px',
-  borderRadius: '12px',
+  borderRadius: '999px', // design audit r3 #50: full pill like the app's buttons (was a 12 px-radius rectangle)
   padding: '14px 28px',
   textDecoration: 'none',
   fontWeight: '600' as const,

@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |     AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) |     AND true
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (!chosen) return json({ error: "meetup_spot_needed" }, 400); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     spotChanged = frozenSpot !== pickedSpot; |     spotChanged = false; void pickedSpot;
- * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <MeetupSpotsCard />\n |
+ * @mutate src/components/admin/AdminDeclutter.tsx |       <MeetupSpotsCard />\n |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -101,7 +101,8 @@ describe("Q2425 safe meetup spots: the edge function and the admin screen", () =
     expect(s).toContain('if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged || feeChanged || quoteChanged || deliveryChanged)) {');
   });
 
-  it("Admin settings shows the meetup spots card", () => {
-    expect(read("src/components/admin/settings/FeatureSwitchesCard.tsx")).toContain("<MeetupSpotsCard />");
+  // Design audit area 10 #2: the Declutter cards moved from Settings to the Declutter admin view.
+  it("the Declutter admin view shows the meetup spots card", () => {
+    expect(read("src/components/admin/AdminDeclutter.tsx")).toContain("<MeetupSpotsCard />");
   });
 });

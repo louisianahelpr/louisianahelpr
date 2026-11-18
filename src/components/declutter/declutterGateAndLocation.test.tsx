@@ -28,7 +28,7 @@
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable notFound />} | skeleton={<DeclutterItemSkeleton />}
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable notFound />} | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />}
- * @mutate src/components/declutter/DeclutterSkeletons.tsx |   usePageTitle(notFound ? "Item not found — Helpr" : "Declutter — Helpr"); |   usePageTitle("Declutter — Helpr");
+ * @mutate src/components/declutter/DeclutterSkeletons.tsx |   usePageTitle(notFound ? "Not found — Helpr" : "Declutter — Helpr"); |   usePageTitle("Declutter — Helpr");
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
@@ -215,7 +215,7 @@ describe("Declutter loading frame (DeclutterGate)", () => {
     expect(screen.getByText("We couldn't find that item.")).toBeInTheDocument();
     expect(screen.getByText("The link may be broken.")).toBeInTheDocument();
     expect(screen.queryByText("No longer available.")).toBeNull();
-    expect(document.title).toBe("Item not found — Helpr");
+    expect(document.title).toBe("Not found — Helpr");
     expect(bones(container)).toBe(0);
   });
 

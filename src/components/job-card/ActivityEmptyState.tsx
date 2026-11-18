@@ -7,6 +7,16 @@ import type { Tab } from "@/components/job-card/activityConstants";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 
+
+/** Area 03 L13: each empty Posted bucket's own title (the chip's word). */
+const POSTED_EMPTY_TITLE: Record<string, string> = {
+  needs_you: "Nothing needs you right now",
+  waiting: "Nothing waiting",
+  scheduled: "No upcoming jobs",
+  done: "No finished jobs yet",
+  cancelled: "No cancelled jobs",
+};
+
 /**
  * ActivityEmptyState — the empty / error / no-matches panel shown when the
  * active tab has no visible cards. A failed fetch (loadError) takes
@@ -88,8 +98,10 @@ export function ActivityEmptyState({
   // No eyebrow: "Nothing yet" / "No matches" said exactly what the title
   // below it already says ("Nothing posted yet" / "No jobs in this view"),
   // so it read as the same sentence twice in two type sizes.
+  // Area 03 L13 (design audit 11-18): an empty Posted chip names itself ("No upcoming jobs"), not a generic "this view".
   const title = isLiveEmpty
     ? (isPosted ? "Nothing posted yet" : "No jobs yet")
+    : isPosted && !hasSearch && POSTED_EMPTY_TITLE[statusFilter] ? POSTED_EMPTY_TITLE[statusFilter]
     : "No jobs in this view";
   // Cross-tab nudge: posted-empty hints at the helper side, applied-empty
   // hints at posting. For the filtered-but-empty case the copy depends on

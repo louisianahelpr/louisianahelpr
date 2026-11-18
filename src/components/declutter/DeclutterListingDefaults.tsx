@@ -69,11 +69,12 @@ export function ListingChoiceFields({ draft, change, idPrefix = "defaults" }: { 
         </div>
       </>)}
       <div className="flex items-start gap-3">
-        <span className="min-w-0 flex-1">
+        {/* Area 06b L7: the words are a label too, so the whole row toggles (the 31px switch alone was the only target). */}
+        <label htmlFor={`${idPrefix}-keep-up-switch`} className="min-w-0 flex-1" data-keep-up-label="">
           <span id={`${idPrefix}-keep-up`} className="block text-ds-15 font-semibold text-foreground">{t("lp.keepUpTitle")}</span>
           <span className="block text-ds-13 text-muted-foreground">{keepUpSettingLine(draft.keepUp)}</span>
-        </span>
-        <Switch aria-labelledby={`${idPrefix}-keep-up`} checked={draft.keepUp} onCheckedChange={(v) => change({ keepUp: v === true })} />
+        </label>
+        <Switch id={`${idPrefix}-keep-up-switch`} aria-labelledby={`${idPrefix}-keep-up`} checked={draft.keepUp} onCheckedChange={(v) => change({ keepUp: v === true })} />
       </div>
       <div className="flex items-start gap-3">
         <label htmlFor={`${idPrefix}-offers`} className="min-w-0 flex-1">
@@ -175,7 +176,10 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
         {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />}
         {deliverOff && <p role="note" className="text-ds-13 text-foreground" data-deliver-off-all="">{t("lp.ld.deliverOff")}</p>}
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Area 06b M5 (design audit 11-18): Save sat about three screens below the first field. While there are unsaved
+          changes the Save row sticks above the bottom bar, so it is in view wherever the edit was made. */}
+      <div className={`flex flex-wrap items-center gap-3 ${unsaved ? "sticky bottom-safe-nav z-10 -mx-4 rounded-2xl border border-border bg-card px-4 py-3 shadow-md" : ""}`}
+        data-defaults-save-bar={unsaved ? "sticky" : ""}>
         <Button type="button" size="sm" disabled={save.isPending || noWay || !unsaved} onClick={() => save.mutate()}>
           {save.isPending ? t("lp.f.saving") : t("lp.ld.save")}
         </Button>

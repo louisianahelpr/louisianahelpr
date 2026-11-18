@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +78,8 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  // Design audit area 11b M6: what is still needed shows after a first Finish, not as a nag before any typing.
+  const [attempted, setAttempted] = useState(false);
   // Apple/Google: the name is asked only when the provider gave no full name
   // (owner 2026-10-26). Set once, from the profile the sign-in created.
   const [providerGaveName, setProviderGaveName] = useState(false);
@@ -220,6 +223,7 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    setAttempted(true);
 
     const fail = (msg: string) => { hapticError(); toast.error(msg); };
     if (nameAsked && (!firstName.trim() || !lastName.trim())) return fail(t("profileGate.nameToast"));
@@ -293,9 +297,13 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
   // Owner 11-14: Terms + 18+ only, then straight on (completeProfile/ConsentStep.tsx).
   if (profile && user && !consentDone) {
     const deleteLink = (
-      <Button type="button" variant="ghost" size="sm" onClick={deleteAccount.requestDelete} className="w-full text-destructive-ink hover:text-destructive-ink">
-        <Trash2 className="w-4 h-4 mr-1" /> {t("profileGate.deleteAccount")}
-      </Button>
+      // Design audit area 09 M12: a muted line for a new member, not a red Delete button under Continue.
+      <p className="text-center text-ds-13 text-muted-foreground" data-consent-delete="">
+        {t("profileGate.notForYou")}{" "}
+        <InlineTextButton onClick={deleteAccount.requestDelete} className="min-h-11 font-semibold underline underline-offset-2 text-muted-foreground hover:text-foreground">
+          {t("profileGate.deleteAccount")}
+        </InlineTextButton>
+      </p>
     );
     // The 18+ box is also asked of an email sign-up whose sign-up never finished (no Terms and no 18+ on record:
     // complete-signup failed, so its step-1 box never reached the server). This step is the only gate before Home.
@@ -512,7 +520,7 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
             </label>
 
 
-            <StillNeededList checklist={checklist} allComplete={allComplete} t={t} />
+            {attempted && <StillNeededList checklist={checklist} allComplete={allComplete} t={t} />}
 
             <Button
               type="submit"
@@ -524,10 +532,10 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
                 "h-auto !min-h-[60px] whitespace-normal min-[360px]:whitespace-nowrap text-balance px-4 py-3 sm:px-8 sm:py-0",
                 allComplete && !submitting && "btn-grad-primary",
               )}
-              disabled={submitting || !allComplete}
+              disabled={submitting}
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-              {submitting ? t("profileGate.saving") : allComplete ? t("profileGate.enterApp") : t("profileGate.completeRequired")}
+              {submitting ? t("profileGate.saving") : t("profileGate.finish")}
             </Button>
 
             <Button

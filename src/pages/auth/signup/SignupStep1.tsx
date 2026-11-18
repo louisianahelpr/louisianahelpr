@@ -266,6 +266,15 @@ export function SignupStep1({
               {email.trim() ? t("login.emailInvalid") : t("login.emailMissing")}
             </p>
           )}
+          {/* Continue saves the email for ONE reminder if sign-up is not finished (owner 2026-10-09;
+              src/lib/signupLead.ts), so it is said before it happens. F026 (owner UI audit 11-09): never under Continue,
+              where it read like a warning at the moment of decision. Design audit areas 11-18 #17: under the Email field
+              it is about (it sat under the Terms line, which is about something else). */}
+          {!emailError && (
+            <p className="text-ds-13 font-sans text-muted-foreground" data-may-email-once="">
+              {t("signup.mayEmailOnce")}
+            </p>
+          )}
           {emailSuggestion && (
             <div
               role={attempted ? "alert" : "status"}
@@ -350,17 +359,11 @@ export function SignupStep1({
         />
         <span id="policies-label" className="text-ds-13 leading-snug font-sans text-muted-foreground">
           {t("signup.agreeLead")}{" "}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">{t("signup.terms")}</a>,{" "}
-          <a href="/rules" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">{t("signup.rules")}</a> {t("signup.and")}{" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">{t("signup.privacy")}</a>.
+          <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="tap-44 font-semibold underline text-primary">{t("signup.terms")}</a>,{" "}
+          <a href="/rules" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="tap-44 font-semibold underline text-primary">{t("signup.rules")}</a> {t("signup.and")}{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="tap-44 font-semibold underline text-primary">{t("signup.privacy")}</a>.
           {/* Terms, Rules and Privacy are not translated: a Spanish reader is told they open in English. */}
           {lang === "es" && <span className="block mt-0.5" data-testid="legal-in-english">{t("lang.legalInEnglish")}</span>}
-          {/* Continue saves the email for ONE reminder if sign-up is not finished (owner 2026-10-09;
-              src/lib/signupLead.ts), so it is said before it happens. F026 (owner UI audit 11-09): said here in the
-              privacy line, not under Continue, where it read like a warning at the moment of decision. */}
-          <span className="block mt-0.5" data-may-email-once="">
-            {t("signup.mayEmailOnce")}
-          </span>
         </span>
       </label>
 
@@ -419,9 +422,10 @@ export function SignupStep1({
         </>
       )}
 
-      <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+      {/* Design audit 11-17 #30: 13px (was 12) and a 44px hit area on Log in (tap-44), as on the policy links above. */}
+      <p className="text-center text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {t("signup.haveAccount")}{" "}
-        <Link to="/login" className="font-semibold hover:underline whitespace-nowrap" style={{ color: "hsl(var(--bark))" }}>
+        <Link to="/login" className="tap-44 font-semibold hover:underline whitespace-nowrap" style={{ color: "hsl(var(--bark))" }}>
           {t("login.submit")}
         </Link>
       </p>

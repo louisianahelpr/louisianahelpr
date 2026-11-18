@@ -107,7 +107,7 @@ describe("a successful password change leaves visible evidence", () => {
     await submitNewPassword();
     await screen.findByText(/Password updated\./i);
     expect(screen.queryByText(/Anywhere else you were signed in will ask/i)).toBeNull();
-    expect(screen.getByText(/couldn.t sign out your other devices/i)).toBeTruthy();
+    expect(screen.getByText(/couldn.t log out your other devices/i)).toBeTruthy();
   });
 
   it("announces it, so a screen-reader user gets the same evidence", async () => {

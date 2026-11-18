@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { formatUsd } from "@/components/money/MoneyNote";
 import { payoutFailureWords, useOpenPayoutFailures } from "@/components/money/payoutProblems";
+import "@/lib/i18n/enMoneyTiles";
+import { t } from "@/lib/i18n/language";
 
 /**
  * Board 143, "Your payout didn't go through": the Home "Needs you" card while
@@ -28,18 +30,18 @@ export function PayoutFailedCard() {
     >
       <p className="flex items-center gap-1.5 text-ds-12 font-semibold" style={{ color: "hsl(var(--destructive-ink))" }}>
         <span aria-hidden className="inline-block w-2 h-2 rounded-full" style={{ background: "hsl(var(--destructive))" }} />
-        Needs you
+        {t("mt.pf.needsYou")}
       </p>
-      <p className="mt-1 font-sans font-bold text-ds-16 leading-snug text-foreground">Your payout didn't go through</p>
+      <p className="mt-1 font-sans font-bold text-ds-16 leading-snug text-foreground">{t("mt.pf.title")}</p>
       <p className="mt-1 text-ds-13 leading-snug text-muted-foreground">
         <span className="font-bold tabular-nums" style={{ color: "hsl(var(--accent-ink))" }}>{formatUsd(latest.amount_cents)}</span>{" "}
-        came back{more > 0 ? `, and ${more} more payout${more === 1 ? "" : "s"} too` : ""}. {words ? `${words} ` : ""}It's back in your payout balance. Update your bank or card so it can be sent again.
+        {t("mt.pf.cameBack")}{more > 0 ? t(more === 1 ? "mt.pf.moreOne" : "mt.pf.moreMany", { n: more }) : ""}. {words ? `${words} ` : ""}{t("mt.pf.back")}
       </p>
       <Link
         to="/profile?tab=earnings"
-        className="btn-grad-primary mt-3 inline-flex items-center justify-center h-10 px-5 rounded-full text-ds-13 font-bold"
+        className="btn-grad-primary mt-3 inline-flex items-center justify-center h-11 px-5 rounded-full text-ds-13 font-bold"
       >
-        Fix bank
+        {t("mt.pf.update")}
       </Link>
     </div>
   );

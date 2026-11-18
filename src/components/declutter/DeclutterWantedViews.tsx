@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { AddPhotoTile } from "@/components/ui/AddPhotoTile";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
-import { safeStorage } from "@/lib/safeStorage";
+import { EMPTY, clearWantedDraft, readWantedDraft, saveWantedDraft } from "./wantedDraft";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -35,6 +35,8 @@ import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { checkoutAmounts } from "@/lib/declutter/money";
 import { ONBOARDING_FEE_CENTS } from "@/lib/moneyLimits";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclSell";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { WANTED_CATEGORY_PARAM, WANTED_POST_PARAM, WANTED_WHAT_PARAM } from "@/lib/declutter/sellChooser";
 import {
@@ -69,43 +71,14 @@ import { EXPIRED_WORD } from "@/lib/dateUtils";
 import { Input } from "@/components/ui/input";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
-const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
 const FORM_ID = "wanted-form";
 
-/**
- * Audit 10-30 #13: what was typed survives a reload, an app kill or leaving the page. Words, category, price and
- * distance only; chosen photos can't be kept and are picked again.
- */
-const WANTED_DRAFT_KEY = "helpr_wanted_draft";
-
-function readWantedDraft(): WantedForm {
-  try {
-    const raw = safeStorage.getItem(WANTED_DRAFT_KEY);
-    if (!raw) return EMPTY;
-    const d = JSON.parse(raw) as Partial<WantedForm>;
-    return {
-      what: typeof d.what === "string" ? d.what : "",
-      category: typeof d.category === "string" ? d.category : "",
-      maxPrice: typeof d.maxPrice === "string" ? d.maxPrice : "",
-      radius: WANTED_RADIUS_CHOICES.find((m) => m === d.radius) ?? EMPTY.radius,
-    };
-  } catch (err) {
-    console.warn("[declutter] ignored an unreadable Wanted draft", err);
-    return EMPTY;
-  }
-}
-
-function clearWantedDraft() {
-  safeStorage.removeItem(WANTED_DRAFT_KEY);
-}
-
-function saveWantedDraft(form: WantedForm) {
-  if (form.what === "" && form.category === "" && form.maxPrice === "" && form.radius === EMPTY.radius) clearWantedDraft();
-  else safeStorage.setItem(WANTED_DRAFT_KEY, JSON.stringify(form));
-}
+/** Design audit 11-17 #10: the shared form-label size (ui/label: 13 px semibold), the same as Edit profile, Sign up and
+ * the photo picker's "Photos (optional, up to 3)"; the 15 px labels read 17 px beside a 12 px one. */
+const FIELD_LABEL = "block text-ds-13 font-semibold text-foreground/80";
 
 /** What sellers near the poster see (shown under the form, in place of the old switch). */
-const WANTED_SELLERS_SEE = "Sellers near you see your first name and last initial, what you want and your max price, never your address.";
+const WANTED_SELLERS_SEE = () => t("dsl.w.sellersSee");
 
 type FieldsProps = {
   form: WantedForm;
@@ -131,7 +104,7 @@ function feeLine(maxPrice: string): string {
   const cents = valid ? typed : 3000;
   // Q2578 (audit 1102a): with nothing typed the field shows a grey "30" and this line used to say "A $30 item costs...",
   // so the empty field read as filled in. Until a price is typed the line says it is an example.
-  return `${valid ? "A" : "For example, a"} ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time ${formatPrice(ONBOARDING_FEE_CENTS)} setup fee.`;
+  return t(valid ? "dsl.w.feeTyped" : "dsl.w.feeExample", { price: formatPrice(cents), total: formatMoneyExact(checkoutAmounts([cents]).totalCents), setup: formatPrice(ONBOARDING_FEE_CENTS) });
 }
 
 function formatMoneyExact(cents: number): string {
@@ -147,15 +120,17 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
     <form
       id={FORM_ID}
       className="space-y-4"
-      aria-label="What are you looking for?"
+      aria-label={t("dsl.w.title")}
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit();
       }}
     >
       <div className="space-y-1">
-        <label className="block text-ds-15 font-semibold" htmlFor="wanted-what">I'm looking for</label>
-        <Input id="wanted-what" className="w-full min-w-0" maxLength={60} value={form.what} placeholder="Kids bike" enterKeyHint="next" aria-required="true"
+        {/* Area 06b M3 (design audit 11-18): the sheet's title already asks "What are you looking for?", so the label is
+            for screen readers only, and the example reads as one ("e.g. kids bike"), never as a filled-in answer. */}
+        <label className="sr-only" htmlFor="wanted-what">{t("dsl.w.lookingFor")}</label>
+        <Input id="wanted-what" className="w-full min-w-0" maxLength={60} value={form.what} placeholder={t("dsl.w.example")} enterKeyHint="next" aria-required="true"
           aria-invalid={problems.what ? true : undefined} aria-describedby={problems.what ? "wanted-what-problem" : undefined}
           onChange={(e) => setForm((f) => ({ ...f, what: e.target.value }))} />
         <FieldProblem id="wanted-what-problem" text={problems.what} />
@@ -163,18 +138,18 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
       {/* Its own row (tester 10-30): beside "Up to" at 375 its subs wrapped in a half-width column, and opening it left
           an empty column under "Up to". */}
       <div className="min-w-0 space-y-1" data-wanted-category-row="">
-        <label className="block text-ds-15 font-semibold" htmlFor="wanted-category">Category</label>
-        <TwoStepCategoryPicker id="wanted-category" value={form.category} placeholder="Pick one"
+        <label className={FIELD_LABEL} htmlFor="wanted-category">{t("dsl.w.category")}</label>
+        <TwoStepCategoryPicker id="wanted-category" value={form.category} placeholder={t("dsl.w.pickOne")}
           onChange={(category) => setForm((f) => ({ ...f, category }))} groups={CATEGORY_PICKER_GROUPS} triggerClassName="border-input" />
         <FieldProblem id="wanted-category-problem" text={problems.category} />
       </div>
       <div className="min-w-0 space-y-1">
-        <label className="block text-ds-15 font-semibold" htmlFor="wanted-max">The most you'd pay for the item</label>
+        <label className={FIELD_LABEL} htmlFor="wanted-max">{t("dsl.w.most")}</label>
         <div className={`${input} flex items-center gap-1`}>
           {/* Audit W8: the "$" turns rust only once a price is typed, so the grey 30 never reads as a set price. */}
           <span aria-hidden className={`font-semibold ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"}`} data-wanted-dollar="">$</span>
           <input id="wanted-max" className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring placeholder:font-normal placeholder:text-muted-foreground"
-            inputMode="numeric" value={form.maxPrice} placeholder="30" enterKeyHint="done" aria-required="true"
+            inputMode="numeric" value={form.maxPrice} enterKeyHint="done" aria-required="true"
             aria-invalid={problems.maxPrice ? true : undefined} aria-describedby={problems.maxPrice ? "wanted-max-problem wanted-max-fee" : "wanted-max-fee"}
             onChange={(e) => setForm((f) => ({ ...f, maxPrice: e.target.value }))} />
         </div>
@@ -182,7 +157,7 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
         <FieldProblem id="wanted-max-problem" text={problems.maxPrice} />
       </div>
       <div className="space-y-1">
-        <p id="wanted-within" className="text-ds-15 font-semibold">Within</p>
+        <p id="wanted-within" className={FIELD_LABEL}>{t("dsl.w.within")}</p>
         <p className="text-ds-13 text-muted-foreground" data-wanted-where="">{where}</p>
         {/* Browse's distance chips (DeclutterFilterPanel's Chip), not an 11px segmented control (lead walkthrough
             2026-10-28, shot 39: "Within" read tiny beside the 15px fields). */}
@@ -197,8 +172,8 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
       {photos}
       <FieldProblem id="wanted-radius-problem" text={problems.radius} />
       <div className="space-y-1 text-ds-13 text-muted-foreground" data-wanted-privacy="">
-        <p>{WANTED_SELLERS_SEE}</p>
-        <p>Your Wanted stays up 30 days. You can edit or close it anytime.</p>
+        <p>{WANTED_SELLERS_SEE()}</p>
+        <p>{t("dsl.w.stays")}</p>
       </div>
     </form>
   );
@@ -207,6 +182,7 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
 /** "Post what you're looking for": the form in the shared bottom sheet (a side panel on the desktop website). */
 function WantedFormSheet({ open, at, userId, onClose, where, editing = null, prefill = null }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string; editing?: WantedPost | null; prefill?: Partial<WantedForm> | null }) {
   const webDesktop = useIsWebDesktop();
+  useLanguage();
   const qc = useQueryClient();
   // Audit 10-30 #9: Edit opens this form on the post's own words. An edit never touches the new-post draft.
   const [form, setForm] = useState<WantedForm>(() => editing
@@ -237,17 +213,17 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null, pre
       if (!editing) clearWantedDraft();
       setFiles([]);
       setProblems({});
-      if (editing) toast("Saved. Sellers near you see the new words and price.");
-      else if (failed > 0) toast.error(`Posted, but ${failed === 1 ? "a photo" : `${failed} photos`} didn't upload. Add ${failed === 1 ? "it" : "them"} again from your post.`);
+      if (editing) toast(t("dsl.w.saved"));
+      else if (failed > 0) toast.error(failed === 1 ? t("dsl.w.photoFailedOne") : t("dsl.w.photoFailedMany", { n: failed }));
       // Audit 10-30 #4: what matching really does. It looks for any of the words, and a match can be missed.
-      else toast("Posted. Sellers near you can answer it. We also watch new listings for your words and tell you if one looks like a match at or under your price.");
+      else toast(t("dsl.w.posted"));
       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
       onClose();
     },
     // D4-14: offline mid-post says so; the form keeps what was typed (it clears only on success).
     onError: (err) => {
       const msg = declutterErrorMessage(err);
-      toast.error(msg === DECLUTTER_OFFLINE_COPY || msg === CONNECTION_TROUBLE_COPY ? `${msg} We kept what you typed.` : msg);
+      toast.error(msg === DECLUTTER_OFFLINE_COPY || msg === CONNECTION_TROUBLE_COPY ? t("dsl.w.keptTyped", { msg }) : msg);
     },
   });
   // Audit 11-10 F347: once Post has shown the field problems, each change re-checks the form and drops the lines under
@@ -277,15 +253,15 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null, pre
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-wanted-sheet="">
-        <SheetHero title={editing ? "Edit your post" : "What are you looking for?"} />
+        <SheetHero title={editing ? t("dsl.w.editTitle") : t("dsl.w.title")} />
         <div className="mt-2">
           <WantedFormFields form={form} setForm={edit} problems={problems} onSubmit={submit}
-            photos={editing ? null : <ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where={editing ? "Measured from where you first posted it." : where} />
+            photos={editing ? null : <ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} fieldLabel />} where={editing ? t("dsl.w.measured") : where} />
         </div>
         {/* Audit 10-30 #18: at 375 the form is taller than the sheet; the buttons stay in view as it scrolls. */}
         <SheetFooter className="sticky bottom-0 z-10 mt-4 bg-premium-page pt-2" data-wanted-footer="">
-          <SheetSecondaryAction onClick={onClose}>Cancel</SheetSecondaryAction>
-          <SheetPrimaryAction type="submit" form={FORM_ID} disabled={post.isPending}>{post.isPending ? (editing ? "Saving…" : "Posting…") : editing ? "Save" : "Post wanted"}</SheetPrimaryAction>
+          <SheetSecondaryAction onClick={onClose}>{t("dsl.w.cancel")}</SheetSecondaryAction>
+          <SheetPrimaryAction type="submit" form={FORM_ID} disabled={post.isPending}>{post.isPending ? (editing ? t("dsl.w.saving") : t("dsl.w.posting")) : editing ? t("dsl.w.save") : t("dsl.w.post")}</SheetPrimaryAction>
         </SheetFooter>
       </SheetContent>
     </Sheet>

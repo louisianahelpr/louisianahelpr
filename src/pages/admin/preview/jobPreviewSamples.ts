@@ -277,8 +277,10 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       break;
     case "no_show":
       // The Helpr never came: the poster reported a no-show and the job was cancelled and refunded.
-      job = { ...base, ...hired, ...today, ...bothIn, status: "cancelled", payment_status: "refunded" };
-      applications = [{ status: "closed", closed_reason: "no_show", helper_id: PREVIEW_HELPR_ID }];
+      // Area 11 H3: as report_helper_no_show leaves it (helper_id and helper_confirmed_at cleared, the marker stamped),
+      // then the poster's cancel, refunded in full (void-cancelled-payments F272).
+      job = { ...base, ...hired, ...today, ...bothIn, status: "cancelled", payment_status: "refunded", helper_id: null, helper_confirmed_at: null, helper_dayof_confirmed_at: null, no_show_reported_at: ago(60 * 3) };
+      applications = [{ status: "rejected", closed_reason: "no_show", helper_id: PREVIEW_HELPR_ID }];
       break;
     case "disputed":
       job = {
@@ -306,6 +308,9 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       job = {
         ...base, ...hired, ...today, ...bothIn, status: "revision_requested", helper_on_the_way_at: ago(240), helper_arrived_at: ago(210),
         poster_confirmed_arrival_at: ago(208), poster_confirmed_working_at: ago(205), helper_completed_at: ago(90),
+        // Area 11 M2 (11-18): create-payment request_revision stamps revision_requested_at; without it the preview read
+        // "Next: approve Eli's work" with Approve primary while the fix was still owed (the real page waits on the fix).
+        revision_requested_at: ago(60),
         revision_note: "The side yard by the fence still has leaves, and two bags were left by the porch instead of the curb.",
         revision_deadline: new Date(now + 22 * 60 * 60_000).toISOString(),
       };

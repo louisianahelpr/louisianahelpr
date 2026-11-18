@@ -59,5 +59,9 @@ describe("Sell a bunch has one list button on screen", () => {
       onNext={() => {}} onUndo={() => {}} onUseOtherPrice={() => {}} />);
     expect(screen.getByText("Nothing ready yet.")).toBeTruthy();
     expect(screen.queryByText(/All .*set\./)).toBeNull();
+    // Area 06 L14 (2026-11-18): no "Next: list 0 items" button.
+    // @mutate src/components/declutter/DeclutterBunchBar.tsx |           {!listStepInView && readyCount > 0 && <Button |           {!listStepInView && <Button
+    expect(screen.queryByRole("button", { name: /Next: list/ })).toBeNull();
+    expect(document.querySelectorAll("[data-bunch-next]").length).toBeLessThan(1);
   });
 });

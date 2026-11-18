@@ -7,8 +7,8 @@
  * @mutate src/components/Footer.tsx |   const w = (key: string, english: string) => es?.[key] ?? english; |   const w = (key: string, english: string) => (void key, english);
  * @mutate src/components/landing/useGuestSpanish.ts |     window.addEventListener(LANG_EVENT, read); |     void LANG_EVENT;
  * @mutate src/components/Footer.tsx |           <LanguageToggle />\n        </Suspense> |           {null}\n        </Suspense>
- * @mutate src/pages/info/Fees.tsx |         <p>{t("fees.postFree")}</p> |         <p>Posting a job is free.</p>
- * @mutate src/pages/info/Safety.tsx |         <li>{t("safety.moneyHeld")}</li> |         <li>Your money is held safely until you approve the work.</li>
+ * @mutate src/pages/info/Fees.tsx |         <li className={INFO_CARD_ROW}>{t("fees.postFree")}</li> |         <li className={INFO_CARD_ROW}>Posting a job is free.</li>
+ * @mutate src/pages/info/Safety.tsx |         <li className={INFO_CARD_ROW}>{t("safety.moneyHeld")}</li> |         <li className={INFO_CARD_ROW}>Your money is held safely until you approve the work.</li>
  * @mutate src/components/landing/useHeroWords.ts |     window.addEventListener("helpr:lang", read); |     void read;
  * @mutate src/components/profile/LegalTab.tsx | <span className="relative truncate">{tr(`legal.tab.${key}` as const)}</span> | <span className="relative truncate">{`${key}`}</span>
  * @mutate src/pages/info/legal/LegalTabBar.tsx | <span className="relative">{tr(`legal.tab.${t}` as const)}</span> | <span className="relative">{`${t}`}</span>
@@ -104,9 +104,11 @@ describe("F260q: /fees and /safety in Spanish", () => {
     await act(async () => { await ensureLangLoaded(); });
     const { container } = render(<MemoryRouter><Fees /><Safety /></MemoryRouter>);
     const fees = container.querySelector("[data-fees-body]")!.textContent!;
-    expect(fees).toBe([esPublic["fees.postFree"], esPublic["fees.setupFee"], esPublic["fees.shownFirst"], esPublic["fees.helprsSeePay"]].join(""));
+    // Design audit areas 11-18 #9: Declutter's line follows the Jobs sentences, its fee from money.ts.
+    const declutterEs = esPublic["fees.declutter"].replace("{pct}", "5").replace("{cents}", "70");
+    expect(fees).toBe([esPublic["fees.postFree"], esPublic["fees.setupFee"], esPublic["fees.shownFirst"], esPublic["fees.helprsSeePay"], declutterEs].join(""));
     const safety = [...container.querySelectorAll("[data-safety-body] li")].map((li) => li.textContent);
-    expect(safety).toEqual([esPublic["safety.idChecked"], esPublic["safety.moneyHeld"], esPublic["safety.report"]]);
+    expect(safety).toEqual([esPublic["safety.idChecked"], esPublic["safety.moneyHeld"], esPublic["safety.report"], esPublic["safety.declutter"]]);
     expect(screen.getByRole("heading", { name: esPublic["fees.title"] })).toBeTruthy();
     expect(screen.getByRole("heading", { name: esPublic["safety.title"] })).toBeTruthy();
   });

@@ -71,7 +71,7 @@ const POSTERS = [
  * Q2664 (a): one job_match notice of each shape prod sends (prod read-only SQL 2026-11-04, titles and links by
  * shape, no member's text): the posted-job alert ("New job posted", 324, links /home?job=; its wording is today's
  * deliver_parish_match_alert, owner 10-27: the job's title and town, no category or parish), the saved-search match
- * ("🌿 Match for you", 39, links /home?quickApply=), and the parish digest ("New jobs in <parish>", no job, links
+ * ("Match for you", 39, area 08 L8: the live title carries no emoji (instant-job-match); links /home?quickApply=), and the parish digest ("New jobs in <parish>", no job, links
  * /home). Unread, newest first, made-up jobs. A Helpr's notices on either side: the bell is the same for both.
  */
 function jobMatchNotices(me: string, ago: (min: number) => string) {
@@ -81,8 +81,21 @@ function jobMatchNotices(me: string, ago: (min: number) => string) {
   });
   return [
     notice(1, "New job posted", '"Clean the gutters on a one-story house" was just posted in Lafayette.', `/home?job=${MP_JOB_GUTTER}`, MP_JOB_GUTTER, 4),
-    notice(2, "🌿 Match for you", "Mow and edge a front yard in Broussard, LA · $60. Tap to review and apply.", `/home?quickApply=${MP_JOB_MOW}`, MP_JOB_MOW, 35),
+    notice(2, "Match for you", "Mow and edge a front yard in Broussard, LA · $60. Tap to review and apply.", `/home?quickApply=${MP_JOB_MOW}`, MP_JOB_MOW, 35),
     notice(3, "New jobs in Lafayette", "2 new jobs posted in the last 24 hours — $40 to $120. Tap to browse.", "/home", null, 60 * 5),
+  ];
+}
+
+/** Area 05 #24: four made-up Declutter order chats (declutter_my_order_talks rows), newest first. */
+function declutterOrderTalks(ago: (minutes: number) => string) {
+  const row = (n: number, title: string, side: "buyer" | "seller", minAgo: number, lastMine: boolean, open = true) => ({
+    order_id: `00000000-0000-4000-d000-${String(n).padStart(12, "0")}`, side, title, photo_path: null, last_at: ago(minAgo), last_mine: lastMine, open,
+  });
+  return [
+    row(1, "Oak rocking chair (paid, pick a time)", "buyer", 12, false),
+    row(2, "Wicker basket (pickup booked)", "seller", 95, true),
+    row(3, "Box fan (problem reported)", "buyer", 60 * 6, false),
+    row(4, "Lamp (ended, chat closed)", "buyer", 60 * 30, true, false),
   ];
 }
 
@@ -152,7 +165,9 @@ export function messagesPreviewSample(stage: MessagesPreviewStage, side: Message
       get_off_job_thread_state: null,
       get_muted_threads: [],
       get_job_offer_targets: [],
-      declutter_my_order_talks: [],
+      // Area 05 #24 (design audit 11-18): Declutter order chats in the inbox, so the order rows can be looked at here
+      // (a paid order, a booked pickup, one with a problem open, and an ended one whose chat is closed). Made-up ids.
+      declutter_my_order_talks: stage === "inbox" ? declutterOrderTalks(ago) : [],
       get_message_thread_job_titles: (body: Record<string, unknown>) => {
         const ids = Array.isArray(body.p_job_ids) ? (body.p_job_ids as string[]) : [];
         return jobs.filter((j) => ids.includes(j.id)).map((j) => ({ job_id: j.id, title: j.title }));

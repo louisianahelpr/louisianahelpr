@@ -5,7 +5,7 @@
  * Date Needed).
  *
  * @mutate src/pages/post-job/usePostJobForm.ts | const [category, setCategory] = useState<string>(""); | const [category, setCategory] = useState<string>("other");
- * @mutate src/components/postjob/LogisticsSection.tsx | ariaLabel="Start time" variant="wheels" className="max-w-none w-full" /> | ariaLabel="Start time" variant="wheels" />
+ * @mutate src/components/postjob/LogisticsSection.tsx | ariaLabel={tr("postJob.f.startTime")} variant="wheels" className="max-w-none w-full" /> | ariaLabel={tr("postJob.f.startTime")} variant="wheels" />
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -23,6 +23,6 @@ describe("Post a job opens with nothing chosen for the poster", () => {
 
   it("Start Time fills its column (no 10.5rem cap) on Post a job", () => {
     const logistics = read("src/components/postjob/LogisticsSection.tsx");
-    expect(logistics).toMatch(/<TimePickerWheel value=\{startTime\} onChange=\{setStartTime\} ariaLabel="Start time" variant="wheels" className="max-w-none w-full" \/>/);
+    expect(logistics).toMatch(/<TimePickerWheel value=\{startTime\} onChange=\{setStartTime\} ariaLabel=\{tr\("postJob\.f\.startTime"\)\} variant="wheels" className="max-w-none w-full" \/>/);
   });
 });

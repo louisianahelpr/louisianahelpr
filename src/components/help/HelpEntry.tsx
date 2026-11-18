@@ -14,6 +14,12 @@ const helpEntryPanel = () => loadModule(() => import("./HelpEntryPanel"));
 
 const SUPPORT_PATH = "/support?topic=message";
 
+/** The Help screen (You › Talk to a real person, or /support): the Help button would only open what is already open. */
+export function onHelpScreen(pathname: string, search: string): boolean {
+  if (pathname === "/support") return true;
+  return pathname === "/profile" && new URLSearchParams(search).get("tab") === "support";
+}
+
 /**
  * The ONE Help entry (owner approved 2026-10-29, audit page UX-6): a lifebuoy in the signed-in top bars that opens
  * Get help now and its promise, "We usually answer within a few hours." The button goes to /support with "Talk to a
@@ -29,12 +35,14 @@ const SUPPORT_PATH = "/support?topic=message";
  */
 export function HelpEntry({ triggerClassName = "h-11 w-11" }: { triggerClassName?: string }) {
   const { user } = useCurrentUser();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [Panel, setPanel] = useState<ComponentType<ComponentProps<typeof HelpEntryPanel>> | null>(null);
   const [open, setOpen] = useState(false);
   if (!user || pathname.startsWith("/admin")) return null;
+  // Design audit area 09 L9: no Help button on the Help screen itself.
+  if (onHelpScreen(pathname, search)) return null;
 
   const onTap = () => {
     if (Panel) {

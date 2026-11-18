@@ -175,7 +175,8 @@ export function RestrictApplicationsDialog({
                     role="radio"
                     aria-checked={active}
                     onClick={() => setDays(opt.id)}
-                    className={`p-2 rounded-ds-md border text-center text-ds-11 font-medium transition-colors ${
+                    // Design audit area 10 #37: 44px tap target (it was 34px).
+                    className={`min-h-11 p-2 rounded-ds-md border text-center text-ds-11 font-medium transition-colors ${
                       active
                         ? "border-primary/50 bg-primary/10 text-primary"
                         : "border-border bg-card hover:bg-secondary/30"

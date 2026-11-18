@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { ChevronDown } from "lucide-react";
 import { bugReportContext, bugReportItems, type BugReportContext } from "@/lib/bugReportContext";
 
 /**
@@ -29,9 +30,11 @@ const PLAIN_LABEL: Readonly<Record<string, string>> = {
 export function BugReportAttachments({ context }: { context: BugReportContext }) {
   const items = bugReportItems(context);
   return (
-    <details data-bug-report-attachments="" className="group rounded-ds-md border border-border/60 bg-secondary/30 px-4 py-3">
-      <summary className="cursor-pointer list-none text-ds-13 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+    // Design audit area 09 M6: a text link with a chevron, not a grey pill that read as a disabled control.
+    <details data-bug-report-attachments="" className="group">
+      <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 text-ds-13 font-semibold [&::-webkit-details-marker]:hidden" style={{ color: "hsl(var(--bark))" }}>
         What we'll send with your report
+        <ChevronDown aria-hidden className="h-4 w-4 transition-transform group-open:rotate-180" />
       </summary>
       <p className="mt-1 text-ds-11 text-muted-foreground">So we can see what went wrong. No photos, passwords or card details.</p>
       <dl className="mt-2 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-ds-11">

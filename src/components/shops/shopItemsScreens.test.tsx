@@ -392,6 +392,14 @@ describe("ShopItemEditor", () => {
     expect(document.getElementById("item-lead-error")).toBeNull();
   });
 
+  // Launch pass 1: a service or rental asks for notice; made goods keep "make it".
+  // @mutate src/components/shops/ShopItemEditor.tsx | {d.kind === "service" \|\| d.kind === "rental" ? "Days' notice you need" : "Days you need to make it"} | {"Days you need to make it"}
+  it("a service's days box asks for notice, not days to make it", () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft", kind: "service", subtype: "home_service" })} onCreated={() => {}} onDone={() => {}} />);
+    expect(screen.getByLabelText("Days' notice you need")).toBeTruthy();
+    expect(screen.queryByLabelText("Days you need to make it")).toBeNull();
+  });
+
   // @mutate src/components/shops/ShopItemEditor.tsx |       toast.success("Stock and ready time saved.");\n      refresh();\n    },\n    onError: errorUnderFieldOrToast, |       toast.success("Stock and ready time saved.");\n      refresh();\n    },\n    onError: (err) => toast.error(shopsErrorMessage(err)),
   it("S041: a refused stock count from 'Save stock and ready time' shows under the stock box, not as a toast", async () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live", stock_count: 3 })} onCreated={() => {}} onDone={() => {}} />);

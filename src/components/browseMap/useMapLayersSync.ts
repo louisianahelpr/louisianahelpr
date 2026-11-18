@@ -36,7 +36,7 @@ export function useMapFollowsTheme(mapRef: RefObject<MKMap | null>, mapReady: bo
 }
 
 /** How long a just-built map may still be drawing its tiles before the veil lifts anyway (see useMapSettled). */
-export const MAP_SETTLE_FALLBACK_MS = 1200;
+const MAP_SETTLE_FALLBACK_MS = 1200;
 
 /**
  * Owner 2026-11-17 (signed-in tweaks, item 2): on /jobs the map was a grey grid with the busy circles floating on it

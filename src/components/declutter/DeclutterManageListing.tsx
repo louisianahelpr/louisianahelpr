@@ -133,6 +133,8 @@ export function ManageListingSheet({
   // A lowest price at the price can't drop whatever the switch says, so it never reads "On".
   const atFloor = !!manage && !manage.drops_stopped && !listedOff && manage.floor_price_cents >= item.current_price_cents;
   const stopped = (manage?.drops_stopped ?? false) || listedOff || atFloor;
+  // Area 06 M9 (11-18): with no lowest price there is nothing to drop toward; it read "On… never below your lowest price".
+  const noFloor = state.isSuccess && state.data === null;
   const drops = useListingAction((on: boolean) => setListingDrops(item.id, on), stopped ? t("lp.m.tDropsOn") : t("lp.m.tDropsOff", { price: formatPrice(item.current_price_cents) }));
   const pause = useListingAction(() => pauseListing(item.id), t("lp.m.tPaused"), close);
   const relist = useListingAction(() => relistListing(item.id), t("lp.m.tBack"), close);
@@ -192,7 +194,7 @@ export function ManageListingSheet({
               {/* Audit DC-5: the sell form's own words and direction, on = it drops (it said "Stop price drops", on = stopped). */}
               <li className={ROW}>
                 <RowText title={t("lp.dropsSwitch")} id="manage-drops">
-                  {listedOff ? t("lp.m.dropsListedOff") : atFloor ? t("lp.m.dropsAtFloor") : stopped ? t("lp.m.dropsStopped", { price: itemPriceLabel(item.current_price_cents) }) : t("lp.m.dropsOn")}
+                  {noFloor ? t("lp.m.dropsNoFloor") : listedOff ? t("lp.m.dropsListedOff") : atFloor ? t("lp.m.dropsAtFloor") : stopped ? t("lp.m.dropsStopped", { price: itemPriceLabel(item.current_price_cents) }) : t("lp.m.dropsOn")}
                 </RowText>
                 <Switch
                   aria-labelledby="manage-drops"

@@ -42,8 +42,8 @@
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return tr("decl.st.claimedWaiting"); |   void 0;
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return tr("decl.st.claimed"); |   void 0;
  * @mutate src/components/declutter/DeclutterItemView.tsx | title={t("decl.yourListing", { status: sellerStatusLabel(it, tradedFor.get(it.id) ?? null) })} | title={t("decl.yourListing", { status: t(`decl.st.${it.status}` as MsgKey) })}
- * @mutate src/components/declutter/declutterSellingParts.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
+ * @mutate src/components/declutter/declutterSellingParts.tsx |   const cents = SOLD.has(item.status) ? sold : item.status === "reserved" |   const cents = false ? sold : item.status === "reserved"
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} agreed= |                 <ListingPrice item={item} sold={item.current_price_cents} agreed=
  * @mutate src/components/declutter/declutterSellingParts.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
  * @mutate src/components/declutter/listingStatusLine.ts |   return paid ? `${base} · ${paid}` : base; |   return base;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null; |     return (payouts.data ?? [])[0] ?? null;
@@ -411,6 +411,21 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(within(sold).getByText("Nothing sold yet")).toBeInTheDocument();
   });
 
+  // Area 06 L7 (11-18): a listing whose $36 offer was accepted showed its $40 list price while the buyer paid.
+  // @mutate src/components/declutter/declutterSellingParts.tsx | item.status === "reserved" && agreed !== undefined ? agreed : item.current_price_cents | item.current_price_cents
+  it("Area 06 L7: a reserved listing shows the agreed price, not its list price", async () => {
+    state.mine = [{ ...ITEM, status: "reserved" }];
+    state.cart = [{ line_id: "l-r", item_id: "i1", item_title: "Oak rocking chair", my_side: "seller", seller_id: "u1", price_cents: 3600, status: "in_cart",
+      checkout_by: new Date(Date.now() + 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: 0, total_cents: null }];
+    try {
+      at("/declutter?tab=selling");
+      await waitFor(() => expect(document.querySelector("[data-listing-price]")?.textContent).toBe("$36"));
+      expect(document.querySelectorAll("[data-listing-row]").length).toBeGreaterThan(0);
+    } finally {
+      state.cart = [];
+    }
+  });
+
   // Q2667 (Builder 178, 11-02): the donation that took the seller's last item still shows its receipt on the empty card.
   // @mutate src/components/declutter/DeclutterHomeView.tsx |         {haulOn && <DonationReceipts />}\n |
   it("Q2667: a seller whose only item was donated sees the donation receipt under 'You haven't listed anything yet'", async () => {
@@ -420,7 +435,9 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
       partner_address: "220 St Vincent St", chosen_at: "2026-10-30T15:00:00Z", donated_at: "2026-11-01T15:00:00Z", receipt: true }]);
     at("/declutter?tab=selling");
     const listings = await screen.findByRole("region", { name: "Your listings" });
-    expect(within(listings).getByText("You haven't listed anything yet.")).toBeInTheDocument();
+    // Area 06 M15 (11-18): a seller with past listings is told "Nothing for sale right now", not "haven't listed anything".
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |     const returning = (mine.data ?? []).length > 0; |     const returning = false;
+    expect(within(listings).getByText("Nothing for sale right now.")).toBeInTheDocument();
     const receipts = await within(listings).findByRole("region", { name: "Donation receipts" });
     expect(within(receipts).getByText(/Your Helpr took it to St\. Vincent de Paul, 220 St Vincent St/)).toBeInTheDocument();
   });
@@ -428,7 +445,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   // Q2639 (audit 1102c R14): with no listing left, "Your listings" was a solid card with a primary button and no icon,
   // beside the dashed, iconed "No offers yet" and "Nothing sold yet". It is the same DeclutterEmptyCard now, its one
   // action still the sell path; and a Selling history title wraps instead of being cut ("Oak rocking chair (sa…").
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")} data-seller-empty="" | <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")}
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <DeclutterEmptyCard icon={Tags} title={t(returning ? "decl.sl.emptyNow" : "decl.sl.empty")} data-seller-empty="" | <DeclutterEmptyCard icon={Tags} title={t(returning ? "decl.sl.emptyNow" : "decl.sl.empty")}
   // @mutate src/components/declutter/DeclutterEmptyCard.tsx |         {action} |
   // @mutate src/components/declutter/DeclutterTakenDown.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={item.title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={item.title}>
   // @mutate src/components/declutter/DeclutterEndedSales.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={l.item_title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={l.item_title}>
@@ -445,7 +462,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     // M5 (iOS audit 11-16): the shared EmptyState's compact card, no dashed edge of its own.
     expect(card.querySelector('[data-empty-state="compact"]')).not.toBeNull();
     expect(card.querySelector("svg")).not.toBeNull();
-    expect(within(card).getByText("You haven't listed anything yet.")).toBeInTheDocument();
+    expect(within(card).getByText("Nothing for sale right now.")).toBeInTheDocument();
     fireEvent.click(within(card).getByRole("button", { name: /Sell an item|List an item|Sell/ }));
     expect(await screen.findByText("Sell page")).toBeInTheDocument();
   });
@@ -471,13 +488,15 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     state.cart = [{ line_id: "l-w1", item_id: "i-w1", item_title: "Oak rocking chair", my_side: "seller", seller_id: "u1", price_cents: 4000, status: "in_cart",
       checkout_by: new Date(Date.now() + 3_600_000).toISOString(), order_id: null, order_status: null, handover: "porch", premium_cents: 0, total_cents: 4000 }];
     at("/declutter?tab=selling");
-    expect(await screen.findByText(/Sold, waiting for the buyer to pay/)).toBeInTheDocument();
+    expect(await screen.findByText(/Waiting for the buyer to pay/)).toBeInTheDocument();
     await screen.findByRole("region", { name: "Offers on your items" });
     expect(screen.queryByText("Nothing sold yet")).toBeNull();
   });
 
   // AUD31-4: a sale to hand over comes first on the whole tab, above the offers and the listings; none: after them.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const soldFirst = only === null && (todo?.salesOpen ?? 0) > 0; |   const soldFirst = false;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const soldFirst = only === null && ((todo?.salesOpen ?? 0) + (todo?.salesDelivering ?? 0) > 0 \|\| reports.size > 0); |   const soldFirst = false;
+  // Area 06 M1 (11-18): a Helpr delivery still to hand over comes first too.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | ((todo?.salesOpen ?? 0) + (todo?.salesDelivering ?? 0) > 0 | ((todo?.salesOpen ?? 0) > 0
   it("AUD31-4: a sale to hand over sits above the offers and the listings; with none, the sold group stays below", async () => {
     state.mine = [ITEM];
     state.cart = [{ line_id: "l-o1", item_id: "i-o1", item_title: "Sale o1", my_side: "seller", seller_id: "u1", price_cents: 3000, status: "paid",
@@ -492,6 +511,17 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     const offers = await screen.findByRole("region", { name: "Offers on your items" });
     expect(sold.compareDocumentPosition(offers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     first.unmount();
+    state.cart = [{ line_id: "l-d1", item_id: "i-d1", item_title: "Sale d1", my_side: "seller", seller_id: "u1", price_cents: 3000, status: "paid",
+      checkout_by: "2026-10-27T12:00:00Z", order_id: "d1", order_status: "paid", handover: "delivery", premium_cents: 0, total_cents: 3000 }];
+    const helpr = at("/declutter?tab=selling");
+    const soldD = await waitFor(() => {
+      const el = helpr.container.querySelector("[data-paid-order='d1']");
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    const offersD = await screen.findByRole("region", { name: "Offers on your items" });
+    expect(soldD.compareDocumentPosition(offersD) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    helpr.unmount();
     state.cart = [];
     at("/declutter?tab=selling");
     const sold2 = await screen.findByRole("region", { name: /^Sold: pickup and payout/ });

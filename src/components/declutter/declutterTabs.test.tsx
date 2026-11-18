@@ -546,16 +546,16 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByRole("region", { name: "Offers on your items" })).toBeInTheDocument();
     expect(offers()).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByRole("heading", { name: /^Your listings/ })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Waiting for the buyer to pay" })).toBeNull();
     expect(where).toContain("status=offers");
     fireEvent.click(offers());
     expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
     expect(offers()).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Waiting for the buyer to pay" })).toBeInTheDocument();
   });
 
   // DA-3 + DA-4 (Declutter audit 2026-10-30, shots da-seller-claimed-mid-wk375, da-claim-after-wk375): a FREE item
-  // someone claimed read as a sale on both sides ("Sold, waiting for the buyer to pay", "Cancel sale", "To be paid",
+  // someone claimed read as a sale on both sides ("Waiting for the buyer to pay", "Cancel sale", "To be paid",
   // "Sold: pickup and payout"; the claimer's "Your cart · 1 to check out" over a "Checkout" card). Free lines now use
   // give-away words; a paid line beside them keeps the sale words (the class: every waiting kind on both tabs).
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     ["free", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")], |     ["paid", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")],
@@ -578,7 +578,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const claimed = await screen.findByRole("region", { name: "Claimed, they're choosing a pickup" });
     expect(within(claimed).getByText(/They're choosing how to pick it up/)).toBeInTheDocument();
     expect(within(claimed).getByRole("button", { name: "Cancel claim" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Waiting for the buyer to pay" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Cancel sale" })).toBeNull();
     expect(container.querySelector('[data-status-box="waiting"]')?.textContent ?? "").toMatch(/^Claimed/);
     expect(screen.getByRole("heading", { name: /^Given away: pickup/ })).toBeInTheDocument();
@@ -601,7 +601,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     // A paid sale waiting beside the free claim keeps the sale words; the chip names both.
     state.cart = [...state.cart, { ...LINE, line_id: "p1", item_id: "ip1", item_title: "Paid lamp", my_side: "seller", seller_id: "u1" }];
     const both = at("/declutter?tab=selling");
-    expect(await screen.findByRole("region", { name: "Sold, waiting for the buyer to pay" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Waiting for the buyer to pay" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Claimed, they're choosing a pickup" })).toBeInTheDocument();
     expect(both.container.querySelector('[data-status-box="waiting"]')?.textContent ?? "").toMatch(/^Waiting/);
     both.unmount();
@@ -824,7 +824,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(within(onMine).getByRole("button", { name: "Accept" })).toBeInTheDocument();
     expect(within(onMine).getByRole("button", { name: "Answer with a price" })).toBeInTheDocument();
     expect(within(onMine).getByRole("button", { name: "Say no" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Waiting for the buyer to pay" })).toBeInTheDocument();
     expect(screen.getByText("paid order ord-sold as seller")).toBeInTheDocument();
     // Nothing of the buyer's side.
     expect(screen.queryByText("paid order ord-bought as buyer")).toBeNull();

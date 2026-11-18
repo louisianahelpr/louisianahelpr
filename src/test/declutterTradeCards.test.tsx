@@ -15,6 +15,9 @@
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx | "Answer by" : "Waiting on the seller until" | "Answer:" : "Waiting on the seller until"
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx | variant="outline" data-trade-decline="" | variant="ghost" data-trade-decline=""
  * Audit 11-10 F360c: the accepted trade's link opens the cart's trade checkout (the one pickup step), not a reload.
+ * Area 06 L8/L9 (11-18): a finished trade reads in the past; an ended trade sits below the ones still to answer.
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx |   const done = t.status === "completed"; |   const done = false;
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx | .sort((a, b) => Number(ended(a)) - Number(ended(b))) | .sort(() => 0)
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx | if (goToTradeCheckout((t.my_side === "seller" ? t.offered : t.item)?.id)) e.preventDefault(); | void e;
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -234,5 +237,20 @@ describe("Declutter trade cards (slice 3)", () => {
     for (const code of ["trade_not_open", "trade_expired", "trade_not_found", "invalid_action", "item_not_available"]) {
       expect(rpcErrorMessage("declutter_respond_swap", new Error(code)), code).toBeTruthy();
     }
+  });
+});
+
+describe("Area 06 L8/L9: finished and ended trades", () => {
+  beforeEach(() => { state.rows = []; state.sent = []; });
+  it("a completed trade reads You gave / You got; a lapsed one sits below the open one", async () => {
+    const past = new Date(Date.now() - 3_600_000).toISOString();
+    state.rows = [row({ id: "lapsed", respond_by: past }), row({ id: "done", status: "completed" }), row({ id: "open" })];
+    show("seller");
+    await screen.findByText("You gave");
+    expect(screen.getByText("You got")).toBeTruthy();
+    const order = [...document.querySelectorAll("[data-trade-card]")].map((e) => e.getAttribute("data-trade-card"));
+    expect(order.length).toBeGreaterThan(2);
+    expect(order[0]).toBe("open");
+    expect(order.indexOf("lapsed")).toBeGreaterThan(order.indexOf("open"));
   });
 });

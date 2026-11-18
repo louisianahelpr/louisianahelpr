@@ -337,7 +337,7 @@ describe("Sell a bunch survives leaving", () => {
     await waitFor(() => expect(photoEntries()).toHaveLength(1));
     first.unmount();
     renderFlow();
-    await screen.findByText(/We kept your work from last time: 1 item,/);
+    await screen.findByText(/We kept your work from last time: 1 item/);
     expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
   });
 
@@ -349,7 +349,8 @@ describe("Sell a bunch survives leaving", () => {
     expect((await screen.findByText(/This photo wasn't added \(bad\.jpg\)/)).textContent).toContain("can't be used");
     expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
     // Nothing was priced mid-sort, so the banner doesn't promise prices (T3, 10-30).
-    expect((await screen.findByText(/We kept your work from last time: 1 item,/)).textContent).toContain("with their photos.");
+    // Area 06 L14 (11-18): one item reads "with its photos", never "with their photos".
+    expect((await screen.findByText(/We kept your work from last time: 1 item/)).textContent).toContain("1 item with its photos.");
     await waitFor(() => expect(photoEntries()).toEqual(["lh-bunch-v1-photo:ok"]));
   });
 

@@ -104,6 +104,6 @@ describe("dragging a held photo (POST-S9)", () => {
     expect(document.querySelector("[data-photo-count]")?.textContent).not.toMatch(/drag/);
     cleanup();
     draw();
-    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/hold and drag a photo to move it/);
+    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/Hold and drag to reorder\./);
   });
 });

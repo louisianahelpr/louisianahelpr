@@ -138,9 +138,10 @@ export function SellPhotos({
         {addTile}
       </ul>
       <p className="text-ds-13 text-muted-foreground" data-photo-count="">
-        {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
-        {held.length > 0 && !heldFailed ? " · these go up when you post" : ""}
-        {onReorderHeld && !heldFailed && held.length > 1 ? " · hold and drag a photo to move it" : ""}
+        {count} of {MAX_PHOTOS} photos{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
+        {held.length > 0 && !heldFailed ? ". They go up when you post" : ""}
+        {/* Area 06 L13 (11-18): "2 of 12 photos. Hold and drag to reorder.", not a run-on of " · " parts. */}
+        {onReorderHeld && !heldFailed && held.length > 1 ? ". Hold and drag to reorder." : ""}
       </p>
       {coverUndo && (
         <p className="text-ds-13 text-foreground" data-cover-moved="">

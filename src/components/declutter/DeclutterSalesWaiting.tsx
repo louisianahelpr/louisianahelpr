@@ -23,7 +23,7 @@ import { DeclutterNotice } from "./declutterUi";
 /** The words for one kind of waiting line: a paid sale, or a free item someone claimed. */
 const WORDS = {
   paid: {
-    heading: "Sold, waiting for the buyer to pay",
+    heading: "Waiting for the buyer to pay",
     line: "Waiting on the buyer to pay",
     cancel: "Cancel sale",
     sheetTitle: "Cancel this sale?",
@@ -127,7 +127,7 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
           </ul>
         </section>
       ))}
-      <ConfirmSheet open={asking !== null} title={w.sheetTitle} confirmLabel={w.cancel} cancelLabel={w.keep} pending={cancel.isPending}
+      <ConfirmSheet open={asking !== null} title={w.sheetTitle} confirmLabel={w.cancel} cancelLabel={w.keep} pending={cancel.isPending} destructive
         onConfirm={() => { if (asking) cancel.mutate(asking); }} onClose={() => setAsking(null)} testId="cancel-sale">
         {/* Audit 1028 part 2, D2-10: a paid cancel also takes the listing down (declutter_seller_cancel_sale: withdrawn,
             with a strike). B100: a free claim cancel gives no strike and puts the item back up. */}

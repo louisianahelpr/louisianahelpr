@@ -131,7 +131,8 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
     return (
       <section className="space-y-2" aria-label={sellerTitle}>
         <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />
-        <p className="text-sm text-muted-foreground">Nothing to hand over right now.</p>
+        {/* Area 06 M15 (design audit 11-18): the same iconed empty card as "Nothing sold yet". */}
+        <SellerEmpty icon={PackageCheck} title="Nothing to hand over right now">{null}</SellerEmpty>
         {doneToggle}
       </section>
     );

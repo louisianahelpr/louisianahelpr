@@ -10,7 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { noDeliveryWay, totalPhrase } from "@/lib/declutter/pickupWords";
-import { fetchItemHandovers, fetchMyCart, fetchMyOffers, respondOffer, type MyOffer } from "@/lib/declutter/api";
+import { fetchItemHandovers, fetchMyCart, fetchMyOffers, respondOffer, type CartLine, type MyOffer } from "@/lib/declutter/api";
 import { offerBucket, underChip } from "@/lib/declutter/buyingBucket";
 import type { OrderBucket } from "./OrderSteps";
 import { closeWanted } from "@/lib/declutter/wanted";
@@ -105,6 +105,26 @@ function AcceptedOfferNext({ o }: { o: MyOffer }) {
   return <p className="text-ds-13 text-foreground" data-accepted-next="seller">{t("dof.waitPay", { when: orderWhen(line.checkout_by) })}</p>;
 }
 
+/**
+ * Area 05 #16 (design audit 11-18): an accepted offer whose checkout time ran out (its cart line went "missed") still
+ * read "Accepted". It reads "Expired", muted. Words only: the offer and the cart line are the server's (no money here).
+ */
+export function offerLapsed(o: Pick<MyOffer, "status" | "item_id" | "my_side">, cart: readonly Pick<CartLine, "item_id" | "my_side" | "status">[] | undefined): boolean {
+  if (o.status !== "accepted" || !cart) return false;
+  const mine = cart.filter((l) => l.item_id === o.item_id && l.my_side === o.my_side);
+  return mine.length > 0 && mine.every((l) => l.status === "missed");
+}
+
+function OfferStatusChip({ o }: { o: MyOffer }) {
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: o.status === "accepted" });
+  const lapsed = offerLapsed(o, cart.data);
+  return (
+    <span className={`inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium${lapsed ? " text-muted-foreground" : ""}`} data-offer-lapsed={lapsed ? "" : undefined}>
+      {lapsed ? tr("dof.st.lapsed") : offerStatusWords(o.status)}
+    </span>
+  );
+}
+
 function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: boolean; closed?: boolean }) {
   const qc = useQueryClient();
   const { t } = useLanguage();
@@ -188,7 +208,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
         </div>
       </div>
       {o.status !== "open" && (
-        <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{offerStatusWords(o.status)}</span>
+        <OfferStatusChip o={o} />
       )}
       {o.status === "accepted" && <AcceptedOfferNext o={o} />}
       {/* Board 160: an offer that ended unpaid never charged anything (offers charge only at checkout). The item page says

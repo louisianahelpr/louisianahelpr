@@ -85,6 +85,7 @@ import { DeclutterProblemDecided, DeclutterProblemSides, DeclutterRefundPanel, O
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
+import { BOOKING_ACTIONS, goToOrderControl } from "./orderControlScroll";
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel }))); // Add a Helpr: the buyer's card only (Q178).
 
 /** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews). */
@@ -209,9 +210,7 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open || !view) return;
-    const go = bodyRef.current?.querySelector<HTMLElement>(".btn-grad-primary:not([disabled]), input, select");
-    go?.scrollIntoView?.({ block: "center" });
-    go?.focus({ preventScroll: true });
+    return goToOrderControl(bodyRef.current, BOOKING_ACTIONS.has(view.action ?? ""));
   }, [open, view]);
   const body = !view || open;
   // NIGHT-SELL-soldstates-3 (B18's order): the seller's open pickup sale leads with what to do next. Tracker and line,
@@ -515,9 +514,11 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
       {/* A porch DAY is out all that day: no "out until" (owner 2026-10-28). A time booked before keeps it. */}
       {order.side === "seller" && !booking.pickup_day && (
         <>
-          <p className="text-sm">
+          {/* Area 06 M4 (design audit 11-18): the booked line above already names the time, so "out until <time>" is said
+              only once the porch photo is up (until then it repeated the same time a third way). */}
+          {!(booking.porch_until && booking.porch_mode !== "all_day" && !posted) && <p className="text-sm" data-porch-out-line="">
             {booking.porch_mode === "all_day" ? "You said it's out all day." : booking.porch_until ? `You said it's out until ${when(booking.porch_until)}.` : "When will it be out?"}
-          </p>
+          </p>}
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" disabled={timing.isPending} onClick={() => timing.mutate({ mode: "all_day", iso: null })}>Out all day</Button>
             <FoldedTimePicker id={`dcl-out-${order.orderId}`} openLabel="Out until a time…" title="Out until" fieldLabel="Out until"

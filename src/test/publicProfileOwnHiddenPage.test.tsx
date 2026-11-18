@@ -1,5 +1,5 @@
 /**
- * F282a (whole-app audit 11-10, W2): "Your page: louisianahelpr.com/u/<handle>" on You opened "This profile isn't
+ * F282a (whole-app audit 11-10, W2): "Your public profile: louisianahelpr.com/u/<handle>" on You opened "This profile isn't
  * available ... isn't public right now" for the member herself. public_profile_by_handle hides unverified, banned,
  * seed, anonymised, under-18 and test members (profile_page_hidden, 20261105172514), and that is right for everyone
  * else; but the owner was told nothing about why their own link is a dead end. When the signed-in member's own handle
@@ -47,7 +47,7 @@ describe("the owner's own hidden /u page (F282a)", () => {
     signedIn = { id: "u-hallie" };
     myHandle = "hallie-h";
     show("/u/Hallie-H");
-    expect(await screen.findByText("Your page is hidden right now")).toBeTruthy();
+    expect(await screen.findByText("Your public profile is hidden right now")).toBeTruthy();
     expect(screen.getByText(/email is verified/i)).toBeTruthy();
     expect(screen.getByText(/test account/i)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Go to You" }).getAttribute("href")).toBe("/profile");
@@ -60,12 +60,12 @@ describe("the owner's own hidden /u page (F282a)", () => {
     myHandle = "someone-else";
     show("/u/hallie-h");
     expect(await screen.findByText("This profile isn't available")).toBeTruthy();
-    expect(screen.queryByText("Your page is hidden right now")).toBeNull();
+    expect(screen.queryByText("Your public profile is hidden right now")).toBeNull();
   });
 
   it("a guest gets the generic card", async () => {
     show("/u/hallie-h");
     expect(await screen.findByText("This profile isn't available")).toBeTruthy();
-    expect(screen.queryByText("Your page is hidden right now")).toBeNull();
+    expect(screen.queryByText("Your public profile is hidden right now")).toBeNull();
   });
 });

@@ -57,4 +57,4 @@ describe("SignOutConfirmDialog", () => {
 
 // @mutate src/components/auth/SignOutConfirmDialog.tsx | e.preventDefault(); |
 // @mutate src/components/auth/SignOutConfirmDialog.tsx | onOpenChange={(next) => { if (!signingOut) onOpenChange(next); }} | onOpenChange={onOpenChange}
-// @mutate src/components/auth/SignOutConfirmDialog.tsx | primaryLabel={signingOut ? "Logging out…" : label} | primaryLabel={label}
+// @mutate src/components/auth/SignOutConfirmDialog.tsx | primaryLabel={signingOut ? wordInLang("acct.loggingOut", "Logging out…") : label} | primaryLabel={label}

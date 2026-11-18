@@ -2,8 +2,8 @@
  * ui-sweep #3491 (11-05): axe-core 4.14 turned on label-content-name-mismatch (WCAG 2.5.3, "Label in
  * Name"): a control's accessible name must contain the words it shows, or a voice user who says what
  * they see ("click Coming to you") hits nothing. The empty-state sweep went red on three controls:
- *   - YouCard's photo button: aria-label "View my public profile" over a monogram ("SC"). It repeats
- *     the "View my public profile" text button beside it, so it leaves the tab order and the tree.
+ *   - YouCard's photo button: aria-label "Public profile" over a monogram ("SC"). It repeats
+ *     the "Public profile" text button beside it, so it leaves the tab order and the tree.
  *   - MoneyTile (Money tab, Payment tab, /home): aria-label "Coming to you: $0.00. ..." over the same
  *     words with different punctuation. No aria-label now: the tile's own words are its name.
  *   - YourActivity tiles: aria-label "Jobs Posted" over the same two words on two lines; dropped.
@@ -45,7 +45,7 @@ describe("#3491: a control's accessible name contains the words it shows (WCAG 2
     expect(tag).toContain('aria-hidden="true"');
     expect(tag).toContain("tabIndex={-1}");
     // The text button it repeats is still there, with its words as its name.
-    expect(src).toMatch(/>\s*View my public profile\s*<\/Button>/);
+    expect(src).toMatch(/>\s*Public profile\s*<\/Button>/);
   });
 
   it("MoneyTile has no aria-label: its label, amount and caption are its name", () => {

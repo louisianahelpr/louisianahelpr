@@ -6,7 +6,7 @@
  * sentence-case label.
  *
  * @mutate src/components/BlockUserDialog.tsx |               "Block"\n |               "Just Block"\n
- * @mutate src/components/BlockUserDialog.tsx | <p className="mb-2 not-italic font-sans font-medium text-foreground">\n                    Blocking | <p className="mb-2 not-italic font-sans font-medium" style={{ color: "hsl(var(--burnt-sienna))" }}>\n                    Blocking
+ * @mutate src/components/BlockUserDialog.tsx | <p className="not-italic font-sans font-semibold text-ds-15 leading-snug text-foreground">\n                    Blocking | <p className="not-italic font-sans font-semibold text-ds-15 leading-snug" style={{ color: "hsl(var(--burnt-sienna))" }}>\n                    Blocking
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

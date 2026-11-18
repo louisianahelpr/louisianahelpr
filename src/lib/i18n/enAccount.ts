@@ -54,6 +54,8 @@ export const enAccount = {
   "acct.everywhere": "Log out everywhere",
   "acct.everywhereFailed": "Logged out on this device. We couldn't confirm your other devices. Log in and use Log out everywhere again.",
   // Profile link panel
+  "acct.linkTitle": "Public profile link",
+  "acct.linkNone": "One link to what you post and do",
   "acct.gettingLink": "Getting your link…",
   "acct.tryAgain": "Try again",
   "acct.linkWho": "Anyone with the link sees your listings, open jobs, Helpr work and Wanted posts. Never your address or contact info.",

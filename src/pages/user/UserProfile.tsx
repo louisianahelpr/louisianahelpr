@@ -160,7 +160,7 @@ const UserProfile = () => {
         : "Profile — Helpr",
   );
 
-  const headerEyebrow = isOwnProfile ? "How others see you" : "Helpr profile";
+  const headerEyebrow = isOwnProfile ? "What neighbors see" : "Helpr profile";
   // NOTE: PageHeader paints NEITHER `eyebrow` NOR `meta` — both were retired
   // app-wide (see the note in PageHeader.tsx); the props are kept only so the
   // ~140 existing call sites don't churn. So these two are passed for parity

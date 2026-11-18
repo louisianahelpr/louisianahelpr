@@ -6,8 +6,8 @@
  * @mutate src/components/profile/YourPageLink.tsx |         {t("yp.pageLead")}{" "} |         Your page:{" "}
  * @mutate src/components/profile/YourPageLink.tsx | {forSale === 1 ? t("yp.forSale1") : t("yp.forSaleN", { n: forSale })} | {forSale === 1 ? t("yp.forSale1") : `${forSale} items for sale`}
  * @mutate src/components/profile/YourPageLink.tsx | <Share2 className="w-4 h-4" aria-hidden /> {t("yp.shareListings")} | <Share2 className="w-4 h-4" aria-hidden /> Share your listings
- * @mutate src/components/profile/YourPageLink.tsx |         title={t("yp.hidden")} |         title="Your page is hidden right now"
- * @mutate src/components/profile/YourPageLink.tsx | aria-label={t("yp.copyLabel")} | aria-label="Copy your page link"
+ * @mutate src/components/profile/YourPageLink.tsx |         title={t("yp.hidden")} |         title="Your public profile is hidden right now"
+ * @mutate src/components/profile/YourPageLink.tsx | aria-label={t("yp.copyLabel")} | aria-label="Copy your public profile link"
  * @mutate src/components/profile/YourPageLink.tsx | toast(t("yp.copied")); | toast("Link copied");
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -60,29 +60,29 @@ describe("Your page link card follows the member's language (F260q)", () => {
   });
 
   it("English: the old words", async () => {
-    expect(await show()).toContain("Your page: louisianahelpr.com/u/eli-b");
+    expect(await show()).toContain("Your public profile: louisianahelpr.com/u/eli-b");
     const sale = await show({ forSale: 3 });
     expect(sale).toContain("3 items for sale");
     expect(sale).toContain("Share your listings");
     await show({ slim: true });
-    fireEvent.click(screen.getByRole("button", { name: "Copy your page link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy your public profile link" }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith("Link copied"));
     page.current = null;
-    expect(await show()).toContain("Your page is hidden right now");
+    expect(await show()).toContain("Your public profile is hidden right now");
   });
 
   it("Spanish: the card, the sale card, the slim line, the toast and the hidden line change", async () => {
     setLang("es");
     await ensureLangLoaded();
-    expect(await show()).toContain("Su página: louisianahelpr.com/u/eli-b");
+    expect(await show()).toContain("Su perfil público: louisianahelpr.com/u/eli-b");
     const sale = await show({ forSale: 3 });
     expect(sale).toContain("3 artículos a la venta");
     expect(sale).toContain("Compartir sus publicaciones");
     expect(sale).not.toContain("Share your listings");
     await show({ slim: true });
-    fireEvent.click(screen.getByRole("button", { name: "Copiar el enlace de su página" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copiar el enlace de su perfil público" }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith("Enlace copiado"));
     page.current = null;
-    expect(await show()).toContain("Su página está oculta ahora");
+    expect(await show()).toContain("Su perfil público está oculto ahora");
   });
 });

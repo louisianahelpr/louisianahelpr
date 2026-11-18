@@ -463,8 +463,8 @@ export default function PublicProfilePage() {
   const unavailable = ownHidden ? (
     <EmptyState
       icon={UserX}
-      title="Your page is hidden right now"
-      body="Neighbors can't open it yet. Your page shows once your email is verified and your account is in good standing. A test account never has a public page."
+      title="Your public profile is hidden right now"
+      body="Neighbors can't open it yet. Your public profile shows once your email is verified and your account is in good standing. A test account never has a public page."
       action={
         <Button asChild className="btn-grad-primary rounded-full">
           <Link to="/profile">Go to You</Link>

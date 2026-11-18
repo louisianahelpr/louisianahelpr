@@ -35,14 +35,14 @@ beforeEach(() => {
 describe("Settings › Your profile link", () => {
   it("does not call the server until the row is opened", () => {
     render(<ProfileLinkRow name="Eli" />);
-    expect(screen.getByText("Your profile link")).toBeTruthy();
+    expect(screen.getByText("Public profile link")).toBeTruthy();
     expect(rpc).not.toHaveBeenCalled();
   });
 
   it("opened, it shows the link and shares the full URL", async () => {
     rpc.mockResolvedValueOnce({ data: "eli-b", error: null });
     render(<ProfileLinkRow name="Eli" />);
-    fireEvent.click(screen.getByRole("button", { name: /your profile link/i }));
+    fireEvent.click(screen.getByRole("button", { name: /public profile link/i }));
     await waitFor(() => expect(screen.getByText("louisianahelpr.com/u/eli-b")).toBeTruthy());
     expect(rpc).toHaveBeenCalledWith("rpc_ensure_my_handle");
     fireEvent.click(screen.getByRole("button", { name: /share profile/i }));
@@ -53,7 +53,7 @@ describe("Settings › Your profile link", () => {
   it("closing and reopening the row does not ask the server again", async () => {
     rpc.mockResolvedValue({ data: "eli-b", error: null });
     render(<ProfileLinkRow name="Eli" />);
-    const row = screen.getByRole("button", { name: /your profile link/i });
+    const row = screen.getByRole("button", { name: /public profile link/i });
     fireEvent.click(row);
     await screen.findByRole("button", { name: /share profile/i });
     fireEvent.click(row);
@@ -65,7 +65,7 @@ describe("Settings › Your profile link", () => {
   it("changes the link once, then offers no second change", async () => {
     rpc.mockResolvedValueOnce({ data: "eli-b", error: null }).mockResolvedValueOnce({ data: "eli-fixes", error: null });
     render(<ProfileLinkRow name="Eli" />);
-    fireEvent.click(screen.getByRole("button", { name: /your profile link/i }));
+    fireEvent.click(screen.getByRole("button", { name: /public profile link/i }));
     fireEvent.click(await screen.findByRole("button", { name: /change link \(you can do this once\)/i }));
     fireEvent.change(screen.getByLabelText("New link"), { target: { value: "Eli-Fixes" } });
     fireEvent.click(screen.getByRole("button", { name: /save link/i }));
@@ -77,7 +77,7 @@ describe("Settings › Your profile link", () => {
   it("a member who already changed it sees no Change button", async () => {
     rpc.mockResolvedValueOnce({ data: "eli-fixes", error: null });
     render(<ProfileLinkRow name="Eli" changedOnce />);
-    fireEvent.click(screen.getByRole("button", { name: /your profile link/i }));
+    fireEvent.click(screen.getByRole("button", { name: /public profile link/i }));
     await screen.findByRole("button", { name: /share profile/i });
     expect(screen.queryByRole("button", { name: /change link/i })).toBeNull();
   });
@@ -87,7 +87,7 @@ describe("Settings › Your profile link", () => {
       .mockResolvedValueOnce({ data: "eli-b", error: null })
       .mockResolvedValueOnce({ data: null, error: { message: "handle_taken", code: "P0001" } });
     render(<ProfileLinkRow name="Eli" />);
-    fireEvent.click(screen.getByRole("button", { name: /your profile link/i }));
+    fireEvent.click(screen.getByRole("button", { name: /public profile link/i }));
     fireEvent.click(await screen.findByRole("button", { name: /change link \(you can do this once\)/i }));
     fireEvent.change(screen.getByLabelText("New link"), { target: { value: "taken-one" } });
     fireEvent.click(screen.getByRole("button", { name: /save link/i }));

@@ -42,6 +42,8 @@ export const esAccount: Record<keyof typeof enAccount, string> = {
   "acct.everywhereBody": "Esto cierra la sesión en todos sus dispositivos, también en este. Tendrá que volver a entrar aquí.",
   "acct.everywhere": "Cerrar sesión en todos lados",
   "acct.everywhereFailed": "Se cerró la sesión en este dispositivo. No pudimos confirmar sus otros dispositivos. Entre y use Cerrar sesión en todos lados otra vez.",
+  "acct.linkTitle": "Enlace del perfil público",
+  "acct.linkNone": "Un enlace a lo que publica y hace",
   "acct.gettingLink": "Buscando su enlace…",
   "acct.tryAgain": "Intentar de nuevo",
   "acct.linkWho": "Quien tenga el enlace ve sus artículos, trabajos abiertos, trabajo como Helpr y pedidos de Se busca. Nunca su dirección ni sus datos de contacto.",

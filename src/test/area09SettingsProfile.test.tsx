@@ -13,6 +13,9 @@
  * @mutate src/lib/i18n/enSettings.ts | "Terms, rules and privacy" | "Terms, rules & privacy"
  * @mutate src/pages/profile/SavedSearchesTab.tsx | font-semibold text-ds-15 line-clamp-2 break-words | font-semibold text-ds-15 truncate
  * @mutate src/pages/profile/SavedSearchesTab.tsx | title={t("ss.title")} | title="Saved searches"
+ * @mutate src/components/profile/profileLanding/YouCard.tsx |           Public profile\n |           View my public profile\n
+ * @mutate src/lib/i18n/enYourPage.ts | "yp.page": "Your public profile" | "yp.page": "Your page"
+ * @mutate src/lib/i18n/enAccount.ts | "acct.linkTitle": "Public profile link" | "acct.linkTitle": "Your profile link"
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -123,6 +126,23 @@ describe("design audit area 09: Saved searches speaks Spanish (H1)", () => {
     for (const lit of ["Saved searches", "Pause all alerts", "Delete search", "Keep it", "Alerts for this search"]) {
       expect(tab, lit).not.toMatch(new RegExp(`[>"]${lit}[<"]`));
     }
+  });
+});
+
+describe("design audit area 09: one name for the public profile (M3)", () => {
+  it("You, the link card, Settings and the profile itself all say public profile", () => {
+    const you = src("src/components/profile/profileLanding/YouCard.tsx");
+    expect(you).toMatch(/>\s*Public profile\s*<\/Button>/);
+    expect(you).not.toContain("View my public profile");
+    expect(enAccount["acct.linkTitle"]).toBe("Public profile link");
+    expect(src("src/components/profile/ProfileLinkRow.tsx")).toContain('{t("acct.linkTitle")}');
+    const yp = src("src/lib/i18n/enYourPage.ts");
+    expect(yp).toContain('"yp.page": "Your public profile"');
+    expect(yp).toContain('"yp.shareLabel": "Share profile"');
+    const own = src("src/pages/user/UserProfile.tsx");
+    expect(own).not.toContain("How others see you");
+    const names = [you, own, yp, src("src/components/profile/ProfileLinkRow.tsx")].join("\n");
+    for (const old of ["Your profile link", "\"Your page\"", "Share your page"]) expect(names, old).not.toContain(old);
   });
 });
 

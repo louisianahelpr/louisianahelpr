@@ -59,7 +59,7 @@ export function YouCard({
       {/* The photo repeats the "View my public profile" button beside it, so it is out of the tab order and the
           accessibility tree: its only visible text is the monogram, which an aria-label could not contain
           (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). */}
-      <button type="button" onClick={open} disabled={!userId} aria-label="View my public profile" className="btn-press relative shrink-0 rounded-full" aria-hidden="true" tabIndex={-1}>
+      <button type="button" onClick={open} disabled={!userId} aria-label="Public profile" className="btn-press relative shrink-0 rounded-full" aria-hidden="true" tabIndex={-1}>
         <UserAvatar userId={userId ?? undefined} src={profile?.avatar_url} name={displayName} pixelSize={128} alt="" className="w-16 h-16" />
         {verified && (
           <span
@@ -79,7 +79,7 @@ export function YouCard({
         </Heading>
         {facts && <p className="max-w-full text-ds-13 text-muted-foreground truncate mt-0.5" title={facts}>{facts}</p>}
         <Button type="button" variant="ghost" size="sm" onClick={open} disabled={!userId} className="-my-2 px-0 text-ds-13 tracking-normal disabled:opacity-100" style={{ color: "hsl(var(--bark))" }}>
-          View my public profile
+          Public profile
         </Button>
       </div>
       <Button

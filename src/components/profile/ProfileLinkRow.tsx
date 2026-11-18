@@ -69,7 +69,7 @@ export function ProfileLinkRow({ name, changedOnce }: {
       return;
     }
     setHandle(r.handle);
-    // The "Your page" link on Profile and Selling shows the new handle at once.
+    // The public profile link on Profile and Selling shows the new handle at once.
     qc.setQueryData(MY_HANDLE_KEY, r.handle);
     setChanged(true);
     setEditing(false);
@@ -81,9 +81,9 @@ export function ProfileLinkRow({ name, changedOnce }: {
         className="glass-press ctl-tint transition-colors w-full min-h-[56px] flex items-center gap-3 px-4 py-3 text-left"
       >
         <span className="flex-1 min-w-0">
-          <span className="block text-ds-15 font-semibold leading-tight text-foreground">Your profile link</span>
+          <span className="block text-ds-15 font-semibold leading-tight text-foreground">{t("acct.linkTitle")}</span>
           <span className="block text-ds-13 text-muted-foreground mt-0.5 break-all">
-            {handle ? profileLinkLabel(handle) : "One link to what you post and do"}
+            {handle ? profileLinkLabel(handle) : t("acct.linkNone")}
           </span>
         </span>
         <ChevronRight className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} aria-hidden />

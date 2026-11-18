@@ -5,7 +5,7 @@
  * `rounded-ds-avatar squircle` box around a circular photo is what drew the
  * stray rounded square.
  *
- * @mutate src/components/profile/profileLanding/YouCard.tsx | aria-label="View my public profile" className="btn-press relative shrink-0 rounded-full" | aria-label="View my public profile" className="btn-press relative shrink-0 rounded-ds-avatar squircle"
+ * @mutate src/components/profile/profileLanding/YouCard.tsx | aria-label="Public profile" className="btn-press relative shrink-0 rounded-full" | aria-label="Public profile" className="btn-press relative shrink-0 rounded-ds-avatar squircle"
  * @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | className="w-20 h-20 rounded-full border-2 border-primary/20" | className="w-20 h-20 rounded-ds-avatar squircle border-2 border-primary/20"
  */
 import { describe, expect, it } from "vitest";
@@ -18,7 +18,7 @@ const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "..", 
 describe("Q981: the profile photo is round, with no square behind it", () => {
   it("the You card's photo button is round", () => {
     const src = read("components/profile/profileLanding/YouCard.tsx");
-    expect(src).toMatch(/aria-label="View my public profile" className="[^"]*\brounded-full\b/);
+    expect(src).toMatch(/aria-label="Public profile" className="[^"]*\brounded-full\b/);
     expect(src).not.toMatch(/rounded-ds-avatar|squircle/);
   });
   it("Edit profile's photo is round", () => {

@@ -71,7 +71,7 @@ export default function DeclutterSellChooser() {
     : kept.data?.one ? { to: SELL_ONE_PATH } : null;
   return (
     <AppPage title="Sell" backTo="/declutter?tab=selling" phoneHidesTitle>
-      <div className="mx-auto w-full max-w-xl space-y-5" data-sell-chooser="">
+      <div className="w-full max-w-xl space-y-5" data-sell-chooser="">
         {underAge ? (
           <DeclutterNotice tone="warn" title="You must be 18 or older to sell on Declutter.">
             You can still look around. Selling opens when your birthday on file says you're 18.

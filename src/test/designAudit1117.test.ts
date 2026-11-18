@@ -13,6 +13,7 @@
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx | <Notice tone="warn" icon={AlertTriangle} title={`Set up payouts | <Notice tone="warn" title={`Set up payouts
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <StrikeCount userId={user.id} full={view === "selling"} /> | <StrikeCount userId={user.id} />
  * @mutate src/pages/jobs/JobsSection.tsx | const fab = desktop \|\| tab === "working" ? null | const fab = desktop ? null
+ * @mutate src/components/declutter/SellOneScreen.tsx | <div className="w-full max-w-xl space-y-6" data-sell-one-screen=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -96,5 +97,13 @@ describe("design audit 11-17", () => {
 
   it("#5: the Working tab draws no Post a job pill", () => {
     expect(src("src/pages/jobs/JobsSection.tsx")).toContain('const fab = desktop || tab === "working" ? null : <SectionCreateFab section="jobs"');
+  });
+
+  it("#7: the Sell column lines up with its left-aligned title (no mx-auto)", () => {
+    for (const f of ["src/components/declutter/SellOneScreen.tsx", "src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterSellChooser.tsx"]) {
+      const s = src(f);
+      expect(s, f).toMatch(/<div className="w-full max-w-xl space-y-\d/);
+      expect(s, f).not.toContain("mx-auto w-full max-w-xl");
+    }
   });
 });

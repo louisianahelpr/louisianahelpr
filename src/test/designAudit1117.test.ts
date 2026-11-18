@@ -15,6 +15,7 @@
  * @mutate src/pages/jobs/JobsSection.tsx | const fab = desktop \|\| tab === "working" ? null | const fab = desktop ? null
  * @mutate src/components/declutter/SellOneScreen.tsx | <div className="w-full max-w-xl space-y-6" data-sell-one-screen=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
  * @mutate src/components/declutter/SellMeetupSpots.tsx | <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setDraft({ name: "" | <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft({ name: ""
+ * @mutate src/components/profile/ProfileEditForm.tsx | <p data-skill-group-head="" className="text-ds-13 font-medium text-muted-foreground"> | <p data-skill-group-head="" className="text-ds-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -116,5 +117,13 @@ describe("design audit 11-17", () => {
     expect(pp).toMatch(/<Button type="button" variant="outline" size="sm" className="rounded-full" disabled=\{usualRead\.isLoading\}/);
     expect(ms).toMatch(/<Button type="button" variant="outline" size="sm" className="rounded-full" onClick=\{\(\) => setDraft\(\{ name: ""/);
     expect(pp).toContain('<section className="rounded-[20px] border border-border bg-card p-4" aria-label={t("lp.pp.title")} data-porch-places-card="">');
+  });
+
+  it("#9: Edit profile keeps eyebrows for card headers only; the skill groups are sentence-case sub-labels", () => {
+    const f = src("src/components/profile/ProfileEditForm.tsx");
+    const at = f.indexOf('data-skill-group-head=""');
+    expect(at).toBeGreaterThan(0);
+    expect(f.slice(at, f.indexOf(">", at))).not.toMatch(/uppercase/);
+    expect(src("src/components/profile/profileEditForm/TrustMarksCard.tsx")).not.toMatch(/state: "Done"/);
   });
 });

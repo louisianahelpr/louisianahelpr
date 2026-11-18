@@ -417,7 +417,9 @@ export function ProfileEditForm({
           <div className="space-y-3">
             {SKILL_GROUPS.map((g) => (
               <div key={g.id} role="group" aria-label={g.label} data-skill-group={g.id} className="space-y-1.5">
-                <p data-skill-group-head="" className="text-ds-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{g.label}</p>
+                {/* Design audit 11-17 #9: a sub-label under the "I can help with" field, in sentence case, not a second eyebrow
+                    style beside the card headers. */}
+                <p data-skill-group-head="" className="text-ds-13 font-medium text-muted-foreground">{g.label}</p>
                 {g.skills.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {g.skills.map(({ value, label }) => {

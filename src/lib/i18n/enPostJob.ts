@@ -20,7 +20,7 @@ export const enPostJob = {
   "postJob.rail.kind": "Kind of job",
   "postJob.rail.details": "Details",
   "postJob.rail.price": "Price",
-  "postJob.rail.where": "When and where",
+  "postJob.rail.where": "When & where",
   "postJob.rail.review": "Review",
   "postJob.railDone": "{label}, done. Go back to this step",
 

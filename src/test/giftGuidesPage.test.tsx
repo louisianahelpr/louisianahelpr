@@ -621,7 +621,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-words] h2")?.textContent, slug).toBe(g.title);
       // Design audit 11-18 #3: a long list draws 50 rows, then "Show more" adds 50 at a time (store-amazon drew 827).
-      // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {guide.picks.slice(0, shown).map( | {guide.picks.map(
+      // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {sectionsOf(guide.picks.slice(0, shown)).map( | {sectionsOf(guide.picks).map(
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(Math.min(g.picks.length, PICKS_PAGE));
       expandAll(container);
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length);

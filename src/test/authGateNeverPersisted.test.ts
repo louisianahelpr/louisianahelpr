@@ -10,7 +10,7 @@
  * meta cannot persist it). Ordinary data queries still persist.
  *
  * @mutate src/lib/queryPersister.ts |       if (query.queryKey[0] === queryKeys.currentUser.all[0]) return false; |
- * @mutate src/hooks/useCurrentUser.ts |     meta: { persist: false }, |
+ * @mutate src/hooks/useCurrentUser.ts |     meta: { persist: false, warnOnMessage: PROFILE_TIMEOUT_MESSAGE }, |
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -41,6 +41,6 @@ describe("the signed-in user's gate row is never saved to the device", () => {
   it("useCurrentUser's query opts out itself too", () => {
     const src = readFileSync(join(process.cwd(), "src/hooks/useCurrentUser.ts"), "utf8");
     const call = src.slice(src.indexOf("queryKey: queryKeys.currentUser.byId(user?.id)"), src.indexOf("refetchOnWindowFocus: true"));
-    expect(call).toMatch(/meta: \{ persist: false \}/);
+    expect(call).toMatch(/meta: \{ persist: false[,}]/);
   });
 });

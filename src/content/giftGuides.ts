@@ -170,7 +170,7 @@ export const discountCodes: DiscountCode[] = [
   { rank: 7, store: "Parallels Desktop", code: "PD50", offer: "50% off Standard and Pro (new 1-year licenses)", expires: "2026-11-23" },
   { rank: 7, store: "Parallels Desktop", code: "PD35", offer: "35% off Business Edition (new 1-year licenses)", expires: "2026-11-23" },
   // Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
-  { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off for new customers; stacks with sales, one use per person" },
+  { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off your first order; stacks with sales, one use per person" },
   { rank: 9, store: "Magic Story", code: "B2G1F", offer: "Buy 2 personalized books, get 1 free", dates: "Nov 20 – 30", expires: "2026-11-30" },
   { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off" },
   { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off" },

@@ -341,7 +341,9 @@ export function ChatView({
               src/test/chatThreadNoDeadBandAboveMessages.test.tsx and
               ChatView.layout.test.tsx. */}
           {!isTeam && userId && <DealCard convo={activeConvo} userId={userId} hasMessages={messages.length > 0} />}
-          {!bannerDismissed && !isTeam && (
+          {/* Area 08 M14 (design audit 11-18): no "keep payments on Helpr" banner on a closed thread, where nothing
+              more can be sent or paid. */}
+          {!bannerDismissed && !isTeam && !threadClosed && (
             <div data-off-platform-note className="w-full mt-3 shrink-0 rounded-md bg-muted border border-border px-2.5 py-1.5 relative flex items-start gap-1.5 pr-11 mb-2">
               <AlertTriangle className="w-3 h-3 text-foreground mt-[3px] shrink-0" />
               <p className="text-ds-11 leading-snug text-foreground">

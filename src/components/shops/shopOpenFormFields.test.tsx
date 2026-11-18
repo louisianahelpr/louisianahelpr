@@ -180,3 +180,13 @@ describe("open-a-shop form (audit 11-10 F2, F6, F7, F8)", () => {
     expect(copy.disabled).toBe(true);
   });
 });
+
+// Launch pass 1: the area hint promised "Your pin" while shop pages show no map pin yet (NOT-LAUNCHED Q1955).
+// @mutate src/components/shops/ShopEditView.tsx | Never your street address. Buyers see only this town or neighborhood.</p> | Never your street address. Your pin shows the area, not your house.</p>
+describe("the area hint promises no map pin", () => {
+  it("says buyers see only the town or neighborhood", async () => {
+    renderForm();
+    expect(await screen.findByText("Never your street address. Buyers see only this town or neighborhood.")).toBeTruthy();
+    expect(screen.queryByText(/Your pin/)).toBeNull();
+  });
+});

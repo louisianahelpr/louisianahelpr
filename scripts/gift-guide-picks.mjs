@@ -91,11 +91,14 @@ const storeFor = (raw) => {
 };
 
 /**
- * THE switch for Amazon CDN product photos (m.media-amazon.com, tagged image_source "amazon-sitestripe"): OFF for good
- * (owner 2026-11-18, the safe route: Amazon images only through Amazon's official tools, after the account's first 3
- * sales). Off: those picks have no photo (the page draws the store tile), so mixed guides swap them for photo'd picks.
+ * THE switch for Amazon CDN product photos (m.media-amazon.com, tagged image_source "amazon-sitestripe"). ON since the
+ * owner's decision of 2026-11-18 PM ("Once we get 3 sales we will fix it correctly"; she accepts the Associates risk
+ * until then): photo-less Amazon picks show the CDN photo the image finder collected, hotlinked (never re-hosted), lazy,
+ * in the fixed square thumb (object-fit contain). A brand-site photo (amazon-brand-images.json) always wins over it.
+ * MUST be switched OFF (or these replaced by PA-API images) once 3 sales unlock the Product Advertising API.
+ * Off: those picks have no photo (the page draws the store tile), so mixed guides swap them for photo'd picks.
  */
-export const AMAZON_CDN_PHOTOS = process.env.GIFT_AMAZON_PHOTOS === "on" || false;
+export const AMAZON_CDN_PHOTOS = process.env.GIFT_AMAZON_PHOTOS !== "off";
 /** The link library (~/Desktop/Link-library): unused-by-guide.json holds each guide's links not yet on it. */
 const LIB = process.env.GIFT_LINK_LIBRARY ?? join(homedir(), "Desktop", "Link-library");
 const hidden = [];
@@ -213,7 +216,7 @@ function toPick(p, where) {
   // ShopMy's own S3 photos answer 403 AccessDenied (all 639 distinct URLs, curl 11-18 PM): dropped like the TIFFs, so
   // mixed guides swap in photo'd picks and no row makes a failed request.
   const deadHost = typeof p.image === "string" && /^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(p.image);
-  const image = !tiff && !deadHost && !(typeof p.image === "string" && brokenImage(p.image)) && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe")) ? p.image : undefined;
+  const image = !tiff && !deadHost && !(typeof p.image === "string" && brokenImage(p.image)) && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe" && new URL(p.image).hostname === "m.media-amazon.com")) ? p.image : undefined;
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);
   const brand = BRAND_CASE[compact(p.brand ?? "")] ?? p.brand ?? "";

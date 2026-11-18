@@ -264,12 +264,23 @@ describe("gift guides: the content inventory", () => {
     expect(GUIDE_INDEX.some((g) => g.group === "Experiences")).toBe(false);
     expect(guideBySlug("gift-cards")?.row).toBe("by-budget");
     expect(guideBySlug("subscriptions")?.row).toBe("by-budget");
+    // Lead 11-18 PM (analytics: visits to store-hide-me-vpn, store-wondershare, store-rvshare): no VPN, software,
+    // PC-cleaner, game, airline/travel-booking, car/RV-rental or ticket-resale store page, and the brands are blocked.
+    // @mutate scripts/giftGuideBlocklist.mjs | "Wondershare", "Roxio", | "Roxio",
+    const junkStores: Record<string, string> = { "store-hide-me-vpn": "hide.me VPN", "store-wondershare": "Wondershare", "store-rvshare": "RVshare", "store-nordvpn": "NordVPN", "store-restoro": "Restoro", "store-air-india": "Air India", "store-carla-car-rental": "Carla Car Rental", "store-undercover-tourist": "Undercover Tourist" };
+    for (const [slug, name] of Object.entries(junkStores)) {
+      expect(GUIDE_INDEX.some((g) => g.slug === slug), slug).toBe(false);
+      expect(guideBySlug(slug), slug).toBeUndefined();
+      expect(REMOVED_GUIDES, slug).toContain(slug);
+      expect(blockedBrand({ store: name }), name).toBe(true);
+    }
     expect(guideBySlug("stay-at-home-parents")?.row).toBe("by-career");
     const budget = guidesIn("by-budget").map((g) => g.slug);
     expect(budget.indexOf("gift-wrap-and-cards")).toBe(budget.indexOf("stocking-stuffers") + 1);
     // The By store row is the list's store entries, in its order (Louisiana popularity).
     const listed = GUIDE_INDEX.filter((g) => g.group === "By store").map((g) => g.slug);
-    expect(listed.length).toBeGreaterThan(200);
+    // 174 after the lead's 11-18 PM cut of 40 VPN / software / travel / rental store entries.
+    expect(listed.length).toBeGreaterThan(150);
     // ... then every other researched store page, in name order (follow-up batch 11-18).
     const stores = guidesIn("by-store").map((g) => g.slug);
     expect(stores.slice(0, holding(listed).length)).toEqual(holding(listed));
@@ -878,7 +889,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
 
 describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () => {
   it("SheVibe, King Palm, AnyListingSEO, Loren and Restoro never reach a guide, store page or deal; _cj.json is read", () => {
-    expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro", "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode"]);
+    expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro", "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode", "NordVPN", "Surfshark", "Keeper Security", "NordPass", "hide.me", "Intego", "Corel", "Clip Studio Paint", "Daz 3D", "Wondershare", "Roxio", "Pinnacle Studio", "Lalal.ai", "Ashampoo", "AOMEI", "PandaOffice", "Jalbum", "O&O Software", "Abelssoft", "Paragon Software", "GearUP", "YUPLAY", "Whokeys", "DirectDeals", "Hero Wars", "Skytours", "Oojo", "Cheapvuelos", "Ovago", "HopeGoo", "Air India", "Ocean Hotels", "Rent Cars", "VIP Cars", "Carla Car Rental", "RVshare", "Undercover Tourist", "PARISCityVISION"]);
     // ... and no code for one (the codes table and the codes the researched deals name).
     // @mutate scripts/gift-guide-picks.mjs | if (blockedBrand({ ...d, store })) continue; | void d;
     expect(src("scripts/gift-guide-picks.mjs")).toContain("if (blockedBrand({ ...d, store })) continue;");
@@ -1062,24 +1073,36 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // @mutate scripts/gift-guide-picks.mjs | (!amazonHosted \|\| (AMAZON_CDN_PHOTOS && | (true \|\| (AMAZON_CDN_PHOTOS &&
     // @mutate scripts/gift-guide-picks.mjs | ssl-images-amazon\|amazon\|amazon-adsystem)\.com$/; | ssl-images-amazon\|amazon)\.com$/;
     const script = src("scripts/gift-guide-picks.mjs");
-    expect(script).toContain('export const AMAZON_CDN_PHOTOS = process.env.GIFT_AMAZON_PHOTOS === "on" || false;');
-    expect(script).toContain('(!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe"))');
+    // Owner 11-18 PM: the switch is ON until 3 sales unlock PA-API (then OFF, or PA-API images); Amazon CDN photos ship
+    // only through it, only from m.media-amazon.com, only tagged "amazon-sitestripe".
+    expect(script).toContain('export const AMAZON_CDN_PHOTOS = process.env.GIFT_AMAZON_PHOTOS !== "off";');
+    expect(script).toContain('(!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe" && new URL(p.image).hostname === "m.media-amazon.com"))');
     // Every Amazon image host counts as Amazon-hosted, the ad-system widget host too (lead 11-18 PM).
     expect(script).toContain("export const AMAZON_IMAGE_HOST = /(^|\\.)(media-amazon|images-amazon|ssl-images-amazon|amazon|amazon-adsystem)\\.com$/;");
     expect(script).toContain("AMAZON_IMAGE_HOST.test(new URL(p.image).hostname)");
     expect(script).toContain('JSON.parse(readFileSync(join(LIB, "unused-by-guide.json"), "utf8"))');
     expect(script).toContain("const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut];");
     let photos = 0;
+    let amazonCdn = 0;
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
       if (!p.image) continue;
       photos += 1;
-      expect(new URL(p.image).hostname, `${slug}: ${p.name}`).not.toMatch(/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon|amazon-adsystem)\.com$/);
+      const host = new URL(p.image).hostname;
+      // The only Amazon image host that may ship is the CDN, on an Amazon-link pick (never images-amazon,
+      // ssl-images-amazon, ws-na.amazon-adsystem.com or amazon.com itself).
+      if (/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon|amazon-adsystem)\.com$/.test(host)) {
+        expect(host, `${slug}: ${p.name}`).toBe("m.media-amazon.com");
+        expect(p.href, `${slug}: ${p.name}`).toMatch(/^https:\/\/(www\.)?amazon\.com\//);
+        amazonCdn += 1;
+      }
     }
+    // Owner 11-18 PM: photo-less Amazon picks show their CDN photo (measured below the floor = the switch is off).
+    expect(amazonCdn).toBeGreaterThan(500);
     // Brand-site photos (lead 11-18 PM): a photo-less Amazon pick takes the brand's own photo of the same product from
     // amazon-brand-images.json, its Amazon link kept (179 rows from 45 ASINs, measured 11-18 PM).
     // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"
     let brandSite = 0;
-    for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image) brandSite += 1;
+    for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image && !p.image.startsWith("https://m.media-amazon.com/")) brandSite += 1;
     expect(brandSite).toBeGreaterThan(100);
     // Floor re-measured 2026-11-18 after design audit r2 dropped page titles, store names and promos (4,397 photos).
     expect(photos).toBeGreaterThan(4000);

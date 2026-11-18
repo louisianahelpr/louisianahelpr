@@ -327,7 +327,13 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
   // Affiliate sweep 11-18 PM: supplements (HerbsPro) are on the skip list.
   "store-herbspro",
   // Owner 11-18 PM ("No just get rid of the expernices"): the Experiences row and its guides are gone; an old link lands on the main page.
-  "louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "family-fun-days"];
+  "louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "family-fun-days",
+  // Lead 11-18 PM (analytics showed visits to store-hide-me-vpn, store-wondershare, store-rvshare): every VPN, software,
+  // PC-cleaner, game, airline/travel-booking, car/RV-rental and ticket-resale store is gone (brands on the blocklist too).
+  "store-keeper-security", "store-intego", "store-corel", "store-clip-studio-paint", "store-daz-3d", "store-wondershare", "store-roxio", "store-pinnacle",
+  "store-lalal-ai", "store-ashampoo", "store-aomei", "store-pandaoffice", "store-jalbum", "store-abelssoft", "store-gearup", "store-yuplay",
+  "store-whokeys", "store-directdeals", "store-hero-wars", "store-skytours", "store-oojo", "store-cheapvuelos", "store-ovago", "store-hopegoo",
+  "store-air-india", "store-ocean-hotels", "store-rent-cars", "store-vip-cars", "store-carla-car-rental", "store-rvshare", "store-undercover-tourist", "store-pariscityvision"];
 
 /**
  * Guides the owner folded into others (2026-11-18: Female Nurses and Male Nurses go into RNs, LPNs and CNAs). Each

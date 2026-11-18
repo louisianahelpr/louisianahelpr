@@ -8,7 +8,14 @@
 export const BLOCKED_BRANDS = ["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro",
   // Affiliate sweep 11-18 PM: Yeloly (adult, joined by mistake), Serika, Parallels (software), HerbsPro (supplements);
   // ZazzMode (owner 11-18: stays out of the guides).
-  "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode"];
+  "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode",
+  // Lead 11-18 PM: VPN / security software, desktop software and key resellers, PC cleaners, games, airline and
+  // travel booking, car and RV rental, ticket resale: no gift stores (their store pages are REMOVED_GUIDES too).
+  "NordVPN", "Surfshark", "Keeper Security", "NordPass", "hide.me", "Intego", "Corel", "Clip Studio Paint", "Daz 3D",
+  "Wondershare", "Roxio", "Pinnacle Studio", "Lalal.ai", "Ashampoo", "AOMEI", "PandaOffice", "Jalbum", "O&O Software",
+  "Abelssoft", "Paragon Software", "GearUP", "YUPLAY", "Whokeys", "DirectDeals", "Hero Wars", "Skytours", "Oojo",
+  "Cheapvuelos", "Ovago", "HopeGoo", "Air India", "Ocean Hotels", "Rent Cars", "VIP Cars", "Carla Car Rental", "RVshare",
+  "Undercover Tourist", "PARISCityVISION"];
 
 const compact = (s) => String(s).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const blockedCompact = BLOCKED_BRANDS.map(compact);

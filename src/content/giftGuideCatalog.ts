@@ -7,11 +7,12 @@
  * Every pick carries a `store`, read from its link's host (storeOf), and each "Shop by store" guide is every pick on
  * that store. Guard: src/test/giftGuidesPage.test.tsx.
  */
-import { giftGuides, SHOPMY_COLLECTIONS, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
+import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
+import { RESEARCHED_PICKS, type ResearchedPick } from "@/content/giftGuidePicks";
 
-export type GiftStore = "amazon" | "shopmy" | "zchocolat" | "diecast";
+export type GiftStore = "amazon" | "shopmy" | "zchocolat" | "diecast" | "louisiana";
 
 /** Each store, the name the page shows and the link hosts that belong to it. */
 export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] }> = {
@@ -19,6 +20,8 @@ export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] 
   shopmy: { name: "ShopMy", hosts: ["shopmy.us"] },
   zchocolat: { name: "zChocolat", hosts: ["www.zchocolat.com"] },
   diecast: { name: "DiecastModelsWholesale", hosts: ["www.diecastmodelswholesale.com"] },
+  // The Louisiana shops' own sites (each pick names its brand, so "On <brand>" is shown, not this name).
+  louisiana: { name: "a Louisiana shop", hosts: LOUISIANA_SHOPS },
 };
 
 /** The store a pick's link goes to, read from its host. A host on no store is a content error, so it throws. */
@@ -44,7 +47,20 @@ export interface CatalogPick {
   /** The product photo, when the content file has one. Amazon items have none (Amazon allows its product images only
    *  through SiteStripe or its API), so the page draws a letter tile instead. */
   image?: string;
+  /** The maker, when the content names one (the researched picks): shown as "On <brand>" for a Louisiana shop. */
+  brand?: string;
+  /** Badges (owner 2026-11-18), decided from the brand, never from a free-text flag. No price is ever a badge. */
+  badges?: PickBadge[];
 }
+
+/** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
+export type PickBadge = "trending" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup";
+
+/** "Louisiana-made" only for a Louisiana brand; "25 Days sponsor" for a sponsor's pick (lead 2026-11-18). */
+export const badgesFor = (brand: string | undefined): PickBadge[] => [
+  ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
+  ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []),
+];
 
 /** A group's id: its label in GUIDE_INDEX, slugged ("By person" -> "by-person"). */
 export type GuideRow = string;
@@ -147,7 +163,12 @@ const amazonGuides: Draft[] = AMAZON_GUIDES.map((g) => ({
   links: [...shopmyLinkFor(slugOf(g.slug)), ...(g.slug === "stocking-stuffers" ? [section("stocking-stuffers").shop, ...section("stocking-stuffers").more] : [])],
 }));
 
-const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks)];
+const toPick = (p: ResearchedPick): CatalogPick => {
+  const badges = badgesFor(p.brand);
+  return { name: p.name, href: p.href, store: storeOf(p.href), line: p.line, brand: p.brand, ...(badges.length ? { badges } : {}) };
+};
+const researched = (): CatalogPick[] => Object.values(RESEARCHED_PICKS).flat().map(toPick);
+const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks), ...researched()];
 
 /** One pick per link (several guides share an item), first occurrence wins. */
 const uniqueByHref = (picks: CatalogPick[]) => [...new Map(picks.map((p) => [p.href, p] as const)).values()];
@@ -203,6 +224,13 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
 export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"] };
 
 const draftOf = new Map(DRAFTS.map((d) => [d.slug, d] as const));
+/** The researched picks (src/content/giftGuidePicks.ts, generated) are each listed guide's list, in their order. */
+for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) {
+  const g = GUIDE_INDEX.find((x) => x.slug === slug);
+  if (!g) continue;
+  const d = draftOf.get(slug) ?? { slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] };
+  draftOf.set(slug, { ...d, picks: list.map(toPick) });
+}
 /** Every guide on the owner's list shows, filled or not (owner 2026-11-18: an empty one opens "Picks coming soon"). */
 for (const g of GUIDE_INDEX) {
   if (!draftOf.has(g.slug)) draftOf.set(g.slug, { slug: g.slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] });
@@ -212,8 +240,19 @@ for (const [from, targets] of Object.entries(MERGED_GUIDES)) {
   if (!src) continue;
   for (const t of targets) {
     const d = draftOf.get(t)!;
-    draftOf.set(t, { ...d, picks: uniqueByHref([...d.picks, ...src.picks]), links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
+    // A guide with researched picks keeps exactly those (the folded guides' items stay in their store guides); it
+    // still gets the folded guides' collection links.
+    draftOf.set(t, { ...d, picks: RESEARCHED_PICKS[t] ? d.picks : uniqueByHref([...d.picks, ...src.picks]), links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
   }
+}
+/**
+ * Guides held on "Picks coming soon" (lead 2026-11-18): the budget guides wait for the price-verified list, so none of
+ * their picks show (their Amazon items stay in the Amazon store guide). scripts/gift-guide-picks.mjs skips the same.
+ */
+export const HELD_PICK_GUIDES = ["under-20", "under-25", "under-50"];
+for (const slug of HELD_PICK_GUIDES) {
+  const d = draftOf.get(slug);
+  if (d) draftOf.set(slug, { ...d, picks: [], links: [] });
 }
 const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug];
 

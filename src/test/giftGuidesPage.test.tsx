@@ -75,10 +75,11 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuidesBand, GIFT_GUIDES_PATH } from "@/components/landing/GiftGuidesBand";
-import { giftGuides, BRAND_SITES, SHOPMY_COLLECTIONS, activeCodes, codesByStore, discountCodes } from "@/content/giftGuides";
+import { giftGuides, BRAND_SITES, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, activeCodes, codesByStore, discountCodes } from "@/content/giftGuides";
 import { DiscountCodes } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
+import { RESEARCHED_PICKS } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, storeOf, unplacedGuides } from "@/content/giftGuideCatalog";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
@@ -90,7 +91,7 @@ const DISCLOSURE = "Some links are affiliate links. We may earn a small share of
 const AMAZON_STATEMENT = "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.";
 const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Experiences", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
 // @two-way src/test/giftGuidesPage.test.tsx:stale allowed host
-const ALLOWED_HOSTS = ["shopmy.us", "www.pinterest.com", "www.amazon.com", "amazon.com", "amzn.to", ...BRAND_SITES];
+const ALLOWED_HOSTS = ["shopmy.us", "www.pinterest.com", "www.amazon.com", "amazon.com", "amzn.to", ...BRAND_SITES, ...LOUISIANA_SHOPS];
 const isAmazon = (href: string) => ["www.amazon.com", "amazon.com", "amzn.to"].includes(new URL(href).hostname);
 
 const picks = GUIDES.flatMap((g) => g.picks);
@@ -98,6 +99,7 @@ const contentLinks = [
   ...giftGuides.allLinks.map((l) => l.href),
   ...giftGuides.sections.flatMap((s) => [s.shop.href, ...s.more.map((m) => m.href), ...s.picks.map((p) => p.href)]),
   ...AMAZON_GUIDES.flatMap((g) => g.items.map(([, href]) => href)),
+  ...Object.values(RESEARCHED_PICKS).flat().map((p) => p.href),
 ];
 
 /** Renders the page at a URL, with a probe that shows where a redirect landed. */
@@ -184,7 +186,7 @@ describe("gift guides: the content inventory", () => {
     }
     expect(guidesIn("by-store")[0].slug).toBe("store-amazon");
     expect(guidesIn("by-store")[1].slug).toBe("store-walmart");
-    expect(Object.keys(STORES).sort()).toEqual(["amazon", "diecast", "shopmy", "zchocolat"]);
+    expect(Object.keys(STORES).sort()).toEqual(["amazon", "diecast", "louisiana", "shopmy", "zchocolat"]);
   });
 
   it("syncs the owner's 2026-11-18 list: Experiences after Louisiana, Stay-at-Home Parents, Gift Wrap after Stocking Stuffers, no ShopMy store tile", () => {

@@ -54,6 +54,21 @@ export interface GiftSection {
  */
 export const BRAND_SITES = ["www.zchocolat.com", "www.diecastmodelswholesale.com"] as const;
 
+/**
+ * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:
+ * each link a product page from the shop's own list, HTTP 200 when opened). Exact hosts, never a wildcard.
+ */
+export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "nolacouture.com", "www.communitycoffee.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.cajunpowersauce.com", "www.zydecochopchop.com", "shop.tabasco.com"] as const;
+
+/**
+ * Brands made in Louisiana: only these get the "Louisiana-made" badge (a pick marked louisianaFit that is not one of
+ * them, e.g. YETI, gets none). Each is a Louisiana company making the product in Louisiana.
+ */
+export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du Monde", "Tony Chachere's", "Community Coffee", "NOLA Couture", "Aunt Sally's", "KREWE", "Leah's Pralines", "Southern Marsh", "Slap Ya Mama", "Zatarain's", "Joe Gambino's Bakery", "Cajun Power", "Savoie's", "Zapp's", "Magic Seasoning Blends", "French Market", "TABASCO", "Camellia Brand", "Steen's", "Kary's", "Abita", "Crystal", "Blue Plate", "Louisiana Fish Fry", "Bruce's"];
+
+/** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
+export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop"];
+
 const shopmy = (id: number) => `https://shopmy.us/collections/${id}`;
 const PIN = "https://www.pinterest.com/lexilombas";
 
@@ -168,6 +183,8 @@ export const giftGuides = {
   fullGuideLabel: "Shop the full guide",
   newTab: "opens in a new tab",
   onStore: (store: string) => `On ${store}`,
+  /** The pick badges (owner 2026-11-18). Never a price. */
+  badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup" },
   codesLabel: "Discount codes",
   copyCode: "Copy",
   copiedCode: "Copied",

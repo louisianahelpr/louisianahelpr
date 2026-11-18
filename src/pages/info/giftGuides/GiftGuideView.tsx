@@ -24,7 +24,12 @@ function PickRow({ pick }: { pick: CatalogPick }) {
         )}
         <span className="gg-nm">
           {pick.name}
-          <small>{pick.line ? `${pick.line} ` : ""}{G.onStore(STORES[pick.store].name)}</small>
+          <small>{pick.line ? `${pick.line} ` : ""}{G.onStore(pick.store === "louisiana" && pick.brand ? pick.brand : STORES[pick.store].name)}</small>
+          {pick.badges && (
+            <span className="gg-badges">
+              {pick.badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
+            </span>
+          )}
         </span>
         <span className="gg-shop" aria-hidden="true">{G.shopLabel}</span>
         <span className="sr-only"> ({G.newTab})</span>

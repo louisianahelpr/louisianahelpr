@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ListRow } from "@/components/ui/ListRow";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -192,15 +192,16 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
             <ul className="rounded-2xl overflow-hidden" style={card}>
               {rows.map((s) => (
                 <li key={s.id} className="flex items-center border-b border-border last:border-b-0" data-saved-search={s.section}>
+                  {/* Design audit area 09 M8: no chevron (the switch and the menu already crowd the row), and the name
+                      wraps to two lines instead of ending in "…". */}
                   <ListRow variant="flush" onClick={() => void open(s)} className="flex-1 min-w-0 pl-4 pr-1 py-3">
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-2 min-w-0">
-                        <span className="font-sans font-semibold text-ds-15 truncate" style={{ color: "hsl(var(--ink-deep))" }} title={s.name}>{s.name}</span>
+                        <span data-saved-search-name="" className="font-sans font-semibold text-ds-15 line-clamp-2 break-words" style={{ color: "hsl(var(--ink-deep))" }} title={s.name}>{s.name}</span>
                         <SavedSearchNewPill n={counts.data?.get(s.id) ?? 0} />
                       </span>
                       <span className="block font-sans text-ds-13 text-muted-foreground truncate" title={rowSummary(s, !!paused.data)}>{rowSummary(s, !!paused.data)}</span>
                     </span>
-                    <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
                   </ListRow>
                   {/* F468 (audit 11-10): a row that read "Alerts off" gave no way to turn that one search back on from
                       the list; each row carries its own Alerts switch (the sheet keeps Email and Delete). */}

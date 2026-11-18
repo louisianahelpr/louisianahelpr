@@ -11,6 +11,7 @@
  * @mutate src/pages/user/VisitorProfileActions.tsx | <DropdownMenuItem onClick={onBlock} className="min-h-11"> | <DropdownMenuItem onClick={onBlock}>
  * @mutate src/components/SaveHelperButton.tsx |       aria-pressed={saved} |
  * @mutate src/lib/i18n/enSettings.ts | "Terms, rules and privacy" | "Terms, rules & privacy"
+ * @mutate src/pages/profile/SavedSearchesTab.tsx | font-semibold text-ds-15 line-clamp-2 break-words | font-semibold text-ds-15 truncate
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -110,6 +111,17 @@ describe("design audit area 09: one name each, and plain 'and' (L8, L19)", () =>
     const amp = Object.entries(enSettings).filter(([, v]) => v.includes("&"));
     expect(Object.keys(enSettings).length).toBeGreaterThan(40);
     expect(amp).toEqual([]);
+  });
+});
+
+describe("design audit area 09: saved search rows (M8)", () => {
+  it("the name wraps to two lines and the row has no chevron", () => {
+    const tab = src("src/pages/profile/SavedSearchesTab.tsx");
+    const name = tab.match(/<span data-saved-search-name="" className="([^"]+)"/);
+    expect(name).not.toBeNull();
+    expect(name![1]).toContain("line-clamp-2");
+    expect(name![1]).not.toContain("truncate");
+    expect(tab).not.toContain("ChevronRight");
   });
 });
 

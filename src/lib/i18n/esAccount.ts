@@ -55,6 +55,8 @@ export const esAccount: Record<keyof typeof enAccount, string> = {
   "acct.saveLink": "Guardar enlace",
   "acct.savedAddress": "Dirección guardada",
   "acct.savedAddressNone": "Todavía no hay. Aquí aparece la dirección del próximo trabajo que publique.",
+  "acct.paymentMethods": "Métodos de pago",
+  "acct.paymentMethodsBody": "Stripe, nuestra empresa de pagos, guarda las tarjetas con las que paga para su próxima compra. Nunca vemos el número completo. Para quitar una tarjeta guardada, escríbanos desde Ayuda.",
   "ss.title": "Búsquedas guardadas",
   "ss.loadFailed": "No pudimos cargar sus búsquedas guardadas.",
   "ss.introSome": "Le avisamos cuando aparece algo nuevo que coincide. Toque una para ver los resultados.",

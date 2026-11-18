@@ -16,6 +16,7 @@
  * @mutate src/components/profile/profileLanding/YouCard.tsx |           Public profile\n |           View my public profile\n
  * @mutate src/lib/i18n/enYourPage.ts | "yp.page": "Your public profile" | "yp.page": "Your page"
  * @mutate src/lib/i18n/enAccount.ts | "acct.linkTitle": "Public profile link" | "acct.linkTitle": "Your profile link"
+ * @mutate src/components/profile/SettingsTab.tsx |         <PaymentMethodsRow />\n |
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -143,6 +144,17 @@ describe("design audit area 09: one name for the public profile (M3)", () => {
     expect(own).not.toContain("How others see you");
     const names = [you, own, yp, src("src/components/profile/ProfileLinkRow.tsx")].join("\n");
     for (const old of ["Your profile link", "\"Your page\"", "Share your page"]) expect(names, old).not.toContain(old);
+  });
+});
+
+describe("design audit area 09: Privacy shows the saved address and where cards live (M14)", () => {
+  it("Settings' Privacy group has a Saved address row and a Payment methods row", () => {
+    const tab = src("src/components/profile/SettingsTab.tsx");
+    const privacy = tab.slice(tab.indexOf('<Group title="Privacy">'));
+    expect(privacy.indexOf("<SavedAddressRow />")).toBeGreaterThan(0);
+    expect(privacy.indexOf("<PaymentMethodsRow />")).toBeGreaterThan(0);
+    expect(enAccount["acct.paymentMethodsBody"]).toContain("Stripe");
+    expect(esAccount["acct.paymentMethodsBody"]).toContain("Stripe");
   });
 });
 

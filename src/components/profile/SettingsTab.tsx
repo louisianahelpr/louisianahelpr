@@ -278,6 +278,7 @@ export function SettingsTab({
         {/* A3-C16: unblock without having to find the person's profile first. */}
         <Row testId="blocked" label={TAB_TITLES.blocked} sub="People you blocked, and unblock" onClick={() => onSelectTab("blocked")} />
         <SavedAddressRow />
+        <PaymentMethodsRow />
         {/* A3-I4: downloads here, through the same export as the Privacy policy's card (useDataExport), instead of opening the whole policy. */}
         <Row
           testId="download-data"
@@ -322,6 +323,23 @@ function SavedAddressRow() {
       <span className="flex-1 min-w-0">
         <span className="block text-ds-15 font-semibold leading-tight text-foreground">{t("acct.savedAddress")}</span>
         <span className="block text-ds-13 text-muted-foreground mt-0.5 break-words">{line}</span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Design audit area 09 M14: "Payment methods". There is no in-app card list: a card used at checkout is saved by
+ * Stripe on the member's Stripe customer (create-payment, savedCardLimit.ts), and the app has no action that removes
+ * one, so the row says where cards live and how to have one removed.
+ */
+function PaymentMethodsRow() {
+  const { t } = useLanguage();
+  return (
+    <div data-settings-row="payment-methods" className="w-full min-h-[56px] flex items-center gap-3 px-4 py-3 text-left">
+      <span className="flex-1 min-w-0">
+        <span className="block text-ds-15 font-semibold leading-tight text-foreground">{t("acct.paymentMethods")}</span>
+        <span className="block text-ds-13 text-muted-foreground mt-0.5">{t("acct.paymentMethodsBody")}</span>
       </span>
     </div>
   );

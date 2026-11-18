@@ -68,6 +68,8 @@ export const enAccount = {
   // Settings › Privacy
   "acct.savedAddress": "Saved address",
   "acct.savedAddressNone": "None yet. The address of the next job you post shows here.",
+  "acct.paymentMethods": "Payment methods",
+  "acct.paymentMethodsBody": "Cards you pay with are kept by Stripe, our payment company, for your next checkout. We never see the full number. To remove a saved card, message us from Help.",
   // Saved searches
   "ss.title": "Saved searches",
   "ss.loadFailed": "We couldn't load your saved searches.",

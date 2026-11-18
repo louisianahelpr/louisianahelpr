@@ -44,8 +44,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 // @mutate src/components/PageHeader.tsx | <span className={`${BACK_BUTTON_BOX_CLASS} block`} /> | <span className="w-10 h-10 -ml-2 block" />
 // @mutate src/components/BackButton.tsx | export const BACK_BUTTON_BOX_CLASS = "w-11 h-11 -ml-2"; | export const BACK_BUTTON_BOX_CLASS = "w-10 h-10 -ml-2";
-// @mutate src/components/profile/ProfileLanding.tsx | <AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} /> | <PageHeader title={PROFILE_PAGE_TITLE} hideBack reserveBackSlot width="none" />
-// @mutate src/components/profile/ProfilePageSkeleton.tsx | <AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} /> | <AppTopBar title="Profile" showProfile={false} />
+// @mutate src/components/profile/ProfileLanding.tsx | <AppTopBar title={profilePageTitle()} showProfile={false} /> | <PageHeader title={PROFILE_PAGE_TITLE} hideBack reserveBackSlot width="none" />
+// @mutate src/components/profile/ProfilePageSkeleton.tsx | <AppTopBar title={profilePageTitle()} showProfile={false} /> | <AppTopBar title="Profile" showProfile={false} />
 // @mutate src/components/profile/profileLanding/YouCard.tsx | <div className="min-w-0 flex flex-col items-start"> | <div className="min-w-0 flex flex-col items-start"><h1>{displayName}</h1>
 
 const ROOT = resolve(__dirname, "../..");
@@ -144,7 +144,7 @@ describe("the Profile title line has one definition", () => {
     // Board 18 (2026-10-20): the You landing wears the same AppTopBar as Home,
     // Explore and Messages ("You" + the bell, no photo), and its skeleton draws
     // that same bar with the same title, so the title does not move on load.
-    const bar = "<AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} />";
+    const bar = "<AppTopBar title={profilePageTitle()} showProfile={false} />";
     expect(LANDING.includes(bar), "ProfileLanding no longer renders the shared top bar titled You").toBe(true);
     expect(LANDING_SKELETON.includes(bar), "the landing skeleton's bar is not the landing's own bar").toBe(true);
     // Owner, 2026-09-25: "move the name at the top over to the left some" ->

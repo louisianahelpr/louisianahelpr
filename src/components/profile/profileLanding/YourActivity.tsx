@@ -6,6 +6,29 @@ import { useHomeSummary } from "@/pages/home/homeDashboard/useHomeSummary";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
 import { GlassTileButton } from "@/components/ui/GlassTileButton";
 import { PreviewPill } from "@/components/sections/PreviewPill";
+import "@/lib/i18n/enYourPage";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import { navKey } from "@/lib/i18n/navLabels";
+
+/** What the member reads on each tile (design audit r2 #31); the English labels stay the tiles' ids. */
+const TILE_KEY: Record<string, MsgKey> = {
+  Posted: "yp.you.tile.posted",
+  Working: "yp.you.tile.working",
+  Buying: "yp.you.tile.buying",
+  Selling: "yp.you.tile.selling",
+  Orders: "yp.you.tile.orders",
+  "My shop": "yp.you.tile.myShop",
+  Renting: "yp.you.tile.renting",
+  Owning: "yp.you.tile.owning",
+};
+const COUNT_KEY: Record<CountKey, MsgKey> = {
+  posted: "yp.you.count.posted",
+  working: "yp.you.count.working",
+  selling: "yp.you.count.selling",
+  shopOrders: "yp.you.count.shopOrders",
+  buying: "yp.you.count.buying",
+};
 
 type CountKey = "posted" | "working" | "selling" | "shopOrders" | "buying";
 
@@ -54,6 +77,8 @@ export function YourActivity() {
   const summary = useHomeSummary(user);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
+  const { t: tr } = useLanguage();
+  const sectionName = (s: { path: string; label: string }) => { const k = navKey(s.path, s.label); return k ? tr(k) : s.label; };
 
   const isOn = (s: (typeof visible)[number]) => s.feature === null || !!live.find((t) => t.path === s.path)?.on;
   // F087 (owner UI audit 11-09): a section open to this viewer only as a tester preview (Shops, Homes: not yet open to
@@ -68,8 +93,8 @@ export function YourActivity() {
   const soon = openingSoonLine(visible.filter((s) => !isOn(s) && isListedHere(s)).map((s) => s.label));
 
   return (
-    <section aria-label="Your activity" className="flex flex-col gap-2" data-testid="you-activity">
-      <h2 className="px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your activity</h2>
+    <section aria-label={tr("yp.you.activity")} className="flex flex-col gap-2" data-testid="you-activity">
+      <h2 className="px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{tr("yp.you.activity")}</h2>
       {/* Every row is one height (auto-rows-fr): a tester's preview row (count room + Coming soon mark) stood 115.9 px
           beside 89.9 px count rows and 91.9 px Homes rows at 360-390 (b2-tiles-1115). A member, who has no preview
           tiles, keeps 89.9 px rows. */}
@@ -78,6 +103,9 @@ export function YourActivity() {
           ACTIVITY_TILES[s.key].map((t) => {
             const n = t.count ? summary.counts[t.count] ?? 0 : 0;
             const word = t.count ? COUNT_WORD[t.count] : "";
+            const label = TILE_KEY[t.label] ? tr(TILE_KEY[t.label]) : t.label;
+            const countLine = t.count ? tr(COUNT_KEY[t.count], { n }) : `${n} ${word}`;
+            const section = sectionName(s);
             const preview = isPreview(s);
             return (
               <GlassTileButton
@@ -85,14 +113,14 @@ export function YourActivity() {
                 data-activity-tile={`${s.key}:${t.label}`}
                 data-preview={preview ? "true" : undefined}
                 onClick={() => navigate(t.to)}
-                title={`${s.label} ${t.label}${n > 0 ? ` · ${n} ${word}` : ""}`}
+                title={`${section} ${label}${n > 0 ? ` · ${countLine}` : ""}`}
                 className="px-4 py-3"
                 style={preview ? { opacity: 0.75 } : undefined}
               >
                 {/* No aria-label: the tile's words ("Jobs Posted 2") are its name, so the visible text is in it (axe
                     label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The space keeps the two lines two words;
                     whitespace between flex items draws nothing. */}
-                <span className="text-ds-12 text-muted-foreground">{s.label}</span>{" "}
+                <span className="text-ds-12 text-muted-foreground">{section}</span>{" "}
                 {/* F449 (audit 11-10): at 375 "Buying · 1 in progress" was cut to "Buying · 1 in ..." by truncate; it wraps.
                     F260a (11-14): wrapped once its count came in, it grew its row 24 px under the reader at 360-390
                     (cwv-lab 375: 0.0114 of /profile's 0.1518). A tile that can carry a count keeps room for two lines
@@ -102,8 +130,8 @@ export function YourActivity() {
                     without it "Orders · 9 open" wrapped at 360 and, rows being one height, grew every row 91.9 -> 115.9
                     px when the count came in (b2-tiles-1115). */}
                 <span className={`text-ds-15 font-bold text-foreground break-words${t.count ? " min-h-[3em] sm:min-h-0" : ""}${preview ? " mb-1" : ""}`}>
-                  {t.label}
-                  {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>}
+                  {label}
+                  {n > 0 && <><span aria-hidden="true"> ·</span> {countLine}</>}
                 </span>
                 {preview && <>{" "}<PreviewPill className="self-start mt-auto" /></>}
               </GlassTileButton>

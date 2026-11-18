@@ -5,7 +5,7 @@
  * section not open to this viewer has no tiles; ONE line names every such
  * section (owner 2026-10-21: "Homes is opening soon").
  *
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |                   {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>} |                   {<><span aria-hidden="true"> ·</span> {n} {word}</>}
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |                   {n > 0 && <><span aria-hidden="true"> ·</span> {countLine}</>} |                   {<><span aria-hidden="true"> ·</span> {countLine}</>}
  * F088 (owner UI audit 11-09): each count carries its status word ("2 live").
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |   posted: "live", |   posted: "",
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |   const open = visible.filter((s) => isOn(s) && isListedHere(s)); |   const open = visible;

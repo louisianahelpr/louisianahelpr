@@ -66,3 +66,38 @@ describe("design audit r2 #2: the price field is a big bare number, not a pill",
     expect(input.getAttribute("style") ?? "").not.toMatch(/burnt-sienna/);
   });
 });
+
+/**
+ * #31 (High): the You page was English in Spanish ("View my public profile", "Your activity", "Money", "Settings",
+ * "Talk to a real person", "Log out", "Delete account"). The rows, captions, card and activity tiles now draw t().
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx | title={t(ROW_KEY[row.key])}>{t(ROW_KEY[row.key])}</span> | title={row.label}>{row.label}</span>
+ * @mutate src/components/profile/profileLanding/YouCard.tsx |           {t("yp.you.publicProfile")}\n |           View my public profile\n
+ */
+describe("design audit r2 #31: the You page follows the member's language", () => {
+  it("Spanish: the menu rows, captions and the card's link are Spanish", async () => {
+    const { render, cleanup } = await import("@testing-library/react");
+    const { createElement } = await import("react");
+    const { MemoryRouter } = await import("react-router-dom");
+    const { setLang, ensureLangLoaded, __resetLangForTests } = await import("@/lib/i18n/language");
+    const { YouMenuList, youStaticCaptions } = await import("@/components/profile/profileLanding/YouMenu");
+    const { YouCard } = await import("@/components/profile/profileLanding/YouCard");
+    const { profilePageTitle } = await import("@/components/profile/profileLanding/profilePageTitle");
+    try {
+      expect(profilePageTitle()).toBe("You");
+      setLang("es");
+      await ensureLangLoaded();
+      expect(profilePageTitle()).toBe("Perfil");
+      const menu = render(createElement(YouMenuList, { captions: youStaticCaptions(), showAdmin: true }));
+      const text = menu.container.textContent ?? "";
+      for (const es of ["Dinero", "Notificaciones", "Ajustes", "Hable con una persona", "Avisos y correo", "Ayuda"]) expect(text).toContain(es);
+      for (const en of ["Money", "Notifications", "Settings", "Talk to a real person", "Alerts and email"]) expect(text).not.toContain(en);
+      cleanup();
+      const card = render(createElement(MemoryRouter, null, createElement(YouCard, { profile: null, userId: "u1", displayName: "", avgRating: null, reviewCount: 0 })));
+      expect(card.container.textContent).toContain("Ver mi perfil público");
+      expect(card.container.textContent).not.toContain("View my public profile");
+    } finally {
+      cleanup();
+      __resetLangForTests();
+    }
+  });
+});

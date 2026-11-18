@@ -888,3 +888,26 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     for (const slug of ["crawfish-boil-host", "commercial-fishermen-and-shrimpers"]) expect(RESEARCHED_PICKS[slug].filter((p) => p.store === "store-xtratuf").length, slug).toBeGreaterThan(1);
   });
 });
+
+describe("gift guides: the Amazon page in sections (design audit 11-18 #3)", () => {
+  it("opens on Louisiana Helpr Picks, then By person, For kids and the rest, in order, each once", () => {
+    // @mutate scripts/gift-guide-picks.mjs | pageList["store-amazon"] = [...byHref.values()].map((p) => ({ ...p, section: sectionOf(p) })) | pageList["store-amazon"] = [...byHref.values()].map((p) => ({ ...p }))
+    const order = ["Louisiana Helpr Picks", "By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Experiences", "Colors", "Pets", "More finds"];
+    const amazon = RESEARCHED_PICKS["store-amazon"];
+    expect(amazon.every((p) => p.section && order.includes(p.section))).toBe(true);
+    const runs = amazon.map((p) => p.section).filter((x, i, all) => x !== all[i - 1]);
+    expect(runs[0]).toBe("Louisiana Helpr Picks");
+    expect(new Set(runs).size).toBe(runs.length);
+    expect([...runs].sort((a, b) => order.indexOf(a!) - order.indexOf(b!))).toEqual(runs);
+    expect(runs.length).toBeGreaterThan(5);
+    const g = guideBySlug("store-amazon")!;
+    const { container } = render(<MemoryRouter><GiftGuideView guide={g} /></MemoryRouter>);
+    expandAll(container);
+    const titles = [...container.querySelectorAll("[data-gift-section] > h3")].map((h) => h.textContent);
+    expect(titles).toEqual(runs);
+    expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length).toBe(g.picks.length);
+    // The numbers run on across sections (each later list starts its counter where the last one stopped).
+    const lists = [...container.querySelectorAll<HTMLOListElement>("ol[data-gift-list]")];
+    expect(lists[1].style.counterReset).toBe(`gg ${lists[0].children.length}`);
+  });
+});

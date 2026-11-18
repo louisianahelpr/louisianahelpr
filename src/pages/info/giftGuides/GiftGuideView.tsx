@@ -57,6 +57,20 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
 }
 
 /** A guide's items: the numbered list, or (holding nothing) related guides, then its full-guide links. */
+/**
+ * A list split at each change of its picks' section (store-amazon's "Louisiana Helpr Picks", "By person"...; design
+ * audit 11-18 #3). A list with no sections is one untitled run; a pick with none joins the run before it.
+ */
+export const sectionsOf = (picks: CatalogPick[]) => {
+  const runs: { title?: string; picks: { start: number; rows: CatalogPick[] } }[] = [];
+  picks.forEach((p, i) => {
+    const last = runs.at(-1);
+    if (last && (!p.section || p.section === last.title)) last.picks.rows.push(p);
+    else runs.push({ title: p.section, picks: { start: i + 1, rows: [p] } });
+  });
+  return runs;
+};
+
 /** Rows a list draws at first, and each "Show more" adds (design audit 11-18 #3: 827 rows, 9,600 DOM nodes at once). */
 export const PICKS_PAGE = 50;
 
@@ -67,11 +81,14 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
   const left = guide.picks.length - shown;
   return (
     <>
-      {guide.picks.length > 0 && (
-        <ol className="gg-list" data-gift-list="">
-          {guide.picks.slice(0, shown).map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
-        </ol>
-      )}
+      {sectionsOf(guide.picks.slice(0, shown)).map(({ title, picks }, i) => (
+        <section key={`${i} ${title ?? ""}`} data-gift-section={title ?? ""}>
+          {title && <h3 className="gg-sec-title">{title}</h3>}
+          <ol className="gg-list" data-gift-list="" style={picks.start > 1 ? { counterReset: `gg ${picks.start - 1}` } : undefined}>
+            {picks.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
+          </ol>
+        </section>
+      ))}
       {left > 0 && (
         <button type="button" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
           {G.showMorePicks(left)}

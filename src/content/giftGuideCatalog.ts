@@ -70,6 +70,8 @@ export interface CatalogPick {
   brand?: string;
   /** Badges (owner 2026-11-18), decided from the brand, never from a free-text flag. No price is ever a badge. */
   badges?: PickBadge[];
+  /** The section heading it sits under on a long store page (store-amazon, design audit 11-18 #3), from the import. */
+  section?: string;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -223,7 +225,7 @@ const researchedStore = (p: ResearchedPick): GiftStore => {
 const toPick = (p: ResearchedPick): CatalogPick => {
   const store = researchedStore(p);
   const badges = withShopLouisiana(badgesFor(p.brand, p), store, p.louisianaFit);
-  return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}) };
+  return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}) };
 };
 /** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */
 export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);
@@ -409,7 +411,20 @@ const build = (slug: string, group: string, tint: GuideTint, listed?: { title: s
     Object.defineProperty(g, "picks", { enumerable: true, get: () => {
       const c = loaded.get(slug);
       if (!c) return base;
-      return !APPEND_CHUNK.has(slug) ? c.picks : slug === "store-amazon" ? uniqueByName(uniqueByHref([...base, ...c.picks])) : uniqueByName([...base, ...c.picks]);
+      if (!APPEND_CHUNK.has(slug)) return c.picks;
+      // The Amazon page's static picks open its first section, "Louisiana Helpr Picks" (design audit 11-18 #3).
+      // First occurrence wins whole (uniqueByHref keeps a key's first place but its LAST value, which mixed sections).
+      if (slug === "store-amazon") {
+        const hrefs = new Set<string>();
+        const names = new Set<string>();
+        return [...base.map((p) => ({ ...p, section: c.picks[0]?.section })), ...c.picks].filter((p) => {
+          if (hrefs.has(p.href) || names.has(p.name)) return false;
+          hrefs.add(p.href);
+          names.add(p.name);
+          return true;
+        });
+      }
+      return uniqueByName([...base, ...c.picks]);
     } });
     Object.defineProperty(g, "deals", { enumerable: true, get: () => loaded.get(slug)?.deals });
   }

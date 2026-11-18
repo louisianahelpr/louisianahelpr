@@ -246,7 +246,14 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     // drops day 1's On the way / Arrived until that day's own check-ins; a caller that never reads it leaves it out.
     const newDay = o.tracking === undefined ? undefined : o.tracking?.status ?? null;
     const base = jobProgress(jobOnContinueDay(job, o.continueDay, newDay), { ...o, continueDay: null });
-    if (step) return { ...base, next: nextStepWords(step), waitingOnYou: step.who === "you" };
+    // Area 11 M8 (11-18): "Eli confirmed Thu, Nov 19" headlined every later stage too (the day passed with no
+    // check-in, marked done with no new photo, a late start). That line is the plan, so it only stands while the new
+    // day is still ahead and nothing on it needs anyone; after that the new day's own stage line (base) says it.
+    const dayStart = jobStartDateTime(o.continueDay.new_date, o.continueDay.new_start_time || null);
+    const planOnly = step?.who === "info" && !base.waitingOnYou && !job.helper_completed_at
+      && !(dayStart && (o.now ?? new Date()).getTime() >= dayStart.getTime());
+    if (step && (step.who !== "info" || planOnly)) return { ...base, next: nextStepWords(step), waitingOnYou: step.who === "you" };
+    if (step) return base;
   }
   const base = { ...lineRules(job, o), stamps: stepStamps(job) };
   // Chat-only thread states the card never shows: another Helpr was hired, or this one was not picked.

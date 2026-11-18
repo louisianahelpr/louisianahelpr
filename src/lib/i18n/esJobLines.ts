@@ -48,7 +48,7 @@ export const esJobLines: Record<keyof typeof enJobLines, string> = {
   "jl.onWay": "{name} va en camino",
   "jl.onWayLate": "{name} va en camino, con {late} de retraso",
   "jl.tapArrived": "Toque Ya llegué cuando llegue",
-  "jl.bothConfirmOn": "Los dos confirman el {day}, el día antes, que el trabajo sigue en pie",
+  "jl.bothConfirmOn": "El {day} los dos confirmarán que el trabajo sigue en pie",
   "jl.confirmOn": "Confirme el {day}, el día antes, que todavía puede hacer este trabajo",
   "jl.newTime": "Nueva hora: {slot}. {wait}",
   "jl.confirmNewTime": "Confirme la nueva hora, {slot}",

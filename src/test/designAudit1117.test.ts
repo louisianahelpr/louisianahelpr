@@ -18,6 +18,11 @@
  * @mutate src/components/profile/ProfileEditForm.tsx | <p data-skill-group-head="" className="text-ds-13 font-medium text-muted-foreground"> | <p data-skill-group-head="" className="text-ds-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
  * @mutate src/pages/home/HomeDashboard.tsx | <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">{t("home.yourSections")}</h2> | <h2 className="text-ds-15 font-semibold text-foreground">{t("home.yourSections")}</h2>
  * @mutate src/components/messages/chatView/SystemEventRow.tsx | {at ? label.replace(/\.$/, "") : label} | {label}
+ * @mutate src/components/declutter/DeclutterItemRows.tsx | noPhotoTags | aboveFold={false}
+ * @mutate src/components/dashboard/jobDetailDialog/JobDetailBadgeRow.tsx | className={`w-3.5 h-3.5 shrink-0 ${railIsCrowded ? "max-[399px]:hidden" : ""}`} | className="w-3.5 h-3.5 shrink-0"
+ * @mutate src/pages/helprs/FindHelprs.tsx | <Button type="submit" variant="outline" size="md"> | <Button type="submit" variant="outline">
+ * @mutate src/components/landing/LiveJobsSection.tsx | line-clamp-2 break-words lg:min-h-[2lh]" | line-clamp-2 break-words"
+ * @mutate src/components/auth/PasswordRuleList.tsx | className={`inline-flex items-center gap-1 text-ds-13 | className={`inline-flex items-center gap-1 text-ds-11
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -141,5 +146,35 @@ describe("design audit 11-17", () => {
     expect(avail).not.toMatch(/· signal/);
     expect(avail).toContain("Turn on for ${FALLBACK_HOURS} more hours.");
     expect(src("src/components/job-card/jobStatusLine.ts")).not.toMatch(/No-Show\?"/);
+  });
+
+  it("#30: sign-up rules are 13px with a check on each; Log in and the policy links have a 44px hit area", () => {
+    const rules = src("src/components/auth/PasswordRuleList.tsx");
+    expect(rules).toContain("inline-flex items-center gap-1 text-ds-13");
+    expect(rules).not.toMatch(/rounded-full border border-current/);
+    const step1 = src("src/pages/auth/signup/SignupStep1.tsx");
+    expect((step1.match(/className="tap-44 font-semibold underline text-primary"/g) ?? []).length).toBe(3);
+    expect(step1).toContain('<Link to="/login" className="tap-44 font-semibold');
+  });
+
+  it("#31: Find a Helpr's Search button is the input's 48px; New is a chip, not an empty star", () => {
+    const f = src("src/pages/helprs/FindHelprs.tsx");
+    expect(f).toContain('<Button type="submit" variant="outline" size="md">');
+    expect(f).toContain('data-helpr-new=""');
+  });
+
+  it("#32: the landing's open-job titles keep two lines' room from lg, so the prices line up", () => {
+    const l = src("src/components/landing/LiveJobsSection.tsx");
+    expect(l).toContain("line-clamp-2 break-words lg:min-h-[2lh]");
+    expect(l).toContain("lg:justify-start");
+  });
+
+  it("#34: on a crowded phone rail the category glyph steps aside with its word", () => {
+    expect(src("src/components/dashboard/jobDetailDialog/JobDetailBadgeRow.tsx")).toContain('${railIsCrowded ? "max-[399px]:hidden" : ""}');
+  });
+
+  it("#35: the item page's carousel cards wear no photo tags", () => {
+    expect(src("src/components/declutter/DeclutterItemRows.tsx")).toMatch(/<ItemCard[\s\S]*?noPhotoTags[\s\S]*?\/>/);
+    expect(src("src/components/declutter/DeclutterItemCard.tsx")).toContain("{!noPhotoTags && (mine || item.porch_ok");
   });
 });

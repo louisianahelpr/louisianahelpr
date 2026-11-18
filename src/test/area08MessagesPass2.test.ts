@@ -11,6 +11,8 @@
  * @mutate src/components/NotificationPreferences.tsx | className="sticky top-0 z-20 flex items-center justify-end | className="flex items-center justify-end
  * @mutate src/components/NotificationPreferences.tsx | liquid-glass overflow-clip shadow-sm | liquid-glass overflow-hidden shadow-sm
  * @mutate src/components/SosShareButton.tsx |         {t("cp.safety")}\n |         {""}\n
+ * @mutate src/components/messages/ConversationListHeader.tsx |           {inboxTab === "pinned" ? t("msg.viewPinned") : t("msg.viewDeleted")}\n |           {""}\n
+ * @mutate src/components/messages/ConversationListHeader.tsx |           aria-label={t("msg.backToAll")}\n | \n
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -83,5 +85,13 @@ describe("L4 / L6: reaction chip and SOS shield", () => {
     const src = code("src/components/SosShareButton.tsx");
     expect(src).toMatch(/data-sos-shield-label=""[\s\S]{0,300}\{t\("cp\.safety"\)\}/);
     expect(src).toContain('title={t("cp.safety")}');
+  });
+});
+
+describe("M9: Pinned and Recently deleted have a header", () => {
+  it("a back arrow to All and the view's name as its title", () => {
+    const src = code("src/components/messages/ConversationListHeader.tsx");
+    expect(src).toMatch(/data-inbox-view-header=""[\s\S]{0,400}aria-label=\{t\("msg\.backToAll"\)\}/);
+    expect(src).toMatch(/<h2[^>]*>\s*\{inboxTab === "pinned" \? t\("msg\.viewPinned"\) : t\("msg\.viewDeleted"\)\}/);
   });
 });

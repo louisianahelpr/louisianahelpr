@@ -71,7 +71,7 @@ export function PinnedFilterChip({ inboxTab, setInboxFilter }: { inboxTab: Inbox
           size="iconCompact"
           onClick={() => setInboxFilter("all")}
           aria-label={t("msg.backToAll")}
-          className="shrink-0 text-[hsl(var(--bark))]"
+          className="ctl-exit shrink-0 text-[hsl(var(--bark))]"
         >
           <ChevronLeft className="w-5 h-5" aria-hidden />
         </Button>

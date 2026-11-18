@@ -102,8 +102,9 @@ describe("Area 08 H2/H3: chat, inbox and bell words follow the member's language
     }
     for (const k of Object.keys(enNotifPrefs) as (keyof typeof enNotifPrefs)[]) {
       expect(es[k], k).toBe(esNotifPrefs[k]);
-      // "App" is the same word in Spanish (the column header over the push switches).
-      if (k !== "np.h.app") expect(esNotifPrefs[k], `${k} still English`).not.toBe(enNotifPrefs[k]);
+      // "App" is the same word in Spanish (the column header over the push switches); "Declutter" is the area's name,
+      // kept in Spanish as the nav and settings keep it (nav.declutter, settings.declutter).
+      if (k !== "np.h.app" && k !== "np.g.Declutter") expect(esNotifPrefs[k], `${k} still English`).not.toBe(enNotifPrefs[k]);
     }
     setLang("es");
     await ensureLangLoaded();

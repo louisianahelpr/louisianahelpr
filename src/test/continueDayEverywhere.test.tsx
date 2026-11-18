@@ -66,7 +66,7 @@ describe("the tracker line (Home's Live now, the chat's job card) reads the cont
     expect(jobProgress(j, { viewer: "helpr", otherFirst: "Lexi" }).next).toBe("Your after photos are in. Mark it done");
     expect(jobProgress(j, { viewer: "poster", otherFirst: "Yusef" }).next).toBe("Yusef added after photos · waiting for them to mark it done");
     const h = jobProgress(j, { viewer: "helpr", otherFirst: "Lexi", continueDay: day() });
-    expect(h.next).toBe(`Next: confirm you'll be there · continuing ${label(AHEAD)}`);
+    expect(h.next).toBe(`Next: confirm you'll be there · for ${label(AHEAD)}`);
     expect(h.waitingOnYou).toBe(true);
     expect(jobProgress(j, { viewer: "poster", otherFirst: "Yusef", continueDay: day({ helper_confirmed_at: "t" }) }).next).toBe(`Yusef confirmed ${label(AHEAD)}`);
   });
@@ -103,7 +103,7 @@ describe("the to-do list (Next up and the badges)", () => {
     const before = deriveNeedsYouTodos({ ...inputs({}) });
     // The Needs-you task reads the job page's next-step words (todoTask / jobNextStep, A3-17 follow-up).
     expect(before.map((t) => t.title)).toEqual(["Your after photos are in. Mark it done"]);
-    expect(deriveNeedsYouTodos(inputs({ "7b1da54b": day() })).map((t) => t.title)).toEqual([`Next: confirm you'll be there · continuing ${label(AHEAD)}`]);
+    expect(deriveNeedsYouTodos(inputs({ "7b1da54b": day() })).map((t) => t.title)).toEqual([`Next: confirm you'll be there · for ${label(AHEAD)}`]);
     expect(deriveNeedsYouTodos(inputs({ "7b1da54b": day({ helper_confirmed_at: "t" }) }))).toEqual([]);
   });
 });

@@ -308,8 +308,17 @@ describe("Q2585: /admin/preview/declutter", () => {
       expect(within(card).queryByRole("button", { name: side === "seller" ? "Accept trade" : "Take it back" })).not.toBeNull();
       r.unmount();
       const r2 = open(`?stage=trade_one_checked_out&side=${side}`);
-      const talk = await waitFor(() => { const el = document.querySelector("[data-trade-talk]"); expect(el, side).not.toBeNull(); return el as HTMLElement; });
-      expect(talk.textContent).toBe("Message about the trade");
+      if (side === "seller") {
+        const talk = await waitFor(() => { const el = document.querySelector("[data-trade-talk]"); expect(el, side).not.toBeNull(); return el as HTMLElement; });
+        expect(talk.textContent).toBe("Message about the trade");
+      } else {
+        // Area 06b M7 (11-18): the buyer's line is checked out, so its order card carries the one chat button (under
+        // Details, the card's last control) and the trade card shows no second one.
+        fireEvent.click(await screen.findByRole("button", { name: "Details" }));
+        const row = await waitFor(() => { const el = document.querySelector("[data-order-talk-row]"); expect(el, side).not.toBeNull(); return el as HTMLElement; });
+        expect(row.textContent).toBe("Message about the trade");
+        expect(document.querySelector("[data-trade-talk]"), side).toBeNull();
+      }
       await new Promise((res) => setTimeout(res, 20));
       r2.unmount();
     }

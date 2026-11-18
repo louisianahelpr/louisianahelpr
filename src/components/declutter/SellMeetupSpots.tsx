@@ -150,7 +150,7 @@ export function SellMeetupSpots() {
                 {suggestions.map(({ s, mi }) => (
                   <li key={s.id}>
                     <Button type="button" variant="ghost" size="wrapSm" onClick={() => setDraft(fromSuggestion(s))} data-meetup-suggestion={s.id}
-                      className="w-full max-w-full justify-between gap-3 rounded-none px-3 py-2 text-left text-ds-14 font-normal leading-snug text-foreground">
+                      className="w-full max-w-full justify-between gap-3 px-3 py-2 text-left text-ds-14 font-normal leading-snug text-foreground">
                       <span className="min-w-0 break-words">+ {s.name}</span>
                       {mi != null && <span className="shrink-0 tabular-nums text-ds-13 text-muted-foreground">{t("dsl.ms.miles", { n: Math.round(mi) })}</span>}
                     </Button>

@@ -28,7 +28,7 @@
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details key={row} open={row === active?.row} | <details key={row} open
- * @mutate src/content/giftGuideCatalog.ts |     ...(children ? { children } : {}), | 
+ * @mutate src/content/giftGuideCatalog.ts |     ...(children?.length ? { children } : {}), | 
  * @mutate src/content/giftGuideCatalog.ts | (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB) | !g.parent
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | <Link to={`/gift-guides?group=${row}`} | <Link to="/gift-guides"
  * @mutate src/content/giftGuideCatalog.ts | 8978491: "mom", | 8978491: "nowhere", 

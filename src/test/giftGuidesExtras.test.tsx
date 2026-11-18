@@ -8,7 +8,7 @@
  * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.louisianaFit && brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.sponsor \|\| (brand && SPONSOR_BRANDS.includes(brand)) ? (["sponsor"] as const) : []), |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []),
- * @mutate scripts/gift-guide-picks.mjs |   const list = picks.filter((p) => !nameOnly(slug, p)).map((p) => { |   const list = picks.map((p) => {
+ * @mutate scripts/gift-guide-picks.mjs | if (!nameOnly(slug, p)) add(slug, p, file); | add(slug, p, file);
  * @mutate src/pages/info/giftGuides/giftList.tsx | aria-pressed={saved} | aria-pressed={false}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | onToggle={() => toggleGuide(g.slug)} | onToggle={() => undefined}
  * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
@@ -148,7 +148,10 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(holding.length).toBeGreaterThan(0);
     expect(searchGuides("experiences").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
     expect(searchGuides("tractor supply").map((g) => g.slug)).toEqual(["store-tractor-supply"]);
-    expect(searchGuides("cafe du monde").length).toBe(0);
+    // Every word must match (one that matches nothing empties the list).
+    expect(searchGuides("tractor supply xyzzy").length).toBe(0);
+    // Titles and groups only, never a pick's name (Cafe Du Monde's "Coffee and Chicory" is a pick, not a guide).
+    expect(searchGuides("chicory").length).toBe(0);
     expect(searchGuides("xyzzy")).toEqual([]);
     expect(searchGuides("dillards").length + searchGuides("dillard's").length).toBeGreaterThan(0);
   });

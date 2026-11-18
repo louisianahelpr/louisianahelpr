@@ -270,7 +270,8 @@ const DRAFTS: Draft[] = [
  * every pick on that store from every guide, once each, photos first) and its deal sections come from its chunk.
  */
 for (const slug of Object.keys(RESEARCHED_STORES)) {
-  if (slug === "store-amazon") continue;
+  // The fixed store pages (Amazon, zChocolat, Diecast) keep their own draft: static picks, then their chunk's.
+  if (APPEND_CHUNK.has(slug)) continue;
   const g = GUIDE_INDEX.find((x) => x.slug === slug)!;
   DRAFTS.push({ slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] });
 }

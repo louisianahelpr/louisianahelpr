@@ -67,6 +67,7 @@ function stringHits(file: string, source: string): string[] {
  */
 const STORE_DIRECTORY: Record<string, string> = {
   "src/content/giftGuideIndex.ts": "the gift guides' By store directory (Walmart, Wayfair guides)",
+  "src/content/giftGuidePicks.ts": "the gift guides' researched store pages and their sales (generated: every store we hold an affiliate link for)",
 };
 
 const isSource = (f: string) =>

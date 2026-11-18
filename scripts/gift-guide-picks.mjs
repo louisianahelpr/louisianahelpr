@@ -53,7 +53,7 @@ const GUIDE_SLUGS = new Set(INDEX.map((g) => g.slug));
 const compact = (s) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const STORE_BY_COMPACT = new Map(INDEX.filter((g) => g.slug.startsWith("store-")).flatMap((g) => [[compact(g.title), g], [compact(g.slug.slice(6)), g]]));
 const slugify = (s) => s.toLowerCase().replace(/&/g, "and").replace(/['’.]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-const cleanName = (s) => s.replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+(US|USA)$/, "").trim();
+const cleanName = (s) => s.replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+(US|USA)$/, "").replace(/\s+Affiliate Program$/i, "").trim();
 const domainCore = (d) => d.replace(/^(www|shop|us)\./, "").replace(/\.(com|us|co|net|org)(\.[a-z]+)?$/, "");
 
 /** Every store page a pick belongs to: slug -> name (and the hosts its links use, filled below). */
@@ -237,8 +237,9 @@ for (const [slug, list] of sortedGuides) if (GUIDE_SLUGS.has(slug) && !storeList
   for (const p of [...(guides["store-amazon"] ?? []), ...everyPick]) if (AMAZON.has(new URL(p.href).hostname) && !byHref.has(p.href)) byHref.set(p.href, p);
   if (byHref.size) pageList["store-amazon"] = [...byHref.values()];
 }
+const FIXED_PAGES = new Set(["store-amazon", "store-zchocolat", "store-diecast-models"]);
 for (const slug of Object.keys(storeList)) {
-  if (slug === "store-amazon") continue;
+  if (FIXED_PAGES.has(slug)) continue;
   const byHref = new Map();
   for (const p of [...(guides[slug] ?? []), ...everyPick.filter((x) => x.store === slug && !FIXED_HOSTS.has(new URL(x.href).hostname))]) if (!byHref.has(p.href)) byHref.set(p.href, p);
   const firstWins = [...byHref.values()];
@@ -247,7 +248,7 @@ for (const slug of Object.keys(storeList)) {
 /** The fixed store pages (zChocolat, Diecast) list the static picks plus every researched pick on their host, by name. */
 for (const [slug, host] of [["store-zchocolat", "www.zchocolat.com"], ["store-diecast-models", "www.diecastmodelswholesale.com"]]) {
   const onHost = [...new Map(everyPick.filter((p) => new URL(p.href).hostname === host).map((p) => [p.name, p])).values()];
-  if (onHost.length && !pageList[slug]) pageList[slug] = onHost;
+  if (onHost.length) pageList[slug] = onHost;
 }
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });

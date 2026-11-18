@@ -878,7 +878,8 @@ serve(async (_req) => {
             dashboardUrl: `${getAppUrl()}/home`,
             unsubscribeUrl,
           }),
-        'New jobs are open in your area.',
+        // Area 08 M19: the subject makes no claim the sender cannot count.
+        "See what's open near you",
         're_engagement',
       )
 

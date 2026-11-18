@@ -176,7 +176,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterHandoverTalk.tsx` | textarea×1 |  | 1000 | Buyers who want to agree a handover · Messages |
-| `src/components/declutter/DeclutterOrderTalk.tsx` | textarea×1 |  | 1000 | Messages |
+| `src/components/declutter/DeclutterOrderTalk.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/paidOrders.ts` | input×1, date/calendar×1 | datetime-local |  |  |
 
 ## /declutter, /declutter/sell, /declutter/settings

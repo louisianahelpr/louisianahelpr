@@ -83,7 +83,9 @@ function SellerStep({ orderId }: { orderId: string }) {
     step = deliveryStanding("seller", orderStepAt(facts), free, late, reportedBy);
   }
   if (!step) return null;
-  return <StepLine orderId={orderId} side="seller" step={step} action={step.who === "you" ? "See the order" : null} />;
+  // Area 08 H4 (design audit 11-18): no button here. The chat's own "See the order" link sits right under this line,
+  // so a "See the order" button said the same words twice; the seller's step is done on the card that link opens.
+  return <StepLine orderId={orderId} side="seller" step={step} action={null} />;
 }
 
 function StepLine({ orderId, side, step, action }: { orderId: string; side: Side; step: NextStepValue; action: string | null }) {

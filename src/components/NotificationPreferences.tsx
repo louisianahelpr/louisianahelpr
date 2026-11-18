@@ -570,9 +570,9 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
           className="font-sans leading-snug text-ds-11"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          Every alert above follows these switches — including safety and
-          dispute alerts, which arrive under System Alerts. Password and
-          sign-in emails come from our login system and aren't controlled here.
+          {/* Area 08 M17 (design audit 11-18): named a "System Alerts" row that does not exist, in system words. */}
+          Safety and dispute alerts arrive under Account and safety alerts.
+          Password and sign-in emails always send.
         </p>
       </div>
     </div>

@@ -8,6 +8,8 @@ import { PROFILE_NAME_HEADING_LEVEL } from "./headingContract";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 import "@/lib/i18n/enYourPage";
 import { useLanguage } from "@/lib/i18n/language";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatParts";
 
 /** Edit profile: You > Settings > Your account > Edit profile, opened directly. */
 export const EDIT_PROFILE_PATH = "/profile?tab=profile";
@@ -22,10 +24,11 @@ export const VERIFIED_NEIGHBOR = "Verified neighbor";
  */
 export function youCardFacts(verified: boolean, avgRating: number | null, reviewCount: number): string {
   const parts: string[] = [];
-  if (verified) parts.push(VERIFIED_NEIGHBOR);
+  // Area 08 H2: in the app language (the chat's job card read "Verified neighbor · 11 reviews" in Spanish).
+  if (verified) parts.push(t("cp.verified"));
   if (reviewCount > 0 && avgRating != null) {
     parts.push(avgRating.toFixed(1));
-    parts.push(`${reviewCount} review${reviewCount === 1 ? "" : "s"}`);
+    parts.push(t(reviewCount === 1 ? "cp.review" : "cp.reviews", { n: reviewCount }));
   }
   return parts.join(" · ");
 }

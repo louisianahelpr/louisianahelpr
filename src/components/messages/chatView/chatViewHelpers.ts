@@ -1,3 +1,5 @@
+import { getLang, t } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatParts";
 import type { Message } from "../types";
 import type { JobSystemEvent, JobSystemEventKind } from "@/lib/jobSystemEvents";
 import type { TimelineItem } from "./types";
@@ -12,13 +14,15 @@ export const dateDividerLabel = (d: Date): string => {
   const today = startOf(now);
   const that = startOf(d);
   const diffDays = Math.round((today - that) / 86_400_000);
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
+  // Area 08 H2: the day words and the date follow the app language (a Spanish thread read TODAY / YESTERDAY).
+  if (diffDays === 0) return t("cp.today");
+  if (diffDays === 1) return t("cp.yesterday");
+  const locale = getLang() === "es" ? "es-US" : "en-US";
   if (diffDays < 7)
-    return d.toLocaleDateString("en-US", { weekday: "long" });
+    return d.toLocaleDateString(locale, { weekday: "long" });
   if (d.getFullYear() === now.getFullYear())
-    return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-  return d.toLocaleDateString("en-US", {
+    return d.toLocaleDateString(locale, { month: "long", day: "numeric" });
+  return d.toLocaleDateString(locale, {
     month: "long",
     day: "numeric",
     year: "numeric",

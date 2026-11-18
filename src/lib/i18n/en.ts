@@ -21,6 +21,8 @@ import { enDeclBrowse } from "./enDeclBrowse";
 import { enHome } from "./enHome";
 import { enNewMember } from "./enNewMember";
 import { enMessages } from "./enMessages";
+import { enChatParts } from "./enChatParts";
+import { enNotifPrefs } from "./enNotifPrefs";
 import { enOffer } from "./enOffer";
 import { enFree } from "./enFree";
 import { enQuestions } from "./enQuestions";
@@ -60,6 +62,6 @@ import { enShopOrders } from "./enShopOrders";
 import { enShopsBrowse } from "./enShopsBrowse";
 
 /** The whole dictionary (boot words + screen words). Tests and es.ts's type read it; app code calls t(). */
-export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enNewMember, ...enSettings, ...enMessages, ...enOffer, ...enFree, ...enQuestions, ...enDeclPanels, ...enSections, ...enDeclBrowse, ...enSellSummary, ...enOfferTrade, ...enFreeAsk, ...enMoneyTiles, ...enChatEvents, ...enSellForm, ...enDeclOffers, ...enTodos, ...enListingParts, ...enTracker, ...enPorchPlaces, ...enSellingNow, ...enYourPage, ...enJobSteps, ...enNextStep, ...enJobLines, ...enCardLines, ...enDeclErrors, ...enSellerDeliveryErrors, ...enAiDraft, ...enListForSeller, ...enJobsHelpr, ...enSuggest, ...enItemPage, ...enJobCats, ...enGuest, ...enReport, ...enCreateSheets, ...enSearch, ...enDeclTodos, ...enJobPoster, ...enShopOrders, ...enShopsBrowse } as const;
+export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enNewMember, ...enSettings, ...enMessages, ...enOffer, ...enFree, ...enQuestions, ...enDeclPanels, ...enSections, ...enDeclBrowse, ...enSellSummary, ...enOfferTrade, ...enFreeAsk, ...enMoneyTiles, ...enChatEvents, ...enSellForm, ...enDeclOffers, ...enTodos, ...enListingParts, ...enTracker, ...enPorchPlaces, ...enSellingNow, ...enYourPage, ...enJobSteps, ...enNextStep, ...enJobLines, ...enCardLines, ...enDeclErrors, ...enSellerDeliveryErrors, ...enAiDraft, ...enListForSeller, ...enJobsHelpr, ...enSuggest, ...enItemPage, ...enJobCats, ...enGuest, ...enReport, ...enCreateSheets, ...enSearch, ...enDeclTodos, ...enJobPoster, ...enShopOrders, ...enShopsBrowse, ...enChatParts, ...enNotifPrefs } as const;
 
 export type MsgKey = keyof typeof en;

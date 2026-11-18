@@ -373,8 +373,9 @@ const Support = () => {
               >
                 {/* F235 (audit 11-10): the reply time was only said AFTER sending; a first-timer
                     deciding whether to write wants it up front. */}
+                {/* Area 08 L15 (design audit 11-18): the reply time is said once, under Send (F414); it was here too. */}
                 <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-support-reply-time="">
-                  A real person reads every message. {SUPPORT_REPLY_PROMISE}
+                  A real person reads every message.
                 </p>
                 {/* Identity — asked of guests, shown read-only to signed-in users. */}
                 {identityPending ? (

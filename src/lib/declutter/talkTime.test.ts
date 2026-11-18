@@ -2,8 +2,8 @@
  * AUD31-12 (audit 2026-10-31): order chat lines showed the weekday alone ("Thu 1:06 AM") for a message 9 days old.
  * Both Declutter chats (order, handover) stamp their lines with talkTime: the weekday within 6 days, the date past it.
  * F446 (audit 11-10): a line sent today read "Tue 1:45 PM"; today's and yesterday's lines are named as such.
- * @mutate src/lib/declutter/talkTime.ts |   if (sameDay(d, now)) return "Today"; |   if (false) return "Today";
- * @mutate src/lib/declutter/talkTime.ts |   return sameDay(d, yesterday) ? "Yesterday" : null; |   return null;
+ * @mutate src/lib/declutter/talkTime.ts |   if (sameDay(d, now)) return t("cp.today"); |   if (false) return t("cp.today");
+ * @mutate src/lib/declutter/talkTime.ts |   return sameDay(d, yesterday) ? t("cp.yesterday") : null; |   return null;
  * @mutate src/lib/declutter/talkTime.ts |   if (Math.abs(now.getTime() - d.getTime()) <= SIX_DAYS_MS) { |   if (true) {
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | const when = (iso: string) => talkTime(iso); | const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
  * @mutate src/components/declutter/DeclutterHandoverTalk.tsx | const when = (iso: string) => talkTime(iso); | const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });

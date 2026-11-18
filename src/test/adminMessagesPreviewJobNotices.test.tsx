@@ -70,7 +70,7 @@ describe("admin Messages preview, Job notices (Q2664 a)", () => {
   it("the sample holds one job_match notice of each shape prod sends, on made-up jobs", () => {
     const rows = messagesPreviewSample("notices", "helpr", ADMIN_ID).tables.notifications as Notification[];
     expect(rows.map((r) => r.type)).toEqual(["job_match", "job_match", "job_match"]);
-    expect(rows.map((r) => r.title)).toEqual(["New job posted", "🌿 Match for you", "New jobs in Lafayette"]);
+    expect(rows.map((r) => r.title)).toEqual(["New job posted", "Match for you", "New jobs in Lafayette"]);
     expect(rows[0].link).toMatch(/^\/home\?job=00000000-/);
     expect(rows[1].link).toMatch(/^\/home\?quickApply=00000000-/);
     expect(rows.every((r) => r.user_id === ADMIN_ID && !r.read)).toBe(true);

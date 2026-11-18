@@ -13,6 +13,8 @@ import { esDeclutter } from "./esDeclutter";
 import { esHome } from "./esHome";
 import { esNewMember } from "./esNewMember";
 import { esMessages } from "./esMessages";
+import { esChatParts } from "./esChatParts";
+import { esNotifPrefs } from "./esNotifPrefs";
 import { esOffer } from "./esOffer";
 import { esFree } from "./esFree";
 import { esQuestions } from "./esQuestions";
@@ -61,6 +63,8 @@ export const es: Record<MsgKey, string> = {
   ...esHome,
   ...esNewMember,
   ...esMessages,
+  ...esChatParts,
+  ...esNotifPrefs,
   ...esOffer,
   ...esFree,
   ...esQuestions,
@@ -150,7 +154,7 @@ export const es: Record<MsgKey, string> = {
   "nav.posts": "Publicaciones",
   "nav.jobs": "Trabajos",
   "nav.messages": "Mensajes",
-  "inbox.title": "Mensajes",
+  "inbox.title": "Buzón",
   "inbox.tabs": "Secciones de la bandeja",
   "inbox.messages": "Mensajes",
   "inbox.notifications": "Notificaciones",

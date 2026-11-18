@@ -93,7 +93,8 @@ import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, R
 import { GiftGuideView, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
-import { PUBLIC_PAGE_META, NOINDEX_PAGE_META, giftGuidePageMeta } from "@/lib/publicPageMeta.mjs";
+import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
 
@@ -757,6 +758,14 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(giftGuidePageMeta(unlisted.slug, unlisted.title)).toMatchObject({ title: `${unlisted.title} gift guide — Helpr`, robots: expect.stringMatching(/noindex/) });
     expect(Object.keys(GIFT_GUIDE_SEO).sort()).toEqual(guides.sort());
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/undefined/);
+    // Q178 (CI 11-18: /declutter/item/:id 418 -> 423 KB gz): the guides' name table stays out of publicPageMeta.mjs,
+    // which Login, Signup, Index and the Declutter item page load cold; only GiftGuides.tsx and api/share.ts read it.
+    // @mutate src/lib/publicPageMeta.mjs | import { townPageMetaFor } from "./townPages.mjs"; | import { townPageMetaFor } from "./townPages.mjs";\nimport { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
+    expect(src("src/lib/publicPageMeta.mjs")).not.toMatch(/giftGuideSeo|giftGuidePageMeta/);
+    expect(src("api/share.ts")).toContain('import { publicOrGiftGuidePageMetaFor as publicPageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";');
+    expect(publicOrGiftGuidePageMetaFor("/gift-guides/mom", null)?.title).toBe("Gifts for Mom — Helpr");
+    expect(publicOrGiftGuidePageMetaFor("/gift-guides/mom/", null)?.title).toBe("Gifts for Mom — Helpr");
+    expect(publicOrGiftGuidePageMetaFor("/browse", null)).toBe(PUBLIC_PAGE_META["/browse"]);
     const rewrites = (JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] }).rewrites;
     expect(rewrites.filter((x) => x.source.startsWith("/gift-guides"))).toEqual([
       { source: "/gift-guides", destination: "/api/share?_og=page&_id=gift-guides" },

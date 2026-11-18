@@ -34,7 +34,6 @@ export interface NoindexPageMeta extends PublicPageMeta {
   robots: string;
 }
 export const NOINDEX_ROBOTS: string;
-export function giftGuidePageMeta(slug: string, fallbackTitle?: string): PublicPageMeta & { robots?: string };
 export const NOINDEX_PAGE_META: Readonly<Record<NoindexPath, NoindexPageMeta>>;
 export function noindexPageMetaFor(pathname: string): NoindexPageMeta | null;
 export function publicPageMetaFor(

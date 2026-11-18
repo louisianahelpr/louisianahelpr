@@ -22,7 +22,6 @@
  */
 
 import { townPageMetaFor } from "./townPages.mjs";
-import { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
 
 export const SITE_ORIGIN = "https://www.louisianahelpr.com";
 
@@ -69,7 +68,7 @@ export const LEGAL_PAGE_META = {
 /** Single-path public pages, keyed by pathname. */
 export const PUBLIC_PAGE_META = {
   // Holiday Gift Guides (owner 2026-11-16; indexed from the follow-up batch 2026-11-18, SEO): in the sitemap with every
-  // guide that holds picks (scripts/generate-sitemap.mjs allGiftGuidePaths); each guide's own head is giftGuidePageMeta.
+  // guide that holds picks (scripts/generate-sitemap.mjs allGiftGuidePaths); each guide's own head is giftGuidePageMeta (giftGuidePageMeta.mjs).
   "/gift-guides": {
     title: "Holiday gift guides 2026 — Helpr",
     description: "Gift ideas for everyone on your list, from Louisiana Helpr: by person, budget, career and store, plus Louisiana favorites.",
@@ -166,25 +165,6 @@ export const PUBLIC_PAGE_META = {
  * values agree before and after JavaScript.
  */
 export const NOINDEX_ROBOTS = "noindex, follow";
-
-/**
- * One gift guide's head, /gift-guides/<slug> (follow-up batch 2026-11-18, SEO). A guide search engines see (in
- * GIFT_GUIDE_SEO, generated with the sitemap's list) gets its unique name ("Gifts for Mom", "Walmart gift guide") as
- * title and card, never a price; any other guide (empty, a hub, a thin store page) is noindex under its own title.
- */
-export function giftGuidePageMeta(slug, fallbackTitle = "") {
-  const named = Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, slug) ? GIFT_GUIDE_SEO[slug] : null;
-  const name = named ?? `${fallbackTitle} gift guide`;
-  const description = `${name}: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.`;
-  return {
-    title: `${name} — Helpr`,
-    description,
-    canonical: `${SITE_ORIGIN}/gift-guides/${slug}`,
-    ogTitle: `${name}: holiday gift guide 2026`,
-    ogDescription: description,
-    ...(named ? {} : { robots: NOINDEX_ROBOTS }),
-  };
-}
 
 export const NOINDEX_PAGE_META = {
   "/login": {
@@ -328,8 +308,7 @@ export function publicPageMetaFor(pathname, tabParam) {
   // OPS-4: the town + service pages (/hire/<service>/<town>), from their own table.
   const town = townPageMetaFor(path);
   if (town) return town;
-  // The indexed gift guides (/gift-guides/<slug>), from their generated table.
-  const gift = path.match(/^\/gift-guides\/([a-z0-9-]+)$/)?.[1];
-  if (gift && Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, gift)) return giftGuidePageMeta(gift);
+  // The indexed gift guides (/gift-guides/<slug>) are giftGuidePageMeta.mjs's publicOrGiftGuidePageMetaFor (Q178:
+  // their generated table stays out of the shared chunk).
   return Object.prototype.hasOwnProperty.call(PUBLIC_PAGE_META, path) ? PUBLIC_PAGE_META[path] : null;
 }

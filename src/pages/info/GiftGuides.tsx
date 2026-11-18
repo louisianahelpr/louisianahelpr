@@ -1,7 +1,8 @@
 import { Link, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { PUBLIC_PAGE_META, giftGuidePageMeta } from "@/lib/publicPageMeta.mjs";
+import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { ROWS, guideBySlug, newSlugFor, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";

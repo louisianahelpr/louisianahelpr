@@ -4937,6 +4937,7 @@ select.bg-card,
 button[role="radio"].bg-card,
 button[aria-pressed].bg-card,
 button[aria-expanded].bg-card,
+label[for].bg-card,
 [data-field-edge].bg-card {
   border-color: hsl(var(--border)) !important;
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow, 0 0 #0000) !important;

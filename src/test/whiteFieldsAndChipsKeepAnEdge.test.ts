@@ -7,6 +7,8 @@
  *
  * @mutate src/index.css | input.bg-card,\ntextarea.bg-card, | .x-off-input,\n.x-off-textarea,
  * @mutate src/index.css | button[role="radio"].bg-card, | button[data-x-off].bg-card,
+ * @mutate src/index.css | label[for].bg-card,
+ | 
  * @mutate src/index.css | [data-field-edge].bg-card {\n  border-color: hsl(var(--border)) !important; | [data-field-edge].bg-card {\n  border-color: transparent !important;
  * @mutate src/components/declutter/DeclutterManageListing.tsx | <div className={field} data-field-edge=""> | <div className={field}>
  * @mutate src/pages/profile/giftCards/OccasionChips.tsx | border: "1px solid hsl(var(--border))", | border: "1px solid hsl(var(--bark) / 0.18)",
@@ -45,6 +47,7 @@ describe("white fields and chips keep an edge on the white page (design audit r3
     'button[role="radio"].bg-card',
     "button[aria-pressed].bg-card",
     "button[aria-expanded].bg-card",
+    "label[for].bg-card",
     "[data-field-edge].bg-card",
   ])("%s wears the --border hairline", (selector) => {
     expect(edged(selector)).toBe(true);
@@ -61,6 +64,8 @@ describe("white fields and chips keep an edge on the white page (design audit r3
     const shop = read("src/components/shops/ShopCategoryQuickPick.tsx");
     expect(shop).toMatch(/role="radio"/);
     expect((shop.match(/border-border bg-card/g) ?? []).length).toBeGreaterThan(1);
+    // AI describe's "Add a photo" pill (r3 #23) is a <label htmlFor> on bg-card.
+    expect(read("src/components/ui/PhotoPickButton.tsx")).toMatch(/htmlFor=\{id\}[\s\S]{0,80}className="[^"]*border border-border bg-card/);
     // Manage listing price boxes are divs that hold the input.
     expect((read("src/components/declutter/DeclutterManageListing.tsx").match(/<div className=\{field\} data-field-edge="">/g) ?? []).length).toBeGreaterThan(1);
   });

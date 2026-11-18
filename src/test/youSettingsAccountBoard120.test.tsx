@@ -28,7 +28,7 @@ vi.mock("@/components/sections/useSectionPrefs", async () => {
   return { useSectionPrefs: () => ({ visible: SECTIONS, prefs: { order: SECTIONS.map((s) => s.key), hidden: [] }, setHidden: vi.fn() }) };
 });
 
-import { SettingsTab, accountLine } from "@/components/profile/SettingsTab";
+import { SettingsTab, accountLines } from "@/components/profile/SettingsTab";
 import type { Profile } from "@/components/profile/profileLanding/types";
 
 // These cases test the ID check while it is ON. The owner switched it off on
@@ -53,14 +53,17 @@ const renderIt = (profile: Partial<Profile> | null, onRequestDelete = vi.fn()) =
 
 describe("You › Settings › Your account, board 120", () => {
   it("the account line is the real email and sign-in methods, each only when known", () => {
-    expect(accountLine("lexi@example.com", [{ provider: "email" }, { provider: "google" }])).toBe("lexi@example.com · Password, Google");
-    expect(accountLine(null, [{ provider: "apple" }])).toBe("Apple");
-    expect(accountLine(undefined, [])).toBeNull();
+    // Design audit area 09 L7: two lines, the email on its own (it wrapped mid-word beside the methods).
+    expect(accountLines("lexi@example.com", [{ provider: "email" }, { provider: "google" }])).toEqual(["lexi@example.com", "Password, Google"]);
+    expect(accountLines(null, [{ provider: "apple" }])).toEqual(["Apple"]);
+    expect(accountLines(undefined, [])).toBeNull();
   });
 
   it("renders the line, no ID row when unverified, and Delete account opens the delete dialog", () => {
     const onDelete = renderIt(null);
-    expect(screen.getByText("lexi@example.com · Password, Google")).toBeTruthy();
+    const email = screen.getByText("lexi@example.com");
+    expect(email.className).toContain("truncate");
+    expect(screen.getByText("Password, Google")).toBeTruthy();
     expect(screen.queryByText("ID")).toBeNull();
     const del = screen.getByText("Delete account");
     expect(del.getAttribute("style")).toContain("--alert-ink");

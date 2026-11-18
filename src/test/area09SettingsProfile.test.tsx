@@ -22,6 +22,8 @@
  * @mutate src/components/help/HelpEntry.tsx |   if (onHelpScreen(pathname, search)) return null; |
  * @mutate src/components/profile/SupportInline.tsx | data-support-reply-time="">{SUPPORT_REPLY_PROMISE}</p> | data-support-reply-time="">A real person reads every message. {SUPPORT_REPLY_PROMISE}</p>
  * @mutate src/components/profile/DeleteAccountDialog.tsx |   return <WhatHappensList lines={WHAT_HAPPENS} extra={<DownloadFirst />} />; |   return <WhatHappensList lines={[...WHAT_HAPPENS, DOWNLOAD_LINE]} />;
+ * @mutate src/components/profile/ProfileEditForm.tsx |             Neighbors read this on your public profile. | People read this when deciding who to hire.
+ * @mutate src/components/profile/SettingsTab.tsx | data-sub-line="" className="block text-ds-13 text-muted-foreground mt-0.5 truncate" | data-sub-line="" className="block text-ds-13 text-muted-foreground mt-0.5"
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -202,6 +204,19 @@ describe("design audit area 09: the delete sheet's download hint is a button (L1
     expect(fn.length).toBeGreaterThan(200);
     expect(fn).toContain("useDataExport(");
     expect(fn).toContain("onClick={() => void startExport()}");
+  });
+});
+
+describe("design audit area 09: Edit profile does not assume a role (M10), the email gets its own line (L7)", () => {
+  it("About and Recent work speak to every member, not only Helprs or posters", () => {
+    const edit = src("src/components/profile/ProfileEditForm.tsx") + src("src/components/profile/profileEditForm/RecentWorkSection.tsx");
+    expect(edit.length).toBeGreaterThan(1000);
+    expect(edit).not.toMatch(/deciding who to hire|applicants see these/);
+  });
+  it("the Account and security row truncates each line on its own", () => {
+    const tab = src("src/components/profile/SettingsTab.tsx");
+    expect(tab).toMatch(/data-sub-line="" className="[^"]*\btruncate\b/);
+    expect(tab).toContain("subLines={accountLines(user?.email, user?.identities)}");
   });
 });
 

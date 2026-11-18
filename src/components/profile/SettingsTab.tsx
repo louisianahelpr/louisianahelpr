@@ -79,15 +79,15 @@ function Group({ title: english, children }: { title: string; children: ReactNod
 }
 
 /** One settings row: label, a muted line under it, and either a chevron (it opens something) or a control. */
-/** "you@example.com · Password, Google": the account row's line, or null when nothing is known. */
-export function accountLine(email: string | null | undefined, identities: { provider: string }[] | null | undefined): string | null {
+/** Design audit area 09 L7: the same facts as two lines, the email on its own truncated line (it wrapped mid-word). */
+export function accountLines(email: string | null | undefined, identities: { provider: string }[] | null | undefined): string[] | null {
   const NAMES: Record<string, string> = { email: "Password", google: "Google", apple: "Apple" };
   const methods = [...new Set((identities ?? []).map((i) => NAMES[i.provider]).filter(Boolean))];
-  const parts = [email || null, methods.length ? methods.join(", ") : null].filter(Boolean);
-  return parts.length ? parts.join(" · ") : null;
+  const lines = [email || null, methods.length ? methods.join(", ") : null].filter((l): l is string => !!l);
+  return lines.length ? lines : null;
 }
 
-function Row({ label: englishLabel, badge, sub: englishSub, onClick, right, testId, danger = false, busy = false }: { label: string; badge?: ReactNode; sub?: string; onClick?: () => void; right?: ReactNode; testId?: string; danger?: boolean; busy?: boolean }) {
+function Row({ label: englishLabel, badge, sub: englishSub, subLines, onClick, right, testId, danger = false, busy = false }: { label: string; badge?: ReactNode; sub?: string; subLines?: string[] | null; onClick?: () => void; right?: ReactNode; testId?: string; danger?: boolean; busy?: boolean }) {
   const word = useSettingsWord();
   const label = word(englishLabel);
   const sub = englishSub === undefined ? undefined : word(englishSub);
@@ -98,7 +98,9 @@ function Row({ label: englishLabel, badge, sub: englishSub, onClick, right, test
     <>
       <span className="flex-1 min-w-0">
         {badge ? <span className="flex items-center gap-2">{name}{badge}</span> : name}
-        {sub && <span className="block text-ds-13 text-muted-foreground mt-0.5">{sub}</span>}
+        {subLines
+          ? subLines.map((l, i) => <span key={i} data-sub-line="" className="block text-ds-13 text-muted-foreground mt-0.5 truncate" title={l}>{l}</span>)
+          : sub && <span className="block text-ds-13 text-muted-foreground mt-0.5">{sub}</span>}
       </span>
       {right ?? (onClick && <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />)}
     </>
@@ -256,7 +258,7 @@ export function SettingsTab({
         {profile && <ProfileLinkRow name={profile.full_name?.trim().split(/\s+/)[0] ?? null} changedOnce={!!profile.handle_changed_at} />}
         {/* Board 120: the row shows what is true now (your email and how you
             sign in) instead of a list of what is inside; each part only when known. */}
-        <Row testId="security" label={TAB_TITLES.security} sub={accountLine(user?.email, user?.identities) ?? "Email, password, sign-in"} onClick={() => onSelectTab("security")} />
+        <Row testId="security" label={TAB_TITLES.security} subLines={accountLines(user?.email, user?.identities)} sub="Email, password, sign-in" onClick={() => onSelectTab("security")} />
         {/* Stripe Identity: the row says where a check stands, only once there is one to report.
             Settings never asks an unverified member (owner 2026-10-30). A test account has no check. */}
         {idOn && profile && profile.is_seed !== true && ["verified", "checking", "with_team"].includes(identityView(profile.idv_status)) && (

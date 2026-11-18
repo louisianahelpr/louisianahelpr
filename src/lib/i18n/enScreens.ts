@@ -13,10 +13,8 @@ export const enScreens = {
   "hero.titleLead": "Louisiana’s local",
   "hero.titleAccent": "partner.",
   "hero.subhead": "Hire help, find work, or buy and sell. One account, real neighbors.",
-  "hero.searchLabel": "Search local jobs",
+  "hero.searchLabel": "Search jobs and Declutter",
   "hero.searchButton": "Search",
-  "hero.searchDeclutter": "Search Declutter",
-  "hero.tabJobs": "Jobs",
 
   // Chat screens: everyday words only. Safety, rules and money wording stays English until a person translates it.
   "chat.back": "Back to conversations",

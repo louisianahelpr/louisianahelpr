@@ -43,7 +43,7 @@ describe("the landing hero speaks the visitor's language", () => {
     await new Promise((r) => setTimeout(r, 30));
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Louisiana’s local partner.");
     expect(screen.getByText("Hire help, find work, or buy and sell. One account, real neighbors.")).toBeTruthy();
-    expect(screen.getByPlaceholderText("Search local jobs")).toBeTruthy();
+    expect(screen.getByPlaceholderText("Search jobs and Declutter")).toBeTruthy();
     // The locked English and the en dictionary agree, so the two can never drift apart.
     expect(`${enScreens["hero.titleLead"]} ${enScreens["hero.titleAccent"]}`).toBe("Louisiana’s local partner.");
     expect(enScreens["hero.subhead"]).toBe("Hire help, find work, or buy and sell. One account, real neighbors.");

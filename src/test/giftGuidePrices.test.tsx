@@ -10,13 +10,20 @@
  * @mutate src/components/giftGuides/PickPrice.tsx | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt) \|\| isAmazonPick(pick)) return false; | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt)) return false;
  * @mutate src/components/giftGuides/PickPrice.tsx |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         <PickPrice pick={pick} /> |         {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={guide.picks.slice(0, shown)} /> |       {null}
+ * @mutate src/content/giftGuideCatalog.ts |     ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) }; |     }; void store;
  */
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { PickChunk } from "@/content/giftGuidePicks";
 import { TOP_PICKS } from "@/content/giftGuidePicks";
-import type { CatalogPick } from "@/content/giftGuideCatalog";
+import { loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
+
+vi.mock("@/components/marketing/PublicHeaderPage", () => ({
+  PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
+}));
+import GiftGuides from "@/pages/info/GiftGuides";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { verifiedPrice } from "../../scripts/giftGuidePrice.mjs";
@@ -98,5 +105,27 @@ describe("gift-guide prices: the page", () => {
     expect(container.textContent).toBe(`Prices as of ${day(ago(1))}, may change`);
     cleanup();
     expect(render(<PricesAsOf picks={[amazon]} />).container.textContent).toBe("");
+  });
+});
+
+describe("gift-guide prices: a real guide page", () => {
+  it("a guide whose picks carry checked prices shows them beside Shop, with exactly one 'Prices as of' note", async () => {
+    await loadAllGuidePicks();
+    const priced = Object.entries(CHUNKS).find(([slug, picks]) => !slug.startsWith("store-") && picks.slice(0, 50).filter((p) => p.price !== undefined).length > 3);
+    // Inventory floor: the import shipped prices (2,300 priced rows on 2026-11-18).
+    expect(priced, "no guide with prices: re-run scripts/gift-guide-picks.mjs after fill_prices.py").toBeTruthy();
+    // The page hides a price older than 3 days, so the clock is set to the check day (this test never goes stale).
+    const day = priced![1].find((p) => p.priceAt)!.priceAt!;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(`${day}T18:00:00Z`));
+    const { container } = render(
+      <MemoryRouter initialEntries={[`/gift-guides/${priced![0]}`]}>
+        <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>
+      </MemoryRouter>,
+    );
+    await screen.findAllByText(/^~\$\d+$/);
+    expect(container.querySelectorAll("[data-gift-price]").length).toBeGreaterThan(3);
+    expect(container.querySelectorAll("[data-gift-prices-as-of]").length).toBe(1);
+    vi.useRealTimers();
   });
 });

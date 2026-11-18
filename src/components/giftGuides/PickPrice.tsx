@@ -8,7 +8,7 @@ import type { CatalogPick } from "@/content/giftGuideCatalog";
  * A price older than PRICE_MAX_AGE_DAYS on the day the page opens is hidden, so a file nobody re-imported never shows
  * an old price. Guard: src/test/giftGuidePrices.test.tsx.
  */
-export const PRICE_MAX_AGE_DAYS = 3;
+const PRICE_MAX_AGE_DAYS = 3;
 const AMAZON_HOST = /(^|\.)(amazon\.[a-z.]+|amzn\.to|a\.co)$/;
 const todayInLouisiana = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
 const dayNumber = (ymd: string) => Date.parse(`${ymd}T12:00:00Z`) / 86400000;

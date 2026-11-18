@@ -129,11 +129,14 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(container.querySelector("[data-gift-also-sponsoring]")?.textContent).toBe("Also sponsoring: Hilma");
     expect(container.querySelector('a[href*="hilma"]')).toBeNull();
   });
-  it("draws the badges on the list, never a price, and every Shop link is sponsored + noopener", () => {
+  it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {
     const { container } = renderAt("/gift-guides/louisiana-made");
     const badges = [...container.querySelectorAll("[data-gift-badge]")].map((b) => b.textContent);
     expect(badges).toContain("Louisiana-made");
-    expect(container.querySelector("[data-gift-list]")?.textContent).not.toMatch(/\$\s?\d/);
+    // The only "$" on the list is a checked price beside Shop (src/test/giftGuidePrices.test.tsx), never in a name, line or badge.
+    const list = container.querySelector("[data-gift-list]")!.cloneNode(true) as HTMLElement;
+    list.querySelectorAll("[data-gift-price]").forEach((el) => el.remove());
+    expect(list.textContent).not.toMatch(/\$\s?\d/);
     const out = [...container.querySelectorAll("[data-gift-list] a")];
     expect(out.length).toBe(25);
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");

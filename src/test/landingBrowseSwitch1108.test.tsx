@@ -1,23 +1,21 @@
 /**
- * Owner 11-08: a member could not find Declutter items on the landing (the "Fresh on Declutter" strip sat ~1.5 screens
- * down, under the jobs). The section right under the hero (LandingBrowseSwitch.tsx) follows the Jobs | Declutter choice:
- *   - Jobs (the default) shows the live jobs; Declutter shows the Declutter grid IN PLACE of them;
- *   - the visitor's pick is remembered in localStorage (wrapped: storage that throws falls back to jobs, never a crash);
- *   - /#declutter opens on Declutter (a Facebook link), over a remembered "jobs".
- * F012 (owner's UI audit 11-09): the hero search has Jobs | Declutter tabs above the box (landingMode.ts): picking
- * Declutter turns the section too, the box says "Search Declutter" and its words go to /declutter?q=. The LOCKED hero
- * words do not change.
- * D001 (landing design audit 11-10, High): the section's own second switch ("Find help or work | Shop Declutter") is
- * gone; the hero's tabs are the landing's ONE Jobs | Declutter switch.
+ * Owner 11-08: a member could not find Declutter items on the landing. Owner 11-18: "can we remove this on the landing
+ * and the search just be used for both?": the hero's Jobs | Declutter tabs (F012, 11-09) are gone, and the one box
+ * searches jobs AND Declutter:
+ *   - no tabs, radios or tablists anywhere in the hero or the sections under it;
+ *   - the box says "Search jobs and Declutter", and its words open /search?q= (jobs and Declutter items together,
+ *     open to guests) signed in or out; an empty box still opens the jobs;
+ *   - under the hero the live jobs come first, then the Declutter grid (both, no picking);
+ *   - /#declutter scrolls to the Declutter grid (id="declutter") and turns How it works to "Buy or sell".
+ * The LOCKED hero words do not change.
  *
- * @mutate src/components/landing/landingMode.ts |   if (current === null) current = window.location.hash === LANDING_DECLUTTER_HASH ? "declutter" : readSavedMode() ?? "jobs"; |   if (current === null) current = readSavedMode() ?? "jobs";
- * @mutate src/components/landing/landingMode.ts |   if (remember) saveMode(mode); |   void saveMode;
- * @mutate src/components/landing/landingMode.ts | : readSavedMode() ?? "jobs"; | : readSavedMode() ?? "declutter";
- * @mutate src/components/landing/landingMode.ts |   listeners.forEach((l) => l()); |
- * @mutate src/components/landing/LandingBrowseSwitch.tsx |         {mode === "jobs" ? <LiveJobsSection /> : <FreshDeclutterSection />} |         <LiveJobsSection /><FreshDeclutterSection />
- * @mutate src/components/landing/HeroSection.tsx |                 onChange={(next) => setLandingMode(next)} |                 onChange={() => {}}
- * @mutate src/components/landing/LandingBrowseSwitch.tsx |       {mode === "jobs" ? <LiveJobsSection /> : <FreshDeclutterSection />} |       <div role="tablist"><button role="tab">Find help or work</button></div>{mode === "jobs" ? <LiveJobsSection /> : <FreshDeclutterSection />}
- * @mutate src/components/landing/heroSearch.ts |   if (mode === "declutter") return { signedIn: `/declutter${qs}`, signedOut: `/declutter${qs}` }; |
+ * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: q ? `/search${qs}` : "/browse" }; |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: `/browse${qs}` };
+ * @mutate src/components/landing/HeroSection.tsx |   const searchLabel = es ? es.searchLabel : "Search jobs and Declutter"; |   const searchLabel = es ? es.searchLabel : "Search local jobs";
+ * @mutate src/components/landing/LandingBrowseSwitch.tsx |       <LiveJobsSection />\n |
+ * @mutate src/components/landing/LandingBrowseSwitch.tsx |         <FreshDeclutterSection />\n |
+ * @mutate src/components/landing/LandingBrowseSwitch.tsx |       <div id="declutter" data-testid="landing-declutter" className="scroll-mt-20"> |       <div data-testid="landing-declutter" className="scroll-mt-20">
+ * @mutate src/components/landing/landingMode.ts |   if (current === null) current = window.location.hash === LANDING_DECLUTTER_HASH ? "declutter" : "jobs"; |   if (current === null) current = "jobs";
+ * @mutate src/components/landing/LandingBrowseSwitch.tsx |     if (hash === LANDING_DECLUTTER_HASH) setLandingMode("declutter"); |     void setLandingMode;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -33,144 +31,89 @@ vi.mock("@/components/landing/goSignedInOr", () => ({
 
 import { LandingBrowseSwitch } from "@/components/landing/LandingBrowseSwitch";
 import HeroSection from "@/components/landing/HeroSection";
-import { LANDING_MODE_KEY, resetLandingModeForTests } from "@/components/landing/landingMode";
+import { resetLandingModeForTests, useLandingMode } from "@/components/landing/landingMode";
 import { heroSearchTargets } from "@/components/landing/heroSearch";
 
 function Where() {
   const l = useLocation();
   return <div data-testid="where">{l.pathname + l.search}</div>;
 }
+function Mode() {
+  return <div data-testid="mode">{useLandingMode()}</div>;
+}
 
 const open = (url = "/") =>
   render(
     <MemoryRouter initialEntries={[url]}>
       <Routes>
-        <Route path="/" element={<><HeroSection /><LandingBrowseSwitch /></>} />
+        <Route path="/" element={<><HeroSection /><LandingBrowseSwitch /><Mode /></>} />
         <Route path="*" element={<Where />} />
       </Routes>
     </MemoryRouter>,
   );
-const heroTab = (name: string) => within(screen.getByTestId("landing-search-tabs")).getByRole("radio", { name });
 const box = () => screen.getByRole("searchbox") as HTMLInputElement;
 
-beforeEach(() => {
-  window.localStorage.clear();
-  resetLandingModeForTests();
-});
+beforeEach(() => resetLandingModeForTests());
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   resetLandingModeForTests();
 });
 
-describe("the landing's Jobs | Declutter switch (owner 11-08)", () => {
-  it("D001: ONE switch on the landing, the hero's; the section under it has none", () => {
+describe("the landing's one search covers jobs and Declutter (owner 11-18)", () => {
+  it("no Jobs | Declutter tabs: no tab, radio or tablist in the hero or under it", () => {
+    const { container } = open();
+    expect(screen.queryByTestId("landing-search-tabs")).toBeNull();
+    for (const role of ["tab", "radio", "tablist", "radiogroup"]) expect(within(container).queryAllByRole(role), role).toHaveLength(0);
+    // Inventory floor: the hero still has its one search box and button.
+    expect(box()).toBeTruthy();
+    expect(screen.getByTestId("landing-search-submit")).toBeTruthy();
+  });
+
+  it("the box says it searches both, and its words open /search (jobs and Declutter together), signed in or out", () => {
+    open();
+    expect(box().placeholder).toBe("Search jobs and Declutter");
+    fireEvent.change(box(), { target: { value: "  oak  rocking chair " } });
+    fireEvent.submit(screen.getByTestId("landing-search"));
+    expect(screen.getByTestId("where").textContent).toBe("/search?q=oak+rocking+chair");
+    expect(heroSearchTargets("mow")).toEqual({ signedIn: "/search?q=mow", signedOut: "/search?q=mow" });
+    expect(heroSearchTargets("  ")).toEqual({ signedIn: "/jobs", signedOut: "/browse" });
+  });
+
+  it("under the hero: the live jobs, then the Declutter grid, both at once", () => {
     open();
     const section = screen.getByTestId("landing-browse-switch");
-    expect(within(section).queryAllByRole("tab")).toHaveLength(0);
-    expect(within(section).queryAllByRole("radio")).toHaveLength(0);
-    expect(within(section).queryAllByRole("tablist")).toHaveLength(0);
-    // Inventory floor: the landing still has its one switch, with both choices.
-    const choices = within(screen.getByTestId("landing-search-tabs")).getAllByRole("radio");
-    expect(choices.length).toBeGreaterThan(1);
-    expect(choices.map((t) => t.textContent)).toEqual(["Jobs", "Declutter"]);
+    const jobs = within(section).getByTestId("jobs-panel");
+    const declutter = within(section).getByTestId("declutter-panel");
+    expect(jobs.compareDocumentPosition(declutter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId("mode").textContent).toBe("jobs");
   });
 
-  it("jobs by default; the hero's Declutter swaps the jobs for the Declutter grid and back", () => {
-    open();
-    expect(heroTab("Jobs").getAttribute("aria-checked")).toBe("true");
-    expect(screen.getByTestId("jobs-panel")).toBeTruthy();
-    expect(screen.queryByTestId("declutter-panel")).toBeNull();
-    fireEvent.click(heroTab("Declutter"));
-    expect(screen.getByTestId("declutter-panel")).toBeTruthy();
-    expect(screen.queryByTestId("jobs-panel")).toBeNull(); // in place of the jobs, not under them
-    fireEvent.click(heroTab("Jobs"));
-    expect(screen.getByTestId("jobs-panel")).toBeTruthy();
-    expect(screen.queryByTestId("declutter-panel")).toBeNull();
-  });
-
-  it("remembers the pick for the next visit", () => {
-    open();
-    fireEvent.click(heroTab("Declutter"));
-    expect(window.localStorage.getItem(LANDING_MODE_KEY)).toBe("declutter");
-    cleanup();
-    resetLandingModeForTests(); // a new page load
-    open();
-    expect(screen.getByTestId("declutter-panel")).toBeTruthy();
-    fireEvent.click(heroTab("Jobs"));
-    cleanup();
-    resetLandingModeForTests();
-    open();
-    expect(screen.getByTestId("jobs-panel")).toBeTruthy();
-  });
-
-  it("/#declutter opens on Declutter, even over a remembered jobs pick, and the switch is the scroll target", () => {
-    window.localStorage.setItem(LANDING_MODE_KEY, "jobs");
+  it("/#declutter: the Declutter grid is the scroll target and How it works leans to Declutter", () => {
     window.history.replaceState(null, "", "/#declutter");
     try {
       open("/#declutter");
-      expect(screen.getByTestId("declutter-panel")).toBeTruthy();
-      expect(screen.getByTestId("landing-browse-switch").id).toBe("declutter");
-      // The link does not overwrite the visitor's own remembered pick.
-      expect(window.localStorage.getItem(LANDING_MODE_KEY)).toBe("jobs");
-      // The hero alone reads the hash on its first render too (the switch's effect is not what turns it).
+      expect(screen.getByTestId("landing-declutter").id).toBe("declutter");
+      expect(within(screen.getByTestId("landing-declutter")).getByTestId("declutter-panel")).toBeTruthy();
+      expect(screen.getByTestId("mode").textContent).toBe("declutter");
+      // The page-load read alone (no switch effect) already opens on Declutter, so How it works never flips.
       cleanup();
       resetLandingModeForTests();
-      render(<MemoryRouter initialEntries={["/"]}><HeroSection /></MemoryRouter>);
-      expect(box().placeholder).toBe("Search Declutter");
+      render(<Mode />);
+      expect(screen.getByTestId("mode").textContent).toBe("declutter");
     } finally {
       window.history.replaceState(null, "", "/");
     }
-  });
-
-  it("storage that throws (private window, blocked site data) falls back to jobs and the switch still works", () => {
-    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("SecurityError"); });
-    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("QuotaExceededError"); });
-    open();
-    expect(screen.getByTestId("jobs-panel")).toBeTruthy();
-    fireEvent.click(heroTab("Declutter"));
-    expect(screen.getByTestId("declutter-panel")).toBeTruthy();
-  });
-});
-
-describe("the hero search's Jobs | Declutter tabs drive the section (F012, 11-09)", () => {
-  it("the hero tabs turn the section and the box's words", () => {
-    open();
-    expect(heroTab("Jobs").getAttribute("aria-checked")).toBe("true");
-    expect(box().placeholder).toBe("Search local jobs");
-    fireEvent.click(heroTab("Declutter"));
-    expect(heroTab("Declutter").getAttribute("aria-checked")).toBe("true");
-    expect(box().placeholder).toBe("Search Declutter");
-    expect(screen.getByTestId("declutter-panel")).toBeTruthy();
-    fireEvent.click(heroTab("Jobs"));
-    expect(heroTab("Jobs").getAttribute("aria-checked")).toBe("true");
-    expect(box().placeholder).toBe("Search local jobs");
-    expect(screen.getByTestId("jobs-panel")).toBeTruthy();
-  });
-
-  it("on the Declutter tab the words search Declutter; on Jobs, the jobs board", () => {
-    open();
-    fireEvent.click(heroTab("Declutter"));
-    fireEvent.change(box(), { target: { value: "  oak  rocking chair " } });
-    fireEvent.submit(screen.getByTestId("landing-search"));
-    expect(screen.getByTestId("where").textContent).toBe("/declutter?q=oak+rocking+chair");
     cleanup();
     resetLandingModeForTests();
-    window.localStorage.clear();
-    open();
-    fireEvent.change(box(), { target: { value: "mow" } });
-    fireEvent.submit(screen.getByTestId("landing-search"));
-    expect(screen.getByTestId("where").textContent).toBe("/browse?q=mow");
-    expect(heroSearchTargets("mow", "declutter")).toEqual({ signedIn: "/declutter?q=mow", signedOut: "/declutter?q=mow" });
-    expect(heroSearchTargets("", "declutter")).toEqual({ signedIn: "/declutter", signedOut: "/declutter" });
+    // Followed while the landing is open (the hash arrives after the first read).
+    open("/#declutter");
+    expect(screen.getByTestId("mode").textContent).toBe("declutter");
   });
 
-  it("the LOCKED hero words stay exactly the same on either tab", () => {
+  it("the LOCKED hero words stay exactly the same", () => {
     open();
-    const words = () => [screen.getByRole("heading", { level: 1 }).textContent, screen.getByText(/^Hire help, find work, or buy and sell/).textContent];
-    const before = words();
-    expect(before).toEqual(["Louisiana’s local partner.", "Hire help, find work, or buy and sell. One account, real neighbors."]);
-    fireEvent.click(heroTab("Declutter"));
-    expect(words()).toEqual(before);
+    expect([screen.getByRole("heading", { level: 1 }).textContent, screen.getByText(/^Hire help, find work, or buy and sell/).textContent])
+      .toEqual(["Louisiana’s local partner.", "Hire help, find work, or buy and sell. One account, real neighbors."]);
   });
 });

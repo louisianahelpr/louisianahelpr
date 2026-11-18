@@ -139,9 +139,8 @@ const Index = () => {
           works, the money band, then the join block. */}
       <HeroSection />
 
-      {/* Owner 11-08: the Jobs | Declutter switch right under the hero. "Find help or work" (the default) shows the
-          newest open jobs (owner 2026-10-23, option B); "Shop Declutter" shows the newest Declutter items in their
-          place (owner 11-04 strip, loaded only once chosen and near the screen). /#declutter opens on Declutter. */}
+      {/* Under the hero (owner 11-18: no Jobs | Declutter tabs, the one search covers both): the newest open jobs, then
+          the newest Declutter items (loaded only near the screen). /#declutter scrolls to the Declutter grid. */}
       <LandingBrowseSwitch />
 
       <SectionsShowcase />

@@ -516,7 +516,7 @@ const Support = () => {
                     onChange={(e) => set("message", e.target.value)}
                     onBlur={() => markTouched("message")}
                     placeholder={
-                      selectedTopic?.messagePlaceholder ?? "How can our team help you today?"
+                      selectedTopic?.messagePlaceholder ?? "Tell us what happened."
                     }
                     aria-invalid={!!showError("message")}
                     aria-describedby={showError("message") ? "support-message-error" : undefined}

@@ -93,13 +93,14 @@ export const TldrCard = ({ items }: { items: ReactNode[] }) => {
 //
 // It is a prop rather than a second component precisely so the two cannot drift
 // — same surface, same border, same destination, one decision about emphasis.
+// Design audit areas 11-18 #21: a light tint with a hairline (bg-muted/40 + border), not a solid beige slab on the white app.
 export const PolicyFooter = ({ updated, cta = false }: { updated?: string; cta?: boolean }) => (
   <div
     data-print-hide
     className={
       cta
-        ? "rounded-[20px] bg-muted px-4 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-        : "rounded-[20px] bg-muted px-4 py-3 flex items-center justify-between gap-3"
+        ? "rounded-[20px] border border-border bg-muted/40 px-4 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        : "rounded-[20px] border border-border bg-muted/40 px-4 py-3 flex items-center justify-between gap-3"
     }
   >
     <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -132,7 +133,8 @@ export const PolicyFooter = ({ updated, cta = false }: { updated?: string; cta?:
     )}
     {updated && (
       <span
-        className="shrink-0 text-ds-11 font-sans tabular-nums"
+        // Design audit areas 11-18 #23: 13px (was 11), the page's smallest readable size.
+        className="shrink-0 text-ds-13 font-sans tabular-nums"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         Updated {updated}

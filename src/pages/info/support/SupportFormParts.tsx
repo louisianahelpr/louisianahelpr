@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SUPPORT_TOPICS, type SupportTopicKey, findSupportTopic } from "@/lib/supportTopics";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 /** Inline field error — same shape as AddCalendarForm's budget error
  *  (role="alert" + the id the input points at via aria-describedby).
@@ -50,11 +51,12 @@ export function SupportTopicField({
           aria-invalid={!!error}
           aria-describedby={error ? "support-topic-error" : undefined}
         >
-          <SelectValue placeholder="Choose a topic" />
+          <SelectValue placeholder={wordInLang("pub.support.chooseTopic", "Choose a topic")} />
         </SelectTrigger>
         <SelectContent>
           {SUPPORT_TOPICS.map((topic) => (
-            <SelectItem key={topic.key} value={topic.key}>
+            // Design audit areas 11-18 #22: the highlighted topic is olive, not the rust accent (rust is for money).
+            <SelectItem key={topic.key} value={topic.key} className="focus:bg-[hsl(var(--bark)/0.1)] focus:text-foreground" data-support-topic-option="">
               {topic.label}
             </SelectItem>
           ))}
@@ -80,7 +82,7 @@ export function SupportTopicField({
 export function SupportSuggestions({ items }: { items: ReadonlyArray<{ q: string; href: string }> }) {
   return (
     <div data-support-suggestions="" className="rounded-ds-md border border-border bg-card px-4 py-3">
-      <p className="text-ds-13 font-semibold text-foreground">These answers might help</p>
+      <p className="text-ds-13 font-semibold text-foreground">{wordInLang("pub.support.mightHelp", "These answers might help")}</p>
       <ul className="mt-1.5 space-y-1">
         {items.map((s) => (
           <li key={s.q}>

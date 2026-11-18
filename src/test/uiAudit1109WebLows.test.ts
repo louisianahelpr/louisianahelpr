@@ -5,7 +5,7 @@
  *
  * @mutate src/pages/auth/Signup.tsx |             <div className="flex justify-center pt-3" data-signup-language=""> |             <div className="hidden" data-signup-language="">
  * @mutate src/pages/auth/ForgotPassword.tsx |       <div className="flex justify-center pt-3" data-forgot-language=""> |       <div className="hidden" data-forgot-language="">
- * @mutate src/pages/info/NotFound.tsx |                     <Link to="/declutter">Browse Declutter</Link> |                     <Link to="/">Browse Declutter</Link>
+ * @mutate src/pages/info/NotFound.tsx |                     <Link to="/declutter">{w("pub.browseDeclutter", "Browse Declutter")}</Link> |                     <Link to="/">{w("pub.browseDeclutter", "Browse Declutter")}</Link>
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts |   { label: "Getting Started", desc: "New to Helpr? Start here." },\n  { label: "Declutter", | { label: "Getting Started", desc: "New to Helpr? Start here." },\n  { label: "Declutterx",
  * @mutate src/pages/profile/HelperAnalytics.tsx |         body="Your earnings and payouts are on the Money page." |         body="Your earnings and payouts are all on the Earnings tab."
  * @mutate src/components/profile/subscriptionTab/MembershipFootnotes.tsx |           Back to You\n |           \n
@@ -39,16 +39,20 @@ describe("owner UI audit 11-09: web LOWs", () => {
     expect(forgot).not.toMatch(/<Mail\b/);
   });
 
-  it("F026: the one-reminder line sits in the consent text, not under Continue", () => {
+  // Design audit areas 11-18 #17: the line moved from the Terms text to under the Email field; still never under Continue.
+  it("F026: the one-reminder line sits under the Email field, not in the Terms text and not under Continue", () => {
     const step1 = read("src/pages/auth/signup/SignupStep1.tsx");
     const consent = step1.slice(step1.indexOf('id="policies-label"'), step1.indexOf('htmlFor="marketing-consent"'));
-    expect(consent).toContain('t("signup.mayEmailOnce")');
+    expect(consent).not.toContain('t("signup.mayEmailOnce")');
+    const emailArea = step1.slice(step1.indexOf('id="signup-email-error"'), step1.indexOf('id="policies-label"'));
+    expect(emailArea).toContain('t("signup.mayEmailOnce")');
   });
 
   it("F032: the 404 offers Browse Declutter and Browse jobs", () => {
     const src = read("src/pages/info/NotFound.tsx");
-    expect(src).toContain('<Link to="/declutter">Browse Declutter</Link>');
-    expect(src).toContain('<Link to="/browse">Browse jobs</Link>');
+    // Design audit areas 11-18 #1: the words go through wordInLang (Spanish for a Spanish reader).
+    expect(src).toContain('<Link to="/declutter">{w("pub.browseDeclutter", "Browse Declutter")}</Link>');
+    expect(src).toContain('<Link to="/browse">{w("pub.browseJobs", "Browse jobs")}</Link>');
   });
 
   it("F035/F041: Declutter is the second Help topic, and counts read as words", () => {

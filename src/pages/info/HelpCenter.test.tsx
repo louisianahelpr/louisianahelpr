@@ -311,9 +311,10 @@ describe("/help Declutter shipping answers follow the switch", () => {
 // @mutate src/pages/info/HelpCenter.tsx | onClick={() => setOpenId(open ? null : problem.id)} | onClick={() => setOpenId(null)}
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | q: "What does the cancellation rate on a profile mean?", | q: "What is the cancellation rate?",
 describe("/help Common problems (F411)", () => {
-  const TITLES = ["Cancel a job", "My Helpr did not show up", "I don't like the work", "I was charged too much"];
+  // Design audit areas 11-18 #10: Declutter's tile joined the four Jobs ones.
+  const TITLES = ["Cancel a job", "My Helpr did not show up", "I don't like the work", "I was charged too much", "My item never came"];
 
-  it("four cards, the finding's words, each with exactly three steps that name a real control", () => {
+  it("five cards, the finding's words, each with exactly three steps that name a real control", () => {
     expect(COMMON_PROBLEMS.map((p) => p.title)).toEqual(TITLES);
     for (const p of COMMON_PROBLEMS) expect(p.steps).toHaveLength(3);
     const steps = Object.fromEntries(COMMON_PROBLEMS.map((p) => [p.title, p.steps.join(" ")]));
@@ -321,6 +322,7 @@ describe("/help Common problems (F411)", () => {
     expect(steps["My Helpr did not show up"]).toContain("Report no-show");
     expect(steps["I don't like the work"]).toContain("Something's not right");
     expect(steps["I was charged too much"]).toContain("Receipts");
+    expect(steps["My item never came"]).toContain("Declutter › Buying");
   });
 
   it("the row sits above the topics; a card opens its three steps, one card at a time; a search hides the row", () => {

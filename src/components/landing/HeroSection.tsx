@@ -71,7 +71,7 @@ const HeroSection = () => {
               {es ? es.subhead : "Hire help, find work, or buy and sell. One account, real neighbors."}
             </p>
 
-            <div className="mt-8 lg:mt-10 w-full max-w-[240px]" data-testid="landing-search-tabs">
+            <div className="landing-search-tabs mt-8 lg:mt-10 w-full max-w-[240px]" data-testid="landing-search-tabs">
               <SegmentedControl
                 options={[
                   { value: "jobs", label: es ? es.tabJobs : "Jobs" },

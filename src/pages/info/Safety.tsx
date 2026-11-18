@@ -22,6 +22,8 @@ export default function Safety() {
         {idCheckOn && <li>{t("safety.idChecked")}</li>}
         <li>{t("safety.moneyHeld")}</li>
         <li>{t("safety.report")}</li>
+        {/* Design audit areas 11-18 #9: the Declutter side. */}
+        <li data-safety-declutter="">{t("safety.declutter")}</li>
       </ul>
     </PublicHeaderPage>
   );

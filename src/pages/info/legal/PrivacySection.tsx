@@ -297,10 +297,8 @@ export const PrivacyContent = () => (
             "0 6px 14px -6px hsl(var(--bark) / 0.22)",
         }}
       >
-        <div
-          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: "hsl(var(--bark) / 0.15)", color: "hsl(var(--bark))" }}
-        >
+        {/* Design audit areas 11-18 #23: a plain icon, not an icon in a tinted circle. */}
+        <div className="shrink-0 w-9 h-9 flex items-center justify-center" style={{ color: "hsl(var(--bark))" }}>
           <ShieldCheck className="w-4 h-4" />
         </div>
         <div className="min-w-0">

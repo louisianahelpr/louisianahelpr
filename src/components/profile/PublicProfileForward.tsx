@@ -98,7 +98,7 @@ export function BookHelprRoute({ children }: { children: ReactNode }) {
         body="The link may be old, or this profile isn't public right now."
         action={
           <Button asChild className="btn-grad-primary rounded-full">
-            <Link to={user ? "/home" : "/"}>Go to Louisiana Helpr</Link>
+            <Link to={user ? "/home" : "/"}>Go home</Link>
           </Button>
         }
       />

@@ -15,7 +15,7 @@
  *  - the take-home equals the guest card's JobPrice chip for the same row (flat stamp, crew split, rush fee);
  *  - guest Browse's card tap opens that preview (it no longer navigates to sign-up), and its dialog is the preview.
  *
- * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (area) facts.push({ label: "Parish", value: area }); |
+ * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (area) facts.push({ label: town && parishForTown(town) ? "Parish" : "Area", value: area }); |
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   return parish ? parishLabel(parish) : town; |   return town;
  * @mutate src/components/dashboard/GuestJobPreview.tsx | onClick={() => onSignUp(job.id)} | onClick={() => onSignUp("")}
  * @mutate src/pages/home/useGuestJobSheet.ts |     setDetailJob(job);\n | \n
@@ -127,7 +127,8 @@ describe("the guest job preview", () => {
     expect(guestJobArea(null)).toBeNull();
     expect(guestJobFacts({ ...JOB, budget: null, location: null }).map((f) => f.label)).toEqual(["Category", "When"]);
     // A town that is its own area is not printed twice.
-    expect(guestJobFacts({ ...JOB, location: "Nowhere Special, LA" }).map((f) => f.label)).toEqual(["Category", "Parish", "When", "You'd earn after fees"]);
+    // Design audit areas 11-18 #5: a town that names no single parish is labelled "Area", not "Parish".
+    expect(guestJobFacts({ ...JOB, location: "Nowhere Special, LA" }).map((f) => f.label)).toEqual(["Category", "Area", "When", "You'd earn after fees"]);
   });
 
   it("F217: the sheet prints the card's day and time, and the pay never says take home", () => {

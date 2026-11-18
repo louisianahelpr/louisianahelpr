@@ -58,7 +58,9 @@ const Instagram = ({ className }: { className?: string }) => (
  * screens only and L017 (landing audit 11-09) kept 24px for a mouse; F214 (whole-app audit 11-10) measured 24px rows
  * on a phone emulator with a fine pointer while /browse's shell showed 44px, so the 44px now holds on every pointer.
  */
-const FOOTER_LINK = "link-standard inline-flex items-center min-h-11";
+// Design audit areas 11-18 #12: on a desktop with a mouse (lg, fine pointer) a link row is 32px with no added gap, so
+// Explore's seven links stop standing ~420px tall (they were 44px rows plus an 8px gap). Touch keeps its 44px rows.
+const FOOTER_LINK = "link-standard inline-flex items-center min-h-11 lg:[@media(pointer:fine)]:min-h-8";
 
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 // Live since 2026-10-20 (owner: "i created a instagram").
@@ -179,7 +181,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               /profile?tab=subscription (the standalone /subscription route
               was removed in 49f4f2f30). */}
           {/* Two columns below 620px (owner 2026-11-17); one column, matching Legal and Follow, from 620px. */}
-          <ul data-footer-explore="" className="grid grid-cols-2 gap-x-4 min-[620px]:block min-[620px]:space-y-2 min-[620px]:[@media(pointer:coarse)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
+          <ul data-footer-explore="" className="grid grid-cols-2 gap-x-4 min-[620px]:block min-[620px]:space-y-2 min-[620px]:[@media(pointer:coarse)]:space-y-0 lg:[@media(pointer:fine)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
             <li>
               {/* Named, not bounced: a signed-in reader goes straight to the
                   authed feed and a visitor to the guest one. Same label either
@@ -257,7 +259,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
           >
             {w("footer.legal", "Legal")}
           </h2>
-          <ul className="space-y-2 [@media(pointer:coarse)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
+          <ul className="space-y-2 [@media(pointer:coarse)]:space-y-0 lg:[@media(pointer:fine)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
             <li>
               <Link to="/terms" className={FOOTER_LINK}>
                 {w("footer.terms", "Terms")}

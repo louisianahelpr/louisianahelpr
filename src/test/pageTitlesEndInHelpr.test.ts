@@ -45,7 +45,8 @@ describe("tab titles read '<Page> — Helpr' (F137)", () => {
 
   it("/helprs names its tab through AppPage: 'Find a Helpr — Helpr'", () => {
     const page = blankComments(readFileSync(join(ROOT, "src/pages/helprs/FindHelprs.tsx"), "utf8"));
-    expect(page).toContain('<AppPage title="Find a Helpr"');
+    // Design audit areas 11-18 #1: the title is Spanish for a Spanish reader, through wordInLang.
+    expect(page).toContain('<AppPage title={w("pub.helprs.title", "Find a Helpr")}');
     expect(page).not.toMatch(/usePageTitle\(/);
     expect(blankComments(readFileSync(join(ROOT, "src/components/AppPage.tsx"), "utf8"))).toContain("usePageTitle(`${title} — Helpr`);");
   });

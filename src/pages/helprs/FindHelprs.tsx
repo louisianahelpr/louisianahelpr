@@ -22,6 +22,8 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { JOB_CATEGORY_VALUES, skillChipLabel } from "@/lib/jobCategories";
 import { directoryCardFacts, type DirectoryHelpr, type DirectoryStats } from "./findHelprsModel";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
+import { wordInLang as w } from "@/lib/i18n/inLang";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * /helprs — "Find a Helpr" (Q2437, owner-approved 2026-10-27).
@@ -55,6 +57,7 @@ export default function FindHelprs() {
   // The tab reads "Find a Helpr — Helpr": AppPage names it (F137, owner UI audit 11-09); a bare title here ran after
   // AppPage's and dropped the "— Helpr". Guard: src/test/pageTitlesEndInHelpr.test.ts.
   const navigate = useNavigate();
+  useLanguage(); // design audit areas 11-18 #1: re-render when the Spanish words arrive
   const [params, setParams] = useSearchParams();
   const skill = params.get("skill") ?? "";
   const town = params.get("town") ?? "";
@@ -83,7 +86,7 @@ export default function FindHelprs() {
 
   return (
     // L005 (landing audit 11-09): a cold-opened link had no in-app entry behind it, so back went to about:blank.
-    <AppPage title="Find a Helpr" onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
+    <AppPage title={w("pub.helprs.title", "Find a Helpr")} onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
       <div className="space-y-4 pb-6" data-testid="find-helprs">
         <p className="text-ds-14 text-muted-foreground">
           Find someone near you, then offer them your job at your price. If they pass, it opens to everyone.
@@ -91,7 +94,7 @@ export default function FindHelprs() {
 
         <form onSubmit={submitTown} className="flex max-w-xl items-end gap-2" role="search" aria-label="Find a Helpr by town">
           <div className="min-w-0 flex-1 space-y-1.5">
-            <Label htmlFor="helpr-town">Town or parish</Label>
+            <Label htmlFor="helpr-town">{w("pub.helprs.town", "Town or parish")}</Label>
             <Input id="helpr-town" value={townDraft} maxLength={60} onChange={(e) => setTownDraft(e.target.value)} placeholder="e.g. Lafayette" autoComplete="address-level2" />
           </div>
           <Button type="submit" variant="outline">
@@ -101,13 +104,13 @@ export default function FindHelprs() {
         </form>
 
         <div className="space-y-1.5">
-          <p id="helpr-skill-label" className="text-ds-13 font-semibold text-foreground">Skill</p>
+          <p id="helpr-skill-label" className="text-ds-13 font-semibold text-foreground">{w("pub.helprs.skill", "Skill")}</p>
           <div role="radiogroup" aria-labelledby="helpr-skill-label" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible">
             {["", ...SKILL_CHIPS].map((label) => {
               const on = (label || "") === skill;
               return (
                 <ChoicePill key={label || "any"} selected={on} onClick={() => setParam("skill", label)} className="shrink-0 whitespace-nowrap">
-                  {label || "Any skill"}
+                  {label || w("pub.helprs.anySkill", "Any skill")}
                 </ChoicePill>
               );
             })}
@@ -118,7 +121,7 @@ export default function FindHelprs() {
             many cards it holds, so bones would promise a size and shape the list
             may not have (loadingStateShape). */}
         {q.isLoading && (
-          <p role="status" className="text-ds-14 text-muted-foreground" data-testid="find-helprs-loading">Finding Helprs near you…</p>
+          <p role="status" className="text-ds-14 text-muted-foreground" data-testid="find-helprs-loading">{w("pub.helprs.loading", "Finding Helprs near you…")}</p>
         )}
         {/* A refusal the server words (signed out, restricted, unconfirmed email, too long) says so; anything else is the retry card. */}
         {q.isError && (rpcErrorMessage("find_helprs", q.error) ? (
@@ -139,9 +142,9 @@ export default function FindHelprs() {
         {phase === "ready" && q.data && !q.data.notReady && q.data.helprs.length === 0 && (
           <EmptyState
             icon={Search}
-            title="No Helprs match yet"
-            body="Try another skill or a nearby town. You can also post the job to everyone."
-            action={<Button asChild variant="outline"><Link to="/post-job">Post a job</Link></Button>}
+            title={w("pub.helprs.noneTitle", "No Helprs match yet")}
+            body={w("pub.helprs.noneBody", "Try another skill or a nearby town. You can also post the job to everyone.")}
+            action={<Button asChild variant="outline"><Link to="/post-job">{w("pub.postJob", "Post a job")}</Link></Button>}
           />
         )}
         {q.data && q.data.helprs.length > 0 && (
@@ -185,7 +188,7 @@ export default function FindHelprs() {
                   </div>
                   <div className="mt-3 flex gap-2">
                     <Button asChild variant="outline" size="sm" className="flex-1">
-                      <Link to={memberProfilePath(h.user_id)}>View profile</Link>
+                      <Link to={memberProfilePath(h.user_id)}>{w("pub.helprs.viewProfile", "View profile")}</Link>
                     </Button>
                     <Button
                       variant="primary"

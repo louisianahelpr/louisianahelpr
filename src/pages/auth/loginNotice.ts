@@ -1,5 +1,6 @@
 import type { OAuthRedirectError } from "@/lib/oauthRedirectError";
 import { SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 /**
  * Reads a one-shot sessionStorage note (another screen left it for Login) and clears it, so a refresh does not repeat
@@ -131,4 +132,41 @@ export function declutterGatedNotice(redirect: string | null | undefined): strin
   if (tab === "buying") return `Your Declutter orders need an account. ${back}`;
   if (tab === "selling") return `Your Declutter listings need an account. ${back}`;
   return `That's Declutter, neighbors selling what they don't need. ${back}`;
+}
+
+/**
+ * Design audit areas 11-18 #1: the notice in the reader's language. Each English sentence above (the whole notice, or
+ * a page line plus BACK_TO_IT / LOG_BACK_IN) is swapped for its Spanish (esPublic "ln.*"); a sentence with no Spanish
+ * (an OAuth error, the connect line) stays as it is. English readers get the notice unchanged.
+ */
+const NOTICE_KEYS: readonly [english: string, key: string][] = [
+  ["Create an account, or log in and we'll take you straight back to it.", "ln.backToIt"],
+  ["This job is only visible to the person who posted it and the person doing it. Log in and we'll take you straight back to it.", "ln.jobLink"],
+  ["We'll take you straight back to it.", "ln.logBackIn"],
+  ["Posting a job needs a free account.", "ln.g.postJob"],
+  ["Sending a tip needs a free account.", "ln.g.tips"],
+  ["Shops needs a free account.", "ln.g.shops"],
+  ["Your jobs need an account.", "ln.g.jobs"],
+  ["Your profile needs an account.", "ln.g.profile"],
+  ["Your home page needs an account.", "ln.g.home"],
+  ["Log in to see your payment.", "ln.r.payment"],
+  ["Log in to finish your profile.", "ln.r.profile"],
+  ["Log in to see your messages.", "ln.r.messages"],
+  ["That's an item for sale on Declutter, neighbors selling what they don't need.", "ln.d.item"],
+  ["Selling on Declutter needs an account.", "ln.d.sell"],
+  ["Your Declutter settings need an account.", "ln.d.settings"],
+  ["Planning a moving sale? That needs an account.", "ln.d.move"],
+  ["Your Declutter orders need an account.", "ln.d.buying"],
+  ["Your Declutter listings need an account.", "ln.d.selling"],
+  ["That's Declutter, neighbors selling what they don't need.", "ln.d.any"],
+  ["That page needs a free account.", "ln.pageNeeds"],
+  ["You were signed out on this browser. Log back in and we'll take you right back to where you were.", "ln.sessionLost"],
+  ["You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off.", "ln.inactivity"],
+  ["If that email already has an account, log in below. Forgot your password? Reset it and you'll be back in.", "ln.fromSignup"],
+];
+
+export function loginNoticeInLang(notice: string): string {
+  let out = notice;
+  for (const [english, key] of NOTICE_KEYS) if (out.includes(english)) out = out.replace(english, wordInLang(key, english));
+  return out;
 }

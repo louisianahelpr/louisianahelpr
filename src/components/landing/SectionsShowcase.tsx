@@ -307,7 +307,9 @@ export function TrustAndJoin() {
           </div>
           {/* Owner #7 (11-09): the close names both open sections' first steps, quietly (links, not more buttons), in the
               landing's one set of verbs (D012, 11-10). */}
-          <nav aria-label={w("landing.startHere", "Start here")} className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-ds-15 font-semibold" data-testid="landing-join-starts">
+          {/* Design audit areas 11-18 #25: at 390 three links fit a row and "Sell something" sat alone under them. A
+              2 x 2 grid on a phone (Jobs' pair, then Declutter's), one row from sm. The links stay (owner #7). */}
+          <nav aria-label={w("landing.startHere", "Start here")} className="grid grid-cols-2 justify-items-center sm:flex sm:flex-wrap items-center justify-center gap-x-5 gap-y-1 text-ds-15 font-semibold" data-testid="landing-join-starts">
             <Link to="/browse" className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>{w("landing.browseJobs", "Browse jobs")}</Link>
             <Link to={POST_JOB_SIGNED_OUT} onClick={(e) => { e.preventDefault(); void goSignedInOr(navigate, POST_JOB_PATH, POST_JOB_SIGNED_OUT); }} className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>{w("landing.postJob", "Post a job")}</Link>
             <Link to="/declutter" className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>{w("landing.shopDeclutter", "Shop Declutter")}</Link>

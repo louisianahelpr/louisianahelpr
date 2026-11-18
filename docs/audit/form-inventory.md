@@ -557,7 +557,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/lib/supportTopics.ts` | select×3 |  |  |  |
 | `src/pages/info/Support.tsx` | input×3, textarea×1 | text, email |  | support-name · name · support-name-error · support-email · email · support-email-error · support-subject · subject |
-| `src/pages/info/support/SupportFormParts.tsx` | select×1 |  |  | support-topic · Choose a topic · support-topic-error |
+| `src/pages/info/support/SupportFormParts.tsx` | select×1 |  |  | support-topic · support-topic-error |
 
 ## /user/:userId
 

@@ -104,9 +104,11 @@ describe("F260q: /fees and /safety in Spanish", () => {
     await act(async () => { await ensureLangLoaded(); });
     const { container } = render(<MemoryRouter><Fees /><Safety /></MemoryRouter>);
     const fees = container.querySelector("[data-fees-body]")!.textContent!;
-    expect(fees).toBe([esPublic["fees.postFree"], esPublic["fees.setupFee"], esPublic["fees.shownFirst"], esPublic["fees.helprsSeePay"]].join(""));
+    // Design audit areas 11-18 #9: Declutter's line follows the Jobs sentences, its fee from money.ts.
+    const declutterEs = esPublic["fees.declutter"].replace("{pct}", "5").replace("{cents}", "70");
+    expect(fees).toBe([esPublic["fees.postFree"], esPublic["fees.setupFee"], esPublic["fees.shownFirst"], esPublic["fees.helprsSeePay"], declutterEs].join(""));
     const safety = [...container.querySelectorAll("[data-safety-body] li")].map((li) => li.textContent);
-    expect(safety).toEqual([esPublic["safety.idChecked"], esPublic["safety.moneyHeld"], esPublic["safety.report"]]);
+    expect(safety).toEqual([esPublic["safety.idChecked"], esPublic["safety.moneyHeld"], esPublic["safety.report"], esPublic["safety.declutter"]]);
     expect(screen.getByRole("heading", { name: esPublic["fees.title"] })).toBeTruthy();
     expect(screen.getByRole("heading", { name: esPublic["safety.title"] })).toBeTruthy();
   });

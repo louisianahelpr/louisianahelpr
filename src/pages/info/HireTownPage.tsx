@@ -16,6 +16,7 @@ import { JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
 import { HIRE_STEPS } from "@/components/landing/hireSteps";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 /** F063: the town page's column, and its header's (the column plus the shell's side padding at each breakpoint). */
 const TOWN_COLUMN = "max-w-[760px]";
@@ -96,7 +97,7 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
           </ol>
         </section>
         <nav aria-labelledby="town-more" className="space-y-3">
-          <h2 id="town-more" className="text-ds-17 font-semibold" style={ink}>More near you</h2>
+          <h2 id="town-more" className="text-ds-17 font-semibold" style={ink}>{wordInLang("pub.town.moreNear", "More near you")}</h2>
           {/* F063: chips, not a run-on line of small links. */}
           <ul className="flex flex-wrap gap-2" data-town-more="towns">
             {TOWN_PAGE_TOWNS.filter((t) => t.slug !== town.slug).map((t) => (

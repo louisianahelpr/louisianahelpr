@@ -349,6 +349,17 @@ export const parishForCity = (city: string | null | undefined): Parish | null =>
 };
 
 /**
+ * Design audit areas 11-18 #5: the parish a town is IN, for display. parishForCity leaves a border town listed under
+ * more than one parish unknown (right for its ZIP check), so "New Orleans", "Baton Rouge" and "Metairie" had no parish
+ * and the guest job sheet printed "Parish: New Orleans". A town that is a parish's primary city names that parish.
+ */
+const BY_PRIMARY_CITY_LOWER: ReadonlyMap<string, Parish> = new Map(PARISHES.map((p) => [p.primaryCity.toLowerCase(), p]));
+export const parishForTown = (town: string | null | undefined): Parish | null => {
+  if (!town) return null;
+  return parishForCity(town) ?? BY_PRIMARY_CITY_LOWER.get(town.trim().toLowerCase()) ?? null;
+};
+
+/**
  * Human-facing name. Louisiana calls them parishes, not counties, and the DB
  * stores the bare stem — so every rendered string adds the word here rather
  * than each caller remembering to.

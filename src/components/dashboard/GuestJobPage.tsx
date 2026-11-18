@@ -14,7 +14,8 @@
  */
 import { Button } from "@/components/ui/button";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
-import { guestJobFacts, type GuestJob } from "@/components/dashboard/GuestJobPreview";
+import { guestFactLabel, guestJobFacts, type GuestJob } from "@/components/dashboard/GuestJobPreview";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 export function GuestJobPage({ job, onSignUp, onLogIn, onBrowse }: {
   job: GuestJob;
@@ -33,14 +34,14 @@ export function GuestJobPage({ job, onSignUp, onLogIn, onBrowse }: {
       <dl className="border-y border-border">
         {facts.map((f) => (
           <div key={f.label} className="flex items-baseline justify-between gap-4 border-b border-border py-2 last:border-b-0">
-            <dt className="shrink-0 text-ds-14 text-muted-foreground">{f.label}</dt>
+            <dt className="shrink-0 text-ds-14 text-muted-foreground">{guestFactLabel(f.label)}</dt>
             <dd className="min-w-0 text-right text-ds-14 font-semibold text-foreground [overflow-wrap:anywhere]">{f.value}</dd>
           </div>
         ))}
       </dl>
       {details && (
         <section aria-labelledby="guest-job-details" className="rounded-2xl border border-border bg-card p-4">
-          <h2 id="guest-job-details" className="text-ds-16 font-semibold">Details</h2>
+          <h2 id="guest-job-details" className="text-ds-16 font-semibold">{wordInLang("pub.job.details", "Details")}</h2>
           <p data-guest-job-description="" className="mt-1.5 whitespace-pre-line text-ds-15 leading-relaxed [overflow-wrap:anywhere]">
             {details}
           </p>

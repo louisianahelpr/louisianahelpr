@@ -72,8 +72,10 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
   {
     key: "message",
     label: "Talk to a real person",
-    description: "Ask our team anything. A person reads every message.",
-    messagePlaceholder: "How can our team help you today?",
+    // Design audit areas 11-18 #22: the form's intro already says a real person reads every message, and the
+    // placeholder was a canned greeting.
+    description: "Ask our team anything.",
+    messagePlaceholder: "Tell us what happened.",
     messageLabel: "Your message",
     submitLabel: "Send message",
     reportLabel: "Admin Message",

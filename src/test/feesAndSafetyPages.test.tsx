@@ -36,7 +36,11 @@ const read = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8")
 describe("F255: /fees and /safety (owner 2026-11-11)", () => {
   it("/fees: the owner's exact sentences, words only (no number, no rate)", () => {
     const { container } = render(<MemoryRouter><Fees /></MemoryRouter>);
-    const body = container.querySelector("[data-fees-body]")!.textContent!;
+    // The Jobs sentences only: Declutter's own line (design audit areas 11-18 #9) names its fee, owner 11-07, and is
+    // pinned by area01LandingGuest1118.test.tsx.
+    const bodyEl = container.querySelector("[data-fees-body]")!.cloneNode(true) as HTMLElement;
+    bodyEl.querySelector("[data-fees-declutter]")?.remove();
+    const body = bodyEl.textContent!;
     expect(body).toBe("Posting a job is free.A small one-time setup fee applies to your first paid job.Any service fee is shown before you pay.Helprs see their pay before they apply.");
     expect(body).not.toMatch(/\d|%|¢|\$/);
   });

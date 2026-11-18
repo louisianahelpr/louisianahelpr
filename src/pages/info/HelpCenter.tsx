@@ -211,7 +211,8 @@ const CommonProblems = ({ setupFeeLabel }: { setupFeeLabel: string | null }) => 
   return (
     <div data-help-common-problems="">
       <h3 className="mb-3 px-1 font-sans text-ds-13 font-semibold uppercase tracking-wide text-muted-foreground">Common problems</h3>
-      <div className="grid grid-cols-2 gap-3" role="list">
+      {/* Design audit areas 11-18 #10: five tiles now (Declutter's joined), so an odd last tile takes the full row. */}
+      <div className="grid grid-cols-2 gap-3 [&>*:last-child:nth-child(odd)]:col-span-2" role="list">
         {COMMON_PROBLEMS.map((problem) => {
           const open = problem.id === openId;
           return (
@@ -224,7 +225,10 @@ const CommonProblems = ({ setupFeeLabel }: { setupFeeLabel: string | null }) => 
                 aria-controls={`help-problem-${problem.id}`}
                 data-help-problem={problem.id}
                 onClick={() => setOpenId(open ? null : problem.id)}
-                className={`min-h-11 h-full w-full rounded-[20px] border bg-card px-4 py-4 text-left font-sans text-ds-15 font-semibold text-foreground transition-colors duration-200 hover:opacity-80 ${open ? "border-[hsl(var(--bark)/0.45)]" : "border-border"}`}
+                // Design audit areas 11-18 #10: the open tile reads as selected (olive edge and a light olive fill), not only a
+                // faint border.
+                className={`min-h-11 h-full w-full rounded-[20px] border px-4 py-4 text-left font-sans text-ds-15 font-semibold text-foreground transition-colors duration-200 hover:opacity-80 ${open ? "border-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.08)]" : "border-border bg-card"}`}
+                data-help-problem-open={open ? "" : undefined}
               >
                 {problem.title}
               </ListRow>
@@ -351,7 +355,8 @@ const HelpCenter = () => {
             ))}
             {searching && sections.length === 0 && (
               <p role="status" data-help-no-match="" className="rounded-[20px] border border-border bg-card px-5 py-4 text-ds-15 font-sans text-muted-foreground">
-                No answers match "{query.trim()}". Try other words, or contact support below.
+                {/* Design audit areas 11-18 #21: curly quotes. */}
+                No answers match &ldquo;{query.trim()}&rdquo;. Try other words, or contact support below.
               </p>
             )}
           </div>

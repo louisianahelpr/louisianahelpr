@@ -5244,6 +5244,16 @@ html.page-scrolled .page-title-card:has(.explore-header),
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
   mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
+/* Design audit r2 #48: the sponsor admin's tab strip clipped at the phone's edge. It scrolls sideways, and below 640px
+   its right edge fades the same way the Explore chips do, so a cut tab reads as "more". */
+.admin-tabs-scroll { overflow-x: auto; scrollbar-width: none; }
+.admin-tabs-scroll::-webkit-scrollbar { display: none; }
+@media (max-width: 639px) {
+  .admin-tabs-scroll {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+}
 /* A3-6 (2026-10-28): a phone row of five or more section tabs (SectionTabs `dense`) sets its words by the screen's
    width so it fits one line: 12px at 320, 13px from 361px, never over the row's own phone size (13px below 420px,
    Q2027 lead 11-04: the 16px scale size collapsed Jobs' three tabs into "2 more tabs" at 375). */

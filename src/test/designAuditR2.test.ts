@@ -398,3 +398,19 @@ describe("design audit r2 #46/#47: admin nav size and home polish", () => {
     expect(readFileSync("src/components/DesktopSidebarNav.tsx", "utf8")).toContain("pl-11 pr-3 text-left text-ds-13 ctl-tint");
   });
 });
+
+/**
+ * #48: the phone sponsors list printed "· —" for a sponsor with no prize value, and the five-tab strip clipped at the
+ * phone's edge. The line now drops the empty part, and the strip scrolls with a right-edge fade below 640px.
+ * @mutate src/pages/admin/sponsors/AdminSponsorsPage.tsx | {[s.prize_description, s.prize_value == null ? null : prizeValueLabel(s.prize_value)].filter(Boolean).join(" · ")} | {s.prize_description} · {prizeValueLabel(s.prize_value)}
+ */
+describe("design audit r2 #48: phone sponsors list", () => {
+  it("no '· —' on a chip, and the tab strip scrolls with a fade", () => {
+    const src = blankComments(readFileSync("src/pages/admin/sponsors/AdminSponsorsPage.tsx", "utf8"));
+    expect(src).not.toContain("{s.prize_description} · {prizeValueLabel(s.prize_value)}");
+    expect(src).toMatch(/<div data-admin-tabs-scroll="" className="admin-tabs-scroll">\s*<UnderlineTabs\s+ariaLabel="Sponsor admin sections"/);
+    const css = readFileSync("src/index.css", "utf8");
+    expect(css).toContain(".admin-tabs-scroll { overflow-x: auto; scrollbar-width: none; }");
+    expect(css).toMatch(/@media \(max-width: 639px\) \{\s*\.admin-tabs-scroll \{\s*-webkit-mask-image: linear-gradient/);
+  });
+});

@@ -25,6 +25,7 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |                   free={itemsTotalCents === 0} forDelivery | forDelivery
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |           <HideSectionCreateFab />\n          <BrowseEmptyState |           <BrowseEmptyState
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | <span className="line-clamp-2 break-words text-ds-15 font-semibold" data-free-ask-title="" | <span className="block truncate text-ds-15 font-semibold" data-free-ask-title=""
+ * @mutate src/pages/admin/preview/messagesPreviewSamples.ts |       declutter_my_order_talks: stage === "inbox" ? declutterOrderTalks(ago) : [], |       declutter_my_order_talks: [],
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               aria-invalid={amount.trim() && offerProblem ? true : undefined} |               aria-invalid={undefined}
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-muted-foreground">$</span>\n            <Input\n              id="declutter-offer" | <Input\n              id="declutter-offer"
  */
@@ -38,6 +39,7 @@ import { esDeclPanels } from "@/lib/i18n/esDeclPanels";
 import { CheckoutPriceSummary, SUMMARY_TIPS } from "@/components/declutter/DeclutterCheckoutSummary";
 import { CheckoutPickupTime } from "@/components/declutter/CheckoutPickupTime";
 import { OrderSteps, type OrderFacts } from "@/components/declutter/OrderSteps";
+import { messagesPreviewSample } from "@/pages/admin/preview/messagesPreviewSamples";
 import { BuyerOrderHead, buyerNextStep, buyerNoShowStep, type BuyerOrderView } from "@/components/declutter/BuyingOrders";
 
 afterEach(() => { cleanup(); __resetLangForTests(); });
@@ -142,5 +144,15 @@ describe("Area 05 Mediums (source reads; the screens' own tests render them)", (
     expect(panel).toMatch(/data-offer-field="">\s*<span aria-hidden[^>]*>\$<\/span>\s*<Input\s+id="declutter-offer"/);
     expect(panel).toContain("aria-invalid={amount.trim() && offerProblem ? true : undefined}");
     expect(panel).toContain('"font-medium text-[hsl(var(--destructive-ink))]"');
+  });
+});
+
+describe("Area 05 #24: the admin Messages preview shows Declutter order chats", () => {
+  it("the inbox stage lists made-up order chats, an ended one closed; other stages none", () => {
+    const rows = messagesPreviewSample("inbox", "poster", "00000000-0000-4000-a000-000000000001", Date.parse("2026-11-18T12:00:00Z")).reads.declutter_my_order_talks as { open: boolean; side: string }[];
+    expect(rows.length).toBeGreaterThan(3);
+    expect(rows.some((r) => !r.open)).toBe(true);
+    expect(new Set(rows.map((r) => r.side))).toEqual(new Set(["buyer", "seller"]));
+    expect(messagesPreviewSample("empty", "poster", "00000000-0000-4000-a000-000000000001").reads.declutter_my_order_talks).toEqual([]);
   });
 });

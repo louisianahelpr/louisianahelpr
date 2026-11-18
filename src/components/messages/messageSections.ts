@@ -1,5 +1,6 @@
 import type { Conversation } from "./types";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 /**
  * MESSAGES IS ONE INBOX (owner, 2026-10-20, board 13; it replaced the 10-19
@@ -87,7 +88,8 @@ export function threadsForFilter(list: readonly Conversation[], filter: InboxFil
 const JOB_OVER_STATUSES: readonly string[] = ["completed", "cancelled"];
 export function threadRoleCaption(c: Pick<Conversation, "teamThread" | "viewerIsPoster" | "viewerIsAssignedHelper" | "jobStatus">): string | null {
   if (c.teamThread) return null;
-  if (c.viewerIsPoster) return "Your job";
-  if (c.viewerIsAssignedHelper) return c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : "You're working";
+  // Design audit r2 #34: in the reader's language.
+  if (c.viewerIsPoster) return wordInLang("msg.c.yourJob", "Your job");
+  if (c.viewerIsAssignedHelper) return c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : wordInLang("msg.c.working", "You're working");
   return null;
 }

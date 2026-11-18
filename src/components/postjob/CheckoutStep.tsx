@@ -22,6 +22,7 @@ import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { CheckoutGlanceCard } from "./CheckoutGlanceCard";
 import { HelprActivityNote } from "./HelprActivityNote";
 import { QuoteAskButton } from "@/components/quotes/QuoteAskButton";
+import "@/lib/i18n/enPostJob";
 import { useLanguage } from "@/lib/i18n/language";
 
 interface CheckoutStepProps {

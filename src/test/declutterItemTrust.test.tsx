@@ -11,8 +11,8 @@
  */
 // @mutate src/lib/declutter/sellerBadges.ts | if (s.othersForSale !== null && s.othersForSale + 1 >= LISTS_OFTEN_FROM) | if (s.othersForSale !== null)
 // @mutate src/lib/declutter/sellerBadges.ts | if (s.onTime === true) | if (s.onTime !== false)
-// @mutate src/lib/declutter/sellerBadges.ts |   return band === "today" ? "Active today" : null; |   return band ? "Active today" : null;
-// @mutate src/lib/declutter/sellerBadges.ts |   if (ms < HOUR) return `${Math.floor(ms / MIN)} min ago`; |   if (ms < HOUR) return `${Math.floor(ms / HOUR)} min ago`;
+// @mutate src/lib/declutter/sellerBadges.ts |   return band === "today" ? wordInLang("ip.badge.active", "Active today") : null; |   return band ? wordInLang("ip.badge.active", "Active today") : null;
+// @mutate src/lib/declutter/sellerBadges.ts |   if (ms < HOUR) { const n = Math.floor(ms / MIN); |   if (ms < HOUR) { const n = Math.floor(ms / HOUR);
 // @mutate src/components/declutter/SellerTrustBadges.tsx | queryFn: () => fetchOnTimeHandovers(sellerId), enabled: after, | queryFn: () => fetchOnTimeHandovers(sellerId), enabled: true,
 // @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (!summary.offer) return null; |   if (false) return null;
 // @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && afterPaint && ( |       {!isSeller && (

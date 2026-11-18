@@ -29,19 +29,18 @@ import {
   type QuoteWindowHours,
 } from "@/lib/quotes/api";
 import { quoteErrorMessage } from "@/lib/quotes/errors";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 export type PriceMode = "price" | "quotes";
 
-/** What happens next, one line per choice (owner 2026-10-19: say it under the pills). */
-const PRICE_MODE_NEXT: Record<PriceMode, string> = {
-  // Q2613 (Jobs audit 1102b row 27): the header above already says when the card is charged; this line said it a
-  // second time in other words. It says only what this choice means.
-  price: "You set the price. Helprs apply at your price.",
-  quotes: "No price yet. Helprs near you send theirs; you pick one and pay only when you book.",
+/** What happens next, one line per choice (owner 2026-10-19: say it under the pills). Q2613 (Jobs audit 1102b row 27):
+ * it says only what this choice means. Words: postJob.f.priceNext.* (design audit r2 #32: in Spanish too). */
+const PRICE_MODE_NEXT: Record<PriceMode, MsgKey> = {
+  price: "postJob.f.priceNext.price",
+  quotes: "postJob.f.priceNext.quotes",
 };
-
-/** What a member without the 'quotes' switch is told on tapping Get quotes (owner 2026-10-19). */
-const QUOTES_COMING_SOON = "Getting quotes from local pros is coming soon. For now, set your price.";
 
 /**
  * The top of Post a Job (owner 2026-10-19: quotes live inside Post a Job):
@@ -63,16 +62,17 @@ export function PriceModeChoice({
   quotesComingSoon?: boolean;
 }) {
   const [soonTapped, setSoonTapped] = useState(false);
+  const { t: tr } = useLanguage();
   // The iPhone app shows no disabled "Get quotes" (owner 10-31, src/lib/hideUnopenedInApp.ts): with quotes not open
   // the only choice is "Set a price", so the whole choice is left out and the job stays priced. The website keeps it.
   if (quotesComingSoon && hideUnopenedInApp()) return null;
   return (
     <div data-price-mode-choice>
       <p className="mb-2 text-sm font-semibold text-foreground">
-        How do you want to price it?
+        {tr("postJob.f.priceHow")}
       </p>
       <SegmentedControl
-        ariaLabel="How to price this job"
+        ariaLabel={tr("postJob.f.priceHowAria")}
         // Q2611 (Jobs audit 1102b row 25): the shared control's 11 px labels were tiny in this full-width pill.
         // Guard: src/test/priceModeLabelsReadable.test.tsx.
         optionClassName="text-ds-15"
@@ -85,23 +85,23 @@ export function PriceModeChoice({
           onChange(v as PriceMode);
         }}
         options={[
-          { value: "price", label: "Set a price" },
+          { value: "price", label: tr("postJob.f.priceSet") },
           quotesComingSoon
             ? {
                 value: "quotes",
-                ariaLabel: "Get quotes, coming soon",
+                ariaLabel: tr("postJob.f.priceQuotesSoonAria"),
                 label: (
                   <span className="flex flex-col items-center leading-tight text-muted-foreground/60" data-quotes-coming-soon>
-                    <span>Get quotes</span>
-                    <span className="text-ds-12 font-medium">Coming soon</span>
+                    <span>{tr("postJob.f.priceQuotes")}</span>
+                    <span className="text-ds-12 font-medium">{tr("postJob.f.comingSoon")}</span>
                   </span>
                 ),
               }
-            : { value: "quotes", label: "Get quotes" },
+            : { value: "quotes", label: tr("postJob.f.priceQuotes") },
         ]}
       />
       <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
-        {quotesComingSoon && soonTapped ? QUOTES_COMING_SOON : PRICE_MODE_NEXT[value]}
+        {quotesComingSoon && soonTapped ? tr("postJob.f.quotesSoon") : tr(PRICE_MODE_NEXT[value])}
       </p>
     </div>
   );

@@ -76,6 +76,10 @@ export const enSettings = {
   "settings.admin": "Admin",
   "settings.adminSub": "Moderation, payouts & platform health",
   "settings.logout": "Log out",
+  // Design audit r2 #37: the account line's "Password" and the profile link row.
+  "settings.password": "Password",
+  "settings.profileLink": "Your profile link",
+  "settings.profileLinkSub": "One link to what you post and do",
 } as const;
 
 addEnglish(enSettings);

@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
 import { GIFT_RECEIVED_HREF } from "@/pages/profile/giftCards/useShowReceivedGifts";
 import { Button } from "@/components/ui/button";
+import "@/lib/i18n/enPostJob";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 interface GiftCardTeaserProps {
   /** The viewer — dismissal is remembered per user on this device. */
@@ -58,14 +60,15 @@ const GiftCardTeaser = ({ userId, ids }: GiftCardTeaserProps) => {
         <p
           className="font-sans font-semibold text-ds-14 text-foreground"
         >
-          {count} Helpr gift card{count > 1 ? "s" : ""} waiting for you
+          {/* Design audit r2 #37: in the reader's language. */}
+          {wordInLang(count > 1 ? "postJob.gift.many" : "postJob.gift.one", `${count} Helpr gift card${count > 1 ? "s" : ""} waiting for you`, { n: count })}
         </p>
         <p
           className="font-sans text-ds-13 mt-0.5 text-muted-foreground"
         >
-          Ready to spend on your next job ·{" "}
+          {wordInLang("postJob.gift.ready", "Ready to spend on your next job ·")}{" "}
           <Link to={GIFT_RECEIVED_HREF} className="font-bold" style={{ color: "hsl(var(--bark))" }}>
-            {count > 1 ? "See them" : "See it"}
+            {count > 1 ? wordInLang("postJob.gift.seeThem", "See them") : wordInLang("postJob.gift.seeIt", "See it")}
           </Link>
         </p>
       </div>
@@ -74,7 +77,7 @@ const GiftCardTeaser = ({ userId, ids }: GiftCardTeaserProps) => {
         variant="ghost"
         size="iconCompact"
         onClick={dismiss}
-        aria-label="Dismiss"
+        aria-label={wordInLang("postJob.gift.dismiss", "Dismiss")}
         className="shrink-0 -mr-2 -my-2 ctl-exit [&_svg]:size-4"
         style={{ color: "hsl(var(--muted-foreground))" }}
       >

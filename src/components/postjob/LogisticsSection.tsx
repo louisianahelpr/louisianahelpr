@@ -186,14 +186,14 @@ export function LogisticsSection({
   savedAddress = null,
   otherSavedAddresses = NO_OTHER_PLACES,
 }: LogisticsSectionProps) {
-  const { t: tr } = useLanguage();
+  const { t: tr, lang } = useLanguage();
   const materialsToggleRelevant =
     !!category && MATERIALS_RELEVANT_CATEGORIES.has(category);
 
   // WHEN (board 45). The day strip is Louisiana's next days: jobs.date_needed
   // is a Louisiana calendar day (src/lib/jobDate.ts), so the strip starts on
   // todayYmd(), never the device's today (postJobDayStrip.tz.test.tsx).
-  const strip = dayStrip(todayYmd());
+  const strip = dayStrip(todayYmd(), undefined, lang === "es" ? "es-US" : "en-US");
   const dateOnStrip = !dateNeeded || strip.some((d) => d.iso === dateNeeded);
   const [moreDates, setMoreDates] = useState(false);
   const showCalendar = moreDates || !dateOnStrip;
@@ -500,12 +500,12 @@ export function LogisticsSection({
           className="flex flex-wrap gap-2"
         >
           {isFlexibleSchedule && (
-            <ChoicePill selected={!startTime.trim() && !showWheel} onClick={() => pickTime("")}>No set time</ChoicePill>
+            <ChoicePill selected={!startTime.trim() && !showWheel} onClick={() => pickTime("")}>{tr("postJob.f.noSetTime")}</ChoicePill>
           )}
           {timeChips.map((t) => (
             <ChoicePill key={t.value} selected={!showWheel && chip === t.value} onClick={() => pickTime(t.value)}>{t.label}</ChoicePill>
           ))}
-          <ChoicePill selected={showWheel} onClick={() => setOtherTime(true)}>Other time</ChoicePill>
+          <ChoicePill selected={showWheel} onClick={() => setOtherTime(true)}>{tr("postJob.f.otherTime")}</ChoicePill>
         </div>
         {/* "Other time" opens the existing wheel; it never picks on its own
             (timeWheelNeverPicksOnItsOwn.test.tsx). */}

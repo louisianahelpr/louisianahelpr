@@ -35,13 +35,17 @@ interface DashboardHomeProps {
    * Admin CLS 0.209, Builder 3 11-05: the card arriving moved the grid 148 px at 375).
    */
   alertsPending?: boolean;
+  /** What needs attention, named (attentionLine); shown in place of the generic line when standing is "attention". */
+  attention?: string | null;
 }
 
 export const DashboardHome = ({
   stats, statsLoading, onNavigate,
   dateRange, setDateRange, customDays, setCustomDays,
-  rangeLabel, prevLabel, dataError, standing, seriousAlerts, alertsPending = false,
+  rangeLabel, prevLabel, dataError, standing, seriousAlerts, alertsPending = false, attention = null,
 }: DashboardHomeProps) => {
+  // Design audit r2 #47: "There are items needing attention today." named nothing; the line names what is waiting.
+  const standingLine = standing === "attention" && attention ? attention : HOME_STANDING_LINE[standing];
   const v = (val: number | string) => statsLoading ? "—" : val;
   const healthAlerts = seriousAlerts ?? 0;
   const alertCount = [stats.disputedJobs, stats.openReports, stats.supportTickets, healthAlerts].filter((n) => n > 0).length;
@@ -77,7 +81,7 @@ export const DashboardHome = ({
         className="liquid-glass relative overflow-hidden px-5 py-4 sm:px-6 sm:py-5"
         style={{
           backgroundImage:
-            "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+            // Design audit r2 #47: the burnt-sienna corner glow read pink and off-palette; only the sage wash stays.
             "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
           boxShadow:
             "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
@@ -112,7 +116,7 @@ export const DashboardHome = ({
               Welcome back
             </h1>
             <p className="font-sans mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {HOME_STANDING_LINE[standing]}
+              {standingLine}
             </p>
           </div>
           <div className="shrink-0">

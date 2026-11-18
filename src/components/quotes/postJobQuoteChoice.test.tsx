@@ -24,8 +24,8 @@
  * @mutate src/components/postjob/CheckoutStep.tsx |           {!quoteAsk && (\n            <div data-testid="checkout-total-notes"> |           {(\n            <div data-testid="checkout-total-notes">
  * @mutate src/components/postjob/CheckoutStep.tsx | {quoteAsk ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <> | {false ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <>
  * @mutate src/pages/post-job/CheckoutStepView.tsx | {form.quoteReview ? <WithQuoteAsk | {false ? <WithQuoteAsk
- * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           { value: "price", label: "Set a price" }, |           { value: "price", label: "Set my price" },
- * @mutate src/components/quotes/PostJobQuoteChoice.tsx |         {quotesComingSoon && soonTapped ? QUOTES_COMING_SOON : PRICE_MODE_NEXT[value]}\n |         \n
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           { value: "price", label: tr("postJob.f.priceSet") }, |           { value: "price", label: "Set my price" },
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |         {quotesComingSoon && soonTapped ? tr("postJob.f.quotesSoon") : tr(PRICE_MODE_NEXT[value])}\n |         \n
  * @mutate src/lib/quotes/api.ts | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 48; | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 24;
  * @mutate src/pages/post-job/FormStep.tsx | helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : | helper={askingQuotes ? "Choose how long Helprs near you can send quotes. You pay only when you book one." :
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx | counter, or set your own price instead.\n | counter, or set your own price instead. Nothing is charged until you book.\n
@@ -130,7 +130,7 @@ describe("Post a job: Set a price or Get quotes", () => {
     expect(screen.getByRole("heading", { name: "What will you pay?" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
     // Q2613 (Jobs audit 1102b row 27): when the card is charged is said once, in the step header, not again here.
-    // @mutate src/components/quotes/PostJobQuoteChoice.tsx |   price: "You set the price. Helprs apply at your price.", |   price: "You set the budget and review it before anything is charged. Helprs apply at your price.",
+    // @mutate src/lib/i18n/enPostJob.ts |   "postJob.f.priceNext.price": "You set the price. Helprs apply at your price.", |   "postJob.f.priceNext.price": "You set the budget and review it before anything is charged. Helprs apply at your price.",
     expect(screen.getByText("You set the price. Helprs apply at your price.")).toBeInTheDocument();
     expect(screen.queryByText(/before anything is charged/)).toBeNull();
     fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));

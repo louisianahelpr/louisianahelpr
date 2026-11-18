@@ -7,7 +7,7 @@
  *
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0) === "scheduled"); | ["waiting", "scheduled"].includes(postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0)));
  */
-// @mutate src/pages/home/homeDashboard/useHomeSummary.ts | countLine([[jobTodos, "needs you", "need you"], | countLine([[jobTodos, "need you"],
+// @mutate src/pages/home/homeDashboard/useHomeSummary.ts | countLine([[jobTodos, wordInLang("home.c.needsYou", "needs you"), wordInLang("home.c.needYou", "need you")], | countLine([[jobTodos, wordInLang("home.c.needYou", "need you")],
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

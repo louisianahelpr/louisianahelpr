@@ -91,7 +91,7 @@ describe("F260q: Declutter Browse in Spanish", () => {
     await act(async () => { await ensureLangLoaded(); });
     draw();
     expect(screen.getAllByText("Gratis").length).toBeGreaterThan(0); // the price (M4 11-16: no Free chip on the row)
-    expect(screen.getByText("Recoger en el porche")).toBeTruthy();
+    expect(screen.getByText("En el porche")).toBeTruthy(); // design audit r2 #35: the short chip, not "Recoger en el porche" (truncated)
     expect(screen.getByText("Poco usado")).toBeTruthy();
     expect(screen.getByText("Menos de 1 mi")).toBeTruthy();
     expect(screen.getByText("Muebles")).toBeTruthy();

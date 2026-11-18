@@ -8,7 +8,7 @@
  *
  * @mutate src/components/admin/dashboard/homeStanding.ts | const counts = [...ADMIN_QUEUE_IDS.map((id) => input.queues[id]), input.seriousAlerts]; | const counts = [input.queues.disputes, input.queues.reports, input.queues.support];
  * @mutate src/components/admin/dashboard/homeStanding.ts | if (input.dataError \|\| counts.some((n) => n === undefined)) return "unknown"; |
- * @mutate src/components/admin/dashboard/DashboardHome.tsx | {HOME_STANDING_LINE[standing]} | {hasAlerts ? HOME_STANDING_LINE.attention : HOME_STANDING_LINE.calm}
+ * @mutate src/components/admin/dashboard/DashboardHome.tsx |               {standingLine} |               {hasAlerts ? HOME_STANDING_LINE.attention : HOME_STANDING_LINE.calm}
  * @mutate src/components/admin/dashboard/DashboardHome.tsx | {healthAlerts > 0 && ( | {false && (
  * @mutate src/pages/admin/Admin.tsx | seriousAlerts: seriousAlertCount,\n            dataError: | seriousAlerts: 0,\n            dataError:
  * @mutate src/components/admin/adminHealth/useOpenAlerts.ts | .in("severity", ["fatal", "critical", "error"]) | .in("severity", ["fatal"])

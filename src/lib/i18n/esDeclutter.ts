@@ -30,7 +30,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.earlierCategories": "Categorías anteriores",
   "decl.moreCategories": "Más categorías",
 
-  "decl.card.porch": "Recoger en el porche",
+  "decl.card.porch": "En el porche",
   "decl.card.trades": "Acepta cambios",
   "decl.card.drop": "Puede bajar esta noche",
   "decl.card.delivery": "Entrega con Helpr",

@@ -68,6 +68,7 @@ import { useTradedFor } from "./useMyTrades";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
+import "@/lib/i18n/enItemPage";
 
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
 // loads when it shows, not on every buyer's and guest's cold item page.
@@ -323,7 +324,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
                 the app, porch pickup where this listing offers it, and 24 hours after the handover to report a problem. */}
             {it.current_price_cents > 0 && !isSeller && (
               <p data-item-protected="" className="text-ds-13 text-muted-foreground">
-                {`Protected: pay in the app${it.porch_ok !== false ? ", pick up from the porch" : ""}, 24 hours to report a problem.`}
+                {it.porch_ok !== false ? t("ip.protectedPorch") : t("ip.protected")}
               </p>
             )}
             {isSeller && <ItemViewsCount sellerId={it.seller_id} itemId={it.id} />}

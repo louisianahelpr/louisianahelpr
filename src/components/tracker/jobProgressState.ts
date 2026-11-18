@@ -65,6 +65,9 @@ export type ProgressJob = {
   cancellation_fee?: number | null;
   /** A crew job: its helper_id is null (the members are on group_job_helpers), so "hired" is read from the status. */
   is_group_job?: boolean | null;
+  /** Area 11 H3: the server's no-show marker (report_helper_no_show, 20261111213317). A solo job cancelled after it,
+   *  with no confirmed Helpr since, is refunded in full (void-cancelled-payments F272), so the poster's line says so. */
+  no_show_reported_at?: string | null;
   /** A series visit (the repost sweep skips it): the past-deadline confirm line claims "reposted" only when this is read as null. */
   parent_job_id?: string | null;
   /** What the Helpr's card line reads past arrival (photo asks): the open card's tracker passes them too. */
@@ -413,6 +416,14 @@ function cancelledLine(job: ProgressJob, poster: boolean, other: string, refunde
   const who = posterDid || helprDid
     ? (youDid ? (stamp ? t("jl.cx.youAt", { when: stamp }) : t("jl.cx.you")) : (stamp ? t("jl.cx.otherAt", { name: other, when: stamp }) : t("jl.cx.other", { name: other })))
     : t("jl.cx.job");
+  // Area 11 H3 (11-18): a no-show then a cancel read like a plain cancel. void-cancelled-payments (F272) refunds every
+  // cent when the job carries no_show_reported_at, is not a crew and has no confirmed Helpr; only then "Full refund".
+  const noShowFull = poster && !!job.no_show_reported_at && job.is_group_job !== true && !job.helper_confirmed_at;
+  if (noShowFull) {
+    const name = (other ?? "").trim();
+    const head = name && name !== t("jl.yourHelpr") ? t("jl.cx.noShow", { name }) : t("jl.cx.noShowAnon");
+    return job.payment_status === "refunded" ? [head, t("jl.cx.fullRefundSent")].join(" · ") : head;
+  }
   const reason = sanitizeCancellationReason(job.cancellation_reason);
   // Q2701 (audit 1102e row 3): a late cancel kept part of the payment for the Helpr's time (the cancel sheet's amount),
   // so the line never reads like a full refund. Guard: src/test/lateCancelByPosterSaysTheMoney.test.tsx.

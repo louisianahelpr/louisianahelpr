@@ -277,8 +277,10 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       break;
     case "no_show":
       // The Helpr never came: the poster reported a no-show and the job was cancelled and refunded.
-      job = { ...base, ...hired, ...today, ...bothIn, status: "cancelled", payment_status: "refunded" };
-      applications = [{ status: "closed", closed_reason: "no_show", helper_id: PREVIEW_HELPR_ID }];
+      // Area 11 H3: as report_helper_no_show leaves it (helper_id and helper_confirmed_at cleared, the marker stamped),
+      // then the poster's cancel, refunded in full (void-cancelled-payments F272).
+      job = { ...base, ...hired, ...today, ...bothIn, status: "cancelled", payment_status: "refunded", helper_id: null, helper_confirmed_at: null, helper_dayof_confirmed_at: null, no_show_reported_at: ago(60 * 3) };
+      applications = [{ status: "rejected", closed_reason: "no_show", helper_id: PREVIEW_HELPR_ID }];
       break;
     case "disputed":
       job = {

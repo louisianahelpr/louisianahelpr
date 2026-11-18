@@ -151,6 +151,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const cancelledHelprId = isPoster && q.data?.job.status === "open" ? applicants.data?.helprCancelled?.helperId ?? null : null;
   const cancelledHelprCard = useQuery({ queryKey: ["declutter", "seller-card", cancelledHelprId], queryFn: () => fetchSellerCard(cancelledHelprId!), enabled: !!cancelledHelprId });
   const cancelledHelprFirst = (cancelledHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  // Area 11 H3: a job cancelled after a no-show names who didn't show (report_helper_no_show clears helper_id).
+  const noShowHelprId = isPoster && q.data?.job.status === "cancelled" && !q.data?.job.helper_id ? applicants.data?.noShowHelperId ?? null : null;
+  const noShowHelprCard = useQuery({ queryKey: ["declutter", "seller-card", noShowHelprId], queryFn: () => fetchSellerCard(noShowHelprId!), enabled: !!noShowHelprId });
+  const noShowHelprFirst = (noShowHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
   // The poster's Instant Release (the card's own read, PostedJobActions): the work is approved for them, so no clock.
   const { profile: ownProfile } = useCurrentUser();
   const instantRelease = !!(ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
@@ -458,7 +462,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
           <JobTracker job={dayJob} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
             hideNext={refundOpen || (isPoster && !continueDay.row && showsNow(job, trackingStatus))}
-            otherFirst={isPoster ? helperFirst : posterFirst}
+            otherFirst={isPoster ? helperFirst ?? noShowHelprFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={offerUntil} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft} helprCancelled={helprCancelled}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined}

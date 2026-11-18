@@ -41,6 +41,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { wordInLang } from "@/lib/i18n/inLang";
+import { useLanguage } from "@/lib/i18n/language";
 
 /** "17:00" → "5:00 PM". The grid stores wall-clock strings, not instants, so
  *  this formats the string itself rather than round-tripping through a Date
@@ -98,9 +100,11 @@ const FALLBACK_HOURS = 2;
  *  is a CONTRACT between the two halves of this screen: if the grid's default
  *  ever changes, this must change with it or the row starts lying again. */
 const DEFAULT_END = "17:00";
+/** The start time the grid seeds a never-saved helper with (HelperAvailability's DEFAULT_START). */
+const DEFAULT_START = "09:00";
 
 type TodaysHours =
-  | { kind: "grid"; hours: number; endLabel: string }
+  | { kind: "grid"; hours: number; endLabel: string; startLabel?: string }
   | { kind: "off" }
   | { kind: "past"; endLabel: string }
   | { kind: "unknown" };
@@ -115,6 +119,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
   // than blocking the toggle — a helper must always be able to say they are
   // free, even when we could not read their hours.
   const [todaysHours, setTodaysHours] = useState<TodaysHours>({ kind: "unknown" });
+  const { lang } = useLanguage();
   // Q2008 "Show me in Helprs near you": opt-in (profiles.show_near_you, default off). null until loaded.
   const [showNearYou, setShowNearYou] = useState<boolean | null>(null);
   const [savingNearYou, setSavingNearYou] = useState(false);
@@ -150,7 +155,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
     const { day, minutes } = nowInZone();
     supabase
       .from("helper_availability")
-      .select("is_available, end_time")
+      .select("is_available, start_time, end_time")
       .eq("helper_id", userId)
       .is("specific_date", null)
       .eq("day_of_week", day)
@@ -183,7 +188,11 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
           setTodaysHours({ kind: "past", endLabel });
           return;
         }
-        setTodaysHours({ kind: "grid", hours: (endMinutes - minutes) / 60, endLabel });
+        // Area 04 #7 (11-18): before today's hours start (1:10 AM for 9-5) the row says when they start, so
+        // "Ready until 5:00 PM" never reads as if the Helpr were inside their hours already.
+        const startTime = (data?.start_time as string | undefined) || DEFAULT_START;
+        const startLabel = minutesOf(startTime) > minutes ? formatHHMM(startTime) : undefined;
+        setTodaysHours({ kind: "grid", hours: (endMinutes - minutes) / 60, endLabel, startLabel });
       });
     return () => { cancelled = true; };
   }, [userId]);
@@ -200,13 +209,16 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
   const offSubtitle = useCallback(() => {
     switch (todaysHours.kind) {
       case "grid":
-        return `Ready until ${todaysHours.endLabel} — your hours for today`;
+        return todaysHours.startLabel
+          ? wordInLang("jh.a.startsAt", `Your hours today start at ${todaysHours.startLabel}`, { time: todaysHours.startLabel })
+          : wordInLang("jh.a.freeUntil", `Turn on to show you're free until ${todaysHours.endLabel}`, { time: todaysHours.endLabel });
       case "off":
-        return `You're not scheduled today. Turn on for ${FALLBACK_HOURS} hours anyway.`; // design audit 11-17 #29
+        // design audit 11-17 #29: "Turn on for", not "· signal".
+        return wordInLang("jh.a.notToday", `You're not scheduled today. Turn on for ${FALLBACK_HOURS} hours anyway.`, { n: FALLBACK_HOURS });
       case "past":
-        return `Your hours ended at ${todaysHours.endLabel}. Turn on for ${FALLBACK_HOURS} more hours.`;
+        return wordInLang("jh.a.ended", `Your hours ended at ${todaysHours.endLabel}. Turn on for ${FALLBACK_HOURS} more hours.`, { time: todaysHours.endLabel, n: FALLBACK_HOURS });
       default:
-        return "Signal you're ready to start a job today";
+        return wordInLang("jh.a.signal", "Signal you're ready to start a job today");
     }
   }, [todaysHours]);
 
@@ -247,7 +259,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
       // failure this screen cannot see on its own, so it needs a signal.
       report(err, { severity: "error", tags: { source: "AvailabilityTab.toggle" }, context: { userId } });
       hapticError();
-      toast.error("Couldn't update availability — try again.");
+      toast.error(wordInLang("jh.a.toggleFailed", "Couldn't update availability — try again."));
     } finally {
       setToggling(false);
     }
@@ -269,7 +281,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
     } catch (err) {
       report(err, { severity: "error", tags: { source: "AvailabilityTab.toggleNearYou" }, context: { userId } });
       hapticError();
-      toast.error("Couldn't save that. Try again.");
+      toast.error(wordInLang("jh.a.saveFailed", "Couldn't save that. Try again."));
     } finally {
       setSavingNearYou(false);
     }
@@ -278,7 +290,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
   return (
     <ProfileTabBody>
       <ProfileTabHeader
-        title="Availability"
+        title={wordInLang("jh.a.title", "Availability")}
         onBack={onBack}
       />
 
@@ -293,7 +305,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
       <div className="rounded-[20px] liquid-glass px-4 py-3.5 flex items-center justify-between gap-4">
         <div>
           <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-            Available right now
+            {wordInLang("jh.a.now", "Available right now")}
           </p>
           <p className="text-ds-12 text-muted-foreground">
             {isAvailable
@@ -301,7 +313,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
               // the DEVICE's zone, so a helper travelling (or with a wrong
               // device clock) read a different wall-clock expiry than the
               // poster reading the same signal on the applicant card.
-              ? `Until ${availableUntil!.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: ZONE })}`
+              ? wordInLang("jh.a.until", `Until ${availableUntil!.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: ZONE })}`, { time: availableUntil!.toLocaleTimeString(lang === "es" ? "es-US" : "en-US", { hour: "numeric", minute: "2-digit", timeZone: ZONE }) })
               : offSubtitle()}
           </p>
         </div>
@@ -309,7 +321,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
           checked={isAvailable}
           onCheckedChange={toggleAvailability}
           disabled={toggling}
-          aria-label={isAvailable ? "Turn off available now" : "Turn on available now"}
+          aria-label={isAvailable ? wordInLang("jh.a.turnOff", "Turn off available now") : wordInLang("jh.a.turnOn", "Turn on available now")}
         />
       </div>
 
@@ -318,17 +330,17 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
       <div data-testid="show-near-you-row" className="rounded-[20px] liquid-glass px-4 py-3.5 flex items-center justify-between gap-4">
         <div>
           <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-            Show me in Helprs near you
+            {wordInLang("jh.a.nearYou", "Show me in Helprs near you")}
           </p>
           <p className="text-ds-12 text-muted-foreground">
-            Neighbors in your parish see your photo, first name and when you're available now, on Home. Never your address.
+            {wordInLang("jh.a.nearYouHint", "Neighbors in your parish see your photo, first name and when you're available now, on Home. Never your address.")}
           </p>
         </div>
         <Switch
           checked={showNearYou === true}
           onCheckedChange={toggleNearYou}
           disabled={showNearYou === null || savingNearYou}
-          aria-label="Show me in Helprs near you"
+          aria-label={wordInLang("jh.a.nearYou", "Show me in Helprs near you")}
         />
       </div>
 

@@ -77,7 +77,8 @@ describe("journeys write the shared-account state they depend on", () => {
     const off = /const offSubtitle = useCallback\(\(\) => \{([\s\S]*?)\}, \[todaysHours\]\);/.exec(tab)?.[1];
     expect(off, "offSubtitle is not shaped as expected in AvailabilityTab.tsx").toBeTruthy();
     // The fixed words before the first interpolation of each off-state line.
-    const phrases = [...(off as string).matchAll(/return `([^`$]+)/g)].map((m) => m[1].trim()).filter((p) => p.length >= 8);
+    // Area 04 (2026-11-18): each line is wordInLang(key, `English`), so the English template is read after the key.
+    const phrases = [...(off as string).matchAll(/(?:return |wordInLang\("[^"]+", )`([^`$]+)/g)].map((m) => m[1].trim()).filter((p) => p.length >= 8);
     expect(phrases.length, `off-state phrases read from AvailabilityTab: ${phrases.join(" | ")}`).toBeGreaterThanOrEqual(3);
 
     const asserting = specFiles("e2e").filter((f) => {

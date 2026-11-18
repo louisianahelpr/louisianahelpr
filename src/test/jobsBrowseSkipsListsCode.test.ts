@@ -7,7 +7,7 @@
  * Local vite build with bundle-size.yml's env: /jobs 414 -> 389 KB gz (critical-path-budget.json).
  *
  * @mutate vite.config.ts |               test: (id: string) => jobsBrowseFirstScreen.has(id.split("?")[0].replace(/\\/g, "/")), |               test: (id: string) => false && jobsBrowseFirstScreen.has(id),
- * @mutate src/pages/home/DashboardDialogs.tsx | import { QuickApplyHandler } from "./QuickApplyHandler"; | import { QuickApplyHandler } from "./QuickApplyHandler"; import "@/components/dashboard/ApplicationSentDialog";
+ * @mutate src/pages/home/DashboardDialogs.tsx | import type { useApplyFlow } from "./useApplyFlow"; | import type { useApplyFlow } from "./useApplyFlow"; import "@/components/dashboard/ApplicationSentDialog";
  * @mutate src/pages/jobs/JobsSection.tsx | from "@/components/job-card/manageLinkOpensJobPage"; | from "@/components/job-card/useManageDeepLink";
  */
 import { resolve } from "node:path";

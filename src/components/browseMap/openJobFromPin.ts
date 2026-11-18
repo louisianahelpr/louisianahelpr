@@ -20,7 +20,15 @@
  * caller gates the Apply footer on (see mapJobToEnrichedJob's header).
  */
 import type { EnrichedJob } from "@/components/dashboard/types";
-import { fetchJobForPin } from "./fetchJobForPin";
+import { loadModule, untilReload } from "@/lib/loadModule";
+
+/**
+ * The read for a pin whose job no list holds, loaded on that tap (Q2705 pass 3): signed-in /jobs' feed imports this
+ * file, and a static import put the read (and its column list) on the first screen for a map tap. A stale chunk waits
+ * on the recovery reload (untilReload), and a reload called off lands in the caller's "Couldn't open that job".
+ */
+const fetchJobForPin = (jobId: string): Promise<EnrichedJob | null> =>
+  loadModule(() => import("./fetchJobForPin")).then((m) => (m ? m.fetchJobForPin(jobId) : untilReload()));
 
 export interface OpenJobFromPinArgs {
   jobId: string;

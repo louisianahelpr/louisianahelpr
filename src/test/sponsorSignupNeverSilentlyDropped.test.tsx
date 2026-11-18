@@ -4,7 +4,7 @@
 // honeypot, a hidden "Company fax" field that browser autofill fills (it ignores autocomplete="off").
 //
 // @mutate supabase/functions/sponsor-25days/index.ts |   const honeypotFilled = typeof raw.company_fax === 'string' && raw.company_fax.trim() !== '' |   if (typeof raw.company_fax === 'string' && raw.company_fax.trim() !== '') return json({ ok: true, days: [], any_day: true })
-// @mutate supabase/functions/sponsor-25days/index.ts |     logNotCreated('closed') |     void 0
+// @mutate supabase/functions/sponsor-25days/index.ts |     logNotCreated('switch_off') |     void 0
 // @mutate supabase/functions/sponsor-25days/index.ts |     await alertNotCreated(admin, 'save_failed', { error: error?.message ?? JSON.stringify(result), brand: s.brandName }) |     logNotCreated('save_failed')
 // @mutate supabase/functions/sponsor-25days/index.ts |         await alertNotCreated(serviceClient(), 'crashed', { error: caughtMessage(e) }) |         void 0
 // @mutate supabase/functions/sponsor-25days/index.ts |   else await sendConfirmation(admin, key, s) |   await sendConfirmation(admin, key, s)
@@ -79,7 +79,7 @@ describe("sponsor-25days: every sign-up outcome that saves nothing is non-2xx an
       expect(r.stmt, `a refusal must not be a 2xx ok: ${r.stmt}`).not.toMatch(/ok:\s*true/);
     }
     const reasons = [...body.matchAll(new RegExp(LOGGED.source, "g"))].map((m) => m[1]);
-    for (const want of ["rate_limited", "switch_off", "closed", "unreadable_form", "unreadable_payload", "invalid", "invalid_logo", "logo_upload_failed", "days_full", "save_failed"]) {
+    for (const want of ["rate_limited", "switch_off", "unreadable_form", "unreadable_payload", "invalid", "invalid_logo", "logo_upload_failed", "days_full", "save_failed"]) {
       expect(reasons).toContain(want);
     }
   });
@@ -109,7 +109,6 @@ describe("sponsor-25days: every sign-up outcome that saves nothing is non-2xx an
 });
 
 const ST: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
-const NOW = Date.UTC(2026, 10, 20);
 
 function fillValid() {
   fireEvent.change(screen.getByLabelText(C.claim.form.brandName), { target: { value: "Bayou Candles" } });
@@ -123,7 +122,7 @@ function fillValid() {
 describe("the /sponsor form: a failed send says so and keeps every entry", () => {
   it("a send that throws shows the not-saved banner and keeps the entries", async () => {
     const onSubmit = vi.fn(async () => { throw new TypeError("Failed to fetch"); });
-    render(<ClaimSection state={ST} greetingBrand={null} refCode={null} nowMs={NOW} onSubmit={onSubmit} />);
+    render(<ClaimSection state={ST} greetingBrand={null} refCode={null} onSubmit={onSubmit} />);
     fillValid();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: C.claim.form.submit })); });
     expect(onSubmit).toHaveBeenCalledTimes(1);
@@ -135,7 +134,7 @@ describe("the /sponsor form: a failed send says so and keeps every entry", () =>
   });
 
   it("a server error result shows the banner, not the thank-you", async () => {
-    render(<ClaimSection state={ST} greetingBrand={null} refCode={null} nowMs={NOW} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    render(<ClaimSection state={ST} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     fillValid();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: C.claim.form.submit })); });
     expect(screen.getByRole("alert").textContent).toBe(C.claim.errors.generic);
@@ -143,7 +142,7 @@ describe("the /sponsor form: a failed send says so and keeps every entry", () =>
   });
 
   it("the honeypot has no name, id or label browser autofill reads as a contact field", () => {
-    render(<ClaimSection state={ST} greetingBrand={null} refCode={null} nowMs={NOW} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    render(<ClaimSection state={ST} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     const hp = document.querySelector<HTMLInputElement>(".lh25-hp input");
     expect(hp).not.toBeNull();
     const label = document.querySelector(`label[for="${hp!.id}"]`)?.textContent ?? "";

@@ -126,7 +126,7 @@ export const es: Record<MsgKey, string> = {
   "nav.posts": "Publicaciones",
   "nav.jobs": "Trabajos",
   "nav.messages": "Mensajes",
-  "inbox.title": "Bandeja de entrada",
+  "inbox.title": "Mensajes",
   "inbox.tabs": "Secciones de la bandeja",
   "inbox.messages": "Mensajes",
   "inbox.notifications": "Notificaciones",

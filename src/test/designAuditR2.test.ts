@@ -323,3 +323,16 @@ describe("design audit r2 #35/#36: Declutter item words in Spanish, one section 
     expect(es["nav.declutter"]).toBe("Declutter");
   });
 });
+
+/**
+ * #13: the photo tool's error was a bare card with no icon; it is the shared Notice (info, icon) with a text "Try again".
+ * @mutate src/components/declutter/SellAiDraft.tsx |       <Notice\n        data-ai-draft="error" |       <div\n        data-ai-draft="error"
+ */
+describe("design audit r2 #13: the photo tool's error is the shared Notice", () => {
+  it("SellAiDraft's error branch draws Notice with an icon and a link-style Try again", () => {
+    const src = blankComments(readFileSync("src/components/declutter/SellAiDraft.tsx", "utf8"));
+    const branch = src.slice(src.indexOf('if (state.status === "error")'), src.indexOf("return (", src.indexOf('if (state.status === "error")') + 40) + 400);
+    expect(branch).toMatch(/<Notice\s+data-ai-draft="error"\s+icon=\{Info\}/);
+    expect(branch).toMatch(/variant="link"[^>]*onClick=\{onRun\}>\{t\("aid.tryAgain"\)\}/);
+  });
+});

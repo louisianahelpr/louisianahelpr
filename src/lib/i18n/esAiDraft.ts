@@ -6,6 +6,7 @@ export const esAiDraft: Record<keyof typeof enAiDraft, string> = {
   "aid.busyBody": "Mira sus fotos para el nombre, los detalles, la categoría, el tamaño, el estado y un precio justo. Toma unos segundos.",
   "aid.busyBodyFree": "Mira sus fotos para el nombre, los detalles, la categoría, el tamaño y el estado. Toma unos segundos.",
   "aid.tryAgain": "Intentar de nuevo",
+  "aid.errTitle": "No pudimos escribir su publicación",
   "aid.noItem": "No pudimos ver un artículo en esta foto. Pruebe otra foto con buena luz.",
   "aid.done": "Escribimos su publicación. Revísela antes de publicar",
   "aid.photoTip": "Una foto más ayudaría:",

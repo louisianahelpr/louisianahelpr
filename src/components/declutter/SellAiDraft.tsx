@@ -12,8 +12,9 @@
  * for it again ("Write it again"). Nothing is saved until step 4.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles } from "lucide-react";
+import { Info, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/Notice";
 import type { AiDraft, DeliverySize } from "@/lib/declutter/api";
 import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -277,10 +278,15 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false, free = false
   }
   if (state.status === "error") {
     return (
-      <div role="alert" data-ai-draft="error" className="space-y-2 rounded-[20px] border border-border bg-card p-4">
-        <p className="text-ds-14 text-foreground">{state.message}</p>
-        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>{t("aid.tryAgain")}</Button>
-      </div>
+      // Design audit r2 #13: the shared Notice (info, with its icon) and a "Try again" text button, not a bare card.
+      <Notice
+        data-ai-draft="error"
+        icon={Info}
+        title={t("aid.errTitle")}
+        action={<Button type="button" variant="link" size="sm" className="h-auto p-0 font-semibold" onClick={onRun}>{t("aid.tryAgain")}</Button>}
+      >
+        {state.message}
+      </Notice>
     );
   }
   return (

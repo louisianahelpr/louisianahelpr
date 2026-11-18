@@ -57,6 +57,8 @@ color:var(--gg-ink)}
 .gg-words h2{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-weight:500;font-size:34px;line-height:1.1;margin:0 0 8px;color:#3b2a20;text-wrap:balance}
 .gg-top{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px}
 .gg-ship{margin:0;font-size:12px;font-weight:600;color:#3f5a1c;background:#eef2e6;border-radius:999px;padding:5px 12px}
+.gg-more-btn{display:none}
+@media (max-width:767px){.gg-more-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin:8px 0 16px;border-radius:999px;border:1px solid var(--gg-olive);background:transparent;color:var(--gg-olive);font-weight:700;font-size:13px}.gg-rows-folded{display:none}}
 .gg-share-wrap{position:relative;display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
 a.gg-share{display:inline-flex;align-items:center;text-decoration:none}
 .gg-share{min-height:32px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid #ddd8cc;background:#fff;color:var(--gg-ink);border-radius:999px;padding:5px 14px}

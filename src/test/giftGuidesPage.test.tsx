@@ -48,6 +48,9 @@
  * @mutate src/pages/info/GiftGuides.tsx | "gg w-full" | "gg page-column"
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | !group && !more ? "gg-rows gg-rows-folded" : "gg-rows" | "gg-rows"
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | /iPhone\|iPad\|iPod/.test(userAgent) ? "&" : "?" | "?"
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | {!group && topPicks().length > 0 && ( | {false && (
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.empty && g.row === row
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.thin && g.row === row
  * @mutate src/content/giftGuideCatalog.ts |     if (g.empty) return false; |     if (false) return false;
@@ -88,6 +91,7 @@ import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GiftGuideView, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
+import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META, giftGuidePageMeta } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
@@ -285,18 +289,40 @@ describe("gift guides: the landing opens to the guides", () => {
     const rows = [...container.querySelectorAll("[data-gift-row]")];
     expect(rows.map((r) => r.querySelector("h2")?.textContent)).toEqual(ROW_LABELS);
     expect([...container.querySelectorAll("a[data-gift-see-all]")].map((a) => a.getAttribute("href"))).toEqual(ROWS.map((r) => `/gift-guides?group=${r.row}`));
-    const tiles = [...container.querySelectorAll("a[data-gift-tile]")];
+    const tiles = [...container.querySelectorAll("[data-gift-rows] a[data-gift-tile]")];
     expect(tiles.length).toBeGreaterThan(30);
+    // "Start here" (owner 2026-11-18): Mom, Dad, Her, Him, Kids, Under $25, Louisiana-Made first; on a phone the rows
+    // fold behind "More guides" (a CSS class; the button is hidden on wider screens).
+    const start = [...container.querySelectorAll("[data-gift-start] a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
+    expect(start).toEqual(["mom", "dad", "her", "him", "kids", "under-25", "louisiana-made"].filter((x) => guideBySlug(x) && !guideBySlug(x)!.empty));
+    expect(start.length).toBeGreaterThan(4);
+    const folded = container.querySelector("[data-gift-rows]")!;
+    expect(folded.className).toContain("gg-rows-folded");
+    const more = container.querySelector("button[data-gift-more]")!;
+    expect(more.textContent).toBe("More guides");
+    expect(more.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(more);
+    expect(container.querySelector("[data-gift-rows]")!.className).not.toContain("gg-rows-folded");
+    expect(container.querySelector("button[data-gift-more]")!.getAttribute("aria-expanded")).toBe("true");
+    expect(GIFT_GUIDES_CSS).toMatch(/@media \(max-width:767px\)\{\.gg-more-btn\{display:flex[^}]*\}\.gg-rows-folded\{display:none\}\}/);
+    expect(GIFT_GUIDES_CSS).toContain(".gg-more-btn{display:none}");
     expect(tiles.map((a) => a.getAttribute("href"))).toEqual(top.map((g) => `/gift-guides/${g.slug}`));
-    expect(container.querySelectorAll("[data-gift-pick]").length).toBe(0);
+    // No guide's list on the landing; only the "Top 10 most-loved" row (owner 2026-11-18), first, ten picks at most.
+    const topRow = container.querySelector("[data-gift-top]")!;
+    expect(topRow.compareDocumentPosition(rows[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(topRow.querySelector("h2")?.textContent).toBe("Top 10 most-loved");
+    const topRows = topRow.querySelectorAll("[data-gift-pick]");
+    expect(topRows.length).toBeGreaterThan(0);
+    expect(topRows.length).toBeLessThanOrEqual(10);
+    expect(container.querySelectorAll("[data-gift-pick]").length).toBe(topRows.length);
     for (const img of container.querySelectorAll("img.gg-cover")) {
       expect(img.getAttribute("loading")).toBe("lazy");
       expect(Number(img.getAttribute("width"))).toBe(480);
       expect(Number(img.getAttribute("height"))).toBe(480);
     }
-    expect(container.querySelectorAll("img.gg-cover").length).toBe(top.filter((g) => g.cover).length);
+    expect(container.querySelectorAll("[data-gift-rows] img.gg-cover").length).toBe(top.filter((g) => g.cover).length);
     // A guide with no cover gets a plain gingham tile with its name only (owner 2026-11-18: no footer text).
-    const text = [...container.querySelectorAll("[data-gift-textcover]")];
+    const text = [...container.querySelectorAll("[data-gift-rows] [data-gift-textcover]")];
     expect(text.length).toBe(top.filter((g) => !g.cover).length);
     for (const t of text) expect(t.textContent).not.toMatch(/LOUISIANA HELPR/i);
   });

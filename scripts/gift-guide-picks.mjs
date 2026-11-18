@@ -254,6 +254,32 @@ for (const [slug, host] of [["store-zchocolat", "www.zchocolat.com"], ["store-di
   const onHost = [...new Map(everyPick.filter((p) => new URL(p.href).hostname === host).map((p) => [p.name, p])).values()];
   if (onHost.length) pageList[slug] = onHost;
 }
+/**
+ * "Top 10 most-loved" (owner 2026-11-18): the picks listed in the most guides (store pages not counted), photos
+ * first, then by how many guides list them, then by name. Counted by link (and name, for shared ShopMy links).
+ */
+const loved = new Map();
+for (const [slug, list] of Object.entries(pageList)) {
+  if (slug.startsWith("store-")) continue;
+  for (const p of list) {
+    const key = `${p.href} ${p.name}`;
+    const cur = loved.get(key) ?? { p, n: 0 };
+    cur.n += 1;
+    loved.set(key, cur);
+  }
+}
+// A row is a product, not a store page or a page title ("Bass Pro Shops", "Sites-SA-Site", "... 2024 | Harry & David").
+const looksLikeProduct = (p) => {
+  const name = p.name.trim();
+  const store = p.store ? stores.get(p.store)?.name ?? "" : "";
+  if (p.brand && name.includes(" - ") && compact(name.split(" - ")[0]) === compact(p.brand)) return false; // "L.L.Bean - Outside Together ..."
+  return name.length > 3 && !/^sites-|\b20\d\d\b|\|/i.test(name) && ![p.brand, store].some((x) => x && compact(x) === compact(name)) && !/^[a-z0-9]+$/.test(name);
+};
+const topPicks = [...new Map([...loved.values()].filter((x) => x.n > 1 && looksLikeProduct(x.p)).map((x) => [x.p.name, x])).values()]
+  .sort((a, b) => Number(Boolean(b.p.image)) - Number(Boolean(a.p.image)) || b.n - a.n || a.p.name.localeCompare(b.p.name))
+  // One per brand, so the row is ten different finds.
+  .filter((x, i, all) => !x.p.brand || all.findIndex((y) => y.p.brand === x.p.brand) === i)
+  .slice(0, 10).map((x) => x.p);
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();
@@ -277,6 +303,8 @@ writeFileSync(
     `export const CHUNK_SLUGS: readonly string[] = ${JSON.stringify(chunkSlugs)};\n` +
     `/** Codes the researched deals name (the sidebar's Discount codes, after the owner's; each hidden after its end date). */\n` +
     `export const DEAL_CODES: { rank: number; store: string; code: string; offer: string; expires?: string }[] = ${JSON.stringify(dealCodes)};\n` +
+    `/** The landing's "Top 10 most-loved" row: the picks the most guides list, photos first. */\n` +
+    `export const TOP_PICKS: ResearchedPick[] = ${JSON.stringify(topPicks)};\n` +
     `/** The sidebar's Sales (each hidden after its end date). */\n` +
     `export const SALES: Sale[] = ${JSON.stringify(sales)};\n` +
     `/** Each guide's chunk, fetched only when its page opens (Vite splits every file into its own chunk). */\n` +

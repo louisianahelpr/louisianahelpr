@@ -8,6 +8,8 @@
  * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.louisianaFit && brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.sponsor \|\| (brand && SPONSOR_BRANDS.includes(brand)) ? (["sponsor"] as const) : []), |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []),
+ * @mutate src/content/giftGuideCatalog.ts | !badges.includes("louisiana-made") ? [...badges, "shop-louisiana"] : badges | false ? [...badges, "shop-louisiana"] : badges
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | if (pick.image && !failed) { | if (pick.image) {
  * @mutate scripts/gift-guide-picks.mjs | if (!nameOnly(slug, p)) add(slug, p, file); | add(slug, p, file);
  * @mutate src/pages/info/giftGuides/giftList.tsx | aria-pressed={saved} | aria-pressed={false}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | onToggle={() => toggleGuide(g.slug)} | onToggle={() => undefined}
@@ -202,7 +204,8 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     window.localStorage.clear();
     resetGiftListForTests();
     const { container } = renderAt("/gift-guides");
-    const heart = screen.getByRole("button", { name: "Save Mom to My list" });
+    // Mom is in "Start here" and in its row; both hearts read the same list.
+    const heart = screen.getAllByRole("button", { name: "Save Mom to My list" })[0];
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(heart.closest("a")).toBeNull();
     const link = container.querySelector("[data-gift-my-list-link]")!;
@@ -235,7 +238,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
       throw new Error("blocked");
     });
     renderAt("/gift-guides");
-    const heart = screen.getByRole("button", { name: "Save Dad to My list" });
+    const heart = screen.getAllByRole("button", { name: "Save Dad to My list" })[0];
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     spy.mockRestore();

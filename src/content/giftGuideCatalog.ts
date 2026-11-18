@@ -10,7 +10,7 @@
 import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
-import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
+import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
 
 /**
  * The owner's list plus every store page the researched picks name (follow-up batch 2026-11-18: every store or brand
@@ -223,6 +223,9 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   const badges = withShopLouisiana(badgesFor(p.brand, p), store, p.louisianaFit);
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}) };
 };
+/** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */
+export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);
+
 /** The static picks (content files). The researched picks arrive per guide, from its chunk (loadGuidePicks). */
 const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks)];
 

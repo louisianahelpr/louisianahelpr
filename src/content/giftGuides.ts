@@ -213,6 +213,12 @@ export const giftGuides = {
   /** The pick badges (owner 2026-11-18). Never a price. */
   badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
+  /** The landing's first row (owner 2026-11-18): the picks the most guides list. */
+  topTitle: "Top 10 most-loved",
+  /** The landing's guides a phone sees first, and the button that opens every row (owner 2026-11-18). */
+  startTitle: "Start here",
+  moreGuidesLabel: "More guides",
+  fewerGuidesLabel: "Fewer guides",
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
   giveaways: {
     title: "25 Days of Louisiana Giveaways",

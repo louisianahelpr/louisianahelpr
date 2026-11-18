@@ -24,6 +24,7 @@
  * @mutate src/components/profile/DeleteAccountDialog.tsx |   return <WhatHappensList lines={WHAT_HAPPENS} extra={<DownloadFirst />} />; |   return <WhatHappensList lines={[...WHAT_HAPPENS, DOWNLOAD_LINE]} />;
  * @mutate src/components/profile/ProfileEditForm.tsx |             Neighbors read this on your public profile. | People read this when deciding who to hire.
  * @mutate src/components/profile/SettingsTab.tsx | data-sub-line="" className="block text-ds-13 text-muted-foreground mt-0.5 truncate" | data-sub-line="" className="block text-ds-13 text-muted-foreground mt-0.5"
+ * @mutate src/components/profile/SignInMethodsCard.tsx |             {t("sim.title")}\n |             Sign-in methods\n
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -217,6 +218,17 @@ describe("design audit area 09: Edit profile does not assume a role (M10), the e
     const tab = src("src/components/profile/SettingsTab.tsx");
     expect(tab).toMatch(/data-sub-line="" className="[^"]*\btruncate\b/);
     expect(tab).toContain("subLines={accountLines(user?.email, user?.identities)}");
+  });
+});
+
+describe("design audit area 09: Sign-in methods speaks Spanish (H1)", () => {
+  it("the card's words come from t(), and the Remove commit is named before the JSX", () => {
+    const card = src("src/components/profile/SignInMethodsCard.tsx");
+    expect((card.match(/t\("sim\.[A-Za-z]+"/g) ?? []).length).toBeGreaterThan(18);
+    for (const lit of ["Sign-in methods", "Email and password", "Not connected", "Keep it"]) {
+      expect(card, lit).not.toMatch(new RegExp(`[>"]\\s*${lit}\\s*[<"]`));
+    }
+    expect(card).toContain("primaryLabel={removeLabel}");
   });
 });
 

@@ -8,6 +8,7 @@
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | <span className="ml-auto shrink-0 text-ds-11 | {!row.open && <span data-order-talk-ended="">x</span>}<span className="ml-auto shrink-0 text-ds-11
  * @mutate src/components/dashboard/jobDetailDialog/JobDetailTitleRow.tsx | <div className="font-sans text-ds-15 leading-relaxed text-foreground" data-job-description=""> | <div className="font-sans text-ds-12 leading-relaxed" data-job-description="">
  * @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx | <div key="stat-tiles" className="flex flex-col gap-1" data-job-deadline-line=""> | <div key="stat-tiles" className="grid grid-cols-2 auto-rows-fr gap-2" data-job-deadline-line="">
+ * @mutate src/components/job-card/MineJobFace.tsx | <div className="order-1 min-w-0 md:order-none md:flex-1" data-mine-face-col=""> | <div className="order-1 min-w-0 md:order-none md:flex-1">
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -58,5 +59,14 @@ describe("design audit 11-17", () => {
     expect(tiles).toContain("text-ds-12 sm:text-ds-14");
     expect(tiles).toContain('<div key="stat-tiles" className="flex flex-col gap-1" data-job-deadline-line="">');
     expect(tiles).not.toMatch(/col-span-2/);
+  });
+
+  it("#12: from 768px the Working card's thumb no longer sets the title row's height", () => {
+    expect(src("src/components/job-card/MineJobFace.tsx")).toContain('data-mine-face-col=""');
+    const css = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
+    const block = css.slice(css.indexOf("DESIGN AUDIT 11-17 #12"));
+    expect(block).toMatch(/\[data-mine-face-col\] \[data-mine-face-thumb\] \{ position: absolute; left: 0; top: 0; \}/);
+    expect(block).toMatch(/\[data-mine-face-col\] \[data-mine-face-open\] \{ padding-left: 3\.5rem; \}/);
+    expect(block).toMatch(/\[data-mine-face-col\] \{ position: relative; min-height: 2\.75rem; \}/);
   });
 });

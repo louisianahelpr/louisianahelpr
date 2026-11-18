@@ -203,7 +203,9 @@ export function MineJobFace({
       {/* Tight like Browse's card (owner 2026-10-25, "polish these cards, kind of a lot of spacing"): 14px sides, 12px
           top and bottom, a 44px thumb, 8px between the face, its tracker and its button. Guard: src/test/jobsSearchIsAnIcon.test.tsx. */}
       {/* From 768px the one button sits to the right of the face, not across a 1500px card. */}
-      <div className="order-1 min-w-0 md:order-none md:flex-1">
+      {/* data-mine-face-col (design audit 11-17 #12): from 768px the 44px thumb stops setting the title row's
+          height, so the address line sits right under a one-line title (index.css). */}
+      <div className="order-1 min-w-0 md:order-none md:flex-1" data-mine-face-col="">
         <div className="flex items-start gap-1">
         <Link
           to={`/jobs/${encodeURIComponent(jobId)}`}

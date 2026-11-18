@@ -513,7 +513,8 @@ export function FormStep({ form }: FormStepProps) {
                   className="font-sans font-bold tabular-nums shrink-0 text-ds-16"
                   style={{ letterSpacing: "-0.01em" }}
                 >
-                  {" "}· ${formatPriceExact(form.budgetNum)}
+                  {/* Design audit r2 #10: the gap-2 is the one space; a leading " " made it two. */}
+                  · ${formatPriceExact(form.budgetNum)}
                 </span>
               )}
             </span>

@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHomeMoney } from "@/pages/home/homeDashboard/homeMoney";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
+import "@/lib/i18n/enYourPage";
+import { t, useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 /**
  * BOARD 18's list: Money · Alerts · Settings · Talk to a real person, one card
@@ -61,9 +64,30 @@ export const YOU_STATIC_CAPTIONS: Partial<Record<RowKey, string>> = {
 };
 
 export function youMoneyCaption(money: ReturnType<typeof useHomeMoney>): string | null {
-  if (money.coming) return `${formatCents(money.coming.cents)} coming`;
-  if (money.held) return `${formatCents(money.held.cents)} held`;
+  if (money.coming) return t("yp.you.coming", { amount: formatCents(money.coming.cents) });
+  if (money.held) return t("yp.you.held", { amount: formatCents(money.held.cents) });
   return null;
+}
+
+/** What the member reads (design audit r2 #31: the You page was English in Spanish). The English constants above stay
+ *  the rows' ids for tests and analytics; t() draws them in the member's language. */
+const ROW_KEY: Record<RowKey, MsgKey> = {
+  earnings: "yp.you.row.earnings",
+  notifications: "yp.you.row.notifications",
+  settings: "yp.you.row.settings",
+  support: "yp.you.row.support",
+  admin: "yp.you.row.admin",
+};
+const CAPTION_KEY: Partial<Record<RowKey, MsgKey>> = {
+  notifications: "yp.you.cap.notifications",
+  settings: "yp.you.cap.settings",
+  support: "yp.you.cap.support",
+};
+/** The static captions in the member's language. */
+export function youStaticCaptions(): Partial<Record<RowKey, string>> {
+  const out: Partial<Record<RowKey, string>> = {};
+  for (const [k, key] of Object.entries(CAPTION_KEY) as [RowKey, MsgKey][]) out[k] = t(key);
+  return out;
 }
 
 /**
@@ -80,8 +104,9 @@ export function YouMenuList({
   onSelect?: (key: string) => void;
   showAdmin?: boolean;
 }) {
+  useLanguage();
   return (
-    <section aria-label="You" className="liquid-glass overflow-hidden" data-testid="you-menu">
+    <section aria-label={t("yp.you.menu")} className="liquid-glass overflow-hidden" data-testid="you-menu">
       {youRows(showAdmin).map((row, i) => {
         const cap = captions?.[row.key];
         return (
@@ -98,7 +123,7 @@ export function YouMenuList({
             <span className="shrink-0" style={{ color: "hsl(var(--bark))" }}>{ICON[row.key]}</span>
             {/* Q2306: the label never gives way (shrink-0, never truncated); the caption takes what is left and
                 truncates. At 375 the old flex-1 label + shrink-0 caption cut "Notifications" to "Notificat…". */}
-            <span data-you-label={row.key} className="shrink-0 whitespace-nowrap text-ds-15 font-semibold text-foreground" title={row.label}>{row.label}</span>
+            <span data-you-label={row.key} className="shrink-0 whitespace-nowrap text-ds-15 font-semibold text-foreground" title={t(ROW_KEY[row.key])}>{t(ROW_KEY[row.key])}</span>
             {cap && (
               <span
                 data-you-caption={row.key}
@@ -127,9 +152,10 @@ export function YouMenu({
 }) {
   const { user, isAdmin } = useCurrentUser();
   const navigate = useNavigate();
+  useLanguage();
   const money = useHomeMoney(user);
   const moneyCaption = youMoneyCaption(money);
-  const caption: Partial<Record<RowKey, string | null>> = { ...YOU_STATIC_CAPTIONS, earnings: moneyCaption };
+  const caption: Partial<Record<RowKey, string | null>> = { ...youStaticCaptions(), earnings: moneyCaption };
 
   return (
     <div className="shrink-0 flex flex-col gap-3">
@@ -148,7 +174,7 @@ export function YouMenu({
           className="glass-press w-full bg-card px-0 active:scale-[0.99] transition-all font-semibold tracking-normal [&_svg]:size-4"
           style={{ color: "hsl(var(--foreground))", border: "1px solid hsl(var(--border))" }}
         >
-          <LogOut className="w-4 h-4" aria-hidden /> Log out
+          <LogOut className="w-4 h-4" aria-hidden /> {t("yp.you.logOut")}
         </Button>
         {/* Quiet: a small muted text button, never a second pill. Its confirm dialog does the warning.
             F485 (audit 11-10): it sat 4px under Log out, so a thumb meant for Log out could open the delete steps;
@@ -162,10 +188,11 @@ export function YouMenu({
             data-testid="profile-delete-account"
             className="w-full px-0 text-ds-13 font-semibold tracking-normal text-muted-foreground"
           >
-            Delete account
+            {t("yp.you.delete")}
           </Button>
         </div>
       </div>
     </div>
   );
 }
+

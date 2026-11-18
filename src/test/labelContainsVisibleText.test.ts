@@ -45,7 +45,7 @@ describe("#3491: a control's accessible name contains the words it shows (WCAG 2
     expect(tag).toContain('aria-hidden="true"');
     expect(tag).toContain("tabIndex={-1}");
     // The text button it repeats is still there, with its words as its name.
-    expect(src).toMatch(/>\s*View my public profile\s*<\/Button>/);
+    expect(src).toMatch(/>\s*\{t\("yp\.you\.publicProfile"\)\}\s*<\/Button>/);
   });
 
   it("MoneyTile has no aria-label: its label, amount and caption are its name", () => {

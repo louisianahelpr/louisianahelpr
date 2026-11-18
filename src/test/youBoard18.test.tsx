@@ -5,10 +5,11 @@
  * section not open to this viewer has no tiles; ONE line names every such
  * section (owner 2026-10-21: "Homes is opening soon").
  *
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |             const status = n > 0 ? `${n} ${word}` : t.count && summary.countsKnown?.[t.count] ? "None yet" : ""; |             const status = `${n} ${word}`;
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |             const status = n > 0 ? countLine : t.count && summary.countsKnown?.[t.count] ? tr("yp.you.count.none") : ""; |             const status = countLine;
  * Owner 2026-11-17 (signed-in tweaks, item 8): a count that has answered 0 says "None yet"; one still loading says nothing.
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |             const status = n > 0 ? `${n} ${word}` : t.count && summary.countsKnown?.[t.count] ? "None yet" : ""; |             const status = n > 0 ? `${n} ${word}` : t.count ? "None yet" : "";
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |             const status = n > 0 ? countLine : t.count && summary.countsKnown?.[t.count] ? tr("yp.you.count.none") : ""; |             const status = n > 0 ? countLine : t.count ? tr("yp.you.count.none") : "";
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |         working: !applied.loading && !applied.loadError && applied.appliedApps !== undefined, |         working: true,
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |                   {status && <><span aria-hidden="true"> ·</span> | {<><span aria-hidden="true"> ·</span>
  * F088 (owner UI audit 11-09): each count carries its status word ("2 live").
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |   posted: "live", |   posted: "",
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |   const open = visible.filter((s) => isOn(s) && isListedHere(s)); |   const open = visible;

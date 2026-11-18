@@ -224,8 +224,9 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
 
     if (hero) {
       return (
-        <div className={cn("flex items-center justify-center", className)}>
-          <span aria-hidden="true" className="font-sans text-ds-40 font-bold" style={{ color: "hsl(var(--burnt-sienna))" }}>
+        <div className={cn("flex items-center justify-center gap-0.5 rounded-ds-md px-2 focus-within:ring-2 focus-within:ring-[hsl(var(--olivewood)/0.35)]", className)}>
+          {/* Design audit r2 #2: the "$" is the number's size, muted; the digits are the text colour. */}
+          <span aria-hidden="true" className="font-sans text-ds-40 font-bold text-muted-foreground">
             $
           </span>
           <Input
@@ -239,8 +240,11 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
             onPaste={handlePaste}
             placeholder={placeholder ?? "0"}
             // Sized to its digits (ch) so "$" and the number sit together centred; a 44px-plus tap target.
-            style={{ width: `${Math.max(1, (display || placeholder || "0").length) + 0.5}ch`, color: "hsl(var(--burnt-sienna))" }}
-            className="h-auto min-h-[56px] min-w-[2ch] max-w-[9ch] border-0 bg-transparent p-0 shadow-none text-center font-sans text-ds-40 font-bold tabular-nums placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background rounded-ds-md"
+            // look="bare" (design audit r2 #2): the shared field surface drew a 15px pill around the digits and its
+            // text-ds-15 beat this text-ds-40. Bare: no box when idle, the number at the scale's top size; the wrapper rings on focus.
+            look="bare"
+            style={{ width: `${Math.max(3, (display || placeholder || "0").length) + 0.5}ch` }}
+            className="h-auto min-h-[56px] min-w-[3ch] max-w-[9ch] border-0 bg-transparent p-0 text-left font-sans text-ds-40 font-bold tabular-nums text-foreground placeholder:text-muted-foreground"
             {...props}
           />
         </div>

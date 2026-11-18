@@ -7,9 +7,9 @@
  * text. Spec v2 §9.8, §1.5 (every fact real or hidden), §1.1 (money in rust).
  *
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |   { key: "support", label: "Talk to a real person" }, |   { key: "support", label: "Help & Support" },
- * @mutate src/components/profile/profileLanding/YouMenu.tsx |   if (money.held) return `${formatCents(money.held.cents)} held`; |   if (money.held) return `${formatCents(money.held.cents)} held`; return "$0.00";
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx |   if (money.held) return t("yp.you.held", { amount: formatCents(money.held.cents) }); |   if (money.held) return t("yp.you.held", { amount: formatCents(money.held.cents) }); return "$0.00";
  * @mutate src/components/profile/profileLanding/YouCard.tsx |   if (reviewCount > 0 && avgRating != null) { |   if (avgRating != null) {
- * @mutate src/components/profile/ProfileLanding.tsx | <AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} /> | <AppTopBar title={PROFILE_PAGE_TITLE} />
+ * @mutate src/components/profile/ProfileLanding.tsx | <AppTopBar title={profilePageTitle()} showProfile={false} /> | <AppTopBar title={profilePageTitle()} />
  * @mutate src/components/sections/AppTopBar.tsx | {user && !isWebDesktop && showProfile && ( | {user && !isWebDesktop && (
  */
 import { describe, it, expect, afterEach } from "vitest";
@@ -58,7 +58,7 @@ describe("You tab, board 18", () => {
 
   it("the title row is the shared top bar with the bell and no profile photo", () => {
     const landing = read("components/profile/ProfileLanding.tsx");
-    expect(landing).toContain("<AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} />");
+    expect(landing).toContain("<AppTopBar title={profilePageTitle()} showProfile={false} />");
     expect(landing).toContain("<YouCard");
     expect(landing).toMatch(/<YouMenu onSelectTab=\{onSelectTab\} onRequestLogout=\{onRequestLogout\} onRequestDelete=\{onRequestDelete\} \/>/);
     expect(landing).not.toContain("<SettingsSection");

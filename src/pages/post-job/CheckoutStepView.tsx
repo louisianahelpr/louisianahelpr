@@ -8,6 +8,8 @@ import { FirstPostGuarantee } from "@/components/guarantee/FirstPostGuarantee";
 import type { ReactNode } from "react";
 import { CARD_HOLD_COPY } from "../../../supabase/functions/_shared/cardHoldCopy";
 import type { usePostJobForm } from "./usePostJobForm";
+import "@/lib/i18n/enPostJob";
+import { useLanguage } from "@/lib/i18n/language";
 
 interface CheckoutStepViewProps {
   form: ReturnType<typeof usePostJobForm>;
@@ -43,6 +45,7 @@ function WithQuoteAsk({ form, children }: CheckoutStepViewProps & { children: (a
 }
 
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
+  const { t: tr } = useLanguage();
   // Q2399 (owner 2026-10-25): with card_hold_at_post (read once in
   // usePostJobForm) the card is HELD when the job posts and charged only at
   // the hire (create-payment). A bank payment cannot be held, so it is still
@@ -71,7 +74,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
           card_hold_at_post (Q2399) the card is charged only at the hire, and it says so. */}
       <PostJobStepHeader
         screen="review"
-        question="Look good?"
+        question={tr("postJob.f.lookGood")}
         canPick={canPick}
         onPick={pick}
         helper={

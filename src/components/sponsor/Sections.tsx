@@ -209,8 +209,8 @@ export function HowItWorks() {
       <ol className="lh25-steps">
         {C.howItWorks.steps.map((s, i) => (
           <li key={s.title} className="lh25-card lh25-step">
+            {/* Design audit r2 #24: the numeral is the step's mark; the icon circle beside it was a third. */}
             <span className="lh25-step-num" aria-hidden="true">{i + 1}</span>
-            <span className="lh25-icon-badge lh25-icon-badge-green"><Icon name={s.icon} /></span>
             <h3>{s.title}</h3>
             <p>{s.body}</p>
           </li>
@@ -464,7 +464,7 @@ export function Lineup() {
             ) : null,
             <li key={d.day} className={`lh25-lineup-day${open ? "" : " lh25-lineup-later"}`} data-testid={`lineup-day-${d.day}`}>
               <div className="lh25-lineup-head">
-                <span className="lh25-lineup-date">{lineupWeekday(d.day)} · Dec {d.day}</span>
+                <span className="lh25-lineup-date">{lineupWeekday(d.day)}<span className="lh25-lineup-dot" aria-hidden="true">·</span>Dec {d.day}</span>
                 {d.partners.length > 1 ? (
                   <span className="lh25-lineup-winners">{C.lineup.winners.replace("{n}", String(d.partners.length))}</span>
                 ) : null}

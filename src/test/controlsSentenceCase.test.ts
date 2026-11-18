@@ -17,7 +17,7 @@
  * @mutate src/components/PayoutSetupForm.tsx | Add your bank (with Stripe) | Add Your Bank (with Stripe)
  * @mutate src/components/profile/earningsTab/EarningsRangeToggle.tsx | label: "This week" | label: "This Week"
  * @mutate src/pages/posts/EditJobDialog.tsx | <DialogPrimaryAction onClick={confirmDiscard}>Discard changes</DialogPrimaryAction> | <DialogPrimaryAction onClick={confirmDiscard}>Discard Changes</DialogPrimaryAction>
- * @mutate src/components/SuggestCategory.tsx |               Send suggestion\n | Send Suggestion\n
+ * @mutate src/pages/posts/EditJobDialog.tsx | <DialogPrimaryAction onClick={save}>Save changes</DialogPrimaryAction> | <DialogPrimaryAction onClick={save}>Save Changes</DialogPrimaryAction>
  * @mutate src/components/TermsReconsentDialog.tsx | "Saving…" : "I agree" | "Saving…" : "I Agree"
  */
 import { execFileSync } from "node:child_process";

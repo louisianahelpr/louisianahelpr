@@ -28,8 +28,8 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
  * (YouMenuList itself, inert); the card and tiles (data) stay as bones.
  */
 
-// @mutate src/components/profile/ProfilePageSkeleton.tsx | <YouMenuList captions={YOU_STATIC_CAPTIONS} /> | <Skeleton className="h-[224px] rounded-ds-lg" />
-// @mutate src/components/profile/ProfilePageSkeleton.tsx | <AppTopBar title={PROFILE_PAGE_TITLE} showProfile={false} /> | <AppTopBar title=" " showProfile={false} />
+// @mutate src/components/profile/ProfilePageSkeleton.tsx | <YouMenuList captions={youStaticCaptions()} /> | <Skeleton className="h-[224px] rounded-ds-lg" />
+// @mutate src/components/profile/ProfilePageSkeleton.tsx | <AppTopBar title={profilePageTitle()} showProfile={false} /> | <AppTopBar title=" " showProfile={false} />
 // @mutate src/components/profile/profileLanding/YouMenu.tsx | disabled={!onSelect} | disabled={false}
 
 const renderSkeleton = () =>

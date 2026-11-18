@@ -12,6 +12,9 @@ export const enJobCard = {
   "jobCard.boosted": "Boosted",
   "jobCard.urgent": "Urgent",
   "jobCard.today": "Today",
+  // The swipe underlays (design audit r2 #33)
+  "jobCard.swipeNo": "Not interested",
+  "jobCard.swipeApply": "Apply",
 } as const;
 
 addEnglish(enJobCard);

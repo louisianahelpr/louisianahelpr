@@ -139,7 +139,7 @@ describe("the wiring (Q2438)", () => {
     expect(src).toContain("useSameDayPick({ today, startTime, setDateNeeded, setStartTime })");
     expect(code("src/components/postjob/useSameDayPick.ts")).toContain("sameDayStart: sameDayStartTime(),");
     expect(src).toMatch(/setDateNeeded\(today\);\s*markTodayStart\(sameDayStart\);/);
-    expect(src).toContain("Need it today");
+    expect(src).toContain('tr("postJob.f.needToday")');
   });
 
   it("the browse card shows Today for a job dated today", () => {

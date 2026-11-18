@@ -8,7 +8,7 @@
  * Class inventory: every OrderTalkButton call site passes `trade`, so no order card can fall back to buyer/seller words.
  *
  * @mutate src/components/declutter/OrderSteps.tsx |   return f.trade ? ["Trade", ...s.slice(1)] : | return false ? ["Trade", ...s.slice(1)] :
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx |       {trade ? "Message about the trade" : | {false ? "Message about the trade" :
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx |       {trade ? tr("cp.ot.msgTrade") : | {false ? tr("cp.ot.msgTrade") :
  * @mutate src/components/declutter/declutterUi.tsx |   if (tradedFor && (item.status === "reserved" | if (false && (item.status === "reserved"
  * @mutate src/lib/declutter/trades.ts |     const mine = t.my_side === "seller" ? t.item : t.offered; |     const mine = t.item;
  * Audit 1110 F359e: the owner's item page said "Your listing: Someone is buying it" for a listing in an accepted trade,

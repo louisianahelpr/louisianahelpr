@@ -4,7 +4,7 @@
  * day dividers (dateDividerLabel) between days, and each line carries only its clock time.
  *
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | (i === 0 \|\| dayKey(t.messages[i - 1].created_at) !== dayKey(m.created_at)) && ( | false && (
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx | (m.mine ? "You" : `The ${other}`)} · {clock(m.created_at)}</p> | (m.mine ? "You" : `The ${other}`)} · {when(m.created_at)}</p>
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx | (m.mine ? tr("cp.ot.you") : theOther)} · {clock(m.created_at)}</p> | (m.mine ? tr("cp.ot.you") : theOther)} · {when(m.created_at)}</p>
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | (i === 0 \|\| dayKey(t.messages[i - 1].created_at) !== dayKey(m.created_at)) && ( | (i === 0) && (
  */
 import { describe, it, expect, vi } from "vitest";

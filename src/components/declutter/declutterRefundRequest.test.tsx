@@ -300,7 +300,7 @@ describe("DeclutterRefundPanel", () => {
 
   it("seller: the offer starts empty, cannot be sent until it is an amount, and sends exactly that amount", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
-    expect(await screen.findByText(/then gets \$41\.20 back once you confirm you have it/)).toBeTruthy();
+    expect(await screen.findByText(/returns it and gets \$41\.20 back once you have it/)).toBeTruthy();
     fireEvent.click(screen.getByText("Offer part of it"));
     const box = screen.getByLabelText(/How much back\?/) as HTMLInputElement;
     expect(box.value).toBe("");
@@ -315,14 +315,16 @@ describe("DeclutterRefundPanel", () => {
   // Audit 11-10 F395 (Medium): "then gets $36.06 back" under a $37.45 payment, with nothing explaining the gap.
   it("F395: the seller's Refund in full says why the amount is less than the payment", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
-    const sub = await screen.findByText(/then gets \$41\.20 back once you confirm you have it/);
-    expect(sub.textContent).toContain("That's all they paid, less the small part the card network kept for the payment, which it doesn't give back. You get no payout for this sale.");
+    // Area 06 L10 (11-18): one short line that says what the amount is.
+    // @mutate src/components/declutter/DeclutterRefundRequest.tsx | back once you have it (${v.delivery_kept_cents > 0 | back once you have it. (${v.delivery_kept_cents > 0
+    const sub = await screen.findByText(/returns it and gets \$41\.20 back once you have it/);
+    expect(sub.textContent).toContain("returns it and gets $41.20 back once you have it (what they paid, less the card network's small part). You get no payout.");
   });
 
   it("F395: with a Helpr delivery kept, the seller's Refund in full names the item price instead", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, delivery_kept_cents: 1500, request: REQ });
-    const sub = await screen.findByText(/then gets \$41\.20 back once you confirm you have it/);
-    expect(sub.textContent).toContain("That's what they paid for the item, less the small part the card network kept");
+    const sub = await screen.findByText(/returns it and gets \$41\.20 back once you have it/);
+    expect(sub.textContent).toContain("(what they paid for the item, less the card network's small part)");
   });
 
   it("seller: Refund in full sends no amount (the server decides it), even after typing an offer", async () => {

@@ -65,8 +65,8 @@ export default function GiftGuides() {
   );
 
   return (
-    <PublicHeaderPage title={G.pageTitle} backTo={guide ? "/gift-guides" : "/"} wrapTitle bottomPaddingClassName="pb-12 md:pb-16"
-      titleActions={ship ? <p className="gg-ship" data-gift-ship="">{ship}</p> : undefined}>
+    <PublicHeaderPage title={G.pageTitle} backTo={guide ? "/gift-guides" : "/"} bottomPaddingClassName="pb-12 md:pb-16"
+      titleActions={ship ? <p className="gg-ship whitespace-nowrap" data-gift-ship="">{ship.replace(/ for Christmas delivery$/, "")}<span className="hidden sm:inline">{ship.endsWith(" for Christmas delivery") ? " for Christmas delivery" : ""}</span></p> : undefined}>
       <style>{GIFT_GUIDES_CSS}</style>
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="">

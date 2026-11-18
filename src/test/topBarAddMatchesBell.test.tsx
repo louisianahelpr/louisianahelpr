@@ -90,6 +90,8 @@ describe("the section's soft '+' in its top bar, desktop website only (owner 202
       expect(add.className).toContain("bg-[hsl(var(--bark)/0.12)]");
       expect(add.className).toContain("text-[hsl(var(--bark))]");
       expect(add.className).toContain("shadow-none");
+      // Design audit 11-17 #23: an olive edge, so it never reads as a grey disabled pill.
+      expect(add.className).toContain("border-[hsl(var(--bark)/0.55)]");
       expect(add.className).not.toMatch(/btn-grad-primary/);
       fireEvent.click(add);
       expect(screen.getByTestId("where").textContent).toBe(s.add.path);

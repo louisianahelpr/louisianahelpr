@@ -60,7 +60,9 @@ function TopBarInbox() {
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
 
 /** The soft create look (the light olive tint, the olive glyph) of the desktop "+ Post a job". */
-const SECTION_ADD_TINT = "rounded-full shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
+// Design audit 11-17 #23: the bare 12% tint read as a grey, disabled pill beside the rail's olive "+ Create"; an olive
+// edge makes it read as the lighter-green button it is (still no fill, no shadow: second to Create).
+const SECTION_ADD_TINT = "rounded-full shadow-none border border-[hsl(var(--bark)/0.55)] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
 
 /** The section's soft "+ Post a job" (etc.) for the DESKTOP bar; the /jobs loading frame draws the same one so the bar
  *  does not change when the page settles (src/test/sectionLoadingHeaderIsSettled.test.tsx). */

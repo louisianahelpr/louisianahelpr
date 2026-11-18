@@ -10096,7 +10096,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 167,
+      "line": 168,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10113,7 +10113,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 171,
+      "line": 172,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10123,7 +10123,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 204,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10133,7 +10133,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 244,
+      "line": 245,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11991,7 +11991,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 131,
+      "line": 132,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -12011,7 +12011,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 136,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12021,7 +12021,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 144,
+      "line": 145,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -12031,7 +12031,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 150,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13978,7 +13978,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 216,
+      "line": 217,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -13988,7 +13988,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 227,
+      "line": 228,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13998,7 +13998,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 257,
+      "line": 258,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

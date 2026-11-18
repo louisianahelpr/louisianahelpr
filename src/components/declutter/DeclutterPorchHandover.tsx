@@ -47,6 +47,7 @@ import { preHandoverSellerCents } from "./declutterPayoutWords";
 import { t } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclBuy";
 import "@/lib/i18n/enDeclSell";
 
 type Pickup = "porch" | "pickup_home" | "meetup";

@@ -10,6 +10,7 @@ import type { PickupDay } from "@/lib/declutter/pickupSlots";
 import { Chip } from "./DeclutterFilterPanel";
 import { t, useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclBuy";
 
 export function CheckoutPickupTime({ days, porch, meetup = false, value, onPick, loading = false }: {
   days: PickupDay[];

@@ -2,8 +2,9 @@
 import type { enDeclPanels } from "./enDeclPanels";
 import type { enSellSummary } from "./enSellSummary";
 import type { enOfferTrade } from "./enOfferTrade";
+import type { enDeclBuy } from "./enDeclBuy";
 
-export const esDeclPanels: Record<keyof typeof enDeclPanels | keyof typeof enSellSummary | keyof typeof enOfferTrade, string> = {
+export const esDeclPanels: Record<keyof typeof enDeclPanels | keyof typeof enSellSummary | keyof typeof enOfferTrade | keyof typeof enDeclBuy, string> = {
   "dp.timeUp": "se acabó el tiempo",
   "dp.daysLeft": "quedan {n} días",
   "dp.hourLeft": "queda 1 hora",

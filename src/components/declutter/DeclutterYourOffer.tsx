@@ -21,7 +21,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
-import { isTradeLine } from "./DeclutterCartWords";
+import { isTradeLine } from "@/lib/declutter/tradeLine";
 
 /** The buyer's own open offer on this item, or null. */
 export function myOpenOfferOn(offers: readonly MyOffer[] | undefined, itemId: string): MyOffer | null {

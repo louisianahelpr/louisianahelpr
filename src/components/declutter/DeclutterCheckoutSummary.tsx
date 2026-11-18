@@ -16,6 +16,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import type { Handover } from "@/lib/declutter/api";
 import { t, useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclBuy";
 import type { MsgKey } from "@/lib/i18n/en";
 
 /** Area 05 #1: a tip in the member's language (dbuy.tip.<key>; the English is SUMMARY_TIPS word for word). */

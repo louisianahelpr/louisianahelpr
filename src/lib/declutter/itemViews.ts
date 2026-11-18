@@ -10,7 +10,7 @@
  * fetchMyItemViewCounts: the seller's own counts (item id -> people), read only for the seller.
  */
 import { t } from "@/lib/i18n/language";
-import "@/lib/i18n/enDeclSell";
+import "@/lib/i18n/enDeclutter";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMyItemViewCounts, sendItemViewRpc } from "@/lib/declutter/api";
 import { whenPageSettled } from "@/lib/routePrefetch";

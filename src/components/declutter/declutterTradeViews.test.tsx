@@ -1142,7 +1142,7 @@ describe("Declutter slice 3 screens", () => {
     // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |       <Line data="tax" label={t("dbuy.sum.tax")} tip={tipWords("tax")} value={exact(taxCents)} /> | {null}
     expect(bill.textContent).toMatch(/^2 items\$7\.00Service fee\$1\.05PickupFreeSales tax\$0\.00Total\$8\.05$/);
     // Lead 2026-10-28: the card says it once, the heading the checkout, the line what the items share.
-    // @mutate src/lib/i18n/enDeclPanels.ts | "dbuy.card.paidShared": "From the same seller: one pickup, one payment.", | "dbuy.card.paidShared": "One checkout, one pickup, one payment.",
+    // @mutate src/lib/i18n/enDeclBuy.ts | "dbuy.card.paidShared": "From the same seller: one pickup, one payment.", | "dbuy.card.paidShared": "One checkout, one pickup, one payment.",
     expect(screen.getByText("From the same seller: one pickup, one payment.")).toBeInTheDocument();
     const card = screen.getByRole("region", { name: "Checkout 1" });
     expect((card.textContent ?? "").match(/checkout/gi)?.length ?? 0).toBeLessThanOrEqual(2);

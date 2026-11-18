@@ -30,8 +30,8 @@ import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 import { enListingParts } from "@/lib/i18n/enListingParts";
 import { esListingParts } from "@/lib/i18n/esListingParts";
-import { enDeclSell } from "@/lib/i18n/enDeclSell";
-import { esDeclSell } from "@/lib/i18n/esDeclSell";
+import { enDeclutter } from "@/lib/i18n/enDeclutter";
+import { esDeclutter } from "@/lib/i18n/esDeclutter";
 
 const code = (f: string) => blankComments(readFileSync(join(process.cwd(), f), "utf8"));
 const FILES = {
@@ -67,9 +67,9 @@ describe("area 06b: Declutter selling gaps", () => {
     expect(src).toContain('t("dsl.item.buyersPay", { amount: exactDollars(buyNowTotalCents(it.current_price_cents)) })');
     // The bare "incl. fee" is a buyer's line only.
     expect(src).toMatch(/\{it\.current_price_cents > 0 && !isSeller && \(\s*<PriceInclFee/);
-    expect(enDeclSell["dsl.item.buyersPay"]).toBe("Buyers pay {amount} with the fee");
-    expect(esDeclSell["dsl.item.buyersPay"]).toContain("{amount}");
-    expect(enDeclSell["dsl.item.publicPage"]).toBe("See your public page");
+    expect(enDeclutter["dsl.item.buyersPay"]).toBe("Buyers pay {amount} with the fee");
+    expect(esDeclutter["dsl.item.buyersPay"]).toContain("{amount}");
+    expect(enDeclutter["dsl.item.publicPage"]).toBe("See your public page");
   });
 
   it("L2: one share control on the seller's live listing; Manage listing is the filled button", () => {

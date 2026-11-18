@@ -18,6 +18,7 @@ import { isTradeOrder, type PaidOrder } from "./paidOrders";
 import { useTradedFor } from "./useMyTrades";
 import { t, useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclBuy";
 import "@/lib/i18n/enDeclSell";
 
 function howItComes(order: Pick<PaidOrder, "handover" | "side">): string {

@@ -7,6 +7,7 @@
 import type { CartLine } from "@/lib/declutter/api";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclBuy";
 
 /** The cart section's title and its count words: "Claimed · 1 to choose a pickup" when every waiting line is free. */
 export function cartSectionWords(waiting: CartLine[]): { title: string; todoWords: string } {
@@ -17,8 +18,8 @@ export function cartSectionWords(waiting: CartLine[]): { title: string; todoWord
   return claimsOnly ? { title: t("dbuy.cart.claimed"), todoWords: t("dbuy.cart.toChoose") } : { title: t("dbuy.cart.yours"), todoWords: t("dbuy.cart.toCheckOut") };
 }
 
-/** Trades audit 11-08 #2: a trade line's price reads "Trade", never "Free". */
-export const isTradeLine = (l: Pick<CartLine, "source">): boolean => l.source === "swap";
+/** Trades audit 11-08 #2: a trade line's price reads "Trade", never "Free" (src/lib/declutter/tradeLine.ts). */
+export { isTradeLine } from "@/lib/declutter/tradeLine";
 
 /** One seller's card: its heading, and (2+ items) what the items share. */
 function checkoutCardWords(allFree: boolean, count: number, trade: boolean): { heading: string; shared: string } {

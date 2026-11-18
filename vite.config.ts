@@ -1405,14 +1405,25 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false
             },
-            // 11-18 train (Q178): the payout words Profile's Earnings tab and Declutter's sale cards share, with their one
-            // dependency (formatPrice). In signed-in-deep they put that whole chunk and its closure (declutter-first-screen,
-            // browse-first-screen, rentals, sponsorPage...) on /profile?tab=earnings: 368 -> 576 KB gz, 5 -> 6 rounds.
-            // Priority 18 for the reason native-push gives above: signed-in-deep (16) wins anything lower.
+            // 11-18 train (Q178): the payout words Profile's Earnings tab and Declutter's sale cards share. In signed-in-deep
+            // they put that whole chunk and its closure (declutter-first-screen, browse-first-screen, rentals, sponsorPage...)
+            // on /profile?tab=earnings: 368 -> 576 KB gz, 5 -> 6 rounds. Their one dependency (formatPrice) has its own
+            // price-words chunk below. Above 16 for the reason native-push gives above:
+            // signed-in-deep (16) wins anything lower.
             {
               name: "payout-words",
-              test: /[\\/]src[\\/]lib[\\/]declutter[\\/](payoutWords|formatPrice)\.ts$/,
-              priority: 18,
+              test: /[\\/]src[\\/]lib[\\/]declutter[\\/]payoutWords\.ts$/,
+              priority: 19, // above signed-in-deep (16); 19, not 18, so jobsFirstScreen's @mutate on native-push stays unique
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // formatPrice (11-18 train, Q178): the dependency-free price words distance.ts and payoutWords share, on its own
+            // (~0.1 KB gz). Left to the bundler (or in leaves at 15.8) it fell into declutter-first-screen, and payout-words
+            // then imported that chunk (Earnings 367 -> 450 KB gz, 5 -> 6 rounds).
+            {
+              name: "price-words",
+              test: /[\\/]src[\\/]lib[\\/]declutter[\\/]formatPrice\.ts$/,
+              priority: 19, // above every group that wanted it (signed-in-deep 16, declutter-first-screen)
               minSize: 0,
               includeDependenciesRecursively: false
             },

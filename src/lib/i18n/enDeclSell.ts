@@ -153,8 +153,6 @@ export const enDeclSell = {
   "dsl.don.tookIt": "Your Helpr took it to {name}, {address}, on {date}.",
   "dsl.don.record": "A record of what you gave and where. It doesn't state a value.",
   "dsl.don.save": "Save receipt",
-  "dsl.view": "{n} view",
-  "dsl.views": "{n} views",
   "dsl.giving": " · You're giving",
   "dsl.sw.emptyWaiting": "Nothing waiting to be paid right now",
   "dsl.w.sellersSee": "Sellers near you see your first name and last initial, what you want and your max price, never your address.",
@@ -184,8 +182,6 @@ export const enDeclSell = {
   "dsl.photos.group": "Photos",
   "dsl.ms.miles": "{n} mi",
   "dsl.ms.showMore": "Show {n} more",
-  "dsl.item.buyersPay": "Buyers pay {amount} with the fee",
-  "dsl.item.publicPage": "See your public page",
 } as const;
 
 addEnglish(enDeclSell);

@@ -62,7 +62,6 @@ import { ItemViewsCount } from "./ItemViewsCount";
 import { exactDollars, PriceInclFee } from "./PriceInclFee";
 import { buyNowTotalCents } from "@/lib/declutter/money";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
-import "@/lib/i18n/enDeclSell";
 import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
 import { SellerTrustBadges } from "./SellerTrustBadges";
 import { useAfterPaint } from "./useAfterPaint";

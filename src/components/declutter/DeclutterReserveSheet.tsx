@@ -15,6 +15,7 @@ import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { memberProfilePath, PROFILE_FROM_DECLUTTER } from "@/lib/profileLink/memberProfilePath";
 import { t, useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclBuy";
 
 /** Area 05 #1: a Spanish time can end in "p.m."; the sentence adds its own full stop, so the time drops its last one. */
 const noEndDot = (s: string) => s.replace(/\.$/, "");

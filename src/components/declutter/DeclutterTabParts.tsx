@@ -16,6 +16,7 @@ import { declutterTodo } from "@/lib/declutter/tabs";
 import { SectionHeading } from "./DeclutterTabHeads";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enDeclBuy";
 import "@/lib/i18n/enDeclSell";
 import type { BuyerOrderView } from "./BuyingOrders";
 import { useLinkedOrder, useLinkedOrderOutcome } from "./useLinkedOrder";

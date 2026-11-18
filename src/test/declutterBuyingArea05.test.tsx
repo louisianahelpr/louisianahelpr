@@ -1,6 +1,6 @@
 /**
  * Design audit 11-18, Area 05 (Declutter buying), the three Highs:
- *  #1 the checkout and the buyer's order cards follow the member's language (dbuy.* in enDeclPanels / esDeclPanels):
+ *  #1 the checkout and the buyer's order cards follow the member's language (dbuy.* in enDeclBuy / esDeclPanels):
  *     the price summary, the pickup-time picker, the step bar, the order head (Details, You paid, the button), the
  *     next-step lines, and a Spanish time ending in "p.m." never gets a second full stop;
  *  #2 a refunded or cancelled order shows no "Need help moving it?" Helpr chips (AddHelprPanel bookedOnly);
@@ -34,7 +34,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { blankComments } from "./helpers/blankNonCode";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
-import { enDeclPanels } from "@/lib/i18n/enDeclPanels";
+import { enDeclBuy } from "@/lib/i18n/enDeclBuy";
 import { esDeclPanels } from "@/lib/i18n/esDeclPanels";
 import { CheckoutPriceSummary, SUMMARY_TIPS } from "@/components/declutter/DeclutterCheckoutSummary";
 import { CheckoutPickupTime } from "@/components/declutter/CheckoutPickupTime";
@@ -58,10 +58,10 @@ const days = [{ ymd: "2026-11-20", label: "Fri 11/20", slots: [{ iso: "2026-11-2
 
 describe("Area 05 #1: checkout and order cards in Spanish", () => {
   it("every dbuy key has its own Spanish, and the tips' English is SUMMARY_TIPS word for word", () => {
-    const keys = Object.keys(enDeclPanels).filter((k) => k.startsWith("dbuy.")) as (keyof typeof enDeclPanels)[];
+    const keys = Object.keys(enDeclBuy).filter((k) => k.startsWith("dbuy.")) as (keyof typeof enDeclBuy)[];
     expect(keys.length).toBeGreaterThan(140);
     for (const k of keys) expect(esDeclPanels[k], k).toBeTruthy();
-    for (const [k, v] of Object.entries(SUMMARY_TIPS)) expect(enDeclPanels[`dbuy.tip.${k}` as keyof typeof enDeclPanels], k).toBe(v);
+    for (const [k, v] of Object.entries(SUMMARY_TIPS)) expect(enDeclBuy[`dbuy.tip.${k}` as keyof typeof enDeclBuy], k).toBe(v);
   });
 
   it("English stays as it was", () => {

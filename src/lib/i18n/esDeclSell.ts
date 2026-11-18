@@ -148,8 +148,6 @@ export const esDeclSell: Record<keyof typeof enDeclSell, string> = {
   "dsl.don.tookIt": "Su Helpr lo llevó a {name}, {address}, el {date}.",
   "dsl.don.record": "Un registro de lo que dio y dónde. No indica un valor.",
   "dsl.don.save": "Guardar comprobante",
-  "dsl.view": "{n} vista",
-  "dsl.views": "{n} vistas",
   "dsl.giving": " · Usted lo regala",
   "dsl.sw.emptyWaiting": "Nada pendiente de pago por ahora",
   "dsl.w.sellersSee": "Los vendedores cercanos ven su nombre y la inicial de su apellido, lo que busca y su precio máximo, nunca su dirección.",
@@ -179,6 +177,4 @@ export const esDeclSell: Record<keyof typeof enDeclSell, string> = {
   "dsl.photos.group": "Fotos",
   "dsl.ms.miles": "{n} mi",
   "dsl.ms.showMore": "Ver {n} más",
-  "dsl.item.buyersPay": "Los compradores pagan {amount} con la tarifa",
-  "dsl.item.publicPage": "Ver su página pública",
 };

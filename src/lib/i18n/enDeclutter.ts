@@ -231,6 +231,12 @@ export const enDeclutter = {
   "decl.sl.draftWords": "Its photos are removed and it moves to your selling history.",
   "decl.sl.takeDownWords": "Its photos are removed and open offers close. Nothing is charged. You can relist it from History, but you'll need new photos.",
   "decl.lwn.copy": "Copy link for local groups",
+  // The item page's owner lines and view count (11-18 train, Q178): here, not in enDeclSell, so a cold public item page
+  // does not fetch the whole seller dictionary (+3.3 KB gz on /declutter/item/:id) for four words.
+  "dsl.view": "{n} view",
+  "dsl.views": "{n} views",
+  "dsl.item.buyersPay": "Buyers pay {amount} with the fee",
+  "dsl.item.publicPage": "See your public page",
 } as const;
 
 addEnglish(enDeclutter);

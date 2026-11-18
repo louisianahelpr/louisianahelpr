@@ -328,4 +328,8 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.sl.takeDownWords": "Sus fotos se borran y las ofertas abiertas se cierran. No se cobra nada. Puede volver a publicarlo desde Historial, pero necesitará fotos nuevas.",
   "decl.lwn.preview": "Vista previa",
   "decl.lwn.copy": "Copiar enlace para grupos locales",
+  "dsl.view": "{n} vista",
+  "dsl.views": "{n} vistas",
+  "dsl.item.buyersPay": "Los compradores pagan {amount} con la tarifa",
+  "dsl.item.publicPage": "Ver su página pública",
 };

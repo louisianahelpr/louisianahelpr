@@ -20,6 +20,9 @@ import type { DeclutterPreviewSample } from "./declutterPreviewSamples";
 import { DECLUTTER_PREVIEW_READ_RPCS } from "./declutterPreviewReads";
 
 /** Tests set this to fail on a read the sample does not answer (the page passes every one here). */
+/** Reads the app shell makes on every page (src/lib/badgeReads.ts), outside the Declutter folders the read list covers. */
+const SHELL_READ_RPCS: ReadonlySet<string> = new Set(["my_badge_reads"]);
+
 export const declutterPreviewChecks: { onUnlisted?: (what: string) => void } = {};
 
 export interface DeclutterPreviewLog {
@@ -151,7 +154,8 @@ export function createDeclutterPreviewFetch(o: DeclutterPreviewFetchOptions): { 
       }
       note("blocked");
       o.onUnlisted?.(`rpc ${name}`);
-      o.onBlocked(name.replace(/^declutter_/, "").replace(/_/g, " "), DECLUTTER_PREVIEW_READ_RPCS.has(name) ? "read" : "write");
+      // Area 06 (11-18): the app shell's badge read is a read too (it toasted "Preview: this would my badge reads.").
+      o.onBlocked(name.replace(/^declutter_/, "").replace(/_/g, " "), SHELL_READ_RPCS.has(name) || DECLUTTER_PREVIEW_READ_RPCS.has(name) ? "read" : "write");
       // null, not []: most reads want an object or nothing, and [] drew made-up states (Invalid Date, crashes).
       return json(null);
     }

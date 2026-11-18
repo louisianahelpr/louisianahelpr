@@ -10,6 +10,8 @@
  * @mutate src/components/declutter/useSellFlowState.ts |       setCreatedId(back.createdId); |       void setCreatedId;
  * @mutate src/components/declutter/useSellSaved.ts |     warn: hasWork && !finished.current, |     warn: false,
  * @mutate src/components/declutter/useSellSaved.ts |           if (!row) draftId = null; |           void row;
+ * @mutate src/components/declutter/useSellFlowState.ts |     if (!urlItemId && startsFree(params) && !back.form.free) { |     if (false) {
+ * @mutate src/components/declutter/useSellFlowState.ts |       setFreeOrDraft(null);\n      bringBack(back); |       setFreeOrDraft(null);
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -277,6 +279,25 @@ describe("a new listing is kept on this device", () => {
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await screen.findByText("Selling tab");
     expect(h.calls).toEqual(["createDraft", "publish"]);
+  });
+
+  // Area 06 H1 (11-18): "Give away free" opened the priced kept draft (Price empty, Accept offers ON).
+  it("Give away free with a priced kept draft asks first; free stays free, Continue brings the draft back", async () => {
+    await startAndEdit();
+    cleanup();
+    open("/declutter/sell?free=1");
+    expect(await screen.findByText("Start a free listing or continue your draft?")).toBeInTheDocument();
+    expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
+    expect(rowValue("title")).not.toBe("Grandma's dresser");
+    fireEvent.click(screen.getByRole("button", { name: "Continue my draft" }));
+    await waitFor(() => expect(rowValue("title")).toBe("Grandma's dresser"));
+    expect(screen.queryByText("Start a free listing or continue your draft?")).toBeNull();
+    cleanup();
+    open("/declutter/sell?free=1");
+    await screen.findByText("Start a free listing or continue your draft?");
+    fireEvent.click(screen.getByRole("button", { name: "Start a free listing" }));
+    expect(screen.queryByText("Start a free listing or continue your draft?")).toBeNull();
+    expect(rowValue("title")).not.toBe("Grandma's dresser");
   });
 
   it("Start over clears it and gives a fresh form", async () => {

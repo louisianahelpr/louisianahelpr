@@ -888,14 +888,16 @@ describe("photo-first selling, one screen", () => {
   // next steps" (there are no steps). The class: nothing on the one screen talks about steps.
   // @mutate src/components/declutter/SellOneScreen.tsx | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen free={form.free} /> | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} free={form.free} />
   // @mutate src/components/declutter/DeclutterSellPhotos.tsx | {count} of {MAX_PHOTOS} photos{ | {count} of {MAX_PHOTOS} photos · these go up when you save on step 4{
+  // Area 06 L13 (11-18): "2 of 12 photos. Hold and drag to reorder."
+  // @mutate src/components/declutter/DeclutterSellPhotos.tsx | {onReorderHeld && !heldFailed && held.length > 1 ? ". Hold and drag to reorder." : ""} | {onReorderHeld && !heldFailed && held.length > 1 ? ". Hold and drag to reorder on step 2." : ""}
   it("the one screen never talks about steps (DC-1)", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg", "b.jpg");
     await screen.findByText("We wrote your listing. Check it before you post");
     expect(screen.getByText("Check it below and change anything.")).toBeInTheDocument();
-    // Design audit r2 #15: the count line is "2 of 12 photos" (plus the drag hint), nothing about when they go up.
-    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/^2 of 12 photos( · hold and drag a photo to move it)?$/);
+    // Design audit r2 #15: the count line is "2 of 12 photos" (plus the drag hint, area 06 L13), nothing about when they go up.
+    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/^2 of 12 photos(\. Hold and drag to reorder\.)?$/);
     const words = document.body.textContent ?? "";
     expect(words.length).toBeGreaterThan(200);
     expect(words).not.toMatch(/\bsteps?\b|step \d|next steps/i);

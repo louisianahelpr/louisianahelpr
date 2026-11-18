@@ -166,7 +166,9 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(DECLUTTER_PREVIEW_STAGES.map((x) => x.key)).toContain("problem_seller");
     r = open("?stage=problem_seller&side=buyer");
     await waitFor(() => expect(document.querySelector('[data-preview-view="problem_seller:buyer"]')).not.toBeNull());
-    expect(await screen.findByText(/, reported by the seller\./)).toBeInTheDocument();
+    // Area 06 L11 (11-18): a "Something else" report says who reported it, not "Something else, reported by …".
+    // @mutate src/components/declutter/DeclutterProblemOpen.tsx |     : problem.reason === "other" \|\| !REASON_WORDS[problem.reason] ? | : false ?
+    expect(await screen.findByText(/The seller reported a problem\./)).toBeInTheDocument();
     await new Promise((res) => setTimeout(res, 50));
     r.unmount();
     expect(supabaseCalls()).toEqual([]);
@@ -212,7 +214,7 @@ describe("Q2585: /admin/preview/declutter", () => {
       ["offer_countered", "buyer", /their counter/],
       ["offer_countered", "seller", /Waiting on the buyer to answer/],
       ["offer_accepted", "buyer", /Reserved for you, not paid yet/],
-      ["offer_accepted", "seller", /Sold, waiting for the buyer to pay/],
+      ["offer_accepted", "seller", /Waiting for the buyer to pay/],
       ["cart_two", "buyer", /One checkout for 2 items/],
       ["refund_asked", "buyer", /You asked for a refund/],
       ["refund_asked", "seller", /Next: answer the refund request/],

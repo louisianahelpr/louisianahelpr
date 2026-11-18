@@ -105,6 +105,15 @@ describe("seller-delivery order: the money moments ask in the app", () => {
   // Anti-lying #1 (20261028235709): the seller's "left at your door" photo is sent with the device's position, which
   // the server checks against the buyer's drop-off point.
   // @mutate src/components/declutter/SellerDeliveryOrder.tsx |     const where = photo ? await deliveryPhotoPosition() : null; |     const where = null;
+  // Area 06 M13 (11-18): before the delivery time the seller is told when "Delivered" can be tapped; then the button.
+  // @mutate src/components/declutter/SellerDeliveryOrder.tsx | b.status === "booked" && !b.delivered_at && !can.markDelivered && ( | b.status === "booked" && !b.delivered_at && false && (
+  it("seller, before the delivery time: says when Delivered can be tapped", async () => {
+    state.booking = { ...BASE, side: "seller", handoff: "leave", dropoff_address: "500 Drop Rd" };
+    show();
+    expect(await screen.findByText("You can tap Delivered from the delivery time.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delivered" })).toBeNull();
+  });
+
   it("seller: the \"Delivered\" photo is sent with where it was taken", async () => {
     state.booking = { ...BASE, side: "seller", slot_start: iso(-HOUR), slot_end: iso(0), dropoff_address: "500 Drop Rd" };
     show();

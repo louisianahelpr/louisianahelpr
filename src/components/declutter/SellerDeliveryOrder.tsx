@@ -149,6 +149,10 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         )}
         {!handoffChips && <p className="text-muted-foreground">{HANDOFF_WORDS[b.handoff].title}{b.side === "seller" ? " (the buyer's choice)" : ""}</p>}
         {b.side === "seller" && b.dropoff_address && <p>Deliver to: {b.dropoff_address}</p>}
+        {/* Area 06 M13 (11-18): the seller was never told when "Delivered" can be tapped. */}
+        {b.side === "seller" && b.order_status === "paid" && b.status === "booked" && !b.delivered_at && !can.markDelivered && (
+          <p data-delivered-later="">You can tap {b.handoff === "hand" ? "Handed over" : "Delivered"} from the delivery time.</p>
+        )}
         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" && b.status === "booked" && !b.delivered_at && (
           <p data-got-it-later="">You can confirm you got it from the delivery day.</p>
         )}

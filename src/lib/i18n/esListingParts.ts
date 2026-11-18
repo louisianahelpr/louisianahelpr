@@ -211,6 +211,7 @@ export const esListingParts: Record<keyof typeof enListingParts, string> = {
   "lp.m.now": "Ahora {price}",
   "lp.m.lowest": "mínimo {price}",
   "lp.m.dropsListedOff": "Apagado: lo publicó sin bajadas de precio",
+  "lp.m.dropsNoFloor": "Apagado. Primero ponga su precio más bajo.",
   "lp.m.dropsAtFloor": "Apagado: su precio más bajo es su precio",
   "lp.m.dropsStopped": "Apagado. Se queda en {price}.",
   "lp.m.dropsOn": "Encendido. Baja cada tarde, nunca menos de su precio más bajo.",

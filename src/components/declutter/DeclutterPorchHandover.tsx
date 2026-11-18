@@ -17,6 +17,7 @@
  *     booking panel with no steps and no "You get $X" note. Every pickup kind uses PickupStatus now, and a
  *     seller-delivers sale uses SellerDeliveryStatus: the same three parts, its steps read from the delivery booking.
  */
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { checkWindowEnds, orderWhen, payoutDayAfterWindow } from "@/lib/declutter/timeLeft";
 import { payoutAccountReady } from "@/lib/payoutAccountReady";
@@ -221,7 +222,7 @@ function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolea
   // While payout setup is not offered (usePayoutSetupPaused), the line never sends the seller to set it up.
   if (!payoutReady) return setupPaused
     ? <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> once your payout account is ready.</>
-    : <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> once you set up payouts in Settings.</>;
+    : <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> once you set up payouts in Settings.{" "}<Link to="/profile?tab=payment" className="underline font-semibold" data-payout-setup-link="">Set up payouts</Link></>;
   const ends = checkWindowEnds(handedOverAt);
   return ends
     ? <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong>, paid on {payoutDayAfterWindow(ends)} unless the buyer reports a problem before then.</>

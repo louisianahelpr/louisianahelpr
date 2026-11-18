@@ -43,6 +43,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const calls: unknown[][] = [];
 const manage = { floor_price_cents: 3000, drops_stopped: false };
 let deployed = true;
+/** Area 06 M9: the listing has no lowest price row yet (declutter manage state answers null). */
+let noFloorRow = false;
 let autoFree: number | null | "not_deployed" = null;
 let keepUp: boolean | "not_deployed" = false;
 const offerRules = vi.hoisted(() => ({ auto: false }));
@@ -60,7 +62,7 @@ vi.mock("@/lib/declutter/trades", async (orig) => ({
 }));
 vi.mock("@/lib/declutter/api", () => ({
   // Records that the manage-state read RESOLVED, so a test can wait for the data before asserting an absence.
-  fetchManageState: async () => { const r = deployed ? manage : "not_deployed"; stateReads.n++; return r; },
+  fetchManageState: async () => { const r = !deployed ? "not_deployed" : noFloorRow ? null : manage; stateReads.n++; return r; },
   setListingPrice: async (...a: unknown[]) => { calls.push(["price", ...a]); return a[1]; },
   setListingDrops: async (...a: unknown[]) => { calls.push(["drops", ...a]); return a[1]; },
   pauseListing: async (...a: unknown[]) => { calls.push(["pause", ...a]); return "paused"; },
@@ -104,6 +106,7 @@ beforeEach(() => {
   calls.length = 0;
   manage.drops_stopped = false;
   deployed = true;
+  noFloorRow = false;
   dropPct.value = 5;
   offerRules.auto = false;
 });
@@ -114,7 +117,9 @@ describe("Smart offers rows (owner 2026-10-29)", () => {
     sheet({ accepts_offers: true });
     const accept = await screen.findByRole("switch", { name: "Accept offers" });
     expect(accept.getAttribute("aria-checked")).toBe("true");
-    expect(screen.getByText("Lowest you'll take")).toBeTruthy();
+    // Area 06 M9 (11-18): a set lowest price shows once, on Change price; no second "Lowest you'll take" row.
+    await screen.findByText("Now $38 · lowest $30");
+    expect(screen.queryByText("Lowest you'll take")).toBeNull();
     await waitFor(() => expect(screen.getByRole("switch", { name: "Answer offers for me" }).getAttribute("aria-checked")).toBe("true"));
     fireEvent.click(accept);
     await waitFor(() => expect(calls).toContainEqual(["offer_rules", "i1", false, false]));
@@ -128,7 +133,19 @@ describe("Smart offers rows (owner 2026-10-29)", () => {
     expect(screen.queryByRole("switch", { name: "Answer offers for me" })).toBeNull();
   });
 
+  // Area 06 M9 (11-18): with no lowest price, the drops row says to set one, and "Lowest you'll take" is where to.
+  // @mutate src/components/declutter/DeclutterManageListing.tsx | {noFloor ? t("lp.m.dropsNoFloor") : listedOff | {listedOff
+  // @mutate src/components/declutter/DeclutterOfferRules.tsx |       {on && floorCents == null && ( |       {on && (
+  it("no lowest price: drops read 'Off. Set a lowest price first.'", async () => {
+    noFloorRow = true;
+    sheet({ accepts_offers: true });
+    expect(await screen.findByText("Off. Set a lowest price first.")).toBeTruthy();
+    expect(screen.getByText("Lowest you'll take")).toBeTruthy();
+    expect(screen.queryByText(/never below your lowest price/)).toBeNull();
+  });
+
   it("Claude's suggestion is saved only when the seller taps Use", async () => {
+    noFloorRow = true;
     sheet({ accepts_offers: true });
     fireEvent.click(await screen.findByRole("button", { name: "Suggest one" }));
     expect(await screen.findByText(/Similar lamps sold/)).toBeTruthy();

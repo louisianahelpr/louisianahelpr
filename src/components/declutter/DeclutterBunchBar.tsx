@@ -78,7 +78,8 @@ export function BunchBar({ sorting, found, listing, runNames, undo, itemCount, r
           ) : (
             <span className="min-w-0 flex-1 text-sm text-muted-foreground">{readyCount === 0 ? t("lp.bb.nothingReady") : itemCount === 1 ? t("lp.bb.allSet1") : t("lp.bb.allSetN", { n: itemCount })}</span>
           )}
-          {!listStepInView && <Button type="button" size="sm" className="rounded-full" disabled={readyCount === 0} data-bunch-next="" onClick={onNext}>{readyCount === 1 ? t("lp.bb.next1") : t("lp.bb.nextN", { n: readyCount })}</Button>}
+          {/* Area 06 L14 (11-18): "Next: list 0 items" was a grey button that said nothing; it shows once one is ready. */}
+          {!listStepInView && readyCount > 0 && <Button type="button" size="sm" className="rounded-full" disabled={readyCount === 0} data-bunch-next="" onClick={onNext}>{readyCount === 1 ? t("lp.bb.next1") : t("lp.bb.nextN", { n: readyCount })}</Button>}
         </div>
       )}
     </div>

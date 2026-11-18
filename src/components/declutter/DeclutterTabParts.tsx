@@ -8,6 +8,7 @@
 import { lazy, Suspense, useState, type ReactNode } from "react";
 import { useOpenProblems } from "./useOpenProblems";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
+import { useFoldableSales } from "./useFoldableSales";
 import { useQuery } from "@tanstack/react-query";
 import { HandCoins, PackageCheck, type LucideIcon } from "lucide-react";
 import { fetchMyCart } from "@/lib/declutter/api";
@@ -82,6 +83,8 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   // A3-78: a finished sale still waiting on the seller (a refund request to answer, the item back to confirm) is never
   // folded away: the seller's one deadline on the tab stays in the list.
   const awaiting = useSellerReportsToAnswer();
+  // Area 06 H2 (11-18): a handed-over sale folds only once reviewed and paid out (its review and payout line stay seen).
+  const foldable = useFoldableSales(side === "seller" ? lines.filter((l) => l.status === "paid" && l.order_status === "handed_over" && l.order_id).map((l) => l.order_id as string) : []);
   // CartView / SalesWaiting on the same tab show this read's loading and error.
   if (!cart.data) return null;
   // Buying's tracker says "Nothing bought yet." once for the whole tab, and a chip shows only its own orders.
@@ -112,7 +115,7 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
     : sold.every((l) => l.price_cents === 0) ? "Given away: pickup" : "Sold: pickup and payout";
   // NIGHT-SELL-soldstates-2: Selling's finished sales (handed over, refunded) fold under one button, as Buying folds
   // Done, so the sales still to hand over are the list. A chip's own `show` (To answer's reports) is never folded.
-  const done = new Set(side === "seller" && !show ? sold.filter((l) => (l.order_status === "handed_over" || l.order_status === "refunded") && !awaiting.has(l.order_id as string)).map((l) => l.order_id as string) : []);
+  const done = new Set(side === "seller" && !show ? sold.filter((l) => ((l.order_status === "handed_over" && foldable.has(l.order_id as string)) || l.order_status === "refunded") && !awaiting.has(l.order_id as string)).map((l) => l.order_id as string) : []);
   const allDone = done.size > 0 && sold.every((l) => done.has(l.order_id as string));
   // Q2630 (audit 1102c R5): a refunded sale did not go ahead, so the fold never calls it a "finished sale".
   const refundedDone = new Set(sold.filter((l) => l.order_status === "refunded" && done.has(l.order_id as string)).map((l) => l.order_id as string)).size;

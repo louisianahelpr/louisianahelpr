@@ -142,7 +142,9 @@ export function SellPhotos({
       {(count > 0 || held.length > 0) && (
       <p className="text-ds-13 text-muted-foreground" data-photo-count="">
         {count} of {MAX_PHOTOS} photos{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
-        {onReorderHeld && !heldFailed && held.length > 1 ? " · hold and drag a photo to move it" : ""}
+        {/* Area 06 L13 (11-18): "2 of 12 photos. Hold and drag to reorder.", not a run-on of " · " parts. Design audit
+            r2 #15 keeps "they go up when you post" off this line. */}
+        {onReorderHeld && !heldFailed && held.length > 1 ? ". Hold and drag to reorder." : ""}
       </p>
       )}
       {coverUndo && (

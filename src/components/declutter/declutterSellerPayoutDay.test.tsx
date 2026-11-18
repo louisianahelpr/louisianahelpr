@@ -57,7 +57,10 @@ describe("the seller's handed-over card says when it was handed over and when th
   it("with no ready payout account it promises no day", async () => {
     me.profile = { stripe_account_id: null, stripe_payouts_enabled: false };
     const { unmount } = wrap(<PickupStatus orderId="o1" handover="pickup_home" side="seller" slot={null} itemsCents={3000} />);
-    expect(await screen.findByText((_, el) => el?.textContent === "You get $30 once you set up payouts in Settings." && el.tagName === "P")).toBeInTheDocument();
+    // Area 06 H2 (11-18): the line links to the payout settings.
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | data-payout-setup-link="">Set up payouts</Link> | data-payout-setup-link=""></Link>
+    expect(await screen.findByText((_, el) => el?.textContent === "You get $30 once you set up payouts in Settings. Set up payouts" && el.tagName === "P")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Set up payouts" }).getAttribute("href")).toBe("/profile?tab=payment");
     unmount();
     me.setupPaused = true;
     wrap(<PickupStatus orderId="o1" handover="pickup_home" side="seller" slot={null} itemsCents={3000} />);

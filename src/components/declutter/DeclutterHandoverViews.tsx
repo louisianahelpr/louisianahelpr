@@ -29,7 +29,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { useFeature } from "@/hooks/useFeature";
-import { FailedPayoutLink } from "./FailedPayoutLink";
+import { FailedPayoutLink, PayoutLineText } from "./FailedPayoutLink";
 import type { CartLine } from "@/lib/declutter/api";
 import { invalidate, isTradeOrder, liveSalesFirst, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
 import { OrderCardHead } from "./OrderCardHead";
@@ -259,10 +259,10 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
           {order.side === "seller" && items > 0 && <ManagerSaleShareGate orderId={order.orderId} itemsCents={items} itemCount={order.lines.length} />}
           {/* An unsent payout's day waits on every hold read: the fee inputs, the open problems, and the refund request
               (declutter_payouts_due holds on an open problem or a running request; a declined one moves the day). */}
-          {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess) || lastProblem.isLoading) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm">{payoutLine(payout, !!problem, {
+          {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess) || lastProblem.isLoading) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm"><PayoutLineText line={payoutLine(payout, !!problem, {
             handedOverAt: handoverRow.data?.confirmed_at ?? null, refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady, setupPaused,
             declinedAt: refundStatus === "declined" ? refund.data?.request?.declined_at ?? null : null,
-            refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, saleDecided, })}
+            refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, saleDecided, })} />
             {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>

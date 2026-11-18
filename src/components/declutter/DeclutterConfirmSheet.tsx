@@ -6,7 +6,7 @@
  * Guard: src/test/declutterNoBrowserConfirm.test.ts.
  */
 import type { ReactNode } from "react";
-import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDestructiveAction, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { focusSheetItself } from "./focusSheetItself";
 import { t } from "@/lib/i18n/language";
@@ -22,6 +22,7 @@ export function ConfirmSheet({
   onConfirm,
   onClose,
   testId,
+  destructive = false,
 }: {
   open: boolean;
   title: string;
@@ -35,6 +36,8 @@ export function ConfirmSheet({
   onConfirm: () => void;
   onClose: () => void;
   testId?: string;
+  /** Area 06 M6 (11-18): an action that costs a strike or can't be undone uses the red commit, as Delete does. */
+  destructive?: boolean;
 }) {
   const webDesktop = useIsWebDesktop();
   return (
@@ -52,7 +55,9 @@ export function ConfirmSheet({
         </p>
         <SheetFooter className="mt-4">
           <SheetSecondaryAction onClick={onClose} disabled={pending}>{cancelLabel ?? t("core.notNow")}</SheetSecondaryAction>
-          <SheetPrimaryAction onClick={onConfirm} disabled={pending || confirmDisabled}>{confirmLabel}</SheetPrimaryAction>
+          {destructive
+            ? <SheetDestructiveAction onClick={onConfirm} disabled={pending || confirmDisabled} data-confirm-destructive="">{confirmLabel}</SheetDestructiveAction>
+            : <SheetPrimaryAction onClick={onConfirm} disabled={pending || confirmDisabled}>{confirmLabel}</SheetPrimaryAction>}
         </SheetFooter>
       </SheetContent>
     </Sheet>

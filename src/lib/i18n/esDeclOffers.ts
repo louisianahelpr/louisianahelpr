@@ -27,7 +27,7 @@ export const esDeclOffers: Record<keyof typeof enDeclOffers, string> = {
 
   "dof.wantedReply": "Respuesta a su Se busca",
   "dof.from": "De {name}",
-  "dof.priceNow": "Precio actual {price}",
+  "dof.priceNow": "Anunciado a {price}",
   "dof.theirOffer": "su oferta",
   "dof.theirPrice": "su precio",
   "dof.theirCounter": "su contraoferta",

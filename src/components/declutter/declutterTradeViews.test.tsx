@@ -1782,6 +1782,10 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByRole("button", { name: "Pay $3.85" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel sale" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Buy now|Make an offer|Sell an item/ })).toBeNull();
+    // Area 06 M6 (11-18): the strike-giving cancel confirms with the red commit, as Delete does.
+    // @mutate src/components/declutter/DeclutterSalesWaiting.tsx | pending={cancel.isPending} destructive | pending={cancel.isPending}
+    fireEvent.click(screen.getByRole("button", { name: "Cancel sale" }));
+    expect((await screen.findAllByRole("button", { name: "Cancel sale" })).some((b) => b.hasAttribute("data-confirm-destructive"))).toBe(true);
   });
 
   it("strike count reads 'You have N of 3 strikes' and is absent at 0", async () => {

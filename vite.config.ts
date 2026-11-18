@@ -1392,8 +1392,13 @@ export default defineConfig(({ mode, command }) => ({
             // every route that needed any other leaf (the item page, Selling: lifecycle errors, openExternalUrl) downloaded it.
             {
               name: "native-push",
-              test: /[\\/]src[\\/]lib[\\/]nativePush\.ts$/,
-              priority: 15.9,
+              test: /[\\/]src[\\/]lib[\\/](nativePush|deepLinkRouter)\.ts$/,
+              // Q2705 pass 3: with deepLinkRouter (only nativePush imports it; /jobs' feed reached it through nativePush,
+              // and alone in signed-in-deep it made this chunk import that one). Above signed-in-deep (16). Once /jobs' feed stopped importing it, no first screen reaches
+              // it, so signedInSplit counts it as deep; at 15.9 it fell into signed-in-deep and every lazy import of it
+              // (sign-out, the Notify tap) preloaded that chunk's 77 files. Measured: 16.7 still lost to signed-in-deep
+              // (the build acts as if only the whole number counts, the earlier group winning a tie); 18 wins.
+              priority: 18,
               minSize: 0,
               includeDependenciesRecursively: false
             },
@@ -1403,7 +1408,7 @@ export default defineConfig(({ mode, command }) => ({
             {
               name: "jobs-leaves",
               test: (id: string) => profileSharedLeaves.has(norm(id)) && jobsReach.has(norm(id)),
-              priority: 15.85, // above leaves (15.8), below native-push (15.9)
+              priority: 15.85, // above leaves (15.8); native-push sits at 18
               minSize: 0,
               includeDependenciesRecursively: false
             },
@@ -1538,6 +1543,17 @@ export default defineConfig(({ mode, command }) => ({
               priority: 13,
               minSize: 0,
               includeDependenciesRecursively: false /* the two modules alone */,
+            },
+            // Q2705 pass 3 (11-17): the part of browse-first-screen signed-in /jobs never runs (guest /browse's route
+            // skeleton, its section switch and filter chips). In one chunk every cold /jobs downloaded them too.
+            // Guest /browse fetches this beside browse-first-screen, in the same round.
+            {
+              name: "browse-guest-screen",
+              test: (id: string) => !BROWSE_GROUP_SKIPS.test(id) && browseOnly.has(norm(id)) && !jobsReach.has(norm(id)),
+              minShareCount: 2,
+              priority: 12.05,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in browse-first-screen */,
             },
             {
               name: "browse-first-screen",

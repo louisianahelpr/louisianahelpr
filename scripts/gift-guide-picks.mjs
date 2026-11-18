@@ -88,6 +88,14 @@ const storeFor = (raw) => {
   return slug;
 };
 
+/**
+ * THE switch for Amazon CDN product photos (m.media-amazon.com, tagged image_source "amazon-sitestripe"), held OFF by
+ * the lead 2026-11-18 while the owner decides the Amazon Associates question. Turn on here, or for one run with
+ * GIFT_AMAZON_PHOTOS=on. Off: those picks have no photo (the page draws the store tile), so mixed guides swap them.
+ */
+export const AMAZON_CDN_PHOTOS = process.env.GIFT_AMAZON_PHOTOS === "on" || false;
+/** The link library (~/Desktop/Link-library): unused-by-guide.json holds each guide's links not yet on it. */
+const LIB = process.env.GIFT_LINK_LIBRARY ?? join(homedir(), "Desktop", "Link-library");
 const hidden = [];
 /** One raw pick -> the page's pick, or null (hidden: the reason is listed). */
 function toPick(p, where) {
@@ -115,8 +123,9 @@ function toPick(p, where) {
   if (store) stores.get(store).hosts.add(host);
   const flags = Object.fromEntries(["trending", "shipsFast", "localPickup"].filter((k) => p[k] === true).map((k) => [k, true]));
   // No Amazon-hosted product photo is hotlinked (Associates rules: Amazon images only through SiteStripe or its API);
-  // those picks get the store tile on the page.
-  const image = typeof p.image === "string" && p.image.startsWith("https://") && !/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/.test(new URL(p.image).hostname) ? p.image : undefined;
+  // those picks get the store tile on the page. AMAZON_CDN_PHOTOS lets the SiteStripe-tagged ones through.
+  const amazonHosted = typeof p.image === "string" && p.image.startsWith("https://") && /(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/.test(new URL(p.image).hostname);
+  const image = typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe")) ? p.image : undefined;
   return {
     name: p.name, brand: p.brand ?? "", line: p.line ?? "", href,
     ...(image ? { image } : {}), ...(store ? { store } : {}), ...(p.louisianaFit ? { louisianaFit: true } : {}), ...flags,
@@ -165,6 +174,44 @@ const BOUNTY_GUIDES = { "Try Prime free": ["store-amazon", "stocking-stuffers"],
 for (const b of readList("_amazon-bounties.json")) {
   const key = Object.keys(BOUNTY_GUIDES).find((k) => b.name.startsWith(k));
   for (const slug of key ? BOUNTY_GUIDES[key] : []) add(slug, { name: b.name, brand: "Amazon", line: "", href: b.href }, "_amazon-bounties.json");
+}
+/**
+ * Mixed guides swap a pick with no photo for an unused photo'd pick the link library lists for that guide (lead
+ * 2026-11-18: rows show a photo; most no-photo picks are Amazon, so the swap also moves guides toward <= ~50% Amazon).
+ * Store pages and the sponsors guide keep every pick. A swapped-out pick still lists on its store page (Amazon's too).
+ */
+const swappedOut = [];
+{
+  const unused = (() => {
+    try {
+      return JSON.parse(readFileSync(join(LIB, "unused-by-guide.json"), "utf8"));
+    } catch {
+      // No link library on this machine: nothing to swap in, every pick stays.
+      return {};
+    }
+  })();
+  const used = new Set(Object.values(guides).flatMap((l) => l.map((p) => p.href)));
+  for (const slug of Object.keys(guides)) {
+    if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || !GUIDE_SLUGS.has(slug)) continue;
+    const list = guides[slug];
+    const names = new Set(list.map((p) => compact(p.name)));
+    const pool = [];
+    for (const u of Array.isArray(unused[slug]) ? unused[slug] : []) {
+      if (u.type !== "product" || !u.image) continue;
+      const raw = { brand: u.brand, name: u.name, line: u.line ?? "", image: u.image, image_source: u.image_source, href: u.store_href || u.affiliate_href, affiliate_href: u.affiliate_href };
+      const p = toPick(raw, `unused-by-guide ${slug}`);
+      if (!p?.image || used.has(p.href) || names.has(compact(p.name))) continue;
+      pool.push(p);
+      names.add(compact(p.name));
+    }
+    for (let i = 0; i < list.length && pool.length; i++) {
+      if (list[i].image) continue;
+      const p = pool.shift();
+      swappedOut.push(list[i]);
+      used.add(p.href);
+      list[i] = p;
+    }
+  }
 }
 /** Photos first, order kept inside each group. */
 for (const slug of Object.keys(guides)) guides[slug] = [...guides[slug].filter((p) => p.image), ...guides[slug].filter((p) => !p.image)];
@@ -248,7 +295,7 @@ if (hidden.length && process.env.GIFT_PICKS_VERBOSE) console.error(`HIDDEN (no a
  */
 const FIXED_HOSTS = new Set(["www.zchocolat.com", "www.diecastmodelswholesale.com"]);
 const sortedGuides = Object.entries(guides).sort(([a], [b]) => a.localeCompare(b));
-const everyPick = sortedGuides.flatMap(([, l]) => l);
+const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut];
 const pageList = {};
 // The Kids hub is a hub, not a list (owner 2026-11-18): its page shows Girls, Boys and Gender-Neutral only.
 const NOT_A_LIST = new Set(["kids"]);

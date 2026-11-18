@@ -1447,11 +1447,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-magazines</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-magazines-com</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1468,6 +1463,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-maisonette</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-makerfire</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1607,6 +1607,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-silverrushstyle</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-simms-fishing</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1628,11 +1633,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-stanley</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-stanley-1913</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

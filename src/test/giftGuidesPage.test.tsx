@@ -856,3 +856,21 @@ describe("gift guides: rows read in order (design audit 11-18 #8, #9)", () => {
     }
   });
 });
+
+describe("gift guides: Amazon CDN photos held behind one switch; photo-less picks swapped in mixed guides (lead 2026-11-18)", () => {
+  it("ships no m.media-amazon.com photo while AMAZON_CDN_PHOTOS is off, and the import swaps no-photo picks from the link library", () => {
+    // @mutate scripts/gift-guide-picks.mjs | (!amazonHosted \|\| (AMAZON_CDN_PHOTOS && | (true \|\| (AMAZON_CDN_PHOTOS &&
+    const script = src("scripts/gift-guide-picks.mjs");
+    expect(script).toContain('export const AMAZON_CDN_PHOTOS = process.env.GIFT_AMAZON_PHOTOS === "on" || false;');
+    expect(script).toContain('(!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe"))');
+    expect(script).toContain('JSON.parse(readFileSync(join(LIB, "unused-by-guide.json"), "utf8"))');
+    expect(script).toContain("const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut];");
+    let photos = 0;
+    for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
+      if (!p.image) continue;
+      photos += 1;
+      expect(new URL(p.image).hostname, `${slug}: ${p.name}`).not.toMatch(/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/);
+    }
+    expect(photos).toBeGreaterThan(5000);
+  });
+});

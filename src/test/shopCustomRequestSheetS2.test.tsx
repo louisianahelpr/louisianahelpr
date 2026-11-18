@@ -19,7 +19,7 @@ vi.mock("@/lib/shops/customRequests", async (io) => ({
 import ShopCustomRequestSheet, { wantedDateBounds } from "@/components/shops/ShopCustomRequestSheet";
 
 describe("S2-021 the request form", () => {
-  it("bounds are tomorrow to 180 days, in the member's own day", () => {
+  it("bounds are tomorrow to 180 days, in Louisiana's day", () => {
     expect(wantedDateBounds(new Date(2026, 10, 12, 23, 30))).toEqual({ min: "2026-11-13", max: "2027-05-11" });
   });
   it("sends the Need-by date and links the confirmation to My orders", async () => {

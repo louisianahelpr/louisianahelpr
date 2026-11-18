@@ -97,7 +97,7 @@ describe("the sell screen follows the member's language (F260q)", () => {
     expect(screen.getByRole("button", { name: "Lower the price by $1" })).toBeTruthy();
     expect(screen.getByText(/^Free items are claimed, not bought/)).toBeTruthy();
     expect(screen.getByText("Buyers can offer a lower price, and you say yes or no.")).toBeTruthy();
-    expect(screen.getByText("Confirm about this item")).toBeTruthy();
+    expect(screen.getByText("Before you post")).toBeTruthy(); // design audit r3 #27 (was "Confirm about this item")
   });
 
   it("Spanish: the trades switch, price box, You get, free note, Accept offers and tax head, same amount", async () => {
@@ -111,7 +111,7 @@ describe("the sell screen follows the member's language (F260q)", () => {
     expect(screen.getByText(/^Los artículos gratis se piden/)).toBeTruthy();
     expect(screen.getByText("Aceptar ofertas")).toBeTruthy();
     expect(screen.getByText(/^Los compradores pueden ofrecer un precio más bajo/)).toBeTruthy();
-    expect(screen.getByText("Confirme sobre este artículo")).toBeTruthy();
+    expect(screen.getByText("Antes de publicar")).toBeTruthy();
     expect(document.body.textContent).toMatch(/\$20(\.00)?/);
     expect(document.body.textContent).not.toMatch(/Open to trades|You get if|Free items|Accept offers|Confirm about/);
   });

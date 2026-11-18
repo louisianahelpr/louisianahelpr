@@ -17,9 +17,10 @@ export function DeclutterSalesEarned({ rows, failed, onRetry }: { rows: SalePayo
       </h2>
       <ul className="divide-y divide-border/40">
         {rows.map((r) => (
-          <li key={r.order_id} data-sale-payout={r.order_id} className="py-2 flex items-baseline justify-between gap-3 text-ds-13">
-            <span className="min-w-0 truncate" style={{ color: "hsl(var(--ink-deep))" }}>Sold: {r.title}</span>
-            <span className="shrink-0 tabular-nums text-right" style={{ color: r.status === "failed" ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.9)" }}>
+          // Design audit r3 #31: two lines, the item then the amount and its state (one line cut the title to "Bar sto…").
+          <li key={r.order_id} data-sale-payout={r.order_id} className="py-2 flex flex-col gap-0.5">
+            <span className="min-w-0 text-ds-14 [overflow-wrap:anywhere]" style={{ color: "hsl(var(--ink-deep))" }}>Sold: {r.title}</span>
+            <span className="tabular-nums text-ds-13" style={{ color: r.status === "failed" ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.9)" }}>
               {formatCents(r.amount_cents)} · {salePayoutWords(r)}
             </span>
           </li>

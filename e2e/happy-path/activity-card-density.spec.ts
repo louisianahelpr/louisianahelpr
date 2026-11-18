@@ -571,11 +571,12 @@ test.describe("My Posts — card density + header", () => {
     // the day someone drops the attribute. Since Q1080 every self-drawn chip
     // (SOS, Directions, Share, the photo chip) carries the hook too, and
     // src/test/jobRowControlSameness.test.tsx fails on a row chip without it;
-    // two is the floor the tap-target loop above names.
+    // One is the floor the tap-target loop above names: since Area 03 H1 (design audit 11-18) a no-show row holds only
+    // "Report no-show"; Message and the release are in the top bar's "..." menu ([data-row-more]).
     expect(
       await page.locator(`:is(${ACTIONS}):not([hidden] *)`).count(),
       "no action chips found at 320px — the gate above would pass on an empty row",
-    ).toBeGreaterThanOrEqual(2);
+    ).toBeGreaterThanOrEqual(1);
     await page.screenshot({ path: `${SHOTS}/actions-3up-320.png`, fullPage: true });
   });
 
@@ -709,9 +710,11 @@ test.describe("My Posts — card density + header", () => {
     await openJobPage(page, IN_PROGRESS_ID);
 
     // The job started yesterday and the Helpr never checked in, so the row leads with "Report no-show" (Area 03 H1,
-    // design audit 11-18) and Message sits in More options (openMoreOptions returns the row itself when there is none).
-    const moves = await openMoreOptions(page);
-    await moves.getByRole("button", { name: /^Message\b/ }).first().click();
+    // design audit 11-18) and Message sits in the top bar's "..." menu ([data-row-more]): the bar first, then that menu.
+    const { bar, open } = await barThenMenu(page);
+    let message = bar.getByRole("button", { name: /^Message\b/ });
+    if (!(await message.count())) message = ((await open()) ?? bar).getByRole("button", { name: /^Message\b/ });
+    await message.first().click();
     await page.waitForURL(/\/messages\?/);
     const url = new URL(page.url());
     // Landing on the bare list — the old behaviour — leaves both params null.

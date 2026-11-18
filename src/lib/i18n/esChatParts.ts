@@ -55,4 +55,5 @@ export const esChatParts: Record<keyof typeof enChatParts, string> = {
   "cp.ot.send": "Enviar",
   "cp.ot.sending": "Enviando\u2026",
   "cp.ot.date": "Fecha: {day}",
+  "cp.safetyLabel": "Seguridad",
 };

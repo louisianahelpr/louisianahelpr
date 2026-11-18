@@ -24,8 +24,10 @@ describe("F429: the chat menu tells Report and Block apart", () => {
     expect(block).not.toBeNull();
     expect(block![1]).toContain("text-[hsl(var(--destructive-ink))]");
     expect(block![1]).toContain("focus:text-[hsl(var(--destructive-ink))]");
-    expect(src).toMatch(/<span data-menu-label="">\{t\("msg\.reportUser"\)\}<\/span>\s*<span className="text-ds-12 text-muted-foreground">\{t\("msg\.reportUserBody"\)\}<\/span>/);
+    expect(src).toMatch(/<span data-menu-label="">\{[^\n]*t\("msg\.reportName", \{ name: activeConvo\.otherUserName\.trim\(\) \}\) : t\("msg\.reportUser"\)\}<\/span>\s*<span className="text-ds-12 text-muted-foreground">\{t\("msg\.reportUserBody"\)\}<\/span>/);
     expect(en["msg.reportUser"]).toBe("Report user");
+    // Area 08 L1: the row names the person ("Report Eli R.").
+    expect(en["msg.reportName"]).toBe("Report {name}");
     expect(en["msg.reportUserBody"]).toBe("Tell our team about a problem.");
     // Report stays the plain colour: no destructive ink on the Report row.
     const report = src.match(/<DropdownMenuItem onClick=\{onReportUser\}([^>]*)>/);

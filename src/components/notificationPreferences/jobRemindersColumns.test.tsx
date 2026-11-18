@@ -5,7 +5,7 @@
  * the group's line says each switch covers app, email and text.
  *
  * @mutate src/components/notificationPreferences/JobRemindersGroup.tsx | flex justify-center w-[114px] min-[360px]:w-[126px]" data-reminder-switch-cell=""> | flex justify-end" data-reminder-switch-cell="">
- * @mutate src/components/notificationPreferences/JobRemindersGroup.tsx |  Each switch covers app, email and text. |
+ * @mutate src/lib/i18n/enNotifPrefs.ts |  Each switch covers app, email and text. |
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

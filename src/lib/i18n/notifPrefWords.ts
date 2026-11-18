@@ -23,3 +23,12 @@ export function notifPrefGroup(title: string): string {
   const k = `np.g.${title}`;
   return has(k) ? t(k) : title;
 }
+
+/**
+ * Area 08 H3 pass 2: a Job reminders row's label or description (job_reminder_types, server English) in the app
+ * language. Only when the server's English is still the English we translated; a reworded row keeps its own words.
+ */
+export function jobReminderWords(kind: string, part: "l" | "d", english: string): string {
+  const k = `np.jr.${part}.${kind}`;
+  return has(k) && enNotifPrefs[k] === english ? t(k) : english;
+}

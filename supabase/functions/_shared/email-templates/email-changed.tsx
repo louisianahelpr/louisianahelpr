@@ -54,7 +54,8 @@ export const AdminEmailChangedEmail = ({ oldEmail, newEmail }: EmailChangedProps
     preheader="Someone from Louisiana Helpr changed the login email on your account."
     footer={
       <TransactionalFooter>
-        Questions? Just reply to this email — it reaches our support team at <SupportAddress />.
+        {/* Area 08 L17 (design audit 11-18): one contact line across the emails. */}
+        Questions? Write to us at <SupportAddress />.
       </TransactionalFooter>
     }
   >
@@ -87,7 +88,7 @@ export const SelfEmailChangeNoticeEmail = ({ oldEmail, newEmail }: EmailChangedP
     preheader="Your Helpr login email is being changed — confirm it was you."
     footer={
       <TransactionalFooter>
-        Questions? Contact us at <SupportAddress />.
+        Questions? Write to us at <SupportAddress />.
       </TransactionalFooter>
     }
   >

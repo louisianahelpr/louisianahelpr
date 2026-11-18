@@ -299,10 +299,12 @@ export function ChatHeader({
           <div role="separator" className="my-1 h-px bg-border" />
           {/* F429 (audit 11-10): Report says in one line what it does, and Block user is the red item, the way
               Nextdoor colours the harsh option so a thumb does not take it for Report. */}
-          <DropdownMenuItem onClick={onReportUser} className="items-start">
+          {/* Area 08 L1 (design audit 11-18): "Report Eli R." names who is reported, like the Report sheet's title.
+              data-menu-name keeps the admin preview's "Report user" step finding it. */}
+          <DropdownMenuItem onClick={onReportUser} className="items-start" data-menu-name="Report user">
             <Flag className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
             <span className="flex flex-col">
-              <span data-menu-label="">{t("msg.reportUser")}</span>
+              <span data-menu-label="">{activeConvo.otherUserName?.trim() ? t("msg.reportName", { name: activeConvo.otherUserName.trim() }) : t("msg.reportUser")}</span>
               <span className="text-ds-12 text-muted-foreground">{t("msg.reportUserBody")}</span>
             </span>
           </DropdownMenuItem>

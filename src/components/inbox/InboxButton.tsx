@@ -48,6 +48,9 @@ export default function InboxButton({ className }: { className?: string }) {
   }, []);
 
   const name = t("inbox.title");
+  // Area 08 M7 (design audit 11-18): on the Inbox itself the page's own tabs carry the counts; a second badge in the
+  // top bar repeated them. Hidden there, still mounted, so the arrival chime above keeps holding.
+  if (here) return null;
   return (
     <Button
       type="button"

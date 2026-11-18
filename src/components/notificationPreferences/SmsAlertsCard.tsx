@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enNotifPrefs";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -201,7 +203,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
           <MessageSquareText className="w-3.5 h-3.5" aria-hidden />
         </span>
         <h2 id={`${consentId}-title`} className="font-sans font-semibold text-ds-14 flex-1 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
-          Text alerts
+          {t("np.sms.title")}
         </h2>
         {!loading && !isError && (
           <span
@@ -210,7 +212,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
               ? { background: "hsl(var(--primary) / 0.12)", color: "hsl(var(--primary))" }
               : { background: "hsl(var(--ink-deep) / 0.06)", color: "hsl(var(--ink-deep) / 0.7)" }}
           >
-            {optedIn ? "On" : pendingPhone ? "Waiting" : "Off"}
+            {optedIn ? t("np.sms.on") : pendingPhone ? t("np.sms.waiting") : t("np.sms.off")}
           </span>
         )}
       </div>
@@ -297,12 +299,10 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
         ) : optedIn ? (
           <>
             <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
-              Texts go to <span className="font-semibold whitespace-nowrap">{formatUsPhone(consent?.phone_e164 ?? null)}</span>.
+              {t("np.sms.goTo")} <span className="font-semibold whitespace-nowrap">{formatUsPhone(consent?.phone_e164 ?? null)}</span>.
             </p>
             <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
-              We text only when you haven't seen an alert in the app after a few minutes: job offers, applications,
-              changes and problems on your jobs, payment or payout problems, and new messages. Nothing non-urgent
-              between 9pm and 8am (it waits until morning). Texts never include names or addresses. Reply STOP to any text to stop.
+              {t("np.sms.what")}
             </p>
             {askStop ? (
               <div className="rounded-xl p-3 space-y-2" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} role="group" aria-label="Stop text alerts?">
@@ -328,7 +328,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
                 disabled={saving}
                 onClick={() => setAskStop(true)}
               >
-                Turn off text alerts
+                {t("np.sms.turnOff")}
               </Button>
             )}
           </>
@@ -340,7 +340,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
               </p>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor={phoneId} className="text-ds-13 font-semibold">Mobile number</Label>
+              <Label htmlFor={phoneId} className="text-ds-13 font-semibold">{t("np.sms.phone")}</Label>
               <Input
                 id={phoneId}
                 type="tel"
@@ -372,7 +372,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
               disabled={!agreed || !validPhone || saving || sameStoppedNumber || !enabled}
               onClick={() => { void save(true); }}
             >
-              Turn on text alerts
+              {t("np.sms.turnOn")}
             </Button>
           </>
         )}

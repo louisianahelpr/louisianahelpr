@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enNotifPrefs";
 import { Label } from "@/components/ui/label";
 import { Loader2, Send } from "lucide-react";
 
@@ -38,14 +40,14 @@ export function TestSendCard({ loaded, sendingTest, sendTestPush, pushTokenCount
             className="font-sans font-semibold block text-ds-14 mb-0"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            Send a test
+            {t("np.test.label")}
           </Label>
           <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {pushTokenCount === null
-              ? "Couldn't check your devices — we'll still test by email and in-app."
+              ? t("np.test.unknown")
               : pushTokenCount === 0
-              ? "No devices registered — we'll test by email and in-app instead."
-              : `Push to ${pushTokenCount} registered device${pushTokenCount === 1 ? "" : "s"}, plus email and in-app.`}
+              ? t("np.test.none")
+              : pushTokenCount === 1 ? t("np.test.one") : t("np.test.many", { n: pushTokenCount })}
           </p>
         </div>
       </div>
@@ -59,15 +61,15 @@ export function TestSendCard({ loaded, sendingTest, sendTestPush, pushTokenCount
           color: "hsl(var(--parchment))",
           border: "1px solid hsl(var(--bark))",
         }}
-        aria-label="Send test notification"
+        aria-label={t("np.test.aria")}
       >
         {sendingTest ? (
           <>
-            <Loader2 className="w-3 h-3 animate-spin" /> Sending
+            <Loader2 className="w-3 h-3 animate-spin" /> {t("np.test.sending")}
           </>
         ) : (
           <>
-            <Send className="w-3 h-3" /> Test
+            <Send className="w-3 h-3" /> {t("np.test.button")}
           </>
         )}
       </button>

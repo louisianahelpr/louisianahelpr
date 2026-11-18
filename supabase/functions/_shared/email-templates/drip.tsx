@@ -112,7 +112,8 @@ export const WelcomeDripStep1Email = ({
     <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
       {/* F492 (audit 11-10): a sign-off with the name, the same form as days 14 and 30. */}
-      Reach out any time at admin@louisianahelpr.com. - Louisiana Helpr
+      {/* Area 08 L17 (design audit 11-18): one contact line across the emails. */}
+      Questions? Write to us at admin@louisianahelpr.com. - Louisiana Helpr
     </Text>
   </BaseLayout>
 )
@@ -178,7 +179,7 @@ export const WelcomeDripStep3Email = ({
     </ol>
     <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
-      Questions? admin@louisianahelpr.com.
+      Questions? Write to us at admin@louisianahelpr.com.
     </Text>
   </BaseLayout>
 )

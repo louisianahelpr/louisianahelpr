@@ -33,7 +33,7 @@ describe("continueDayNextStep", () => {
     // Auditor 11 (11-01): once the Helpr confirms, the poster's line says so.
     expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-02T12:00:00Z" }), { side: "poster", otherFirst: "Yusef" })!)).toBe("Yusef confirmed Thu, Nov 5 at 9:00 AM");
     const before = new Date("2026-11-04T18:00:00Z");
-    expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", otherFirst: "Dana", now: before })!)).toBe("Next: confirm you'll be there · continuing Thu, Nov 5 at 9:00 AM");
+    expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", otherFirst: "Dana", now: before })!)).toBe("Next: confirm you'll be there · for Thu, Nov 5 at 9:00 AM");
     expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-05T12:00:00Z" }), { side: "helpr", otherFirst: "Dana", now: before })!))
       .toBe("You're set for Thu, Nov 5 at 9:00 AM · mark it done when you finish");
   });
@@ -46,7 +46,7 @@ describe("continueDayNextStep", () => {
         .toBe("Next: the new day passed · mark it done or ask for another day");
     }
     // The day itself is not "passed" yet.
-    expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", now: new Date("2026-11-05T22:00:00Z") })!)).toContain("continuing");
+    expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", now: new Date("2026-11-05T22:00:00Z") })!)).toContain("for Thu, Nov 5");
   });
 
   it("a Helpr's ask is the poster's move (one tap), and the Helpr waits on them", () => {

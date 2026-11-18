@@ -2,8 +2,8 @@
  * Area 08 H2/H3 (design audit 11-18): a Spanish thread, inbox and bell still read English: TODAY / YESTERDAY, "4m
  * ago", "Show progress", the safety banner, "Verified neighbor · 11 reviews", the Hired / Working / Completed chips,
  * "Your job", the Jobs chip, and the whole Declutter order chat. Each now reads t() (enChatParts.ts / esChatParts.ts).
- * Notification settings: the row labels, descriptions and group headers (enNotifPrefs.ts via notifPrefWords.ts); the rest
- * of that screen is still English (area 08 PR skip list).
+ * Notification settings: the row labels, descriptions and group headers (enNotifPrefs.ts via notifPrefWords.ts); pass 2
+ * moved the rest of that screen (quiet hours, text alerts, test send, job reminders, footer) there too.
  * @mutate src/components/notificationPreferences/CategoryRow.tsx |                 {notifPrefLabel(item.key, item.label)} |                 {item.label}
  * @mutate src/components/notificationPreferences/NotificationGroupHeader.tsx |         {notifPrefGroup(title)} |         {title}
  *
@@ -102,7 +102,8 @@ describe("Area 08 H2/H3: chat, inbox and bell words follow the member's language
     }
     for (const k of Object.keys(enNotifPrefs) as (keyof typeof enNotifPrefs)[]) {
       expect(es[k], k).toBe(esNotifPrefs[k]);
-      expect(esNotifPrefs[k], `${k} still English`).not.toBe(enNotifPrefs[k]);
+      // "App" is the same word in Spanish (the column header over the push switches).
+      if (k !== "np.h.app") expect(esNotifPrefs[k], `${k} still English`).not.toBe(enNotifPrefs[k]);
     }
     setLang("es");
     await ensureLangLoaded();

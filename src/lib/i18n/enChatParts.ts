@@ -61,6 +61,7 @@ export const enChatParts = {
   "cp.ot.send": "Send",
   "cp.ot.sending": "Sending\u2026",
   "cp.ot.date": "Date: {day}",
+  "cp.safetyLabel": "Safety",
 } as const;
 
 addEnglish(enChatParts);

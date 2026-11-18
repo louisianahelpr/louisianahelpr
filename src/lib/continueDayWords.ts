@@ -82,7 +82,9 @@ export function continueDayNextStep(
   }
   return row.helper_confirmed_at
     ? { who: "info", text: `You're set for ${when}`, by: "mark it done when you finish" }
-    : { who: "you", text: "Confirm you'll be there", by: `continuing ${when}` };
+    : // Area 08 L7 (design audit 11-18): "continuing Wed, Nov 11" read as half a sentence. The day it is for, plainly.
+      // Not "Day 2": a job can continue more than once and the row carries no day number.
+      { who: "you", text: "Confirm you'll be there", by: `for ${when}` };
 }
 
 /** The same line as one string, for a list row (Home, a chat's job card). */

@@ -5,7 +5,7 @@
  * M14: the "keep payments on Helpr" banner does not show on a closed thread.
  * @mutate src/components/messages/ChatView.tsx | {!bannerDismissed && !isTeam && !threadClosed && ( | {!bannerDismissed && !isTeam && (
  * M17: the settings footer names the real row (Account and safety alerts), never "System Alerts".
- * @mutate src/components/NotificationPreferences.tsx |           Safety and dispute alerts arrive under Account and safety alerts. |           Safety and dispute alerts arrive under System Alerts.
+ * @mutate src/lib/i18n/enNotifPrefs.ts | "Safety and dispute alerts arrive under Account and safety alerts." | "Safety and dispute alerts arrive under System Alerts."
  * M19: the win-back email makes no uncounted claim and no sales talk.
  * @mutate supabase/functions/_shared/email-templates/drip.tsx |       See what's open near you\n    </Heading> |       New jobs are open in your area.\n    </Heading>
  * @mutate supabase/functions/engagement-automations/index.ts |         "See what's open near you",\n        're_engagement', |         'New jobs are open in your area.',\n        're_engagement',
@@ -34,7 +34,9 @@ describe("Area 08 Mediums and Lows (design audit 11-18)", () => {
   });
 
   it("M17: the settings footer names a row that exists", () => {
-    const prefs = src("src/components/NotificationPreferences.tsx");
+    // Area 08 pass 2: the footer's words live in enNotifPrefs.ts (t()).
+    const prefs = src("src/components/NotificationPreferences.tsx") + src("src/lib/i18n/enNotifPrefs.ts");
+    expect(prefs).toContain('{t("np.footer.safety")}');
     expect(prefs).not.toMatch(/arrive under System Alerts/);
     expect(prefs).toContain("Safety and dispute alerts arrive under Account and safety alerts.");
     expect(src("src/components/notificationPreferences/constants.tsx")).toContain('label: "Account and safety alerts"');

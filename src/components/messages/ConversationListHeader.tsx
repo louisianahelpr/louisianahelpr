@@ -1,7 +1,7 @@
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enMessages";
 import type { Dispatch, SetStateAction } from "react";
-import { Pin, Trash2, X } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { Button } from "@/components/ui/button";
 import { INBOX_TAB_LABEL, INBOX_TAB_ORDER, type InboxView } from "@/lib/inboxDefault";
@@ -62,18 +62,23 @@ export function InboxFilterTabs({ isWebDesktop, activeThreads, allTabConversatio
 export function PinnedFilterChip({ inboxTab, setInboxFilter }: { inboxTab: InboxView; setInboxFilter: Dispatch<SetStateAction<string | null>> }) {
   return (inboxTab === "pinned" || inboxTab === "recentlyDeleted") && (
     <div className="shrink-0">
-      {/* The shared Button (ghost, sm; Q2709 11-05): the way back to All, bark ink. */}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => setInboxFilter("all")}
-        className="gap-1.5 text-ds-13 font-semibold text-[hsl(var(--bark))] [&_svg]:size-3"
-      >
-        {inboxTab === "pinned" ? <Pin className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
-        {inboxTab === "pinned" ? t("msg.showingPinned") : t("msg.showingDeleted")}
-        <X className="w-3 h-3" />
-      </Button>
+      {/* Area 08 M9 (design audit 11-18): a small "Showing pinned only ×" chip was the only sign of where you were.
+          The view now has a header: a back arrow to All and the view's name as its title. */}
+      <div className="flex items-center gap-1 pt-1" data-inbox-view-header="">
+        <Button
+          type="button"
+          variant="ghost"
+          size="iconCompact"
+          onClick={() => setInboxFilter("all")}
+          aria-label={t("msg.backToAll")}
+          className="shrink-0 text-[hsl(var(--bark))]"
+        >
+          <ChevronLeft className="w-5 h-5" aria-hidden />
+        </Button>
+        <h2 className="min-w-0 truncate font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+          {inboxTab === "pinned" ? t("msg.viewPinned") : t("msg.viewDeleted")}
+        </h2>
+      </div>
       {/* Two honesty notes, since "Recently Deleted" as a name implies both
           "temporary" and "complete" and this view is neither: hiding a
           thread never expires it on its own (it stays hidden until you

@@ -106,7 +106,9 @@ const add = (slug, raw, where) => {
   if (!p) return;
   if (slug === SPONSORS_GUIDE) p.sponsor = true;
   const list = (guides[slug] ??= []);
-  if (!list.some((x) => x.href === p.href && x.name === p.name)) list.push(p);
+  // One row per link in a guide (a ShopMy collection link is shared by several products, so those match by name too).
+  const shared = new URL(p.href).hostname === "shopmy.us";
+  if (!list.some((x) => x.href === p.href && (!shared || x.name === p.name))) list.push(p);
 };
 
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.startsWith("_")).sort()) {

@@ -13,3 +13,4 @@ export function domainName(s: string): boolean;
 export function productName(raw: unknown, names: unknown[], host?: string): string | null;
 export function brokenImage(u: string): boolean;
 export function fitsGuide(slug: string, p: { name: string }): boolean;
+export const CATEGORY_NAME: RegExp;

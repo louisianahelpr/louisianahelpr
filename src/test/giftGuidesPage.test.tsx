@@ -393,7 +393,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector(".gg-band")).toBeNull();
     const words = container.querySelector("[data-gift-words]");
-    expect([...(words?.children ?? [])].map((c) => c.textContent)).toEqual(["top-rated finds", "Holiday Gift Guides", "ShareText these guides"]);
+    expect([...(words?.children ?? [])].map((c) => c.textContent)).toEqual(["top-rated finds", "Holiday Gift Guides", "Share"]);
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
     // age guide keeps its age band).
     const tiles = [...container.querySelectorAll("a[data-gift-tile]")];
@@ -410,7 +410,7 @@ describe("gift guides: the landing opens to the guides", () => {
     // A guide's header is its cover's look as a short banner (owner 11-18 PM): gingham in the guide's palette, a cream
     // arch holding the lead, the title and the LOUISIANA HELPR line (real text, no image), Share right under it.
     // @mutate src/pages/info/GiftGuides.tsx | titleId="gift-guide-title" tint={guide.tint} | titleId="gift-guide-title"
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", "ShareText this guide"]);
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", "Share"]);
     cleanup();
     let banners = 0;
     for (const slug of ["mom", "girls-toddlers", "store-walmart", "under-25"]) {
@@ -430,8 +430,17 @@ describe("gift guides: the landing opens to the guides", () => {
     // The landing keeps its plain header.
     expect(renderAt("/gift-guides").container.querySelector("[data-gift-banner]")).toBeNull();
     cleanup();
-    // "Text this guide" (owner 2026-11-18): an sms: link carrying the guide's URL; iOS's form, else Android's.
-    const text = renderAt("/gift-guides/mom").container.querySelector("a[data-gift-text]")!;
+    // "Text this guide" (owner 2026-11-18): an sms: link carrying the guide's URL; iOS's form, else Android's. Since
+    // 11-18 PM ("Text the guides should be under share") it sits INSIDE the Share menu: no second header button.
+    // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {open && ( |       {true && (
+    const shareRoot = renderAt("/gift-guides/mom").container;
+    expect(shareRoot.querySelector("a[data-gift-text]")).toBeNull();
+    fireEvent.click(shareRoot.querySelector("[data-gift-share]")!);
+    const menu = shareRoot.querySelector("[data-gift-share-menu]")!;
+    expect([...menu.children].map((c) => c.textContent).slice(0, 2)).toEqual(["Copy link", "Text this guide"]);
+    // The phone's own share sheet is offered only where it exists (jsdom has none).
+    expect(menu.querySelector("[data-gift-share-native]")).toBeNull();
+    const text = menu.querySelector("a[data-gift-text]")!;
     expect(text.getAttribute("href")).toMatch(/^sms:[?&]body=.*https%3A%2F%2Fwww\.louisianahelpr\.com%2Fgift-guides%2Fmom$/);
     expect(smsHref("https://x.test/g", "Mom", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)")).toBe("sms:&body=Mom%20https%3A%2F%2Fx.test%2Fg");
     expect(smsHref("https://x.test/g", "Mom", "Mozilla/5.0 (Linux; Android 15)")).toBe("sms:?body=Mom%20https%3A%2F%2Fx.test%2Fg");

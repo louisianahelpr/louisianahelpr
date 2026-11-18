@@ -48,6 +48,16 @@ describe("design audit r2: names are products", () => {
       "Running Shoes, Clothing, & Accessories | Saucony US", "Not Found Page | Kay", "Jared | Jared",
     ]) expect(productName(raw, [], "example"), raw).toBeNull();
     expect(productName("Designer Gifts |Michael Kors", ["Michael Kors"], "michaelkors")).toBeNull();
+    // Owner 11-18 PM: category and collection pages named like products (Our Top 10 #2 was the first) never ship.
+    // @mutate scripts/giftGuideRules.mjs |   if (CATEGORY_NAME.test(first)) return null; |   if (false) return null;
+    // @mutate scripts/giftGuideRules.mjs |   if (parts.length > 1 && /\b\w+s & [\w' ]*\w+s$/i.test(first)) return null; |   if (false) return null;
+    for (const raw of ["Skincare Routine Tools & LED Face Masks | Shark Beauty", "Food Processors & Choppers Products | KitchenAid US",
+      "Kitchen & Cooking Gifts | ZWILLING.COM", "DKNY Women's Clothing & Accessories | Modern & Sophisticated Style | Macy's", "The Holiday Collection",
+      "Serums, Cosmetics & Haircare, & More", "Luxury Japanese Skincare Products | Tatcha", "Educational Toys & Learning Toys from Fat Brain Toys",
+      "Gifts & Value Sets", "Stand Mixer Accessories | KitchenAid US", "Wolferman’s Bakery: English Muffins, Baked Goods & Breakfast Gifts"]) expect(productName(raw, [], "example"), raw).toBeNull();
+    // ... while real products with "&" or "Accessories" stay.
+    for (const raw of ["Barbie Dreamhouse Dollhouse Playset with Pool and Themed Accessories", "Brown & Blue Glass Vase", "Griddler Grill & Panini Press",
+      "36-Piece Griddle Accessories", "Pine & Eucalyptus Classic Scented Candle"]) expect(productName(raw, [], "example"), raw).toBe(raw);
     expect(productName("Jared | Your Jewelry Store for Engagement Rings", [], "jared")).toBeNull();
     expect(productName("Old Navy | Affordable Clothing for Women, Men, Kids & Baby", [], "oldnavy")).toBeNull();
     expect(productName("Kohl's | Shop Clothing, Shoes, Home, Kitchen, Bedding, Toys & More", ["Kohl's"], "kohls")).toBeNull();

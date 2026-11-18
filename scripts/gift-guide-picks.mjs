@@ -61,10 +61,24 @@ const domainCore = (d) => d.replace(/^(www|shop|us)\./, "").replace(/\.(com|us|c
 
 /** Every store page a pick belongs to: slug -> name (and the hosts its links use, filled below). */
 const stores = new Map();
+/**
+ * One store page per store however a feed spells it (lead 2026-11-18: stanley, stanley-1913 and stanley1913 were three
+ * pages): compact spelling -> the one name its page uses.
+ */
+export const STORE_ALIASES = {
+  anker: "Anker", ankerinnovations: "Anker", stanley: "Stanley", stanley1913: "Stanley", ulta: "Ulta Beauty",
+  underarmour: "Under Armour", worldmarket: "World Market", twelvesouth: "Twelve South", landsend: "Lands' End",
+  comrad: "Comrad Socks", loop: "Loop Earplugs", loopearplugsus: "Loop Earplugs", malbon: "Malbon Golf",
+  giftcards: "GiftCards.com", giftcardscom: "GiftCards.com", magazines: "Magazines.com", magazinescom: "Magazines.com",
+  "831stories": "831 Stories", communitycoffee: "Community Coffee", freyrs: "Freyrs Eyewear", freyrseyewear: "Freyrs Eyewear",
+  lashnextdoor: "Lash Next Door", yotoplay: "Yoto", campsnap: "Camp Snap", campsnapphoto: "Camp Snap",
+};
 const storeFor = (raw) => {
   if (!raw) return null;
-  const isDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(raw);
-  const name = isDomain ? domainCore(raw) : cleanName(raw);
+  const domainLike = /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(raw);
+  const alias = STORE_ALIASES[compact(domainLike ? domainCore(raw) : cleanName(raw))];
+  const isDomain = domainLike && !alias;
+  const name = alias ?? (isDomain ? domainCore(raw) : cleanName(raw));
   // ShopMy is how a link is made, never a store (owner 2026-11-18: no ShopMy tile; each retailer is its own page).
   if (compact(name) === "shopmy") return null;
   const hit = STORE_BY_COMPACT.get(compact(name));

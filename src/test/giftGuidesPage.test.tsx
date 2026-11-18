@@ -805,6 +805,11 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
     // Deals and bounties: _later-promos.json (deal sections) and _amazon-bounties.json (Prime, Audible, registries).
     expect(script).toContain('for (const f of ["_later-deals.json", "_later-promos.json"]) {');
     expect(script).toContain('readList("_amazon-bounties.json")');
+    // One store page per store however a feed spells it (stanley, stanley-1913 and stanley1913 were three pages).
+    // @mutate scripts/gift-guide-picks.mjs | const alias = STORE_ALIASES[ | const alias = undefined && STORE_ALIASES[
+    expect(script).toContain('const alias = STORE_ALIASES[compact(domainLike ? domainCore(raw) : cleanName(raw))];');
+    expect(script).toContain('const name = alias ?? (isDomain ? domainCore(raw) : cleanName(raw));');
+    for (const pair of ['stanley1913: "Stanley"', 'ankerinnovations: "Anker"', 'ulta: "Ulta Beauty"', 'giftcards: "GiftCards.com"', 'yotoplay: "Yoto"']) expect(script, pair).toContain(pair);
     // What ships today: no shown guide, store page or pick carries a blocked brand.
     for (const g of GUIDES) expect(blockedBrand({ store: g.title }) || blockedBrand({ name: g.title }), g.slug).toBe(false);
     let picks = 0;

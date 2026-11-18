@@ -1549,7 +1549,7 @@ export default defineConfig(({ mode, command }) => ({
             // Guest /browse fetches this beside browse-first-screen, in the same round.
             {
               name: "browse-guest-screen",
-              test: (id: string) => !BROWSE_GROUP_SKIPS.test(id) && browseOnly.has(norm(id)) && !jobsReach.has(norm(id)),
+              test: (id: string) => browseOnly.has(norm(id)) && !jobsReach.has(norm(id)) && !BROWSE_GROUP_SKIPS.test(id),
               minShareCount: 2,
               priority: 12.05,
               minSize: 0,

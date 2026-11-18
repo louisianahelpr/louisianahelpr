@@ -1,218 +1,197 @@
 /**
- * /gift-guides: EVERY word, pick and link on the Holiday Gift Guides page lives in this one file (owner 2026-11-16:
- * "i think we should add this to our landing pages on louisiana helpr so people can see our gift guides"; pop-up
- * choice "New gift guide page"). Edit here; nothing else needs to change.
+ * /gift-guides: every word, section, code and link rule of the Holiday Gift Guides page lives here; the guides are in
+ * giftGuideList.ts and their picks in giftGuideItems/<section>.ts (both generated from her own sources, see their
+ * headers). Owner 2026-11-16 "add this to our landing pages"; 2026-11-17 the final layout (gingham header, Shop by
+ * budget, fold-out sections with her covers 2 across, discount codes, disclosure), "it should open on my link, not my
+ * Pinterest or ShopMy account", "use all the ones that offer commission", and "not shown yet" (the page is a hidden
+ * preview: GIFT_GUIDES_PREVIEW below).
  *
- * Where the links come from (read 2026-11-16 from the owner's own accounts, never invented):
- *   - ShopMy collections: shopmy.us/shop/lexilombas, "Gift Guides" and "Louisiana" tabs. Each collection opens at
- *     https://shopmy.us/collections/<id>.
- *   - Pinterest boards and sections: pinterest.com/lexilombas ("Gift Guides", "Amazon Gift Guides").
- *   - Each pick is a real product in the collection its `href` opens, and its `image` is that product's photo on
- *     ShopMy's image host. A pick's Shop link opens the collection the product sits in.
+ * How a pick becomes a link (one place each, so a change is one line):
+ *   - Amazon:  `asin`   -> https://www.amazon.com/dp/<ASIN>?tag=AMAZON_TAG (her website tracking ID).
+ *   - ShopMy:  `shopmy` -> https://go.shopmy.us/p-<pin id>, that product's own ShopMy link.
+ *   - Brands:  `brand`  -> BRAND_TRACKING[brand] once the lead fills it from CJ / Rakuten, else the brand's own site.
+ * Pinterest and her ShopMy shop are SOURCES only; the page never links to pinterest.com, her ShopMy profile, or a
+ * ShopMy collection page.
  *
  * Rules (src/test/giftGuidesPage.test.tsx checks them):
- *   - Every link is https and on shopmy.us, pinterest.com, or a brand site in BRAND_SITES. The page gives every one
- *     rel="sponsored noopener" and opens it in a new tab.
- *   - Never invent a product, a price or a claim. No prices here at all: they change, and a stale one misleads.
- *   - A section with no confirmed ShopMy collection links to the Pinterest board instead.
- *   - `disclosure` is the FTC affiliate disclosure (16 CFR Part 255). Keep it plain and keep it near the top.
+ *   - Never invent a product, a price, a code or a claim. No prices on the page; a budget guide's name is the only price
+ *     information, and a budget button exists only for a tier one of her guides prices.
+ *   - No CBD, vape, alcohol, gambling or prize-draw brand, and no Walmart (owner 2026-11-17): BANNED below.
+ *   - Codes go in DISCOUNT_CODES only when the owner or the brand gave them in writing.
+ *   - The FTC affiliate disclosure (16 CFR Part 255) and the Amazon Associates statement are on the page.
+ *   - Every outbound link gets rel="sponsored noopener" and opens in a new tab (the page draws them all in one place).
  */
 
-export interface GiftLink {
-  label: string;
-  href: string;
-}
-
-export interface GiftPick {
-  /** The product's name as the collection lists it. */
-  name: string;
-  /** One short line: what the thing is. No price, no claim we have not checked. */
-  line: string;
-  /** The product photo (https). Shown lazy-loaded at a fixed size. */
-  image: string;
-  /** Where "Shop" goes: the collection holding this product, or the brand's own site (BRAND_SITES). */
-  href: string;
-}
-
-export interface GiftSection {
-  id: string;
-  title: string;
-  line: string;
-  /** The section's main link: its full guide. */
-  shop: GiftLink;
-  /** More guides for the same section. */
-  more: GiftLink[];
-  picks: GiftPick[];
-}
+/** Her Amazon Associates tracking ID for the website (owner made louisianahelpr-20 for it, 2026-11-17 6:47 PM, via the lead). */
+export const AMAZON_TAG = "louisianahelpr-20";
+const amazonLink = (asin: string) => `https://www.amazon.com/dp/${asin}?tag=${AMAZON_TAG}`;
+const shopmyLink = (pinId: number) => `https://go.shopmy.us/p-${pinId}`;
 
 /**
- * Brand sites the owner approved as picks (owner via the lead, 2026-11-16: zChocolat, approved on CJ; and
- * DiecastModelsWholesale.com). Plain site links for now; the lead swaps in the CJ tracking links later. Each image is
- * one the brand's own home page shows.
+ * OWNER 2026-11-17: the gift guides are NOT shown yet. /gift-guides sends everyone home; the owner reviews the page at
+ * /gift-guides?preview=1 (App.tsx checks the param inline, so this module stays out of the entry chunk). No nav, footer or landing link points here. Going live = drop the gate in App.tsx and put the
+ * ways in back (the guard in giftGuidesPage.test.tsx flips with it).
  */
-export const BRAND_SITES = ["www.zchocolat.com", "www.diecastmodelswholesale.com"] as const;
+const GIFT_GUIDES_PATH = "/gift-guides";
+const GIFT_GUIDES_PREVIEW_PARAM = "preview";
+export const GIFT_GUIDES_PREVIEW = `${GIFT_GUIDES_PATH}?${GIFT_GUIDES_PREVIEW_PARAM}=1`;
+export const guideHref = (id: string) => `${GIFT_GUIDES_PREVIEW}&guide=${encodeURIComponent(id)}`;
 
-const shopmy = (id: number) => `https://shopmy.us/collections/${id}`;
-const PIN = "https://www.pinterest.com/lexilombas";
+/** Owner 2026-11-17: skip CBD, vape, alcohol, gambling and prize-draw brands; no Walmart (not an affiliate). */
+export const BANNED = {
+  /** Never in a pick's name, store or brand. */
+  words: /\b(cbd|hemp|thc|delta[- ]?[89]|cannabis|marijuana|vapes?|vaping|e-?cig\w*|nicotine|kratom|casino|sportsbook|betting|poker (?:chips?|sets?|tables?)|lottery|sweepstakes?|raffle|giveaway|walmart)\b/i,
+  /** An alcoholic drink in a pick's name, unless the pick is clearly barware or a colour name. */
+  drink: /\b(wine|whiske?y|bourbon|vodka|tequila|mezcal|rum|gin|liquor|beer|champagne|prosecco|sake|spirits)\b/i,
+  barware: /\b(glass|glasses|decanter|shaker|smoker|opener|aerator|chiller|stopper|tumbler|bangles?|pillowsoft|pj|pajamas?)\b/i,
+};
 
-const MOM = shopmy(8978491);
-const DAD = shopmy(8987388);
-const TODDLERS = shopmy(9000035);
-const NEW_HOMEOWNER = shopmy(8988205);
-const LOUISIANA_PANTRY = shopmy(9000334);
+export type BrandId = "magnifique";
+
+export interface Brand {
+  name: string;
+  /** The brand's own site: the link until BRAND_TRACKING has its tracking link. */
+  site: string;
+  /** One short line: what the brand sells. No claim we have not checked. */
+  line: string;
+}
+
+export const BRANDS: Record<BrandId, Brand> = {
+  magnifique: { name: "Magnifique cookware", site: "https://cookmagnifique.com/", line: "Cookware sets and pans." },
+};
+
+/**
+ * TODO (lead, before launch): paste a brand's CJ / Rakuten tracking link here from the network dashboard. A brand with
+ * null links to its own site until then. Magnifique uses CJ clickless tracking with its code, so the code alone credits
+ * the sale.
+ */
+const BRAND_TRACKING: Record<BrandId, string | null> = { magnifique: null };
+export const brandLink = (id: BrandId) => BRAND_TRACKING[id] ?? BRANDS[id].site;
+
+export interface DiscountCode {
+  /** Shown name of the brand. */
+  name: string;
+  code: string;
+  /** What the code does, in the brand's own words. */
+  offer: string;
+  /** Where tapping the brand goes: its guide on this page, or its own (affiliate) site. */
+  guide?: string;
+  brand?: BrandId;
+  /** Where the code was confirmed (kept for the lead; not shown). */
+  source: string;
+}
+
+/** Only codes confirmed in writing (owner 2026-11-17: LEXI15 Daily Crunch, LEXI10 Magnifique, SECRETBF Canopy). */
+export const DISCOUNT_CODES: DiscountCode[] = [
+  {
+    name: "Daily Crunch",
+    code: "LEXI15",
+    offer: "15% off sprouted nut snacks.",
+    guide: "brand-daily-crunch",
+    source: "Owner 2026-11-17 (gift guides handoff): LEXI15, Daily Crunch, 15% off",
+  },
+  {
+    name: "Magnifique cookware",
+    code: "LEXI10",
+    offer: "10% off. Stacks with eligible promotions.",
+    brand: "magnifique",
+    source: "Magnifique (David Cairy, CJ), email 2026-11-17 4:34 PM: LEXI10 live, 10% off, stacks with promos",
+  },
+  {
+    name: "Canopy",
+    code: "SECRETBF",
+    offer: "Black Friday secret sale, up to 50% off.",
+    guide: "brand-canopy",
+    source: "Owner 2026-11-17 (gift guides handoff): SECRETBF, Canopy, up to 50% off",
+  },
+];
+
+/** One pick as written in giftGuideItems/<section>.ts: exactly one of asin / shopmy / brand says where it links. */
+export interface ItemData {
+  name?: string;
+  asin?: string;
+  shopmy?: number;
+  brand?: BrandId;
+  /** The store a ShopMy pick sells through. */
+  store?: string;
+  image?: string;
+}
+
+export type GuideSection = "people" | "interests" | "life" | "louisiana" | "christmas" | "deals" | "budget";
+
+export interface GuideMeta {
+  id: string;
+  section: GuideSection;
+  /** Where its picks are sold: an "amazon" guide is all Amazon picks. */
+  store: "amazon" | "shopmy";
+  /** The small line above the title on her covers ("gifts for the"). */
+  lead: string;
+  title: string;
+  /** Her own cover (a pin, or a cover made with her pin template), as webp under public/gift-guide-covers/. */
+  cover: { src: string; w: number; h: number } | null;
+  count: number;
+}
+
+export interface GiftProduct {
+  name: string;
+  /** Where it sells: "Amazon", the ShopMy store, or the brand. */
+  store: string;
+  href: string;
+  image?: string;
+  code?: DiscountCode;
+}
+
+export function toProduct(item: ItemData): GiftProduct {
+  if (item.brand) {
+    const b = BRANDS[item.brand];
+    return { name: b.name, store: b.line, href: brandLink(item.brand), code: DISCOUNT_CODES.find((c) => c.brand === item.brand) };
+  }
+  if (item.asin) return { name: item.name ?? "", store: "Amazon", href: amazonLink(item.asin), image: item.image };
+  if (item.shopmy) return { name: item.name ?? "", store: item.store ?? "", href: shopmyLink(item.shopmy), image: item.image };
+  throw new Error(`gift guide item with no link: ${JSON.stringify(item)}`);
+}
+
+/** The fold-out sections, in the owner's order (2026-11-17). Budget guides are reached by the budget buttons. */
+export const GUIDE_SECTIONS: { id: Exclude<GuideSection, "budget">; title: string }[] = [
+  { id: "people", title: "People" },
+  { id: "interests", title: "Interests" },
+  { id: "life", title: "Life moments" },
+  { id: "louisiana", title: "Louisiana" },
+  { id: "christmas", title: "Christmas" },
+  { id: "deals", title: "Deals and codes" },
+];
+
+/**
+ * "Shop by budget": the owner's tiers (Under $5 .. $100), each shown only when one of her guides prices it (owner
+ * 2026-11-17 "budget tiers only where a price is sourced"). Today her Amazon guides price $10, $25 and $50.
+ */
+export const BUDGET_TIERS = [5, 10, 15, 20, 25, 30, 50, 100] as const;
 
 export const giftGuides = {
-  title: "Holiday Gift Guides 2026",
-  intro: "Gift ideas for everyone on your list. Pick a guide, then shop the full collection.",
+  title: "Holiday Gift Guides",
+  kicker: "louisiana helpr",
+  bandLine: "Shop our picks",
+  intro: "Gift ideas for everyone on your list. Open a section, tap a guide, then tap any gift to shop it.",
+  budgetTitle: "Shop by budget",
+  under: (n: number) => `Under $${n}`,
+  browseTitle: "Browse the guides",
+  open: "Close",
+  guidesCount: (n: number) => (n === 1 ? "1 guide" : `${n} guides`),
+  moreBrands: "More brands",
   disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
+  amazonDisclosure: "As an Amazon Associate we earn from qualifying purchases.",
+  priceNote: "Prices change on Amazon, so check the price before you buy.",
+  allGuidesLabel: "All gift guides",
+  tapLine: "Tap any gift to shop it.",
+  picksCount: (n: number) => (n === 1 ? "1 gift" : `${n} gifts`),
+  moreGuides: "More guides",
+  codesTitle: "Discount codes",
+  codesLine: "Tap a code to copy it, then use it at checkout.",
+  copyLabel: "Copy",
+  copiedLabel: "Copied",
   shopLabel: "Shop",
-  fullGuideLabel: "Shop the full guide",
-  moreLabel: "More guides:",
-  allLinks: [
-    { label: "Every collection on ShopMy", href: "https://shopmy.us/shop/lexilombas" },
-    { label: "Every gift guide on Pinterest", href: `${PIN}/gift-guides/` },
-  ] satisfies GiftLink[],
-
-  sections: [
-    {
-      id: "for-her",
-      title: "For Her",
-      line: "For mom, sisters, aunts and friends.",
-      shop: { label: "Gifts for Mom", href: MOM },
-      more: [
-        { label: "Gifts for Sister", href: shopmy(8987440) },
-        { label: "Gifts for Aunt", href: shopmy(8987524) },
-        { label: "Gifts for Friends", href: shopmy(8987483) },
-      ],
-      picks: [
-        {
-          name: "UGG Women's Tasman II Slipper",
-          line: "A slipper from the Gifts for Mom guide.",
-          image: "https://static.shopmy.us/pins/zoom-103906626-1794380185104-7463182f-3d64-4bba-98b2-08572887c09a.jpeg",
-          href: MOM,
-        },
-        {
-          name: "Le Creuset Signature 7.25-Qt. Round Dutch Oven",
-          line: "A Dutch oven from the Gifts for Mom guide.",
-          image: "https://static.shopmy.us/pins/zoom-104050519-1794418254578-.jpg",
-          href: MOM,
-        },
-        {
-          name: "zChocolat French chocolates",
-          line: "French chocolate gift boxes, for the chocolate lover.",
-          image: "https://www.zchocolat.com/img/menu/featured-assortments.jpg",
-          href: "https://www.zchocolat.com/",
-        },
-      ],
-    },
-    {
-      id: "for-him",
-      title: "For Him",
-      line: "For dad, your guy and brothers.",
-      shop: { label: "Gifts for Dad", href: DAD },
-      more: [
-        { label: "Gifts for Boyfriend or Husband", href: shopmy(9000033) },
-        { label: "Gifts for Brother", href: shopmy(9000034) },
-      ],
-      picks: [
-        {
-          name: "Solo Stove Ranger 2.0 Firepit",
-          line: "A fire pit from the Gifts for Dad guide.",
-          image: "https://static.shopmy.us/uploads/pretty-prod-1764742009311",
-          href: DAD,
-        },
-        {
-          name: "YETI Roadie 24 2.0 Hard Cooler",
-          line: "A hard cooler from the Gifts for Dad guide.",
-          image: "https://static.shopmy.us/uploads/pretty-prod-1765315393509",
-          href: DAD,
-        },
-        {
-          name: "DiecastModelsWholesale.com model cars",
-          line: "Diecast model cars, for collectors.",
-          image: "https://cdn11.bigcommerce.com/s-4df9uz5/images/stencil/500x659/carousel/22/shop_all__28122.jpg",
-          href: "https://www.diecastmodelswholesale.com/",
-        },
-      ],
-    },
-    {
-      id: "for-kids",
-      title: "For Kids and Little Ones",
-      line: "For toddlers, girls, boys and teens.",
-      shop: { label: "Gifts for Toddlers", href: TODDLERS },
-      more: [
-        { label: "Gifts for Girls", href: shopmy(8987983) },
-        { label: "Gifts for Boys", href: shopmy(8987968) },
-        { label: "Gifts for Teens", href: shopmy(8987998) },
-      ],
-      picks: [
-        {
-          name: "Yoto 4th Gen Player",
-          line: "A kids' audio player from the Gifts for Toddlers guide.",
-          image: "https://static.shopmy.us/uploads/pretty-prod-1789686406501",
-          href: TODDLERS,
-        },
-        {
-          name: "LEGO DUPLO Animal Train 10412",
-          line: "A DUPLO set from the Gifts for Toddlers guide.",
-          image: "https://static.shopmy.us/uploads/pretty-prod-1794219508743",
-          href: TODDLERS,
-        },
-      ],
-    },
-    {
-      id: "for-the-home",
-      title: "For the Home",
-      line: "For new homeowners, homebodies and home cooks.",
-      shop: { label: "Gifts for the New Homeowner", href: NEW_HOMEOWNER },
-      more: [
-        { label: "Gifts for the Homebody", href: shopmy(8988029) },
-        { label: "Gifts for the Home Cook", href: shopmy(9000041) },
-      ],
-      picks: [
-        {
-          name: "Brooklinen Essential Sheet Set",
-          line: "A sheet set from the Gifts for the New Homeowner guide.",
-          image: "https://static.shopmy.us/uploads/img-product-1793059152298",
-          href: NEW_HOMEOWNER,
-        },
-        {
-          name: "Millwood Pines Esenia Acacia Charcuterie Board",
-          line: "A charcuterie board from the Gifts for the New Homeowner guide.",
-          image: "https://static.shopmy.us/pins/zoom-103905152-1794379486075-.jpg",
-          href: NEW_HOMEOWNER,
-        },
-      ],
-    },
-    {
-      // No ShopMy stocking-stuffer collection yet: the Pinterest sections stand in (rule above).
-      id: "stocking-stuffers",
-      title: "Stocking Stuffers",
-      line: "Little gifts that fit in a stocking.",
-      shop: { label: "Stocking Stuffers on Pinterest", href: `${PIN}/amazon-gift-guides/stocking-stuffers/` },
-      more: [{ label: "Gifts under $25 on Pinterest", href: `${PIN}/amazon-gift-guides/under-25/` }],
-      picks: [],
-    },
-    {
-      id: "louisiana-made",
-      title: "Louisiana-made",
-      line: "Pantry staples and kitchen favorites from home.",
-      shop: { label: "Louisiana Pantry", href: LOUISIANA_PANTRY },
-      more: [{ label: "Louisiana Kitchen", href: shopmy(8987879) }],
-      picks: [
-        {
-          name: "Cafe Du Monde Coffee and Chicory",
-          line: "Coffee from the Louisiana Pantry guide.",
-          image: "https://static.shopmy.us/pins/zoom-104066048-1794420042859-124391_XXX_v1.jpg",
-          href: LOUISIANA_PANTRY,
-        },
-        {
-          name: "Tony Chachere's Original Creole Seasoning, 17 oz",
-          line: "Creole seasoning from the Louisiana Pantry guide.",
-          image: "https://static.shopmy.us/pins/zoom-13310115-1739836672681-Tony-Chachere-s-Creole-Original-Seasoning-17-Oz_9eefe6d3-49c2-4b4e-aecd-3df46b2eb053.417856d4f5ed70d8391fb53bbd414e01.jpeg",
-          href: LOUISIANA_PANTRY,
-        },
-      ],
-    },
-  ] satisfies GiftSection[],
+  loading: "Loading the gifts",
+  loadFailed: "The gifts didn't load. Check your connection and try again.",
+  retry: "Try again",
+  notFound: "That guide isn't here. Pick one from the list.",
 };

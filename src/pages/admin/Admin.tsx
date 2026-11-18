@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -43,8 +43,11 @@ const AdminBanReview = lazy(() => import("@/components/admin/AdminBanReview"));
 const AdminSocialPosts = lazy(() => import("@/components/admin/AdminSocialPosts"));
 const AdminStalledJobs = lazy(() => import("@/components/admin/AdminStalledJobs"));
 const AdminShopsOrders = lazy(() => import("@/components/admin/AdminShopsOrders"));
+// Design audit area 10 #2/#3 (11-18): the Declutter queue view, and one list of the four stage previews.
+const AdminDeclutter = lazy(() => import("@/components/admin/AdminDeclutter"));
+const AdminStagePreviews = lazy(() => import("@/components/admin/AdminStagePreviews"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops" | "growth";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops" | "growth" | "declutter" | "previews" | "sponsors";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -82,6 +85,9 @@ const VIEW_LABELS: Record<View, string> = {
     stalled: "Stuck Jobs",
     shops: "Shops orders",
     growth: "Growth links",
+    declutter: "Declutter",
+    previews: "Stage previews",
+    sponsors: "25 Days",
   };
 
 const Admin = () => {
@@ -524,6 +530,10 @@ const Admin = () => {
       case "shops": return <AdminShopsOrders />;
       case "marketing": return <AdminMarketing />;
       case "social": return <AdminSocialPosts />;
+      case "declutter": return <AdminDeclutter />;
+      case "previews": return <AdminStagePreviews />;
+      // Design audit area 10 #3: "25 Days" is a rail / ⌘K row like the rest; its screen is its own route.
+      case "sponsors": return <Navigate to="/admin/sponsors" replace />;
       default: return (
         <DashboardHome
           // The three Priority Alerts are the shared open counts, the same

@@ -6,6 +6,8 @@ import { unwrap } from "@/lib/supabaseResult";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { reportsQueueKey, supportQueueKey } from "@/components/admin/adminQueueKeys";
+import { withoutTestPeople } from "@/components/admin/seedRows";
+import { useFeature } from "@/hooks/useFeature";
 
 /**
  * The admin rows that are queues of work waiting on a person (adminNavGroups'
@@ -16,11 +18,11 @@ import { reportsQueueKey, supportQueueKey } from "@/components/admin/adminQueueK
  */
 export const ADMIN_QUEUE_IDS = [
   "idvreview", "credentials", "exceptions", "stalled",
-  "fraud", "banreview", "disputes", "reports", "support",
+  "fraud", "banreview", "disputes", "reports", "support", "declutter",
 ] as const;
 
 /** Every queue's open count (useAdminPendingCounts). Absent = not loaded / unreadable. */
-export type PendingCounts = { stalled?: number; disputes?: number; reports?: number; support?: number } & QueueCounts;
+export type PendingCounts = { stalled?: number; disputes?: number; reports?: number; support?: number; declutter?: number } & QueueCounts;
 
 /**
  * The number on each admin rail row (mobile AdminSidebar, and the desktop left
@@ -51,6 +53,8 @@ export function adminBadgeFor(
   if (id === "disputes" && (openQueues.disputes ?? 0) > 0) return openQueues.disputes;
   if (id === "reports" && (openQueues.reports ?? 0) > 0) return openQueues.reports;
   if (id === "support" && (openQueues.support ?? 0) > 0) return openQueues.support;
+  // Design audit area 10 #2: the Declutter view's waiting work, open problems plus shipping claims due.
+  if (id === "declutter" && (openQueues.declutter ?? 0) > 0) return openQueues.declutter;
   if ((ADMIN_QUEUE_IDS as readonly string[]).includes(id)) return undefined;
   const uc = unreadCounts[id];
   if (uc && uc > 0) return uc;
@@ -204,6 +208,37 @@ async function fetchOpenDisputeCount(): Promise<number> {
 }
 
 /**
+ * Design audit area 10 #2 (11-18): the Declutter row's number. Open problems (the same RPC the Declutter problems
+ * card reads, test accounts left out) plus shipping claims due to a seller (the claims card's RPC, test sellers left
+ * out). The claims RPC is behind declutter_shipping; with that switch off its card is hidden and it counts as none.
+ * Each key sits under its card's own prefix, so a decision there refreshes the badge. A failed read throws.
+ */
+function useDeclutterQueueCount(enabled: boolean) {
+  const shippingOn = useFeature("declutter_shipping");
+  const problems = useQuery({
+    queryKey: ["declutter", "admin-problems", "rail-count"],
+    queryFn: async () => {
+      const m = await loadModule(() => import("@/lib/declutter/handover"));
+      if (!m) return untilReload();
+      return (await m.fetchOpenProblemsWithDetail(false)).length;
+    },
+    enabled,
+    staleTime: 60_000,
+  });
+  const claims = useQuery({
+    queryKey: ["admin", "declutter-ship-claims-due", "rail-count"],
+    queryFn: async () => {
+      const rows = (unwrap(await supabase.rpc("declutter_admin_ship_claims_due")) ?? []) as { seller_id: string }[];
+      return (await withoutTestPeople(rows, (r) => [r.seller_id])).length;
+    },
+    enabled: enabled && shippingOn,
+    staleTime: 60_000,
+  });
+  const data = problems.data === undefined ? undefined : problems.data + (shippingOn ? (claims.data ?? 0) : 0);
+  return { data, isError: problems.isError || (shippingOn && claims.isError) };
+}
+
+/**
  * EVERY admin queue's open count, for the left nav on every page (an admin
  * should see a waiting ticket from Home, not only inside /admin), the mobile
  * admin rail and the Dashboard's Priority Alerts. Owner 2026-10-27.
@@ -230,14 +265,16 @@ export function useAdminPendingCounts(enabled: boolean): { data: PendingCounts; 
     queryFn: () => loadModule(() => import("@/components/admin/adminReports/fetchReports").then((m) => m?.fetchReports)).then((fetch) => (fetch ? fetch("pending") : untilReload())),
   });
   const disputes = useQuery({ ...opts, queryKey: ["admin-disputes", "open-count"], queryFn: fetchOpenDisputeCount });
+  const declutter = useDeclutterQueueCount(enabled);
   const supportN = support.data?.length;
-  const reportsN = reports.data?.length;
+  // Design audit area 10 #5: a test-marked report is never counted.
+  const reportsN = reports.data ? reports.data.filter((r) => !r.test_marked).length : undefined;
   const data = useMemo<PendingCounts>(
-    () => ({ ...queues.data, stalled: stalled.data, disputes: disputes.data, reports: reportsN, support: supportN }),
-    [queues.data, stalled.data, disputes.data, reportsN, supportN],
+    () => ({ ...queues.data, stalled: stalled.data, disputes: disputes.data, reports: reportsN, support: supportN, declutter: declutter.data }),
+    [queues.data, stalled.data, disputes.data, reportsN, supportN, declutter.data],
   );
   return {
     data,
-    isError: queues.isError || stalled.isError || disputes.isError || reports.isError || support.isError,
+    isError: queues.isError || stalled.isError || disputes.isError || reports.isError || support.isError || declutter.isError,
   };
 }

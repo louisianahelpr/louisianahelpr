@@ -16,7 +16,8 @@ import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { saveOrShareFile } from "@/lib/fileExport";
-import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, mentionsTestMarker, withoutTestRows } from "@/components/admin/seedRows";
+import { Switch } from "@/components/ui/switch";
 import { pillLabel } from "@/components/admin/useFilterCounts";
 
 interface AuditEntry {
@@ -30,6 +31,8 @@ interface AuditEntry {
   created_at: string;
   admin_name?: string;
   is_seed?: boolean;
+  /** Design audit area 10 #5: details carry a test-run marker ("SEED audit fixture", "E2E ban journey"). */
+  test_marked?: boolean;
 }
 
 /**
@@ -49,7 +52,9 @@ const auditWhoMatches = (who: AuditWho, e: { admin_id: string | null }) =>
 
 const AdminAuditLog = () => {
   const [who, setWho] = useState<AuditWho>("all");
-  const { data: entries, isInitialLoading, isError, refetch } = useInstantQuery<AuditEntry[]>({
+  // Design audit area 10 #5 (owner: test data never shows to the owner): test-marked rows are listed only on ask.
+  const [showTest, setShowTest] = useState(false);
+  const { data: allEntries, isInitialLoading, isError, refetch } = useInstantQuery<AuditEntry[]>({
     key: ["admin-audit-log"],
     fallback: [],
     fetcher: async () => {
@@ -85,9 +90,11 @@ const AdminAuditLog = () => {
         ...e,
         admin_name: formatName(e.admin_id ? nameMap.get(e.admin_id) : undefined, "System"),
         is_seed: (!!e.admin_id && seedIds.has(e.admin_id)) || (aboutUser(e) && seedIds.has(e.target_id!)),
+        test_marked: mentionsTestMarker(e.details),
       })));
     },
   });
+  const entries = showTest ? allEntries : allEntries.filter((e) => !e.test_marked);
 
   /**
    * Export the loaded entries as CSV.
@@ -212,16 +219,22 @@ const AdminAuditLog = () => {
           it sits in the log's own header — which is also where the row count
           it exports can finally be stated. */}
       <AdminCard
-        title="Recent Activity"
+        title="Recent activity"
         subtitle={
           entries.length > 0
             ? `Last ${entries.length} admin ${entries.length === 1 ? "action" : "actions"}, newest first.`
             : "Every admin action is recorded here, newest first."
         }
         action={
-          <Button variant="outline" size="sm" onClick={exportCSV} disabled={entries.length === 0}>
-            <Download className="w-3 h-3 mr-1" /> Export CSV
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <label htmlFor="audit-show-test" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              Show test rows
+              <Switch id="audit-show-test" checked={showTest} onCheckedChange={setShowTest} />
+            </label>
+            <Button variant="outline" size="sm" onClick={exportCSV} disabled={entries.length === 0}>
+              <Download className="w-3 h-3 mr-1" /> Export CSV
+            </Button>
+          </div>
         }
       >
       {isInitialLoading ? (

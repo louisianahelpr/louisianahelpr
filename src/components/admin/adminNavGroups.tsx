@@ -8,6 +8,7 @@ import {
   BarChart3,
   BellRing,
   Briefcase,
+  CalendarHeart,
   ClipboardCheck,
   ClipboardList,
   Download,
@@ -22,6 +23,8 @@ import {
   Settings,
   Share2,
   Link2,
+  MonitorPlay,
+  Package,
   ShieldAlert,
   ShieldCheck,
   Store,
@@ -96,6 +99,9 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       // all, so the escalation existed only as an admin_alert notification and
       // a Slack line — an alert that scrolls away, about held money.
       { id: "stalled", label: "Stuck Jobs", icon: AlarmClock },
+      // Design audit area 10 #2 (11-18): the Declutter problems queue, claims due, meetup spots, partners and
+      // funnel, moved out of the bottom of Settings. Its badge is open problems plus claims due.
+      { id: "declutter", label: "Declutter", icon: Package },
     ],
   },
   {
@@ -130,6 +136,8 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "social", label: "Social posts", icon: Share2 },
       // B59: matchmaker "Post this job" links and who brings customers (Book me links).
       { id: "growth", label: "Growth links", icon: Link2 },
+      // Design audit area 10 #3 (11-18): the 25 Days sponsor admin (/admin/sponsors) had no menu or ⌘K row.
+      { id: "sponsors", label: "25 Days", icon: CalendarHeart },
     ],
   },
   {
@@ -139,6 +147,8 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "audit", label: "Audit log", icon: ScrollText },
       { id: "health", label: "Health", icon: Activity },
       { id: "export", label: "Export", icon: Download },
+      // Design audit area 10 #3: the four stage previews, in one list (they were stray buttons on Reports and Jobs).
+      { id: "previews", label: "Stage previews", icon: MonitorPlay },
     ],
   },
 ];

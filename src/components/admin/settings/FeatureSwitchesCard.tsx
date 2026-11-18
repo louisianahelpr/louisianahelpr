@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ToggleRight } from "lucide-react";
+import { Check, ToggleRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
@@ -15,20 +15,13 @@ import { userFacingError } from "@/lib/userFacingError";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { useFeature } from "@/hooks/useFeature";
 import { SECTIONS_OPEN_QUERY_KEY } from "@/components/landing/useSectionsOpen";
-import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, type FeatureAudience, type FeatureKey } from "@/config/featureSwitches";
+import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, RETIRED_FEATURE_SWITCH_KEYS, featureSwitchTitle, featureSwitchSummary, type FeatureAudience, type FeatureKey } from "@/config/featureSwitches";
 import { AdminCard } from "../AdminViewShell";
-import { DeclutterReviewCard } from "./DeclutterReviewCard";
 import { ShopItemsReviewCard } from "./ShopItemsReviewCard";
 import { CategorySuggestionsCard } from "./CategorySuggestionsCard";
-import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
-import { DeclutterShippingClaimsCard } from "./DeclutterShippingClaimsCard";
-import { MeetupSpotsCard } from "./MeetupSpotsCard";
 import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
 import { HomesListingsCard } from "./HomesListingsCard";
 import { FEATURE_SWITCH_PREFIX } from "@/lib/featureSwitchQuery";
-import { DonationPartnersCard } from "./DonationPartnersCard";
-import { DeclutterPreviewCard } from "./DeclutterPreviewCard";
-import { DeclutterFunnelCard } from "./DeclutterFunnelCard";
 
 type SwitchRow = { key: string; audience: string; description: string; updated_at: string };
 type PendingChange = { key: string; from: string; to: FeatureAudience };
@@ -48,7 +41,6 @@ const AUDIENCE_CONSEQUENCE: Record<FeatureAudience, string> = {
 export function FeatureSwitchesCard() {
   const queryClient = useQueryClient();
   const canaryReachesMe = useFeature("switch_canary");
-  const [declutterShowTest, setDeclutterShowTest] = useState(false);
   // What the SERVER says about this account, per switch (feature_enabled_for):
   // the proof that flipping a switch reached you, before any screen uses it.
   const reachesMe: Partial<Record<FeatureKey, boolean>> = {
@@ -99,7 +91,8 @@ export function FeatureSwitchesCard() {
     }
   };
 
-  // The Declutter review queue sits beside its switch (spec B23).
+  // Design audit area 10 #12: a retired switch (paypal_payments; payments are on Stripe) is not listed.
+  const shown = (switches ?? []).filter((s) => !(RETIRED_FEATURE_SWITCH_KEYS as readonly string[]).includes(s.key));
   return (
     <>
     <AdminCard
@@ -122,35 +115,47 @@ export function FeatureSwitchesCard() {
           </p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>Try again</Button>
         </div>
-      ) : !switches || switches.length === 0 ? (
+      ) : shown.length === 0 ? (
         <EmptyState icon={ToggleRight} title="No switches yet" body="A switch is created by a migration, set to Off or Testers only." />
       ) : (
         <ul className="space-y-3">
-          {switches.map((s) => (
+          {shown.map((s) => (
             <li key={s.key} className="rounded-ds-md border border-border p-3 space-y-2">
+              {/* Design audit area 10 #12: a plain title and a one-line description lead; the raw key is small mono. */}
               <div className="flex flex-wrap items-center gap-2">
-                <code className="text-ds-12 font-semibold text-foreground break-all">{s.key}</code>
+                <span className="text-ds-14 font-semibold text-foreground">{featureSwitchTitle(s.key)}</span>
                 <Badge variant="outline">{FEATURE_AUDIENCE_LABEL[s.audience as FeatureAudience] ?? `Unknown (${s.audience}) — off`}</Badge>
               </div>
-              <p className="text-ds-11 text-muted-foreground leading-snug">{s.description}</p>
+              <code data-switch-key="" className="block text-ds-11 text-muted-foreground break-all">{s.key}</code>
+              <p className="text-ds-12 text-muted-foreground leading-snug" title={s.description}>{featureSwitchSummary(s.description)}</p>
               {s.key in reachesMe && (
                 <p className="text-ds-11 text-muted-foreground">
                   {reachesMe[s.key as FeatureKey] ? "On for this account." : "Off for this account."}
                 </p>
               )}
               <div className="flex flex-wrap gap-2" role="group" aria-label={`Audience for ${s.key}`}>
-                {FEATURE_AUDIENCES.map((aud) => (
-                  <Button
-                    key={aud}
-                    size="sm"
-                    variant={s.audience === aud ? "default" : "outline"}
-                    aria-pressed={s.audience === aud}
-                    disabled={saving || s.audience === aud}
-                    onClick={() => setPending({ key: s.key, from: s.audience, to: aud })}
-                  >
-                    {FEATURE_AUDIENCE_LABEL[aud]}
-                  </Button>
-                ))}
+                {/* Design audit area 10 #4: the selected audience was a DISABLED solid button, faded to ~2.2:1, so it
+                    read as the one you could not pick. It is now full-strength solid primary with a check; picking it
+                    again does nothing (aria-disabled, no confirm), and the other two stay outline. */}
+                {FEATURE_AUDIENCES.map((aud) => {
+                  const selected = s.audience === aud;
+                  return (
+                    <Button
+                      key={aud}
+                      size="sm"
+                      variant={selected ? "default" : "outline"}
+                      aria-pressed={selected}
+                      aria-disabled={selected || undefined}
+                      data-selected={selected ? "" : undefined}
+                      disabled={saving}
+                      className={selected ? "gap-1.5 cursor-default" : undefined}
+                      onClick={() => { if (!selected) setPending({ key: s.key, from: s.audience, to: aud }); }}
+                    >
+                      {selected ? <Check className="w-3.5 h-3.5" aria-hidden /> : null}
+                      {FEATURE_AUDIENCE_LABEL[aud]}
+                    </Button>
+                  );
+                })}
               </div>
             </li>
           ))}
@@ -172,16 +177,7 @@ export function FeatureSwitchesCard() {
         secondaryLabel="Cancel"
       />
     </AdminCard>
-    {/* One "Show test listings" switch for both Declutter admin cards (audit 1028 part 2, D2-4). */}
-    {/* Q2583: the Declutter cards sit together (they were scattered among Shops,
-        Homes and SMS cards on one long page), the stage preview last. */}
-    <DeclutterReviewCard showTest={declutterShowTest} onShowTestChange={setDeclutterShowTest} />
-    <DeclutterProblemsCard includeTest={declutterShowTest} />
-    <MeetupSpotsCard />
-    <DeclutterShippingClaimsCard />
-    <DonationPartnersCard />
-    <DeclutterFunnelCard />
-    <DeclutterPreviewCard />
+    {/* Design audit area 10 #2: the Declutter cards moved, unchanged, to their own Queues view (AdminDeclutter). */}
     <ShopItemsReviewCard />
     <CategorySuggestionsCard />
     <RentalsOwnershipCard />

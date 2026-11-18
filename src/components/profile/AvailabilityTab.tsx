@@ -202,9 +202,9 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
       case "grid":
         return `Ready until ${todaysHours.endLabel} — your hours for today`;
       case "off":
-        return `You're not scheduled today · signal ${FALLBACK_HOURS} hours anyway`;
+        return `You're not scheduled today. Turn on for ${FALLBACK_HOURS} hours anyway.`; // design audit 11-17 #29
       case "past":
-        return `Today's hours ended at ${todaysHours.endLabel} · signal ${FALLBACK_HOURS} more hours`;
+        return `Your hours ended at ${todaysHours.endLabel}. Turn on for ${FALLBACK_HOURS} more hours.`;
       default:
         return "Signal you're ready to start a job today";
     }

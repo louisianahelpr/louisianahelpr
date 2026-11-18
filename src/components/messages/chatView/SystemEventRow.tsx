@@ -128,7 +128,9 @@ export function SystemEventRow({
             className="w-3 h-3 shrink-0"
             style={{ color: money ? "hsl(var(--sienna-ink))" : "hsl(var(--bark))" }}
           />
-          {label}
+          {/* Design audit 11-17 #29: "You're on the way. · 3:36 PM" read machine-made; the sentence's period goes when
+              the time follows it. */}
+          {at ? label.replace(/\.$/, "") : label}
           {at && (
             <span
               className="font-sans uppercase tracking-wider text-ds-9"

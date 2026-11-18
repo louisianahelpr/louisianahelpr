@@ -68,7 +68,7 @@ export function sectionCardLines(
 }
 
 /** True once the page has finished loading (routePrefetch's whenPageSettled): the cards' counts wait for it. */
-function usePageSettled(): boolean {
+export function usePageSettled(): boolean {
   const [settled, setSettled] = useState(false);
   useEffect(() => whenPageSettled(() => setSettled(true), 300, 4000), []);
   return settled;

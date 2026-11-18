@@ -36,8 +36,8 @@ vi.mock("sonner", () => ({ toast }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null }) }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 const openAnswer = vi.hoisted(() => ({ value: null as ReadonlySet<string> | null }));
-const ALL_KNOWN = { posted: true, working: true, selling: true, shopOrders: true, buying: true };
 const known = vi.hoisted(() => ({ value: { posted: true, working: true, selling: true, shopOrders: true, buying: true } as Record<string, boolean> }));
+const everyCountAnswered = () => ({ posted: true, working: true, selling: true, shopOrders: true, buying: true });
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => openAnswer.value }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k !== "rentals" }));
 vi.mock("@/pages/home/homeDashboard/useHomeSummary", () => ({
@@ -54,7 +54,7 @@ import { PROFILE_PAGE_TITLE } from "@/components/profile/profileLanding/headingC
 
 let path = "";
 function Where() { path = useLocation().pathname + useLocation().search; return null; }
-afterEach(() => { cleanup(); toast.mockClear(); openAnswer.value = null; known.value = { ...ALL_KNOWN }; });
+afterEach(() => { cleanup(); toast.mockClear(); openAnswer.value = null; known.value = everyCountAnswered(); });
 
 describe("You matches board 18", () => {
   it("is named You: the h1 constant, rendered by ProfileLanding, and the browser tab", () => {
@@ -94,7 +94,7 @@ describe("You matches board 18", () => {
   });
 
   it("owner 11-17: a 0 count says 'None yet' only once its read has answered; still loading, the tile is its label", () => {
-    known.value = { ...ALL_KNOWN, working: false };
+    known.value = { ...everyCountAnswered(), working: false };
     render(<MemoryRouter><YourActivity /><Where /></MemoryRouter>);
     const tiles = screen.getAllByRole("button").map((t) => t.textContent);
     expect(tiles.length).toBeGreaterThan(3);

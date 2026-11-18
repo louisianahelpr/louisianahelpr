@@ -21,7 +21,7 @@ import {
 // @mutate src/lib/busyAreas.ts |     if (!parish \|\| !center) {\n      elsewhere += n;\n      return;\n    } |     if (!parish) {\n      elsewhere += n;\n      return;\n    }
 // @mutate src/lib/busyAreas.ts |     .sort((a, b) => b.total - a.total \|\| a.parish.localeCompare(b.parish)); |
 // @mutate src/lib/busyAreas.ts |   return Math.round(5000 + 15000 * Math.sqrt(Math.min(total, maxTotal) / maxTotal)); |   return 5000;
-// @mutate src/components/BrowseMap.tsx |   useBusyAreaShading(mapRef, mapReady, visibleJobs); // Q2435 |
+// @mutate src/components/BrowseMap.tsx |   useBusyAreaShading(mapRef, tilesSettled, visibleJobs); // Q2435 |
 // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {busyRows.length > 0 && <BusyAreasCard deliveries={busyRows} />} |
 
 const ROOT = resolve(__dirname, "..", "..");
@@ -75,7 +75,7 @@ describe("busy areas (Q2435)", () => {
   });
 
   it("is drawn on the Jobs Browse map and on the Deliver page", () => {
-    expect(code("src/components/BrowseMap.tsx")).toContain("useBusyAreaShading(mapRef, mapReady, visibleJobs);");
+    expect(code("src/components/BrowseMap.tsx")).toContain("useBusyAreaShading(mapRef, tilesSettled, visibleJobs);"); // owner 11-17: after the tiles settle
     expect(code("src/components/browseMap/useMapLayersSync.ts")).toContain("drawBusyAreas(mk, map, busyAreas(jobs, []).areas, overlaysRef.current, dimmed)");
     expect(code("src/components/declutter/DeclutterDeliveryViews.tsx")).toContain("{busyRows.length > 0 && <BusyAreasCard deliveries={busyRows} />}");
   });

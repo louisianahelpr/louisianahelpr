@@ -4,7 +4,7 @@
  * "Widen distance" only where a distance filter exists and is not already at
  * "Any distance"; "Turn on alerts" only in Jobs (the only real alert).
  *
- * @mutate src/components/sections/BrowseEndCard.tsx |         title={onWiden ? "That's everything nearby." : "That's everything for now."} |         title="That's everything nearby."
+ * @mutate src/components/sections/BrowseEndCard.tsx | {title ?? (onWiden ? "That's everything nearby." : "That's everything for now.")} | {title ?? "That's everything nearby."}
  * Owner 2026-11-17 (signed-in tweaks, item 3): no round check-mark disc (it read as a stray button); Jobs' line is its own.
  * @mutate src/components/sections/BrowseEndCard.tsx |     <div data-testid="browse-end-card" className="flex flex-col items-center gap-1 px-4 pt-4 pb-6 text-center"> |     <div data-testid="browse-end-card" className="flex flex-col items-center gap-1 px-4 pt-4 pb-6 text-center"><svg className="lucide-circle-check" />
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |               title={nearby ? "That's every open job near you." : "That's every open job for now."} |

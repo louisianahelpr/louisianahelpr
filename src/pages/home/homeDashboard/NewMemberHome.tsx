@@ -24,6 +24,31 @@ export { GetStartedGuide } from "./GetStartedGuide";
 // Its own chunk: the listings' photo and price modules never ride Home's first load (/home's critical-path budget).
 const ForSaleNearYou = lazy(() => import("./ForSaleNearYou"));
 
+/**
+ * HOME'S QUIET DAY (owner 2026-11-17, signed-in tweaks item 4): nothing needs you and nothing is booked, so more than
+ * half of Home was blank. Under Coming up: up to 3 open jobs near you and up to 4 new Declutter items, from the SAME
+ * reads and rows as the new-member block above (useJobsNearYou + JobsNearYouList, ForSaleNearYou), in this chunk,
+ * asked only after the page has settled (HomeDashboard). An empty strip is not drawn.
+ */
+export function NearYouBlock({ userId, sell }: { userId: string | undefined; sell: boolean }) {
+  const navigate = useNavigate();
+  const { t } = useLanguage();
+  const near = useJobsNearYou();
+  return (
+    <div data-testid="home-near-you" className="flex flex-col gap-section">
+      <JobsNearYouList
+        jobs={near.data ?? []}
+        seeAll={
+          <Button type="button" variant="link" size="sm" onClick={() => navigate("/jobs")} className="px-1 -my-2 text-ds-13 font-bold text-primary">
+            {t("home.ns.seeAll")}
+          </Button>
+        }
+      />
+      {sell && <Suspense fallback={null}><ForSaleNearYou userId={userId} max={4} /></Suspense>}
+    </div>
+  );
+}
+
 export function NewMemberHome({ userId, sell, guide }: { userId: string | undefined; sell: boolean; guide: ReactNode }) {
   const navigate = useNavigate();
   const { t } = useLanguage();

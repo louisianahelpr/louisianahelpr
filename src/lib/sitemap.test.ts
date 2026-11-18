@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { allTownPagePaths } from "./townPages.mjs";
+import { allGiftGuidePaths } from "../../scripts/generate-sitemap.mjs";
 
 const ROOT = resolve(__dirname, "..", "..");
 const sitemap = readFileSync(resolve(ROOT, "public/sitemap.xml"), "utf8");
@@ -65,7 +66,9 @@ describe("sitemap.xml", () => {
     // A route with params counts only for the exact pages its own table says exist (OPS-4: the 40
     // /hire/<service>/<town> pages come from src/lib/townPages.mjs, which the route's page reads, so a town or
     // service dropped from the table is a 404 and must leave the sitemap too).
-    const PARAM_ROUTE_PAGES: Record<string, readonly string[]> = { "/hire/:service/:town": allTownPagePaths() };
+    // The gift guides (/gift-guides/<slug>) come from src/content/giftGuideSeo.mjs, which the page's catalog agrees with
+    // (src/test/giftGuidesPage.test.tsx checks it two-way).
+    const PARAM_ROUTE_PAGES: Record<string, readonly string[]> = { "/hire/:service/:town": allTownPagePaths(), "/gift-guides/:slug": allGiftGuidePaths().slice(1) };
     for (const route of Object.keys(PARAM_ROUTE_PAGES)) expect(registeredPaths, route).toContain(route);
     const paramPages = new Set(Object.values(PARAM_ROUTE_PAGES).flat());
     const missing = sitemapPaths.filter(

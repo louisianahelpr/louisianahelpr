@@ -138,6 +138,21 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
   });
 });
 
+describe("gift guides: a pick's photo that fails to load falls back to its initial tile", () => {
+  it("swaps a broken photo for the letter tile, never a blank gap", () => {
+    const g = guideBySlug("mom")!;
+    const withPhoto = g.picks.findIndex((p) => p.image);
+    expect(withPhoto).toBeGreaterThanOrEqual(0);
+    const { container } = renderAt("/gift-guides/mom");
+    const row = container.querySelectorAll("li[data-gift-pick]")[withPhoto];
+    const img = row.querySelector("img.gg-thumb")!;
+    expect(img.getAttribute("width")).toBe("52");
+    fireEvent.error(img);
+    expect(row.querySelector("img.gg-thumb")).toBeNull();
+    expect(row.querySelector("[data-gift-letter]")?.textContent).toBe(g.picks[withPhoto].name.trim().charAt(0).toUpperCase());
+  });
+});
+
 describe("gift guides: the sidebar search filters guides by title and group", () => {
   it("matches titles and group names, case- and accent-blind; empty words match nothing", () => {
     expect(searchGuides("")).toEqual([]);

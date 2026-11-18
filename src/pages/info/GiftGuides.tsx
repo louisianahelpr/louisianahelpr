@@ -1,7 +1,7 @@
 import { Link, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { PUBLIC_PAGE_META, giftGuidePageMeta } from "@/lib/publicPageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { ROWS, guideBySlug, newSlugFor, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
@@ -24,11 +24,12 @@ import { GiftOut } from "./giftGuides/GiftOut";
  * as plain muted lines (owner decision 2026-11-18). Guard: src/test/giftGuidesPage.test.tsx.
  */
 export default function GiftGuides() {
-  usePageMeta(NOINDEX_PAGE_META["/gift-guides"]);
   const { slug } = useParams<{ slug?: string }>();
   const { hash } = useLocation();
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
+  // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
+  usePageMeta(guide ? giftGuidePageMeta(guide.slug, guide.title) : PUBLIC_PAGE_META["/gift-guides"]);
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
   const myList = !guide && params.get("list") === "mine";

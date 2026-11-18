@@ -87,7 +87,8 @@ import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GiftGuideView } from "@/pages/info/giftGuides/GiftGuideView";
-import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { PUBLIC_PAGE_META, NOINDEX_PAGE_META, giftGuidePageMeta } from "@/lib/publicPageMeta.mjs";
+import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
 
 afterEach(cleanup);
@@ -672,14 +673,40 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(app.split("\n").filter((l) => l.includes("<GiftGuides />")).length).toBe(2);
   });
 
-  it("is noindex before and after JavaScript and out of the sitemap; vercel.json gives /gift-guides its noindex head, and both paths the app (a guide page sets noindex once its JavaScript runs)", () => {
-    expect(readFileSync("public/sitemap.xml", "utf8")).not.toContain("/gift-guides");
-    expect(Object.keys(PUBLIC_PAGE_META)).not.toContain("/gift-guides");
-    expect(NOINDEX_PAGE_META["/gift-guides"].robots).toMatch(/noindex/);
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(NOINDEX_PAGE_META["/gift-guides"]);');
+  it("is indexed (follow-up 2026-11-18, SEO): the landing and every guide holding picks are in the sitemap, two-way; each guide sets its own head", () => {
+    const sitemap = readFileSync("public/sitemap.xml", "utf8");
+    const listed = [...sitemap.matchAll(/<loc>https:\/\/www\.louisianahelpr\.com(\/gift-guides[^<]*)<\/loc>/g)].map((m) => m[1]);
+    expect(listed).toContain("/gift-guides");
+    const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", ""));
+    expect(guides.length).toBeGreaterThan(200);
+    // Every listed guide opens, holds picks, and is no thin store page.
+    for (const s of guides) {
+      const g = guideBySlug(s);
+      expect(g, s).toBeTruthy();
+      expect(g!.picks.length, s).toBeGreaterThan(0);
+      expect(g!.empty, s).toBeUndefined();
+      expect(g!.thin, s).toBeUndefined();
+    }
+    // Every guide with researched picks that is listed in a row is in the sitemap.
+    for (const g of GUIDES.filter((x) => RESEARCHED_PICKS[x.slug] && !x.empty && !x.thin)) expect(guides, g.slug).toContain(g.slug);
+    expect(PUBLIC_PAGE_META["/gift-guides"].canonical).toBe("https://www.louisianahelpr.com/gift-guides");
+    expect(Object.keys(NOINDEX_PAGE_META)).not.toContain("/gift-guides");
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(guide ? giftGuidePageMeta(guide.slug, guide.title) : PUBLIC_PAGE_META["/gift-guides"]);');
+    const mom = giftGuidePageMeta("mom");
+    expect(mom.title).toBe("Gifts for Mom — Helpr");
+    expect(mom.canonical).toBe("https://www.louisianahelpr.com/gift-guides/mom");
+    expect(mom.robots).toBeUndefined();
+    expect(giftGuidePageMeta("store-walmart").title).toBe("Walmart gift guide — Helpr");
+    // A guide not in the sitemap (empty, a hub, a thin store page) is noindex under its own title.
+    const unlisted = GUIDES.find((g) => !GIFT_GUIDE_SEO[g.slug])!;
+    expect(unlisted).toBeTruthy();
+    expect(giftGuidePageMeta(unlisted.slug, unlisted.title)).toMatchObject({ title: `${unlisted.title} gift guide — Helpr`, robots: expect.stringMatching(/noindex/) });
+    expect(Object.keys(GIFT_GUIDE_SEO).sort()).toEqual(guides.sort());
+    for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/undefined/);
     const rewrites = (JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] }).rewrites;
     expect(rewrites.filter((x) => x.source.startsWith("/gift-guides"))).toEqual([
-      { source: "/gift-guides", destination: "/api/share?_og=noindex&_id=gift-guides" },
+      { source: "/gift-guides", destination: "/api/share?_og=page&_id=gift-guides" },
+      { source: "/gift-guides/:slug", destination: "/api/share?_og=page&_id=gift-guides/:slug" },
       { source: "/gift-guides", destination: "/index.html" },
       { source: "/gift-guides/:slug", destination: "/index.html" },
     ]);

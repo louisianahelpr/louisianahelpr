@@ -239,7 +239,7 @@ export const EVIDENCE = [
   {
     id: "gift-guide-picks",
     script: "scripts/gift-guide-picks.mjs",
-    outputs: ["src/content/giftGuidePicks.ts"],
+    outputs: ["src/content/giftGuidePicks.ts", "src/content/giftGuideSeo.mjs"],
     refresh: "node scripts/gift-guide-picks.mjs (reads the lead's researched picks in ~/Desktop/Gift-guide-picks; not in CI)",
     refreshedBy: "by the committer when the lead hands over new or changed pick files (content, not a count)",
     checkedBy: "src/test/giftGuidesPage.test.tsx (two-way link allowlist, Amazon tag, no prices) + src/test/giftGuidesExtras.test.tsx (badges, loaded guides)",

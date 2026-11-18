@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, relatedGuides, subscribeGuidePicks, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
@@ -17,16 +17,24 @@ import { Heart, togglePick, useGiftList } from "./giftList";
  * child guides' cover tiles (the five ages), then any picks of its own.
  */
 
+/**
+ * A pick's square thumbnail on the left (52px, lazy, contained on white, sized so nothing shifts), or its initial on a
+ * tile when it has no photo or the photo fails to load (lead 2026-11-18: never a blank gap).
+ */
+function PickThumb({ pick }: { pick: CatalogPick }) {
+  const [failed, setFailed] = useState(false);
+  if (pick.image && !failed) {
+    return <img className="gg-thumb" loading="lazy" decoding="async" src={pick.image} alt="" width={52} height={52} onError={() => setFailed(true)} />;
+  }
+  return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{pick.name.trim().charAt(0).toUpperCase()}</span>;
+}
+
 export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
   const saved = useGiftList().picks.some((p) => p.href === pick.href && p.name === pick.name);
   return (
     <li data-gift-pick="">
       <GiftOut href={pick.href} className="gg-item">
-        {pick.image ? (
-          <img className="gg-thumb" loading="lazy" decoding="async" src={pick.image} alt="" width={52} height={52} />
-        ) : (
-          <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{pick.name.trim().charAt(0).toUpperCase()}</span>
-        )}
+        <PickThumb pick={pick} />
         <span className="gg-nm">
           {pick.name}
           <small>{pick.line ? `${pick.line} ` : ""}{G.onStore((pick.store === "louisiana" || pick.store === "sponsor") && pick.brand ? pick.brand : STORES[pick.store].name)}</small>

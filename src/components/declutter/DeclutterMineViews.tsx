@@ -191,7 +191,9 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const waitingLabel = useWaitingChipLabel();
   // AUD31-4: a sale to hand over is the seller's next move, so on the whole tab it comes before the offers, the
   // listings and their empty cards (at 375 it sat at the very bottom, behind the floating +).
-  const soldFirst = only === null && (todo?.salesOpen ?? 0) > 0;
+  // Area 06 M1 (11-18): so do a refund request or report waiting on the seller and a Helpr delivery still to hand to its
+  // Helpr; they sat under "No offers yet" and Your listings. (Order only: the chip counts are unchanged.)
+  const soldFirst = only === null && ((todo?.salesOpen ?? 0) + (todo?.salesDelivering ?? 0) > 0 || reports.size > 0);
   const sold = show("sold") && <>
     {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
     <SellerPayoutPrompt />

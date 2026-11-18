@@ -494,7 +494,9 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   });
 
   // AUD31-4: a sale to hand over comes first on the whole tab, above the offers and the listings; none: after them.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const soldFirst = only === null && (todo?.salesOpen ?? 0) > 0; |   const soldFirst = false;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const soldFirst = only === null && ((todo?.salesOpen ?? 0) + (todo?.salesDelivering ?? 0) > 0 \|\| reports.size > 0); |   const soldFirst = false;
+  // Area 06 M1 (11-18): a Helpr delivery still to hand over comes first too.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | ((todo?.salesOpen ?? 0) + (todo?.salesDelivering ?? 0) > 0 | ((todo?.salesOpen ?? 0) > 0
   it("AUD31-4: a sale to hand over sits above the offers and the listings; with none, the sold group stays below", async () => {
     state.mine = [ITEM];
     state.cart = [{ line_id: "l-o1", item_id: "i-o1", item_title: "Sale o1", my_side: "seller", seller_id: "u1", price_cents: 3000, status: "paid",
@@ -509,6 +511,17 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     const offers = await screen.findByRole("region", { name: "Offers on your items" });
     expect(sold.compareDocumentPosition(offers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     first.unmount();
+    state.cart = [{ line_id: "l-d1", item_id: "i-d1", item_title: "Sale d1", my_side: "seller", seller_id: "u1", price_cents: 3000, status: "paid",
+      checkout_by: "2026-10-27T12:00:00Z", order_id: "d1", order_status: "paid", handover: "delivery", premium_cents: 0, total_cents: 3000 }];
+    const helpr = at("/declutter?tab=selling");
+    const soldD = await waitFor(() => {
+      const el = helpr.container.querySelector("[data-paid-order='d1']");
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    const offersD = await screen.findByRole("region", { name: "Offers on your items" });
+    expect(soldD.compareDocumentPosition(offersD) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    helpr.unmount();
     state.cart = [];
     at("/declutter?tab=selling");
     const sold2 = await screen.findByRole("region", { name: /^Sold: pickup and payout/ });

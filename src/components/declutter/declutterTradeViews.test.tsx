@@ -859,11 +859,12 @@ describe("Declutter slice 3 screens", () => {
     expect(within(yours).getByText("Porch swing")).toBeInTheDocument();
   });
 
-  it("deep audit #30: only closed offers left: 'No open offers.' and the fold, never the first-time empty state", async () => {
+  // Design audit 11-17 #19: with only closed offers, the fold's link row is the whole answer ("No open offers." went).
+  it("deep audit #30: only closed offers left: the fold alone, never the first-time empty state", async () => {
     state.offers = [{ ...OFFER, offer_id: "c1", status: "declined", item_title: "Old lamp" }];
     show(<OffersSection side="seller" />);
-    expect(await screen.findByText("No open offers.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Show 1 closed offer from the last 30 days" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Show 1 closed offer from the last 30 days" })).toBeInTheDocument();
+    expect(screen.queryByText("No open offers.")).toBeNull();
     expect(screen.queryByText("No offers yet")).toBeNull();
     expect(screen.queryByText("Old lamp")).toBeNull();
   });

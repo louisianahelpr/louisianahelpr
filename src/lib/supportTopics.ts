@@ -93,9 +93,10 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
     // it attaches the screen, route, device, build and recent errors.
     label: "Something's not working",
     description: "A bug, or something in the app that isn't working",
-    messagePlaceholder: "Please describe the bug or technical problem…",
+    // Design audit area 09 L10: ask the two things a bug report needs, and send a "report".
+    messagePlaceholder: "What happened, and what did you expect?",
     messageLabel: "What went wrong?",
-    submitLabel: "Report issue",
+    submitLabel: "Send report",
     reportLabel: "Issue Report",
   },
   // F042 (owner UI audit 11-09; lead go-ahead 11-09): the most common reasons to write in had no topic. Each files

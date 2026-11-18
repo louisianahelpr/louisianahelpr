@@ -214,6 +214,9 @@ export const enScreens = {
   "profileGate.enterApp": "Enter App",
   "profileGate.completeRequired": "Complete required fields",
   "profileGate.deleteAccount": "Delete account",
+  // Design audit area 09 M12: the consent step says 18+ once (its own box), so its Terms box leads without it.
+  "profileGate.agreeLead": "I agree to the",
+  "profileGate.notForYou": "Not for you?",
   "profileGate.stuck": "Stuck on something?",
   "profileGate.contactSupport": "Contact support",
   "profileGate.intro": "We need a few details before you can use Helpr. This keeps the community safe.",

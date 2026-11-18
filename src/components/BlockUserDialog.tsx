@@ -191,7 +191,10 @@ export function BlockUserDialog({
                   // 11-02, migration 20261102131745): a poster's block is a strike only inside 24 hours of the start;
                   // a hired Helpr's block costs the poster nothing and is the Helpr's strike only inside 24 hours.
                   // "The Helpr's time", never "your Helpr's" (F428). Plain words; only the money is rust (audit #51).
-                  <p className="mb-2 not-italic font-sans font-medium text-foreground">
+                  // Design audit area 09 M13: the cost and the strike sit in a warn notice at the top, at 15px (they were
+                  // 13px body text above the bullets). Display only: the words and the numbers are unchanged.
+                  <div role="alert" data-block-cost-notice="" className="mb-3 rounded-2xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/40">
+                  <p className="not-italic font-sans font-semibold text-ds-15 leading-snug text-foreground">
                     Blocking {blockedUserName} also cancels {activeJobCount} job{activeJobCount === 1 ? "" : "s"}.
                     {isPosterOnAny && (estimatedFee > 0 ? (
                       <>
@@ -205,6 +208,7 @@ export function BlockUserDialog({
                       <> A job you were hired for that starts within 24 hours counts as a strike, the same as cancelling.</>
                     )}
                   </p>
+                  </div>
                 )}
                 <ul className="space-y-1 list-disc pl-5">
                 <li>You won&apos;t see their messages, applications, or profile.</li>

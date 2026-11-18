@@ -293,9 +293,13 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
   // Owner 11-14: Terms + 18+ only, then straight on (completeProfile/ConsentStep.tsx).
   if (profile && user && !consentDone) {
     const deleteLink = (
-      <Button type="button" variant="ghost" size="sm" onClick={deleteAccount.requestDelete} className="w-full text-destructive-ink hover:text-destructive-ink">
-        <Trash2 className="w-4 h-4 mr-1" /> {t("profileGate.deleteAccount")}
-      </Button>
+      // Design audit area 09 M12: a muted line for a new member, not a red Delete button under Continue.
+      <p className="text-center text-ds-13 text-muted-foreground" data-consent-delete="">
+        {t("profileGate.notForYou")}{" "}
+        <button type="button" onClick={deleteAccount.requestDelete} className="min-h-11 font-semibold underline underline-offset-2 text-muted-foreground hover:text-foreground">
+          {t("profileGate.deleteAccount")}
+        </button>
+      </p>
     );
     // The 18+ box is also asked of an email sign-up whose sign-up never finished (no Terms and no 18+ on record:
     // complete-signup failed, so its step-1 box never reached the server). This step is the only gate before Home.

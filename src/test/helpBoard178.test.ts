@@ -4,7 +4,7 @@
  * submit button is sentence case.
  *
  * @mutate src/lib/supportTopics.ts |     label: "Talk to a real person", |     label: "Message Admin",
- * @mutate src/lib/supportTopics.ts |     submitLabel: "Report issue", |     submitLabel: "Report Issue",
+ * @mutate src/lib/supportTopics.ts |     submitLabel: "Send report", |     submitLabel: "Send Report",
  */
 import { describe, expect, it } from "vitest";
 import { SUPPORT_TOPICS } from "@/lib/supportTopics";

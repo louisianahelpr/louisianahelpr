@@ -30,6 +30,8 @@
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = false;
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = true;
  * @mutate src/components/postjob/CityAutocomplete.tsx |         required={required} |         required
+ * @mutate src/pages/auth/completeProfile/ConsentStep.tsx | {ageBoxShown ? t("profileGate.agreeLead") : t("signup.agreeLead")} | {t("signup.agreeLead")}
+ * @mutate src/pages/auth/CompleteProfile.tsx | <p className="text-center text-ds-13 text-muted-foreground" data-consent-delete=""> | <p className="text-center text-ds-13 text-destructive-ink" data-consent-delete="">
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -177,6 +179,19 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
     expect(container.querySelector('input[type="tel"]')).toBeNull();
     expect(screen.queryByText(/date of birth/i)).toBeNull();
     expect(screen.queryByText(/^Phone/)).toBeNull();
+  });
+
+  // Design audit area 09 M12: 18+ is asked once (the box above, its exact words); the Terms box does not repeat it,
+  // and Delete account is a muted "Not for you?" line, not a red button.
+  it("says 18+ once, and Delete account is a muted line", () => {
+    const { container } = renderPage();
+    const step = screen.getByTestId("complete-profile-consent-step");
+    expect(step.textContent!.match(/18/g) ?? []).toHaveLength(1);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(2);
+    const del = container.querySelector("[data-consent-delete]")!;
+    expect(del.textContent).toMatch(/^Not for you\? Delete account$/);
+    expect(del.className).toContain("text-muted-foreground");
+    expect(del.className).not.toMatch(/destructive/);
   });
 
   it("cannot be finished without the box, and saves it with no phone and no birthday", async () => {

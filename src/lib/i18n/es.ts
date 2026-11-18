@@ -303,6 +303,8 @@ export const es: Record<MsgKey, string> = {
   "profileGate.enterApp": "Entrar a la app",
   "profileGate.completeRequired": "Complete los campos obligatorios",
   "profileGate.deleteAccount": "Eliminar cuenta",
+  "profileGate.agreeLead": "Acepto los",
+  "profileGate.notForYou": "¿No es para usted?",
   "profileGate.stuck": "¿Se le complicó algo?",
   "profileGate.contactSupport": "Contactar a soporte",
   "profileGate.intro": "Necesitamos algunos datos antes de que pueda usar Helpr. Así la comunidad se mantiene segura.",

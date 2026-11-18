@@ -81,6 +81,9 @@ describe("admin onboarding preview (Q2664 b)", () => {
     await waitFor(() => expect(document.querySelectorAll("input").length).toBeGreaterThan(1), { timeout: 5000 });
     expect(screen.queryByText("Real home page")).toBeNull();
     expect((document.querySelector("input") as HTMLInputElement).value).toBe("");
+    // Design audit area 09 M11: the form, never the Terms + 18+ step (the sample has both agreed).
+    expect(screen.queryByTestId("complete-profile-consent-step")).toBeNull();
+    expect(document.getElementById("firstName")).not.toBeNull();
     // The app's own entry is the real one, untouched.
     expect((app.getQueryData(queryKeys.currentUser.byId(ME)) as { profile: typeof FINISHED }).profile.first_name).toBe("Lexi");
     expect(supabaseCalls()).toEqual([]);

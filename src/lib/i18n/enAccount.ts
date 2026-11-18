@@ -43,6 +43,16 @@ export const enAccount = {
   "acct.searchTitle": "Show my profile in search engines",
   "acct.searchBody": "Off: only people you send the link to find your page. On: Google and others can list it.",
   "acct.saveFailed": "Couldn't save that. Try again.",
+  // Account and security: change email, log out everywhere (design audit area 09 L5 + L6)
+  "acct.emailTitle": "Change email address",
+  "acct.newEmail": "New email",
+  "acct.emailHelp": "We'll email a link to the new address. Your email changes when you tap it.",
+  "acct.emailConfirm": "Confirm change",
+  "acct.sending": "Sending…",
+  "acct.everywhereTitle": "Log out everywhere?",
+  "acct.everywhereBody": "This logs out every device, including this one. You'll need to log back in here.",
+  "acct.everywhere": "Log out everywhere",
+  "acct.everywhereFailed": "Logged out on this device. We couldn't confirm your other devices. Log in and use Log out everywhere again.",
   // Profile link panel
   "acct.gettingLink": "Getting your link…",
   "acct.tryAgain": "Try again",
@@ -56,9 +66,6 @@ export const enAccount = {
   // Settings › Privacy
   "acct.savedAddress": "Saved address",
   "acct.savedAddressNone": "None yet. The address of the next job you post shows here.",
-  // Consent step (one 18+ statement: the box below says it)
-  "acct.agreeLead": "I agree to the",
-  "acct.notForYou": "Not for you?",
 } as const;
 
 addEnglish(enAccount);

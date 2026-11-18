@@ -8,6 +8,9 @@
  * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
  * @mutate src/content/giftGuideCatalog.ts |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand ? (["louisiana-made"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []), |   ...([] as const),
+ * @mutate src/pages/info/giftGuides/giftList.tsx | aria-pressed={saved} | aria-pressed={false}
+ * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | onToggle={() => toggleGuide(g.slug)} | onToggle={() => undefined}
+ * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
  * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
  * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`); |     const hay = fold(`${g.title} ${g.lead}`);
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |       {query.trim() ? ( |       {false ? (
@@ -25,6 +28,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
+import { resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 
 afterEach(cleanup);
 const renderAt = (url: string) =>
@@ -130,5 +134,54 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(side.textContent).toContain("No guides match");
     fireEvent.change(input, { target: { value: "" } });
     expect(side.querySelectorAll("details[data-gift-group]").length).toBeGreaterThan(5);
+  });
+});
+
+describe("gift guides: hearts save to My list (aria-pressed, never opening the guide)", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+    resetGiftListForTests();
+  });
+  it("a cover heart toggles aria-pressed, stays on the page, and counts in the sidebar's My list", () => {
+    window.localStorage.clear();
+    resetGiftListForTests();
+    const { container } = renderAt("/gift-guides");
+    const heart = screen.getByRole("button", { name: "Save Mom to My list" });
+    expect(heart.getAttribute("aria-pressed")).toBe("false");
+    expect(heart.closest("a")).toBeNull();
+    const link = container.querySelector("[data-gift-my-list-link]")!;
+    expect(link.textContent).toContain("My list (0)");
+    fireEvent.click(heart);
+    expect(heart.getAttribute("aria-pressed")).toBe("true");
+    expect(container.querySelector("[data-gift-words] h2")?.textContent).toBe("Holiday Gift Guides");
+    expect(link.textContent).toContain("My list (1)");
+    expect(JSON.parse(window.localStorage.getItem("lh-gift-list")!).guides).toEqual(["mom"]);
+    fireEvent.click(heart);
+    expect(heart.getAttribute("aria-pressed")).toBe("false");
+    expect(link.textContent).toContain("My list (0)");
+  });
+  it("a pick heart saves the pick; My list shows saved guides and picks", () => {
+    const g = guideBySlug("mom")!;
+    const view = renderAt("/gift-guides/mom");
+    const hearts = [...view.container.querySelectorAll("[data-gift-pick] [data-gift-heart]")];
+    expect(hearts.length).toBe(g.picks.length);
+    for (const h of hearts) expect(h.closest("a")).toBeNull();
+    fireEvent.click(hearts[0]);
+    expect(hearts[0].getAttribute("aria-pressed")).toBe("true");
+    cleanup();
+    const mine = renderAt("/gift-guides?list=mine").container;
+    expect(mine.querySelector("[data-gift-my-list]")).not.toBeNull();
+    expect(mine.querySelectorAll("[data-gift-my-list] [data-gift-pick]").length).toBe(1);
+    expect(mine.querySelector("[data-gift-my-list] [data-gift-pick]")?.textContent).toContain(g.picks[0].name);
+  });
+  it("blocked storage still works for the visit", () => {
+    const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    renderAt("/gift-guides");
+    const heart = screen.getByRole("button", { name: "Save Dad to My list" });
+    fireEvent.click(heart);
+    expect(heart.getAttribute("aria-pressed")).toBe("true");
+    spy.mockRestore();
   });
 });

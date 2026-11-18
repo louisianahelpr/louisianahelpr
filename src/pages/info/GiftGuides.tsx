@@ -7,6 +7,7 @@ import { ROWS, guideBySlug, newSlugFor, type GuideRow } from "@/content/giftGuid
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
 import { GiftGuideLanding } from "./giftGuides/GiftGuideLanding";
+import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { GiftGuideShare } from "./giftGuides/GiftGuideShare";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
@@ -30,6 +31,7 @@ export default function GiftGuides() {
   const guide = guideBySlug(slug) ?? null;
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
+  const myList = !guide && params.get("list") === "mine";
   const group = ROWS.find((r) => r.row === groupParam)?.row ?? (null as GuideRow | null);
 
   // Pins link to /gift-guides#for-her, /gift-guides/for-her or a folded guide (/gift-guides/female-nurses): send each
@@ -72,9 +74,9 @@ export default function GiftGuides() {
           <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" share={<GiftGuideShare path="/gift-guides" title={G.title} />} />
         )}
         <div className="gg-layout">
-          <GiftGuidesSidebar active={guide} />
+          <GiftGuidesSidebar active={guide} myList={myList} />
           <div className="gg-main">
-            {guide ? <GiftGuideView guide={guide} /> : <GiftGuideLanding group={group} />}{footer}
+            {guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>
         </div>
       </div>

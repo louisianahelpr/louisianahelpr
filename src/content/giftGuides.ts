@@ -186,6 +186,8 @@ export const giftGuides = {
   onStore: (store: string) => `On ${store}`,
   /** The pick badges (owner 2026-11-18). Never a price. */
   badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup" },
+  myListLabel: "My list",
+  myListEmpty: "Tap a heart on any guide or gift to save it here.",
   searchNone: "No guides match. Try another word.",
   codesLabel: "Discount codes",
   copyCode: "Copy",

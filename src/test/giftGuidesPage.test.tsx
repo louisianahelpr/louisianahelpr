@@ -373,7 +373,9 @@ describe("gift guides: the landing opens to the guides", () => {
     // At the top of the menu, under the search box (owner 2026-11-18).
     const side = renderAt("/gift-guides").container.querySelector("[data-gift-sidebar]")!;
     expect(side.firstElementChild?.querySelector("[data-gift-search]")).not.toBeNull();
-    expect(side.children[1]?.hasAttribute("data-gift-codes")).toBe(true);
+    const codes = side.querySelector(":scope > [data-gift-codes]")!;
+    expect(codes).not.toBeNull();
+    expect(codes.compareDocumentPosition(side.querySelector("details[data-gift-group]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // One box per store, several codes inside: Muck Boot holds CYBER and TAKE25 (Nov 20–28), in the owner's order.
     const boxes = [...side.querySelectorAll("[data-gift-code-store]")];
     expect(boxes.map((b) => b.getAttribute("data-gift-code-store"))).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Free Country", "Bruno Marc", "HerbsPro", "Parallels Desktop"]);
@@ -511,7 +513,7 @@ describe("gift guides: links and disclosures on every view", () => {
       for (const a of container.querySelectorAll("a")) {
         const href = a.getAttribute("href") ?? "";
         if (href.startsWith("/")) {
-          expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+|\?group=[a-z-]+)?$/);
+          expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+|\?group=[a-z-]+|\?list=mine)?$/);
           continue;
         }
         outbound += 1;

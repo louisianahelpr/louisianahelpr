@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { giftGuides as G, activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { useState } from "react";
+import { MyListLink } from "./GiftGuideMyList";
 import { ROWS, guidesIn, searchGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
 
 /**
@@ -11,8 +12,8 @@ import { ROWS, guidesIn, searchGuides, type CatalogGuide } from "@/content/giftG
  * Gender-Neutral (owner 2026-11-18); their age guides open from those pages. Keyed on the open guide, so moving to
  * another guide resets which group is open.
  */
-export function GiftGuidesSidebar({ active }: { active: CatalogGuide | null }) {
-  const current = (slug: string | null) => ((active?.slug ?? null) === slug ? ({ "aria-current": "page" } as const) : {});
+export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogGuide | null; myList?: boolean }) {
+  const current = (slug: string | null) => (!myList && (active?.slug ?? null) === slug ? ({ "aria-current": "page" } as const) : {});
   const [query, setQuery] = useState("");
   const found = searchGuides(query);
   return (
@@ -22,6 +23,7 @@ export function GiftGuidesSidebar({ active }: { active: CatalogGuide | null }) {
         <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" aria-label="Search gift guides" data-gift-search="" />
       </label>
+      <MyListLink current={myList} />
       {query.trim() ? (
         <ul data-gift-search-results="" aria-live="polite">
           {found.length === 0 && <li className="gg-search-none">{G.searchNone}</li>}

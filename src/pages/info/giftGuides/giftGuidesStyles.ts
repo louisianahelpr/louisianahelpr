@@ -18,6 +18,15 @@ color:var(--gg-ink)}
 .gg-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gg-muted)}
 .gg-search input{width:100%;min-height:40px;font:500 13px Montserrat,sans-serif;padding:9px 12px 9px 34px;border:1px solid #ddd8cc;border-radius:999px;background:hsl(var(--background));color:var(--gg-ink)}
 .gg-search-none{padding:8px 10px;color:var(--gg-muted)}
+.gg-side a.gg-mylist{font-weight:700;color:#8c3b3b}
+.gg-tile-li{position:relative}
+.gg-heart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border:0;background:transparent;border-radius:999px;cursor:pointer}
+.gg-heart-tile{position:absolute;top:2px;right:2px;z-index:1;opacity:0;transition:opacity .15s}
+.gg-heart-tile svg{filter:drop-shadow(0 1px 2px rgba(255,255,255,.9))}
+.gg-tile-li:hover .gg-heart-tile,.gg-heart-tile:focus-visible,.gg-heart-tile[aria-pressed="true"]{opacity:1}
+@media (hover:none){.gg-heart-tile{opacity:1}}
+.gg-list>li{display:flex;align-items:center;gap:4px}
+.gg-list>li>.gg-item{flex:1;min-width:0}
 .gg-side details{border-top:1px solid var(--gg-line)}
 .gg-side summary{list-style:none;cursor:pointer;display:flex;align-items:center;min-height:44px;padding:0 10px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gg-muted)}
 .gg-side summary::-webkit-details-marker{display:none}

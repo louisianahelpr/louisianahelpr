@@ -3,6 +3,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { STORES, guideBySlug, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
+import { Heart, togglePick, useGiftList } from "./giftList";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -13,7 +14,8 @@ import { GiftOut } from "./GiftOut";
  * child guides' cover tiles (the five ages), then any picks of its own.
  */
 
-function PickRow({ pick }: { pick: CatalogPick }) {
+export function PickRow({ pick }: { pick: CatalogPick }) {
+  const saved = useGiftList().picks.some((p) => p.href === pick.href && p.name === pick.name);
   return (
     <li data-gift-pick="">
       <GiftOut href={pick.href} className="gg-item">
@@ -34,6 +36,7 @@ function PickRow({ pick }: { pick: CatalogPick }) {
         <span className="gg-shop" aria-hidden="true">{G.shopLabel}</span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
+      <Heart saved={saved} label={`Save ${pick.name} to My list`} onToggle={() => togglePick({ href: pick.href, name: pick.name })} className="gg-heart-pick" />
     </li>
   );
 }

@@ -9,7 +9,7 @@ const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m)
  * "Fresh on Declutter" (owner 11-04, via the lead): the newest live Declutter listings, each linking to its item page,
  * plus "See everything" to /declutter. Since owner 11-08 it is the landing's "Shop Declutter" view; since owner 11-18
  * (no Jobs | Declutter tabs) it is drawn under the jobs section (LandingBrowseSwitch.tsx), as
- * a grid of up to FRESH_DECLUTTER_LIMIT cards in the /declutter browse card style (FreshDeclutterStrip.tsx). Nothing here is typed: no item,
+ * a grid of up to FRESH_DECLUTTER_LIMIT small cards in the /declutter browse card style, cute picks first (owner 11-18) (FreshDeclutterStrip.tsx). Nothing here is typed: no item,
  * price or count is written into the page.
  *
  * The same public read the guest /declutter feed makes (declutter_items, live, newest first): the table's row policy
@@ -21,19 +21,27 @@ const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m)
  * chunk) until the spot nears the screen after the page has loaded, the LiveJobsSection rule. A failed read says so
  * and keeps the link to Declutter.
  */
-export const FRESH_DECLUTTER_LIMIT = 8;
-/** The card grid, shared by the strip and its placeholder so they are the same size: 2 across, 3 from sm, 4 from lg. */
-export const FRESH_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-8";
+/** Owner 11-18 ("Make these smaller"): 12 small cards, so every row is full at 3, 4 and 6 across. */
+export const FRESH_DECLUTTER_LIMIT = 12;
+/** How many of declutter_popular_items' best to ask for (the function caps p_limit at 24). */
+export const FRESH_POPULAR_LIMIT = 24;
+/** The live pool the cute picks come from (225 live listings on prod 11-18; the read is below the fold, after load). */
+export const FRESH_POOL_LIMIT = 300;
 /**
- * D006 (landing design audit 11-10): the card's type, shared with the placeholder so both are the same height. On the
- * app's five-size scale (11/13/16/20/28): a two-line 16px title (it was one 13px line), the town at 13px (it was the
- * condition, "Like new" on almost every card), the LIST price first at 20px (it was 16), and "$X.XX incl. fee"
- * smaller under it at 13px (it was 11).
+ * The card grid, shared by the strip and its placeholder so they are the same size. Owner 11-18 ("Make these
+ * smaller"): 3 across on a phone, 4 from sm, 6 from lg (it was 2 / 3 / 4). Each whole card is the link, far over 44px.
  */
-export const FRESH_TITLE = "text-ds-15 font-semibold leading-snug min-h-[2.75em]";
-export const FRESH_TOWN = "text-ds-13 leading-snug";
-export const FRESH_PRICE = "text-ds-20 leading-tight";
-export const FRESH_INCL = "text-ds-13 leading-tight";
+export const FRESH_GRID = "grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 lg:grid-cols-6 lg:gap-x-4 lg:gap-y-6";
+/**
+ * D006 (landing design audit 11-10): the card's type, shared with the placeholder so both are the same height: a two-line
+ * title, the town, the LIST price first, "$X.XX incl. fee" smaller under it. Owner 11-18 ("Make these smaller"): one
+ * step down each on the five-size scale, for the 3-across phone card: title 13px (was 15), town 11 (was 13), price 16
+ * (was 20), incl. fee 11 (was 13).
+ */
+export const FRESH_TITLE = "text-ds-13 font-semibold leading-snug min-h-[2.75em]";
+export const FRESH_TOWN = "text-ds-11 leading-snug";
+export const FRESH_PRICE = "text-ds-16 leading-tight";
+export const FRESH_INCL = "text-ds-11 leading-tight";
 /** What the browse card draws, all within the anon column grant on declutter_items (accepts_trades is not, yet). */
 const FRESH_SELECT = "id, title, category, condition_stars, porch_ok, price_cents, current_price_cents, area_label, live_at";
 /** The pause before the one quiet retry of a failed read (the LiveJobsSection rule, Q2735). */
@@ -78,7 +86,7 @@ export function FreshDeclutterSkeleton({ shell = DECLUTTER_SHELL }: { shell?: Br
           <li key={i} className="min-w-0">
             <span className="block aspect-[4/5] rounded-xl bg-photo-empty" />
             <span className="block px-0.5 pt-2">
-              {/* The real card's lines (D006): a two-line 15px title, the town, the 18px list price, the incl.-fee line. */}
+              {/* The real card's lines (D006, owner 11-18 sizes): a two-line title, the town, the list price, the incl.-fee line. */}
               <span className={`block ${FRESH_TITLE}`}>&nbsp;<br />&nbsp;</span>
               <span className={`block ${FRESH_TOWN}`}>&nbsp;</span>
               <span className={`mt-0.5 block ${FRESH_PRICE}`}>&nbsp;</span>
@@ -112,40 +120,60 @@ export function FreshDeclutterSection({ shell = DECLUTTER_SHELL }: { shell?: Bro
         const { supabase } = await import("@/integrations/supabase/client");
         const { unwrap } = await import("@/lib/supabaseResult");
         const { isMissingRpcNamed } = await import("@/lib/missingRpc");
-        // Owner 11-09 (10:55 PM): POPULAR items first, not just the newest. One call: declutter_popular_items
+        // Owner 11-09 (10:55 PM): POPULAR items first, not just the newest: declutter_popular_items
         // (20261110054539) ranks live, priced, photographed, non-test listings by saves, offers and recent page views,
         // then the best-selling categories, then the newest, and returns each card's cover photo path with it.
-        const popular = await supabase.rpc("declutter_popular_items", { p_limit: FRESH_DECLUTTER_LIMIT });
-        let rows: Omit<FreshItem, "photo" | "photoFull">[];
-        let first = new Map<string, string>();
-        if (!popular.error) {
-          const got = popular.data ?? [];
-          rows = got.map(({ photo_path: _p, live_at: _l, ...r }) => r);
-          for (const r of got) if (r.photo_path) first.set(r.id, r.photo_path);
-        } else if (isMissingRpcNamed(popular.error, "declutter_popular_items")) {
-          // The function is not deployed yet (a client ahead of db-deploy): the newest listings, as before.
-          rows = (unwrap(
+        // Owner 11-18 ("Show cuter things like the Vera Bradley bag, lamp, sunglasses pillow cover Basket stockings"):
+        // the function's top FRESH_POPULAR_LIMIT (its cap is 24) held none of them, so the live pool is read too and
+        // pickCuteFirst (cuteDeclutterPicks.ts) puts the cute, giftable pieces first, popular order breaking ties.
+        type Row = Omit<FreshItem, "photo" | "photoFull">;
+        const popular = await supabase.rpc("declutter_popular_items", { p_limit: FRESH_POPULAR_LIMIT });
+        const readPool = async () =>
+          (unwrap(
             await supabase
               .from("declutter_items")
               .select(FRESH_SELECT)
               .eq("status", "live")
               .order("live_at", { ascending: false })
-              .limit(FRESH_DECLUTTER_LIMIT),
-          ) ?? []) as unknown as Omit<FreshItem, "photo" | "photoFull">[];
+              .limit(FRESH_POOL_LIMIT),
+          ) ?? []) as unknown as Row[];
+        let rows: Row[];
+        const first = new Map<string, string>();
+        if (!popular.error) {
+          const got = popular.data ?? [];
+          rows = got.map(({ photo_path: _p, live_at: _l, ...r }) => r);
+          for (const r of got) if (r.photo_path) first.set(r.id, r.photo_path);
+          // The pool only adds picks: when it fails the popular rows still show (the read that counts is the one above).
+          let pool: Row[] = [];
+          try {
+            pool = await readPool();
+          } catch { /* the popular rows alone still fill the grid; a failed pool read only costs the cuter picks */ }
+          const have = new Set(rows.map((r) => r.id));
+          rows = rows.concat(pool.filter((r) => !have.has(r.id) && r.current_price_cents > 0));
+        } else if (isMissingRpcNamed(popular.error, "declutter_popular_items")) {
+          // The function is not deployed yet (a client ahead of db-deploy): the live pool, newest first.
+          rows = (await readPool()).filter((r) => r.current_price_cents > 0);
         } else {
           throw popular.error;
         }
-        if (rows.length > 0 && first.size === 0) {
+        const { pickCuteFirst } = await import("./cuteDeclutterPicks");
+        const ranked = pickCuteFirst(rows);
+        // A card needs a photo (the function only returns photographed listings; the pool may not): look up the cover
+        // of the leading picks that came without one, and keep FRESH_DECLUTTER_LIMIT that have a photo.
+        const lead = ranked.slice(0, FRESH_DECLUTTER_LIMIT * 2);
+        const missing = lead.filter((r) => !first.has(r.id)).map((r) => r.id);
+        if (missing.length > 0) {
           const photos = (unwrap(
             await supabase
               .from("declutter_item_photos")
               .select("item_id, storage_path, position")
-              .in("item_id", rows.map((r) => r.id))
+              .in("item_id", missing)
               .order("position", { ascending: true }),
           ) ?? []) as { item_id: string; storage_path: string }[];
-          first = new Map();
           for (const p of photos) if (!first.has(p.item_id)) first.set(p.item_id, p.storage_path);
         }
+        const withPhoto = lead.filter((r) => first.has(r.id));
+        rows = (withPhoto.length > 0 ? withPhoto : lead).slice(0, FRESH_DECLUTTER_LIMIT);
         // D017 (11-10): a 640x800 thumbnail sized for the landing's 4:5 card (photoLandingCardUrl), its original as the
         // fallback; loaded here, not at module scope, so the landing's first paint stays as small as before.
         const { photoLandingCardUrl, photoPublicUrl } = await import("@/lib/declutter/api");

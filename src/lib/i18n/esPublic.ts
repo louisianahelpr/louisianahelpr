@@ -59,6 +59,8 @@ export const esPublic: Record<keyof typeof enPublic, string> = {
   "pub.fact.Parish": "Parroquia",
   "pub.fact.Area": "Zona",
   "pub.fact.When": "Cuándo",
+  "pub.fact.Day": "Día",
+  "pub.fact.Time": "Hora",
   "pub.fact.Pay": "Pago",
   "pub.fact.earn": "Usted ganaría (neto)",
   "pub.job.signUpApply": "Regístrese para postularse",

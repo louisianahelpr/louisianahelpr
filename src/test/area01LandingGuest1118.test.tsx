@@ -162,10 +162,10 @@ describe("#5 the guest job sheet names the real parish", () => {
 
 describe("landing", () => {
   const css = raw("src/index.css");
-  it("#6 the search pill and its switch have a 1px edge", () => {
+  it("#6 the search pill has a 1px edge (its Jobs | Declutter switch is gone, owner 11-18)", () => {
     expect(/\.landing-search \{[^}]*border: 1px solid hsl\(var\(--input\)\);/.test(css)).toBe(true);
-    expect(css).toContain(".landing-search-tabs .segmented-track { border: 1px solid hsl(var(--input)); }");
-    expect(src("src/components/landing/HeroSection.tsx")).toContain('className="landing-search-tabs ');
+    expect(css).not.toContain(".landing-search-tabs");
+    expect(src("src/components/landing/HeroSection.tsx")).not.toContain("landing-search-tabs");
   });
   it("#26 the header H has no drop-shadow in light mode", () => {
     const rule = /\n\.helpr-emblem \{([^}]*)\}/.exec(css)?.[1] ?? "";

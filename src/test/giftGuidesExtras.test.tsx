@@ -8,7 +8,9 @@
  * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.louisianaFit && brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.sponsor \|\| (brand && SPONSOR_BRANDS.includes(brand)) ? (["sponsor"] as const) : []), |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []),
- * @mutate scripts/gift-guide-picks.mjs |   const list = picks.filter((p) => !nameOnly(slug, p)).map((p) => { |   const list = picks.map((p) => {
+ * @mutate src/content/giftGuideCatalog.ts | !badges.includes("louisiana-made") ? [...badges, "shop-louisiana"] : badges | false ? [...badges, "shop-louisiana"] : badges
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | if (pick.image && !failed) { | if (pick.image) {
+ * @mutate scripts/gift-guide-picks.mjs | if (!nameOnly(slug, p)) add(slug, p, file); | add(slug, p, file);
  * @mutate src/pages/info/giftGuides/giftList.tsx | aria-pressed={saved} | aria-pressed={false}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | onToggle={() => toggleGuide(g.slug)} | onToggle={() => undefined}
  * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
@@ -16,28 +18,45 @@
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping" }) | t: "Gift wrap" })
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />} |       {false && <GiftGuideHelpr />}
  * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
- * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`); |     const hay = fold(`${g.title} ${g.lead}`);
+ * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""} ${SEARCH_KEYWORDS[g.slug] ?? ""}`); |     const hay = fold(`${g.title} ${g.lead} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |       {query.trim() ? ( |       {false ? (
- * @mutate src/content/giftGuideCatalog.ts |   draftOf.set(slug, { ...d, picks: list.map(toPick) }); |   draftOf.set(slug, { ...d });
+ * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick), | loaded.set(slug, { picks: [],
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
-import { RESEARCHED_PICKS } from "@/content/giftGuidePicks";
+import type { PickChunk } from "@/content/giftGuidePicks";
 import { LOUISIANA_MADE_BRANDS, SPONSOR_BRANDS, giftGuides } from "@/content/giftGuides";
-import { badgesFor, guideBySlug, searchGuides } from "@/content/giftGuideCatalog";
+import { badgesFor, guideBySlug, loadAllGuidePicks, searchGuides } from "@/content/giftGuideCatalog";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
+import { storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { MATCHMAKER_PARAM, readMatchmakerLink } from "@/lib/matchmakerLink";
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { PREFILL_OPENS_DETAILS } from "@/pages/post-job/usePrefillOpensDetails";
 
 afterEach(cleanup);
+
+/** Each guide's researched chunk, as generated (PERF split 11-18: one lazy file per guide), and every chunk loaded. */
+const RESEARCHED_PICKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
+  Object.entries(import.meta.glob<PickChunk>("../content/giftGuidePicks/*.json", { eager: true, import: "default" }))
+    .map(([f, c]) => [f.replace(/^.*\/|\.json$/g, ""), c.picks] as const)
+    .filter(([, l]) => l.length > 0),
+);
+/** Pages that list their static picks first and then their chunk's (the Amazon, zChocolat and Diecast store pages). */
+const APPENDED = ["store-amazon", "store-zchocolat", "store-diecast-models"];
+const OWN_LIST = Object.entries(RESEARCHED_PICKS).filter(([s]) => !APPENDED.includes(s));
+await loadAllGuidePicks();
+/** Opens every "Show more" under a long list (50 rows at first as of 2026-11-18, design audit #3), so a check sees every row. */
+const expandAll = (root: HTMLElement) => {
+  for (let b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); b; b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]")) fireEvent.click(b);
+  return root;
+};
 const renderAt = (url: string) =>
   render(
     <MemoryRouter initialEntries={[url]}>
@@ -80,14 +99,17 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
   it("are loaded into their guides, in order", () => {
     expect(Object.keys(RESEARCHED_PICKS).length).toBeGreaterThan(20);
     expect(all.length).toBeGreaterThan(500);
-    for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) expect(guideBySlug(slug)?.picks.map((p) => p.href), slug).toEqual(list.map((p) => p.href));
+    for (const [slug, list] of OWN_LIST) expect(guideBySlug(slug)?.picks.map((p) => p.href), slug).toEqual(list.map((p) => p.href));
   });
   it("Louisiana-made only when louisianaFit AND a Louisiana brand; sponsors (and every sponsors-guide pick) get 25 Days sponsor", () => {
-    const picks = Object.entries(RESEARCHED_PICKS).flatMap(([s, raw]) => guideBySlug(s)!.picks.map((p, i) => ({ p, raw: raw[i], s })));
+    const picks = OWN_LIST.flatMap(([s, raw]) => guideBySlug(s)!.picks.map((p, i) => ({ p, raw: raw[i], s })));
     for (const { p, raw, s } of picks) {
       expect(raw.href).toBe(p.href);
       expect(p.badges?.includes("louisiana-made") ?? false, p.name).toBe(!!raw.louisianaFit && LOUISIANA_MADE_BRANDS.includes(p.brand!));
-      expect(p.badges?.includes("sponsor") ?? false, p.name).toBe(s === "25-days-sponsors" || SPONSOR_BRANDS.includes(p.brand!));
+      expect(p.badges?.includes("sponsor") ?? false, p.name).toBe(s === "25-days-sponsors" || !!raw.sponsor || SPONSOR_BRANDS.includes(p.brand!));
+      // "Shop Louisiana" (owner 2026-11-18): louisianaFit or a Louisiana shop, unless already Louisiana-made.
+      const made = p.badges?.includes("louisiana-made") ?? false;
+      expect(p.badges?.includes("shop-louisiana") ?? false, p.name).toBe(!made && (!!raw.louisianaFit || p.store === "louisiana"));
     }
     // A Louisiana brand's pick not marked louisianaFit gets no Louisiana-made badge.
     expect(badgesFor("TABASCO")).toEqual([]);
@@ -99,6 +121,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(fitNotMade.some((p) => p.brand === "YETI")).toBe(true);
     expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(50);
     expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
+    expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(20);
   });
   it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
     expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);
@@ -106,11 +129,14 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(container.querySelector("[data-gift-also-sponsoring]")?.textContent).toBe("Also sponsoring: Hilma");
     expect(container.querySelector('a[href*="hilma"]')).toBeNull();
   });
-  it("draws the badges on the list, never a price, and every Shop link is sponsored + noopener", () => {
+  it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {
     const { container } = renderAt("/gift-guides/louisiana-made");
     const badges = [...container.querySelectorAll("[data-gift-badge]")].map((b) => b.textContent);
     expect(badges).toContain("Louisiana-made");
-    expect(container.querySelector("[data-gift-list]")?.textContent).not.toMatch(/\$\s?\d/);
+    // The only "$" on the list is a checked price beside Shop (src/test/giftGuidePrices.test.tsx), never in a name, line or badge.
+    const list = container.querySelector("[data-gift-list]")!.cloneNode(true) as HTMLElement;
+    list.querySelectorAll("[data-gift-price]").forEach((el) => el.remove());
+    expect(list.textContent).not.toMatch(/\$\s?\d/);
     const out = [...container.querySelectorAll("[data-gift-list] a")];
     expect(out.length).toBe(25);
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");
@@ -120,10 +146,26 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
       expect(RESEARCHED_PICKS[slug]?.length, slug).toBeGreaterThan(10);
       expect(guideBySlug(slug)?.picks.map((p) => p.href), slug).toEqual(RESEARCHED_PICKS[slug].map((p) => p.href));
       const { container } = renderAt(`/gift-guides/${slug}`);
+      expandAll(container);
       expect(container.querySelector("[data-gift-coming-soon]"), slug).toBeNull();
       expect(container.querySelectorAll("[data-gift-pick]").length, slug).toBe(RESEARCHED_PICKS[slug].length);
       cleanup();
     }
+  });
+});
+
+describe("gift guides: a pick's photo that fails to load falls back to its initial tile", () => {
+  it("swaps a broken photo for the letter tile, never a blank gap", () => {
+    const g = guideBySlug("mom")!;
+    const withPhoto = g.picks.findIndex((p) => p.image);
+    expect(withPhoto).toBeGreaterThanOrEqual(0);
+    const { container } = renderAt("/gift-guides/mom");
+    const row = container.querySelectorAll("li[data-gift-pick]")[withPhoto];
+    const img = row.querySelector("img.gg-thumb")!;
+    expect(img.getAttribute("width")).toBe("52");
+    fireEvent.error(img);
+    expect(row.querySelector("img.gg-thumb")).toBeNull();
+    expect(row.querySelector("[data-gift-letter]")?.textContent).toBe(storeLabel(g.picks[withPhoto]));
   });
 });
 
@@ -133,9 +175,14 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(searchGuides("   ")).toEqual([]);
     expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"]));
     // By group: "experiences" finds every guide in that row, even ones whose title lacks the word.
-    expect(searchGuides("experiences").map((g) => g.slug)).toEqual(expect.arrayContaining(["gift-cards", "spa-days", "date-night"]));
+    const holding = ["gift-cards", "subscriptions", "spa-days", "date-night"].filter((x) => !guideBySlug(x)?.empty);
+    expect(holding.length).toBeGreaterThan(0);
+    expect(searchGuides("experiences").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
     expect(searchGuides("tractor supply").map((g) => g.slug)).toEqual(["store-tractor-supply"]);
-    expect(searchGuides("cafe du monde").length).toBe(0);
+    // Every word must match (one that matches nothing empties the list).
+    expect(searchGuides("tractor supply xyzzy").length).toBe(0);
+    // Titles and groups only, never a pick's name (Cafe Du Monde's "Coffee and Chicory" is a pick, not a guide).
+    expect(searchGuides("chicory").length).toBe(0);
     expect(searchGuides("xyzzy")).toEqual([]);
     expect(searchGuides("dillards").length + searchGuides("dillard's").length).toBeGreaterThan(0);
   });
@@ -146,9 +193,9 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(input.getAttribute("placeholder")).toBe("Search");
     expect(side.firstElementChild?.contains(input)).toBe(true);
     expect(side.querySelector("label svg")).not.toBeNull();
-    fireEvent.change(input, { target: { value: "spa" } });
+    fireEvent.change(input, { target: { value: "gift cards" } });
     const found = [...side.querySelectorAll("a[data-gift-found]")].map((a) => a.getAttribute("data-gift-found"));
-    expect(found).toContain("spa-days");
+    expect(found).toContain("gift-cards");
     expect(side.querySelector("details[data-gift-group]")).toBeNull();
     fireEvent.change(input, { target: { value: "xyzzy" } });
     expect(side.textContent).toContain("No guides match");
@@ -166,7 +213,8 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     window.localStorage.clear();
     resetGiftListForTests();
     const { container } = renderAt("/gift-guides");
-    const heart = screen.getByRole("button", { name: "Save Mom to My list" });
+    // Mom is in "Start here" and in its row; both hearts read the same list.
+    const heart = screen.getAllByRole("button", { name: "Save Mom to My list" })[0];
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(heart.closest("a")).toBeNull();
     const link = container.querySelector("[data-gift-my-list-link]")!;
@@ -183,6 +231,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
   it("a pick heart saves the pick; My list shows saved guides and picks", () => {
     const g = guideBySlug("mom")!;
     const view = renderAt("/gift-guides/mom");
+    expandAll(view.container);
     const hearts = [...view.container.querySelectorAll("[data-gift-pick] [data-gift-heart]")];
     expect(hearts.length).toBe(g.picks.length);
     for (const h of hearts) expect(h.closest("a")).toBeNull();
@@ -199,7 +248,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
       throw new Error("blocked");
     });
     renderAt("/gift-guides");
-    const heart = screen.getByRole("button", { name: "Save Dad to My list" });
+    const heart = screen.getAllByRole("button", { name: "Save Dad to My list" })[0];
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     spy.mockRestore();
@@ -212,7 +261,7 @@ describe("gift guides: pick badges come from optional fields, never a price", ()
     expect(badgesFor("Crew Dog")).toEqual(["sponsor"]);
     expect(badgesFor("YETI")).toEqual([]);
     expect(badgesFor(undefined, { localPickup: true })).toEqual(["local-pickup"]);
-    expect(Object.values(giftGuides.badges)).toEqual(["Trending", "Louisiana-made", "25 Days sponsor", "Ships fast", "Local pickup"]);
+    expect(Object.values(giftGuides.badges)).toEqual(["Trending", "Louisiana-made", "25 Days sponsor", "Ships fast", "Local pickup", "Shop Louisiana"]);
     for (const label of Object.values(giftGuides.badges)) expect(label).not.toMatch(/\$/);
   });
 });

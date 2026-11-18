@@ -4,7 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { useGuestSpanish } from "./useGuestSpanish";
 
 /**
- * The one section frame under the landing's Jobs | Declutter switch (owner 11-09, 10:35 PM: browsing Jobs and browsing
+ * The one section frame of the landing's jobs and Declutter sections (owner 11-09, 10:35 PM: browsing Jobs and browsing
  * Declutter look the same: same section layout, header, card grid and see-all). Both modes draw it:
  *   - Jobs: "Live now / Open jobs near you", the just-finished job as the first card, then the newest open jobs
  *     (LiveJobsSection.tsx);

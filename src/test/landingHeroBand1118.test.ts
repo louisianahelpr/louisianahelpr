@@ -9,7 +9,6 @@
  * @mutate src/index.css | .landing-page .landing-hero-band { background: var(--lp-hero-band); } | .landing-page .landing-hero-band { background: var(--lp-page); }
  * @mutate src/index.css | .landing-page .landing-h1-accent { font-style: italic; color: var(--lp-action-strong); } | .landing-page .landing-h1-accent { color: var(--lp-action-strong); }
  * @mutate src/index.css |   --lp-hero-band: linear-gradient(160deg, #2e2f22 0%, #262620 45%, #1c1a17 100%); |   --lp-hero-band: linear-gradient(160deg, #dfe3c4 0%, #eef0de 45%, #faf6ee 100%);
- * @mutate src/index.css | .landing-page .landing-search-tabs .segmented-track { background: var(--lp-surface); } | .landing-page .landing-search-tabs .segmented-track { }
  * @mutate src/components/Navbar.tsx |         landing && atTop && "landing-nav-top", |
  */
 import { describe, it, expect } from "vitest";
@@ -87,10 +86,9 @@ describe("landing hero colour band (owner 11-18, mockup B)", () => {
     }
   });
 
-  it("the search pill and the Jobs | Declutter switch stay white (the surface) on the band", () => {
+  it("the search pill stays white (the surface) on the band (its Jobs | Declutter switch is gone, owner 11-18)", () => {
     expect(rule(".landing-search")).toMatch(/background:\s*var\(--lp-surface\)/);
     expect(rule(".landing-search")).toMatch(/box-shadow:\s*var\(--lp-shadow\)/);
-    expect(rule(".landing-page .landing-search-tabs .segmented-track")).toMatch(/background:\s*var\(--lp-surface\)/);
   });
 
   it("the band runs behind the top bar only at the very top of the landing", () => {

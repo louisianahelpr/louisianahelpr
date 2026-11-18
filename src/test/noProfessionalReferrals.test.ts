@@ -34,6 +34,8 @@ const ATTORNEY_IN_A_DEFINITION: Record<string, string> = {
 /** Where "accountant" names a gift recipient's career, never advice to see one. Exact both ways. */
 const ACCOUNTANT_AS_A_CAREER: Record<string, string> = {
   "src/content/giftGuideIndex.ts": "the gift guides' By career list: \"gifts for Accountants\"",
+  "src/content/giftGuidePicks.ts": "generated from the gift-guide picks: the Accountants career guide's slug and picks",
+  "src/content/giftGuideSeo.mjs": "generated: the Accountants career guide's search name, \"Gifts for Accountants\"",
 };
 
 const files = trackedFiles("src").filter((f) => /\.(tsx?|mjs)$/.test(f) && !/\.(test|spec)\.|^src\/test\//.test(f));

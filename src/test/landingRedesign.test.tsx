@@ -19,8 +19,8 @@
  *     on every public page alike): no "How it works", no sections read of its own. On a
  *     phone the landing's bar is logo, Log in and Join free (D021, 11-10).
  *
- * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: `/browse${qs}` }; |   return { signedIn: "/jobs", signedOut: "/signup" };
- * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query, mode); |     const t = heroSearchTargets("", mode);
+ * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: q ? `/search${qs}` : "/browse" }; |   return { signedIn: "/jobs", signedOut: "/signup" };
+ * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query); |     const t = heroSearchTargets("");
  * @mutate src/components/landing/SectionsShowcase.tsx | "The full price is shown before anyone pays, and Helpr holds the money." | "The full price is shown before anyone pays, and Stripe holds the money."
  * @mutate src/components/landing/LandingAppleButton.tsx |   if (!SOCIAL_SIGN_IN_ENABLED) return null; |
  * @mutate src/components/Navbar.tsx |         {!user && ( |         {landing && <Link to="/signup?redirect=%2Fdeclutter">Declutter</Link>}\n        {!user && (
@@ -47,12 +47,14 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(hero).not.toMatch(/seasonalPill|TASK_CHIPS|Popular searches|landing-chip/);
   });
 
-  it("the search reaches the Jobs feed's own q filter: public board signed out, Jobs > Browse signed in", () => {
+  it("the search opens /search (jobs and Declutter, owner 11-18) signed in or out; an empty box opens the jobs feed", () => {
     const t = heroSearchTargets("  Mow   the lawn & trim ");
-    expect(t.signedOut).toBe("/browse?q=Mow+the+lawn+%26+trim");
+    expect(t.signedOut).toBe("/search?q=Mow+the+lawn+%26+trim");
     expect(t.signedIn).toBe("/search?q=Mow+the+lawn+%26+trim");
     // The pages read it back exactly (useDashboardFilters: param("q")).
     expect(new URLSearchParams(t.signedOut.split("?")[1]).get(SEARCH_PARAM)).toBe("Mow the lawn & trim");
+    // /search is open to guests and reads ?q= (App.tsx: ProtectedRoute allowGuest).
+    expect(read("src/App.tsx")).toMatch(/path="\/search" element=\{[^\n]*<ProtectedRoute allowGuest><SearchPage \/>/);
     expect(read("src/hooks/useDashboardFilters.ts")).toMatch(/useState\(\(\) => param\("q"\)\)/);
     // /browse is the guest feed and /jobs embeds the signed-in feed, both on those filters.
     expect(read("src/pages/home/DashboardGuest.tsx")).toMatch(/useDashboardFilters\(/);
@@ -62,10 +64,10 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(new URLSearchParams(heroSearchTargets("x".repeat(200)).signedOut.split("?")[1]).get("q")?.length).toBe(SEARCH_MAX);
     // The hero submits through it, with the session check, under the owner's words.
     const hero = read("src/components/landing/HeroSection.tsx");
-    expect(hero).toMatch(/const t = heroSearchTargets\(query, mode\);\s*void goSignedInOr\(navigate, t\.signedIn, t\.signedOut\);/);
-    // It searches Jobs (or, on the Declutter tab, Declutter: F012), so it promises nothing else (owner 2026-10-21).
+    expect(hero).toMatch(/const t = heroSearchTargets\(query\);\s*void goSignedInOr\(navigate, t\.signedIn, t\.signedOut\);/);
+    // It searches jobs and Declutter (owner 11-18), so it promises nothing else (owner 2026-10-21).
     expect(hero).toContain(`placeholder={searchLabel}`);
-    expect(hero).toContain(`declutter ? (es ? es.searchDeclutter : "Search Declutter") : es ? es.searchLabel : "Search local jobs"`);
+    expect(hero).toContain(`const searchLabel = es ? es.searchLabel : "Search jobs and Declutter";`);
     expect(hero).not.toMatch(/items, shops and homes/);
   });
 
@@ -91,11 +93,11 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(live).not.toMatch(/\$\d/);
     // A failed read is said, never an empty-looking section.
     expect(live).toMatch(/data-testid="landing-live-jobs-failed"/);
-    // It sits right under the hero: the Jobs | Declutter switch (owner 11-08) shows it by default.
+    // It sits right under the hero, first, with the Declutter grid after it (owner 11-18: no Jobs | Declutter tabs).
     const index = read("src/pages/info/Index.tsx");
     expect(index.indexOf("<LandingBrowseSwitch />")).toBeGreaterThan(index.indexOf("<HeroSection />"));
     expect(index.indexOf("<LandingBrowseSwitch />")).toBeLessThan(index.indexOf("<SectionsShowcase />"));
-    expect(read("src/components/landing/LandingBrowseSwitch.tsx")).toMatch(/mode === "jobs" \? <LiveJobsSection \/>/);
+    expect(read("src/components/landing/LandingBrowseSwitch.tsx")).toMatch(/<LiveJobsSection \/>[\s\S]*<FreshDeclutterSection \/>/);
     // Price and date read the row as it is: quotes jobs have no price; a date never shifts a day.
     expect(liveJobPrice({ budget: "75.00", pricing_mode: "set_price" })).toBe("$75");
     expect(liveJobPrice({ budget: "12.50", pricing_mode: "set_price" })).toBe("$12.50");

@@ -4,7 +4,10 @@ import { Input } from "@/components/ui/input";
 import { giftGuides as G, activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { useState } from "react";
 import { MyListLink } from "./GiftGuideMyList";
-import { ROWS, guidesIn, searchGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { Button } from "@/components/ui/button";
+import { ROWS, guideBySlug, guidesIn, searchGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
+import { GiftOut } from "./GiftOut";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 
 /**
@@ -22,7 +25,7 @@ export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogG
   return (
     <nav key={active?.slug ?? ""} className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
       {/* Owner 2026-11-18: a search box at the top of the menu filters every guide by its title or group. */}
-      <label className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
+      <label id="gift-search" className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
         <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
         <Input look="bare" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" aria-label="Search gift guides" data-gift-search="" />
       </label>
@@ -38,7 +41,8 @@ export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogG
         </ul>
       ) : (<>
       {/* Owner 2026-11-18: the codes sit at the TOP of the menu; a code past its last day hides itself. */}
-      <DiscountCodes codes={activeCodes(discountCodes, localToday())} />
+      <DiscountCodes codes={activeCodes([...discountCodes, ...DEAL_CODES], localToday())} />
+      <SalesList sales={liveSales(SALES, localToday())} />
       <ul>
         <li><Link to="/gift-guides" {...current(null)} data-gift-side="">{G.allGuidesLabel}</Link></li>
       </ul>
@@ -67,7 +71,8 @@ const localToday = () => {
 
 /**
  * The sidebar's "Discount codes" section (owner 2026-11-18): one box per store, by rank, each code with its own copy
- * button. Hidden while there are none.
+ * button. Hidden while there are none. Starts COLLAPSED (+) on every screen and page (owner 11-18: "discount code
+ * shouldn't open expanded"); opening it shows every code. No open/closed state is remembered.
  */
 export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
   const [copied, setCopied] = useState<string | null>(null);
@@ -80,7 +85,7 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
     );
   };
   return (
-    <details open className="gg-codes" data-gift-codes="">
+    <details id="gift-codes" className="gg-codes" data-gift-codes="">
       <summary>{G.codesLabel}</summary>
       <ul>
         {codesByStore(codes).map(({ store, codes: list }) => (
@@ -89,7 +94,7 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
             {list.map((c) => (
               <span key={c.code} className="gg-code-one" data-gift-code={c.code}>
                 <span className="gg-code-offer">{c.offer}</span>
-                {c.dates ? <span className="gg-code-offer">{G.codeValid(c.dates)}</span> : c.expires && <span className="gg-code-offer">{G.codeEnds(c.expires)}</span>}
+                {c.dates ? <span className="gg-code-offer">{G.codeValid(c.dates)}</span> : c.expires && <span className="gg-code-offer">{G.dealEnds(c.expires)}</span>}
                 <span className="gg-code-row">
                   <code>{c.code}</code>
                   <InlineTextButton className="no-underline" onClick={() => copy(c.code)} aria-label={`${G.copyCode} ${c.code}`}>
@@ -101,6 +106,43 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
           </li>
         ))}
       </ul>
+    </details>
+  );
+}
+
+/** The sales still on `today` (YYYY-MM-DD): a sale shows through its end day. */
+export const liveSales = (sales: readonly Sale[], today: string) => {
+  // One line per link (design audit r2 #10: 9 duplicate hrefs, Gilt and Gilt City repeating the same offers).
+  const seen = new Set<string>();
+  return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href)));
+};
+
+/** The sales the list shows before "See all sales". */
+const SALES_FIRST = 12;
+
+/**
+ * The sidebar's "Sales" section (follow-up batch 2026-11-18), under Discount codes: one line per live store sale,
+ * soonest end first, the offer opening the sale (affiliate link) and the store opening its guide page. Starts
+ * collapsed (it is long); hidden while there are none.
+ */
+export function SalesList({ sales }: { sales: readonly Sale[] }) {
+  const [all, setAll] = useState(false);
+  if (sales.length === 0) return null;
+  return (
+    <details className="gg-codes" data-gift-sales="">
+      <summary>{G.salesLabel}</summary>
+      <ul>
+        {(all ? sales : sales.slice(0, SALES_FIRST)).map((x) => (
+          <li key={`${x.slug} ${x.href}`} data-gift-sale={x.slug}>
+            {guideBySlug(x.slug) && !guideBySlug(x.slug)!.empty ? <Link to={`/gift-guides/${x.slug}`} className="gg-code-store">{x.store}</Link> : <span className="gg-code-store">{x.store}</span>}
+            <GiftOut href={x.href} className="gg-link">{x.offer}</GiftOut>
+            <span className="gg-code-offer">{G.dealEnds(x.ends)}</span>
+          </li>
+        ))}
+      </ul>
+      {!all && sales.length > SALES_FIRST && (
+        <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => setAll(true)} data-gift-all-sales="">{G.allSalesLabel(sales.length)}</Button>
+      )}
     </details>
   );
 }

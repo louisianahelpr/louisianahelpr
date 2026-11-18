@@ -69,6 +69,7 @@ import { BROWSE_EMPTY_SLOT, CHIPS_ROW_PAD } from "@/components/sections/browseHe
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
+const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));
 
 /** What Browse hands the tabs row: the desktop end cluster and count, or the phone's search row under the tabs. */
 export interface DeclutterBrowseHeader {
@@ -555,6 +556,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
             footnote={<WantedLink query={query} category={filters.category} />}
           />
         )}
+        {/* The Holiday Gift Guides banner (owner mockup A, 11-18): its own chunk, after the end card, so nothing moves. */}
+        {!preview && <Suspense fallback={null}><GiftGuidesPromo where="declutter" /></Suspense>}
       </div>
     );
     body = desktop && mapVisible ? (

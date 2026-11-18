@@ -2,34 +2,35 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { LiveJobsSection } from "./LiveJobsSection";
 import { FreshDeclutterSection } from "./FreshDeclutterSection";
-import { LANDING_DECLUTTER_HASH, setLandingMode, useLandingMode } from "./landingMode";
+import { LANDING_DECLUTTER_HASH, setLandingMode } from "./landingMode";
 
 /**
- * The section right under the hero (owner 11-08: a member could not find Declutter items on the landing). It follows
- * the hero's Jobs | Declutter choice (landingMode.ts): Jobs shows the live jobs, Declutter a grid of the popular
- * Declutter items in the browse card style, then "Shop Declutter" to /declutter.
+ * The sections right under the hero (owner 11-08: a member could not find Declutter items on the landing).
  *
- * D001 (landing design audit 11-10, High): there used to be a SECOND switch here ("Find help or work | Shop
- * Declutter"), about 260px under the hero's own "Jobs | Declutter", with a different selected style. It is gone: the
- * hero's switch is the one switch, and this section simply follows it with a plain heading.
+ * Owner 11-18 ("can we remove this on the landing and the search just be used for both?"): the hero's Jobs | Declutter
+ * tabs are gone, so nothing picks one or the other here either: the live jobs come first, then the Declutter grid in
+ * the browse card style with "Shop Declutter" to /declutter. (D001, 11-10, had already removed this section's own
+ * second switch.)
  *
- * /#declutter opens straight on Declutter so a Facebook link can land there. The Declutter grid is drawn only in
- * Declutter mode, and its read waits for the page to load and the spot to near the screen (FreshDeclutterSection), so
- * the landing's first paint is the same as before for both modes.
+ * /#declutter scrolls to the Declutter grid (id="declutter") so a Facebook link lands there, and turns How it works
+ * to its "Buy or sell" side (landingMode.ts). The Declutter grid's read waits for the page to load and the spot to
+ * near the screen (FreshDeclutterSection), so the landing's first paint is unchanged.
  */
 export function LandingBrowseSwitch() {
   const { hash } = useLocation();
-  const mode = useLandingMode();
 
-  // A /#declutter link followed while the landing is already open (the footer, a pasted link) switches too.
+  // A /#declutter link followed while the landing is already open (the footer, a pasted link) turns How it works too.
   useEffect(() => {
-    if (hash === LANDING_DECLUTTER_HASH) setLandingMode("declutter", false);
+    if (hash === LANDING_DECLUTTER_HASH) setLandingMode("declutter");
   }, [hash]);
 
   return (
-    // id="declutter": Index scrolls a /#declutter visit here, so the Declutter grid is what it opens on.
-    <div id="declutter" data-testid="landing-browse-switch" data-mode={mode} className="scroll-mt-20" style={{ background: "var(--lp-surface)" }}>
-      {mode === "jobs" ? <LiveJobsSection /> : <FreshDeclutterSection />}
+    <div data-testid="landing-browse-switch" style={{ background: "var(--lp-surface)" }}>
+      <LiveJobsSection />
+      {/* id="declutter": Index scrolls a /#declutter visit here. */}
+      <div id="declutter" data-testid="landing-declutter" className="scroll-mt-20">
+        <FreshDeclutterSection />
+      </div>
     </div>
   );
 }

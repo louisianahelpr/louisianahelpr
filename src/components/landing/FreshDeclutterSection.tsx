@@ -7,8 +7,8 @@ const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m)
 
 /**
  * "Fresh on Declutter" (owner 11-04, via the lead): the newest live Declutter listings, each linking to its item page,
- * plus "See everything" to /declutter. Since owner 11-08 it is the landing's "Shop Declutter" view: drawn only when the
- * visitor picks Shop Declutter on the switch under the hero (LandingBrowseSwitch.tsx), in place of the jobs section, as
+ * plus "See everything" to /declutter. Since owner 11-08 it is the landing's "Shop Declutter" view; since owner 11-18
+ * (no Jobs | Declutter tabs) it is drawn under the jobs section (LandingBrowseSwitch.tsx), as
  * a grid of up to FRESH_DECLUTTER_LIMIT cards in the /declutter browse card style (FreshDeclutterStrip.tsx). Nothing here is typed: no item,
  * price or count is written into the page.
  *

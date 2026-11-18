@@ -97,6 +97,8 @@ const FACT_KEYS: Record<string, string> = {
   Parish: "pub.fact.Parish",
   Area: "pub.fact.Area",
   When: "pub.fact.When",
+  Day: "pub.fact.Day",
+  Time: "pub.fact.Time",
   Pay: "pub.fact.Pay",
   [GUEST_PAY_LABEL]: "pub.fact.earn",
 };
@@ -114,8 +116,10 @@ export function guestJobFacts(job: GuestJob, firstPayoutFeeDollars = 0): Array<{
   // The card's own "when": its day (or window) and clock time, else Flexible (JobCard's meta row).
   const day = jobDayLabel(job);
   const time = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
-  const when = [day, time].filter(Boolean).join(" · ") || (job.date_needed || job.start_time ? "" : FLEXIBLE_TIME_LABEL);
-  if (when) facts.push({ label: "When", value: when });
+  // Owner 2026-11-18: day and time each get their own row ("seperate teh day and time give each their own ine").
+  if (day) facts.push({ label: "Day", value: day });
+  if (time) facts.push({ label: "Time", value: time });
+  else if (!day && !(job.date_needed || job.start_time)) facts.push({ label: "Time", value: FLEXIBLE_TIME_LABEL });
   const net = guestTakeHome(job, firstPayoutFeeDollars);
   // Owner 2026-10-30: the giveaway shows its pay with no "take home" words.
   if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : GUEST_PAY_LABEL, value: `$${formatPriceFloor(net)}` });

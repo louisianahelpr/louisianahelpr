@@ -23,6 +23,8 @@
 export interface GiftLink {
   label: string;
   href: string;
+  /** Another guide's collection (Her lists Mom, Sister, Aunt, Friends): shown under "More on ShopMy", never as this guide's own. */
+  related?: boolean;
 }
 
 export interface GiftPick {
@@ -55,10 +57,16 @@ export interface GiftSection {
 export const BRAND_SITES = ["www.zchocolat.com", "www.diecastmodelswholesale.com"] as const;
 
 /**
+ * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
+ * Walmart Creator, CJ, Awin, Rakuten, ShopMy product links). Exact hosts; two-way (each is used by some link).
+ */
+export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "www.jdoqocy.com", "www.dpbolvw.net", "www.tkqlhce.com", "www.awin1.com", "click.linksynergy.com", "go.shopmy.us"] as const;
+
+/**
  * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:
  * each link a product page from the shop's own list, HTTP 200 when opened). Exact hosts, never a wildcard.
  */
-export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "nolacouture.com", "www.communitycoffee.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.cajunpowersauce.com", "www.zydecochopchop.com", "shop.tabasco.com", "www.dirtycoast.com", "www.leahspralines.com", "shop.cafedumonde.com", "www.frenchtruckcoffee.com", "www.cajungrocer.com", "www.camelliabrand.com", "www.steenssyrup.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "poches.com", "savoiesfoods.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
+export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "www.fleurtygirl.com", "www.nolacouture.com", "www.redstickspice.com", "nolacouture.com", "www.communitycoffee.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.cajunpowersauce.com", "www.zydecochopchop.com", "shop.tabasco.com", "www.dirtycoast.com", "www.leahspralines.com", "shop.cafedumonde.com", "www.frenchtruckcoffee.com", "www.cajungrocer.com", "www.camelliabrand.com", "www.steenssyrup.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "poches.com", "savoiesfoods.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
 
 /**
  * Brands made in Louisiana: only these get the "Louisiana-made" badge (a pick marked louisianaFit that is not one of
@@ -70,7 +78,7 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
  * The 25 Days of Giveaways sponsors' own sites (lead 2026-11-18, ~/Desktop/Gift-guide-picks/25-days-sponsors.json):
  * the sponsors guide links each sponsor's gift. Exact hosts, never a wildcard.
  */
-export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "tushbaby.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com"] as const;
+export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com"] as const;
 
 /** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
 export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop"];
@@ -152,21 +160,35 @@ export interface DiscountCode {
   dates?: string;
   /** YYYY-MM-DD, the last day it works; from the next day it is hidden. */
   expires?: string;
+  /** YYYY-MM-DD, the first day it works; until then it is hidden (affiliate sweep 11-18: Muck Boot CYBER showed early). */
+  starts?: string;
 }
 export const discountCodes: DiscountCode[] = [
-  { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", expires: "2026-12-06" },
-  { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", expires: "2026-11-28" },
+  { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", starts: "2026-11-29", expires: "2026-12-06" },
+  { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28" },
   { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+" },
   { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions" },
   { rank: 4, store: "Free Country", code: "WINTER50", offer: "Up to 50% off pet jackets" },
   { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide" },
-  { rank: 6, store: "HerbsPro", code: "SAVE70", offer: "Extra 70% off all products" },
-  { rank: 7, store: "Parallels Desktop", code: "PD50", offer: "50% off Standard and Pro (new 1-year licenses)", expires: "2026-11-23" },
-  { rank: 7, store: "Parallels Desktop", code: "PD35", offer: "35% off Business Edition (new 1-year licenses)", expires: "2026-11-23" },
+  // Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
+  { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off your first order; stacks with sales, one use per person" },
+  { rank: 9, store: "Magic Story", code: "B2G1F", offer: "Buy 2 personalized books, get 1 free", dates: "Nov 20 – 30", starts: "2026-11-20", expires: "2026-11-30" },
+  { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off" },
+  { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off" },
+  { rank: 12, store: "Bon Wellness", code: "LEXI20", offer: "20% off" },
+  { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off" },
+  { rank: 14, store: "Thrive Creative", code: "LEXIL20", offer: "20% off" },
+  { rank: 15, store: "YVO Warrior", code: "LEXI15", offer: "15% off" },
+  { rank: 16, store: "Daily Crunch Snacks", code: "LEXI15", offer: "15% off" },
+  // Affiliate sweep 11-18 #10: the brands in her code list that have a pick here (Bonheur's Celine Huggy Hoops, Spa
+  // Days). EF Collection, Quip and The Foggy Dog have no pick, so their codes stay off. BLKFRIDAY35 is embargoed to Nov 26.
+  { rank: 17, store: "Bonheur Jewelry", code: "SHOPMY25", offer: "25% off" },
+  { rank: 17, store: "Bonheur Jewelry", code: "BONHEUR15", offer: "15% off" },
+  { rank: 17, store: "Bonheur Jewelry", code: "BLKFRIDAY35", offer: "35% off (Black Friday)", dates: "From Nov 26", starts: "2026-11-26" },
 ];
 
 /** The codes still good on `today` (YYYY-MM-DD, local): a code is shown through its `expires` day. */
-export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => !c.expires || c.expires >= today);
+export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => (!c.expires || c.expires >= today) && (!c.starts || c.starts <= today));
 
 /** One box per store, by rank (owner 2026-11-18: a store with two codes shows both in one box). */
 export const codesByStore = (codes: DiscountCode[]) => {
@@ -187,12 +209,33 @@ export const giftGuides = {
   sidebarLabel: "Gift guides",
   seeAllLabel: "See all",
   shopLabel: "Shop",
-  fullGuideLabel: "Shop the full guide",
+  /** A store page's live deal sections (follow-up batch 2026-11-18), after its picks. */
+  dealsTitle: "Deals and holiday shops",
+  /** A deal's end date, "2026-11-22" -> "Ends Nov 22". */
+  dealEnds: (ymd: string) => `Ends ${new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
   newTab: "opens in a new tab",
   onStore: (store: string) => `On ${store}`,
+  /** A ShopMy collection link opens a page of many products, not this one (design audit r2 #3/#9): the row says so. */
+  collectionOnShopMy: "Collection on ShopMy",
   /** The pick badges (owner 2026-11-18). Never a price. */
-  badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup" },
+  badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
+  /** A non-Amazon pick's checked price beside Shop (owner 11-18), rounded to the dollar: "~$24". Never on Amazon. */
+  priceApprox: (dollars: number) => `~$${dollars}`,
+  /** One note per page under a list that shows prices: the oldest check date, "Nov 18". */
+  pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
+  /** The landing's first row (owner 2026-11-18): the picks the most guides list. */
+  topTitle: "Our Top 10",
+  /** The landing's guides a phone sees first, and the button that opens every row (owner 2026-11-18). */
+  startTitle: "Start here",
+  moreGuidesLabel: "More guides",
+  fewerGuidesLabel: "Fewer guides",
+  /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
+  giveaways: {
+    title: "25 Days of Louisiana Giveaways",
+    body: "A new Louisiana giveaway every day, December 1 to 25. Follow us on Facebook so you don't miss one.",
+    cta: "Follow on Facebook",
+  },
   helpr: {
     title: "No time to wrap?",
     body: "Hire a local Helpr to wrap your gifts, assemble toys or hang the Christmas lights.",
@@ -202,17 +245,24 @@ export const giftGuides = {
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
   searchNone: "No guides match. Try another word.",
   codesLabel: "Discount codes",
+  /** The sidebar's Sales (follow-up 2026-11-18): every live store sale, soonest end first; each hidden after it ends. */
+  salesLabel: "Sales",
+  /** The Sales list shows its first few, then this button opens the rest (design audit r2 #10: 229 in one list). */
+  allSalesLabel: (n: number) => `See all sales (${n})`,
+  /** The phone's tool row under the title (design audit r2 #15: search, My list and codes sat at the page's end). */
+  quickLabel: "Gift guide tools",
+  quickSearch: "Search",
+  quickCodes: "Codes",
   copyCode: "Copy",
   copiedCode: "Copied",
   codeEnds: (date: string) => `Ends ${date}`,
   codeValid: (dates: string) => `Valid ${dates}`,
   comingSoonTitle: "Picks coming soon",
   comingSoonBody: "We're gathering the best gifts for this guide. Check back soon, or browse another guide.",
-  allLinks: [
-    { label: "Every collection on ShopMy", href: "https://shopmy.us/shop/lexilombas" },
-    { label: "Every gift guide on Pinterest", href: `${PIN}/gift-guides/` },
-  ] satisfies GiftLink[],
-
+  relatedTitle: "Try these guides",
+  loadingPicks: "Loading picks…",
+  /** Under a long list (design audit 11-18 #3: store-amazon drew 827 rows at once): the next 50. */
+  showMorePicks: (left: number) => `Show more (${left} more)`,
   sections: [
     {
       id: "for-her",

@@ -1,18 +1,20 @@
-import { Link, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { ROWS, guideBySlug, newSlugFor, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
+import { MyListLink } from "./giftGuides/GiftGuideMyList";
+import { Button } from "@/components/ui/button";
 import { GiftGuideLanding } from "./giftGuides/GiftGuideLanding";
 import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { GiftGuideShare } from "./giftGuides/GiftGuideShare";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
-import { GiftOut } from "./giftGuides/GiftOut";
 
 /**
  * /gift-guides and /gift-guides/<slug> (owner 2026-11-16, public 2026-11-18; rebuilt 2026-11-18 to the owner's final
@@ -23,14 +25,30 @@ import { GiftOut } from "./giftGuides/GiftOut";
  * link (GiftOut). The FTC disclosure (16 CFR Part 255) and Amazon's required Associates statement sit at the BOTTOM
  * as plain muted lines (owner decision 2026-11-18). Guard: src/test/giftGuidesPage.test.tsx.
  */
+/** Scrolls the menu's part into view and focuses it (the phone's tool row). */
+const jumpTo = (id: string, focus: string) => {
+  const el = document.getElementById(id);
+  el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  (el?.querySelector(focus) as HTMLElement | null)?.focus({ preventScroll: true });
+};
+
 export default function GiftGuides() {
-  usePageMeta(NOINDEX_PAGE_META["/gift-guides"]);
   const { slug } = useParams<{ slug?: string }>();
   const { hash } = useLocation();
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
+  // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
+  usePageMeta(guide ? giftGuidePageMeta(guide.slug, guide.title) : PUBLIC_PAGE_META["/gift-guides"]);
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
+  // Visual check 11-18: at 375 the long pill squeezed "Gift guides" into "Gift / guid / es"; phones get the short words.
+  const shipTail = " for Christmas delivery";
+  const shipPill = ship ? (
+    <p className="gg-ship whitespace-nowrap" data-gift-ship="">
+      {ship.endsWith(shipTail) ? ship.slice(0, -shipTail.length) : ship}
+      {ship.endsWith(shipTail) && <span className="hidden sm:inline">{shipTail}</span>}
+    </p>
+  ) : undefined;
   const myList = !guide && params.get("list") === "mine";
   const group = ROWS.find((r) => r.row === groupParam)?.row ?? (null as GuideRow | null);
 
@@ -50,29 +68,33 @@ export default function GiftGuides() {
           Amazon links. */}
       <p data-gift-disclosure="">{G.disclosure}</p>
       <p data-gift-amazon-statement="">{G.amazonStatement}</p>
-      <p className="gg-more">
-        {G.allLinks.map((l) => <GiftOut key={l.href} href={l.href} className="gg-link">{l.label}</GiftOut>)}
-      </p>
+      {/* Owner 11-18 PM: no "Every collection on ShopMy" / "Every gift guide on Pinterest" links; the disclosures stay. */}
     </footer>
   );
 
   return (
-    <PublicHeaderPage title={G.pageTitle} backTo={guide ? "/gift-guides" : "/"} wrapTitle bottomPaddingClassName="pb-12 md:pb-16">
+    <PublicHeaderPage title={G.pageTitle} backTo={guide ? "/gift-guides" : "/"} bottomPaddingClassName="pb-12 md:pb-16"
+      titleActions={shipPill}>
       <style>{GIFT_GUIDES_CSS}</style>
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="">
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}
-        {/* Owner 2026-11-18: the shipping banner sits top-right, on the same line as "← All guides". */}
-        <div className="gg-top">
-          {guide ? <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link> : <span />}
-          {ship && <p className="gg-ship" data-gift-ship="">{ship}</p>}
-        </div>
+        {/* Owner 2026-11-18 PM: the shipping pill sits on the page header's own row ("← Gift guides"), right-aligned
+            (titleActions above), so no row of its own sits above the hero. A guide page has no second "← All guides"
+            link ("double back button?? does the same thing"): the header's back arrow goes to /gift-guides. */}
         {guide ? (
-          <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title"
+          <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint}
             share={<GiftGuideShare path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
         ) : (
-          <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" share={<GiftGuideShare path="/gift-guides" title={G.title} />} />
+          <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" share={<GiftGuideShare path="/gift-guides" title={G.title} many />} />
         )}
+        {/* Phone (design audit r2 #15): the menu sits after the guide, so a slim row under the title jumps to its search,
+            My list and codes. Hidden from 768 px, where the menu is beside the guide. */}
+        <nav className="gg-quick" aria-label={G.quickLabel} data-gift-quick="">
+          <Button type="button" variant="outline" size="inline" className="gg-quick-btn" onClick={() => jumpTo("gift-search", "input")}>{G.quickSearch}</Button>
+          <MyListLink current={myList} />
+          <Button type="button" variant="outline" size="inline" className="gg-quick-btn" onClick={() => jumpTo("gift-codes", "summary")}>{G.quickCodes}</Button>
+        </nav>
         <div className="gg-layout">
           <GiftGuidesSidebar active={guide} myList={myList} />
           <div className="gg-main">

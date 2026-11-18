@@ -260,7 +260,11 @@
     },
     {
       "source": "/gift-guides",
-      "destination": "/api/share?_og=noindex&_id=gift-guides"
+      "destination": "/api/share?_og=page&_id=gift-guides"
+    },
+    {
+      "source": "/gift-guides/:slug",
+      "destination": "/api/share?_og=page&_id=gift-guides/:slug"
     },
     {
       "source": "/sponsor",

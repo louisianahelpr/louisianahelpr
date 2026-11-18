@@ -9,13 +9,27 @@
  */
 import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
-import { GUIDE_INDEX } from "@/content/giftGuideIndex";
-import { RESEARCHED_PICKS, type ResearchedPick } from "@/content/giftGuidePicks";
+import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
+import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
 
-export type GiftStore = "amazon" | "shopmy" | "zchocolat" | "diecast" | "louisiana" | "sponsor";
+/**
+ * The owner's list plus every store page the researched picks name (follow-up batch 2026-11-18: every store or brand
+ * we hold a link for gets its own "By store" page), appended to the By store row in name order.
+ */
+const GUIDE_INDEX: typeof OWNER_INDEX = [
+  ...OWNER_INDEX,
+  ...Object.entries(RESEARCHED_STORES)
+    .filter(([slug]) => !OWNER_INDEX.some((g) => g.slug === slug))
+    .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+    .map(([slug, st]) => ({ group: "By store", tint: "green" as const, slug, title: st.name, lead: "shop" })),
+];
+
+/** A fixed store, or a researched store page's slug ("store-walmart"). */
+export type GiftStore = "amazon" | "shopmy" | "zchocolat" | "diecast" | "louisiana" | "sponsor" | (string & {});
+type FixedStore = "amazon" | "shopmy" | "zchocolat" | "diecast" | "louisiana" | "sponsor";
 
 /** Each store, the name the page shows and the link hosts that belong to it. */
-export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] }> = {
+const FIXED_STORES: Record<FixedStore, { name: string; hosts: readonly string[] }> = {
   amazon: { name: "Amazon", hosts: ["www.amazon.com", "amazon.com", "amzn.to"] },
   shopmy: { name: "ShopMy", hosts: ["shopmy.us"] },
   zchocolat: { name: "zChocolat", hosts: ["www.zchocolat.com"] },
@@ -26,10 +40,13 @@ export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] 
   sponsor: { name: "a 25 Days sponsor", hosts: SPONSOR_SITES },
 };
 
-/** The store a pick's link goes to, read from its host. A host on no store is a content error, so it throws. */
+/** Every store: the fixed ones, then each researched store page (its name and the hosts its picks' links use). */
+export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] }> = { ...FIXED_STORES, ...RESEARCHED_STORES };
+
+/** The fixed store a pick's link goes to, read from its host. A host on no fixed store is a content error, so it throws. */
 export function storeOf(href: string): GiftStore {
   const host = new URL(href).hostname;
-  const hit = (Object.keys(STORES) as GiftStore[]).find((s) => STORES[s].hosts.includes(host));
+  const hit = (Object.keys(FIXED_STORES) as FixedStore[]).find((s) => FIXED_STORES[s].hosts.includes(host));
   if (!hit) throw new Error(`gift guides: ${href} is on no store in STORES`);
   return hit;
 }
@@ -53,10 +70,22 @@ export interface CatalogPick {
   brand?: string;
   /** Badges (owner 2026-11-18), decided from the brand, never from a free-text flag. No price is ever a badge. */
   badges?: PickBadge[];
+  /** The section heading it sits under on a long store page (store-amazon, design audit 11-18 #3), from the import. */
+  section?: string;
+  /** A checked price (USD) and its check day (YYYY-MM-DD, Louisiana), from the import (owner 11-18). Never on Amazon. */
+  price?: number;
+  priceAt?: string;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
-export type PickBadge = "trending" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup";
+export type PickBadge = "trending" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup" | "shop-louisiana";
+
+/**
+ * "Shop Louisiana" (owner 2026-11-18): a pick marked louisianaFit or sold by a Louisiana shop, unless it already
+ * carries the stronger "Louisiana-made" badge.
+ */
+const withShopLouisiana = (badges: PickBadge[], store: GiftStore, louisianaFit?: unknown): PickBadge[] =>
+  (store === "louisiana" || louisianaFit) && !badges.includes("louisiana-made") ? [...badges, "shop-louisiana"] : badges;
 
 /**
  * A pick's badges, in this order: Trending (its optional `trending` flag), "Louisiana-made" only when the pick is
@@ -97,6 +126,12 @@ export interface CatalogGuide {
   parent?: string;
   /** The age band a kids guide is for ("ages 0–1"), from the owner's list; shown with its count. */
   age?: string;
+  /** A store page's live deal sections, after its picks (each hidden after its end date on the page). */
+  deals?: StoreDeal[];
+  /** Holds nothing yet: left out of the rows, the search and the menu (its own link still opens). */
+  empty?: true;
+  /** A store page with fewer than STORE_ROW_MIN_PICKS picks: not a By store tile or menu entry (search and its link still find it). */
+  thin?: true;
 }
 
 const rowId = (label: string) => label.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -116,7 +151,11 @@ const section = (id: string): GiftSection => {
 };
 
 const fromSection = (s: GiftSection): CatalogPick[] =>
-  s.picks.map((p) => ({ name: p.name, href: p.href, store: storeOf(p.href), line: p.line, image: p.image }));
+  s.picks.map((p) => {
+    const store = storeOf(p.href);
+    const badges = withShopLouisiana([], store);
+    return { name: p.name, href: p.href, store, line: p.line, image: p.image, ...(badges.length ? { badges } : {}) };
+  });
 
 type Draft = { slug: string; lead: string; title: string; line: string; picks: CatalogPick[]; links: GiftLink[] };
 
@@ -140,7 +179,9 @@ const slugOf = (old: string) => OLD_SLUGS[old] ?? old;
 
 const sectionGuide = (id: string): Draft => {
   const s = section(id);
-  return { slug: slugOf(s.id), lead: "the gift guide", title: s.title, line: s.line, picks: fromSection(s), links: [s.shop, ...s.more] };
+  return { slug: slugOf(s.id), lead: "the gift guide", title: s.title, line: s.line, picks: fromSection(s),
+    // A section's links are other guides' collections (Her: Mom, Sister, Aunt, Friends), never its own full guide (design audit 11-18 #16).
+    links: [s.shop, ...s.more].map((l) => ({ ...l, related: true })) };
 };
 
 /**
@@ -172,12 +213,58 @@ const amazonGuides: Draft[] = AMAZON_GUIDES.map((g) => ({
   links: [...shopmyLinkFor(slugOf(g.slug)), ...(g.slug === "stocking-stuffers" ? [section("stocking-stuffers").shop, ...section("stocking-stuffers").more] : [])],
 }));
 
-const toPick = (p: ResearchedPick): CatalogPick => {
-  const badges = badgesFor(p.brand, p);
-  return { name: p.name, href: p.href, store: storeOf(p.href), line: p.line, brand: p.brand, ...(badges.length ? { badges } : {}) };
+/**
+ * A researched pick's store: Amazon, a Louisiana shop, a sponsor or a brand site by its host; otherwise (an affiliate
+ * link, or a ShopMy pick with a retailer) the store page the loader named.
+ */
+const researchedStore = (p: ResearchedPick): GiftStore => {
+  const host = new URL(p.href).hostname;
+  const fixed = (Object.keys(FIXED_STORES) as FixedStore[]).find((s) => FIXED_STORES[s].hosts.includes(host));
+  // A ShopMy link to an Amazon product stays "On ShopMy" (the Amazon page lists Amazon links only).
+  if (fixed && !(fixed === "shopmy" && p.store && p.store !== "store-amazon")) return fixed;
+  if (p.store && STORES[p.store]) return p.store;
+  throw new Error(`gift guides: ${p.href} is on no store in STORES`);
 };
-const researched = (): CatalogPick[] => Object.values(RESEARCHED_PICKS).flat().map(toPick);
-const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks), ...researched()];
+const toPick = (p: ResearchedPick): CatalogPick => {
+  const store = researchedStore(p);
+  const badges = withShopLouisiana(badgesFor(p.brand, p), store, p.louisianaFit);
+  return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
+    // Never an Amazon price (Associates rule), whatever the generated file holds.
+    ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) };
+};
+/** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */
+export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);
+
+/** The static picks (content files). The researched picks arrive per guide, from its chunk (loadGuidePicks). */
+const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks)];
+
+/**
+ * PERF (follow-up 2026-11-18): the researched picks are one lazy chunk per guide (src/content/giftGuidePicks/<slug>.json,
+ * generated, each page's FINAL list), so /gift-guides loads no picks and /gift-guides/<slug> loads only its own.
+ * A guide in CHUNK_SLUGS shows "loading" until its chunk is in; a fixed store page (zChocolat, Diecast) adds its
+ * chunk's picks to its static ones (APPEND_CHUNK).
+ */
+const HAS_CHUNK = new Set(CHUNK_SLUGS);
+const APPEND_CHUNK = new Set(["store-amazon", "store-zchocolat", "store-diecast-models"]);
+const loaded = new Map<string, { picks: CatalogPick[]; deals?: StoreDeal[] }>();
+const listeners = new Set<() => void>();
+let version = 0;
+/** Whether a guide's picks are in hand (a guide with no chunk always is). */
+export const picksReady = (slug: string) => !HAS_CHUNK.has(slug) || loaded.has(slug);
+/** Fetch one guide's chunk (once); every guide object's `picks` and `deals` read it from then on. */
+export const loadGuidePicks = async (slug: string): Promise<void> => {
+  if (picksReady(slug)) return;
+  const load = PICK_CHUNKS[`./giftGuidePicks/${slug}.json`];
+  if (!load) throw new Error(`gift guides: no picks chunk for ${slug}`);
+  const chunk = await load();
+  loaded.set(slug, { picks: chunk.picks.map(toPick), ...(chunk.deals ? { deals: chunk.deals } : {}) });
+  version += 1;
+  listeners.forEach((l) => l());
+};
+/** Every chunk (tests, and nothing on the page). */
+export const loadAllGuidePicks = () => Promise.all(CHUNK_SLUGS.map(loadGuidePicks));
+export const subscribeGuidePicks = (l: () => void) => (listeners.add(l), () => listeners.delete(l));
+export const guidePicksVersion = () => version;
 
 /** One pick per link (several guides share an item), first occurrence wins. */
 const uniqueByHref = (picks: CatalogPick[]) => [...new Map(picks.map((p) => [p.href, p] as const)).values()];
@@ -204,6 +291,17 @@ const DRAFTS: Draft[] = [
   storeGuide(["diecast"], "store-diecast-models", STORES.diecast.name, "Diecast model cars, for collectors."),
 ];
 
+/**
+ * Each researched store page (two taps, like Walmart): its list ("Louisiana Helpr Picks": its own store-<x> file, then
+ * every pick on that store from every guide, once each, photos first) and its deal sections come from its chunk.
+ */
+for (const slug of Object.keys(RESEARCHED_STORES)) {
+  // The fixed store pages (Amazon, zChocolat, Diecast) keep their own draft: static picks, then their chunk's.
+  if (APPEND_CHUNK.has(slug)) continue;
+  const g = GUIDE_INDEX.find((x) => x.slug === slug)!;
+  DRAFTS.push({ slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] });
+}
+
 
 /**
  * The hubs, from the owner's list (GUIDE_INDEX `parent`, 2026-11-18): Kids opens Boys, Girls and Gender-Neutral, each
@@ -223,7 +321,11 @@ for (const g of GUIDE_INDEX) {
  * items stay in the Amazon and ShopMy store guides, so no pick is lost; the guide itself is not shown, and an old
  * link to it lands on the main page.
  */
-export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic", "home-finds", "nurses", "pet-lovers", "for-the-home"];
+export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic", "home-finds", "nurses", "pet-lovers", "for-the-home",
+  // Design audit 2026-11-18 (trust): software, VPN and "PC cleaner" stores are no gift stores; never a tile or a page.
+  "store-restoro", "store-nordvpn", "store-surfshark", "store-nordpass", "store-hide-me-vpn", "store-parallels-desktop", "store-oando-software", "store-paragon-software",
+  // Affiliate sweep 11-18 PM: supplements (HerbsPro) are on the skip list.
+  "store-herbspro"];
 
 /**
  * Guides the owner folded into others (2026-11-18: Female Nurses and Male Nurses go into RNs, LPNs and CNAs). Each
@@ -233,12 +335,11 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
 export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"] };
 
 const draftOf = new Map(DRAFTS.map((d) => [d.slug, d] as const));
-/** The researched picks (src/content/giftGuidePicks.ts, generated) are each listed guide's list, in their order. */
-for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) {
+/** A guide with a researched chunk lists exactly the chunk's picks, in their order (APPEND_CHUNK: static, then chunk). */
+for (const slug of CHUNK_SLUGS) {
   const g = GUIDE_INDEX.find((x) => x.slug === slug);
-  if (!g) continue;
-  const d = draftOf.get(slug) ?? { slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] };
-  draftOf.set(slug, { ...d, picks: list.map(toPick) });
+  if (!g || draftOf.has(slug)) continue;
+  draftOf.set(slug, { slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] });
 }
 /** Every guide on the owner's list shows, filled or not (owner 2026-11-18: an empty one opens "Picks coming soon"). */
 for (const g of GUIDE_INDEX) {
@@ -251,7 +352,7 @@ for (const [from, targets] of Object.entries(MERGED_GUIDES)) {
     const d = draftOf.get(t)!;
     // A guide with researched picks keeps exactly those (the folded guides' items stay in their store guides); it
     // still gets the folded guides' collection links.
-    draftOf.set(t, { ...d, picks: RESEARCHED_PICKS[t] ? d.picks : uniqueByHref([...d.picks, ...src.picks]), links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
+    draftOf.set(t, { ...d, picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]), links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
   }
 }
 const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug];
@@ -267,15 +368,38 @@ const parentOf = new Map(Object.entries(HUBS).flatMap(([hub, groups]) => groups.
 /** The cover files shipped in public/gift-guides/covers (one per GUIDE_INDEX slug that has a guide). */
 /** Every guide with content that no group shows (a test keeps this empty: nothing is dropped silently). */
 export const unplacedGuides = () =>
-  DRAFTS.filter((d) => filled(d.slug) && (d.picks.length > 0 || d.links.length > 0) && !GUIDES.some((g) => g.slug === d.slug)).map((d) => d.slug);
-const hasCover = new Set(GUIDE_INDEX.map((g) => g.slug));
+  DRAFTS.filter((d) => filled(d.slug) && (d.picks.length > 0 || d.links.length > 0 || HAS_CHUNK.has(d.slug)) && !GUIDES.some((g) => g.slug === d.slug)).map((d) => d.slug);
+const hasCover = new Set(OWNER_INDEX.map((g) => g.slug));
 /** The folder in public/ the covers are served from (static files, not an app route). */
 const COVER_DIR = `${"/gift-guides"}/covers`;
 
+/**
+ * Whether a guide holds anything (lead 2026-11-18, live: 384 of 469 guides opened "Picks coming soon"): its picks
+ * (static, or a researched chunk), its collection links, or a child guide that holds something. A guide that holds
+ * nothing is left out of every row, the search and the menu; its own link still opens, pointing to related guides.
+ */
+const holdsMemo = new Map<string, boolean>();
+const holds = (slug: string): boolean => {
+  if (holdsMemo.has(slug)) return holdsMemo.get(slug)!;
+  const d = draftOf.get(slug);
+  const own = Boolean(d && (HAS_CHUNK.has(slug) || d.picks.length > 0 || d.links.length > 0));
+  const v = own || (HUBS[slug] ?? []).some((x) => x.slugs.some((c) => filled(c) && holds(c)));
+  holdsMemo.set(slug, v);
+  return v;
+};
+
+/** The fewest picks a store page needs to be a tile in the By store row and menu (lead 2026-11-18); its link still opens. */
+export const STORE_ROW_MIN_PICKS = 4;
+/** A guide's pick count without loading its chunk (static picks, plus its chunk's count). */
+const pickCount = (slug: string) => {
+  const d = draftOf.get(slug)!;
+  return HAS_CHUNK.has(slug) ? (APPEND_CHUNK.has(slug) ? d.picks.length : 0) + (CHUNK_PICK_COUNTS[slug] ?? 0) : d.picks.length;
+};
+
 const build = (slug: string, group: string, tint: GuideTint, listed?: { title: string; lead: string; age?: string }): CatalogGuide => {
   const d = draftOf.get(slug)!;
-  const children = HUBS[slug]?.map((x) => ({ label: x.label, slugs: x.slugs.filter(filled) })).filter((x) => x.slugs.length > 0);
-  return {
+  const children = HUBS[slug]?.map((x) => ({ label: x.label, slugs: x.slugs.filter((c) => filled(c) && holds(c)) })).filter((x) => x.slugs.length > 0);
+  const g: CatalogGuide = {
     ...d,
     title: listed?.title ?? d.title,
     lead: listed?.lead ?? d.lead,
@@ -284,8 +408,34 @@ const build = (slug: string, group: string, tint: GuideTint, listed?: { title: s
     tint,
     cover: hasCover.has(slug) ? `${COVER_DIR}/${slug}.webp` : undefined,
     parent: parentOf.get(slug),
-    ...(children ? { children } : {}),
+    ...(children?.length ? { children } : {}),
+    ...(holds(slug) ? {} : { empty: true as const }),
+    ...(group === "By store" && holds(slug) && pickCount(slug) < STORE_ROW_MIN_PICKS ? { thin: true as const } : {}),
   };
+  if (HAS_CHUNK.has(slug)) {
+    // Read from the guide's chunk once it is in (loadGuidePicks); until then the static picks (APPEND_CHUNK) or none.
+    const base = APPEND_CHUNK.has(slug) ? d.picks : [];
+    Object.defineProperty(g, "picks", { enumerable: true, get: () => {
+      const c = loaded.get(slug);
+      if (!c) return base;
+      if (!APPEND_CHUNK.has(slug)) return c.picks;
+      // The Amazon page's static picks open its first section, "Louisiana Helpr Picks" (design audit 11-18 #3).
+      // First occurrence wins whole (uniqueByHref keeps a key's first place but its LAST value, which mixed sections).
+      if (slug === "store-amazon") {
+        const hrefs = new Set<string>();
+        const names = new Set<string>();
+        return [...base.map((p) => ({ ...p, section: c.picks[0]?.section })), ...c.picks].filter((p) => {
+          if (hrefs.has(p.href) || names.has(p.name)) return false;
+          hrefs.add(p.href);
+          names.add(p.name);
+          return true;
+        });
+      }
+      return uniqueByName([...base, ...c.picks]);
+    } });
+    Object.defineProperty(g, "deals", { enumerable: true, get: () => loaded.get(slug)?.deals });
+  }
+  return g;
 };
 
 export const GUIDES: CatalogGuide[] = ROWS.flatMap((r) => [
@@ -295,8 +445,20 @@ export const GUIDES: CatalogGuide[] = ROWS.flatMap((r) => [
 /**
  * The guides a group's row and menu list, in order (owner 2026-11-18, "covers in two taps"): top-level guides, with
  * the Kids hub replaced by its own children (Girls, Boys, Gender-Neutral); each of those opens its five age guides.
+ * A guide that holds nothing is not listed.
  */
-export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => g.row === row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB));
+export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB));
+
+
+/**
+ * The guides an empty guide's page points to (lead 2026-11-18): its siblings under the same hub, else its row, that
+ * hold something, up to six.
+ */
+export const relatedGuides = (g: CatalogGuide): CatalogGuide[] => {
+  const ok = (x: CatalogGuide) => !x.empty && x.slug !== g.slug && !x.children;
+  const siblings = g.parent ? GUIDES.filter((x) => ok(x) && x.parent === g.parent) : [];
+  return (siblings.length ? siblings : GUIDES.filter((x) => ok(x) && x.row === g.row)).slice(0, 6);
+};
 
 /** The Kids hub: its page shows Girls, Boys and Gender-Neutral; the rows and menu show those three in its place. */
 export const KIDS_HUB = "kids";
@@ -308,16 +470,33 @@ export const childrenOf = (g: CatalogGuide) => (g.children ?? []).flatMap((x) =>
 export const guideBySlug = (slug: string | undefined) => GUIDES.find((g) => g.slug === slug);
 
 /**
- * The sidebar search (owner 2026-11-18): every guide whose title or group matches the words typed, case- and
- * accent-blind, in the page's order. Empty words match nothing (the sidebar then shows its groups).
+ * Words a shopper types that a guide's title lacks (design audit r2 #11 and r1 #26: "lsu", "saints", "boots" and
+ * "nurse" found nothing useful). Search-only: never shown.
+ */
+export const SEARCH_KEYWORDS: Record<string, string> = {
+  "purple-and-gold-lover": "lsu tigers geaux", "game-day": "saints lsu tigers tailgate football",
+  "store-muck-boot": "boots", "store-xtratuf": "boots", "store-durango-boots": "boots",
+  rns: "nurse nurses", lpns: "nurse nurses", healthcare: "nurse nurses", "healthcare-workers": "nurse nurses",
+};
+
+/**
+ * The sidebar search (owner 2026-11-18): every guide whose title, group or keywords match the words typed, case- and
+ * accent-blind, title matches first (design audit r2 #11). Empty words match nothing.
  */
 export const searchGuides = (query: string): CatalogGuide[] => {
-  const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const words = fold(query).split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
   const label = new Map(ROWS.map((r) => [r.row, r.label] as const));
+  const q = words.join(" ");
+  // Title matches first (exact, then starting with the words, then containing them), the list's order kept inside each.
+  const rank = (g: CatalogGuide) => {
+    const t = fold(g.title);
+    return t === q ? 0 : t.startsWith(q) ? 1 : words.every((w) => t.includes(w)) ? 2 : 3;
+  };
   return GUIDES.filter((g) => {
-    const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""}`);
+    if (g.empty) return false;
+    const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
     return words.every((w) => hay.includes(w));
-  });
+  }).map((g, i) => [g, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([g]) => g);
 };

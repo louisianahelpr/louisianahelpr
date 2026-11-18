@@ -67,6 +67,15 @@ export const LEGAL_PAGE_META = {
 
 /** Single-path public pages, keyed by pathname. */
 export const PUBLIC_PAGE_META = {
+  // Holiday Gift Guides (owner 2026-11-16; indexed from the follow-up batch 2026-11-18, SEO): in the sitemap with every
+  // guide that holds picks (scripts/generate-sitemap.mjs allGiftGuidePaths); each guide's own head is giftGuidePageMeta (giftGuidePageMeta.mjs).
+  "/gift-guides": {
+    title: "Holiday gift guides 2026 — Helpr",
+    description: "Gift ideas for everyone on your list, from Louisiana Helpr: by person, budget, career and store, plus Louisiana favorites.",
+    canonical: `${SITE_ORIGIN}/gift-guides`,
+    ogTitle: "Holiday gift guides 2026 from Louisiana Helpr",
+    ogDescription: "Gift ideas for everyone on your list, plus Louisiana favorites.",
+  },
   "/browse": {
     title: "Browse local jobs — Helpr",
     description:
@@ -216,17 +225,6 @@ export const NOINDEX_PAGE_META = {
     ogDescription: "Turn off a kind of Helpr email.",
     robots: NOINDEX_ROBOTS,
   },
-  // Holiday Gift Guides (owner 2026-11-16): public since 2026-11-18 (no ?preview=1 gate; Pinterest pins link to its
-  // sections) but still noindex and out of the sitemap until it is moved to PUBLIC_PAGE_META, the sitemap and an
-  // `_og=page` card together.
-  "/gift-guides": {
-    title: "Holiday gift guides 2026 — Helpr",
-    description: "Gift ideas for everyone on your list, from Louisiana Helpr.",
-    canonical: `${SITE_ORIGIN}/gift-guides`,
-    ogTitle: "Holiday gift guides 2026 from Louisiana Helpr",
-    ogDescription: "Gift ideas for everyone on your list, plus Louisiana favorites.",
-    robots: NOINDEX_ROBOTS,
-  },
   // 25 Days of Louisiana Giveaways (owner 2026-11-09): the sponsor page a pitch email links to, and its rules.
   // NOT indexed: it is dark behind the sponsor_25days switch and is reached from emails, not search. The link
   // card (og-25days.png) is what a brand sees when the link unfurls. Same entries the pages pass to usePageMeta.
@@ -310,5 +308,7 @@ export function publicPageMetaFor(pathname, tabParam) {
   // OPS-4: the town + service pages (/hire/<service>/<town>), from their own table.
   const town = townPageMetaFor(path);
   if (town) return town;
+  // The indexed gift guides (/gift-guides/<slug>) are giftGuidePageMeta.mjs's publicOrGiftGuidePageMetaFor (Q178:
+  // their generated table stays out of the shared chunk).
   return Object.prototype.hasOwnProperty.call(PUBLIC_PAGE_META, path) ? PUBLIC_PAGE_META[path] : null;
 }

@@ -1,11 +1,10 @@
 /**
  * The hero search (owner, 2026-10-20, LANDING-APPROVED.md "search all four"):
- * one box for jobs, items, shops and homes. Today only Jobs is open to everyone
- * (Declutter, Shops and Homes say "Coming soon" until their switches open), so
- * a signed-out visitor's words search the public Jobs board (`/browse?q=`),
- * where acting on a job asks them to sign up and returns them. Signed in,
- * they open /search?q= (board 89), which searches every open section and
- * says "Coming soon" for the rest. Guard: src/test/landingRedesign.test.tsx.
+ * one box for every open section. Owner 11-18: the Jobs | Declutter tabs above it
+ * are gone and the box searches both: its words open /search?q= (board 89) for a
+ * guest or a member, which lists jobs and Declutter items together (and says
+ * "Coming soon" for a closed section). Guards: src/test/landingRedesign.test.tsx,
+ * src/test/landingBrowseSwitch1108.test.tsx.
  */
 export const SEARCH_PARAM = "q";
 export const SEARCH_MAX = 80;
@@ -14,13 +13,10 @@ function searchTerm(raw: string): string {
   return raw.replace(/\s+/g, " ").trim().slice(0, SEARCH_MAX);
 }
 
-export function heroSearchTargets(raw: string, mode: "jobs" | "declutter" = "jobs"): { signedIn: string; signedOut: string } {
+export function heroSearchTargets(raw: string): { signedIn: string; signedOut: string } {
   const q = searchTerm(raw);
   const qs = q ? `?${new URLSearchParams({ [SEARCH_PARAM]: q }).toString()}` : "";
-  // F012 (owner's UI audit 11-09): with the hero's Declutter tab picked, the words search Declutter, signed in or out
-  // (/declutter is open to guests; browseFilters.ts reads ?q=).
-  if (mode === "declutter") return { signedIn: `/declutter${qs}`, signedOut: `/declutter${qs}` };
-  // Signed in, words go to /search (board 89: every section at once); an
-  // empty box still opens Jobs. Signed out, the public Jobs board as before.
-  return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: `/browse${qs}` };
+  // Owner 11-18: the one box covers jobs AND Declutter, so words open /search (open to guests, F071/L001: it lists the
+  // jobs and the Declutter items together) whether signed in or out. An empty box still opens the jobs, as before.
+  return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: q ? `/search${qs}` : "/browse" };
 }

@@ -17,7 +17,7 @@ export const LEGAL_PAGE_META: Readonly<
   Record<LegalTab, { title: string; description: string; canonical: string }>
 >;
 export const LANDING_PAGE_META: PublicPageMeta;
-export const PUBLIC_PAGE_META: Readonly<Record<"/browse" | "/declutter" | "/fees" | "/help" | "/safety" | "/sms-opt-in" | "/support" | "/terms/full" | "/privacy/full", PublicPageMeta>>;
+export const PUBLIC_PAGE_META: Readonly<Record<"/browse" | "/declutter" | "/gift-guides" | "/fees" | "/help" | "/safety" | "/sms-opt-in" | "/support" | "/terms/full" | "/privacy/full", PublicPageMeta>>;
 export function legalPageMeta(tab: LegalTab): PublicPageMeta;
 export type NoindexPath =
   | "/login"
@@ -29,8 +29,7 @@ export type NoindexPath =
   | "/unsubscribe"
   | "/sponsor"
   | "/25days"
-  | "/25days/rules"
-  | "/gift-guides";
+  | "/25days/rules";
 export interface NoindexPageMeta extends PublicPageMeta {
   robots: string;
 }

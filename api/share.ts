@@ -65,7 +65,8 @@
 import { SHELL_HTML } from "../scripts/generated/og-shell.js";
 import * as ogShellModule from "../scripts/generated/og-shell.js";
 import { STATIC_PAGE_BODIES } from "../scripts/generated/static-pages.js";
-import { noindexPageMetaFor, publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
+import { noindexPageMetaFor } from "../src/lib/publicPageMeta.mjs";
+import { publicOrGiftGuidePageMetaFor as publicPageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";
 import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/lib/ogProfileCard.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
 import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../src/lib/declutterFirstPhotos.mjs";

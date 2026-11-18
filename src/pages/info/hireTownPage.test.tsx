@@ -22,7 +22,7 @@
  * @mutate src/pages/info/HireTownPage.tsx |                 if (!underAge) return;\n                e.preventDefault(); |                 if (!underAge) return;
  * @mutate src/pages/info/HireTownPage.tsx |                 explain("post"); |
  * @mutate src/pages/info/HireTownPage.tsx |               {...gatedProps("post")} |
- * @mutate scripts/generate-sitemap.mjs |   const included = [...new Set([...routeIncluded, ...extraLegalTabs, ...allTownPagePaths()])]; |   const included = [...new Set([...routeIncluded, ...extraLegalTabs])];
+ * @mutate scripts/generate-sitemap.mjs |   const included = [...new Set([...routeIncluded, ...extraLegalTabs, ...allTownPagePaths(), ...allGiftGuidePaths()])]; |   const included = [...new Set([...routeIncluded, ...extraLegalTabs, ...allGiftGuidePaths()])];
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";

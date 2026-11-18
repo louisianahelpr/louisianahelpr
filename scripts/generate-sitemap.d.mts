@@ -11,3 +11,4 @@ export function classify(...args: unknown[]): unknown;
 /** Public-but-not-indexable route -> the reason it is excluded. */
 export const NOINDEX: Record<string, string>;
 export const WEIGHTS: Record<string, { changefreq: string; priority: string }>;
+export function allGiftGuidePaths(): string[];

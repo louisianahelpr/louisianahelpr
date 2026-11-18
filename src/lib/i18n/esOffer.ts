@@ -21,6 +21,7 @@ export const esOffer: Record<keyof typeof enOffer, string> = {
   "offer.inclFee": "con la tarifa",
   "offer.help": "El vendedor tiene 48 horas para aceptar, decir que no o responder con otro precio. Si acepta, usted tiene 24 horas para pagar. No se cobra nada hasta que pague.",
   "offer.send": "Enviar oferta",
+  "offer.close": "Cancelar",
   "offer.cardCheckFailed": "No pudimos revisar su tarjeta guardada.",
   "offer.checkingCard": "Buscando su tarjeta…",
   "offer.atMost": "Como máximo, {phrase}. Una bajada de precio o más artículos de este vendedor lo hacen menor.",

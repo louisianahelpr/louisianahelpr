@@ -18,7 +18,8 @@ import { useDockYield } from "@/components/mobileNav/useDockYield";
 
 const PHONE_QUERY = "(max-width: 639px)";
 
-function usePhoneWidth(): boolean {
+/** True under 640 px, where the bar is fixed on the bottom edge (a page can step it aside, DeclutterOfferPanel). */
+export function usePhoneWidth(): boolean {
   const [phone, setPhone] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(PHONE_QUERY).matches);
   useEffect(() => {
     const mql = window.matchMedia?.(PHONE_QUERY);

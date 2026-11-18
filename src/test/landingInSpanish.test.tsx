@@ -4,7 +4,7 @@
  * Spanish (useGuestSpanish.ts), so first paint imports no i18n module; enLanding.ts mirrors the English word for word.
  *
  * @mutate src/components/landing/SectionsShowcase.tsx |   const w = (key: string, english: string) => es?.[key] ?? english; |   const w = (key: string, english: string) => (void key, english);
- * @mutate src/components/landing/SectionsShowcase.tsx |                 {w(`landing.trust.${key}`, title)} |                 {title}
+ * @mutate src/components/landing/SectionsShowcase.tsx |                 <h3 className="text-ds-16 font-bold" style={{ color: "var(--lp-band-ink)" }}>{w(`landing.${key}Title`, title)}</h3> |                 <h3 className="text-ds-16 font-bold" style={{ color: "var(--lp-band-ink)" }}>{title}</h3>
  * @mutate src/components/landing/SectionsShowcase.tsx |     if (!es) return onTheWayLine(labels); |     return onTheWayLine(labels);
  * @mutate src/components/landing/HowItWorksSection.tsx |                   {w(`landing.how.${side}${i + 1}Title`, step.title)} |                   {step.title}
  * @mutate src/components/landing/HowItWorksSection.tsx |               options={SIDE_OPTIONS.map((o) => ({ ...o, label: typeof o.label === "string" ? w(`landing.how.side.${o.value}`, o.label) : o.label }))} |               options={SIDE_OPTIONS}
@@ -53,7 +53,7 @@ const renderLanding = () => render(<MemoryRouter><SectionsShowcase /><TrustAndJo
 
 describe("F260q: the landing under the hero speaks the visitor's language", () => {
   it("the English written in the landing is enLanding's, word for word", () => {
-    expect(literalPairs.length).toBeGreaterThan(14);
+    expect(literalPairs.length).toBeGreaterThan(13); // 14 since the trust badges' label went (owner 2026-11-17)
     for (const [k, english] of literalPairs) expect(enLanding[k as keyof typeof enLanding], k).toBe(english);
   });
 
@@ -61,12 +61,12 @@ describe("F260q: the landing under the hero speaks the visitor's language", () =
     expect(src).not.toMatch(/^import .*@\/lib\/i18n/m);
   });
 
-  it("English: every visible word is enLanding's English (the card blurbs, steps and badges included)", async () => {
+  it("English: every visible word is enLanding's English (the card blurbs and steps included)", async () => {
     window.localStorage.setItem("helpr_lang", "en");
     renderLanding();
     await new Promise((r) => setTimeout(r, 30));
     const text = document.body.textContent ?? "";
-    for (const k of ["landing.blurb.jobs", "landing.blurb.declutter", "landing.step1Title", "landing.step2Body", "landing.trust.id", "landing.trust.made", "landing.moneyHeadline"] as const) {
+    for (const k of ["landing.blurb.jobs", "landing.blurb.declutter", "landing.step1Title", "landing.step2Body", "landing.step3Title", "landing.moneyHeadline"] as const) {
       expect(text, k).toContain(enLanding[k]);
     }
   });
@@ -80,11 +80,10 @@ describe("F260q: the landing under the hero speaks the visitor's language", () =
     const visible = Object.entries(enLanding).filter(([k]) => !/Label$|startHere|^landing\.name\.|onTheWay|^landing\.and$/.test(k));
     const left = visible.filter(([k, english]) => esLanding[k as keyof typeof esLanding] !== english && text.includes(english.replace("{hours}", "")));
     expect(left.map(([k]) => k)).toEqual([]);
-    expect(text).toContain(esLanding["landing.trust.id"]);
+    expect(text).toContain(esLanding["landing.step3Title"]);
     expect(text).toMatch(/Si no ha respondido en \d+ horas/);
     // Shops and Homes, still on the way, are named in Spanish.
     expect(text).toContain("Tiendas y Casas llegan pronto.");
-    expect(screen.getByRole("list", { name: esLanding["landing.trustLabel"] })).toBeTruthy();
   });
 });
 

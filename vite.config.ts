@@ -643,8 +643,8 @@ export default defineConfig(({ mode, command }) => ({
         // had moved to the parchment ground. index.html's own comment records
         // "the manifest was teal" as a fixed bug; the fix landed in public/ and
         // never reached the generator that overwrites it.
-        theme_color: "#F1F2F4",
-        background_color: "#F1F2F4",
+        theme_color: "#FFFFFF",
+        background_color: "#FFFFFF",
         display: "standalone",
         orientation: "portrait",
         scope: "/",

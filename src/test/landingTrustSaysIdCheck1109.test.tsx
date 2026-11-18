@@ -5,6 +5,9 @@
  * protection is the ID check. Both now read the switch for THIS viewer (useIdCheckOnForViewer): a guest reads whether
  * nothing: a guest is told the ID rule (identity_check is on for everyone; a guest cannot read the switch).
  *
+ * Owner 2026-11-17: the money band's row of trust badges (ID-verified people / No cash changes hands / ...) is gone,
+ * so the band makes no ID claim at all; the sections block still reads the switch.
+ *
  * @mutate src/lib/useIdCheckOnForViewer.ts |   if (!user) return guestAnswer ?? ID_CHECK_BEFORE_ANSWER; |   if (!user) return false;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -31,10 +34,12 @@ afterEach(() => {
 });
 
 describe("L010: the landing tells a guest about the ID check while it is on for everyone", () => {
-  it("a guest: the trust card says ID-verified people, never just email", () => {
+  it("the money band has no trust badges (owner 2026-11-17), so it makes no ID or email claim", () => {
     state.open = new Set(["identity_check", "declutter"]);
     render(<MemoryRouter><TrustAndJoin /></MemoryRouter>);
-    expect(screen.getByText("ID-verified people")).toBeTruthy();
+    expect(screen.queryByTestId("landing-trust-badges")).toBeNull();
+    expect(screen.queryByText("ID-verified people")).toBeNull();
+    expect(screen.queryByText("Every email confirmed")).toBeNull();
     expect(screen.queryByText("Real accounts")).toBeNull();
   });
 

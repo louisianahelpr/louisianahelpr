@@ -25,7 +25,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
  */
 
 // Shown able to fail on each layer:
-// @mutate src/index.css | -webkit-backdrop-filter: none !important;\n  backdrop-filter: none !important;\n  box-shadow: 0 1px 2px | -webkit-backdrop-filter: blur(20px) !important;\n  backdrop-filter: blur(20px) !important;\n  box-shadow: 0 1px 2px
+// @mutate src/index.css | -webkit-backdrop-filter: none !important;\n  backdrop-filter: none !important;\n  box-shadow: 0 0 0 1px hsl(var(--card-hairline)), 0 1px 2px | -webkit-backdrop-filter: blur(20px) !important;\n  backdrop-filter: blur(20px) !important;\n  box-shadow: 0 0 0 1px hsl(var(--card-hairline)), 0 1px 2px
 // @mutate src/index.css | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n  -webkit-backdrop-filter: none; | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n  -webkit-backdrop-filter: blur(4px);
 // @mutate src/index.css | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n    backdrop-filter: none; | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n    backdrop-filter: blur(4px);
 // @mutate src/components/ui/PageScaffold.tsx | (oneBlur ? " page-panel--one-blur" : "") | ""

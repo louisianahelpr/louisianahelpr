@@ -4,7 +4,9 @@
 // storyboard can show and checks its ground (corners and edge midpoints) is the SAME colour the storyboard and the
 // SplashScreen plugin paint. It ships to phones with the next native build (the PNG is in the .ipa, not the web bundle).
 //
-// @mutate capacitor.config.ts | backgroundColor: '#FCFBF8', // WARM ground | backgroundColor: '#F1F2F4', // WARM ground
+// Owner 2026-11-17: the ground is white #FFFFFF now; the PNG grounds were recoloured from #FCFBF8 the same way.
+//
+// @mutate capacitor.config.ts | backgroundColor: '#FFFFFF', // WHITE ground | backgroundColor: '#FCFBF8', // WHITE ground
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
@@ -41,7 +43,7 @@ function storyboardGround(): [number, number, number] {
 
 const close = (a: number[], b: number[]) => a.every((v, i) => Math.abs(v - b[i]) <= 1);
 
-describe("L7: the splash PNG ground is the launch's warm ground", () => {
+describe("L7: the splash PNG ground is the launch's ground", () => {
   const contents = JSON.parse(read(`${SET}/Contents.json`)) as { images: { filename?: string }[] };
   const files = contents.images.map((i) => i.filename).filter((f): f is string => !!f);
 

@@ -1,7 +1,7 @@
 import { useIdCheckOnForViewer } from "@/lib/useIdCheckOnForViewer";
 import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Check, CreditCard, Headset, Lock, MapPin, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
 import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 import { useSectionsOpen, sectionIsComingSoon } from "./useSectionsOpen";
@@ -215,27 +215,17 @@ export function SectionsShowcase() {
 /**
  * D009 (landing design audit 11-10): the band made eight claims of equal weight (four steps and four tiles) and left an
  * empty block at 1440. Now one headline that covers jobs AND Declutter (owner's preview tweak 2: the Declutter line is
- * folded in, not a ninth claim), three steps in one row, and one row of trust badges.
+ * folded in, not a ninth claim), three steps in one row. Owner 2026-11-17: no trust badges row and no icons above the
+ * steps; the titles and text stay.
  */
-const MONEY_STEPS: { icon: LucideIcon; title: string; body: string; key: string }[] = [
-  { key: "step1", icon: CreditCard, title: "Paid through Helpr", body: "The full price is shown before anyone pays, and Helpr holds the money." },
-  { key: "step2", icon: Lock, title: "Held until it’s done", body: "Nobody is paid out until the work is done, or the buyer says they got the item." },
+const MONEY_STEPS: { title: string; body: string; key: string }[] = [
+  { key: "step1", title: "Paid through Helpr", body: "The full price is shown before anyone pays, and Helpr holds the money." },
+  { key: "step2", title: "Held until it’s done", body: "Nobody is paid out until the work is done, or the buyer says they got the item." },
   {
     key: "step3",
-    icon: Check,
     title: "Approved, then released",
     body: `The person hiring approves the work or asks for a change. If they haven’t answered in ${APPROVAL_WINDOW_HOURS} hours, a real person on our team steps in.`,
   },
-];
-
-/** The ID badge while the ID check is on; while it is off (owner 2026-10-23) a true one takes its place. */
-const TRUST_ID_ON = { icon: ShieldCheck, title: "ID-verified people", key: "id" };
-const TRUST_ID_OFF = { icon: ShieldCheck, title: "Every email confirmed", key: "email" };
-const TRUST: { icon: LucideIcon; title: string; key: string }[] = [
-  TRUST_ID_ON,
-  { icon: Wallet, title: "No cash changes hands", key: "cash" },
-  { icon: Headset, title: "A real person answers", key: "person" },
-  { icon: MapPin, title: "Made in Louisiana", key: "made" },
 ];
 
 /** Holds the Apple button's place (same box and label, invisible) until its chunk has loaded (F016). */
@@ -260,9 +250,6 @@ export function TrustAndJoin() {
   const navigate = useNavigate();
   const joinRef = useRef<HTMLElement>(null);
   const joinSeen = useSeenAfterLoad(joinRef);
-  // L010 (landing audit 11-09): the trust card said "Every account confirms its email" to every guest, because the
-  // member's switch answer is false signed out; the real protection, on for everyone, is the ID check.
-  const idOn = useIdCheckOnForViewer();
   // UI audit F016 (11-09): the Apple button's chunk is fetched once the page has settled (never on first paint), and
   // its slot is held by a same-size placeholder until then, so "Create your free account" never moves when it lands.
   const [settled, setSettled] = useState(false);
@@ -283,24 +270,13 @@ export function TrustAndJoin() {
             {w("landing.moneyHeadline", MONEY_HEADLINE)}
           </h2>
           <ol className="grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-10" data-testid="landing-money-steps">
-            {MONEY_STEPS.map(({ icon: Icon, title, body, key }) => (
+            {MONEY_STEPS.map(({ title, body, key }) => (
               <li key={title} className="flex flex-col gap-3 min-w-0">
-                <span className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--lp-band-tile)", color: "var(--lp-band-money)" }} aria-hidden>
-                  <Icon className="w-[18px] h-[18px]" />
-                </span>
                 <h3 className="text-ds-16 font-bold" style={{ color: "var(--lp-band-ink)" }}>{w(`landing.${key}Title`, title)}</h3>
                 <p className="text-ds-15 leading-relaxed">{w(`landing.${key}Body`, body).replace("{hours}", String(APPROVAL_WINDOW_HOURS))}</p>
               </li>
             ))}
           </ol>
-          <ul className="flex flex-wrap gap-2" data-testid="landing-trust-badges" aria-label={w("landing.trustLabel", "Why it’s safe")}>
-            {TRUST.map((t) => (t === TRUST_ID_ON && !idOn ? TRUST_ID_OFF : t)).map(({ icon: Icon, title, key }) => (
-              <li key={title} className="inline-flex items-center gap-2 rounded-full px-3.5 min-h-9 text-ds-13 font-semibold" style={{ border: "1px solid var(--lp-band-line)", color: "var(--lp-band-ink)" }}>
-                <Icon className="w-4 h-4" aria-hidden style={{ color: "var(--lp-band-money)" }} />
-                {w(`landing.trust.${key}`, title)}
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 
@@ -308,8 +284,8 @@ export function TrustAndJoin() {
         <div className="mx-auto w-full max-w-3xl flex flex-col items-center text-center gap-5">
           {/* D002 (11-10): the close is one step larger than the section headings (.landing-h2-close, 40 -> 56px). */}
           <h2 id="join-heading" className="font-display landing-serif text-balance landing-h2-close" style={{ color: "var(--lp-ink)" }}>
-            {w("landing.joinLead", "Join your neighbors on")}{" "}
-            <em style={{ fontStyle: "italic", color: "var(--lp-action-strong)" }}>Helpr.</em>
+            {/* Owner 2026-11-17: one colour and style, no italic olive "Helpr.". */}
+            {w("landing.joinLead", "Join your neighbors on")} Helpr.
           </h2>
           <p className="max-w-xl text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>{w("landing.joinSub", "One free account for jobs and Declutter.")}</p>
           <div className="mt-2 w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">

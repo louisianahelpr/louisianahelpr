@@ -79,7 +79,7 @@ describe("F260q: the footer speaks the visitor's language", () => {
     await waitFor(() => expect(screen.getByText(esPublic["footer.explore"])).toBeTruthy());
     const text = footerText();
     // Visible words only (aria-labels and titles are checked by label below); a word the same in both ("Legal") is no miss.
-    const ATTRS = new Set(["footer.appStore", "footer.appStoreTitle", "footer.facebook", "footer.facebookTitle", "footer.instagram", "footer.instagramTitle", "footer.love"]);
+    const ATTRS = new Set(["footer.appStore", "footer.appStoreTitle", "footer.facebook", "footer.facebookTitle", "footer.instagram", "footer.instagramTitle"]);
     const left = pairs.filter(([k, english]) => !ATTRS.has(k) && esPublic[k as keyof typeof esPublic] !== english && text.includes(english));
     expect(left).toEqual([]);
     expect(text).toContain("Términos");

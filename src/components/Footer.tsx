@@ -1,4 +1,4 @@
-import { Apple, Heart } from "lucide-react";
+import { Apple } from "lucide-react";
 import { Suspense, useEffect } from "react";
 import { Link } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
@@ -363,22 +363,8 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
         <Suspense fallback={null}>
           <LanguageToggle />
         </Suspense>
-        <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 flex items-center gap-1.5">
-          {w("footer.madeWith", "Made with")}{" "}
-          {/* L018 (landing audit 11-09): the icon was aria-hidden, so it read "Made with for Louisiana communities". */}
-          <Heart
-            className="w-3 h-3"
-            role="img"
-            aria-hidden={false}
-            aria-label={w("footer.love", "love")}
-            style={{
-              // Olive, not rust: rust is for money only (audit #14).
-              color: "hsl(var(--bark))",
-              fill: "hsl(var(--bark))",
-            }}
-          />{" "}
-          {w("footer.forCommunities", "for Louisiana communities")}
-        </p>
+        {/* Owner 2026-11-17: the plain place name, not "Made with ♥ for Louisiana communities". */}
+        <p className="text-ds-11 text-[hsl(var(--olivewood))]/80">{w("footer.place", "Delcambre, Louisiana")}</p>
       </div>
     </div>
   </footer>

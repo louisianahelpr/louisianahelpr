@@ -9,13 +9,27 @@
  */
 import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
-import { GUIDE_INDEX } from "@/content/giftGuideIndex";
-import { RESEARCHED_PICKS, type ResearchedPick } from "@/content/giftGuidePicks";
+import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
+import { RESEARCHED_PICKS, RESEARCHED_STORES, STORE_DEALS, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
 
-export type GiftStore = "amazon" | "shopmy" | "zchocolat" | "diecast" | "louisiana" | "sponsor";
+/**
+ * The owner's list plus every store page the researched picks name (follow-up batch 2026-11-18: every store or brand
+ * we hold a link for gets its own "By store" page), appended to the By store row in name order.
+ */
+const GUIDE_INDEX: typeof OWNER_INDEX = [
+  ...OWNER_INDEX,
+  ...Object.entries(RESEARCHED_STORES)
+    .filter(([slug]) => !OWNER_INDEX.some((g) => g.slug === slug))
+    .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+    .map(([slug, st]) => ({ group: "By store", tint: "green" as const, slug, title: st.name, lead: "shop" })),
+];
+
+/** A fixed store, or a researched store page's slug ("store-walmart"). */
+export type GiftStore = "amazon" | "shopmy" | "zchocolat" | "diecast" | "louisiana" | "sponsor" | (string & {});
+type FixedStore = "amazon" | "shopmy" | "zchocolat" | "diecast" | "louisiana" | "sponsor";
 
 /** Each store, the name the page shows and the link hosts that belong to it. */
-export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] }> = {
+const FIXED_STORES: Record<FixedStore, { name: string; hosts: readonly string[] }> = {
   amazon: { name: "Amazon", hosts: ["www.amazon.com", "amazon.com", "amzn.to"] },
   shopmy: { name: "ShopMy", hosts: ["shopmy.us"] },
   zchocolat: { name: "zChocolat", hosts: ["www.zchocolat.com"] },
@@ -26,10 +40,13 @@ export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] 
   sponsor: { name: "a 25 Days sponsor", hosts: SPONSOR_SITES },
 };
 
-/** The store a pick's link goes to, read from its host. A host on no store is a content error, so it throws. */
+/** Every store: the fixed ones, then each researched store page (its name and the hosts its picks' links use). */
+export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] }> = { ...FIXED_STORES, ...RESEARCHED_STORES };
+
+/** The fixed store a pick's link goes to, read from its host. A host on no fixed store is a content error, so it throws. */
 export function storeOf(href: string): GiftStore {
   const host = new URL(href).hostname;
-  const hit = (Object.keys(STORES) as GiftStore[]).find((s) => STORES[s].hosts.includes(host));
+  const hit = (Object.keys(FIXED_STORES) as FixedStore[]).find((s) => FIXED_STORES[s].hosts.includes(host));
   if (!hit) throw new Error(`gift guides: ${href} is on no store in STORES`);
   return hit;
 }
@@ -97,6 +114,8 @@ export interface CatalogGuide {
   parent?: string;
   /** The age band a kids guide is for ("ages 0–1"), from the owner's list; shown with its count. */
   age?: string;
+  /** A store page's live deal sections, after its picks (each hidden after its end date on the page). */
+  deals?: StoreDeal[];
 }
 
 const rowId = (label: string) => label.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -172,9 +191,21 @@ const amazonGuides: Draft[] = AMAZON_GUIDES.map((g) => ({
   links: [...shopmyLinkFor(slugOf(g.slug)), ...(g.slug === "stocking-stuffers" ? [section("stocking-stuffers").shop, ...section("stocking-stuffers").more] : [])],
 }));
 
+/**
+ * A researched pick's store: Amazon, a Louisiana shop, a sponsor or a brand site by its host; otherwise (an affiliate
+ * link, or a ShopMy pick with a retailer) the store page the loader named.
+ */
+const researchedStore = (p: ResearchedPick): GiftStore => {
+  const host = new URL(p.href).hostname;
+  const fixed = (Object.keys(FIXED_STORES) as FixedStore[]).find((s) => FIXED_STORES[s].hosts.includes(host));
+  if (fixed && !(fixed === "shopmy" && p.store)) return fixed;
+  if (p.store === "store-amazon") return "amazon";
+  if (p.store && STORES[p.store]) return p.store;
+  throw new Error(`gift guides: ${p.href} is on no store in STORES`);
+};
 const toPick = (p: ResearchedPick): CatalogPick => {
   const badges = badgesFor(p.brand, p);
-  return { name: p.name, href: p.href, store: storeOf(p.href), line: p.line, brand: p.brand, ...(badges.length ? { badges } : {}) };
+  return { name: p.name, href: p.href, store: researchedStore(p), line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}) };
 };
 const researched = (): CatalogPick[] => Object.values(RESEARCHED_PICKS).flat().map(toPick);
 const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks), ...researched()];
@@ -203,6 +234,19 @@ const DRAFTS: Draft[] = [
   storeGuide(["zchocolat"], "store-zchocolat", STORES.zchocolat.name, "French chocolate gift boxes."),
   storeGuide(["diecast"], "store-diecast-models", STORES.diecast.name, "Diecast model cars, for collectors."),
 ];
+
+/**
+ * Each researched store page (two taps, like Walmart): "Louisiana Helpr Picks" first (its own store-<x> file, then
+ * every pick on that store from every guide, once each, photos first), then its deal sections (STORE_DEALS).
+ */
+for (const slug of Object.keys(RESEARCHED_STORES)) {
+  if (slug === "store-amazon") continue;
+  const own = (RESEARCHED_PICKS[slug] ?? []).map(toPick);
+  const onStore = researched().filter((p) => p.store === slug);
+  const picks = uniqueByHref([...own, ...onStore]);
+  const g = GUIDE_INDEX.find((x) => x.slug === slug)!;
+  DRAFTS.push({ slug, lead: g.lead, title: g.title, line: "", picks: [...picks.filter((p) => p.image), ...picks.filter((p) => !p.image)], links: [] });
+}
 
 
 /**
@@ -236,7 +280,7 @@ const draftOf = new Map(DRAFTS.map((d) => [d.slug, d] as const));
 /** The researched picks (src/content/giftGuidePicks.ts, generated) are each listed guide's list, in their order. */
 for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) {
   const g = GUIDE_INDEX.find((x) => x.slug === slug);
-  if (!g) continue;
+  if (!g || (RESEARCHED_STORES[slug] && slug !== "store-amazon")) continue;
   const d = draftOf.get(slug) ?? { slug, lead: g.lead, title: g.title, line: "", picks: [], links: [] };
   draftOf.set(slug, { ...d, picks: list.map(toPick) });
 }
@@ -268,7 +312,7 @@ const parentOf = new Map(Object.entries(HUBS).flatMap(([hub, groups]) => groups.
 /** Every guide with content that no group shows (a test keeps this empty: nothing is dropped silently). */
 export const unplacedGuides = () =>
   DRAFTS.filter((d) => filled(d.slug) && (d.picks.length > 0 || d.links.length > 0) && !GUIDES.some((g) => g.slug === d.slug)).map((d) => d.slug);
-const hasCover = new Set(GUIDE_INDEX.map((g) => g.slug));
+const hasCover = new Set(OWNER_INDEX.map((g) => g.slug));
 /** The folder in public/ the covers are served from (static files, not an app route). */
 const COVER_DIR = `${"/gift-guides"}/covers`;
 
@@ -283,6 +327,7 @@ const build = (slug: string, group: string, tint: GuideTint, listed?: { title: s
     row: rowId(group),
     tint,
     cover: hasCover.has(slug) ? `${COVER_DIR}/${slug}.webp` : undefined,
+    ...(STORE_DEALS[slug]?.length ? { deals: STORE_DEALS[slug] } : {}),
     parent: parentOf.get(slug),
     ...(children ? { children } : {}),
   };

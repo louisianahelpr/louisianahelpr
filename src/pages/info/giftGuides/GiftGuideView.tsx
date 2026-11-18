@@ -73,6 +73,38 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
   );
 }
 
+/** Today in Louisiana, as YYYY-MM-DD (a deal shows through its end date). */
+const todayInLouisiana = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+
+/**
+ * A store page's deal sections after its picks (owner 2026-11-18: "add subsections for any store that has deals right
+ * now"): each a heading that opens the deal page (affiliate link), its items when the loader has them (Walmart's
+ * collections), and its end date. A section past its end date is hidden.
+ */
+function StoreDeals({ guide }: { guide: CatalogGuide }) {
+  const today = todayInLouisiana();
+  const live = (guide.deals ?? []).filter((d) => !d.ends || d.ends >= today);
+  if (live.length === 0) return null;
+  return (
+    <section aria-label={G.dealsTitle} data-gift-deals="">
+      <div className="gg-rowhead"><h3>{G.dealsTitle}</h3></div>
+      {live.map((d) => (
+        <div key={d.href} data-gift-deal="">
+          <p className="gg-more">
+            <GiftOut href={d.href} className="gg-link">{d.title}</GiftOut>
+            {d.ends && <small> {G.dealEnds(d.ends)}</small>}
+          </p>
+          {d.items && d.items.length > 0 && (
+            <ol className="gg-list">
+              {d.items.map((i) => <PickRow key={`${i.href} ${i.name}`} pick={{ name: i.name, href: i.href, store: guide.slug }} />)}
+            </ol>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 /** The guide where the Hire-a-Helpr box sits at the TOP (owner 2026-11-18). */
 const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
 
@@ -89,6 +121,7 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
         </section>
       ))}
       <GiftGuideList guide={guide} />
+      <StoreDeals guide={guide} />
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>
   );

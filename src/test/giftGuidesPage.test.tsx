@@ -111,7 +111,7 @@ await loadAllGuidePicks();
 
 const src = (p: string) => blankComments(readFileSync(p, "utf8"));
 
-/** Opens every "Show more" under a long list (50 rows at first, design audit 11-18 #3), so a check sees every row. */
+/** Opens every "Show more" under a long list (50 rows at first as of 2026-11-18, design audit #3), so a check sees every row. */
 const expandAll = (root: HTMLElement) => {
   for (let b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); b; b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]")) fireEvent.click(b);
   return root;
@@ -628,7 +628,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       const g = guideBySlug(slug)!;
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-words] h2")?.textContent, slug).toBe(g.title);
-      // Design audit 11-18 #3: a long list draws 50 rows, then "Show more" adds 50 at a time (store-amazon drew 827).
+      // Design audit 2026-11-18 #3: a long list draws 50 rows, then "Show more" adds 50 at a time (store-amazon drew 827).
       // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {sectionsOf(guide.picks.slice(0, shown)).map( | {sectionsOf(guide.picks).map(
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(Math.min(g.picks.length, PICKS_PAGE));
       expandAll(container);

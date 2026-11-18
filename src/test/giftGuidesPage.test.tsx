@@ -526,6 +526,10 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(activeCodes(discountCodes, "2026-11-20").map((c) => c.code)).toContain("TAKE25");
     expect(activeCodes(discountCodes, "2026-11-28").map((c) => c.code)).not.toContain("CYBER");
     expect(activeCodes(discountCodes, "2026-11-29").map((c) => c.code)).toContain("CYBER");
+    // Tushbaby LAHELPR25 (confirmed 11-18 PM): Dec 1 through Dec 25 only.
+    // @mutate src/content/giftGuides.ts | code: "LAHELPR25", offer: "25% off sitewide", dates: "Dec 1 – 25", starts: "2026-12-01", | code: "LAHELPR25", offer: "25% off sitewide", dates: "Dec 1 – 25", starts: "2026-11-01",
+    const tush = (d: string) => activeCodes(discountCodes, d).filter((c) => c.store === "Tushbaby").map((c) => c.code);
+    expect([tush("2026-11-30"), tush("2026-12-01"), tush("2026-12-25"), tush("2026-12-26")]).toEqual([[], ["LAHELPR25"], ["LAHELPR25"], []]);
     // Sweep #10: Bonheur (a pick on Spa Days) has its live codes; its Black Friday code is embargoed to Nov 26.
     expect(activeCodes(discountCodes, "2026-11-18").filter((c) => c.store === "Bonheur Jewelry").map((c) => c.code)).toEqual(["SHOPMY25", "BONHEUR15"]);
     expect(activeCodes(discountCodes, "2026-11-25").map((c) => c.code)).not.toContain("BLKFRIDAY35");
@@ -1056,17 +1060,27 @@ describe("gift guides: rows read in order (design audit 11-18 #8, #9)", () => {
 describe("gift guides: Amazon CDN photos held behind one switch; photo-less picks swapped in mixed guides (lead 2026-11-18)", () => {
   it("ships no m.media-amazon.com photo while AMAZON_CDN_PHOTOS is off, and the import swaps no-photo picks from the link library", () => {
     // @mutate scripts/gift-guide-picks.mjs | (!amazonHosted \|\| (AMAZON_CDN_PHOTOS && | (true \|\| (AMAZON_CDN_PHOTOS &&
+    // @mutate scripts/gift-guide-picks.mjs | ssl-images-amazon\|amazon\|amazon-adsystem)\.com$/; | ssl-images-amazon\|amazon)\.com$/;
     const script = src("scripts/gift-guide-picks.mjs");
     expect(script).toContain('export const AMAZON_CDN_PHOTOS = process.env.GIFT_AMAZON_PHOTOS === "on" || false;');
     expect(script).toContain('(!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe"))');
+    // Every Amazon image host counts as Amazon-hosted, the ad-system widget host too (lead 11-18 PM).
+    expect(script).toContain("export const AMAZON_IMAGE_HOST = /(^|\\.)(media-amazon|images-amazon|ssl-images-amazon|amazon|amazon-adsystem)\\.com$/;");
+    expect(script).toContain("AMAZON_IMAGE_HOST.test(new URL(p.image).hostname)");
     expect(script).toContain('JSON.parse(readFileSync(join(LIB, "unused-by-guide.json"), "utf8"))');
     expect(script).toContain("const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut];");
     let photos = 0;
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
       if (!p.image) continue;
       photos += 1;
-      expect(new URL(p.image).hostname, `${slug}: ${p.name}`).not.toMatch(/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/);
+      expect(new URL(p.image).hostname, `${slug}: ${p.name}`).not.toMatch(/(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon|amazon-adsystem)\.com$/);
     }
+    // Brand-site photos (lead 11-18 PM): a photo-less Amazon pick takes the brand's own photo of the same product from
+    // amazon-brand-images.json, its Amazon link kept (179 rows from 45 ASINs, measured 11-18 PM).
+    // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"
+    let brandSite = 0;
+    for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image) brandSite += 1;
+    expect(brandSite).toBeGreaterThan(100);
     // Floor re-measured 2026-11-18 after design audit r2 dropped page titles, store names and promos (4,397 photos).
     expect(photos).toBeGreaterThan(4000);
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed

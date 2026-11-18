@@ -121,8 +121,55 @@ for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
   }
 }
 const stockLine = (line) => (lineProducts.get(String(line ?? "").trim())?.size ?? 0) > LINE_MAX_PRODUCTS;
+/**
+ * Photo-less Amazon picks (lead 11-18 PM): amazon-brand-images.json gives the BRAND's own photo of the same product
+ * (by ASIN, source "brand-site"; the Amazon link is kept), and amazon-swaps.json swaps an ASIN for the same product at
+ * another store (its own link, photo and checked price). Both optional; a later run picks up new entries. An image on an
+ * Amazon host is never taken from them (AMAZON_IMAGE_HOST).
+ */
+export const AMAZON_IMAGE_HOST = /(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon|amazon-adsystem)\.com$/;
+const readLib = (f) => {
+  try {
+    return JSON.parse(readFileSync(join(LIB, f), "utf8"));
+  } catch {
+    // Not written yet (or mid-write): no brand photos or swaps this run.
+    return {};
+  }
+};
+const BRAND_IMAGES = readLib("amazon-brand-images.json");
+const AMAZON_SWAPS = readLib("amazon-swaps.json");
+const offAmazonImage = (u) => {
+  try {
+    const x = new URL(u);
+    return x.protocol === "https:" && !AMAZON_IMAGE_HOST.test(x.hostname);
+  } catch {
+    // Not a URL: no photo.
+    return false;
+  }
+};
+const asinOf = (p) => [p.affiliate_href, p.href].map((u) => String(u ?? "").match(/amazon\.com\/(?:[^?#]*\/)?dp\/([A-Z0-9]{10})/)?.[1]).find(Boolean);
+/** The raw pick after the Amazon swap and brand-photo files: a swap replaces it; a brand photo fills a missing one. */
+const withAmazonFixes = (p) => {
+  const asin = asinOf(p);
+  if (!asin) return p;
+  const swap = AMAZON_SWAPS[asin];
+  if (swap?.href && swap.name && swap.source === "swap") {
+    return {
+      name: swap.name, brand: p.brand, line: p.line, store: swap.store, affiliate_href: swap.href, href: swap.href,
+      ...(offAmazonImage(swap.image) ? { image: swap.image } : {}),
+      ...(swap.price && swap.price_checked_at ? { price: swap.price, price_currency: "USD", price_checked_at: swap.price_checked_at, price_source: "amazon-swaps.json" } : {}),
+      ...(p.louisianaFit ? { louisianaFit: p.louisianaFit } : {}),
+    };
+  }
+  const brand = BRAND_IMAGES[asin];
+  const hasOwn = typeof p.image === "string" && offAmazonImage(p.image);
+  if (!hasOwn && brand?.source === "brand-site" && offAmazonImage(brand.image)) return { ...p, image: brand.image, image_source: "brand-site" };
+  return p;
+};
 /** One raw pick -> the page's pick, or null (hidden: the reason is listed). */
 function toPick(p, where) {
+  if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
+  p = withAmazonFixes(p);
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
   let href = p.affiliate_href || p.href;
   let url;
@@ -159,7 +206,7 @@ function toPick(p, where) {
   const flags = Object.fromEntries(["trending", "shipsFast", "localPickup"].filter((k) => p[k] === true).map((k) => [k, true]));
   // No Amazon-hosted product photo is hotlinked (Associates rules: Amazon images only through SiteStripe or its API);
   // those picks get the store tile on the page. AMAZON_CDN_PHOTOS lets the SiteStripe-tagged ones through.
-  const amazonHosted = typeof p.image === "string" && p.image.startsWith("https://") && /(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$/.test(new URL(p.image).hostname);
+  const amazonHosted = typeof p.image === "string" && p.image.startsWith("https://") && AMAZON_IMAGE_HOST.test(new URL(p.image).hostname);
   // A TIFF photo shows blank in every browser (affiliate sweep 11-18: 279 ShopMy "_fpx.tif" images): dropped, so the
   // pick is swapped for a photo'd one in a mixed guide or draws its store tile.
   const tiff = typeof p.image === "string" && /\.tiff?(\?|#|$)/i.test(p.image);

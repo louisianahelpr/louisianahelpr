@@ -185,6 +185,8 @@ export const discountCodes: DiscountCode[] = [
   { rank: 17, store: "Bonheur Jewelry", code: "SHOPMY25", offer: "25% off" },
   { rank: 17, store: "Bonheur Jewelry", code: "BONHEUR15", offer: "15% off" },
   { rank: 17, store: "Bonheur Jewelry", code: "BLKFRIDAY35", offer: "35% off (Black Friday)", dates: "From Nov 26", starts: "2026-11-26" },
+  // Tushbaby confirmed LAHELPR25 for us (11-18 PM; we told the brand we'd list it): shows Dec 1, hides after Dec 25.
+  { rank: 18, store: "Tushbaby", code: "LAHELPR25", offer: "25% off sitewide", dates: "Dec 1 – 25", starts: "2026-12-01", expires: "2026-12-25" },
 ];
 
 /** The codes still good on `today` (YYYY-MM-DD, local): a code is shown through its `expires` day. */

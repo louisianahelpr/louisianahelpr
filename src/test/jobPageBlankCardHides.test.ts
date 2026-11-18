@@ -18,9 +18,9 @@ const card = (inner: string) => {
 
 describe("the job page's side card hides when nothing in it shows (area 11 H2)", () => {
   it("a card holding only hidden controls and empty hosts is blank; one with a visible child is not", () => {
-    // The No-show stage at 375: the hidden PostedJobActions host, the empty card-ask host, the empty refund host.
+    // The No-show stage on a phone (2026-11-18): the hidden PostedJobActions host, the empty card-ask host, the empty refund host.
     expect(card('<div data-card-ask=""></div><div data-poster-more="" hidden><button>Approve</button></div><div data-job-refund=""></div>').matches(BLANK_CARD_SELECTOR)).toBe(true);
-    // At 1440 the button row is inline, so the card shows.
+    // Desktop width (2026-11-18): the button row is inline, so the card shows.
     expect(card('<div data-poster-more="" hidden></div><div data-sticky-action-bar="inline"><button>Post this job again</button></div>').matches(BLANK_CARD_SELECTOR)).toBe(false);
     expect(card('<p data-viewer-status="">You cancelled</p>').matches(BLANK_CARD_SELECTOR)).toBe(false);
   });

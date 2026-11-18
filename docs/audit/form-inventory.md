@@ -49,7 +49,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/dashboard/DateRangeBar.tsx` | input×1 | number |  | custom-days |
 | `src/components/admin/DeleteUserDialog.tsx` | input×1 | text |  |  |
 | `src/components/admin/EditEmailDialog.tsx` | input×2 | email |  | New email · Confirm new email |
-| `src/components/admin/FormalWarningDialog.tsx` | textarea×1, select×1, checkbox/switch/radio×1 |  |  | Reason category · Internal note (sent to user) |
+| `src/components/admin/FormalWarningDialog.tsx` | textarea×1, select×1, checkbox/switch/radio×1 |  |  | Reason category · Note to the member (they |
 | `src/components/admin/helprFault/HelprFaultFields.tsx` | input×2, textarea×1 | radio |  | helpr-fault-kind · Helpr at fault note |
 | `src/components/admin/marketing/MarketingComposerDialog.tsx` | input×4, textarea×1, select×2, date/calendar×1 | text, file, datetime-local |  | Channel · post-body · post-tags · #nola, #batonrouge #handyman · Parish · post-campaign · hurricane-season-2026 · post-when |
 | `src/components/admin/marketing/MarketingSettingsCard.tsx` | input×1, checkbox/switch/radio×2 | number |  | auto-publish · daily-cap |

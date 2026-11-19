@@ -2446,7 +2446,7 @@ export const STORE_CAP = 15;
 /** Store audit C's page changes (drop, merge, cap, REI) ship in their own follow-up PR (lead 11-19: split if needed). */
 export const STORE_AUDIT_C_ON = process.env.GIFT_STORE_AUDIT_C === "on";
 export const TASTE_CUTS_FILE = "_taste-cuts-1119c.json";
-export const readyCounts = { out: {}, communityCoffee: 0, capped: 0, kidsAsks: 0, ownerNoPhoto: 0 };
+export const readyCounts = { out: {}, communityCoffee: 0, capped: 0, kidsAsks: 0, ownerNoPhoto: 0, storeAdds: 0, kidsAsksHeld: 0 };
 export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei: 0, excluded: 0, ownerPicks: 0 };
 {
   for (const slug of Object.keys(pageList)) {
@@ -2515,10 +2515,15 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     const byKidGuide = new Map();
     for (const r of rowsOf(readJson(f))) {
       if (!r || typeof r.name !== "string" || typeof r.href !== "string" || !/^https:\/\//.test(r.href) || !livePhoto(r.image) || excluded(r)) continue;
+      // An affiliate or approved link only (a plain walmart.com link earns nothing and is no allowed host).
+      if (!AFFILIATE.has(new URL(r.href).hostname) && !PLAIN_OK.has(new URL(r.href).hostname)) { readyCounts.kidsAsksHeld += 1; continue; }
       const pick = { name: tidyName(r.name), brand: String(r.brand ?? ""), line: String(r.why ?? r.line ?? ""), href: r.href, image: r.image, trending: true,
-        ...(typeof r.price === "number" ? { price: r.price, priceAt: String(r.added_at ?? "2026-11-19") } : {}) };
-      const store = storeFor(String(r.brand ?? "").trim());
-      if (store) {
+        // Amazon shows no price (Associates; no PA-API yet).
+        ...(typeof r.price === "number" && !AMAZON.has(new URL(r.href).hostname) ? { price: r.price, priceAt: String(r.added_at ?? "2026-11-19") } : {}) };
+      // An Amazon link lists on the Amazon page; any other on its brand's store page.
+      const store = AMAZON.has(new URL(r.href).hostname) ? "store-amazon" : storeFor(String(r.brand ?? "").trim());
+      if (store === "store-amazon") pick.store = store;
+      else if (store) {
         pick.store = store;
         storeList[store] ??= { name: stores.get(store)?.name ?? String(r.brand), hosts: [] };
         if (!storeList[store].hosts.includes(new URL(r.href).hostname)) storeList[store].hosts = [...storeList[store].hosts, new URL(r.href).hostname];
@@ -2614,7 +2619,19 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     pageList[slug] = pageList[slug].filter((p) => productKeys(p).every((k) => !keep.has(k) || keep.get(k).has(slug)));
     readyCounts.capped += n - pageList[slug].length;
   }
-  console.log(`gift-guide-picks: ready 1119c: dedupe ${dedupeCounts.dropped} rows dropped, ${dedupeCounts.slotted} kept rows slotted; out ${JSON.stringify(readyCounts.out)}; ${readyCounts.communityCoffee} Community Coffee moved; ${readyCounts.capped} past the ${DUP_GUIDE_MAX}-guide cap; ${readyCounts.kidsAsks} kids-ask rows placed; ${readyCounts.ownerNoPhoto} owner picks held for a photo`);
+  // Every guide pick still lists on its store page (a late fill can bring a pick its store page never saw).
+  for (const slug of Object.keys(pageList)) {
+    if (slug.startsWith("store-") || slug === SPONSORS_GUIDE) continue;
+    for (const p of pageList[slug]) {
+      const page = p.store && pageList[p.store];
+      // A page the store audit emptied stays empty; a Louisiana item stays off a national store's page.
+      if (!page?.length || page.some((x) => x.href === p.href || compact(x.name) === compact(p.name))) continue;
+      if (!LOUISIANA_STORE_PAGES.has(p.store) && isLouisianaItem(p, LA_HOSTS)) continue;
+      page.push(p.store === "store-amazon" ? { ...p, section: AMAZON_SECTIONS[AMAZON_SECTIONS.length - 1] } : p);
+      readyCounts.storeAdds += 1;
+    }
+  }
+  console.log(`gift-guide-picks: ready 1119c: ${readyCounts.storeAdds} guide picks added to their store page; dedupe ${dedupeCounts.dropped} rows dropped, ${dedupeCounts.slotted} kept rows slotted; out ${JSON.stringify(readyCounts.out)}; ${readyCounts.communityCoffee} Community Coffee moved; ${readyCounts.capped} past the ${DUP_GUIDE_MAX}-guide cap; ${readyCounts.kidsAsks} kids-ask rows placed (${readyCounts.kidsAsksHeld} held: no affiliate link); ${readyCounts.ownerNoPhoto} owner picks held for a photo`);
   console.log(`gift-guide-picks: follow-up ${followUpCounts.rules} rule removals, ${followUpCounts.dropped.length} store pages dropped, ${followUpCounts.merged} merged, ${followUpCounts.capped} capped, ${followUpCounts.rei} REI hiking out, ${followUpCounts.excluded} owner excludes, ${followUpCounts.ownerPicks} owner picks placed`);
 }
 rmSync(chunkDir, { recursive: true, force: true });

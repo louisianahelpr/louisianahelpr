@@ -29,6 +29,8 @@ import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { BRAND_CASE, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
+/** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
+const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -96,7 +98,7 @@ const productKey = (v) => {
     try { walk(JSON.parse(readFileSync(join(dir, f), "utf8"))); } catch { /* a file that is not JSON is read (and reported) where it is used */ }
   }
   for (const v of rows) if (placeFields(v).some(nonUsUrl)) NON_US_LINKS.add(linkOf(v));
-  const rank = (l) => (/^https:\/\/go\.shopmy\.us\/p-/.test(l) ? 0 : /amazon\.com/.test(l) ? 2 : 1);
+  const rank = (l) => (/^https:\/\/go\.shopmy\.us\/p-/.test(l) ? 0 : isAmazonUrl(l) ? 2 : 1);
   for (const v of rows) {
     const link = linkOf(v);
     const key = productKey(v);
@@ -112,7 +114,7 @@ const usRelink = (p) => {
   const twin = US_TWIN.get(productKey(p));
   if (!twin) return null;
   const { store_href: _sh, product_url: _pu, domain: _d, ...rest } = p;
-  return { ...rest, href: twin.plain, affiliate_href: twin.link === twin.plain && /amazon\.com/.test(twin.link) ? undefined : twin.link, store: twin.store, retailer: undefined };
+  return { ...rest, href: twin.plain, affiliate_href: twin.link === twin.plain && isAmazonUrl(twin.link) ? undefined : twin.link, store: twin.store, retailer: undefined };
 };
 
 /** Every store page a pick belongs to: slug -> name (and the hosts its links use, filled below). */

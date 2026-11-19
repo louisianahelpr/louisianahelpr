@@ -660,3 +660,27 @@ export const BRAND_FIXES = [
   [/^fire tv stick\b/i, "Amazon"],
 ];
 export const fixedBrand = (name) => BRAND_FIXES.find(([rx]) => rx.test(String(name ?? "")))?.[1] ?? "";
+/**
+ * NEW AFFILIATE APPROVALS (lead 11-19, _new-approvals-1119.json): where a newly approved brand's pick goes in a guide's
+ * final list. Never above the first NEW_APPROVAL_KEEP_TOP picks or any Trending pick (`isTop`); from there it goes ahead
+ * of the first lower-commission pick (`isLower`: Amazon), so it outranks those at equal fit; with none left, at the end.
+ */
+export const NEW_APPROVAL_KEEP_TOP = 3;
+export const newApprovalSlot = (list, isTop, isLower) => {
+  let start = Math.min(NEW_APPROVAL_KEEP_TOP, list.length);
+  list.forEach((p, i) => { if (isTop(p) && i + 1 > start) start = i + 1; });
+  for (let i = start; i < list.length; i++) if (isLower(list[i])) return i;
+  return list.length;
+};
+/**
+ * The research row's `why_fits` as the shopper's line: our notes (what a brand pays, the owner's code, a rate) and any
+ * price ("$" + digit hides a pick) come out; a line left empty is "".
+ */
+export const approvalLine = (why) => {
+  let s = String(why ?? "").replace(/\s*\([^)]*(\$|%|\brate\b)[^)]*\)/g, "").split(";")[0];
+  s = s.replace(/,[^,]*\$\s?\d[^,]*?(?=[.,]|$)/g, "");
+  s = s.replace(/\s+(under|from)\s+\$\s?\d[\d.,]*/gi, "");
+  s = s.replace(/\s+/g, " ").trim().replace(/[.,;:\s]+$/, "");
+  if (!s || /\$\s?\d|%|\bpays\b|\bcommission\b|\bLEXI10\b/i.test(s)) return "";
+  return `${s}.`;
+};

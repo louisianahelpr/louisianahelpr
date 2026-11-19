@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3 } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3, INSULATED, TUMBLER_MAX, fillerGuide, FILLER_OK } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -720,7 +720,7 @@ const keptRow = (d) => (typeof d.dup_of === "string" && typeof d.dup_of_file ===
  */
 export const BRAND_PLACEMENT_FILE = "_brand-links-placement-1119c.json";
 const BRAND_PLACEMENT = readJson(BRAND_PLACEMENT_FILE) ?? {};
-for (const f of readdirSync(dir).filter((x) => /^_(fill-thin|trending-brands|curated-links|trend-links|advent|gift-tags|brand-links-1119)-.*\.json$/.test(x)).sort()) {
+for (const f of readdirSync(dir).filter((x) => /^_(fill-thin|fill-1119|trending-brands|curated-links|trend-links|advent|gift-tags|brand-links-1119)-.*\.json$/.test(x)).sort()) {
   const fileGuide = FILE_GUIDE.find(([rx]) => rx.test(f))?.[1];
   const brandFile = /^_brand-links-/.test(f);
   const v = readJson(f);
@@ -2513,7 +2513,13 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
   }
   for (const [g, picks] of byGuide) {
     const own = new Set(picks.flatMap((p) => [p.href, compact(p.name), `k:${dedupeKey(p.name)}`]));
-    const rest = (pageList[g] ?? []).filter((p) => !own.has(p.href) && !own.has(compact(p.name)) && !own.has(`k:${dedupeKey(p.name)}`));
+    // 1530 train: an owner pick is exempt from the rules, so the guide's other rows make room for it: no near-twin of an
+    // owner pick (variantKey: the Steady State hoodie and jogger), and on a filler guide no tumbler past TUMBLER_MAX
+    // counting the owner's own (Pink Lover: two owner tumblers + two more).
+    const twins = new Set(picks.map(variantKey));
+    let cups = fillerGuide(g, GUIDE_GROUPS.get(g) ?? "") ? picks.filter((p) => INSULATED.test(p.name) && !FILLER_OK[g]?.test(p.name)).length : -Infinity;
+    const rest = (pageList[g] ?? []).filter((p) => !own.has(p.href) && !own.has(compact(p.name)) && !own.has(`k:${dedupeKey(p.name)}`) && !twins.has(variantKey(p)))
+      .filter((p) => !(INSULATED.test(p.name) && !FILLER_OK[g]?.test(p.name) && cups !== -Infinity && (cups += 1) > TUMBLER_MAX));
     // At most BRAND_TOP_MAX of one brand among a guide's leading owner picks (lead 11-19: ~4 YETI in any top 12); the
     // rest follow its top 12.
     const n = new Map();

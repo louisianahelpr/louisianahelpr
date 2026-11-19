@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -66,6 +66,54 @@ const STORE_BY_COMPACT = new Map(INDEX.filter((g) => g.slug.startsWith("store-")
 const slugify = (s) => s.toLowerCase().replace(/&/g, "and").replace(/['’.]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const cleanName = (s) => s.replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+(US|USA)$/, "").replace(/\s+Affiliate Program$/i, "").trim();
 const domainCore = (d) => d.replace(/^(www|shop|us)\./, "").replace(/\.(com|us|co|net|org)(\.[a-z]+)?$/, "");
+
+/**
+ * US STORES ONLY (batch 11-19, nonUsUrl): every research row is read once. A link any row ties to a UK, Australian or
+ * Canadian store (its href, product_url, store_href, store, retailer or domain) is NON_US_LINKS; a row on such a link,
+ * or whose own fields name such a store, takes a US link of the same product from our data (US_TWIN: a ShopMy pin
+ * first, else any other affiliate or Amazon link), or is hidden.
+ */
+export const NON_US_LINKS = new Set();
+const US_TWIN = new Map();
+export const nonUs = { relinked: 0, hidden: 0 };
+const linkOf = (v) => v.affiliate_href || v.new_href || (v.pin_id ? `https://go.shopmy.us/p-${v.pin_id}` : "") || (typeof v.href === "string" && /^https:\/\/(www\.)?amazon\.com\//.test(v.href) ? v.href : "");
+const placeFields = (v) => [v.href, v.product_url, v.store_href, v.store, v.retailer, v.domain].filter((x) => typeof x === "string" && x);
+const productKey = (v) => {
+  const brand = compact(String(v.brand ?? ""));
+  let n = compact(String(v.name ?? "").replace(/^[^|]*\|\s*/, ""));
+  if (brand && n.startsWith(brand)) n = n.slice(brand.length);
+  return n.length > 6 ? n : "";
+};
+{
+  const rows = [];
+  const walk = (v) => {
+    if (Array.isArray(v)) { for (const x of v) walk(x); return; }
+    if (!v || typeof v !== "object") return;
+    if (typeof v.name === "string" && linkOf(v)) rows.push(v);
+    for (const x of Object.values(v)) if (x && typeof x === "object") walk(x);
+  };
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+    try { walk(JSON.parse(readFileSync(join(dir, f), "utf8"))); } catch { /* a file that is not JSON is read (and reported) where it is used */ }
+  }
+  for (const v of rows) if (placeFields(v).some(nonUsUrl)) NON_US_LINKS.add(linkOf(v));
+  const rank = (l) => (/^https:\/\/go\.shopmy\.us\/p-/.test(l) ? 0 : /amazon\.com/.test(l) ? 2 : 1);
+  for (const v of rows) {
+    const link = linkOf(v);
+    const key = productKey(v);
+    if (!key || NON_US_LINKS.has(link) || placeFields(v).some(nonUsUrl) || /shopmy\.us\/collections\//.test(link)) continue;
+    const had = US_TWIN.get(key);
+    if (!had || rank(link) < rank(had.link)) US_TWIN.set(key, { link, plain: typeof v.href === "string" && !nonUsUrl(v.href) ? v.href : link, store: v.retailer || v.store || v.brand || "" });
+  }
+}
+/** A row on a non-US store: the same product's US link (the row's own name, photo and copy kept), or null. */
+const usRelink = (p) => {
+  const link = p.affiliate_href || p.href;
+  if (!NON_US_LINKS.has(link) && !placeFields(p).some(nonUsUrl)) return p;
+  const twin = US_TWIN.get(productKey(p));
+  if (!twin) return null;
+  const { store_href: _sh, product_url: _pu, domain: _d, ...rest } = p;
+  return { ...rest, href: twin.plain, affiliate_href: twin.link === twin.plain && /amazon\.com/.test(twin.link) ? undefined : twin.link, store: twin.store, retailer: undefined };
+};
 
 /** Every store page a pick belongs to: slug -> name (and the hosts its links use, filled below). */
 const stores = new Map();
@@ -230,6 +278,11 @@ function toPick(p, where) {
   // A swap is a different product: the blocklist reads it too.
   if (fixed !== p && blockedBrand(fixed)) return hidden.push(`${where}: ${fixed.name} (swap) is a blocked brand`), null;
   p = fixed;
+  // US stores only (nonUsUrl): a UK/AU/CA store link moves to the same product's US link, or the row is hidden.
+  const us = usRelink(p);
+  if (!us) return nonUs.hidden += 1, hidden.push(`${where}: ${p.name} opens a non-US store and has no US link`), null;
+  if (us !== p) nonUs.relinked += 1;
+  p = us;
   let href = p.affiliate_href || p.href;
   let url;
   try {
@@ -1456,4 +1509,4 @@ writeFileSync(
 );
 
 if (process.env.GIFT_PICKS_VERBOSE) console.error(`RELINK SKIPPED:\n${earnings.relinkSkipped.join("\n")}\nSWAP SKIPPED:\n${earnings.swapSkipped.join("\n")}`);
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; non-US store links: ${NON_US_LINKS.size} (${nonUs.relinked} rows moved to a US link, ${nonUs.hidden} hidden); late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}`);

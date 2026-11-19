@@ -7,13 +7,14 @@
  * @mutate scripts/giftGuideRules.mjs | export const placeholderName = (p) => /^All\s+(\w+\s){0,2}\w+s$/.test(String(p.name ?? "").trim()) | export const placeholderName = (p) => false
  * @mutate scripts/giftGuideRules.mjs |   if (/^huk$/i.test(String(p.brand ?? "").trim())) return true; |
  * @mutate scripts/gift-guide-picks.mjs |     if (WOMEN_GUIDES.includes(slug) && mensItem(p)) return "men's item"; |
+ * @mutate scripts/gift-guide-picks.mjs |   if (!NON_US_LINKS.has(link) && !placeFields(p).some(nonUsUrl)) return p; |   return p;
  * @mutate scripts/giftGuideRules.mjs | export const NO_SHOW_FORMAT = /\.(avif\|heif\|heic)(\?\|$)\|[?&](fmt\|format)=avif\b/i; | export const NO_SHOW_FORMAT = /^$/;
  */
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ANGLING, NEW_MOM_CARE, NOT_A_GIFT_ITEM, WOMEN_GUIDES, brokenImage, collectionLink, fitsGuide, mensItem, placeholderName } from "../../scripts/giftGuideRules.mjs";
+import { ANGLING, NEW_MOM_CARE, NOT_A_GIFT_ITEM, WOMEN_GUIDES, brokenImage, collectionLink, fitsGuide, mensItem, nonUsUrl, placeholderName } from "../../scripts/giftGuideRules.mjs";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; href: string; image?: string };
@@ -66,6 +67,20 @@ describe("gift guides holistic fit (11-18)", () => {
     const named = new Set(["https://mavely.app.link/CUXXsAGUa8b", "https://mavely.app.link/H1gCiuGUa8b", "https://mavely.app.link/LPJLdGGUa8b", "https://mavely.app.link/bjXOnPBUa8b", "https://mavely.app.link/WUUrDKBUa8b", "https://mavely.app.link/OsRr4FBUa8b", "https://mavely.app.link/bJ14lBBUa8b", "https://mavely.app.link/QEjVswBUa8b"]);
     const bad = WOMEN_GUIDES.flatMap((g) => (CHUNKS[g] ?? []).filter((p) => mensItem(p) || named.has(p.href)).map((p) => `${g}: ${p.name} ${p.href}`));
     expect(bad).toEqual([]);
+  });
+
+  it("no pick opens a UK, Australian or Canadian store (batch 11-19)", () => {
+    for (const s of ["https://www.sephora.co.uk/p/laneige-lip-sleeping-mask", "Spacenk.com/uk", "https://www.spacenk.com/uk/makeup/x", "https://www.sportinglife.ca/en-CA/x", "https://www.lululemon.com/en-ca/p/x", "https://www.amazon.com.au/dp/x"]) expect(nonUsUrl(s), s).toBe(true);
+    for (const s of ["https://www.sephora.com/product/x", "https://us.laneige.com/products/x", "Sephora", "https://www.rarebeauty.com/products/x", "https://www.canada.com/x"]) expect(nonUsUrl(s), s).toBe(false);
+    // The ShopMy pins the 11-19 checks found on non-US stores (followed from this Mac: p-104125195 -> spacenk.com/uk;
+    // the rest name sephora.co.uk, slipsilkpillowcase.co.uk or sportinglife.ca in the research files).
+    const nonUs = ["p-104125195", "p-104112761", "p-104124837", "p-104112898", "p-104127707", "p-104125130", "p-104123427", "p-104214852"].map((id) => `https://go.shopmy.us/${id}`);
+    const bad = Object.entries(CHUNKS).flatMap(([slug, l]) => l.filter((p) => nonUs.includes(p.href) || nonUsUrl(p.href)).map((p) => `${slug}: ${p.name} ${p.href}`));
+    expect(bad).toEqual([]);
+    // Her keeps the blush and the lip mask on their US pins (rarebeauty.com, us.laneige.com).
+    const her = CHUNKS["her"] ?? [];
+    expect(her.find((p) => p.name === "Soft Pinch Liquid Blush")?.href).toBe("https://go.shopmy.us/p-104050729");
+    expect(her.find((p) => p.name === "Lip Sleeping Mask")?.href).toBe("https://go.shopmy.us/p-107575536");
   });
 
   it("no AVIF or HEIF photo (not every browser shows one)", () => {

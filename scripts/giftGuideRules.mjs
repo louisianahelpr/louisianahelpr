@@ -201,6 +201,12 @@ export const PET_ITEM = /\b(catnip|litter ?(box|robot)?|barkbox|meowbox|kitty ki
  * women's word (Huk's H1... styles are its men's line), or when it is a Sperry shoe whose photo carries Sperry's men's
  * style code (_mm_ / _ms_; its women's photos carry _wm_).
  */
+/**
+ * US stores only (batch 11-19, FB comment checks: Her's Rare Beauty blush pin opened spacenk.com/uk and a LANEIGE
+ * pin sephora.co.uk). nonUsUrl reads a store URL, domain or store name: a UK, Australian or Canadian site (.co.uk,
+ * .com.au, .ca, a /uk/, /en-gb/, /en-au/ or /en-ca/ path, "spacenk.com/uk").
+ */
+export const nonUsUrl = (s) => /(\.co\.uk|\.com\.au|\.ca)(\/|\?|#|$)|\/(uk|en-gb|en-au|en-ca)(\/|$)|\.uk$/i.test(String(s ?? "").trim());
 export const WOMEN_GUIDES = ["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma"];
 export const mensItem = (p) => {
   const name = String(p.name ?? "");

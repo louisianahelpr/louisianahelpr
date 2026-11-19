@@ -341,24 +341,7 @@
  },
  "best-friend": {
   "section": "By person",
-  "items": [
-   {
-    "name": "Lip Butter Balm Vault",
-    "key": "summerfridays:vault"
-   },
-   {
-    "name": "Instax Mini SE with Bonus Film, Pink",
-    "key": "instax:pink"
-   },
-   {
-    "name": "Small Silk Scrunchies",
-    "key": "slip:scrunchies"
-   },
-   {
-    "name": "Satin Heatless Curling Set",
-    "key": "kitsch:curling"
-   }
-  ]
+  "items": []
  },
  "friends": {
   "section": "By person",
@@ -3489,10 +3472,6 @@
     "key": "oldspice:men"
    },
    {
-    "name": "Small Silk Scrunchies",
-    "key": "slip:scrunchies"
-   },
-   {
     "name": "20% Shea Butter Hand Cream",
     "key": "loccitane:cream"
    },
@@ -3503,6 +3482,10 @@
    {
     "name": "Amazon Kindle Paperwhite 16GB (2024 model)",
     "key": "kindle:ereader"
+   },
+   {
+    "name": "Theragun Mini",
+    "key": "theragun:massager"
    }
   ]
  },
@@ -6288,28 +6271,28 @@
   "section": "Pets",
   "items": [
    {
-    "name": "Maverick XP Waterproof Western Work Boot",
-    "key": "durangoboots:boot"
+    "name": "Weaver Equine 7-Piece Horse Grooming Kit with Tote",
+    "key": "weaverequine:tote"
    },
    {
-    "name": "Carhartt Men's Rain Defender Relaxed Fit Heavyweight Hooded Shirt Jac",
-    "key": "carhartt:jac"
+    "name": "Troxel Spirit Riding Helmet",
+    "key": "troxel:helmet"
    },
    {
-    "name": "Amazon Kindle Paperwhite 16GB (2024 model)",
-    "key": "kindle:ereader"
+    "name": "Breyer Black Beauty Horse and Book Set",
+    "key": "breyer:book"
    },
    {
-    "name": "UGG Women's Disquette",
-    "key": "ugg:disquette"
+    "name": "Horse Print Sherpa Fleece Throw Blanket",
+    "key": "catalonia:blanket"
    },
    {
-    "name": "Apple Watch SE 3 GPS + Cellular 40mm Smartwatch",
-    "key": "apple:smartwatch"
+    "name": "Mrs. Pastures Cookies for Horses",
+    "key": "mrspastures:horses"
    },
    {
-    "name": "Ninja CREAMi Ice Cream Maker, for Mix-ins, Milkshakes, Sorbet",
-    "key": "ninja:sorbet"
+    "name": "Schleich Horse Club Horse Stall Playset",
+    "key": "schleich:playset"
    }
   ]
  },
@@ -6319,6 +6302,10 @@
    {
     "name": "20% Shea Butter Hand Cream",
     "key": "loccitane:cream"
+   },
+   {
+    "name": "Amazon Kindle Paperwhite 16GB (2024 model)",
+    "key": "kindle:ereader"
    },
    {
     "name": "CAVN Pen Light with Pupil Gauge LED Penlight for Nurses Doctors",
@@ -6335,43 +6322,64 @@
    {
     "name": "Professional Clog",
     "key": "dansko:shoe"
-   },
-   {
-    "name": "Beeswax Lip Balm Gift Set",
-    "key": "burtsbees:gift"
    }
   ]
  },
  "fish-lover": {
   "section": "Pets",
-  "items": []
+  "items": [
+   {
+    "name": "Fluval Flex 9-Gallon Aquarium Kit",
+    "key": "fluval:kit"
+   },
+   {
+    "name": "Marineland Portrait 5-Gallon Aquarium Kit",
+    "key": "marineland:kit"
+   },
+   {
+    "name": "NICREW 2.5-Gallon Nano Betta Aquarium Kit",
+    "key": "nicrew:kit"
+   },
+   {
+    "name": "Koller AquaView 360 6-Gallon Aquarium Kit",
+    "key": "kollerproducts:kit"
+   },
+   {
+    "name": "Tetra LED 10-Gallon Complete Aquarium Kit",
+    "key": "tetra:kit"
+   },
+   {
+    "name": "Marina 20-Gallon LED Aquarium Kit",
+    "key": "marina:kit"
+   }
+  ]
  },
  "bird-lover": {
   "section": "Pets",
   "items": [
    {
-    "name": "Squirrel Buster Plus Bird Feeder",
-    "key": "brome:feeder"
+    "name": "Prevue Parrot Play Stand with Wheels",
+    "key": "prevuepetproducts:wheels"
    },
    {
-    "name": "Smart Bird Feeder with Camera",
-    "key": "birdfy:camera"
+    "name": "Good Night Bird Cage Cover with Play Top",
+    "key": "colorday:top"
    },
    {
-    "name": "Crossfire HD 12x50 Binoculars",
-    "key": "vortexoptics:binoculars"
+    "name": "Old World Christmas Tropical Parrot Ornament",
+    "key": "oldworldchristmas:ornament"
    },
    {
-    "name": "Birdling Blue Jay Soft Toy",
-    "key": "jellycat:toy"
+    "name": "Villeroy & Boch Conure Coffee Mug",
+    "key": "villeroyboch:drink"
    },
    {
-    "name": "Courtly Bird Feeder",
-    "key": "mackenziechilds:feeder"
+    "name": "Super Bird Creations Mini Christmas Tree Bird Toy",
+    "key": "superbirdcreations:toy"
    },
    {
-    "name": "12x25 Compact Binoculars",
-    "key": "occer:binoculars"
+    "name": "Lafeber Gourmet Nutri-Berries Sampler",
+    "key": "lafebers:sampler"
    }
   ]
  },
@@ -6783,24 +6791,7 @@
  },
  "store-sephora": {
   "section": "By store",
-  "items": [
-   {
-    "name": "Lip Sleeping Mask",
-    "key": "laneige:mask"
-   },
-   {
-    "name": "VOLUSPA Mini Forbidden Fig Decorative Tin Candle 4 oz/ 113 g",
-    "key": "voluspa:candle"
-   },
-   {
-    "name": "Small Silk Scrunchies",
-    "key": "slip:scrunchies"
-   },
-   {
-    "name": "Lip Glowy Balm",
-    "key": "laneige:balm"
-   }
-  ]
+  "items": []
  },
  "store-ulta-beauty": {
   "section": "By store",
@@ -9760,7 +9751,7 @@
   "section": "By store",
   "items": []
  },
- "store-slipsilkpillowcase": {
+ "store-slip": {
   "section": "By store",
   "items": []
  },
@@ -9813,10 +9804,6 @@
     "key": "southerntide:southern tide classic hat"
    }
   ]
- },
- "store-spacenkcom-uk": {
-  "section": "By store",
-  "items": []
  },
  "store-sperry": {
   "section": "By store",

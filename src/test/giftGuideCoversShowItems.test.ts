@@ -43,9 +43,12 @@ const TEXT_ONLY: Record<string, string> = {
   "store-chord": `${FEW_PHOTOS}: every cap photo on its site is on a coloured backdrop`,
   "store-tuft-paw": `${FEW_PHOTOS}: 79 of its 80 product photos are on coloured backdrops`,
   "store-zonli": `${FEW_PHOTOS}: its site sits behind a bot challenge; its linked photos are on coloured backdrops`,
+  // New approval 11-19: its 133-product Shopify catalog (first 8 photos each) has one plain-backdrop photo, a scarf on
+  // cream; the rest are on-model shots beside care-icon or text panels.
+  "store-cashmere-boutique": `${FEW_PHOTOS}: one plain-backdrop photo in its catalog; the rest are on-model with text panels`,
 };
 /** Covers with four products whose photos read as gingham to the pixel check (clear glass and white jars). */
-const PIXEL_PALE: Record<string, string> = { "store-mario-badescu": "clear and white skincare bottles" };
+const PIXEL_PALE: Record<string, string> = { "store-mario-badescu": "clear and white skincare bottles", "store-magnifique": "cream and oatmeal clay pots" };
 
 const manifest = readManifest();
 const covers = new Set(COVER_SLUGS);

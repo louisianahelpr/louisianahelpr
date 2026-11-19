@@ -381,16 +381,16 @@
     "key": "voluspa:candle"
    },
    {
+    "name": "Adagio Chai Gift Sampler",
+    "key": "adagioteas:sampler"
+   },
+   {
     "name": "4-Piece Metal Desk Organizer Set",
     "key": "pengear:organizer"
    },
    {
     "name": "QuickDrip Pro 45 Reusable Pour-Over Filter",
     "key": "cocinare:filter"
-   },
-   {
-    "name": "Backdraft Coffee",
-    "key": "firedepartmentcoffee:coffee"
    }
   ]
  },
@@ -744,8 +744,8 @@
     "key": "crayola:colors"
    },
    {
-    "name": "Minecraft the Armadillo Mine Expedition Toy",
-    "key": "lego:toy"
+    "name": "Friends Cozy Fall Forest Cabin 42705 Building Set",
+    "key": "lego:building"
    },
    {
     "name": "Maxi Deluxe Eco Scooter",
@@ -769,16 +769,16 @@
   "section": "For kids",
   "items": [
    {
+    "name": "Friends Unicorn Dream Cafe 42684",
+    "key": "lego:cafe"
+   },
+   {
     "name": "Squishmallows 8-Inch Tahoe Tortoiseshell Cat",
     "key": "squishmallow:plush"
    },
    {
     "name": "Colored Pencil Set, 100ct, Art School Supplies",
     "key": "crayola:supplies"
-   },
-   {
-    "name": "Friends Cozy Fall Forest Cabin 42705 Building Set",
-    "key": "lego:building"
    },
    {
     "name": "Ultimate Classic Light-Up Art Toy",
@@ -1019,6 +1019,10 @@
   "section": "For kids",
   "items": [
    {
+    "name": "Barbie Dreamhouse Dollhouse Playset with Pool and Themed Accessories",
+    "key": "barbie:accessories"
+   },
+   {
     "name": "Calico Critters - Red Roof Home",
     "key": "calicocritters:home"
    },
@@ -1033,20 +1037,16 @@
    {
     "name": "Melissa & Doug Fridge Food Wooden Play Food Kitchen Set",
     "key": "melissadoug:kitchen"
+   },
+   {
+    "name": "Play-Doh Builder Mini Gingerbread House (Amazon Exclusive)",
+    "key": "playdoh:exclusive"
    }
   ]
  },
  "girls-big-kids": {
   "section": "For kids",
   "items": [
-   {
-    "name": "Friends Unicorn Dream Cafe 42684",
-    "key": "lego:cafe"
-   },
-   {
-    "name": "Barbie Dreamhouse Dollhouse Playset with Pool and Themed Accessories",
-    "key": "barbie:accessories"
-   },
    {
     "name": "Glow-in-the-Dark Marble Run",
     "key": "nationalgeographic:run"
@@ -1056,12 +1056,20 @@
     "key": "nintendo:system"
    },
    {
+    "name": "Friends Cat Birthday Party & Tree House 42666",
+    "key": "lego:house"
+   },
+   {
     "name": "Lite-Brite Super Bright HD, Hello Kitty Edition",
     "key": "litebrite:edition"
    },
    {
     "name": "The Classic Fidget Set",
     "key": "thefidgetcompany:fidget"
+   },
+   {
+    "name": "Restore 3 Smart Sleep Clock",
+    "key": "hatch:clock"
    }
   ]
  },
@@ -1319,12 +1327,12 @@
     "key": "columbia:hat"
    },
    {
-    "name": "Gold Standard False Lash Style",
-    "key": "truebeautylashes:style"
+    "name": "Tan Keeper + FREE Tanning Mitt",
+    "key": "byrokko:mitt"
    },
    {
-    "name": "Melissa & Doug Water WOW! Take-Along Multi-Activity Drawing Set",
-    "key": "melissadoug:drawing"
+    "name": "Gold Standard False Lash Style",
+    "key": "truebeautylashes:style"
    }
   ]
  },
@@ -2542,16 +2550,16 @@
     "key": "crayola:supplies"
    },
    {
+    "name": "Lubiwood Cozy Study Book Nook",
+    "key": "lubiwood:nook"
+   },
+   {
     "name": "Cricut Joy Xtra",
     "key": "cricut:xtra"
    },
    {
     "name": "SINGER Super Bundle",
     "key": "singer:bundle"
-   },
-   {
-    "name": "Gorilla Hot Glue Gun",
-    "key": "gorilla:gun"
    }
   ]
  },
@@ -3182,8 +3190,8 @@
     "key": "yeti:drink"
    },
    {
-    "name": "Worksite Lunch Cooler",
-    "key": "carhartt:cooler"
+    "name": "Classic Zippered Travel Kit, Black",
+    "key": "carhartt:black"
    }
   ]
  },
@@ -3232,12 +3240,12 @@
     "key": "item:1zero solid car truck phone mount holder"
    },
    {
-    "name": "KARBN Full Brim Vented Hard Hat, Class C",
-    "key": "kleintools:hat"
+    "name": "Worksite Lunch Cooler",
+    "key": "carhartt:cooler"
    },
    {
-    "name": "Classic Zippered Travel Kit, Black",
-    "key": "carhartt:black"
+    "name": "KARBN Full Brim Vented Hard Hat, Class C",
+    "key": "kleintools:hat"
    },
    {
     "name": "16oz Stainless Steel Insulated Thermos Food Jar with Foldable Spoon",
@@ -3261,16 +3269,16 @@
     "key": "foliful:running"
    },
    {
-    "name": "Worksite Lunch Cooler",
-    "key": "carhartt:cooler"
+    "name": "Ergodyne Chill Its 6602MF Cooling Towel",
+    "key": "ergodyne:towel"
+   },
+   {
+    "name": "Classic Zippered Travel Kit, Black",
+    "key": "carhartt:black"
    },
    {
     "name": "Wave Alpha Multi-Tool",
     "key": "leatherman:tool"
-   },
-   {
-    "name": "Hand Warmers, 10 Pair Pack",
-    "key": "hothands:warmer"
    }
   ]
  },
@@ -3286,10 +3294,6 @@
     "key": "gojo:cleaner"
    },
    {
-    "name": "Ergodyne Chill Its 6602MF Cooling Towel",
-    "key": "ergodyne:towel"
-   },
-   {
     "name": "Milwaukee 48-22-8426 Packout",
     "key": "milwaukee:packout"
    },
@@ -3300,6 +3304,10 @@
    {
     "name": "Rechargeable EDC Pocket Flashlight",
     "key": "kleintools:flashlight"
+   },
+   {
+    "name": "Carhartt Men's Rain Defender Relaxed Fit Heavyweight Hooded Shirt Jac",
+    "key": "carhartt:jac"
    }
   ]
  },
@@ -4938,6 +4946,10 @@
     "key": "papersource:stickers"
    },
    {
+    "name": "Adagio Christmas Gift Sampler",
+    "key": "adagioteas:sampler"
+   },
+   {
     "name": "Swiss Miss Hot Cocoa Mix with Marshmallows, 8 Count",
     "key": "swissmiss:count"
    },
@@ -4948,10 +4960,6 @@
    {
     "name": "Lindt LINDOR Assorted Christmas Truffles Favor Gift, 2.1 oz",
     "key": "lindt:gift"
-   },
-   {
-    "name": "Super Sticky Notes, Supernova Neons, 24 Pads",
-    "key": "postit:pads"
    }
   ]
  },
@@ -4975,12 +4983,12 @@
     "key": "papermate:pens"
    },
    {
-    "name": "Blue Sky 2026-2027 Weekly & Monthly Academic Planner",
-    "key": "blue:planner"
+    "name": "Super Sticky Notes, 24 Pads",
+    "key": "postit:pads"
    },
    {
-    "name": "FreeSip Bottle 24oz",
-    "key": "owala:drink"
+    "name": "Blue Sky 2026-2027 Weekly & Monthly Academic Planner",
+    "key": "blue:planner"
    }
   ]
  },
@@ -6133,16 +6141,16 @@
     "key": "catalonia:blanket"
    },
    {
+    "name": "Lubiwood Majestic Horse Wooden Puzzle",
+    "key": "lubiwood:puzzle"
+   },
+   {
     "name": "Mrs. Pastures Cookies for Horses",
     "key": "mrspastures:horses"
    },
    {
     "name": "Breyer Stablemates Horse Paint Set",
     "key": "breyer:paint"
-   },
-   {
-    "name": "Equestrian Knee-High Boot Socks, 3 Pairs",
-    "key": "harrisonhoward:boot,sock"
    }
   ]
  },
@@ -7607,7 +7615,24 @@
  },
  "store-magnifique": {
   "section": "By store",
-  "items": []
+  "items": [
+   {
+    "name": "Clay Stock Pot",
+    "key": "item:clay stock pot"
+   },
+   {
+    "name": "Clay Dutch Oven",
+    "key": "magnifique:clay dutch oven"
+   },
+   {
+    "name": "Glass Pot Multi-Cooker",
+    "key": "item:glass pot multi cooker"
+   },
+   {
+    "name": "Claypot: Lid & Pot",
+    "key": "item:claypot lid pot"
+   }
+  ]
  },
  "store-farm-rio": {
   "section": "By store",
@@ -7673,11 +7698,36 @@
  },
  "store-adagio-teas": {
   "section": "By store",
-  "items": []
+  "items": [
+   {
+    "name": "Adagio Chai Gift Sampler",
+    "key": "adagioteas:sampler"
+   },
+   {
+    "name": "Adagio Christmas Gift Sampler",
+    "key": "adagioteas:sampler"
+   },
+   {
+    "name": "winter teas",
+    "key": "item:winter teas"
+   },
+   {
+    "name": "tea starter - paper filters - black teas",
+    "key": "item:tea starter paper filters black teas"
+   }
+  ]
  },
  "store-click-and-grow": {
   "section": "By store",
   "items": [
+   {
+    "name": "The Smart Garden 9",
+    "key": "clickgrow:garden"
+   },
+   {
+    "name": "The Smart Garden 3",
+    "key": "clickgrow:garden"
+   },
    {
     "name": "Painted Nettle Plant Pods 3-pack",
     "key": "item:painted nettle plant pods 3 pack"
@@ -7693,20 +7743,20 @@
    {
     "name": "Self Watering Pot",
     "key": "item:self watering pot"
-   },
-   {
-    "name": "Big \"Salad Greens\" Kit",
-    "key": "item:big salad greens kit"
-   },
-   {
-    "name": "Mini Sunflower Plant Pods 3-pack",
-    "key": "item:mini sunflower plant pods 3 pack"
    }
   ]
  },
  "store-switchbot": {
   "section": "By store",
   "items": [
+   {
+    "name": "SwitchBot RGBICWW Light Bars",
+    "key": "switchbot:switchbot rgbicww light bars"
+   },
+   {
+    "name": "SwitchBot Lock Ultra Bundle",
+    "key": "switchbot:switchbot lock ultra bundle"
+   },
    {
     "name": "SwitchBot Climate Combo",
     "key": "item:switchbot climate combo"
@@ -7722,14 +7772,6 @@
    {
     "name": "SwitchBot Outdoor Pan/Tilt Cam 3K",
     "key": "item:switchbot outdoor pan tilt cam 3k"
-   },
-   {
-    "name": "SwitchBot AI Art Frame 2",
-    "key": "item:switchbot ai art frame 2"
-   },
-   {
-    "name": "SwitchBot Solar Pan/Tilt Cam 2K ViewStation Kit",
-    "key": "item:switchbot solar pan tilt cam 2k viewstation kit"
    }
   ]
  },
@@ -8157,6 +8199,14 @@
  "store-lofree": {
   "section": "By store",
   "items": [
+   {
+    "name": "432Hz Polar Moss Mechanical Keyboard",
+    "key": "lofree:432hz polar moss mechanical keyboard"
+   },
+   {
+    "name": "Lipstick Wireless Mouse (Black)",
+    "key": "lofree:lipstick wireless mouse black"
+   },
    {
     "name": "432Hz Polar Moss Wireless Mouse",
     "key": "item:432hz polar moss wireless mouse"
@@ -9189,14 +9239,6 @@
    {
     "name": "Power Bank 10K",
     "key": "item:power bank 10k"
-   },
-   {
-    "name": "soundcore Boom Go 3i",
-    "key": "ankerinnovations:boom"
-   },
-   {
-    "name": "Anker MagGo 2 Pro Power Bank",
-    "key": "item:anker maggo 2 pro power bank"
    }
   ]
  },
@@ -9428,6 +9470,10 @@
   ]
  },
  "store-burts-bees": {
+  "section": "By store",
+  "items": []
+ },
+ "store-byrokko": {
   "section": "By store",
   "items": []
  },
@@ -9966,6 +10012,27 @@
    }
   ]
  },
+ "store-georgia-boot": {
+  "section": "By store",
+  "items": [
+   {
+    "name": "Georgia Boot Men's Carbon Flex 6\" Moc-Toe Work Boot",
+    "key": "georgiaboot:georgia boot men s carbon flex 6 moc toe work boot"
+   },
+   {
+    "name": "Georgia Boot Men's Core 37 Farm & Ranch Round Toe Pull-On",
+    "key": "georgiaboot:georgia boot men s core 37 farm ranch round toe pull on"
+   },
+   {
+    "name": "Georgia Boot Core 37 Western 11\" Mossy Oak Pull On",
+    "key": "georgiaboot:georgia boot core 37 western 11 mossy oak pull on"
+   },
+   {
+    "name": "Georgia Boot AMP Insole with InsulKul™",
+    "key": "georgiaboot:georgia boot amp insole with insulkul"
+   }
+  ]
+ },
  "store-gisada": {
   "section": "By store",
   "items": []
@@ -10461,6 +10528,35 @@
   "section": "By store",
   "items": []
  },
+ "store-lubiwood": {
+  "section": "By store",
+  "items": [
+   {
+    "name": "Lubiwood Dream Library Book Nook",
+    "key": "lubiwood:lubiwood dream library book nook"
+   },
+   {
+    "name": "Lubiwood Curious Cat Wooden Puzzle",
+    "key": "lubiwood:lubiwood curious cat wooden puzzle"
+   },
+   {
+    "name": "Lubiwood Cozy Study Book Nook",
+    "key": "lubiwood:lubiwood cozy study book nook"
+   },
+   {
+    "name": "Lubiwood Chocolate Labrador Wooden Puzzle",
+    "key": "lubiwood:lubiwood chocolate labrador wooden puzzle"
+   },
+   {
+    "name": "Lubiwood Tree of Life Wooden Puzzle",
+    "key": "lubiwood:lubiwood tree of life wooden puzzle"
+   },
+   {
+    "name": "Lubiwood Majestic Horse Wooden Puzzle",
+    "key": "lubiwood:lubiwood majestic horse wooden puzzle"
+   }
+  ]
+ },
  "store-mac-cosmetics": {
   "section": "By store",
   "items": [
@@ -10676,6 +10772,27 @@
    }
   ]
  },
+ "store-melodysusie": {
+  "section": "By store",
+  "items": [
+   {
+    "name": "Scamander Plus (SM350A Pro) Clip-On Rechargeable Nail Drill 35,000RPM - Black",
+    "key": "item:scamander plus sm350a pro clip on rechargeable nail drill 35 000rpm black"
+   },
+   {
+    "name": "2-in-1 Cuticle Oil Pusher Pen for Dry Nails",
+    "key": "melodysusie:2 in 1 cuticle oil pusher pen for dry nails"
+   },
+   {
+    "name": "Gel Nail Polish Remover with Manicure Remover Kit",
+    "key": "item:gel nail polish remover with manicure remover kit"
+   },
+   {
+    "name": "Scamander Plus (SM350A Pro) Clip-On Rechargeable Nail Drill 35,000RPM - Green",
+    "key": "item:scamander plus sm350a pro clip on rechargeable nail drill 35 000rpm green"
+   }
+  ]
+ },
  "store-meowbox": {
   "section": "By store",
   "items": []
@@ -10850,6 +10967,10 @@
   "items": []
  },
  "store-novilla": {
+  "section": "By store",
+  "items": []
+ },
+ "store-oklahoma-joes": {
   "section": "By store",
   "items": []
  },
@@ -11403,6 +11524,10 @@
   "items": []
  },
  "store-the-home-depot": {
+  "section": "By store",
+  "items": []
+ },
+ "store-the-jacket-maker": {
   "section": "By store",
   "items": []
  },

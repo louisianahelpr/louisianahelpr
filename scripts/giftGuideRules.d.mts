@@ -115,3 +115,6 @@ export const FOOD_GUIDES: string[];
 export function foodOff(slug: string, p: { name: string; brand?: string; price?: number }): boolean;
 export const MEN_GUIDES: string[];
 export function personalGiftOff(slug: string, p: { name: string; brand?: string }): boolean;
+export const NEW_APPROVAL_KEEP_TOP: number;
+export function newApprovalSlot<T>(list: T[], isTop: (p: T) => boolean, isLower: (p: T) => boolean): number;
+export function approvalLine(why: unknown): string;

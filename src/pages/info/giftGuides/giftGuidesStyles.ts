@@ -77,16 +77,20 @@ color:var(--gg-ink)}
 .gg-name{display:block;font-size:14px;font-weight:600;margin-top:7px;text-align:center;line-height:1.3}
 .gg-count{display:block;font-size:11px;color:var(--gg-muted);text-align:center}
 .gg-list{list-style:none;margin:16px 0 0;padding:0;counter-reset:gg}
-.gg-toprow>li{width:150px}
+.gg-toprow>li{width:148px}
+@media (min-width:1024px){.gg-toprow>li{width:200px}.gg-topcard .gg-thumb{width:200px;height:200px}}
 .gg-topcard{display:flex;flex-direction:column;gap:4px;color:var(--gg-ink);text-decoration:none}
-.gg-topcard .gg-thumb{width:150px;height:150px;border-radius:12px}
+.gg-topcard-photo{position:relative;display:block}
+.gg-topcard .gg-thumb{width:148px;height:148px;border-radius:14px;padding:10px;background:#faf6ee}
+.gg-topcard-n{position:absolute;left:8px;bottom:2px;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:28px;font-weight:700;line-height:1;color:#b8913a;-webkit-text-stroke:2px #fff;paint-order:stroke fill}
 .gg-topcard .gg-letter{font-size:14px}
 .gg-topcard-name{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .gg-topcard-meta{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .gg-topcard-meta small{font-size:12px;color:var(--gg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gg-topcard:hover .gg-topcard-name,.gg-topcard:focus-visible .gg-topcard-name{text-decoration:underline}
-.gg-deals{margin:22px 0 0;border:1px solid var(--gg-line);border-radius:14px;padding:0 14px}
-.gg-deals>summary{list-style:none;cursor:pointer;display:flex;align-items:center;min-height:48px;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gg-muted)}
+.gg-deals{margin:22px 0;border:1px solid #ece6dc;border-radius:16px;padding:0 16px;background:#faf6ee;color:#3a2a20}
+.gg-deals>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:56px;font-size:15px;font-weight:700;color:#3a2a20}
+.gg-deals-count{font-size:13px;font-weight:500;color:#6f6259}
 .gg-deals>summary::-webkit-details-marker{display:none}
 .gg-deals>summary::after{content:"+";margin-left:auto;font-size:17px;line-height:1}
 .gg-deals[open]>summary::after{content:"\\2212"}
@@ -99,8 +103,33 @@ color:var(--gg-ink)}
 .gg-more-picks{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin:12px 0 0;border-radius:999px;border:1px solid var(--gg-olive);background:transparent;color:var(--gg-olive);font-weight:700;font-size:13px}
 .gg-list>li{border-top:1px solid var(--gg-line);counter-increment:gg}
 .gg-item{display:flex;align-items:center;gap:14px;padding:11px 0;color:var(--gg-ink);text-decoration:none;font-size:15px;min-height:44px}
-.gg-item::before{content:counter(gg);width:20px;flex:none;font-size:12px;color:var(--gg-muted);font-variant-numeric:tabular-nums}
 .gg-thumb{width:52px;height:52px;flex:none;border-radius:10px;border:1px solid var(--gg-line);background:#fff;object-fit:contain}
+.gg-list .gg-item{align-items:flex-start;gap:12px;padding:14px 0}
+.gg-list .gg-thumb{width:88px;height:88px;border-radius:12px;padding:6px;background:#faf6ee;border:0}
+.gg-list .gg-letter{font-size:12px}
+.gg-nm-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:16px;font-weight:500;line-height:1.3}
+.gg-nm .gg-nm-line{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.35;margin-top:2px}
+.gg-nm .gg-nm-meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.04em}
+.gg-nm-meta .gg-price{font-size:15px;letter-spacing:0}
+.gg-list>li{align-items:flex-start}
+@media (min-width:1024px){
+.gg-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 20px}
+.gg-list>li{position:relative;display:block;border-top:0}
+.gg-list .gg-item{flex-direction:column;align-items:stretch;padding:0;gap:10px}
+.gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
+.gg-list .gg-letter{font-size:16px}
+.gg-nm .gg-nm-line{-webkit-line-clamp:2}
+.gg-list .gg-shop{display:none}
+.gg-list .gg-heart-pick{position:absolute;top:6px;right:6px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+}
+@media (min-width:768px) and (max-width:1023px){
+.gg-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 20px}
+.gg-list>li{position:relative;display:block;border-top:0}
+.gg-list .gg-item{flex-direction:column;align-items:stretch;padding:0;gap:10px}
+.gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
+.gg-list .gg-shop{display:none}
+.gg-list .gg-heart-pick{position:absolute;top:6px;right:6px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+}
 .gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}
 .gg-nm{flex:1;min-width:0;overflow-wrap:anywhere}
 .gg-nm small{display:block;font-size:12px;color:var(--gg-muted)}

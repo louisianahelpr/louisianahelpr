@@ -39,11 +39,15 @@ const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
 const ROWS_BEFORE_TOP = 4;
 
 /** A Top 10 card: the photo (or the store's tile), a short name, the store, and the price on a non-Amazon pick. */
-function TopCard({ pick }: { pick: CatalogPick }) {
+function TopCard({ pick, n }: { pick: CatalogPick; n: number }) {
   return (
     <li data-gift-pick="" data-gift-top-card="">
       <GiftOut href={pick.href} className="gg-topcard">
-        <PickThumb pick={pick} size={140} />
+        {/* Design spec 11-18 M1: a 148px photo card with a small gold numeral, the only numbers on the pages. */}
+        <span className="gg-topcard-photo">
+          <PickThumb pick={pick} size={148} />
+          <span className="gg-topcard-n" aria-hidden="true" data-gift-top-n="">{n}</span>
+        </span>
         <span className="gg-topcard-name">{pick.name}</span>
         <span className="gg-topcard-meta">
           {storeLabel(pick) && <small>{storeLabel(pick)}</small>}
@@ -61,7 +65,7 @@ function TopStrip() {
   return (
     <section aria-labelledby="gift-top-picks" data-gift-top="">
       <div className="gg-rowhead"><h2 id="gift-top-picks">{G.topTitle}</h2></div>
-      <ul className="gg-row gg-toprow">{top.map((p) => <TopCard key={`${p.href} ${p.name}`} pick={p} />)}</ul>
+      <ul className="gg-row gg-toprow">{top.map((p, i) => <TopCard key={`${p.href} ${p.name}`} pick={p} n={i + 1} />)}</ul>
       <PricesAsOf picks={top} />
     </section>
   );

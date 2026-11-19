@@ -14,7 +14,7 @@
  * @mutate scripts/giftGuideRules.mjs |   if (slug === "gift-cards") return GIFT_CARD.test(p.name) && !NOT_A_GIFT.test(p.name); |
  * @mutate scripts/giftGuideRules.mjs |   if (EXPERIENCE_GUIDES.includes(slug)) return EXPERIENCE.test(p.name) && !NOT_A_GIFT.test(p.name); |
  * @mutate scripts/giftGuideRules.mjs |   if (/\bkni(fe\|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false; |
- * @mutate scripts/giftGuideRules.mjs | export const brokenImage = (u) => /liquid(%20\|\s\|\+)error/i.test(u) \|\| /[<>{}]/.test(u); | export const brokenImage = (u) => /[<>{}]/.test(u);
+ * @mutate scripts/giftGuideRules.mjs | export const brokenImage = (u) => /liquid(%20\|\s\|\+)error/i.test(u) \|\| /[<>{}]/.test(u) \|\| | export const brokenImage = (u) => /[<>{}]/.test(u) \|\|
  * @mutate src/content/giftGuideCatalog.ts |  ${SEARCH_KEYWORDS[g.slug] ?? ""}`); | `);
  * @mutate src/content/giftGuideCatalog.ts | .sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j) | .sort(([, i], [, j]) => i - j)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? | {false ? G.collectionOnShopMy : storeLabel(pick) ?
@@ -25,7 +25,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
 import { SEARCH_KEYWORDS, searchGuides } from "@/content/giftGuideCatalog";
-import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, brokenImage, fitsGuide, productName } from "../../scripts/giftGuideRules.mjs";
+import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, brokenImage, fitsGuide, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; sponsor?: true };
@@ -114,6 +114,17 @@ describe("design audit r2: lines, variants, photos, brands", () => {
   it("no 'Liquid error' photo (T3 Micro) and no mis-cased REI/UGG brand ships", () => {
     expect(brokenImage("https://t3micro.com/collections/Liquid%20error%20(snippets/social-meta-tags.liquid")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/a.jpg")).toBe(false);
+    // Live audit r3 #12: a site icon / default share image, or a host whose photos do not load here, is no photo.
+    // @mutate scripts/giftGuideRules.mjs | \|\| SITE_ICON.test(u) \|\| HOTLINK_BLOCKED.test(u); | ;
+    for (const u of ["https://www.vitamix.com/media/default-meta-image.png", "https://www.kitchenaid.com/KA-bookmark-icon.png", "https://lovevery.com/favicon.png", "https://www.sephora.com/productimages/sku/s1.jpg", "https://www.rei.com/media/a.jpg"]) expect(brokenImage(u), u).toBe(true);
+    expect(brokenImage("https://static.nike.com/a/images/t_default/a.png")).toBe(false);
+    // Live audit r3 #3: shop-listing SEO titles are trimmed to a product name.
+    // @mutate scripts/giftGuideRules.mjs |   if (n.length <= NAME_MAX) return n; |   return n;
+    expect(tidyName("Ninja CREAMi Ice Cream Maker, for Mix-ins, Milkshakes, Sorbet, Dairy-Free, 5 One-Touch Programs, (2) 16-Oz Pint Containers & Lids, NC350 White")).toBe("Ninja CREAMi Ice Cream Maker, for Mix-ins, Milkshakes, Sorbet");
+    expect(tidyName("ST. LOUIS CLASSICS | Venezia 18K")).toBe("Venezia 18K");
+    expect(tidyName("Colored Pencil Set, 100ct, Art School Supplies, Stocking Stuffers, Coloring Holiday And Christmas Gift For Kid")).toBe("Colored Pencil Set, 100ct, Art School Supplies");
+    expect(tidyName("YETI Rambler 20 oz Tumbler")).toBe("YETI Rambler 20 oz Tumbler");
+    expect(all.filter(({ p }) => / \| /.test(p.name)).map(({ p }) => p.name)).toEqual([]);
     expect(all.filter(({ p }) => p.image && brokenImage(p.image))).toEqual([]);
     expect(all.filter(({ p }) => ["Rei", "Ugg", "Laneige", "Xtratuf"].includes(p.brand))).toEqual([]);
   });
@@ -159,6 +170,7 @@ describe("gift guides: featured order and Our Top 10 (owner 11-18 PM: \"This can
       if (slug.startsWith("store-")) continue;
       guides += 1;
       expect(picks.slice(0, 12).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(1);
+      expect(picks.slice(0, 25).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(2);
     }
     expect(guides).toBeGreaterThan(150);
   });
@@ -192,6 +204,9 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
     // @mutate scripts/gift-guide-picks.mjs | guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug])); | guides[slug] = featuredFirst(slug, guides[slug]);
     expect(SCRIPT).toContain("guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));");
     expect(SCRIPT).toContain('if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || !trendingPick.size) return list;');
+    // Owner 11-18 PM: "All guides should have the top 25 gifts".
+    expect(SCRIPT).toContain("export const TOP_GIFTS = 25;");
+    expect(SCRIPT).toContain("if (have >= TOP_GIFTS) break;");
     expect(SCRIPT).toContain("if (isAmazonPick(p) && (out.filter(isAmazonPick).length + 1) / (out.length + 1) > 0.5) continue;");
   });
 });

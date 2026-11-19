@@ -14,3 +14,7 @@ export function productName(raw: unknown, names: unknown[], host?: string): stri
 export function brokenImage(u: string): boolean;
 export function fitsGuide(slug: string, p: { name: string }): boolean;
 export const CATEGORY_NAME: RegExp;
+export const SITE_ICON: RegExp;
+export const HOTLINK_BLOCKED: RegExp;
+export const NAME_MAX: number;
+export function tidyName(name: string): string;

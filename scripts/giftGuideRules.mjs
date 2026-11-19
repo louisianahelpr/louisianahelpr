@@ -44,7 +44,11 @@ export function productName(raw, names, host = "") {
   return [first, ...variant].join(", ");
 }
 /** Image URLs that are no image ("…/Liquid%20error%20(snippets/social-meta-tags…", design audit r2 #8: T3 Micro). */
-export const brokenImage = (u) => /liquid(%20|\s|\+)error/i.test(u) || /[<>{}]/.test(u);
+export const brokenImage = (u) => /liquid(%20|\s|\+)error/i.test(u) || /[<>{}]/.test(u) || SITE_ICON.test(u) || HOTLINK_BLOCKED.test(u);
+/** A site's icon, logo or default share image, not the product (live audit r3 #12: vitamix default-meta-image, kitchenaid bookmark icon). */
+export const SITE_ICON = /favicon|apple-touch-icon|bookmark-icon|default-meta-image|meta-image\.|og-badge|\/logo[-_.]/i;
+/** Hosts whose product photos do not load on our pages (ORB-blocked or HTTP/2 errors, live audit r3 #12). */
+export const HOTLINK_BLOCKED = /^https:\/\/(www\.sephora\.com|www\.rei\.com)\//i;
 /** Brands a feed spells in the wrong case (design audit r2 #8). */
 export const BRAND_CASE = { rei: "REI", ugg: "UGG", laneige: "LANEIGE", xtratuf: "XTRATUF" };
 /**
@@ -69,3 +73,23 @@ export const fitsGuide = (slug, p) => {
   if (EXPERIENCE_GUIDES.includes(slug)) return EXPERIENCE.test(p.name) && !NOT_A_GIFT.test(p.name);
   return true;
 };
+
+/**
+ * A shop listing's SEO title trimmed to a product name (live audit r3 #3: the 140-character Ninja CREAMi title):
+ * "BRAND | Product" -> "Product"; a trailing "Holiday And Christmas Gift…", "Gift for Boys & Girls…" or "Stocking
+ * Stuffers…" goes; a name still over NAME_MAX is cut at its last ", " or " - " before NAME_MAX, else at a ":", " with " or " for ".
+ */
+export const NAME_MAX = 70;
+export function tidyName(name) {
+  let n = String(name ?? "").replace(/\s+/g, " ").trim();
+  const piped = /^[A-Z0-9 .&'’-]{2,40} \| (.+)$/.exec(n);
+  if (piped) n = piped[1].trim();
+  n = n.replace(/\s*[-,–]\s*(holiday and christmas gifts?|christmas gifts?|gifts? for (kids|boys|girls|men|women|him|her)|stocking stuffers?)\b.*$/i, "").trim();
+  if (n.length <= NAME_MAX) return n;
+  // A list break first, then a "for" / "with" / ":" clause.
+  for (const sep of [/, | - /g, /: | with | for /gi]) {
+    const cuts = [...n.matchAll(sep)].map((m) => m.index).filter((i) => i >= 12 && i <= NAME_MAX);
+    if (cuts.length) return n.slice(0, cuts[cuts.length - 1]).trim();
+  }
+  return n;
+}

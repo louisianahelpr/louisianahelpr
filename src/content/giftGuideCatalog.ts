@@ -340,7 +340,7 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
  * target gets the folded guides' picks and collection links, once each; an old link to a folded guide opens the
  * first target.
  */
-export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"] };
+export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"], "store-muck-boot-company": ["store-muck-boot"] };
 
 const draftOf = new Map(DRAFTS.map((d) => [d.slug, d] as const));
 /** A guide with a researched chunk lists exactly the chunk's picks, in their order (APPEND_CHUNK: static, then chunk). */

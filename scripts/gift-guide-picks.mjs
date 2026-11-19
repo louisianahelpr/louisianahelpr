@@ -26,7 +26,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, NOT_LOUISIANA_BUSINESS, brokenImage, fitsGuide, productName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, NOT_LOUISIANA_BUSINESS, brokenImage, fitsGuide, productName, tidyName } from "./giftGuideRules.mjs";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -68,6 +68,8 @@ const stores = new Map();
  * pages): compact spelling -> the one name its page uses.
  */
 export const STORE_ALIASES = {
+  // Live audit r3 #5: one Muck Boot store page (muckbootcompany.com and "Muck Boot Company" fold into it).
+  muckbootcompany: "Muck Boot", muckboot: "Muck Boot",
   anker: "Anker", ankerinnovations: "Anker", stanley: "Stanley", stanley1913: "Stanley", ulta: "Ulta Beauty",
   underarmour: "Under Armour", worldmarket: "World Market", twelvesouth: "Twelve South", landsend: "Lands' End",
   comrad: "Comrad Socks", loop: "Loop Earplugs", loopearplugsus: "Loop Earplugs", malbon: "Malbon Golf",
@@ -205,7 +207,8 @@ function toPick(p, where) {
     : LOUISIANA.has(host) || SPONSORS.has(host) ? null
     : storeFor(p.retailer || p.store || p.brand);
   // A Louisiana shop or a 25 Days sponsor keeps its own words: those rows name the local business on purpose.
-  const name = LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host));
+  const rawName = LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host));
+  const name = rawName && tidyName(rawName);
   if (!name) return hidden.push(`${where}: "${p.name}" is a page title, store name or promo, not a product`), null;
   if (store) stores.get(store).hosts.add(host);
   const flags = Object.fromEntries(["trending", "shipsFast", "localPickup"].filter((k) => p[k] === true).map((k) => [k, true]));
@@ -350,18 +353,31 @@ const FEATURED = (() => {
 })();
 /** No more than one XTRATUF boot in any guide's first FEATURED_TOP picks (owner 11-18 PM: Her opened on two), store pages aside. */
 export const FEATURED_TOP = 12;
+/** A featured or trending name matches a pick by exact name, then normalized name, then a normalized prefix either way. */
+const sameName = (want, have) => {
+  const a = compact(want);
+  const b = compact(have);
+  if (!a || !b) return false;
+  if (a === b || dedupeKey(want) === dedupeKey(have)) return true;
+  return Math.min(a.length, b.length) >= 12 && (a.startsWith(b) || b.startsWith(a));
+};
+const findByName = (list, want) => list.find((p) => compact(p.name) === compact(want)) ?? list.find((p) => sameName(want, p.name));
 const isXtratuf = (p) => /^xtratuf$/i.test(p.brand ?? "") || p.store === "store-xtratuf";
 const featuredFirst = (slug, list) => {
-  const names = Array.isArray(FEATURED[slug]) ? FEATURED[slug].filter((x) => typeof x === "string").map(compact) : [];
-  const lead = names.map((n) => list.find((p) => compact(p.name) === n)).filter(Boolean);
+  const names = Array.isArray(FEATURED[slug]) ? FEATURED[slug].filter((x) => typeof x === "string") : [];
+  const lead = names.map((n) => findByName(list, n)).filter(Boolean);
   const ordered = [...new Set([...lead, ...list])];
   if (slug.startsWith("store-")) return ordered;
   const head = [];
   const later = [];
   let boots = 0;
   for (const p of ordered) {
-    if (head.length < FEATURED_TOP && isXtratuf(p) && boots++ >= 1) later.push(p);
-    else if (head.length < FEATURED_TOP) head.push(p);
+    // XTRATUF: one in the first 12, two in the first 25.
+    if (head.length < TOP_GIFTS && isXtratuf(p) && boots >= (head.length < FEATURED_TOP ? 1 : 2)) later.push(p);
+    else if (head.length < TOP_GIFTS) {
+      if (isXtratuf(p)) boots += 1;
+      head.push(p);
+    }
     else later.push(p);
   }
   return [...head, ...later.sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b))];
@@ -369,17 +385,20 @@ const featuredFirst = (slug, list) => {
 /**
  * TRENDING (owner 11-18 PM: "All guides should have the top trending gifts"): _featured-order.json's "trending" list,
  * [{ name, fits: [slugs], href? }], ~100 picks we already carry. In every guide (never a store page) its trending picks
- * come right after the featured ones; a guide holding fewer than TRENDING_MIN gets fitting ones added (fits names the
- * guide), up to TRENDING_ADD, never a repeat, and an Amazon one only while Amazon stays at most half the guide.
+ * come right after the featured ones; fitting ones are added (fits names the
+ * guide) until its first TOP_GIFTS are featured or trending, never a repeat, and an Amazon one only while Amazon
+ * stays at most half the guide.
  */
-export const TRENDING_MIN = 3;
-export const TRENDING_ADD = 6;
+/** Owner 11-18 PM ("All guides should have the top 25 gifts"): each guide's first TOP_GIFTS are featured, then trending. */
+export const TOP_GIFTS = 25;
 const TRENDING = (Array.isArray(FEATURED.trending) ? FEATURED.trending : []).filter((t) => t && typeof t.name === "string");
 const trendingPick = new Map();
 for (const t of TRENDING) {
   const found = Object.entries(guides).filter(([s]) => !s.startsWith("store-")).flatMap(([, l]) => l)
-    .find((p) => (t.href && p.href === t.href) || compact(p.name) === compact(t.name));
-  if (found) trendingPick.set(t, found);
+    .find((p) => t.href && (p.href === t.href || p.href === t.affiliate_href));
+  const pool = Object.entries(guides).filter(([s]) => !s.startsWith("store-")).flatMap(([, l]) => l);
+  const byName = found ? undefined : (t.guide && guides[t.guide] ? findByName(guides[t.guide], t.name) : undefined) ?? findByName(pool, t.name);
+  if (found ?? byName) trendingPick.set(t, found ?? byName);
 }
 const isTrending = (p) => [...trendingPick.values()].some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name));
 const isAmazonPick = (p) => AMAZON.has(new URL(p.href).hostname);
@@ -387,16 +406,16 @@ const withTrending = (slug, list) => {
   // Store pages stay store-only; the 25 Days guide stays sponsors-only.
   if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || !trendingPick.size) return list;
   const out = [...list];
-  let have = out.filter(isTrending).length;
-  let added = 0;
+  const featured = Array.isArray(FEATURED[slug]) ? FEATURED[slug].filter((x) => typeof x === "string") : [];
+  const isTop = (p) => isTrending(p) || featured.some((n) => sameName(n, p.name));
+  let have = out.filter(isTop).length;
   for (const [t, p] of trendingPick) {
-    if (have >= TRENDING_MIN + 1 || added >= TRENDING_ADD) break;
+    if (have >= TOP_GIFTS) break;
     if (!(Array.isArray(t.fits) && t.fits.includes(slug)) || !fitsGuide(slug, p)) continue;
-    if (out.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
+    if (out.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name) || variantKey(x) === variantKey(p))) continue;
     if (isAmazonPick(p) && (out.filter(isAmazonPick).length + 1) / (out.length + 1) > 0.5) continue;
     out.push(p);
     have += 1;
-    added += 1;
   }
   // Trending first (in the list's order), the rest as they were.
   const order = [...trendingPick.values()];
@@ -569,6 +588,24 @@ const noRepeats = (list) => {
 };
 for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]);
 const pageRepeats = repeatsRemoved;
+/** A store page's deal items never repeat its picks or each other (live audit r3 #1: Xbox, AirPods, KitchenAid twice on Walmart). */
+let dealRepeats = 0;
+for (const [slug, list] of Object.entries(deals)) {
+  const seenHref = new Set((pageList[slug] ?? []).map((p) => p.href));
+  const seenKey = new Set((pageList[slug] ?? []).map((p) => dedupeKey(p.name)).filter((k) => k.length > 3));
+  for (const d of list) {
+    if (!d.items) continue;
+    const kept = d.items.filter((i) => {
+      const k = dedupeKey(i.name);
+      if (seenHref.has(i.href) || (k.length > 3 && seenKey.has(k))) return (dealRepeats += 1), false;
+      seenHref.add(i.href);
+      if (k.length > 3) seenKey.add(k);
+      return true;
+    });
+    if (kept.length) d.items = kept;
+    else delete d.items;
+  }
+}
 /**
  * "Top 10 most-loved" (owner 2026-11-18): the picks listed in the most guides (store pages not counted), photos
  * first, then by how many guides list them, then by name. Counted by link (and name, for shared ShopMy links).
@@ -597,7 +634,7 @@ const lovedTop = [...new Map([...loved.values()].filter((x) => x.n > 1 && looksL
   .map((x) => x.p);
 /** Our Top 10 (owner 11-18 PM): the featured file's "top-10" ({ guide, name }) when present; the most-loved picks fill any gap. */
 const featuredTop = (Array.isArray(FEATURED["top-10"]) ? FEATURED["top-10"] : [])
-  .map((x) => (pageList[x?.guide] ?? guides[x?.guide] ?? []).find((p) => compact(p.name) === compact(String(x?.name ?? ""))))
+  .map((x) => findByName(pageList[x?.guide] ?? guides[x?.guide] ?? [], String(x?.name ?? "")))
   .filter(Boolean);
 const topPicks = noRepeats([...featuredTop, ...lovedTop]).slice(0, 10);
 rmSync(chunkDir, { recursive: true, force: true });
@@ -667,4 +704,4 @@ writeFileSync(
     `export const GIFT_GUIDE_SEO = ${JSON.stringify(seo)};\n`,
 );
 
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them)`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them)`);

@@ -1111,7 +1111,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // Owner 11-18 PM: photo-less Amazon picks show their CDN photo (measured below the floor = the switch is off).
     expect(amazonCdn).toBeGreaterThan(500);
     // Brand-site photos (lead 11-18 PM): a photo-less Amazon pick takes the brand's own photo of the same product from
-    // amazon-brand-images.json, its Amazon link kept (179 rows from 45 ASINs, measured 11-18 PM).
+    // amazon-brand-images.json, its Amazon link kept (179 rows from 45 ASINs, measured 2026-11-18).
     // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"
     let brandSite = 0;
     for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image && !p.image.startsWith("https://m.media-amazon.com/")) brandSite += 1;

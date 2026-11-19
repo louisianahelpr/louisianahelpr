@@ -1,9 +1,15 @@
-"""Gift guide photo covers (owner's pin_covers.py "cover2" layout, 11-18): six product cutouts, three a side, on the
-guide's own gingham around a white arch holding the guide's lead, title and the LOUISIANA HELPR footer.
-Owner 11-18: "use the gingham covers we already had there and put the pictures on the gingham". The gingham is the
-text-only covers' own (pin_covers.py text_cover: drawn at 1080 with 60 px checks), in the guide group's colour, measured
-from the committed gingham covers: green for By person/By store/Life moments/Louisiana, tan for By budget/By career/
-Colors, red for For kids/Hobbies/Pets.
+"""Gift guide photo covers in the owner's Pinterest pin style (pin_covers.py photo_cover / cover2_example.cover2, 11-18):
+the pins' soft pastel gingham, a big cream arch (about half the width, nearly the full height, thin inner outline) with
+"gifts for" in script, the serif guide name, a short divider and the spaced LOUISIANA HELPR footer, and six product
+cutouts, three a side, overlapping the arch edges with the pins' soft shadow. Owner 11-18: "make the arched bigger so
+the items kind of over lap the arch" / "Like these" (her pin covers). The gingham keeps each guide's family tint in
+the pins' pastel version (pin_covers.PAL): sage for By person/By store/Life moments/Louisiana, beige for By budget/
+By career/Colors, pink for For kids/Hobbies/Pets.
+
+Products (owner 11-18: "Idk that mom wants muck boots?"): taken in the guide's featured order (the picks file's own
+order, from _featured-order.json), skipping a photo that will not cut out cleanly; one per brand, at most one per kind
+(one boot, one pair of shoes, one drinkware, ...), and no boots at all on Mom/Her/Wife except UGG. A store page
+(store-*) may repeat its own brand and kind (Durango Boots is all boots).
 
 Run with a Python that has Pillow, numpy and scipy (not the repo's runtime; the covers are static files):
   python scripts/gift-guide-photo-covers.py [slug ...]
@@ -12,8 +18,9 @@ usable photos keeps its gingham/arch cover (the owner's, public/gift-guides/cove
 
 Photos: only each pick's own `image` from src/content/giftGuidePicks/<slug>.json, never an Amazon-hosted one (owner
 chose the safe route; AMAZON_CDN_PHOTOS stays off). A photo is used only on a near-white background: the cutout keeps
-pixels more than 26 off white, then the large connected parts (holes filled), so lifestyle shots are skipped.
-Fonts: ~/Desktop/Pin-cover-generator/fonts (the owner's generator). Cache: $GIFT_COVER_CACHE or ~/.lh-shots/gg-cover-cache.
+pixels more than 26 off white, then the large connected parts (holes filled), so lifestyle shots are skipped. RAGGED
+names products whose white-on-white photo cuts out ragged (AirPods: only the shading is found); the next pick is used.
+Drawing and fonts: ~/Desktop/Pin-cover-generator (the owner's generator; pin_covers is imported). Cache: $GIFT_COVER_CACHE or ~/.lh-shots/gg-cover-cache.
 """
 import hashlib
 import io
@@ -26,28 +33,34 @@ from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFilter
 from scipy import ndimage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PICKS = os.path.join(ROOT, "src", "content", "giftGuidePicks")
 OUT = os.path.join(ROOT, "public", "gift-guides", "covers")
-FONTS = os.path.expanduser("~/Desktop/Pin-cover-generator/fonts")
 CACHE = os.environ.get("GIFT_COVER_CACHE", os.path.expanduser("~/.lh-shots/gg-cover-cache"))
-INK, WHITE = (56, 46, 36), (255, 255, 255)
 AMAZON = re.compile(r"(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$")
-S = 960  # drawn at 2x, saved at 480x480 like the owner's covers
 TOP_CAREERS = 24
-# (check, band, overlap) per gingham, measured from the committed text-only covers at their 480 px check centres.
-GREEN = ((123, 148, 119), (186, 198, 180), (250, 247, 239))
-TAN = ((206, 186, 154), (228, 215, 196), (250, 247, 239))
-RED = ((177, 104, 100), (215, 176, 168), (250, 247, 239))
-GINGHAM = {"By person": GREEN, "By store": GREEN, "Life moments": GREEN, "Louisiana": GREEN,
-           "By budget": TAN, "By career": TAN, "Colors": TAN, "For kids": RED, "Hobbies": RED, "Pets": RED}  # the first By career guides in the index (its order is the owner's)
-
-
-def font(name, size):
-    return ImageFont.truetype(os.path.join(FONTS, name), size)
+# The first By career guides in the index (its order is the owner's).
+GEN = os.path.expanduser("~/Desktop/Pin-cover-generator")
+sys.path.insert(0, GEN)
+import pin_covers as pc  # noqa: E402 - the owner's generator, so the covers are the pins' own style
+TINT = {"By person": "sage", "By store": "sage", "Life moments": "sage", "Louisiana": "sage",
+        "By budget": "beige", "By career": "beige", "Colors": "beige", "For kids": "pink", "Hobbies": "pink", "Pets": "pink"}
+RAGGED = re.compile(r"airpods", re.I)
+NO_BOOTS = {"mom", "her", "wife"}  # owner 11-18: no Muck/XTRATUF/rain boots on these; UGG is fine
+KINDS = {
+    "boot": re.compile(r"\bboots?\b|xtratuf|muck ?boot|muckster|wellies", re.I),
+    "shoe": re.compile(r"slipper|\bclogs?\b|sneaker|\bshoes?\b|sandal|loafer|moccasin", re.I),
+    "drink": re.compile(r"tumbler|water bottle|\bmug\b|\bcup\b|quencher|rambler|freesip", re.I),
+    "candle": re.compile(r"candle", re.I),
+    "hat": re.compile(r"\bhat\b|\bcap\b|beanie", re.I),
+    "sock": re.compile(r"\bsocks?\b", re.I),
+    "frame": re.compile(r"picture frame|photo frame", re.I),
+    "earbuds": re.compile(r"airpods|earbuds", re.I),
+    "fragrance": re.compile(r"perfume|eau de|cologne|fragrance mist", re.I),
+}
 
 
 def index():
@@ -99,7 +112,7 @@ def cutout(data):
     # A thin stripe (a colour bar or a ruler line under the product) shows plainly on the gingham: drop it.
     thin = {i + 1 for i, b in enumerate(boxes)
             if min(b[0].stop - b[0].start, b[1].stop - b[1].start) * 8 < max(b[0].stop - b[0].start, b[1].stop - b[1].start)}
-    big = [i + 1 for i, v in enumerate(sizes) if v >= 0.04 * sizes.max() and i + 1 not in thin]
+    big = [i + 1 for i, v in enumerate(sizes) if v >= 0.08 * sizes.max() and i + 1 not in thin]
     if not big:
         return None
     if len(big) > 8:
@@ -120,12 +133,30 @@ def cutout(data):
     return out.crop(out.getbbox())
 
 
+def kinds(p):
+    text = f"{p.get('name') or ''} {p.get('brand') or ''}"
+    return {k for k, rx in KINDS.items() if rx.search(text)}
+
+
+def allowed(slug, p, taken):
+    """The variety rules for one more product on this cover, given the picks already on it."""
+    ks = kinds(p)
+    if "boot" in ks and slug in NO_BOOTS and not re.search(r"\bugg\b", f"{p.get('brand')} {p.get('name')}", re.I):
+        return False
+    if slug.startswith("store-"):
+        return True
+    brand = (p.get("brand") or "").strip().lower()
+    if brand and brand in {(t.get("brand") or "").strip().lower() for t in taken}:
+        return False
+    return not (ks & set().union(*[kinds(t) for t in taken])) if taken else True
+
+
 def photos(slug, need=6):
     try:
         picks = json.load(open(os.path.join(PICKS, f"{slug}.json"), encoding="utf8"))["picks"]
     except FileNotFoundError:
         return []
-    urls, seen = [], set()
+    cands, seen = [], set()
     for p in picks:
         u = p.get("image")
         if not u or not u.startswith("https://") or u in seen or AMAZON.search(urlparse(u).hostname or ""):
@@ -134,16 +165,22 @@ def photos(slug, need=6):
         if (p.get("name") or "").strip().lower() == (p.get("brand") or "").strip().lower():
             continue
         seen.add(u)
-        urls.append(u)
-    got = []
-    for start in range(0, min(len(urls), 30), 10):
+        cands.append(p)
+    got, taken = [], []
+    for start in range(0, min(len(cands), 50), 10):
+        batch = [p for p in cands[start:start + 10]]
         with ThreadPoolExecutor(6) as pool:
-            for data in pool.map(fetch, urls[start:start + 10]):
-                c = cutout(data) if data else None
-                if c is not None:
-                    got.append(c)
+            datas = list(pool.map(fetch, [p["image"] for p in batch]))
+        for p, data in zip(batch, datas):
+            if len(got) >= need or RAGGED.search(p.get("name") or "") or not allowed(slug, p, taken):
+                continue
+            c = cutout(data) if data else None
+            if c is not None:
+                got.append(c)
+                taken.append(p)
         if len(got) >= need:
             break
+    print(f"  {slug}: " + " | ".join((t.get("name") or "")[:28] for t in taken), flush=True)
     return got[:need]
 
 
@@ -156,32 +193,6 @@ def even(p, m, frac=0.42):
         q = m * 1.1 / max(w, h)
         w, h = w * q, h * q
     return p.resize((max(1, int(w)), max(1, int(h))), Image.LANCZOS)
-
-
-def gingham(pal):
-    """The text-only covers' gingham (pin_covers.gingham, c=60 on 1080), scaled to this 960 canvas."""
-    a, b, o = pal
-    W, c = 1080, 60
-    im = Image.new("RGB", (W, W), a)
-    d = ImageDraw.Draw(im)
-    for x in range(c, W, 2 * c):
-        d.rectangle([x, 0, x + c - 1, W], fill=b)
-    for y in range(c, W, 2 * c):
-        d.rectangle([0, y, W, y + c - 1], fill=b)
-    for x in range(c, W, 2 * c):
-        for y in range(c, W, 2 * c):
-            d.rectangle([x, y, x + c - 1, y + c - 1], fill=o)
-    return im.resize((S, S), Image.LANCZOS)
-
-
-def shadow(p):
-    s = Image.new("RGBA", (p.width + 30, p.height + 30), (0, 0, 0, 0))
-    blk = Image.new("RGBA", p.size, (30, 22, 14, 255))
-    blk.putalpha(p.split()[3].point(lambda v: int(v * 0.34)))  # darker than on cream so it reads on the gingham
-    s.paste(blk, (18, 21), blk)
-    s = s.filter(ImageFilter.GaussianBlur(7))
-    s.paste(p, (15, 15), p)
-    return s
 
 
 def wrap(d, text, f, width):
@@ -198,51 +209,43 @@ def wrap(d, text, f, width):
     return lines + [cur]
 
 
-def tracked(d, cx, y, text, f, track):
-    tw = sum(f.getlength(ch) for ch in text) + track * (len(text) - 1)
-    x = cx - tw / 2
-    for ch in text:
-        d.text((x, y), ch, font=f, fill=INK, anchor="lm")
-        x += f.getlength(ch) + track
-
-
 def draw(row, prods, out):
-    im = gingham(GINGHAM.get(row["group"], GREEN))
+    """pin_covers.photo_cover / cover2_example.cover2 on a 1000 x 1000 square, saved at 480 x 480."""
+    W = 1000
+    im = pc.gingham(W, W, TINT.get(row["group"], "sage"))
     d = ImageDraw.Draw(im)
-    x0, x1, y0, y1 = 306, 654, 92, 868
-    r = (x1 - x0) / 2
-    d.pieslice([x0, y0, x1, y0 + 2 * r], 180, 360, fill=WHITE)
-    d.rectangle([x0, y0 + r, x1, y1], fill=WHITE)
-    d.arc([x0 + 12, y0 + 12, x1 - 12, y0 + 2 * r - 12], 180, 360, fill=INK, width=2)
-    d.line([(x0 + 12, y0 + r), (x0 + 12, y1 - 12)], fill=INK, width=2)
-    d.line([(x1 - 13, y0 + r), (x1 - 13, y1 - 12)], fill=INK, width=2)
-    d.line([(x0 + 12, y1 - 13), (x1 - 12, y1 - 13)], fill=INK, width=2)
+    k = 1.0
+    x0, y0, x1, y1 = 234, 92, 766, 922  # the pin's arch width (53%), nearly the square's full height
+    pc.arch(d, x0 - 22 * k, y0 - 22 * k, x1 + 22 * k, y1 + 20 * k, fill=pc.CREAM)
+    pc.arch(d, x0, y0, x1, y1, outline=pc.INK, width=2)
     cx = (x0 + x1) / 2
-    words = row["lead"].split()
-    leads = [" ".join(words[:-1]), words[-1]] if len(words) > 1 else words
-    lf = font("CG-Italic.ttf", 44)
-    for i, l in enumerate(leads):
-        d.text((cx, 300 + i * 48), l, font=lf, fill=INK, anchor="mm")
-    size = 62
+    lsize = 60
+    while pc.font("CG-Italic.ttf", lsize).getlength(row["lead"]) > x1 - x0 - 80 and lsize > 36:
+        lsize -= 4
+    d.text((cx, y0 + (x1 - x0) * 0.40), row["lead"], font=pc.font("CG-Italic.ttf", lsize), fill=pc.INK, anchor="mm")
+    size = 78
     while True:
-        tf = font("PlayfairDisplay.ttf", size)
-        lines = wrap(d, row["title"], tf, x1 - x0 - 56)
-        if (len(lines) <= 3 and all(d.textlength(l, font=tf) <= x1 - x0 - 40 for l in lines)) or size <= 30:
+        tf = pc.font("PlayfairDisplay.ttf", size)
+        lines = wrap(d, row["title"], tf, x1 - x0 - 190)  # clear of the products over the arch edge
+        if (len(lines) <= 3 and all(d.textlength(l, font=tf) <= x1 - x0 - 170 for l in lines)) or size <= 36:
             break
         size -= 4
-    lh = size * 1.25
-    ty = 520 - (len(lines) - 1) * lh / 2
+    lh = size * 105 / 78
+    ty = (y0 + y1) / 2 + 20 - (len(lines) - 1) * lh / 2
     for i, l in enumerate(lines):
-        d.text((cx, ty + i * lh), l, font=tf, fill=INK, anchor="mm")
-    d.line([(cx - 36, 720), (cx + 36, 720)], fill=INK, width=2)
-    tracked(d, cx, 790, "LOUISIANA HELPR", font("Montserrat.ttf", 21), 4)
-    slots = [(-1, 0.19, -7), (1, 0.19, 6), (-1, 0.5, 5), (1, 0.5, -5), (-1, 0.81, -6), (1, 0.81, 7)]
-    for (side, fy, rot), p in zip(slots, prods):
-        p = even(p, 250).rotate(rot, resample=Image.BICUBIC, expand=True)
-        s = shadow(p)
-        px = x0 / 2 if side < 0 else (x1 + S) / 2
-        bx = int(min(max(px - s.width / 2, 4), S - s.width - 4))
-        by = int(min(max(fy * S - s.height / 2, 4), S - s.height - 4))
+        d.text((cx, ty + i * lh), l, font=tf, fill=pc.INK, anchor="mm")
+    d.line([(cx - 50, y1 - 170), (cx + 50, y1 - 170)], fill=pc.INK, width=2)
+    pc.tracked(d, cx, y1 - 82, "LOUISIANA HELPR", pc.font("Montserrat.ttf", 20), 6)
+    H0, mx = y1 - y0, 330
+    for i, p in zip(range(6), prods):
+        side, fy, rot, sc, off = pc.EVEN[i]
+        off += 22 if fy < 0.3 or fy > 0.7 else -18  # the middle pair sits further out, clear of the guide name
+        p = even(p, int(mx * sc * 0.78)).rotate(rot, resample=Image.BICUBIC, expand=True)
+        s = pc.shadow(p)
+        px = x0 + off if side < 0 else x1 - off
+        py = y0 + (0.14 + (fy - 0.12) * (0.72 / 0.74)) * H0
+        bx = int(min(max(px - s.width / 2, -8), W - s.width + 8))
+        by = int(min(max(py - s.height / 2, -8), W - s.height + 8))
         im.paste(s, (bx, by), s)
     im.resize((480, 480), Image.LANCZOS).save(out, "WEBP", quality=58, method=6)
 

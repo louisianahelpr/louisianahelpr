@@ -462,24 +462,7 @@
  },
  "aunt": {
   "section": "By person",
-  "items": [
-   {
-    "name": "Vancouver Mug",
-    "key": "lecreuset:drink"
-   },
-   {
-    "name": "Lip Glowy Balm",
-    "key": "laneige:balm"
-   },
-   {
-    "name": "Reverence Aromatic Hand Balm",
-    "key": "aesop:balm"
-   },
-   {
-    "name": "Ninja NC301 CREAMi Ice Cream Maker, 7 One-Touch Programs, Silver",
-    "key": "ninja:silver"
-   }
-  ]
+  "items": []
  },
  "uncle": {
   "section": "By person",
@@ -624,7 +607,32 @@
  },
  "mail-carrier-and-delivery-drivers": {
   "section": "By person",
-  "items": []
+  "items": [
+   {
+    "name": "HotHands Large Body & Hand Super Warmers, 10-Pack",
+    "key": "item:hothands large body hand super warmers 10 pack"
+   },
+   {
+    "name": "Ozark Trail 5200mAh Rechargeable 3-Temperature Hand Warmer, Orange",
+    "key": "item:ozark trail 5200mah rechargeable 3 temperature hand warmer orange"
+   },
+   {
+    "name": "HotHands Stick-On Body Warmers, 8 Pack",
+    "key": "item:hothands stick on body warmers 8 pack"
+   },
+   {
+    "name": "TAL 20 oz Insulated Travel Coffee Mug, Black",
+    "key": "item:tal 20 oz insulated travel coffee mug black"
+   },
+   {
+    "name": "Jolly Rancher Flavored Lip Balm, 10 Pack",
+    "key": "item:jolly rancher flavored lip balm 10 pack"
+   },
+   {
+    "name": "NevEND Men's Merino Wool Thermal Crew Socks",
+    "key": "item:nevend men s merino wool thermal crew socks"
+   }
+  ]
  },
  "kids": {
   "section": "For kids",
@@ -948,8 +956,8 @@
     "key": "lego:house"
    },
    {
-    "name": "The Book of Paper Airplanes",
-    "key": "klutz:airplanes"
+    "name": "Lite-Brite Super Bright HD, Hello Kitty Edition",
+    "key": "litebrite:edition"
    }
   ]
  },
@@ -1021,6 +1029,14 @@
    {
     "name": "48ct Washable Sidewalk Chalk - Bold Colors",
     "key": "crayola:colors"
+   },
+   {
+    "name": "Build N Tumble Table",
+    "key": "megabloks:table"
+   },
+   {
+    "name": "Disney Junior Minnie Mouse Bowtique Cash Register",
+    "key": "disneyjunior:register"
    }
   ]
  },
@@ -2248,12 +2264,20 @@
     "key": "sunbeam:premium"
    },
    {
-    "name": "Cozychic Ribbed Throw Blanket",
-    "key": "barefootdreams:blanket"
+    "name": "NEBULA Capsule 3 Laser Outdoor Portable Mini Smart TV Projector",
+    "key": "nebula:projector"
    },
    {
-    "name": "14oz Mug 2 Temperature Control Smart Mug Sandstone",
-    "key": "ember:drink"
+    "name": "XGIMI Vibe One with 80\" Screen Mini Portable Projector",
+    "key": "xgimi:projector"
+   },
+   {
+    "name": "Elite Screens Yard Master 2",
+    "key": "elitescreens:master"
+   },
+   {
+    "name": "West Bend Stir Crazy Popcorn Popper",
+    "key": "westbend:popper"
    }
   ]
  },
@@ -2560,8 +2584,8 @@
     "key": "bocomal:cat"
    },
    {
-    "name": "O'Keeffe's Working Hands Hand Cream for Extreme Dryness",
-    "key": "okeeffes:dryness"
+    "name": "Energizer Vision HD LED Headlamp, 300 Lumens",
+    "key": "energizer:lumens"
    }
   ]
  },
@@ -2577,12 +2601,12 @@
     "key": "thermos:black"
    },
    {
-    "name": "20,000mAh Power Bank, 30W, Digital Display",
-    "key": "anker:display"
+    "name": "O'Keeffe's Working Hands Hand Cream for Extreme Dryness",
+    "key": "okeeffes:dryness"
    },
    {
-    "name": "LEATHERMAN Wave Plus 18-in-1 Multi-Tool",
-    "key": "leatherman:tool"
+    "name": "20,000mAh Power Bank, 30W, Digital Display",
+    "key": "anker:display"
    }
   ]
  },
@@ -2826,6 +2850,10 @@
     "key": "zulaykitchen:spoon"
    },
    {
+    "name": "Wave Alpha Multi-Tool",
+    "key": "leatherman:tool"
+   },
+   {
     "name": "Butterfly Backpack Lunch Bag Water Bottle Separates",
     "key": "skiphop:drink"
    },
@@ -2840,10 +2868,6 @@
    {
     "name": "1Zero Solid Car Truck Phone Mount Holder",
     "key": "item:1zero solid car truck phone mount holder"
-   },
-   {
-    "name": "Foliful Polarized Sports Wrap Around Sunglasses Men Cycling Fishing Running",
-    "key": "foliful:running"
    }
   ]
  },
@@ -2853,6 +2877,10 @@
    {
     "name": "Bruder 02818 Mack Granite Liebherr Crane Truck",
     "key": "bruder:truck"
+   },
+   {
+    "name": "Foliful Polarized Sports Wrap Around Sunglasses Men Cycling Fishing Running",
+    "key": "foliful:running"
    },
    {
     "name": "Worksite Lunch Cooler",
@@ -2865,10 +2893,6 @@
    {
     "name": "Working Hands Hand Cream",
     "key": "okeeffes:cream"
-   },
-   {
-    "name": "Wave Alpha Multi-Tool",
-    "key": "leatherman:tool"
    },
    {
     "name": "Hand Warmers, 10 Pair Pack",
@@ -2896,12 +2920,12 @@
     "key": "gojo:cleaner"
    },
    {
-    "name": "Ergodyne Chill Its 6602MF Cooling Towel",
-    "key": "ergodyne:towel"
+    "name": "Energizer Vision HD LED Headlamp, 300 Lumens",
+    "key": "energizer:lumens"
    },
    {
-    "name": "Milwaukee 48-22-8426 Packout",
-    "key": "milwaukee:packout"
+    "name": "Ergodyne Chill Its 6602MF Cooling Towel",
+    "key": "ergodyne:towel"
    }
   ]
  },
@@ -5381,14 +5405,6 @@
    {
     "name": "40-Piece Household Tool Kit, Seafoam",
     "key": "hypertough:seafoam"
-   },
-   {
-    "name": "Ninja Sizzle Indoor Grill & Griddle GR101",
-    "key": "ninja:griddle"
-   },
-   {
-    "name": "Ninja NC301 CREAMi Ice Cream Maker, 7 One-Touch Programs, Silver",
-    "key": "ninja:silver"
    }
   ]
  },
@@ -5728,8 +5744,8 @@
     "key": "polaroid:white"
    },
    {
-    "name": "Ninja NC301 CREAMi Ice Cream Maker, 7 One-Touch Programs, Silver",
-    "key": "ninja:silver"
+    "name": "Artisan Stand Mixer Almond",
+    "key": "kitchenaid:almond"
    }
   ]
  },

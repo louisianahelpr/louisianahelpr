@@ -280,9 +280,8 @@ const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b
  * price is not the new product's (dropped), and its photo shows the old product, so the photo is kept only where the
  * swap is the same product in another size, color or pack (SOLDOUT_SAME_LOOK, judged from the two names); the others
  * fall to the photo finder. When the file gives the new product's Walmart Creator link (new_affiliate_href) and photo
- * (new_image), those are used; a row without a creator link opens the plain walmart.com product page (SOLDOUT_HOSTS).
+ * (new_image), those are used (all 13 have both, checked 2026-11-19); the file's new_price is not a checked price (not shown).
  */
-export const SOLDOUT_HOSTS = new Set(listed("SOLDOUT_SWAP_HOSTS"));
 export const SOLDOUT_SAME_LOOK = /CREAMi|DualZone|Tony Chachere|Ayieyill|Salted Coconut|Headlamp|MUK LUKS/i;
 const SOLDOUT = new Map();
 for (const s of readList("_soldout-swaps-1118.json")) {
@@ -291,16 +290,14 @@ for (const s of readList("_soldout-swaps-1118.json")) {
   SOLDOUT.set(s.old_href, s);
 }
 export const soldout = { swapped: 0 };
-const SOLDOUT_SWAPPED = new Set();
 const withSoldoutSwap = (p) => {
   const s = SOLDOUT.get(p.href) ?? SOLDOUT.get(p.affiliate_href);
   if (!s) return p;
   soldout.swapped += 1;
-  // A Walmart Creator link for the new product (new_affiliate_href, on an AFFILIATE_HOSTS host) earns; without one the
-  // plain product page is the link (SOLDOUT_HOSTS). The new product's own photo (new_image) wins over the old one.
+  // The new product's Walmart Creator link (new_affiliate_href, on an AFFILIATE_HOSTS host) is its link; a row without
+  // one has no affiliate link and stays hidden like any other. Its own photo (new_image) wins over the old one.
   const creator = (() => { try { return typeof s.new_affiliate_href === "string" && AFFILIATE.has(new URL(s.new_affiliate_href).hostname) ? s.new_affiliate_href : ""; } catch { return ""; } })();
   const newImage = typeof s.new_image === "string" && s.new_image.startsWith("https://") ? s.new_image : "";
-  if (!creator) SOLDOUT_SWAPPED.add(s.new_href);
   const { price: _p, price_source: _ps, price_checked_at: _pc, price_currency: _pcur, image: oldImage, ...rest } = p;
   const image = newImage || (SOLDOUT_SAME_LOOK.test(s.name) ? oldImage : "");
   return { ...rest, name: s.name, href: s.new_href, affiliate_href: creator || s.new_href, ...(image ? { image } : {}) };
@@ -331,7 +328,7 @@ function toPick(p, where) {
   const host = url.hostname;
   const isAffiliate = Boolean(p.affiliate_href);
   if (url.protocol !== "https:") return hidden.push(`${where}: ${href} is not https`), null;
-  if (isAffiliate ? !AFFILIATE.has(host) && !(SOLDOUT_SWAPPED.has(href) && SOLDOUT_HOSTS.has(host)) : !PLAIN_OK.has(host)) return hidden.push(`${where}: ${p.name} has no affiliate link yet (${host})`), null;
+  if (isAffiliate ? !AFFILIATE.has(host) : !PLAIN_OK.has(host)) return hidden.push(`${where}: ${p.name} has no affiliate link yet (${host})`), null;
   if (AMAZON.has(host) && host !== "amzn.to" && url.searchParams.get("tag") !== "louisianahelpr-20") return hidden.push(`${where}: ${href} lacks tag=louisianahelpr-20`), null;
   for (const v of [p.name, p.line]) if (/\$\s?\d/.test(v ?? "")) return hidden.push(`${where}: price in "${v}"`), null;
   const plainHost = (() => { try { return new URL(p.href).hostname; } catch { return ""; } })();
@@ -1410,7 +1407,8 @@ export const BELONG_FILL_HREFS = new Map();
     let host = "";
     try { host = new URL(r.href).hostname; } catch { return null; }
     const { price: _price, network: _network, ...rest } = r;
-    const row = f === MAIL_FILL ? { ...rest, price: r.price } : rest;
+    // Mail Carrier prices are Walmart Creator's own (lead 11-19: checked, source "walmart-creator", 2026-11-19).
+    const row = f === MAIL_FILL ? { ...rest, price: r.price, price_currency: "USD", price_source: "walmart-creator", price_checked_at: r.price_checked_at ?? "2026-11-19" } : rest;
     if (f === MAIL_FILL) return toPick({ brand: "", line: "", store: "Walmart", ...row }, f);
     const amazon = AMAZON.has(host);
     return toPick({ brand: "", line: "", ...row, ...(amazon ? { store: "Amazon", image_source: "amazon-sitestripe" } : {}),

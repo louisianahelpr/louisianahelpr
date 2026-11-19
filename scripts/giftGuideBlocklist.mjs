@@ -15,7 +15,11 @@ export const BLOCKED_BRANDS = ["SheVibe", "King Palm", "AnyListingSEO", "Loren",
   "Wondershare", "Roxio", "Pinnacle Studio", "Lalal.ai", "Ashampoo", "AOMEI", "PandaOffice", "Jalbum", "O&O Software",
   "Abelssoft", "Paragon Software", "GearUP", "YUPLAY", "Whokeys", "DirectDeals", "Hero Wars", "Skytours", "Oojo",
   "Cheapvuelos", "Ovago", "HopeGoo", "Air India", "Ocean Hotels", "Rent Cars", "VIP Cars", "Carla Car Rental", "RVshare",
-  "Undercover Tourist", "PARISCityVISION"];
+  "Undercover Tourist", "PARISCityVISION",
+  // Owner 11-19 ("don't think it should be on any gift guides"): a jade bangle, an Indian cookbook-and-sauce set and an
+  // 8-pint ice cream shipment; and ("alot cuter things to pick from") an embroidered tablecloth, glass wall art and a
+  // weighted blanket. Their store pages go too.
+  "Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets"];
 
 const compact = (s) => String(s).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const blockedCompact = BLOCKED_BRANDS.map(compact);

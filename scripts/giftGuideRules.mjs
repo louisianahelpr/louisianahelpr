@@ -127,6 +127,7 @@ export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
+  if (decorOff(slug, p) || foodTinOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p)) return false;
   // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
@@ -660,3 +661,106 @@ export const BRAND_FIXES = [
   [/^fire tv stick\b/i, "Amazon"],
 ];
 export const fixedBrand = (name) => BRAND_FIXES.find(([rx]) => rx.test(String(name ?? "")))?.[1] ?? "";
+
+/**
+ * MODEL YEARS (owner 11-19: "why the hell would we recommend a 2024 model of anything", on "Amazon Kindle Paperwhite
+ * 16GB (2024 model)"). A shown name never carries a model year:
+ *   - SUPERSEDED: an older model whose newer one is in our library (Yoto Mini 2024 Edition / Yoto Player 3rd Gen vs the
+ *     4th Gen, AirPods 3rd Gen vs AirPods 4) is removed;
+ *   - "(2024 model)", "(2024)", "(2024 Edition)", "[2026 Upgraded]", "2024 Edition" are cut from the name (the product
+ *     is the current model: the Oct 2024 Kindle Paperwhite is still Amazon's newest);
+ *   - a bare year before 2026 left after that ("USMLE Step 1 2020", "Southern Living 2025 Annual Recipes") is an old
+ *     edition, so the pick is removed; a bare 2026+ year stays only on a dated title (a calendar, planner, almanac,
+ *     dated ornament), and is cut from anything else ("2026 TruFeel Golf Balls" -> "TruFeel Golf Balls").
+ * A wattage or size ("2000-Watt") is no year. Guard: src/test/giftGuideTop10White1119.test.ts.
+ */
+export const SUPERSEDED_MODEL = /\byoto mini \(2024 ed|\byoto player \(3rd gen|\bairpods (\(?3rd gen|3\b)/i;
+export const DATED_TITLE = /\b(calendars?|planners?|almanac|ornaments?|pajamas|stocking|dreambook|diary|agenda|yearbook)\b/i;
+const YEAR = /\b20\d\d\b(?![-\s]?(watts?|w|mah|lumens?|pieces?|pcs?|count|ct|mm|lbs?|psi|rpm)\b)/i;
+const YEAR_G = new RegExp(YEAR.source, "gi");
+const OLD_YEAR_BARE = /\b(20[01]\d|202[0-5])\b(?![-\s]?(watts?|w|mah|lumens?|pieces?|pcs?|count|ct|mm|lbs?|psi|rpm)\b)/i;
+/** The shown name without a model year, or "" when the pick is an old model or an old edition (removed). */
+export function modelYearName(name) {
+  const raw = String(name ?? "");
+  if (SUPERSEDED_MODEL.test(raw)) return "";
+  let n = raw
+    .replace(/\s*[([]\s*20\d\d(\s*[-–]\s*20\d\d)?(\s+(model|edition|ed\.?|upgraded|updated|release|version|new|newest|latest))?\s*[)\]]/gi, "")
+    .replace(/\s*\b(new\s+)?20\d\d\s+(model|edition|upgraded|updated|version|release)\b/gi, "")
+    .replace(/\s{2,}/g, " ").trim();
+  if (OLD_YEAR_BARE.test(n)) return "";
+  if (!DATED_TITLE.test(n) && YEAR.test(n)) n = n.replace(YEAR_G, "").replace(/\s+([,)\]])/g, "$1").replace(/^[\s,-]+|[\s,-]+$/g, "").replace(/\s{2,}/g, " ").trim();
+  return n;
+}
+/** A shown name that still names a model year (the guard's check): any year on a non-dated title, or a pre-2026 year. */
+export const namesModelYear = (name) => OLD_YEAR_BARE.test(name) || (!DATED_TITLE.test(name) && YEAR.test(name)) || /[([]\s*20\d\d/.test(name);
+
+/**
+ * NOT GIFTABLE DECOR (owner 11-19: "remove [these]. alot cuter things to pick from", on an AimHave tablecloth, a
+ * Minteefy glass wall art and a Mosaic weighted blanket): tablecloths, table runners, wall art (prints, canvas, glass
+ * art) and placemats from off-brand home-decor shops are no gift on the people, budget and life-moment guides. New
+ * Homeowner keeps them from a known home brand only. GUIDE_GROUPS is filled by the import from giftGuideIndex.ts.
+ */
+export const NOT_GIFT_DECOR = /\b(tablecloths?|table ?cloths?|table ?runners?|wall art|wall d[eé]cor|wall hangings?|wall plaques?|canvas (prints?|art|wall art|paintings?)|art prints?|glass (wall )?art|placemats?|place ?mats?)\b/i;
+export const DECOR_OFF_GROUPS = ["By person", "By budget", "Life moments"];
+export const DECOR_OK_GUIDES = ["new-homeowner", "housewarming"];
+export const KNOWN_DECOR_BRAND = /^(pottery barn|williams[- ]sonoma|crate (&|and) barrel|west elm|anthropologie|rifle paper co\.?|le creuset|hearth (&|and) hand|magnolia|threshold|ralph lauren|kate spade|mackenzie-childs|juliska)$/i;
+export const GUIDE_GROUPS = new Map();
+export const decorOff = (slug, p) => NOT_GIFT_DECOR.test(p.name) && DECOR_OFF_GROUPS.includes(GUIDE_GROUPS.get(slug))
+  && !(DECOR_OK_GUIDES.includes(slug) && KNOWN_DECOR_BRAND.test(String(p.brand ?? "").trim()));
+
+/**
+ * NO FOOD TINS FOR FAMILY (owner 11-19 on /gift-guides/mom: "remove you dont gift this to a mom for christmas?", on
+ * David's Cookies tins and Edible Arrangements trays): food gift tins (cookie, brownie, popcorn), fruit arrangements and
+ * dessert boxes are no gift for close family, a partner or a kid. They stay on coworkers, boss, neighbor, hostess,
+ * teachers, the food and Louisiana guides, thank-you, get-well and store pages (any guide not listed here).
+ */
+export const FOOD_TIN = /\b(cookies?|brownies?|popcorn|fudge|toffee|biscotti|pretzels?|treats?|sweets|snacks?)\b[^,]*\b(tins?|boxe?s?|platters?|trays?|assortment|sampler|baskets?|towers?|bundles?)\b|\b(tins?|boxe?s?|platters?|trays?|assortment|sampler|baskets?|towers?)\s+of\s+(cookies|brownies|popcorn|treats)\b|\bmeltaways\b|\bfruit (arrangements?|bouquets?|baskets?|platters?|boxe?s?)\b|\bdessert (boards?|boxe?s?|trays?|platters?)\b|\b(chocolate[- ](covered|dipped)|dipped) (strawberries|fruit)\b|\bedible arrangements?\b/i;
+export const FOOD_TIN_BRAND = /^(david'?s cookies|edible arrangements|cheryl'?s( cookies)?|the popcorn factory|popcornopolis|mrs\.? fields)$/i;
+/** Owner 11-19 ("remove for mom", GODIVA Holiday Luxury Gift Set): chocolate and candy boxes, gift sets and baskets too. */
+export const CANDY_BOX = /\b(chocolates?|truffles?|candy|candies|bonbons?|pralines?|caramels?|toffee|fudge|lindor|godiva)\b[^,]*\b(gift sets?|boxe?s?|tins?|baskets?|assortment|sampler|collection|tower|bundle)\b|\b(gift sets?|boxe?s?|tins?|baskets?|assortment|sampler)\s+of\s+(chocolates?|truffles|candy|candies)\b|\b(fruit baskets?|snack baskets?)\b/i;
+export const CANDY_BRAND = /^(godiva|lindt|see'?s( candies)?|harry (&|and) david|ferrero( rocher)?|ghirardelli|russell stover|whitman'?s|lake champlain chocolates|vosges|compartés|compartes|neuhaus|leonidas|teuscher|la maison du chocolat|wolferman'?s)$/i;
+export const FOOD_TIN_OFF_GUIDES = ["mom", "dad", "wife", "her", "him", "boyfriend-or-husband", "girlfriend", "grandma", "grandpa", "grandparents",
+  "sister", "brother", "mother-in-law", "father-in-law", "sister-in-law", "brother-in-law", "aunt", "uncle", "niece", "nephew", "cousins", "big-sisters"];
+export const foodTinOff = (slug, p) => (FOOD_TIN_OFF_GUIDES.includes(slug) || GUIDE_GROUPS.get(slug) === "For kids")
+  && (FOOD_TIN.test(p.name) || FOOD_TIN_BRAND.test(String(p.brand ?? "").trim()) || CANDY_BOX.test(p.name) || CANDY_BRAND.test(String(p.brand ?? "").trim()));
+
+/**
+ * NO MAGAZINES FOR FAMILY (owner 11-19: "remove magazine for mom"): a magazine subscription (Magazines.com, Magzter, any
+ * "Magazine Subscription") shows only on Subscriptions, Book Lover and store pages.
+ */
+export const MAGAZINE = /\bmagazines?\b|\bmagzter\b|\bmagazines\.com\b/i;
+export const MAGAZINE_OK_GUIDES = ["subscriptions", "book-lover"];
+export const magazineOff = (slug, p) => !slug.startsWith("store-") && !MAGAZINE_OK_GUIDES.includes(slug)
+  && (MAGAZINE.test(p.name) || /^(magazines\.com|magzter)$/i.test(String(p.brand ?? "").trim()) || /magazines\.com|magzter\.com/i.test(String(p.href ?? "")));
+
+/**
+ * NO WOMEN'S SPERRYS (owner 11-19: "no women wear sperrys these days"): women's Sperry boat shoes and loafers show on no
+ * guide; men's Sperry stays only on Boater, Fishing and the men's guides.
+ */
+export const SPERRY = /\bsperry\b/i;
+export const SPERRY_MEN_GUIDES = ["boater", "fishermen", "commercial-fishermen-and-shrimpers", "him", "dad", "boyfriend-or-husband", "grandpa", "brother", "uncle",
+  "father-in-law", "brother-in-law", "nephew", "boys-teens"];
+export const sperryOff = (slug, p) => {
+  if (slug.startsWith("store-") || !(SPERRY.test(p.name) || SPERRY.test(String(p.brand ?? "")))) return false;
+  if (/\bwomen'?s\b|\bwomens\b|\bladies\b|\bgirls?'?\b/i.test(p.name)) return true;
+  return !SPERRY_MEN_GUIDES.includes(slug);
+};
+
+/**
+ * LIFE IS GOOD (owner 11-19: "life is good is not as popular in louisiana"): no Life is Good item on the people, budget
+ * or life-moment guides; its own store page stays.
+ */
+export const LIFE_IS_GOOD = /\blife is good\b|^lig\b/i;
+export const lifeIsGoodOff = (slug, p) => DECOR_OFF_GROUPS.includes(GUIDE_GROUPS.get(slug))
+  && (LIFE_IS_GOOD.test(String(p.brand ?? "")) || LIFE_IS_GOOD.test(p.name) || /lifeisgood\.com/i.test(String(p.href ?? "")));
+
+/**
+ * NO BASS PRO BLANKETS FOR HER (owner 11-19: "there are a lot better blanket options than one from bass pro"): Bass Pro
+ * Shops and Cabela's home and decor items (blankets, throws, decor) show on no women's guide; they stay on the outdoors,
+ * hunting and fishing guides and their store pages.
+ */
+export const OUTDOOR_STORE = /^(bass pro( shops)?|cabela'?s)$/i;
+export const HOME_DECOR = /\b(blankets?|throws?|sherpa|quilts?|pillows?|d[eé]cor|wall art|signs?|rugs?|curtains?|candles?|lamps?|mugs?|ornaments?)\b/i;
+export const outdoorDecorOff = (slug, p) => WOMEN_GUIDES.includes(slug)
+  && (OUTDOOR_STORE.test(String(p.brand ?? "").trim()) || OUTDOOR_STORE.test(String(p.store ?? "").trim()) || /^store-(bass-pro|cabela)/.test(String(p.store ?? "")) || OUTDOOR_STORE.test(String(p.retailer ?? "").trim()) || /basspro\.com|cabelas\.com/i.test(String(p.href ?? "")))
+  && HOME_DECOR.test(p.name);

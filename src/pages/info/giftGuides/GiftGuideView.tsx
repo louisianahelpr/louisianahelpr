@@ -35,10 +35,27 @@ export const storeLabel = (pick: CatalogPick) =>
 /** A shopmy.us/collections/<id> link: a whole ShopMy collection, not the product (design audit r2 #3). */
 const isShopMyCollection = (href: string) => /^https:\/\/shopmy\.us\/collections\//.test(href);
 
+/** A loaded photo narrower than this is a blank pixel or a hotlink placeholder, not a product (owner 11-19: "no images?"). */
+export const MIN_PHOTO_WIDTH = 50;
+/** True when a finished image is broken or too small to be a product photo. */
+export const photoFailed = (img: HTMLImageElement) => img.complete && img.naturalWidth < MIN_PHOTO_WIDTH;
+
 export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: number }) {
   const [failed, setFailed] = useState(false);
   if (pick.image && !failed) {
-    return <img className="gg-thumb" loading="lazy" decoding="async" src={pick.image} alt="" width={size} height={size} referrerPolicy="no-referrer-when-downgrade" onError={() => setFailed(true)} />;
+    // Owner 11-19 ("remove the white around these images"): the cream sits on the gg-photo box and the photo multiplies
+    // onto it, so a white photo background blends into the card. A photo that already failed before React attached
+    // onError (ref check), or that loads as a blank/tiny image (onLoad), draws the store tile instead.
+    return (
+      <span className="gg-photo">
+        <img
+          className="gg-thumb" loading="lazy" decoding="async" src={pick.image} alt="" width={size} height={size} referrerPolicy="no-referrer-when-downgrade"
+          ref={(img) => { if (img?.currentSrc && photoFailed(img)) setFailed(true); }}
+          onLoad={(e) => { if (photoFailed(e.currentTarget)) setFailed(true); }}
+          onError={() => setFailed(true)}
+        />
+      </span>
+    );
   }
   // Lead 2026-11-18: a clean white tile with the store's name ("Amazon", "Walmart"), never a blank gap.
   return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{storeLabel(pick)}</span>;

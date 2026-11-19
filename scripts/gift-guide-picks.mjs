@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -40,6 +40,8 @@ const chunkDir = new URL("../src/content/giftGuidePicks/", import.meta.url);
 const seoOut = new URL("../src/content/giftGuideSeo.mjs", import.meta.url);
 const content = readFileSync(new URL("../src/content/giftGuides.ts", import.meta.url), "utf8");
 const indexSrc = readFileSync(new URL("../src/content/giftGuideIndex.ts", import.meta.url), "utf8");
+// Each guide's group ("By person", "By budget", ...), read by fitsGuide's not-giftable-decor rule (owner 11-19).
+for (const m of indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)) GUIDE_GROUPS.set(m[2], m[1]);
 const listed = (name) => [...(content.match(new RegExp(`export const ${name} = \\[([^\\]]*)\\]`))?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 const AMAZON = new Set(["www.amazon.com", "amazon.com", "amzn.to"]);
 const LOUISIANA = new Set(listed("LOUISIANA_SHOPS"));
@@ -345,7 +347,10 @@ function toPick(p, where) {
     : storeFor(p.retailer || p.store || p.brand);
   // A Louisiana shop or a 25 Days sponsor keeps its own words: those rows name the local business on purpose.
   const rawName = RENAMED[p.href] ?? RENAMED[p.affiliate_href] ?? (LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host)));
-  const name = rawName && fixName(tidyName(rawName));
+  // Owner 11-19: no model years on a shown name; an old model or an old edition is removed (modelYearName).
+  const tidied = rawName && fixName(tidyName(rawName));
+  if (tidied && !modelYearName(tidied)) return hidden.push(`${where}: "${tidied}" is an older model or an old edition`), null;
+  const name = tidied && modelYearName(tidied);
   if (!name) return hidden.push(`${where}: "${p.name}" is a page title, store name or promo, not a product`), null;
   if (store) stores.get(store).hosts.add(host);
   const flags = Object.fromEntries(["trending", "shipsFast", "localPickup"].filter((k) => p[k] === true).map((k) => [k, true]));
@@ -388,6 +393,30 @@ const nameOnly = (slug, p) => NAME_ONLY.some((x) => x.guide === slug && x.brand 
 
 /** Near-duplicate variants (design audit r2 #7: "…Coffee Pods, 12 Boxes" and "…Coffee Pods"): same brand, same first 24 letters. */
 const variantKey = (p) => `${compact(p.brand ?? "")} ${compact(p.name).slice(0, 24)}`;
+/**
+ * TASTE CURATION (lead 11-19, every ~/Desktop/Gift-guide-picks/_curation-*.json, read in name order so a later file
+ * wins per guide): { "<slug>": { remove: [{ name, brand, reason }], top12: [names], add: [{ name, brand, href, image, why }] } }.
+ * Per guide the "remove" names never show (dropped at add time and again from the final page), "top12" then the "add"
+ * names lead the featured order, and the "add" rows join the guide. Every other rule still applies on top.
+ */
+const CURATION = {};
+for (const f of readdirSync(dir).filter((x) => /^_curation-.*\.json$/.test(x)).sort()) {
+  const v = readJson(f);
+  if (!v || typeof v !== "object" || Array.isArray(v)) continue;
+  for (const [slug, c] of Object.entries(v)) if (!slug.startsWith("_") && c && typeof c === "object") CURATION[slug] = { ...c, file: f };
+}
+const CURATION_REMOVE = new Map(Object.entries(CURATION).map(([slug, c]) => [slug, new Set((Array.isArray(c.remove) ? c.remove : []).map((r) => compact(String(r?.name ?? r ?? ""))).filter(Boolean))]));
+/** Lead 11-19: Mail Carrier keeps its Walmart Creator picks at $20 or less (USPS gift limit; cheap is the point). */
+const MAIL_GUIDE = "mail-carrier-and-delivery-drivers";
+const keepsCheapWalmart = (slug, p) => slug === MAIL_GUIDE && /^https:\/\/(walmrt\.us|(www\.)?walmart\.com|goto\.walmart\.com)\//.test(p.href) && typeof p.price === "number" && p.price <= 20;
+const curatedOut = (slug, p) => {
+  const out = CURATION_REMOVE.get(slug);
+  return Boolean(out && out.has(compact(p.name)) && !keepsCheapWalmart(slug, p));
+};
+/** No guide drops under this many picks from curation removes alone (lead 11-19); Mail Carrier keeps 15. */
+const CURATION_FLOOR = 8;
+const curationFloor = (slug) => (slug === MAIL_GUIDE ? 15 : CURATION_FLOOR);
+const curationCounts = Object.fromEntries(Object.keys(CURATION).map((slug) => [slug, { removed: 0, added: 0, top12: 0 }]));
 const guides = {};
 const add = (slug, raw, where) => {
   const p = toPick(raw, where);
@@ -584,6 +613,43 @@ for (const [slug, names] of Object.entries(XTRATUF_GUIDES)) {
 }
 /** Amazon bounties (Prime, Audible, registries) in the guides they fit. */
 const BOUNTY_GUIDES = { "Try Prime free": ["store-amazon", "stocking-stuffers"], "Audible free trial": ["book-lover", "new-mom", "store-amazon"], "Start an Amazon Baby Registry": ["new-mom", "store-amazon"], "Start an Amazon Wedding Registry": ["newlyweds", "newly-engaged", "store-amazon"] };
+// The curation's added rows (each a real link and photo), after every source file so a duplicate keeps the first row.
+for (const [slug, c] of Object.entries(CURATION)) {
+  if (!GUIDE_SLUGS.has(slug)) continue;
+  for (const a of Array.isArray(c.add) ? c.add : []) {
+    if (!a?.name || !a?.href) continue;
+    const before = guides[slug]?.length ?? 0;
+    add(slug, { brand: a.brand ?? "", line: a.why ?? "", ...a, affiliate_href: a.affiliate_href ?? a.href }, c.file);
+    if ((guides[slug]?.length ?? 0) > before) curationCounts[slug].added += 1;
+  }
+}
+/**
+ * THIN-GUIDE FILLS (lead 11-19, every _fill-thin-*.json): rows with a real href, name and image, each naming its guides
+ * (`fits` / `guides` / `guide`), or grouped under their guide's slug ({ "<slug>": [rows] }, or { picks | links: [rows] }).
+ */
+export const thinFillCounts = {};
+for (const f of readdirSync(dir).filter((x) => /^_fill-thin-.*\.json$/.test(x)).sort()) {
+  const v = readJson(f);
+  const c = (thinFillCounts[f] = { rows: 0, added: 0 });
+  const rows = Array.isArray(v) ? v : Array.isArray(v?.picks) ? v.picks : Array.isArray(v?.links) ? v.links
+    : v && typeof v === "object" ? Object.entries(v).filter(([k, l]) => !k.startsWith("_") && Array.isArray(l)).flatMap(([k, l]) => l.map((r) => ({ _guide: k, ...r }))) : [];
+  for (const r of rows) {
+    if (!r || typeof r.href !== "string" || typeof r.name !== "string" || typeof r.image !== "string" || collectionLink(r.href)) continue;
+    c.rows += 1;
+    let host = "";
+    try { host = new URL(r.href).hostname; } catch { continue; }
+    const { price: _price, commission: _commission, fits, guides: gs, guide, _guide, ...row } = r;
+    const raw = { brand: r.brand ?? "", line: r.why ?? r.line ?? "", ...row, image: r.image.replace(/^http:\/\//, "https://"),
+      ...(r.affiliate_href ? {} : AFFILIATE.has(host) && !AMAZON.has(host) ? { affiliate_href: r.href } : {}), ...(AMAZON.has(host) ? { image_source: "amazon-sitestripe" } : {}) };
+    const targets = [...new Set([...(Array.isArray(fits) ? fits : []), ...(Array.isArray(gs) ? gs : []), ...(typeof guide === "string" ? [guide] : []), ...(_guide ? [_guide] : [])])];
+    for (const g of targets) {
+      if (!GUIDE_SLUGS.has(g) || g.startsWith("store-")) continue;
+      const before = guides[g]?.length ?? 0;
+      add(g, raw, f);
+      if ((guides[g]?.length ?? 0) > before) { FILL_HREFS.add(guides[g][guides[g].length - 1].href); c.added += 1; }
+    }
+  }
+}
 for (const b of readList("_amazon-bounties.json")) {
   const key = Object.keys(BOUNTY_GUIDES).find((k) => b.name.startsWith(k));
   for (const slug of key ? BOUNTY_GUIDES[key] : []) add(slug, { name: b.name, brand: "Amazon", line: "", href: b.href }, "_amazon-bounties.json");
@@ -657,8 +723,16 @@ const AUDIT = (() => {
 })();
 const MOVED_TO_LOUISIANA = ["crawfish-boil-host", "purple-and-gold-lover"];
 for (const [slug, a] of Object.entries(AUDIT)) {
-  if (MOVED_TO_LOUISIANA.includes(slug) || !Array.isArray(a?.final_top25) || !a.final_top25.length) continue;
+  // "top-10" is the landing's Top 10, owned by _featured-order.json as { guide, name } pairs: the audit's bare names
+  // replaced it, so every entry stopped resolving and "most loved" nurse picks filled the row (owner 11-19).
+  if (slug === "top-10" || MOVED_TO_LOUISIANA.includes(slug) || !Array.isArray(a?.final_top25) || !a.final_top25.length) continue;
   FEATURED[slug] = a.final_top25.filter((n) => typeof n === "string");
+}
+// The curation's top 12, then its added rows, lead the guide (over the fit audit's order; lead 11-19).
+for (const [slug, c] of Object.entries(CURATION)) {
+  const top = (Array.isArray(c.top12) ? c.top12 : []).filter((n) => typeof n === "string");
+  if (!top.length) continue;
+  FEATURED[slug] = [...new Set([...top, ...(Array.isArray(c.add) ? c.add : []).map((a) => a?.name).filter((n) => typeof n === "string")])];
 }
 /** The Louisiana section's guides (giftGuideIndex.ts group "Louisiana"): the only guides that hold Louisiana items. */
 const LOUISIANA_GUIDES = new Set([...indexSrc.matchAll(/group: "Louisiana"[^}]*?slug: "([^"]+)"/g)].map((m) => m[1]));
@@ -1716,6 +1790,24 @@ for (const [slug, list] of Object.entries(deals)) {
     });
   }
 }
+// The curation's removes, on the final page (so a backfill or swap cannot bring one back). A guide that would fall under
+// its floor keeps its best-ranked (first-listed) removed picks until it reaches the floor.
+const curationFloorHit = [];
+for (const slug of Object.keys(CURATION)) {
+  if (!pageList[slug]) continue;
+  const list = pageList[slug];
+  const kept = list.filter((p) => !curatedOut(slug, p));
+  const floor = Math.min(curationFloor(slug), list.length);
+  if (kept.length < floor) {
+    const back = new Set(list.filter((p) => curatedOut(slug, p)).slice(0, floor - kept.length));
+    curationFloorHit.push(`${slug} (${kept.length} -> ${kept.length + back.size})`);
+    pageList[slug] = list.filter((p) => !curatedOut(slug, p) || back.has(p));
+  } else pageList[slug] = kept;
+  curationCounts[slug].removed = list.length - pageList[slug].length;
+  const top = (CURATION[slug].top12 ?? []).map((n) => compact(String(n)));
+  curationCounts[slug].top12 = pageList[slug].slice(0, 12).filter((p) => top.some((t) => t === compact(p.name) || sameName(t, p.name))).length;
+}
+if (Object.keys(CURATION).length) console.log(`gift-guide-picks: curation ${JSON.stringify(curationCounts)}; floor kept picks on ${curationFloorHit.length ? curationFloorHit.join(", ") : "no guide"}`);
 const loved = new Map();
 for (const [slug, list] of Object.entries(pageList)) {
   if (slug.startsWith("store-")) continue;
@@ -1740,7 +1832,15 @@ const lovedTop = [...new Map([...loved.values()].filter((x) => x.n > 1 && looksL
   .map((x) => x.p);
 /** Our Top 10 (owner 11-18 PM): the featured file's "top-10" ({ guide, name }) when present; the most-loved picks fill any gap. */
 const featuredTop = (Array.isArray(FEATURED["top-10"]) ? FEATURED["top-10"] : [])
-  .map((x) => findByName(pageList[x?.guide] ?? guides[x?.guide] ?? [], String(x?.name ?? "")))
+  .map((x) => {
+    const want = String(x?.name ?? "");
+    // Its guide first; a curation that moved it off that guide still finds the same name on any other guide page.
+    const p = findByName(pageList[x?.guide] ?? guides[x?.guide] ?? [], want)
+      ?? Object.entries(pageList).filter(([slug]) => !slug.startsWith("store-")).map(([, list]) => list.find((q) => compact(q.name) === compact(want))).find(Boolean);
+    if (!p) console.warn(`gift-guide-picks: top-10 ${JSON.stringify(x)} not found`);
+    // "as": the short brand-first name the Top 10 card shows (owner 11-19: "Ember Mug 2, 14 oz").
+    return p && typeof x?.as === "string" && x.as.trim() ? { ...p, name: x.as.trim() } : p;
+  })
   .filter(Boolean);
 const topPicks = noRepeats([...featuredTop, ...lovedTop]).slice(0, 10);
 rmSync(chunkDir, { recursive: true, force: true });

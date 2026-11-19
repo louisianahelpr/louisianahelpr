@@ -245,6 +245,23 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(fitsGuide("her", { name: "Shark Beauty LED Face Mask" })).toBe(true);
     for (const g of ["dad", "home-cook", "him"]) expect(pageOf(g).some((p) => /face mask/i.test(p.name)), g).toBe(false);
   });
+  it("every visible pick has a photo (owner 11-18 PM: \"All Items need a picture find one. No excuses.\"), the Subscriptions memberships aside", () => {
+    // @mutate scripts/gift-guide-picks.mjs |   guides[slug] = guides[slug].filter(hasPhoto); |   guides[slug] = guides[slug].filter(Boolean);
+    const allowed = new Set(["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
+      "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"]);
+    let rows = 0;
+    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) {
+      rows += 1;
+      if (!allowed.has(p.name)) expect(p.image, `${f}: ${p.name}`).toBeTruthy();
+    }
+    expect(rows).toBeGreaterThan(5000);
+  });
+  it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
+    // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]
+    const under5 = pageOf("under-5") as { name: string; price?: number }[];
+    expect(under5.length).toBeGreaterThanOrEqual(25);
+    for (const p of under5) if (p.price !== undefined) expect(p.price, p.name).toBeLessThanOrEqual(5);
+  });
   it("Subscriptions opens on Walmart+ and the giftable Amazon memberships (owner 11-18 PM), with no trending tumblers", () => {
     // @mutate scripts/gift-guide-picks.mjs | const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), | const featuredEntries = (slug) => [
     const names = pageOf("subscriptions").map((p) => p.name);

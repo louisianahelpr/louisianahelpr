@@ -49,7 +49,11 @@ const readJson = (f) => (existsSync(join(dir, f)) ? JSON.parse(readFileSync(join
 /** A list file: a plain array, or a research file still in progress ({ _progress, links: [...] }). */
 const readList = (f) => {
   const v = readJson(f);
-  return Array.isArray(v) ? v : Array.isArray(v?.links) ? v.links : [];
+  const rows = Array.isArray(v) ? v : Array.isArray(v?.links) ? v.links : [];
+  // A file that puts the affiliate short link in `href` (_walmart-under5-1118.json: walmrt.us) keeps it as the
+  // affiliate link and its product page as the plain one.
+  return rows.map((p) => (p && !p.affiliate_href && typeof p.href === "string" && /^https:\/\/walmrt\.us\//.test(p.href)
+    ? { ...p, affiliate_href: p.href, href: typeof p.product_url === "string" ? p.product_url : p.href } : p));
 };
 
 /** The guide slugs and store-page titles on the owner's list (giftGuideIndex.ts). */
@@ -184,6 +188,14 @@ export const RENAMED = {
   "https://www.sharkninja.com/kitchen/small-kitchen-appliances/air-fryers": "Ninja Air Fryer",
   "https://www.sharkninja.com/beauty/skincare": "Shark Beauty LED Face Mask",
 };
+/** Photos found for photo-less picks, by pick name: { name: url } or [{ name, image }]. Optional file. */
+const MISSING_IMAGES = (() => {
+  const f = join(homedir(), "Desktop", "Link-library", "missing-images-1118.json");
+  if (!existsSync(f)) return new Map();
+  const v = JSON.parse(readFileSync(f, "utf8"));
+  const rows = Array.isArray(v) ? v : Array.isArray(v?.picks) ? v.picks : Array.isArray(v?.images) ? v.images : Object.entries(v ?? {}).filter(([k]) => !k.startsWith("_")).map(([name, image]) => ({ name, image }));
+  return new Map(rows.filter((r) => r && typeof r.name === "string" && typeof (r.image ?? r.url) === "string").map((r) => [compact(r.name), r.image ?? r.url]));
+})();
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
   const fixed = withAmazonFixes(p);
@@ -233,7 +245,11 @@ function toPick(p, where) {
   // ShopMy's own S3 photos answer 403 AccessDenied (all 639 distinct URLs, curl 11-18 PM): dropped like the TIFFs, so
   // mixed guides swap in photo'd picks and no row makes a failed request.
   const deadHost = typeof p.image === "string" && /^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(p.image);
-  const image = !tiff && !deadHost && !(typeof p.image === "string" && brokenImage(p.image)) && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe" && new URL(p.image).hostname === "m.media-amazon.com")) ? p.image : undefined;
+  const ownImage = !tiff && !deadHost && !(typeof p.image === "string" && brokenImage(p.image)) && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe" && new URL(p.image).hostname === "m.media-amazon.com")) ? p.image : undefined;
+  // "All items need a picture, find one. No excuses." (owner 11-18 PM): a pick with no usable photo takes the one the
+  // link library found for it (~/Desktop/Link-library/missing-images-1118.json), never an Amazon-hosted one.
+  const found = ownImage ? undefined : MISSING_IMAGES.get(compact(p.name ?? ""));
+  const image = ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !/\.tiff?(\?|#|$)/i.test(found) && !AMAZON_IMAGE_HOST.test(new URL(found).hostname) ? found : undefined);
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);
   const brand = BRAND_CASE[compact(p.brand ?? "")] ?? p.brand ?? "";
@@ -277,12 +293,13 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.star
   for (const p of JSON.parse(readFileSync(join(dir, file), "utf8"))) if (!nameOnly(slug, p)) add(slug, p, file);
 }
 /** Extras that name their guides (`fits`); each also lands on its store page. */
-for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json"]) {
+// _walmart-under5-1118.json: 60 Walmart links at $5 or less, photos and checked prices (lead 11-18 PM: fill Under $5).
+for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json", "_walmart-under5-1118.json"]) {
   for (const p of readList(f)) for (const slug of p.fits ?? []) if (GUIDE_SLUGS.has(slug)) add(slug, p, f);
 }
 /** Store extras: the store page, and for Warby Parker the guides the owner named (11-18). */
 const WARBY_GUIDES = ["her", "him", "coworkers", "rns", "girls-teens", "boys-teens"];
-const storeExtras = [["_xtratuf.json", []], ["_warby-parker.json", WARBY_GUIDES], ["_walmart.json", []], ["_tiktok-shop.json", []], ["_amazon-trending.json", []], ["_later.json", []], ["_awin.json", []], ["_cj.json", []], ["_impact.json", []], ["_shopify-collabs.json", []], ["_later-mylinks.json", []], ["_later-brands.json", []]];
+const storeExtras = [["_xtratuf.json", []], ["_warby-parker.json", WARBY_GUIDES], ["_walmart.json", []], ["_tiktok-shop.json", []], ["_amazon-trending.json", []], ["_later.json", []], ["_awin.json", []], ["_cj.json", []], ["_impact.json", []], ["_shopify-collabs.json", []], ["_later-mylinks.json", []], ["_later-brands.json", []], ["_walmart-under5-1118.json", []]];
 for (const [f, extraGuides] of storeExtras) {
   for (const p of readList(f)) {
     const pick = toPick(p, f);
@@ -461,6 +478,20 @@ const withTrending = (slug, list) => {
   return [...hot, ...out.filter((p) => !isTrending(p))];
 };
 for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));
+/**
+ * NO PHOTO, NO ROW (owner 11-18 PM: "All Items need a picture find one. No excuses."): a pick still without a photo
+ * leaves every guide and store page (the next photo'd pick moves up). Only the owner's Subscriptions memberships may
+ * keep their store tile until a photo is found.
+ */
+export const NO_PHOTO_OK = new Set(PINNED_TOP.subscriptions);
+const hasPhoto = (p) => Boolean(p.image) || NO_PHOTO_OK.has(p.name);
+let photoless = 0;
+for (const slug of Object.keys(guides)) {
+  const before = guides[slug].length;
+  guides[slug] = guides[slug].filter(hasPhoto);
+  photoless += before - guides[slug].length;
+  if (!guides[slug].length) delete guides[slug];
+}
 
 /** "Nov 22" / "2026-11-23 (...)" -> "2026-11-22"; anything else -> no end date. */
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
@@ -546,7 +577,7 @@ if (hidden.length && process.env.GIFT_PICKS_VERBOSE) console.error(`HIDDEN (no a
 export const AMAZON_SECTIONS = ["Louisiana Helpr Picks", "By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Colors", "Pets", "More finds"];
 const FIXED_HOSTS = new Set(["www.zchocolat.com", "www.diecastmodelswholesale.com"]);
 const sortedGuides = Object.entries(guides).sort(([a], [b]) => a.localeCompare(b));
-const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut];
+const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut.filter(hasPhoto)];
 const pageList = {};
 // The Kids hub is a hub, not a list (owner 2026-11-18): its page shows Girls, Boys and Gender-Neutral only.
 const NOT_A_LIST = new Set(["kids"]);
@@ -748,4 +779,4 @@ writeFileSync(
     `export const GIFT_GUIDE_SEO = ${JSON.stringify(seo)};\n`,
 );
 
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them)`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read`);

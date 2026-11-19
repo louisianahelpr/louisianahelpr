@@ -102,7 +102,8 @@ function MyListIcon({ current }: { current: boolean }) {
     <Link to="/gift-guides?list=mine" className="gg-icon gg-mylist-icon" aria-label={G.myListCount(n)}
       {...(current ? { "aria-current": "page" as const } : {})} data-gift-my-list-link="">
       <Icon d={HEART} fill={n > 0 ? "currentColor" : "none"} />
-      <span className="gg-icon-count" aria-hidden="true">{n}</span>
+      {/* No count badge on an empty list (pre-launch audit 11-18 PM: a red "0"). */}
+      {n > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-my-list-count="">{n}</span>}
     </Link>
   );
 }

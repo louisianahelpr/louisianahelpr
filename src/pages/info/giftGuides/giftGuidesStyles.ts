@@ -77,6 +77,7 @@ color:var(--gg-ink)}
 .gg-name{display:block;font-size:14px;font-weight:600;margin-top:7px;text-align:center;line-height:1.3}
 .gg-count{display:block;font-size:11px;color:var(--gg-muted);text-align:center}
 .gg-list{list-style:none;margin:16px 0 0;padding:0;counter-reset:gg}
+article[data-gift-guide]>section:first-child>.gg-list{margin-top:0}article[data-gift-guide]>section:first-child>.gg-list>li:first-child{border-top:0}
 .gg-toprow>li{width:148px}
 @media (min-width:1024px){.gg-toprow>li{width:200px}.gg-topcard .gg-thumb{width:200px;height:200px}}
 .gg-topcard{display:flex;flex-direction:column;gap:4px;color:var(--gg-ink);text-decoration:none}

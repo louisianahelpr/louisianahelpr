@@ -422,7 +422,9 @@ describe("gift guides: the landing opens to the guides", () => {
     // A guide's header is its cover's look as a short banner (owner 11-18 PM): gingham in the guide's palette, a cream
     // arch holding the lead, the title and the LOUISIANA HELPR line (real text, no image), the tool row right under it.
     // @mutate src/pages/info/GiftGuides.tsx | titleId="gift-guide-title" tint={guide.tint} | titleId="gift-guide-title"
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", "0"]);
+    // The tool row carries no text: an empty My list shows no "0" badge (pre-launch audit 11-18 PM).
+    // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {n > 0 && <span className="gg-icon-count" |       {true && <span className="gg-icon-count"
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", ""]);
     cleanup();
     let banners = 0;
     for (const slug of ["mom", "girls-toddlers", "store-walmart", "under-25"]) {

@@ -219,8 +219,9 @@ const MISSING_BY_HREF = new Map();
   }
 }
 const MISSING_IMAGES = MISSING_BY_NAME;
-/** A TIFF photo, unless the server converts it (KitchenAid's ".tif?fmt=png" is served as a PNG). */
-const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b/i.test(u);
+/** A TIFF photo, unless the server converts it (KitchenAid's ".tif?fmt=png" is served as a PNG, ShopMy's mirror as JPEG). */
+// ShopMy's static.shopmy.us mirror sends JPEG bytes under a ".tif" name (checked 11-18 PM: a 600x600 baseline JPEG).
+const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b/i.test(u) && !/^https:\/\/static\.shopmy\.us\//.test(u);
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
   const fixed = withAmazonFixes(p);
@@ -343,6 +344,75 @@ for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.jso
         // the brand its name opens with ("meowbox Cat Subscription Box" -> meowbox's store page).
         const affiliate = AFFILIATE.has(new URL(p.href).hostname) ? { affiliate_href: p.href } : {};
         add(slug, { brand: "", line: "", ...(isAmazonLink(p.href) ? { store: "Amazon", image_source: "amazon-sitestripe" } : { store: p.name.split(" ")[0] }), ...p, ...affiliate }, "_giftcards-subs-fill-1118.json");
+      }
+    }
+  }
+}
+/**
+ * Store photos (11-18 PM, _store-photos-1118.json): { "<store slug>": [{ name, href, image, ... }] }, products we list in
+ * other guides that their store page was missing, each with a checked photo. Two point at another retailer (a Laneige
+ * mask on printfresh.com, a Brightland oil on loft.com) and stay off those store pages. An "http:" photo is asked for over
+ * https; an affiliate short link in `href` is the affiliate link.
+ */
+{
+  const OTHER_RETAILER = /^https?:\/\/([^/]*\.)?(printfresh\.com|loft\.com)\//i;
+  const v = readJson("_store-photos-1118.json");
+  const listed = new Map();
+  for (const list of Object.values(guides)) for (const x of list) if (!listed.has(compact(x.name))) listed.set(compact(x.name), x);
+  for (const [slug, rows] of Object.entries(v && typeof v === "object" && !Array.isArray(v) ? v : {})) {
+    if (!slug.startsWith("store-") || !Array.isArray(rows)) continue;
+    for (const p of rows) {
+      if (!p || typeof p.href !== "string" || typeof p.name !== "string" || typeof p.image !== "string") continue;
+      if (OTHER_RETAILER.test(p.image) || ["printfresh.com", "loft.com"].some((d) => String(p.note ?? "").toLowerCase().includes(d))) continue;
+      // A plain retailer link takes the affiliate link the same product already has in another guide.
+      const twin = AFFILIATE.has(new URL(p.href).hostname) ? undefined : listed.get(compact(p.name));
+      const affiliate = AFFILIATE.has(new URL(p.href).hostname) ? { affiliate_href: p.href } : twin ? { affiliate_href: twin.href } : {};
+      // The store page it is filed under names its store (a ShopMy pin carries none of its own).
+      add(slug, { brand: twin?.brand ?? "", line: twin?.line ?? "", store: stores.get(slug)?.name ?? slug.slice("store-".length), ...p, image: p.image.replace(/^http:\/\//, "https://"), ...affiliate }, "_store-photos-1118.json");
+    }
+  }
+}
+/**
+ * STORE FILLS (11-18 night): _store-fill-{amazon,shopmy,later,shark}-1118.json. Shapes: { "<store key>": [rows] } or
+ * { links: [{ store_slug, fits?, ...row }] }. Each row joins its store page (store-<key>, when that store exists); a
+ * row's `fits` guides take it too, below the guide's audited top 25 (FILL_HREFS, featuredFirst). File prices are not
+ * checked prices and are dropped. Photo, fit and Louisiana rules apply as everywhere.
+ */
+export const FILL_HREFS = new Set();
+/** A store-fill name tidied (owner 11-18 night: long or generic Amazon names): size-range notes, "Unisex-Adult", an
+ * all-caps brand and a trailing burn-time or "including ..." clause go; tidyName then trims anything still long. */
+const cleanFillName = (n) => String(n).replace(/\s*\((Standard|Regular)[^)]*Size\)/gi, "").replace(/\bUnisex-Adult\s*/g, "")
+  .replace(/^THE NORTH FACE\b/, "The North Face").replace(/\bWomens\b/g, "Women's").replace(/\bMens\b/g, "Men's")
+  .replace(/\s+with up to \d+ Hour Burn Time$/i, "").replace(/\s+including .*$/i, "").replace(/\s*\((clearance|sale|on sale)\)/gi, "").replace(/\s{2,}/g, " ").trim();
+export const fillCounts = { rows: 0, store: 0, guides: 0, noStore: new Set() };
+{
+  for (const f of ["_store-fill-amazon-1118.json", "_store-fill-shopmy-1118.json", "_store-fill-later-1118.json", "_store-fill-shark-1118.json"]) {
+    const v = readJson(f);
+    if (!v || typeof v !== "object") continue;
+    // { store: "SharkNinja", picks: [...] } (the Shark file) names one store for every row.
+    const oneStore = typeof v.store === "string" && Array.isArray(v.picks) ? storeFor(v.store) : null;
+    const rows = Array.isArray(v) ? v : Array.isArray(v.links) ? v.links : oneStore ? v.picks.map((r) => ({ store_slug: oneStore, ...r }))
+      : Object.entries(v).filter(([k, l]) => !k.startsWith("_") && Array.isArray(l)).flatMap(([k, l]) => l.map((r) => ({ store_slug: k, ...r })));
+    for (const r of rows) {
+      if (!r || typeof r.href !== "string" || typeof r.name !== "string" || typeof r.image !== "string") continue;
+      fillCounts.rows += 1;
+      const key = String(r.store_slug ?? "").replace(/^store-/, "");
+      // A short key names the one store page it starts ("darn-tough" -> store-darn-tough-vermont).
+      const longer = key ? [...stores.keys()].filter((k) => k.startsWith(`store-${key}-`)) : [];
+      const slug = !key ? "" : stores.has(`store-${key}`) || longer.length !== 1 ? `store-${key}` : longer[0];
+      let host = "";
+      try { host = new URL(r.href).hostname; } catch { continue; }
+      const { price: _price, commission: _commission, guides: _guides, ...row } = r;
+      row.name = cleanFillName(r.name);
+      const raw = { brand: r.brand ?? stores.get(slug)?.name ?? "", line: "", ...row, ...(stores.has(slug) ? { store: stores.get(slug).name } : {}),
+        image: r.image.replace(/^http:\/\//, "https://"), ...(AFFILIATE.has(host) && !AMAZON.has(host) ? { affiliate_href: r.href } : {}),
+        ...(AMAZON.has(host) ? { image_source: "amazon-sitestripe" } : {}) };
+      if (stores.has(slug)) { add(slug, raw, f); fillCounts.store += 1; } else if (slug) fillCounts.noStore.add(slug);
+      for (const g of Array.isArray(r.fits) ? r.fits : Array.isArray(r.guides) ? r.guides : []) {
+        if (!GUIDE_SLUGS.has(g) || g.startsWith("store-")) continue;
+        const before = guides[g]?.length ?? 0;
+        add(g, raw, f);
+        if ((guides[g]?.length ?? 0) > before) { FILL_HREFS.add(guides[g][guides[g].length - 1].href); fillCounts.guides += 1; }
       }
     }
   }
@@ -511,7 +581,10 @@ const resolveFeatured = (slug, list, e) => {
 const featuredFirst = (slug, list) => {
   const lead = featuredEntries(slug).map((e) => resolveFeatured(slug, list, e)).filter(Boolean);
   // No photo, no row (see NO PHOTO, NO ROW below): dropped before the top 25 is counted, so its limits hold.
-  const ordered = [...new Set([...lead, ...list])].filter((p) => !louisianaBlocked(slug, p)).filter((p) => slug === SPONSORS_GUIDE || hasPhoto(p) || ((photoless += 1), false));
+  const kept = [...new Set([...lead, ...list])].filter((p) => !louisianaBlocked(slug, p)).filter((p) => slug === SPONSORS_GUIDE || hasPhoto(p) || ((photoless += 1), false));
+  // Store-fill picks sit below the audited top: after every other pick unless the audit itself names them.
+  const fillBelow = (p) => FILL_HREFS.has(p.href) && !lead.includes(p);
+  const ordered = [...kept.filter((p) => !fillBelow(p)), ...kept.filter(fillBelow)];
   if (slug.startsWith("store-")) return ordered;
   const head = [];
   const later = [];
@@ -619,12 +692,53 @@ export const suspectPhotos = { images: 0, cleared: 0 };
     if (groups.length < 2) continue;
     suspectPhotos.images += 1;
     const pin = /pins\/zoom-(\d+)-/.exec(image)?.[1];
-    const owner = (pin && groups.find((g) => g.some((r) => r.href === `https://go.shopmy.us/p-${pin}`))) ?? [...groups].sort((a, b) => b.length - a.length)[0];
+    // On three or more different products a photo is a placeholder (one Amazon image on six Anker chargers): nobody keeps it.
+    const owner = (pin && groups.find((g) => g.some((r) => r.href === `https://go.shopmy.us/p-${pin}`)))
+      ?? (groups.length >= 3 ? undefined : [...groups].sort((a, b) => b.length - a.length)[0]);
     for (const g of groups) if (g !== owner) for (const r of g) clear.add(r);
   }
   const strip = (list) => list.map((p) => (clear.has(p) ? ((suspectPhotos.cleared += 1), { ...p, image: undefined }) : p));
   for (const slug of Object.keys(guides)) guides[slug] = strip(guides[slug]);
   swappedOut.splice(0, swappedOut.length, ...strip(swappedOut));
+}
+/**
+ * BEST-PAYING LINK (11-18 night, ~/Desktop/Link-library/best-rates-1118.json: per brand, each network's rate and the
+ * best): when one product (same brand, same full name, sizes included) is carried on two or more networks, every row of it uses the
+ * best-paying network's link, provided that row has a photo. Only the same product is ever swapped in, so an audited top
+ * 25 keeps its products. Unknown rates ("?") never switch.
+ */
+export const rateSwitches = { switched: 0 };
+{
+  const f = join(homedir(), "Desktop", "Link-library", "best-rates-1118.json");
+  const RATES = existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : {};
+  const CJ = /(^|\.)(anrdoezrs|jdoqocy|dpbolvw|kqzyfj|tkqlhce)\.(net|com)$/;
+  const networkOf = (p) => {
+    const h = new URL(p.href).hostname;
+    return AMAZON.has(h) ? "Amazon" : h === "go.shopmy.us" || h === "shopmy.us" ? "ShopMy" : h === "mavely.app.link" ? "Later"
+      : h === "walmrt.us" ? "Walmart" : h === "www.awin1.com" ? "Awin" : CJ.test(h) ? "CJ" : "Direct";
+  };
+  const rateOf = (brand, net) => { const r = RATES[squash(brand)]?.all?.[net]; return typeof r === "number" ? r : undefined; };
+  const byProduct = new Map();
+  for (const list of Object.values(guides)) for (const p of list) {
+    if (!p.image || !squash(p.brand) || !RATES[squash(p.brand)]) continue;
+    const k = `${squash(p.brand)}|${compact(p.name)}`;
+    (byProduct.get(k) ?? byProduct.set(k, new Map()).get(k)).set(networkOf(p), p);
+  }
+  const best = new Map();
+  for (const [k, nets] of byProduct) {
+    if (nets.size < 2) continue;
+    const ranked = [...nets].filter(([n, p]) => rateOf(p.brand, n) !== undefined).sort((a, b) => rateOf(b[1].brand, b[0]) - rateOf(a[1].brand, a[0]));
+    if (ranked.length) best.set(k, ranked[0]);
+  }
+  for (const list of Object.values(guides)) list.forEach((p, i) => {
+    // The same product only: same brand and the same full name (sizes and pack counts included).
+    const b = best.get(`${squash(p.brand)}|${compact(p.name)}`);
+    if (!b || b[1].href === p.href || list.some((x) => x.href === b[1].href)) return;
+    const mine = rateOf(p.brand, networkOf(p));
+    if (mine !== undefined && mine >= rateOf(b[1].brand, b[0])) return;
+    list[i] = b[1];
+    rateSwitches.switched += 1;
+  });
 }
 for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));
 /**
@@ -987,4 +1101,4 @@ writeFileSync(
     `export const GIFT_GUIDE_SEO = ${JSON.stringify(seo)};\n`,
 );
 
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; store fills: ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}`);

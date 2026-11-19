@@ -2159,7 +2159,9 @@ export const CORE_KIND = [[/^(earrings?|studs?|hoops?|huggies)$/, "earring"], [/
   [/^rings?$/, "ring"], [/^masks?$/, "mask"], [/^pillowcases?$/, "pillowcase"], [/^robes?$/, "robe"], [/^towels?$/, "towel"], [/^(blankets?|throws?)$/, "blanket"],
   [/^socks?$/, "sock"], [/^(totes?|bags?)$/, "bag"], [/^(wallets?|wristlets?|pouch|pouches)$/, "wallet"], [/^backpacks?$/, "backpack"], [/^mugs?$/, "mug"],
   [/^tumblers?$/, "tumbler"], [/^(bottles?|jugs?)$/, "bottle"], [/^coolers?$/, "cooler"], [/^(jackets?|vests?)$/, "jacket"], [/^(hoodies?|sweatshirts?|pullovers?)$/, "top"],
-  [/^(pants?|joggers?|leggings?)$/, "pant"], [/^keychains?$/, "keychain"], [/^(creams?|lotions?|oils?|balms?)$/, "body"], [/^(mists?|perfumes?|parfums?)$/, "scent"]];
+  [/^(pants?|joggers?|leggings?)$/, "pant"], [/^keychains?$/, "keychain"], [/^(creams?|lotions?|oils?|balms?)$/, "body"], [/^(mists?|perfumes?|parfums?)$/, "scent"],
+  [/^(earbuds?|buds)$/, "earbuds"], [/^headphones?$/, "headphones"], [/^speakers?$/, "speaker"], [/^(candles?|sprays?|diffusers?)$/, "home scent"],
+  [/^(wands?|rollers?|massagers?|goggles)$/, "tool"], [/^cameras?$/, "camera"], [/^(chargers?|banks?|stations?)$/, "charger"]];
 export const BRAND_FILL_TARGET = 30;
 export const BRAND_FILL_PER_BRAND = 3;
 const WOMEN_BRANDS = /^(lululemon|ugg|kendra scott|sol de janeiro|slip|barefoot dreams|summer fridays|laneige|rare beauty|glow recipe|mejuri|baublebar|gorjana|stoney clover( lane)?|owala|stanley|kitsch|free people|anthropologie|southern marsh|comfort colors|simply southern|julie vos|spartina 449|rifle paper co\.?|tarte|charlotte tilbury|glossier|olive & june|skims|rothy'?s|madewell|lilly pulitzer|vineyard vines|hoka|on|birkenstock|new balance|adidas|nike|apple|dyson|sharkninja|shark|ninja|le creuset|our place|capri blue|voluspa|boy smells|homesick|paddywax|nest|otherland|bath & body works|tatcha|clinique|benefit|fresh|drunk elephant|beis|béis|calpak|dagne dover|kate spade( new york)?|coach|tory burch|michael kors|lake|little sleepies|brooklinen|parachute|crocs|kiehl'?s|dior|chanel|yeti|hydro flask|theragun|therabody|vuori|beyond yoga|alo|sperry|mud pie|magnolia|baggu)$/i;
@@ -2563,7 +2565,9 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
   const jdSports = (p) => /\bjd ?sports\b|jdsports\./i.test(`${p.retailer ?? ""} ${p.store ?? ""} ${p.href} ${p.affiliate_href ?? ""} ${p.image ?? ""}`);
   const cuts = new Map();
   for (const [k, l] of Object.entries(readJson(TASTE_CUTS_FILE) ?? {})) if (Array.isArray(l)) cuts.set(k, new Set(l.map((r) => compact(String(r?.name ?? r ?? ""))).filter(Boolean)));
-  const cut = (slug, p) => !p.ownerPick && [cuts.get(slug), cuts.get("*")].some((c) => c && (c.has(compact(p.name)) || c.has(compact(p.href))));
+  // A cut matches the exact name, the link, or (20+ letters) the start of a longer name the feed spells out further.
+  const cut = (slug, p) => !p.ownerPick && [cuts.get(slug), cuts.get("*")].some((c) => c && (c.has(compact(p.name)) || c.has(compact(p.href))
+    || [...c].some((k) => k.length >= 20 && compact(p.name).startsWith(k))));
   const why = (slug, p) => (held.has(p.href) ? "flag" : typeof p.price === "number" && p.price > PRICE_MAX ? "over 500" : nonGiftService(slug, p) ? "non-gift" : blockedBrand(p) ? "blocked brand"
     : !slug.startsWith("store-") && jdSports(p) ? "jd sports" : !slug.startsWith("store-") && cut(slug, p) ? "taste" : "");
   for (const slug of Object.keys(pageList)) {

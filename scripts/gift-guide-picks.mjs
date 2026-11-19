@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3 } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -51,7 +51,23 @@ const BRANDS = new Set(listed("BRAND_SITES"));
 const PLAIN_OK = new Set([...AMAZON, "shopmy.us", ...LOUISIANA, ...SPONSORS, ...BRANDS]);
 const AFFILIATE = new Set([...listed("AFFILIATE_HOSTS"), ...AMAZON, "shopmy.us"]);
 
-const readJson = (f) => (existsSync(join(dir, f)) ? JSON.parse(readFileSync(join(dir, f), "utf8")) : null);
+/**
+ * ShopMy's moved photos (lead 11-19, 1530 train): an old S3 photo URL (403) that scripts/gift-guide-shopmy-cdn.mjs found
+ * drawable on static.shopmy.us is read as that CDN URL, in every picks file, before any rule sees it. An unchecked one
+ * stays on the S3 host and is still held (deadHost below).
+ */
+export const SHOPMY_CDN_PHOTOS = (() => {
+  try {
+    return new Map(Object.entries(JSON.parse(readFileSync(join(dir, "_shopmy-cdn-photos.json"), "utf8"))));
+  } catch {
+    // Not built yet: every S3 photo stays held.
+    return new Map();
+  }
+})();
+const S3_URL = new RegExp(`${SHOPMY_S3.source}[^"\\s]*`, "g");
+const cdnPhotos = (text) => (SHOPMY_CDN_PHOTOS.size ? text.replace(S3_URL, (u) => SHOPMY_CDN_PHOTOS.get(u) ?? u) : text);
+const deskJson = (path) => JSON.parse(cdnPhotos(readFileSync(path, "utf8")));
+const readJson = (f) => (existsSync(join(dir, f)) ? deskJson(join(dir, f)) : null);
 /** A list file: a plain array, or a research file still in progress ({ _progress, links: [...] }). */
 const readList = (f) => {
   const v = readJson(f);
@@ -194,7 +210,7 @@ const stockLine = (line) => (lineProducts.get(String(line ?? "").trim())?.size ?
 export const AMAZON_IMAGE_HOST = /(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon|amazon-adsystem)\.com$/;
 const readLib = (f) => {
   try {
-    return JSON.parse(readFileSync(join(LIB, f), "utf8"));
+    return deskJson(join(LIB, f));
   } catch {
     // Not written yet (or mid-write): no brand photos or swaps this run.
     return {};
@@ -491,7 +507,7 @@ const add = (slug, raw, where) => {
 
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.startsWith("_")).sort()) {
   const slug = file.replace(/\.json$/, "");
-  for (const p of JSON.parse(readFileSync(join(dir, file), "utf8"))) if (!nameOnly(slug, p)) add(slug, p, file);
+  for (const p of deskJson(join(dir, file))) if (!nameOnly(slug, p)) add(slug, p, file);
 }
 /** Extras that name their guides (`fits`); each also lands on its store page. */
 // _walmart-under5-1118.json: 60 Walmart links at $5 or less, photos and checked prices (lead 11-18 PM: fill Under $5).

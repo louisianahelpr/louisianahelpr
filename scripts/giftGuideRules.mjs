@@ -1385,3 +1385,13 @@ export const nonGiftService = (slug, p) => NON_GIFT_SERVICE.test(`${p.name} ${p.
 export const PRICE_MAX = 500;
 /** A product shows in at most 2 non-store guides (owner 1:25 PM: "no more than 2 duplicates"), owner picks included. */
 export const DUP_GUIDE_MAX = 2;
+/**
+ * ShopMy's old S3 photo hosts (403 to every request since 11-18) and the CDN that serves the same key now (lead 11-19,
+ * 1530 train; curl 11-19: all 1,114 old URLs in the picks folder answer 200 at the new host). shopmyCdnUrl returns the
+ * new URL, or null for anything else. Only URLs checked by scripts/gift-guide-shopmy-cdn.mjs are swapped.
+ */
+export const SHOPMY_S3 = /https:\/\/production-shopmyshelf-(uploads|pins)\.s3[.-]us-east-2\.amazonaws\.com\//;
+export const shopmyCdnUrl = (u) => {
+  const m = typeof u === "string" ? u.match(new RegExp(`^${SHOPMY_S3.source}([^?#\\s"]+)$`)) : null;
+  return m ? `https://static.shopmy.us/${m[1]}/${m[2]}` : null;
+};

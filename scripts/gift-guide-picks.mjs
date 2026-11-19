@@ -315,6 +315,24 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.star
 for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json", "_walmart-under5-1118.json"]) {
   for (const p of readList(f)) for (const slug of p.fits ?? []) if (GUIDE_SLUGS.has(slug)) add(slug, p, f);
 }
+/**
+ * Gift cards and Subscriptions fill (owner approved 11-18 PM): _giftcards-subs-fill-1118.json, { "gift-cards": [...],
+ * "subscriptions": [...] }, Amazon links in popularity order with the products' own Amazon photos (no trials, no prices).
+ * Added after each guide's own picks; Subscriptions still opens on PINNED_TOP.
+ */
+{
+  const isAmazonLink = (h) => AMAZON.has(new URL(h).hostname);
+  const fill = readJson("_giftcards-subs-fill-1118.json");
+  for (const slug of ["gift-cards", "subscriptions"]) {
+    for (const p of Array.isArray(fill?.[slug]) ? fill[slug] : []) {
+      if (p && typeof p.href === "string" && typeof p.name === "string") {
+        // An affiliate short link in `href` (meowbox's mavely.app.link) is the affiliate link.
+        const affiliate = AFFILIATE.has(new URL(p.href).hostname) ? { affiliate_href: p.href } : {};
+        add(slug, { brand: "", line: "", ...(isAmazonLink(p.href) ? { store: "Amazon", image_source: "amazon-sitestripe" } : {}), ...p, ...affiliate }, "_giftcards-subs-fill-1118.json");
+      }
+    }
+  }
+}
 /** Store extras: the store page, and for Warby Parker the guides the owner named (11-18). */
 const WARBY_GUIDES = ["her", "him", "coworkers", "rns", "girls-teens", "boys-teens"];
 const storeExtras = [["_xtratuf.json", []], ["_warby-parker.json", WARBY_GUIDES], ["_walmart.json", []], ["_tiktok-shop.json", []], ["_amazon-trending.json", []], ["_later.json", []], ["_awin.json", []], ["_cj.json", []], ["_impact.json", []], ["_shopify-collabs.json", []], ["_later-mylinks.json", []], ["_later-brands.json", []], ["_walmart-under5-1118.json", []]];
@@ -536,11 +554,10 @@ for (const slug of Object.keys(guides)) {
 const BACKFILL_FITS = { "gift-cards": (p) => fitsGuide("gift-cards", p), subscriptions: (p) => /\b(subscription|membership)\b/i.test(p.name) && !/free trial/i.test(p.name) };
 for (const [slug, fits] of Object.entries(BACKFILL_FITS)) {
   const list = guides[slug] ?? [];
-  if (list.length >= TOP_GIFTS) continue;
+  // Every fitting photo'd pick, past 25 too: these two guides are "every gift card" and "every membership" we carry.
   for (const [from, other] of Object.entries(guides)) {
     if (from === slug) continue;
     for (const p of other) {
-      if (list.length >= TOP_GIFTS) break;
       if (!p.image || !fits(p) || !fitsGuide(slug, p)) continue;
       if (list.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
       list.push(p);

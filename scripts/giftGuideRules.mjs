@@ -100,7 +100,7 @@ export const NOT_LOUISIANA_BUSINESS = /^(muck ?boot|xtratuf)/i;
  * general guide (only the kitchen and chef guides and store pages). A pick that does not fit is left out of that guide.
  */
 export const EXPERIENCE = /\b(tours?|tickets?|experiences?|class(es)?|workshops?|lessons?|gift ?cards?|e-?gift|gift certificates?|admissions?|passes|pass|cruises?|getaways?|vouchers?|escape rooms?|spa days?)\b/i;
-export const GIFT_CARD = /\b(gift ?cards?|e-?gift ?cards?|gift certificates?)\b/i;
+export const GIFT_CARD = /\b(gift ?cards?|e-?gift ?cards?|gift certificates?|gift codes?)\b/i;
 export const NOT_A_GIFT = /\b(free trial|try [\w ]*free|membership)\b/i;
 export const EXPERIENCE_GUIDES = ["louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "family-fun-days"];
 export const KNIFE_OK_GUIDES = ["louisiana-kitchen", "home-cook", "cooks-and-kitchen-staff", "chefs"];

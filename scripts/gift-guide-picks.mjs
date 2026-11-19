@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, approvalLine, newApprovalSlot } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -399,7 +399,8 @@ function toPick(p, where) {
     && (!amazonFound || (new URL(found).hostname === "m.media-amazon.com" && (AMAZON.has(host) || AMAZON.has(plainHost)))) ? found : undefined);
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);
-  const brand = fixedBrand(name) || (BRAND_CASE[compact(p.brand ?? "")] ?? BRAND_NAME[compact(p.brand ?? "")] ?? (p.brand || brandFromName(name)));
+  // A brand field naming the store (Macy's, Target, Tractor Supply) takes the maker the name opens with (fit audit r4).
+  const brand = fixedBrand(name) || retailerBrand(name, BRAND_CASE[compact(p.brand ?? "")] ?? BRAND_NAME[compact(p.brand ?? "")] ?? (p.brand || brandFromName(name)));
   const louisianaFit = p.louisianaFit && ![p.brand, p.store, p.retailer].some((x) => typeof x === "string" && NOT_LOUISIANA_BUSINESS.test(x.trim()));
   return {
     name, brand, line: stockLine(p.line) ? "" : (p.line ?? ""), href,
@@ -442,9 +443,12 @@ const curationCounts = Object.fromEntries(Object.keys(CURATION).map((slug) => [s
 const guides = {};
 /** The food picks moved off other guides into Treats & Food Gifts (owner 11-19), counted for the run's log. */
 const movedToTreats = new Set();
+/** Every pick that names a North Louisiana maker, team or town, as read (before any page's rules): North Louisiana's pool. */
+const NORTH_LA_POOL = [];
 const add = (slug, raw, where) => {
   const p = toPick(raw, where);
   if (!p) return;
+  if (NORTH_LA.test(`${p.name} ${p.brand ?? ""}`)) NORTH_LA_POOL.push(p);
   // Owner 11-19: food leaves every non-food guide and goes to the one Treats & Food Gifts guide instead.
   if (foodOff(slug, p)) {
     movedToTreats.add(`${p.href} ${p.name}`);
@@ -1644,7 +1648,9 @@ export const BEAUTY_CAP = 3;
 /** A link whose page is another product (design review 11-18 M4: Target's "The 14oz Mug" opens the 10 oz Ember). */
 export const MISMATCHED_LINKS = new Set(["https://go.shopmy.us/p-103897297"]);
 /** A mismatched link's replacement, when we carry the named product's own pin (the 14 oz Ember Mug 2 on Target via ShopMy). */
-export const LINK_FIX = new Map([["https://go.shopmy.us/p-103897297", "https://go.shopmy.us/p-103885470"]]);
+// Links audit r4 (11-19): the "FreeSip Bottle 24oz" pin (p-104112945) opens JD Sports' 40 oz bottle; Owala's own 24 oz
+// FreeSip pin on owalalife.com (p-107580819) takes its place.
+export const LINK_FIX = new Map([["https://go.shopmy.us/p-103897297", "https://go.shopmy.us/p-103885470"], ["https://go.shopmy.us/p-104112945", "https://go.shopmy.us/p-107580819"]]);
 const LINK_FIX_ROW = new Map([...LINK_FIX].map(([from, to]) => [from, everyPick.find((x) => x.href === to && x.image)]).filter(([, p]) => p));
 /** Plain homepage links kept on purpose (links audit r3: the Louisiana businesses and the 25 Days sponsors). */
 const HOMEPAGE_OK = new Set([...LOUISIANA, ...SPONSORS]);
@@ -1693,7 +1699,7 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     if (bannedLink(p.href)) return `banned link: ${bannedLink(p.href)}`;
     if (homepageLink(p.href) && !HOMEPAGE_OK.has(new URL(p.href).hostname)) return "homepage link";
     if (NOT_A_GIFT_ITEM.test(`${p.name} ${p.brand ?? ""}`) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))) return "medical or personal care";
-    if (slug.startsWith("store-")) return "";
+    if (slug.startsWith("store-")) return fitR4Why(slug, "", p);
     // Fit audit r3b (lead 11-19): utility personal care only on New Mom; giftable beauty only where it fits.
     if (utilityCare(p) && slug !== "new-mom") return "utility personal care";
     if (beautyItem(p) && !beautyGuide(slug)) return "beauty outside its guides";
@@ -1705,7 +1711,10 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     if (INSTAX_OFF.includes(slug) && instaxItem(p)) return "instax";
     if (slug === "gender-neutral-teens" && GENDERED.test(p.name)) return "gendered";
     if (PRICE_CAP[slug] && typeof p.price === "number" && p.price > PRICE_CAP[slug]) return "over budget";
-    return "";
+    // Fit audit r4 (fitR4Why): per-guide misfits, medical care, stethoscopes and nurse items off their jobs, vague names,
+    // wrong colors, North Louisiana's own items; a Louisiana guide lists items, not places.
+    if (LOUISIANA_GUIDES.has(slug) && placeRow(p)) return "r4: place, not an item";
+    return fitR4Why(slug, sectionOf.get(slug) ?? "", p);
   };
   // A Pets guide drops filler that is not for its animal, women-coded beauty first, while it keeps TOP_GIFTS picks (owner
   // 11-18: "All guides need 25"; a guide short of that animal's picks keeps some filler until it has them).
@@ -1719,17 +1728,22 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     return list.filter((p) => !drop.has(p));
   };
   const genderOfName = (n) => /\b(women'?s|womens|ladies)\b/i.test(n);
-  const capped = (slug) => !slug.startsWith("store-") && !LOUISIANA_GUIDES.has(slug) && slug !== "gift-cards" && slug !== "subscriptions" && slug !== SPONSORS_GUIDE;
+  // Fit audit r4 (lead 11-19): the cap of 3 a brand holds in the Louisiana guides too (Dirty Coast had 10 in Louisiana Artists).
+  const capped = (slug) => !slug.startsWith("store-") && slug !== "gift-cards" && slug !== "subscriptions" && slug !== SPONSORS_GUIDE;
   const keep = (slug, list, count = true) => {
     const out = [];
     const perBrand = new Map();
     const once = new Set();
+    const typed = new Map();
     let beauty = 0;
     for (const p of list) {
       let r = why(slug, p);
       const b = brandKey(p.brand);
       const o = slug.startsWith("store-") ? -1 : onceKey(p);
       if (!r && o >= 0 && once.has(o)) r = "near twin";
+      // Fit audit r4: one of a kind per guide (TYPE_CAPS) and one row per product (PRODUCT_TWINS).
+      const caps = r ? [] : typeCaps(slug, p);
+      if (!r && caps.some(([k, max]) => (typed.get(k) ?? 0) >= max)) r = "r4: type cap";
       if (!r && capped(slug) && b && !GENERIC_BRAND.test(p.brand ?? "") && (perBrand.get(b) ?? 0) >= BRAND_CAP) r = "brand cap";
       if (!r && slug === "gender-neutral-teens" && BEAUTY.test(p.name) && beauty >= BEAUTY_CAP) r = "beauty cap";
       if (r && !count) continue;
@@ -1737,6 +1751,7 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
       if (r) { holistic.removed += 1; holistic.byRule[r] = (holistic.byRule[r] ?? 0) + 1; continue; }
       if (b) perBrand.set(b, (perBrand.get(b) ?? 0) + 1);
       if (o >= 0) once.add(o);
+      for (const [k] of caps) typed.set(k, (typed.get(k) ?? 0) + 1);
       if (slug === "gender-neutral-teens" && BEAUTY.test(p.name)) beauty += 1;
       out.push(p);
     }
@@ -1747,31 +1762,55 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     if (slug === SPONSORS_GUIDE) continue;
     // A store page these rules empty (African Net Sponge sells only bath sponges) goes with them.
     const kept = keep(slug, petFiller(slug, pageList[slug].map((p) => {
+      // A fixed link first (links audit r4: the FreeSip pin's own twins carry the same wrong JD Sports page).
+      if (LINK_FIX_ROW.has(p.href)) return { ...LINK_FIX_ROW.get(p.href), ...(p.section ? { section: p.section } : {}) };
       const twin = BANNED_TWIN.get(p.href);
       if (twin && slug.startsWith("store-") && twin.store !== slug) return p;
       if (twin && process.env.GIFT_PICKS_VERBOSE) console.error(`LINKS-R3 ${slug}: ${p.name} ${p.href} -> ${twin.href}`);
       if (twin) return (linksR3.relinked += 1), { ...twin, ...(p.section ? { section: p.section } : {}) };
-      return LINK_FIX_ROW.get(p.href) ?? p;
+      return p;
     })));
     if (kept.length) pageList[slug] = noRepeats(kept);
     else delete pageList[slug];
   }
-  // One beauty product on at most BEAUTY_GUIDE_MAX guides (fit audit r3b: LANEIGE's lip mask was on 14), the people
-  // guides keeping it first (beautyRank).
-  const beautyOn = new Map();
-  for (const slug of Object.keys(pageList).filter((s) => !s.startsWith("store-") && s !== SPONSORS_GUIDE).sort((a, b) => beautyRank(a) - beautyRank(b) || a.localeCompare(b))) {
+  // One beauty product on at most BEAUTY_GUIDE_MAX guides (fit audit r3b: LANEIGE's lip mask was on 14): the guides its
+  // BEAUTY_PREFERRED list names first (fit audit r4: Kitsch curlers, the Airwrap), then the people guides (beautyRank).
+  // The product, not its spelling: "LANEIGE Lip Sleeping Mask" and "Lip Sleeping Mask" are one.
+  const beautyKey = (p) => {
+    const brandWords = dedupeKey(p.brand ?? "");
+    const name = dedupeKey(p.name);
+    return `${brandKey(p.brand)}|${brandWords && name.startsWith(`${brandWords} `) ? name.slice(brandWords.length + 1) : name}`;
+  };
+  const beautySlugs = Object.keys(pageList).filter((s) => !s.startsWith("store-") && s !== SPONSORS_GUIDE);
+  const beautyKeep = new Map();
+  for (const slug of beautySlugs) for (const p of pageList[slug]) if (beautyItem(p)) {
+    const k = beautyKey(p);
+    (beautyKeep.get(k) ?? beautyKeep.set(k, []).get(k)).push([slug, beautyPreference(p, slug)]);
+  }
+  for (const [k, on] of beautyKeep) {
+    on.sort(([a, pa], [b, pb]) => pa - pb || beautyRank(a) - beautyRank(b) || a.localeCompare(b));
+    beautyKeep.set(k, new Set(on.slice(0, BEAUTY_GUIDE_MAX).map(([s]) => s)));
+  }
+  for (const slug of beautySlugs) {
     pageList[slug] = pageList[slug].filter((p) => {
-      if (!beautyItem(p)) return true;
-      // The product, not its spelling: "LANEIGE Lip Sleeping Mask" and "Lip Sleeping Mask" are one.
-      const brandWords = dedupeKey(p.brand ?? "");
-      const name = dedupeKey(p.name);
-      const k = `${brandKey(p.brand)}|${brandWords && name.startsWith(`${brandWords} `) ? name.slice(brandWords.length + 1) : name}`;
-      const n = beautyOn.get(k) ?? 0;
-      if (n >= BEAUTY_GUIDE_MAX) { holistic.removed += 1; holistic.byRule["beauty on 6 guides"] = (holistic.byRule["beauty on 6 guides"] ?? 0) + 1; return false; }
-      beautyOn.set(k, n + 1);
-      return true;
+      if (!beautyItem(p) || beautyKeep.get(beautyKey(p))?.has(slug)) return true;
+      holistic.removed += 1;
+      holistic.byRule["beauty on 6 guides"] = (holistic.byRule["beauty on 6 guides"] ?? 0) + 1;
+      return false;
     });
     if (!pageList[slug].length) delete pageList[slug];
+  }
+  // North Louisiana holds North Louisiana items only (fit audit r4; fitR4Why drops the rest): every photo'd pick we carry
+  // that names a North Louisiana maker, team or town joins it. The library holds very few: the guide stays small (lead 11-19).
+  {
+    const list = pageList[NORTH_LA_GUIDE] ?? [];
+    for (const p of [...NORTH_LA_POOL, ...everyPick, ...Object.values(pageList).flat()]) {
+      if (!p.image || !NORTH_LA.test(`${p.name} ${p.brand ?? ""}`) || bannedLink(p.href) || list.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
+      const { section: _s, ...row } = p;
+      list.push(row);
+    }
+    if (list.length) pageList[NORTH_LA_GUIDE] = list;
+    else delete pageList[NORTH_LA_GUIDE];
   }
   for (const [slug, list] of Object.entries(pageList)) {
     // No top-up from peer guides (owner 11-19: fit beats count; a short guide is listed in belong.short for research).
@@ -1849,10 +1888,15 @@ for (const [slug, list] of Object.entries(deals)) {
     if (!list) continue;
     pageList[slug] = list.map((p) => {
       if (!fills.has(p.href) || p.store !== "store-amazon" || hrefs.has(p.href)) return p;
-      const row = byAsin.get(asinOf(p)) ?? byName.get(dedupeKey(p.name));
+      // By name only the same variant (fit audit r4: Red Lover's red JBL Grip took the page's blue one, the names
+      // matching once their colors were dropped).
+      const byKey = byName.get(dedupeKey(p.name));
+      const sameColors = (a, b) => { const x = colorsOf(a); const y = colorsOf(b); return x.size === y.size && [...x].every((c) => y.has(c)); };
+      const row = byAsin.get(asinOf(p)) ?? (byKey && sameVariant(p.name, byKey.name) && sameColors(p.name, byKey.name) ? byKey : undefined);
       if (!row) {
-        // Not on the page at all (a repeat pass dropped it as another guide's same-named row): it joins the page.
-        if (!louisianaBlocked("store-amazon", p)) {
+        // Not on the page at all (a repeat pass dropped it as another guide's same-named row): it joins the page, unless the
+        // page already lists another color of it (fit r4: one row per product on a page; the guide keeps its own color).
+        if (!byKey && !louisianaBlocked("store-amazon", p)) {
           const section = AMAZON_SECTIONS.includes(sectionOfSlug.get(slug)) ? sectionOfSlug.get(slug) : "More finds";
           const rank = AMAZON_SECTIONS.indexOf(section);
           let at = 0;
@@ -1869,6 +1913,24 @@ for (const [slug, list] of Object.entries(deals)) {
       return own;
     });
   }
+}
+// The r4 fit rules once more on every guide's final list (a row the step above swapped in is checked like any other).
+{
+  const sectionOfSlug = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  for (const slug of Object.keys(pageList)) {
+    if (slug.startsWith("store-") || slug === SPONSORS_GUIDE) continue;
+    pageList[slug] = noRepeats(pageList[slug].filter((p) => !fitR4Why(slug, sectionOfSlug.get(slug) ?? "", p) || ((holistic.removed += 1), false)));
+  }
+}
+// Fit audit r4 names (R4_NAME_FIXES: "Salt, Fat" -> "Salt, Fat, Acid, Heat", "Venezia 18K" -> "St. Louis Venezia 18K
+// Sunglasses"), on every page's final list, then one row per product again.
+// Only a renamed row can newly repeat another (the same name, or the same link): that one goes; every other row stays as
+// the page's own rules left it (a store page keeps its color variants).
+for (const slug of Object.keys(pageList)) {
+  const seen = new Set();
+  pageList[slug] = pageList[slug].map((p) => { const r = r4Name(p); return r.name === p.name ? p : { ...p, ...r, renamed: true }; })
+    .filter((p) => { const k = [compact(p.name), p.href]; const dup = p.renamed && k.some((x) => seen.has(x)); k.forEach((x) => seen.add(x)); return !dup; })
+    .map(({ renamed: _r, ...p }) => p);
 }
 // The curation's removes, on the final page (so a backfill or swap cannot bring one back). A guide that would fall under
 // its floor keeps its best-ranked (first-listed) removed picks until it reaches the floor.

@@ -36,6 +36,11 @@ const CAREER_NEIGHBOURS = "2 usable photos; its other clean photos are on the ca
  */
 const TEXT_ONLY: Record<string, string> = {
   "restaurant-servers": CAREER_NEIGHBOURS,
+  // Fit r4 (11-19): the brand cap of 3 now holds in the Louisiana guides, and North Louisiana keeps only North Louisiana
+  // items (one, the Duck Commander call, on a lifestyle photo); the shops' remaining photos are lifestyle shots.
+  "louisiana-sweets-and-bakeries": `${FEW_PHOTOS}: 2 clean photos after the brand cap; the bakeries' other photos are lifestyle shots`,
+  "housekeepers": `${FEW_PHOTOS}: 2 clean photos left once fit r4 took out its cleaning supplies, medical and duplicate items`,
+  "north-louisiana": `${FEW_PHOTOS}: its one North Louisiana item (Duck Commander's RDC 200 call) has no clean product photo`,
   "store-free-people": `${FEW_PHOTOS}: site and image server answer 403; its photos are grey-backdrop or on-model`,
   "store-crate-and-barrel": `${FEW_PHOTOS}: site answers 403; its studio photos sit on a grey gradient`,
   "store-birch-lane": `${FEW_PHOTOS}: Wayfair's sites answer 429; no clean photo of a product Birch Lane lists`,
@@ -48,7 +53,11 @@ const TEXT_ONLY: Record<string, string> = {
   "store-cashmere-boutique": `${FEW_PHOTOS}: one plain-backdrop photo in its catalog; the rest are on-model with text panels`,
 };
 /** Covers with four products whose photos read as gingham to the pixel check (clear glass and white jars). */
-const PIXEL_PALE: Record<string, string> = { "store-mario-badescu": "clear and white skincare bottles", "store-magnifique": "cream and oatmeal clay pots" };
+const PIXEL_PALE: Record<string, string> = {
+  "store-mario-badescu": "clear and white skincare bottles",
+  "store-magnifique": "cream and oatmeal clay pots",
+  cnas: "a white Hatch clock and a pale pink pocket organizer (fit r4 redraw)",
+};
 
 const manifest = readManifest();
 const covers = new Set(COVER_SLUGS);

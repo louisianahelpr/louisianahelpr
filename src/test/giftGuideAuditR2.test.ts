@@ -262,7 +262,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(rows).toBeGreaterThan(5000);
   });
   // Owner 11-19 retired the 25-pick floor: fit beats count ("she'd rather a guide have 18 great items than 25 with
-  // filler"). A guide keeps at least one pick; the ones under 12 are logged for research (giftGuideBelong1119).
+  // filler", 2026-11-19). A guide keeps at least one pick; the ones under 12 are logged for research (giftGuideBelong1119).
   it("every guide still holds picks after \"no photo, no row\", and Gift cards and Subscriptions hold every fitting pick", () => {
     // @mutate scripts/gift-guide-picks.mjs |       if (!p.image \|\| !fits(p) \|\| !fitsGuide(slug, p) \|\| louisianaBlocked(slug, p)) continue; |       continue;
     // Gift cards and Subscriptions hold every fitting photo'd pick in the data (back-filled from every page).

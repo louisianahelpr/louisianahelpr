@@ -233,7 +233,7 @@ export const collectionLink = (href) => {
 
 /**
  * ITEMS THAT BELONG (owner 11-19: "some of them really don't belong at all"; fit beats count, she would rather a guide
- * have 18 great items than 25 with filler). Fit audit round 2 (_fit-audit-r2-A/B-1118.json) found the same misfits
+ * have 18 great items than 25 with filler, 2026-11-19). Fit audit round 2 (_fit-audit-r2-A/B-1118.json) found the same misfits
  * pasted across many guides; these rules keep them out for good, on top of the audits' per-item lists.
  * - FILLER_BLOCK: the generic filler block (Kindle, AirPods, Apple Watch, CREAMi, UGG, Theragun) stays out of the
  *   career, hobby and color guides and Purple & Gold, except where FILLER_OK names it as the guide's own gift (a Kindle

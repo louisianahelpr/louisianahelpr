@@ -275,7 +275,7 @@ const MISSING_IMAGES = MISSING_BY_NAME;
 // ShopMy's static.shopmy.us mirror sends JPEG bytes under a ".tif" name (checked 11-18 PM: a 600x600 baseline JPEG).
 const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b/i.test(u) && !/^https:\/\/static\.shopmy\.us\//.test(u);
 /**
- * SOLD-OUT SWAPS (_soldout-swaps-1118.json, 13 Walmart rows, owner 11-19): [{ old_href, new_href, name }]. Every row whose
+ * SOLD-OUT SWAPS (_soldout-swaps-1118.json, 13 Walmart rows as of 2026-11-19, owner 11-19): [{ old_href, new_href, name }]. Every row whose
  * link is a sold-out product's opens the in-stock one instead, under its name, wherever it appears. The old row's file
  * price is not the new product's (dropped), and its photo shows the old product, so the photo is kept only where the
  * swap is the same product in another size, color or pack (SOLDOUT_SAME_LOOK, judged from the two names); the others
@@ -1590,6 +1590,40 @@ for (const [slug, list] of Object.entries(deals)) {
  * "Top 10 most-loved" (owner 2026-11-18): the picks listed in the most guides (store pages not counted), photos
  * first, then by how many guides list them, then by name. Counted by link (and name, for shared ShopMy links).
  */
+// A researched fill row that is a product the Amazon page already lists under another link or name (same ASIN or same
+// name; the page keeps one row per product) takes the page's row, so the Amazon page still lists every guide pick on Amazon.
+{
+  const amazonPage = pageList["store-amazon"] ?? [];
+  const byAsin = new Map(amazonPage.map((x) => [asinOf(x), x]).filter(([a]) => a));
+  const byName = new Map(amazonPage.map((x) => [dedupeKey(x.name), x]));
+  const hrefs = new Set(amazonPage.map((x) => x.href));
+  const sectionOfSlug = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  for (const [slug, fills] of BELONG_FILL_HREFS) {
+    const list = pageList[slug];
+    if (!list) continue;
+    pageList[slug] = list.map((p) => {
+      if (!fills.has(p.href) || p.store !== "store-amazon" || hrefs.has(p.href)) return p;
+      const row = byAsin.get(asinOf(p)) ?? byName.get(dedupeKey(p.name));
+      if (!row) {
+        // Not on the page at all (a repeat pass dropped it as another guide's same-named row): it joins the page.
+        if (!louisianaBlocked("store-amazon", p)) {
+          const section = AMAZON_SECTIONS.includes(sectionOfSlug.get(slug)) ? sectionOfSlug.get(slug) : "More finds";
+          const rank = AMAZON_SECTIONS.indexOf(section);
+          let at = 0;
+          amazonPage.forEach((x, i) => { if (AMAZON_SECTIONS.indexOf(x.section) <= rank) at = i + 1; });
+          amazonPage.splice(at, 0, { ...p, section });
+          hrefs.add(p.href);
+          byName.set(dedupeKey(p.name), p);
+          if (asinOf(p)) byAsin.set(asinOf(p), p);
+        }
+        return p;
+      }
+      if (list.some((x) => x.href === row.href)) return p;
+      const { section: _section, ...own } = row;
+      return own;
+    });
+  }
+}
 const loved = new Map();
 for (const [slug, list] of Object.entries(pageList)) {
   if (slug.startsWith("store-")) continue;

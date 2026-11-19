@@ -344,7 +344,7 @@ export const dedupeKey = (name) => String(name ?? "").toLowerCase()
   .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 /**
  * FEATURED ORDER (owner 11-18 PM: "This can't possibly be the top gifts you're recommending"): _featured-order.json,
- * { "<slug>": [pick names, up to 12], "top-10": [{ guide, name }] }, from bestseller research over existing picks only.
+ * { "<slug>": [pick names or { name, from }, up to 25], "top-10": [{ guide, name }] }, from bestseller research over existing picks only.
  * A guide's featured picks lead in that order, then the rest by the photos-first order above. Optional file.
  */
 const FEATURED = (() => {
@@ -363,9 +363,23 @@ const sameName = (want, have) => {
 };
 const findByName = (list, want) => list.find((p) => compact(p.name) === compact(want)) ?? list.find((p) => sameName(want, p.name));
 const isXtratuf = (p) => /^xtratuf$/i.test(p.brand ?? "") || p.store === "store-xtratuf";
+/**
+ * A guide's featured entries: a pick name in that guide, or { name, from } borrowed from another guide (research 11-18
+ * PM, the top 25 per guide). A borrowed pick reuses that guide's pick (link and photo) and must still fit this guide.
+ */
+const featuredEntries = (slug) => (Array.isArray(FEATURED[slug]) ? FEATURED[slug] : [])
+  .filter((x) => typeof x === "string" || (x && typeof x === "object" && typeof x.name === "string"));
+const featuredNames = (slug) => featuredEntries(slug).map((x) => (typeof x === "string" ? x : x.name));
+const resolveFeatured = (slug, list, e) => {
+  if (typeof e === "string") return findByName(list, e);
+  const own = findByName(list, e.name);
+  if (own) return own;
+  const from = typeof e.from === "string" && e.from !== slug ? guides[e.from] : undefined;
+  const p = from ? findByName(from, e.name) : undefined;
+  return p && fitsGuide(slug, p) ? p : undefined;
+};
 const featuredFirst = (slug, list) => {
-  const names = Array.isArray(FEATURED[slug]) ? FEATURED[slug].filter((x) => typeof x === "string") : [];
-  const lead = names.map((n) => findByName(list, n)).filter(Boolean);
+  const lead = featuredEntries(slug).map((e) => resolveFeatured(slug, list, e)).filter(Boolean);
   const ordered = [...new Set([...lead, ...list])];
   if (slug.startsWith("store-")) return ordered;
   const head = [];
@@ -406,7 +420,7 @@ const withTrending = (slug, list) => {
   // Store pages stay store-only; the 25 Days guide stays sponsors-only.
   if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || !trendingPick.size) return list;
   const out = [...list];
-  const featured = Array.isArray(FEATURED[slug]) ? FEATURED[slug].filter((x) => typeof x === "string") : [];
+  const featured = featuredNames(slug);
   const isTop = (p) => isTrending(p) || featured.some((n) => sameName(n, p.name));
   let have = out.filter(isTop).length;
   for (const [t, p] of trendingPick) {

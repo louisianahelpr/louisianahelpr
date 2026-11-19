@@ -88,7 +88,8 @@ FIT = _load("_fit-audit-1118.json")
 MANIFEST = os.path.join(ROOT, "scripts", "gift-guide-cover-items.json")
 # Store covers show what a store sells (owner 11-18: "the images on the store only would show what items the store
 # carries"): bestseller photos per store from _store-cover-images-1118.json, after the store's own picks, minus the
-# photos rejected on review (scripts/gift-guide-store-image-rejects.json: ads, text-heavy shots, people, logos).
+# photos rejected on review (scripts/gift-guide-store-image-rejects.json: ads, text-heavy shots, people, logos; a
+# photo listed there is never drawn on any cover, whichever pick carries it).
 STORE_IMAGES = _load("_store-cover-images-1118.json")
 _rej = os.path.join(ROOT, "scripts", "gift-guide-store-image-rejects.json")
 STORE_REJECTS = set(json.load(open(_rej, encoding="utf8")).get("rejects", {})) if os.path.exists(_rej) else set()
@@ -103,7 +104,7 @@ COVER_SKIP = {"store-walmart": re.compile(r"welding|hot wheels", re.I),
 # Never on any cover: a gift card or membership (a logo, not a product), a storefront or collection pick (a word
 # mark), underwear and the like (a model in briefs), deodorant, and the white JBL Go photo (it cuts out grey).
 COVER_NEVER = re.compile(r"gift ?card|e-?gift|membership|subscription|underwear|bikini|\bperiod\b|\bbriefs?\b|"
-                         r"\bbras?\b|lingerie|thong|compression|deodorant|body spray|collection|best ?sellers|"
+                         r"\bbras?\b|bralette|lingerie|thong|panty|panties|\bcami\b|camisole|slip dress|compression|deodorant|body spray|collection|best ?sellers|"
                          r"the best skincare|jbl go 4|spicebox|planner stickers|heated (electric|black buffalo)", re.I)  # "HEATED" badge photos
 COVER_SKIP["sister"] = re.compile(r"cozychic", re.I)  # a pale throw on the cream arch
 # Budget covers lead with colourful, recognisable gifts (owner 11-18): socks, tees, hats, lunch bags and the like last.
@@ -344,7 +345,7 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True):
     cands, seen = [], set()
     for p in picks:
         u = p.get("image")
-        if not u or not u.startswith("https://") or u in seen or u in BAD_PHOTOS:
+        if not u or not u.startswith("https://") or u in seen or u in BAD_PHOTOS or u in STORE_REJECTS:
             continue
         # A store's own storefront pick (name == brand, "Bass Pro Shops") carries its logo, not a product.
         if (p.get("name") or "").strip().lower() == (p.get("brand") or "").strip().lower():

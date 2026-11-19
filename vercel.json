@@ -11,9 +11,6 @@
     "api/uptime-heartbeat.ts": {
       "maxDuration": 90
     },
-    "api/share.ts": {
-      "includeFiles": "public/gift-guides/covers/**"
-    },
     "api/og-profile.ts": {
       "includeFiles": "{api/_og/**,node_modules/@resvg/resvg-wasm/index_bg.wasm}"
     }

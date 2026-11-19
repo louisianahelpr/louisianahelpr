@@ -239,5 +239,10 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(names.slice(0, 5)).toEqual(["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
       "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"]);
     expect(names.some((n) => /stanley|tumbler|airpods/i.test(n))).toBe(false);
+    // Owner 11-18 PM: no free trials on Subscriptions.
+    // @mutate scripts/giftGuideRules.mjs | subscriptions: /free trial\|\btry\b.*\bfree\b/i | subscriptions: /^$/
+    expect(fitsGuide("subscriptions", { name: "Try Prime free (30-day trial)" })).toBe(false);
+    expect(fitsGuide("subscriptions", { name: "Audible free trial" })).toBe(false);
+    expect(names.some((n) => /free trial|\btry\b.*\bfree\b/i.test(n))).toBe(false);
   });
 });

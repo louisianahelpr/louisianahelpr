@@ -282,6 +282,9 @@
     // Q1737: src/test/immutablePathsNeverServeTheSpa.test.ts runs this
     // function's real 404 response.
     "api/missing-asset.ts",
+    // Branded /go/ short links (owner 11-18): src/test/goLinks.test.ts runs
+    // this function's real redirects.
+    "api/go.ts",
     // The design-system scales live here, and `src/lib/utils.test.ts` reads
     // them to prove every `ds-*` token was taught to tailwind-merge. Deriving
     // the inventory from the config is the whole point — a hand-typed mirror

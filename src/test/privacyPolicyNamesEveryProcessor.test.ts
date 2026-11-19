@@ -100,7 +100,7 @@ const NOT_PROCESSORS = [
   // /gift-guides (owner 2026-11-16): links only to the owner's ShopMy collections, her Pinterest boards and two brand
   // sites (src/content/giftGuides.ts); no data is sent to them. The product photos load from ShopMy's and the brands'
   // image hosts the way any linked image does; nothing of the member's is passed.
-  "shopmy.us", "www.pinterest.com", "www.zchocolat.com", "www.diecastmodelswholesale.com", "cdn11.bigcommerce.com",
+  "shopmy.us", "walmrt.us", "mavely.app.link", "www.pinterest.com", "www.zchocolat.com", "www.diecastmodelswholesale.com", "cdn11.bigcommerce.com",
 ];
 
 // The gift guides' catalog (owner 2026-11-16..18, 25 Days sponsors and picks): every store, sponsor and image host in

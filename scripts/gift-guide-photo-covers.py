@@ -91,6 +91,8 @@ MANIFEST = os.path.join(ROOT, "scripts", "gift-guide-cover-items.json")
 # photos rejected on review (scripts/gift-guide-store-image-rejects.json: ads, text-heavy shots, people, logos; a
 # photo listed there is never drawn on any cover, whichever pick carries it).
 STORE_IMAGES = _load("_store-cover-images-1118.json")
+# Round 2 of the Amazon store fill (short store key -> products), the same way: after the store's own picks.
+STORE_FILL = {f"store-{k}": v for k, v in _load("_store-fill-amazon-1118.json").items() if isinstance(v, list)}
 _rej = os.path.join(ROOT, "scripts", "gift-guide-store-image-rejects.json")
 STORE_REJECTS = set(json.load(open(_rej, encoding="utf8")).get("rejects", {})) if os.path.exists(_rej) else set()
 # Pick photos that show a different product than the pick's name (ShopMy pins, found 11-18): never on a cover.
@@ -107,6 +109,7 @@ COVER_NEVER = re.compile(r"gift ?card|e-?gift|membership|subscription|underwear|
                          r"\bbras?\b|bralette|lingerie|thong|panty|panties|\bcami\b|camisole|slip dress|compression|deodorant|body spray|collection|best ?sellers|"
                          r"the best skincare|jbl go 4|spicebox|planner stickers|heated (electric|black buffalo)", re.I)  # "HEATED" badge photos
 COVER_SKIP["sister"] = re.compile(r"cozychic", re.I)  # a pale throw on the cream arch
+COVER_SKIP["artist"] = re.compile(r"controller|gaming|console|headset", re.I)  # design review M3: art supplies, not games
 # Budget covers lead with colourful, recognisable gifts (owner 11-18): socks, tees, hats, lunch bags and the like last.
 PLAIN = re.compile(r"\bsocks?\b|\btees?\b|t-shirt|tasting cup|\bcrew\b|trucker hat|lunch (bag|lugger)|scalp massager", re.I)
 NO_BOOTS = {"mom", "her", "wife"}  # owner 11-18: no Muck/XTRATUF/rain boots on these; UGG is fine
@@ -133,9 +136,16 @@ LINES = re.compile(r"squishmallow|airpods|stanley|owala|blackstone|yeti|kindle|t
 
 
 def index():
+    """The owner's index, then every researched store page (giftGuideCatalog's GUIDE_INDEX: By store, "shop", name order)."""
     src = open(os.path.join(ROOT, "src", "content", "giftGuideIndex.ts"), encoding="utf8").read()
     rows = re.findall(r'\{ group: "([^"]+)",[^}]*?slug: "([^"]+)", title: "([^"]+)", lead: "([^"]*)"([^}]*)\}', src)
-    return [{"group": g, "slug": s, "title": t, "lead": l, "child": "parent:" in rest} for g, s, t, l, rest in rows]
+    out = [{"group": g, "slug": s_, "title": t, "lead": l, "child": "parent:" in rest, "owner": True} for g, s_, t, l, rest in rows]
+    picks = open(os.path.join(ROOT, "src", "content", "giftGuidePicks.ts"), encoding="utf8").read()
+    m = re.search(r"export const RESEARCHED_STORES[^=]*= (\{.*?\});\n", picks)
+    owner = {r["slug"] for r in out}
+    stores = json.loads(m.group(1)) if m else {}
+    extra = sorted(((s_, st["name"]) for s_, st in stores.items() if s_ not in owner), key=lambda x: x[1].lower())
+    return out + [{"group": "By store", "slug": s_, "title": n, "lead": "shop", "child": False, "owner": False} for s_, n in extra]
 
 
 def targets(rows):
@@ -280,7 +290,7 @@ LOUISIANA = re.compile(
 
 def allowed(slug, p, taken, group=""):
     """The variety rules for one more product on this cover, given the picks already on it."""
-    if group != "Louisiana" and LOUISIANA.search(f"{p.get('name') or ''} {p.get('brand') or ''}"):
+    if group != "Louisiana" and slug != "purple-and-gold-lover" and LOUISIANA.search(f"{p.get('name') or ''} {p.get('brand') or ''}"):
         return False  # owner 11-18: no Louisiana items on a cover outside the Louisiana section
     ks = kinds(p)
     if "boot" in ks and slug in NO_BOOTS and not re.search(r"\bugg\b", f"{p.get('brand')} {p.get('name')}", re.I):
@@ -314,11 +324,48 @@ def store_pool(slug):
     return _STORE_POOL.get(slug, [])
 
 
+_FREQ = {}
+
+
+def generic(p):
+    """A product on 10 or more guides' lists (a Kindle, an Apple Watch): last on a guide's cover list (design review M3)."""
+    if not _FREQ:
+        for f in sorted(os.listdir(PICKS)):
+            if f.endswith(".json"):
+                for n in {dedupe(q.get("name")) for q in json.load(open(os.path.join(PICKS, f), encoding="utf8")).get("picks", [])}:
+                    _FREQ[n] = _FREQ.get(n, 0) + 1
+    return _FREQ.get(dedupe(p.get("name")), 0) >= 10
+
+
+# A colour guide's cover leads with its colour (design review M3: Purple & Gold showed a Kindle and a blender).
+COLOR_WORDS = {"purple-and-gold-lover": r"purple|gold|\blsu\b|tigers?|geaux", "pink-lover": r"pink|rose|blush",
+               "blue-lover": r"blue|navy|cobalt", "red-lover": r"\bred\b|crimson|cherry", "green-lover": r"green|sage|olive",
+               "black-lover": r"black|onyx", "yellow-lover": r"yellow|lemon|sunflower|gold", "purple-lover": r"purple|lavender|lilac",
+               "neutral-lover": r"cream|ivory|beige|tan|oat|neutral|linen"}
+
+
+_CAREERS = set()
+
+
+def careers():
+    if not _CAREERS:
+        _CAREERS.update(r["slug"] for r in index() if r["group"] == "By career")
+    return _CAREERS
+
+
 def candidates(slug):
     own = own_picks(slug)
+    if not slug.startswith("store-"):
+        # Products few guides list come first, a product on 10+ guides' lists last (design review M3: the Accountants,
+        # Lawyers and Real Estate covers were near-identical); otherwise the guide's own order.
+        own = sorted(own, key=lambda q: (generic(q), min(_FREQ.get(dedupe(q.get("name")), 0), 10) if slug in careers() else 0))
+        if slug in COLOR_WORDS:
+            rx = re.compile(COLOR_WORDS[slug], re.I)
+            own = [q for q in own if rx.search(q.get("name") or "")] + [q for q in own if not rx.search(q.get("name") or "")]
     if slug.startswith("store-"):
-        shown = [{"name": x.get("product") or "", "brand": "", "image": x.get("image"), "store": slug}
-                 for x in STORE_IMAGES.get(slug, []) if isinstance(x, dict) and x.get("image") not in STORE_REJECTS]
+        shown = [{"name": x.get("product") or x.get("name") or "", "brand": "", "image": x.get("image"), "store": slug}
+                 for x in STORE_IMAGES.get(slug, []) + STORE_FILL.get(slug, [])
+                 if isinstance(x, dict) and x.get("image") not in STORE_REJECTS]
         return own + [q for q in store_pool(slug) if q.get("store") == slug and q not in own] + shown
     fit = FIT.get(slug) if isinstance(FIT.get(slug), dict) else None
     if not fit or not fit.get("final_top25"):
@@ -336,10 +383,12 @@ def candidates(slug):
     return out
 
 
-def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True):
+def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_before=()):
     reserved = reserved or {}
     own_brand = next((b for b, st in reserved.items() if st == slug), None)
     picks = candidates(slug)
+    if seen_before:  # careers: products no earlier career cover showed come first, so the covers read apart (M3)
+        picks = [q for q in picks if cover_key(q) not in seen_before] + [q for q in picks if cover_key(q) in seen_before]
     if slug.startswith("under-"):
         picks = [q for q in picks if not PLAIN.search(q.get("name") or "")] + [q for q in picks if PLAIN.search(q.get("name") or "")]
     cands, seen = [], set()
@@ -449,8 +498,25 @@ def shadow(p):
     return s
 
 
-def draw(row, prods, out):
-    """pin_covers.photo_cover / cover2_example.cover2 on a 1000 x 1000 square, saved at 480 x 480."""
+def draw(row, prods, out, share=None):
+    """The cover (480 px WebP) from `prods`, and the share JPG (600 px) from `share`, the guide's top three (M7)."""
+    im = render(row, prods)
+    small = im.resize((480, 480), Image.LANCZOS)
+    for q in (58, 52, 46, 40, 34):  # the covers guard: at most 20 KB each
+        small.save(out, "WEBP", quality=q, method=6)
+        if os.path.getsize(out) <= 19_500:
+            break
+    # A share JPG (Facebook's link preview does not reliably take WebP): 600 px, at most 45 KB, drawn fresh.
+    og = os.path.join(OG, os.path.basename(out)[:-5] + ".jpg")
+    big = (render(row, share) if share is not None else im).resize((600, 600), Image.LANCZOS)
+    for q in (78, 72, 66, 60):
+        big.save(og, "JPEG", quality=q, progressive=True, optimize=True)
+        if os.path.getsize(og) <= 45_000:
+            break
+
+
+def render(row, prods):
+    """pin_covers.photo_cover / cover2_example.cover2 on a 1000 x 1000 square."""
     W = 1000
     fam = TINT.get(row["group"], "green")
     im = pc.gingham(W, W, fam, c=56, palettes=FAMILY)
@@ -498,7 +564,8 @@ def draw(row, prods, out):
     ff.set_variation_by_axes([600])  # Montserrat.ttf is variable and defaults to weight 100 (hairline)
     pc.tracked(d, cx, y1 - 80, "LOUISIANA HELPR", ff, 2)
     H0, mx = y1 - y0, 330
-    use = {4: (0, 1, 4, 5), 5: (0, 1, 2, 4, 5)}.get(len(prods), range(6))  # 4 items: two a side, top and bottom
+    # 4 items: two a side, top and bottom; 3 (the share image's top three): top left, middle right, bottom left.
+    use = {3: (0, 3, 4), 4: (0, 1, 4, 5), 5: (0, 1, 2, 4, 5)}.get(len(prods), range(6))
     for i, p in zip(use, prods):
         side, fy, rot, sc, off = pc.EVEN[i]
         # 0.95x the pin's size (owner 11-18, after 1.35x and 1.15x: "items are too big now", "the items are smaller");
@@ -516,18 +583,25 @@ def draw(row, prods, out):
         bx = min(max(bx, MARGIN - 20 - bb[0]), W - MARGIN - 20 - bb[2])
         by = min(max(by, MARGIN - 20 - bb[1]), W - MARGIN - 20 - bb[3])
         im.paste(s, (bx, by), s)
-    # A share JPG from the same render (Facebook's link preview does not reliably take WebP): 600 px, at most 45 KB.
-    og = os.path.join(OG, os.path.basename(out)[:-5] + ".jpg")
-    big = im.resize((600, 600), Image.LANCZOS)
-    for q in (78, 72, 66, 60):
-        big.save(og, "JPEG", quality=q, progressive=True, optimize=True)
-        if os.path.getsize(og) <= 45_000:
+    return im
+
+
+def top_three(row):
+    """The share image's products (design review M7): the guide's first three listed picks that pass the photo checks."""
+    got = []
+    for p in own_picks(row["slug"]) + (candidates(row["slug"]) if row["slug"].startswith("store-") else []):
+        u = p.get("image")
+        if len(got) >= 3:
             break
-    small = im.resize((480, 480), Image.LANCZOS)
-    for q in (58, 52, 46, 40, 34):  # the covers guard: at most 20 KB each
-        small.save(out, "WEBP", quality=q, method=6)
-        if os.path.getsize(out) <= 19_500:
-            break
+        if not u or u in BAD_PHOTOS or u in STORE_REJECTS or COVER_NEVER.search(p.get("name") or ""):
+            continue
+        if not allowed(row["slug"], p, [], row["group"]):
+            continue
+        data = fetch(u)
+        c = cutout(data, tight=bool(TIGHT.search(p.get("name") or ""))) if data else None
+        if c is not None and not is_light(c):
+            got.append(c)
+    return got if len(got) == 3 else None
 
 
 def brand_stores(rows):
@@ -557,12 +631,12 @@ def main():
     # No repeats within a landing section (owner 11-18); a product may show again in another section.
     # Careers may repeat a product, never on two career covers next to each other (the previous two in landing order).
     used, boots, manifest, kept, four = {}, set(), {}, [], []
-    career_recent = []
+    career_recent, career_seen = [], set()
     old = json.load(open(MANIFEST, encoding="utf8")) if os.path.exists(MANIFEST) else {}
     if stores_only:  # repeats are counted within a section, so the store section can be redrawn on its own
         manifest = {s_: c for s_, c in old.items() if c.get("section") != "By store"}
     # Only guides that ship a cover (a guide with no picks is not built, and a stray cover file fails the two-way check).
-    rows = [r for r in rows if os.path.exists(os.path.join(OUT, f"{r['slug']}.webp"))]
+    rows = [r for r in rows if not r["owner"] or os.path.exists(os.path.join(OUT, f"{r['slug']}.webp"))]
     for row in targets(rows):  # landing order: the index's order
         if stores_only and row["group"] != "By store":
             continue
@@ -571,7 +645,8 @@ def main():
         else:
             sec = used.setdefault(row["group"], set())
         prods, taken, own_brand = photos(row["slug"], group=row["group"], used=sec, reserved=reserved,
-                                         boots_ok=row["group"] not in boots)
+                                         boots_ok=row["group"] not in boots,
+                                         seen_before=career_seen if row["group"] == "By career" else ())
         if len(prods) == 5:
             prods, taken = prods[:4], taken[:4]  # two a side reads evenly; five leaves one side short
         if len(prods) < 4:
@@ -585,12 +660,14 @@ def main():
             if "boot" in kinds(t):
                 boots.add(row["group"])
         if row["group"] == "By career":
+            career_seen |= {cover_key(t, own_brand) for t in taken}
             career_recent = (career_recent + [{cover_key(t, own_brand) for t in taken} | {dedupe(t.get("name")) for t in taken}])[-2:]
         manifest[row["slug"]] = {"section": row["group"],
                                  "items": [{"name": t.get("name"), "key": cover_key(t, own_brand)} for t in taken]}
-        if old.get(row["slug"]) == manifest[row["slug"]] and os.environ.get("GIFT_COVER_ALL") != "1":
+        out = os.path.join(OUT, f"{row['slug']}.webp")
+        if old.get(row["slug"]) == manifest[row["slug"]] and os.path.exists(out) and os.environ.get("GIFT_COVER_ALL") != "1":
             continue  # the same products as the cover on disk: left as it is (GIFT_COVER_ALL=1 redraws every cover)
-        draw(row, prods, os.path.join(OUT, f"{row['slug']}.webp"))
+        draw(row, prods, out, share=top_three(row))
         print(f"cover {row['slug']} ({len(prods)})", flush=True)
     if stores_only:  # keep the manifest in landing order
         order = [r["slug"] for r in rows]
@@ -598,6 +675,19 @@ def main():
     with open(MANIFEST, "w", encoding="utf8") as f:
         json.dump(manifest, f, indent=1, ensure_ascii=False)
         f.write("\n")
+    # The catalog gives a guide its cover only when it is in this list (every file here is a guide's, the two-way check).
+    slugs = sorted(s_ for s_ in manifest if os.path.exists(os.path.join(OUT, f"{s_}.webp")))
+    with open(os.path.join(ROOT, "src", "content", "giftGuideCoverSlugs.ts"), "w", encoding="utf8") as f:
+        f.write("/** Generated by scripts/gift-guide-photo-covers.py: the guides with a cover in public/gift-guides/covers. */\n")
+        f.write("export const COVER_SLUGS: readonly string[] = " + json.dumps(slugs) + ";\n")
+    # api/share.ts's lists of which guides have a share JPG and a WebP cover (two-way with the folders).
+    share = os.path.join(ROOT, "src", "lib", "giftGuideShareImages.mjs")
+    if os.path.exists(share):
+        text = open(share, encoding="utf8").read()
+        for name, folder, ext in (("OG_JPG_SLUGS", OG, ".jpg"), ("COVER_WEBP_SLUGS", OUT, ".webp")):
+            have = sorted(f[: -len(ext)] for f in os.listdir(folder) if f.endswith(ext))
+            text = re.sub(rf"export const {name} = new Set\(\[.*?\]\);", f"export const {name} = new Set({json.dumps(have, separators=(', ', ': '))});", text)
+        open(share, "w", encoding="utf8").write(text)
     print(f"covers: {len(manifest)} drawn, {len(four)} with 4 items, {len(kept)} text only (fewer than 4 usable photos)")
     json.dump({"four": four, "kept": kept}, open(os.path.join(CACHE, "last-run.json"), "w"), indent=1)
 

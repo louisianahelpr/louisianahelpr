@@ -74,8 +74,9 @@ describe("gift guide share preview (api/share.ts)", () => {
     expect(head).toContain('<meta property="og:image:alt" content="Gifts for Mom: holiday gift guide 2026"');
   });
 
-  it("a guide with no cover file keeps the brand card", async () => {
-    const slug = "store-atlas-coffee-club";
+  it("a page with no cover file keeps the brand card", async () => {
+    // Every guide has a cover since the covers round 2 (design review M2): a slug no guide uses has none.
+    const slug = "store-no-such-store";
     expect(existsSync(`public/gift-guides/covers/${slug}.webp`) || existsSync(`public/gift-guides/og/${slug}.jpg`)).toBe(false);
     const head = await headFor(`gift-guides/${slug}`);
     expect(head).toContain('<meta property="og:image" ');

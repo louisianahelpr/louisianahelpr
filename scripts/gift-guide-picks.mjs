@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -2223,6 +2223,10 @@ const BRAND_FILL = [
    * other guide's top 12 when it would land in this one's, no pastels on men's guides (MEN_PASTEL), cute colorways first
    * on women's.
    */
+  // The same per-guide rules every guide's own picks passed above (belong, fit r4, beauty, care, Louisiana items).
+  const fillFits = (slug, p) => !louisianaBlocked(slug, p) && !utilityCare(p) && (!beautyItem(p) || beautyGuide(slug))
+    && !belongsWhy(slug, groupOf.get(slug) ?? "", p, { tumblers: 0 }, true) && !fitR4Why(slug, groupOf.get(slug) ?? "", p) && !LA_LINE.test(String(p.line ?? ""))
+    && !(/\b(airwrap|lego)\b/i.test(`${p.name} ${p.brand ?? ""}`) && !["her", "wife", "girlfriend", "mom", "sister"].includes(slug));
   const usedImg = new Set();
   const usedHref = new Set();
   const usedName = new Set();
@@ -2252,7 +2256,7 @@ const BRAND_FILL = [
         const where = shownIn.get(k) ?? new Set();
         if (!where.size || where.has(slug) || where.size >= COLORWAY_MAX) continue;
         if (typeof p.image !== "string" || !p.image.startsWith("https://") || usedImg.has(p.image) || usedHref.has(p.href) || usedName.has(compact(p.name))) continue;
-        if (JOB_ITEM.test(`${p.name} ${p.line ?? ""}`) || !fitsGuide(slug, p) || curatedOut(slug, p) || (men && MEN_PASTEL.test(`${p.name} ${String(p.image).replace(/[-_]/g, " ")}`))) continue;
+        if (JOB_ITEM.test(`${p.name} ${p.line ?? ""}`) || !fitsGuide(slug, p) || curatedOut(slug, p) || !fillFits(slug, p) || (men && MEN_PASTEL.test(`${p.name} ${String(p.image).replace(/[-_]/g, " ")}`))) continue;
         if (pageList[slug].length < 12 && topCore.has(k)) continue;
         pageList[slug].push(p);
         usedImg.add(p.image); usedHref.add(p.href); usedName.add(compact(p.name));
@@ -2271,10 +2275,6 @@ const BRAND_FILL = [
    * on a women's guide or a women's item on a men's guide.
    */
   const dropPages = new Set(Object.entries(readJson("_prelaunch-audit-1119c.json") ?? {}).filter(([, e]) => /^drop$/i.test(String(e?.grade ?? ""))).map(([k]) => k));
-  // The same per-guide rules every guide's own picks passed above (belong, fit r4, beauty, care, Louisiana items).
-  const fillFits = (slug, p) => !louisianaBlocked(slug, p) && !utilityCare(p) && (!beautyItem(p) || beautyGuide(slug))
-    && !belongsWhy(slug, groupOf.get(slug) ?? "", p, { tumblers: 0 }, true) && !fitR4Why(slug, groupOf.get(slug) ?? "", p) && !LA_LINE.test(String(p.line ?? ""))
-    && !(/\b(airwrap|lego)\b/i.test(`${p.name} ${p.brand ?? ""}`) && !["her", "wife", "girlfriend", "mom", "sister"].includes(slug));
   const pool = [];
   const poolSeen = new Set();
   for (const p of [...everyPick, ...Object.entries(pageList).filter(([k]) => k.startsWith("store-") && !dropPages.has(k)).flatMap(([, l]) => l)]) {
@@ -2442,11 +2442,19 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       storeList[store] ??= { name: stores.get(store)?.name ?? String(r.brand), hosts: [] };
       if (!storeList[store].hosts.includes(new URL(r.href).hostname)) storeList[store].hosts = [...storeList[store].hosts, new URL(r.href).hostname];
     }
-    for (const g of Array.isArray(r.guides) ? r.guides : []) if (GUIDE_SLUGS.has(g)) byGuide.set(g, [...(byGuide.get(g) ?? []), pick]);
+    // Owner picks still go where they fit (lead 11-19): no pastel colorway on a men's guide.
+    for (const g of Array.isArray(r.guides) ? r.guides : []) if (GUIDE_SLUGS.has(g) && !NOT_A_LIST.has(g) && !(MEN_COLOR_GUIDES.includes(g) && MEN_PASTEL.test(`${pick.name} ${String(pick.image ?? "").replace(/[-_]/g, " ")}`))) byGuide.set(g, [...(byGuide.get(g) ?? []), pick]);
   }
   for (const [g, picks] of byGuide) {
-    const own = new Set(picks.flatMap((p) => [p.href, compact(p.name)]));
-    pageList[g] = [...picks, ...(pageList[g] ?? []).filter((p) => !own.has(p.href) && !own.has(compact(p.name)))];
+    const own = new Set(picks.flatMap((p) => [p.href, compact(p.name), `k:${dedupeKey(p.name)}`]));
+    const rest = (pageList[g] ?? []).filter((p) => !own.has(p.href) && !own.has(compact(p.name)) && !own.has(`k:${dedupeKey(p.name)}`));
+    // At most BRAND_TOP_MAX of one brand among a guide's leading owner picks (lead 11-19: ~4 YETI in any top 12); the
+    // rest follow its top 12.
+    const n = new Map();
+    const lead = [];
+    const later = [];
+    for (const p of picks) { const b = compact(p.brand ?? ""); n.set(b, (n.get(b) ?? 0) + 1); (b && n.get(b) > BRAND_TOP_MAX ? later : lead).push(p); }
+    pageList[g] = [...lead, ...rest.slice(0, Math.max(0, 12 - lead.length)), ...later, ...rest.slice(Math.max(0, 12 - lead.length))];
     followUpCounts.ownerPicks += picks.length;
   }
   console.log(`gift-guide-picks: follow-up ${followUpCounts.rules} rule removals, ${followUpCounts.dropped.length} store pages dropped, ${followUpCounts.merged} merged, ${followUpCounts.capped} capped, ${followUpCounts.rei} REI hiking out, ${followUpCounts.excluded} owner excludes, ${followUpCounts.ownerPicks} owner picks placed`);

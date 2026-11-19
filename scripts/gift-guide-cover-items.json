@@ -15,16 +15,16 @@
     "key": "cadenlane:blanket"
    },
    {
+    "name": "lululemon Define Jacket Luon",
+    "key": "lululemon:luon"
+   },
+   {
     "name": "Restore 3 Smart Sleep Clock",
     "key": "hatch:clock"
    },
    {
     "name": "Embroidered Ornament - Nativity",
     "key": "riflepaperco:nativity"
-   },
-   {
-    "name": "Dyson Airwrap Co-Anda 2x",
-    "key": "dyson:anda"
    }
   ]
  },
@@ -36,16 +36,16 @@
     "key": "traeger:griddle"
    },
    {
-    "name": "Rambler 20 oz Tumbler",
-    "key": "yeti:drink"
-   },
-   {
     "name": "Authentic Original™ 2-Eye Boat Shoe",
     "key": "sperry:shoe"
    },
    {
     "name": "Samsung Galaxy Watch9 44mm Bluetooth in Graphite",
     "key": "samsung:graphite"
+   },
+   {
+    "name": "Ray-Ban Clubmaster Classic Sunglasses",
+    "key": "rayban:sunglasses"
    }
   ]
  },
@@ -55,6 +55,10 @@
    {
     "name": "Apple Watch SE 3 GPS + Cellular 40mm Smartwatch",
     "key": "apple:smartwatch"
+   },
+   {
+    "name": "Dyson Airwrap i.d.™ Multi-Styler",
+    "key": "dyson:styler"
    },
    {
     "name": "Charlotte Tilbury Pillow Talk Blush Balm Lip Tint",
@@ -69,12 +73,8 @@
     "key": "olivejune:system"
    },
    {
-    "name": "Dyson Supersonic Nural Hair Dryer",
-    "key": "dyson:dryer"
-   },
-   {
-    "name": "BÉIS Weekender Bag, Beige",
-    "key": "béis:beige"
+    "name": "Printfresh Tiger Queen Pajama Set",
+    "key": "printfresh:pajama"
    }
   ]
  },
@@ -90,12 +90,12 @@
     "key": "kitsch:calendar"
    },
    {
-    "name": "Shark FlexStyle Air Styling & Drying System",
-    "key": "sharkninja:system"
+    "name": "lululemon Align High-Rise Pant 28\"",
+    "key": "lululemon:pant"
    },
    {
-    "name": "Everywhere Belt Bag",
-    "key": "lululemon:bag"
+    "name": "Shark FlexStyle Air Styling & Drying System",
+    "key": "sharkninja:system"
    },
    {
     "name": "CC undereye corrector",
@@ -123,16 +123,16 @@
     "key": "oakley:sunglasses"
    },
    {
+    "name": "YETI SideKick Dry 3L Gear Case",
+    "key": "yeti:case"
+   },
+   {
     "name": "Ray-Ban Meta (Gen 2) Wayfarer AI Glasses",
     "key": "rayban:glasses"
    },
    {
     "name": "Better Sweater Fleece Jacket",
     "key": "patagonia:jacket"
-   },
-   {
-    "name": "New Balance 574 Suede and Mesh Sneakers (black)",
-    "key": "newbalance:shoe"
    }
   ]
  },
@@ -148,12 +148,12 @@
     "key": "thermoworks:thermometer"
    },
    {
-    "name": "Lodge Pre-Seasoned Cast Iron Skillet with Silicone Handle Holder",
-    "key": "lodge:skillet"
+    "name": "lululemon Men's Metal Vent Tech Short-Sleeve Shirt",
+    "key": "lululemon:shirt"
    },
    {
-    "name": "UA Vanish Boys' Hoodie",
-    "key": "underarmour:hoodie"
+    "name": "Lodge Pre-Seasoned Cast Iron Skillet with Silicone Handle Holder",
+    "key": "lodge:skillet"
    }
   ]
  },
@@ -169,6 +169,10 @@
     "key": "dior:oil"
    },
    {
+    "name": "lululemon Align Tank Top",
+    "key": "lululemon:top"
+   },
+   {
     "name": "Soft Lounge Ribbed Short Robe",
     "key": "skims:robe"
    },
@@ -179,10 +183,6 @@
    {
     "name": "Clinique Smart Clinical Repair™ Collagen + PDRN Cream",
     "key": "clinique:cream"
-   },
-   {
-    "name": "Rothy's The Penny Loafer",
-    "key": "rothys:shoe"
    }
   ]
  },
@@ -202,22 +202,26 @@
     "key": "ugg:mule"
    },
    {
-    "name": "Dyson Airwrap i.d.™ Multi-Styler",
-    "key": "dyson:styler"
-   },
-   {
     "name": "CozyChic Throw",
     "key": "barefootdreams:throw"
    },
    {
     "name": "adidas Samba OG Shoes",
     "key": "adidas:shoe"
+   },
+   {
+    "name": "Specialty Coffee Maker with Glass Carafe",
+    "key": "sharkninja:carafe"
    }
   ]
  },
  "grandpa": {
   "section": "By person",
   "items": [
+   {
+    "name": "Carhartt Men's Iconic A18 Watch Cap Beanie",
+    "key": "carhartt:hat"
+   },
    {
     "name": "Photo & Video Digitization (Small Kit) + Unlimited Tech Help",
     "key": "techpals:help"
@@ -233,6 +237,10 @@
    {
     "name": "UA Apparition Unisex Shoes",
     "key": "underarmour:shoe"
+   },
+   {
+    "name": "HOKA Mens Clifton 11",
+    "key": "hoka:clifton"
    }
   ]
  },
@@ -271,7 +279,24 @@
  },
  "brother": {
   "section": "By person",
-  "items": []
+  "items": [
+   {
+    "name": "lululemon Men's Zeroed In Linerless Short 7\"",
+    "key": "lululemon:short"
+   },
+   {
+    "name": "Ranger 2.0 Fire Pit",
+    "key": "solostove:pit"
+   },
+   {
+    "name": "YETI Hopper M20 Backpack Cooler",
+    "key": "yeti:cooler"
+   },
+   {
+    "name": "JBL Portable Bluetooth Speaker",
+    "key": "jbl:speaker"
+   }
+  ]
  },
  "best-friend": {
   "section": "By person",
@@ -279,6 +304,14 @@
    {
     "name": "Lip Butter Balm Vault",
     "key": "summerfridays:lip"
+   },
+   {
+    "name": "lululemon Steady State Oversized Funnel Full-Zip",
+    "key": "lululemon:zip"
+   },
+   {
+    "name": "Printfresh x Gilmore Girls Oversized Pouch Duo",
+    "key": "printfresh:duo"
    },
    {
     "name": "Standard Baggu Reusable Bag",
@@ -289,16 +322,8 @@
     "key": "bigblanketco:throw"
    },
    {
-    "name": "ABC Classic-Fit Trouser 32L Warpstreme",
-    "key": "lululemon:warpstreme"
-   },
-   {
     "name": "Ninja CREAMi Deluxe",
     "key": "ninja:deluxe"
-   },
-   {
-    "name": "Madewell x Donni (Re)sourced Cashmere-Merino Pullover",
-    "key": "madewell:pullover"
    }
   ]
  },
@@ -414,16 +439,16 @@
     "key": "blackstone:griddle"
    },
    {
+    "name": "YETI Single-Wall Flask",
+    "key": "yeti:flask"
+   },
+   {
     "name": "Costa Los Alijos Polarized Sunglasses",
     "key": "costa:sunglasses"
    },
    {
     "name": "Ninja Sizzle Indoor Grill & Griddle GR101",
     "key": "ninja:griddle"
-   },
-   {
-    "name": "Adult Knit Cuffed Beanie",
-    "key": "carhartt:hat"
    }
   ]
  },
@@ -496,16 +521,16 @@
     "key": "lego:cafe"
    },
    {
+    "name": "12 oz Kids' Stainless Steel Straw Tumbler",
+    "key": "owala:drink"
+   },
+   {
     "name": "Aquarium - Marine Biologist's Aquarium",
     "key": "crunchlabs:aquarium"
    },
    {
     "name": "Disney Junior Minnie Mouse Bowtique Cash Register",
     "key": "disneyjunior:register"
-   },
-   {
-    "name": "Lite-Brite Super Bright HD, Hello Kitty Edition",
-    "key": "litebrite:edition"
    }
   ]
  },
@@ -561,7 +586,24 @@
  },
  "boys-little-kids": {
   "section": "For kids",
-  "items": []
+  "items": [
+   {
+    "name": "eKids Paw Patrol Chase Marshall Walkie Talkies",
+    "key": "pawpatrol:talkies"
+   },
+   {
+    "name": "Cecil & Lou Junior Fit Adjustable Hat",
+    "key": "cecillou:hat"
+   },
+   {
+    "name": "Roller Rabbit Kids Monkey Pima Cotton Pajamas",
+    "key": "rollerrabbit:pajamas"
+   },
+   {
+    "name": "Bits & Bows Lifeguard Hat Blue",
+    "key": "bitsbows:hat"
+   }
+  ]
  },
  "boys-big-kids": {
   "section": "For kids",
@@ -687,6 +729,14 @@
     "key": "glowrecipe:kit"
    },
    {
+    "name": "lululemon Hotty Hot High-Rise Short 2.5\"",
+    "key": "lululemon:short"
+   },
+   {
+    "name": "UGG Classic Mini Platform Boot",
+    "key": "ugg:boot"
+   },
+   {
     "name": "Balm Dotcom Keychain",
     "key": "glossier:keychain"
    }
@@ -708,12 +758,12 @@
     "key": "playdoh:doh"
    },
    {
-    "name": "Downhill Duo 40-Piece Set",
-    "key": "magnatiles:piece"
-   },
-   {
     "name": "Creativity Tub, 102 Pieces",
     "key": "crayola:pieces"
+   },
+   {
+    "name": "Sort, Stock, Select Wooden Vending Machine Play Set",
+    "key": "melissadoug:play"
    },
    {
     "name": "Rainbow Dot Markers, 6 Pack",
@@ -995,6 +1045,10 @@
   "section": "Louisiana",
   "items": [
    {
+    "name": "Desden LSU Geaux Tigers Beaded Button",
+    "key": "desden:button"
+   },
+   {
     "name": "NOLA Couture Purple Tiger Socks",
     "key": "nolacouture:sock"
    },
@@ -1013,10 +1067,6 @@
    {
     "name": "YETI NFL New Orleans Saints Aluminum Party Cups",
     "key": "yeti:cups"
-   },
-   {
-    "name": "Northwest FOCO New Orleans Saints NFL Team Property Of Sherpa Fleece Blanket",
-    "key": "northwest:blanket"
    }
   ]
  },
@@ -1076,7 +1126,24 @@
  },
  "purple-and-gold-lover": {
   "section": "Louisiana",
-  "items": []
+  "items": [
+   {
+    "name": "LSU Mike The Tiger 10\" Plush",
+    "key": "bleachercreatures:plush"
+   },
+   {
+    "name": "LSU Tigers Acadian Flag, 3x5",
+    "key": "collegeflagsbannersco:flag"
+   },
+   {
+    "name": "Desden LSU Sara Clear Stadium Purse with Scarf",
+    "key": "desden:scarf"
+   },
+   {
+    "name": "Desden LSU Bridget Clear Purse",
+    "key": "desden:purse"
+   }
+  ]
  },
  "louisiana-small-businesses": {
   "section": "Louisiana",
@@ -1129,7 +1196,24 @@
  },
  "home-cook": {
   "section": "Hobbies",
-  "items": []
+  "items": [
+   {
+    "name": "Signature 7.25-Qt. Round Dutch Oven with Crucible Knob",
+    "key": "lecreuset:dutchoven"
+   },
+   {
+    "name": "Lancaster No. 10 Cast Iron Skillet",
+    "key": "lancastercastiron:skillet"
+   },
+   {
+    "name": "Haven Haus Co. Recipe Binder",
+    "key": "havenhausco:binder"
+   },
+   {
+    "name": "Anthropologie Brynn Gingham Apron",
+    "key": "anthropologie:apron"
+   }
+  ]
  },
  "self-care-lover": {
   "section": "Hobbies",
@@ -1179,7 +1263,24 @@
  },
  "hunters": {
   "section": "Hobbies",
-  "items": []
+  "items": [
+   {
+    "name": "REVEAL X 3.0 Cellular Trail Camera",
+    "key": "tactacam:camera"
+   },
+   {
+    "name": "YETI LoadOut GoBox 30 Gear Case",
+    "key": "yeti:case"
+   },
+   {
+    "name": "Woodland Pro Men's 17\" 400G Insulated Outdoor Boot",
+    "key": "muckbootcompany:boot"
+   },
+   {
+    "name": "Georgia Boot Core 37 Western 11\" Mossy Oak Pull On",
+    "key": "georgiaboot:boot"
+   }
+  ]
  },
  "fishermen": {
   "section": "Hobbies",
@@ -1195,7 +1296,24 @@
  },
  "gym-lover": {
   "section": "Hobbies",
-  "items": []
+  "items": [
+   {
+    "name": "Undeniable 5.0 Duffle",
+    "key": "underarmour:duffle"
+   },
+   {
+    "name": "On Womens Cloud 6",
+    "key": "on:cloud"
+   },
+   {
+    "name": "Ghost 17 Running Shoe",
+    "key": "brooks:shoe"
+   },
+   {
+    "name": "YETI Rambler 42 oz Straw Mug",
+    "key": "yeti:drink"
+   }
+  ]
  },
  "wine-lover": {
   "section": "Hobbies",
@@ -1861,8 +1979,16 @@
     "key": "philipshue:bulb"
    },
    {
+    "name": "Ruggable Welcome Trellis Washable Doormat",
+    "key": "ruggable:doormat"
+   },
+   {
     "name": "SwitchBot Lock Ultra Bundle",
     "key": "switchbot:bundle"
+   },
+   {
+    "name": "Shark Navigator Robot Vacuum & Self-Empty Base",
+    "key": "sharkninja:base"
    }
   ]
  },
@@ -2021,8 +2147,8 @@
     "key": "stanley:drink"
    },
    {
-    "name": "Crocs Men's and Women's Classic Clog",
-    "key": "crocs:shoe"
+    "name": "The Proper Stitch Troop Project Bag Large Pink",
+    "key": "theproperstitch:pink"
    }
   ]
  },
@@ -2104,16 +2230,16 @@
     "key": "nintendo:system"
    },
    {
-    "name": "Downhill Duo 40-Piece Set",
-    "key": "magnatiles:piece"
-   },
-   {
     "name": "Explorer 300 Portable Power Station",
     "key": "jackery:station"
    },
    {
     "name": "Fresh Prep Slicer and Shredder Attachment",
     "key": "kitchenaid:attachment"
+   },
+   {
+    "name": "Stacks of Circles Stacking Ring Toy",
+    "key": "sassy:toy"
    }
   ]
  },
@@ -2291,20 +2417,28 @@
   "section": "By store",
   "items": [
    {
+    "name": "lululemon Align High-Rise Pant 28\"",
+    "key": "lululemon:lululemon align high rise pant 28"
+   },
+   {
+    "name": "lululemon Shake It Out High-Rise Running Short 2.5\"",
+    "key": "lululemon:lululemon shake it out high rise running short 2 5"
+   },
+   {
     "name": "Everywhere Belt Bag With Long Strap 1l",
     "key": "lululemon:everywhere belt bag with long strap 1l"
    },
    {
-    "name": "ABC Classic-Fit Trouser 32L Warpstreme",
-    "key": "item:abc classic fit trouser 32l warpstreme"
+    "name": "lululemon Align Tank Top",
+    "key": "lululemon:lululemon align tank top"
    },
    {
-    "name": "Everywhere Belt Bag 1L",
-    "key": "item:everywhere belt bag 1l"
+    "name": "lululemon Swiftly Tech Long-Sleeve 2.0",
+    "key": "lululemon:lululemon swiftly tech long sleeve 2 0"
    },
    {
-    "name": "Everywhere Belt Bag Large 2L",
-    "key": "item:everywhere belt bag large 2l"
+    "name": "lululemon High-Rise Running Short 3\"",
+    "key": "lululemon:lululemon high rise running short 3"
    }
   ]
  },
@@ -2465,10 +2599,6 @@
   "section": "By store",
   "items": [
    {
-    "name": "Men's Bondi 9 Sneakers",
-    "key": "hoka:shoe"
-   },
-   {
     "name": "Dr. Martens 1460 8-Eye Nappa Boot - Black",
     "key": "item:dr martens 1460 8 eye nappa boot black"
    },
@@ -2487,6 +2617,10 @@
    {
     "name": "adidas Samba OG Athletic Shoe - Cloud White / Core Black / Gum",
     "key": "item:adidas samba og athletic shoe cloud white core black gum"
+   },
+   {
+    "name": "Timberland® 6-Inch Hard Sole Bootie - Baby - Wheat",
+    "key": "item:timberland 6 inch hard sole bootie baby wheat"
    }
   ]
  },
@@ -2751,16 +2885,16 @@
     "key": "theragun:theragun mini blue raspberry"
    },
    {
+    "name": "Theragun Mini, Sour Apple",
+    "key": "theragun:theragun mini sour apple"
+   },
+   {
     "name": "Theragun Mini, Strawberry Splash",
     "key": "theragun:theragun mini strawberry splash"
    },
    {
-    "name": "Theragun Mini (3rd Generation)",
-    "key": "theragun:theragun mini 3rd generation"
-   },
-   {
-    "name": "Theragun Mini",
-    "key": "theragun:theragun mini"
+    "name": "Theragun Mini, Orange Crush",
+    "key": "theragun:theragun mini orange crush"
    }
   ]
  },
@@ -3004,24 +3138,7 @@
  },
  "store-neiman-marcus": {
   "section": "By store",
-  "items": [
-   {
-    "name": "Cozychic Ribbed Throw Blanket",
-    "key": "barefootdreams:blanket"
-   },
-   {
-    "name": "Veja Campo Sneaker",
-    "key": "veja:shoe"
-   },
-   {
-    "name": "Barefoot Dreams CozyChic Ribbed Throw Blanket",
-    "key": "item:barefoot dreams cozychic ribbed throw blanket"
-   },
-   {
-    "name": "Royce New York Personalized Leather Bookmark",
-    "key": "item:royce new york personalized leather bookmark"
-   }
-  ]
+  "items": []
  },
  "store-revolve": {
   "section": "By store",
@@ -4355,7 +4472,24 @@
  },
  "store-printfresh": {
   "section": "By store",
-  "items": []
+  "items": [
+   {
+    "name": "Printfresh Tiger Queen Pajama Set",
+    "key": "printfresh:printfresh tiger queen pajama set"
+   },
+   {
+    "name": "Printfresh x Gilmore Girls Oversized Pouch Duo",
+    "key": "printfresh:printfresh x gilmore girls oversized pouch duo"
+   },
+   {
+    "name": "Printfresh Three's Best Pouch Set",
+    "key": "printfresh:printfresh three s best pouch set"
+   },
+   {
+    "name": "Blue Combo - Hand Painted Caviar Cheeseboard - Solar Eclipse",
+    "key": "item:blue combo hand painted caviar cheeseboard solar eclipse"
+   }
+  ]
  },
  "store-iherb": {
   "section": "By store",
@@ -4839,7 +4973,24 @@
  },
  "store-barefoot-dreams": {
   "section": "By store",
-  "items": []
+  "items": [
+   {
+    "name": "CozyChic Throw",
+    "key": "barefootdreams:cozychic throw"
+   },
+   {
+    "name": "Barefoot Dreams CozyChic Marled Scarf",
+    "key": "barefootdreams:barefoot dreams cozychic marled scarf"
+   },
+   {
+    "name": "Barefoot Dreams CozyChic Headband and Sock Set",
+    "key": "barefootdreams:barefoot dreams cozychic headband and sock set"
+   },
+   {
+    "name": "Barefoot Dreams CozyChic Lined Fair Isle Slipper Socks",
+    "key": "barefootdreams:barefoot dreams cozychic lined fair isle slipper socks"
+   }
+  ]
  },
  "store-barefootdreams": {
   "section": "By store",
@@ -4936,6 +5087,10 @@
   "items": []
  },
  "store-big-blanket-co": {
+  "section": "By store",
+  "items": []
+ },
+ "store-bits-and-bows": {
   "section": "By store",
   "items": []
  },
@@ -5379,6 +5534,27 @@
    }
   ]
  },
+ "store-desden": {
+  "section": "By store",
+  "items": [
+   {
+    "name": "Desden LSU Geaux Tigers Beaded Button",
+    "key": "desden:button"
+   },
+   {
+    "name": "Desden LSU Tigers Beaded Button",
+    "key": "desden:button"
+   },
+   {
+    "name": "Desden LSU Sara Clear Stadium Purse with Scarf",
+    "key": "desden:scarf"
+   },
+   {
+    "name": "Desden LSU Bridget Clear Purse",
+    "key": "desden:purse"
+   }
+  ]
+ },
  "store-diesel": {
   "section": "By store",
   "items": []
@@ -5465,6 +5641,10 @@
   "items": []
  },
  "store-fire-department-coffee": {
+  "section": "By store",
+  "items": []
+ },
+ "store-flat-river-group": {
   "section": "By store",
   "items": []
  },
@@ -5558,6 +5738,10 @@
   ]
  },
  "store-gorjana": {
+  "section": "By store",
+  "items": []
+ },
+ "store-great-pretenders": {
   "section": "By store",
   "items": []
  },
@@ -5714,6 +5898,10 @@
   "items": []
  },
  "store-jo-malone-london": {
+  "section": "By store",
+  "items": []
+ },
+ "store-jojo-mommy": {
   "section": "By store",
   "items": []
  },
@@ -6071,6 +6259,10 @@
    }
   ]
  },
+ "store-magna-tiles": {
+  "section": "By store",
+  "items": []
+ },
  "store-magnolia": {
   "section": "By store",
   "items": [
@@ -6099,6 +6291,10 @@
     "key": "item:eddie accent stool"
    }
   ]
+ },
+ "store-maileg": {
+  "section": "By store",
+  "items": []
  },
  "store-maker-wine": {
   "section": "By store",
@@ -6132,6 +6328,10 @@
     "key": "item:rgt ex86110 pro pioneer ii 1 10 4wd brushless rc rock crawler 2 speed lcg portal axle"
    }
   ]
+ },
+ "store-maniere": {
+  "section": "By store",
+  "items": []
  },
  "store-mario-badescu": {
   "section": "By store",
@@ -6671,6 +6871,10 @@
   "section": "By store",
   "items": []
  },
+ "store-roller-rabbit": {
+  "section": "By store",
+  "items": []
+ },
  "store-rothys": {
   "section": "By store",
   "items": [
@@ -6693,6 +6897,10 @@
   ]
  },
  "store-rue-la-la": {
+  "section": "By store",
+  "items": []
+ },
+ "store-ruggable": {
   "section": "By store",
   "items": []
  },
@@ -7025,6 +7233,10 @@
   "section": "By store",
   "items": []
  },
+ "store-the-proper-stitch": {
+  "section": "By store",
+  "items": []
+ },
  "store-the-dailee": {
   "section": "By store",
   "items": []
@@ -7201,7 +7413,15 @@
   "section": "By store",
   "items": []
  },
+ "store-weezie": {
+  "section": "By store",
+  "items": []
+ },
  "store-weezietowels": {
+  "section": "By store",
+  "items": []
+ },
+ "store-west-and-june": {
   "section": "By store",
   "items": []
  },

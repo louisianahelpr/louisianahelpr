@@ -30,6 +30,7 @@ import {
  */
 const FEW_PHOTOS = "fewer than 4 clean product-only photos";
 const ONE_GUIDE = "under 4 clean product photos left after one guide per product (owner 11-19)";
+const OWNER_FILL = "under 4 clean product photos after the owner picks and follow-up fills (11-19): the rest are on-model, lifestyle or already on a cover in the section";
 /**
  * Re-measured 2026-11-19 after the r3 follow-up gathered store photos (scripts/gift-guide-store-cover-photos.json): 52
  * of the 59 store pages here now show products. These seven could not get four photos of products the store sells:
@@ -49,19 +50,27 @@ const TEXT_ONLY: Record<string, string> = {
   "crawfish-season": ONE_GUIDE,
   "engineers": ONE_GUIDE,
   "mardi-gras": ONE_GUIDE,
-  "store-jd-sports": ONE_GUIDE,
-  "store-loft": ONE_GUIDE,
-  "store-perigold": ONE_GUIDE,
   "store-revolve": ONE_GUIDE,
   "store-yeti": ONE_GUIDE,
   "machinists": ONE_GUIDE,
-  "gender-neutral-big-kids": ONE_GUIDE,
-  "hunters": ONE_GUIDE,
+  // Measured 2026-11-19 after the owner picks and the follow-up fills (the cover script prints "SHORT <slug>").
+  "louisiana-made": OWNER_FILL,
+  "homebody": OWNER_FILL,
+  "mechanics": OWNER_FILL,
+  "store-dillards": OWNER_FILL,
+  "store-dsw": OWNER_FILL,
+  "store-nordstrom-rack": OWNER_FILL,
+  "store-bombas": OWNER_FILL,
+  "store-vineyard-vines": OWNER_FILL,
+  "store-neiman-marcus": OWNER_FILL,
+  "store-georgia-boot": OWNER_FILL,
+  "store-littmann": OWNER_FILL,
+  "store-summer-fridays": OWNER_FILL,
+  "store-victorias-secret": OWNER_FILL,
 };
 /** Covers with four products whose photos read as gingham to the pixel check (clear glass and white jars). */
 const PIXEL_PALE: Record<string, string> = {
   "store-mario-badescu": "clear and white skincare bottles",
-  "store-magnifique": "cream and oatmeal clay pots",
 };
 
 const manifest = readManifest();
@@ -69,10 +78,10 @@ const covers = new Set(COVER_SLUGS);
 const shown = GUIDES.filter((g) => !g.empty && !g.thin && covers.has(g.slug)).map((g) => g.slug);
 /**
  * Owner 11-19 ("just leave it, no one is looking anyway"): a guide shows from 1 pick (GUIDE_MIN_PICKS), so a guide with
- * fewer than SMALL_GUIDE picks (the ones hidden until then) may show a cover with fewer than four products. Read from the
+ * fewer than SMALL_GUIDE picks (UNIQUE_FLOOR in scripts/gift-guide-picks.mjs; most were hidden until then) may show a cover with fewer than four products. Read from the
  * pick count, never from the cover.
  */
-const SMALL_GUIDE = 6;
+const SMALL_GUIDE = 8;
 const small = (s: string) => !s.startsWith("store-") && (CHUNK_PICK_COUNTS[s] ?? 0) < SMALL_GUIDE;
 const checked = shown.filter((s) => !(s in TEXT_ONLY) && !small(s));
 

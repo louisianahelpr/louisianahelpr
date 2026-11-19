@@ -37,8 +37,9 @@ const DIR = "src/content/giftGuidePicks";
 const chunk = (slug: string): Pick[] => JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks;
 const slugs = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
 const guides = slugs.filter((s) => !s.startsWith("store-") && s !== "25-days-sponsors");
+// The owner's own picks (ownerPick) are exempt from every rule (owner 11-19).
 const offenders = (rule: (slug: string, p: Pick) => boolean) =>
-  guides.flatMap((s) => chunk(s).filter((p) => rule(s, p)).map((p) => `${s}: ${p.name}`));
+  guides.flatMap((s) => chunk(s).filter((p) => !p.ownerPick && rule(s, p)).map((p) => `${s}: ${p.name}`));
 
 describe("gift guides 11-19: photos sit on the cream card, not in white boxes", () => {
   it("the cream is on the photo box and the photo multiplies onto it; the store tile keeps its own look", () => {
@@ -260,7 +261,8 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
   it("popular brands may repeat, but at most 4 of one brand in a guide's top 12", () => {
     const over = guides.flatMap((s) => {
       const c = new Map<string, number>();
-      for (const p of chunk(s).slice(0, 12)) { const b = (p.brand ?? "").toLowerCase().replace(/[^a-z0-9]/g, ""); if (b) c.set(b, (c.get(b) ?? 0) + 1); }
+      // The owner's own picks (ownerPick) lead their guides, exempt from every cap (owner 11-19).
+      for (const p of chunk(s).filter((x) => !x.ownerPick).slice(0, 12)) { const b = (p.brand ?? "").toLowerCase().replace(/[^a-z0-9]/g, ""); if (b) c.set(b, (c.get(b) ?? 0) + 1); }
       return [...c].filter(([, v]) => v > 4).map(([b, v]) => `${s}: ${b} x${v}`);
     });
     expect(over).toEqual([]);

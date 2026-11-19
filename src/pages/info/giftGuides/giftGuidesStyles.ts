@@ -136,7 +136,8 @@ article[data-gift-guide]>section:first-child>.gg-list{margin-top:0}article[data-
 .gg-nm small{display:block;font-size:12px;color:var(--gg-muted)}
 .gg-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
 .gg-bdg{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:#eef2e6;color:#3f5a1c}
-.gg-bdg-trending{background:#f6e3d5;color:#8a3d18}.gg-bdg-sponsor{background:#f3dcd8;color:#8c3b3b}
+.gg-last-note{display:inline-block;white-space:normal;max-width:none;margin:0 0 10px}
+.gg-bdg-sponsor{background:#f3dcd8;color:#8c3b3b}
 .gg-item:hover .gg-nm,.gg-item:focus-visible .gg-nm{text-decoration:underline}
 .gg-shop{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gg-olive);white-space:nowrap}
 .gg-price{font-size:13px;font-weight:700;color:var(--gg-ink);white-space:nowrap;font-variant-numeric:tabular-nums}

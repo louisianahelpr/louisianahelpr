@@ -16,15 +16,14 @@ export async function currentPosition(): Promise<{ lat: number; lng: number }> {
       return { lat: pos.coords.latitude, lng: pos.coords.longitude };
     } catch (e) {
       console.warn("[currentPosition] native location failed:", e);
-      const refused = new Error("location_required") as Error & { cause?: unknown };
-      refused.cause = e;
+      const refused = Object.assign(new Error("location_required"), { cause: e, designedRefusal: true });
       throw refused;
     }
   }
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => reject(new Error("location_required")),
+      () => reject(Object.assign(new Error("location_required"), { designedRefusal: true })),
       { enableHighAccuracy: true, timeout: 12_000 },
     );
   });

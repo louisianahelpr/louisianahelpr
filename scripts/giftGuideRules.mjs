@@ -298,7 +298,7 @@ export const fillerGuide = (slug, group) => ["By career", "Hobbies", "Colors"].i
  * Quencher does not fit a stocking, and the Hot Wheels 20-pack is a kids' toy, not a Car Lover gift.
  */
 export const GUIDE_OFF = {
-  "new-puppy": /\bkindle\b/i,
+  "new-puppy": /\bkindle\b|airpods/i,
   "stocking-stuffers": /\bquencher\b/i,
   "car-lover": /hot wheels/i,
 };

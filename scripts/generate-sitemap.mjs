@@ -88,7 +88,6 @@ const NOINDEX = {
   "/payment-success": "post-checkout receipt screen, bound to one session",
   "/unsubscribe": "email opt-out step; needs the signed link from one email (Q1655)",
   "/sponsor": "25 Days sponsor page: reached from pitch emails, dark behind the sponsor_25days switch",
-  "/25days": "25 Days sponsor page (same page as /sponsor)",
   "/25days/rules": "25 Days giveaway rules: a draft until the owner approves it",
 };
 
@@ -113,6 +112,8 @@ const WEIGHTS = {
   "/login": { changefreq: "monthly", priority: "0.3" },
   "/signup": { changefreq: "monthly", priority: "0.3" },
   "/gift-guides": { changefreq: "daily", priority: "0.7" },
+  // Public and indexed from 11-19 (owner decision by recommendation: the Dec 1–25 dates only).
+  "/25days": { changefreq: "weekly", priority: "0.7" },
 };
 const DEFAULT_WEIGHT = { changefreq: "monthly", priority: "0.5" };
 /** Every /gift-guides/<slug> page (picks change through the season). */
@@ -206,7 +207,38 @@ function classify(routes) {
   return { included: [...new Set(included)], excluded };
 }
 
-function render(paths, unweighted) {
+/**
+ * SEO P1 (owner 11-19): each gift guide's <lastmod>, the newest price-check day (`priceAt`, YYYY-MM-DD) among the picks
+ * in its chunk (src/content/giftGuidePicks/<slug>.json), and /gift-guides the newest of those. Read from the committed
+ * data only, never from commit history (a shallow CI checkout or a rebase would change the bytes; check-generated-current
+ * compares them). A page with no such date gets no lastmod rather than an invented one. --check compares URLs and
+ * weights only.
+ */
+const PICKS_DIR = path.join(repoRoot, "src", "content", "giftGuidePicks");
+export function lastmodDates(paths, readChunk = (slug) => fs.readFileSync(path.join(PICKS_DIR, `${slug}.json`), "utf8")) {
+  const result = {};
+  const guideDates = [];
+  for (const p of paths) {
+    const slug = p.startsWith("/gift-guides/") ? p.slice("/gift-guides/".length) : null;
+    if (!slug || !/^[a-z0-9-]+$/.test(slug)) continue;
+    let picks = [];
+    try {
+      picks = JSON.parse(readChunk(slug)).picks ?? [];
+    } catch {
+      // A guide with no chunk file (a fixed content guide): no date to state.
+      continue;
+    }
+    const days = picks.map((x) => x?.priceAt).filter((d) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+    if (days.length) {
+      result[p] = days.at(-1);
+      guideDates.push(days.at(-1));
+    }
+  }
+  if (guideDates.length && paths.includes("/gift-guides")) result["/gift-guides"] = guideDates.sort().at(-1);
+  return result;
+}
+
+function render(paths, unweighted, lastmod = {}) {
   const lines = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     "<!-- GENERATED FILE — do not hand-edit.",
@@ -222,6 +254,7 @@ function render(paths, unweighted) {
     lines.push("  <url>");
     // "/" must render as the bare origin with a trailing slash, not "//".
     lines.push(`    <loc>${ORIGIN}${p === "/" ? "/" : p}</loc>`);
+    if (lastmod[p]) lines.push(`    <lastmod>${lastmod[p]}</lastmod>`);
     lines.push(`    <changefreq>${w.changefreq}</changefreq>`);
     lines.push(`    <priority>${w.priority}</priority>`);
     lines.push("  </url>");
@@ -289,7 +322,7 @@ function main() {
     return pb - pa || a.localeCompare(b);
   });
   const unweighted = sorted.filter((p) => !WEIGHTS[p] && !p.startsWith("/gift-guides/"));
-  const xml = render(sorted, unweighted);
+  const xml = render(sorted, unweighted, lastmodDates(sorted));
 
   if (toStdout) {
     process.stdout.write(xml);

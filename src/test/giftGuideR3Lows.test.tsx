@@ -12,7 +12,7 @@
  * @mutate scripts/gift-guide-photo-covers.py |         if (len(lines) <= 2 and all( |         if (len(lines) <= 3 and all(
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | (row === "for-kids" && G.ageHubLabels[g.slug] ? g.title : undefined) | (undefined)
  * @mutate src/lib/giftGuidePageMeta.mjs |   if (gift) { |   if (false) {
- * @mutate api/share.ts |     ...(page.robots ? { robots: page.robots } : {}), |
+ * @mutate api/share.ts |     ...("robots" in page && typeof page.robots === "string" ? { robots: page.robots } : {}), |
  * @mutate src/content/giftGuideCatalog.ts |     const keyword = q !== "" && (SEARCH_KEYWORDS[g.slug] ?? "").split(" ").includes(q); |     const keyword = false;
  * @mutate src/content/giftGuideCatalog.ts |   nurses: ["healthcare"] }; |   };
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | to: `/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}` | to: "/gift-guides?group=for-kids"
@@ -71,7 +71,7 @@ describe("gift guides r3 UX Lows", () => {
     expect(Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, "store-yankee-candle")).toBe(false);
     expect(publicOrGiftGuidePageMetaFor("/gift-guides/store-yankee-candle", null)?.robots).toMatch(/noindex/);
     expect(publicOrGiftGuidePageMetaFor("/gift-guides/mom", null)?.robots).toBeUndefined();
-    expect(readFileSync("api/share.ts", "utf8")).toContain("...(page.robots ? { robots: page.robots } : {}),");
+    expect(readFileSync("api/share.ts", "utf8")).toContain('...("robots" in page && typeof page.robots === "string" ? { robots: page.robots } : {}),');
   });
 
   it("#13: /gift-guides/nurses opens Healthcare, and \"nurse\" lists Healthcare first", () => {

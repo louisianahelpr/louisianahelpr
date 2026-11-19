@@ -67,6 +67,24 @@ import * as ogShellModule from "../scripts/generated/og-shell.js";
 import { STATIC_PAGE_BODIES } from "../scripts/generated/static-pages.js";
 import { noindexPageMetaFor } from "../src/lib/publicPageMeta.mjs";
 import { publicOrGiftGuidePageMetaFor as publicPageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";
+import { giftGuidePageMeta } from "../src/lib/giftGuidePageMeta.mjs";
+import { SEO_DATA } from "../scripts/generated/seo-data.js";
+import { findTownPage } from "../src/lib/townPages.mjs";
+import {
+  breadcrumbLd,
+  giftGuideBody,
+  giftGuideItemListLd,
+  giftGuidesLandingBody,
+  giftGuidesLandingLd,
+  hireBody,
+  hireBreadcrumbLd,
+  infoPageBody,
+  infoPageBreadcrumbLd,
+  jsonLdScript,
+  notFoundBody,
+  twentyFiveDaysEventLd,
+  type SeoData,
+} from "../src/lib/seoBodies.mjs";
 import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/lib/ogProfileCard.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
 import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../src/lib/declutterFirstPhotos.mjs";
@@ -1038,7 +1056,7 @@ function metaForUser(url: string): Meta {
  * same behaviour); the Legal tab resolution is the page's own.
  */
 function metaForPublicPage(id: string, tab: string | null): Meta | null {
-  const page = publicPageMetaFor(`/${id}`, tab);
+  const page = giftGuideHead(id) ?? publicPageMetaFor(`/${id}`, tab);
   if (!page) return null;
   const card = SECTION_CARDS[id];
   const cover = giftGuideCover(id, page.ogTitle);
@@ -1048,11 +1066,148 @@ function metaForPublicPage(id: string, tab: string | null): Meta | null {
     ogTitle: page.ogTitle,
     ogDescription: page.ogDescription,
     url: page.canonical,
-    // A not-indexed guide (gg-r3 UX audit #12) says so before JS; publicPageMetaFor's pages carry no robots.
-    ...(page.robots ? { robots: page.robots } : {}),
+    // A gift guide kept out of search (a hub, an empty or thin guide) says so before JS, as its page does after.
+    ...("robots" in page && typeof page.robots === "string" ? { robots: page.robots } : {}),
     ...(card ? { image: { url: `${SITE_ORIGIN}${card.path}`, type: "image/png", width: 1200, height: 630, alt: card.alt } } : {}),
     ...(cover ? { image: cover } : {}),
   };
+}
+
+/* ------------------------------------------------------------------ *
+ * SEO P1 (owner 11-19): each page's own body, JSON-LD and real 404s
+ * ------------------------------------------------------------------ */
+
+/**
+ * The gift guide data the build wrote (scripts/generated/seo-data.js, from src/prerender/seoData.ts). `null` when the
+ * module is the empty placeholder (a test or a build without it): a guide URL then keeps today's behaviour, never a
+ * wrong 404 for every guide.
+ */
+function seoData(): SeoData | null {
+  const d = SEO_DATA as SeoData | undefined;
+  return d && d.guides && Object.keys(d.guides).length > 0 ? d : null;
+}
+
+const hasOwn = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
+
+/** The guide slug in a rewrite's id ("gift-guides/<one segment>"), or null. */
+function giftGuideSlug(id: string): string | null {
+  const m = /^gift-guides\/([^/]+)$/.exec(id);
+  return m ? m[1] : null;
+}
+
+/**
+ * A catalog guide's head with its own description (its first picks and count, as the page writes it after JS), and
+ * for a guide kept out of search (a hub, an empty or thin guide) its noindex head. `null` for any other id.
+ */
+function giftGuideHead(id: string): ReturnType<typeof giftGuidePageMeta> | null {
+  const slug = giftGuideSlug(id);
+  const d = seoData();
+  if (!slug || !d || !hasOwn(d.guides, slug)) return null;
+  const g = d.guides[slug];
+  // A guide out of search is named "<title> gift guide" in the data: the name giftGuidePageMeta builds from its title.
+  return giftGuidePageMeta(slug, g.name.replace(/ gift guide$/, ""), g.picks.slice(0, 3).map((p) => p[0]), g.count);
+}
+
+type SeoOutcome =
+  | { kind: "page"; body: string; jsonLd: unknown[] }
+  | { kind: "notfound"; body: string }
+  | { kind: "moved"; location: string }
+  | null;
+
+const HOME_CRUMB = { name: "Louisiana Helpr", path: "/" };
+const GUIDES_CRUMB = { name: "Holiday Gift Guides", path: "/gift-guides" };
+
+/**
+ * What a public page carries beyond its head: its body inside #root and its JSON-LD; or a 404 (an unknown guide, an
+ * unknown service or town: never the homepage under a 200, which Google reads as a soft 404); or a 301 (an old guide
+ * slug the page itself forwards). `null`: nothing new, the page is served as before.
+ */
+function seoFor(url: URL): SeoOutcome {
+  const route = resolveRoute(url);
+  if (!route || route.kind !== "page") return null;
+  const id = route.id;
+  if (id === "gift-guides") {
+    const d = seoData();
+    if (!d) return null;
+    return { kind: "page", body: giftGuidesLandingBody(d.groups), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB]), giftGuidesLandingLd(d.groups)] };
+  }
+  if (id.startsWith("gift-guides/")) {
+    const d = seoData();
+    if (!d) return null;
+    const slug = giftGuideSlug(id);
+    if (slug && hasOwn(d.guides, slug)) {
+      const g = d.guides[slug];
+      const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: g.name, path: `/gift-guides/${slug}` }]);
+      return { kind: "page", body: giftGuideBody(slug, g), jsonLd: g.picks.length ? [crumbs, giftGuideItemListLd(slug, g)] : [crumbs] };
+    }
+    if (slug && hasOwn(d.moved, slug) && /^[a-z0-9-]+$/.test(d.moved[slug])) return { kind: "moved", location: `${SITE_ORIGIN}/gift-guides/${d.moved[slug]}` };
+    return { kind: "notfound", body: notFoundBody("gift-guide") };
+  }
+  if (id.startsWith("hire/")) {
+    const hire = /^hire\/([^/]+)\/([^/]+)$/.exec(id);
+    const found = hire ? findTownPage(hire[1], hire[2]) : null;
+    if (!found) return { kind: "notfound", body: notFoundBody("hire") };
+    return { kind: "page", body: hireBody(found.service, found.town), jsonLd: [hireBreadcrumbLd(found.service, found.town)] };
+  }
+  const path = `/${id}`;
+  const body = infoPageBody(path);
+  if (!body) return null;
+  const crumbs = infoPageBreadcrumbLd(path);
+  return { kind: "page", body, jsonLd: [...(crumbs ? [crumbs] : []), ...(id === "25days" ? [twentyFiveDaysEventLd()] : [])] };
+}
+
+/**
+ * The shells index.html carries at the end of <body> on every route (the landing's hero, /login, /signup, and the
+ * signed-in /home, /jobs, /messages, /declutter skeletons). Each is shown only on its own path by an inline script in
+ * index.html and removed by src/main.tsx everywhere else, so on any other path it is dead weight to a person and, to a
+ * crawler, the homepage's H1 and text on every URL (audit 11-18). A response keeps only its own path's shell; the
+ * scripts and main.tsx already treat a missing shell as nothing to do (getElementById returns null). "/" is the
+ * static index.html and keeps them all.
+ */
+const SHELL_FOR_PATH: Record<string, string> = {
+  "/login": "lh-login-shell",
+  "/signup": "lh-signup-shell",
+  "/home": "lh-home-shell",
+  "/jobs": "lh-jobs-shell",
+  "/messages": "lh-messages-shell",
+  "/declutter": "lh-declutter-shell",
+};
+const SHELL_BLOCK_RE = /[ \t]*<div id="(lh-[a-z]+-shell)" aria-hidden="true" inert data-lh-shell="start">[\s\S]*?<span data-lh-shell="end" hidden><\/span><\/div>\n?/g;
+
+function withoutOtherShells(html: string, path: string | null): string {
+  const keep = path !== null && hasOwn(SHELL_FOR_PATH, path) ? SHELL_FOR_PATH[path] : null;
+  return html.replace(SHELL_BLOCK_RE, (block, id: string) => (id === keep ? block : ""));
+}
+
+/** The visitor's path for the route this function was sent (null: a route no shell is drawn for). */
+function routePath(url: URL): string | null {
+  const route = resolveRoute(url);
+  if (!route) return null;
+  if (route.kind === "signup") return "/signup";
+  if (route.kind === "page" || route.kind === "noindex") return `/${route.id}`;
+  return null;
+}
+
+/**
+ * The site-wide LocalBusiness and Organization blocks belong to the homepage alone (owner 11-19: Organization on the
+ * home page only; the LocalBusiness has no address or phone Google can use). Every page this function serves drops
+ * them and keeps WebSite.
+ */
+const SITE_ENTITY_RE = /[ \t]*<script type="application\/ld\+json">\s*\{\s*"@context": "https:\/\/schema\.org",\s*"@type": "(?:LocalBusiness|Organization)"[\s\S]*?<\/script>\n?/g;
+function withoutSiteEntities(html: string): string {
+  return html.replace(SITE_ENTITY_RE, "");
+}
+
+/** The page's own JSON-LD, right before </head>. */
+function withJsonLd(html: string, blocks: unknown[]): string {
+  if (!blocks.length) return html;
+  const tags = blocks.map((b) => jsonLdScript(b)).join("\n");
+  return html.replace("</head>", () => `${tags}\n</head>`);
+}
+
+/** A body first inside #root (React's createRoot replaces it on its first render). */
+function withRootBody(html: string, body: string): string {
+  return html.replace(/<div id="root"[^>]*>/, (open) => `${open}${body}`);
 }
 
 /**
@@ -1085,6 +1240,8 @@ function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
 const SECTION_CARDS: Record<string, { path: string; alt: string }> = {
   declutter: { path: "/og-declutter.png?v=1", alt: "Declutter on Louisiana Helpr: used things for sale from your Louisiana neighbors" },
   browse: { path: "/og-browse.png?v=1", alt: "Local jobs on Louisiana Helpr: hire help or find work near you" },
+  // 25 Days went public and indexed on 11-19 (owner decision): same card as before (public/og-25days.png, 1200x630).
+  "25days": { path: "/og-25days.png?v=2", alt: "You're Invited! 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25" },
 };
 
 /**
@@ -1326,6 +1483,27 @@ function isDeclutterPage(url: URL): boolean {
   return !!route && route.kind === "page" && route.id === "declutter";
 }
 
+/** A 404's document: its own head (noindex), none of the shells, and a body that says so and links somewhere useful. */
+function notFoundPage(body: string): string {
+  const shell = withoutSiteEntities(withoutOtherShells(absolutiseIconLinks(SHELL_HTML), null));
+  const head = applyMeta(shell, {
+    title: "Page not found — Louisiana Helpr",
+    ogTitle: "Page not found",
+    description: "We couldn't find that page on Louisiana Helpr. See holiday gift guides, Declutter and local jobs.",
+    url: `${SITE_ORIGIN}/`,
+    robots: "noindex, follow",
+  });
+  return withRootBody(head, body);
+}
+
+/** An old guide link: 301 to the guide it is now (absolute, on SITE_ORIGIN; never built from the request's Host). */
+function movedPermanently(location: string): Response {
+  return new Response(null, {
+    status: 301,
+    headers: { Location: location, "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
+  });
+}
+
 function respond(html: string, cdnCache: string = "public, s-maxage=300, stale-while-revalidate=86400", status = 200, noindex = false, extra: Record<string, string> = {}): Response {
   return new Response(html, {
     status,
@@ -1354,15 +1532,23 @@ export default {
       const url = new URL(request.url);
       // Q2393: vercel.json sends every path App.tsx does not declare here. The
       // SPA still renders its Not Found page; crawlers see a real 404.
-      if (url.searchParams.get("_og") === "notfound") return respond(absolutiseIconLinks(SHELL_HTML), undefined, 404);
+      if (url.searchParams.get("_og") === "notfound") return respond(notFoundPage(notFoundBody()), undefined, 404);
+      // SEO P1 (owner 11-19): an unknown guide, service or town is a real 404 with a helpful page, an old guide slug a
+      // 301 to its guide now (the page forwards it too), never the homepage under a 200.
+      const seo = seoFor(url);
+      if (seo?.kind === "moved") return movedPermanently(seo.location);
+      if (seo?.kind === "notfound") return respond(notFoundPage(seo.body), undefined, 404);
       const meta = await resolveMeta(url);
-      const shell = absolutiseIconLinks(SHELL_HTML);
+      // Only this path's own shell, and no homepage-only JSON-LD (SEO P1; see withoutOtherShells).
+      const shell = withoutSiteEntities(withoutOtherShells(absolutiseIconLinks(SHELL_HTML), routePath(url)));
       // L7: a /u page whose card could not be read fails closed (noindex), like every other unknown.
       if (!meta) return respond(shell, undefined, 200, resolveRoute(url)?.kind === "profile");
       // A shop card goes stale within minutes, never a day: a shop hidden,
       // paused or closed must stop previewing (lh-authz-rls should-fix 2).
       // A Declutter item card likewise: sold or withdrawn stops previewing (Q2426).
-      const page = withStaticBody(applyMeta(shell, meta), url);
+      const withMeta = withStaticBody(applyMeta(shell, meta), url);
+      // SEO P1: the page's own body (H1, intro, picks or links, breadcrumb) and JSON-LD.
+      const page = seo?.kind === "page" ? withJsonLd(withRootBody(withMeta, seo.body), seo.jsonLd) : withMeta;
       if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows(), Date.now(), BROWSE_SHELL_CSS), BROWSE_SHELL_CDN_CACHE);
       if (isDeclutterPage(url)) {
         const preload = declutterPhotoPreloadHeader(SUPABASE_URL, await fetchDeclutterFirstPhotos());

@@ -895,7 +895,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     for (const g of GUIDES.filter((x) => RESEARCHED_PICKS[x.slug] && !x.empty && !x.thin)) expect(guides, g.slug).toContain(g.slug);
     expect(PUBLIC_PAGE_META["/gift-guides"].canonical).toBe("https://www.louisianahelpr.com/gift-guides");
     expect(Object.keys(NOINDEX_PAGE_META)).not.toContain("/gift-guides");
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(guide ? giftGuidePageMeta(guide.slug, guide.title) : PUBLIC_PAGE_META["/gift-guides"]);');
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);');
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);");
     const mom = giftGuidePageMeta("mom");
     expect(mom.title).toBe("Gifts for Mom — Helpr");
     expect(mom.canonical).toBe("https://www.louisianahelpr.com/gift-guides/mom");

@@ -1,20 +1,24 @@
 """Gift guide photo covers in the owner's Pinterest pin style (pin_covers.py photo_cover / cover2_example.cover2, 11-18):
-the pins' soft pastel gingham, a big cream arch (about half the width, nearly the full height, thin inner outline) with
+the guide family's gingham, a big cream arch (about half the width, nearly the full height, thin inner outline) with
 "gifts for" in script, the serif guide name, a short divider and the spaced LOUISIANA HELPR footer, and six product
 cutouts, three a side, overlapping the arch edges with the pins' soft shadow. Owner 11-18: "make the arched bigger so
-the items kind of over lap the arch" / "Like these" (her pin covers). The gingham keeps each guide's family tint in
-the pins' pastel version (pin_covers.PAL): sage for By person/By store/Life moments/Louisiana, beige for By budget/
-By career/Colors, pink for For kids/Hobbies/Pets.
+the items kind of over lap the arch" / "Like these" (her pin covers). The gingham is the three agreed families of the
+committed text-only covers (owner 11-18: "we agreed on the red green and beige earlier"), softened a little so the
+products stay easy to see: green for By person/By store/Life moments/Louisiana, tan for By budget/By career/Colors, red
+for For kids/Hobbies/Pets. The footer is the name's ink in Montserrat 600, readable on the landing's 160 px tiles.
 
-Products (owner 11-18: "Idk that mom wants muck boots?"): COVER_FIRST's hand-set picks first, then the guide's featured order (the picks file's own
+Products (owner 11-18: "Idk that mom wants muck boots?"): the cover audit's six, then the fit audit's final_top25, else the guide's featured order (the picks file's own
 order, from _featured-order.json), skipping a photo that will not cut out cleanly; one per brand, at most one per kind
 (one boot, one pair of shoes, one drinkware, ...), and no boots at all on Mom/Her/Wife except UGG. A store page
 (store-*) may repeat its own brand and kind (Durango Boots is all boots).
 
 Run with a Python that has Pillow, numpy and scipy (not the repo's runtime; the covers are static files):
-  python scripts/gift-guide-photo-covers.py [slug ...]
-With no slugs it draws the By person, By budget, top By career and every By store guide. A guide with fewer than six
-usable photos keeps its gingham/arch cover (the owner's, public/gift-guides/covers/<slug>.webp) untouched.
+  python scripts/gift-guide-photo-covers.py   (every cover at once; writes scripts/gift-guide-cover-items.json)
+It draws every guide in landing order. Six products, or four (two a side) when fewer than six pass; a guide still
+short gets the same polished cover with no products. No product appears on two covers (owner 11-18: "No duplicates on
+cover"): a product counts as its brand (or line: any Stanley, any Squishmallow) and kind, the first cover in landing order
+keeps it, and a one-brand store page keeps its brand. scripts/check-gift-cover-duplicates.mjs checks the manifest.
+No Louisiana items outside the Louisiana section (owner 11-18).
 
 Photos: each pick's own `image` from src/content/giftGuidePicks/<slug>.json, Amazon-hosted ones included (owner 11-18
 approved Amazon photos: "Just screenshot then crop the rest of them from Amazon it's fine"; AMAZON_CDN_PHOTOS on). A photo is used only on a near-white background: the cutout keeps
@@ -40,22 +44,58 @@ from scipy import ndimage
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PICKS = os.path.join(ROOT, "src", "content", "giftGuidePicks")
 OUT = os.path.join(ROOT, "public", "gift-guides", "covers")
+OG = os.path.join(ROOT, "public", "gift-guides", "og")
 CACHE = os.environ.get("GIFT_COVER_CACHE", os.path.expanduser("~/.lh-shots/gg-cover-cache"))
-TOP_CAREERS = 24
-# The first By career guides in the index (its order is the owner's).
 GEN = os.path.expanduser("~/Desktop/Pin-cover-generator")
 sys.path.insert(0, GEN)
 import pin_covers as pc  # noqa: E402 - the owner's generator, so the covers are the pins' own style
-TINT = {"By person": "sage", "By store": "sage", "Life moments": "sage", "Louisiana": "sage",
-        "By budget": "beige", "By career": "beige", "Colors": "beige", "For kids": "pink", "Hobbies": "pink", "Pets": "pink"}
+# The three agreed families (owner 11-18: "we agreed on the red green and beige earlier"), each the committed text-only
+# covers' own gingham (check, band, overlap, measured at their 480 px check centres), softened 30% / 15% toward the
+# overlap cream so the products stay easy to see on the checks.
+CREAM_O = (250, 247, 239)
+
+
+def soften(pal, k=0.30, kb=0.15):
+    a, b, o = pal
+    mix = lambda c, t: tuple(round(x + (y - x) * t) for x, y in zip(c, CREAM_O))  # noqa: E731
+    return mix(a, k), mix(b, kb), o
+
+
+FAMILY = {
+    "green": soften(((123, 148, 119), (186, 198, 180), CREAM_O), 0.45, 0.30),
+    "tan": soften(((206, 186, 154), (228, 215, 196), CREAM_O), 0.30, 0.15),
+    "red": soften(((177, 104, 100), (215, 176, 168), CREAM_O), 0.45, 0.30),
+}
+TINT = {"By person": "green", "By store": "green", "Life moments": "green", "Louisiana": "green",
+        "By budget": "tan", "By career": "tan", "Colors": "tan", "For kids": "red", "Hobbies": "red", "Pets": "red"}
 TIGHT = re.compile(r"airpods", re.I)
-# Covers the lead hand-set from the owner's example (11-18: "Mom should look like Stanley, Kindle, digital photo frame,
-# Ninja CREAMi, LANEIGE/Sol de Janeiro, UGG slippers"): these picks lead, the featured order fills the rest. LANEIGE's
-# photo is not on white, so Sol de Janeiro stands in.
-COVER_FIRST = {"mom": ["STANLEY Quencher H2.0 Flow State Tumbler", "Amazon Kindle Paperwhite 16GB (2024 model)",
-                       "AURA Carver Digital Picture Frame", "Ninja CREAMi Ice Cream Maker", "UGG Women's Disquette",
-                       "Brazilian Bum Bum® Cream Iconic Glass Edition"]}
-COVER_SKIP = {"store-walmart": re.compile(r"welding|hot wheels", re.I)}
+# The cover audit's six per guide (11-18; "idk that a girl wants a grill toy"), then the fit audit's final_top25 for
+# that guide (owner 11-18: "Make sure all gifts are appropriate per section"). Only the guide's own picks are used
+# (never another guide's photo); a guide the fit audit did not cover (most store pages) uses its own featured order.
+AUDIT_DIR = os.path.expanduser("~/Desktop/Gift-guide-picks")
+
+
+def _load(name):
+    path = os.path.join(AUDIT_DIR, name)
+    return json.load(open(path, encoding="utf8")) if os.path.exists(path) else {}
+
+
+AUDIT = _load("_cover-picks-1118.json")
+FIT = _load("_fit-audit-1118.json")
+MANIFEST = os.path.join(ROOT, "scripts", "gift-guide-cover-items.json")
+# Pick photos that show a different product than the pick's name (ShopMy pins, found 11-18): never on a cover.
+BAD_PHOTOS = {"https://static.shopmy.us/uploads/pretty-prod-1793650025807",  # "Cheirosa 62 Perfume Mist": earbuds
+              "https://static.shopmy.us/pins/zoom-104125781-1794427184151-1106872-chsnut_1.jpg",  # a throw: UGG slipper
+              "https://static.shopmy.us/pins/zoom-104053796-1794418641085-"}  # "Owala 32oz": Crocs
+COVER_SKIP = {"store-walmart": re.compile(r"welding|hot wheels", re.I),
+              # owner 11-18: "idk that a girl wants a grill toy"
+              **{g: re.compile(r"\bgrill\b", re.I) for g in ("girls", "niece", "girls-babies", "girls-little-kids",
+                                                              "girls-big-kids", "girls-teens", "big-sisters")}}
+# Never on any cover: a gift card or membership (a logo, not a product), a storefront or collection pick (a word
+# mark), underwear and the like (a model in briefs), deodorant, and the white JBL Go photo (it cuts out grey).
+COVER_NEVER = re.compile(r"gift ?card|e-?gift|membership|subscription|underwear|bikini|\bperiod\b|\bbriefs?\b|"
+                         r"\bbras?\b|lingerie|thong|compression|deodorant|body spray|collection|best ?sellers|"
+                         r"the best skincare|jbl go 4", re.I)
 NO_BOOTS = {"mom", "her", "wife"}  # owner 11-18: no Muck/XTRATUF/rain boots on these; UGG is fine
 KINDS = {
     "boot": re.compile(r"\bboots?\b|xtratuf|muck ?boot|muckster|wellies", re.I),
@@ -67,7 +107,16 @@ KINDS = {
     "frame": re.compile(r"picture frame|photo frame", re.I),
     "earbuds": re.compile(r"airpods|earbuds", re.I),
     "fragrance": re.compile(r"perfume|eau de|cologne|fragrance mist", re.I),
+    "plush": re.compile(r"squishmallow|plush|stuffed", re.I),
+    "griddle": re.compile(r"griddle|\bgrill\b|smoker", re.I),
+    "speaker": re.compile(r"speaker|soundlink", re.I),
+    "ereader": re.compile(r"kindle|e-reader", re.I),
+    "massager": re.compile(r"theragun|massage gun|massager", re.I),
 }
+# A product line counts as its brand for "no duplicates across covers" (owner 11-18: any Squishmallow, any Stanley ...).
+LINES = re.compile(r"squishmallow|airpods|stanley|owala|blackstone|yeti|kindle|theragun|hydro ?flask|\bjbl\b|\blego\b|"
+                   r"crayola|barbie|bluey|\bugg\b|xtratuf|ember|\bbose\b|ninja|dyson|traeger|leatherman|instax|nintendo|"
+                   r"laneige|sol de janeiro|cheirosa|carhartt|vera bradley", re.I)
 
 
 def index():
@@ -77,8 +126,8 @@ def index():
 
 
 def targets(rows):
-    careers = [r for r in rows if r["group"] == "By career"][:TOP_CAREERS]
-    return [r for r in rows if r["group"] in ("By person", "By budget", "By store")] + careers
+    """Every guide (owner 11-18: "all covers need to be updated with the items not just certain ones")."""
+    return rows
 
 
 def fetch(url):
@@ -109,26 +158,45 @@ def cutout(data, tight=False):
     border = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
     if (np.abs(255 - border).max(axis=1) <= 26).mean() < 0.85:
         return None  # not on white: a lifestyle shot
+    if np.median(np.abs(255 - border).max(axis=1)) > 8:
+        return None  # an off-white studio grey with a cast shadow (Sol de Janeiro's jar): it cuts out sliced
     fg = np.abs(255 - a).max(axis=2) > 26
     if tight:
         lab, _ = ndimage.label(np.abs(255 - a).max(axis=2) <= 2)
         edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
         fg = ~np.isin(lab, list(edge))
+    raw = fg
     fg = ndimage.binary_opening(fg, iterations=1)
     lab, n = ndimage.label(fg)
     if n == 0:
         return None
     sizes = ndimage.sum(fg, lab, range(1, n + 1))
     boxes = ndimage.find_objects(lab)
-    # A thin stripe (a colour bar or a ruler line under the product) shows plainly on the gingham: drop it.
-    thin = {i + 1 for i, b in enumerate(boxes)
-            if min(b[0].stop - b[0].start, b[1].stop - b[1].start) * 8 < max(b[0].stop - b[0].start, b[1].stop - b[1].start)}
-    big = [i + 1 for i, v in enumerate(sizes) if v >= 0.08 * sizes.max() and i + 1 not in thin]
-    if not big:
-        return None
-    if len(big) > 8:
+    big = [i + 1 for i, v in enumerate(sizes) if v >= 0.08 * sizes.max()]
+    # The product's own small pieces (the CREAMi's cup, a kit's parts, a glasses arm) sit near its big parts and stay.
+    # A small piece standing apart (a "TOP TOY" badge, a colour bar under the product) would show as junk on the
+    # gingham, and erasing a real piece would show a partial product: the photo is skipped either way.
+    near = ndimage.binary_dilation(np.isin(lab, big), iterations=20)
+    zone = ndimage.binary_dilation(np.isin(lab, big), iterations=90)
+    for i, v in enumerate(sizes):
+        if i + 1 in big or v < 0.01 * sizes.max():
+            continue
+        b = boxes[i]
+        thin = min(b[0].stop - b[0].start, b[1].stop - b[1].start) * 8 < max(b[0].stop - b[0].start, b[1].stop - b[1].start)
+        here = lab == i + 1
+        if not zone[here].any() or (thin and not near[here].any()):
+            return None
+        big.append(i + 1)
+    if len(big) > 14:
         return None  # many separate pieces: a word mark or a logo, not a product
-    fg = ndimage.binary_fill_holes(np.isin(lab, big))
+    keep = np.isin(lab, big)
+    # The opening above shaves thin attached parts (grill legs, glasses arms, cords): put back raw pixels touching them.
+    keep |= raw & ndimage.binary_dilation(keep, iterations=3)
+    fg = ndimage.binary_fill_holes(keep)
+    if fg[:3].any() or fg[-3:].any() or fg[:, :3].any() or fg[:, -3:].any():
+        return None  # the product runs off its own photo: it would show sliced
+    if not tight and (np.abs(255 - a).max(axis=2)[fg] <= 40).mean() > 0.6:
+        return None  # white on white (the JBL Go): it cuts out grey
     share = fg.mean()
     if share < 0.04 or share > 0.9:
         return None
@@ -136,7 +204,7 @@ def cutout(data, tight=False):
     w, h = xs.max() - xs.min() + 1, ys.max() - ys.min() + 1
     if max(w, h) > 3 * min(w, h):
         return None  # a banner or badge ("HEATED"), not a product
-    if len(big) > 4 and fg.sum() < 0.35 * w * h:
+    if len(big) > 4 and fg.sum() < 0.2 * w * h:
         return None  # a few sparse letters around an icon: a logo ("vstapn"), not a product
     alpha = Image.fromarray((fg * 255).astype("uint8")).filter(ImageFilter.GaussianBlur(1.0))
     out = im.convert("RGBA")
@@ -144,13 +212,58 @@ def cutout(data, tight=False):
     return out.crop(out.getbbox())
 
 
+def is_light(c):
+    """Mostly light (white, cream, pale): over half its pixels above luminance 200, or a mean above 185."""
+    rgb = np.asarray(c.convert("RGB")).astype(float)
+    al = np.asarray(c.split()[3]) > 128
+    if not al.any():
+        return True
+    lum = (rgb[al] * (0.299, 0.587, 0.114)).sum(axis=1)
+    return (lum > 200).mean() > 0.5 or lum.mean() > 185
+
+
+def brand_word(p):
+    name = p.get("name") or ""
+    m = LINES.search(name)
+    if m:
+        w = re.sub(r"\W+", "", m.group(0).lower())
+        return {"squishmallows": "squishmallow", "cheirosa": "soldejaneiro"}.get(w, w)
+    b = (p.get("brand") or "").strip().lower()
+    if not b or "affiliate" in b or b in {"walmart", "target", "amazon basics"}:
+        return ""  # no maker named (or the brand field names the store): the product counts by its own name
+    return re.sub(r"\W+", "", b)
+
+
+def dedupe(name):
+    return re.sub(r"[^a-z0-9]+", " ", (name or "").lower()).strip()
+
+
+def cover_key(p, own_brand=None):
+    """The product as "no duplicates across covers" counts it: its brand (or line) and its kind."""
+    b = brand_word(p)
+    if not b:
+        return f"item:{dedupe(p.get('name'))}"
+    if own_brand and b == own_brand:
+        return f"{b}:{dedupe(p.get('name'))}"  # a brand's own store page shows several of its products
+    return f"{b}:{','.join(sorted(kinds(p)))}"
+
+
 def kinds(p):
     text = f"{p.get('name') or ''} {p.get('brand') or ''}"
     return {k for k, rx in KINDS.items() if rx.search(text)}
 
 
-def allowed(slug, p, taken):
+LOUISIANA = re.compile(
+    r"louisiana|cajun|creole|\bnola\b|new orleans|fleur[ -]de[ -]lis|mardi gras|carnival mask|\bsaints\b|\blsu\b|"
+    r"geaux|zatarain|chachere|cafe du monde|caf\u00e9 du monde|camellia|crawfish|boudin|beignet|praline|king cake|"
+    r"\bbayou|gumbo|jambalaya|acadian|tabasco|community coffee|slap ya mama|steen'?s|who dat|pelican|swamp|"
+    r"aunt sally|big easy|magnolia|second line|zydeco|\bnoca\b|tulane|ragin|\bul lafayette", re.I)
+
+
+def allowed(slug, p, taken, group=""):
     """The variety rules for one more product on this cover, given the picks already on it."""
+    if group != "Louisiana" and LOUISIANA.search(f"{p.get('name') or ''} {p.get('brand') or ''}"):
+        return False  # owner 11-18: no Louisiana items on a cover outside the Louisiana section
     ks = kinds(p)
     if "boot" in ks and slug in NO_BOOTS and not re.search(r"\bugg\b", f"{p.get('brand')} {p.get('name')}", re.I):
         return False
@@ -162,41 +275,74 @@ def allowed(slug, p, taken):
     return not (ks & set().union(*[kinds(t) for t in taken])) if taken else True
 
 
-def photos(slug, need=6):
+def own_picks(slug):
     try:
-        picks = json.load(open(os.path.join(PICKS, f"{slug}.json"), encoding="utf8"))["picks"]
+        return json.load(open(os.path.join(PICKS, f"{slug}.json"), encoding="utf8"))["picks"]
     except FileNotFoundError:
         return []
-    first = COVER_FIRST.get(slug, [])
-    lead = [next((p for p in picks if (p.get("name") or "").startswith(n)), None) for n in first]
-    picks = [p for p in lead if p] + [p for p in picks if p not in lead]
+
+
+def candidates(slug):
+    own = own_picks(slug)
+    fit = FIT.get(slug) if isinstance(FIT.get(slug), dict) else None
+    if not fit or not fit.get("final_top25"):
+        return own
+    names = [n for n in AUDIT.get(slug, []) if isinstance(n, str)] + [n for n in fit["final_top25"] if isinstance(n, str)]
+    # Then the rest of the guide's own picks the fit audit kept (not in its remove lists), so a cover has items to show.
+    dropped = {dedupe(n) for k in ("remove", "remove_louisiana") for n in fit.get(k, []) if isinstance(n, str)}
+    names += [q.get("name") for q in own if dedupe(q.get("name")) not in dropped]
+    out = []
+    for n in names:
+        p = next((q for q in own if q.get("name") == n), None) or next(
+            (q for q in own if dedupe(q.get("name")) == dedupe(n)), None)
+        if p and p not in out:
+            out.append(p)
+    return out
+
+
+def photos(slug, need=6, group="", used=(), reserved=None):
+    reserved = reserved or {}
+    own_brand = next((b for b, st in reserved.items() if st == slug), None)
+    picks = candidates(slug)
     cands, seen = [], set()
     for p in picks:
         u = p.get("image")
-        if not u or not u.startswith("https://") or u in seen:
+        if not u or not u.startswith("https://") or u in seen or u in BAD_PHOTOS:
             continue
         # A store's own storefront pick (name == brand, "Bass Pro Shops") carries its logo, not a product.
         if (p.get("name") or "").strip().lower() == (p.get("brand") or "").strip().lower():
             continue
+        if COVER_NEVER.search(p.get("name") or "") or " " not in (p.get("name") or "").strip():
+            continue  # a one-word name ("Gisou") is a storefront pick: its photo is the word mark
         seen.add(u)
         cands.append(p)
-    got, taken = [], []
+    got, taken, light = [], [], []
     for start in range(0, min(len(cands), 50), 10):
         batch = [p for p in cands[start:start + 10]]
         with ThreadPoolExecutor(6) as pool:
             datas = list(pool.map(fetch, [p["image"] for p in batch]))
         for p, data in zip(batch, datas):
             skip = COVER_SKIP.get(slug)
-            if len(got) >= need or (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, taken):
+            if len(got) >= need or (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, taken, group):
+                continue
+            key = cover_key(p, own_brand)
+            if key in used or dedupe(p.get("name")) in used or reserved.get(brand_word(p) or None, slug) != slug:
+                continue  # already on another cover, or a brand its own store page keeps (owner 11-18: "No duplicates")
+            if key in {cover_key(t, own_brand) for t in taken}:
                 continue
             c = cutout(data, tight=bool(TIGHT.search(p.get("name") or ""))) if data else None
-            if c is not None:
+            if c is not None and is_light(c):
+                light.append((c, p))  # blends into the cream arch (owner 11-18: "Like the Owala bottle is light")
+            elif c is not None:
                 got.append(c)
                 taken.append(p)
         if len(got) >= need:
             break
+    for c, p in light[:max(0, need - len(got))]:  # fewer than six otherwise: a light one, with the stronger shadow
+        got.append(c)
+        taken.append(p)
     print(f"  {slug}: " + " | ".join((t.get("name") or "")[:28] for t in taken), flush=True)
-    return got[:need]
+    return got[:need], taken[:need], own_brand
 
 
 def even(p, m, frac=0.42):
@@ -224,67 +370,171 @@ def wrap(d, text, f, width):
     return lines + [cur]
 
 
+MARGIN = 25  # 12 px at 480
+# Polish (owner 11-18: "it needs some kind of polish"): a soft shadow under the arch, the name a touch heavier with a
+# faint shadow, "gifts for" and the arch outline in the site's olive (--bark, #5E6544), and a line-diamond-line divider.
+# GIFT_COVER_PLAIN=1 draws the unpolished version for comparison.
+POLISH = os.environ.get("GIFT_COVER_PLAIN") != "1"
+OLIVE = (94, 101, 68)
+# Each family's accent for "gifts for", the arch outline and the divider (owner 11-18: "the red one with the red word
+# and border how green is"); the name and the footer stay ink.
+ACCENT = {"green": OLIVE, "red": (158, 59, 59), "tan": (138, 106, 69)}
+
+
+def title_font(size):
+    f = pc.font("PlayfairDisplay.ttf", size)
+    if POLISH:
+        f.set_variation_by_axes([600])
+    return f
+
+
+def arch_mask(W, x0, y0, x1, y1, dy=0):
+    m = Image.new("L", (W, W), 0)
+    pc.arch(ImageDraw.Draw(m), x0, y0 + dy, x1, y1 + dy, fill=255)
+    return m
+
+
+def shadow(p):
+    """pin_covers.shadow, a touch stronger, and stronger again under a white or light product so it reads on the checks."""
+    rgb = np.asarray(p.convert("RGB")).astype(int)
+    al = np.asarray(p.split()[3]) > 128
+    light = al.any() and (rgb[al].min(axis=1) > 200).mean() > 0.5
+    s = Image.new("RGBA", (p.width + 40, p.height + 40), (0, 0, 0, 0))
+    blk = Image.new("RGBA", p.size, (40, 30, 20, 255))
+    blk.putalpha(p.split()[3].point(lambda v: int(v * (0.42 if light else 0.26))))
+    s.paste(blk, (24, 28), blk)
+    s = s.filter(ImageFilter.GaussianBlur(9))
+    s.paste(p, (20, 20), p)
+    return s
+
+
 def draw(row, prods, out):
     """pin_covers.photo_cover / cover2_example.cover2 on a 1000 x 1000 square, saved at 480 x 480."""
     W = 1000
-    im = pc.gingham(W, W, TINT.get(row["group"], "sage"))
+    fam = TINT.get(row["group"], "green")
+    im = pc.gingham(W, W, fam, c=56, palettes=FAMILY)
+    acc = ACCENT[fam] if POLISH else pc.INK
     d = ImageDraw.Draw(im)
     k = 1.0
-    x0, y0, x1, y1 = 234, 92, 766, 922  # the pin's arch width (53%), nearly the square's full height
+    x0, y0, x1, y1 = 260, 92, 740, 922  # 48% wide (owner 11-18: bigger items), nearly the square's full height
+    if POLISH:  # the arch lifts off the gingham like a card: 3 px down, 10 px blur, 18% at 480
+        sh = arch_mask(W, x0 - 22 * k, y0 - 22 * k, x1 + 22 * k, y1 + 20 * k, dy=6).filter(ImageFilter.GaussianBlur(21))
+        im.paste(Image.new("RGB", (W, W), (40, 30, 20)), (0, 0), sh.point(lambda v: int(v * 0.18)))
+        d = ImageDraw.Draw(im)
     pc.arch(d, x0 - 22 * k, y0 - 22 * k, x1 + 22 * k, y1 + 20 * k, fill=pc.CREAM)
-    pc.arch(d, x0, y0, x1, y1, outline=pc.INK, width=2)
+    pc.arch(d, x0, y0, x1, y1, outline=acc, width=2)
     cx = (x0 + x1) / 2
-    lsize = 60
-    while pc.font("CG-Italic.ttf", lsize).getlength(row["lead"]) > x1 - x0 - 80 and lsize > 36:
+    lsize = 84  # owner 11-18: "Make the title and gifts for bigger" (1.4x the pin's 60)
+    while pc.font("CG-Italic.ttf", lsize).getlength(row["lead"]) > x1 - x0 - 170 and lsize > 44:
         lsize -= 4
-    d.text((cx, y0 + (x1 - x0) * 0.40), row["lead"], font=pc.font("CG-Italic.ttf", lsize), fill=pc.INK, anchor="mm")
-    size = 78
-    # One line when the name fits at 60 or more ("Under $50"), else wrap.
-    while size > 60 and d.textlength(row["title"], font=pc.font("PlayfairDisplay.ttf", size)) > x1 - x0 - 190:
-        size -= 2
-    if d.textlength(row["title"], font=pc.font("PlayfairDisplay.ttf", size)) > x1 - x0 - 190:
-        size = 78
+    d.text((cx, y0 + (x1 - x0) * 0.40), row["lead"], font=pc.font("CG-Italic.ttf", lsize), fill=acc, anchor="mm")
+    size = 100  # 1.3x the pin's 78; a name too wide for one line breaks to two big lines ("Under / $50", owner 11-18)
     while True:
-        tf = pc.font("PlayfairDisplay.ttf", size)
+        tf = title_font(size)
         lines = wrap(d, row["title"], tf, x1 - x0 - 190)  # clear of the products over the arch edge
         if (len(lines) <= 3 and all(d.textlength(l, font=tf) <= x1 - x0 - 170 for l in lines)) or size <= 36:
             break
         size -= 4
     lh = size * 105 / 78
     ty = (y0 + y1) / 2 + 20 - (len(lines) - 1) * lh / 2
+    if POLISH:  # a faint shadow under the name: 1 px down, 12%, a tiny blur
+        tl = Image.new("L", (W, W), 0)
+        for i, l in enumerate(lines):
+            ImageDraw.Draw(tl).text((cx, ty + i * lh + 2), l, font=tf, fill=255, anchor="mm")
+        im.paste(Image.new("RGB", (W, W), (40, 30, 20)), (0, 0), tl.filter(ImageFilter.GaussianBlur(1.5)).point(lambda v: int(v * 0.12)))
+        d = ImageDraw.Draw(im)
     for i, l in enumerate(lines):
         d.text((cx, ty + i * lh), l, font=tf, fill=pc.INK, anchor="mm")
-    d.line([(cx - 50, y1 - 170), (cx + 50, y1 - 170)], fill=pc.INK, width=2)
-    pc.tracked(d, cx, y1 - 82, "LOUISIANA HELPR", pc.font("Montserrat.ttf", 20), 6)
+    dy = y1 - 170
+    if POLISH:  # line, diamond, line
+        d.line([(cx - 52, dy), (cx - 14, dy)], fill=acc, width=2)
+        d.line([(cx + 14, dy), (cx + 52, dy)], fill=acc, width=2)
+        d.polygon([(cx, dy - 7), (cx + 7, dy), (cx, dy + 7), (cx - 7, dy)], fill=acc)
+    else:
+        d.line([(cx - 50, dy), (cx + 50, dy)], fill=pc.INK, width=2)
+    # Footer readable on a 160 px phone tile (owner 11-18: "Louisiana Helpr is still hard to see"): the name's ink, ~1.7x.
+    ff = pc.font("Montserrat.ttf", 30)
+    ff.set_variation_by_axes([600])  # Montserrat.ttf is variable and defaults to weight 100 (hairline)
+    pc.tracked(d, cx, y1 - 80, "LOUISIANA HELPR", ff, 2)
     H0, mx = y1 - y0, 330
-    for i, p in zip(range(6), prods):
+    use = {4: (0, 1, 4, 5), 5: (0, 1, 2, 4, 5)}.get(len(prods), range(6))  # 4 items: two a side, top and bottom
+    for i, p in zip(use, prods):
         side, fy, rot, sc, off = pc.EVEN[i]
-        off += 22 if fy < 0.3 or fy > 0.7 else -18  # the middle pair sits further out, clear of the guide name
-        p = even(p, int(mx * sc * 0.78)).rotate(rot, resample=Image.BICUBIC, expand=True)
-        s = pc.shadow(p)
+        # 0.95x the pin's size (owner 11-18, after 1.35x and 1.15x: "items are too big now", "the items are smaller");
+        # about 9% of each over the arch edge, the same for every row so the spacing stays even.
+        p = even(p, int(mx * sc * 0.78 * 0.95)).rotate(rot, resample=Image.BICUBIC, expand=True)
+        bb = p.getbbox() or (0, 0, p.width, p.height)
+        off = -(bb[2] - bb[0]) * 0.41
+        s = shadow(p)
         px = x0 + off if side < 0 else x1 - off
         py = y0 + (0.14 + (fy - 0.12) * (0.72 / 0.74)) * H0
-        bx = int(min(max(px - s.width / 2, -8), W - s.width + 8))
-        by = int(min(max(py - s.height / 2, -8), W - s.height + 8))
+        # The product (not its shadow) stays MARGIN inside the canvas (12 px at 480).
+        bb = p.getbbox() or (0, 0, p.width, p.height)
+        bx = int(px - s.width / 2)
+        by = int(py - s.height / 2)
+        bx = min(max(bx, MARGIN - 20 - bb[0]), W - MARGIN - 20 - bb[2])
+        by = min(max(by, MARGIN - 20 - bb[1]), W - MARGIN - 20 - bb[3])
         im.paste(s, (bx, by), s)
-    im.resize((480, 480), Image.LANCZOS).save(out, "WEBP", quality=58, method=6)
+    # A share JPG from the same render (Facebook's link preview does not reliably take WebP): 600 px, at most 45 KB.
+    og = os.path.join(OG, os.path.basename(out)[:-5] + ".jpg")
+    big = im.resize((600, 600), Image.LANCZOS)
+    for q in (78, 72, 66, 60):
+        big.save(og, "JPEG", quality=q, progressive=True, optimize=True)
+        if os.path.getsize(og) <= 45_000:
+            break
+    small = im.resize((480, 480), Image.LANCZOS)
+    for q in (58, 52, 46, 40, 34):  # the covers guard: at most 20 KB each
+        small.save(out, "WEBP", quality=q, method=6)
+        if os.path.getsize(out) <= 19_500:
+            break
+
+
+def brand_stores(rows):
+    """Store pages that sell one brand ("store-stanley", "store-durango-boots") keep that brand: no other cover shows it."""
+    out = {}
+    for r in rows:
+        if r["group"] != "By store":
+            continue
+        ws = [brand_word(p) for p in own_picks(r["slug"]) if p.get("image") and brand_word(p)]
+        if len(ws) >= 3:
+            top = max(set(ws), key=ws.count)
+            if ws.count(top) >= 0.6 * len(ws) and top not in out:
+                out[top] = r["slug"]
+    return out
 
 
 def main():
     rows = index()
-    want = set(sys.argv[1:])
-    todo = [r for r in rows if r["slug"] in want] if want else targets(rows)
-    drawn, kept = [], []
-    for row in todo:
-        prods = photos(row["slug"])
-        if len(prods) < 6:
+    if sys.argv[1:]:
+        sys.exit("draws every cover at once: no duplicates across covers is assigned in landing order")
+    os.makedirs(OG, exist_ok=True)
+    reserved = brand_stores(rows)
+    # A one-brand store keeps its brand only when its own cover can show at least four of its products.
+    groups = {r["slug"]: r["group"] for r in rows}
+    reserved = {b: st for b, st in reserved.items() if len(photos(st, group=groups[st], reserved=reserved)[0]) >= 4}
+    used, manifest, kept, four = set(), {}, [], []
+    # Only guides that ship a cover (a guide with no picks is not built, and a stray cover file fails the two-way check).
+    rows = [r for r in rows if os.path.exists(os.path.join(OUT, f"{r['slug']}.webp"))]
+    for row in targets(rows):  # landing order: the index's order
+        prods, taken, own_brand = photos(row["slug"], group=row["group"], used=used, reserved=reserved)
+        if len(prods) == 5:
+            prods, taken = prods[:4], taken[:4]  # two a side reads evenly; five leaves one side short
+        if len(prods) < 4:
             kept.append(f"{row['slug']} ({len(prods)} photos)")
-            continue
+            prods, taken = [], []  # the same polished arch and gingham, text only
+        elif len(prods) == 4:
+            four.append(row["slug"])
+        for t in taken:
+            used.add(cover_key(t, own_brand))
+            used.add(dedupe(t.get("name")))
+        manifest[row["slug"]] = [{"name": t.get("name"), "key": cover_key(t, own_brand)} for t in taken]
         draw(row, prods, os.path.join(OUT, f"{row['slug']}.webp"))
-        drawn.append(row["slug"])
-        print(f"cover {row['slug']}", flush=True)
-    print(f"photo covers: {len(drawn)} drawn, {len(kept)} kept their gingham cover (fewer than 6 usable photos)")
-    json.dump({"drawn": drawn, "kept": kept}, open(os.path.join(CACHE, "last-run.json"), "w"), indent=1)
+        print(f"cover {row['slug']} ({len(prods)})", flush=True)
+    with open(MANIFEST, "w", encoding="utf8") as f:
+        json.dump(manifest, f, indent=1, ensure_ascii=False)
+        f.write("\n")
+    print(f"covers: {len(manifest)} drawn, {len(four)} with 4 items, {len(kept)} text only (fewer than 4 usable photos)")
+    json.dump({"four": four, "kept": kept}, open(os.path.join(CACHE, "last-run.json"), "w"), indent=1)
 
 
 if __name__ == "__main__":

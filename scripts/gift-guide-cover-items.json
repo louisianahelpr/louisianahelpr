@@ -1,0 +1,2314 @@
+{
+ "mom": [
+  {
+   "name": "Dyson Airwrap i.d.™ Multi-Styler",
+   "key": "dyson:"
+  },
+  {
+   "name": "Ninja CREAMi Ice Cream Maker, for Mix-ins, Milkshakes, Sorbet",
+   "key": "ninja:"
+  },
+  {
+   "name": "Sol de Janeiro Perfume Cheirosa 62 Perfume Eau de Parfum",
+   "key": "soldejaneiro:fragrance"
+  },
+  {
+   "name": "Amazon Kindle Paperwhite 16GB (2024 model)",
+   "key": "kindle:ereader"
+  },
+  {
+   "name": "AURA Carver Digital Picture Frame",
+   "key": "aura:frame"
+  },
+  {
+   "name": "Nespresso Vertuo Pop+ Coffee and Espresso Machine by De'Longhi",
+   "key": "nespresso:"
+  }
+ ],
+ "dad": [
+  {
+   "name": "Traeger Ranger Portable Wood Pellet Grill & Smoker",
+   "key": "traeger:griddle"
+  },
+  {
+   "name": "Costa Del Mar Sunglasses",
+   "key": "costadelmar:"
+  },
+  {
+   "name": "Apple Watch SE 3 GPS + Cellular 40mm Smartwatch",
+   "key": "apple:"
+  },
+  {
+   "name": "Theragun Mini",
+   "key": "theragun:massager"
+  },
+  {
+   "name": "Crockpot® Programmable 7-Quart Cook and Carry Slow Cooker",
+   "key": "crockpot:"
+  },
+  {
+   "name": "YETI Roadie Hard Cooler",
+   "key": "yeti:"
+  }
+ ],
+ "wife": [
+  {
+   "name": "UGG Women's Disquette",
+   "key": "ugg:"
+  },
+  {
+   "name": "Charlotte Tilbury Pillow Talk Blush Balm Lip Tint",
+   "key": "charlottetilbury:"
+  },
+  {
+   "name": "Ambassadora Gold Eau de Parfum",
+   "key": "gisada:fragrance"
+  },
+  {
+   "name": "GLAM LED Light Therapy Mask",
+   "key": "touchbeauty:"
+  },
+  {
+   "name": "Sterling Silver Earrings",
+   "key": "silverrushstyle:"
+  },
+  {
+   "name": "STANLEY Quencher H2.0 Flow State Tumbler",
+   "key": "stanley:drink"
+  }
+ ],
+ "her": [
+  {
+   "name": "e.l.f. Glow Reviver Lip Oil",
+   "key": "elfcosmetics:"
+  },
+  {
+   "name": "tarte shape tape concealer",
+   "key": "tarte:"
+  },
+  {
+   "name": "Luxury Line Fragrance Samples",
+   "key": "gisada:"
+  },
+  {
+   "name": "Blue Floral Weighted Blanket",
+   "key": "mosaicweightedblankets:"
+  },
+  {
+   "name": "Gold Standard Lash Style",
+   "key": "truebeautylashes:"
+  },
+  {
+   "name": "Owala FreeSip Stainless Steel Water Bottle",
+   "key": "owala:drink"
+  }
+ ],
+ "him": [
+  {
+   "name": "JBL Flip 6 - Portable Waterproof Speaker - Squad",
+   "key": "jbl:speaker"
+  },
+  {
+   "name": "XBOX Wireless Gaming Controller",
+   "key": "xbox:"
+  },
+  {
+   "name": "LEATHERMAN Skeletool CX 7-in-1 Multi-Tool",
+   "key": "leatherman:"
+  },
+  {
+   "name": "Men's Ankle Deck Boot",
+   "key": "xtratuf:boot"
+  },
+  {
+   "name": "Lodge Cast Iron Double Dutch Oven",
+   "key": "lodge:"
+  },
+  {
+   "name": "ESSENCE G38 Pro Portable Coffee Grinder",
+   "key": "cocinare:"
+  }
+ ],
+ "boyfriend-or-husband": [
+  {
+   "name": "PlayStation DualSense Wireless Controller",
+   "key": "playstation:"
+  },
+  {
+   "name": "Garmin Instinct 2 Solar",
+   "key": "garmin:"
+  },
+  {
+   "name": "Bushnell Golf Tour V6 Shift Laser Rangefinder with Slope Compensation",
+   "key": "bushnell:"
+  },
+  {
+   "name": "Blackstone Original 28\" 2-Burner Outdoor Griddle with Hard Cover",
+   "key": "blackstone:griddle"
+  },
+  {
+   "name": "Rebel Pro Western Boot",
+   "key": "durangoboots:boot"
+  },
+  {
+   "name": "Apple AirPods Pro 2 Wireless Earbuds",
+   "key": "airpods:earbuds"
+  }
+ ],
+ "girlfriend": [
+  {
+   "name": "Best Selling Mini Pedestal Candles",
+   "key": "voluspa:candle"
+  },
+  {
+   "name": "Sweet Pink Lip Butter Balm Duo 0.5oz",
+   "key": "summerfridays:"
+  },
+  {
+   "name": "FlexStyle Air Styling and Drying System",
+   "key": "sharkninja:"
+  },
+  {
+   "name": "Twitch Studded Hoodie",
+   "key": "complex:"
+  }
+ ],
+ "grandma": [
+  {
+   "name": "LEGO Botanicals Orchid",
+   "key": "lego:"
+  },
+  {
+   "name": "Assorted Chocolate Gold Gift Box, Red Ribbon, 30pc.",
+   "key": "godiva:"
+  },
+  {
+   "name": "The 14 oz Mug",
+   "key": "ember:drink"
+  },
+  {
+   "name": "L'Occitane 20% Organic Shea Butter Hand Cream",
+   "key": "loccitane:"
+  },
+  {
+   "name": "What I Love about Grandma Fill in the Love Book",
+   "key": "knockknock:"
+  },
+  {
+   "name": "Sunbeam Heated Electric Oversized Microplush Throw Blanket",
+   "key": "sunbeam:plush"
+  }
+ ],
+ "grandpa": [
+  {
+   "name": "Timex Unisex Weekender 38mm Watch",
+   "key": "timex:"
+  },
+  {
+   "name": "Muckster Lite Men's EVA Clog",
+   "key": "muckbootcompany:boot,shoe"
+  },
+  {
+   "name": "Carhartt Men's Iconic A18 Watch Cap Beanie",
+   "key": "carhartt:hat"
+  },
+  {
+   "name": "Stanley Classic Vacuum Bottle",
+   "key": "stanley:"
+  }
+ ],
+ "grandparents": [
+  {
+   "name": "Squirrel Buster Plus Bird Feeder",
+   "key": "brome:"
+  },
+  {
+   "name": "Smart Bird Feeder with Camera",
+   "key": "birdfy:"
+  },
+  {
+   "name": "Heated Throw Nordic Premium",
+   "key": "sunbeam:"
+  },
+  {
+   "name": "Gisele Long Pajama Set",
+   "key": "eberjey:"
+  },
+  {
+   "name": "Bicycle Jumbo Index Playing Cards",
+   "key": "bicycle:"
+  },
+  {
+   "name": "ChapStick Classic Original Lip Balm, 3 Pack",
+   "key": "chapstick:"
+  }
+ ],
+ "sister": [
+  {
+   "name": "CozyChic Throw",
+   "key": "barefootdreams:"
+  },
+  {
+   "name": "Solo 4 Wireless Headphones",
+   "key": "beats:"
+  },
+  {
+   "name": "Billie Hoops",
+   "key": "mejuri:"
+  },
+  {
+   "name": "Botanical Exfoliating Scrub",
+   "key": "mariobadescu:"
+  }
+ ],
+ "brother": [
+  {
+   "name": "Slim Minimalist Front Pocket Wallet",
+   "key": "buffway:"
+  },
+  {
+   "name": "Holiday Gift Pack, Swagger",
+   "key": "oldspice:"
+  },
+  {
+   "name": "Men's Scuff Slippers",
+   "key": "vonmay:shoe"
+  },
+  {
+   "name": "Holbrook Sunglasses",
+   "key": "oakley:"
+  },
+  {
+   "name": "Power Bank 10K",
+   "key": "anker:"
+  },
+  {
+   "name": "Ranger 2.0 Fire Pit",
+   "key": "solostove:"
+  }
+ ],
+ "best-friend": [],
+ "friends": [
+  {
+   "name": "Mini Flopsie 5.5-Inch Fernando Frog",
+   "key": "aurora:"
+  },
+  {
+   "name": "Hot Cocoa and Chocolate Tree Mug Holiday Gift Set",
+   "key": "ghirardelli:drink"
+  },
+  {
+   "name": "Flip 7 Card Game",
+   "key": "theopgames:"
+  },
+  {
+   "name": "Cabana Ceramic Candle",
+   "key": "paddywax:candle"
+  }
+ ],
+ "coworkers": [
+  {
+   "name": "Frost Buddy To-Go Buddy Cup Insulator",
+   "key": "frostbuddy:drink"
+  },
+  {
+   "name": "Candle Gift Sets, Mini Boxes",
+   "key": "yankeecandle:candle"
+  },
+  {
+   "name": "Classic Hardcover Notebook",
+   "key": "moleskine:"
+  },
+  {
+   "name": "4-Piece Metal Desk Organizer Set",
+   "key": "pengear:"
+  },
+  {
+   "name": "Cozy Delights Lip Gift Set",
+   "key": "burtsbees:"
+  },
+  {
+   "name": "Ankle Socks 3-Pack",
+   "key": "bombas:sock"
+  }
+ ],
+ "boss": [
+  {
+   "name": "Travel Coffee Mug 16 oz",
+   "key": "simplemodern:drink"
+  },
+  {
+   "name": "Expert Ballpoint Pen",
+   "key": "waterman:"
+  },
+  {
+   "name": "Italian Leather Desk Mat",
+   "key": "graphicimage:"
+  },
+  {
+   "name": "Lite Travel Pack",
+   "key": "bellroy:"
+  }
+ ],
+ "couples": [
+  {
+   "name": "Enameled Cast Iron Round Dutch Oven, 5.5 qt",
+   "key": "lecreuset:"
+  },
+  {
+   "name": "Let's Get Deep Couples Card Game",
+   "key": "whatdoyoumeme:"
+  },
+  {
+   "name": "Wooden Serving Tray, 17 x 12 in, Acacia",
+   "key": "item:wooden serving tray 17 x 12 in acacia"
+  },
+  {
+   "name": "True Love 8x10 Silverplate Wedding Frame",
+   "key": "lenox:"
+  },
+  {
+   "name": "Cut&Carve Plus Cutting Board",
+   "key": "josephjoseph:"
+  },
+  {
+   "name": "Salted Coconut Mahogany 2-Wick 12 oz Candle",
+   "key": "betterhomesgardens:candle"
+  }
+ ],
+ "mother-in-law": [
+  {
+   "name": "Vancouver Mug",
+   "key": "lecreuset:drink"
+  },
+  {
+   "name": "Volcano Tin Candle",
+   "key": "capriblue:candle"
+  },
+  {
+   "name": "Harriet Slipper",
+   "key": "dearfoams:shoe"
+  },
+  {
+   "name": "Flannel Pajama Pants",
+   "key": "lake:"
+  }
+ ],
+ "father-in-law": [],
+ "aunt": [
+  {
+   "name": "Lip Glowy Balm",
+   "key": "laneige:"
+  },
+  {
+   "name": "Reverence Aromatic Hand Balm",
+   "key": "aesop:"
+  },
+  {
+   "name": "SpiceBox Friendship Bracelet Making Kit, i-Loom Bracelet Maker",
+   "key": "stylemeup:"
+  },
+  {
+   "name": "TATCHA The Dewy Skin Cream",
+   "key": "tatcha:"
+  }
+ ],
+ "uncle": [
+  {
+   "name": "Ninja Sizzle Indoor Grill & Griddle GR101",
+   "key": "ninja:griddle"
+  },
+  {
+   "name": "Koda 2 Pro Rotating Stone Bundle",
+   "key": "ooni:"
+  },
+  {
+   "name": "Icon ANC Headphones",
+   "key": "skullcandy:"
+  },
+  {
+   "name": "Performance Fishing Trucker Hat",
+   "key": "huk:hat"
+  },
+  {
+   "name": "Hand Warmers",
+   "key": "ignik:"
+  },
+  {
+   "name": "Ghost 17 Running Shoe",
+   "key": "brooks:shoe"
+  }
+ ],
+ "niece": [
+  {
+   "name": "Rainbow Loom Bracelet Kit",
+   "key": "rainbowloom:"
+  },
+  {
+   "name": "Wooden Scoop & Serve Ice Cream Counter",
+   "key": "melissadoug:"
+  },
+  {
+   "name": "Colored Pencil Set, 100ct, Art School Supplies",
+   "key": "crayola:"
+  },
+  {
+   "name": "Ultimate Classic Light-Up Art Toy",
+   "key": "litebrite:"
+  },
+  {
+   "name": "Minnie Mouse Bowtique Shopping Cart",
+   "key": "disneyjunior:"
+  },
+  {
+   "name": "Laugh & Learn Smart Stages Sis Plush",
+   "key": "fisherprice:plush"
+  }
+ ],
+ "nephew": [
+  {
+   "name": "Govee RGBWWIC LED Strip Light 2 Pro 16.4ft",
+   "key": "govee:"
+  },
+  {
+   "name": "Switch 2 System",
+   "key": "nintendo:"
+  },
+  {
+   "name": "Meta Quest 3S 128GB, VR Headset",
+   "key": "meta:"
+  },
+  {
+   "name": "Hot Wheels Set of 20 Toy Sports & Race Cars in 1:64 Scale",
+   "key": "hotwheels:"
+  },
+  {
+   "name": "Magic Light Up Bluey Stamper Art Set",
+   "key": "bluey:"
+  },
+  {
+   "name": "Hot Wheels Racing F1 Starter Track Set",
+   "key": "mattel:"
+  }
+ ],
+ "cousins": [],
+ "sister-in-law": [],
+ "brother-in-law": [],
+ "neighbor": [],
+ "big-sisters": [
+  {
+   "name": "Squishmallows 8-Inch Tahoe Tortoiseshell Cat",
+   "key": "squishmallow:plush"
+  },
+  {
+   "name": "Classic 32-Piece Magnetic Tile Set",
+   "key": "magnatiles:"
+  },
+  {
+   "name": "Christmas Card Making Kit",
+   "key": "kidmademodern:"
+  },
+  {
+   "name": "Kids Digital Camera With Flip Lens",
+   "key": "gilt:"
+  }
+ ],
+ "mail-carrier-and-delivery-drivers": [],
+ "kids": [],
+ "girls": [],
+ "boys": [
+  {
+   "name": "Wild Republic Green Alligator Plush",
+   "key": "wildrepublic:plush"
+  },
+  {
+   "name": "He 150 2 Pack Kids Hero 16 Mile Range Walkie Talkies",
+   "key": "cobra:"
+  },
+  {
+   "name": "eKids Paw Patrol Chase Marshall Walkie Talkies",
+   "key": "pawpatrol:"
+  },
+  {
+   "name": "Swirl and Serve Ice Cream Play Set",
+   "key": "melissaanddoug:"
+  }
+ ],
+ "gender-neutral": [
+  {
+   "name": "Lilly Pulitzer x Pottery Barn Kids Mackenzie Recycled Backpack",
+   "key": "lillypulitzer:"
+  },
+  {
+   "name": "Camera Starter Playset",
+   "key": "playdoh:"
+  },
+  {
+   "name": "Dump Truck",
+   "key": "greentoys:"
+  },
+  {
+   "name": "Maxi Deluxe Eco Scooter",
+   "key": "microkickboard:"
+  },
+  {
+   "name": "Boats Bath Toys 5s",
+   "key": "munchkin:"
+  },
+  {
+   "name": "Rainbow Dot Markers",
+   "key": "doadotart:"
+  }
+ ],
+ "boys-babies": [
+  {
+   "name": "Stack & Count Stacking Cups",
+   "key": "thefirstyears:"
+  },
+  {
+   "name": "Push Around Buggy",
+   "key": "step2:"
+  },
+  {
+   "name": "100% Organic Swaddle Blanket",
+   "key": "happiestbaby:"
+  },
+  {
+   "name": "Rockin' Crawling Crab",
+   "key": "brightstarts:"
+  },
+  {
+   "name": "4-in-1 Steps & Stages Activity Center",
+   "key": "vtech:"
+  },
+  {
+   "name": "Mini Me Moments Reel Fun Fishing Gift Set",
+   "key": "fisherprice:"
+  }
+ ],
+ "boys-toddlers": [],
+ "boys-little-kids": [],
+ "boys-big-kids": [],
+ "boys-teens": [
+  {
+   "name": "Spalding Indoor Outdoor Basketballs",
+   "key": "spalding:"
+  },
+  {
+   "name": "WILSON NFL Super Grip Composite Football",
+   "key": "wilson:"
+  },
+  {
+   "name": "UGG Tasman II Suede Slippers",
+   "key": "ugg:shoe"
+  },
+  {
+   "name": "KFPLAN KF13 1/16 4WD High-Speed RC Buggy",
+   "key": "makerfire:"
+  }
+ ],
+ "girls-babies": [
+  {
+   "name": "Stacks of Circles Stacking Ring Toy",
+   "key": "sassy:"
+  },
+  {
+   "name": "Opus the Octopus Sensory Rattle & Teether",
+   "key": "babyeinstein:"
+  },
+  {
+   "name": "Again Friends Lovey",
+   "key": "marymeyer:"
+  },
+  {
+   "name": "My 1st Tumbler Silicone 9 oz",
+   "key": "infantino:drink"
+  },
+  {
+   "name": "My First Dolly, 13 Inch",
+   "key": "gund:"
+  },
+  {
+   "name": "Disney Princess Soft Book with Teether",
+   "key": "kidspreferred:"
+  }
+ ],
+ "girls-toddlers": [],
+ "girls-little-kids": [],
+ "girls-big-kids": [
+  {
+   "name": "Glow-in-the-Dark Marble Run",
+   "key": "nationalgeographic:"
+  },
+  {
+   "name": "Shimmer N Sparkle 3D Crystal Gem Creations",
+   "key": "crazart:"
+  },
+  {
+   "name": "Ultra Petite Satin Scrunchies, 6 Pack",
+   "key": "kitsch:"
+  },
+  {
+   "name": "Magic Coloring Book",
+   "key": "magicmakers:"
+  }
+ ],
+ "girls-teens": [],
+ "gender-neutral-babies": [
+  {
+   "name": "Amuseable Clementine Plush Toy",
+   "key": "jellycat:plush"
+  },
+  {
+   "name": "Advanced Therapy Baby Healing Ointment",
+   "key": "aquaphor:"
+  },
+  {
+   "name": "Kazilan Baby Monitor, 5G/2.4Ghz WiFi Nanny/Pet Camera",
+   "key": "item:kazilan baby monitor 5g 2 4ghz wifi nanny pet camera"
+  },
+  {
+   "name": "Baby Bath Time Essentials Gift Set",
+   "key": "mustela:"
+  }
+ ],
+ "gender-neutral-toddlers": [],
+ "gender-neutral-little-kids": [],
+ "gender-neutral-big-kids": [],
+ "gender-neutral-teens": [],
+ "under-5": [
+  {
+   "name": "Lindt LINDOR Assorted Christmas Truffles Favor Gift, 2.1 oz",
+   "key": "lindt:"
+  },
+  {
+   "name": "Catnip Dental Chew Mice Toy, 2 Pack",
+   "key": "catstages:"
+  },
+  {
+   "name": "Woofmas Holiday Cookies for Dogs, 4.5 oz",
+   "key": "caninecarryouts:"
+  },
+  {
+   "name": "Flair Felt Tip Pens, #1 Teacher Choice, Medium Point",
+   "key": "papermate:"
+  },
+  {
+   "name": "Goody Classic Mini Claw Clips, 12 Count",
+   "key": "goody:"
+  },
+  {
+   "name": "Ghirardelli Peppermint Bark Chocolate Squares, 0.83 oz",
+   "key": "ghirardelli:"
+  }
+ ],
+ "under-10": [
+  {
+   "name": "Super Sticky Notes, Neon Fizz, 6 Pads",
+   "key": "postit:"
+  },
+  {
+   "name": "Mini Silicone Spatulas, Set of 3",
+   "key": "cuisinart:"
+  },
+  {
+   "name": "Hand Warmers Value Pack, 10 Pairs",
+   "key": "hothands:"
+  },
+  {
+   "name": "Power Chew Original Bone, Medium",
+   "key": "nylabone:"
+  },
+  {
+   "name": "Durable 3.2-Inch LED Spike Ball",
+   "key": "nerfdog:"
+  },
+  {
+   "name": "Rook Card Game",
+   "key": "hasbro:"
+  }
+ ],
+ "under-15": [],
+ "under-20": [
+  {
+   "name": "CeraVe, CeraVe Moisturizing Cream with Pump",
+   "key": "cerave:"
+  },
+  {
+   "name": "Embroidered Ornament - Nativity",
+   "key": "riflepaperco:"
+  },
+  {
+   "name": "Tikka Masala Simmer Sauce",
+   "key": "brooklyndelhi:"
+  },
+  {
+   "name": "Black Cherry Bourbon Infused Coffee Pods",
+   "key": "firedepartmentcoffee:"
+  },
+  {
+   "name": "Vintage Christmas Stickers",
+   "key": "papersource:"
+  },
+  {
+   "name": "Amaretto Sour Capsules",
+   "key": "bartesian:"
+  }
+ ],
+ "under-25": [],
+ "under-30": [],
+ "under-40": [],
+ "under-50": [
+  {
+   "name": "Unisex Trucker Hat",
+   "key": "xtratuf:boot,hat"
+  },
+  {
+   "name": "Lunch Bag",
+   "key": "verabradley:"
+  },
+  {
+   "name": "Electric Scalp Massager",
+   "key": "touchbeauty:massager"
+  },
+  {
+   "name": "KissCup Ceramic Tasting Cup Set of 3",
+   "key": "cocinare:drink"
+  }
+ ],
+ "under-75": [],
+ "under-100": [
+  {
+   "name": "Insulated Lunch Lugger with Multiple Pockets, Black",
+   "key": "thermos:"
+  },
+  {
+   "name": "Christmas Themed Dog Treats Gift Box",
+   "key": "bonneetfilou:"
+  },
+  {
+   "name": "Original School of Fish Glass Wall Art",
+   "key": "minteefy:"
+  },
+  {
+   "name": "6 Qt Air Fryer with TurboCrisp Technology",
+   "key": "beautifulbydrewbarrymore:"
+  }
+ ],
+ "100-and-up": [
+  {
+   "name": "5200 Professional-Grade Blender",
+   "key": "vitamix:"
+  },
+  {
+   "name": "Barista Express Espresso Machine",
+   "key": "breville:"
+  },
+  {
+   "name": "Galaxy Tab S11 128GB",
+   "key": "samsung:"
+  },
+  {
+   "name": "Arctic Sport II Women's 17-Inch Insulated Tall Boot",
+   "key": "muckboot:boot"
+  }
+ ],
+ "stocking-stuffers": [
+  {
+   "name": "Carhartt Men's Work Flex Spandex Work Glove",
+   "key": "carhartt:"
+  },
+  {
+   "name": "Unisex Festive Flannel Crew Cushioned Lifestyle Socks",
+   "key": "darntoughvermont:sock"
+  },
+  {
+   "name": "Funko Bitty Pop! Harry Potter Blind Bag",
+   "key": "funko:"
+  },
+  {
+   "name": "African Net Sponge (2 Pack)",
+   "key": "africannetsponge:"
+  }
+ ],
+ "gift-wrap-and-cards": [
+  {
+   "name": "Holiday Horses Christmas Jumbo Rolled Gift Wrap, 23 in x 28 ft",
+   "key": "current:"
+  },
+  {
+   "name": "Washi Tape Set, 21 Rolls, Floral",
+   "key": "mrpen:"
+  },
+  {
+   "name": "Boxed Christmas Cards with Envelopes, Christmas Trees",
+   "key": "papyrus:"
+  },
+  {
+   "name": "Medium Christmas Gift Boxes with Lids, 12 Shirt Boxes",
+   "key": "hallmark:"
+  }
+ ],
+ "gift-cards": [],
+ "subscriptions": [],
+ "25-days-sponsors": [],
+ "louisiana-made": [
+  {
+   "name": "TABASCO Brand Specialty Sauce Variety Pack",
+   "key": "tabasco:"
+  },
+  {
+   "name": "LSU Claw Heritage Embroidered Hoodie",
+   "key": "crewdog:"
+  },
+  {
+   "name": "Venezia 18K",
+   "key": "krewe:"
+  },
+  {
+   "name": "Black and Gold Fleur de Lis Silk Twilly",
+   "key": "nolacouture:"
+  },
+  {
+   "name": "Chef Paul Prudhomme’s Poultry Magic",
+   "key": "magicseasoningblends:"
+  },
+  {
+   "name": "Pecan Praline K-Cup Pods, 32 ct",
+   "key": "communitycoffee:drink"
+  }
+ ],
+ "louisiana-kitchen": [],
+ "new-orleans": [
+  {
+   "name": "Could Be Leaner King Cake Tee",
+   "key": "fleurtygirl:"
+  },
+  {
+   "name": "Cafe Du Monde Coffee with Chicory",
+   "key": "cafédumonde:"
+  },
+  {
+   "name": "New Orleans Scape Tote",
+   "key": "fleurtygirl:"
+  },
+  {
+   "name": "Blue Plate Real Mayonnaise",
+   "key": "blueplate:"
+  }
+ ],
+ "game-day": [
+  {
+   "name": "Tony Chacheres Mix Fish Fry Seasoned Pack of 2",
+   "key": "tonychacheres:"
+  },
+  {
+   "name": "Ozark Trail Quad Folding Camp Chair with Cup Holder, Dark Blue",
+   "key": "ozarktrail:drink"
+  },
+  {
+   "name": "GCI Outdoor Freestyle Rocker Folding Rocking Camping Chair",
+   "key": "gcioutdoor:"
+  },
+  {
+   "name": "10x10 Pop Up Canopy Tent with 2 Sun Walls",
+   "key": "abccanopy:"
+  }
+ ],
+ "mardi-gras": [
+  {
+   "name": "Mardi Gras Mask Glass Ornament",
+   "key": "oldworldchristmas:"
+  },
+  {
+   "name": "Mardi Gras Plastic Doubloons, 100 pc",
+   "key": "beistle:"
+  },
+  {
+   "name": "Mardi Gras King Cake Ground Coffee",
+   "key": "communitycoffee:"
+  },
+  {
+   "name": "Mardi Gras Confetti Snuggle Socks",
+   "key": "fleurtygirl:sock"
+  }
+ ],
+ "louisiana-pantry": [],
+ "coffee-and-beignets": [
+  {
+   "name": "K-Pods Commander's Palace Coffee & Chicory",
+   "key": "frenchtruckcoffee:"
+  },
+  {
+   "name": "Coffee & Chicory Dark Roast, 12 oz",
+   "key": "frenchmarketcoffee:"
+  },
+  {
+   "name": "Match South Warm Beignets Candle: Café Du Monde X",
+   "key": "matchsouth:candle"
+  },
+  {
+   "name": "Gulf Blue Bird of Paradise Mug",
+   "key": "nolacouture:drink"
+  },
+  {
+   "name": "10 oz Stainless Steel Dredge",
+   "key": "winco:"
+  },
+  {
+   "name": "Restaurant Blend Ground Coffee, 12 oz (3 Pack)",
+   "key": "frenchmarketcoffee:"
+  }
+ ],
+ "crawfish-season": [],
+ "louisiana-small-businesses": [
+  {
+   "name": "Cajun Seasoning",
+   "key": "slapyamama:"
+  },
+  {
+   "name": "Red Kidney Beans",
+   "key": "camellia:"
+  },
+  {
+   "name": "French Doughnut Beignet Mix",
+   "key": "cafedumonde:"
+  },
+  {
+   "name": "Basic Bee Boxed Gift Set",
+   "key": "redstickspicecompany:"
+  }
+ ],
+ "louisiana-sweets-and-bakeries": [],
+ "acadiana": [],
+ "baton-rouge": [],
+ "louisiana-boutiques": [
+  {
+   "name": "Tabasco Jalapeno Pepper Jelly -",
+   "key": "targetcom:"
+  },
+  {
+   "name": "Stardust Ring",
+   "key": "julievos:"
+  },
+  {
+   "name": "12 Days Of Christmas Blanket",
+   "key": "mudpie:"
+  },
+  {
+   "name": "Nexgrill Skimmer Spoon 18-Inch Chrome-Plated Steel Fryer Scoop",
+   "key": "bayouclassic:"
+  },
+  {
+   "name": "Catalina Earring",
+   "key": "julievos:"
+  },
+  {
+   "name": "12 Day Of Christmas Platter",
+   "key": "mudpie:"
+  }
+ ],
+ "louisiana-artists": [],
+ "north-louisiana": [],
+ "coffee-lover": [
+  {
+   "name": "Torani Flavored Drink Syrup Soda Shop Variety Pack",
+   "key": "torani:"
+  },
+  {
+   "name": "OXO Good Grips Cold Brew Coffee Maker",
+   "key": "oxo:"
+  },
+  {
+   "name": "Keurig K-Mini Single Serve Coffee Maker",
+   "key": "keurig:"
+  },
+  {
+   "name": "12-Month Coffee Club Gift, Shipped Quarterly",
+   "key": "atlascoffeeclub:"
+  },
+  {
+   "name": "1773 Premium Handcrafted Mug (Right-Handed)",
+   "key": "blackriflecoffeecompany:drink"
+  },
+  {
+   "name": "Hario V60 Ceramic Pour Over Coffee Set",
+   "key": "hario:"
+  }
+ ],
+ "home-cook": [
+  {
+   "name": "Merten & Storck Pre-Seasoned Carbon Steel 12\" Frying Pan Skillet",
+   "key": "mertenstorck:"
+  },
+  {
+   "name": "Fresh Prep Slicer and Shredder Attachment",
+   "key": "kitchenaid:"
+  },
+  {
+   "name": "Lancaster No. 10 Cast Iron Skillet",
+   "key": "lancastercastiron:"
+  },
+  {
+   "name": "Lodge 5.5 qt Enameled Cast Iron Dutch Oven with Loop Handles",
+   "key": "item:lodge 5 5 qt enameled cast iron dutch oven with loop handles"
+  }
+ ],
+ "self-care-lover": [],
+ "gamer": [
+  {
+   "name": "G733 Lightspeed Wireless Gaming Headset",
+   "key": "logitech:"
+  },
+  {
+   "name": "Stealth 600 Wireless Gaming Headset",
+   "key": "turtlebeach:"
+  },
+  {
+   "name": "Atari Gamestation Go",
+   "key": "myarcade:"
+  },
+  {
+   "name": "Arctis Nova 5 Wireless Gaming Headset",
+   "key": "steelseries:"
+  },
+  {
+   "name": "Joy-Con Comfort Grip",
+   "key": "powera:"
+  },
+  {
+   "name": "Blake Blue Light Glasses",
+   "key": "freyrseyewear:"
+  }
+ ],
+ "golfer": [
+  {
+   "name": "Pro Soft Drip Golf Balls, Red",
+   "key": "vicegolf:"
+  },
+  {
+   "name": "Men's WeatherSof Golf Glove, 2 Pack",
+   "key": "footjoy:"
+  },
+  {
+   "name": "300 Pro Laser Rangefinder",
+   "key": "callaway:"
+  },
+  {
+   "name": "TruFeel Golf Balls",
+   "key": "titleist:"
+  },
+  {
+   "name": "Club Microfiber Golf Towel",
+   "key": "adidas:"
+  },
+  {
+   "name": "Tour Striped Dri-FIT Golf Polo",
+   "key": "nike:"
+  }
+ ],
+ "hunters": [
+  {
+   "name": "Mossy Oak Insulated Blaze Orange Beanie",
+   "key": "mossyoak:hat"
+  },
+  {
+   "name": "HS21 Headlamp with Red Light",
+   "key": "sofirn:"
+  },
+  {
+   "name": "Woodland Pro Men's 17\" 400G Insulated Outdoor Boot",
+   "key": "muckbootcompany:boot"
+  },
+  {
+   "name": "YETI Rambler 30 Oz Tumbler",
+   "key": "yeti:drink"
+  }
+ ],
+ "fishermen": [
+  {
+   "name": "Two-Tray Tackle Box",
+   "key": "plano:"
+  },
+  {
+   "name": "EZ Fillet Fish Fillet Mat",
+   "key": "kastking:"
+  },
+  {
+   "name": "Twist Lock Fishing Rod Rack, 4 Rods",
+   "key": "berkley:"
+  },
+  {
+   "name": "Men's ExStream Insulated Jacket",
+   "key": "simmsfishing:"
+  }
+ ],
+ "traveler": [
+  {
+   "name": "Calpak x Miffy Packing Cubes 5-Piece Set",
+   "key": "calpak:"
+  },
+  {
+   "name": "F108WH Digital Watch",
+   "key": "casio:"
+  },
+  {
+   "name": "Extra Large Foldable Nylon Duffel Bag",
+   "key": "amazonessentials:"
+  },
+  {
+   "name": "Duffel Bag 54L with Adjustable Straps and Travel Pouch",
+   "key": "outbound:"
+  },
+  {
+   "name": "Memory Foam Travel Neck Pillow",
+   "key": "saireider:"
+  },
+  {
+   "name": "Quiet 2 Earplugs",
+   "key": "loopearplugsus:"
+  }
+ ],
+ "book-lover": [
+  {
+   "name": "Fourth Wing Book Tin",
+   "key": "maisonette:"
+  },
+  {
+   "name": "Reading Journal",
+   "key": "cleverfox:"
+  },
+  {
+   "name": "Rechargeable LED Book Light",
+   "key": "energizer:"
+  },
+  {
+   "name": "Faux Fur Plush Backrest Pillow",
+   "key": "mainstays:plush"
+  },
+  {
+   "name": "Just One More Chapter Book Sleeve",
+   "key": "lparkin:"
+  },
+  {
+   "name": "Silk Contour Eye Mask",
+   "key": "slip:"
+  }
+ ],
+ "gym-lover": [
+  {
+   "name": "Undeniable 5.0 Duffle",
+   "key": "underarmour:"
+  },
+  {
+   "name": "On Womens Cloud 6",
+   "key": "on:"
+  },
+  {
+   "name": "Women's Bondi 9",
+   "key": "hoka:"
+  },
+  {
+   "name": "Sport Flip Stainless Steel Shaker 24 oz",
+   "key": "blenderbottle:"
+  },
+  {
+   "name": "Renown Hoodie",
+   "key": "aloyoga:"
+  },
+  {
+   "name": "Pro M2 Taupe Dual Massage Full Body Heated Massage Chair",
+   "key": "thehomedepot:"
+  }
+ ],
+ "wine-lover": [
+  {
+   "name": "Bottle Stoppers, Set of 4",
+   "key": "rabbit:"
+  },
+  {
+   "name": "Cordless Electric Wine Bottle Opener",
+   "key": "oster:"
+  },
+  {
+   "name": "V1010 Essential Red Wine Aerator",
+   "key": "vinturi:"
+  },
+  {
+   "name": "The Host Set",
+   "key": "material:"
+  }
+ ],
+ "baker": [
+  {
+   "name": "Original Bundt Pan, 12 Cup",
+   "key": "nordicware:drink"
+  },
+  {
+   "name": "Hedley & Bennett Apron",
+   "key": "simplehuman:"
+  },
+  {
+   "name": "Digital Kitchen Scale",
+   "key": "etekcity:"
+  },
+  {
+   "name": "Citrus Zester",
+   "key": "microplane:"
+  }
+ ],
+ "grill-master": [],
+ "tailgater": [],
+ "homebody": [],
+ "gardener": [
+  {
+   "name": "Courtly Bird Feeder",
+   "key": "mackenziechilds:"
+  },
+  {
+   "name": "O'Keeffe's Working Hands Hand Cream for Extreme Dryness",
+   "key": "okeeffes:"
+  },
+  {
+   "name": "Heavy Duty 2-in-1 Folding Garden Kneeler and Stool with 11\" EVA Pad",
+   "key": "vevor:"
+  },
+  {
+   "name": "Smart Plug",
+   "key": "amazon:"
+  },
+  {
+   "name": "UPF 50 Active Wide Brim Sun Hat",
+   "key": "landsend:hat"
+  },
+  {
+   "name": "Gardening Gloves",
+   "key": "mylittlebelleville:"
+  }
+ ],
+ "camper": [
+  {
+   "name": "Daylite Plus Backpack",
+   "key": "ospery:"
+  },
+  {
+   "name": "E-ZoneGuard Patio + Rechargeable Mosquito Repeller (E65)",
+   "key": "thermacellrepellents:"
+  },
+  {
+   "name": "Huntworth Men's Houlton Disruption Camo Hunting Jacket",
+   "key": "tractorsupply:"
+  },
+  {
+   "name": "Men's Vangrizzle Boot Midweight Hiking Socks",
+   "key": "darntoughvermont:boot,sock"
+  }
+ ],
+ "plant-lover": [
+  {
+   "name": "Tea Eco Seed Starter Kit",
+   "key": "modernsprout:"
+  },
+  {
+   "name": "Stem Grow Light",
+   "key": "aerogarden:"
+  },
+  {
+   "name": "Garden Watering Can",
+   "key": "tenlittle:"
+  },
+  {
+   "name": "17\" Tall 4 In 1 Modular Metal Raised Garden Bed Kit",
+   "key": "vegogarden:"
+  }
+ ],
+ "crafter": [],
+ "music-lover": [],
+ "movie-buff": [],
+ "runner": [],
+ "artist": [],
+ "photographer": [
+  {
+   "name": "Funsaver Disposable Camera",
+   "key": "kodak:"
+  },
+  {
+   "name": "Carver Mat 10\" Digital WiFi Frame",
+   "key": "auraframes:"
+  },
+  {
+   "name": "Scout Smart Camera",
+   "key": "petlibro:"
+  },
+  {
+   "name": "FLEX-M2 Twin Cellular Trail Camera Pack",
+   "key": "spypoint:"
+  }
+ ],
+ "diyer": [
+  {
+   "name": "20V MAX Drill and Impact Driver Kit",
+   "key": "dewalt:"
+  },
+  {
+   "name": "Tool Bag with Shoulder Strap",
+   "key": "kleintools:"
+  },
+  {
+   "name": "Smart Led A19 Bulb 4-Pack White And Color Ambiance",
+   "key": "philipshue:"
+  },
+  {
+   "name": "57 Piece Mechanics Tool Set",
+   "key": "craftsman:"
+  },
+  {
+   "name": "Adjust-O Magnetic Welding Square",
+   "key": "stronghandtools:"
+  },
+  {
+   "name": "Battery Doorbell 2k - Retinal 2k With Wide-Angle Video",
+   "key": "ring:"
+  }
+ ],
+ "car-lover": [],
+ "entertainer": [
+  {
+   "name": "Always Pan",
+   "key": "ourplace:"
+  },
+  {
+   "name": "Rectangle Wood Serving Board",
+   "key": "thepioneerwoman:"
+  },
+  {
+   "name": "Nonstick Ceramic Cookware Set",
+   "key": "carawayhome:"
+  },
+  {
+   "name": "Beautiful 10 in 1, 6 Qt Electric Multi-Cooker",
+   "key": "beautiful:"
+  }
+ ],
+ "beach-lover": [
+  {
+   "name": "Outdoor Folding Beach Wagon Cart With Wheels",
+   "key": "goodeed:"
+  },
+  {
+   "name": "Dock & Bay Quick Dry Extra Large Beach Towel",
+   "key": "southerntide:"
+  },
+  {
+   "name": "Go Instant Camera",
+   "key": "polaroid:"
+  },
+  {
+   "name": "Folding Beach Chair, Backpack Recliner with Canopy",
+   "key": "bayislehome:"
+  }
+ ],
+ "crawfish-boil-host": [],
+ "boater": [
+  {
+   "name": "12 Volt Car Refrigerator, 32Qt",
+   "key": "simzlife:"
+  },
+  {
+   "name": "Waterproof Ice Bay Fishing Gloves",
+   "key": "glacierglove:"
+  },
+  {
+   "name": "Rack Multifunction Long Nose Fishing Pliers Stainless Steel Fish Hook Pliers With Lanyard Profession Fishing Pliers For Fresh Water Saltwater",
+   "key": "trinx:"
+  },
+  {
+   "name": "Billfish™ 3-Eye Boat Shoe",
+   "key": "sperryus:shoe"
+  }
+ ],
+ "kayaker": [],
+ "mountain-lover": [],
+ "healthcare": [],
+ "oilfield-and-trades": [],
+ "offshore-workers": [],
+ "oilfield-workers": [
+  {
+   "name": "Hi-Vis Bomber Safety Jacket",
+   "key": "ergodyne:"
+  },
+  {
+   "name": "M-Pact Touchscreen Work Gloves",
+   "key": "mechanixwear:"
+  },
+  {
+   "name": "Rebel Ultra-Lite Steel Toe Work Boot",
+   "key": "durango:boot"
+  },
+  {
+   "name": "FR Long Sleeve Henley, 5.5 oz, CAT 2",
+   "key": "bocomal:"
+  }
+ ],
+ "refinery-and-plant-workers": [],
+ "pipeline-workers": [],
+ "welders": [
+  {
+   "name": "Welding Magnet Set, 6 Pieces",
+   "key": "yeswelder:"
+  },
+  {
+   "name": "Men's Merino Wool Crew Socks",
+   "key": "muckboot:boot,sock"
+  },
+  {
+   "name": "Men's Split Cowhide Leather Hybrid Glove",
+   "key": "hypertough:"
+  },
+  {
+   "name": "Welding Gloves, 932°F Leather",
+   "key": "rapicca:"
+  }
+ ],
+ "pipefitters": [],
+ "linemen": [],
+ "electricians": [],
+ "plumbers": [],
+ "hvac-techs": [],
+ "mechanics": [],
+ "heavy-equipment-operators": [],
+ "crane-operators": [],
+ "construction-workers": [],
+ "truck-drivers": [],
+ "boat-captains-and-deckhands": [],
+ "commercial-fishermen-and-shrimpers": [],
+ "machinists": [],
+ "service-industry": [],
+ "restaurant-servers": [],
+ "bartenders": [],
+ "baristas": [],
+ "cooks-and-kitchen-staff": [
+  {
+   "name": "Corkcicle x KitchenAid Coffee Mug",
+   "key": "corkcicle:drink"
+  },
+  {
+   "name": "Dr Teal's Epsom Salt Magnesium Soak",
+   "key": "drteals:"
+  },
+  {
+   "name": "16oz Stainless Steel Insulated Thermos Food Jar with Foldable Spoon",
+   "key": "zulaykitchen:"
+  },
+  {
+   "name": "Power Bank (10K, 22.5W, Built-In USB-C Cable)",
+   "key": "ankerus:"
+  }
+ ],
+ "retail-workers": [],
+ "cashiers": [
+  {
+   "name": "Nekteck Shiatsu Neck Massager with Heat for Pain Relief",
+   "key": "nekteck:massager"
+  },
+  {
+   "name": "Mini Variety Pack",
+   "key": "dailycrunchsnackscom:"
+  },
+  {
+   "name": "Crazy Lady Womens Fuzzy House Slippers Cross Band Memory Foam Sandals",
+   "key": "amazoncom:shoe"
+  },
+  {
+   "name": "Pine & Eucalyptus Classic Scented Candle",
+   "key": "jomalonelondon:candle"
+  }
+ ],
+ "hairstylists": [
+  {
+   "name": "16 oz Ellipse Scented Candle, Fraser Fir",
+   "key": "woodwick:candle"
+  },
+  {
+   "name": "Shiatsu Foot Massager with Heat",
+   "key": "comfier:massager"
+  },
+  {
+   "name": "Slam Dunk Hydrating Moisturizer 50ml",
+   "key": "bubbleskincare:"
+  },
+  {
+   "name": "Bum Bum Body Firmeza Oil",
+   "key": "soldejaneiro:"
+  }
+ ],
+ "nail-techs": [],
+ "housekeepers": [],
+ "hotel-staff": [],
+ "delivery-drivers": [],
+ "customer-service-reps": [],
+ "educators": [
+  {
+   "name": "Thermal Laminator",
+   "key": "scotch:"
+  },
+  {
+   "name": "Iced Coffee Maker With Reusable Tumbler And Coffee Filter",
+   "key": "mrcoffee:drink"
+  },
+  {
+   "name": "Click Pen Set, Forest Feline (Set of 5)",
+   "key": "katespadenewyork:"
+  },
+  {
+   "name": "Pastel Custom Teacher Planner Stickers",
+   "key": "erincondren:"
+  }
+ ],
+ "first-responders": [
+  {
+   "name": "Original Electric Boot Dryer",
+   "key": "peet:boot"
+  },
+  {
+   "name": "Dunlin Lite Crew Socks",
+   "key": "heatholders:sock"
+  },
+  {
+   "name": "Mug - 12 fl. oz.",
+   "key": "hydroflask:drink"
+  },
+  {
+   "name": "Insulated Lunch Bag",
+   "key": "grechco:"
+  }
+ ],
+ "military": [],
+ "stay-at-home-parents": [],
+ "small-business-owners": [],
+ "real-estate-agents": [],
+ "chefs": [
+  {
+   "name": "Ooni Koda 2 Pizza Oven",
+   "key": "cratebarrel:"
+  },
+  {
+   "name": "Weber Original Charcoal Grill, 22 Inch Premium Kettle Charcoal Grill",
+   "key": "weber:griddle"
+  },
+  {
+   "name": "40qt Seafood Boiling Kit",
+   "key": "arc:"
+  },
+  {
+   "name": "TempPro Digital Meat Thermometer TP19HW Waterproof Food Thermometer",
+   "key": "temppro:"
+  },
+  {
+   "name": "12-Inch Cast Iron Skillet",
+   "key": "lodgecastiron:"
+  },
+  {
+   "name": "Cast Iron 1.5 qt, Petite French Oven",
+   "key": "staub:"
+  }
+ ],
+ "engineers": [],
+ "lawyers": [],
+ "accountants": [],
+ "social-workers": [],
+ "farmers": [],
+ "flight-attendants": [],
+ "rns": [],
+ "lpns": [],
+ "cnas": [],
+ "nurse-practitioners": [
+  {
+   "name": "Cardiology IV Stethoscope",
+   "key": "littmann:"
+  },
+  {
+   "name": "Professional Clog",
+   "key": "dansko:shoe"
+  },
+  {
+   "name": "Half Nurse Half Coffee Badge Reel",
+   "key": "badgeapeel:"
+  },
+  {
+   "name": "Day Tote Nursing Bag",
+   "key": "nursemates:"
+  }
+ ],
+ "doctors": [],
+ "nursing-students": [],
+ "er-nurses": [],
+ "icu-nurses": [],
+ "nicu-nurses": [],
+ "landd-nurses": [],
+ "or-nurses": [
+  {
+   "name": "Men's Bondi 9 Sneakers",
+   "key": "hoka:shoe"
+  },
+  {
+   "name": "Classic III Stethoscopes",
+   "key": "3mlittmann:"
+  },
+  {
+   "name": "ABC Classic-Fit Trouser 32L Warpstreme",
+   "key": "lululemon:"
+  },
+  {
+   "name": "30 oz Mega Mug with Handle and Straw, Scrub Life",
+   "key": "swiglife:drink"
+  }
+ ],
+ "pediatric-nurses": [],
+ "travel-nurses": [],
+ "home-health-nurses": [],
+ "medical-assistants": [],
+ "pharmacists": [],
+ "pharmacy-techs": [],
+ "physician-assistants": [],
+ "crnas": [],
+ "surgeons": [],
+ "med-students": [],
+ "respiratory-therapists": [],
+ "radiology-techs": [],
+ "lab-techs-phlebotomists": [],
+ "physical-therapists": [],
+ "occupational-therapists": [],
+ "speech-therapists": [],
+ "dentists": [],
+ "dental-hygienists": [],
+ "dental-assistants": [],
+ "caregivers": [],
+ "nursing-home-staff": [],
+ "healthcare-workers": [],
+ "hospital-front-desk": [],
+ "teachers": [
+  {
+   "name": "Rifle Paper Co. Birthday Candles Wrapping Paper",
+   "key": "papersource:candle"
+  },
+  {
+   "name": "Thoughtfully Cast Iron Chocolate Chip Skillet Baking Kit",
+   "key": "thoughtfully:"
+  },
+  {
+   "name": "SweeTARTS Holiday Candy Canes, 12 Count",
+   "key": "sweetarts:"
+  },
+  {
+   "name": "Finest Assorted Chocolate Gift Box, 7 oz",
+   "key": "merci:"
+  }
+ ],
+ "elementary-teachers": [],
+ "preschool-teachers": [],
+ "high-school-teachers": [],
+ "coaches": [],
+ "paraprofessionals": [],
+ "principals-and-school-staff": [],
+ "professors": [],
+ "bus-drivers": [],
+ "police-officers": [],
+ "firefighters": [],
+ "paramedics-and-emts": [],
+ "sheriffs-deputies": [],
+ "911-dispatchers": [],
+ "army": [],
+ "veterans": [],
+ "navy": [
+  {
+   "name": "1000 Lumen Rechargeable Headlamp",
+   "key": "ozarktrail:"
+  },
+  {
+   "name": "Blossom Lifestyle Crew Socks",
+   "key": "darntough:sock"
+  },
+  {
+   "name": "Delicious Instant Seafoodboil Mix, Spicy Butter Seasoning",
+   "key": "crabitwhileitshot:"
+  },
+  {
+   "name": "Back the Blue 20 oz Tumbler",
+   "key": "sandjest:drink"
+  }
+ ],
+ "air-force": [],
+ "marines": [],
+ "national-guard": [],
+ "coast-guard": [],
+ "secret-santa": [],
+ "white-elephant": [
+  {
+   "name": "Chia Pet The Simpsons Homer",
+   "key": "chiapet:"
+  },
+  {
+   "name": "Throw Throw Burrito",
+   "key": "explodingkittens:"
+  },
+  {
+   "name": "Emotional Support Pals Highland Cows Plush, 5 Pack",
+   "key": "relatable:plush"
+  },
+  {
+   "name": "Taco Cat Goat Cheese Pizza Card Game",
+   "key": "tacocatgames:"
+  },
+  {
+   "name": "Jelly Belly BeanBoozled Naughty or Nice Christmas Edition, 1.6 oz",
+   "key": "jellybelly:"
+  },
+  {
+   "name": "Prescription Coffee Mug",
+   "key": "bigmouthinc:drink"
+  }
+ ],
+ "hostess": [],
+ "new-mom": [
+  {
+   "name": "15-Piece Labor and Postpartum Kit Gift Set",
+   "key": "frida:"
+  },
+  {
+   "name": "Lanolin Nipple Cream, 1.41 oz",
+   "key": "lansinoh:"
+  },
+  {
+   "name": "Soft Lounge Ribbed Short Robe",
+   "key": "skims:"
+  },
+  {
+   "name": "Women's Solid Long Sleeve Tee",
+   "key": "lifeisgood:"
+  },
+  {
+   "name": "Nursing Pillow with Hidden Pocket",
+   "key": "boppy:"
+  },
+  {
+   "name": "Nod Sound Machine and Night Light",
+   "key": "yogasleep:"
+  }
+ ],
+ "new-homeowner": [
+  {
+   "name": "Little Green Max Portable Cleaner",
+   "key": "bissell:"
+  },
+  {
+   "name": "Basic 110 Fire Extinguisher",
+   "key": "kidde:"
+  },
+  {
+   "name": "Acacia Charcuterie Board",
+   "key": "millwoodpines:"
+  },
+  {
+   "name": "BISSELL PowerClean DualBrush Cordless Self-Standing Stick Vacuum 4196T Pet Hair Pick-Up Black",
+   "key": "item:bissell powerclean dualbrush cordless self standing stick vacuum 4196t pet hair pick up black"
+  }
+ ],
+ "newlyweds": [],
+ "graduate": [
+  {
+   "name": "Premium Business Portfolio with Zipper",
+   "key": "cossini:"
+  },
+  {
+   "name": "Cargo Max 21 inch Hardside Carry-On Spinner",
+   "key": "americantourister:"
+  },
+  {
+   "name": "Leather Passport Holder",
+   "key": "jcrew:"
+  },
+  {
+   "name": "OpenRun Pro Headphones",
+   "key": "shokz:"
+  }
+ ],
+ "new-dad": [],
+ "mom-to-be": [],
+ "retiree": [],
+ "college-student": [],
+ "newly-engaged": [],
+ "new-grandparent": [],
+ "first-apartment": [],
+ "new-job": [],
+ "get-well-soon": [],
+ "thinking-of-you": [],
+ "hospital-stay": [],
+ "dog-lover": [
+  {
+   "name": "Classic Stuffable Dog Toy, Large",
+   "key": "kong:"
+  },
+  {
+   "name": "Nina Ottosson Dog Brick Treat Puzzle",
+   "key": "outwardhound:"
+  },
+  {
+   "name": "Dinos Bruto Plush Toy with Chew Guard",
+   "key": "godog:plush"
+  },
+  {
+   "name": "All-Natural Chicken Jerky Dog Treats, 11 oz",
+   "key": "waggintrain:"
+  },
+  {
+   "name": "The Puffin Game Dog Toy",
+   "key": "fablepets:"
+  },
+  {
+   "name": "Greenies Dental Dog Treats for Large Dogs",
+   "key": "greenies:"
+  }
+ ],
+ "cat-person": [
+  {
+   "name": "Flower Pet Fountain with LED Nightlight",
+   "key": "catit:"
+  },
+  {
+   "name": "365 Cats Page-A-Day Calendar 2027",
+   "key": "pageaday:"
+  },
+  {
+   "name": "Corrugated Cardboard Cat Scratcher",
+   "key": "item:corrugated cardboard cat scratcher"
+  },
+  {
+   "name": "Value Pack Cat Toys, 24 Pieces",
+   "key": "vibrantlife:"
+  },
+  {
+   "name": "Super Scratcher Chaise with Catnip",
+   "key": "smartykat:"
+  },
+  {
+   "name": "Meow Boarding: Cat Hairways",
+   "key": "meowbox:"
+  }
+ ],
+ "new-puppy": [
+  {
+   "name": "2-In-1 Portable Dog Water Bottle With Food Container",
+   "key": "hanamya:drink"
+  },
+  {
+   "name": "Dogs Leave Paw Prints Ornament",
+   "key": "halcyondays:"
+  },
+  {
+   "name": "Soother Dog 20cm. Slow Feeder/anxiety Reducer Suitable",
+   "key": "lickimat:"
+  },
+  {
+   "name": "Cat Treats & Kitten Treats - Cat Dental Treats",
+   "key": "petsmart:"
+  }
+ ],
+ "new-kitten": [
+  {
+   "name": "7-Level Cat Tree with Built-In Massager",
+   "key": "vibrantlife:massager"
+  },
+  {
+   "name": "Cat Harness & Leash",
+   "key": "wildone:"
+  },
+  {
+   "name": "Prefer Cats - Ceramic Mug",
+   "key": "wolfbadger:drink"
+  },
+  {
+   "name": "Hello Kitty X Kate Spade New York Studs Earring",
+   "key": "katespade:"
+  }
+ ],
+ "horse-lover": [],
+ "vets-and-vet-techs": [],
+ "fish-lover": [],
+ "bird-lover": [],
+ "pink-lover": [
+  {
+   "name": "Instax Mini SE with Bonus Film, Pink",
+   "key": "instax:"
+  },
+  {
+   "name": "50's Style Mini Kettle Pink",
+   "key": "smeg:"
+  },
+  {
+   "name": "K-Mini Mate Single-Serve K-Cup Pod Coffee Maker Pink Sands",
+   "key": "keurig:drink"
+  },
+  {
+   "name": "Blush Pink Satin Pillowcase Queen Size Set Of 2 For Hair And Skin",
+   "key": "amazoncom:"
+  }
+ ],
+ "neutral-lover": [],
+ "purple-and-gold-lover": [],
+ "blue-lover": [
+  {
+   "name": "Birdling Blue Jay Soft Toy",
+   "key": "jellycat:"
+  },
+  {
+   "name": "Juliska Berry Thread Chambray Blue Ceramic Mug",
+   "key": "kathykuohome:drink"
+  },
+  {
+   "name": "Brown & Blue Glass Vase",
+   "key": "athome:"
+  },
+  {
+   "name": "Women's Blue Cute Socks, Small, Paloma Lira",
+   "key": "wolfbadger:sock"
+  }
+ ],
+ "black-lover": [],
+ "green-lover": [],
+ "red-lover": [],
+ "purple-lover": [],
+ "yellow-lover": [],
+ "store-amazon": [],
+ "store-walmart": [
+  {
+   "name": "Hardcover Notebooks, 8 Pack",
+   "key": "comix:"
+  },
+  {
+   "name": "Tactical Flashlight, 3 Pack",
+   "key": "taclight:"
+  },
+  {
+   "name": "Power Pulse Percussion Massager",
+   "key": "hyimpact:massager"
+  },
+  {
+   "name": "Cordless Hot and Cold Percussion Massager",
+   "key": "brookstone:massager"
+  },
+  {
+   "name": "Better Homes & Gardens Signature Soft Holiday Bath Towel 2PK",
+   "key": "betterhomesgardens:"
+  },
+  {
+   "name": "Deluxe Lunch Bag",
+   "key": "bentgo:"
+  }
+ ],
+ "store-target": [],
+ "store-tractor-supply": [
+  {
+   "name": "Outlast Pet Fountain 90 oz",
+   "key": "petsafe:"
+  },
+  {
+   "name": "Comfort Soft Toe Rain and Garden Shoes",
+   "key": "sloggers:shoe"
+  },
+  {
+   "name": "Gear Fit Pursuit Bruiser Camo Deer Hunting Backpack",
+   "key": "allencompany:"
+  },
+  {
+   "name": "Timber Hawk 9 ft. 5wt Fly Fishing Rod and Reel Combo, 4 pc.",
+   "key": "maxxonoutfitters:"
+  },
+  {
+   "name": "Ball Launcher Dog Toy",
+   "key": "chuckit:"
+  },
+  {
+   "name": "Hape Gourmet Grill - Kids Wooden Play Kitchen & Food",
+   "key": "tractorsupply:griddle"
+  }
+ ],
+ "store-dillards": [],
+ "store-macys": [],
+ "store-best-buy": [],
+ "store-stanley": [],
+ "store-lululemon": [],
+ "store-nike": [],
+ "store-sephora": [],
+ "store-ulta-beauty": [],
+ "store-tiktok-shop": [],
+ "store-wayfair": [
+  {
+   "name": "Claro Portable Coffee Scale, Digital Espresso Scale With Timer",
+   "key": "outin:"
+  },
+  {
+   "name": "Griddler Grill & Panini Press",
+   "key": "cuisinart:griddle"
+  },
+  {
+   "name": "50qt/60qt/80qt/100qt Seafood Boil Pot",
+   "key": "briopaws:"
+  },
+  {
+   "name": "Diaper Bag Backpack With Portable Changing Pad",
+   "key": "latituderun:"
+  },
+  {
+   "name": "The Wizard Of Oz 85th Anniversary",
+   "key": "funkopop:"
+  },
+  {
+   "name": "Minecraft: Storage Chest - Wooden Box, Toys-Games-Clothes",
+   "key": "minecraft:"
+  }
+ ],
+ "store-chewy": [
+  {
+   "name": "KV Balls (Checker) Catnip Toys",
+   "key": "hautediggitykitty:"
+  },
+  {
+   "name": "Spot Headlamp",
+   "key": "blackdiamondequipmentus:"
+  },
+  {
+   "name": "Play 2 Play Wi-Fi Pet Camera",
+   "key": "petcube:"
+  },
+  {
+   "name": "Cat Active Scrunchie Toy",
+   "key": "kongcompany:"
+  },
+  {
+   "name": "Duraflex Pretzel Ring Dog Chew Toy",
+   "key": "benebone:"
+  },
+  {
+   "name": "Really Great Cat Litter",
+   "key": "tuftandpaw:"
+  }
+ ],
+ "store-dsw": [
+  {
+   "name": "Moab Mid Hiking Boot",
+   "key": "merrell:boot"
+  },
+  {
+   "name": "Play Short Rain Boots",
+   "key": "hunter:boot"
+  },
+  {
+   "name": "Snow Angel Boots",
+   "key": "sorel:boot"
+  },
+  {
+   "name": "Ooahh Slide Sandal",
+   "key": "oofos:shoe"
+  }
+ ],
+ "store-journeys": [],
+ "store-hanes": [],
+ "store-muck-boot": [],
+ "store-durango-boots": [],
+ "store-at-home": [],
+ "store-bloomingdales": [],
+ "store-anthropologie": [],
+ "store-urban-outfitters": [],
+ "store-free-people": [],
+ "store-crate-and-barrel": [],
+ "store-nordstrom-rack": [],
+ "store-zappos": [],
+ "store-bombas": [],
+ "store-brooklinen": [],
+ "store-sharkninja": [],
+ "store-bose": [
+  {
+   "name": "QuietComfort Headphones",
+   "key": "bose:quietcomfort headphones"
+  },
+  {
+   "name": "Bose SoundLink Flex II Wireless Waterproof Portable Bluetooth Speaker",
+   "key": "bose:bose soundlink flex ii wireless waterproof portable bluetooth speaker"
+  },
+  {
+   "name": "Bose SoundLink Max Bluetooth Speaker",
+   "key": "bose:bose soundlink max bluetooth speaker"
+  },
+  {
+   "name": "SoundLink Micro Bluetooth Speaker",
+   "key": "bose:soundlink micro bluetooth speaker"
+  }
+ ],
+ "store-therabody": [],
+ "store-the-container-store": [],
+ "store-rei": [
+  {
+   "name": "Hike Tube Crew Socks",
+   "key": "smartwool:sock"
+  },
+  {
+   "name": "Smoked Salmon with Fly By Jing Chili Crisp",
+   "key": "fishwife:"
+  },
+  {
+   "name": "Klash Pants",
+   "key": "kuhl:"
+  },
+  {
+   "name": "Flash 1.0L Fast Boil System",
+   "key": "jetboil:"
+  },
+  {
+   "name": "Flagline Dog Harness with Handle",
+   "key": "ruffwear:"
+  },
+  {
+   "name": "18 oz Bottle",
+   "key": "hydroflask:"
+  }
+ ],
+ "store-vineyard-vines": [],
+ "store-tommy-bahama": [],
+ "store-skims": [],
+ "store-glossier": [],
+ "store-rare-beauty": [],
+ "store-kitsch": [],
+ "store-madewell": [],
+ "store-loft": [],
+ "store-uniform-advantage": [],
+ "store-qvc": [],
+ "store-saks-fifth-avenue": [],
+ "store-neiman-marcus": [],
+ "store-revolve": [],
+ "store-mejuri": [],
+ "store-giftcards-com": [],
+ "store-spafinder": [],
+ "store-perfumania": [],
+ "store-marshall": [],
+ "store-anker-solix": [],
+ "store-ugreen": [],
+ "store-jeulia": [],
+ "store-magnifique": [],
+ "store-farm-rio": [],
+ "store-maidenform": [],
+ "store-bali-bras": [],
+ "store-tushbaby": [],
+ "store-magic-story": [],
+ "store-adagio-teas": [],
+ "store-click-and-grow": [],
+ "store-switchbot": [],
+ "store-zchocolat": [],
+ "store-forte-chocolate": [],
+ "store-diecast-models": [],
+ "store-waterdrop-filter": [],
+ "store-xplora": [],
+ "store-trinity-road": [],
+ "store-winebasket": [],
+ "store-trampoline-parts-and-supply": [],
+ "store-tech-for-less": [],
+ "store-tenergy": [],
+ "store-rexing": [],
+ "store-soccer-garage": [],
+ "store-groundluxe": [],
+ "store-power-systems": [],
+ "store-fragranceshop": [],
+ "store-gamefly": [],
+ "store-dhgate": [],
+ "store-cashmere-boutique": [],
+ "store-canada-pet-care": [],
+ "store-best-vet-care": [],
+ "store-budgetpetcare": [],
+ "store-botanic-choice": [],
+ "store-twopages": [],
+ "store-andaseat": [],
+ "store-aiper": [],
+ "store-flowers-fast": [],
+ "store-erommy": [],
+ "store-kaiya-baby": [],
+ "store-kijou": [],
+ "store-coofandy": [],
+ "store-fufuandgaga": [],
+ "store-torras": [],
+ "store-the-ayurveda-experience": [],
+ "store-weekend-in-italy": [],
+ "store-bruno-marc": [],
+ "store-allpowers": [],
+ "store-x-sense": [],
+ "store-patchmd": [],
+ "store-sleep-and-beyond": [],
+ "store-kincmo": [],
+ "store-wowangel": [],
+ "store-kxkshop": [],
+ "store-lofree": [],
+ "store-hohem": [],
+ "store-urbanstar": [],
+ "store-ecosmetics": [],
+ "store-abracadabra-nyc": [],
+ "store-fragrance-outlet": [],
+ "store-magzter": [],
+ "store-lighting-new-york": [],
+ "store-hairmax": [],
+ "store-infimobile": [],
+ "store-teac-usa": [],
+ "store-singer": [],
+ "store-pure-genius-protein": [],
+ "store-amscope": [],
+ "store-heivy": [],
+ "store-puroair": [],
+ "store-adrenaline": [],
+ "store-free-country": [],
+ "store-tablo": [],
+ "store-magazines-com": [],
+ "store-unice-hair": [],
+ "store-duotts": [],
+ "store-vy-jewelry": [],
+ "store-isee-hair": [],
+ "store-homsee": [],
+ "store-ariel-bath": [],
+ "store-crowned-skin": [],
+ "store-arangrant": [],
+ "store-chefs-deal": [],
+ "store-ksp-performance": [],
+ "store-frp-moto": [],
+ "store-oedro": [],
+ "store-mavis-tires": [],
+ "store-bluemercury": [],
+ "store-maisonette": [],
+ "store-depop": [],
+ "store-saint-bernard": [],
+ "store-perigold": [],
+ "store-level-shoes": [],
+ "store-ssense": [],
+ "store-allmodern": [],
+ "store-birch-lane": [],
+ "store-hatch": [],
+ "store-printfresh": [],
+ "store-iherb": [],
+ "store-splendid": [],
+ "store-lake-pajamas": [],
+ "store-joss-and-main": [],
+ "store-bon-wellness": [],
+ "store-over-the-moon": [],
+ "store-jd-sports": [],
+ "store-jomashop": [],
+ "store-bade-sofa": [],
+ "store-fwrd": [],
+ "store-yoto": [],
+ "store-material-kitchen": [],
+ "store-bergdorf-goodman": [],
+ "store-malbon-golf": [],
+ "store-comrad-socks": [],
+ "store-haven-well-within": [],
+ "store-gilt": [],
+ "store-waiting-on-martha": [],
+ "store-grove": [],
+ "store-the-warming-store": [],
+ "store-dxl": [],
+ "store-penny-linn": []
+}

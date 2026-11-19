@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, approvalLine, newApprovalSlot } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -242,6 +242,8 @@ export const RENAMED = {
   "https://www.sharkninja.com/beauty/skincare": "Shark Beauty LED Face Mask",
   // "Garden Kneeler" links to a watering can (photo finder 11-18 PM): named for what the link sells.
   "https://go.shopmy.us/p-104061840": "Sophie Conran Galvanized Steel Watering Can",
+  // A box of caramels whose name ends in "Collection" reads as a category page (CATEGORY_NAME): its own words, minus that.
+  "https://fortechocolate.com/product/assorted-caramels-collection/": "Forte Assorted Caramels",
 };
 /**
  * Photos found for photo-less picks (~/Desktop/Link-library/missing-images-1118.json, owner 11-18 PM): { "<pick name>":
@@ -303,9 +305,29 @@ const withSoldoutSwap = (p) => {
   const image = newImage || (SOLDOUT_SAME_LOOK.test(s.name) ? oldImage : "");
   return { ...rest, name: s.name, href: s.new_href, affiliate_href: creator || s.new_href, ...(image ? { image } : {}) };
 };
+/**
+ * LINK UPGRADES (lead 11-19, ~/Desktop/New-approvals-fit-1119.md): a link a better-paying network now carries for the same
+ * product page. Soundcore's Boom Go 3i moves from Later (5.6%) to CJ (7%, AID 17033430): the CJ Evergreen deep link to
+ * www.soundcore.com's own page for it (that page answered 200 with the Boom Go 3i title on 2026-11-19).
+ */
+export const LINK_UPGRADES = new Map([
+  ["https://mavely.app.link/x6voFDcOa8b", {
+    affiliate_href: "https://www.anrdoezrs.net/click-101930553-17033430?url=https%3A%2F%2Fwww.soundcore.com%2Fproducts%2Fd5103-boom-go-3i-portable-speaker-for-powerful-sound",
+    href: "https://www.soundcore.com/products/d5103-boom-go-3i-portable-speaker-for-powerful-sound",
+  }],
+]);
+export const linkUpgrades = { rows: 0 };
+const withLinkUpgrade = (p) => {
+  const u = LINK_UPGRADES.get(p.affiliate_href) ?? LINK_UPGRADES.get(p.href);
+  if (!u) return p;
+  linkUpgrades.rows += 1;
+  // The old store's checked price priced the old link: it goes with it.
+  const { price: _p, price_source: _ps, price_checked_at: _pc, price_currency: _pcur, ...rest } = p;
+  return { ...rest, ...u };
+};
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
-  p = withSoldoutSwap(p);
+  p = withLinkUpgrade(withSoldoutSwap(p));
   const fixed = withAmazonFixes(p);
   // A swap is a different product: the blocklist reads it too.
   if (fixed !== p && blockedBrand(fixed)) return hidden.push(`${where}: ${fixed.name} (swap) is a blocked brand`), null;
@@ -1353,6 +1375,17 @@ export const PETS_FILL = new Map();
  * (the holistic top-up from peer guides is off for the same reason).
  */
 export const BELONG_FILLS = ["_career-fill-A-1118.json", "_fill-B-1118.json", "_purple-gold-1118.json"];
+/**
+ * NEW AFFILIATE APPROVALS (lead 11-19): _new-approvals-1119.json, [{ guide_slug, name, brand, href (the CJ or Awin link),
+ * store_href (the product page), image, price, commission_pct, why_fits }], 74 rows from 16 newly approved brands
+ * (reasons in ~/Desktop/New-approvals-fit-1119.md). In the belong pass, after the guide's fills, each row goes below the
+ * guide's top 3 and its Trending picks and ahead of its first Amazon pick (newApprovalSlot); the holistic pass's brand
+ * cap, beauty, Louisiana and link rules still apply after it. Each placed row also joins its brand's store page.
+ */
+export const NEW_APPROVALS = "_new-approvals-1119.json";
+export const newApprovals = { rows: 0, placed: 0, skipped: [] };
+/** Each guide's placed new-approval links (re-slotted after the holistic pass, which can drop picks above them). */
+export const NEW_APPROVAL_HREFS = new Map();
 export const BELONG_SHORT = 12;
 export const belong = { audit: 0, rules: {}, wrap: 0, mail: 0, fills: 0, fillSkipped: 0, lines: 0, short: [] };
 export const BELONG_FILL_HREFS = new Map();
@@ -1421,9 +1454,26 @@ export const BELONG_FILL_HREFS = new Map();
     return toPick({ brand: "", line: "", ...row, ...(amazon ? { store: "Amazon", image_source: "amazon-sitestripe" } : {}),
       ...(!amazon && AFFILIATE.has(host) ? { affiliate_href: r.href } : {}) }, f);
   };
+  // NEW AFFILIATE APPROVALS (lead 11-19): rows grouped by guide, highest commission first (an unconfirmed rate last).
+  const approvalRows = {};
+  {
+    const v = readJson(NEW_APPROVALS);
+    const rows = (Array.isArray(v) ? v : []).filter((r) => r && typeof r.guide_slug === "string" && typeof r.name === "string" && typeof r.href === "string" && typeof r.store_href === "string");
+    newApprovals.rows = rows.length;
+    for (const r of rows) {
+      if (!GUIDE_SLUGS.has(r.guide_slug) || r.guide_slug.startsWith("store-") || r.guide_slug === SPONSORS_GUIDE) { newApprovals.skipped.push(`${r.guide_slug}: ${r.name} (no such guide)`); continue; }
+      (approvalRows[r.guide_slug] ??= []).push(r);
+    }
+    const pct = (r) => (typeof r.commission_pct === "number" ? r.commission_pct : -1);
+    for (const list of Object.values(approvalRows)) list.sort((x, y) => pct(y) - pct(x));
+  }
+  // The row's affiliate link (CJ or Awin, AFFILIATE_HOSTS) and its plain product page; the file price is not a checked
+  // price (dropped), and why_fits becomes the line only after our notes and prices come out (approvalLine).
+  const approvalPick = (r) => toPick({ name: r.name, brand: r.brand ?? "", store: r.brand ?? "", line: approvalLine(r.why_fits),
+    href: r.store_href, affiliate_href: r.href, ...(typeof r.image === "string" ? { image: r.image } : {}) }, NEW_APPROVALS);
   // The fixed store pages (Amazon, zChocolat, Diecast) list every guide pick on their store: they go last, and a pick a
   // guide still lists stays on them (its guide kept it).
-  const slugs = [...new Set([...Object.keys(pageList), ...Object.keys(fillRows)])].sort((x, y) => Number(FIXED_PAGES.has(x)) - Number(FIXED_PAGES.has(y)));
+  const slugs = [...new Set([...Object.keys(pageList), ...Object.keys(fillRows), ...Object.keys(approvalRows)])].sort((x, y) => Number(FIXED_PAGES.has(x)) - Number(FIXED_PAGES.has(y)));
   let inGuides = null;
   for (const slug of slugs) {
     if (slug === SPONSORS_GUIDE) continue;
@@ -1449,6 +1499,18 @@ export const BELONG_FILL_HREFS = new Map();
       out.push(p);
       (BELONG_FILL_HREFS.get(slug) ?? BELONG_FILL_HREFS.set(slug, new Set()).get(slug)).add(p.href);
       belong.fills += 1;
+    }
+    // 4b. New affiliate approvals (NEW_APPROVALS): placed by newApprovalSlot, highest-paying first, same rules as a fill.
+    for (const r of approvalRows[slug] ?? []) {
+      const p = approvalPick(r);
+      const dup = p && out.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name) || variantKey(x) === variantKey(p));
+      const no = !p ? "hidden" : !p.image ? "no photo" : dup ? "already listed" : !fitsGuide(slug, p) ? "fit" : louisianaBlocked(slug, p) ? "Louisiana rule"
+        : belongsWhy(slug, group, p, seen, true) || (a && (a.hrefs.has(p.href) || a.names.has(compact(p.name))) ? "fit audit" : "");
+      if (no) { newApprovals.skipped.push(`${slug}: ${r.name} (${no})`); continue; }
+      out.splice(newApprovalSlot(out, isTrending, isAmazonPick), 0, p);
+      (BELONG_FILL_HREFS.get(slug) ?? BELONG_FILL_HREFS.set(slug, new Set()).get(slug)).add(p.href);
+      (NEW_APPROVAL_HREFS.get(slug) ?? NEW_APPROVAL_HREFS.set(slug, new Set()).get(slug)).add(p.href);
+      newApprovals.placed += 1;
     }
     // 5. Louisiana words on a national page's line.
     const national = !LOUISIANA_GUIDES.has(slug) && !LOUISIANA_STORE_PAGES.has(slug);
@@ -1645,6 +1707,16 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     linksR3.storesEmptied.push(s);
   }
 }
+// NEW APPROVALS, again (lead 11-19: "never push out Trending or the top 3"): the holistic pass can drop picks above a
+// new-approval pick and lift it into the top 3; each one is taken out and put back by newApprovalSlot on the final list.
+for (const [slug, hrefs] of NEW_APPROVAL_HREFS) {
+  const list = pageList[slug];
+  if (!list) continue;
+  const mine = list.filter((p) => hrefs.has(p.href));
+  const rest = list.filter((p) => !hrefs.has(p.href));
+  for (const p of mine) rest.splice(newApprovalSlot(rest, isTrending, isAmazonPick), 0, p);
+  pageList[slug] = rest;
+}
 // Removing repeats can lift a later XTRATUF boot into the top: one in the first 12, two in the first 25, again.
 for (const slug of Object.keys(pageList)) {
   if (slug.startsWith("store-")) continue;
@@ -1818,4 +1890,4 @@ for (const { slug } of INDEX) {
   const n = pageList[slug]?.length ?? 0;
   if (n < BELONG_SHORT) belong.short.push(`${slug}:${n}`);
 }
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; non-US store links: ${NON_US_LINKS.size} (${nonUs.relinked} rows moved to a US link, ${nonUs.hidden} hidden); late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}; belong: ${belong.audit} audit removals, rules ${JSON.stringify(belong.rules)}, ${belong.wrap} non-wrap, ${belong.mail} over $20 or unpriced on Mail Carrier, ${belong.fills} fills added (${belong.fillSkipped} skipped), ${belong.lines} lines neutralized, ${soldout.swapped} sold-out links swapped; links r3: ${linksR3.relinked} picks moved to a twin link, ${holistic.byRule["homepage link"] ?? 0} homepage links and ${Object.entries(holistic.byRule).filter(([k]) => k.startsWith("banned link")).reduce((n, [, v]) => n + v, 0)} banned links removed, ${linksR3.deals} deals and ${linksR3.dealItems} deal items dropped${linksR3.storesEmptied.length ? `, store pages emptied: ${linksR3.storesEmptied.join(" ")}` : ""}${belong.short.length ? `, under ${BELONG_SHORT}: ${belong.short.join(" ")}` : ""}`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; non-US store links: ${NON_US_LINKS.size} (${nonUs.relinked} rows moved to a US link, ${nonUs.hidden} hidden); late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}; belong: ${belong.audit} audit removals, rules ${JSON.stringify(belong.rules)}, ${belong.wrap} non-wrap, ${belong.mail} over $20 or unpriced on Mail Carrier, ${belong.fills} fills added (${belong.fillSkipped} skipped), ${belong.lines} lines neutralized, ${soldout.swapped} sold-out links swapped; new approvals: ${newApprovals.rows} rows, ${newApprovals.placed} placed, ${newApprovals.skipped.length} skipped${newApprovals.skipped.length ? ` (${newApprovals.skipped.join("; ")})` : ""}, ${linkUpgrades.rows} rows on an upgraded link; links r3: ${linksR3.relinked} picks moved to a twin link, ${holistic.byRule["homepage link"] ?? 0} homepage links and ${Object.entries(holistic.byRule).filter(([k]) => k.startsWith("banned link")).reduce((n, [, v]) => n + v, 0)} banned links removed, ${linksR3.deals} deals and ${linksR3.dealItems} deal items dropped${linksR3.storesEmptied.length ? `, store pages emptied: ${linksR3.storesEmptied.join(" ")}` : ""}${belong.short.length ? `, under ${BELONG_SHORT}: ${belong.short.join(" ")}` : ""}`);

@@ -79,3 +79,6 @@ export function beautyGuide(slug: string): boolean;
 export const BEAUTY_GUIDE_MAX: number;
 export const PUPPY_ITEM: RegExp;
 export const OWNER_MERCH: RegExp;
+export const NEW_APPROVAL_KEEP_TOP: number;
+export function newApprovalSlot<T>(list: T[], isTop: (p: T) => boolean, isLower: (p: T) => boolean): number;
+export function approvalLine(why: unknown): string;

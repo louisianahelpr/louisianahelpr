@@ -915,6 +915,10 @@ platform :ios do
       upload_args = {
         api_key:                              api_key,
         app_identifier:                       APP_ID,
+        # 1.0.5 (11-19): with the previous version live there is no editable
+        # version; naming it makes deliver create (or rename) the
+        # "Prepare for Submission" version instead of failing to find one.
+        app_version:                          APP_MARKETING_VERSION,
         skip_binary_upload:                   true,
         submit_for_review:                    false,
         automatic_release:                    false,

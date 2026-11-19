@@ -50,8 +50,8 @@ const config: CapacitorConfig = {
     // App Store Connect identifiers
     appleId: '6754470134',
     sku: 'Helpr',
-    version: '1.0.4',
-    build: '7601',
+    version: '1.0.5',
+    build: '7602',
     category: 'public.app-category.lifestyle',
     supportUrl: 'https://www.louisianahelpr.com/support',
     privacyPolicyUrl: 'https://www.louisianahelpr.com/privacy',

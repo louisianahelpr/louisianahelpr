@@ -26,7 +26,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, NOT_LOUISIANA_BUSINESS, brokenImage, fitsGuide, productName, tidyName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, NOT_LOUISIANA_BUSINESS, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "./giftGuideRules.mjs";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -430,6 +430,31 @@ const FEATURED = (() => {
   const v = readJson("_featured-order.json");
   return v && typeof v === "object" && !Array.isArray(v) ? v : {};
 })();
+/**
+ * FIT AUDIT (11-18 PM, _fit-audit-1118.json): each guide's `final_top25` is its featured order (misfits replaced, 25 per
+ * guide), and `remove_louisiana` names leave that page. Crawfish Boil Host and Purple & Gold moved into the Louisiana
+ * section (owner 11-18 PM) and keep their own order: the audit stripped their Louisiana items before the move.
+ */
+const AUDIT = (() => {
+  const v = readJson("_fit-audit-1118.json");
+  return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+})();
+const MOVED_TO_LOUISIANA = ["crawfish-boil-host", "purple-and-gold-lover"];
+for (const [slug, a] of Object.entries(AUDIT)) {
+  if (MOVED_TO_LOUISIANA.includes(slug) || !Array.isArray(a?.final_top25) || !a.final_top25.length) continue;
+  FEATURED[slug] = a.final_top25.filter((n) => typeof n === "string");
+}
+/** The Louisiana section's guides (giftGuideIndex.ts group "Louisiana"): the only guides that hold Louisiana items. */
+const LOUISIANA_GUIDES = new Set([...indexSrc.matchAll(/group: "Louisiana"[^}]*?slug: "([^"]+)"/g)].map((m) => m[1]));
+const LA_HOSTS = new Set([...LOUISIANA, ...SPONSORS]);
+/** Store pages that are themselves a Louisiana brand's keep their own items. */
+const LOUISIANA_STORE_PAGES = new Set(["store-community-coffee", "store-rebeccaillustrated"]);
+const auditGone = (slug, p) => !MOVED_TO_LOUISIANA.includes(slug) && !slug.startsWith("store-")
+  && Array.isArray(AUDIT[slug]?.remove_louisiana) && AUDIT[slug].remove_louisiana.some((n) => typeof n === "string" && compact(n) === compact(p.name));
+/** A pick this page may not show under the Louisiana rule (a guide or store page outside the section). */
+// Store pages follow the same lasting rule (a national store page drops Louisiana items; a Louisiana brand's own page keeps
+// them); the audit's per-name lists apply to guides.
+export const louisianaBlocked = (slug, p) => auditGone(slug, p) || (!LOUISIANA_GUIDES.has(slug) && !LOUISIANA_STORE_PAGES.has(slug) && isLouisianaItem(p, LA_HOSTS));
 /** No more than one XTRATUF boot in any guide's first FEATURED_TOP picks (owner 11-18 PM: Her opened on two), store pages aside. */
 export const FEATURED_TOP = 12;
 /** A featured or trending name matches a pick by exact name, then normalized name, then a normalized prefix either way. */
@@ -458,8 +483,25 @@ let photoless = 0;
 const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), ...(Array.isArray(FEATURED[slug]) ? FEATURED[slug] : [])]
   .filter((x) => typeof x === "string" || (x && typeof x === "object" && typeof x.name === "string"));
 const featuredNames = (slug) => featuredEntries(slug).map((x) => (typeof x === "string" ? x : x.name));
+/** Every guide pick by compact name (photo'd first), for featured names the guide itself does not hold (the audit's replacements). */
+let globalByName;
+const fromAnyGuide = (slug, name) => {
+  if (!globalByName) {
+    globalByName = new Map();
+    for (const [g, l] of Object.entries(guides)) if (!g.startsWith("store-")) for (const p of l) {
+      const k = compact(p.name);
+      if (!globalByName.has(k) || (!globalByName.get(k).image && p.image)) globalByName.set(k, p);
+    }
+  }
+  const p = globalByName.get(compact(name));
+  return p && fitsGuide(slug, p) && !louisianaBlocked(slug, p) ? p : undefined;
+};
 const resolveFeatured = (slug, list, e) => {
-  if (typeof e === "string") return findByName(list, e);
+  if (typeof e === "string") {
+    // The guide's own row, unless it has no photo and another guide holds the same product with one.
+    const own = findByName(list, e);
+    return own?.image ? own : fromAnyGuide(slug, e) ?? own;
+  }
   const own = findByName(list, e.name);
   if (own) return own;
   const from = typeof e.from === "string" && e.from !== slug ? guides[e.from] : undefined;
@@ -469,7 +511,7 @@ const resolveFeatured = (slug, list, e) => {
 const featuredFirst = (slug, list) => {
   const lead = featuredEntries(slug).map((e) => resolveFeatured(slug, list, e)).filter(Boolean);
   // No photo, no row (see NO PHOTO, NO ROW below): dropped before the top 25 is counted, so its limits hold.
-  const ordered = [...new Set([...lead, ...list])].filter((p) => slug === SPONSORS_GUIDE || hasPhoto(p) || ((photoless += 1), false));
+  const ordered = [...new Set([...lead, ...list])].filter((p) => !louisianaBlocked(slug, p)).filter((p) => slug === SPONSORS_GUIDE || hasPhoto(p) || ((photoless += 1), false));
   if (slug.startsWith("store-")) return ordered;
   const head = [];
   const later = [];
@@ -600,6 +642,27 @@ for (const slug of Object.keys(guides)) {
 }
 
 /**
+ * TOP-UP (owner 11-18 PM: "All guides need 25"): a guide still under TOP_GIFTS borrows photo'd picks from the guides in
+ * its own section (first picks first), under the same fit and Louisiana rules. Gift cards and Subscriptions have their
+ * own back-fill below.
+ */
+{
+  const sectionOf = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  for (const [slug, list] of Object.entries(guides)) {
+    if (slug.startsWith("store-") || slug === "gift-cards" || slug === "subscriptions" || slug === SPONSORS_GUIDE || list.length >= TOP_GIFTS) continue;
+    const peers = Object.entries(guides).filter(([g]) => g !== slug && !g.startsWith("store-") && sectionOf.get(g) === sectionOf.get(slug));
+    // Picks naming the guide's own subject first ("crawfish" for Crawfish Season), then the peers' first picks.
+    const title = new RegExp(`\\b(${slug.split("-").filter((w) => w.length > 3).join("|") || "^$"})`, "i");
+    const pool = peers.flatMap(([, other]) => other.slice(0, 60));
+    for (const p of [...pool.filter((x) => title.test(x.name)), ...pool.filter((x) => !title.test(x.name))]) {
+      if (list.length >= TOP_GIFTS) break;
+      if (!p?.image || !fitsGuide(slug, p) || louisianaBlocked(slug, p)) continue;
+      if (list.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
+      list.push(p);
+    }
+  }
+}
+/**
  * BACK-FILL (owner 11-18 PM: "All guides need 25"): a guide under TOP_GIFTS after "no photo, no row" borrows fitting
  * photo'd picks from every other guide. Only Gift cards and Subscriptions can fall short (their picks must be gift cards
  * or memberships); every other guide measured 25+ after the removal (2026-11-18).
@@ -611,7 +674,7 @@ for (const [slug, fits] of Object.entries(BACKFILL_FITS)) {
   for (const [from, other] of Object.entries(guides)) {
     if (from === slug) continue;
     for (const p of other) {
-      if (!p.image || !fits(p) || !fitsGuide(slug, p)) continue;
+      if (!p.image || !fits(p) || !fitsGuide(slug, p) || louisianaBlocked(slug, p)) continue;
       if (list.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
       list.push(p);
     }
@@ -787,6 +850,13 @@ const noRepeats = (list) => {
   return out;
 };
 for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]);
+// The Louisiana rule on every page, store pages included (their audit list), after the store pages are assembled.
+for (const slug of Object.keys(pageList)) {
+  const kept = pageList[slug].filter((p) => !louisianaBlocked(slug, p));
+  // A store page the rule would empty (World Market's only pick is its chicory coffee) keeps its item: picks in the
+  // Louisiana guides still name that store.
+  if (kept.length || !slug.startsWith("store-")) pageList[slug] = kept;
+}
 // Removing repeats can lift a later XTRATUF boot into the top: one in the first 12, two in the first 25, again.
 for (const slug of Object.keys(pageList)) {
   if (slug.startsWith("store-")) continue;

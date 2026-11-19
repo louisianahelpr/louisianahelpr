@@ -25,7 +25,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
 import { SEARCH_KEYWORDS, searchGuides } from "@/content/giftGuideCatalog";
-import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
+import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
+import { LOUISIANA_SHOPS, SPONSOR_SITES } from "@/content/giftGuides";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; sponsor?: true };
@@ -258,10 +259,11 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(rows).toBeGreaterThan(5000);
   });
   it("every guide still holds 25 picks after \"no photo, no row\" (owner 11-18 PM: \"All guides need 25\"), Gift cards and Subscriptions aside", () => {
-    // @mutate scripts/gift-guide-picks.mjs |       if (!p.image \|\| !fits(p) \|\| !fitsGuide(slug, p)) continue; |       continue;
+    // @mutate scripts/gift-guide-picks.mjs |       if (!p.image \|\| !fits(p) \|\| !fitsGuide(slug, p) \|\| louisianaBlocked(slug, p)) continue; |       continue;
     // Gift cards and Subscriptions hold every fitting photo'd pick in the data (back-filled from every page).
     expect(pageOf("gift-cards").length).toBeGreaterThan(25);
-    expect(pageOf("gift-cards").some((p) => /Dupuy/.test(p.name))).toBe(true);
+    // (Dupuy's Gift Certificate is a Louisiana business: the Louisiana rule keeps it in the Louisiana section.)
+    expect(pageOf("gift-cards").some((p) => /Dupuy/.test(p.name))).toBe(false);
     expect(pageOf("subscriptions").length).toBeGreaterThan(20);
     const guides = pages.map((f) => f.replace(/\.json$/, "")).filter((s) => !s.startsWith("store-") && !["gift-cards", "subscriptions"].includes(s));
     expect(guides.length).toBeGreaterThan(150);
@@ -286,6 +288,28 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     // Builder 6's three (11-18 PM): the Cheirosa mist, the CozyChic throw and the Owala bottle never wear another product.
     const named = (re: RegExp) => pages.flatMap((f) => (pageOf(f.replace(/\.json$/, "")) as { name: string; image?: string; href: string }[]).filter((p) => re.test(p.name)));
     for (const p of named(/Cheirosa 62 Perfume Mist|CozyChic Throw|Owala 32oz/)) expect(p.href, p.name).not.toMatch(/^https:\/\/shopmy\.us\/collections\//);
+  });
+  it("Louisiana items show only in the Louisiana section (owner rule 11-18 PM), which now holds Crawfish Boil Host and Purple & Gold", () => {
+    // @mutate scripts/gift-guide-picks.mjs | !LOUISIANA_STORE_PAGES.has(slug) && isLouisianaItem(p, LA_HOSTS)); | !LOUISIANA_STORE_PAGES.has(slug) && false);
+    const index = readFileSync(join(process.cwd(), "src/content/giftGuideIndex.ts"), "utf8");
+    const louisiana = new Set([...index.matchAll(/group: "Louisiana"[^}]*?slug: "([^"]+)"/g)].map((m) => m[1]));
+    expect(louisiana.has("crawfish-boil-host") && louisiana.has("purple-and-gold-lover")).toBe(true);
+    const hosts = new Set([...LOUISIANA_SHOPS, ...SPONSOR_SITES]);
+    expect(isLouisianaItem({ name: "Creole Seasoning", brand: "Tony Chachere's", href: "https://www.amazon.com/dp/x" }, hosts)).toBe(true);
+    expect(isLouisianaItem({ name: "Men's Ankle Deck Boot", brand: "XTRATUF", href: "https://www.xtratuf.com/x" }, hosts)).toBe(false);
+    let checked = 0;
+    for (const f of pages) {
+      const slug = f.replace(/\.json$/, "");
+      if (louisiana.has(slug) || ["store-community-coffee", "store-rebeccaillustrated"].includes(slug)) continue;
+      const list = pageOf(slug) as { name: string; brand?: string; href: string }[];
+      // A Louisiana store's own page (every pick a Louisiana item: Julie Vos, Dirty Coast...) keeps its items.
+      if (slug.startsWith("store-") && list.every((p) => isLouisianaItem(p, hosts))) continue;
+      for (const p of list) {
+        checked += 1;
+        expect(isLouisianaItem(p, hosts), `${slug}: ${p.name} (${p.brand})`).toBe(false);
+      }
+    }
+    expect(checked).toBeGreaterThan(5000);
   });
   it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]

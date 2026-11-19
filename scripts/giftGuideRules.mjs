@@ -140,3 +140,26 @@ export function tidyName(name) {
   }
   return n;
 }
+
+/**
+ * LOUISIANA ONLY IN LOUISIANA (owner rule 11-18 PM, fit audit _fit-audit-1118): a Louisiana-based item (a Louisiana
+ * shop's or 25 Days sponsor's link, a Louisiana brand, or a Louisiana-themed name) shows only in the Louisiana section.
+ * XTRATUF, Muck Boot and Bayou Classic are national brands. `laHosts` are the Louisiana shop and sponsor hosts.
+ */
+export const LOUISIANA_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du Monde", "Cafe Du Monde", "Tony Chachere's", "Community Coffee", "NOLA Couture",
+  "Aunt Sally's", "KREWE", "Leah's Pralines", "Southern Marsh", "Slap Ya Mama", "Zatarain's", "Joe Gambino's Bakery", "Cajun Power", "Savoie's",
+  "Zapp's", "Magic Seasoning Blends", "French Market", "French Market Coffee", "TABASCO", "Camellia Brand", "Camellia", "Steen's", "Kary's", "Abita",
+  "Crystal", "Blue Plate", "Louisiana Fish Fry", "Bruce's", "French Truck Coffee", "Red Stick Spice Company", "Red Stick Spice", "Panola Pepper Co.",
+  "Poche's", "Randazzo King Cake", "Southern Candymakers", "Julie Vos", "Mam Papaul's", "Crew Dog", "Junior League of Baton Rouge",
+  "Junior League of Lafayette", "Rebecca Illustrated", "Isaac Toups", "Ella Brennan", "John Folse", "Cajun Grocer", "Cajun Country", "Dupuy's",
+  "Rip Van Winkle Gardens", "Justin Wilson", "Melissa M. Martin", "Jean-Paul Bourgeois", "Zydeco Chop Chop", "Paul Prudhomme", "Konriko"];
+export const LOUISIANA_THEME = /\b(louisiana|new orleans|nola|cajun|creole|lsu|mardi gras|king cakes?|crawfish|acadiana|baton rouge|lafayette|saints|pelicans|pralines?|beignets?|roux|gumbo|jambalaya|boudin|zydeco|fleur[- ]de[- ]lis|bayou|chicory)\b/i;
+export const NATIONAL_BRANDS = /^(xtratuf|muck boot|bayou classic)/i;
+const squashName = (x) => String(x ?? "").normalize("NFD").toLowerCase().replace(/[^a-z0-9]+/g, "");
+const LA_BRAND_KEYS = new Set(LOUISIANA_BRANDS.map(squashName));
+export const isLouisianaItem = (p, laHosts) => {
+  if (NATIONAL_BRANDS.test(p.brand ?? "")) return false;
+  let host = "";
+  try { host = new URL(p.href).hostname; } catch { /* not a link: decided by brand and name */ }
+  return laHosts.has(host) || LA_BRAND_KEYS.has(squashName(p.brand)) || LOUISIANA_THEME.test(p.name ?? "");
+};

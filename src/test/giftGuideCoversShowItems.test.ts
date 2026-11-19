@@ -30,6 +30,7 @@ import {
  */
 const FEW_PHOTOS = "fewer than 4 clean product-only photos";
 const ONE_GUIDE = "under 4 clean product photos left after one guide per product (owner 11-19)";
+const READY_FILL = "under 4 clean product photos after the 1119c brand-link fill and taste pass: the rest are lifestyle shots or already on a cover in the section";
 const OWNER_FILL = "under 4 clean product photos after the owner picks and follow-up fills (11-19): the rest are on-model, lifestyle or already on a cover in the section";
 /**
  * Re-measured 2026-11-19 after the r3 follow-up gathered store photos (scripts/gift-guide-store-cover-photos.json): 52
@@ -43,10 +44,6 @@ const TEXT_ONLY: Record<string, string> = {
   "store-free-people": `${FEW_PHOTOS}: site and image server answer 403; its photos are grey-backdrop or on-model`,
   "store-crate-and-barrel": `${FEW_PHOTOS}: site answers 403; its studio photos sit on a grey gradient`,
   "store-birch-lane": `${FEW_PHOTOS}: Wayfair's sites answer 429; no clean photo of a product Birch Lane lists`,
-  "store-zonli": `${FEW_PHOTOS}: its site sits behind a bot challenge; its linked photos are on coloured backdrops`,
-  // New approval 11-19: its 133-product Shopify catalog (first 8 photos each) has one plain-backdrop photo, a scarf on
-  // cream; the rest are on-model shots beside care-icon or text panels.
-  "store-cashmere-boutique": `${FEW_PHOTOS}: one plain-backdrop photo in its catalog; the rest are on-model with text panels`,
   "crawfish-season": ONE_GUIDE,
   "engineers": ONE_GUIDE,
   "mardi-gras": ONE_GUIDE,
@@ -55,22 +52,25 @@ const TEXT_ONLY: Record<string, string> = {
   "machinists": ONE_GUIDE,
   // Measured 2026-11-19 after the owner picks and the follow-up fills (the cover script prints "SHORT <slug>").
   "louisiana-made": OWNER_FILL,
-  "homebody": OWNER_FILL,
   "mechanics": OWNER_FILL,
-  "store-dillards": OWNER_FILL,
-  "store-dsw": OWNER_FILL,
-  "store-nordstrom-rack": OWNER_FILL,
   "store-bombas": OWNER_FILL,
-  "store-vineyard-vines": OWNER_FILL,
-  "store-neiman-marcus": OWNER_FILL,
   "store-georgia-boot": OWNER_FILL,
   "store-littmann": OWNER_FILL,
   "store-summer-fridays": OWNER_FILL,
-  "store-victorias-secret": OWNER_FILL,
+  // Ready pass 1119c (measured 2026-11-19 by the cover script's TEXT ONLY line): the brand-link fill moved photo'd
+  // products between guides; these have under 4 clean product photos not already on a cover in their section.
+  "grandpa": READY_FILL, "new-mom": READY_FILL, "store-nike": READY_FILL, "store-loft": READY_FILL,
+  "store-dxl": READY_FILL, "store-leatherman": READY_FILL, "store-lilly-pulitzer": READY_FILL,
+  "store-melissaanddoug": READY_FILL, "store-meowbox": READY_FILL, "store-paulaschoice": READY_FILL, "store-rifle-paper-co": READY_FILL,
+  "store-shopbop": READY_FILL, "store-skinfix": READY_FILL, "store-stbernard": READY_FILL,
 };
 /** Covers with four products whose photos read as gingham to the pixel check (clear glass and white jars). */
 const PIXEL_PALE: Record<string, string> = {
   "store-mario-badescu": "clear and white skincare bottles",
+  // 1119c, looked at 2026-11-19: four products each, two of them white or cream.
+  "sister-in-law": "white pajamas and a white bralette below a pink case and tote",
+  "store-magnifique": "cream and white stoneware",
+  "store-southern-tide": "white shorts and light pants below two navy quarter-zips",
 };
 
 const manifest = readManifest();

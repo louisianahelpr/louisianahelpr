@@ -31,9 +31,9 @@ const isNewBrand = (href: string): boolean => {
   if (u.hostname === "www.awin1.com") return AWIN_IDS.has(u.searchParams.get("awinmid") ?? "");
   return false;
 };
-const STORES = ["store-georgia-boot", "store-click-and-grow", "store-magnifique", "store-lofree", "store-switchbot", "store-melodysusie",
-  "store-cashmere-boutique", "store-andaseat", "store-singer", "store-xplora", "store-byrokko", "store-forte-chocolate",
-  "store-adagio-teas", "store-oklahoma-joes"]; // Lubiwood and The Jacket Maker banned by the owner 11-19
+// Lubiwood and The Jacket Maker banned by the owner 11-19; Lofree, MelodySusie, Cashmere Boutique, AndaSeat, Xplora,
+// Byrokko, Forte Chocolate and Adagio Teas blocked by the owner's 1:05 PM rule (obscure affiliate brands; giftGuideBlocklist.mjs).
+const STORES = ["store-georgia-boot", "store-click-and-grow", "store-magnifique", "store-switchbot", "store-singer", "store-oklahoma-joes"];
 
 describe("gift guides: new affiliate approvals (lead 11-19)", () => {
   it("the placement rule: below the top 3 and every Trending pick, ahead of the first Amazon pick", () => {

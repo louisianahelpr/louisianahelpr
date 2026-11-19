@@ -206,7 +206,24 @@ export const PET_ITEM = /\b(catnip|litter ?(box|robot)?|barkbox|meowbox|kitty ki
  * pin sephora.co.uk). nonUsUrl reads a store URL, domain or store name: a UK, Australian or Canadian site (.co.uk,
  * .com.au, .ca, a /uk/, /en-gb/, /en-au/ or /en-ca/ path, "spacenk.com/uk").
  */
-export const nonUsUrl = (s) => /(\.co\.uk|\.com\.au|\.ca)(\/|\?|#|$)|\/(uk|en-gb|en-au|en-ca)(\/|$)|\.uk$/i.test(String(s ?? "").trim());
+/** A Selfridges link on its US store: host selfridges.com (or a subdomain) and a path under /US/. */
+const selfridgesUs = (t) => {
+  const raw = /^https?:\/\//i.test(t) ? t : `https://${t}`;
+  if (!URL.canParse(raw)) return false;
+  const u = new URL(raw);
+  const h = u.hostname.toLowerCase();
+  return (h === "selfridges.com" || h.endsWith(".selfridges.com")) && u.pathname.startsWith("/US/");
+};
+export const nonUsUrl = (s) => {
+  const t = String(s ?? "").trim();
+  return /(\.co\.uk|\.com\.au|\.ca)(\/|\?|#|$)|\/(uk|gb|en-gb|en-au|en-ca)(\/|$)|\.uk$/i.test(t)
+    // Links audit r3 (11-19): every Selfridges pin opened selfridges.com/GB (the UK site); only its /US/ store is US.
+    || (/selfridges/i.test(t) && !selfridgesUs(t))
+    // ... and FWRD pins forced the price into euros or pounds (?currency=GBP, tCurrency=EUR, tCountryCode=GB).
+    || CURRENCY_FORCED.test(t);
+};
+/** A link that forces a non-US currency or country (links audit r3: FWRD ?currency=GBP&tCountryCode=GB, tCurrency=EUR). */
+export const CURRENCY_FORCED = /[?&](t?currency|curr)=(?!usd\b)[a-z]{3}\b|[?&]t?countrycode=(?!us\b)[a-z]{2}\b/i;
 /** No Instax camera on the men's family guides, at any position (owner 11-19: "Why would a dad want an instax"). */
 export const INSTAX_OFF = ["dad", "him", "boyfriend-or-husband", "grandpa", "father-in-law"];
 export const instaxItem = (p) => /\binstax\b/i.test(`${p.name ?? ""} ${p.brand ?? ""}`);
@@ -342,4 +359,191 @@ export const neutralLine = (line) => {
   let out = String(line ?? "");
   for (const [re, to] of LINE_FIXES) out = out.replace(re, to);
   return LA_LINE.test(out) ? "" : out;
+};
+
+/**
+ * LINKS AUDIT R3 (design-audit-loop/gg-r3-links, 2026-11-19 4:13 AM; lead 11-19): every link below was checked live and
+ * is dead (404/410), sold out (Shopify product JSON available=false on every variant, or schema.org OutOfStock), on a
+ * UK/EU store, on the wrong page (a homepage, a collection, a password wall or another product), or a deal that opens
+ * only the store's homepage. A pick or deal on one of these links never shows again, whatever file brings it back
+ * (bannedLink, read by scripts/gift-guide-picks.mjs on every pick, deal and deal item). Where our data has the same
+ * product on another good link, the page shows that one (BANNED_TWIN in the import); otherwise the pick is removed
+ * (owner: fit beats count). Keyed by the exact link the page carries (a ShopMy or Mavely short link hides the store URL).
+ */
+export const BANNED_LINKS = new Map([
+  // dead (17)
+  ["https://click.linksynergy.com/deeplink?id=pqYaS88pNmA&mid=53160&murl=https%3A%2F%2Fmomcozy.com%2Fproducts%2Fmomcozy-5-5-full-hd-video-baby-monitor-bm03", "dead"], // Momcozy 5.5-inch Full HD Video Baby Monitor (BM03)
+  ["https://go.shopmy.us/p-104237971", "dead"], // Make Clay Charms (Klutz)
+  ["https://go.shopmy.us/p-104189704", "dead"], // The Book Of Paper Airplanes Craft Kit (Klutz)
+  ["https://go.shopmy.us/p-103894821", "dead"], // A Kick Scooter (Razor)
+  ["https://mavely.app.link/fPZoPPZqb8b", "dead"], // Stanley The Quencher® ProTour Flip Straw Tumbler, 40 OZ
+  ["https://go.shopmy.us/p-104192042", "dead"], // Butterfly Backpack (Skip Hop)
+  ["https://mavely.app.link/0CmO0TyQa8b", "dead"], // DEAL: Up To 30% Off Toys
+  ["https://go.shopmy.us/p-104126169", "dead"], // Classic Fleece Heated Blanket (Premier Comfort)
+  ["https://go.shopmy.us/p-104125980", "dead"], // Charley Harper - Monteverde Jigsaw Puzzle- 1000 Pieces (Pomegranate Co
+  ["https://go.shopmy.us/p-107554032", "dead"], // Shark SpeedStyle Hair Dryer for Curly & Coily Hair (SharkNinja)
+  ["https://go.shopmy.us/p-104189003", "dead"], // Plush Floral Bugs Assortment, 5" (Squishmallows)
+  ["https://go.shopmy.us/p-104237165", "dead"], // Easel Paper Roll Bundle (Melissa And Doug)
+  ["https://go.shopmy.us/p-104188321", "dead"], // Powera Wired Controller For Nintendo Switch (Bolt Axtion)
+  ["https://go.shopmy.us/p-104190488", "dead"], // Poke-A-Dot (Melissa And Doug)
+  ["https://go.shopmy.us/p-107556399", "dead"], // Charter Club Cashmere-Lined Leather Tech Gloves (Macy's)
+  ["https://go.shopmy.us/p-107556990", "dead"], // Club Room Men's Pajama Set (Macy's)
+  ["https://go.shopmy.us/p-107552032", "dead"], // Crocs Classic Clog (Macy's)
+  // sold out (66)
+  ["https://nolacouture.com/products/crawfish-boil-tie", "sold out"], // Gulf Blue Crawfish Boil Tie (NOLA Couture)
+  ["https://go.shopmy.us/p-104208114", "sold out"], // The Carry-On Suitcase (Away)
+  ["https://mavely.app.link/eqokbAlUa8b", "sold out"], // A.T.A. Bear Mug (Black Rifle Coffee Company)
+  ["https://www.anrdoezrs.net/click-101930553-15736401?url=https%3A%2F%2Fwww.durangoboots.com%2Fproducts%2Fdbt0241c", "sold out"], // Lil' Rebel Pro Little Kids' Western Boot (Durango Boots)
+  ["https://www.awin1.com/cread.php?awinmid=78080&awinaffid=3158016&ued=https%3A%2F%2Fimarku.net%2Fproducts%2F5qt-blue-enameled-pot-cast-iron-dutch-oven-with-lid", "sold out"], // 5-Qt Enameled Cast Iron Dutch Oven (Imarku)
+  ["https://mavely.app.link/efXtXkiOa8b", "sold out"], // Stay-Hot Stacking Cups Gift Set, 10 OZ (Stanley 1913)
+  ["https://go.shopmy.us/p-103878354", "sold out"], // Mini Pedestal Candles (Voluspa)
+  ["https://www.awin1.com/cread.php?awinmid=122866&awinaffid=3158016&ued=https%3A%2F%2Ftruebeautylashes.com%2Fproducts%2F2-in-1-magnetic-liquid-eyeliner", "sold out"], // 2-in-1 Magnetic Liquid Eyeliner (True Beauty Lashes)
+  ["https://mavely.app.link/xAY4WqlUa8b", "sold out"], // 3 Rounds Logo T-Shirt (Black Rifle Coffee Company)
+  ["https://go.shopmy.us/p-104229420", "sold out"], // Yeti Rambler 20 Tahoe Blue (St. Bernard)
+  ["https://go.shopmy.us/p-104229995", "sold out"], // Men's Dark Navy Cashmere Sweater (Shop The Sample)
+  ["https://go.shopmy.us/p-104212907", "sold out"], // Fourth Wing Book Tin (Maisonette)
+  ["https://go.shopmy.us/p-103885063", "sold out"], // Daytrip Lunch Bag (Yeti)
+  ["https://go.shopmy.us/p-103881623", "sold out"], // Go 4 Bluetooth Wireless Speaker (Jbl)
+  ["https://go.shopmy.us/p-104058983", "sold out"], // Safari 25-Piece Set (Magna-Tiles)
+  ["https://go.shopmy.us/p-104192136", "sold out"], // Build N Tumble Table (Mega Bloks)
+  ["https://go.shopmy.us/p-104124299", "sold out"], // Men's Ryan Leather Wallet (Fossil)
+  ["https://go.shopmy.us/p-104123289", "sold out"], // Go Instant Camera Everything Box Bundle With Go Film And Keepsake Kit 
+  ["https://go.shopmy.us/p-103902705", "sold out"], // Signature Round Dutch Oven (Le Creuset)
+  ["https://go.shopmy.us/p-103881198", "sold out"], // Rambler 14 oz Mug (YETI)
+  ["https://mavely.app.link/y9cag3oUa8b", "sold out"], // Kittypin Lanes (meowbox)
+  ["https://mavely.app.link/3ftmukkUa8b", "sold out"], // Party Animals Wrapping Paper (Paper Source)
+  ["https://go.shopmy.us/p-104061840", "sold out"], // Sophie Conran Galvanized Steel Watering Can (Burgon & Ball)
+  ["https://go.shopmy.us/p-107586050", "sold out"], // Wooden Take-Along Sorting Barn (Melissa & Doug)
+  ["https://go.shopmy.us/p-104191593", "sold out"], // USA Map Sound Puzzle (Melissa & Doug)
+  ["https://go.shopmy.us/p-104191548", "sold out"], // Fisher-Price Little People Ultimate Music Parade Ride-On (Paw Patrol)
+  ["https://go.shopmy.us/p-104054483", "sold out"], // Roses Candle - Limited Edition (Diptyque)
+  ["https://go.shopmy.us/p-107586297", "sold out"], // Quencher H2.0 FlowState Tumbler, 20 oz (Stanley)
+  ["https://go.shopmy.us/p-104125781", "sold out"], // Scuffette II Suede Mule (UGG)
+  ["https://go.shopmy.us/p-103878068", "sold out"], // CozyChic 2 Pair Sock Set (Barefoot Dreams)
+  ["https://go.shopmy.us/p-104126286", "sold out"], // Candle Snuffer Silver (Diptyque)
+  ["https://go.shopmy.us/p-104125842", "sold out"], // Echo Show 5 (3rd Generation) 5.5 Inch Smart Display With Alexa (Amazon
+  ["https://go.shopmy.us/p-103882489", "sold out"], // Standard Mouth 24oz Water Bottle (Hydro Flask)
+  ["https://go.shopmy.us/p-103899960", "sold out"], // Daytrip Lunch Box (St. Bernard)
+  ["https://go.shopmy.us/p-103882647", "sold out"], // Now+ Instant Camera Generation 2 (white) (Polaroid)
+  ["https://go.shopmy.us/p-104205992", "sold out"], // Now+ Instant Camera Gen 2 (Polaroid)
+  ["https://go.shopmy.us/p-104187149", "sold out"], // Instax Mini Mermaid Tail Film (Fujifilm)
+  ["https://go.shopmy.us/p-104218482", "sold out"], // Garden Watering Can (Ten Little)
+  ["https://go.shopmy.us/p-104218583", "sold out"], // Seed Starter Kit - Eco Friendly Paper Pulp Plant Pots, Plant Trays (Wi
+  ["https://go.shopmy.us/p-104202022", "sold out"], // Resurrection Aromatique Hand Wash (Aesop)
+  ["https://go.shopmy.us/p-107574727", "sold out"], // T3 Fit Compact Hair Dryer (Dermstore)
+  ["https://go.shopmy.us/p-107577057", "sold out"], // Olaplex No.7 Bonding Hair Oil (Dermstore)
+  ["https://go.shopmy.us/p-107565938", "sold out"], // Lilly Pulitzer 2026-2027 17-Month Large Agenda (Lillypulitzer)
+  ["https://go.shopmy.us/p-104226913", "sold out"], // Tervis Fishing Cast One More Made In Usa Double Walled Insulated Tumbl
+  ["https://go.shopmy.us/p-104189508", "sold out"], // 18 Inch Doll Accessories (The Queen'S Treasures)
+  ["https://go.shopmy.us/p-104217357", "sold out"], // 23.8 In. Full HD Led Gaming Lcd Monitor (Asus)
+  ["https://go.shopmy.us/p-103894465", "sold out"], // Remote Control Rc Robot Toy Walking Talking Dancing Ai Robots For Kids
+  ["https://go.shopmy.us/p-104113024", "sold out"], // Mug 2 (Ember)
+  ["https://go.shopmy.us/p-103894278", "sold out"], // Remote Control Monster Truck 1:16 Scale (Trademark Global)
+  ["https://go.shopmy.us/p-104217817", "sold out"], // F2 Standard Right Handed Pruning Shears (Felco)
+  ["https://go.shopmy.us/p-104190620", "sold out"], // Paper Making Craft Kit (National Geographic)
+  ["https://go.shopmy.us/p-104192234", "sold out"], // Fisher-Price Laugh & Learn 3-In-N-The-Go Camper (Fisher Price)
+  ["https://go.shopmy.us/p-103878587", "sold out"], // FreeSip Water Bottle (Owala)
+  ["https://go.shopmy.us/p-104190400", "sold out"], // Toniebox With Playtime Puppy (Tonies)
+  ["https://go.shopmy.us/p-104237882", "sold out"], // Puffy Sticker Bundle (Melissa And Doug)
+  ["https://go.shopmy.us/p-107555891", "sold out"], // UGG Tasman II Slippers (Macy's)
+  ["https://go.shopmy.us/p-107556560", "sold out"], // Yankee Candle Christmas Cookie Large Two-Wick Tumbler Candle (Macy's)
+  ["https://go.shopmy.us/p-107556965", "sold out"], // Fossil Women's Watch Ring, Rose Gold-Tone (Macy's)
+  ["https://go.shopmy.us/p-104053506", "sold out"], // Safari 25 Piece Set (Magna-Tiles)
+  ["https://go.shopmy.us/p-104223928", "sold out"], // Cat Mom Sweatshirt Greeting Card (Maisonette)
+  ["https://go.shopmy.us/p-104225249", "sold out"], // Duck Decoys Key Fob (Smathers & Branson)
+  ["https://go.shopmy.us/p-107574300", "sold out"], // Parachute Cloud Cotton Robe (Parachutehome)
+  ["https://go.shopmy.us/p-104226040", "sold out"], // Smathers + Branson Fishing Flies Pattern Needlepoint Valet Tray (St. B
+  ["https://go.shopmy.us/p-103900423", "sold out"], // Yeti Rambler. Bottle (St. Bernard)
+  ["https://go.shopmy.us/p-103905369", "sold out"], // Women's Phd Outdoor Light Pattern Hiking Mid Crew Socks (St. Bernard)
+  ["https://go.shopmy.us/p-104200528", "sold out"], // Baltic Amber Candle (Voluspa)
+  // non-US (11)
+  ["https://go.shopmy.us/p-104220786", "non-US"], // Go Instant Camera (Polaroid)
+  ["https://go.shopmy.us/p-104229712", "non-US"], // Birdling Blue Jay Soft Toy (Jellycat)
+  ["https://go.shopmy.us/p-104223987", "non-US"], // Amuseable Clementine Plush Toy (Jellycat)
+  ["https://go.shopmy.us/p-104121346", "non-US"], // Detroit Jacket (Carhartt Wip)
+  ["https://go.shopmy.us/p-104326686", "non-US"], // Sleeping Plush Charmander (Pokémon)
+  ["https://go.shopmy.us/p-104112810", "non-US"], // Always Pan (Our Place)
+  ["https://go.shopmy.us/p-104325960", "non-US"], // Atmos Vacuum Canister 1.2 L (Fellow)
+  ["https://go.shopmy.us/p-104226614", "non-US"], // SoundLink Micro Bluetooth Speaker (Bose)
+  ["https://go.shopmy.us/p-104217209", "non-US"], // Dragon-Print Enhanced Switch Controller (Powera)
+  ["https://go.shopmy.us/p-104210103", "non-US"], // Switch Oled Console (Nintendo)
+  ["https://go.shopmy.us/p-104113249", "non-US"], // Nespresso Vertuo Next Coffee Maker and Espresso Machine
+  // wrong page (18)
+  ["https://crew-dog.com/", "wrong page"], // Embroidered LSU Crewneck (Crew Dog)
+  ["https://click.linksynergy.com/deeplink?id=pqYaS88pNmA&mid=53904&murl=https%3A%2F%2Ftushbaby.com%2F", "wrong page"], // Convertible Carrier (Tushbaby)
+  ["https://www.awin1.com/cread.php?awinmid=123126&awinaffid=3158016&ued=https%3A%2F%2Fpiccoload.com%2F", "wrong page"], // Personalized Photo Coloring Book (Piccoload)
+  ["https://go.shopmy.us/p-104219112", "wrong page"], // Manta Sleep Mask
+  ["https://mavely.app.link/ikiEQfvUa8b", "wrong page"], // Candle Gift Sets, Mini Boxes (Yankee Candle)
+  ["https://go.shopmy.us/p-103892650", "wrong page"], // Classic Vacuum Bottle (Stanley)
+  ["https://mavely.app.link/kPgEICkUa8b", "wrong page"], // Warmies®, the Original Heatable Weighted Stuffed Animal
+  ["https://mavely.app.link/fc0r8T7Qa8b", "wrong page"], // Rosé All Day Petal Glow (Physicians Formula)
+  ["https://go.shopmy.us/p-104214954", "wrong page"], // Golf and Tackle Bucket Hat (Malbon Golf)
+  ["https://go.shopmy.us/p-104123396", "wrong page"], // Renown Hoodie (Alo Yoga)
+  ["https://go.shopmy.us/p-107565455", "wrong page"], // SKIMS Cozy Knit Robe
+  ["https://go.shopmy.us/p-107565589", "wrong page"], // SKIMS Soft Lounge Lace Pants
+  ["https://go.shopmy.us/p-107566323", "wrong page"], // vineyard vines Sophie Harbor Dress (Vineyard Vines)
+  ["https://go.shopmy.us/p-104219076", "wrong page"], // Calpak x Miffy Packing Cubes 5-Piece Set
+  ["https://go.shopmy.us/p-104207522", "wrong page"], // Clear Coated Cosmetic Train Case (Mark & Graham)
+  ["https://go.shopmy.us/p-104217417", "wrong page"], // Twitch Studded Hoodie (Complex)
+  ["https://go.shopmy.us/p-107585054", "wrong page"], // Rest Sound Machine and Night Light, Putty (Hatch)
+  ["https://go.shopmy.us/p-107580751", "wrong page"], // Owala FreeSip Stainless Steel Water Bottle, 24oz, Very Very Black
+  // homepage deal (32)
+  ["https://mavely.app.link/Itbid0NQa8b", "homepage deal"], // DEAL: Big Holiday Sale | 25% OFF SITEWIDE: Whether youre looking for 
+  ["https://mavely.app.link/DnUuUHvQa8b", "homepage deal"], // DEAL: Cozy Shop 60% off - Select Outwear, Sweaters, Cold Weather Acces
+  ["https://mavely.app.link/aiNFK7pQa8b", "homepage deal"], // DEAL: Cyber Sale: 30% off Sitewide and 50% off Gift Sets
+  ["https://mavely.app.link/iD33bE7Qa8b", "homepage deal"], // DEAL: Up to 60% off Select Styles and Colors + Doorbusters
+  ["https://mavely.app.link/sbTfAtwQa8b", "homepage deal"], // DEAL: Black Friday Sale - 40% off Sitewide
+  ["https://mavely.app.link/5stVldXQa8b", "homepage deal"], // DEAL: Black Friday Early Access - Up to 40% off When Logged in
+  ["https://mavely.app.link/fDlJ4BGQa8b", "homepage deal"], // DEAL: Buy One, Get One 50% off
+  ["https://mavely.app.link/oOKl8SGQa8b", "homepage deal"], // DEAL: Black Friday Sale: Up to 30% off Select Guitars
+  ["https://mavely.app.link/p9QLlepQa8b", "homepage deal"], // DEAL: 50% off Clearance
+  ["https://mavely.app.link/SZU4yLqQa8b", "homepage deal"], // DEAL: Early Black Friday Sale
+  ["https://mavely.app.link/YNJKmwpQa8b", "homepage deal"], // DEAL: Buy One, Get One 50% off GNC Multivitamins, Vitapaks, and Fish O
+  ["https://mavely.app.link/f8fufbrQa8b", "homepage deal"], // DEAL: Early Black Friday: 30% off Sitewide
+  ["https://mavely.app.link/6GrzbhFQa8b", "homepage deal"], // DEAL: Early Black Friday: 50% off All PJs + 40% off Everything Else
+  ["https://mavely.app.link/BrdKUKDQa8b", "homepage deal"], // DEAL: Up to 65% off Black Friday Deals
+  ["https://mavely.app.link/APXFQ3nQa8b", "homepage deal"], // DEAL: Extra 30% off Sale
+  ["https://mavely.app.link/moXrCEqQa8b", "homepage deal"], // DEAL: New arrivals just landed!
+  ["https://mavely.app.link/9ZWm82JQa8b", "homepage deal"], // DEAL: Lancôme’s Black Friday Early Access is 30% off sitewide.
+  ["https://mavely.app.link/1ClZ0uYQa8b", "homepage deal"], // DEAL: Extra 50% off Clearance
+  ["https://mavely.app.link/8XtUaQ7Qa8b", "homepage deal"], // DEAL: 30% off Select items
+  ["https://mavely.app.link/8ElgTmFQa8b", "homepage deal"], // DEAL: Black Friday Preview: 40% off or More
+  ["https://mavely.app.link/u1HobgsQa8b", "homepage deal"], // DEAL: Mega Deals - Score Epic Deals on Holiday Must-haves for Merry Ma
+  ["https://mavely.app.link/h0S13msQa8b", "homepage deal"], // DEAL: 20% off Sitewide for Black Friday
+  ["https://mavely.app.link/LwjP37nQa8b", "homepage deal"], // DEAL: Black Friday Sale - Take 40% off Caviar
+  ["https://mavely.app.link/ByW6S2vQa8b", "homepage deal"], // DEAL: Get Gifting with Our Hottest Holiday Deals
+  ["https://mavely.app.link/Ohbs2wCQa8b", "homepage deal"], // DEAL: Black Friday / Cyber Monday - 25% off Sitewide
+  ["https://mavely.app.link/jG4oNVnQa8b", "homepage deal"], // DEAL: The Holiday Event - Up to 40% off Everything
+  ["https://mavely.app.link/RvjS0xqQa8b", "homepage deal"], // DEAL: Shop Cyber Promo - Take 25% off Sitewide, Plus Create Your Own S
+  ["https://mavely.app.link/ncLMv8YQa8b", "homepage deal"], // DEAL: Black Friday Sale: Up to 40% off Comforters, Pillows, & More + U
+  ["https://mavely.app.link/3LtypipQa8b", "homepage deal"], // DEAL: Save 50% on Jackets & Outerwear
+  ["https://mavely.app.link/EehdqHlQa8b", "homepage deal"], // DEAL: Find Holiday Gifts for Less with 40% off Select Markdown Styles
+  ["https://mavely.app.link/oKSAUGrQa8b", "homepage deal"], // DEAL: Buy One, Get One 50% off Sitewide + Extra 30% off Sale
+  ["https://go.shopmy.us/p-107279221", "homepage deal"], // DEAL: Holiday Gifts
+]);
+/** Why a link is banned ("dead", "sold out", "non-US", "wrong page", "homepage deal"), or "". */
+export const bannedLink = (href) => BANNED_LINKS.get(String(href ?? "")) ?? "";
+/** Affiliate deeplinks that carry the store URL in a query parameter (Rakuten murl, Awin ued, CJ url, Impact u, ShareASale urllink). */
+const DEEPLINK_PARAMS = ["murl", "ued", "url", "u", "urllink", "destination"];
+/** The store URL a link opens: the deeplink's own target when it carries one, else the link itself. */
+export const storeUrlOf = (href) => {
+  try {
+    const u = new URL(String(href));
+    for (const k of DEEPLINK_PARAMS) {
+      const v = u.searchParams.get(k);
+      if (v && /^https?:\/\//i.test(v)) return new URL(v);
+    }
+    return u;
+  } catch { return null; }
+};
+/**
+ * No homepage-only links on picks (links audit r3: Tushbaby's Convertible Carrier, Piccoload's coloring book and Crew
+ * Dog's crewneck opened the store's front page): a pick whose store URL is the site root (or only a locale, "/en-us/")
+ * names a store, not an item. A ShopMy or Mavely short link hides its store URL (BANNED_LINKS covers those). The
+ * Louisiana businesses and the 25 Days sponsors keep their plain homepage links on purpose (the caller exempts them).
+ */
+export const homepageLink = (href) => {
+  const u = storeUrlOf(href);
+  if (!u) return false;
+  return /^\/((en|us|en-us|en_us|us\/en|en\/us)\/?)?$/i.test(u.pathname) && !/[?&](variant|sku|pid|product|id)=/i.test(u.search);
 };

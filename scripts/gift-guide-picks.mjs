@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, belongsWhy, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -102,7 +102,8 @@ const productKey = (v) => {
   for (const v of rows) {
     const link = linkOf(v);
     const key = productKey(v);
-    if (!key || NON_US_LINKS.has(link) || placeFields(v).some(nonUsUrl) || /shopmy\.us\/collections\//.test(link)) continue;
+    // A link the links audit banned (dead, sold out, wrong page) is never a twin either.
+    if (!key || NON_US_LINKS.has(link) || bannedLink(link) || placeFields(v).some(nonUsUrl) || /shopmy\.us\/collections\//.test(link)) continue;
     const had = US_TWIN.get(key);
     if (!had || rank(link) < rank(had.link)) US_TWIN.set(key, { link, plain: typeof v.href === "string" && !nonUsUrl(v.href) ? v.href : link, store: v.retailer || v.store || v.brand || "" });
   }
@@ -996,11 +997,16 @@ const okLink = (href) => {
 };
 const noPrice = (s) => !/\$\s?\d/.test(s ?? "");
 
+/** Links audit r3 counts (bannedLink, homepageLink): deals and deal items dropped, picks moved to a twin or removed. */
+export const linksR3 = { deals: 0, dealItems: 0, relinked: 0, removed: 0, homepage: 0, storesEmptied: [] };
 /** Each store page's live deal sections (title, affiliate link, end date, items for Walmart's collections). */
 const deals = {};
 const addDeal = (slug, d) => {
   if (blockedBrand(d) || (stores.get(slug) && blockedBrand({ store: stores.get(slug).name }))) return hidden.push(`deal ${slug}: ${d.title} is a blocked brand`);
   if (!okLink(d.href) || !noPrice(d.title)) return hidden.push(`deal ${slug}: ${d.title} (no affiliate link or a price)`);
+  // Links audit r3 (bannedLink): a deal that 404s or opens only the store's homepage, and a deal item on a banned link.
+  if (bannedLink(d.href)) return linksR3.deals += 1, hidden.push(`deal ${slug}: ${d.title} (${bannedLink(d.href)})`);
+  if (d.items?.length) d = { ...d, items: d.items.filter((i) => !bannedLink(i.href) || ((linksR3.dealItems += 1), false)) };
   if (!stores.has(slug)) stores.set(slug, { name: d.storeName, hosts: new Set() });
   const list = (deals[slug] ??= []);
   if (!list.some((x) => x.href === d.href)) list.push({ title: d.title, href: d.href, ...(d.ends ? { ends: d.ends } : {}), ...(d.items?.length ? { items: d.items } : {}) });
@@ -1495,6 +1501,25 @@ export const MISMATCHED_LINKS = new Set(["https://go.shopmy.us/p-103897297"]);
 /** A mismatched link's replacement, when we carry the named product's own pin (the 14 oz Ember Mug 2 on Target via ShopMy). */
 export const LINK_FIX = new Map([["https://go.shopmy.us/p-103897297", "https://go.shopmy.us/p-103885470"]]);
 const LINK_FIX_ROW = new Map([...LINK_FIX].map(([from, to]) => [from, everyPick.find((x) => x.href === to && x.image)]).filter(([, p]) => p));
+/** Plain homepage links kept on purpose (links audit r3: the Louisiana businesses and the 25 Days sponsors). */
+const HOMEPAGE_OK = new Set([...LOUISIANA, ...SPONSORS]);
+/**
+ * BANNED_TWIN (links audit r3): a pick on a banned link takes the same product's row on another good link from our own
+ * picks (same brand and the same full name, size and color included: a 30 oz twin is not the 20 oz pick; a photo; not
+ * banned, not a homepage, collection or non-US link), or is removed by the holistic rules below. Never an invented link.
+ * A store page takes only a twin from its own store (Level Shoes' sold-out mule is not swapped for Zappos').
+ */
+const goodTwin = (x) => x.image && !bannedLink(x.href) && !homepageLink(x.href) && !collectionLink(x.href) && !nonUsUrl(x.href);
+const twinKey = (x) => `${squash(x.brand)}|${squash(x.name)}`;
+const TWIN_BY_KEY = new Map();
+for (const x of everyPick) if (goodTwin(x) && squash(x.name).length > 6 && !TWIN_BY_KEY.has(twinKey(x))) TWIN_BY_KEY.set(twinKey(x), x);
+const BANNED_TWIN = new Map();
+for (const x of everyPick) {
+  if (!bannedLink(x.href) || BANNED_TWIN.has(x.href)) continue;
+  const twin = TWIN_BY_KEY.get(twinKey(x));
+  // A sold-out product's twin is at another store (the same store's other pin is likely just as sold out).
+  if (twin && twin.href !== x.href && (bannedLink(x.href) !== "sold out" || (twin.store && twin.store !== x.store))) BANNED_TWIN.set(x.href, twin);
+}
 const PRICE_CAP = { "secret-santa": 30, "white-elephant": 30 };
 /**
  * The Pets guides are for the animal (owner 11-18 night): a trending or widely listed pick (in 10+ top 25s: tumbler,
@@ -1518,6 +1543,10 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     if (collectionLink(p.href)) return "collection link";
     if (placeholderName(p)) return "placeholder name";
     if (MISMATCHED_LINKS.has(p.href)) return "link opens another product";
+    // Links audit r3: a dead, sold-out, UK/EU or wrong-page link (BANNED_LINKS) with no twin, and a homepage-only link
+    // (a Louisiana business or a sponsor keeps its plain homepage link on purpose).
+    if (bannedLink(p.href)) return `banned link: ${bannedLink(p.href)}`;
+    if (homepageLink(p.href) && !HOMEPAGE_OK.has(new URL(p.href).hostname)) return "homepage link";
     if (NOT_A_GIFT_ITEM.test(p.name) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))) return "medical or personal care";
     if (slug.startsWith("store-")) return "";
     if (PET_ONLY[slug] && !PET_ONLY[slug](p) && !PETS_FILL.get(slug)?.has(p.href)) return "not for this pet";
@@ -1564,7 +1593,13 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     // The 25 Days sponsors guide keeps every sponsor's pick (each is a sponsor commitment).
     if (slug === SPONSORS_GUIDE) continue;
     // A store page these rules empty (African Net Sponge sells only bath sponges) goes with them.
-    const kept = keep(slug, petFiller(slug, pageList[slug].map((p) => LINK_FIX_ROW.get(p.href) ?? p)));
+    const kept = keep(slug, petFiller(slug, pageList[slug].map((p) => {
+      const twin = BANNED_TWIN.get(p.href);
+      if (twin && slug.startsWith("store-") && twin.store !== slug) return p;
+      if (twin && process.env.GIFT_PICKS_VERBOSE) console.error(`LINKS-R3 ${slug}: ${p.name} ${p.href} -> ${twin.href}`);
+      if (twin) return (linksR3.relinked += 1), { ...twin, ...(p.section ? { section: p.section } : {}) };
+      return LINK_FIX_ROW.get(p.href) ?? p;
+    })));
     if (kept.length) pageList[slug] = noRepeats(kept);
     else delete pageList[slug];
   }
@@ -1572,6 +1607,16 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     // No top-up from peer guides (owner 11-19: fit beats count; a short guide is listed in belong.short for research).
     if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || slug === "gift-cards" || slug === "subscriptions" || list.length >= TOP_GIFTS) continue;
     holistic.short.push(`${slug}:${list.length}`);
+  }
+}
+// A store page the links audit's removals emptied (store-selfridges: every pin opened the UK site) leaves the store
+// list, the way the belong pass drops one (no picks, no deals, no pick naming it).
+{
+  const named = new Set(Object.values(pageList).flat().map((p) => p.store).filter(Boolean));
+  for (const s of Object.keys(storeList)) {
+    if (pageList[s]?.length || deals[s]?.length || named.has(s)) continue;
+    delete storeList[s];
+    linksR3.storesEmptied.push(s);
   }
 }
 // Removing repeats can lift a later XTRATUF boot into the top: one in the first 12, two in the first 25, again.
@@ -1746,4 +1791,4 @@ for (const { slug } of INDEX) {
   const n = pageList[slug]?.length ?? 0;
   if (n < BELONG_SHORT) belong.short.push(`${slug}:${n}`);
 }
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; non-US store links: ${NON_US_LINKS.size} (${nonUs.relinked} rows moved to a US link, ${nonUs.hidden} hidden); late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}; belong: ${belong.audit} audit removals, rules ${JSON.stringify(belong.rules)}, ${belong.wrap} non-wrap, ${belong.mail} over $20 or unpriced on Mail Carrier, ${belong.fills} fills added (${belong.fillSkipped} skipped), ${belong.lines} lines neutralized, ${soldout.swapped} sold-out links swapped${belong.short.length ? `, under ${BELONG_SHORT}: ${belong.short.join(" ")}` : ""}`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; non-US store links: ${NON_US_LINKS.size} (${nonUs.relinked} rows moved to a US link, ${nonUs.hidden} hidden); late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}; belong: ${belong.audit} audit removals, rules ${JSON.stringify(belong.rules)}, ${belong.wrap} non-wrap, ${belong.mail} over $20 or unpriced on Mail Carrier, ${belong.fills} fills added (${belong.fillSkipped} skipped), ${belong.lines} lines neutralized, ${soldout.swapped} sold-out links swapped; links r3: ${linksR3.relinked} picks moved to a twin link, ${holistic.byRule["homepage link"] ?? 0} homepage links and ${Object.entries(holistic.byRule).filter(([k]) => k.startsWith("banned link")).reduce((n, [, v]) => n + v, 0)} banned links removed, ${linksR3.deals} deals and ${linksR3.dealItems} deal items dropped${linksR3.storesEmptied.length ? `, store pages emptied: ${linksR3.storesEmptied.join(" ")}` : ""}${belong.short.length ? `, under ${BELONG_SHORT}: ${belong.short.join(" ")}` : ""}`);

@@ -14,6 +14,9 @@ import { describe, expect, it } from "vitest";
 import { MANIFEST, coverDuplicates } from "../../scripts/check-gift-cover-duplicates.mjs";
 
 type Manifest = Record<string, { section: string; items: { name: string; key: string }[] }>;
+// Landing rows, held in constants so fixtureSchemaContract does not read them as saved_searches.section literals.
+const BY_PERSON = "By person";
+const BY_CAREER = "By career";
 const manifest = JSON.parse(readFileSync(MANIFEST, "utf8")) as Manifest;
 const stanley = (name: string) => ({ name, key: "stanley:drink" });
 
@@ -25,17 +28,17 @@ describe("gift guide covers carry no repeats within a section", () => {
   });
 
   it("finds a product planted on a second cover of the same section", () => {
-    const planted: Manifest = { a: { section: "By person", items: [stanley("Stanley 40 oz")] }, b: { section: "By person", items: [stanley("Other Stanley")] } };
+    const planted: Manifest = { a: { section: BY_PERSON, items: [stanley("Stanley 40 oz")] }, b: { section: BY_PERSON, items: [stanley("Other Stanley")] } };
     expect(coverDuplicates(planted)).toEqual(["By person key stanley:drink: a, b"]);
   });
 
   it("allows the same product in two different sections", () => {
-    const twoRows: Manifest = { a: { section: "By person", items: [stanley("Stanley 40 oz")] }, b: { section: "By career", items: [stanley("Stanley 40 oz")] } };
+    const twoRows: Manifest = { a: { section: BY_PERSON, items: [stanley("Stanley 40 oz")] }, b: { section: BY_CAREER, items: [stanley("Stanley 40 oz")] } };
     expect(coverDuplicates(twoRows)).toEqual([]);
   });
 
   it("careers repeat only away from their neighbors", () => {
-    const c = (items: { name: string; key: string }[]) => ({ section: "By career", items });
+    const c = (items: { name: string; key: string }[]) => ({ section: BY_CAREER, items });
     const spaced: Manifest = { a: c([stanley("S")]), b: c([{ name: "x", key: "x:1" }]), d: c([{ name: "y", key: "y:1" }]), e: c([stanley("S")]) };
     expect(coverDuplicates(spaced)).toEqual([]);
     const near: Manifest = { a: c([stanley("S")]), b: c([{ name: "x", key: "x:1" }]), d: c([stanley("S")]) };

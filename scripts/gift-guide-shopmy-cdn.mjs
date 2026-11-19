@@ -10,14 +10,22 @@
  * unchecked photo is never shown. Re-runnable: a URL already listed is not fetched again.
  * Usage: node scripts/gift-guide-shopmy-cdn.mjs [<picks dir>]
  */
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { SHOPMY_S3, shopmyCdnUrl } from "./giftGuideRules.mjs";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const mapFile = join(dir, "_shopmy-cdn-photos.json");
-const map = existsSync(mapFile) ? JSON.parse(readFileSync(mapFile, "utf8")) : {};
+// Read it outright (no exists-then-read check, CodeQL js/file-system-race): a missing file starts an empty map.
+const map = (() => {
+  try {
+    return JSON.parse(readFileSync(mapFile, "utf8"));
+  } catch (e) {
+    if (e?.code === "ENOENT") return {};
+    throw e;
+  }
+})();
 const found = new Set();
 for (const f of readdirSync(dir).filter((x) => x.endsWith(".json") && x !== "_shopmy-cdn-photos.json")) {
   for (const m of readFileSync(join(dir, f), "utf8").matchAll(new RegExp(SHOPMY_S3.source + "[^\"\\s]*", "g"))) found.add(m[0]);

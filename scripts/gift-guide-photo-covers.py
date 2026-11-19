@@ -91,6 +91,11 @@ MANIFEST = os.path.join(ROOT, "scripts", "gift-guide-cover-items.json")
 # photos rejected on review (scripts/gift-guide-store-image-rejects.json: ads, text-heavy shots, people, logos; a
 # photo listed there is never drawn on any cover, whichever pick carries it).
 STORE_IMAGES = _load("_store-cover-images-1118.json")
+# Round 2 of the bestseller photos (122 stores, 57 not in round 1) was gathered but never read here (r3 H1): it is.
+for _k, _v in _load("_store-cover-images-r2-1118.json").items():
+    if isinstance(_v, list):
+        _have = {x.get("image") for x in STORE_IMAGES.get(_k, []) if isinstance(x, dict)}
+        STORE_IMAGES[_k] = list(STORE_IMAGES.get(_k, [])) + [x for x in _v if isinstance(x, dict) and x.get("image") not in _have]
 # Round 2 of the Amazon store fill (short store key -> products), the same way: after the store's own picks.
 STORE_FILL = {f"store-{k}": v for k, v in _load("_store-fill-amazon-1118.json").items() if isinstance(v, list)}
 _rej = os.path.join(ROOT, "scripts", "gift-guide-store-image-rejects.json")
@@ -312,6 +317,8 @@ def cutout(data, tight=False):
 # subscription boxes): gift cards and memberships are allowed there, and a photo that fills its frame is drawn whole
 # as a rounded card instead of cut out.
 CARD_GUIDES = {"gift-cards", "subscriptions"}
+# Neutral Lover is cream, ivory and white things: its light products are the point (shown with the stronger shadow).
+LIGHT_OK = {"neutral-lover"}
 
 
 def card(data):
@@ -558,7 +565,7 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
                 no("clothes on a model")
             elif c is None:
                 no("photo not on white")
-            elif is_light(c):
+            elif is_light(c) and slug not in LIGHT_OK:
                 light.append((c, p))  # blends into the cream arch (owner 11-18: "Like the Owala bottle is light")
             else:
                 got.append(c)
@@ -759,13 +766,14 @@ def usable_count(row):
             continue
         if (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, [], row["group"]):
             continue
-        if u not in _USABLE:
+        key = (u, slug in LIGHT_OK, slug in CARD_GUIDES, slug.startswith("store-"))
+        if key not in _USABLE:
             data = fetch(u)
             c = cutout(data, tight=bool(TIGHT.search(p.get("name") or ""))) if data else None
             if c is None and data and slug in CARD_GUIDES:
                 c = card(data)
-            _USABLE[u] = c is not None and not is_light(c) and not worn(slug, p, c)
-        n += _USABLE[u]
+            _USABLE[key] = c is not None and (slug in LIGHT_OK or not is_light(c)) and not worn(slug, p, c)
+        n += _USABLE[key]
     return n
 
 
@@ -839,25 +847,44 @@ def main():
     for row in rows:
         if len(picked[row["slug"]][0]) >= 4:
             take(row, 6, pre=picked[row["slug"]])
-    # Pass 3 (r3 H1): a cover still short of four takes, one at a time, a product a cover of its section holds beyond its
-    # own four; the product moves (it is never on both), so the section still has no repeats and no cover drops below 4.
+    # Pass 3 (r3 H1): a cover still short of four takes, one at a time, a product another cover of its section holds;
+    # the product moves (it is never on both), so the section keeps no repeats. A donor holding exactly four refills from
+    # its own other photos, and when it cannot, the move is undone. Careers take only from their neighbours (the covers
+    # whose products they may not repeat).
+    rowof = {r["slug"]: r for r in rows}
+
+    def near_careers(slug):
+        i = career_order.index(slug)
+        return set(career_order[max(0, i - 2):i] + career_order[i + 1:i + 3])
+
     for row in sorted(rows, key=lambda r: (usable[r["slug"]], order.index(r["slug"]))):
-        if row["group"] == "By career":
-            continue
+        blocked = set()
         while 0 < 4 - len(picked[row["slug"]][0]):
-            donors = {k: v for k, v in picked.items() if k != row["slug"] and groups.get(k) == row["group"] and len(v[0]) > 4}
+            pool = near_careers(row["slug"]) if row["group"] == "By career" else {k for k in picked if groups.get(k) == row["group"]}
+            donors = {k: v for k, v in picked.items() if k != row["slug"] and k in pool and k in rowof and len(v[0]) >= 4}
             holder = {i: k for k, v in donors.items() for t in v[1] for i in ids([t], v[2])}
-            before = picked[row["slug"]]
-            take(row, len(before[0]) + 1, pre=before, free=frozenset(holder))
+            free = frozenset(i for i in holder if i not in blocked)
+            before, saved = picked[row["slug"]], {g: set(u) for g, u in used.items()}
+            take(row, len(before[0]) + 1, pre=before, free=free)
             new = [t for t in picked[row["slug"]][1] if not any(t is b for b in before[1])]
             if not new:
                 picked[row["slug"]] = before
                 break
-            k = next((holder[i] for i in ids(new, before[2]) if i in holder), None)
-            if k:  # the donor gives it up
-                g, t, ob = picked[k]
-                keep = [j for j, x in enumerate(t) if not (ids([x], ob) & ids(new, before[2]))]
-                picked[k] = ([g[j] for j in keep], [t[j] for j in keep], ob)
+            moved = ids(new, before[2])
+            k = next((holder[i] for i in moved if i in holder), None)
+            if not k:
+                continue
+            donor_before = picked[k]
+            g, t, ob = donor_before
+            keep = [j for j, x in enumerate(t) if not (ids([x], ob) & moved)]
+            picked[k] = ([g[j] for j in keep], [t[j] for j in keep], ob)
+            if len(picked[k][0]) < 4:
+                take(rowof[k], 4, pre=picked[k])
+            if len(picked[k][0]) < 4:  # the donor would go short: undo, and do not offer that product again
+                picked[row["slug"]], picked[k] = before, donor_before
+                used.clear()
+                used.update(saved)
+                blocked |= moved
     short = []
     for row in rows:
         prods, taken, own_brand = picked[row["slug"]]

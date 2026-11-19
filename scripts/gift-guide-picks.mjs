@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -367,7 +367,8 @@ function toPick(p, where) {
     || (byName && brandInSource(p.brand, byName.from) ? byName.image : undefined) || undefined;
   // The owner approved Amazon product images for these (11-18 PM): the CDN photo, on an Amazon link only (Associates).
   const amazonFound = Boolean(found) && AMAZON_IMAGE_HOST.test(new URL(found).hostname);
-  const image = ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !isTiff(found)
+  const swap = ownImage ? BADGE_PHOTO_SWAPS.get(ownImage.split("?")[0]) : undefined;
+  const image = swap !== undefined ? (swap && (AMAZON.has(host) || AMAZON.has(plainHost)) ? swap : undefined) : ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !isTiff(found)
     && (!amazonFound || (new URL(found).hostname === "m.media-amazon.com" && (AMAZON.has(host) || AMAZON.has(plainHost)))) ? found : undefined);
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);

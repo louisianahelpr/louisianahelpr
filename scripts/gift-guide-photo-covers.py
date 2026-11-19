@@ -688,7 +688,11 @@ def render(row, prods):
     while True:
         tf = title_font(size)
         lines = wrap(d, row["title"], tf, x1 - x0 - 190)  # clear of the products over the arch edge
-        if (len(lines) <= 3 and all(d.textlength(l, font=tf) <= x1 - x0 - 170 for l in lines)) or size <= 36:
+        if len(lines) > 2:  # a tighter break: the two-line split whose longer line is shortest ("Commercial Fishermen / & Shrimpers")
+            ws = row["title"].split()
+            lines = min(([" ".join(ws[:k]), " ".join(ws[k:])] for k in range(1, len(ws))), key=lambda ls: max(d.textlength(l, font=tf) for l in ls), default=lines)
+        # Two lines at most (gg-r3 UX audit #9, owner: "2 lines"): a long name steps down in size until it fits two.
+        if (len(lines) <= 2 and all(d.textlength(l, font=tf) <= x1 - x0 - 170 for l in lines)) or size <= 28:
             break
         size -= 4
     lh = size * 105 / 78
@@ -900,7 +904,9 @@ def main():
         manifest[row["slug"]] = {"section": row["group"],
                                  "items": [{"name": t.get("name"), "key": cover_key(t, own_brand)} for t in taken]}
         out = os.path.join(OUT, f"{row['slug']}.webp")
-        if old.get(row["slug"]) == manifest[row["slug"]] and os.path.exists(out) and os.environ.get("GIFT_COVER_ALL") != "1":
+        # GIFT_COVER_REDRAW=a,b redraws those covers too (a drawing change, such as the two-line names, with the same products).
+        redraw = row["slug"] in os.environ.get("GIFT_COVER_REDRAW", "").split(",")
+        if old.get(row["slug"]) == manifest[row["slug"]] and os.path.exists(out) and os.environ.get("GIFT_COVER_ALL") != "1" and not redraw:
             continue  # the same products as the cover on disk: left as it is (GIFT_COVER_ALL=1 redraws every cover)
         draw(row, prods, out, share=top_three(row))
         print(f"cover {row['slug']} ({len(prods)})", flush=True)

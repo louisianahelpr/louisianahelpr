@@ -342,7 +342,9 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
  * target gets the folded guides' picks and collection links, once each; an old link to a folded guide opens the
  * first target.
  */
-export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"], "store-muck-boot-company": ["store-muck-boot"] };
+export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"], "store-muck-boot-company": ["store-muck-boot"],
+  // gg-r3 UX audit #13: the old Nurses guide's link opens Healthcare (vercel.json redirects it before the app loads too).
+  nurses: ["healthcare"] };
 
 const draftOf = new Map(DRAFTS.map((d) => [d.slug, d] as const));
 /** A guide with a researched chunk lists exactly the chunk's picks, in their order (APPEND_CHUNK: static, then chunk). */
@@ -631,9 +633,12 @@ export const searchGuides = (query: string): CatalogGuide[] => {
   const label = new Map(ROWS.map((r) => [r.row, fold(r.label).split(/[^a-z0-9]+/)] as const));
   const q = rest.join(" ");
   // Title matches first (exact, then starting with the words, then containing them), the list's order kept inside each.
+  // A guide whose search keywords name the query as a whole word ranks with an exact title (gg-r3 UX audit #13: "nurse"
+  // led with Nurse Practitioners; Healthcare, the nurses' hub, now leads, its RNs and LPNs after it in list order).
   const rank = (g: CatalogGuide) => {
     const t = fold(g.title);
-    return t === q ? 0 : t.startsWith(q) ? 1 : rest.every((w) => t.includes(w)) ? 2 : 3;
+    const keyword = q !== "" && (SEARCH_KEYWORDS[g.slug] ?? "").split(" ").includes(q);
+    return t === q || keyword ? 0 : t.startsWith(q) ? 1 : rest.every((w) => t.includes(w)) ? 2 : 3;
   };
   const byWords = rest.length === 0 ? [] : GUIDES.filter((g) => {
     if (g.empty) return false;

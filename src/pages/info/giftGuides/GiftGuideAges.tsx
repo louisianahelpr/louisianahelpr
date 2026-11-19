@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { KID_AGE_BANDS, KID_AGE_HUBS, guideBySlug } from "@/content/giftGuideCatalog";
@@ -21,11 +22,20 @@ const ages = (b: (typeof KID_AGE_BANDS)[number]) => b.ages;
  * "Kids by age" (landing, For kids): one line per age band ("Little kids 4–7"), each with Girls, Boys and Gender-neutral
  * chips to that band's guides.
  */
+/** The Kids by age block's anchor: the landing's "Kids by age" chip links to it (gg-r3 UX audit #17). */
+export const KIDS_BY_AGE_ID = "kids-by-age";
+
 export function KidsByAge() {
+  const { hash } = useLocation();
+  const ref = useRef<HTMLDivElement>(null);
+  // React Router does not scroll to a hash on its own: opened from the chip, the block scrolls into view.
+  useEffect(() => {
+    if (hash === `#${KIDS_BY_AGE_ID}`) ref.current?.scrollIntoView({ block: "start" });
+  }, [hash]);
   const rows = BANDS.map((b) => ({ b, hubs: KID_AGE_HUBS.flatMap((h) => (ageGuide(h, b.tail) ? [{ h, g: ageGuide(h, b.tail)! }] : [])) })).filter((r) => r.hubs.length > 0);
   if (rows.length === 0) return null;
   return (
-    <div className="gg-ages" aria-labelledby="gift-ages" data-gift-ages="" role="group">
+    <div ref={ref} id={KIDS_BY_AGE_ID} className="gg-ages" aria-labelledby="gift-ages" data-gift-ages="" role="group">
       <h3 id="gift-ages" className="gg-ages-title">{G.agesTitle}</h3>
       <ul>
         {rows.map(({ b, hubs }) => (

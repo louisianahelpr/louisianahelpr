@@ -9,7 +9,7 @@ import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { sponsorPage } from "@/content/sponsorPage";
 import { LAST_MINUTE, lastMinuteOn, shippingLine } from "@/content/giftGuideShipping";
 import { Button } from "@/components/ui/button";
-import { KidsByAge } from "./GiftGuideAges";
+import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
 
 /**
  * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
@@ -27,9 +27,12 @@ export const TEEN_TILES: { slug: string; label: string }[] = [
   { slug: "boys-teens", label: "Teen boys" },
   { slug: "gender-neutral-teens", label: "Gender-neutral teens" },
 ];
-/** A landing row's tiles: its guides, and on For kids the Teens guides that hold picks. */
+/**
+ * A landing row's tiles: its guides, and on For kids the Teens guides that hold picks. The Girls, Boys and Gender-neutral
+ * tiles carry a visible caption like the teen tiles (gg-r3 UX audit #10: only the teen tiles had one).
+ */
 const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
-  ...guidesIn(row).map((g) => ({ g })),
+  ...guidesIn(row).map((g) => ({ g, ...(row === "for-kids" && G.ageHubLabels[g.slug] ? { label: g.title } : {}) })),
   ...(row === "for-kids"
     ? TEEN_TILES.flatMap(({ slug, label }) => {
         const g = guideBySlug(slug);
@@ -51,7 +54,8 @@ export const QUICK_PICKS: { label: string; to: string; slug?: string }[] = [
   { label: "Under $25", to: "/gift-guides/under-25", slug: "under-25" },
   { label: "Under $50", to: "/gift-guides/under-50", slug: "under-50" },
   { label: "Stocking stuffers", to: "/gift-guides/stocking-stuffers", slug: "stocking-stuffers" },
-  { label: G.kidsByAgeChip, to: "/gift-guides?group=for-kids" },
+  // gg-r3 UX audit #17: the chip opens the Kids by age block itself (KidsByAge scrolls to its anchor).
+  { label: G.kidsByAgeChip, to: `/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}` },
   { label: "Him", to: "/gift-guides/him", slug: "him" },
   { label: "Her", to: "/gift-guides/her", slug: "her" },
   { label: "Louisiana", to: "/gift-guides?group=louisiana" },
@@ -74,6 +78,9 @@ function QuickPicks() {
   );
 }
 
+/** A Top 10 card's name: the pick's name without a trailing parenthetical spec list ("… (10K, 30W, Built-in USB-C Cable)"). */
+export const topCardName = (name: string) => name.replace(/\s*\([^()]*\)\s*$/, "") || name;
+
 /** A Top 10 card: the photo (or the store's tile), a short name, the store, and the price on a non-Amazon pick. */
 function TopCard({ pick, n }: { pick: CatalogPick; n: number }) {
   return (
@@ -84,7 +91,9 @@ function TopCard({ pick, n }: { pick: CatalogPick; n: number }) {
           <PickThumb pick={pick} size={148} />
           <span className="gg-topcard-n" aria-hidden="true" data-gift-top-n="">{n}</span>
         </span>
-        <span className="gg-topcard-name">{pick.name}</span>
+        {/* gg-r3 UX audit #11: #1's long name was cut off at two lines; three lines, and a trailing "(…)" spec list
+            dropped, fit every Top 10 name (the full name is the link's title). */}
+        <span className="gg-topcard-name" title={pick.name}>{topCardName(pick.name)}</span>
         <span className="gg-topcard-meta">
           {storeLabel(pick) && <small>{storeLabel(pick)}</small>}
           <PickPrice pick={pick} />

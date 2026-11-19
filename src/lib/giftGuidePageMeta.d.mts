@@ -4,4 +4,4 @@ export function giftGuidePageMeta(slug: string, fallbackTitle?: string): PublicP
 export function publicOrGiftGuidePageMetaFor(
   pathname: string,
   tabParam: string | null | undefined,
-): PublicPageMeta | null;
+): (PublicPageMeta & { robots?: string }) | null;

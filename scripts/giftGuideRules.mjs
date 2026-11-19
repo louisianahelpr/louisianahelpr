@@ -627,3 +627,15 @@ export const EMPTY_PACKAGING = /\bgift baskets?\b.*\b\d+ ?(pack|pcs|count)\b|\be
 export const DECK_BOOT = /\bxtratuf\b|\bdeck boots?\b/i;
 export const PUPPY_ITEM = /\b(dogs?|pupp(y|ies)|pups?|pets?|paws?|canine|k-?9|leash(es)?|harness(es)?|collars?|crates?|kennels?|carriers?|chews?|treats?|lick mats?|poop bags?|potty|woof\w*|bark\w*)\b/i;
 export const OWNER_MERCH = /\bdog (mom|dad|mama|parent)\b/i;
+/**
+ * Photos with a seller's badge baked in (gg-r3 UX audit #15: the Kindle Paperwhite photo carries "INSURANCE AVAILABLE"),
+ * each with the store's own clean photo (checked by eye 2026-11-19). The clean photo is Amazon's, so it shows only on an
+ * Amazon link (Associates rule); on any other link, or with no clean photo (""), the badge photo is dropped. Matched
+ * without the query string (TikTok's CDN signs each URL).
+ */
+export const BADGE_PHOTO_SWAPS = new Map([
+  ["https://static.shopmy.us/uploads/b9346480-e5d8-405a-be12-eedecc9dad24_WBG2C_SQ1_0000000004_BLACK_SLf.webp", "https://m.media-amazon.com/images/I/61KMlIaN9pL._AC_SL500_.jpg"],
+  // Best Friend's e.l.f. lip oil trio: "TIKTOK SHOP EXCLUSIVE" and "$22 / $27 VALUE" badges, no clean photo of the set
+  // (r3 follow-up): no swap, so the photo is dropped and a photo'd pick takes the row.
+  ["https://p16-oec-general-useast5.ttcdn-us.com/tos-useast5-i-omjb5zjo8w-tx/a1cad1c0a8ae4be69efa19221195a9c4~tplv-fhlh96nyum-crop-webp:800:800.webp", ""],
+]);

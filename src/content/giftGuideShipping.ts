@@ -28,3 +28,20 @@ export function shippingLine(now: Date): string | null {
   if (day <= 25) return SHIP_LINES.instant;
   return null;
 }
+
+/**
+ * The landing's "Last-minute gifts" section (owner-approved 2026-11-18): Dec 15 through Dec 25 in Louisiana, whatever
+ * the visitor's zone; hidden before and after. Its tiles are these guides, each only when it exists and holds picks
+ * (an "e-gifts" guide joins on its own once one is published). Guard: src/test/giftGuideTrendingLastMinute.test.tsx.
+ */
+export const LAST_MINUTE = {
+  title: "Last-minute gifts",
+  note: "Arrives by Christmas",
+  slugs: ["gift-cards", "subscriptions", "e-gifts"],
+} as const;
+
+/** Whether the "Last-minute gifts" section shows at `now` (Dec 15–25, America/Chicago). */
+export function lastMinuteOn(now: Date): boolean {
+  const { month, day } = chicagoMonthDay(now);
+  return month === 12 && day >= 15 && day <= 25;
+}

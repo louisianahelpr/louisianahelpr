@@ -4454,8 +4454,8 @@
     "key": "dansko:shoe"
    },
    {
-    "name": "14oz Mug 2 Temperature Control Smart Mug Sandstone",
-    "key": "ember:drink"
+    "name": "Women's Bondi 9",
+    "key": "hoka:bondi"
    }
   ]
  },
@@ -4534,20 +4534,20 @@
   "section": "By career",
   "items": [
    {
-    "name": "Shiatsu Foot Massager with Heat",
-    "key": "renpho:massager"
+    "name": "FreeSip Bottle 24oz",
+    "key": "owala:drink"
    },
    {
     "name": "Professional Clog",
     "key": "dansko:shoe"
    },
    {
-    "name": "Women's Bondi 9",
-    "key": "hoka:bondi"
-   },
-   {
     "name": "Prescription Coffee Mug",
     "key": "bigmouthinc:drink"
+   },
+   {
+    "name": "Women's Bondi 9",
+    "key": "hoka:bondi"
    }
   ]
  },
@@ -4567,8 +4567,8 @@
     "key": "ember:drink"
    },
    {
-    "name": "Professional Clog",
-    "key": "dansko:shoe"
+    "name": "Shiatsu Foot Massager with Heat",
+    "key": "renpho:massager"
    }
   ]
  },

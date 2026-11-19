@@ -1740,8 +1740,9 @@ for (const [slug, list] of Object.entries(deals)) {
       const sameColors = (a, b) => { const x = colorsOf(a); const y = colorsOf(b); return x.size === y.size && [...x].every((c) => y.has(c)); };
       const row = byAsin.get(asinOf(p)) ?? (byKey && sameVariant(p.name, byKey.name) && sameColors(p.name, byKey.name) ? byKey : undefined);
       if (!row) {
-        // Not on the page at all (a repeat pass dropped it as another guide's same-named row): it joins the page.
-        if (!louisianaBlocked("store-amazon", p)) {
+        // Not on the page at all (a repeat pass dropped it as another guide's same-named row): it joins the page, unless the
+        // page already lists another color of it (fit r4: one row per product on a page; the guide keeps its own color).
+        if (!byKey && !louisianaBlocked("store-amazon", p)) {
           const section = AMAZON_SECTIONS.includes(sectionOfSlug.get(slug)) ? sectionOfSlug.get(slug) : "More finds";
           const rank = AMAZON_SECTIONS.indexOf(section);
           let at = 0;

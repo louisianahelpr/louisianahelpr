@@ -211,6 +211,21 @@ export const giftGuides = {
   sidebarLabel: "Gift guides",
   seeAllLabel: "See all",
   shopLabel: "Shop",
+  /** Every item's visible Shop pill (holistic review 11-18 H4): "Shop at Amazon", or plain "Shop" with no store name. */
+  shopAt: (store: string) => (store ? `Shop at ${store}` : "Shop"),
+  /** The kids age rows (holistic review 11-18 H1): the landing's For kids section and the Niece, Nephew and Cousins pages. */
+  agesTitle: "Kids by age",
+  byAgeLabel: "By age",
+  ageHubLabels: { girls: "Girls", boys: "Boys", "gender-neutral": "Gender-neutral" } as Record<string, string>,
+  /** The quick-pick chips under search on the landing (holistic review 11-18 M9). */
+  quickPicksLabel: "Quick picks",
+  kidsByAgeChip: "Kids by age",
+  /** A guide's item count under its banner (holistic review 11-18 L3). */
+  itemCount: (n: number) => `${n} ${n === 1 ? "gift" : "gifts"}`,
+  /** Search results, in two groups (holistic review 11-18 H5). */
+  searchGuidesTitle: "Guides",
+  searchItemsTitle: "Gifts",
+  searchItemIn: (guide: string) => `In ${guide}`,
   /** A store page's live deal sections (follow-up batch 2026-11-18), after its picks. */
   dealsTitle: "Deals and holiday shops",
   /** A deal's end date, "2026-11-22" -> "Ends Nov 22". */

@@ -139,8 +139,9 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     list.querySelectorAll("[data-gift-price]").forEach((el) => el.remove());
     expect(list.textContent).not.toMatch(/\$\s?\d/);
     const out = [...container.querySelectorAll("[data-gift-list] a")];
-    // One Shop link per pick; the count follows the data (_featured-order.json grows the list).
-    expect(out.length).toBe(guideBySlug("louisiana-made")!.picks.length);
+    // Two links per pick, both to the shop: the row (photo and name) and its visible Shop pill (holistic review 11-18
+    // H4); the count follows the data (_featured-order.json grows the list).
+    expect(out.length).toBe(2 * guideBySlug("louisiana-made")!.picks.length);
     expect(out.length).toBeGreaterThan(20);
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");
   });

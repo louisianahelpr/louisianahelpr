@@ -39,7 +39,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const { slug } = useParams<{ slug?: string }>(); |   const slug = undefined as string \| undefined; useParams();
  * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && fromHash) return | if (!slug && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
- * @mutate src/pages/info/GiftGuides.tsx | backTo={guide ? "/gift-guides" : "/"} | backTo={guide ? "/gift-guides/" : "/"}
+ * @mutate src/pages/info/GiftGuides.tsx | backTo={guide \|\| myList \|\| group ? "/gift-guides" : "/"} | backTo={guide \|\| myList \|\| group ? "/gift-guides/" : "/"}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading="lazy" decoding="async" | className="gg-thumb" decoding="async"
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
@@ -365,20 +365,25 @@ describe("gift guides: the landing opens to the guides", () => {
     // "More guides", and nothing (no Top 10) above the first row.
     expect(container.querySelector("[data-gift-start], button[data-gift-more], .gg-rows-folded")).toBeNull();
     expect(GIFT_GUIDES_CSS).not.toMatch(/gg-rows-folded|gg-more-btn/);
+    // Holistic review 11-18 M9: the one thing above the first row is the quick-pick chip row (under the search).
     const mainKids = [...container.querySelector(".gg-main")!.children];
-    expect(mainKids[0].matches("[data-gift-rows]")).toBe(true);
+    expect(mainKids[0].matches("[data-gift-quick-picks]")).toBe(true);
+    expect(mainKids[1].matches("[data-gift-rows]")).toBe(true);
+    mainKids.splice(0, 1);
     expect(mainKids[0].querySelector("[data-gift-row]")?.getAttribute("data-gift-row")).toBe(ROWS[0].row);
-    // Design audit 11-18 (High): on a phone the menu sat 2,000–3,100 px above the picks; it now follows the page.
+    // Design audit 11-18 (High): on a phone the menu sat 2,000–3,100 px above the picks; holistic review 11-18 M9: it
+    // then sat at the bottom of the phone page, a second copy of the rows. Phones have no sidebar (the rows, the chips
+    // and search reach every guide).
     const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.lastIndexOf("@media (max-width:767px){"));
-    expect(phone).toMatch(/\.gg-side\{[^}]*order:2/);
+    expect(phone).toMatch(/\.gg-side\{display:none\}/);
     expect(phone).toMatch(/\.gg-main\{[^}]*order:1/);
     expect(tiles.map((a) => a.getAttribute("href"))).toEqual(top.map((g) => `/gift-guides/${g.slug}`));
-    // No guide's list on the landing; "Our Top 10" is a short sideways strip of photo cards AFTER the first four rows
-    // (By person, For kids, By budget, Louisiana; owner redesign 11-18 PM), ten picks at most.
-    // @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | const ROWS_BEFORE_TOP = 4; | const ROWS_BEFORE_TOP = 0;
+    // No guide's list on the landing; "Our Top 10" is a short sideways strip of photo cards right AFTER the first row
+    // (By person; holistic review 11-18 M9: it sat 5th), ten picks at most.
+    // @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | const ROWS_BEFORE_TOP = 1; | const ROWS_BEFORE_TOP = 4;
     const topRow = container.querySelector("[data-gift-top]")!;
-    expect(rows[3].compareDocumentPosition(topRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(topRow.compareDocumentPosition(rows[4]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(rows[0].compareDocumentPosition(topRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(topRow.compareDocumentPosition(rows[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(topRow.querySelector("ul.gg-row")).not.toBeNull();
     expect(topRow.querySelector("ol")).toBeNull();
     for (const card of topRow.querySelectorAll("[data-gift-top-card]")) {
@@ -391,7 +396,14 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(topRows.length).toBeGreaterThan(0);
     expect(topRows.length).toBeLessThanOrEqual(10);
     expect(container.querySelectorAll("[data-gift-pick]").length).toBe(topRows.length);
-    for (const img of container.querySelectorAll("img.gg-cover")) {
+    // Holistic review 11-18 M10: the first row's first four covers load at once; every other cover stays lazy.
+    const eager = [...container.querySelectorAll("img.gg-cover[data-gift-cover-priority]")];
+    expect(eager.length).toBe(4);
+    for (const img of eager) {
+      expect(img.closest("[data-gift-row]")?.getAttribute("data-gift-row")).toBe(ROWS[0].row);
+      expect([img.getAttribute("loading"), img.getAttribute("fetchpriority")]).toEqual(["eager", "high"]);
+    }
+    for (const img of container.querySelectorAll("img.gg-cover:not([data-gift-cover-priority])")) {
       expect(img.getAttribute("loading")).toBe("lazy");
       expect(Number(img.getAttribute("width"))).toBe(480);
       expect(Number(img.getAttribute("height"))).toBe(480);

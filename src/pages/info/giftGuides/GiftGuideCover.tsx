@@ -6,7 +6,11 @@ import type { CatalogGuide } from "@/content/giftGuideCatalog";
  * public/gift-guides/covers/<name>.webp, 480x480, lazy and sized) when there is one; else a plain gingham tile in the
  * guide's palette with its name in a cream arch (owner 2026-11-18: no footer text, nothing else drawn on it).
  */
-export function GiftGuideCover({ guide }: { guide: CatalogGuide }) {
+export function GiftGuideCover({ guide, priority = false }: { guide: CatalogGuide; priority?: boolean }) {
+  // Holistic review 11-18 M10 (3.0-3.5 s on 4G): the landing's first four covers load at once, ahead of the rest.
+  if (guide.cover && priority) {
+    return <img className="gg-cover" loading="eager" decoding="async" {...{ fetchpriority: "high" }} src={guide.cover} alt="" width={480} height={480} data-gift-cover="" data-gift-cover-priority="" />;
+  }
   if (guide.cover) {
     return <img className="gg-cover" loading="lazy" decoding="async" src={guide.cover} alt="" width={480} height={480} data-gift-cover="" />;
   }

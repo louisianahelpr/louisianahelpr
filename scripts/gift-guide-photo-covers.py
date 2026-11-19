@@ -1,5 +1,9 @@
-"""Gift guide photo covers (owner's pin_covers.py "cover2" layout, 11-18): six product cutouts, three a side, on cream
-around a white arch holding the guide's lead, title and the LOUISIANA HELPR footer.
+"""Gift guide photo covers (owner's pin_covers.py "cover2" layout, 11-18): six product cutouts, three a side, on the
+guide's own gingham around a white arch holding the guide's lead, title and the LOUISIANA HELPR footer.
+Owner 11-18: "use the gingham covers we already had there and put the pictures on the gingham". The gingham is the
+text-only covers' own (pin_covers.py text_cover: drawn at 1080 with 60 px checks), in the guide group's colour, measured
+from the committed gingham covers: green for By person/By store/Life moments/Louisiana, tan for By budget/By career/
+Colors, red for For kids/Hobbies/Pets.
 
 Run with a Python that has Pillow, numpy and scipy (not the repo's runtime; the covers are static files):
   python scripts/gift-guide-photo-covers.py [slug ...]
@@ -30,10 +34,16 @@ PICKS = os.path.join(ROOT, "src", "content", "giftGuidePicks")
 OUT = os.path.join(ROOT, "public", "gift-guides", "covers")
 FONTS = os.path.expanduser("~/Desktop/Pin-cover-generator/fonts")
 CACHE = os.environ.get("GIFT_COVER_CACHE", os.path.expanduser("~/.lh-shots/gg-cover-cache"))
-INK, CREAM, WHITE = (56, 46, 36), (248, 245, 236), (255, 255, 255)
+INK, WHITE = (56, 46, 36), (255, 255, 255)
 AMAZON = re.compile(r"(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$")
 S = 960  # drawn at 2x, saved at 480x480 like the owner's covers
-TOP_CAREERS = 24  # the first By career guides in the index (its order is the owner's)
+TOP_CAREERS = 24
+# (check, band, overlap) per gingham, measured from the committed text-only covers at their 480 px check centres.
+GREEN = ((123, 148, 119), (186, 198, 180), (250, 247, 239))
+TAN = ((206, 186, 154), (228, 215, 196), (250, 247, 239))
+RED = ((177, 104, 100), (215, 176, 168), (250, 247, 239))
+GINGHAM = {"By person": GREEN, "By store": GREEN, "Life moments": GREEN, "Louisiana": GREEN,
+           "By budget": TAN, "By career": TAN, "Colors": TAN, "For kids": RED, "Hobbies": RED, "Pets": RED}  # the first By career guides in the index (its order is the owner's)
 
 
 def font(name, size):
@@ -85,7 +95,13 @@ def cutout(data):
     if n == 0:
         return None
     sizes = ndimage.sum(fg, lab, range(1, n + 1))
-    big = [i + 1 for i, v in enumerate(sizes) if v >= 0.04 * sizes.max()]
+    boxes = ndimage.find_objects(lab)
+    # A thin stripe (a colour bar or a ruler line under the product) shows plainly on the gingham: drop it.
+    thin = {i + 1 for i, b in enumerate(boxes)
+            if min(b[0].stop - b[0].start, b[1].stop - b[1].start) * 8 < max(b[0].stop - b[0].start, b[1].stop - b[1].start)}
+    big = [i + 1 for i, v in enumerate(sizes) if v >= 0.04 * sizes.max() and i + 1 not in thin]
+    if not big:
+        return None
     if len(big) > 8:
         return None  # many separate pieces: a word mark or a logo, not a product
     fg = ndimage.binary_fill_holes(np.isin(lab, big))
@@ -142,10 +158,26 @@ def even(p, m, frac=0.42):
     return p.resize((max(1, int(w)), max(1, int(h))), Image.LANCZOS)
 
 
+def gingham(pal):
+    """The text-only covers' gingham (pin_covers.gingham, c=60 on 1080), scaled to this 960 canvas."""
+    a, b, o = pal
+    W, c = 1080, 60
+    im = Image.new("RGB", (W, W), a)
+    d = ImageDraw.Draw(im)
+    for x in range(c, W, 2 * c):
+        d.rectangle([x, 0, x + c - 1, W], fill=b)
+    for y in range(c, W, 2 * c):
+        d.rectangle([0, y, W, y + c - 1], fill=b)
+    for x in range(c, W, 2 * c):
+        for y in range(c, W, 2 * c):
+            d.rectangle([x, y, x + c - 1, y + c - 1], fill=o)
+    return im.resize((S, S), Image.LANCZOS)
+
+
 def shadow(p):
     s = Image.new("RGBA", (p.width + 30, p.height + 30), (0, 0, 0, 0))
-    blk = Image.new("RGBA", p.size, (40, 30, 20, 255))
-    blk.putalpha(p.split()[3].point(lambda v: int(v * 0.16)))
+    blk = Image.new("RGBA", p.size, (30, 22, 14, 255))
+    blk.putalpha(p.split()[3].point(lambda v: int(v * 0.34)))  # darker than on cream so it reads on the gingham
     s.paste(blk, (18, 21), blk)
     s = s.filter(ImageFilter.GaussianBlur(7))
     s.paste(p, (15, 15), p)
@@ -175,7 +207,7 @@ def tracked(d, cx, y, text, f, track):
 
 
 def draw(row, prods, out):
-    im = Image.new("RGB", (S, S), CREAM)
+    im = gingham(GINGHAM.get(row["group"], GREEN))
     d = ImageDraw.Draw(im)
     x0, x1, y0, y1 = 306, 654, 92, 868
     r = (x1 - x0) / 2

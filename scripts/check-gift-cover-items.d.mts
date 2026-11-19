@@ -1,0 +1,12 @@
+export const MANIFEST: string;
+export const COVER_DIR: string;
+export const MIN_ITEMS: number;
+export const MIN_SLOTS: number;
+export const SLOT_FILL: number;
+export const SIZE: number;
+export const GINGHAM: number[][];
+export const SLOTS: number[][];
+export function slotFill(rgb: Uint8Array | Buffer): number[];
+export function filledSlots(rgb: Uint8Array | Buffer): number;
+export function shortInManifest(manifest: Record<string, { items?: unknown[] }>, slugs: string[]): string[];
+export function readManifest(): Record<string, { section: string; items: { name: string; key: string }[] }>;

@@ -293,10 +293,20 @@ export const fillerGuide = (slug, group) => ["By career", "Hobbies", "Colors"].i
  * for a guide's own researched fill row (career/hobby/LSU fills), which the filler and tumbler-place rules do not read
  * (the research picked it for that guide; the cap still counts it); `seen.tumblers` is the caller's running count.
  */
+/**
+ * Items that do not fit one guide (gift guides r3 audit, 11-19): a Kindle is no New Puppy gift, a ~$45 Stanley
+ * Quencher does not fit a stocking, and the Hot Wheels 20-pack is a kids' toy, not a Car Lover gift.
+ */
+export const GUIDE_OFF = {
+  "new-puppy": /\bkindle\b|airpods/i,
+  "stocking-stuffers": /\bquencher\b/i,
+  "car-lover": /hot wheels/i,
+};
 export const belongsWhy = (slug, group, p, seen = { tumblers: 0 }, researched = false) => {
   const name = String(p.name ?? "");
   const text = `${name} ${p.brand ?? ""}`;
   if (NOWHERE.test(text)) return "bartesian or cooking light";
+  if (GUIDE_OFF[slug]?.test(text)) return "does not fit this guide";
   if (PLACEHOLDER_PRODUCT.test(name.trim())) return "placeholder";
   if (E_GIFT.test(name) && slug !== "gift-cards" && !EXPERIENCE_GUIDES.includes(slug)) return "egift card";
   if ((slug === "boater" || slug === "kayaker") && ANGLING.test(name)) return "fishing gear";

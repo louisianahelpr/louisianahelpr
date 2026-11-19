@@ -685,7 +685,8 @@ def main():
     if os.path.exists(share):
         text = open(share, encoding="utf8").read()
         for name, folder, ext in (("OG_JPG_SLUGS", OG, ".jpg"), ("COVER_WEBP_SLUGS", OUT, ".webp")):
-            have = sorted(f[: -len(ext)] for f in os.listdir(folder) if f.endswith(ext))
+            # og/landing.jpg is the landing's own 1200x630 card (holistic review M7), no guide's share image.
+            have = sorted(f[: -len(ext)] for f in os.listdir(folder) if f.endswith(ext) and f != "landing.jpg")
             text = re.sub(rf"export const {name} = new Set\(\[.*?\]\);", f"export const {name} = new Set({json.dumps(have, separators=(', ', ': '))});", text)
         open(share, "w", encoding="utf8").write(text)
     print(f"covers: {len(manifest)} drawn, {len(four)} with 4 items, {len(kept)} text only (fewer than 4 usable photos)")

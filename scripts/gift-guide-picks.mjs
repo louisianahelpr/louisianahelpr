@@ -2446,7 +2446,7 @@ export const STORE_CAP = 15;
 /** Store audit C's page changes (drop, merge, cap, REI) ship in their own follow-up PR (lead 11-19: split if needed). */
 export const STORE_AUDIT_C_ON = process.env.GIFT_STORE_AUDIT_C === "on";
 export const TASTE_CUTS_FILE = "_taste-cuts-1119c.json";
-export const readyCounts = { out: {}, communityCoffee: 0, capped: 0, kidsAsks: 0 };
+export const readyCounts = { out: {}, communityCoffee: 0, capped: 0, kidsAsks: 0, ownerNoPhoto: 0 };
 export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei: 0, excluded: 0, ownerPicks: 0 };
 {
   for (const slug of Object.keys(pageList)) {
@@ -2471,7 +2471,12 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
   const excluded = (p) => excludes.some((m) => `${p.name} ${p.brand ?? ""}`.toLowerCase().includes(m));
   for (const slug of Object.keys(pageList)) { const n = pageList[slug].length; pageList[slug] = pageList[slug].filter((p) => !excluded(p)); followUpCounts.excluded += n - pageList[slug].length; }
   // Owner picks: first on each guide they name, in the file's order; a non-US store's price (GBP, AUD) is not shown.
-  const ownerRows = (readJson("_owner-picks.json") ?? []).filter((r) => r && typeof r.name === "string" && /^https:\/\//.test(String(r.href ?? "")) && !excluded(r));
+  // 1119c: an owner pick with no photo, or a photo on ShopMy's dead S3 host (403 to every request), waits for a photo
+  // (owner: "Items with no real photo don't go on people guides"); it is counted, never shown as a blank box.
+  const livePhoto = (img) => typeof img === "string" && img.startsWith("https://") && !/^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(img);
+  const ownerAll = (readJson("_owner-picks.json") ?? []).filter((r) => r && typeof r.name === "string" && /^https:\/\//.test(String(r.href ?? "")) && !excluded(r));
+  const ownerRows = ownerAll.filter((r) => livePhoto(r.image));
+  readyCounts.ownerNoPhoto = ownerAll.length - ownerRows.length;
   const byGuide = new Map();
   for (const r of ownerRows) {
     const usd = !nonUsUrl(String(r.destination ?? "")) && !/\.(co\.uk|com\.au|ca)\//i.test(String(r.destination ?? ""));
@@ -2509,7 +2514,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
   for (const f of readdirSync(dir).filter((x) => /^_fb-kids-asks-.*\.json$/.test(x)).sort()) {
     const byKidGuide = new Map();
     for (const r of rowsOf(readJson(f))) {
-      if (!r || typeof r.name !== "string" || typeof r.href !== "string" || !/^https:\/\//.test(r.href) || typeof r.image !== "string" || !r.image.startsWith("https://") || excluded(r)) continue;
+      if (!r || typeof r.name !== "string" || typeof r.href !== "string" || !/^https:\/\//.test(r.href) || !livePhoto(r.image) || excluded(r)) continue;
       const pick = { name: tidyName(r.name), brand: String(r.brand ?? ""), line: String(r.why ?? r.line ?? ""), href: r.href, image: r.image, trending: true,
         ...(typeof r.price === "number" ? { price: r.price, priceAt: String(r.added_at ?? "2026-11-19") } : {}) };
       const store = storeFor(String(r.brand ?? "").trim());
@@ -2518,7 +2523,8 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
         storeList[store] ??= { name: stores.get(store)?.name ?? String(r.brand), hosts: [] };
         if (!storeList[store].hosts.includes(new URL(r.href).hostname)) storeList[store].hosts = [...storeList[store].hosts, new URL(r.href).hostname];
       }
-      for (const g of Array.isArray(r.guides) ? r.guides : []) if (GUIDE_SLUGS.has(g) && !NOT_A_LIST.has(g) && !g.startsWith("store-")) byKidGuide.set(g, [...(byKidGuide.get(g) ?? []), pick]);
+      // One guide each, the first the row names (owner: the same photo never shows on two guides).
+      for (const g of (Array.isArray(r.guides) ? r.guides : []).filter((x) => GUIDE_SLUGS.has(x) && !NOT_A_LIST.has(x) && !x.startsWith("store-")).slice(0, 1)) byKidGuide.set(g, [...(byKidGuide.get(g) ?? []), pick]);
     }
     for (const [g, picks] of byKidGuide) {
       const list = pageList[g] ?? [];
@@ -2527,6 +2533,13 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       const lead = rest.filter((p) => p.ownerPick);
       pageList[g] = [...lead, ...picks, ...rest.filter((p) => !p.ownerPick)];
       readyCounts.kidsAsks += picks.length;
+    }
+    // The ask's guide is its one guide: the same product (link, name or photo) leaves every other non-store guide.
+    const asked = new Map();
+    for (const [g, picks] of byKidGuide) for (const p of picks) for (const k of [p.href, compact(p.name), p.image]) asked.set(k, g);
+    for (const slug of Object.keys(pageList)) {
+      if (slug.startsWith("store-") || slug === SPONSORS_GUIDE) continue;
+      pageList[slug] = pageList[slug].filter((p) => p.ownerPick || [p.href, compact(p.name), p.image].every((k) => !k || !asked.has(k) || asked.get(k) === slug));
     }
   }
   /**
@@ -2561,7 +2574,23 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     pageList["louisiana-made"] = pageList["louisiana-made"].filter((p) => !coffee.includes(p));
     const to = (pageList["coffee-and-beignets"] ??= []);
     for (const p of coffee) if (!to.some((x) => x.href === p.href || compact(x.name) === compact(p.name))) to.push(p);
+    // An owner pick still leads (owner picks lead every guide they are on).
+    pageList["coffee-and-beignets"] = [...to.filter((p) => p.ownerPick), ...to.filter((p) => !p.ownerPick)];
     readyCounts.communityCoffee = coffee.length;
+  }
+  // At most 3 picks of one brand on a guide outside the Louisiana section (the fit r3b rule), the last non-owner ones go.
+  for (const slug of Object.keys(pageList)) {
+    if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || LOUISIANA_GUIDES.has(slug) || ["gift-cards", "subscriptions"].includes(slug)) continue;
+    const per = new Map();
+    for (const p of pageList[slug]) { const b = brandKey(p.brand ?? ""); if (b && !/affiliate|program|walmart|amazon|target|shopmy/i.test(p.brand ?? "")) per.set(b, (per.get(b) ?? 0) + 1); }
+    for (const [b, n] of per) {
+      let extra = n - 3;
+      if (extra <= 0) continue;
+      for (let i = pageList[slug].length - 1; i >= 0 && extra > 0; i--) {
+        const p = pageList[slug][i];
+        if (!p.ownerPick && brandKey(p.brand ?? "") === b) { pageList[slug].splice(i, 1); extra -= 1; readyCounts.out["brand cap"] = (readyCounts.out["brand cap"] ?? 0) + 1; }
+      }
+    }
   }
   const ownerGuides = new Map();
   for (const r of readJson("_owner-picks.json") ?? []) if (r && typeof r.href === "string" && Array.isArray(r.guides)) ownerGuides.set(r.href, r.guides);
@@ -2585,7 +2614,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     pageList[slug] = pageList[slug].filter((p) => productKeys(p).every((k) => !keep.has(k) || keep.get(k).has(slug)));
     readyCounts.capped += n - pageList[slug].length;
   }
-  console.log(`gift-guide-picks: ready 1119c: dedupe ${dedupeCounts.dropped} rows dropped, ${dedupeCounts.slotted} kept rows slotted; out ${JSON.stringify(readyCounts.out)}; ${readyCounts.communityCoffee} Community Coffee moved; ${readyCounts.capped} past the ${DUP_GUIDE_MAX}-guide cap; ${readyCounts.kidsAsks} kids-ask rows placed`);
+  console.log(`gift-guide-picks: ready 1119c: dedupe ${dedupeCounts.dropped} rows dropped, ${dedupeCounts.slotted} kept rows slotted; out ${JSON.stringify(readyCounts.out)}; ${readyCounts.communityCoffee} Community Coffee moved; ${readyCounts.capped} past the ${DUP_GUIDE_MAX}-guide cap; ${readyCounts.kidsAsks} kids-ask rows placed; ${readyCounts.ownerNoPhoto} owner picks held for a photo`);
   console.log(`gift-guide-picks: follow-up ${followUpCounts.rules} rule removals, ${followUpCounts.dropped.length} store pages dropped, ${followUpCounts.merged} merged, ${followUpCounts.capped} capped, ${followUpCounts.rei} REI hiking out, ${followUpCounts.excluded} owner excludes, ${followUpCounts.ownerPicks} owner picks placed`);
 }
 rmSync(chunkDir, { recursive: true, force: true });

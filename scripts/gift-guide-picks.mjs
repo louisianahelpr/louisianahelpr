@@ -326,9 +326,10 @@ for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.jso
   for (const slug of ["gift-cards", "subscriptions"]) {
     for (const p of Array.isArray(fill?.[slug]) ? fill[slug] : []) {
       if (p && typeof p.href === "string" && typeof p.name === "string") {
-        // An affiliate short link in `href` (meowbox's mavely.app.link) is the affiliate link.
+        // An affiliate short link in `href` (meowbox's mavely.app.link) is the affiliate link; a non-Amazon row's store is
+        // the brand its name opens with ("meowbox Cat Subscription Box" -> meowbox's store page).
         const affiliate = AFFILIATE.has(new URL(p.href).hostname) ? { affiliate_href: p.href } : {};
-        add(slug, { brand: "", line: "", ...(isAmazonLink(p.href) ? { store: "Amazon", image_source: "amazon-sitestripe" } : {}), ...p, ...affiliate }, "_giftcards-subs-fill-1118.json");
+        add(slug, { brand: "", line: "", ...(isAmazonLink(p.href) ? { store: "Amazon", image_source: "amazon-sitestripe" } : { store: p.name.split(" ")[0] }), ...p, ...affiliate }, "_giftcards-subs-fill-1118.json");
       }
     }
   }

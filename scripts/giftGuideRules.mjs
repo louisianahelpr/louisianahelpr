@@ -129,7 +129,7 @@ export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
-  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p) || masonOff(slug, p) || redoneOff(slug, p) || lashOff(slug, p) || veraBradleyOff(slug, p) || hikingOff(slug, p) || cheapSockOff(slug, p) || barwareOff(slug, p) || fashionSneakerOff(slug, p) || farmRioOff(slug, p) || legoOff(slug, p) || grandSunglassesOff(slug, p) || frameOff(slug, p) || foodSubOff(slug, p) || iceCreamOff(slug, p) || crockPotOff(slug, p) || blankOrPastelOff(slug, p) || photoProductOff(slug, p) || puzzleOff(slug, p) || groceryCandyOff(slug, p) || jdDrinkwareOff(slug, p) || followUpOff(slug, p)) return false;
+  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || kidsToyOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p) || masonOff(slug, p) || redoneOff(slug, p) || lashOff(slug, p) || veraBradleyOff(slug, p) || hikingOff(slug, p) || cheapSockOff(slug, p) || barwareOff(slug, p) || fashionSneakerOff(slug, p) || farmRioOff(slug, p) || legoOff(slug, p) || grandSunglassesOff(slug, p) || frameOff(slug, p) || foodSubOff(slug, p) || iceCreamOff(slug, p) || crockPotOff(slug, p) || blankOrPastelOff(slug, p) || photoProductOff(slug, p) || puzzleOff(slug, p) || groceryCandyOff(slug, p) || jdDrinkwareOff(slug, p) || followUpOff(slug, p)) return false;
   // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
@@ -1398,3 +1398,12 @@ export const shopmyCdnUrl = (u) => {
   const m = typeof u === "string" ? u.match(new RegExp(`^${SHOPMY_S3.source}([^?#\\s"]+)$`)) : null;
   return m ? `https://static.shopmy.us/${m[1]}/${m[2]}` : null;
 };
+/**
+ * Kids' toys stay off the adult hobby guides (owner 2026-11-19: "The horse lover guide has a toy horse on it. Remove
+ * it."): Breyer-type figurines, plush and stuffed animals, toy horses and playsets on the Hobbies guides and Horse Lover
+ * (a pet toy for the animal itself, like a horse's Jolly Ball or a dog's plush, is not a kids' toy).
+ */
+export const KIDS_TOY = /\b(breyer|schleich|plush(ie)?s?|stuffed (animals?|horses?|toys?)|stuff(y|ies)|squishmallows?|toy (horses?|ponies|pony)|rocking horse|hobby horse|playsets?|play set|my little pony)\b/i;
+export const ADULT_HOBBY_GUIDES = ["horse-lover"];
+export const kidsToyOff = (slug, p) => (GUIDE_GROUPS.get(slug) === "Hobbies" || ADULT_HOBBY_GUIDES.includes(slug))
+  && KIDS_TOY.test(`${p.name} ${p.brand ?? ""}`) && !/\b(dogs?|cats?|pets?|for horses|horse toy)\b/i.test(String(p.name ?? ""));

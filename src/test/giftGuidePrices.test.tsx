@@ -79,7 +79,9 @@ describe("gift-guide prices: the generated chunks", () => {
       expect(p.price, p.name).toBeGreaterThan(0);
       expect(p.priceAt ?? "", p.name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
-    expect((CHUNKS["store-amazon"] ?? []).length).toBeGreaterThan(100);
+    // Amazon keeps its 15 best (owner's 10-15 per store page; lead 11-19, 1530 train).
+    expect((CHUNKS["store-amazon"] ?? []).length).toBeGreaterThanOrEqual(10);
+    expect((CHUNKS["store-amazon"] ?? []).length).toBeLessThanOrEqual(15);
     expect((CHUNKS["store-amazon"] ?? []).filter((p) => p.price !== undefined)).toEqual([]);
   });
 });

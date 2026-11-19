@@ -44,11 +44,15 @@ export const BLOCKED_BRANDS = ["SheVibe", "King Palm", "AnyListingSEO", "Loren",
   "Kitty Kick Stix", "Makerfire", "Bonne et Filou", "The Fort Kit", "Cocinare", "Maker Wine", "Magic Makers",
   "The Fidget Company", "Gisada", "Imarku", "TOUCHBeauty", "Baleaf", "SILK THE RICH", "True Beauty Lashes",
   "Cashmere Boutique", "MelodySusie", "Lofree", "AndaSeat", "Xplora", "Byrokko", "Frost Buddy", "Forte Chocolate",
-  "TempSpike", "TempPro", "Hairmax", "AmScope", "Adagio Teas"];
+  "TempSpike", "TempPro", "Hairmax", "AmScope", "Adagio Teas",
+  // Lead 11-19 (1530 train): a knockoff label, an unknown sofa seller, a mattress-sheet seller and a Walmart house brand.
+  "Free Country", "BADESOFA", "Literie", "Ozark Trail"];
 /** Store brands matched on the brand field only (a whole-word match on names would catch other products). */
 export const WALMART_BRAND_ONLY = ["George",
   // 1119c: obscure network brands whose names are ordinary words ("Enable", "Autonomous"), matched on the brand only.
-  "Enable", "Autonomous"];
+  "Enable", "Autonomous",
+  // Lead 11-19 (1530 train): Walmart's TAL house brand and the Gilt flash-sale store ("gilt" and "tal" are words too).
+  "TAL", "Gilt"];
 
 const compact = (s) => String(s).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const blockedCompact = BLOCKED_BRANDS.map(compact);

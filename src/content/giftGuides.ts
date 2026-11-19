@@ -54,7 +54,8 @@ export interface GiftSection {
  * DiecastModelsWholesale.com). Plain site links for now; the lead swaps in the CJ tracking links later. Each image is
  * one the brand's own home page shows.
  */
-export const BRAND_SITES = ["www.zchocolat.com", "www.diecastmodelswholesale.com"] as const;
+// 1530 train (lead 11-19): zChocolat left the For Her row and DiecastModelsWholesale is blocked; no link uses either host.
+export const BRAND_SITES = [] as const;
 
 /**
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
@@ -168,7 +169,6 @@ export const discountCodes: DiscountCode[] = [
   { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28" },
   { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+" },
   { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions" },
-  { rank: 4, store: "Free Country", code: "WINTER50", offer: "Up to 50% off pet jackets" },
   { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide" },
   // Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
   { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off your first order; stacks with sales, one use per person" },
@@ -316,12 +316,7 @@ export const giftGuides = {
           image: "https://static.shopmy.us/pins/zoom-104050519-1794418254578-.jpg",
           href: MOM,
         },
-        {
-          name: "zChocolat French chocolates",
-          line: "French chocolate gift boxes, for the chocolate lover.",
-          image: "https://www.zchocolat.com/img/menu/featured-assortments.jpg",
-          href: "https://www.zchocolat.com/",
-        },
+        // Lead 11-19 (1530 train): the zChocolat box is off the For Her row.
       ],
     },
     {
@@ -346,12 +341,7 @@ export const giftGuides = {
           image: "https://static.shopmy.us/uploads/pretty-prod-1765315393509",
           href: DAD,
         },
-        {
-          name: "DiecastModelsWholesale.com model cars",
-          line: "Diecast model cars, for collectors.",
-          image: "https://cdn11.bigcommerce.com/s-4df9uz5/images/stencil/500x659/carousel/22/shop_all__28122.jpg",
-          href: "https://www.diecastmodelswholesale.com/",
-        },
+        // Lead 11-19 (1530 train): the diecast store is off the For Him row (DiecastModelsWholesale is on the blocklist).
       ],
     },
     {

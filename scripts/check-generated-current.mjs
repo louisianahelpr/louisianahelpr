@@ -244,6 +244,14 @@ export const EVIDENCE = [
     refreshedBy: "by the committer when the lead hands over new or changed pick files (content, not a count)",
     checkedBy: "src/test/giftGuidesPage.test.tsx (two-way link allowlist, Amazon tag, no prices) + src/test/giftGuidesExtras.test.tsx (badges, loaded guides)",
   },
+  {
+    id: "go-links",
+    script: "scripts/go-links.mjs",
+    outputs: ["src/content/goLinks.json", "src/content/goLinks.mjs"],
+    refresh: "node scripts/go-links.mjs add <slug> <url> [label] | --from-picks | sync (edits the /go/ short-link map; content, not a count)",
+    refreshedBy: "by the committer when a short link is added (owner 11-18)",
+    checkedBy: "src/test/goLinks.test.ts (goLinks.mjs equals goLinks.json; no Amazon target; allowlisted hosts; slug format)",
+  },
 ];
 
 /**

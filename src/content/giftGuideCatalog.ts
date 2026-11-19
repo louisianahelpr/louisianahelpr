@@ -10,6 +10,7 @@
 import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
+import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
 import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
 
 /**
@@ -374,11 +375,15 @@ export const newSlugFor = (slug: string): string | null => {
 };
 const parentOf = new Map(Object.entries(HUBS).flatMap(([hub, groups]) => groups.flatMap((x) => x.slugs.map((c) => [c, hub] as const))));
 
-/** The cover files shipped in public/gift-guides/covers (one per GUIDE_INDEX slug that has a guide). */
+
 /** Every guide with content that no group shows (a test keeps this empty: nothing is dropped silently). */
 export const unplacedGuides = () =>
   DRAFTS.filter((d) => filled(d.slug) && (d.picks.length > 0 || d.links.length > 0 || HAS_CHUNK.has(d.slug)) && !GUIDES.some((g) => g.slug === d.slug)).map((d) => d.slug);
-const hasCover = new Set(OWNER_INDEX.map((g) => g.slug));
+/**
+ * The cover files shipped in public/gift-guides/covers, one per guide that has one: the owner's index and the
+ * researched store pages (design review M2), listed by scripts/gift-guide-photo-covers.py as it draws them.
+ */
+const hasCover = new Set(COVER_SLUGS);
 /** The folder in public/ the covers are served from (static files, not an app route). */
 const COVER_DIR = `${"/gift-guides"}/covers`;
 

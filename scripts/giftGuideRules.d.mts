@@ -216,3 +216,9 @@ export function puzzleOff(slug: string, p: { name: string; brand?: string }): bo
 export const GROCERY_CANDY: RegExp;
 export function groceryCandyOff(slug: string, p: { name: string; brand?: string; price?: number }): boolean;
 export function jdDrinkwareOff(slug: string, p: { name: string; retailer?: string; store?: string }): boolean;
+export const MEN_PASTEL: RegExp;
+export const MEN_COLOR_GUIDES: string[];
+export const BABY_ITEM: RegExp;
+export const BABY_OK: (slug: string) => boolean;
+export const OLD_ELECTRONICS: RegExp;
+export const OWNER_REMOVED: (p: { name: string; brand?: string; href?: string; image?: string; retailer?: string; store?: string }) => boolean;

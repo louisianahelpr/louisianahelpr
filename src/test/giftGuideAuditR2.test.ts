@@ -193,8 +193,10 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
     // @mutate scripts/gift-guide-picks.mjs | for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]); | void 0;
     expect(SCRIPT).toContain("for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]);");
     let pages = 0;
-    for (const [slug, picks] of Object.entries(CHUNKS)) {
+    for (const [slug, every] of Object.entries(CHUNKS)) {
       pages += 1;
+      // The owner's own picks (ownerPick) are exempt (owner 11-19: she may list two sizes of one set).
+      const picks = every.filter((p) => !(p as { ownerPick?: true }).ownerPick);
       const hrefs = picks.filter((p) => !p.href.startsWith("https://shopmy.us/")).map((p) => p.href);
       expect(hrefs.length - new Set(hrefs).size, `${slug}: repeated link`).toBe(0);
       const keys = picks.map((p) => key(p.name)).filter((k) => k.length > 3);
@@ -309,7 +311,8 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     for (const f of pages) {
       const slug = f.replace(/\.json$/, "");
       if (louisiana.has(slug) || ["store-community-coffee", "store-rebeccaillustrated"].includes(slug)) continue;
-      const list = pageOf(slug) as { name: string; brand?: string; href: string }[];
+      // The owner's own picks (ownerPick) are exempt from every rule (owner 11-19).
+      const list = (pageOf(slug) as { name: string; brand?: string; href: string; ownerPick?: true }[]).filter((p) => !p.ownerPick);
       // A Louisiana store's own page (every pick a Louisiana item: Julie Vos, Dirty Coast...) keeps its items.
       if (slug.startsWith("store-") && list.every((p) => isLouisianaItem(p, hosts))) continue;
       for (const p of list) {

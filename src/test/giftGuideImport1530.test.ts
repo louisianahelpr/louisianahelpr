@@ -1,6 +1,6 @@
 /**
  * Gift guides, import train 1530 (lead 11-19, before the owner's Friday post):
- *   - one link or one photo on ONE non-store guide; a second guide only for another colorway (owner: "the 2 items per
+ *   - one link or one photo on ONE non-store guide; a second guide only for another colorway (owner 2026-11-19: "the 2 items per
  *     product should be different colors"); an owner pick keeps every guide she named for it;
  *   - no Camp Snap on Teen Boy (owner);
  *   - the Amazon and Walmart store pages keep their 15 best, and no store page lists one link twice;

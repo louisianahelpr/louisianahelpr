@@ -6,7 +6,7 @@ the items kind of over lap the arch" / "Like these" (her pin covers). The gingha
 the pins' pastel version (pin_covers.PAL): sage for By person/By store/Life moments/Louisiana, beige for By budget/
 By career/Colors, pink for For kids/Hobbies/Pets.
 
-Products (owner 11-18: "Idk that mom wants muck boots?"): taken in the guide's featured order (the picks file's own
+Products (owner 11-18: "Idk that mom wants muck boots?"): COVER_FIRST's hand-set picks first, then the guide's featured order (the picks file's own
 order, from _featured-order.json), skipping a photo that will not cut out cleanly; one per brand, at most one per kind
 (one boot, one pair of shoes, one drinkware, ...), and no boots at all on Mom/Her/Wife except UGG. A store page
 (store-*) may repeat its own brand and kind (Durango Boots is all boots).
@@ -16,10 +16,12 @@ Run with a Python that has Pillow, numpy and scipy (not the repo's runtime; the 
 With no slugs it draws the By person, By budget, top By career and every By store guide. A guide with fewer than six
 usable photos keeps its gingham/arch cover (the owner's, public/gift-guides/covers/<slug>.webp) untouched.
 
-Photos: only each pick's own `image` from src/content/giftGuidePicks/<slug>.json, never an Amazon-hosted one (owner
-chose the safe route; AMAZON_CDN_PHOTOS stays off). A photo is used only on a near-white background: the cutout keeps
-pixels more than 26 off white, then the large connected parts (holes filled), so lifestyle shots are skipped. RAGGED
-names products whose white-on-white photo cuts out ragged (AirPods: only the shading is found); the next pick is used.
+Photos: each pick's own `image` from src/content/giftGuidePicks/<slug>.json, Amazon-hosted ones included (owner 11-18
+approved Amazon photos: "Just screenshot then crop the rest of them from Amazon it's fine"; AMAZON_CDN_PHOTOS on). A photo is used only on a near-white background: the cutout keeps
+pixels more than 26 off white, then the large connected parts (holes filled), so lifestyle shots are skipped. TIGHT
+names white products on white (AirPods), whose threshold mask finds only the shading: they are cut out instead by
+flooding the background from the photo's edge at 2 off white. COVER_SKIP drops odd or niche picks from one cover
+(Walmart: the welding helmet and Hot Wheels; owner 11-18).
 Drawing and fonts: ~/Desktop/Pin-cover-generator (the owner's generator; pin_covers is imported). Cache: $GIFT_COVER_CACHE or ~/.lh-shots/gg-cover-cache.
 """
 import hashlib
@@ -30,7 +32,6 @@ import re
 import sys
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from urllib.parse import urlparse
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -40,7 +41,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PICKS = os.path.join(ROOT, "src", "content", "giftGuidePicks")
 OUT = os.path.join(ROOT, "public", "gift-guides", "covers")
 CACHE = os.environ.get("GIFT_COVER_CACHE", os.path.expanduser("~/.lh-shots/gg-cover-cache"))
-AMAZON = re.compile(r"(^|\.)(media-amazon|images-amazon|ssl-images-amazon|amazon)\.com$")
 TOP_CAREERS = 24
 # The first By career guides in the index (its order is the owner's).
 GEN = os.path.expanduser("~/Desktop/Pin-cover-generator")
@@ -48,7 +48,14 @@ sys.path.insert(0, GEN)
 import pin_covers as pc  # noqa: E402 - the owner's generator, so the covers are the pins' own style
 TINT = {"By person": "sage", "By store": "sage", "Life moments": "sage", "Louisiana": "sage",
         "By budget": "beige", "By career": "beige", "Colors": "beige", "For kids": "pink", "Hobbies": "pink", "Pets": "pink"}
-RAGGED = re.compile(r"airpods", re.I)
+TIGHT = re.compile(r"airpods", re.I)
+# Covers the lead hand-set from the owner's example (11-18: "Mom should look like Stanley, Kindle, digital photo frame,
+# Ninja CREAMi, LANEIGE/Sol de Janeiro, UGG slippers"): these picks lead, the featured order fills the rest. LANEIGE's
+# photo is not on white, so Sol de Janeiro stands in.
+COVER_FIRST = {"mom": ["STANLEY Quencher H2.0 Flow State Tumbler", "Amazon Kindle Paperwhite 16GB (2024 model)",
+                       "AURA Carver Digital Picture Frame", "Ninja CREAMi Ice Cream Maker", "UGG Women's Disquette",
+                       "Brazilian Bum Bum® Cream Iconic Glass Edition"]}
+COVER_SKIP = {"store-walmart": re.compile(r"welding|hot wheels", re.I)}
 NO_BOOTS = {"mom", "her", "wife"}  # owner 11-18: no Muck/XTRATUF/rain boots on these; UGG is fine
 KINDS = {
     "boot": re.compile(r"\bboots?\b|xtratuf|muck ?boot|muckster|wellies", re.I),
@@ -91,7 +98,7 @@ def fetch(url):
     return data or None
 
 
-def cutout(data):
+def cutout(data, tight=False):
     """The product on a near-white photo, as RGBA cropped to it; None for a photo that isn't on white."""
     try:
         im = Image.open(io.BytesIO(data)).convert("RGB")
@@ -103,6 +110,10 @@ def cutout(data):
     if (np.abs(255 - border).max(axis=1) <= 26).mean() < 0.85:
         return None  # not on white: a lifestyle shot
     fg = np.abs(255 - a).max(axis=2) > 26
+    if tight:
+        lab, _ = ndimage.label(np.abs(255 - a).max(axis=2) <= 2)
+        edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+        fg = ~np.isin(lab, list(edge))
     fg = ndimage.binary_opening(fg, iterations=1)
     lab, n = ndimage.label(fg)
     if n == 0:
@@ -156,10 +167,13 @@ def photos(slug, need=6):
         picks = json.load(open(os.path.join(PICKS, f"{slug}.json"), encoding="utf8"))["picks"]
     except FileNotFoundError:
         return []
+    first = COVER_FIRST.get(slug, [])
+    lead = [next((p for p in picks if (p.get("name") or "").startswith(n)), None) for n in first]
+    picks = [p for p in lead if p] + [p for p in picks if p not in lead]
     cands, seen = [], set()
     for p in picks:
         u = p.get("image")
-        if not u or not u.startswith("https://") or u in seen or AMAZON.search(urlparse(u).hostname or ""):
+        if not u or not u.startswith("https://") or u in seen:
             continue
         # A store's own storefront pick (name == brand, "Bass Pro Shops") carries its logo, not a product.
         if (p.get("name") or "").strip().lower() == (p.get("brand") or "").strip().lower():
@@ -172,9 +186,10 @@ def photos(slug, need=6):
         with ThreadPoolExecutor(6) as pool:
             datas = list(pool.map(fetch, [p["image"] for p in batch]))
         for p, data in zip(batch, datas):
-            if len(got) >= need or RAGGED.search(p.get("name") or "") or not allowed(slug, p, taken):
+            skip = COVER_SKIP.get(slug)
+            if len(got) >= need or (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, taken):
                 continue
-            c = cutout(data) if data else None
+            c = cutout(data, tight=bool(TIGHT.search(p.get("name") or ""))) if data else None
             if c is not None:
                 got.append(c)
                 taken.append(p)
@@ -224,6 +239,11 @@ def draw(row, prods, out):
         lsize -= 4
     d.text((cx, y0 + (x1 - x0) * 0.40), row["lead"], font=pc.font("CG-Italic.ttf", lsize), fill=pc.INK, anchor="mm")
     size = 78
+    # One line when the name fits at 60 or more ("Under $50"), else wrap.
+    while size > 60 and d.textlength(row["title"], font=pc.font("PlayfairDisplay.ttf", size)) > x1 - x0 - 190:
+        size -= 2
+    if d.textlength(row["title"], font=pc.font("PlayfairDisplay.ttf", size)) > x1 - x0 - 190:
+        size = 78
     while True:
         tf = pc.font("PlayfairDisplay.ttf", size)
         lines = wrap(d, row["title"], tf, x1 - x0 - 190)  # clear of the products over the arch edge

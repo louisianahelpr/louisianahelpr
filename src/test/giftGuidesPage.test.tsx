@@ -413,7 +413,7 @@ describe("gift guides: the landing opens to the guides", () => {
       const g = guideBySlug(t.getAttribute("data-gift-tile")!)!;
       // The text cover (no cover file) repeats the name as a decorative, aria-hidden picture; the tile's words are the name.
       const words = [...t.childNodes].filter((n) => !(n instanceof Element && n.getAttribute("aria-hidden") === "true")).map((n) => n.textContent).join("");
-      // The For kids row's Teens tiles are named apart ("Teen Girls"; live audit r3 #4).
+      // The For kids row's Teens tiles are named apart ("Teen girls"; live audit r3 #4).
       expect(words, g.slug).toBe(`${TEEN_TILES.find((x) => x.slug === g.slug)?.label ?? g.title}${g.age ?? ""}`);
     }
     expect(container.textContent).not.toMatch(/\d+ picks?\b|\d+ guides\b|Coming soon|On ShopMy/);
@@ -513,7 +513,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const teens = TEEN_TILES.filter((t) => guideBySlug(t.slug) && !guideBySlug(t.slug)!.empty);
     expect(teens.length).toBe(3);
     expect([...kidsRow.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile")).sort()).toEqual(["boys", "boys-teens", "gender-neutral", "gender-neutral-teens", "girls", "girls-teens"]);
-    expect([...kidsRow.querySelectorAll("a[data-gift-tile] .gg-name")].map((n) => n.textContent).slice(3)).toEqual(["Teen Girls", "Teen Boys", "Gender-Neutral Teens"]);
+    expect([...kidsRow.querySelectorAll("a[data-gift-tile] .gg-name")].map((n) => n.textContent).slice(3)).toEqual(["Teen girls", "Teen boys", "Gender-neutral teens"]);
     expect(kidsRow.querySelector("[data-gift-row-count]")?.textContent).toBe("\u00a0(6)");
     const menu = container.querySelector('details[data-gift-group="for-kids"]')!;
     expect([...menu.querySelectorAll("a")].map((a) => a.getAttribute("href")).sort()).toEqual(["/gift-guides/boys", "/gift-guides/gender-neutral", "/gift-guides/girls"]);

@@ -64,7 +64,9 @@ export default function GiftGuides() {
   );
 
   return (
-    <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide ? "/gift-guides" : "/"} bottomPaddingClassName="pb-12 md:pb-16"
+    // Holistic review 11-18 L6: the landing's back arrow went home; the landing has none now (the bar's logo is the way
+    // home), and My list or a group's page goes back to the landing.
+    <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide || myList || group ? "/gift-guides" : "/"} hideBack={!guide && !myList && !group} bottomPaddingClassName="pb-12 md:pb-16"
       titleActions={shipPill}>
       <style>{GIFT_GUIDES_CSS}</style>
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}

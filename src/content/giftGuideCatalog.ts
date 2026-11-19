@@ -488,24 +488,176 @@ export const SEARCH_KEYWORDS: Record<string, string> = {
   rns: "nurse nurses", lpns: "nurse nurses", healthcare: "nurse nurses", "healthcare-workers": "nurse nurses",
 };
 
+/** Folds case and accents ("Caf\u00e9" -> "cafe"). */
+const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+/** A query's words: folded, punctuation dropped (a "$" and an apostrophe kept), split on spaces and hyphens. */
+const queryWords = (query: string) => fold(query).replace(/[^a-z0-9$' ]+/g, " ").split(/\s+/).filter(Boolean);
+
 /**
- * The sidebar search (owner 2026-11-18): every guide whose title, group or keywords match the words typed, case- and
- * accent-blind, title matches first (design audit r2 #11). Empty words match nothing.
+ * Words that carry no meaning in a gift search (holistic review 11-18 H5: "gift for mom" listed Mom plus 18 Life
+ * moments guides). Dropped before matching, unless the query is nothing else.
+ */
+export const SEARCH_FILLER = new Set(["gift", "gifts", "for", "my", "a", "an", "the", "ideas", "idea", "to", "who", "that", "someone", "present", "presents", "of", "and", "is", "likes", "loves"]);
+
+/** The kids age bands, by the guides' own slug tail ("girls-little-kids"), with the ages each covers (GUIDE_INDEX `age`). */
+export const KID_AGE_BANDS = [
+  { tail: "babies", label: "Babies", ages: "0–1", from: 0, to: 1 },
+  { tail: "toddlers", label: "Toddlers", ages: "1–3", from: 2, to: 3 },
+  { tail: "little-kids", label: "Little kids", ages: "4–7", from: 4, to: 7 },
+  { tail: "big-kids", label: "Big kids", ages: "8–12", from: 8, to: 12 },
+  { tail: "teens", label: "Teens", ages: "13+", from: 13, to: 17 },
+] as const;
+type AgeTail = (typeof KID_AGE_BANDS)[number]["tail"];
+
+/** The kids hubs whose age guides are "<hub>-<tail>". */
+export const KID_AGE_HUBS = ["girls", "boys", "gender-neutral"] as const;
+
+/**
+ * Words a shopper types that point to guides by meaning, not by title (holistic review 11-18 H5: "fishing" found only a
+ * store; "cheap" and "christmas" found nothing). Each entry: whole words (folded) and the guides they open, in order.
+ * Search-only: never shown.
+ */
+export const SEARCH_SYNONYMS: { words: string[]; slugs: string[] }[] = [
+  { words: ["fishing", "fish", "fishes", "fisherman", "fishermen", "angler", "anglers"], slugs: ["fishermen", "fish-lover", "boater", "kayaker"] },
+  { words: ["boat", "boating", "boats"], slugs: ["boater", "fishermen", "kayaker"] },
+  { words: ["hunting", "hunt", "hunter", "deer", "duck"], slugs: ["hunters"] },
+  { words: ["cheap", "cheaper", "budget", "inexpensive", "affordable"], slugs: ["under-10", "under-15", "under-20", "under-25", "stocking-stuffers"] },
+  { words: ["christmas", "xmas", "stocking", "stockings", "stuffer", "stuffers"], slugs: ["stocking-stuffers"] },
+  { words: ["husband", "hubby", "boyfriend"], slugs: ["boyfriend-or-husband", "him"] },
+  { words: ["girlfriend"], slugs: ["girlfriend", "her"] },
+  { words: ["grandmother", "granny", "nana", "mimi", "mawmaw"], slugs: ["grandma"] },
+  { words: ["grandfather", "papa", "pawpaw"], slugs: ["grandpa"] },
+  { words: ["mother", "mama", "mommy"], slugs: ["mom"] },
+  { words: ["father", "daddy"], slugs: ["dad"] },
+  { words: ["cooking", "cook", "chef", "kitchen"], slugs: ["home-cook", "louisiana-kitchen"] },
+  { words: ["workout", "fitness", "gym"], slugs: ["gym-lover"] },
+  { words: ["dog", "dogs", "puppy"], slugs: ["dog-lover", "new-puppy"] },
+  { words: ["cat", "cats", "kitten"], slugs: ["cat-person", "new-kitten"] },
+  { words: ["cajun", "creole"], slugs: ["acadiana", "louisiana-made", "louisiana-kitchen"] },
+];
+
+/** Words naming a kid's sex, and the hub they point to. */
+const GIRL_WORDS = new Set(["girl", "girls", "niece", "nieces", "daughter", "daughters", "granddaughter", "granddaughters"]);
+const BOY_WORDS = new Set(["boy", "boys", "nephew", "nephews", "son", "sons", "grandson", "grandsons"]);
+/** Words naming an age band outright. */
+const BAND_WORDS: Record<string, AgeTail[]> = {
+  baby: ["babies"], babies: ["babies"], infant: ["babies"], newborn: ["babies"],
+  toddler: ["toddlers"], toddlers: ["toddlers"],
+  tween: ["big-kids", "teens"], tweens: ["big-kids", "teens"], preteen: ["big-kids", "teens"],
+  teen: ["teens"], teens: ["teens"], teenager: ["teens"], teenagers: ["teens"],
+};
+/** Words that only say "an age" ("4 year old", "age 4", "4yo"): used up with the number. */
+const AGE_WORDS = new Set(["year", "years", "yr", "yrs", "old", "yo", "age", "ages", "month", "months", "kid", "kids", "child"]);
+const BUDGET_WORDS = new Set(["under", "below", "less", "than", "max", "dollars", "dollar", "bucks"]);
+
+/**
+ * The guides a query's meaning points to, and the words it used up (holistic review 11-18 H5): a budget ("under $25"),
+ * an age ("4 year old niece" -> Little kids for girls, then Niece), an age word (toddler, tween) and SEARCH_SYNONYMS.
+ */
+export const searchIntent = (words: string[]): { slugs: string[]; used: Set<string> } => {
+  const used = new Set<string>();
+  const slugs: string[] = [];
+  const add = (s: string) => {
+    const g = guideBySlug(s);
+    if (g && !g.empty && !slugs.includes(s)) slugs.push(s);
+  };
+  // A budget: "$25", "under 25", "25 dollars" -> the nearest Under $X guide at or above it.
+  const budgets = [...new Set(GUIDES.flatMap((g) => /^under-(\d+)$/.exec(g.slug)?.[1] ?? []).map(Number))].sort((a, b) => a - b);
+  const budgetSlugs: string[] = [];
+  words.forEach((w, i) => {
+    const n = /^\$?(\d+)$/.exec(w)?.[1];
+    if (n === undefined) return;
+    const isMoney = w.startsWith("$") || ["under", "below", "less", "than", "max"].includes(words[i - 1] ?? "") || ["dollars", "dollar", "bucks"].includes(words[i + 1] ?? "");
+    if (!isMoney) return;
+    const at = budgets.find((b) => b >= Number(n)) ?? budgets[budgets.length - 1];
+    if (at !== undefined) budgetSlugs.push(`under-${at}`);
+    used.add(w);
+    for (const x of words) if (BUDGET_WORDS.has(x)) used.add(x);
+  });
+  // An age: a number beside an age word ("4 year old", "age 4", "4yo"), or a band word ("toddler", "tween").
+  const hubs: readonly string[] = words.some((w) => GIRL_WORDS.has(w)) ? ["girls"] : words.some((w) => BOY_WORDS.has(w)) ? ["boys"] : KID_AGE_HUBS;
+  const tails: AgeTail[] = [];
+  words.forEach((w, i) => {
+    const m = /^(\d{1,2})(yo|yrs?|y)?$/.exec(w);
+    if (m && !used.has(w) && (m[2] || AGE_WORDS.has(words[i + 1] ?? "") || AGE_WORDS.has(words[i - 1] ?? ""))) {
+      const age = words[i + 1] === "month" || words[i + 1] === "months" ? 0 : Number(m[1]);
+      const band = KID_AGE_BANDS.find((b) => age >= b.from && age <= b.to);
+      if (band) tails.push(band.tail);
+      used.add(w);
+    }
+    if (BAND_WORDS[w]) {
+      tails.push(...BAND_WORDS[w]);
+      used.add(w);
+    }
+  });
+  if (tails.length) {
+    for (const w of words) if (AGE_WORDS.has(w) || GIRL_WORDS.has(w) || BOY_WORDS.has(w)) used.add(w);
+    for (const t of tails) for (const h of hubs) add(`${h}-${t}`);
+    // A niece or nephew asked by age keeps their own guide after the age guides.
+    if (words.some((w) => w.startsWith("niece"))) add("niece");
+    if (words.some((w) => w.startsWith("nephew"))) add("nephew");
+  }
+  // The budget after the age (a 4-year-old under $25: the age guide first, then Under $25).
+  budgetSlugs.forEach(add);
+  for (const syn of SEARCH_SYNONYMS) {
+    if (!words.some((w) => syn.words.includes(w) && !used.has(w))) continue;
+    syn.slugs.forEach(add);
+    // A synonym word that no guide title holds is used up, so it does not empty the title match below.
+    for (const w of words) {
+      if (syn.words.includes(w) && !GUIDES.some((g) => !g.empty && fold(`${g.title} ${SEARCH_KEYWORDS[g.slug] ?? ""}`).includes(w))) used.add(w);
+    }
+  }
+  return { slugs, used };
+};
+
+/**
+ * The search over every guide (owner 2026-11-18; holistic review 11-18 H5): filler words dropped; then the guides the
+ * query's meaning points to (searchIntent); and every guide whose title, lead or keywords hold each remaining word, or
+ * whose group's name holds it as a WHOLE word (so "mom" no longer matches "Life moments"), case- and accent-blind,
+ * title matches first (design audit r2 #11). Empty words match nothing.
  */
 export const searchGuides = (query: string): CatalogGuide[] => {
-  const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const words = fold(query).split(/\s+/).filter(Boolean);
+  const all = queryWords(query);
+  const meaningful = all.filter((w) => !SEARCH_FILLER.has(w));
+  const words = meaningful.length ? meaningful : all;
   if (words.length === 0) return [];
-  const label = new Map(ROWS.map((r) => [r.row, r.label] as const));
-  const q = words.join(" ");
+  const intent = searchIntent(words);
+  const rest = words.filter((w) => !intent.used.has(w));
+  const label = new Map(ROWS.map((r) => [r.row, fold(r.label).split(/[^a-z0-9]+/)] as const));
+  const q = rest.join(" ");
   // Title matches first (exact, then starting with the words, then containing them), the list's order kept inside each.
   const rank = (g: CatalogGuide) => {
     const t = fold(g.title);
-    return t === q ? 0 : t.startsWith(q) ? 1 : words.every((w) => t.includes(w)) ? 2 : 3;
+    return t === q ? 0 : t.startsWith(q) ? 1 : rest.every((w) => t.includes(w)) ? 2 : 3;
   };
-  return GUIDES.filter((g) => {
+  const byWords = rest.length === 0 ? [] : GUIDES.filter((g) => {
     if (g.empty) return false;
-    const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
-    return words.every((w) => hay.includes(w));
+    const hay = fold(`${g.title} ${g.lead} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
+    return rest.every((w) => hay.includes(w) || (label.get(g.row) ?? []).includes(w));
   }).map((g, i) => [g, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([g]) => g);
+  // A title that is the query itself ("mom", "tractor supply") leads; otherwise the meaning's guides lead.
+  const meant = intent.slugs.map((s) => guideBySlug(s)!);
+  const merged = byWords.length > 0 && rank(byWords[0]) <= 1 ? [...byWords, ...meant] : [...meant, ...byWords];
+  return [...new Map(merged.map((g) => [g.slug, g] as const)).values()];
+};
+
+/** One item row of the search index (scripts/gift-guide-search-index.mjs): its name and the guide it sits in. */
+export type SearchItem = [name: string, guide: string];
+let itemIndex: Promise<SearchItem[]> | null = null;
+/** The item index, fetched once on the first keystroke (its own lazy chunk: nothing on the landing's first paint). */
+export const loadSearchItems = () => (itemIndex ??= import("@/content/giftGuideSearchIndex.json").then((m) => m.default as SearchItem[]));
+
+/**
+ * The items whose name holds every meaningful word of the query (holistic review 11-18 H5: "airpods" found nothing),
+ * names starting with the first word first, at most `max`. Filler words are dropped as in searchGuides.
+ */
+export const searchItems = (items: SearchItem[], query: string, max = 6): SearchItem[] => {
+  const words = queryWords(query).filter((w) => !SEARCH_FILLER.has(w) && w.length > 1);
+  if (words.length === 0) return [];
+  const hits = items.filter(([name]) => {
+    const n = fold(name);
+    return words.every((w) => n.includes(w));
+  });
+  const starts = (n: string) => (fold(n).startsWith(words[0]) ? 0 : 1);
+  return hits.map((h, i) => [h, i] as const).sort(([a, i], [b, j]) => starts(a[0]) - starts(b[0]) || i - j).slice(0, max).map(([h]) => h);
 };

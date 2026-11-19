@@ -156,7 +156,9 @@ describe("design audit r2: sales and search", () => {
     const inTitle = searchGuides("mom").map((g) => /mom/i.test(g.title));
     expect(inTitle.filter(Boolean).length).toBeGreaterThan(1);
     expect(inTitle.lastIndexOf(true)).toBeLessThan(inTitle.indexOf(false) === -1 ? Infinity : inTitle.indexOf(false));
-    expect(inTitle.indexOf(false)).toBeGreaterThan(-1);
+    // Holistic review 11-18 H5: "gift for mom" listed Mom plus 18 Life moments guides; a group's name now matches only
+    // as a whole word, so no guide is found through "moments".
+    expect(searchGuides("gift for mom").filter((g) => g.row === "life-moments" && !/mom/i.test(g.title))).toEqual([]);
   });
 });
 

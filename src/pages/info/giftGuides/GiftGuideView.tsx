@@ -10,6 +10,7 @@ import { Heart, togglePick, useGiftList } from "./giftList";
 import { Button } from "@/components/ui/button";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
+import { AgeChips } from "./GiftGuideAges";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -63,10 +64,18 @@ export function PickRow({ pick, guide, trending = false }: { pick: CatalogPick; 
             </span>
           )}
         </span>
-        <span className="gg-shop" aria-hidden="true">{G.shopLabel}</span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
       <Heart saved={saved} label={`Save ${pick.name} to My list`} onToggle={() => togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })} className="gg-heart-pick" />
+      {/* Holistic review 11-18 H4 (High): the Shop word was hidden on every item, so nothing said "tap to buy". A visible
+          44px pill on every item, apart from the heart: "Shop at Amazon ›". */}
+      <Button asChild variant="outline" size="sm" className="gg-shop-btn">
+        <GiftOut href={pick.href}>
+          <span data-gift-shop="">{G.shopAt(isShopMyCollection(pick.href) ? "" : storeLabel(pick))}</span>
+          <span aria-hidden="true">&nbsp;›</span>
+          <span className="sr-only">: {pick.name} ({G.newTab})</span>
+        </GiftOut>
+      </Button>
     </li>
   );
 }
@@ -229,6 +238,12 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
   return (
     <article aria-labelledby="gift-guide-title" data-gift-guide={guide.slug}>
       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
+      {/* Holistic review 11-18 H1: Niece, Nephew and Cousins open their kids age guides by age. */}
+      <AgeChips slug={guide.slug} />
+      {/* Holistic review 11-18 L3: how many gifts the guide holds, once its list is in. */}
+      {picksReady(guide.slug) && guide.picks.length > 0 && (
+        <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>
+      )}
       {guide.children?.map((group) => (
         <section key={group.label} aria-label={group.label} data-gift-hub-group={group.label}>
           <div className="gg-rowhead"><h3>{group.label}</h3></div>

@@ -8,6 +8,8 @@ import { GiftOut } from "./GiftOut";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { sponsorPage } from "@/content/sponsorPage";
 import { LAST_MINUTE, lastMinuteOn, shippingLine } from "@/content/giftGuideShipping";
+import { Button } from "@/components/ui/button";
+import { KidsByAge } from "./GiftGuideAges";
 
 /**
  * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
@@ -36,8 +38,41 @@ const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
     : []),
 ];
 
-/** The rows above the Top 10 strip (By person, For kids, By budget, Louisiana). */
-const ROWS_BEFORE_TOP = 4;
+/** The rows above the Top 10 strip (holistic review 11-18 M9: Top 10 sat 5th; now right after By person). */
+const ROWS_BEFORE_TOP = 1;
+/** The first row's covers that load at once (holistic review 11-18 M10); the rest stay lazy. */
+const PRIORITY_COVERS = 4;
+
+/**
+ * The quick-pick chips under the search (holistic review 11-18 M9): the shopper tasks the review timed (a budget,
+ * stocking stuffers, a kid by age, him, her, Louisiana), one tap each. A chip whose guide holds nothing is left out.
+ */
+export const QUICK_PICKS: { label: string; to: string; slug?: string }[] = [
+  { label: "Under $25", to: "/gift-guides/under-25", slug: "under-25" },
+  { label: "Under $50", to: "/gift-guides/under-50", slug: "under-50" },
+  { label: "Stocking stuffers", to: "/gift-guides/stocking-stuffers", slug: "stocking-stuffers" },
+  { label: G.kidsByAgeChip, to: "/gift-guides?group=for-kids" },
+  { label: "Him", to: "/gift-guides/him", slug: "him" },
+  { label: "Her", to: "/gift-guides/her", slug: "her" },
+  { label: "Louisiana", to: "/gift-guides?group=louisiana" },
+];
+
+function QuickPicks() {
+  const chips = QUICK_PICKS.filter((c) => !c.slug || (guideBySlug(c.slug) && !guideBySlug(c.slug)!.empty));
+  return (
+    <nav className="gg-picks" aria-label={G.quickPicksLabel} data-gift-quick-picks="">
+      <ul className="gg-chips gg-picks-row">
+        {chips.map((c) => (
+          <li key={c.to}>
+            <Button asChild variant="outline" size="sm" className="gg-chip">
+              <Link to={c.to} data-gift-quick-pick={c.to}>{c.label}</Link>
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
 
 /** A Top 10 card: the photo (or the store's tile), a short name, the store, and the price on a non-Amazon pick. */
 function TopCard({ pick, n }: { pick: CatalogPick; n: number }) {
@@ -113,15 +148,19 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
             </Link>
           )}
         </div>
+        {/* Holistic review 11-18 H1: the kids age guides, two taps from the landing. */}
+        {row === "for-kids" && group && <KidsByAge />}
         <ul className={group ? "gg-wrap" : "gg-row"}>
-          {list.map(({ g, label }) => <GiftGuideTile key={g.slug} g={g} label={label} />)}
+          {list.map(({ g, label }, i) => <GiftGuideTile key={g.slug} g={g} label={label} priority={!group && row === ROWS[0].row && i < PRIORITY_COVERS} />)}
         </ul>
+        {row === "for-kids" && !group && <KidsByAge />}
       </section>
     );
   };
   return (
     <>
       {group && <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>}
+      {!group && <QuickPicks />}
       {!group && <LastMinute />}
       <div className="gg-rows" data-gift-rows="">
         {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}

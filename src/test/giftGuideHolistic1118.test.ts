@@ -1,0 +1,59 @@
+/**
+ * Gift guides holistic review 11-18 (~/.lh-shots/design-audit-loop/gg-holistic-1118/FINDINGS.md H2/H3/L5) and the
+ * owner's Fish Lover correction (11-18 night: Fish Lover is a Pets guide, for people who keep pet fish, not anglers).
+ * Reads the rules (scripts/giftGuideRules.mjs) and every generated chunk (src/content/giftGuidePicks/*.json).
+ * @mutate scripts/giftGuideRules.mjs |   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false; |
+ * @mutate scripts/giftGuideRules.mjs |     return /\/collections\//i.test(u.pathname) \|\| /\/shop\/?$/i.test(u.pathname); |     return false;
+ * @mutate scripts/giftGuideRules.mjs | export const placeholderName = (p) => /^All\s+(\w+\s){0,2}\w+s$/.test(String(p.name ?? "").trim()) | export const placeholderName = (p) => false
+ * @mutate scripts/giftGuideRules.mjs | export const NO_SHOW_FORMAT = /\.(avif\|heif\|heic)(\?\|$)\|[?&](fmt\|format)=avif\b/i; | export const NO_SHOW_FORMAT = /^$/;
+ */
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { ANGLING, NEW_MOM_CARE, NOT_A_GIFT_ITEM, brokenImage, collectionLink, fitsGuide, placeholderName } from "../../scripts/giftGuideRules.mjs";
+
+const DIR = join(process.cwd(), "src/content/giftGuidePicks");
+type Pick = { name: string; brand: string; href: string; image?: string };
+const CHUNKS: Record<string, Pick[]> = Object.fromEntries(
+  readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => [f.replace(/\.json$/, ""), (JSON.parse(readFileSync(join(DIR, f), "utf8")) as { picks: Pick[] }).picks]),
+);
+
+describe("gift guides holistic fit (11-18)", () => {
+  it("reads every chunk", () => {
+    expect(Object.keys(CHUNKS).length).toBeGreaterThan(400);
+  });
+
+  it("Fish Lover holds pet-fish gifts, never angling gear", () => {
+    for (const name of ["Aluminum Saltwater Fishing Pliers", "EZ Fillet Fish Fillet Mat", "PENN 7' Battle Spinning Fishing Rod and Reel Combo Kit", "KastKing Karryall 40L Fishing Tackle Backpack"]) {
+      expect(fitsGuide("fish-lover", { name }), name).toBe(false);
+    }
+    expect(fitsGuide("fish-lover", { name: "Betta Fish Tank Starter Kit, 5 Gallon" })).toBe(true);
+    expect(fitsGuide("fishermen", { name: "Aluminum Saltwater Fishing Pliers" })).toBe(true);
+    const angling = (CHUNKS["fish-lover"] ?? []).filter((p) => ANGLING.test(p.name)).map((p) => p.name);
+    expect(angling).toEqual([]);
+  });
+
+  it("no chunk links a collection or shop page, or names a category instead of a product", () => {
+    expect(collectionLink("https://shopmy.us/collections/8987524")).toBe(true);
+    expect(collectionLink("https://go.shopmy.us/p-104053976")).toBe(false);
+    expect(placeholderName({ name: "All Blenders", brand: "Vitamix" })).toBe(true);
+    expect(placeholderName({ name: "Sterling Silver Rings", brand: "" })).toBe(true);
+    expect(placeholderName({ name: "All About Eyes Eye Cream with Vitamin C", brand: "Clinique" })).toBe(false);
+    const bad = Object.entries(CHUNKS).flatMap(([slug, l]) => l.filter((p) => collectionLink(p.href) || placeholderName(p)).map((p) => `${slug}: ${p.name} ${p.href}`));
+    expect(bad).toEqual([]);
+  });
+
+  it("no medical or personal-care item is listed as a gift (New Mom keeps pump and nipple care)", () => {
+    for (const name of ["Period Bikini, 2 Pack", "Drying Lotion", "Aquaphor Healing Ointment", "Hero Mighty Patch Acne Pimple Patches"]) expect(NOT_A_GIFT_ITEM.test(name), name).toBe(true);
+    const bad = Object.entries(CHUNKS).flatMap(([slug, l]) => l.filter((p) => NOT_A_GIFT_ITEM.test(p.name) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))).map((p) => `${slug}: ${p.name}`));
+    expect(bad).toEqual([]);
+  });
+
+  it("no AVIF or HEIF photo (not every browser shows one)", () => {
+    expect(brokenImage("https://cdn.shopify.com/s/files/1/0800/1879/files/10111001_0693_A.avif?v=1789566")).toBe(true);
+    expect(brokenImage("https://cdn.shopify.com/s/files/1/1567/7629/files/IMG_9986.heic?v=1790966616")).toBe(true);
+    const bad = Object.entries(CHUNKS).flatMap(([slug, l]) => l.filter((p) => p.image && brokenImage(p.image)).map((p) => `${slug}: ${p.image}`));
+    expect(bad).toEqual([]);
+  });
+});

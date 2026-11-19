@@ -122,7 +122,8 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(fitNotMade.some((p) => p.brand === "YETI")).toBe(true);
     expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(50);
     expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
-    expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(20);
+    // 15 measured 11-18 night: the 6 Zydeco Chop Chop rows left (their link opened the shop page, not a product; review H3).
+    expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(14);
   });
   it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
     expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);

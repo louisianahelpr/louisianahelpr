@@ -1296,7 +1296,10 @@ export const foodSubOff = (slug, p) => !slug.startsWith("store-") && !(slug in F
 export const SHIPPED_ICE_CREAM = /\b(ice cream|gelato)\b[^,]*\b(pints?|gift|box|sampler|collection|pack|delivery|club)\b|\bpints?\b[^,]*\bice cream\b|^(ecreamery|jeni'?s( splendid ice creams)?|salt (&|and) straw|mcconnell'?s( fine ice creams)?|van leeuwen)$/i;
 export const iceCreamOff = (slug, p) => !slug.startsWith("store-") && !/\b(maker|machine|creami|scoop|bowl)\b/i.test(String(p.name ?? ""))
   && (SHIPPED_ICE_CREAM.test(String(p.name ?? "")) || SHIPPED_ICE_CREAM.test(String(p.brand ?? "").trim()));
-export const crockPotOff = (slug, p) => !slug.startsWith("store-") && /\bcrock-?pot\b/i.test(`${p.name} ${p.brand ?? ""}`) && !/\b(smart|wi-?fi|app)\b/i.test(String(p.name ?? ""));
+// Owner 11-19 (clarified): only a BASIC slow cooker is off; an upgraded multi-cooker (Ninja PossibleCooker, Instant Pot Pro /
+// Duo Crisp, Our Place Dream Cooker, Crock-Pot Express) is welcome where it fits.
+export const crockPotOff = (slug, p) => !slug.startsWith("store-") && /\b(crock-?pot|slow ?cooker)\b/i.test(`${p.name} ${p.brand ?? ""}`)
+  && !/\b(smart|wi-?fi|app|express|multi-?(cooker|use)|pressure|possible ?cooker|duo crisp|pro|dream cooker)\b/i.test(String(p.name ?? ""));
 /**
  * Owner 11-19 screenshots: photos that showed as blank boxes on the live men's guides (Southern Tide's Skipjack Polo
  * ShopMy pin, Stanley's 12 oz camp mug PNG; both answer 200 to curl, cause not yet confirmed) leave the people guides,

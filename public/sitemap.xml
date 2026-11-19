@@ -40,11 +40,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/911-dispatchers</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/acadiana</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -56,18 +51,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/advent-calendars</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/air-force</loc>
-    <lastmod>2026-11-18</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/army</loc>
-    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -100,7 +83,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/baton-rouge</loc>
-    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -216,6 +198,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/bus-drivers</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/camper</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -223,11 +210,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/car-lover</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/caregivers</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -260,7 +242,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/coast-guard</loc>
-    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -324,11 +305,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/crane-operators</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/crawfish-boil-host</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -358,6 +334,21 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/delivery-drivers</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/dental-assistants</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/dental-hygienists</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/diyer</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -371,11 +362,6 @@
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/dog-lover</loc>
     <lastmod>2026-11-19</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/educators</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -509,6 +495,11 @@
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/gender-neutral-toddlers</loc>
     <lastmod>2026-11-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/get-well-soon</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -662,7 +653,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/home-health-nurses</loc>
-    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -674,11 +664,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/horse-lover</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/hospital-front-desk</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -728,6 +713,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/lab-techs-phlebotomists</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/landd-nurses</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -862,6 +852,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/nail-techs</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/neighbor</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -928,6 +923,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/nicu-nurses</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/niece</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -963,6 +963,26 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/or-nurses</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/paramedics-and-emts</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/pediatric-nurses</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/pharmacists</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/pharmacy-techs</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1028,6 +1048,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/real-estate-agents</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/red-lover</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -1040,7 +1065,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/restaurant-servers</loc>
-    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1114,6 +1138,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-allmodern</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-amazon</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1137,6 +1166,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-baggu</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-barefoot-dreams</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -1153,7 +1187,27 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-bath-and-body-works</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-baublebar</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-bayou-classic</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-bearaby</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-beats</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1169,6 +1223,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-birch-lane</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-biscuit</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1206,12 +1265,39 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-burts-bees</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-cabelas</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-camp-snap</loc>
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-capri-blue</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-carawayhome</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-carhartt</loc>
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-cecil-and-lou</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1248,6 +1334,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-comrad-socks</loc>
+    <lastmod>2026-11-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-corkcicle</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -1260,6 +1352,16 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-crocs</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-dansko</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-davids-cookies</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1267,6 +1369,11 @@
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-dermstore</loc>
     <lastmod>2026-11-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-dewalt</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1298,6 +1405,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-fragrancenet</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-free-country</loc>
     <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
@@ -1310,6 +1422,18 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-georgia-boot</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-glossier</loc>
+    <lastmod>2026-11-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-glow-recipe</loc>
+    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1335,6 +1459,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-heydude</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-huk</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1345,7 +1474,17 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-jellycat</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-jomashop</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-joss-and-main</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1357,6 +1496,16 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-julie-vos</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-kendra-scott</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-kiehls</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1377,7 +1526,17 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-le-creuset</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-leatherman</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-lego</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1412,8 +1571,18 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-lodge</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-loft</loc>
     <lastmod>2026-11-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-longchamp</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1456,6 +1625,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-mejuri</loc>
+    <lastmod>2026-11-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-melissa-and-doug</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1466,17 +1641,18 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-meowbox</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-milk-bar</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-momcozy</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-muck</loc>
+    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1507,7 +1683,33 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-nordstrom</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-nordstrom-rack</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-oakley</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-olive-and-june</loc>
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-oliveandjune</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-ooni</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1518,13 +1720,33 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-paddywax</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-parachute-home</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-paravel</loc>
     <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-patagonia</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-paulaschoice</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-peak-design</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1551,6 +1773,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-qvc</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-rare-beauty</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1592,6 +1819,16 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-royce-new-york</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-saiehello</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-saint-bernard</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -1604,6 +1841,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-saks-fifth-avenue</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-scullyandscully</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1677,6 +1919,17 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-splendid</loc>
+    <lastmod>2026-11-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-st-bernard</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-stanley</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1693,6 +1946,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-sunnylife</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-switchbot</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1703,12 +1961,28 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-terrain</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-the-sleep-code</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-the-warming-store</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-thenorthface</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-therabody</loc>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1733,6 +2007,12 @@
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-tushbaby</loc>
     <lastmod>2026-11-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-ugg</loc>
+    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1766,12 +2046,28 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-vevor</loc>
+    <lastmod>2026-11-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-victorias-secret</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-vineyard-vines</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-vortex-optics</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-vuori</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1936,6 +2232,11 @@
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/veterans</loc>
     <lastmod>2026-11-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/vets-and-vet-techs</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

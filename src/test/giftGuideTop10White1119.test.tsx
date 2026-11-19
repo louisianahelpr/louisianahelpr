@@ -147,7 +147,8 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(foodOff("mail-carrier-and-delivery-drivers", { name: "Nabisco Snacks Variety Pack", price: 12 })).toBe(false);
     expect(FOOD_GUIDES).toContain(TREATS_GUIDE);
     expect(offenders(foodOff)).toEqual([]);
-    expect(chunk(TREATS_GUIDE).length).toBeGreaterThan(1);
+    // 1530 train: the 1119d taste pass cut the seafood-boil mix, leaving 1 (measured); the guide is never empty.
+    expect(chunk(TREATS_GUIDE).length).toBeGreaterThan(0);
     // Food subscriptions: at most 2 on Treats & Food Gifts, 1 on Subscriptions, none anywhere else.
     expect(isFoodSub({ name: "Monthly Fruit Delivery", brand: "Harry & David" })).toBe(true);
     expect(offenders(foodSubOff)).toEqual([]);

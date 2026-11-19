@@ -1142,6 +1142,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-atlas-coffee-club</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-bartesian</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>

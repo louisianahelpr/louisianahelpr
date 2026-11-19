@@ -172,6 +172,18 @@ const withAmazonFixes = (p) => {
   return p;
 };
 /** One raw pick -> the page's pick, or null (hidden: the reason is listed). */
+/**
+ * Rows whose source name is a page title, renamed to the plain product (design audit loop 2026-11-18, name-only):
+ * keyed by the source href. The Atlas rows' names come from their URLs ("12-month-email-tea-gift-corporate", "12-month-email-gift-corporate"); the two
+ * SharkNinja rows link to a category page, so they name the category's product, not a model.
+ */
+export const RENAMED = {
+  "https://atlascoffeeclub.com/products/12-month-email-tea-gift-corporate": "12-Month Tea Club Gift Subscription",
+  "https://atlascoffeeclub.com/products/12-month-email-gift-corporate": "12-Month Coffee Club Gift Subscription",
+  "https://atlascoffeeclub.com/products/12-month-email-gift-quarterly-corporate": "12-Month Coffee Club Gift, Shipped Quarterly",
+  "https://www.sharkninja.com/kitchen/small-kitchen-appliances/air-fryers": "Ninja Air Fryer",
+  "https://www.sharkninja.com/beauty/skincare": "Shark Beauty LED Face Mask",
+};
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
   const fixed = withAmazonFixes(p);
@@ -207,7 +219,7 @@ function toPick(p, where) {
     : LOUISIANA.has(host) || SPONSORS.has(host) ? null
     : storeFor(p.retailer || p.store || p.brand);
   // A Louisiana shop or a 25 Days sponsor keeps its own words: those rows name the local business on purpose.
-  const rawName = LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host));
+  const rawName = RENAMED[p.href] ?? (LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host)));
   const name = rawName && tidyName(rawName);
   if (!name) return hidden.push(`${where}: "${p.name}" is a page title, store name or promo, not a product`), null;
   if (store) stores.get(store).hosts.add(host);

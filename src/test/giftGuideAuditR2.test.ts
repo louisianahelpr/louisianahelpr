@@ -233,6 +233,18 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(pageOf("him").some((p) => /curling iron/i.test(p.name))).toBe(false);
     expect(pageOf("home-cook").some((p) => /dumbbell/i.test(p.name))).toBe(false);
   });
+  it("renames page-title rows to the plain product (Atlas \"Corporate\" gifts, the SharkNinja category rows) and keeps the face mask out of Dad and Home Cook", () => {
+    // @mutate scripts/gift-guide-picks.mjs |   const rawName = RENAMED[p.href] ?? ( |   const rawName = (
+    const all = pages.flatMap((f) => pageOf(f.replace(/\.json$/, "")).map((p) => p.name));
+    expect(all.length).toBeGreaterThan(5000);
+    for (const bad of [/Email Gift.*Corporate/, /Crispier Cooking/, /Skincare Routine Tools/]) expect(all.some((n) => bad.test(n)), String(bad)).toBe(false);
+    expect(all).toContain("Ninja Air Fryer");
+    expect(all).toContain("12-Month Coffee Club Gift Subscription");
+    // @mutate scripts/giftGuideRules.mjs |   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false; |   if (false) return false;
+    expect(fitsGuide("home-cook", { name: "Shark Beauty LED Face Mask" })).toBe(false);
+    expect(fitsGuide("her", { name: "Shark Beauty LED Face Mask" })).toBe(true);
+    for (const g of ["dad", "home-cook", "him"]) expect(pageOf(g).some((p) => /face mask/i.test(p.name)), g).toBe(false);
+  });
   it("Subscriptions opens on Walmart+ and the giftable Amazon memberships (owner 11-18 PM), with no trending tumblers", () => {
     // @mutate scripts/gift-guide-picks.mjs | const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), | const featuredEntries = (slug) => [
     const names = pageOf("subscriptions").map((p) => p.name);

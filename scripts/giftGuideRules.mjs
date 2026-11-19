@@ -104,12 +104,15 @@ export const EXPERIENCE_GUIDES = ["louisiana-restaurants", "swamp-and-bayou-tour
 export const KNIFE_OK_GUIDES = ["louisiana-kitchen", "home-cook", "cooks-and-kitchen-staff", "chefs"];
 /** Names a web page gives itself: bot walls, error pages, sale banners, store titles, a bare number. */
 export const PAGE_TITLE_NAME = /^(client challenge|limited time( offer)?|access denied|just a moment\.*|attention required!?|forbidden|sites-[\w-]+|gifts? shop|\d+)$|official store|something went wrong|country selector|page unavailable/i;
-/** Picks that landed in the wrong guide (design lead 11-18 PM): a curling iron in Him, a dumbbell stand in Home Cook. */
+/** Picks that landed in the wrong guide (design lead 11-18 PM): a curling iron in Him, a dumbbell stand in Home Cook, a tea club in Dad. */
 /** Subscriptions holds gifts, not free trials (owner 11-18 PM: "Try Prime free" and "Audible free trial" off it). */
-export const WRONG_GUIDE = { him: /curling iron|hair crimper/i, "home-cook": /dumbbell/i, subscriptions: /free trial|\btry\b.*\bfree\b/i };
+export const WRONG_GUIDE = { him: /curling iron|hair crimper/i, "home-cook": /dumbbell/i, subscriptions: /free trial|\btry\b.*\bfree\b/i, dad: /tea club gift subscription/i };
+export const FACE_MASK_OFF = ["home-cook", "baker", "dad", "him", "diyer", "electricians", "mechanics", "construction-workers"];
 export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
+  // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
+  if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
   if (slug === "gift-cards") return GIFT_CARD.test(p.name) && !NOT_A_GIFT.test(p.name);
   if (EXPERIENCE_GUIDES.includes(slug)) return EXPERIENCE.test(p.name) && !NOT_A_GIFT.test(p.name);

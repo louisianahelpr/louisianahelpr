@@ -379,6 +379,11 @@ for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.jso
  * checked prices and are dropped. Photo, fit and Louisiana rules apply as everywhere.
  */
 export const FILL_HREFS = new Set();
+/** A store-fill name tidied (owner 11-18 night: long or generic Amazon names): size-range notes, "Unisex-Adult", an
+ * all-caps brand and a trailing burn-time or "including ..." clause go; tidyName then trims anything still long. */
+const cleanFillName = (n) => String(n).replace(/\s*\((Standard|Regular)[^)]*Size\)/gi, "").replace(/\bUnisex-Adult\s*/g, "")
+  .replace(/^THE NORTH FACE\b/, "The North Face").replace(/\bWomens\b/g, "Women's").replace(/\bMens\b/g, "Men's")
+  .replace(/\s+with up to \d+ Hour Burn Time$/i, "").replace(/\s+including .*$/i, "").replace(/\s{2,}/g, " ").trim();
 export const fillCounts = { rows: 0, store: 0, guides: 0, noStore: new Set() };
 {
   for (const f of ["_store-fill-amazon-1118.json", "_store-fill-shopmy-1118.json", "_store-fill-later-1118.json", "_store-fill-shark-1118.json"]) {
@@ -396,6 +401,7 @@ export const fillCounts = { rows: 0, store: 0, guides: 0, noStore: new Set() };
       let host = "";
       try { host = new URL(r.href).hostname; } catch { continue; }
       const { price: _price, commission: _commission, guides: _guides, ...row } = r;
+      row.name = cleanFillName(r.name);
       const raw = { brand: r.brand ?? stores.get(slug)?.name ?? "", line: "", ...row, ...(stores.has(slug) ? { store: stores.get(slug).name } : {}),
         image: r.image.replace(/^http:\/\//, "https://"), ...(AFFILIATE.has(host) && !AMAZON.has(host) ? { affiliate_href: r.href } : {}),
         ...(AMAZON.has(host) ? { image_source: "amazon-sitestripe" } : {}) };
@@ -684,12 +690,53 @@ export const suspectPhotos = { images: 0, cleared: 0 };
     if (groups.length < 2) continue;
     suspectPhotos.images += 1;
     const pin = /pins\/zoom-(\d+)-/.exec(image)?.[1];
-    const owner = (pin && groups.find((g) => g.some((r) => r.href === `https://go.shopmy.us/p-${pin}`))) ?? [...groups].sort((a, b) => b.length - a.length)[0];
+    // On three or more different products a photo is a placeholder (one Amazon image on six Anker chargers): nobody keeps it.
+    const owner = (pin && groups.find((g) => g.some((r) => r.href === `https://go.shopmy.us/p-${pin}`)))
+      ?? (groups.length >= 3 ? undefined : [...groups].sort((a, b) => b.length - a.length)[0]);
     for (const g of groups) if (g !== owner) for (const r of g) clear.add(r);
   }
   const strip = (list) => list.map((p) => (clear.has(p) ? ((suspectPhotos.cleared += 1), { ...p, image: undefined }) : p));
   for (const slug of Object.keys(guides)) guides[slug] = strip(guides[slug]);
   swappedOut.splice(0, swappedOut.length, ...strip(swappedOut));
+}
+/**
+ * BEST-PAYING LINK (11-18 night, ~/Desktop/Link-library/best-rates-1118.json: per brand, each network's rate and the
+ * best): when one product (same brand, same full name, sizes included) is carried on two or more networks, every row of it uses the
+ * best-paying network's link, provided that row has a photo. Only the same product is ever swapped in, so an audited top
+ * 25 keeps its products. Unknown rates ("?") never switch.
+ */
+export const rateSwitches = { switched: 0 };
+{
+  const f = join(homedir(), "Desktop", "Link-library", "best-rates-1118.json");
+  const RATES = existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : {};
+  const CJ = /(^|\.)(anrdoezrs|jdoqocy|dpbolvw|kqzyfj|tkqlhce)\.(net|com)$/;
+  const networkOf = (p) => {
+    const h = new URL(p.href).hostname;
+    return AMAZON.has(h) ? "Amazon" : h === "go.shopmy.us" || h === "shopmy.us" ? "ShopMy" : h === "mavely.app.link" ? "Later"
+      : h === "walmrt.us" ? "Walmart" : h === "www.awin1.com" ? "Awin" : CJ.test(h) ? "CJ" : "Direct";
+  };
+  const rateOf = (brand, net) => { const r = RATES[squash(brand)]?.all?.[net]; return typeof r === "number" ? r : undefined; };
+  const byProduct = new Map();
+  for (const list of Object.values(guides)) for (const p of list) {
+    if (!p.image || !squash(p.brand) || !RATES[squash(p.brand)]) continue;
+    const k = `${squash(p.brand)}|${compact(p.name)}`;
+    (byProduct.get(k) ?? byProduct.set(k, new Map()).get(k)).set(networkOf(p), p);
+  }
+  const best = new Map();
+  for (const [k, nets] of byProduct) {
+    if (nets.size < 2) continue;
+    const ranked = [...nets].filter(([n, p]) => rateOf(p.brand, n) !== undefined).sort((a, b) => rateOf(b[1].brand, b[0]) - rateOf(a[1].brand, a[0]));
+    if (ranked.length) best.set(k, ranked[0]);
+  }
+  for (const list of Object.values(guides)) list.forEach((p, i) => {
+    // The same product only: same brand and the same full name (sizes and pack counts included).
+    const b = best.get(`${squash(p.brand)}|${compact(p.name)}`);
+    if (!b || b[1].href === p.href || list.some((x) => x.href === b[1].href)) return;
+    const mine = rateOf(p.brand, networkOf(p));
+    if (mine !== undefined && mine >= rateOf(b[1].brand, b[0])) return;
+    list[i] = b[1];
+    rateSwitches.switched += 1;
+  });
 }
 for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));
 /**
@@ -1052,4 +1099,4 @@ writeFileSync(
     `export const GIFT_GUIDE_SEO = ${JSON.stringify(seo)};\n`,
 );
 
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; store fills: ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; store fills: ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}`);

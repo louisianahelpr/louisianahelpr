@@ -1242,6 +1242,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-corkcicle</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-crate-and-barrel</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1322,6 +1327,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-hatch</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-hearthsong</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1348,6 +1358,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-julie-vos</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-kitchen-aid</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1462,6 +1477,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-nanit</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-neiman-marcus</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1568,6 +1588,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-simms-fishing</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-simplehuman</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

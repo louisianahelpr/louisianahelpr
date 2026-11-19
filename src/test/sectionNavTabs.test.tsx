@@ -39,7 +39,7 @@
  * chip's accessible name stays "Declutter, coming soon" and the desktop rail keeps "Coming soon".)
  * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="caption" data-coming-soon="" /> | <span data-coming-soon="" />
  * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: soon ? tr("nav.comingSoon", { label: name }) : name, |       ariaLabel: name,
- * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
+ * @mutate src/components/DesktopSidebarNav.tsx |     { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides" },\n  ]; |     { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides" },\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | {...rowProps} onClick={() => sayComingSoon(label)} aria-disabled | {...rowProps} onClick={() => undefined} aria-disabled
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <TopBarInbox />} |       {user && !isWebDesktop && <span />}
  * @mutate src/components/profile/ProfileLanding.tsx |       <YourActivity /> |       <Link to="/declutter">Declutter</Link>\n      <YourActivity />

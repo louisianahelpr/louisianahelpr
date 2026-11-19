@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Plus,
   Inbox,
+  Gift,
   type LucideIcon,
 } from "lucide-react";
 import HelprMark from "@/components/HelprMark";
@@ -149,6 +150,10 @@ const DesktopSidebarRail = () => {
     }),
     { path: messages.path, to: inboxPath(lastInboxTab()), icon: Inbox, label: "Inbox", badgeKey: "messages" },
     youItem,
+    // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out"): the Holiday Gift
+    // Guides get their own row, last, so a member on the desktop finds them without opening the photo menu.
+    // Guard: src/test/giftGuidesSignedIn1119.test.tsx.
+    { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides" },
   ];
 
   if (!isDesktopRailRoute(location.pathname)) return null;

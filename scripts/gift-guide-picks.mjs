@@ -219,8 +219,9 @@ const MISSING_BY_HREF = new Map();
   }
 }
 const MISSING_IMAGES = MISSING_BY_NAME;
-/** A TIFF photo, unless the server converts it (KitchenAid's ".tif?fmt=png" is served as a PNG). */
-const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b/i.test(u);
+/** A TIFF photo, unless the server converts it (KitchenAid's ".tif?fmt=png" is served as a PNG, ShopMy's mirror as JPEG). */
+// ShopMy's static.shopmy.us mirror sends JPEG bytes under a ".tif" name (checked 11-18 PM: a 600x600 baseline JPEG).
+const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b/i.test(u) && !/^https:\/\/static\.shopmy\.us\//.test(u);
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
   const fixed = withAmazonFixes(p);
@@ -344,6 +345,30 @@ for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.jso
         const affiliate = AFFILIATE.has(new URL(p.href).hostname) ? { affiliate_href: p.href } : {};
         add(slug, { brand: "", line: "", ...(isAmazonLink(p.href) ? { store: "Amazon", image_source: "amazon-sitestripe" } : { store: p.name.split(" ")[0] }), ...p, ...affiliate }, "_giftcards-subs-fill-1118.json");
       }
+    }
+  }
+}
+/**
+ * Store photos (11-18 PM, _store-photos-1118.json): { "<store slug>": [{ name, href, image, ... }] }, products we list in
+ * other guides that their store page was missing, each with a checked photo. Two point at another retailer (a Laneige
+ * mask on printfresh.com, a Brightland oil on loft.com) and stay off those store pages. An "http:" photo is asked for over
+ * https; an affiliate short link in `href` is the affiliate link.
+ */
+{
+  const OTHER_RETAILER = /^https?:\/\/([^/]*\.)?(printfresh\.com|loft\.com)\//i;
+  const v = readJson("_store-photos-1118.json");
+  const listed = new Map();
+  for (const list of Object.values(guides)) for (const x of list) if (!listed.has(compact(x.name))) listed.set(compact(x.name), x);
+  for (const [slug, rows] of Object.entries(v && typeof v === "object" && !Array.isArray(v) ? v : {})) {
+    if (!slug.startsWith("store-") || !Array.isArray(rows)) continue;
+    for (const p of rows) {
+      if (!p || typeof p.href !== "string" || typeof p.name !== "string" || typeof p.image !== "string") continue;
+      if (OTHER_RETAILER.test(p.image) || /\b(printfresh|loft)\.com\b/i.test(p.note ?? "")) continue;
+      // A plain retailer link takes the affiliate link the same product already has in another guide.
+      const twin = AFFILIATE.has(new URL(p.href).hostname) ? undefined : listed.get(compact(p.name));
+      const affiliate = AFFILIATE.has(new URL(p.href).hostname) ? { affiliate_href: p.href } : twin ? { affiliate_href: twin.href } : {};
+      // The store page it is filed under names its store (a ShopMy pin carries none of its own).
+      add(slug, { brand: twin?.brand ?? "", line: twin?.line ?? "", store: stores.get(slug)?.name ?? slug.slice("store-".length), ...p, image: p.image.replace(/^http:\/\//, "https://"), ...affiliate }, "_store-photos-1118.json");
     }
   }
 }

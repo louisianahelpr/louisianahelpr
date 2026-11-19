@@ -86,7 +86,9 @@ export const brokenImage = (u) => /liquid(%20|\s|\+)error/i.test(u) || /[<>{}]/.
 /** A site's icon, logo or default share image, not the product (live audit r3 #12: vitamix default-meta-image, kitchenaid bookmark icon). */
 export const SITE_ICON = /favicon|apple-touch-icon|bookmark-icon|default-meta-image|meta-image\.|og-badge|\/logo[-_.]/i;
 /** Hosts whose product photos do not load on our pages (ORB-blocked or HTTP/2 errors, live audit r3 #12). */
-export const HOTLINK_BLOCKED = /^https:\/\/(www\.sephora\.com|www\.rei\.com)\//i;
+// KitchenAid's image server (403) and Container Store's (503) refuse every request without a browser session
+// (store-photos check 11-18 PM, re-tried with a browser user agent and our site as referer): their photos are dropped.
+export const HOTLINK_BLOCKED = /^https:\/\/(www\.sephora\.com|www\.rei\.com|www\.kitchenaid\.com\/is\/image|images\.containerstore\.com)\//i;
 /** Brands a feed spells in the wrong case (design audit r2 #8). */
 export const BRAND_CASE = { rei: "REI", ugg: "UGG", laneige: "LANEIGE", xtratuf: "XTRATUF" };
 /**

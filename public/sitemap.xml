@@ -1132,6 +1132,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-anker</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-anthropologie</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1228,11 +1233,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-cocinare</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-containerstore</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1342,11 +1342,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-kitchen-aid</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-kitsch</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1388,6 +1383,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-lululemon</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-macys</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1522,6 +1522,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-samsung</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-selfridges</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1578,6 +1583,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-tarte-cosmetics</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-techpals</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

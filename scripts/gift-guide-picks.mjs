@@ -26,7 +26,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, NOT_LOUISIANA_BUSINESS, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -716,9 +716,12 @@ export const shopmyUpgrades = { rows: 0, links: 0, skipped: 0 };
   const map = new Map();
   for (const r of Array.isArray(v) ? v : []) {
     if (!r || r.same_product !== true || typeof r.old_href !== "string" || typeof r.new_href !== "string" || r.old_href === r.new_href) continue;
+    // A rate the checker could not confirm is higher stays on its old link (coordinator 11-18 night).
+    if (/unverified/i.test(String(r.rate_higher ?? ""))) { shopmyUpgrades.skipped += 1; continue; }
     const image = typeof r.image === "string" && r.image.startsWith("https://") && !isTiff(r.image) && !brokenImage(r.image)
       && !/^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(r.image) ? r.image : undefined;
-    if (!image) { shopmyUpgrades.skipped += 1; continue; }
+    // No pin photo (image: null, e.g. the Leatherman tools): the row keeps its own photo unless that is Amazon-hosted.
+    if (!image && r.image) { shopmyUpgrades.skipped += 1; continue; }
     let host = "";
     try { host = new URL(r.new_href).hostname; } catch { shopmyUpgrades.skipped += 1; continue; }
     if (!AFFILIATE.has(host)) { shopmyUpgrades.skipped += 1; continue; }
@@ -729,10 +732,12 @@ export const shopmyUpgrades = { rows: 0, links: 0, skipped: 0 };
   for (const [slug, list] of Object.entries(guides)) guides[slug] = list.map((p) => {
     const u = map.get(p.href);
     if (!u) return p;
+    const amazonPhoto = typeof p.image === "string" && AMAZON_IMAGE_HOST.test(new URL(p.image).hostname);
+    if (!u.image && (!p.image || amazonPhoto)) return p;
     shopmyUpgrades.rows += 1;
     const { price: _p, priceAt: _a, ...rest } = p;
     if (u.store) stores.get(u.store).hosts.add(u.host);
-    return { ...rest, href: u.href, image: u.image, store: u.store ?? (rest.store === "store-amazon" ? undefined : rest.store) };
+    return { ...rest, href: u.href, image: u.image ?? rest.image, store: u.store ?? (rest.store === "store-amazon" ? undefined : rest.store) };
   });
 }
 /**
@@ -868,8 +873,11 @@ for (const c of readList("_walmart-collections.json")) {
   if (c.collection_affiliate_href) addDeal(storeFor("Walmart"), { storeName: "Walmart", title: c.collection.replace(/^Walmart\s+/, ""), href: c.collection_affiliate_href, items });
 }
 for (const h of readList("_amazon-hub.json")) addDeal(storeFor("Amazon"), { storeName: "Amazon", title: h.name, href: h.affiliate_href, ends: endDate(h.ends) });
+/** Deals that do not open their store (design review 11-18 M8: Zales's link is dead, Fleek's opens Neiman Marcus). */
+export const DEAD_DEAL_BRANDS = /^(zales|fleek)$/i;
 for (const f of ["_later-deals.json", "_later-promos.json"]) {
   for (const d of readList(f)) {
+    if (DEAD_DEAL_BRANDS.test(String(d.brand ?? d.store ?? "").trim())) continue;
     const slug = storeFor(d.brand ?? d.store);
     if (slug) addDeal(slug, { storeName: stores.get(slug).name, title: d.title ?? d.offer, href: d.affiliate_href, ends: endDate(d.ends) });
   }
@@ -982,9 +990,16 @@ const noRepeats = (list) => {
   const seenKey = new Map();
   for (const p of list) {
     const key = dedupeKey(p.name);
+    // The name with its brand cut off the front ("LANEIGE Lip Sleeping Mask" = "Lip Sleeping Mask"), and the Amazon ASIN
+    // (design review 11-18 M6: LANEIGE x2 and Kitsch curlers x2 on Under $25).
+    const brandWords = dedupeKey(p.brand ?? "");
+    // Scoped to the brand: two brands' "Gift Card" rows are two gifts.
+    const bare = brandWords ? `${brandWords}|${key.startsWith(`${brandWords} `) ? key.slice(brandWords.length + 1) : key}` : "";
+    const asin = /\/dp\/([A-Z0-9]{10})\b/.exec(p.href)?.[1];
     // A ShopMy collection link is shared by several products: those match by name only.
     const shared = new URL(p.href).hostname === "shopmy.us";
-    const at = (!shared && seenHref.has(p.href) ? seenHref.get(p.href) : undefined) ?? (key.length > 3 ? seenKey.get(key) : undefined);
+    const at = (!shared && seenHref.has(p.href) ? seenHref.get(p.href) : undefined) ?? (asin ? seenKey.get(`asin:${asin}`) : undefined)
+      ?? (key.length > 3 ? seenKey.get(key) : undefined) ?? (bare.length > 8 ? seenKey.get(`bare:${bare}`) : undefined);
     if (at !== undefined) {
       repeatsRemoved += 1;
       if (process.env.GIFT_PICKS_VERBOSE) console.error(`REPEAT: "${p.name}" = "${out[at].name}"`);
@@ -993,6 +1008,8 @@ const noRepeats = (list) => {
     }
     if (!shared) seenHref.set(p.href, out.length);
     if (key.length > 3) seenKey.set(key, out.length);
+    if (asin) seenKey.set(`asin:${asin}`, out.length);
+    if (bare.length > 8) seenKey.set(`bare:${bare}`, out.length);
     out.push(p);
   }
   return out;
@@ -1009,7 +1026,7 @@ for (const slug of Object.keys(pageList)) {
  * EARNINGS + FIT (owner 11-18 night), on each guide's final list (store pages aside), in this order:
  * 1. FIT TAIL (_fit-audit-tail-1118.json { "<slug>": { remove: [{ name, href }] } }): misfits leave positions 26 on; the
  *    first TOP_GIFTS are never touched, so no guide drops under TOP_GIFTS.
- * 2. FILLER (GUIDE_FILLER): Her/Mom filler the trending list put in a hobby guide's top 25 is replaced by fitting picks
+ * 2. FILLER (GUIDE_FILLER): Her/Mom filler the trending list put in the Vets top 25 is replaced by fitting picks
  *    from the guide's own lower list, then its related guides.
  * 3. TOP EARNERS (_top-earners-plan-1118.json { "<slug>": { swap, relink, add } }): `swap` puts the named top earner in
  *    the place of the named low-paying item; `relink` moves a row to the better-paying link only when the target is the
@@ -1020,8 +1037,6 @@ for (const slug of Object.keys(pageList)) {
  *    top 25 unless already there (the XTRATUF limits below still hold).
  */
 export const GUIDE_FILLER = {
-  "fish-lover": { out: ["UGG Women's Disquette", "Sol de Janeiro Perfume Cheirosa 62 Perfume Eau de Parfum", "Theragun Mini", "LANEIGE Lip Sleeping Mask", "e.l.f. Glow Reviver Lip Oil"],
-    from: ["fishermen", "commercial-fishermen-and-shrimpers", "boater", "store-simms-fishing"], fits: /\b(fish\w*|rods?|reels?|tackle|lures?|angl\w+|casting|pliers|waders?|bait|simms|penn|kastking|plano|bobbers?|hooks?)\b/i },
   "vets-and-vet-techs": { out: ["UGG Women's Disquette", "Sol de Janeiro Perfume Cheirosa 62 Perfume Eau de Parfum", "LANEIGE Lip Sleeping Mask"],
     from: ["dog-lover", "cat-person"], fits: /\b(dogs?|cats?|pets?|paws?|kitty|puppy|litter|leash|harness|treats?|vet\w*|fountain|bowl)\b/i },
 };
@@ -1132,6 +1147,106 @@ export const sameVariant = (from, to) => {
       }
     }
     pageList[slug] = noRepeats(list);
+  }
+}
+/**
+ * HOLISTIC FIT (design review 11-18, gg-holistic-1118/FINDINGS.md H2, H3, M1, M5), on every page's final list:
+ * every page drops collection/shop links, placeholder names, medical and personal-care items and MISMATCHED_LINKS;
+ * guides (store pages aside) also drop pet items outside the Pets guides, work boots on Mom/Her/Wife, a brand's 4th
+ * and later picks (BRAND_CAP; Louisiana guides, Gift cards and Subscriptions aside), gendered picks on Gender-Neutral
+ * Teens (and its beauty picks past BEAUTY_CAP), and checked prices over $30 on Secret Santa and White Elephant. A guide
+ * that falls under TOP_GIFTS borrows fitting picks from its own section, under the same rules.
+ */
+export const BRAND_CAP = 3;
+export const BEAUTY_CAP = 3;
+/** A link whose page is another product (design review 11-18 M4: Target's "The 14oz Mug" opens the 10 oz Ember). */
+export const MISMATCHED_LINKS = new Set(["https://go.shopmy.us/p-103897297"]);
+/** A mismatched link's replacement, when we carry the named product's own pin (the 14 oz Ember Mug 2 on Target via ShopMy). */
+export const LINK_FIX = new Map([["https://go.shopmy.us/p-103897297", "https://go.shopmy.us/p-103885470"]]);
+const LINK_FIX_ROW = new Map([...LINK_FIX].map(([from, to]) => [from, everyPick.find((x) => x.href === to && x.image)]).filter(([, p]) => p));
+const PRICE_CAP = { "secret-santa": 30, "white-elephant": 30 };
+/**
+ * The Pets guides are for the animal (owner 11-18 night): a trending or widely listed pick (in 10+ top 25s: tumbler,
+ * earbuds, UGG, lip mask) that is
+ * not for that animal leaves the guide, and a short Pets guide borrows only that animal's picks.
+ */
+const DOG = /\b(dogs?|pupp(y|ies)|paws?|pets?|bark\w*|woof\w*)\b/i;
+const CAT = /\b(cats?|kitt(en|ens|y|ies)|meow\w*|catnip|feline|litter|paws?|pets?)\b/i;
+export const PET_ANIMAL = {
+  "dog-lover": DOG, "new-puppy": DOG, "cat-person": CAT, "new-kitten": CAT,
+  "horse-lover": /\b(horses?|equestrian|western|riding|saddle|barn|cowboy|cowgirl|boots?|ranch)\b/i,
+  "bird-lover": /\b(birds?|feeders?|binoculars?|hummingbirds?|owls?|nest\w*|birding)\b/i,
+};
+const GENDERED = /\b(women'?s|womens|ladies|girls'?|men'?s|mens|boys'?|bra|bralette|dress|skirt)\b/i;
+const BEAUTY = /\b(lip|lipstick|gloss|mascara|blush|bronzer|eyeshadow|eyeliner|makeup|perfume|eau de|nail polish|curlers?|hair (clips?|ties|scrunchies)|scrunchies?|earrings?|necklace|pendant|bracelet|serum|moisturizer|face mask)\b/i;
+export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
+{
+  const sectionOf = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  const PET_OK = new Set([...sectionOf].filter(([, g]) => g === "Pets").map(([s]) => s).concat(["vets-and-vet-techs"]));
+  const why = (slug, p) => {
+    if (collectionLink(p.href)) return "collection link";
+    if (placeholderName(p)) return "placeholder name";
+    if (MISMATCHED_LINKS.has(p.href)) return "link opens another product";
+    if (NOT_A_GIFT_ITEM.test(p.name) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))) return "medical or personal care";
+    if (slug.startsWith("store-")) return "";
+    if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return "not for this pet";
+    if (PET_ITEM.test(p.name) && !PET_OK.has(slug)) return "pet item outside Pets";
+    if (WORK_BOOT_OFF.includes(slug) && (WORK_BOOT.test(p.name) || /^muck boot$/i.test(p.brand ?? ""))) return "work boot";
+    if (slug === "gender-neutral-teens" && GENDERED.test(p.name)) return "gendered";
+    if (PRICE_CAP[slug] && typeof p.price === "number" && p.price > PRICE_CAP[slug]) return "over budget";
+    return "";
+  };
+  // A Pets guide drops filler that is not for its animal, women-coded beauty first, while it keeps TOP_GIFTS picks (owner
+  // 11-18: "All guides need 25"; a guide short of that animal's picks keeps some filler until it has them).
+  const isFiller = (slug, p) => PET_ANIMAL[slug] && ((topCount.get(p.href) ?? 0) >= 10 || isTrending(p)) && !PET_ANIMAL[slug].test(p.name);
+  const petFiller = (slug, list) => {
+    if (!PET_ANIMAL[slug]) return list;
+    const filler = list.filter((p) => isFiller(slug, p)).sort((a, b) => Number(BEAUTY.test(b.name) || genderOfName(b.name)) - Number(BEAUTY.test(a.name) || genderOfName(a.name)));
+    const drop = new Set(filler.slice(0, Math.max(0, list.length - TOP_GIFTS)));
+    holistic.byRule["not for this pet"] = (holistic.byRule["not for this pet"] ?? 0) + drop.size;
+    holistic.removed += drop.size;
+    return list.filter((p) => !drop.has(p));
+  };
+  const genderOfName = (n) => /\b(women'?s|womens|ladies)\b/i.test(n);
+  const capped = (slug) => !slug.startsWith("store-") && !LOUISIANA_GUIDES.has(slug) && slug !== "gift-cards" && slug !== "subscriptions" && slug !== SPONSORS_GUIDE;
+  const keep = (slug, list, count = true) => {
+    const out = [];
+    const perBrand = new Map();
+    let beauty = 0;
+    for (const p of list) {
+      let r = why(slug, p);
+      const b = squash(p.brand);
+      if (!r && capped(slug) && b && !GENERIC_BRAND.test(p.brand ?? "") && (perBrand.get(b) ?? 0) >= BRAND_CAP) r = "brand cap";
+      if (!r && slug === "gender-neutral-teens" && BEAUTY.test(p.name) && beauty >= BEAUTY_CAP) r = "beauty cap";
+      if (r && !count) continue;
+      if (r && process.env.GIFT_PICKS_VERBOSE) console.error(`HOLISTIC ${slug}: ${r}: ${p.name}`);
+      if (r) { holistic.removed += 1; holistic.byRule[r] = (holistic.byRule[r] ?? 0) + 1; continue; }
+      if (b) perBrand.set(b, (perBrand.get(b) ?? 0) + 1);
+      if (slug === "gender-neutral-teens" && BEAUTY.test(p.name)) beauty += 1;
+      out.push(p);
+    }
+    return out;
+  };
+  for (const slug of Object.keys(pageList)) {
+    // The 25 Days sponsors guide keeps every sponsor's pick (each is a sponsor commitment).
+    if (slug === SPONSORS_GUIDE) continue;
+    // A store page these rules empty (African Net Sponge sells only bath sponges) goes with them.
+    const kept = keep(slug, petFiller(slug, pageList[slug].map((p) => LINK_FIX_ROW.get(p.href) ?? p)));
+    if (kept.length) pageList[slug] = noRepeats(kept);
+    else delete pageList[slug];
+  }
+  for (const [slug, list] of Object.entries(pageList)) {
+    if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || slug === "gift-cards" || slug === "subscriptions" || list.length >= TOP_GIFTS) continue;
+    const peers = Object.entries(pageList).filter(([g]) => g !== slug && !g.startsWith("store-") && sectionOf.get(g) === sectionOf.get(slug));
+    for (const p of peers.flatMap(([, other]) => other.slice(0, 40))) {
+      if (list.length >= TOP_GIFTS) break;
+      if (PET_ANIMAL[slug] && !PET_ANIMAL[slug].test(p.name)) continue;
+      if (!p.image || !fitsGuide(slug, p) || louisianaBlocked(slug, p) || list.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
+      if (keep(slug, [...list, p], false).length !== list.length + 1) continue;
+      list.push(p);
+      holistic.toppedUp += 1;
+    }
+    if (list.length < TOP_GIFTS) holistic.short.push(`${slug}:${list.length}`);
   }
 }
 // Removing repeats can lift a later XTRATUF boot into the top: one in the first 12, two in the first 25, again.
@@ -1265,4 +1380,4 @@ writeFileSync(
 );
 
 if (process.env.GIFT_PICKS_VERBOSE) console.error(`RELINK SKIPPED:\n${earnings.relinkSkipped.join("\n")}\nSWAP SKIPPED:\n${earnings.swapSkipped.join("\n")}`);
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}`);

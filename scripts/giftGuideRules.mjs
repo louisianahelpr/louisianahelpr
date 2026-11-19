@@ -166,7 +166,9 @@ export const LOUISIANA_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du Monde"
   "Crystal", "Blue Plate", "Louisiana Fish Fry", "Bruce's", "French Truck Coffee", "Red Stick Spice Company", "Red Stick Spice", "Panola Pepper Co.",
   "Poche's", "Randazzo King Cake", "Southern Candymakers", "Julie Vos", "Mam Papaul's", "Crew Dog", "Junior League of Baton Rouge",
   "Junior League of Lafayette", "Rebecca Illustrated", "Isaac Toups", "Ella Brennan", "John Folse", "Cajun Grocer", "Cajun Country", "Dupuy's",
-  "Rip Van Winkle Gardens", "Justin Wilson", "Melissa M. Martin", "Jean-Paul Bourgeois", "Zydeco Chop Chop", "Paul Prudhomme", "Konriko"];
+  "Rip Van Winkle Gardens", "Justin Wilson", "Melissa M. Martin", "Jean-Paul Bourgeois", "Zydeco Chop Chop", "Paul Prudhomme", "Konriko",
+  // West Monroe (fit audit r4: North Louisiana's own items).
+  "Duck Commander"];
 export const LOUISIANA_THEME = /\b(louisiana|new orleans|nola|cajun|creole|lsu|mardi gras|king cakes?|crawfish|acadiana|baton rouge|lafayette|saints|pelicans|pralines?|beignets?|roux|gumbo|jambalaya|boudin|zydeco|fleur[- ]de[- ]lis|bayou|chicory|tabasco|zatarain'?s)\b/i;
 export const NATIONAL_BRANDS = /^(xtratuf|muck boot|bayou classic)/i;
 const squashName = (x) => String(x ?? "").normalize("NFD").toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -542,6 +544,14 @@ export const BANNED_LINKS = new Map([
   ["https://mavely.app.link/EehdqHlQa8b", "homepage deal"], // DEAL: Find Holiday Gifts for Less with 40% off Select Markdown Styles
   ["https://mavely.app.link/oKSAUGrQa8b", "homepage deal"], // DEAL: Buy One, Get One 50% off Sitewide + Extra 30% off Sale
   ["https://go.shopmy.us/p-107279221", "homepage deal"], // DEAL: Holiday Gifts
+  // Links audit r4 (gg-r4-links, 11-19).
+  ["https://go.shopmy.us/p-104112945", "wrong page"], // FreeSip Bottle 24oz (Owala): opens JD Sports' 40 oz bottle (LINK_FIX moves it to Owala's 24 oz pin)
+  ["https://go.shopmy.us/p-104209798", "wrong page"], // Delícia Drench Body Butter (Sol de Janeiro): opens Urban Outfitters' 8 oz body cream
+  ["https://mavely.app.link/rUbFIqQTa8b", "sold out"], // VAVSEA Cordless Stick Vacuum, 38KPa (Walmart: NOT_AVAILABLE, out of stock)
+  ["https://mavely.app.link/7qwASmTTa8b", "sold out"], // FitRx 10 lb Rubber Hex Dumbbells, Pair (Walmart)
+  ["https://mavely.app.link/EmDfi5TTa8b", "sold out"], // Bestier Botanical Floral Queen Comforter Set (Walmart)
+  ["https://mavely.app.link/67wI8mUTa8b", "sold out"], // Bestier 2-Piece Blue Toddler Comforter Set (Walmart)
+  ["https://mavely.app.link/CAOsxnPQa8b", "homepage deal"], // DEAL: Black Friday Public Sale (Funko): opens funko.com's homepage
 ]);
 /** Why a link is banned ("dead", "sold out", "non-US", "wrong page", "homepage deal"), or "". */
 export const bannedLink = (href) => BANNED_LINKS.get(String(href ?? "")) ?? "";
@@ -610,7 +620,7 @@ export const utilityCare = (p) => {
 };
 export const BEAUTY_ITEM = /\b(lip (sleeping )?mask|lip (oil|gloss|serum|tint|butter|glaze|balm|treatment|liner|stain|plumper|shimmer)s?|lipsticks?|mascara|bronzer|eyeshadow|eye ?liner|concealer|undereye|corrector|makeup|perfume|eau de (parfum|toilette)|body mist|fragrance mist|perfume mist|serums?|moisturi[sz]er|eye cream|face cream|skin cream|night cream|lotion\+|cleanser|exfoliat\w*|face scrub|sleeping mask|bum bum|body butter|body cream|hand (cream|balm)|hair oil|hair milk|dew drops|nail polish|bath bombs?|skin ?care)\b/i;
 export const BEAUTY_BRAND = /\b(laneige|sol de janeiro|cheirosa|glow recipe|mario badescu|clinique|tatcha|summer fridays|glossier|rare beauty|charlotte tilbury|e\.l\.f\.|maybelline|tarte|mac cosmetics|fenty|drunk elephant|bubble skincare|kiehl'?s)\b/i;
-export const beautyItem = (p) => BEAUTY_ITEM.test(p.name ?? "") || BEAUTY_BRAND.test(`${p.name ?? ""} ${p.brand ?? ""}`);
+export const beautyItem = (p) => BEAUTY_ITEM.test(p.name ?? "") || HAIR_BEAUTY.test(p.name ?? "") || BEAUTY_BRAND.test(`${p.name ?? ""} ${p.brand ?? ""}`);
 export const BEAUTY_GUIDES = ["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma", "best-friend", "girls-teens", "stocking-stuffers", "self-care-lover"];
 export const BEAUTY_BUDGET = /^(under-\d+|100-and-up)$/;
 export const BEAUTY_CAREER = /^(nail-techs|estheticians|cosmetologists|hairstylists|hair-stylists|makeup-artists|salon-owners)$/;
@@ -652,11 +662,265 @@ export const NAME_FIXES = [
   [/^Sparkling Wine Mixed Pack$/, "Sparkling Canned Wine Mixed Pack"],
   [/^Gold Standard Lash Style$/, "Gold Standard False Lash Style"],
 ];
+/**
+ * Fit audit r4 (11-19): a title cut at its comma, and names that did not say what the item is (each read off the shop's
+ * own product URL or photo file name). Applied to each page's final list (r4Name), after the featured order has matched
+ * the names it was written against.
+ */
+export const R4_NAME_FIXES = [
+  [/^Salt, Fat(, Acid)?$/, "Salt, Fat, Acid, Heat"],
+  [/^Venezia 18K$/, "St. Louis Venezia 18K Sunglasses"],
+  [/^(.+ Zippy)$/, "$1 Zip-Up Pajamas"],
+  [/^(Ghost Potion Friends|Cozy Cats|Laundry Day)$/, "$1 Diamond Art Painting Kit"],
+  [/^Holiday Bundle$/, "Holiday Coffee Bundle"],
+  [/^Acadiana Table$/, "Acadiana Table Cookbook"],
+  [/^Snow Angel Boots$/, "Snow Angel Winter Boots"],
+  [/^Klash Pants$/, "Klash Hiking Pants"],
+  [/^pegasus running shoes$/, "Pegasus Running Shoes"],
+  [/^Fossil (MTP-VT01GL)/, "Casio $1"],
+  [/^GLOBAL ADVERTISING SOLUTIONS Lot of 6 Branches Military Flags$/, "Set of 6 Military Branch Flags"],
+  [/^Standard Baggu$/, "Standard Baggu Reusable Bag"],
+  [/^24 Day Advent Calendar$/, "24 Day Bracelet Advent Calendar"],
+  [/^1 Month Gift \(Coffee Pods\)$/, "1-Month Coffee Pod Subscription Gift"],
+  [/\s*-:\s*Dried$/, ", Dried"],
+];
+/** A name that is only a pack's scent ("Holiday Gift Pack, Swagger") opens with its brand (Old Spice, Olay). */
+export const BRAND_FIRST = /^Holiday Gift Pack\b/;
+export const brandedName = (name, brand) => (BRAND_FIRST.test(String(name ?? "")) && String(brand ?? "").trim() ? `${String(brand).trim()} ${name}` : name);
+/** A pick's r4 name and brand: { name, brand } (unchanged when no fix applies). */
+export const r4Name = (p) => {
+  const name = brandedName(R4_NAME_FIXES.reduce((n, [rx, to]) => n.replace(rx, to), String(p.name ?? "")), p.brand);
+  return { name, brand: name === p.name ? p.brand : (fixedBrand(name) || p.brand) };
+};
 export const fixName = (name) => NAME_FIXES.reduce((n, [rx, to]) => n.replace(rx, to), String(name ?? ""));
 export const BRAND_FIXES = [
   [/\bfive minute journal\b/i, "Intelligent Change"],
   [/^aeropress coffee maker$/i, "AeroPress"],
   [/^coral coast fine fragrance body mist - saltair$/i, "Saltair"],
   [/^fire tv stick\b/i, "Amazon"],
+  [/^salt, fat, acid, heat$/i, "Samin Nosrat"],
+  [/^casio mtp-/i, "Casio"],
 ];
 export const fixedBrand = (name) => BRAND_FIXES.find(([rx]) => rx.test(String(name ?? "")))?.[1] ?? "";
+
+/**
+ * FIT AUDIT R4 (2026-11-19, ~/.lh-shots/design-audit-loop/gg-r4-fit: 12 High, 89 Medium, 72 Low; lead 11-19). The career
+ * fills (_career-fill-A-1118.json, _fill-B-1118.json) are Amazon search results shared by every guide one search fed, so a
+ * stray result rode along into each of them (the teacher block's dentist retirement socks, doorbell and server apron; a
+ * toenail-fungus soak, cough drops and Purell in the service jobs; stethoscopes for desk staff and therapists). These
+ * rules keep each career to what fits that job, on every page's final list (fitR4Why and typeCaps, read by the holistic
+ * pass of scripts/gift-guide-picks.mjs), whatever file brings a pick back:
+ * - MEDICAL_CARE: medical and pain care (fungus, cough drops, sanitizer, heat patches, a back brace, burn gel, a blood
+ *   pressure cuff, pill box, oximeter, pain relief, a burial flag case) is no gift: in no guide. A bath or foot soak only
+ *   on the beauty guides.
+ * - STETHOSCOPE only on the clinical guides; NURSE_LABEL items (nurse scrub caps, nurse bags) only on the nurse guides.
+ * - vagueGiftName: a name that says only "<job> Gifts for Women" (HEXMOZ, URBRE, DOEARTE) names no item: out of the guides.
+ * - R4_OFF: the audit's per-guide misfits, by guide (a golf net in Car Lover, gel pens in Music Lover ...).
+ * - Colors (colorWhy): a color guide drops a pick that names another color and not its own, and one whose color is only
+ *   a pun (red light, red wine, putting green, Back the Blue).
+ * - TYPE_CAPS: one of a kind per guide (trauma shears, penlights, stethoscopes, truck fridges, CB radios, book lights ...),
+ *   and PRODUCT_TWINS: the same product under two links or names (MX Master 3S, MUCK Arctic Pro, Hoka Men's Bondi 9).
+ * - Louisiana: the brand cap of 3 holds in the Louisiana guides too; North Louisiana holds only North Louisiana items
+ *   (NORTH_LA); a Louisiana guide lists items, not places (a business's homepage or an event page).
+ * - Beauty: hair tools count as beauty (curlers, Airwrap, dryers, straighteners, facial systems), so they keep to the
+ *   beauty guides and to 6 guides a product; BEAUTY_PREFERRED names the 6 a widely listed product keeps.
+ */
+export const MEDICAL_CARE = /\b(toe ?nail|nail fungus|fungus|athlete'?s foot|sore throat|cough drops?|throat drops|lozenges?|hand sanitizer|purell|heat patch(es)?|thermacare|back support belt|back brace|burn (relief )?gel|alocane|blood pressure monitor|pill organizer|pill box|pulse oximeter|pain relief (kit|patch(es)?|cream|gel|rub|roll-?on)|burial flag)\b/i;
+export const BATH_SOAK = /\b(epsom salt|foot soak|bath soak)\b/i;
+export const medicalCare = (p) => MEDICAL_CARE.test(`${p.name ?? ""} ${p.brand ?? ""}`);
+export const STETHOSCOPE = /\bstethoscopes?\b(?!\s*(personalized )?(name )?(tag|id|charm|cover|holder|hook|clip))/i;
+export const STETHOSCOPE_GUIDES = /nurse|^(rns|lpns|cnas|crnas|doctors|surgeons|physician-assistants|medical-assistants|paramedics-and-emts|med-students|nursing-students|healthcare|healthcare-workers|respiratory-therapists|vets-and-vet-techs|first-responders|nursing-home-staff)$/;
+export const NURSE_LABEL = /\bnurses?\b(?!,? (and |& )?doctors?\b)|\bnursing (clipboard|bag|tote)\b/i;
+export const NURSE_GUIDES = /nurse|^(rns|lpns|cnas|crnas|healthcare|healthcare-workers|caregivers|nursing-home-staff|nursing-students|medical-assistants)$/;
+const BABY_GUIDE = /^(new-mom|mom-to-be|baby-shower|new-parents)$|bab(y|ies)/;
+/** A trailing "Gifts for Women", "Appreciation Gifts" or "Stocking Stuffers for Men" with no item named before it. */
+export const GIFT_SUFFIX = /[\s,-]*\b(?:(?:(?:cool|unique|appreciation|worker) )*gifts|gifts? for (?:wo)?men(?: (?:and |& )?(?:wo)?men)?|(?:christmas )?stocking stuffers?(?: for (?:wo)?men)?)$/i;
+const ROLE_WORDS = /\b(best|christmas|holiday|funny|cute|unique|cool|teachers?|coach(es)?|lawyers?|lineman|linemen|dental|dentists?|assistants?|hygienists?|bus|drivers?|police|officers?|thin|blue|line|nurses?|appreciation|workers?|for|and|women|men|the|her|him)\b/gi;
+export const vagueGiftName = (p) => {
+  const name = String(p.name ?? "");
+  if (!GIFT_SUFFIX.test(name)) return false;
+  let rest = name.replace(GIFT_SUFFIX, "");
+  const brand = String(p.brand ?? "").trim();
+  if (brand && rest.toLowerCase().startsWith(brand.toLowerCase())) rest = rest.slice(brand.length);
+  else rest = rest.replace(/^[A-Z0-9&]{3,}\b/, "");
+  return rest.replace(ROLE_WORDS, "").replace(/[^a-z]/gi, "") === "";
+};
+const TEACHERS = ["educators", "elementary-teachers", "high-school-teachers", "teachers", "paraprofessionals", "principals-and-school-staff"];
+const DENTAL = ["dentists", "dental-assistants", "dental-hygienists"];
+const BUDGET_25 = ["under-25", "under-20", "under-15", "under-10", "under-5"];
+const LA_PLACE = /\b(restaurant|house tours|festival of lights|syrup shop|foods)$/i;
+/** The audit's per-guide misfits (R4_OFF[slug] tested against "<name> <brand>"). */
+export const R4_OFF = {
+  ...Object.fromEntries(TEACHERS.map((g) => [g, /\bretirement\b|\bdentist\b|\bdoorbell\b|\bserver aprons?\b|\bwine tote\b/i])),
+  "boat-captains-and-deckhands": /\bornament (hooks|anchor)\b|\byacht captain hat\b|\bsailor hat\b|\bwet dry bags?\b|\bbabygoal\b/i,
+  "commercial-fishermen-and-shrimpers": /\bwet dry bags?\b|\bbabygoal\b/i,
+  "car-lover": /\bgolf\b/i,
+  "music-lover": /\bgel pens?\b|\bpens\b/i,
+  chefs: /\bsandals?\b/i,
+  dentists: /\btoothbrush holder\b|\bnursing clipboard\b|\bgraduation (coffee )?mug\b|\bdental model\b/i,
+  "dental-assistants": /\bdental model\b/i,
+  "dental-hygienists": /\bdental model\b/i,
+  farmers: /\banimal sounds\b|\bmusical tractor\b|\bhayride\b/i,
+  "hotel-staff": /\bhand repair gift set\b|\bspa gift basket\b|\blint roller\b/i,
+  housekeepers: /\bcerave\b|\bbaby lotion\b|\bcleaning gloves\b|\bcleaning\b.*\bcaddy\b|\bmicrofiber\b|\bhousekeeping week\b|\bbulk\b/i,
+  "landd-nurses": /\bbaby shower\b|\bsumind\b/i,
+  "med-students": /\busmle step 1 20[012]\d\b|\btranslation earbuds\b/i,
+  veterans: /\bburial flag\b|\bchallenge coins\b/i,
+  diyer: /\bcharcuterie\b|\bdoor ?mat\b/i,
+  gardener: /\bhousehold tool set\b|\bcooler\b/i,
+  crafter: /\bgarden (scissors|shears)\b|\bweighted blanket\b|\bboard game storage\b/i,
+  "black-lover": /\bnapkins\b/i,
+  "blue-lover": /\bback the blue\b|\blittle blue truck\b|\bmonster truck\b/i,
+  "green-lover": /\bputting green\b|\bolive oil\b|\bfire pit mat\b|^mens' patagonia\b/i,
+  "neutral-lover": /\bbulk\b/i,
+  "purple-lover": /\bhair dryer\b|\bcurling (wand|iron)\b|\btallow balm\b|\bsilicone boot\b|\bwatch bands?\b/i,
+  "red-lover": /\bheadlamp\b|\bwine aerator\b|\bcostume\b|\bblush tint\b/i,
+  "yellow-lover": /\bjbl grip portable bluetooth speaker jbl$|\bhi[- ]?vis\b|\bwork gloves\b|\bgrocery bags\b|\bmixer cover\b|\bcanvas tote\b|\bcurling iron\b/i,
+  "new-kitten": /\bsmart mug\b|\bember\b/i,
+  "911-dispatchers": /\bcandle\b/i,
+  "restaurant-servers": /\bcandle\b/i,
+  "social-workers": /\bstudy guide\b|\bessential oil\b|\bcandle\b/i,
+  bartenders: /\bserver books?\b/i,
+  "coast-guard": /\bgolf\b/i,
+  machinists: /\bcircuit breaker finder\b|^fowler 54-/i,
+  "police-officers": /\bhandcuffs\b/i,
+  surgeons: /\bcufflinks\b/i,
+  "flight-attendants": /\bpilot wings\b/i,
+  hairstylists: /\bhair dryer holder\b|\bheatless\b.*\bcurl/i,
+  "heavy-equipment-operators": /\bbruder\b/i,
+  "crane-operators": /\bbruder\b/i,
+  "lab-techs-phlebotomists": /\bvein ?finder\b|\bveinlite\b|\bpractice kit\b/i,
+  "mom-to-be": /\bpostpartum\b/i,
+  hostess: /\bair fryer\b|\bcast iron skillet\b|\bflatware\b|\bstocking\b/i,
+  "new-homeowner": /\bfloor mattress\b/i,
+  "coffee-and-beignets": /\bsmart mug\b|\bember\b/i,
+  "louisiana-small-businesses": /\btony chachere/i,
+  "louisiana-sweets-and-bakeries": /\bhot honey\b/i,
+  "stocking-stuffers": /\bsimmer sauce\b/i,
+  ...Object.fromEntries(["college-student", "graduate"].map((g) => [g, /\bkitsch\b|\bheatless\b/i])),
+  "thinking-of-you": /\bkitsch\b|\bheatless\b|\b12 month calendar\b/i,
+  "girls-big-kids": /\brestore\b.*\bhatch\b|\bhatch restore\b/i,
+  "gender-neutral-toddlers": /\bminnie mouse\b/i,
+  ...Object.fromEntries(BUDGET_25.map((g) => [g, /\bquencher\b/i])),
+  "under-25": /\bquencher\b|\bcozychic\b|\bcolumbia pfg\b/i,
+  "baton-rouge": /\bmossy oak\b/i,
+  "game-day": /\bkijaro\b|\bfrost buddy\b|^game day\b/i,
+  "customer-service-reps": /^5aup\b/i,
+  "hospital-front-desk": /^funny sarcastic novelty joke\b/i,
+  cashiers: /\bandaz press funny round metal christmas ornament\b/i,
+  marines: /^kurt adler resin ornament\b/i,
+  "movie-buff": /^kpop demon hunters\b/i,
+  "white-elephant": /^mystic pickle\b/i,
+  "cat-person": /^(count scratchula|cats with cash|meow pak)\b/i,
+  "vets-and-vet-techs": /\bscrub caps\b/i,
+  "store-macys": /\bsun bum\b|\bsunscreen\b/i,
+  "store-walmart": /\bcar seat\b/i,
+};
+/** Each color guide's own color words (GUIDE_COLOR, plus shades the audit read: lime is green, gold is yellow). */
+export const COLOR_OWN = { ...GUIDE_COLOR, "green-lover": /green|sage|olive|mint|emerald|forest|lime/i, "yellow-lover": /yellow|lemon|sunflower|mustard|golden/i };
+const ANY_COLOR = /\b(black|white|red|blue|green|pink|purple|yellow|orange|navy|teal|lime|lavender|lilac|violet|plum|burgundy|crimson|scarlet|sage|olive|mint|emerald|cobalt|denim|jet black|onyx|magenta|fuchsia|rose|blush)\b/i;
+/** Color words that are not the color (a red light, red wine, a putting green, Back the Blue, Thin Blue Line). */
+export const COLOR_PUN = /\bred[- ](light|wine)\b|\bputting green\b|\bgreen (tea|beans?)\b|\bback the blue\b|\bthin blue line\b|\bblue (light|tooth)\b|\bblack (friday|rifle|pepper|tea)\b|\brose gold\b/gi;
+export const colorWhy = (slug, p) => {
+  const own = COLOR_OWN[slug];
+  if (!own || slug === "purple-and-gold-lover") return "";
+  const name = String(p.name ?? "");
+  const plain = name.replace(COLOR_PUN, " ");
+  if (own.test(plain)) return "";
+  if (own.test(name)) return "color pun";
+  return ANY_COLOR.test(plain) ? "another color" : "";
+};
+/** North Louisiana makers, teams and towns (Monroe, West Monroe, Shreveport, Bossier, Ruston, Natchitoches ...). */
+export const NORTH_LA = /\b(north louisiana|shreveport|bossier|monroe|ruston|natchitoches|minden|grambling|louisiana tech|la tech|ulm|warhawks|duck commander|lasyone'?s|cane river)\b/i;
+export const NORTH_LA_GUIDE = "north-louisiana";
+/** Louisiana guides' place rows: a homepage, event page or business name, not an item (Poche's, Dupuy's, Steen's shop). */
+export const placeRow = (p, homepage) => homepage || LA_PLACE.test(String(p.name ?? "").trim()) || /\/event-details\//i.test(String(p.href ?? ""));
+/** Why a pick does not fit this page under the r4 rules ("" when it fits). `group` is its index group. */
+export const fitR4Why = (slug, group, p) => {
+  const name = String(p.name ?? "");
+  const text = `${name} ${p.brand ?? ""}`;
+  if (R4_OFF[slug]?.test(text)) return "r4: not this guide";
+  if (slug.startsWith("store-") || slug === "25-days-sponsors") return "";
+  if (medicalCare(p)) return "r4: medical care";
+  if (BATH_SOAK.test(text) && !beautyGuide(slug)) return "r4: bath soak";
+  if (STETHOSCOPE.test(name) && !STETHOSCOPE_GUIDES.test(slug)) return "r4: stethoscope";
+  if (NURSE_LABEL.test(name) && !NURSE_GUIDES.test(slug) && !BABY_GUIDE.test(slug)) return "r4: nurse item";
+  if (vagueGiftName(p)) return "r4: vague name";
+  if (group === "Colors") { const c = colorWhy(slug, p); if (c) return `r4: ${c}`; }
+  if (slug === NORTH_LA_GUIDE && !NORTH_LA.test(text)) return "r4: not north louisiana";
+  return "";
+};
+/**
+ * One of a kind per guide: [pattern, max, guides?] (no guides = every guide; store pages only where named). Read in
+ * list order, so the first (featured) ones stay.
+ */
+export const TYPE_CAPS = [
+  [/\btrauma shears\b|\bmedical scissors\b/i, 1],
+  [/\bpen ?lights?\b/i, 1],
+  [STETHOSCOPE, 1],
+  [/\b(refrigerator|fridge|freezer)\b/i, 1],
+  [/\bcb radio\b/i, 1],
+  [/\bbook lights?\b|\breading lights?\b/i, 1],
+  [/\bwine (bottle )?opener\b/i, 1],
+  [/\baerator\b/i, 1],
+  [/\bfoot massager\b/i, 1],
+  [/\bhand warmers?\b/i, 1],
+  [/\bcoolers?\b/i, 3, ["tailgater"]],
+  [/\bcoolers?\b(?!.*\btowel)/i, 2],
+  [/\blunch (box|boxes|bag|lugger)\b|\bbento\b|\bfood jar\b/i, 2],
+  [/\bbadge (reels?|holders?)\b/i, 3],
+  [/\bseat cushion\b/i, 2],
+  [/\b\d+[- ]?(piece|pc|pcs)\b.*\btool (set|kit)\b/i, 1],
+  [/\bcoffee club\b/i, 1],
+  [/\bsam'?s club\b.*\bmembership\b/i, 1],
+  [/\bmulti-?tool\b|\bleatherman (wave|wingman|signal|charge|skeletool|rebar|free)\b/i, 2],
+  [/\bcandles?\b|\btea gift set\b/i, 1, ["book-lover"]],
+  [/\belectric toothbrush\b|\bwater flosser\b|\bsonicare\b|\boral-b\b|\bcocofloss\b/i, 1, DENTAL],
+  [/\btherapy putty\b|\bpeg ?board\b|\blacing beads\b|\bweighted lap pad\b|\bpencil grip\w*\b|\bgrip strengthener\b/i, 1, ["occupational-therapists"]],
+  [/\bwh question\b|\bwho what why\b|\bvocabulary photo cards\b|\bself-portrait mirror\b|\bspot it\b/i, 2, ["speech-therapists"]],
+  [/\bquencher h2\.0\b/i, 1, ["store-stanley"]],
+  [/\beverywhere belt bag\b/i, 1, ["store-lululemon"]],
+  [/\bpower bank\b.*\b10k\b|\b10k\b.*\bpower bank\b/i, 1, ["store-best-buy"]],
+];
+/** The same product listed twice under different links or names (one key per product, one row a guide). */
+export const PRODUCT_TWINS = [/\bmx master( black)? 3s?\b/i, /\barctic pro\b/i, /(^|[^o])\bmen'?s bondi 9\b/i, /\bsalt, fat, acid\b/i];
+/** The caps a pick counts toward on this page: [key, max]. */
+export const typeCaps = (slug, p) => {
+  const name = String(p.name ?? "");
+  const out = [];
+  TYPE_CAPS.forEach(([rx, max, only], i) => {
+    if (only ? !only.includes(slug) : slug.startsWith("store-")) return;
+    if (rx.test(name)) out.push([`type${i}`, max]);
+  });
+  if (!slug.startsWith("store-")) PRODUCT_TWINS.forEach((rx, i) => { if (rx.test(name)) out.push([`twin${i}`, 1]); });
+  return out;
+};
+/** Hair tools and facial devices are beauty too (Kitsch curlers were on 17 guides, the Dyson Airwrap on 16). */
+export const HAIR_BEAUTY = /\b(heatless|curlers?|curling (iron|wand|set)|airwrap|multi-?styler|hair dryers?|blow dryers?|straighten(ing|er)|flat iron|hot (air )?brush|facial system)\b/i;
+/** The 6 guides a widely listed beauty product keeps, best fit first (lead 11-19); others follow beautyRank. */
+export const BEAUTY_PREFERRED = [
+  [/\bkitsch\b|\bheatless\b.*\bcurl/i, ["girls-teens", "self-care-lover", "stocking-stuffers", "sister", "under-20", "best-friend"]],
+  [/\bairwrap\b/i, ["her", "wife", "girlfriend", "mom", "sister", "self-care-lover"]],
+];
+export const beautyPreference = (p, slug) => {
+  const text = `${p.name ?? ""} ${p.brand ?? ""}`;
+  const hit = BEAUTY_PREFERRED.find(([rx]) => rx.test(text));
+  if (!hit) return 99;
+  const i = hit[1].indexOf(slug);
+  return i < 0 ? 99 : i;
+};
+/**
+ * A brand field that names the store, not the maker (fit audit r4: Macy's Le Creuset kettle, Target's BISSELL vacuum,
+ * Tractor Supply's Hape grill): the maker the name opens with, else no brand (never "On Macy's").
+ */
+export const RETAILER_BRAND = /^(macy'?s|target|target\.com|tractor supply|walmart|walmart\.com)$/i;
+export const MAKER_PREFIXES = ["Bayou Classic", "BISSELL", "Camellia", "Cook With Color", "Cutting Edge", "Hape", "Hotel Collection", "Huntworth",
+  "Lancôme", "Le Creuset", "Michael Kors", "Nespresso", "NEXPURE", "Nexpure", "Tabasco", "Tony Chachere's", "VAVSEA", "YETI", "Zatarain's", "Zatarains"];
+export const retailerBrand = (name, brand) => {
+  const b = String(brand ?? "").trim();
+  if (!RETAILER_BRAND.test(b)) return brand;
+  const n = String(name ?? "");
+  if (n.toLowerCase().startsWith(b.toLowerCase().replace(/\.com$/, ""))) return brand;
+  const maker = MAKER_PREFIXES.find((m) => n.startsWith(`${m} `));
+  return maker === "Zatarains" ? "Zatarain's" : maker ?? "";
+};

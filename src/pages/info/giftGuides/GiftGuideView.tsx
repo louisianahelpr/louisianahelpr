@@ -49,16 +49,18 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
     <li data-gift-pick="">
       <GiftOut href={pick.href} className="gg-item">
         <PickThumb pick={pick} />
+        {/* Design spec 11-18 H1: the name gets the full width (2 lines at most), the why-line one line, then the store
+            and the price together; no number column. */}
         <span className="gg-nm">
-          {pick.name}
-          <small>{pick.line ? `${pick.line} ` : ""}{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}</small>
+          <span className="gg-nm-name">{pick.name}</span>
+          {pick.line && <small className="gg-nm-line">{pick.line}</small>}
+          <small className="gg-nm-meta"><span>{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}</span><PickPrice pick={pick} /></small>
           {pick.badges && (
             <span className="gg-badges">
               {pick.badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
             </span>
           )}
         </span>
-        <PickPrice pick={pick} />
         <span className="gg-shop" aria-hidden="true">{G.shopLabel}</span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>

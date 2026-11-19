@@ -187,15 +187,30 @@ export const RENAMED = {
   "https://atlascoffeeclub.com/products/12-month-email-gift-quarterly-corporate": "12-Month Coffee Club Gift, Shipped Quarterly",
   "https://www.sharkninja.com/kitchen/small-kitchen-appliances/air-fryers": "Ninja Air Fryer",
   "https://www.sharkninja.com/beauty/skincare": "Shark Beauty LED Face Mask",
+  // "Garden Kneeler" links to a watering can (photo finder 11-18 PM): named for what the link sells.
+  "https://go.shopmy.us/p-104061840": "Sophie Conran Galvanized Steel Watering Can",
 };
-/** Photos found for photo-less picks, by pick name: { name: url } or [{ name, image }]. Optional file. */
-const MISSING_IMAGES = (() => {
+/**
+ * Photos found for photo-less picks (~/Desktop/Link-library/missing-images-1118.json, owner 11-18 PM): { "<pick name>":
+ * { image, source_url, store, href, checked_at, note? } } (a plain URL string is read too); "_no_photo" and other "_" keys
+ * are not photos. Matched by the pick's link first, then its name. Optional file.
+ */
+const MISSING_BY_NAME = new Map();
+const MISSING_BY_HREF = new Map();
+{
   const f = join(homedir(), "Desktop", "Link-library", "missing-images-1118.json");
-  if (!existsSync(f)) return new Map();
-  const v = JSON.parse(readFileSync(f, "utf8"));
-  const rows = Array.isArray(v) ? v : Array.isArray(v?.picks) ? v.picks : Array.isArray(v?.images) ? v.images : Object.entries(v ?? {}).filter(([k]) => !k.startsWith("_")).map(([name, image]) => ({ name, image }));
-  return new Map(rows.filter((r) => r && typeof r.name === "string" && typeof (r.image ?? r.url) === "string").map((r) => [compact(r.name), r.image ?? r.url]));
-})();
+  const v = existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : {};
+  for (const [name, e] of Object.entries(v && typeof v === "object" && !Array.isArray(v) ? v : {})) {
+    if (name.startsWith("_")) continue;
+    const image = typeof e === "string" ? e : e && typeof e.image === "string" ? e.image : undefined;
+    if (!image) continue;
+    MISSING_BY_NAME.set(compact(name), image);
+    if (e && typeof e.href === "string") MISSING_BY_HREF.set(e.href, image);
+  }
+}
+const MISSING_IMAGES = MISSING_BY_NAME;
+/** A TIFF photo, unless the server converts it (KitchenAid's ".tif?fmt=png" is served as a PNG). */
+const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b/i.test(u);
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
   const fixed = withAmazonFixes(p);
@@ -231,7 +246,7 @@ function toPick(p, where) {
     : LOUISIANA.has(host) || SPONSORS.has(host) ? null
     : storeFor(p.retailer || p.store || p.brand);
   // A Louisiana shop or a 25 Days sponsor keeps its own words: those rows name the local business on purpose.
-  const rawName = RENAMED[p.href] ?? (LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host)));
+  const rawName = RENAMED[p.href] ?? RENAMED[p.affiliate_href] ?? (LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host)));
   const name = rawName && tidyName(rawName);
   if (!name) return hidden.push(`${where}: "${p.name}" is a page title, store name or promo, not a product`), null;
   if (store) stores.get(store).hosts.add(host);
@@ -241,15 +256,18 @@ function toPick(p, where) {
   const amazonHosted = typeof p.image === "string" && p.image.startsWith("https://") && AMAZON_IMAGE_HOST.test(new URL(p.image).hostname);
   // A TIFF photo shows blank in every browser (affiliate sweep 11-18: 279 ShopMy "_fpx.tif" images): dropped, so the
   // pick is swapped for a photo'd one in a mixed guide or draws its store tile.
-  const tiff = typeof p.image === "string" && /\.tiff?(\?|#|$)/i.test(p.image);
+  const tiff = typeof p.image === "string" && isTiff(p.image);
   // ShopMy's own S3 photos answer 403 AccessDenied (all 639 distinct URLs, curl 11-18 PM): dropped like the TIFFs, so
   // mixed guides swap in photo'd picks and no row makes a failed request.
   const deadHost = typeof p.image === "string" && /^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(p.image);
   const ownImage = !tiff && !deadHost && !(typeof p.image === "string" && brokenImage(p.image)) && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe" && new URL(p.image).hostname === "m.media-amazon.com")) ? p.image : undefined;
   // "All items need a picture, find one. No excuses." (owner 11-18 PM): a pick with no usable photo takes the one the
   // link library found for it (~/Desktop/Link-library/missing-images-1118.json), never an Amazon-hosted one.
-  const found = ownImage ? undefined : MISSING_IMAGES.get(compact(p.name ?? ""));
-  const image = ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !/\.tiff?(\?|#|$)/i.test(found) && !AMAZON_IMAGE_HOST.test(new URL(found).hostname) ? found : undefined);
+  const found = ownImage ? undefined : MISSING_BY_HREF.get(p.affiliate_href) ?? MISSING_BY_HREF.get(p.href) ?? MISSING_BY_NAME.get(compact(p.name ?? ""));
+  // The owner approved Amazon product images for these (11-18 PM): the CDN photo, on an Amazon link only (Associates).
+  const amazonFound = Boolean(found) && AMAZON_IMAGE_HOST.test(new URL(found).hostname);
+  const image = ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !isTiff(found)
+    && (!amazonFound || (new URL(found).hostname === "m.media-amazon.com" && (AMAZON.has(host) || AMAZON.has(plainHost)))) ? found : undefined);
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);
   const brand = BRAND_CASE[compact(p.brand ?? "")] ?? p.brand ?? "";
@@ -699,6 +717,19 @@ const noRepeats = (list) => {
   return out;
 };
 for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]);
+// Removing repeats can lift a later XTRATUF boot into the top: one in the first 12, two in the first 25, again.
+for (const slug of Object.keys(pageList)) {
+  if (slug.startsWith("store-")) continue;
+  const list = pageList[slug];
+  const out = [];
+  const held = [];
+  for (const p of list) {
+    const boots = out.filter(isXtratuf).length;
+    if (isXtratuf(p) && out.length < TOP_GIFTS && boots >= (out.length < FEATURED_TOP ? 1 : 2)) held.push(p);
+    else out.push(p);
+  }
+  pageList[slug] = out.length >= TOP_GIFTS ? [...out.slice(0, TOP_GIFTS), ...held, ...out.slice(TOP_GIFTS)] : [...out, ...held];
+}
 const pageRepeats = repeatsRemoved;
 /** A store page's deal items never repeat its picks or each other (live audit r3 #1: Xbox, AirPods, KitchenAid twice on Walmart). */
 let dealRepeats = 0;

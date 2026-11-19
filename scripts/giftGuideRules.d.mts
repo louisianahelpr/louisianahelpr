@@ -23,3 +23,4 @@ export const LOGO_IMAGE: RegExp;
 export const PAGE_TITLE_NAME: RegExp;
 export const WRONG_GUIDE: Record<string, RegExp>;
 export const FACE_MASK_OFF: string[];
+export const LOGO_PRODUCT: RegExp;

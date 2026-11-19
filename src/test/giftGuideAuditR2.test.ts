@@ -216,7 +216,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     JSON.parse(readFileSync(join(process.cwd(), `src/content/giftGuidePicks/${slug}.json`), "utf8")).picks;
   const pages = readdirSync(join(process.cwd(), "src/content/giftGuidePicks")).filter((f) => f.endsWith(".json"));
   it("drops the audited wrong thumbnails and any logo/banner/icon image", () => {
-    // @mutate scripts/giftGuideRules.mjs |   \|\| LOGO_IMAGE.test(u.split("?")[0]) \|\| WRONG_IMAGES.has(u.split("?")[0]); |   ;
+    // @mutate scripts/giftGuideRules.mjs |   \|\| (LOGO_IMAGE.test(u.split("?")[0]) && !LOGO_PRODUCT.test(u)) \|\| WRONG_IMAGES.has(u.split("?")[0]); |   ;
     expect(WRONG_IMAGES.size).toBeGreaterThan(20);
     expect(brokenImage("https://res.cloudinary.com/mavely/image/upload/v1/Sonos_logo_c655260285.jpg")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/1033/0751/files/LinkSharing-SEO-Thumbnail_1.jpg?v=1")).toBe(true);
@@ -235,7 +235,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(pageOf("home-cook").some((p) => /dumbbell/i.test(p.name))).toBe(false);
   });
   it("renames page-title rows to the plain product (Atlas \"Corporate\" gifts, the SharkNinja category rows) and keeps the face mask out of Dad and Home Cook", () => {
-    // @mutate scripts/gift-guide-picks.mjs |   const rawName = RENAMED[p.href] ?? ( |   const rawName = (
+    // @mutate scripts/gift-guide-picks.mjs |   const rawName = RENAMED[p.href] ?? RENAMED[p.affiliate_href] ?? ( |   const rawName = (
     const all = pages.flatMap((f) => pageOf(f.replace(/\.json$/, "")).map((p) => p.name));
     expect(all.length).toBeGreaterThan(5000);
     for (const bad of [/Email Gift.*Corporate/, /Crispier Cooking/, /Skincare Routine Tools/]) expect(all.some((n) => bad.test(n)), String(bad)).toBe(false);

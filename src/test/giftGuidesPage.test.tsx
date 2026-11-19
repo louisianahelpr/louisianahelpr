@@ -1229,7 +1229,8 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null
     // @mutate scripts/gift-guide-picks.mjs |   const ownImage = !tiff && !deadHost && |   const ownImage = !tiff && 
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
-      expect(p.image ?? "", `${slug}: ${p.name}`).not.toMatch(/\.tiff?(\?|#|$)/i);
+      // A server-converted TIFF (KitchenAid ".tif?fmt=png", served as PNG) is fine.
+      expect((p.image ?? "").replace(/\.tiff?\?(.*&)?fmt=(png|jpe?g|webp)\b.*/i, ""), `${slug}: ${p.name}`).not.toMatch(/\.tiff?(\?|#|$)/i);
       // ShopMy's S3 photos are all 403 (11-18 PM): none ships.
       expect(p.image ?? "", `${slug}: ${p.name}`).not.toMatch(/production-shopmyshelf-/);
       if (p.href.startsWith("https://shopmy.us/collections/")) expect(p.store, `${slug}: ${p.name}`).toBeUndefined();

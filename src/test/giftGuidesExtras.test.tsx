@@ -8,7 +8,7 @@
  * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.louisianaFit && brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.sponsor \|\| (brand && SPONSOR_BRANDS.includes(brand)) ? (["sponsor"] as const) : []), |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []),
- * @mutate src/content/giftGuideCatalog.ts | !badges.includes("louisiana-made") ? [...badges, "shop-louisiana"] : badges | false ? [...badges, "shop-louisiana"] : badges
+ * @mutate src/content/giftGuideCatalog.ts | store === "louisiana" && !badges.includes("louisiana-made") ? [...badges, "shop-louisiana"] : badges | false ? [...badges, "shop-louisiana"] : badges
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | if (pick.image && !failed) { | if (pick.image) {
  * @mutate scripts/gift-guide-picks.mjs | if (!nameOnly(slug, p)) add(slug, p, file); | add(slug, p, file);
  * @mutate src/pages/info/giftGuides/giftList.tsx | aria-pressed={saved} | aria-pressed={false}
@@ -107,9 +107,10 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
       expect(raw.href).toBe(p.href);
       expect(p.badges?.includes("louisiana-made") ?? false, p.name).toBe(!!raw.louisianaFit && LOUISIANA_MADE_BRANDS.includes(p.brand!));
       expect(p.badges?.includes("sponsor") ?? false, p.name).toBe(s === "25-days-sponsors" || !!raw.sponsor || SPONSOR_BRANDS.includes(p.brand!));
-      // "Shop Louisiana" (owner 2026-11-18): louisianaFit or a Louisiana shop, unless already Louisiana-made.
+      // "Shop Louisiana" (owner 2026-11-18; pre-launch audit 11-18 PM): a Louisiana shop only, unless already Louisiana-made.
       const made = p.badges?.includes("louisiana-made") ?? false;
-      expect(p.badges?.includes("shop-louisiana") ?? false, p.name).toBe(!made && (!!raw.louisianaFit || p.store === "louisiana"));
+      expect(p.badges?.includes("shop-louisiana") ?? false, p.name).toBe(!made && p.store === "louisiana");
+      if (p.store === "amazon" || p.store === "store-walmart") expect(p.badges?.includes("shop-louisiana") ?? false, p.name).toBe(false);
     }
     // A Louisiana brand's pick not marked louisianaFit gets no Louisiana-made badge.
     expect(badgesFor("TABASCO")).toEqual([]);
@@ -225,7 +226,8 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     expect(heart.closest("a")).toBeNull();
     const link = container.querySelector("[data-gift-my-list-link]")!;
     expect(link.getAttribute("aria-label")).toBe("My list, 0 saved");
-    expect(link.textContent).toBe("0");
+    // No "0" badge on an empty list (pre-launch audit 11-18 PM).
+    expect(link.textContent).toBe("");
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe("Holiday Gift Guides");

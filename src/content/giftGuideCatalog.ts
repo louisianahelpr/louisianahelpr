@@ -81,11 +81,12 @@ export interface CatalogPick {
 export type PickBadge = "trending" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup" | "shop-louisiana";
 
 /**
- * "Shop Louisiana" (owner 2026-11-18): a pick marked louisianaFit or sold by a Louisiana shop, unless it already
- * carries the stronger "Louisiana-made" badge.
+ * "Shop Louisiana" (owner 2026-11-18): a pick sold by a Louisiana shop, unless it already carries the stronger
+ * "Louisiana-made" badge. A louisianaFit flag alone is not enough (pre-launch audit 11-18 PM: Leatherman, Costa,
+ * Lodge and Carhartt on Amazon/Walmart wore it): only Louisiana-made products and Louisiana shops are Louisiana.
  */
-const withShopLouisiana = (badges: PickBadge[], store: GiftStore, louisianaFit?: unknown): PickBadge[] =>
-  (store === "louisiana" || louisianaFit) && !badges.includes("louisiana-made") ? [...badges, "shop-louisiana"] : badges;
+const withShopLouisiana = (badges: PickBadge[], store: GiftStore): PickBadge[] =>
+  store === "louisiana" && !badges.includes("louisiana-made") ? [...badges, "shop-louisiana"] : badges;
 
 /**
  * A pick's badges, in this order: Trending (its optional `trending` flag), "Louisiana-made" only when the pick is
@@ -227,7 +228,7 @@ const researchedStore = (p: ResearchedPick): GiftStore => {
 };
 const toPick = (p: ResearchedPick): CatalogPick => {
   const store = researchedStore(p);
-  const badges = withShopLouisiana(badgesFor(p.brand, p), store, p.louisianaFit);
+  const badges = withShopLouisiana(badgesFor(p.brand, p), store);
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
     // Never an Amazon price (Associates rule), whatever the generated file holds.
     ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) };

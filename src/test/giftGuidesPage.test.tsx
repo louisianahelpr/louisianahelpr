@@ -94,6 +94,7 @@ import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GiftGuideView, DEALS_AFTER_PICKS, PICKS_PAGE, STORE_DEALS_FIRST, storeDealRows, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
+import { isLouisianaItem } from "../../scripts/giftGuideRules.mjs";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { TEEN_TILES } from "@/pages/info/giftGuides/GiftGuideLanding";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -123,6 +124,7 @@ const DISCLOSURE = "Some links are affiliate links. We may earn a small share of
 const AMAZON_STATEMENT = "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.";
 const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
 // @two-way src/test/giftGuidesPage.test.tsx:stale allowed host
+const LA_HOSTS = new Set([...LOUISIANA_SHOPS, ...SPONSOR_SITES]);
 const ALLOWED_HOSTS = ["shopmy.us", "www.pinterest.com", "www.amazon.com", "amazon.com", "amzn.to", ...AFFILIATE_HOSTS, ...BRAND_SITES, ...LOUISIANA_SHOPS, ...SPONSOR_SITES];
 const isAmazon = (href: string) => ["www.amazon.com", "amazon.com", "amzn.to"].includes(new URL(href).hostname);
 
@@ -244,7 +246,8 @@ describe("gift guides: the content inventory", () => {
       // A size or color variant of a listed product counts as listed (owner 11-18 PM: no repeats on a page).
       const variant = (n: string) => n.toLowerCase().replace(/\([^)]*\)/g, " ").replace(/\d+(\.\d+)?/g, " ").replace(/\b(fl|oz|qt|ct|count|pc|pack|pk|cup|mm|in)\b\.?/g, " ").replace(/\b(black|white|red|blue|green|pink|purple|gold|silver|grey|gray|navy|brown)\b(?! line\b)/g, " ").replace(/[^a-z]+/g, " ").trim();
       const variants = new Set(g.picks.map((p) => variant(p.name)));
-      for (const p of picks.filter((x) => x.store === store)) expect(names.has(p.name) || hrefs.has(p.href) || [...variants].some((v) => v.includes(variant(p.name)) || variant(p.name).includes(v)), p.name).toBe(true);
+      // A Louisiana item leaves national store pages (owner rule 11-18 PM: Louisiana items only in the Louisiana section).
+      for (const p of picks.filter((x) => x.store === store && !isLouisianaItem(x, LA_HOSTS))) expect(names.has(p.name) || hrefs.has(p.href) || [...variants].some((v) => v.includes(variant(p.name)) || variant(p.name).includes(v)), p.name).toBe(true);
     }
     expect(guidesIn("by-store")[0].slug).toBe("store-amazon");
     expect(guidesIn("by-store")[1].slug).toBe("store-walmart");
@@ -422,7 +425,9 @@ describe("gift guides: the landing opens to the guides", () => {
     // A guide's header is its cover's look as a short banner (owner 11-18 PM): gingham in the guide's palette, a cream
     // arch holding the lead, the title and the LOUISIANA HELPR line (real text, no image), the tool row right under it.
     // @mutate src/pages/info/GiftGuides.tsx | titleId="gift-guide-title" tint={guide.tint} | titleId="gift-guide-title"
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", "0"]);
+    // The tool row carries no text: an empty My list shows no "0" badge (pre-launch audit 11-18 PM).
+    // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {n > 0 && <span className="gg-icon-count" |       {true && <span className="gg-icon-count"
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", ""]);
     cleanup();
     let banners = 0;
     for (const slug of ["mom", "girls-toddlers", "store-walmart", "under-25"]) {
@@ -935,7 +940,7 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
     expect(script).toMatch(/function toPick\(p, where\) \{\n\s*if \(blockedBrand\(p\)\) return hidden\.push/);
     expect(script).toMatch(/const addDeal = \(slug, d\) => \{\n\s*if \(blockedBrand\(d\)/);
     // _cj.json (SilverRushStyle's CJ links) lands in the guides it fits and on its store page, like _awin.json.
-    expect(script).toContain('for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json"]) {');
+    expect(script).toContain('for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json", "_walmart-under5-1118.json"]) {');
     for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later-mylinks.json", "_later-brands.json"]) expect(script, f).toContain(`["${f}", []]`);
     // Deals and bounties: _later-promos.json (deal sections) and _amazon-bounties.json (Prime, Audible, registries).
     expect(script).toContain('for (const f of ["_later-deals.json", "_later-promos.json"]) {');
@@ -1197,7 +1202,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     expect(script).toContain("export const AMAZON_IMAGE_HOST = /(^|\\.)(media-amazon|images-amazon|ssl-images-amazon|amazon|amazon-adsystem)\\.com$/;");
     expect(script).toContain("AMAZON_IMAGE_HOST.test(new URL(p.image).hostname)");
     expect(script).toContain('JSON.parse(readFileSync(join(LIB, "unused-by-guide.json"), "utf8"))');
-    expect(script).toContain("const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut];");
+    expect(script).toContain("const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut.filter(hasPhoto)];");
     let photos = 0;
     let amazonCdn = 0;
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
@@ -1225,9 +1230,10 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
     // collection, not the retailer) is on no store page.
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null
-    // @mutate scripts/gift-guide-picks.mjs |   const image = !tiff && !deadHost && |   const image = !tiff && 
+    // @mutate scripts/gift-guide-picks.mjs |   const ownImage = !tiff && !deadHost && |   const ownImage = !tiff && 
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
-      expect(p.image ?? "", `${slug}: ${p.name}`).not.toMatch(/\.tiff?(\?|#|$)/i);
+      // A server-converted TIFF (KitchenAid ".tif?fmt=png", served as PNG) is fine.
+      expect((p.image ?? "").replace(/\.tiff?\?(.*&)?fmt=(png|jpe?g|webp)\b.*/i, ""), `${slug}: ${p.name}`).not.toMatch(/\.tiff?(\?|#|$)/i);
       // ShopMy's S3 photos are all 403 (11-18 PM): none ships.
       expect(p.image ?? "", `${slug}: ${p.name}`).not.toMatch(/production-shopmyshelf-/);
       if (p.href.startsWith("https://shopmy.us/collections/")) expect(p.store, `${slug}: ${p.name}`).toBeUndefined();

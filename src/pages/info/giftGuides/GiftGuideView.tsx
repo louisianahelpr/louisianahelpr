@@ -43,8 +43,10 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
   return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{storeLabel(pick)}</span>;
 }
 
-export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
+export function PickRow({ pick, guide, trending = false }: { pick: CatalogPick; guide?: string; trending?: boolean }) {
   const saved = useGiftList().picks.some((p) => p.href === pick.href && p.name === pick.name);
+  // A featured-order top pick wears "Trending" first (owner-approved 2026-11-18), never twice.
+  const badges = trending && !pick.badges?.includes("trending") ? ["trending" as const, ...(pick.badges ?? [])] : pick.badges;
   return (
     <li data-gift-pick="">
       <GiftOut href={pick.href} className="gg-item">
@@ -55,9 +57,9 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
           <span className="gg-nm-name">{pick.name}</span>
           {pick.line && <small className="gg-nm-line">{pick.line}</small>}
           <small className="gg-nm-meta"><span>{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}</span><PickPrice pick={pick} /></small>
-          {pick.badges && (
+          {badges && (
             <span className="gg-badges">
-              {pick.badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
+              {badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
             </span>
           )}
         </span>
@@ -87,6 +89,14 @@ const sectionsOf = (picks: CatalogPick[]) => {
 /** Rows a list draws at first, and each "Show more" adds (design audit 11-18 #3: 827 rows, 9,600 DOM nodes at once). */
 export const PICKS_PAGE = 50;
 
+/**
+ * The picks that wear "Trending" (owner-approved 2026-11-18): the first TRENDING_TOP of a guide's list, in its
+ * featured order (the order the import writes: trending picks first). Not on a store page, whose list is the store's
+ * catalogue ranked by photo and gift score rather than a featured order. `position` is 1-based.
+ */
+const TRENDING_TOP = 3;
+const trendingAt = (guide: CatalogGuide, position: number) => position <= TRENDING_TOP && !guide.slug.startsWith("store-");
+
 /** "Show more" with this many or fewer left draws them all instead. */
 const SHOW_ALL_UNDER = 6;
 /** Deals & codes sit after this many picks (design spec 11-18 H5: never above pick #1, after the first 10). */
@@ -108,7 +118,7 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
         <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""}>
           {title && <h3 className="gg-sec-title">{title}</h3>}
           <ol className="gg-list" data-gift-list="" style={picks.start > 1 ? { counterReset: `gg ${picks.start - 1}` } : undefined}>
-            {picks.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
+            {picks.rows.map((p, k) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} trending={trendingAt(guide, picks.start + k)} />)}
           </ol>
         </section>
       ));

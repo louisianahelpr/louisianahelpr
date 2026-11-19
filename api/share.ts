@@ -72,6 +72,7 @@ import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden
 import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../src/lib/declutterFirstPhotos.mjs";
 import { shareCardPriceLabel } from "../src/lib/declutter/shareCardPrice.mjs";
 import { jobShareDescription } from "../src/lib/jobShareLine.mjs";
+import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "../src/lib/giftGuideShareImages.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -1040,6 +1041,7 @@ function metaForPublicPage(id: string, tab: string | null): Meta | null {
   const page = publicPageMetaFor(`/${id}`, tab);
   if (!page) return null;
   const card = SECTION_CARDS[id];
+  const cover = giftGuideCover(id, page.ogTitle);
   return {
     title: page.title,
     description: page.description,
@@ -1047,7 +1049,24 @@ function metaForPublicPage(id: string, tab: string | null): Meta | null {
     ogDescription: page.ogDescription,
     url: page.canonical,
     ...(card ? { image: { url: `${SITE_ORIGIN}${card.path}`, type: "image/png", width: 1200, height: 630, alt: card.alt } } : {}),
+    ...(cover ? { image: cover } : {}),
   };
+}
+
+/**
+ * A gift guide's link card is its own cover (owner-approved 2026-11-18): public/gift-guides/og/<slug>.jpg (600x600
+ * JPEG, 11-18 PM), else the 480x480 WebP cover public/gift-guides/covers/<slug>.webp, else the shell's brand card (never
+ * a broken image). Which files exist comes from src/lib/giftGuideShareImages.mjs (a slug list kept two-way with the
+ * folders), so no image folder is bundled into this function. The slug is the rewrite's single path segment, re-checked here.
+ * Guard: src/test/giftGuideSharePreview.test.ts.
+ */
+function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
+  const slug = /^gift-guides\/([a-z0-9-]+)$/.exec(id)?.[1];
+  if (!slug) return undefined;
+  // The share JPG first (600x600 JPEG, the format every link-preview crawler takes), then the WebP cover.
+  if (OG_JPG_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/og/${slug}.jpg`, type: "image/jpeg", width: 600, height: 600, alt: name };
+  if (COVER_WEBP_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/covers/${slug}.webp`, type: "image/webp", width: 480, height: 480, alt: name };
+  return undefined;
 }
 
 /**

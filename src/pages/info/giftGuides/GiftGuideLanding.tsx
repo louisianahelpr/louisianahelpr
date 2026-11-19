@@ -7,6 +7,7 @@ import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { sponsorPage } from "@/content/sponsorPage";
+import { LAST_MINUTE, lastMinuteOn, shippingLine } from "@/content/giftGuideShipping";
 
 /**
  * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
@@ -71,6 +72,31 @@ function TopStrip() {
   );
 }
 
+/**
+ * "Last-minute gifts" at the top of the landing, Dec 15 through Dec 25 in Louisiana (owner-approved 2026-11-18): the
+ * Gift cards and Subscriptions guides (and an e-gifts guide once one holds picks) as tiles, with a short "Arrives by
+ * Christmas" note carrying the shipping pill's own words for the day. Hidden on every other date.
+ */
+function LastMinute() {
+  const now = new Date();
+  if (!lastMinuteOn(now)) return null;
+  const tiles = LAST_MINUTE.slugs.flatMap((slug) => {
+    const g = guideBySlug(slug);
+    return g && !g.empty ? [g] : [];
+  });
+  if (tiles.length === 0) return null;
+  const ship = shippingLine(now);
+  return (
+    <section aria-labelledby="gift-last-minute" data-gift-last-minute="">
+      <div className="gg-rowhead"><h2 id="gift-last-minute">{LAST_MINUTE.title}</h2></div>
+      <p className="gg-ship gg-last-note" data-gift-last-minute-note="">
+        {LAST_MINUTE.note}{ship ? `: ${ship}` : ""}
+      </p>
+      <ul className="gg-row">{tiles.map((g) => <GiftGuideTile key={g.slug} g={g} />)}</ul>
+    </section>
+  );
+}
+
 export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   const rows = group ? ROWS.filter((r) => r.row === group) : ROWS;
   const drawRow = ({ row, label, tint }: (typeof ROWS)[number]) => {
@@ -96,6 +122,7 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   return (
     <>
       {group && <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>}
+      {!group && <LastMinute />}
       <div className="gg-rows" data-gift-rows="">
         {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}
       </div>

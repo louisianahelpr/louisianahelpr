@@ -78,9 +78,11 @@ export const WRONG_IMAGES = new Set([
 ]);
 /** A logo, banner, sprite or icon file, or a site's share/screenshot image, not a product photo (design lead 11-18 PM). */
 export const LOGO_IMAGE = /(^|[/_.-])(logos?|banners?|sprites?|icons?)([/_.0-9-]|$)|LinkSharing|SEO-Thumbnail|open_graph_image|\/Capture_|Screen_Shot/i;
+/** A logo product's own photo, not a store logo (Black Rifle's 3 Rounds Logo T-Shirt, photo finder 11-18 PM). */
+export const LOGO_PRODUCT = /THREE_ROUNDS_LOGO_[A-Z_]*SHIRT/;
 /** Image URLs that are no image ("…/Liquid%20error%20(snippets/social-meta-tags…", design audit r2 #8: T3 Micro). */
 export const brokenImage = (u) => /liquid(%20|\s|\+)error/i.test(u) || /[<>{}]/.test(u) || SITE_ICON.test(u) || HOTLINK_BLOCKED.test(u)
-  || LOGO_IMAGE.test(u.split("?")[0]) || WRONG_IMAGES.has(u.split("?")[0]);
+  || (LOGO_IMAGE.test(u.split("?")[0]) && !LOGO_PRODUCT.test(u)) || WRONG_IMAGES.has(u.split("?")[0]);
 /** A site's icon, logo or default share image, not the product (live audit r3 #12: vitamix default-meta-image, kitchenaid bookmark icon). */
 export const SITE_ICON = /favicon|apple-touch-icon|bookmark-icon|default-meta-image|meta-image\.|og-badge|\/logo[-_.]/i;
 /** Hosts whose product photos do not load on our pages (ORB-blocked or HTTP/2 errors, live audit r3 #12). */
@@ -98,17 +100,21 @@ export const NOT_LOUISIANA_BUSINESS = /^(muck ?boot|xtratuf)/i;
  * general guide (only the kitchen and chef guides and store pages). A pick that does not fit is left out of that guide.
  */
 export const EXPERIENCE = /\b(tours?|tickets?|experiences?|class(es)?|workshops?|lessons?|gift ?cards?|e-?gift|gift certificates?|admissions?|passes|pass|cruises?|getaways?|vouchers?|escape rooms?|spa days?)\b/i;
-export const GIFT_CARD = /\b(gift ?cards?|e-?gift ?cards?|gift certificates?)\b/i;
+export const GIFT_CARD = /\b(gift ?cards?|e-?gift ?cards?|gift certificates?|gift codes?)\b/i;
 export const NOT_A_GIFT = /\b(free trial|try [\w ]*free|membership)\b/i;
 export const EXPERIENCE_GUIDES = ["louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "family-fun-days"];
 export const KNIFE_OK_GUIDES = ["louisiana-kitchen", "home-cook", "cooks-and-kitchen-staff", "chefs"];
 /** Names a web page gives itself: bot walls, error pages, sale banners, store titles, a bare number. */
 export const PAGE_TITLE_NAME = /^(client challenge|limited time( offer)?|access denied|just a moment\.*|attention required!?|forbidden|sites-[\w-]+|gifts? shop|\d+)$|official store|something went wrong|country selector|page unavailable/i;
-/** Picks that landed in the wrong guide (design lead 11-18 PM): a curling iron in Him, a dumbbell stand in Home Cook. */
-export const WRONG_GUIDE = { him: /curling iron|hair crimper/i, "home-cook": /dumbbell/i };
+/** Picks that landed in the wrong guide (design lead 11-18 PM): a curling iron in Him, a dumbbell stand in Home Cook, a tea club in Dad. */
+/** Subscriptions holds gifts, not free trials or planners (owner 11-18 PM: "Try Prime free", "Audible free trial", the 12-Month Academic Planner off it). */
+export const WRONG_GUIDE = { him: /curling iron|hair crimper/i, "home-cook": /dumbbell/i, subscriptions: /free trial|\btry\b.*\bfree\b|\bplanner\b/i, dad: /tea club gift subscription/i };
+export const FACE_MASK_OFF = ["home-cook", "baker", "dad", "him", "diyer", "electricians", "mechanics", "construction-workers"];
 export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
+  // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
+  if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
   if (slug === "gift-cards") return GIFT_CARD.test(p.name) && !NOT_A_GIFT.test(p.name);
   if (EXPERIENCE_GUIDES.includes(slug)) return EXPERIENCE.test(p.name) && !NOT_A_GIFT.test(p.name);
@@ -134,3 +140,26 @@ export function tidyName(name) {
   }
   return n;
 }
+
+/**
+ * LOUISIANA ONLY IN LOUISIANA (owner rule 11-18 PM, fit audit _fit-audit-1118): a Louisiana-based item (a Louisiana
+ * shop's or 25 Days sponsor's link, a Louisiana brand, or a Louisiana-themed name) shows only in the Louisiana section.
+ * XTRATUF, Muck Boot and Bayou Classic are national brands. `laHosts` are the Louisiana shop and sponsor hosts.
+ */
+export const LOUISIANA_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du Monde", "Cafe Du Monde", "Tony Chachere's", "Community Coffee", "NOLA Couture",
+  "Aunt Sally's", "KREWE", "Leah's Pralines", "Southern Marsh", "Slap Ya Mama", "Zatarain's", "Joe Gambino's Bakery", "Cajun Power", "Savoie's",
+  "Zapp's", "Magic Seasoning Blends", "French Market", "French Market Coffee", "TABASCO", "Camellia Brand", "Camellia", "Steen's", "Kary's", "Abita",
+  "Crystal", "Blue Plate", "Louisiana Fish Fry", "Bruce's", "French Truck Coffee", "Red Stick Spice Company", "Red Stick Spice", "Panola Pepper Co.",
+  "Poche's", "Randazzo King Cake", "Southern Candymakers", "Julie Vos", "Mam Papaul's", "Crew Dog", "Junior League of Baton Rouge",
+  "Junior League of Lafayette", "Rebecca Illustrated", "Isaac Toups", "Ella Brennan", "John Folse", "Cajun Grocer", "Cajun Country", "Dupuy's",
+  "Rip Van Winkle Gardens", "Justin Wilson", "Melissa M. Martin", "Jean-Paul Bourgeois", "Zydeco Chop Chop", "Paul Prudhomme", "Konriko"];
+export const LOUISIANA_THEME = /\b(louisiana|new orleans|nola|cajun|creole|lsu|mardi gras|king cakes?|crawfish|acadiana|baton rouge|lafayette|saints|pelicans|pralines?|beignets?|roux|gumbo|jambalaya|boudin|zydeco|fleur[- ]de[- ]lis|bayou|chicory)\b/i;
+export const NATIONAL_BRANDS = /^(xtratuf|muck boot|bayou classic)/i;
+const squashName = (x) => String(x ?? "").normalize("NFD").toLowerCase().replace(/[^a-z0-9]+/g, "");
+const LA_BRAND_KEYS = new Set(LOUISIANA_BRANDS.map(squashName));
+export const isLouisianaItem = (p, laHosts) => {
+  if (NATIONAL_BRANDS.test(p.brand ?? "")) return false;
+  let host = "";
+  try { host = new URL(p.href).hostname; } catch { /* not a link: decided by brand and name */ }
+  return laHosts.has(host) || LA_BRAND_KEYS.has(squashName(p.brand)) || LOUISIANA_THEME.test(p.name ?? "");
+};

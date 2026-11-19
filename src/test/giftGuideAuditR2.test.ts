@@ -25,7 +25,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
 import { SEARCH_KEYWORDS, searchGuides } from "@/content/giftGuideCatalog";
-import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
+import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
+import { LOUISIANA_SHOPS, SPONSOR_SITES } from "@/content/giftGuides";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; sponsor?: true };
@@ -129,7 +130,8 @@ describe("design audit r2: lines, variants, photos, brands", () => {
     expect(all.filter(({ p }) => ["Rei", "Ugg", "Laneige", "Xtratuf"].includes(p.brand))).toEqual([]);
   });
   it("a ShopMy collection row says 'Collection on ShopMy', never names the collection as one product's store", () => {
-    expect(all.filter(({ p }) => p.href.startsWith("https://shopmy.us/collections/")).length).toBeGreaterThan(100);
+    // Most collection rows had no photo and left with "no photo, no row" (owner 11-18 PM); the ones with a photo stay.
+    expect(all.filter(({ p }) => p.href.startsWith("https://shopmy.us/collections/")).length).toBeGreaterThan(10);
     expect(VIEW).toContain('{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}');
   });
 });
@@ -215,7 +217,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     JSON.parse(readFileSync(join(process.cwd(), `src/content/giftGuidePicks/${slug}.json`), "utf8")).picks;
   const pages = readdirSync(join(process.cwd(), "src/content/giftGuidePicks")).filter((f) => f.endsWith(".json"));
   it("drops the audited wrong thumbnails and any logo/banner/icon image", () => {
-    // @mutate scripts/giftGuideRules.mjs |   \|\| LOGO_IMAGE.test(u.split("?")[0]) \|\| WRONG_IMAGES.has(u.split("?")[0]); |   ;
+    // @mutate scripts/giftGuideRules.mjs |   \|\| (LOGO_IMAGE.test(u.split("?")[0]) && !LOGO_PRODUCT.test(u)) \|\| WRONG_IMAGES.has(u.split("?")[0]); |   ;
     expect(WRONG_IMAGES.size).toBeGreaterThan(20);
     expect(brokenImage("https://res.cloudinary.com/mavely/image/upload/v1/Sonos_logo_c655260285.jpg")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/1033/0751/files/LinkSharing-SEO-Thumbnail_1.jpg?v=1")).toBe(true);
@@ -233,11 +235,99 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(pageOf("him").some((p) => /curling iron/i.test(p.name))).toBe(false);
     expect(pageOf("home-cook").some((p) => /dumbbell/i.test(p.name))).toBe(false);
   });
+  it("renames page-title rows to the plain product (Atlas \"Corporate\" gifts, the SharkNinja category rows) and keeps the face mask out of Dad and Home Cook", () => {
+    // @mutate scripts/gift-guide-picks.mjs |   const rawName = RENAMED[p.href] ?? RENAMED[p.affiliate_href] ?? ( |   const rawName = (
+    const all = pages.flatMap((f) => pageOf(f.replace(/\.json$/, "")).map((p) => p.name));
+    expect(all.length).toBeGreaterThan(5000);
+    for (const bad of [/Email Gift.*Corporate/, /Crispier Cooking/, /Skincare Routine Tools/]) expect(all.some((n) => bad.test(n)), String(bad)).toBe(false);
+    expect(all).toContain("Ninja Air Fryer");
+    expect(all).toContain("12-Month Coffee Club Gift Subscription");
+    // @mutate scripts/giftGuideRules.mjs |   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false; |   if (false) return false;
+    expect(fitsGuide("home-cook", { name: "Shark Beauty LED Face Mask" })).toBe(false);
+    expect(fitsGuide("her", { name: "Shark Beauty LED Face Mask" })).toBe(true);
+    for (const g of ["dad", "home-cook", "him"]) expect(pageOf(g).some((p) => /face mask/i.test(p.name)), g).toBe(false);
+  });
+  it("every visible pick has a photo (owner 11-18 PM: \"All Items need a picture find one. No excuses.\"), the Subscriptions memberships aside", () => {
+    // @mutate scripts/gift-guide-picks.mjs |   guides[slug] = guides[slug].filter(hasPhoto); |   guides[slug] = guides[slug].filter(Boolean);
+    const allowed = new Set(["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
+      "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"]);
+    let rows = 0;
+    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) {
+      rows += 1;
+      if (!allowed.has(p.name) && f !== "25-days-sponsors.json") expect(p.image, `${f}: ${p.name}`).toBeTruthy();
+    }
+    expect(rows).toBeGreaterThan(5000);
+  });
+  it("every guide still holds 25 picks after \"no photo, no row\" (owner 11-18 PM: \"All guides need 25\"), Gift cards and Subscriptions aside", () => {
+    // @mutate scripts/gift-guide-picks.mjs |       if (!p.image \|\| !fits(p) \|\| !fitsGuide(slug, p) \|\| louisianaBlocked(slug, p)) continue; |       continue;
+    // Gift cards and Subscriptions hold every fitting photo'd pick in the data (back-filled from every page).
+    expect(pageOf("gift-cards").length).toBeGreaterThan(25);
+    // (Dupuy's Gift Certificate is a Louisiana business: the Louisiana rule keeps it in the Louisiana section.)
+    expect(pageOf("gift-cards").some((p) => /Dupuy/.test(p.name))).toBe(false);
+    expect(pageOf("subscriptions").length).toBeGreaterThan(20);
+    const guides = pages.map((f) => f.replace(/\.json$/, "")).filter((s) => !s.startsWith("store-") && !["gift-cards", "subscriptions"].includes(s));
+    expect(guides.length).toBeGreaterThan(150);
+    for (const g of guides) expect(pageOf(g).length, g).toBeGreaterThanOrEqual(25);
+  });
+  it("no photo shows on two brands' rows, and no ShopMy collection row borrows a photo by its shared link (wrong-photo fix 11-18 PM)", () => {
+    // @mutate scripts/gift-guide-picks.mjs |     for (const g of groups) if (g !== owner) for (const r of g) clear.add(r); |     void owner;
+    const generic = /affiliate|program|walmart|amazon|target|shopmy/i;
+    // Two rows on one photo must share a brand, or share one link (one link is one thing, whatever each row calls it).
+    const rowsByImage = new Map<string, { b: string; href: string }[]>();
+    let rows = 0;
+    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, "")) as { name: string; image?: string; brand?: string; href: string }[]) {
+      if (!p.image || !p.brand || generic.test(p.brand)) continue;
+      rows += 1;
+      const b = p.brand.normalize("NFD").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      (rowsByImage.get(p.image) ?? rowsByImage.set(p.image, []).get(p.image)!).push({ b, href: p.href });
+    }
+    expect(rows).toBeGreaterThan(3000);
+    const shared = (h: string) => h.startsWith("https://shopmy.us/collections/");
+    const mixed = [...rowsByImage].filter(([, rs]) => rs.some((x) => rs.some((y) => !x.b.includes(y.b) && !y.b.includes(x.b) && (x.href !== y.href || shared(x.href)))));
+    expect(mixed.map(([i, rs]) => `${i} ${[...new Set(rs.map((r) => r.b))].join("/")}`)).toEqual([]);
+    // Builder 6's three (11-18 PM): the Cheirosa mist, the CozyChic throw and the Owala bottle never wear another product.
+    const named = (re: RegExp) => pages.flatMap((f) => (pageOf(f.replace(/\.json$/, "")) as { name: string; image?: string; href: string }[]).filter((p) => re.test(p.name)));
+    for (const p of named(/Cheirosa 62 Perfume Mist|CozyChic Throw|Owala 32oz/)) expect(p.href, p.name).not.toMatch(/^https:\/\/shopmy\.us\/collections\//);
+  });
+  it("Louisiana items show only in the Louisiana section (owner rule 11-18 PM), which now holds Crawfish Boil Host and Purple & Gold", () => {
+    // @mutate scripts/gift-guide-picks.mjs | !LOUISIANA_STORE_PAGES.has(slug) && isLouisianaItem(p, LA_HOSTS)); | !LOUISIANA_STORE_PAGES.has(slug) && false);
+    const index = readFileSync(join(process.cwd(), "src/content/giftGuideIndex.ts"), "utf8");
+    const louisiana = new Set([...index.matchAll(/group: "Louisiana"[^}]*?slug: "([^"]+)"/g)].map((m) => m[1]));
+    expect(louisiana.has("crawfish-boil-host") && louisiana.has("purple-and-gold-lover")).toBe(true);
+    const hosts = new Set([...LOUISIANA_SHOPS, ...SPONSOR_SITES]);
+    expect(isLouisianaItem({ name: "Creole Seasoning", brand: "Tony Chachere's", href: "https://www.amazon.com/dp/x" }, hosts)).toBe(true);
+    expect(isLouisianaItem({ name: "Men's Ankle Deck Boot", brand: "XTRATUF", href: "https://www.xtratuf.com/x" }, hosts)).toBe(false);
+    let checked = 0;
+    for (const f of pages) {
+      const slug = f.replace(/\.json$/, "");
+      if (louisiana.has(slug) || ["store-community-coffee", "store-rebeccaillustrated"].includes(slug)) continue;
+      const list = pageOf(slug) as { name: string; brand?: string; href: string }[];
+      // A Louisiana store's own page (every pick a Louisiana item: Julie Vos, Dirty Coast...) keeps its items.
+      if (slug.startsWith("store-") && list.every((p) => isLouisianaItem(p, hosts))) continue;
+      for (const p of list) {
+        checked += 1;
+        expect(isLouisianaItem(p, hosts), `${slug}: ${p.name} (${p.brand})`).toBe(false);
+      }
+    }
+    expect(checked).toBeGreaterThan(5000);
+  });
+  it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
+    // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]
+    const under5 = pageOf("under-5") as { name: string; price?: number }[];
+    expect(under5.length).toBeGreaterThanOrEqual(25);
+    for (const p of under5) if (p.price !== undefined) expect(p.price, p.name).toBeLessThanOrEqual(5);
+  });
   it("Subscriptions opens on Walmart+ and the giftable Amazon memberships (owner 11-18 PM), with no trending tumblers", () => {
     // @mutate scripts/gift-guide-picks.mjs | const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), | const featuredEntries = (slug) => [
     const names = pageOf("subscriptions").map((p) => p.name);
     expect(names.slice(0, 5)).toEqual(["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
       "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"]);
     expect(names.some((n) => /stanley|tumbler|airpods/i.test(n))).toBe(false);
+    // Owner 11-18 PM: no free trials on Subscriptions.
+    // @mutate scripts/giftGuideRules.mjs | subscriptions: /free trial\|\btry\b.*\bfree\b\|\bplanner\b/i | subscriptions: /^$/
+    expect(fitsGuide("subscriptions", { name: "Try Prime free (30-day trial)" })).toBe(false);
+    expect(fitsGuide("subscriptions", { name: "Audible free trial" })).toBe(false);
+    expect(fitsGuide("subscriptions", { name: "12-Month Academic Planner" })).toBe(false);
+    expect(names.some((n) => /free trial|\btry\b.*\bfree\b/i.test(n))).toBe(false);
   });
 });

@@ -26,7 +26,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, NOT_LOUISIANA_BUSINESS, brokenImage, fitsGuide, productName, tidyName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, NOT_LOUISIANA_BUSINESS, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "./giftGuideRules.mjs";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -49,7 +49,11 @@ const readJson = (f) => (existsSync(join(dir, f)) ? JSON.parse(readFileSync(join
 /** A list file: a plain array, or a research file still in progress ({ _progress, links: [...] }). */
 const readList = (f) => {
   const v = readJson(f);
-  return Array.isArray(v) ? v : Array.isArray(v?.links) ? v.links : [];
+  const rows = Array.isArray(v) ? v : Array.isArray(v?.links) ? v.links : [];
+  // A file that puts the affiliate short link in `href` (_walmart-under5-1118.json: walmrt.us) keeps it as the
+  // affiliate link and its product page as the plain one.
+  return rows.map((p) => (p && !p.affiliate_href && typeof p.href === "string" && /^https:\/\/walmrt\.us\//.test(p.href)
+    ? { ...p, affiliate_href: p.href, href: typeof p.product_url === "string" ? p.product_url : p.href } : p));
 };
 
 /** The guide slugs and store-page titles on the owner's list (giftGuideIndex.ts). */
@@ -172,6 +176,51 @@ const withAmazonFixes = (p) => {
   return p;
 };
 /** One raw pick -> the page's pick, or null (hidden: the reason is listed). */
+/**
+ * Rows whose source name is a page title, renamed to the plain product (design audit loop 2026-11-18, name-only):
+ * keyed by the source href. The Atlas rows' names come from their URLs ("12-month-email-tea-gift-corporate", "12-month-email-gift-corporate"); the two
+ * SharkNinja rows link to a category page, so they name the category's product, not a model.
+ */
+export const RENAMED = {
+  "https://atlascoffeeclub.com/products/12-month-email-tea-gift-corporate": "12-Month Tea Club Gift Subscription",
+  "https://atlascoffeeclub.com/products/12-month-email-gift-corporate": "12-Month Coffee Club Gift Subscription",
+  "https://atlascoffeeclub.com/products/12-month-email-gift-quarterly-corporate": "12-Month Coffee Club Gift, Shipped Quarterly",
+  "https://www.sharkninja.com/kitchen/small-kitchen-appliances/air-fryers": "Ninja Air Fryer",
+  "https://www.sharkninja.com/beauty/skincare": "Shark Beauty LED Face Mask",
+  // "Garden Kneeler" links to a watering can (photo finder 11-18 PM): named for what the link sells.
+  "https://go.shopmy.us/p-104061840": "Sophie Conran Galvanized Steel Watering Can",
+};
+/**
+ * Photos found for photo-less picks (~/Desktop/Link-library/missing-images-1118.json, owner 11-18 PM): { "<pick name>":
+ * { image, source_url, store, href, checked_at, note? } } (a plain URL string is read too); "_no_photo" and other "_" keys
+ * are not photos. Matched by the pick's link first, then its name. Optional file.
+ */
+/** A link many products share (a ShopMy collection): never evidence of which product a photo shows. */
+const sharedLink = (h) => { try { const u = new URL(h); return u.hostname === "shopmy.us" && u.pathname.startsWith("/collections/"); } catch { return false; } };
+/** Lowercase letters and digits only. */
+const squash = (x) => String(x ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+/**
+ * A name-only photo match (wrong-photo fix 11-18 PM: a Cheirosa mist showed earbuds, a throw an UGG slipper) is kept only
+ * when the row's brand shows in the photo's own link, source page or image URL.
+ */
+const brandInSource = (brand, from) => { const b = squash(String(brand ?? "").split(/\s+/)[0]); return b.length >= 3 && squash(from).includes(b); };
+const MISSING_BY_NAME = new Map();
+const MISSING_BY_HREF = new Map();
+{
+  const f = join(homedir(), "Desktop", "Link-library", "missing-images-1118.json");
+  const v = existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : {};
+  for (const [name, e] of Object.entries(v && typeof v === "object" && !Array.isArray(v) ? v : {})) {
+    if (name.startsWith("_")) continue;
+    const image = typeof e === "string" ? e : e && typeof e.image === "string" ? e.image : undefined;
+    if (!image) continue;
+    MISSING_BY_NAME.set(compact(name), { image, from: [e?.href, e?.source_url, image].filter((x) => typeof x === "string").join(" ") });
+    // A shared link (a ShopMy collection holds many products) says nothing about which product a photo shows.
+    if (e && typeof e.href === "string" && !sharedLink(e.href)) MISSING_BY_HREF.set(e.href, image);
+  }
+}
+const MISSING_IMAGES = MISSING_BY_NAME;
+/** A TIFF photo, unless the server converts it (KitchenAid's ".tif?fmt=png" is served as a PNG). */
+const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b/i.test(u);
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
   const fixed = withAmazonFixes(p);
@@ -207,7 +256,7 @@ function toPick(p, where) {
     : LOUISIANA.has(host) || SPONSORS.has(host) ? null
     : storeFor(p.retailer || p.store || p.brand);
   // A Louisiana shop or a 25 Days sponsor keeps its own words: those rows name the local business on purpose.
-  const rawName = LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host));
+  const rawName = RENAMED[p.href] ?? RENAMED[p.affiliate_href] ?? (LOUISIANA.has(host) || SPONSORS.has(host) ? p.name : productName(p.name, [p.brand, typeof p.store === "string" ? cleanName(p.store) : "", p.retailer, store && stores.get(store)?.name], domainCore(host)));
   const name = rawName && tidyName(rawName);
   if (!name) return hidden.push(`${where}: "${p.name}" is a page title, store name or promo, not a product`), null;
   if (store) stores.get(store).hosts.add(host);
@@ -217,11 +266,21 @@ function toPick(p, where) {
   const amazonHosted = typeof p.image === "string" && p.image.startsWith("https://") && AMAZON_IMAGE_HOST.test(new URL(p.image).hostname);
   // A TIFF photo shows blank in every browser (affiliate sweep 11-18: 279 ShopMy "_fpx.tif" images): dropped, so the
   // pick is swapped for a photo'd one in a mixed guide or draws its store tile.
-  const tiff = typeof p.image === "string" && /\.tiff?(\?|#|$)/i.test(p.image);
+  const tiff = typeof p.image === "string" && isTiff(p.image);
   // ShopMy's own S3 photos answer 403 AccessDenied (all 639 distinct URLs, curl 11-18 PM): dropped like the TIFFs, so
   // mixed guides swap in photo'd picks and no row makes a failed request.
   const deadHost = typeof p.image === "string" && /^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(p.image);
-  const image = !tiff && !deadHost && !(typeof p.image === "string" && brokenImage(p.image)) && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe" && new URL(p.image).hostname === "m.media-amazon.com")) ? p.image : undefined;
+  const ownImage = !tiff && !deadHost && !(typeof p.image === "string" && brokenImage(p.image)) && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe" && new URL(p.image).hostname === "m.media-amazon.com")) ? p.image : undefined;
+  // "All items need a picture, find one. No excuses." (owner 11-18 PM): a pick with no usable photo takes the one the
+  // link library found for it (~/Desktop/Link-library/missing-images-1118.json), never an Amazon-hosted one.
+  const byName = MISSING_BY_NAME.get(compact(p.name ?? ""));
+  const found = ownImage ? undefined : (!sharedLink(p.affiliate_href ?? "") && MISSING_BY_HREF.get(p.affiliate_href))
+    || (!sharedLink(p.href) && MISSING_BY_HREF.get(p.href))
+    || (byName && brandInSource(p.brand, byName.from) ? byName.image : undefined) || undefined;
+  // The owner approved Amazon product images for these (11-18 PM): the CDN photo, on an Amazon link only (Associates).
+  const amazonFound = Boolean(found) && AMAZON_IMAGE_HOST.test(new URL(found).hostname);
+  const image = ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !isTiff(found)
+    && (!amazonFound || (new URL(found).hostname === "m.media-amazon.com" && (AMAZON.has(host) || AMAZON.has(plainHost)))) ? found : undefined);
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);
   const brand = BRAND_CASE[compact(p.brand ?? "")] ?? p.brand ?? "";
@@ -265,12 +324,32 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.star
   for (const p of JSON.parse(readFileSync(join(dir, file), "utf8"))) if (!nameOnly(slug, p)) add(slug, p, file);
 }
 /** Extras that name their guides (`fits`); each also lands on its store page. */
-for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json"]) {
+// _walmart-under5-1118.json: 60 Walmart links at $5 or less, photos and checked prices (lead 11-18 PM: fill Under $5).
+for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json", "_walmart-under5-1118.json"]) {
   for (const p of readList(f)) for (const slug of p.fits ?? []) if (GUIDE_SLUGS.has(slug)) add(slug, p, f);
+}
+/**
+ * Gift cards and Subscriptions fill (owner approved 11-18 PM): _giftcards-subs-fill-1118.json, { "gift-cards": [...],
+ * "subscriptions": [...] }, Amazon links in popularity order with the products' own Amazon photos (no trials, no prices).
+ * Added after each guide's own picks; Subscriptions still opens on PINNED_TOP.
+ */
+{
+  const isAmazonLink = (h) => AMAZON.has(new URL(h).hostname);
+  const fill = readJson("_giftcards-subs-fill-1118.json");
+  for (const slug of ["gift-cards", "subscriptions"]) {
+    for (const p of Array.isArray(fill?.[slug]) ? fill[slug] : []) {
+      if (p && typeof p.href === "string" && typeof p.name === "string") {
+        // An affiliate short link in `href` (meowbox's mavely.app.link) is the affiliate link; a non-Amazon row's store is
+        // the brand its name opens with ("meowbox Cat Subscription Box" -> meowbox's store page).
+        const affiliate = AFFILIATE.has(new URL(p.href).hostname) ? { affiliate_href: p.href } : {};
+        add(slug, { brand: "", line: "", ...(isAmazonLink(p.href) ? { store: "Amazon", image_source: "amazon-sitestripe" } : { store: p.name.split(" ")[0] }), ...p, ...affiliate }, "_giftcards-subs-fill-1118.json");
+      }
+    }
+  }
 }
 /** Store extras: the store page, and for Warby Parker the guides the owner named (11-18). */
 const WARBY_GUIDES = ["her", "him", "coworkers", "rns", "girls-teens", "boys-teens"];
-const storeExtras = [["_xtratuf.json", []], ["_warby-parker.json", WARBY_GUIDES], ["_walmart.json", []], ["_tiktok-shop.json", []], ["_amazon-trending.json", []], ["_later.json", []], ["_awin.json", []], ["_cj.json", []], ["_impact.json", []], ["_shopify-collabs.json", []], ["_later-mylinks.json", []], ["_later-brands.json", []]];
+const storeExtras = [["_xtratuf.json", []], ["_warby-parker.json", WARBY_GUIDES], ["_walmart.json", []], ["_tiktok-shop.json", []], ["_amazon-trending.json", []], ["_later.json", []], ["_awin.json", []], ["_cj.json", []], ["_impact.json", []], ["_shopify-collabs.json", []], ["_later-mylinks.json", []], ["_later-brands.json", []], ["_walmart-under5-1118.json", []]];
 for (const [f, extraGuides] of storeExtras) {
   for (const p of readList(f)) {
     const pick = toPick(p, f);
@@ -351,6 +430,31 @@ const FEATURED = (() => {
   const v = readJson("_featured-order.json");
   return v && typeof v === "object" && !Array.isArray(v) ? v : {};
 })();
+/**
+ * FIT AUDIT (11-18 PM, _fit-audit-1118.json): each guide's `final_top25` is its featured order (misfits replaced, 25 per
+ * guide), and `remove_louisiana` names leave that page. Crawfish Boil Host and Purple & Gold moved into the Louisiana
+ * section (owner 11-18 PM) and keep their own order: the audit stripped their Louisiana items before the move.
+ */
+const AUDIT = (() => {
+  const v = readJson("_fit-audit-1118.json");
+  return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+})();
+const MOVED_TO_LOUISIANA = ["crawfish-boil-host", "purple-and-gold-lover"];
+for (const [slug, a] of Object.entries(AUDIT)) {
+  if (MOVED_TO_LOUISIANA.includes(slug) || !Array.isArray(a?.final_top25) || !a.final_top25.length) continue;
+  FEATURED[slug] = a.final_top25.filter((n) => typeof n === "string");
+}
+/** The Louisiana section's guides (giftGuideIndex.ts group "Louisiana"): the only guides that hold Louisiana items. */
+const LOUISIANA_GUIDES = new Set([...indexSrc.matchAll(/group: "Louisiana"[^}]*?slug: "([^"]+)"/g)].map((m) => m[1]));
+const LA_HOSTS = new Set([...LOUISIANA, ...SPONSORS]);
+/** Store pages that are themselves a Louisiana brand's keep their own items. */
+const LOUISIANA_STORE_PAGES = new Set(["store-community-coffee", "store-rebeccaillustrated"]);
+const auditGone = (slug, p) => !MOVED_TO_LOUISIANA.includes(slug) && !slug.startsWith("store-")
+  && Array.isArray(AUDIT[slug]?.remove_louisiana) && AUDIT[slug].remove_louisiana.some((n) => typeof n === "string" && compact(n) === compact(p.name));
+/** A pick this page may not show under the Louisiana rule (a guide or store page outside the section). */
+// Store pages follow the same lasting rule (a national store page drops Louisiana items; a Louisiana brand's own page keeps
+// them); the audit's per-name lists apply to guides.
+export const louisianaBlocked = (slug, p) => auditGone(slug, p) || (!LOUISIANA_GUIDES.has(slug) && !LOUISIANA_STORE_PAGES.has(slug) && isLouisianaItem(p, LA_HOSTS));
 /** No more than one XTRATUF boot in any guide's first FEATURED_TOP picks (owner 11-18 PM: Her opened on two), store pages aside. */
 export const FEATURED_TOP = 12;
 /** A featured or trending name matches a pick by exact name, then normalized name, then a normalized prefix either way. */
@@ -372,11 +476,32 @@ export const PINNED_TOP = {
   subscriptions: ["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
     "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"],
 };
+/** Picks that may show without a photo (the owner's Subscriptions memberships, until one is found). */
+export const NO_PHOTO_OK = new Set(PINNED_TOP.subscriptions);
+const hasPhoto = (p) => Boolean(p.image) || NO_PHOTO_OK.has(p.name);
+let photoless = 0;
 const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), ...(Array.isArray(FEATURED[slug]) ? FEATURED[slug] : [])]
   .filter((x) => typeof x === "string" || (x && typeof x === "object" && typeof x.name === "string"));
 const featuredNames = (slug) => featuredEntries(slug).map((x) => (typeof x === "string" ? x : x.name));
+/** Every guide pick by compact name (photo'd first), for featured names the guide itself does not hold (the audit's replacements). */
+let globalByName;
+const fromAnyGuide = (slug, name) => {
+  if (!globalByName) {
+    globalByName = new Map();
+    for (const [g, l] of Object.entries(guides)) if (!g.startsWith("store-")) for (const p of l) {
+      const k = compact(p.name);
+      if (!globalByName.has(k) || (!globalByName.get(k).image && p.image)) globalByName.set(k, p);
+    }
+  }
+  const p = globalByName.get(compact(name));
+  return p && fitsGuide(slug, p) && !louisianaBlocked(slug, p) ? p : undefined;
+};
 const resolveFeatured = (slug, list, e) => {
-  if (typeof e === "string") return findByName(list, e);
+  if (typeof e === "string") {
+    // The guide's own row, unless it has no photo and another guide holds the same product with one.
+    const own = findByName(list, e);
+    return own?.image ? own : fromAnyGuide(slug, e) ?? own;
+  }
   const own = findByName(list, e.name);
   if (own) return own;
   const from = typeof e.from === "string" && e.from !== slug ? guides[e.from] : undefined;
@@ -385,7 +510,8 @@ const resolveFeatured = (slug, list, e) => {
 };
 const featuredFirst = (slug, list) => {
   const lead = featuredEntries(slug).map((e) => resolveFeatured(slug, list, e)).filter(Boolean);
-  const ordered = [...new Set([...lead, ...list])];
+  // No photo, no row (see NO PHOTO, NO ROW below): dropped before the top 25 is counted, so its limits hold.
+  const ordered = [...new Set([...lead, ...list])].filter((p) => !louisianaBlocked(slug, p)).filter((p) => slug === SPONSORS_GUIDE || hasPhoto(p) || ((photoless += 1), false));
   if (slug.startsWith("store-")) return ordered;
   const head = [];
   const later = [];
@@ -399,7 +525,11 @@ const featuredFirst = (slug, list) => {
     }
     else later.push(p);
   }
-  return [...head, ...later.sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b))];
+  // Photos first inside the first TOP_GIFTS (pre-launch audit 11-18 PM: Dad #10 a text tile, Him #10 no photo); the
+  // owner's pinned picks keep the top whatever their photo.
+  const pinned = new Set((PINNED_TOP[slug] ?? []).map((n) => findByName(head, n)).filter(Boolean));
+  const top = [...head.filter((p) => pinned.has(p)), ...head.filter((p) => !pinned.has(p) && p.image), ...head.filter((p) => !pinned.has(p) && !p.image)];
+  return [...top, ...later.sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b))];
 };
 /**
  * TRENDING (owner 11-18 PM: "All guides should have the top trending gifts"): _featured-order.json's "trending" list,
@@ -444,8 +574,113 @@ const withTrending = (slug, list) => {
   const hot = out.filter(isTrending).sort((a, b) => rankOf(a) - rankOf(b));
   return [...hot, ...out.filter((p) => !isTrending(p))];
 };
+/** A photo-less row takes the photo the same product (same link, else same name) carries anywhere else. */
+{
+  const twinPhoto = new Map();
+  for (const list of Object.values(guides)) for (const p of list) if (p.image) {
+    if (!sharedLink(p.href) && !twinPhoto.has(p.href)) twinPhoto.set(p.href, p.image);
+    const key = `${squash(p.brand)}|${compact(p.name)}`;
+    if (squash(p.brand) && !twinPhoto.has(key)) twinPhoto.set(key, p.image);
+  }
+  for (const list of Object.values(guides)) list.forEach((p, i) => {
+    const image = p.image ? undefined : (!sharedLink(p.href) && twinPhoto.get(p.href)) || twinPhoto.get(`${squash(p.brand)}|${compact(p.name)}`);
+    // An Amazon-hosted photo only on an Amazon link (Associates rule).
+    if (image && (!AMAZON_IMAGE_HOST.test(new URL(image).hostname) || isAmazonPick(p))) list[i] = { ...p, image };
+  });
+}
+/**
+ * ONE PHOTO, ONE PRODUCT (wrong-photo fix 11-18 PM): a photo on rows of two different products (another brand, or names
+ * sharing under a quarter of their words) stays only on the row it belongs to: the ShopMy pin in its URL
+ * ("pins/zoom-<pin>-") matching the row's "go.shopmy.us/p-<pin>", else the largest group of rows naming one product.
+ * The other rows lose it and fall under "no photo, no row".
+ */
+const productWords = (p) => new Set(dedupeKey(p.name).split(" ").filter((w) => w.length > 2 && !squash(p.brand).includes(w)));
+const GENERIC_BRAND = /affiliate|program|walmart|amazon|target|shopmy/i;
+const sameProduct = (a, b) => {
+  // One link (not a shared collection) is one thing, whatever each row calls it.
+  if (a.href === b.href && !sharedLink(a.href)) return true;
+  const ba = GENERIC_BRAND.test(a.brand ?? "") ? "" : squash(a.brand);
+  const bb = GENERIC_BRAND.test(b.brand ?? "") ? "" : squash(b.brand);
+  if (ba && bb && ba !== bb && !ba.includes(bb) && !bb.includes(ba)) return false;
+  const wa = productWords(a);
+  const wb = productWords(b);
+  if (!wa.size || !wb.size) return true;
+  const both = [...wa].filter((w) => wb.has(w)).length;
+  return both / Math.min(wa.size, wb.size) >= 0.25;
+};
+export const suspectPhotos = { images: 0, cleared: 0 };
+{
+  const rowsByImage = new Map();
+  for (const list of [...Object.values(guides), swappedOut]) for (const p of list) if (p.image) (rowsByImage.get(p.image) ?? rowsByImage.set(p.image, []).get(p.image)).push(p);
+  const clear = new Set();
+  for (const [image, rows] of rowsByImage) {
+    const groups = [];
+    for (const r of rows) (groups.find((g) => sameProduct(g[0], r)) ?? (groups.push([]), groups[groups.length - 1])).push(r);
+    if (groups.length < 2) continue;
+    suspectPhotos.images += 1;
+    const pin = /pins\/zoom-(\d+)-/.exec(image)?.[1];
+    const owner = (pin && groups.find((g) => g.some((r) => r.href === `https://go.shopmy.us/p-${pin}`))) ?? [...groups].sort((a, b) => b.length - a.length)[0];
+    for (const g of groups) if (g !== owner) for (const r of g) clear.add(r);
+  }
+  const strip = (list) => list.map((p) => (clear.has(p) ? ((suspectPhotos.cleared += 1), { ...p, image: undefined }) : p));
+  for (const slug of Object.keys(guides)) guides[slug] = strip(guides[slug]);
+  swappedOut.splice(0, swappedOut.length, ...strip(swappedOut));
+}
 for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));
+/**
+ * NO PHOTO, NO ROW (owner 11-18 PM: "All Items need a picture find one. No excuses."): a pick still without a photo
+ * leaves every guide and store page (the next photo'd pick moves up). Only the owner's Subscriptions memberships may
+ * keep their store tile until a photo is found.
+ */
+for (const slug of Object.keys(guides)) {
+  // The 25 Days sponsors guide keeps every sponsor's pick (each is a sponsor commitment); a photo is still being found.
+  if (slug === SPONSORS_GUIDE) continue;
+  const before = guides[slug].length;
+  guides[slug] = guides[slug].filter(hasPhoto);
+  photoless += before - guides[slug].length;
+  if (!guides[slug].length) delete guides[slug];
+}
 
+/**
+ * TOP-UP (owner 11-18 PM: "All guides need 25"): a guide still under TOP_GIFTS borrows photo'd picks from the guides in
+ * its own section (first picks first), under the same fit and Louisiana rules. Gift cards and Subscriptions have their
+ * own back-fill below.
+ */
+{
+  const sectionOf = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  for (const [slug, list] of Object.entries(guides)) {
+    if (slug.startsWith("store-") || slug === "gift-cards" || slug === "subscriptions" || slug === SPONSORS_GUIDE || list.length >= TOP_GIFTS) continue;
+    const peers = Object.entries(guides).filter(([g]) => g !== slug && !g.startsWith("store-") && sectionOf.get(g) === sectionOf.get(slug));
+    // Picks naming the guide's own subject first ("crawfish" for Crawfish Season), then the peers' first picks.
+    const title = new RegExp(`\\b(${slug.split("-").filter((w) => w.length > 3).join("|") || "^$"})`, "i");
+    const pool = peers.flatMap(([, other]) => other.slice(0, 60));
+    for (const p of [...pool.filter((x) => title.test(x.name)), ...pool.filter((x) => !title.test(x.name))]) {
+      if (list.length >= TOP_GIFTS) break;
+      if (!p?.image || !fitsGuide(slug, p) || louisianaBlocked(slug, p)) continue;
+      if (list.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
+      list.push(p);
+    }
+  }
+}
+/**
+ * BACK-FILL (owner 11-18 PM: "All guides need 25"): a guide under TOP_GIFTS after "no photo, no row" borrows fitting
+ * photo'd picks from every other guide. Only Gift cards and Subscriptions can fall short (their picks must be gift cards
+ * or memberships); every other guide measured 25+ after the removal (2026-11-18).
+ */
+const BACKFILL_FITS = { "gift-cards": (p) => fitsGuide("gift-cards", p), subscriptions: (p) => /\b(subscription|membership)\b/i.test(p.name) && !/free trial/i.test(p.name) };
+for (const [slug, fits] of Object.entries(BACKFILL_FITS)) {
+  const list = guides[slug] ?? [];
+  // Every fitting photo'd pick, past 25 too: these two guides are "every gift card" and "every membership" we carry.
+  for (const [from, other] of Object.entries(guides)) {
+    if (from === slug) continue;
+    for (const p of other) {
+      if (!p.image || !fits(p) || !fitsGuide(slug, p) || louisianaBlocked(slug, p)) continue;
+      if (list.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
+      list.push(p);
+    }
+  }
+  if (list.length) guides[slug] = list;
+}
 /** "Nov 22" / "2026-11-23 (...)" -> "2026-11-22"; anything else -> no end date. */
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 const endDate = (s) => {
@@ -530,7 +765,7 @@ if (hidden.length && process.env.GIFT_PICKS_VERBOSE) console.error(`HIDDEN (no a
 export const AMAZON_SECTIONS = ["Louisiana Helpr Picks", "By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Colors", "Pets", "More finds"];
 const FIXED_HOSTS = new Set(["www.zchocolat.com", "www.diecastmodelswholesale.com"]);
 const sortedGuides = Object.entries(guides).sort(([a], [b]) => a.localeCompare(b));
-const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut];
+const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut.filter(hasPhoto)];
 const pageList = {};
 // The Kids hub is a hub, not a list (owner 2026-11-18): its page shows Girls, Boys and Gender-Neutral only.
 const NOT_A_LIST = new Set(["kids"]);
@@ -562,6 +797,9 @@ for (const [slug, list] of sortedGuides) if (GUIDE_SLUGS.has(slug) && !storeList
   }
 }
 const FIXED_PAGES = new Set(["store-amazon", "store-zchocolat", "store-diecast-models"]);
+/** How many guides (store pages aside) list a link in their first TOP_GIFTS: a store page's gift score. */
+const topCount = new Map();
+for (const [slug, list] of sortedGuides) if (!slug.startsWith("store-")) for (const p of list.slice(0, TOP_GIFTS)) topCount.set(p.href, (topCount.get(p.href) ?? 0) + 1);
 for (const slug of Object.keys(storeList)) {
   if (FIXED_PAGES.has(slug)) continue;
   const byHref = new Map();
@@ -572,7 +810,11 @@ for (const slug of Object.keys(storeList)) {
     names.add(compact(p.name));
   }
   const firstWins = [...byHref.values()];
-  if (firstWins.length) pageList[slug] = [...firstWins.filter((p) => p.image), ...firstWins.filter((p) => !p.image)];
+  // Photos first, then the store's best gifts (pre-launch audit 11-18 PM: Walmart opened on a beard trimmer, an Elf
+  // plush and a $3.88 glass): trending picks, then the picks the most guides list in their first TOP_GIFTS.
+  const score = (p) => (isTrending(p) ? 1000 : 0) + (topCount.get(p.href) ?? 0);
+  const ranked = firstWins.map((p, i) => [p, i]).sort(([a, i], [b, j]) => Number(!a.image) - Number(!b.image) || score(b) - score(a) || i - j).map(([p]) => p);
+  if (ranked.length) pageList[slug] = ranked;
 }
 /** The fixed store pages (zChocolat, Diecast) list the static picks plus every researched pick on their host, by name. */
 for (const [slug, host] of [["store-zchocolat", "www.zchocolat.com"], ["store-diecast-models", "www.diecastmodelswholesale.com"]]) {
@@ -608,6 +850,26 @@ const noRepeats = (list) => {
   return out;
 };
 for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]);
+// The Louisiana rule on every page, store pages included (their audit list), after the store pages are assembled.
+for (const slug of Object.keys(pageList)) {
+  const kept = pageList[slug].filter((p) => !louisianaBlocked(slug, p));
+  // A store page the rule would empty (World Market's only pick is its chicory coffee) keeps its item: picks in the
+  // Louisiana guides still name that store.
+  if (kept.length || !slug.startsWith("store-")) pageList[slug] = kept;
+}
+// Removing repeats can lift a later XTRATUF boot into the top: one in the first 12, two in the first 25, again.
+for (const slug of Object.keys(pageList)) {
+  if (slug.startsWith("store-")) continue;
+  const list = pageList[slug];
+  const out = [];
+  const held = [];
+  for (const p of list) {
+    const boots = out.filter(isXtratuf).length;
+    if (isXtratuf(p) && out.length < TOP_GIFTS && boots >= (out.length < FEATURED_TOP ? 1 : 2)) held.push(p);
+    else out.push(p);
+  }
+  pageList[slug] = out.length >= TOP_GIFTS ? [...out.slice(0, TOP_GIFTS), ...held, ...out.slice(TOP_GIFTS)] : [...out, ...held];
+}
 const pageRepeats = repeatsRemoved;
 /** A store page's deal items never repeat its picks or each other (live audit r3 #1: Xbox, AirPods, KitchenAid twice on Walmart). */
 let dealRepeats = 0;
@@ -725,4 +987,4 @@ writeFileSync(
     `export const GIFT_GUIDE_SEO = ${JSON.stringify(seo)};\n`,
 );
 
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them)`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared`);

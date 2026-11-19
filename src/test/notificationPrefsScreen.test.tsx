@@ -63,13 +63,25 @@ vi.mock("@/integrations/supabase/client", () => ({
  * row loses its accessible name.
  */
 describe("prefs screen renders a control for every row", () => {
+  it("hides the Giveaway reminders row until its columns are deployed", async () => {
+    PREFS_ROW = { user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null };
+    render(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByLabelText("Job offers push")).toBeTruthy());
+    expect(screen.queryByLabelText("Giveaway reminders push")).toBeNull();
+  });
+
   it("renders a push and an email switch for every mapped category", async () => {
+    // Giveaway reminders (20261119200128) is a deploy-lag row: shown once its columns are in the loaded row.
+    PREFS_ROW = { user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null, giveaway_reminders: true, email_giveaway_reminders: false };
     render(<NotificationPreferences />);
     await waitFor(() => expect(screen.getByLabelText("Job offers push")).toBeTruthy());
     for (const r of rows) {
       expect(screen.getByLabelText(`${r.label} push`), `${r.key} push`).toBeTruthy();
-      expect(screen.getByLabelText(`${r.label} email`), `${r.key} email`).toBeTruthy();
+      // A row with no email to send shows a dash that says so, not a switch that does nothing.
+      if (r.noEmailSwitch) expect(screen.getByText(`${r.label}: ${r.noEmailSwitch}`), `${r.key} email dash`).toBeTruthy();
+      else expect(screen.getByLabelText(`${r.label} email`), `${r.key} email`).toBeTruthy();
     }
+    PREFS_ROW = { user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null };
     // Both channels, every row — 22 controls. Four of these (Applications,
     // Job Updates, Job Payments, System Alerts) did not exist before N-005.
     expect(rows.length).toBeGreaterThanOrEqual(11);

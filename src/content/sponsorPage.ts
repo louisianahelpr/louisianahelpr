@@ -53,6 +53,13 @@ export const sponsorPage = {
       "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays.",
     primaryCta: "Join the Giveaways 🎁",
     secondaryCta: "How It Works",
+    /**
+     * The shoppers' button (owner 11-19): opens where people enter. Never say HOW they enter here (owner: "don't say
+     * exactly what the plan is"). WHERE it goes is not in this file: the iOS app bundles this code, so the link lives in
+     * the database, sponsor_settings.entry_url (20261119200128), and changes with no app build. Until it is set, the
+     * button opens links.facebookPage.
+     */
+    enterCta: "How to enter",
     countdownLabel: "Giveaways start in",
     countdownLive: "The giveaways are live! Day {day} of 25",
     /**

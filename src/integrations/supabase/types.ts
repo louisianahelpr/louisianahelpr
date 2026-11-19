@@ -5503,6 +5503,51 @@ export type Database = {
           },
         ]
       }
+      giveaway_reminder_sends: {
+        Row: {
+          reminder_key: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          reminder_key: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          reminder_key?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      giveaway_reminders: {
+        Row: {
+          key: string
+          link: string
+          message: string
+          send_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          link?: string
+          message: string
+          send_at: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          link?: string
+          message?: string
+          send_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       group_job_helpers: {
         Row: {
           helper_arrival_near_miss_at: string | null
@@ -9429,6 +9474,7 @@ export type Database = {
           email_declutter_questions: boolean
           email_shops_messages: boolean
           email_shops_orders: boolean
+          email_giveaway_reminders: boolean
           email_shops_following: boolean
           email_shops_updates: boolean
           email_enabled: boolean
@@ -9470,6 +9516,7 @@ export type Database = {
           saved_searches_paused: boolean
           shops_messages: boolean
           shops_orders: boolean
+          giveaway_reminders: boolean
           shops_following: boolean
           shops_updates: boolean
           system_alerts: boolean
@@ -9501,6 +9548,7 @@ export type Database = {
           email_declutter_questions?: boolean
           email_shops_messages?: boolean
           email_shops_orders?: boolean
+          email_giveaway_reminders?: boolean
           email_shops_following?: boolean
           email_shops_updates?: boolean
           email_enabled?: boolean
@@ -9542,6 +9590,7 @@ export type Database = {
           saved_searches_paused?: boolean
           shops_messages?: boolean
           shops_orders?: boolean
+          giveaway_reminders?: boolean
           shops_following?: boolean
           shops_updates?: boolean
           system_alerts?: boolean
@@ -9573,6 +9622,7 @@ export type Database = {
           email_declutter_questions?: boolean
           email_shops_messages?: boolean
           email_shops_orders?: boolean
+          email_giveaway_reminders?: boolean
           email_shops_following?: boolean
           email_shops_updates?: boolean
           email_enabled?: boolean
@@ -9614,6 +9664,7 @@ export type Database = {
           saved_searches_paused?: boolean
           shops_messages?: boolean
           shops_orders?: boolean
+          giveaway_reminders?: boolean
           shops_following?: boolean
           shops_updates?: boolean
           system_alerts?: boolean
@@ -15317,6 +15368,7 @@ export type Database = {
       }
       sponsor_settings: {
         Row: {
+          entry_url: string | null
           founder_photo_path: string | null
           group_members: number | null
           id: boolean
@@ -15326,6 +15378,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          entry_url?: string | null
           founder_photo_path?: string | null
           group_members?: number | null
           id?: boolean
@@ -15335,6 +15388,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          entry_url?: string | null
           founder_photo_path?: string | null
           group_members?: number | null
           id?: boolean
@@ -18179,6 +18233,8 @@ export type Database = {
       sponsor_admin_set_wall: { Args: { p_show: boolean; p_signup_id: string }; Returns: undefined }
       sponsor_create_signup: { Args: { p_signup: Json; p_user_id: string }; Returns: Json }
       sponsor_log_visit: { Args: { p_device: string; p_ref: string; p_referrer: string }; Returns: undefined }
+      giveaway_entry_url: { Args: never; Returns: string | null }
+      giveaway_reminder_sweep: { Args: never; Returns: Json }
       sponsor_public_state: { Args: { p_ref?: string }; Returns: Json }
       sponsor_require_admin: { Args: never; Returns: undefined }
       sponsor_service_founder_photo: { Args: never; Returns: string }

@@ -2629,7 +2629,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     for (const p of pageList[slug]) {
       const page = p.store && pageList[p.store];
       // A page the store audit emptied stays empty; a Louisiana item stays off a national store's page.
-      if (!page?.length || page.some((x) => x.href === p.href || compact(x.name) === compact(p.name))) continue;
+      if (!page?.length || page.some((x) => x.href === p.href || compact(x.name) === compact(p.name) || dedupeKey(x.name) === dedupeKey(p.name))) continue;
       if (!LOUISIANA_STORE_PAGES.has(p.store) && isLouisianaItem(p, LA_HOSTS)) continue;
       page.push(p.store === "store-amazon" ? { ...p, section: AMAZON_SECTIONS[AMAZON_SECTIONS.length - 1] } : p);
       readyCounts.storeAdds += 1;

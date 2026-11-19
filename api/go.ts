@@ -44,10 +44,13 @@ export function logGoClick(slug: string, known: boolean, request: Request, timeo
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return Promise.resolve();
   const ua = request.headers.get("user-agent");
   const referrer = request.headers.get("referer");
+  // Where the link was shared (?src=fb, pin, comment…): a short tag we add to links we post, since in-app browsers often drop the referrer.
+  const srcRaw = new URL(request.url, SITE_ORIGIN).searchParams.get("src");
+  const src = srcRaw && /^[a-z0-9-]{1,24}$/.test(srcRaw) ? srcRaw : null;
   const row = {
     event: "go_link_click",
     user_id: null,
-    properties: { slug, known },
+    properties: { slug, known, src },
     url: `${SITE_ORIGIN}/go/${slug}`,
     referrer: referrer ? referrer.slice(0, 500) : null,
     platform: "web",

@@ -2446,7 +2446,7 @@ export const STORE_CAP = 15;
 /** Store audit C's page changes (drop, merge, cap, REI) ship in their own follow-up PR (lead 11-19: split if needed). */
 export const STORE_AUDIT_C_ON = process.env.GIFT_STORE_AUDIT_C === "on";
 export const TASTE_CUTS_FILE = "_taste-cuts-1119c.json";
-export const readyCounts = { out: {}, communityCoffee: 0, capped: 0 };
+export const readyCounts = { out: {}, communityCoffee: 0, capped: 0, kidsAsks: 0 };
 export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei: 0, excluded: 0, ownerPicks: 0 };
 {
   for (const slug of Object.keys(pageList)) {
@@ -2499,6 +2499,35 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     for (const p of picks) { const b = compact(p.brand ?? ""); n.set(b, (n.get(b) ?? 0) + 1); (b && n.get(b) > BRAND_TOP_MAX ? later : lead).push(p); }
     pageList[g] = [...lead, ...rest.slice(0, Math.max(0, 12 - lead.length)), ...later, ...rest.slice(Math.max(0, 12 - lead.length))];
     followUpCounts.ownerPicks += picks.length;
+  }
+  /**
+   * KIDS' ASKS (owner 11-19, "make sure they are on our guides"; every _fb-kids-asks-*.json: [{ name, brand, href,
+   * image, price, guides }]): what Louisiana parents asked for in a Facebook thread lead the kids' age guides, Girls /
+   * Boys and Stocking Stuffers they name, right after the owner's picks, marked trending. The ready pass below still
+   * applies (price cap, blocked brands, the 2-guide cap).
+   */
+  for (const f of readdirSync(dir).filter((x) => /^_fb-kids-asks-.*\.json$/.test(x)).sort()) {
+    const byKidGuide = new Map();
+    for (const r of rowsOf(readJson(f))) {
+      if (!r || typeof r.name !== "string" || typeof r.href !== "string" || !/^https:\/\//.test(r.href) || typeof r.image !== "string" || !r.image.startsWith("https://") || excluded(r)) continue;
+      const pick = { name: tidyName(r.name), brand: String(r.brand ?? ""), line: String(r.why ?? r.line ?? ""), href: r.href, image: r.image, trending: true,
+        ...(typeof r.price === "number" ? { price: r.price, priceAt: String(r.added_at ?? "2026-11-19") } : {}) };
+      const store = storeFor(String(r.brand ?? "").trim());
+      if (store) {
+        pick.store = store;
+        storeList[store] ??= { name: stores.get(store)?.name ?? String(r.brand), hosts: [] };
+        if (!storeList[store].hosts.includes(new URL(r.href).hostname)) storeList[store].hosts = [...storeList[store].hosts, new URL(r.href).hostname];
+      }
+      for (const g of Array.isArray(r.guides) ? r.guides : []) if (GUIDE_SLUGS.has(g) && !NOT_A_LIST.has(g) && !g.startsWith("store-")) byKidGuide.set(g, [...(byKidGuide.get(g) ?? []), pick]);
+    }
+    for (const [g, picks] of byKidGuide) {
+      const list = pageList[g] ?? [];
+      const own = new Set(picks.flatMap((p) => [p.href, compact(p.name)]));
+      const rest = list.filter((p) => !own.has(p.href) && !own.has(compact(p.name)));
+      const lead = rest.filter((p) => p.ownerPick);
+      pageList[g] = [...lead, ...picks, ...rest.filter((p) => !p.ownerPick)];
+      readyCounts.kidsAsks += picks.length;
+    }
   }
   /**
    * READY PASS 1119c (owner 11-19: the guides are "not ready for people to see"), the very last word on every page:
@@ -2556,7 +2585,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     pageList[slug] = pageList[slug].filter((p) => productKeys(p).every((k) => !keep.has(k) || keep.get(k).has(slug)));
     readyCounts.capped += n - pageList[slug].length;
   }
-  console.log(`gift-guide-picks: ready 1119c: dedupe ${dedupeCounts.dropped} rows dropped, ${dedupeCounts.slotted} kept rows slotted; out ${JSON.stringify(readyCounts.out)}; ${readyCounts.communityCoffee} Community Coffee moved; ${readyCounts.capped} past the ${DUP_GUIDE_MAX}-guide cap`);
+  console.log(`gift-guide-picks: ready 1119c: dedupe ${dedupeCounts.dropped} rows dropped, ${dedupeCounts.slotted} kept rows slotted; out ${JSON.stringify(readyCounts.out)}; ${readyCounts.communityCoffee} Community Coffee moved; ${readyCounts.capped} past the ${DUP_GUIDE_MAX}-guide cap; ${readyCounts.kidsAsks} kids-ask rows placed`);
   console.log(`gift-guide-picks: follow-up ${followUpCounts.rules} rule removals, ${followUpCounts.dropped.length} store pages dropped, ${followUpCounts.merged} merged, ${followUpCounts.capped} capped, ${followUpCounts.rei} REI hiking out, ${followUpCounts.excluded} owner excludes, ${followUpCounts.ownerPicks} owner picks placed`);
 }
 rmSync(chunkDir, { recursive: true, force: true });

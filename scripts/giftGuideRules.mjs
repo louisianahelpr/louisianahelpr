@@ -639,3 +639,24 @@ export const BADGE_PHOTO_SWAPS = new Map([
   // (r3 follow-up): no swap, so the photo is dropped and a photo'd pick takes the row.
   ["https://p16-oec-general-useast5.ttcdn-us.com/tos-useast5-i-omjb5zjo8w-tx/a1cad1c0a8ae4be69efa19221195a9c4~tplv-fhlh96nyum-crop-webp:800:800.webp", ""],
 ]);
+/**
+ * Names and brands the fit audit r3b (Lows) found wrong or unclear, fixed where the shop's own name says what it is: the
+ * "Acylic" typo, a men's guide's "for Men for Women" aviators, Maker Wine's canned wine packs and True Beauty's false
+ * lashes; brand fields that named the store or another brand (the Five Minute Journal is Intelligent Change's, the
+ * AeroPress AeroPress's, the Coral Coast mist Saltair's, the Fire TV Stick Amazon's).
+ */
+export const NAME_FIXES = [
+  [/\bAcylic\b/g, "Acrylic"],
+  [/^(Ray-Ban RB3025 Classic Aviator Sunglasses) for Men for Women$/, "$1"],
+  [/^Best Sellers Mixed Pack$/, "Best Sellers Canned Wine Mixed Pack"],
+  [/^Sparkling Wine Mixed Pack$/, "Sparkling Canned Wine Mixed Pack"],
+  [/^Gold Standard Lash Style$/, "Gold Standard False Lash Style"],
+];
+export const fixName = (name) => NAME_FIXES.reduce((n, [rx, to]) => n.replace(rx, to), String(name ?? ""));
+export const BRAND_FIXES = [
+  [/\bfive minute journal\b/i, "Intelligent Change"],
+  [/^aeropress coffee maker$/i, "AeroPress"],
+  [/^coral coast fine fragrance body mist - saltair$/i, "Saltair"],
+  [/^fire tv stick\b/i, "Amazon"],
+];
+export const fixedBrand = (name) => BRAND_FIXES.find(([rx]) => rx.test(String(name ?? "")))?.[1] ?? "";

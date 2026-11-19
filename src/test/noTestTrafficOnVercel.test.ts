@@ -57,6 +57,9 @@ export const WORKFLOW_EXEMPT: Record<string, string> = {
 export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/uptime-check.mjs": "The uptime probe itself (uptime.yml, exempt above).",
   "scripts/generate-sitemap.mjs": "Writes the domain into sitemap.xml <loc> entries as text; never fetches it.",
+  "scripts/indexnow-ping.mjs":
+    "SEO P1 (owner 11-19): names our host in the IndexNow submission (host, keyLocation, the sitemap's URLs) it POSTs " +
+    "to api.indexnow.org after a prod deploy of main; it never requests the Vercel site itself.",
   "scripts/check-identity-linking.mjs":
     "Checks the Supabase auth redirect allow-list covers the OAuth return URL (Q445); never fetches it.",
   "scripts/asc/fix-review-issues.mjs":

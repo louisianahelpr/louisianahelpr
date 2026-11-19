@@ -406,25 +406,27 @@ describe("sign-ups never close (owner 2026-11-18: ask for Sunday, November 22; l
 });
 
 describe("link preview (api/share.ts, before JavaScript runs)", () => {
-  it.each(["sponsor", "25days", "25days/rules"])("%s: its own 1200x630 card, its own title, not indexed", async (id) => {
+  // /25days went public and indexed on 11-19 (owner decision by recommendation: the Dec 1–25 dates only; SEO P1), so
+  // it is a `page` rewrite and says index; /sponsor and the draft rules stay noindex. Same card on all three.
+  it.each([["sponsor", "noindex"], ["25days", "page"], ["25days/rules", "noindex"]])("%s: its own 1200x630 card, its own title, indexed only when public", async (id, kind) => {
     const { ensureOgShellSnapshot } = await import("./helpers/ogShellSnapshot");
     ensureOgShellSnapshot(path.resolve("."));
     const sharePath = ["..", "..", "api", "share"].join("/");
     const handler = (await import(/* @vite-ignore */ sharePath)).default as { fetch: (r: Request) => Promise<Response> };
-    const html = await (await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=noindex&_id=${id}`))).text();
+    const html = await (await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=${kind}&_id=${id}`))).text();
     const first = html.indexOf('<meta property="og:image" ');
     const block = html.slice(first, html.indexOf('<meta property="og:image" ', first + 1));
     expect(block).toContain('<meta property="og:image" content="https://www.louisianahelpr.com/og-25days.png?v=2"');
     expect(block).toContain('<meta property="og:image:width" content="1200"');
-    expect(html).toMatch(/<meta name="robots" content="noindex/);
+    expect(html).toMatch(kind === "page" ? /<meta name="robots" content="index, follow"/ : /<meta name="robots" content="noindex/);
     expect(html).toContain("25 Days of Louisiana Giveaways");
     const png = fs.readFileSync(path.join(ROOT, "public/og-25days.png"));
     expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
   });
   it("vercel.json routes the three paths through the preview function", () => {
     const v = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8")) as { rewrites: Array<{ source: string; destination: string }> };
-    for (const [src, id] of [["/sponsor", "sponsor"], ["/25days", "25days"], ["/25days/rules", "25days/rules"]]) {
-      expect(v.rewrites.find((r) => r.source === src)?.destination).toBe(`/api/share?_og=noindex&_id=${id}`);
+    for (const [src, id, kind] of [["/sponsor", "sponsor", "noindex"], ["/25days", "25days", "page"], ["/25days/rules", "25days/rules", "noindex"]]) {
+      expect(v.rewrites.find((r) => r.source === src)?.destination).toBe(`/api/share?_og=${kind}&_id=${id}`);
     }
   });
 });

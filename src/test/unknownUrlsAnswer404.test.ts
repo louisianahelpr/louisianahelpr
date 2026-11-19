@@ -14,7 +14,8 @@
  * answering 200).
  */
 // @mutate vercel.json |       "destination": "/api/share?_og=notfound" |       "destination": "/index.html"
-// @mutate api/share.ts |  if (url.searchParams.get("_og") === "notfound") return respond(absolutiseIconLinks(SHELL_HTML), undefined, 404); |  if (url.searchParams.get("_og") === "notfound") return respond(absolutiseIconLinks(SHELL_HTML), undefined, 200);
+// @mutate api/share.ts |  if (url.searchParams.get("_og") === "notfound") return respond(notFoundPage(notFoundBody()), undefined, 404); |  if (url.searchParams.get("_og") === "notfound") return respond(notFoundPage(notFoundBody()), undefined, 200);
+// @mutate api/share.ts |    if (!found) return { kind: "notfound", body: notFoundBody("hire") }; |    if (!found) return null;
 // @mutate vercel.json |    {\n      "source": "/home",\n      "destination": "/index.html"\n    },\n |
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -84,5 +85,18 @@ describe("Q2393: unknown URLs answer 404, known routes still get the app", () =>
     const page = await handler.fetch(new Request("https://www.louisianahelpr.com/api/share?_og=page&_id=help"));
     expect(page.status).toBe(200);
     expect(page.headers.get("X-Robots-Tag")).toBeNull();
+  });
+
+  // SEO P1 (owner 11-19; audit 11-18): a declared route's parameters can still name nothing. /hire/<service>/<town>
+  // with an unknown service or town answered 200 with the homepage (a soft 404). The unknown-guide half needs the
+  // build's guide data: src/test/seoPageBodies.test.ts.
+  it("an unknown service or town under /hire answers 404 with noindex, a known one 200", async () => {
+    for (const id of ["hire/handyman/nowhere", "hire/brain-surgery/lafayette"]) {
+      const res = await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=page&_id=${id}`));
+      expect(res.status, id).toBe(404);
+      expect(res.headers.get("X-Robots-Tag"), id).toBe("noindex");
+    }
+    const ok = await handler.fetch(new Request("https://www.louisianahelpr.com/api/share?_og=page&_id=hire/handyman/lafayette"));
+    expect(ok.status).toBe(200);
   });
 });

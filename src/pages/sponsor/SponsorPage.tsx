@@ -17,7 +17,7 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { NOINDEX_PAGE_META, PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { coarseDevice, coarseReferrer, sponsorBackend, type SponsorBackend } from "@/lib/sponsor/api";
 import { normalizeRef } from "../../../supabase/functions/_shared/sponsorSignup";
 import { ClaimSection } from "@/components/sponsor/ClaimSection";
@@ -65,13 +65,14 @@ export function SponsorChrome() {
   );
 }
 
-/* The same head values api/share.ts serves before JavaScript runs (NOINDEX_PAGE_META), one per path. */
+/* The same head values api/share.ts serves before JavaScript runs, one per path: /sponsor not indexed (NOINDEX_PAGE_META),
+   /25days public and indexed (PUBLIC_PAGE_META; owner decision 11-19, the Dec 1–25 dates only). */
 function HeadSponsor() {
   usePageMeta(NOINDEX_PAGE_META["/sponsor"]);
   return null;
 }
 function Head25days() {
-  usePageMeta(NOINDEX_PAGE_META["/25days"]);
+  usePageMeta(PUBLIC_PAGE_META["/25days"]);
   return null;
 }
 

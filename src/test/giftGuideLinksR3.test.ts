@@ -32,7 +32,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
     const by: Record<string, number> = {};
     for (const why of BANNED_LINKS.values()) by[why] = (by[why] ?? 0) + 1;
     // Links audit r4 (11-19) added 4 sold-out Walmart picks, 2 wrong-page pins (FreeSip 24oz, Delícia) and the Funko homepage deal.
-    expect(by).toEqual({ dead: 17, "sold out": 70, "non-US": 11, "wrong page": 20, "homepage deal": 33 });
+    expect(by).toEqual({ dead: 17, "sold out": 71, "non-US": 11, "wrong page": 20, "homepage deal": 33 });
     expect(bannedLink("https://mavely.app.link/0CmO0TyQa8b")).toBe("dead"); // Crate & Barrel Kids toys deal (404)
     expect(bannedLink("https://go.shopmy.us/p-104208114")).toBe("sold out"); // Away Carry-On, Clay Pink
     expect(bannedLink("https://go.shopmy.us/p-104220786")).toBe("non-US"); // Polaroid Go on selfridges.com/GB
@@ -79,7 +79,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
         for (const i of d.items ?? []) expect(bannedLink(i.href), `${slug}: deal item ${i.name}`).toBe("");
       }
     }
-    expect(picks).toBeGreaterThan(8000);
+    expect(picks).toBeGreaterThan(4000); // one guide per product (owner 11-19): the guides are smaller
     expect(deals).toBeGreaterThan(100);
   });
 

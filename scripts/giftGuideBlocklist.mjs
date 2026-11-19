@@ -25,7 +25,15 @@ export const BLOCKED_BRANDS = ["SheVibe", "King Palm", "AnyListingSEO", "Loren",
   // Owner 11-19 ("remove these hats on every guide"): CHORD caps, store page too.
   "CHORD",
   // Owner 11-19 ("remove all life is good or limit it to 2 items total"): removed entirely, store page too.
-  "Life is Good"];
+  "Life is Good",
+  // Owner 11-19 ("remove", a model-photo shearling biker jacket): The Jacket Maker, store page too.
+  "The Jacket Maker",
+  // Owner 11-19 ("remove entirely from all guides"): Diamond Art Club kits, store page too.
+  "Diamond Art Club",
+  // Owner 11-19 ("remove from all guides"): Lubiwood wooden art puzzles, store page too.
+  "Lubiwood",
+  // Owner 11-19 (flagged twice, "remove from all guides"): nixplay, frames included, store page too.
+  "nixplay"];
 
 const compact = (s) => String(s).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const blockedCompact = BLOCKED_BRANDS.map(compact);

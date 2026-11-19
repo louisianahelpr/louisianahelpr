@@ -28,7 +28,7 @@ import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 import {
   FOOD_GUIDES, GUIDE_GROUPS, SIBLING_FAMILIES, SIBLING_TOP, TREATS_GUIDE, decorOff, foodOff, isFood, lifeIsGoodOff, magazineOff, modelYearName,
-  namesModelYear, outdoorDecorOff, personalGiftOff, siblingOverlap, sperryOff, drugstoreOff, characterCollab, resaleOrUkShop, kidsCrocsOff, masonOff, redoneOff, lashOff, veraBradleyOff, hikingOff, cheapSockOff, barwareOff, fashionSneakerOff, LASH,
+  namesModelYear, outdoorDecorOff, personalGiftOff, siblingOverlap, sperryOff, drugstoreOff, characterCollab, resaleOrUkShop, kidsCrocsOff, masonOff, redoneOff, lashOff, veraBradleyOff, hikingOff, cheapSockOff, barwareOff, fashionSneakerOff, LASH, legoOff, farmRioOff, isFoodSub, foodSubOff, iceCreamOff, crockPotOff, DIGITAL_FRAME, PHOTO_PRODUCT, JIGSAW, groceryCandyOff,
 } from "../../scripts/giftGuideRules.mjs";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 
@@ -108,11 +108,14 @@ describe("gift guides 11-19: the Top 10 is ten real holiday best-sellers", () =>
 
 describe("gift guides 11-19: the owner's content rules hold on every guide", () => {
   it("bans Ying Mart, Brooklyn Delhi, eCreamery, AimHave, Minteefy and Mosaic Weighted Blankets everywhere, store pages included", () => {
-    for (const brand of ["Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets", "Dragontree", "Deme by Gabriella", "CHORD", "Life is Good"]) expect(blockedBrand({ brand }), brand).toBe(true);
+    for (const brand of ["Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets", "Dragontree", "Deme by Gabriella", "CHORD", "Life is Good", "The Jacket Maker", "Diamond Art Club", "Lubiwood", "nixplay"]) expect(blockedBrand({ brand }), brand).toBe(true);
     expect(blockedBrand({ name: "x", href: "https://www.awin1.com/cread.php?ued=https%3A%2F%2Fx.com", brand: "TangMosaic" })).toBe(false);
     const hits = slugs.flatMap((s) => chunk(s).filter((p) => blockedBrand(p)).map((p) => `${s}: ${p.name}`));
     expect(hits).toEqual([]);
     expect(slugs.flatMap((s) => chunk(s).filter((p) => /brooklyn ?delhi/i.test(`${p.brand ?? ""} ${p.name}`) || /brooklyndelhi/i.test(p.href)).map((p) => `${s}: ${p.name}`))).toEqual([]);
+    // Photo books, custom photo products and digital frames: at most 2 site-wide (owner 11-19).
+    expect(guides.flatMap((s) => chunk(s).filter((p) => DIGITAL_FRAME.test(`${p.name} ${p.brand ?? ""}`) || PHOTO_PRODUCT.test(p.name) || PHOTO_PRODUCT.test((p.brand ?? "").trim()))).length).toBeLessThanOrEqual(2);
+    expect(guides.flatMap((s) => chunk(s).filter((p) => JIGSAW.test(p.name))).length).toBeLessThanOrEqual(3);
     expect(slugs.flatMap((s) => chunk(s).filter((p) => /life is good/i.test(`${p.brand ?? ""} ${p.name}`)).map((p) => `${s}: ${p.name}`)).length).toBeLessThanOrEqual(2);
     for (const s of ["store-ying-mart", "store-brooklyn-delhi", "store-ecreamery-ice-cream-and-gifts", "store-aimhave", "store-minteefy", "store-mosaic-weighted-blankets"]) expect(slugs).not.toContain(s);
   });
@@ -126,7 +129,7 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(modelYearName("BaBylissPRO Nano Titanium 2000-Watt Blow Dryer")).toBe("BaBylissPRO Nano Titanium 2000-Watt Blow Dryer");
     for (const old of ["Yoto Mini (2024 Edition) + Disney Pixar Bundle", "YOTO Player (3rd Gen.) + Starter", "First Aid For the USMLE Step 1 2020", "Southern Living 2025 Annual Recipes"]) expect(modelYearName(old), old).toBe("");
     const names = slugs.flatMap((s) => chunk(s).map((p) => p.name));
-    expect(names.length).toBeGreaterThan(5000);
+    expect(names.length).toBeGreaterThan(3000);
     expect(names.filter((n) => namesModelYear(n))).toEqual([]);
   });
 
@@ -145,6 +148,17 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(FOOD_GUIDES).toContain(TREATS_GUIDE);
     expect(offenders(foodOff)).toEqual([]);
     expect(chunk(TREATS_GUIDE).length).toBeGreaterThan(10);
+    // Food subscriptions: at most 2 on Treats & Food Gifts, 1 on Subscriptions, none anywhere else.
+    expect(isFoodSub({ name: "Monthly Fruit Delivery", brand: "Harry & David" })).toBe(true);
+    expect(offenders(foodSubOff)).toEqual([]);
+    expect(iceCreamOff(TREATS_GUIDE, { name: "Holiday Ice Cream Gift - 4 Pints" })).toBe(true);
+    expect(iceCreamOff("mom", { name: "Ninja CREAMi Ice Cream Maker" })).toBe(false);
+    expect(crockPotOff("mom", { name: "Crock-Pot 7-Quart Manual Slow Cooker" })).toBe(true);
+    expect(offenders(iceCreamOff)).toEqual([]);
+    expect(offenders(crockPotOff)).toEqual([]);
+    expect(offenders(groceryCandyOff)).toEqual([]);
+    expect(chunk(TREATS_GUIDE).filter(isFoodSub).length).toBeLessThanOrEqual(2);
+    expect(slugs.includes("subscriptions") ? chunk("subscriptions").filter(isFoodSub).length : 0).toBeLessThanOrEqual(1);
   });
 
   it("magazines, women's Sperrys, Life is Good, Bass Pro home decor, off-brand decor, nixplay prints, the Ring doorbell and CHORD's cap stay off", () => {
@@ -157,7 +171,8 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(decorOff("mom", { name: "Romantic Dusty Rose Embroidered Tablecloth", brand: "AimHave" })).toBe(true);
     expect(decorOff("new-homeowner", { name: "Linen Tablecloth", brand: "Pottery Barn" })).toBe(false);
     expect(personalGiftOff("him", { name: "Gallery-Wrapped Canvas", brand: "nixplay" })).toBe(true);
-    expect(personalGiftOff("grandparents", { name: "Smart Digital Photo Frame", brand: "nixplay" })).toBe(false);
+    expect(blockedBrand({ brand: "nixplay" })).toBe(true);
+    expect(groceryCandyOff(TREATS_GUIDE, { name: "Jelly Belly Signature 20 Collection Jelly Beans, 8 oz", brand: "Jelly Belly", price: 5 })).toBe(true);
     expect(personalGiftOff("grandma", { name: "Woven Photo Throw Blanket", brand: "nixplay" })).toBe(true);
     expect(masonOff("mom", { name: "1 Carat Diamond Stud Earrings", brand: "MASON New York" })).toBe(true);
     expect(redoneOff("her", { name: "Classic Tee Snoopy Holiday", brand: "Re/Done" })).toBe(true);
@@ -170,6 +185,11 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(fashionSneakerOff("him", { name: "adidas Gazelle Shoes" })).toBe(true);
     expect(fashionSneakerOff("her", { name: "adidas Gazelle Shoes" })).toBe(false);
     expect(veraBradleyOff("mom", { name: "Air Birdie Weekender Travel Bag" })).toBe(true);
+    expect(legoOff("grandma", { name: "LEGO Botanicals Orchid", brand: "LEGO" })).toBe(true);
+    expect(legoOff("girlfriend", { name: "LEGO Botanicals Orchid", brand: "LEGO" })).toBe(true);
+    expect(legoOff("boys-big-kids", { name: "LEGO Technic Car", brand: "LEGO" })).toBe(false);
+    expect(farmRioOff("her", { name: "Cheetah Orchid Satin Scarf Bag Small", brand: "FARM Rio" })).toBe(true);
+    expect(fashionSneakerOff("him", { name: "Readers", brand: "Warby Parker" })).toBe(true);
     expect(personalGiftOff("mom", { name: "Ring Battery Doorbell 2K Plus", brand: "Ring" })).toBe(true);
     expect(personalGiftOff("dad", { name: "Courchevel Wool Cap", brand: "CHORD" })).toBe(true);
     expect(drugstoreOff("mom", { name: "Cantu Smoothing Leave-In Conditioning Lotion with Shea Butter", brand: "Cantu" })).toBe(true);
@@ -181,7 +201,7 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(resaleOrUkShop({ href: "https://www.durangoboots.com/products/x" })).toBe(false);
     expect(kidsCrocsOff("rns", { name: "Crocs Kids' Classic Clog" })).toBe(true);
     expect(kidsCrocsOff("girls-big-kids", { name: "Crocs Kids' Classic Clog" })).toBe(false);
-    for (const rule of [magazineOff, sperryOff, lifeIsGoodOff, outdoorDecorOff, decorOff, personalGiftOff, drugstoreOff, kidsCrocsOff, masonOff, redoneOff, lashOff, veraBradleyOff, hikingOff, cheapSockOff, barwareOff, fashionSneakerOff]) expect(offenders(rule)).toEqual([]);
+    for (const rule of [magazineOff, sperryOff, lifeIsGoodOff, outdoorDecorOff, decorOff, personalGiftOff, drugstoreOff, kidsCrocsOff, masonOff, redoneOff, lashOff, veraBradleyOff, hikingOff, cheapSockOff, barwareOff, fashionSneakerOff, legoOff, farmRioOff]) expect(offenders(rule)).toEqual([]);
     expect(offenders((_s, p) => characterCollab(p) || resaleOrUkShop(p))).toEqual([]);
   });
 

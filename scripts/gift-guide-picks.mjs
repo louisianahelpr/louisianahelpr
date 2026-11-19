@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -428,14 +428,15 @@ const CURATION = {};
 for (const f of readdirSync(dir).filter((x) => /^_curation-.*\.json$/.test(x)).sort()) {
   const v = readJson(f);
   if (!v || typeof v !== "object" || Array.isArray(v)) continue;
-  for (const [slug, c] of Object.entries(v)) if (!slug.startsWith("_") && c && typeof c === "object") CURATION[slug] = { ...c, file: f };
+  // The 25 Days sponsors guide lists every sponsor as they gave it: no curation touches it (11-19: one dropped two sponsors).
+  for (const [slug, c] of Object.entries(v)) if (!slug.startsWith("_") && slug !== "25-days-sponsors" && c && typeof c === "object") CURATION[slug] = { ...c, file: f };
 }
 // The taste audit (lead 11-19, every _taste-audit-*.json: { "<slug>": [{ name, reason }] }) removes like the curation.
 for (const f of readdirSync(dir).filter((x) => /^_taste-audit-.*\.json$/.test(x)).sort()) {
   const v = readJson(f);
   if (!v || typeof v !== "object" || Array.isArray(v)) continue;
   for (const [slug, rows] of Object.entries(v)) {
-    if (slug.startsWith("_") || !Array.isArray(rows)) continue;
+    if (slug.startsWith("_") || slug === "25-days-sponsors" || !Array.isArray(rows)) continue;
     const c = (CURATION[slug] ??= { file: f });
     c.remove = [...(Array.isArray(c.remove) ? c.remove : []), ...rows.filter((r) => r && typeof r.name === "string")];
   }
@@ -2108,6 +2109,42 @@ export const uniqueCounts = { before: 0, after: 0, underFloor: [] };
   uniqueCounts.after = dupes();
   console.log(`gift-guide-picks: repeated products across guides ${uniqueCounts.before} -> ${uniqueCounts.after}; unused library ${unusedCounts.added} of ${unusedCounts.rows} rows added; under ${UNIQUE_FLOOR}: ${uniqueCounts.underFloor.join(", ") || "none"}`);
 }
+// No photo, no row on the people, kids and budget guides (lead 11-19: a "Walmart" store tile is for store pages only).
+{
+  const groupOfSlug = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  for (const slug of Object.keys(pageList)) {
+    if (slug.startsWith("store-") || !["By person", "For kids", "By budget"].includes(groupOfSlug.get(slug))) continue;
+    pageList[slug] = pageList[slug].filter((p) => typeof p.image === "string" && p.image.startsWith("https://"));
+  }
+}
+// One digital photo frame site-wide (owner 11-19), on Grandma or Grandparents.
+{
+  let frames = 0;
+  for (const slug of ["grandma", "grandparents"]) if (pageList[slug]) pageList[slug] = pageList[slug].filter((p) => !DIGITAL_FRAME.test(`${p.name} ${p.brand ?? ""}`) || (frames += 1) === 1);
+  // ... and one photo book or custom photo product (owner 11-19: "there are too many digital photobooks").
+  let books = 0;
+  for (const slug of PHOTO_BOOK_GUIDES) if (pageList[slug]) pageList[slug] = pageList[slug].filter((p) => !(PHOTO_PRODUCT.test(p.name) || PHOTO_PRODUCT.test(String(p.brand ?? "").trim())) || DIGITAL_FRAME.test(p.name) || (books += 1) === 1);
+}
+// Food subscriptions (owner 11-19): at most 2 on Treats & Food Gifts and 1 on Subscriptions.
+for (const [slug, max] of Object.entries(FOOD_SUB_MAX)) {
+  let n = 0;
+  if (pageList[slug]) pageList[slug] = pageList[slug].filter((p) => !isFoodSub(p) || (n += 1) <= max);
+}
+// Jigsaw puzzles (owner 11-19: "too many puzzles"): at most PUZZLE_MAX site-wide, below a people guide's top 12.
+{
+  let n = 0;
+  const groupOfSlug = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  for (const slug of Object.keys(pageList)) {
+    if (slug.startsWith("store-")) continue;
+    const list = pageList[slug].filter((p) => !JIGSAW.test(p.name) || (n += 1) <= PUZZLE_MAX);
+    if (groupOfSlug.get(slug) === "By person") {
+      const puzzles = list.filter((p) => JIGSAW.test(p.name));
+      const rest = list.filter((p) => !JIGSAW.test(p.name));
+      pageList[slug] = rest.length >= 12 ? [...rest.slice(0, 12), ...puzzles, ...rest.slice(12)] : rest;
+      n -= list.length - rest.length - (rest.length >= 12 ? puzzles.length : 0);
+    } else pageList[slug] = list;
+  }
+}
 // Lashes (owner 11-19: "no need for 2 eyelash sets"): one lash item at most on a guide, below its top 12.
 for (const slug of Object.keys(pageList)) {
   if (slug.startsWith("store-")) continue;
@@ -2188,6 +2225,8 @@ const catalogSrc = readFileSync(new URL("../src/content/giftGuideCatalog.ts", im
 const removedGuides = [...(catalogSrc.match(/export const REMOVED_GUIDES = \[([^\]]*)\]/)?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 const mergedGuides = [...(catalogSrc.match(/export const MERGED_GUIDES[^=]*= \{([^}]*)\}/)?.[1] ?? "").matchAll(/"([^"]+)": \[/g)].map((m) => m[1]);
 /** A guide with fewer picks than this is hidden from rows, search and search engines (lead 11-19); giftGuideCatalog.ts. */
+/** Hub guides (a parent of other guides) show while any child holds picks, whatever their own count. */
+const HUB_SLUGS = new Set([...indexSrc.matchAll(/parent: "([^"]+)"/g)].map((m) => m[1]));
 const GUIDE_MIN_PICKS = Number(catalogSrc.match(/export const GUIDE_MIN_PICKS = (\d+);/)?.[1] ?? 6);
 const minStorePicks = Number(catalogSrc.match(/export const STORE_ROW_MIN_PICKS = (\d+);/)?.[1]);
 if (!removedGuides.length || !mergedGuides.length || !minStorePicks) throw new Error("gift-guide-picks: could not read REMOVED_GUIDES / MERGED_GUIDES / STORE_ROW_MIN_PICKS");
@@ -2202,7 +2241,7 @@ const seo = {};
 const usedNames = new Set();
 for (const slug of chunkSlugs) {
   const n = pageList[slug]?.length ?? 0;
-  if (n === 0 || (!slug.startsWith("store-") && n < GUIDE_MIN_PICKS) || removedGuides.includes(slug) || mergedGuides.includes(slug) || (slug.startsWith("store-") && n < minStorePicks)) continue;
+  if (n === 0 || (!slug.startsWith("store-") && n < GUIDE_MIN_PICKS && !HUB_SLUGS.has(slug)) || removedGuides.includes(slug) || mergedGuides.includes(slug) || (slug.startsWith("store-") && n < minStorePicks)) continue;
   const e = entryOf(slug) ?? { title: storeList[slug]?.name, lead: "shop", age: undefined };
   if (!e.title) continue;
   let named = /^gifts$/i.test(e.lead) ? `Gifts ${e.title.charAt(0).toLowerCase()}${e.title.slice(1)}` : /^gifts for\b/i.test(e.lead) || /\bgifts$/i.test(e.lead)

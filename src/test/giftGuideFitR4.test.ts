@@ -103,7 +103,7 @@ describe("gift guides: item fit r4 (fit + links audits, 11-19)", () => {
       }
       if (louisiana.includes(slug)) for (const [b, n] of perBrand) if (n > 3) bad.push(`${slug}: ${n} x ${b}`);
     }
-    expect(picks).toBeGreaterThan(4000);
+    expect(picks).toBeGreaterThan(1500); // one guide per product (owner 11-19): the guides are smaller
     expect(louisiana.length).toBeGreaterThan(10);
     expect(bad).toEqual([]);
   });

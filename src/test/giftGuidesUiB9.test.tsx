@@ -147,7 +147,7 @@ describe("H1: the kids age guides are two taps from the landing", () => {
       const chips = container.querySelector(`[data-gift-age-chips='${hub}']`)!;
       expect(chips, slug).not.toBeNull();
       const hrefs = [...chips.querySelectorAll("a")].map((a) => a.getAttribute("href"));
-      expect(hrefs.length, slug).toBeGreaterThan(3);
+      expect(hrefs.length, slug).toBeGreaterThan(0); // one guide per product (owner 11-19): fewer age guides show
       for (const h of hrefs) expect(h, slug).toMatch(new RegExp(`^/gift-guides/${hub}-`));
       cleanup();
     }

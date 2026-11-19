@@ -127,7 +127,7 @@ export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
-  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p) || masonOff(slug, p) || redoneOff(slug, p) || lashOff(slug, p) || veraBradleyOff(slug, p) || hikingOff(slug, p) || cheapSockOff(slug, p) || barwareOff(slug, p) || fashionSneakerOff(slug, p)) return false;
+  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p) || masonOff(slug, p) || redoneOff(slug, p) || lashOff(slug, p) || veraBradleyOff(slug, p) || hikingOff(slug, p) || cheapSockOff(slug, p) || barwareOff(slug, p) || fashionSneakerOff(slug, p) || farmRioOff(slug, p) || legoOff(slug, p) || grandSunglassesOff(slug, p) || frameOff(slug, p) || foodSubOff(slug, p) || iceCreamOff(slug, p) || crockPotOff(slug, p) || blankOrPastelOff(slug, p) || photoProductOff(slug, p) || puzzleOff(slug, p) || groceryCandyOff(slug, p) || jdDrinkwareOff(slug, p)) return false;
   // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
@@ -396,6 +396,8 @@ export const neutralLine = (line) => {
  * (owner: fit beats count). Keyed by the exact link the page carries (a ShopMy or Mavely short link hides the store URL).
  */
 export const BANNED_LINKS = new Map([
+  // Lead 11-19: the sold-out Ninja DualZone 8-Qt Later link came back through a curation add; banned for good.
+  ["https://mavely.app.link/uv0obAgOa8b", "sold out"],
   // dead (17)
   ["https://click.linksynergy.com/deeplink?id=pqYaS88pNmA&mid=53160&murl=https%3A%2F%2Fmomcozy.com%2Fproducts%2Fmomcozy-5-5-full-hd-video-baby-monitor-bm03", "dead"], // Momcozy 5.5-inch Full HD Video Baby Monitor (BM03)
   ["https://go.shopmy.us/p-104237971", "dead"], // Make Clay Charms (Klutz)
@@ -827,7 +829,7 @@ export const isFood = (p) => DRINK_BRAND.test(String(p.brand ?? "").trim()) || (
 export const TREATS_GUIDE = "treats-and-food-gifts";
 export const FOOD_GUIDES = [TREATS_GUIDE, "louisiana-kitchen", "louisiana-sweets-and-bakeries", "coffee-and-beignets", "home-cook", "foodie", "coffee-lover",
   "tea-lover", "wine-lover", "wine-and-spirits", "grill-master", "baker", "chefs", "cooks-and-kitchen-staff"];
-export const foodOff = (slug, p) => !slug.startsWith("store-") && !FOOD_GUIDES.includes(slug) && isFood(p)
+export const foodOff = (slug, p) => !slug.startsWith("store-") && !FOOD_GUIDES.includes(slug) && isFood(p) && !(slug === "subscriptions" && isFoodSub(p))
   && !(slug === "mail-carrier-and-delivery-drivers" && typeof p.price === "number" && p.price <= 20);
 
 /**
@@ -1248,3 +1250,66 @@ export const fashionSneakerOff = (slug, p) => MEN_FAMILY_GUIDES.includes(slug) &
   || /^pura vida( bracelets)?$/i.test(String(p.brand ?? "").trim())
   // ... and no Warby Parker ("men dont wear warby parker here"); men's sunglasses are Costa, Oakley, Maui Jim, Pelagic.
   || /^warby parker$/i.test(String(p.brand ?? "").trim()) || /\bwarby parker\b/i.test(String(p.name ?? "")));
+
+/** Owner 11-19 ("remove"): FARM Rio's busy prints leave the people guides; Pura Vida's Engravable Bar Bracelet goes. */
+export const farmRioOff = (slug, p) => (GUIDE_GROUPS.get(slug) === "By person" && /^farm rio$/i.test(String(p.brand ?? "").trim()))
+  || (!slug.startsWith("store-") && /\bengravable bar bracelet\b/i.test(String(p.name ?? "")));
+/** Owner 11-19 ("no grandma wants legos"): no LEGO, Botanicals and adult sets included, on the grandparent guides. */
+// Broadened 11-19 ("remove any legos for adults"): LEGO only on the kids, age, niece, nephew and teens guides.
+export const LEGO_OK = (slug) => GUIDE_GROUPS.get(slug) === "For kids" || ["kids", "niece", "nephew", "cousins"].includes(slug) || /teens$/.test(slug);
+export const legoOff = (slug, p) => !slug.startsWith("store-") && !LEGO_OK(slug) && /\blego\b/i.test(`${p.name} ${p.brand ?? ""}`);
+/** Owner 11-19 ("remove from grandpa", Ray-Ban aviators with yellow lenses): no sunglasses on the grandparent guides. */
+export const grandSunglassesOff = (slug, p) => ["grandma", "grandpa", "grandparents", "new-grandparent"].includes(slug) && /\b(sunglasses|aviators?|wayfarers?|ray-?ban)\b/i.test(`${p.name} ${p.brand ?? ""}`);
+/** Owner 11-19 ("remove digital photo from grandpa"): a digital photo frame shows only on Grandma or Grandparents. */
+export const DIGITAL_FRAME = /\b(digital (photo |picture )?frames?|smart (photo )?frames?|wi-?fi (photo )?frames?)\b|\b(aura|skylight|nixplay)\b[^,]*\bframes?\b|^aura carver|\bcarver mat\b/i;
+export const frameOff = (slug, p) => !slug.startsWith("store-") && !["grandma", "grandparents"].includes(slug) && DIGITAL_FRAME.test(`${p.name} ${p.brand ?? ""}`);
+/**
+ * FOOD SUBSCRIPTIONS (owner 11-19: "I have seen way too many fruit subscriptions"): fruit, food, cheese and snack
+ * clubs show only on Treats & Food Gifts (at most FOOD_SUB_MAX.treats) and Subscriptions (at most one).
+ */
+export const FOOD_SUB = /\b(fruit|cheese|snack|cookie|chocolate|candy|jerky|bacon|meat|steak|wine|beer|coffee|tea|pie|cake|bakery|popcorn|salsa|hot sauce|pickle|olive oil|nut|ice cream)\b[^,]*\b(of the month|club|subscriptions?|monthly|delivery|box)\b|\b(amazing clubs|monthlyclubs|monthly clubs|fruit of the month)\b/i;
+export const FOOD_SUB_MAX = { "treats-and-food-gifts": 2, subscriptions: 1 };
+export const isFoodSub = (p) => FOOD_SUB.test(`${p.name} ${p.brand ?? ""}`) && !/\b(coffee|tea) (maker|mug|tumbler|grinder)\b/i.test(String(p.name ?? ""));
+export const foodSubOff = (slug, p) => !slug.startsWith("store-") && !(slug in FOOD_SUB_MAX) && isFoodSub(p);
+/**
+ * Owner 11-19: "remove the ice cream from all guides" (shipped pints and ice cream gift boxes, the Treats guide too; a
+ * CREAMi machine is an appliance) and the basic Crock-Pot ("there are a lot more high tech ones than that").
+ */
+export const SHIPPED_ICE_CREAM = /\b(ice cream|gelato)\b[^,]*\b(pints?|gift|box|sampler|collection|pack|delivery|club)\b|\bpints?\b[^,]*\bice cream\b|^(ecreamery|jeni'?s( splendid ice creams)?|salt (&|and) straw|mcconnell'?s( fine ice creams)?|van leeuwen)$/i;
+export const iceCreamOff = (slug, p) => !slug.startsWith("store-") && !/\b(maker|machine|creami|scoop|bowl)\b/i.test(String(p.name ?? ""))
+  && (SHIPPED_ICE_CREAM.test(String(p.name ?? "")) || SHIPPED_ICE_CREAM.test(String(p.brand ?? "").trim()));
+export const crockPotOff = (slug, p) => !slug.startsWith("store-") && /\bcrock-?pot\b/i.test(`${p.name} ${p.brand ?? ""}`) && !/\b(smart|wi-?fi|app)\b/i.test(String(p.name ?? ""));
+/**
+ * Owner 11-19 screenshots: photos that showed as blank boxes on the live men's guides (Southern Tide's Skipjack Polo
+ * ShopMy pin, Stanley's 12 oz camp mug PNG; both answer 200 to curl, cause not yet confirmed) leave the people guides,
+ * and a pastel cooler or drinkware is no men's gift ("a man does not want this girly looking ice chest").
+ */
+export const BLANK_ON_LIVE = new Set([
+  "https://static.shopmy.us/pins/zoom-107566377-1795058601800-skipjack-polo-shirt-sea-pink-sea-pink-lifestyle-8900.jpg",
+  "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-TheStay-HotCampMug12OZ-Shale-Front.png",
+]);
+export const PASTEL = /\b(mint|cream|pink|blush|rose( quartz)?|lavender|lilac|peach|pastel|seafoam|sky blue|baby blue|coral|petal|orchid|shale)\b|stanley the easy carry outdoor cooler/i;
+export const blankOrPastelOff = (slug, p) => !slug.startsWith("store-") && (BLANK_ON_LIVE.has(String(p.image ?? ""))
+  || (MEN_FAMILY_GUIDES.includes(slug) && /\b(coolers?|ice chest|tumblers?|mugs?|bottles?|quencher|rambler)\b/i.test(String(p.name ?? "")) && PASTEL.test(`${p.name} ${p.image ?? ""}`)));
+/** Owner 11-19 ("there are too many digital photobooks"): photo books and custom photo products only on New Parents /
+ *  Grandparents guides; with the one frame (frameOff), at most 2 site-wide (capped in the import). */
+export const PHOTO_PRODUCT = /\b(photo ?books?|custom photo|photo (album|blanket|canvas|calendar|print|mug|pillow|puzzle|ornament)s?|picture book (custom|personalized))\b|^(shutterfly|artifact uprising|mixbook|chatbooks|snapfish|minted)$/i;
+export const PHOTO_BOOK_GUIDES = ["new-mom", "new-dad", "grandparents", "new-grandparent"];
+export const photoProductOff = (slug, p) => !slug.startsWith("store-") && !PHOTO_BOOK_GUIDES.includes(slug)
+  && (PHOTO_PRODUCT.test(String(p.name ?? "")) || PHOTO_PRODUCT.test(String(p.brand ?? "").trim()));
+/** Owner 11-19 ("too many puzzles"): jigsaw puzzles only from Ravensburger or Galison (or a Louisiana-themed one on a
+ *  Louisiana guide), at most PUZZLE_MAX site-wide (capped in the import), never in a people guide's top 12. */
+export const JIGSAW = /\b(jigsaw|\d{3,4}[- ]?(piece|pc)s?\b[^,]*\bpuzzles?|puzzles?\b[^,]*\b\d{3,4}[- ]?(piece|pc)s?)\b/i;
+export const PUZZLE_BRAND = /^(ravensburger|galison)$/i;
+export const PUZZLE_MAX = 3;
+export const puzzleOff = (slug, p) => !slug.startsWith("store-") && JIGSAW.test(String(p.name ?? ""))
+  && !PUZZLE_BRAND.test(String(p.brand ?? "").trim()) && !(GUIDE_GROUPS.get(slug) === "Louisiana" && LOUISIANA_THEME.test(String(p.name ?? "")));
+
+/** Owner 11-19 ("remove", Jelly Belly 8 oz at $5): cheap grocery candy (bags and checkout candy under $15) shows on no
+ *  guide, the Treats guide included. */
+export const GROCERY_CANDY = /\b(jelly beans?|gummies|gummy|candy (bag|canes?|tube|bar)s?|chocolate bars?|m&m'?s|skittles|starburst|sweetarts|reese'?s|hershey'?s|kit ?kat|twix|snickers|peppermint bark squares|candy)\b/i;
+export const groceryCandyOff = (slug, p) => !slug.startsWith("store-") && GROCERY_CANDY.test(`${p.name} ${p.brand ?? ""}`)
+  && (typeof p.price !== "number" || p.price < 15) && !/\b(gift (box|set|tin)|assortment|collection box)\b/i.test(String(p.name ?? "")) || (!slug.startsWith("store-") && /^jelly belly$/i.test(String(p.brand ?? "").trim()) && /\b8 ?oz\b/i.test(String(p.name ?? "")));
+/** Owner 11-19 ("lots of more popular cups to replace this one"): no JD Sports drinkware listing on any guide. */
+export const jdDrinkwareOff = (slug, p) => !slug.startsWith("store-") && /^jd sports$/i.test(String(p.retailer ?? p.store ?? "").trim().replace(/^store-/, "").replace(/-/g, " "))
+  && /\b(tumblers?|quencher|bottles?|mugs?|cups?|flowstate)\b/i.test(String(p.name ?? ""));

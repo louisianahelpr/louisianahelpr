@@ -237,6 +237,7 @@ export const GUIDE_INDEX: { group: string; tint: "green" | "oat" | "red"; slug: 
   { group: "Life moments", tint: "green", slug: "get-well-soon", title: "Get Well Soon", lead: "gifts to say" },
   { group: "Life moments", tint: "green", slug: "thinking-of-you", title: "Thinking of You", lead: "gifts for" },
   { group: "Life moments", tint: "green", slug: "hospital-stay", title: "Hospital Stay", lead: "gifts for a" },
+  { group: "Life moments", tint: "green", slug: "treats-and-food-gifts", title: "Treats & Food Gifts", lead: "the best" },
   { group: "Pets", tint: "red", slug: "dog-lover", title: "Dog Lover", lead: "gifts for the" },
   { group: "Pets", tint: "red", slug: "cat-person", title: "Cat Person", lead: "gifts for the" },
   { group: "Pets", tint: "red", slug: "new-puppy", title: "New Puppy", lead: "gifts for the" },

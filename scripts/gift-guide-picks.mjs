@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -418,9 +418,17 @@ const CURATION_FLOOR = 8;
 const curationFloor = (slug) => (slug === MAIL_GUIDE ? 15 : CURATION_FLOOR);
 const curationCounts = Object.fromEntries(Object.keys(CURATION).map((slug) => [slug, { removed: 0, added: 0, top12: 0 }]));
 const guides = {};
+/** The food picks moved off other guides into Treats & Food Gifts (owner 11-19), counted for the run's log. */
+const movedToTreats = new Set();
 const add = (slug, raw, where) => {
   const p = toPick(raw, where);
   if (!p) return;
+  // Owner 11-19: food leaves every non-food guide and goes to the one Treats & Food Gifts guide instead.
+  if (foodOff(slug, p)) {
+    movedToTreats.add(`${p.href} ${p.name}`);
+    add(TREATS_GUIDE, raw, where);
+    return hidden.push(`${where}: ${p.name} is food, moved from ${slug} to ${TREATS_GUIDE}`);
+  }
   if (!fitsGuide(slug, p)) return hidden.push(`${where}: ${p.name} does not fit ${slug}`);
   if (slug === SPONSORS_GUIDE) p.sponsor = true;
   const list = (guides[slug] ??= []);
@@ -1807,6 +1815,7 @@ for (const slug of Object.keys(CURATION)) {
   const top = (CURATION[slug].top12 ?? []).map((n) => compact(String(n)));
   curationCounts[slug].top12 = pageList[slug].slice(0, 12).filter((p) => top.some((t) => t === compact(p.name) || sameName(t, p.name))).length;
 }
+console.log(`gift-guide-picks: ${movedToTreats.size} food picks moved to ${TREATS_GUIDE} (${pageList[TREATS_GUIDE]?.length ?? 0} shown there)`);
 if (Object.keys(CURATION).length) console.log(`gift-guide-picks: curation ${JSON.stringify(curationCounts)}; floor kept picks on ${curationFloorHit.length ? curationFloorHit.join(", ") : "no guide"}`);
 const loved = new Map();
 for (const [slug, list] of Object.entries(pageList)) {

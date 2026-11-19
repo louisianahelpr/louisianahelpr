@@ -106,3 +106,12 @@ export function lifeIsGoodOff(slug: string, p: { name: string; brand?: string; h
 export const OUTDOOR_STORE: RegExp;
 export const HOME_DECOR: RegExp;
 export function outdoorDecorOff(slug: string, p: { name: string; brand?: string; store?: string; retailer?: string; href?: string }): boolean;
+export const FOOD_NAME: RegExp;
+export const NOT_FOOD: RegExp;
+export const FOOD_BRAND: RegExp;
+export function isFood(p: { name: string; brand?: string }): boolean;
+export const TREATS_GUIDE: string;
+export const FOOD_GUIDES: string[];
+export function foodOff(slug: string, p: { name: string; brand?: string; price?: number }): boolean;
+export const MEN_GUIDES: string[];
+export function personalGiftOff(slug: string, p: { name: string; brand?: string }): boolean;

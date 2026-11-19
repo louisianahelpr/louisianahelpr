@@ -127,7 +127,7 @@ export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
-  if (decorOff(slug, p) || foodTinOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p)) return false;
+  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p)) return false;
   // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
@@ -764,3 +764,39 @@ export const HOME_DECOR = /\b(blankets?|throws?|sherpa|quilts?|pillows?|d[eé]co
 export const outdoorDecorOff = (slug, p) => WOMEN_GUIDES.includes(slug)
   && (OUTDOOR_STORE.test(String(p.brand ?? "").trim()) || OUTDOOR_STORE.test(String(p.store ?? "").trim()) || /^store-(bass-pro|cabela)/.test(String(p.store ?? "")) || OUTDOOR_STORE.test(String(p.retailer ?? "").trim()) || /basspro\.com|cabelas\.com/i.test(String(p.href ?? "")))
   && HOME_DECOR.test(p.name);
+
+/**
+ * FOOD IS NOT A GIFT-GUIDE PICK (owner 11-19: "take all the snack items out of guides and make a section for them, they
+ * don't belong in gift guides"; "the food does not belong in a gift guide"). Every food and snack gift (cookie, brownie
+ * and popcorn tins, Milk Bar, Levain, David's Cookies, ice cream, chocolate and candy boxes, fruit and dessert
+ * arrangements, food gift baskets, snack boxes, sauces and spice sets, coffee and tea samplers) moves to ONE guide,
+ * Treats & Food Gifts (TREATS_GUIDE). Food stays only on the guides that ARE about food (FOOD_GUIDES) and on store
+ * pages; Mail Carrier keeps its snack boxes at $20 or less (a small thank-you is the point there). Pet treats,
+ * kitchen tools, cookbooks and food-themed clothes or decor are no food. Supersedes the 11-19 family-only food-tin rule.
+ */
+export const FOOD_NAME = /\b(cookies|brownies|blondies|cupcakes|cheesecakes?|pies|bundt cakes?|cake balls|layer cakes?|king cakes?|pound cakes?|rum cakes?|fruitcakes?|chocolates|chocolate bars?|truffles|bonbons|candy|candies|caramels|toffee|fudge|brittle|pralines|popcorn|pretzels|jerky|beef sticks|meat sticks|ice cream pints?|pints of ice cream|gelato|hot sauces?|bbq sauces?|barbecue sauces?|sauce (sets?|trio|collection|gift|variety)|sauces|seasonings?|spice (sets?|rubs?|kits?|blends?|collection|gift)|spices|rubs|snack (box(es)?|crates?|baskets?|packs?|bundles?|assortment)|snacks|mixed nuts|cashews|pecans|almonds|pistachios|charcuterie (box|gift|set|kit)|cheese (box|gifts?|sets?|assortment|sampler|board gift)|salami|steaks|filet mignon|beignet mix|coffee (sampler|gift set|variety pack|tasting)|tea (sampler|gift set|variety pack|tasting)|gift baskets?|fruit (baskets?|bouquets?|arrangements?|box(es)?)|chocolate[- ](covered|dipped)|dipped strawberries|meltaways|cookie (tin|box|dough)|macarons|biscotti|shortbread|petit fours|baklava|honey (sets?|gift|trio|sampler)|jam (sets?|gift|trio)|preserves (set|gift))\b/i;
+export const NOT_FOOD = /\b(maker|machine|popper|cutters?|stand|pan|plates?|molds?|mould|scoop|bowls?|grinder|mill|rack|organizer|book|cookbook|candle|lip|balm|scrub|lotion|soap|wax melt|scented|plush|squishmallow|toy|ornaments?|socks?|tee|shirt|pajamas?|hoodie|blanket|mug|tumbler|pillow|jar opener|spoon|tongs?|thermometer|smoker|grill|skillet|knife|dispenser|shaker|holder|container|storage|keychain|charm|earrings?|necklace|lego|puzzle|game|costume|sticker|print|sign|sauce ?pan|dish|board(?! gift)|hats?|caps?|towels?|napkins?|pouch|flags?|zippy|candy land|spa|bath|gift ?cards?|e-?gift|dogs?|cats?|horses?|pets?|puppy|kitten|coffee(?! (sampler|gift set|variety pack|tasting)))\b/i;
+export const FOOD_BRAND = /^(david'?s cookies|edible arrangements|cheryl'?s( cookies)?|the popcorn factory|popcornopolis|mrs\.? fields|milk bar|levain( bakery)?|godiva|lindt|see'?s( candies)?|harry (&|and) david|ferrero( rocher)?|ghirardelli|russell stover|whitman'?s|lake champlain chocolates|vosges|compart[eé]s|neuhaus|leonidas|teuscher|la maison du chocolat|wolferman'?s|omaha steaks|ecreamery|jeni'?s( splendid ice creams)?|goldbelly|sugarfina|dylan'?s candy bar|insomnia cookies|crumbl|baked by melissa|tate'?s( bake shop)?|brooklyn delhi|fly by jing|truff|graza|haven'?s kitchen|olipop|poppi|carnegie deli|zingerman'?s|stonewall kitchen|hickory farms|figi'?s|swiss colony)$/i;
+export const isFood = (p) => FOOD_BRAND.test(String(p.brand ?? "").trim()) || (FOOD_NAME.test(String(p.name ?? "")) && !NOT_FOOD.test(String(p.name ?? "")));
+export const TREATS_GUIDE = "treats-and-food-gifts";
+export const FOOD_GUIDES = [TREATS_GUIDE, "louisiana-kitchen", "louisiana-sweets-and-bakeries", "coffee-and-beignets", "home-cook", "foodie", "coffee-lover",
+  "tea-lover", "wine-lover", "wine-and-spirits", "grill-master", "baker", "chefs", "cooks-and-kitchen-staff"];
+export const foodOff = (slug, p) => !slug.startsWith("store-") && !FOOD_GUIDES.includes(slug) && isFood(p)
+  && !(slug === "mail-carrier-and-delivery-drivers" && typeof p.price === "number" && p.price <= 20);
+
+/**
+ * NOT FOR MEN / NOT A PERSONAL GIFT (owner 11-19): CHORD's Black Watch Plaid Cap leaves the men's guides; nixplay's
+ * custom-upload canvas and photo book (stock photos) leave every guide but their store page, and a nixplay frame shows
+ * only on Grandparents; the Ring Battery Doorbell shows only on New Homeowner.
+ */
+export const MEN_GUIDES = ["him", "dad", "boyfriend-or-husband", "brother", "grandpa", "uncle", "father-in-law", "brother-in-law", "nephew", "new-dad",
+  "boys", "boys-babies", "boys-toddlers", "boys-little-kids", "boys-big-kids", "boys-teens"];
+export const personalGiftOff = (slug, p) => {
+  if (slug.startsWith("store-")) return false;
+  const name = String(p.name ?? "");
+  const brand = String(p.brand ?? "");
+  if (MEN_GUIDES.includes(slug) && /^chord$/i.test(brand.trim()) && /\bplaid cap\b/i.test(name)) return true;
+  if (/nixplay/i.test(brand) || /\bnixplay\b/i.test(name)) return /\b(canvas|photo book|hardcover)\b/i.test(name) || slug !== "grandparents";
+  if (/\bring\b/i.test(brand) && /\bdoorbell\b/i.test(name)) return slug !== "new-homeowner";
+  return false;
+};

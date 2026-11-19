@@ -372,6 +372,43 @@ for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.jso
     }
   }
 }
+/**
+ * STORE FILLS (11-18 night): _store-fill-{amazon,shopmy,later,shark}-1118.json. Shapes: { "<store key>": [rows] } or
+ * { links: [{ store_slug, fits?, ...row }] }. Each row joins its store page (store-<key>, when that store exists); a
+ * row's `fits` guides take it too, below the guide's audited top 25 (FILL_HREFS, featuredFirst). File prices are not
+ * checked prices and are dropped. Photo, fit and Louisiana rules apply as everywhere.
+ */
+export const FILL_HREFS = new Set();
+export const fillCounts = { rows: 0, store: 0, guides: 0, noStore: new Set() };
+{
+  for (const f of ["_store-fill-amazon-1118.json", "_store-fill-shopmy-1118.json", "_store-fill-later-1118.json", "_store-fill-shark-1118.json"]) {
+    const v = readJson(f);
+    if (!v || typeof v !== "object") continue;
+    // { store: "SharkNinja", picks: [...] } (the Shark file) names one store for every row.
+    const oneStore = typeof v.store === "string" && Array.isArray(v.picks) ? storeFor(v.store) : null;
+    const rows = Array.isArray(v) ? v : Array.isArray(v.links) ? v.links : oneStore ? v.picks.map((r) => ({ store_slug: oneStore, ...r }))
+      : Object.entries(v).filter(([k, l]) => !k.startsWith("_") && Array.isArray(l)).flatMap(([k, l]) => l.map((r) => ({ store_slug: k, ...r })));
+    for (const r of rows) {
+      if (!r || typeof r.href !== "string" || typeof r.name !== "string" || typeof r.image !== "string") continue;
+      fillCounts.rows += 1;
+      const key = String(r.store_slug ?? "").replace(/^store-/, "");
+      const slug = key ? `store-${key}` : "";
+      let host = "";
+      try { host = new URL(r.href).hostname; } catch { continue; }
+      const { price: _price, commission: _commission, guides: _guides, ...row } = r;
+      const raw = { brand: r.brand ?? stores.get(slug)?.name ?? "", line: "", ...row, ...(stores.has(slug) ? { store: stores.get(slug).name } : {}),
+        image: r.image.replace(/^http:\/\//, "https://"), ...(AFFILIATE.has(host) && !AMAZON.has(host) ? { affiliate_href: r.href } : {}),
+        ...(AMAZON.has(host) ? { image_source: "amazon-sitestripe" } : {}) };
+      if (stores.has(slug)) { add(slug, raw, f); fillCounts.store += 1; } else if (slug) fillCounts.noStore.add(slug);
+      for (const g of Array.isArray(r.fits) ? r.fits : Array.isArray(r.guides) ? r.guides : []) {
+        if (!GUIDE_SLUGS.has(g) || g.startsWith("store-")) continue;
+        const before = guides[g]?.length ?? 0;
+        add(g, raw, f);
+        if ((guides[g]?.length ?? 0) > before) { FILL_HREFS.add(guides[g][guides[g].length - 1].href); fillCounts.guides += 1; }
+      }
+    }
+  }
+}
 /** Store extras: the store page, and for Warby Parker the guides the owner named (11-18). */
 const WARBY_GUIDES = ["her", "him", "coworkers", "rns", "girls-teens", "boys-teens"];
 const storeExtras = [["_xtratuf.json", []], ["_warby-parker.json", WARBY_GUIDES], ["_walmart.json", []], ["_tiktok-shop.json", []], ["_amazon-trending.json", []], ["_later.json", []], ["_awin.json", []], ["_cj.json", []], ["_impact.json", []], ["_shopify-collabs.json", []], ["_later-mylinks.json", []], ["_later-brands.json", []], ["_walmart-under5-1118.json", []]];
@@ -536,7 +573,10 @@ const resolveFeatured = (slug, list, e) => {
 const featuredFirst = (slug, list) => {
   const lead = featuredEntries(slug).map((e) => resolveFeatured(slug, list, e)).filter(Boolean);
   // No photo, no row (see NO PHOTO, NO ROW below): dropped before the top 25 is counted, so its limits hold.
-  const ordered = [...new Set([...lead, ...list])].filter((p) => !louisianaBlocked(slug, p)).filter((p) => slug === SPONSORS_GUIDE || hasPhoto(p) || ((photoless += 1), false));
+  const kept = [...new Set([...lead, ...list])].filter((p) => !louisianaBlocked(slug, p)).filter((p) => slug === SPONSORS_GUIDE || hasPhoto(p) || ((photoless += 1), false));
+  // Store-fill picks sit below the audited top: after every other pick unless the audit itself names them.
+  const fillBelow = (p) => FILL_HREFS.has(p.href) && !lead.includes(p);
+  const ordered = [...kept.filter((p) => !fillBelow(p)), ...kept.filter(fillBelow)];
   if (slug.startsWith("store-")) return ordered;
   const head = [];
   const later = [];
@@ -1012,4 +1052,4 @@ writeFileSync(
     `export const GIFT_GUIDE_SEO = ${JSON.stringify(seo)};\n`,
 );
 
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; store fills: ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}`);

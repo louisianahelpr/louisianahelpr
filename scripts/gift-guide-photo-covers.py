@@ -406,6 +406,11 @@ LOUISIANA = re.compile(
     r"aunt sally|big easy|magnolia|second line|zydeco|\bnoca\b|tulane|ragin|\bul lafayette", re.I)
 
 
+# Covers still short of four after every candidate (r3 follow-up: the fit audit's removals left Service Industry with
+# three, its other photos all shoes): a second product of a kind already on the cover is allowed, never a third.
+REPEAT_KIND = set()
+
+
 def allowed(slug, p, taken, group=""):
     """The variety rules for one more product on this cover, given the picks already on it."""
     # A store page shows its own products (Magnolia, the Texas home brand, matched "magnolia" and drew nothing).
@@ -419,6 +424,8 @@ def allowed(slug, p, taken, group=""):
     brand = (p.get("brand") or "").strip().lower()
     if brand and brand in {(t.get("brand") or "").strip().lower() for t in taken}:
         return False
+    if slug in REPEAT_KIND:
+        return not any(sum(k in kinds(t) for t in taken) >= 2 for k in ks)
     return not (ks & set().union(*[kinds(t) for t in taken])) if taken else True
 
 
@@ -588,6 +595,13 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
     for c, p in light[:max(0, 4 - len(got))]:
         got.append(c)
         taken.append(p)
+    if len(got) < 4 and not slug.startswith("store-") and slug not in REPEAT_KIND:
+        REPEAT_KIND.add(slug)
+        try:
+            return photos(slug, need=need, group=group, used=used, reserved=reserved, boots_ok=boots_ok,
+                          seen_before=seen_before, pre=(got, taken))
+        finally:
+            REPEAT_KIND.discard(slug)
     print(f"  {slug}: " + " | ".join((t.get("name") or "")[:28] for t in taken), flush=True)
     if len(got) < 4:
         print(f"  SHORT {slug}: {len(got)} of {len(cands)} candidates usable; passed over: "

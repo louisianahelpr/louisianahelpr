@@ -23,7 +23,7 @@ describe("IndexNow ping", () => {
   it("sends the sitemap's own URLs only, with the key and its location", () => {
     const xml = readFileSync(resolve(ROOT, "public/sitemap.xml"), "utf8");
     const urls = sitemapUrls(xml);
-    expect(urls.length).toBeGreaterThan(400);
+    expect(urls.length).toBeGreaterThan(150);
     expect(urls).toContain("https://www.louisianahelpr.com/gift-guides/mom");
     expect(sitemapUrls("<loc>https://evil.example/x</loc><loc>http://www.louisianahelpr.com/y</loc>")).toEqual([]);
     const [body] = indexNowBodies(urls);

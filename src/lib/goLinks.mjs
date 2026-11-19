@@ -21,7 +21,6 @@ export const GO_LINK_HOSTS = Object.freeze([
   "www.kqzyfj.com",
   "www.jdoqocy.com",
   "www.dpbolvw.net",
-  "www.tkqlhce.com",
   "www.awin1.com",
   "click.linksynergy.com",
   "go.shopmy.us",

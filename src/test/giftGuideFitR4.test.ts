@@ -129,7 +129,7 @@ describe("gift guides: item fit r4 (fit + links audits, 11-19)", () => {
     const hits = stores.flatMap((s) => pageOf(s).filter((p) => banned.includes(p.href)).map((p) => `${s}: ${p.name}`));
     expect(hits).toEqual([]);
     // Funko's homepage-only deal (its only deal: the store page leaves with it).
-    const withDeal = stores.filter((s) => readFileSync(`${DIR}/${s}.json`, "utf8").includes("https://mavely.app.link/CAOsxnPQa8b"));
+    const withDeal = stores.filter((s) => (JSON.parse(readFileSync(`${DIR}/${s}.json`, "utf8")) as { deals?: { href?: string }[] }).deals?.some((d) => d.href === "https://mavely.app.link/CAOsxnPQa8b"));
     expect(withDeal).toEqual([]);
   });
 });

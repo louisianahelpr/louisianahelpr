@@ -56,7 +56,21 @@ const html = async (id: string) => {
 };
 const rootOf = (doc: string) => doc.slice(doc.indexOf('<div id="root"'));
 /** The document's <h1> elements; a "<h1" inside an inline script's string is not markup, so scripts are blanked first. */
-const h1s = (doc: string) => [...doc.replace(/<script\b[\s\S]*?<\/script>/g, "").matchAll(/<h1[\s>][\s\S]*?<\/h1>/g)].map((m) => m[0]);
+const h1s = (doc: string) => {
+  // Cut every inline script out by index (case-insensitive), not by a replace regex, so no "<script" survives.
+  let out = "";
+  let rest = doc;
+  for (;;) {
+    const open = rest.search(/<script\b/i);
+    if (open < 0) break;
+    out += rest.slice(0, open);
+    const close = rest.slice(open).search(/<\/script\s*>/i);
+    if (close < 0) { rest = ""; break; }
+    rest = rest.slice(open + close).replace(/^<\/script\s*>/i, "");
+  }
+  out += rest;
+  return [...out.matchAll(/<h1[\s>][\s\S]*?<\/h1>/gi)].map((m) => m[0]);
+};
 const jsonLd = (doc: string) =>
   [...doc.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]) as Record<string, unknown>);
 const types = (doc: string) => jsonLd(doc).map((b) => b["@type"]);

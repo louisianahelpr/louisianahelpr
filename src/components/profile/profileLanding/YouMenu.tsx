@@ -1,5 +1,5 @@
-import { Bell, Headphones, LogOut, Settings, ShieldAlert, Wallet } from "lucide-react";
-import { ListRow } from "@/components/ui/ListRow";
+import { Bell, Gift, Headphones, LogOut, Settings, ShieldAlert, Wallet } from "lucide-react";
+import { ListRow, ListRowLink } from "@/components/ui/ListRow";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -164,6 +164,21 @@ export function YouMenu({
         showAdmin={isAdmin}
         onSelect={(key) => (key === ADMIN_ROW.key ? navigate("/admin") : onSelectTab(key))}
       />
+
+      {/* Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out"): on a phone the
+          signed-in bar has no gift guides link (the public bar's "Guides" is for guests), so You, where the photo leads,
+          carries a row to them. A real link (new tab, the address on long-press). Guard: src/test/giftGuidesSignedIn1119.test.tsx. */}
+      <section aria-label="Holiday Gift Guides" className="liquid-glass overflow-hidden">
+        <ListRowLink
+          variant="flush"
+          to="/gift-guides"
+          data-testid="you-gift-guides"
+          className="glass-press relative min-h-[56px] gap-3.5 py-3 transition-colors"
+        >
+          <Gift className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />
+          <span className="whitespace-nowrap shrink-0 text-ds-15 font-semibold text-foreground">Holiday Gift Guides</span>
+        </ListRowLink>
+      </section>
 
       <div className="pt-1 space-y-1">
         <Button

@@ -2228,6 +2228,14 @@
    {
     "name": "Colored Pencil Set, 100ct, Art School Supplies",
     "key": "crayola:supplies"
+   },
+   {
+    "name": "Cricut Joy Xtra",
+    "key": "cricut:xtra"
+   },
+   {
+    "name": "SINGER Super Bundle",
+    "key": "singer:bundle"
    }
   ]
  },

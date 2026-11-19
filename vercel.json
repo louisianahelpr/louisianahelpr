@@ -572,6 +572,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/go/:slug",
+      "destination": "/api/go?slug=:slug"
+    },
+    {
       "source": "/((?!api/|_vercel/|assets/|fonts/).*)",
       "destination": "/api/share?_og=notfound"
     }

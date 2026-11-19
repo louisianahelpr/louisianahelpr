@@ -152,11 +152,12 @@ describe("landing redesign: the honesty fixes hold", () => {
     const landingUses = nav.match(/\blanding\b(?!\?:)/g) ?? [];
     expect(landingUses.length).toBeGreaterThan(0);
     expect(nav).not.toMatch(/\{landing &&/);
-    // Owner 11-18 ("Shouldn't it be on the top nav?") added the second: the short "Guides" link shows on the landing's
-    // phone bar and, on the other pages, from sm (navGiftGuidesOnPhone1118.test.tsx).
-    expect(nav.match(/landing \?/g)).toEqual(["landing ?", "landing ?"]);
+    // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out") added the second:
+    // the short "Guides" link shows on every phone bar, so the other pages' bar (`tight`) shows Jobs and Declutter as
+    // icons below 480 to make room; the landing's bar is unchanged (navGiftGuidesOnPhone1118.test.tsx).
+    expect(nav.match(/landing \?/g)).toEqual(["landing ?"]);
     expect(nav).toMatch(/const phoneHidden = landing \? " max-\[639px\]:hidden" : "";/);
-    expect(nav).toMatch(/const guidesPhoneHidden = landing \? "" : " max-\[639px\]:hidden";/);
+    expect(nav).toMatch(/const tight = !landing;/);
     // ...and nothing on it reads the sections answer or links a section that may not be open.
     expect(nav).not.toMatch(/useSectionsOpen|sectionIsComingSoon|LandingNavLinks|how-it-works|Get started/i);
     expect(nav).toMatch(/to="\/browse"/);

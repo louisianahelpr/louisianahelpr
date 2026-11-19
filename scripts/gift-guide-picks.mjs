@@ -8,6 +8,7 @@
  * Read:
  *   - <slug>.json: one guide's picks, in order (store-<x>.json is a store page's own "Louisiana Helpr Picks");
  *   - extras with a `fits` list of guide slugs: _awin.json, _cj.json (CJ links), _impact.json and _shopify-collabs.json (when present), _later.json, _later-mylinks.json (every Later link), _later-brands.json;
+ *   - _pets-fill-1118.json: the Fish, Horse and Bird Lover lists (PETS_FILL, replacing those guides' own);
  *   - late fills (LATE_FILLS): _momcozy-1118.json (New Mom) and _fidget-1118.json, below each guide's top 25;
  *   - store extras: _xtratuf.json, _warby-parker.json (+ Her/Him/Coworkers/RNs/Teens), _walmart.json,
  *     _tiktok-shop.json, _amazon-trending.json, _amazon-bounties.json (Prime/Audible/registries);
@@ -1184,6 +1185,43 @@ export const sameVariant = (from, to) => {
   }
 }
 /**
+ * PETS FILL (batch 11-19, _pets-fill-1118.json { "fish-lover": [...], "horse-lover": [...], "bird-lover": [...] }):
+ * researched Amazon lists (aquarium-only for Fish Lover, pet birds and no birdwatching for Bird Lover) that REPLACE
+ * those guides' lists, after every earlier stage (featured order, trending, earnings) so no generic filler comes back.
+ * Fish Lover, empty and hidden before, returns with them. Where the file has the same product from a brand and from a
+ * small no-name seller, the small seller's row goes (PETS_FILL_DROPS). The holistic pass below still applies its link,
+ * photo and BRAND_CAP rules, but not the name-only pet test (these rows are the researched list for that animal).
+ */
+export const PETS_FILL_DROPS = new Set([
+  "4-in-1 Aquascaping Tool Kit", // Liveek; hygger's 4-piece aquascaping set is in the same list
+  "Hoof Pick Brush with Soft-Touch Handle", // BOTH WINNERS; the Wahl Professional hoof pick is in the same list
+]);
+export const PETS_FILL = new Map();
+{
+  const v = readJson("_pets-fill-1118.json");
+  for (const slug of ["fish-lover", "horse-lover", "bird-lover"]) {
+    const list = [];
+    for (const r of Array.isArray(v?.[slug]) ? v[slug] : []) {
+      if (!r || typeof r.href !== "string" || typeof r.name !== "string" || PETS_FILL_DROPS.has(r.name)) continue;
+      let host = "";
+      try { host = new URL(r.href).hostname; } catch { continue; }
+      const p = toPick({ brand: "", line: "", ...r, ...(AMAZON.has(host) ? { store: "Amazon", image_source: "amazon-sitestripe" } : {}) }, "_pets-fill-1118.json");
+      if (!p?.image || list.some((x) => x.href === p.href || compact(x.name) === compact(p.name))) continue;
+      list.push(p);
+    }
+    if (list.length) { pageList[slug] = list; PETS_FILL.set(slug, new Set(list.map((p) => p.href))); }
+    // Amazon's store page lists every Amazon pick (it was assembled before this stage): new rows join its Pets section.
+    const amazon = pageList["store-amazon"];
+    if (!amazon) continue;
+    for (const p of list) {
+      if (p.store !== "store-amazon" || amazon.some((x) => x.href === p.href || compact(x.name) === compact(p.name))) continue;
+      const lastPets = amazon.map((x) => x.section).lastIndexOf("Pets");
+      const at = lastPets >= 0 ? lastPets + 1 : amazon.findIndex((x) => x.section === "More finds");
+      amazon.splice(at >= 0 ? at : amazon.length, 0, { ...p, section: "Pets" });
+    }
+  }
+}
+/**
  * HOLISTIC FIT (design review 11-18, gg-holistic-1118/FINDINGS.md H2, H3, M1, M5), on every page's final list:
  * every page drops collection/shop links, placeholder names, medical and personal-care items and MISMATCHED_LINKS;
  * guides (store pages aside) also drop pet items outside the Pets guides, work boots on Mom/Her/Wife, men's items on
@@ -1224,7 +1262,7 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     if (MISMATCHED_LINKS.has(p.href)) return "link opens another product";
     if (NOT_A_GIFT_ITEM.test(p.name) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))) return "medical or personal care";
     if (slug.startsWith("store-")) return "";
-    if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return "not for this pet";
+    if (PET_ONLY[slug] && !PET_ONLY[slug](p) && !PETS_FILL.get(slug)?.has(p.href)) return "not for this pet";
     if (PET_ITEM.test(p.name) && !PET_OK.has(slug)) return "pet item outside Pets";
     if (WORK_BOOT_OFF.includes(slug) && (WORK_BOOT.test(p.name) || /^muck boot$/i.test(p.brand ?? ""))) return "work boot";
     if (WOMEN_GUIDES.includes(slug) && mensItem(p)) return "men's item";
@@ -1237,7 +1275,7 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
   const isFiller = (slug, p) => PET_ANIMAL[slug] && ((topCount.get(p.href) ?? 0) >= 10 || isTrending(p)) && !PET_ANIMAL[slug].test(p.name);
   const petFiller = (slug, list) => {
     if (!PET_ANIMAL[slug]) return list;
-    const filler = list.filter((p) => isFiller(slug, p)).sort((a, b) => Number(BEAUTY.test(b.name) || genderOfName(b.name)) - Number(BEAUTY.test(a.name) || genderOfName(a.name)));
+    const filler = list.filter((p) => isFiller(slug, p) && !PETS_FILL.get(slug)?.has(p.href)).sort((a, b) => Number(BEAUTY.test(b.name) || genderOfName(b.name)) - Number(BEAUTY.test(a.name) || genderOfName(a.name)));
     const drop = new Set(filler.slice(0, Math.max(0, list.length - TOP_GIFTS)));
     holistic.byRule["not for this pet"] = (holistic.byRule["not for this pet"] ?? 0) + drop.size;
     holistic.removed += drop.size;

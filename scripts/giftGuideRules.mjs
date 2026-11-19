@@ -1327,7 +1327,7 @@ export const puzzleOff = (slug, p) => !slug.startsWith("store-") && JIGSAW.test(
  *  guide, the Treats guide included. */
 export const GROCERY_CANDY = /\b(jelly beans?|gummies|gummy|candy (bag|canes?|tube|bar)s?|chocolate bars?|m&m'?s|skittles|starburst|sweetarts|reese'?s|hershey'?s|kit ?kat|twix|snickers|peppermint bark squares|candy)\b/i;
 export const groceryCandyOff = (slug, p) => !slug.startsWith("store-") && GROCERY_CANDY.test(`${p.name} ${p.brand ?? ""}`)
-  && (typeof p.price !== "number" || p.price < 15) && !/\b(gift (box|set|tin)|assortment|collection box)\b/i.test(String(p.name ?? "")) || (!slug.startsWith("store-") && /^jelly belly$/i.test(String(p.brand ?? "").trim()) && /\b8 ?oz\b/i.test(String(p.name ?? "")));
+  && (typeof p.price !== "number" || p.price < 15) && !/\b(gift (box|set|tin)|assortment|collection box|candy land|board game|game)\b/i.test(String(p.name ?? "")) || (!slug.startsWith("store-") && /^jelly belly$/i.test(String(p.brand ?? "").trim()) && /\b8 ?oz\b/i.test(String(p.name ?? "")));
 /** Owner 11-19 ("lots of more popular cups to replace this one"): no JD Sports drinkware listing on any guide. */
 export const jdDrinkwareOff = (slug, p) => !slug.startsWith("store-") && /^jd sports$/i.test(String(p.retailer ?? p.store ?? "").trim().replace(/^store-/, "").replace(/-/g, " "))
   && /\b(tumblers?|quencher|bottles?|mugs?|cups?|flowstate)\b/i.test(String(p.name ?? ""));
@@ -1369,3 +1369,19 @@ export const offBrandOff = (slug, p) => {
   return GENERIC_TRINKET.test(String(p.name ?? "")) || (GENERIC_BRAND.test(String(p.brand ?? "").trim()) && !brandFromName(p.name));
 };
 export const followUpOff = (slug, p) => OWNER_REMOVED(p) || OLD_ELECTRONICS.test(String(p.name ?? "")) || menPastelOff(slug, p) || babyOff(slug, p) || offBrandOff(slug, p);
+/**
+ * READY PASS 1119c (owner 11-19, "not ready for people to see"; FOLLOWUP-OWNER-1119.md).
+ * Non-gift categories (owner 1:08 PM): rentals, ad platforms, CBD, specialty sauces, smoke and CO2 alarms, TV / DVR /
+ * streaming services, wigs, limos, business phones, job search, home warranties, flights and travel booking, VPNs,
+ * insurance, software, loans and hosting. Gifts only: read from the name and brand, on every page, store pages too.
+ * Sauces leave every guide but the Louisiana and food ones (a Louisiana hot sauce set is a Louisiana pantry gift).
+ */
+export const NON_GIFT_SERVICE = /\b(rentals?|rent a (car|rv|boat)|car hire|ad platform|advertising|cbd|hemp (oil|gumm\w*|extract)|delta[- ]?8|thc|smoke (alarm|detector)s?|(co2?|carbon monoxide) (alarm|detector)s?|dvr|tivo|directv|sling tv|fubo|streaming (service|plan)|cable tv|wigs?|lace front|limo(usine)?s?( service)?|business phone|voip|phone system|job (search|board)s?|resume (writing|builder)|home warrant(y|ies)|protection plan|airfare|flights? (to|deal|booking)s?|travel booking|hotel booking|\w*vpn|antivirus|insurance|software|license key|loans?|credit repair|web hosting|domain name|website builder)\b/i;
+export const SAUCE = /\b(sauces?|simmer sauce|curry paste|chutney)\b/i;
+export const SAUCE_OK = (slug) => slug.startsWith("store-") || /^louisiana-|^crawfish-|^(coffee-and-beignets|new-orleans|mardi-gras|game-day|acadiana|baton-rouge|north-louisiana|purple-and-gold-lover)$/.test(slug)
+  || FOOD_GUIDES.includes(slug);
+export const nonGiftService = (slug, p) => NON_GIFT_SERVICE.test(`${p.name} ${p.brand ?? ""}`) || (!SAUCE_OK(slug) && SAUCE.test(String(p.name ?? "")) && !/\b(pan|pot|maker|warmer|dispenser|bottle|brush)\b/i.test(String(p.name ?? "")));
+/** No gift pick over $500 on any page (owner 11-19: "like 500 is the max"). */
+export const PRICE_MAX = 500;
+/** A product shows in at most 2 non-store guides (owner 1:25 PM: "no more than 2 duplicates"), owner picks included. */
+export const DUP_GUIDE_MAX = 2;

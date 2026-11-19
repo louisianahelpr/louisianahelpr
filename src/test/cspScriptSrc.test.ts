@@ -63,7 +63,9 @@ describe("CSP script-src (Q13)", () => {
   // an owner-only tool, opened from tools/ as a local file, never served.
   it("no developer tool that solicits a private key ships in public/", () => {
     expect(existsSync("tools/apple-jwt.html")).toBe(true);
-    const shipped = walk("public").filter((f) => /BEGIN PRIVATE KEY|\.p8\b/i.test(read(f)));
+    // Images and fonts are binary: random bytes can spell ".p8", and a picture can't solicit a key. Scan text files only.
+    const binary = /\.(webp|jpe?g|png|gif|avif|ico|woff2?|ttf|otf|mp4|webm|pdf)$/i;
+    const shipped = walk("public").filter((f) => !binary.test(f) && /BEGIN PRIVATE KEY|\.p8\b/i.test(read(f)));
     expect(shipped).toEqual([]);
   });
 

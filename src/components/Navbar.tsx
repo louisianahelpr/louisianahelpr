@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Gift } from "lucide-react";
+import { Briefcase, Gift, Sofa } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { forwardRef, useEffect, useState } from "react";
 import { prefetchRoute } from "@/lib/routePrefetch";
@@ -36,10 +36,14 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
   // design audit 11-10): on a phone the landing's bar keeps only the logo, Log in and Join free; its hero already has
   // the Jobs | Declutter switch, so the Jobs and Declutter links (and their divider) were a full bar of repeats there.
   const phoneHidden = landing ? " max-[639px]:hidden" : "";
-  // Owner 11-18 ("Shouldn't it be on the top nav?"): the short "Guides" link is the other way round: on the landing's
-  // phone bar (room beside Log in and Join free), and on the other pages only from sm (below 640 their bar carries Jobs
-  // and Declutter).
-  const guidesPhoneHidden = landing ? "" : " max-[639px]:hidden";
+  // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out"): the short "Guides"
+  // link shows at every phone width on EVERY public page, not only the landing. The other pages' phone bar also carries
+  // Jobs and Declutter, so there (never on the landing, whose bar is unchanged and matches index.html's shell) the bar
+  // makes room: below 480 Jobs and Declutter are their section icons (named by sr-only words), the links' padding and
+  // gaps tighten, the divider waits for sm, and below 400 the bar's side gutter is 12px; below 375 "Guides" drops its
+  // gift icon. Measured in headless Chrome with the app's Montserrat at 320-767 (English fits at every width; the
+  // tightest is 320 with 4px to spare). Guard: src/test/navGiftGuidesOnPhone1118.test.tsx.
+  const tight = !landing;
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/legal, /) sees none of the signed-out "Jobs | Log in · Join free"
@@ -115,6 +119,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
           // the landing's alone, so the logo and links jumped between / and /browse). PublicHeaderPage holds its
           // title and body to the same container (PUBLIC_CONTAINER).
           PUBLIC_CONTAINER,
+          tight && "max-[399px]:pl-[max(0.75rem,var(--safe-area-left,0px))] max-[399px]:pr-[max(0.75rem,var(--safe-area-right,0px))]",
         )}
       >
         {/* Emblem + wordmark on the MARKETING nav. This is the public,
@@ -144,12 +149,12 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             globally"): the app's own navigation (the desktop rail, the bottom
             nav on a phone) already carries them. */}
         {!user && (
-          <div className="flex items-center gap-0 min-[375px]:gap-0.5 min-[400px]:gap-1 sm:gap-3">
+          <div className={tight ? "flex items-center gap-0 min-[480px]:gap-1 sm:gap-3" : "flex items-center gap-0 min-[375px]:gap-0.5 min-[400px]:gap-1 sm:gap-3"}>
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className={`rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${phoneHidden}`}
+              className={tight ? "rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : `rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${phoneHidden}`}
             >
               <Link
                 to="/browse"
@@ -158,7 +163,12 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onFocus={() => prefetchRoute("/browse")}
               >
                 {/* Design audit areas 11-18 #1: Spanish for a Spanish reader (the footer's own word). */}
-                {navWord("footer.jobs", "Jobs")}
+                {tight ? (
+                  <>
+                    <Briefcase aria-hidden className="min-[480px]:hidden" />
+                    <span className="max-[479px]:sr-only">{navWord("footer.jobs", "Jobs")}</span>
+                  </>
+                ) : navWord("footer.jobs", "Jobs")}
               </Link>
             </Button>
             {/* Owner 11-04: Declutter next to Jobs. A guest reads its Browse too (BUY-16). */}
@@ -166,13 +176,18 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
               asChild
               variant="ghost"
               size="sm"
-              className={`rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${phoneHidden}`}
+              className={tight ? "rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : `rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${phoneHidden}`}
             >
               <Link
                 to="/declutter"
                 aria-current={location.pathname === "/declutter" ? "page" : undefined}
               >
-                Declutter
+                {tight ? (
+                  <>
+                    <Sofa aria-hidden className="min-[480px]:hidden" />
+                    <span className="max-[479px]:sr-only">Declutter</span>
+                  </>
+                ) : "Declutter"}
               </Link>
             </Button>
             {/* Owner 2026-11-18: "Holiday Gift Guides" in the public top bar, in full from md up; below md the short
@@ -193,22 +208,21 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             </Button>
             {/* Owner 2026-11-18, on the phone landing: "Where am I suppose to find the holiday guides here? Shouldn't it be
                 on the top nav?" (this overrides 11-04's phone bar of only Jobs, Declutter, Log in and Join free). Below md
-                the bar has a short "Guides" link with the gift icon, named "Holiday Gift Guides" in full (sr-only prefix). On the landing it
-                shows at every phone width (the bar there is only the logo, Log in and Join free, D021); on the other
-                public pages from sm, since below 640 their bar already carries Jobs and Declutter beside the logo (the
-                fit measured at 320-375 on 11-04). Guard: src/test/navGiftGuidesOnPhone1118.test.tsx. */}
+                the bar has a short "Guides" link with the gift icon, named "Holiday Gift Guides" in full (sr-only prefix). Owner 11-19: it shows
+                at every phone width on every public page (see `tight` above for how the other pages' bar makes room).
+                Guard: src/test/navGiftGuidesOnPhone1118.test.tsx. */}
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className={`md:hidden gap-1 rounded-full px-2 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${guidesPhoneHidden}`}
+              className={tight ? "md:hidden gap-1 rounded-full px-2 max-[374px]:px-1 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : "md:hidden gap-1 rounded-full px-2 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"}
             >
               <Link
                 to="/gift-guides"
                 aria-current={location.pathname.startsWith("/gift-guides") ? "page" : undefined}
                 data-testid="nav-gift-guides-phone"
               >
-                <Gift aria-hidden />
+                <Gift aria-hidden className={tight ? "max-[374px]:hidden" : undefined} />
                 {/* Its name is "Holiday Gift Guides", which holds the visible word (WCAG 2.5.3, labelInName.test.tsx). */}
                 <span className="sr-only">Holiday Gift Guides</span>
                 <span aria-hidden>Guides</span>
@@ -217,12 +231,12 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             {/* The divider between the public links and the auth actions. Below 400px the bar drops it and
                 tightens the link padding (below 375 also one text size down), so Jobs + Declutter fit beside the logo without squeezing it
                 (owner 11-04; measured at 320, 360 and 375). */}
-            <span aria-hidden className={`hidden min-[400px]:block w-px h-5 mx-1${phoneHidden}`} style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
+            <span aria-hidden className={tight ? "hidden sm:block w-px h-5 mx-1" : `hidden min-[400px]:block w-px h-5 mx-1${phoneHidden}`} style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className="rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+              className={tight ? "rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : "rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"}
             >
               <Link
                 to="/login"

@@ -102,7 +102,9 @@ describe("the LEFT sidebar (board 11)", () => {
     mount();
     const rows = [...document.querySelectorAll("[data-sidebar-item]")].map((b) => b.getAttribute("data-sidebar-item"));
     // Homes (rentals) is closed to this viewer: hidden until it launches (owner 11-16); Shops is on for them.
-    expect(rows).toEqual(["/home", "/explore", "/jobs", "/declutter", "/shops", "/messages", "/profile"]);
+    // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out"): the Holiday Gift
+    // Guides row comes last (giftGuidesSignedIn1119.test.tsx).
+    expect(rows).toEqual(["/home", "/explore", "/jobs", "/declutter", "/shops", "/messages", "/profile", "/gift-guides"]);
   });
 
   it("owner 2026-11-17: Shops on for a tester but not yet open to everyone is not in the rail (no Coming soon row)", () => {

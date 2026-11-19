@@ -121,8 +121,9 @@ describe("landing design audit 11-10", () => {
     const onLanding = links(true);
     expect(onLanding.length).toBeGreaterThan(3);
     for (const l of onLanding) expect(l.phoneHidden, l.text).toBe(l.text === "Jobs" || l.text === "Declutter");
-    // Owner 11-18 ("Where am I suppose to find the holiday guides here? Shouldn't it be on the top nav?"): the short
-    // "Guides" link joins the phone bar (navGiftGuidesOnPhone1118.test.tsx); on the other pages it waits for sm.
-    for (const l of links(false)) expect(l.phoneHidden, l.text).toBe(l.text === "Holiday Gift Guides" && l.phone);
+    // Owner 11-18 ("Where am I suppose to find the holiday guides here? Shouldn't it be on the top nav?") and 11-19
+    // ("make sure the guides can be easily viewed and accessed when signed in or out"): the short "Guides" link is on
+    // every phone bar, the other pages' included, so nothing there waits for sm (navGiftGuidesOnPhone1118.test.tsx).
+    for (const l of links(false)) expect(l.phoneHidden, l.text).toBe(false);
   });
 });

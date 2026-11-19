@@ -25,7 +25,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
 import { SEARCH_KEYWORDS, searchGuides } from "@/content/giftGuideCatalog";
-import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, brokenImage, fitsGuide, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
+import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; sponsor?: true };
@@ -115,7 +115,7 @@ describe("design audit r2: lines, variants, photos, brands", () => {
     expect(brokenImage("https://t3micro.com/collections/Liquid%20error%20(snippets/social-meta-tags.liquid")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/a.jpg")).toBe(false);
     // Live audit r3 #12: a site icon / default share image, or a host whose photos do not load here, is no photo.
-    // @mutate scripts/giftGuideRules.mjs | \|\| SITE_ICON.test(u) \|\| HOTLINK_BLOCKED.test(u); | ;
+    // @mutate scripts/giftGuideRules.mjs | \|\| SITE_ICON.test(u) \|\| HOTLINK_BLOCKED.test(u) | 
     for (const u of ["https://www.vitamix.com/media/default-meta-image.png", "https://www.kitchenaid.com/KA-bookmark-icon.png", "https://lovevery.com/favicon.png", "https://www.sephora.com/productimages/sku/s1.jpg", "https://www.rei.com/media/a.jpg"]) expect(brokenImage(u), u).toBe(true);
     expect(brokenImage("https://static.nike.com/a/images/t_default/a.png")).toBe(false);
     // Live audit r3 #3: shop-listing SEO titles are trimmed to a product name.
@@ -203,10 +203,41 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
   it("trending picks lead every guide and top up thin ones, never on a store page or the sponsors guide", () => {
     // @mutate scripts/gift-guide-picks.mjs | guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug])); | guides[slug] = featuredFirst(slug, guides[slug]);
     expect(SCRIPT).toContain("guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));");
-    expect(SCRIPT).toContain('if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || !trendingPick.size) return list;');
+    expect(SCRIPT).toContain('if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || NO_TRENDING.includes(slug) || !trendingPick.size) return list;');
     // Owner 11-18 PM: "All guides should have the top 25 gifts".
     expect(SCRIPT).toContain("export const TOP_GIFTS = 25;");
     expect(SCRIPT).toContain("if (have >= TOP_GIFTS) break;");
     expect(SCRIPT).toContain("if (isAmazonPick(p) && (out.filter(isAmazonPick).length + 1) / (out.length + 1) > 0.5) continue;");
+  });
+});
+describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
+  const pageOf = (slug: string): { name: string; image?: string; href: string }[] =>
+    JSON.parse(readFileSync(join(process.cwd(), `src/content/giftGuidePicks/${slug}.json`), "utf8")).picks;
+  const pages = readdirSync(join(process.cwd(), "src/content/giftGuidePicks")).filter((f) => f.endsWith(".json"));
+  it("drops the audited wrong thumbnails and any logo/banner/icon image", () => {
+    // @mutate scripts/giftGuideRules.mjs |   \|\| LOGO_IMAGE.test(u.split("?")[0]) \|\| WRONG_IMAGES.has(u.split("?")[0]); |   ;
+    expect(WRONG_IMAGES.size).toBeGreaterThan(20);
+    expect(brokenImage("https://res.cloudinary.com/mavely/image/upload/v1/Sonos_logo_c655260285.jpg")).toBe(true);
+    expect(brokenImage("https://cdn.shopify.com/s/files/1/1033/0751/files/LinkSharing-SEO-Thumbnail_1.jpg?v=1")).toBe(true);
+    expect(brokenImage("https://cdn.shopify.com/s/files/1/0001/files/carhartt-iconic-beanie.jpg")).toBe(false);
+    expect(pages.length).toBeGreaterThan(300);
+    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) if (p.image) expect(brokenImage(p.image), `${f}: ${p.name}`).toBe(false);
+  });
+  it("drops picks named after a web page, and the wrong-guide picks (curling iron in Him, dumbbell stand in Home Cook)", () => {
+    // @mutate scripts/giftGuideRules.mjs |   if (PAGE_TITLE_NAME.test(first.trim())) return null; |   if (false) return null;
+    for (const name of ["Client Challenge", "Limited Time", "Sites-heydude_us-Site", "6", "Something went wrong."]) expect(productName(name, []), name).toBeNull();
+    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) expect(p.name, f).not.toMatch(/^(client challenge|limited time|\d+)$|^Sites-/i);
+    // @mutate scripts/giftGuideRules.mjs |   if (WRONG_GUIDE[slug]?.test(p.name)) return false; |   if (false) return false;
+    expect(fitsGuide("him", { name: "NEXPURE Curling Iron, Ionic Hair Crimper Tool" })).toBe(false);
+    expect(fitsGuide("home-cook", { name: "FitRx SmartRack Dumbbell Stand" })).toBe(false);
+    expect(pageOf("him").some((p) => /curling iron/i.test(p.name))).toBe(false);
+    expect(pageOf("home-cook").some((p) => /dumbbell/i.test(p.name))).toBe(false);
+  });
+  it("Subscriptions opens on Walmart+ and the giftable Amazon memberships (owner 11-18 PM), with no trending tumblers", () => {
+    // @mutate scripts/gift-guide-picks.mjs | const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), | const featuredEntries = (slug) => [
+    const names = pageOf("subscriptions").map((p) => p.name);
+    expect(names.slice(0, 5)).toEqual(["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
+      "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"]);
+    expect(names.some((n) => /stanley|tumbler|airpods/i.test(n))).toBe(false);
   });
 });

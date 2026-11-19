@@ -407,7 +407,7 @@ const holds = (slug: string): boolean => {
 };
 
 /** The fewest picks a (non-store) guide needs to show in rows, search and the menu (lead 11-19). */
-export const GUIDE_MIN_PICKS = 6;
+export const GUIDE_MIN_PICKS = 1;
 /** The fewest picks a store page needs to be a tile in the By store row and menu (lead 2026-11-18); its link still opens. */
 export const STORE_ROW_MIN_PICKS = 4;
 /** A guide's pick count without loading its chunk (static picks, plus its chunk's count). */

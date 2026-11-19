@@ -67,6 +67,8 @@ export const GUIDE_INDEX: { group: string; tint: "green" | "oat" | "red"; slug: 
   { group: "By budget", tint: "oat", slug: "100-and-up", title: "$100 & Up", lead: "gifts" },
   { group: "By budget", tint: "oat", slug: "stocking-stuffers", title: "Stocking Stuffers", lead: "the best" },
   { group: "By budget", tint: "oat", slug: "gift-wrap-and-cards", title: "Gift Wrap & Cards", lead: "wrap it up" },
+  { group: "By budget", tint: "oat", slug: "gift-tags", title: "Gift Tags", lead: "the cutest" },
+  { group: "By budget", tint: "oat", slug: "advent-calendars", title: "Advent Calendars", lead: "the best" },
   { group: "By budget", tint: "oat", slug: "gift-cards", title: "Gift Cards", lead: "the best" },
   { group: "By budget", tint: "oat", slug: "subscriptions", title: "Subscriptions", lead: "the gift of" },
   { group: "Louisiana", tint: "green", slug: "25-days-sponsors", title: "25 Days Sponsors", lead: "shop our" },

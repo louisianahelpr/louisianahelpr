@@ -46,8 +46,8 @@ export function productName(raw, names, host = "") {
   return [first, ...variant].join(", ");
 }
 /**
- * Thumbnails that show the wrong thing (design audit loop 11-18 PM, ~/.lh-shots/design-audit-loop/gg-wrong-images-1118.json:
- * store logos, banners and favicons standing in for a product, checked by eye on 27 live pages). Matched without the query.
+ * Thumbnails that show the wrong thing (design audit loop 2026-11-18 PM, ~/.lh-shots/design-audit-loop/gg-wrong-images-1118.json:
+ * store logos, banners and favicons standing in for a product, checked by eye on the live pages, 2026-11-18). Matched without the query.
  */
 export const WRONG_IMAGES = new Set([
   "https://cdn.prod.website-files.com/615c0fadc8e1d78fcc34e6f0/61957a7123c75c270fea2676_open_graph_image-min.png",

@@ -176,7 +176,8 @@ def index():
     """The owner's index, then every researched store page (giftGuideCatalog's GUIDE_INDEX: By store, "shop", name order)."""
     src = open(os.path.join(ROOT, "src", "content", "giftGuideIndex.ts"), encoding="utf8").read()
     rows = re.findall(r'\{ group: "([^"]+)",[^}]*?slug: "([^"]+)", title: "([^"]+)", lead: "([^"]*)"([^}]*)\}', src)
-    out = [{"group": g, "slug": s_, "title": t, "lead": l, "child": "parent:" in rest, "owner": True} for g, s_, t, l, rest in rows]
+    out = [{"group": g, "slug": s_, "title": t, "lead": l, "child": "parent:" in rest, "owner": True,
+            "parent": (re.search(r'parent: "([^"]+)"', rest) or [None, None])[1]} for g, s_, t, l, rest in rows]
     picks = open(os.path.join(ROOT, "src", "content", "giftGuidePicks.ts"), encoding="utf8").read()
     m = re.search(r"export const RESEARCHED_STORES[^=]*= (\{.*?\});\n", picks)
     owner = {r["slug"] for r in out}
@@ -455,8 +456,19 @@ def careers():
     return _CAREERS
 
 
+_CHILDREN = {}
+
+
 def candidates(slug):
     own = own_picks(slug)
+    if not own and not slug.startswith("store-"):
+        # A hub with no list of its own (Kids, r3 H1: its cover was text only) shows its child guides' picks, in turn.
+        if not _CHILDREN:
+            for r in index():
+                if r.get("parent"):
+                    _CHILDREN.setdefault(r["parent"], []).append(r["slug"])
+        lists = [own_picks(c) for c in _CHILDREN.get(slug, [])]
+        own = [q for row in zip(*lists) for q in row] if lists else []
     if not slug.startswith("store-"):
         # Products few guides list come first, a product on 10+ guides' lists last (design review M3: the Accountants,
         # Lawyers and Real Estate covers were near-identical); otherwise the guide's own order.

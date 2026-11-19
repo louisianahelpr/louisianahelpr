@@ -104,8 +104,9 @@ describe("the landing reads its lists once per visit run, not on every return (Q
     render(<MemoryRouter><FreshDeclutterSection /></MemoryRouter>);
     expect(await screen.findByTestId("landing-fresh-declutter-list", {}, { timeout: 4000 })).toBeTruthy();
     await new Promise((r) => setTimeout(r, 100));
-    expect(reads.items).toBe(1);
-    // One call brings the cover photo too: no separate photo read.
+    // One visit's reads, none on the return: the popular call and the live pool (owner 11-18: cute picks come from it).
+    expect(reads.items).toBe(2);
+    // The popular call brings the cover photo of the one item: no separate photo read.
     expect(reads.photos).toBe(0);
   });
 });

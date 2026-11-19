@@ -325,14 +325,22 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
   // Design audit 2026-11-18 (trust): software, VPN and "PC cleaner" stores are no gift stores; never a tile or a page.
   "store-restoro", "store-nordvpn", "store-surfshark", "store-nordpass", "store-hide-me-vpn", "store-parallels-desktop", "store-oando-software", "store-paragon-software",
   // Affiliate sweep 11-18 PM: supplements (HerbsPro) are on the skip list.
-  "store-herbspro"];
+  "store-herbspro",
+  // Owner 11-18 PM ("No just get rid of the expernices"): the Experiences row and its guides are gone; an old link lands on the main page.
+  "louisiana-restaurants", "swamp-and-bayou-tours", "spa-days", "date-night", "concerts-and-events", "classes-and-workshops", "family-fun-days",
+  // Lead 11-18 PM (analytics showed visits to store-hide-me-vpn, store-wondershare, store-rvshare): every VPN, software,
+  // PC-cleaner, game, airline/travel-booking, car/RV-rental and ticket-resale store is gone (brands on the blocklist too).
+  "store-keeper-security", "store-intego", "store-corel", "store-clip-studio-paint", "store-daz-3d", "store-wondershare", "store-roxio", "store-pinnacle",
+  "store-lalal-ai", "store-ashampoo", "store-aomei", "store-pandaoffice", "store-jalbum", "store-abelssoft", "store-gearup", "store-yuplay",
+  "store-whokeys", "store-directdeals", "store-hero-wars", "store-skytours", "store-oojo", "store-cheapvuelos", "store-ovago", "store-hopegoo",
+  "store-air-india", "store-ocean-hotels", "store-rent-cars", "store-vip-cars", "store-carla-car-rental", "store-rvshare", "store-undercover-tourist", "store-pariscityvision"];
 
 /**
  * Guides the owner folded into others (2026-11-18: Female Nurses and Male Nurses go into RNs, LPNs and CNAs). Each
  * target gets the folded guides' picks and collection links, once each; an old link to a folded guide opens the
  * first target.
  */
-export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"] };
+export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"], "store-muck-boot-company": ["store-muck-boot"] };
 
 const draftOf = new Map(DRAFTS.map((d) => [d.slug, d] as const));
 /** A guide with a researched chunk lists exactly the chunk's picks, in their order (APPEND_CHUNK: static, then chunk). */

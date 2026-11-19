@@ -39,6 +39,8 @@ interface PublicHeaderPageProps {
   hideBack?: boolean;
   /** Forwarded to PageHeader: on a phone keep the h1 for screen readers only (the page paints the name itself; /u). */
   phoneHidesTitle?: boolean;
+  /** Forwarded to PageHeader: "p" when the page's body holds its own h1 (the gift guides' banner title). */
+  titleTag?: "h1" | "p";
   children: ReactNode;
 }
 
@@ -68,6 +70,7 @@ export function PublicHeaderPage({
   footer = true,
   hideBack = false,
   phoneHidesTitle = false,
+  titleTag = "h1",
   children,
 }: PublicHeaderPageProps) {
   const header = (
@@ -76,6 +79,7 @@ export function PublicHeaderPage({
       backTo={backTo}
       hideBack={hideBack}
       phoneHidesTitle={phoneHidesTitle}
+      titleTag={titleTag}
       width={width}
       topInsetHandled
       titleActions={titleActions}

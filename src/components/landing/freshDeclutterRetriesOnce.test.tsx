@@ -15,9 +15,8 @@ vi.mock("@/integrations/supabase/client", () => {
   const chain = (table: string) => {
     const q: Record<string, unknown> = {};
     for (const m of ["select", "eq", "in", "order"]) q[m] = () => q;
+    // The live pool read (owner 11-18, cute picks) only adds picks; it is not the read this test fails, so it is not counted.
     q.limit = async () => {
-      reads.calls++;
-      if (reads.calls <= reads.fails) return { data: null, error: new Error("Load failed") };
       return { data: [{ id: "i1", title: "Lamp", current_price_cents: 1500, area_label: "New Iberia", live_at: "2026-11-04T10:00:00Z" }], error: null };
     };
     // the photo read (after the items read) ends on .order and is awaited directly

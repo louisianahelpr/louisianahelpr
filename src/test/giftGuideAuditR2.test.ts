@@ -14,7 +14,7 @@
  * @mutate scripts/giftGuideRules.mjs |   if (slug === "gift-cards") return GIFT_CARD.test(p.name) && !NOT_A_GIFT.test(p.name); |
  * @mutate scripts/giftGuideRules.mjs |   if (EXPERIENCE_GUIDES.includes(slug)) return EXPERIENCE.test(p.name) && !NOT_A_GIFT.test(p.name); |
  * @mutate scripts/giftGuideRules.mjs |   if (/\bkni(fe\|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false; |
- * @mutate scripts/giftGuideRules.mjs | export const brokenImage = (u) => /liquid(%20\|\s\|\+)error/i.test(u) \|\| /[<>{}]/.test(u); | export const brokenImage = (u) => /[<>{}]/.test(u);
+ * @mutate scripts/giftGuideRules.mjs | export const brokenImage = (u) => /liquid(%20\|\s\|\+)error/i.test(u) \|\| /[<>{}]/.test(u) \|\| | export const brokenImage = (u) => /[<>{}]/.test(u) \|\|
  * @mutate src/content/giftGuideCatalog.ts |  ${SEARCH_KEYWORDS[g.slug] ?? ""}`); | `);
  * @mutate src/content/giftGuideCatalog.ts | .sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j) | .sort(([, i], [, j]) => i - j)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? | {false ? G.collectionOnShopMy : storeLabel(pick) ?
@@ -25,7 +25,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
 import { SEARCH_KEYWORDS, searchGuides } from "@/content/giftGuideCatalog";
-import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, brokenImage, fitsGuide, productName } from "../../scripts/giftGuideRules.mjs";
+import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; sponsor?: true };
@@ -48,6 +48,16 @@ describe("design audit r2: names are products", () => {
       "Running Shoes, Clothing, & Accessories | Saucony US", "Not Found Page | Kay", "Jared | Jared",
     ]) expect(productName(raw, [], "example"), raw).toBeNull();
     expect(productName("Designer Gifts |Michael Kors", ["Michael Kors"], "michaelkors")).toBeNull();
+    // Owner 11-18 PM: category and collection pages named like products (Our Top 10 #2 was the first) never ship.
+    // @mutate scripts/giftGuideRules.mjs |   if (CATEGORY_NAME.test(first)) return null; |   if (false) return null;
+    // @mutate scripts/giftGuideRules.mjs |   if (parts.length > 1 && /\b\w+s & [\w' ]*\w+s$/i.test(first)) return null; |   if (false) return null;
+    for (const raw of ["Skincare Routine Tools & LED Face Masks | Shark Beauty", "Food Processors & Choppers Products | KitchenAid US",
+      "Kitchen & Cooking Gifts | ZWILLING.COM", "DKNY Women's Clothing & Accessories | Modern & Sophisticated Style | Macy's", "The Holiday Collection",
+      "Serums, Cosmetics & Haircare, & More", "Luxury Japanese Skincare Products | Tatcha", "Educational Toys & Learning Toys from Fat Brain Toys",
+      "Gifts & Value Sets", "Stand Mixer Accessories | KitchenAid US", "Wolferman’s Bakery: English Muffins, Baked Goods & Breakfast Gifts"]) expect(productName(raw, [], "example"), raw).toBeNull();
+    // ... while real products with "&" or "Accessories" stay.
+    for (const raw of ["Barbie Dreamhouse Dollhouse Playset with Pool and Themed Accessories", "Brown & Blue Glass Vase", "Griddler Grill & Panini Press",
+      "36-Piece Griddle Accessories", "Pine & Eucalyptus Classic Scented Candle"]) expect(productName(raw, [], "example"), raw).toBe(raw);
     expect(productName("Jared | Your Jewelry Store for Engagement Rings", [], "jared")).toBeNull();
     expect(productName("Old Navy | Affordable Clothing for Women, Men, Kids & Baby", [], "oldnavy")).toBeNull();
     expect(productName("Kohl's | Shop Clothing, Shoes, Home, Kitchen, Bedding, Toys & More", ["Kohl's"], "kohls")).toBeNull();
@@ -104,6 +114,17 @@ describe("design audit r2: lines, variants, photos, brands", () => {
   it("no 'Liquid error' photo (T3 Micro) and no mis-cased REI/UGG brand ships", () => {
     expect(brokenImage("https://t3micro.com/collections/Liquid%20error%20(snippets/social-meta-tags.liquid")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/a.jpg")).toBe(false);
+    // Live audit r3 #12: a site icon / default share image, or a host whose photos do not load here, is no photo.
+    // @mutate scripts/giftGuideRules.mjs | \|\| SITE_ICON.test(u) \|\| HOTLINK_BLOCKED.test(u) | 
+    for (const u of ["https://www.vitamix.com/media/default-meta-image.png", "https://www.kitchenaid.com/KA-bookmark-icon.png", "https://lovevery.com/favicon.png", "https://www.sephora.com/productimages/sku/s1.jpg", "https://www.rei.com/media/a.jpg"]) expect(brokenImage(u), u).toBe(true);
+    expect(brokenImage("https://static.nike.com/a/images/t_default/a.png")).toBe(false);
+    // Live audit r3 #3: shop-listing SEO titles are trimmed to a product name.
+    // @mutate scripts/giftGuideRules.mjs |   if (n.length <= NAME_MAX) return n; |   return n;
+    expect(tidyName("Ninja CREAMi Ice Cream Maker, for Mix-ins, Milkshakes, Sorbet, Dairy-Free, 5 One-Touch Programs, (2) 16-Oz Pint Containers & Lids, NC350 White")).toBe("Ninja CREAMi Ice Cream Maker, for Mix-ins, Milkshakes, Sorbet");
+    expect(tidyName("ST. LOUIS CLASSICS | Venezia 18K")).toBe("Venezia 18K");
+    expect(tidyName("Colored Pencil Set, 100ct, Art School Supplies, Stocking Stuffers, Coloring Holiday And Christmas Gift For Kid")).toBe("Colored Pencil Set, 100ct, Art School Supplies");
+    expect(tidyName("YETI Rambler 20 oz Tumbler")).toBe("YETI Rambler 20 oz Tumbler");
+    expect(all.filter(({ p }) => / \| /.test(p.name)).map(({ p }) => p.name)).toEqual([]);
     expect(all.filter(({ p }) => p.image && brokenImage(p.image))).toEqual([]);
     expect(all.filter(({ p }) => ["Rei", "Ugg", "Laneige", "Xtratuf"].includes(p.brand))).toEqual([]);
   });
@@ -133,5 +154,90 @@ describe("design audit r2: sales and search", () => {
     expect(inTitle.filter(Boolean).length).toBeGreaterThan(1);
     expect(inTitle.lastIndexOf(true)).toBeLessThan(inTitle.indexOf(false) === -1 ? Infinity : inTitle.indexOf(false));
     expect(inTitle.indexOf(false)).toBeGreaterThan(-1);
+  });
+});
+
+describe("gift guides: featured order and Our Top 10 (owner 11-18 PM: \"This can't possibly be the top gifts\")", () => {
+  const SCRIPT = readFileSync(join(process.cwd(), "scripts/gift-guide-picks.mjs"), "utf8");
+  it("a guide's featured picks lead, Our Top 10 comes from the featured file, and no guide opens on two XTRATUF boots", () => {
+    // @mutate scripts/gift-guide-picks.mjs |   const v = readJson("_featured-order.json"); |   const v = null;
+    expect(SCRIPT).toContain('const v = readJson("_featured-order.json");');
+    // @mutate scripts/gift-guide-picks.mjs | const topPicks = noRepeats([...featuredTop, ...lovedTop]) | const topPicks = noRepeats([...lovedTop])
+    expect(SCRIPT).toContain("const topPicks = noRepeats([...featuredTop, ...lovedTop])");
+    expect(SCRIPT).toContain("for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));");
+    let guides = 0;
+    for (const [slug, picks] of Object.entries(CHUNKS)) {
+      if (slug.startsWith("store-")) continue;
+      guides += 1;
+      expect(picks.slice(0, 12).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(1);
+      expect(picks.slice(0, 25).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(2);
+    }
+    expect(guides).toBeGreaterThan(150);
+  });
+});
+
+describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't repeat items in guides\", \"All guides should have the top trending gifts\")", () => {
+  const SCRIPT = readFileSync(join(process.cwd(), "scripts/gift-guide-picks.mjs"), "utf8");
+  // The import's own key: lowercase, sizes, colors, pack counts and punctuation dropped.
+  const key = (name: string) => name.toLowerCase().replace(/\([^)]*\)/g, " ")
+    .replace(/\b\d+(\.\d+)?\s*-?\s*(oz|fl oz|in|inch|ft|qt|ct|count|pc|pcs|piece|pack|pk|ml|lb|lbs|mm|cm|cup|cups)\b\.?/g, " ")
+    .replace(/\b(black|white|red|blue|green|pink|purple|gold|silver|grey|gray|navy|brown)\b(?! line\b)/g, " ")
+    .replace(/[^a-z0-9]+/g, " ").trim();
+  it("no page shows the same product twice (same link or same normalized name), Top 10 included", () => {
+    // @mutate scripts/gift-guide-picks.mjs | for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]); | void 0;
+    expect(SCRIPT).toContain("for (const slug of Object.keys(pageList)) pageList[slug] = noRepeats(pageList[slug]);");
+    let pages = 0;
+    for (const [slug, picks] of Object.entries(CHUNKS)) {
+      pages += 1;
+      const hrefs = picks.filter((p) => !p.href.startsWith("https://shopmy.us/")).map((p) => p.href);
+      expect(hrefs.length - new Set(hrefs).size, `${slug}: repeated link`).toBe(0);
+      const keys = picks.map((p) => key(p.name)).filter((k) => k.length > 3);
+      const twice = keys.filter((k, i) => keys.indexOf(k) !== i);
+      expect(twice, `${slug}: repeated product`).toEqual([]);
+    }
+    expect(pages).toBeGreaterThan(300);
+    // Variants are one product; the Thin Blue and Thin Red Line flags are two.
+    expect(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 15pc.")).toBe(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 30pc."));
+    expect(key("Thin Blue Line US Flag, 3x5")).not.toBe(key("Thin Red Line US Flag, 3x5"));
+  });
+  it("trending picks lead every guide and top up thin ones, never on a store page or the sponsors guide", () => {
+    // @mutate scripts/gift-guide-picks.mjs | guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug])); | guides[slug] = featuredFirst(slug, guides[slug]);
+    expect(SCRIPT).toContain("guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));");
+    expect(SCRIPT).toContain('if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || NO_TRENDING.includes(slug) || !trendingPick.size) return list;');
+    // Owner 11-18 PM: "All guides should have the top 25 gifts".
+    expect(SCRIPT).toContain("export const TOP_GIFTS = 25;");
+    expect(SCRIPT).toContain("if (have >= TOP_GIFTS) break;");
+    expect(SCRIPT).toContain("if (isAmazonPick(p) && (out.filter(isAmazonPick).length + 1) / (out.length + 1) > 0.5) continue;");
+  });
+});
+describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
+  const pageOf = (slug: string): { name: string; image?: string; href: string }[] =>
+    JSON.parse(readFileSync(join(process.cwd(), `src/content/giftGuidePicks/${slug}.json`), "utf8")).picks;
+  const pages = readdirSync(join(process.cwd(), "src/content/giftGuidePicks")).filter((f) => f.endsWith(".json"));
+  it("drops the audited wrong thumbnails and any logo/banner/icon image", () => {
+    // @mutate scripts/giftGuideRules.mjs |   \|\| LOGO_IMAGE.test(u.split("?")[0]) \|\| WRONG_IMAGES.has(u.split("?")[0]); |   ;
+    expect(WRONG_IMAGES.size).toBeGreaterThan(20);
+    expect(brokenImage("https://res.cloudinary.com/mavely/image/upload/v1/Sonos_logo_c655260285.jpg")).toBe(true);
+    expect(brokenImage("https://cdn.shopify.com/s/files/1/1033/0751/files/LinkSharing-SEO-Thumbnail_1.jpg?v=1")).toBe(true);
+    expect(brokenImage("https://cdn.shopify.com/s/files/1/0001/files/carhartt-iconic-beanie.jpg")).toBe(false);
+    expect(pages.length).toBeGreaterThan(300);
+    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) if (p.image) expect(brokenImage(p.image), `${f}: ${p.name}`).toBe(false);
+  });
+  it("drops picks named after a web page, and the wrong-guide picks (curling iron in Him, dumbbell stand in Home Cook)", () => {
+    // @mutate scripts/giftGuideRules.mjs |   if (PAGE_TITLE_NAME.test(first.trim())) return null; |   if (false) return null;
+    for (const name of ["Client Challenge", "Limited Time", "Sites-heydude_us-Site", "6", "Something went wrong."]) expect(productName(name, []), name).toBeNull();
+    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) expect(p.name, f).not.toMatch(/^(client challenge|limited time|\d+)$|^Sites-/i);
+    // @mutate scripts/giftGuideRules.mjs |   if (WRONG_GUIDE[slug]?.test(p.name)) return false; |   if (false) return false;
+    expect(fitsGuide("him", { name: "NEXPURE Curling Iron, Ionic Hair Crimper Tool" })).toBe(false);
+    expect(fitsGuide("home-cook", { name: "FitRx SmartRack Dumbbell Stand" })).toBe(false);
+    expect(pageOf("him").some((p) => /curling iron/i.test(p.name))).toBe(false);
+    expect(pageOf("home-cook").some((p) => /dumbbell/i.test(p.name))).toBe(false);
+  });
+  it("Subscriptions opens on Walmart+ and the giftable Amazon memberships (owner 11-18 PM), with no trending tumblers", () => {
+    // @mutate scripts/gift-guide-picks.mjs | const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), | const featuredEntries = (slug) => [
+    const names = pageOf("subscriptions").map((p) => p.name);
+    expect(names.slice(0, 5)).toEqual(["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
+      "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"]);
+    expect(names.some((n) => /stanley|tumbler|airpods/i.test(n))).toBe(false);
   });
 });

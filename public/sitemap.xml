@@ -1187,6 +1187,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-boots</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-bose</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1218,6 +1223,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-cocinare</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-containerstore</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1283,11 +1293,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-free-country</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-free-people</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1447,11 +1452,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-muck-boot-company</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-mud-pie</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1523,6 +1523,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-saks-fifth-avenue</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-selfridges</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1623,11 +1628,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-vera-bradley</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-victorias-secret</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

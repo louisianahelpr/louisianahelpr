@@ -7,11 +7,9 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { ROWS, guideBySlug, newSlugFor, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
-import { MyListLink } from "./giftGuides/GiftGuideMyList";
-import { Button } from "@/components/ui/button";
 import { GiftGuideLanding } from "./giftGuides/GiftGuideLanding";
 import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
-import { GiftGuideShare } from "./giftGuides/GiftGuideShare";
+import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
@@ -25,13 +23,6 @@ import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
  * link (GiftOut). The FTC disclosure (16 CFR Part 255) and Amazon's required Associates statement sit at the BOTTOM
  * as plain muted lines (owner decision 2026-11-18). Guard: src/test/giftGuidesPage.test.tsx.
  */
-/** Scrolls the menu's part into view and focuses it (the phone's tool row). */
-const jumpTo = (id: string, focus: string) => {
-  const el = document.getElementById(id);
-  el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  (el?.querySelector(focus) as HTMLElement | null)?.focus({ preventScroll: true });
-};
-
 export default function GiftGuides() {
   const { slug } = useParams<{ slug?: string }>();
   const { hash } = useLocation();
@@ -73,7 +64,7 @@ export default function GiftGuides() {
   );
 
   return (
-    <PublicHeaderPage title={G.pageTitle} backTo={guide ? "/gift-guides" : "/"} bottomPaddingClassName="pb-12 md:pb-16"
+    <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide ? "/gift-guides" : "/"} bottomPaddingClassName="pb-12 md:pb-16"
       titleActions={shipPill}>
       <style>{GIFT_GUIDES_CSS}</style>
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
@@ -82,19 +73,15 @@ export default function GiftGuides() {
         {/* Owner 2026-11-18 PM: the shipping pill sits on the page header's own row ("← Gift guides"), right-aligned
             (titleActions above), so no row of its own sits above the hero. A guide page has no second "← All guides"
             link ("double back button?? does the same thing"): the header's back arrow goes to /gift-guides. */}
+        {/* Owner redesign 11-18 PM: under the title ONE slim row (search, My list, Share); Text and Copy link sit in
+            Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
+            (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
         {guide ? (
           <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint}
-            share={<GiftGuideShare path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
+            tools={<GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
         ) : (
-          <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" share={<GiftGuideShare path="/gift-guides" title={G.title} many />} />
+          <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" tools={<GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />} />
         )}
-        {/* Phone (design audit r2 #15): the menu sits after the guide, so a slim row under the title jumps to its search,
-            My list and codes. Hidden from 768 px, where the menu is beside the guide. */}
-        <nav className="gg-quick" aria-label={G.quickLabel} data-gift-quick="">
-          <Button type="button" variant="outline" size="inline" className="gg-quick-btn" onClick={() => jumpTo("gift-search", "input")}>{G.quickSearch}</Button>
-          <MyListLink current={myList} />
-          <Button type="button" variant="outline" size="inline" className="gg-quick-btn" onClick={() => jumpTo("gift-codes", "summary")}>{G.quickCodes}</Button>
-        </nav>
         <div className="gg-layout">
           <GiftGuidesSidebar active={guide} myList={myList} />
           <div className="gg-main">

@@ -108,11 +108,27 @@ COVER_SKIP = {"store-walmart": re.compile(r"welding|hot wheels", re.I),
 COVER_NEVER = re.compile(r"gift ?card|e-?gift|membership|subscription|underwear|bikini|\bperiod\b|\bbriefs?\b|"
                          r"\bbras?\b|bralette|lingerie|thong|panty|panties|\bcami\b|camisole|slip dress|compression|deodorant|body spray|collection|best ?sellers|"
                          r"the best skincare|jbl go 4|spicebox|planner stickers|heated (electric|black buffalo)", re.I)  # "HEATED" badge photos
-# Clothes shot on a person (r3 H1 review: Lululemon's jogger and half-zip cut out as a whole model): never on a store
-# cover (the store photo fills are the brands' own model shots; the guides' own picks were reviewed on white).
+# Clothes shot on a person (r3 H1 review: Lululemon's jogger and half-zip cut out as a whole model): on a store cover
+# only from a pure white photo (a flat lay or packshot); a grey studio backdrop is a model shot.
 WORN = re.compile(r"\bjoggers?\b|leggings?|\bpants?\b|hoodie|half[- ]zip|quarter[- ]zip|funnel[- ]neck|pullover|"
                   r"crewneck|sweatshirt|\bshorts?\b|\btank\b|\bdress\b|jumpsuit|romper|\bjackets?\b|\bparka\b|\bvest\b|"
-                  r"\bcoat\b|cardigan|sweater|blouse|\bshirt\b|\btop\b|\bonesie\b|pajamas?|\bpjs?\b", re.I)
+                  r"\bcoat\b|cardigan|sweater|blouse|\bshirt\b|\btop\b|\bonesie\b|pajamas?|\bpjs?\b|\brobe\b|loungewear|\bset\b.*\b(lounge|pajama)", re.I)
+
+
+def skin(c):
+    """The share of a cutout's pixels in the usual skin-tone range (YCbCr): a person wearing the product."""
+    al = np.asarray(c.split()[3]) > 128
+    if not al.any():
+        return 0.0
+    ycc = np.asarray(c.convert("RGB").convert("YCbCr")).astype(int)[al]
+    return float(((ycc[:, 1] >= 77) & (ycc[:, 1] <= 127) & (ycc[:, 2] >= 137) & (ycc[:, 2] <= 173) & (ycc[:, 0] > 60)).mean())
+
+
+def worn(slug, p, c):
+    """Clothes on a model: on a store page any non-white photo, anywhere a photo with a person's skin showing."""
+    if c is None or not WORN.search(p.get("name") or ""):
+        return False
+    return (slug.startswith("store-") and not CUT_WHY.get("white")) or skin(c) > 0.06
 COVER_SKIP["sister"] = re.compile(r"cozychic", re.I)  # a pale throw on the cream arch
 # r3 M6 (11-19): pale items that wash out on the cream arch and the gingham.
 COVER_SKIP["girlfriend"] = re.compile(r"necklace", re.I)
@@ -228,6 +244,7 @@ def cutout(data, tight=False):
     tones = [bg] + ([np.median(rest, axis=0)] if len(rest) >= 0.25 * len(border) else [])
     if not all(light(t) for t in tones):
         return _reject("a dark or coloured backdrop")  # a lifestyle shot
+    CUT_WHY["white"] = len(tones) == 1 and bg.min() >= 250  # pure white: a flat lay or a packshot, not a model shot
     off = np.min([np.abs(t - a).max(axis=2) for t in tones], axis=0)
     boff = np.min([np.abs(t - border).max(axis=1) for t in tones], axis=0)
     if (boff <= 26).mean() < 0.85:
@@ -288,6 +305,37 @@ def cutout(data, tight=False):
     out = im.convert("RGBA")
     out.putalpha(alpha)
     return out.crop(out.getbbox())
+
+
+# Guides whose items ARE card art (lead 11-19: "gift card art is fine as an item"; Sam's Club cards, magazine covers,
+# subscription boxes): gift cards and memberships are allowed there, and a photo that fills its frame is drawn whole
+# as a rounded card instead of cut out.
+CARD_GUIDES = {"gift-cards", "subscriptions"}
+
+
+def card(data):
+    """The photo as a card: cropped to its content (a white margin trimmed), corners rounded."""
+    try:
+        src = Image.open(io.BytesIO(data))
+        rgba = src.convert("RGBA")
+        im = Image.new("RGB", rgba.size, (255, 255, 255))
+        im.paste(rgba, (0, 0), rgba)
+    except Exception:  # noqa: BLE001 - not an image the browser would show either
+        return None
+    im.thumbnail((600, 600))
+    a = np.asarray(im).astype(int)
+    ys, xs = np.nonzero(np.abs(255 - a).max(axis=2) > 12)
+    if len(xs) < 0.2 * a.shape[0] * a.shape[1]:
+        return None
+    im = im.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
+    w, h = im.size
+    if max(w, h) > 2.2 * min(w, h):
+        return None
+    mask = Image.new("L", im.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, w - 1, h - 1], radius=int(min(w, h) * 0.06), fill=255)
+    out = im.convert("RGBA")
+    out.putalpha(mask)
+    return out
 
 
 def is_light(c):
@@ -454,7 +502,7 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
         # A store's own storefront pick (name == brand, "Bass Pro Shops") carries its logo, not a product.
         if (p.get("name") or "").strip().lower() == (p.get("brand") or "").strip().lower():
             continue
-        if COVER_NEVER.search(p.get("name") or "") or (slug.startswith("store-") and WORN.search(p.get("name") or "")) or " " not in (p.get("name") or "").strip():
+        if (COVER_NEVER.search(p.get("name") or "") and slug not in CARD_GUIDES) or " " not in (p.get("name") or "").strip():
             continue  # a one-word name ("Gisou") is a storefront pick: its photo is the word mark
         seen.add(u)
         cands.append(p)
@@ -492,7 +540,11 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
                 no("photo did not download")
                 continue
             c = cutout(data, tight=bool(TIGHT.search(p.get("name") or "")))
-            if c is None:
+            if c is None and slug in CARD_GUIDES:
+                c = card(data)
+            if worn(slug, p, c):
+                no("clothes on a model")
+            elif c is None:
                 no("photo not on white")
             elif is_light(c):
                 light.append((c, p))  # blends into the cream arch (owner 11-18: "Like the Owala bottle is light")
@@ -691,14 +743,16 @@ def usable_count(row):
     skip = COVER_SKIP.get(slug)
     for p in candidates(slug):
         u = p.get("image")
-        if not u or not u.startswith("https://") or u in BAD_PHOTOS or u in STORE_REJECTS or COVER_NEVER.search(p.get("name") or "") or (slug.startswith("store-") and WORN.search(p.get("name") or "")):
+        if not u or not u.startswith("https://") or u in BAD_PHOTOS or u in STORE_REJECTS or (COVER_NEVER.search(p.get("name") or "") and slug not in CARD_GUIDES):
             continue
         if (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, [], row["group"]):
             continue
         if u not in _USABLE:
             data = fetch(u)
             c = cutout(data, tight=bool(TIGHT.search(p.get("name") or ""))) if data else None
-            _USABLE[u] = c is not None and not is_light(c)
+            if c is None and data and slug in CARD_GUIDES:
+                c = card(data)
+            _USABLE[u] = c is not None and not is_light(c) and not worn(slug, p, c)
         n += _USABLE[u]
     return n
 
@@ -751,10 +805,10 @@ def main():
         near = career_order[max(0, i - 2):i] + career_order[i + 1:i + 3]
         return set().union(*[ids(picked[n][1], picked[n][2]) for n in near if n in picked]) if near else set()
 
-    def take(row, need, pre=None):
+    def take(row, need, pre=None, free=frozenset()):
         seen = set().union(*[ids(v[1], v[2]) for k, v in picked.items() if k in career_order]) if row["group"] == "By career" else set()
         mine = ids(pre[1], pre[2]) if pre else set()
-        sec = section_used(row) - mine if row["group"] != "By career" else section_used(row)
+        sec = (section_used(row) - mine if row["group"] != "By career" else section_used(row)) - free
         got, taken, own_brand = photos(row["slug"], need=need, group=row["group"], used=sec, reserved=reserved,
                                        boots_ok=row["group"] not in boots or any("boot" in kinds(t) for t in (pre[1] if pre else [])),
                                        seen_before=seen - mine, pre=pre[:2] if pre else None)
@@ -773,6 +827,25 @@ def main():
     for row in rows:
         if len(picked[row["slug"]][0]) >= 4:
             take(row, 6, pre=picked[row["slug"]])
+    # Pass 3 (r3 H1): a cover still short of four takes, one at a time, a product a cover of its section holds beyond its
+    # own four; the product moves (it is never on both), so the section still has no repeats and no cover drops below 4.
+    for row in sorted(rows, key=lambda r: (usable[r["slug"]], order.index(r["slug"]))):
+        if row["group"] == "By career":
+            continue
+        while 0 < 4 - len(picked[row["slug"]][0]):
+            donors = {k: v for k, v in picked.items() if k != row["slug"] and groups.get(k) == row["group"] and len(v[0]) > 4}
+            holder = {i: k for k, v in donors.items() for t in v[1] for i in ids([t], v[2])}
+            before = picked[row["slug"]]
+            take(row, len(before[0]) + 1, pre=before, free=frozenset(holder))
+            new = [t for t in picked[row["slug"]][1] if not any(t is b for b in before[1])]
+            if not new:
+                picked[row["slug"]] = before
+                break
+            k = next((holder[i] for i in ids(new, before[2]) if i in holder), None)
+            if k:  # the donor gives it up
+                g, t, ob = picked[k]
+                keep = [j for j, x in enumerate(t) if not (ids([x], ob) & ids(new, before[2]))]
+                picked[k] = ([g[j] for j in keep], [t[j] for j in keep], ob)
     short = []
     for row in rows:
         prods, taken, own_brand = picked[row["slug"]]

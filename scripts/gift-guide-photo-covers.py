@@ -173,19 +173,36 @@ def fetch(url):
 def cutout(data, tight=False):
     """The product on a near-white photo, as RGBA cropped to it; None for a photo that isn't on white."""
     try:
-        im = Image.open(io.BytesIO(data)).convert("RGB")
+        src = Image.open(io.BytesIO(data))
+        if src.mode in ("RGBA", "LA", "PA") or (src.mode == "P" and "transparency" in src.info):
+            # A transparent PNG (Stanley's own product shots) is the cleanest cutout of all: flatten it onto white.
+            # convert("RGB") alone turns its transparent background black, and every such photo failed the white
+            # border test (r3 H1: store-stanley drew 2 of 26 photos, so its cover went text only).
+            rgba = src.convert("RGBA")
+            im = Image.new("RGB", rgba.size, (255, 255, 255))
+            im.paste(rgba, (0, 0), rgba)
+        else:
+            im = src.convert("RGB")
     except Exception:  # noqa: BLE001 - not an image the browser would show either
         return None
     im.thumbnail((600, 600))
     a = np.asarray(im).astype(int)
     border = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
-    if (np.abs(255 - border).max(axis=1) <= 26).mean() < 0.85:
-        return None  # not on white: a lifestyle shot
-    if np.median(np.abs(255 - border).max(axis=1)) > 8:
-        return None  # an off-white studio grey with a cast shadow (Sol de Janeiro's jar): it cuts out sliced
-    fg = np.abs(255 - a).max(axis=2) > 26
+    # The studio backdrop: pure white, or one even light tone (a shop's #F5F5F5 or cream, r3 H1: 193 photos on the
+    # short covers were clean product shots on an off-white backdrop and were all skipped as "not on white"). The
+    # cutout measures each pixel's distance from that backdrop, so pure white behaves exactly as before.
+    bg = np.median(border, axis=0)
+    if bg.min() < 228:
+        return None  # a dark or coloured backdrop: a lifestyle shot
+    off = np.abs(bg - a).max(axis=2)
+    boff = np.abs(bg - border).max(axis=1)
+    if (boff <= 26).mean() < 0.85:
+        return None  # not on one even backdrop: a lifestyle shot
+    if (boff <= 6).mean() < 0.7:
+        return None  # an uneven backdrop (a cast shadow or a gradient, Sol de Janeiro's jar): it cuts out sliced
+    fg = off > 26
     if tight:
-        lab, _ = ndimage.label(np.abs(255 - a).max(axis=2) <= 2)
+        lab, _ = ndimage.label(off <= 2)
         edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
         fg = ~np.isin(lab, list(edge))
     raw = fg
@@ -219,7 +236,7 @@ def cutout(data, tight=False):
     edge = np.concatenate([fg[:2].ravel(), fg[-2:].ravel(), fg[:, :2].ravel(), fg[:, -2:].ravel()])
     if edge.mean() > 0.015:
         return None  # the product runs off its own photo: it would show sliced (a tight crop grazing the edge is fine)
-    if not tight and (np.abs(255 - a).max(axis=2)[fg] <= 40).mean() > 0.6:
+    if not tight and (off[fg] <= 40).mean() > 0.6:
         return None  # white on white (the JBL Go): it cuts out grey
     share = fg.mean()
     if share < 0.04 or share > 0.9:
@@ -383,7 +400,8 @@ def candidates(slug):
     return out
 
 
-def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_before=()):
+def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_before=(), pre=None):
+    """Up to `need` products for one cover; `pre` (cutouts, picks) are the first pass's four, topped up here."""
     reserved = reserved or {}
     own_brand = next((b for b, st in reserved.items() if st == slug), None)
     picks = candidates(slug)
@@ -403,26 +421,45 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
             continue  # a one-word name ("Gisou") is a storefront pick: its photo is the word mark
         seen.add(u)
         cands.append(p)
-    got, taken, light = [], [], []
-    for start in range(0, min(len(cands), 50), 10):
+    got, taken, light = (list(pre[0]), list(pre[1]), []) if pre else ([], [], [])
+    why = {}  # why each candidate was passed over, printed when a cover comes up short (r3 H1: fail loudly)
+
+    def no(reason):
+        why[reason] = why.get(reason, 0) + 1
+
+    for start in range(0, len(cands), 10):  # every candidate (r3 H1: a cap of 50 left late-section covers empty)
         batch = [p for p in cands[start:start + 10]]
         with ThreadPoolExecutor(6) as pool:
             datas = list(pool.map(fetch, [p["image"] for p in batch]))
         for p, data in zip(batch, datas):
             skip = COVER_SKIP.get(slug)
-            if len(got) >= need or (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, taken, group):
+            if len(got) >= need or any(p is t for t in taken):
+                continue
+            if (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, taken, group):
+                no("variety/fit rule")
                 continue
             if not boots_ok and "boot" in kinds(p) and not slug.startswith("store-"):
+                no("boot already in section")
                 continue  # one boot cover per section (owner 11-18)
             key = cover_key(p, own_brand)
-            if key in used or dedupe(p.get("name")) in used or (group == "By store" and reserved.get(brand_word(p) or None, slug) != slug):
-                continue  # already on another cover, or a brand its own store page keeps (owner 11-18: "No duplicates")
-            if key in {cover_key(t, own_brand) for t in taken}:
+            if key in used or dedupe(p.get("name")) in used:
+                no("on an earlier cover in section")
+                continue  # already on another cover (owner 11-18: "No duplicates")
+            if group == "By store" and reserved.get(brand_word(p) or None, slug) != slug:
+                no("brand kept by its own store page")
                 continue
-            c = cutout(data, tight=bool(TIGHT.search(p.get("name") or ""))) if data else None
-            if c is not None and is_light(c):
+            if key in {cover_key(t, own_brand) for t in taken}:
+                no("same item already on this cover")
+                continue
+            if not data:
+                no("photo did not download")
+                continue
+            c = cutout(data, tight=bool(TIGHT.search(p.get("name") or "")))
+            if c is None:
+                no("photo not on white")
+            elif is_light(c):
                 light.append((c, p))  # blends into the cream arch (owner 11-18: "Like the Owala bottle is light")
-            elif c is not None:
+            else:
                 got.append(c)
                 taken.append(p)
         if len(got) >= need:
@@ -432,6 +469,9 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
         got.append(c)
         taken.append(p)
     print(f"  {slug}: " + " | ".join((t.get("name") or "")[:28] for t in taken), flush=True)
+    if len(got) < 4:
+        print(f"  SHORT {slug}: {len(got)} of {len(cands)} candidates usable; passed over: "
+              + ", ".join(f"{k} {v}" for k, v in sorted(why.items(), key=lambda kv: -kv[1])), file=sys.stderr, flush=True)
     return got[:need], taken[:need], own_brand
 
 
@@ -604,6 +644,28 @@ def top_three(row):
     return got if len(got) == 3 else None
 
 
+_USABLE = {}
+
+
+def usable_count(row):
+    """How many of a guide's candidates would draw (a clean, not-light cutout that fits the guide), so pass 1 can serve
+    the scarcest covers first. Each photo's verdict is remembered by URL (not the cutout: memory is tight)."""
+    slug, n = row["slug"], 0
+    skip = COVER_SKIP.get(slug)
+    for p in candidates(slug):
+        u = p.get("image")
+        if not u or not u.startswith("https://") or u in BAD_PHOTOS or u in STORE_REJECTS or COVER_NEVER.search(p.get("name") or ""):
+            continue
+        if (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, [], row["group"]):
+            continue
+        if u not in _USABLE:
+            data = fetch(u)
+            c = cutout(data, tight=bool(TIGHT.search(p.get("name") or ""))) if data else None
+            _USABLE[u] = c is not None and not is_light(c)
+        n += _USABLE[u]
+    return n
+
+
 def brand_stores(rows):
     """Store pages that sell one brand ("store-stanley", "store-durango-boots") keep that brand: no other store cover shows it."""
     out = {}
@@ -631,37 +693,60 @@ def main():
     # No repeats within a landing section (owner 11-18); a product may show again in another section.
     # Careers may repeat a product, never on two career covers next to each other (the previous two in landing order).
     used, boots, manifest, kept, four = {}, set(), {}, [], []
-    career_recent, career_seen = [], set()
     old = json.load(open(MANIFEST, encoding="utf8")) if os.path.exists(MANIFEST) else {}
     if stores_only:  # repeats are counted within a section, so the store section can be redrawn on its own
         manifest = {s_: c for s_, c in old.items() if c.get("section") != "By store"}
     # Only guides that ship a cover (a guide with no picks is not built, and a stray cover file fails the two-way check).
-    rows = [r for r in rows if not r["owner"] or os.path.exists(os.path.join(OUT, f"{r['slug']}.webp"))]
-    for row in targets(rows):  # landing order: the index's order
-        if stores_only and row["group"] != "By store":
-            continue
-        if row["group"] == "By career":
-            sec = set().union(*career_recent) if career_recent else set()
-        else:
-            sec = used.setdefault(row["group"], set())
-        prods, taken, own_brand = photos(row["slug"], group=row["group"], used=sec, reserved=reserved,
-                                         boots_ok=row["group"] not in boots,
-                                         seen_before=career_seen if row["group"] == "By career" else ())
+    all_rows = [r for r in rows if not r["owner"] or os.path.exists(os.path.join(OUT, f"{r['slug']}.webp"))]
+    rows = [r for r in targets(all_rows) if not stores_only or r["group"] == "By store"]
+    order = [r["slug"] for r in rows]
+    career_order = [r["slug"] for r in rows if r["group"] == "By career"]
+    picked = {}  # slug -> (cutouts, picks, own_brand)
+
+    def ids(taken, own_brand):
+        return {cover_key(t, own_brand) for t in taken} | {dedupe(t.get("name")) for t in taken}
+
+    def section_used(row):
+        """What this cover may not show: its section's products, or for a career its two career neighbours a side."""
+        if row["group"] != "By career":
+            return used.setdefault(row["group"], set())
+        i = career_order.index(row["slug"])
+        near = career_order[max(0, i - 2):i] + career_order[i + 1:i + 3]
+        return set().union(*[ids(picked[n][1], picked[n][2]) for n in near if n in picked]) if near else set()
+
+    def take(row, need, pre=None):
+        seen = set().union(*[ids(v[1], v[2]) for k, v in picked.items() if k in career_order]) if row["group"] == "By career" else set()
+        mine = ids(pre[1], pre[2]) if pre else set()
+        sec = section_used(row) - mine if row["group"] != "By career" else section_used(row)
+        got, taken, own_brand = photos(row["slug"], need=need, group=row["group"], used=sec, reserved=reserved,
+                                       boots_ok=row["group"] not in boots or any("boot" in kinds(t) for t in (pre[1] if pre else [])),
+                                       seen_before=seen - mine, pre=pre[:2] if pre else None)
+        picked[row["slug"]] = (got, taken, own_brand)
+        if row["group"] != "By career":
+            used.setdefault(row["group"], set()).update(ids(taken, own_brand))
+        if any("boot" in kinds(t) for t in taken):
+            boots.add(row["group"])
+
+    # Pass 1, four each, the scarcest cover first (r3 H1): drawn in landing order with six each, the first covers of a
+    # section took every photo a later cover could use, and 90 landing covers went out text only. A cover with few usable
+    # photos now picks before one with many; pass 2 then tops every cover up to six in landing order.
+    usable = {r["slug"]: usable_count(r) for r in rows}
+    for row in sorted(rows, key=lambda r: (usable[r["slug"]], order.index(r["slug"]))):
+        take(row, 4)
+    for row in rows:
+        if len(picked[row["slug"]][0]) >= 4:
+            take(row, 6, pre=picked[row["slug"]])
+    short = []
+    for row in rows:
+        prods, taken, own_brand = picked[row["slug"]]
         if len(prods) == 5:
             prods, taken = prods[:4], taken[:4]  # two a side reads evenly; five leaves one side short
         if len(prods) < 4:
             kept.append(f"{row['slug']} ({len(prods)} photos)")
-            prods, taken = [], []  # the same polished arch and gingham, text only
+            short.append(row["slug"])
+            prods, taken = [], []  # the same polished arch and gingham, text only (logged below, and the guard fails a shown one)
         elif len(prods) == 4:
             four.append(row["slug"])
-        for t in taken:
-            sec.add(cover_key(t, own_brand))
-            sec.add(dedupe(t.get("name")))
-            if "boot" in kinds(t):
-                boots.add(row["group"])
-        if row["group"] == "By career":
-            career_seen |= {cover_key(t, own_brand) for t in taken}
-            career_recent = (career_recent + [{cover_key(t, own_brand) for t in taken} | {dedupe(t.get("name")) for t in taken}])[-2:]
         manifest[row["slug"]] = {"section": row["group"],
                                  "items": [{"name": t.get("name"), "key": cover_key(t, own_brand)} for t in taken]}
         out = os.path.join(OUT, f"{row['slug']}.webp")
@@ -670,8 +755,8 @@ def main():
         draw(row, prods, out, share=top_three(row))
         print(f"cover {row['slug']} ({len(prods)})", flush=True)
     if stores_only:  # keep the manifest in landing order
-        order = [r["slug"] for r in rows]
-        manifest = {k: manifest[k] for k in sorted(manifest, key=order.index)}
+        landing = [r["slug"] for r in all_rows]
+        manifest = {k: manifest[k] for k in sorted(manifest, key=landing.index)}
     with open(MANIFEST, "w", encoding="utf8") as f:
         json.dump(manifest, f, indent=1, ensure_ascii=False)
         f.write("\n")
@@ -690,6 +775,8 @@ def main():
             text = re.sub(rf"export const {name} = new Set\(\[.*?\]\);", f"export const {name} = new Set({json.dumps(have, separators=(', ', ': '))});", text)
         open(share, "w", encoding="utf8").write(text)
     print(f"covers: {len(manifest)} drawn, {len(four)} with 4 items, {len(kept)} text only (fewer than 4 usable photos)")
+    if short:  # r3 H1: never silently; src/test/giftGuideCoversShowItems.test.ts fails any of these the site shows
+        print(f"TEXT ONLY ({len(short)}), fewer than 4 usable product photos: " + ", ".join(kept), file=sys.stderr)
     json.dump({"four": four, "kept": kept}, open(os.path.join(CACHE, "last-run.json"), "w"), indent=1)
 
 

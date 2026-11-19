@@ -83,6 +83,11 @@
       "permanent": true
     },
     {
+      "source": "/go",
+      "destination": "/gift-guides",
+      "permanent": false
+    },
+    {
       "source": "/contact",
       "destination": "/support",
       "permanent": true

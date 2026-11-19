@@ -13,7 +13,8 @@ order, from _featured-order.json), skipping a photo that will not cut out cleanl
 (store-*) may repeat its own brand and kind (Durango Boots is all boots).
 
 Run with a Python that has Pillow, numpy and scipy (not the repo's runtime; the covers are static files):
-  python scripts/gift-guide-photo-covers.py   (every cover at once; writes scripts/gift-guide-cover-items.json)
+  python scripts/gift-guide-photo-covers.py            (every cover; writes scripts/gift-guide-cover-items.json)
+  python scripts/gift-guide-photo-covers.py --stores   (only the store section's covers, after new store photos)
 It draws every guide in landing order. Six products, or four (two a side) when fewer than six pass; a guide still
 short gets the same polished cover with no products. No product appears on two covers of the same landing section
 (owner 11-18: "No duplicates on cover", then "no repeats within a section"): a product counts as its brand (or line:
@@ -85,6 +86,12 @@ def _load(name):
 AUDIT = _load("_cover-picks-1118.json")
 FIT = _load("_fit-audit-1118.json")
 MANIFEST = os.path.join(ROOT, "scripts", "gift-guide-cover-items.json")
+# Store covers show what a store sells (owner 11-18: "the images on the store only would show what items the store
+# carries"): bestseller photos per store from _store-cover-images-1118.json, after the store's own picks, minus the
+# photos rejected on review (scripts/gift-guide-store-image-rejects.json: ads, text-heavy shots, people, logos).
+STORE_IMAGES = _load("_store-cover-images-1118.json")
+_rej = os.path.join(ROOT, "scripts", "gift-guide-store-image-rejects.json")
+STORE_REJECTS = set(json.load(open(_rej, encoding="utf8")).get("rejects", {})) if os.path.exists(_rej) else set()
 # Pick photos that show a different product than the pick's name (ShopMy pins, found 11-18): never on a cover.
 BAD_PHOTOS = {"https://static.shopmy.us/uploads/pretty-prod-1793650025807",  # "Cheirosa 62 Perfume Mist": earbuds
               "https://static.shopmy.us/pins/zoom-104125781-1794427184151-1106872-chsnut_1.jpg",  # a throw: UGG slipper
@@ -309,7 +316,9 @@ def store_pool(slug):
 def candidates(slug):
     own = own_picks(slug)
     if slug.startswith("store-"):
-        return own + [q for q in store_pool(slug) if q.get("store") == slug and q not in own]
+        shown = [{"name": x.get("product") or "", "brand": "", "image": x.get("image"), "store": slug}
+                 for x in STORE_IMAGES.get(slug, []) if isinstance(x, dict) and x.get("image") not in STORE_REJECTS]
+        return own + [q for q in store_pool(slug) if q.get("store") == slug and q not in own] + shown
     fit = FIT.get(slug) if isinstance(FIT.get(slug), dict) else None
     if not fit or not fit.get("final_top25"):
         return own
@@ -536,8 +545,9 @@ def brand_stores(rows):
 
 def main():
     rows = index()
-    if sys.argv[1:]:
-        sys.exit("draws every cover at once: no duplicates across covers is assigned in landing order")
+    stores_only = sys.argv[1:] == ["--stores"]
+    if sys.argv[1:] and not stores_only:
+        sys.exit("usage: gift-guide-photo-covers.py [--stores]  (--stores redraws only the store section's covers)")
     os.makedirs(OG, exist_ok=True)
     reserved = brand_stores(rows)
     # A one-brand store keeps its brand only when its own cover can show at least four of its products.
@@ -548,9 +558,13 @@ def main():
     used, boots, manifest, kept, four = {}, set(), {}, [], []
     career_recent = []
     old = json.load(open(MANIFEST, encoding="utf8")) if os.path.exists(MANIFEST) else {}
+    if stores_only:  # repeats are counted within a section, so the store section can be redrawn on its own
+        manifest = {s_: c for s_, c in old.items() if c.get("section") != "By store"}
     # Only guides that ship a cover (a guide with no picks is not built, and a stray cover file fails the two-way check).
     rows = [r for r in rows if os.path.exists(os.path.join(OUT, f"{r['slug']}.webp"))]
     for row in targets(rows):  # landing order: the index's order
+        if stores_only and row["group"] != "By store":
+            continue
         if row["group"] == "By career":
             sec = set().union(*career_recent) if career_recent else set()
         else:
@@ -577,6 +591,9 @@ def main():
             continue  # the same products as the cover on disk: left as it is (GIFT_COVER_ALL=1 redraws every cover)
         draw(row, prods, os.path.join(OUT, f"{row['slug']}.webp"))
         print(f"cover {row['slug']} ({len(prods)})", flush=True)
+    if stores_only:  # keep the manifest in landing order
+        order = [r["slug"] for r in rows]
+        manifest = {k: manifest[k] for k in sorted(manifest, key=order.index)}
     with open(MANIFEST, "w", encoding="utf8") as f:
         json.dump(manifest, f, indent=1, ensure_ascii=False)
         f.write("\n")

@@ -100,7 +100,7 @@ article[data-gift-guide]>section:first-child>.gg-list,article[data-gift-guide]>.
 .gg-topcard .gg-thumb{width:148px;height:148px;border-radius:14px;padding:10px;background:#faf6ee}
 .gg-topcard-n{position:absolute;left:8px;bottom:2px;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:28px;font-weight:700;line-height:1;color:#b8913a;-webkit-text-stroke:2px #fff;paint-order:stroke fill}
 .gg-topcard .gg-letter{font-size:14px}
-.gg-topcard-name{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gg-topcard-name{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .gg-topcard-meta{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .gg-topcard-meta small{font-size:12px;color:var(--gg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gg-topcard:hover .gg-topcard-name,.gg-topcard:focus-visible .gg-topcard-name{text-decoration:underline}

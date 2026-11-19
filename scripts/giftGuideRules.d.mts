@@ -70,3 +70,12 @@ export function bannedLink(href: unknown): string;
 export const CURRENCY_FORCED: RegExp;
 export function storeUrlOf(href: unknown): URL | null;
 export function homepageLink(href: unknown): boolean;
+
+export function brandKey(brand: string | undefined | null): string;
+export function brandFromName(name: string | undefined | null): string;
+export function utilityCare(p: { name?: string; brand?: string }): boolean;
+export function beautyItem(p: { name?: string; brand?: string }): boolean;
+export function beautyGuide(slug: string): boolean;
+export const BEAUTY_GUIDE_MAX: number;
+export const PUPPY_ITEM: RegExp;
+export const OWNER_MERCH: RegExp;

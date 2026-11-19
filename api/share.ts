@@ -1048,6 +1048,8 @@ function metaForPublicPage(id: string, tab: string | null): Meta | null {
     ogTitle: page.ogTitle,
     ogDescription: page.ogDescription,
     url: page.canonical,
+    // A not-indexed guide (gg-r3 UX audit #12) says so before JS; publicPageMetaFor's pages carry no robots.
+    ...(page.robots ? { robots: page.robots } : {}),
     ...(card ? { image: { url: `${SITE_ORIGIN}${card.path}`, type: "image/png", width: 1200, height: 630, alt: card.alt } } : {}),
     ...(cover ? { image: cover } : {}),
   };

@@ -11,7 +11,8 @@
  * @mutate scripts/gift-guide-picks.mjs |       if (slug === MAIL_CARRIER && !(priceOf(p) <= MAIL_CARRIER_MAX)) { belong.mail += 1; continue; } |       if (false) { belong.mail += 1; continue; }
  * @mutate scripts/giftGuideRules.mjs |   return LA_LINE.test(out) ? "" : out; |   return line;
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { E_GIFT, FILLER_OK, INSULATED, LA_LINE, NOWHERE, TUMBLER_MAX, belongsWhy, fillerGuide, neutralLine, tumblerGuide, wrapItem } from "../../scripts/giftGuideRules.mjs";
 

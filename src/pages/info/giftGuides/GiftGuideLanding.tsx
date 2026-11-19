@@ -20,9 +20,9 @@ import { sponsorPage } from "@/content/sponsorPage";
  * Gender-Neutral hubs, so the landing reached none), each named so the three read apart.
  */
 export const TEEN_TILES: { slug: string; label: string }[] = [
-  { slug: "girls-teens", label: "Teen Girls" },
-  { slug: "boys-teens", label: "Teen Boys" },
-  { slug: "gender-neutral-teens", label: "Gender-Neutral Teens" },
+  { slug: "girls-teens", label: "Teen girls" },
+  { slug: "boys-teens", label: "Teen boys" },
+  { slug: "gender-neutral-teens", label: "Gender-neutral teens" },
 ];
 /** A landing row's tiles: its guides, and on For kids the Teens guides that hold picks. */
 const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [

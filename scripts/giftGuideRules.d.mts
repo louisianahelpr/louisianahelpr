@@ -64,3 +64,9 @@ export const MAIL_CARRIER_MAX: number;
 export const LINE_FIXES: [RegExp, string][];
 export const LA_LINE: RegExp;
 export function neutralLine(line: unknown): string;
+/** Links audit r3 (11-19): audited dead, sold-out, non-US, wrong-page links and homepage deals, by exact link. */
+export const BANNED_LINKS: Map<string, string>;
+export function bannedLink(href: unknown): string;
+export const CURRENCY_FORCED: RegExp;
+export function storeUrlOf(href: unknown): URL | null;
+export function homepageLink(href: unknown): boolean;

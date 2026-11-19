@@ -4,7 +4,8 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
-import { ROWS, guideBySlug, newSlugFor, type GuideRow } from "@/content/giftGuideCatalog";
+import { useSyncExternalStore } from "react";
+import { ROWS, guideBySlug, guidePicksVersion, newSlugFor, subscribeGuidePicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
 import { GiftGuideLanding } from "./giftGuides/GiftGuideLanding";
@@ -23,13 +24,22 @@ import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
  * link (GiftOut). The FTC disclosure (16 CFR Part 255) and Amazon's required Associates statement sit at the BOTTOM
  * as plain muted lines (owner decision 2026-11-18). Guard: src/test/giftGuidesPage.test.tsx.
  */
+/** The guide's head: its picks' first three names and their count (unique links, as src/prerender/seoData.ts counts). */
+function guideHead(guide: CatalogGuide) {
+  const seen = new Set<string>();
+  const picks = guide.picks.filter((p) => p.name && p.href && !seen.has(p.href) && seen.add(p.href));
+  return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);
+}
+
 export default function GiftGuides() {
   const { slug } = useParams<{ slug?: string }>();
   const { hash } = useLocation();
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
   // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
-  usePageMeta(guide ? giftGuidePageMeta(guide.slug, guide.title) : PUBLIC_PAGE_META["/gift-guides"]);
+  // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
+  useSyncExternalStore(subscribeGuidePicks, guidePicksVersion);
+  usePageMeta(guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
   // Visual check 11-18: at 375 the long pill squeezed "Gift guides" into "Gift / guid / es"; phones get the short words.

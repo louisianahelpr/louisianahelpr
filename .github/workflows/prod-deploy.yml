@@ -81,6 +81,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/prod-deploy.mjs
 
+      # SEO P1 (owner 11-19): after a deploy of main went out, tell Bing and the other IndexNow engines which public
+      # URLs exist (the sitemap's set; key file public/<key>.txt). A hint only: a busy endpoint never fails the deploy.
+      - name: IndexNow ping
+        id: indexnow
+        if: ${{ success() && github.ref == 'refs/heads/main' && steps.run.outputs.action == 'deploy' }}
+        continue-on-error: true
+        timeout-minutes: 3
+        run: node scripts/indexnow-ping.mjs
+
       - name: Summary
         if: always()
         run: |
@@ -89,6 +98,7 @@ jobs:
             echo "- decision: \`${{ steps.run.outputs.action || 'none (failed before deciding)' }}\`"
             echo "- main HEAD: \`${{ steps.run.outputs.sha }}\`"
             echo "- deployment: \`${{ steps.run.outputs.deployment || '-' }}\`"
+            echo "- IndexNow ping: \`${{ steps.indexnow.outcome || 'skipped' }}\` (a hint only; a failure here never fails the deploy)"
           } >> "$GITHUB_STEP_SUMMARY"
 
   notify:

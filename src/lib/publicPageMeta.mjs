@@ -132,6 +132,18 @@ export const PUBLIC_PAGE_META = {
     ogTitle: "Louisiana Helpr Privacy Policy (full text)",
     ogDescription: "Every section of the Louisiana Helpr Privacy Policy on one page.",
   },
+  // 25 Days of Louisiana Giveaways (owner decision by recommendation, 11-19 overnight: "/25days goes public by 11-24
+  // with the Dec 1–25 dates only"): indexed, in the sitemap, with Event JSON-LD (src/lib/seoBodies.mjs). The dates are
+  // the event's only; never a sponsor's day (owner 11-17: don't share sponsor dates until final). /sponsor stays noindex.
+  "/25days": {
+    title: "25 Days of Louisiana Giveaways, December 1–25, 2026 — Helpr",
+    description:
+      "A free giveaway every day from December 1 to 25, 2026, from Louisiana businesses, on Louisiana Helpr. Louisiana brands can join as partners: no fees, no contracts.",
+    canonical: `${SITE_ORIGIN}/25days`,
+    ogTitle: "25 Days of Louisiana Giveaways: December 1–25",
+    ogDescription:
+      "A free giveaway every day from December 1 to 25, 2026, from Louisiana businesses. Louisiana brands can join as partners.",
+  },
   "/help": {
     title: "Help center — Helpr",
     description:
@@ -233,16 +245,6 @@ export const NOINDEX_PAGE_META = {
     description:
       "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
     canonical: `${SITE_ORIGIN}/sponsor`,
-    ogTitle: "You're invited: 25 Days of Louisiana Giveaways",
-    ogDescription:
-      "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
-    robots: NOINDEX_ROBOTS,
-  },
-  "/25days": {
-    title: "Join the 25 Days of Louisiana Giveaways — Helpr",
-    description:
-      "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
-    canonical: `${SITE_ORIGIN}/25days`,
     ogTitle: "You're invited: 25 Days of Louisiana Giveaways",
     ogDescription:
       "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",

@@ -59,6 +59,9 @@ export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/gift-guide-picks.mjs":
     "The gift-guide importer writes our own hosted Sam's Club card photos (public/gift-guides/memberships/*.jpg) into the picks as https image URLs; it never requests the site.",
   "scripts/generate-sitemap.mjs": "Writes the domain into sitemap.xml <loc> entries as text; never fetches it.",
+  "scripts/indexnow-ping.mjs":
+    "SEO P1 (owner 11-19): names our host in the IndexNow submission (host, keyLocation, the sitemap's URLs) it POSTs " +
+    "to api.indexnow.org after a prod deploy of main; it never requests the Vercel site itself.",
   "scripts/check-identity-linking.mjs":
     "Checks the Supabase auth redirect allow-list covers the OAuth return URL (Q445); never fetches it.",
   "scripts/asc/fix-review-issues.mjs":

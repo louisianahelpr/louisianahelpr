@@ -18,7 +18,7 @@
  * the four resolving cases below all miss it. Registered as two mutations so
  * neither exit can regress alone.
  */
-// @mutate api/share.ts | const shell = absolutiseIconLinks(SHELL_HTML); | const shell = SHELL_HTML;
+// @mutate api/share.ts | const shell = withoutSiteEntities(withoutOtherShells(absolutiseIconLinks(SHELL_HTML), routePath(url))); | const shell = withoutSiteEntities(withoutOtherShells(SHELL_HTML, routePath(url)));
 // @mutate api/share.ts | return respond(absolutiseIconLinks(SHELL_HTML), undefined, isNotFoundRequest | return respond(SHELL_HTML, undefined, isNotFoundRequest
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";

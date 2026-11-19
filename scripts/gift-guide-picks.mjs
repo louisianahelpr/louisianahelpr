@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -1319,6 +1319,7 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     if (PET_ITEM.test(p.name) && !PET_OK.has(slug)) return "pet item outside Pets";
     if (WORK_BOOT_OFF.includes(slug) && (WORK_BOOT.test(p.name) || /^muck boot$/i.test(p.brand ?? ""))) return "work boot";
     if (WOMEN_GUIDES.includes(slug) && mensItem(p)) return "men's item";
+    if (INSTAX_OFF.includes(slug) && instaxItem(p)) return "instax";
     if (slug === "gender-neutral-teens" && GENDERED.test(p.name)) return "gendered";
     if (PRICE_CAP[slug] && typeof p.price === "number" && p.price > PRICE_CAP[slug]) return "over budget";
     return "";

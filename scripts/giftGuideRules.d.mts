@@ -33,6 +33,8 @@ export const NOT_A_GIFT_ITEM: RegExp;
 export const NEW_MOM_CARE: RegExp;
 export const PET_ITEM: RegExp;
 export function nonUsUrl(s: unknown): boolean;
+export const INSTAX_OFF: string[];
+export function instaxItem(p: { name?: string; brand?: string }): boolean;
 export const WOMEN_GUIDES: string[];
 export function mensItem(p: { name?: string; brand?: string; image?: string }): boolean;
 export const WORK_BOOT_OFF: string[];

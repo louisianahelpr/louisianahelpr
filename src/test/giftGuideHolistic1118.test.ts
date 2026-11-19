@@ -8,13 +8,14 @@
  * @mutate scripts/giftGuideRules.mjs |   if (/^huk$/i.test(String(p.brand ?? "").trim())) return true; |
  * @mutate scripts/gift-guide-picks.mjs |     if (WOMEN_GUIDES.includes(slug) && mensItem(p)) return "men's item"; |
  * @mutate scripts/gift-guide-picks.mjs |   if (!NON_US_LINKS.has(link) && !placeFields(p).some(nonUsUrl)) return p; |   return p;
+ * @mutate scripts/gift-guide-picks.mjs |     if (INSTAX_OFF.includes(slug) && instaxItem(p)) return "instax"; |
  * @mutate scripts/giftGuideRules.mjs | export const NO_SHOW_FORMAT = /\.(avif\|heif\|heic)(\?\|$)\|[?&](fmt\|format)=avif\b/i; | export const NO_SHOW_FORMAT = /^$/;
  */
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ANGLING, NEW_MOM_CARE, NOT_A_GIFT_ITEM, WOMEN_GUIDES, brokenImage, collectionLink, fitsGuide, mensItem, nonUsUrl, placeholderName } from "../../scripts/giftGuideRules.mjs";
+import { ANGLING, NEW_MOM_CARE, NOT_A_GIFT_ITEM, WOMEN_GUIDES, brokenImage, collectionLink, fitsGuide, INSTAX_OFF, instaxItem, mensItem, nonUsUrl, placeholderName } from "../../scripts/giftGuideRules.mjs";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; href: string; image?: string };
@@ -81,6 +82,18 @@ describe("gift guides holistic fit (11-18)", () => {
     const her = CHUNKS["her"] ?? [];
     expect(her.find((p) => p.name === "Soft Pinch Liquid Blush")?.href).toBe("https://go.shopmy.us/p-104050729");
     expect(her.find((p) => p.name === "Lip Sleeping Mask")?.href).toBe("https://go.shopmy.us/p-107575536");
+  });
+
+  it("no Instax camera on Dad, Him, Husband or Boyfriend, Grandpa or Father-in-Law (owner 11-19)", () => {
+    expect(INSTAX_OFF).toEqual(["dad", "him", "boyfriend-or-husband", "grandpa", "father-in-law"]);
+    expect(instaxItem({ name: "FUJIFILM INSTAX MINI 12 Instant Film Camera" })).toBe(true);
+    expect(instaxItem({ name: "Mini 12 Instant Camera", brand: "Instax" })).toBe(true);
+    expect(instaxItem({ name: "Kindle Paperwhite 16GB" })).toBe(false);
+    for (const g of INSTAX_OFF) expect(CHUNKS[g]?.length ?? 0, g).toBeGreaterThan(20);
+    const bad = INSTAX_OFF.flatMap((g) => (CHUNKS[g] ?? []).filter(instaxItem).map((p) => `${g}: ${p.name}`));
+    expect(bad).toEqual([]);
+    // Photographer keeps its cameras.
+    expect((CHUNKS["photographer"] ?? []).some(instaxItem)).toBe(true);
   });
 
   it("no AVIF or HEIF photo (not every browser shows one)", () => {

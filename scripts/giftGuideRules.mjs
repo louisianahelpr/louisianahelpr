@@ -207,6 +207,9 @@ export const PET_ITEM = /\b(catnip|litter ?(box|robot)?|barkbox|meowbox|kitty ki
  * .com.au, .ca, a /uk/, /en-gb/, /en-au/ or /en-ca/ path, "spacenk.com/uk").
  */
 export const nonUsUrl = (s) => /(\.co\.uk|\.com\.au|\.ca)(\/|\?|#|$)|\/(uk|en-gb|en-au|en-ca)(\/|$)|\.uk$/i.test(String(s ?? "").trim());
+/** No Instax camera on the men's family guides, at any position (owner 11-19: "Why would a dad want an instax"). */
+export const INSTAX_OFF = ["dad", "him", "boyfriend-or-husband", "grandpa", "father-in-law"];
+export const instaxItem = (p) => /\binstax\b/i.test(`${p.name ?? ""} ${p.brand ?? ""}`);
 export const WOMEN_GUIDES = ["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma"];
 export const mensItem = (p) => {
   const name = String(p.name ?? "");

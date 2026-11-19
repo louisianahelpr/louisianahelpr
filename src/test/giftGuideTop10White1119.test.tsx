@@ -13,7 +13,6 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | onLoad={(e) => { if (photoFailed(e.currentTarget)) setFailed(true); }} | onLoad={() => undefined}
  * @mutate scripts/giftGuideRules.mjs |   if (decorOff(slug, p) \|\| foodOff(slug, p) \|\| | if (decorOff(slug, p) \|\|
  * @mutate scripts/giftGuideRules.mjs |   if (OLD_YEAR_BARE.test(n)) return ""; |   if (false) return "";
- * @mutate scripts/giftGuideRules.mjs |   "Ying Mart", "YingMart", | "YingMart",
  * @mutate scripts/giftGuideRules.mjs | export const drugstoreOff = (slug, p) => !slug.startsWith("store-") && | export const drugstoreOff = (slug, p) => false &&
  * @mutate scripts/giftGuideBlocklist.mjs |   "Ying Mart", "YingMart", "Brooklyn Delhi", | "YingMart",
  */

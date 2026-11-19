@@ -45,7 +45,7 @@ const rowBadges = (root: HTMLElement) =>
   [...root.querySelectorAll("[data-gift-list] > li[data-gift-pick]")].map((li) => [...li.querySelectorAll("[data-gift-badge]")].map((b) => b.textContent));
 
 describe("gift guides: Trending on the first three picks", () => {
-  it.each(["mom", "dad", "under-25"])("%s: picks 1-3 wear one Trending pill, pick 4 on never does", (slug) => {
+  it.each(["mom", "dad", "her"])("%s: picks 1-3 wear one Trending pill, pick 4 on never does", (slug) => {
     expect(guideBySlug(slug)!.picks.length).toBeGreaterThan(5);
     const { container } = renderAt(`/gift-guides/${slug}`);
     const rows = rowBadges(container);

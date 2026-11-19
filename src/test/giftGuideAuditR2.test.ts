@@ -70,7 +70,7 @@ describe("design audit r2: names are products", () => {
     expect(productName("2027 Dreambook + Planner", ["Erin Condren"], "erincondren")).toBe("2027 Dreambook + Planner");
   });
   it("no generated pick (outside Louisiana shops and sponsors) is a page title, a promo, or just its brand", () => {
-    expect(all.length).toBeGreaterThan(5000);
+    expect(all.length).toBeGreaterThan(3000); // one guide per product (owner 11-19)
     const bad = all.filter(({ p }) => !local(p) && !p.sponsor && (/\s\|\s?|\s?\|\s/.test(p.name) || PROMO_NAME.test(p.name) || (p.brand && p.brand.toLowerCase() === p.name.toLowerCase())));
     expect(bad.map(({ slug, p }) => `${slug}: ${p.name}`).slice(0, 10)).toEqual([]);
   });
@@ -242,7 +242,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
   it("renames page-title rows to the plain product (Atlas \"Corporate\" gifts, the SharkNinja category rows) and keeps the face mask out of Dad and Home Cook", () => {
     // @mutate scripts/gift-guide-picks.mjs |   const rawName = RENAMED[p.href] ?? RENAMED[p.affiliate_href] ?? ( |   const rawName = (
     const all = pages.flatMap((f) => pageOf(f.replace(/\.json$/, "")).map((p) => p.name));
-    expect(all.length).toBeGreaterThan(5000);
+    expect(all.length).toBeGreaterThan(3000); // one guide per product (owner 11-19)
     for (const bad of [/Email Gift.*Corporate/, /Crispier Cooking/, /Skincare Routine Tools/]) expect(all.some((n) => bad.test(n)), String(bad)).toBe(false);
     expect(all).toContain("Ninja Air Fryer");
     expect(all).toContain("12-Month Coffee Club Gift Subscription");
@@ -260,7 +260,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
       rows += 1;
       if (!allowed.has(p.name) && f !== "25-days-sponsors.json") expect(p.image, `${f}: ${p.name}`).toBeTruthy();
     }
-    expect(rows).toBeGreaterThan(5000);
+    expect(rows).toBeGreaterThan(3000); // one guide per product (owner 11-19)
   });
   // Owner 11-19 retired the 25-pick floor: fit beats count ("she'd rather a guide have 18 great items than 25 with
   // filler", 2026-11-19). A guide keeps at least one pick; the ones under 12 are logged for research (giftGuideBelong1119).
@@ -273,7 +273,8 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(pageOf("subscriptions").length).toBeGreaterThan(5); // one guide per product (owner 11-19)
     const guides = pages.map((f) => f.replace(/\.json$/, "")).filter((s) => !s.startsWith("store-") && !["gift-cards", "subscriptions"].includes(s));
     expect(guides.length).toBeGreaterThan(150);
-    for (const g of guides) expect(pageOf(g).length, g).toBeGreaterThanOrEqual(1);
+    // One guide per product (owner 11-19): a guide may end with none; under 6 it is hidden (giftGuideCatalog GUIDE_MIN_PICKS).
+    expect(guides.filter((g) => pageOf(g).length >= 6).length).toBeGreaterThan(80);
   });
   it("no photo shows on two brands' rows, and no ShopMy collection row borrows a photo by its shared link (wrong-photo fix 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs |     for (const g of groups) if (g !== owner) for (const r of g) clear.add(r); |     void owner;
@@ -315,7 +316,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
         expect(isLouisianaItem(p, hosts), `${slug}: ${p.name} (${p.brand})`).toBe(false);
       }
     }
-    expect(checked).toBeGreaterThan(5000);
+    expect(checked).toBeGreaterThan(3000); // one guide per product (owner 11-19)
   });
   it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]
@@ -332,7 +333,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     const order = ["Walmart+ membership", "Sam's Club Plus Membership", "Sam's Club Membership", "Gift Prime (3-month gift membership)",
       "Gift an Audible membership (1, 3, 6 or 12 months)", "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"];
     const kept = order.filter((n) => names.includes(n));
-    expect(kept.length).toBeGreaterThan(2);
+    expect(kept.length).toBeGreaterThan(1);
     expect(names.slice(0, kept.length)).toEqual(kept);
     expect(names.some((n) => /stanley|tumbler|airpods/i.test(n))).toBe(false);
     // Owner 11-18 PM: no free trials on Subscriptions.

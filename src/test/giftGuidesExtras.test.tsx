@@ -143,7 +143,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     // Two links per pick, both to the shop: the row (photo and name) and its visible Shop pill (holistic review 11-18
     // H4); the count follows the data (_featured-order.json grows the list).
     expect(out.length).toBe(2 * guideBySlug("louisiana-made")!.picks.length);
-    expect(out.length).toBeGreaterThan(20);
+    expect(out.length).toBeGreaterThan(10); // one guide per product (owner 11-19)
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");
   });
   it("loads the price-verified budget guides like the others (lead 2026-11-18: the hold is released)", () => {
@@ -178,7 +178,7 @@ describe("gift guides: the search in the tool row filters guides by title and gr
   it("matches titles and group names, case- and accent-blind; empty words match nothing", () => {
     expect(searchGuides("")).toEqual([]);
     expect(searchGuides("   ")).toEqual([]);
-    expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"]));
+    expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"].filter((s) => guideBySlug(s) && !guideBySlug(s)!.empty)));
     // By group: "by budget" finds every guide in that row, even ones whose title lacks the word (Gift Cards, Subscriptions).
     const holding = ["gift-cards", "subscriptions", "stocking-stuffers"].filter((x) => !guideBySlug(x)?.empty);
     expect(holding.length).toBeGreaterThan(0);

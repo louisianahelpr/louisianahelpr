@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -371,7 +371,7 @@ function toPick(p, where) {
     && (!amazonFound || (new URL(found).hostname === "m.media-amazon.com" && (AMAZON.has(host) || AMAZON.has(plainHost)))) ? found : undefined);
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);
-  const brand = BRAND_CASE[compact(p.brand ?? "")] ?? p.brand ?? "";
+  const brand = BRAND_CASE[compact(p.brand ?? "")] ?? BRAND_NAME[compact(p.brand ?? "")] ?? (p.brand || brandFromName(name));
   const louisianaFit = p.louisianaFit && ![p.brand, p.store, p.retailer].some((x) => typeof x === "string" && NOT_LOUISIANA_BUSINESS.test(x.trim()));
   return {
     name, brand, line: stockLine(p.line) ? "" : (p.line ?? ""), href,
@@ -1547,11 +1547,15 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     // (a Louisiana business or a sponsor keeps its plain homepage link on purpose).
     if (bannedLink(p.href)) return `banned link: ${bannedLink(p.href)}`;
     if (homepageLink(p.href) && !HOMEPAGE_OK.has(new URL(p.href).hostname)) return "homepage link";
-    if (NOT_A_GIFT_ITEM.test(p.name) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))) return "medical or personal care";
+    if (NOT_A_GIFT_ITEM.test(`${p.name} ${p.brand ?? ""}`) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))) return "medical or personal care";
     if (slug.startsWith("store-")) return "";
+    // Fit audit r3b (lead 11-19): utility personal care only on New Mom; giftable beauty only where it fits.
+    if (utilityCare(p) && slug !== "new-mom") return "utility personal care";
+    if (beautyItem(p) && !beautyGuide(slug)) return "beauty outside its guides";
+    if (NEUTRAL_GUIDES.includes(slug) && ONE_GENDER.test(p.name)) return "gendered";
     if (PET_ONLY[slug] && !PET_ONLY[slug](p) && !PETS_FILL.get(slug)?.has(p.href)) return "not for this pet";
     if (PET_ITEM.test(p.name) && !PET_OK.has(slug)) return "pet item outside Pets";
-    if (WORK_BOOT_OFF.includes(slug) && (WORK_BOOT.test(p.name) || /^muck boot$/i.test(p.brand ?? ""))) return "work boot";
+    if (WORK_BOOT_OFF.includes(slug) && (WORK_BOOT.test(p.name) || DECK_BOOT.test(`${p.name} ${p.brand ?? ""}`) || /^muck boot$/i.test(p.brand ?? ""))) return "work boot";
     if (WOMEN_GUIDES.includes(slug) && mensItem(p)) return "men's item";
     if (INSTAX_OFF.includes(slug) && instaxItem(p)) return "instax";
     if (slug === "gender-neutral-teens" && GENDERED.test(p.name)) return "gendered";
@@ -1574,16 +1578,20 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
   const keep = (slug, list, count = true) => {
     const out = [];
     const perBrand = new Map();
+    const once = new Set();
     let beauty = 0;
     for (const p of list) {
       let r = why(slug, p);
-      const b = squash(p.brand);
+      const b = brandKey(p.brand);
+      const o = slug.startsWith("store-") ? -1 : onceKey(p);
+      if (!r && o >= 0 && once.has(o)) r = "near twin";
       if (!r && capped(slug) && b && !GENERIC_BRAND.test(p.brand ?? "") && (perBrand.get(b) ?? 0) >= BRAND_CAP) r = "brand cap";
       if (!r && slug === "gender-neutral-teens" && BEAUTY.test(p.name) && beauty >= BEAUTY_CAP) r = "beauty cap";
       if (r && !count) continue;
       if (r && process.env.GIFT_PICKS_VERBOSE) console.error(`HOLISTIC ${slug}: ${r}: ${p.name}`);
       if (r) { holistic.removed += 1; holistic.byRule[r] = (holistic.byRule[r] ?? 0) + 1; continue; }
       if (b) perBrand.set(b, (perBrand.get(b) ?? 0) + 1);
+      if (o >= 0) once.add(o);
       if (slug === "gender-neutral-teens" && BEAUTY.test(p.name)) beauty += 1;
       out.push(p);
     }
@@ -1602,6 +1610,23 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     })));
     if (kept.length) pageList[slug] = noRepeats(kept);
     else delete pageList[slug];
+  }
+  // One beauty product on at most BEAUTY_GUIDE_MAX guides (fit audit r3b: LANEIGE's lip mask was on 14), the people
+  // guides keeping it first (beautyRank).
+  const beautyOn = new Map();
+  for (const slug of Object.keys(pageList).filter((s) => !s.startsWith("store-") && s !== SPONSORS_GUIDE).sort((a, b) => beautyRank(a) - beautyRank(b) || a.localeCompare(b))) {
+    pageList[slug] = pageList[slug].filter((p) => {
+      if (!beautyItem(p)) return true;
+      // The product, not its spelling: "LANEIGE Lip Sleeping Mask" and "Lip Sleeping Mask" are one.
+      const brandWords = dedupeKey(p.brand ?? "");
+      const name = dedupeKey(p.name);
+      const k = `${brandKey(p.brand)}|${brandWords && name.startsWith(`${brandWords} `) ? name.slice(brandWords.length + 1) : name}`;
+      const n = beautyOn.get(k) ?? 0;
+      if (n >= BEAUTY_GUIDE_MAX) { holistic.removed += 1; holistic.byRule["beauty on 6 guides"] = (holistic.byRule["beauty on 6 guides"] ?? 0) + 1; return false; }
+      beautyOn.set(k, n + 1);
+      return true;
+    });
+    if (!pageList[slug].length) delete pageList[slug];
   }
   for (const [slug, list] of Object.entries(pageList)) {
     // No top-up from peer guides (owner 11-19: fit beats count; a short guide is listed in belong.short for research).
@@ -1630,7 +1655,8 @@ for (const slug of Object.keys(pageList)) {
     if (isXtratuf(p) && out.length < TOP_GIFTS && boots >= (out.length < FEATURED_TOP ? 1 : 2)) held.push(p);
     else out.push(p);
   }
-  pageList[slug] = out.length >= TOP_GIFTS ? [...out.slice(0, TOP_GIFTS), ...held, ...out.slice(TOP_GIFTS)] : [...out, ...held];
+  // A guide of 25 or fewer has no place past its top 25 for a held boot: it leaves (fit audit r3b removals made Boater 25).
+  pageList[slug] = out.length >= TOP_GIFTS ? [...out.slice(0, TOP_GIFTS), ...held, ...out.slice(TOP_GIFTS)] : out;
 }
 const pageRepeats = repeatsRemoved;
 /** A store page's deal items never repeat its picks or each other (live audit r3 #1: Xbox, AirPods, KitchenAid twice on Walmart). */

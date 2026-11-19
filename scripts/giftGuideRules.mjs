@@ -297,16 +297,38 @@ export const fillerGuide = (slug, group) => ["By career", "Hobbies", "Colors"].i
  * Items that do not fit one guide (gift guides r3 audit, 11-19): a Kindle is no New Puppy gift, a ~$45 Stanley
  * Quencher does not fit a stocking, and the Hot Wheels 20-pack is a kids' toy, not a Car Lover gift.
  */
+const MENS_GUIDES = ["dad", "him", "boyfriend-or-husband", "grandpa", "father-in-law", "brother", "brother-in-law", "uncle"];
 export const GUIDE_OFF = {
-  "new-puppy": /\bkindle\b|airpods/i,
-  "stocking-stuffers": /\bquencher\b/i,
+  "new-puppy": /\bkindle\b|airpods|\bquencher\b/i,
+  "stocking-stuffers": /\bquencher\b|\bgodiva (gold gift box|masterpiece)|\bpajamas?\b|\bowala\b/i,
   "car-lover": /hot wheels/i,
+  // Fit audit r3b (11-19): a men's guide holds no bracelet advent calendar, massage chair or unnamed snow-globe ornament.
+  ...Object.fromEntries(MENS_GUIDES.map((g) => [g, /\badvent calendar\b.*\bpura vida\b|\bpura vida\b.*\badvent\b|massage chair|snow globe ornament/i])),
+  // ... and the coffee guides no sticker pack or can cooler.
+  "coffee-lover": /\bsticker pack\b|frost buddy|\bcan (cooler|insulator)\b/i,
+  dad: /\badvent calendar\b.*\bpura vida\b|\bpura vida\b.*\badvent\b|massage chair|snow globe ornament|\bsticker pack\b/i,
+  hunters: /\bsticker pack\b/i,
+  coworkers: /\bsticker pack\b|\bair fryer\b|candy cane ornaments/i,
+  "mail-carrier-and-delivery-drivers": /\bthank[- ]you cards?\b/i,
+  "girls-teens": /\bdiamond\b|\bcarat\b|under-?eye|\bcorrector\b/i,
+  ...Object.fromEntries(["boys", "boys-big-kids", "boys-little-kids", "boys-teens"].map((g) => [g, /hello kitty/i])),
+  girls: /\bstanley\b|\biceflow\b/i,
+  "girls-big-kids": /\bquencher\b|\bhatch restore\b/i,
+  "gender-neutral-big-kids": /\bquencher\b/i,
+  "cat-person": /squishmallow/i,
+  grandma: /fire department coffee|black rifle|\b144 cups\b/i,
+  "white-elephant": /\bember mug\b|\beverywhere belt bag\b|\bbombas\b|\bcozychic\b/i,
 };
 export const belongsWhy = (slug, group, p, seen = { tumblers: 0 }, researched = false) => {
   const name = String(p.name ?? "");
   const text = `${name} ${p.brand ?? ""}`;
   if (NOWHERE.test(text)) return "bartesian or cooking light";
   if (GUIDE_OFF[slug]?.test(text)) return "does not fit this guide";
+  if (EMPTY_PACKAGING.test(name)) return "empty packaging";
+  if (slug === "new-puppy") {
+    if (!PUPPY_ITEM.test(name)) return "not a puppy item";
+    if (OWNER_MERCH.test(name) && (seen.ownerMerch = (seen.ownerMerch ?? 0) + 1) > 1) return "second dog-mom item";
+  }
   if (PLACEHOLDER_PRODUCT.test(name.trim())) return "placeholder";
   if (E_GIFT.test(name) && slug !== "gift-cards" && !EXPERIENCE_GUIDES.includes(slug)) return "egift card";
   if ((slug === "boater" || slug === "kayaker") && ANGLING.test(name)) return "fishing gear";
@@ -547,3 +569,61 @@ export const homepageLink = (href) => {
   if (!u) return false;
   return /^\/((en|us|en-us|en_us|us\/en|en\/us)\/?)?$/i.test(u.pathname) && !/[?&](variant|sku|pid|product|id)=/i.test(u.search);
 };
+
+/**
+ * FIT AUDIT R3B (2026-11-19, ~/.lh-shots/design-audit-loop/gg-r3-fit; lead's calls on its open questions, 11-19).
+ * - brandKey: one brand under its spellings before the brand cap (BRAND_CAP, 3 a guide): "Darn Tough Vermont" is Darn
+ *   Tough, "Sperry US" Sperry, "Melissa and Doug" Melissa & Doug, Ninja and Shark one company (SharkNinja). BRAND_NAME
+ *   gives the shown name the same spelling.
+ * - UTILITY_CARE: utility or medical personal care (Aquaphor, ointments, acne, period products, plain drugstore lip balm,
+ *   hand cream packs as filler, sheet masks, shampoo, sunscreen, deodorant, a hair trimmer) is no gift: out of every
+ *   guide except New Mom.
+ * - BEAUTY_ITEM: giftable beauty (makeup, perfume, LANEIGE, Sol de Janeiro, skincare, gift sets) stays, but only on the
+ *   guides it fits (beautyGuide: Her, Mom, Wife, Girlfriend, Sister, Aunt, Grandma, Best Friend, Girls Teens, the budget
+ *   guides, Stocking Stuffers, Self-Care and the beauty careers), and one beauty product on at most BEAUTY_GUIDE_MAX guides.
+ * - ONCE_PER_GUIDE: near-twins a guide lists once (the 1.5 qt Legendary bottle under two names, two 8-qt DualZone air
+ *   fryers, two LED face masks, the same Literie scent as a candle and a little candle, two Water Wow sets, the 2-Eye
+ *   boat shoe twice).
+ * - NEUTRAL_GUIDES drop women's- and men's-only items (Cousins, Coworkers, Secret Santa, White Elephant, Gender-Neutral
+ *   Teens); empty gift baskets are no gift anywhere; XTRATUF deck boots are work boots (out of Mom, Her and Wife).
+ * - NEW PUPPY (r3 follow-up: the backfill put a Stanley Quencher in it): only puppy, dog and new-pet-owner items, and
+ *   at most one "dog mom" owner item.
+ */
+export const BRAND_ALIASES = { darntoughvermont: "darntough", sperryus: "sperry", sperrytopsider: "sperry", melissadoug: "melissaanddoug", ninja: "sharkninja", shark: "sharkninja", sharkbeauty: "sharkninja", stanley1913: "stanley" };
+export const brandKey = (brand) => {
+  const c = compact(brand);
+  return BRAND_ALIASES[c] ?? c;
+};
+export const BRAND_NAME = { darntoughvermont: "Darn Tough", sperryus: "Sperry", melissaanddoug: "Melissa & Doug", melissadoug: "Melissa & Doug" };
+/** Brands a Walmart research row leaves blank, read off the front of its name (Mail Carrier fill, fit audit r3b). */
+export const NAME_BRANDS = ["Burt's Bees", "Jolly Rancher", "Ozark Trail", "Frito-Lay", "HotHands", "Ghirardelli", "Hallmark", "BUTKLNYTS", "Dalrosia", "KOITHOT", "NevEND", "George", "HOTOR", "OZERO", "Zacro", "totes", "onn.", "RTIC", "TAL"];
+export const brandFromName = (name) => NAME_BRANDS.find((b) => String(name ?? "").startsWith(`${b} `)) ?? "";
+const PLAIN_LIP_BRAND = /\b(eos|burt'?s bees|chapstick|carmex|vaseline|jolly rancher|blistex|nivea|vitamasques|aquaphor)\b/i;
+const GIFT_HAND_CREAM = /l'?occitane|sol de janeiro|brazilian touch|aesop|crabtree|jo malone|kiehl/i;
+export const UTILITY_CARE = /\b(aquaphor|ointments?|acne|pimples?|period (underwear|bikini|panty|panties|pouch)|menstrual|tampons?|maxi pads?|panty liners?|sheet masks?|shampoo|conditioner|sunscreen|spf ?\d+|deodorant|trimmer)\b/i;
+export const utilityCare = (p) => {
+  const text = `${p.name ?? ""} ${p.brand ?? ""}`;
+  if (UTILITY_CARE.test(text) || /^eos$/i.test(String(p.brand ?? "").trim())) return true;
+  if (/\blip\b/i.test(p.name ?? "") && PLAIN_LIP_BRAND.test(text)) return true;
+  if (/\be\.?l\.?f\.?\b/i.test(text) && /\blip balm\b/i.test(p.name ?? "")) return true;
+  return /\bhand (cream|balm|lotion)s?\b/i.test(p.name ?? "") && !GIFT_HAND_CREAM.test(text);
+};
+export const BEAUTY_ITEM = /\b(lip (sleeping )?mask|lip (oil|gloss|serum|tint|butter|glaze|balm|treatment|liner|stain|plumper|shimmer)s?|lipsticks?|mascara|bronzer|eyeshadow|eye ?liner|concealer|undereye|corrector|makeup|perfume|eau de (parfum|toilette)|body mist|fragrance mist|perfume mist|serums?|moisturi[sz]er|eye cream|face cream|skin cream|night cream|lotion\+|cleanser|exfoliat\w*|face scrub|sleeping mask|bum bum|body butter|body cream|hand (cream|balm)|hair oil|hair milk|dew drops|nail polish|bath bombs?|skin ?care)\b/i;
+export const BEAUTY_BRAND = /\b(laneige|sol de janeiro|cheirosa|glow recipe|mario badescu|clinique|tatcha|summer fridays|glossier|rare beauty|charlotte tilbury|e\.l\.f\.|maybelline|tarte|mac cosmetics|fenty|drunk elephant|bubble skincare|kiehl'?s)\b/i;
+export const beautyItem = (p) => BEAUTY_ITEM.test(p.name ?? "") || BEAUTY_BRAND.test(`${p.name ?? ""} ${p.brand ?? ""}`);
+export const BEAUTY_GUIDES = ["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma", "best-friend", "girls-teens", "stocking-stuffers", "self-care-lover"];
+export const BEAUTY_BUDGET = /^(under-\d+|100-and-up)$/;
+export const BEAUTY_CAREER = /^(nail-techs|estheticians|cosmetologists|hairstylists|hair-stylists|makeup-artists|salon-owners)$/;
+export const beautyGuide = (slug) => slug.startsWith("store-") || BEAUTY_GUIDES.includes(slug) || BEAUTY_BUDGET.test(slug) || BEAUTY_CAREER.test(slug);
+/** Beauty guides in the order they keep a capped beauty product (the people guides first, then budget and the rest). */
+export const beautyRank = (slug) => (BEAUTY_GUIDES.includes(slug) ? BEAUTY_GUIDES.indexOf(slug) : BEAUTY_BUDGET.test(slug) ? 50 + Number(slug.replace(/\D/g, "") || 999) / 1000 : 100);
+export const BEAUTY_GUIDE_MAX = 6;
+export const ONCE_PER_GUIDE = [/\blegendary (vacuum )?bottle\b/i, /\bdual ?zone\b.*\bair fryer\b|\bair fryer\b.*\bdual ?zone\b/i,
+  /\bled\b.*\b(face )?mask\b/i, /\bafternoon in central park\b.*\bcandle\b/i, /\bweekend in new england\b.*\bcandle\b/i, /\bwater ?wow\b/i, /\b2-eye boat shoe\b/i];
+export const onceKey = (p) => ONCE_PER_GUIDE.findIndex((rx) => rx.test(p.name ?? ""));
+export const NEUTRAL_GUIDES = ["gender-neutral-teens", "cousins", "coworkers", "secret-santa", "white-elephant"];
+export const ONE_GENDER = /\b(women'?s|womens|ladies|men'?s|mens|for (wo)?men)\b/i;
+export const EMPTY_PACKAGING = /\bgift baskets?\b.*\b\d+ ?(pack|pcs|count)\b|\bempty gift baskets?\b/i;
+export const DECK_BOOT = /\bxtratuf\b|\bdeck boots?\b/i;
+export const PUPPY_ITEM = /\b(dogs?|pupp(y|ies)|pups?|pets?|paws?|canine|k-?9|leash(es)?|harness(es)?|collars?|crates?|kennels?|carriers?|chews?|treats?|lick mats?|poop bags?|potty|woof\w*|bark\w*)\b/i;
+export const OWNER_MERCH = /\bdog (mom|dad|mama|parent)\b/i;

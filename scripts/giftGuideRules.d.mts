@@ -32,6 +32,8 @@ export const NO_SHOW_FORMAT: RegExp;
 export const NOT_A_GIFT_ITEM: RegExp;
 export const NEW_MOM_CARE: RegExp;
 export const PET_ITEM: RegExp;
+export const WOMEN_GUIDES: string[];
+export function mensItem(p: { name?: string; brand?: string; image?: string }): boolean;
 export const WORK_BOOT_OFF: string[];
 export const WORK_BOOT: RegExp;
 export const ANGLING: RegExp;

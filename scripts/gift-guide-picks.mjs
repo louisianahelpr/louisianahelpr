@@ -27,7 +27,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
 
 const dir = process.argv[2] ?? join(homedir(), "Desktop", "Gift-guide-picks");
 const out = new URL("../src/content/giftGuidePicks.ts", import.meta.url);
@@ -1170,7 +1170,8 @@ export const sameVariant = (from, to) => {
 /**
  * HOLISTIC FIT (design review 11-18, gg-holistic-1118/FINDINGS.md H2, H3, M1, M5), on every page's final list:
  * every page drops collection/shop links, placeholder names, medical and personal-care items and MISMATCHED_LINKS;
- * guides (store pages aside) also drop pet items outside the Pets guides, work boots on Mom/Her/Wife, a brand's 4th
+ * guides (store pages aside) also drop pet items outside the Pets guides, work boots on Mom/Her/Wife, men's items on
+ * the WOMEN_GUIDES (mensItem, batch 11-19), a brand's 4th
  * and later picks (BRAND_CAP; Louisiana guides, Gift cards and Subscriptions aside), gendered picks on Gender-Neutral
  * Teens (and its beauty picks past BEAUTY_CAP), and checked prices over $30 on Secret Santa and White Elephant. A guide
  * that falls under TOP_GIFTS borrows fitting picks from its own section, under the same rules.
@@ -1210,6 +1211,7 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return "not for this pet";
     if (PET_ITEM.test(p.name) && !PET_OK.has(slug)) return "pet item outside Pets";
     if (WORK_BOOT_OFF.includes(slug) && (WORK_BOOT.test(p.name) || /^muck boot$/i.test(p.brand ?? ""))) return "work boot";
+    if (WOMEN_GUIDES.includes(slug) && mensItem(p)) return "men's item";
     if (slug === "gender-neutral-teens" && GENDERED.test(p.name)) return "gendered";
     if (PRICE_CAP[slug] && typeof p.price === "number" && p.price > PRICE_CAP[slug]) return "over budget";
     return "";

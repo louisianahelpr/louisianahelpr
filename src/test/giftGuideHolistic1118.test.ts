@@ -5,13 +5,15 @@
  * @mutate scripts/giftGuideRules.mjs |   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false; |
  * @mutate scripts/giftGuideRules.mjs |     return /\/collections\//i.test(u.pathname) \|\| /\/shop\/?$/i.test(u.pathname); |     return false;
  * @mutate scripts/giftGuideRules.mjs | export const placeholderName = (p) => /^All\s+(\w+\s){0,2}\w+s$/.test(String(p.name ?? "").trim()) | export const placeholderName = (p) => false
+ * @mutate scripts/giftGuideRules.mjs |   if (/^huk$/i.test(String(p.brand ?? "").trim())) return true; |
+ * @mutate scripts/gift-guide-picks.mjs |     if (WOMEN_GUIDES.includes(slug) && mensItem(p)) return "men's item"; |
  * @mutate scripts/giftGuideRules.mjs | export const NO_SHOW_FORMAT = /\.(avif\|heif\|heic)(\?\|$)\|[?&](fmt\|format)=avif\b/i; | export const NO_SHOW_FORMAT = /^$/;
  */
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ANGLING, NEW_MOM_CARE, NOT_A_GIFT_ITEM, brokenImage, collectionLink, fitsGuide, placeholderName } from "../../scripts/giftGuideRules.mjs";
+import { ANGLING, NEW_MOM_CARE, NOT_A_GIFT_ITEM, WOMEN_GUIDES, brokenImage, collectionLink, fitsGuide, mensItem, placeholderName } from "../../scripts/giftGuideRules.mjs";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; href: string; image?: string };
@@ -47,6 +49,22 @@ describe("gift guides holistic fit (11-18)", () => {
   it("no medical or personal-care item is listed as a gift (New Mom keeps pump and nipple care)", () => {
     for (const name of ["Period Bikini, 2 Pack", "Drying Lotion", "Aquaphor Healing Ointment", "Hero Mighty Patch Acne Pimple Patches"]) expect(NOT_A_GIFT_ITEM.test(name), name).toBe(true);
     const bad = Object.entries(CHUNKS).flatMap(([slug, l]) => l.filter((p) => NOT_A_GIFT_ITEM.test(p.name) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))).map((p) => `${slug}: ${p.name}`));
+    expect(bad).toEqual([]);
+  });
+
+  it("no men's item on Her, Mom, Wife, Girlfriend, Sister, Aunt or Grandma, at any position (batch 11-19)", () => {
+    expect(WOMEN_GUIDES).toEqual(["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma"]);
+    const sperryMens = "https://www.sperry.com/cdn/shop/files/product_13934343_ao_202_20eye_mm_multi_203-001-043_main_sq_wt.jpg";
+    expect(mensItem({ name: "Authentic Original 2-Eye Boat Shoe", brand: "Sperry US", image: sperryMens })).toBe(true);
+    expect(mensItem({ name: "Angelfish 1 Eye Boat Shoe", brand: "Sperry US", image: sperryMens.replace("_mm_", "_wm_") })).toBe(false);
+    expect(mensItem({ name: "A1A Pro Long Sleeve Crew", brand: "Huk" })).toBe(true);
+    expect(mensItem({ name: "Huk Women's Pursuit Hoodie", brand: "Huk" })).toBe(false);
+    expect(mensItem({ name: "Carhartt Men's Loose Fit Flannel Shirt", brand: "Carhartt" })).toBe(true);
+    expect(mensItem({ name: "Women's Ankle Deck Boot", brand: "XTRATUF" })).toBe(false);
+    for (const g of WOMEN_GUIDES) expect(CHUNKS[g]?.length ?? 0, g).toBeGreaterThan(20);
+    // The rows the review named (Her 11-19: two Huk shirts, the men's Sperry Authentic Original and Billfish).
+    const named = new Set(["https://mavely.app.link/CUXXsAGUa8b", "https://mavely.app.link/H1gCiuGUa8b", "https://mavely.app.link/LPJLdGGUa8b", "https://mavely.app.link/bjXOnPBUa8b", "https://mavely.app.link/WUUrDKBUa8b", "https://mavely.app.link/OsRr4FBUa8b", "https://mavely.app.link/bJ14lBBUa8b", "https://mavely.app.link/QEjVswBUa8b"]);
+    const bad = WOMEN_GUIDES.flatMap((g) => (CHUNKS[g] ?? []).filter((p) => mensItem(p) || named.has(p.href)).map((p) => `${g}: ${p.name} ${p.href}`));
     expect(bad).toEqual([]);
   });
 

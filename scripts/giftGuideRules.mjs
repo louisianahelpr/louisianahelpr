@@ -187,6 +187,7 @@ export const NO_SHOW_FORMAT = /\.(avif|heif|heic)(\?|$)|[?&](fmt|format)=avif\b/
  *   nipple care stay on New Mom only.
  * - PET_ITEM: pet supplies show only in the Pets guides (and Vets), never in people or budget guides.
  * - WORK_BOOT: no work or chore boots on Mom, Her or Wife.
+ * - mensItem: no men's items on the WOMEN_GUIDES.
  * - placeholderName: a name that is a category, not a product ("All Blenders", "Sterling Silver Rings", "Trail
  *   Camera", "Outerwear"): "All <plural>", or no brand with at most three words and no model number.
  * - collectionLink: a link to a collection or shop page, not a product (shopmy.us/collections, /collections/, /shop).
@@ -194,6 +195,20 @@ export const NO_SHOW_FORMAT = /\.(avif|heif|heic)(\?|$)|[?&](fmt|format)=avif\b/
 export const NOT_A_GIFT_ITEM = /\b(period (underwear|bikini|panty|panties|pouch|briefs?)|menstrual|tampons?|maxi pads?|panty liners?|acne|pimple|drying lotion|aquaphor|breast ?pump|nipple|lanolin|enable shampoo|accessible shampoo|net (bath )?sponges?|bath net|incontinence|hemorrhoid|diaper rash|stool softener|laxative)\b/i;
 export const NEW_MOM_CARE = /\b(breast ?pump|nipple|lanolin)\b/i;
 export const PET_ITEM = /\b(catnip|litter ?(box|robot)?|barkbox|meowbox|kitty kick|cat (tree|toys?|bed|harness|brush|scratcher|treats?|window|hammock|fountain|food)|dog (macarons?|treats?|toys?|bed|bowl|harness|leash|collar|brush|food|stocking|paw cleaner|puzzle)|pet (fountain|carrier|bed|hair|camera|treats?|toys?)|chew toys?|dental (dog|chews?))\b|\bfor (dogs|cats)\b/i;
+/**
+ * Men's items stay off the women's guides, at any position (batch 11-19: Her listed Huk shirts and a men's Sperry boat
+ * shoe). A pick is men's when its name says so ("Men's", "Mens", "for Men", "Boys'"), when it is Huk apparel with no
+ * women's word (Huk's H1... styles are its men's line), or when it is a Sperry shoe whose photo carries Sperry's men's
+ * style code (_mm_ / _ms_; its women's photos carry _wm_).
+ */
+export const WOMEN_GUIDES = ["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma"];
+export const mensItem = (p) => {
+  const name = String(p.name ?? "");
+  if (/\b(men'?s|mens|for men|boys'?)\b/i.test(name)) return true;
+  if (/\b(women'?s|womens|ladies)\b/i.test(name)) return false;
+  if (/^huk$/i.test(String(p.brand ?? "").trim())) return true;
+  return /\bsperry\b/i.test(`${p.brand ?? ""} ${name}`) && /_m[ms]_/i.test(String(p.image ?? ""));
+};
 export const WORK_BOOT_OFF = ["mom", "her", "wife"];
 export const WORK_BOOT = /\b(work boots?|chore (boots?|classic)|steel toe|muckster|wetland boot)\b|^muck boot$/i;
 /** Category names the review found standing in for a product (11-18 H3). */

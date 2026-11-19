@@ -1377,7 +1377,7 @@ export const PETS_FILL = new Map();
 export const BELONG_FILLS = ["_career-fill-A-1118.json", "_fill-B-1118.json", "_purple-gold-1118.json"];
 /**
  * NEW AFFILIATE APPROVALS (lead 11-19): _new-approvals-1119.json, [{ guide_slug, name, brand, href (the CJ or Awin link),
- * store_href (the product page), image, price, commission_pct, why_fits }], 74 rows from 16 newly approved brands
+ * store_href (the product page), image, price, commission_pct, why_fits }], 74 rows from 16 newly approved brands (counted 2026-11-19)
  * (reasons in ~/Desktop/New-approvals-fit-1119.md). In the belong pass, after the guide's fills, each row goes below the
  * guide's top 3 and its Trending picks and ahead of its first Amazon pick (newApprovalSlot); the holistic pass's brand
  * cap, beauty, Louisiana and link rules still apply after it. Each placed row also joins its brand's store page.

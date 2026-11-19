@@ -127,7 +127,7 @@ export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
-  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p)) return false;
+  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p) || masonOff(slug, p) || redoneOff(slug, p) || lashOff(slug, p) || veraBradleyOff(slug, p) || hikingOff(slug, p) || cheapSockOff(slug, p) || barwareOff(slug, p) || fashionSneakerOff(slug, p)) return false;
   // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
@@ -793,7 +793,7 @@ export const sperryOff = (slug, p) => {
  * or life-moment guides; its own store page stays.
  */
 export const LIFE_IS_GOOD = /\blife is good\b|^lig\b/i;
-export const lifeIsGoodOff = (slug, p) => DECOR_OFF_GROUPS.includes(GUIDE_GROUPS.get(slug))
+export const lifeIsGoodOff = (slug, p) => !slug.startsWith("store-")
   && (LIFE_IS_GOOD.test(String(p.brand ?? "")) || LIFE_IS_GOOD.test(p.name) || /lifeisgood\.com/i.test(String(p.href ?? "")));
 
 /**
@@ -819,7 +819,11 @@ export const outdoorDecorOff = (slug, p) => WOMEN_GUIDES.includes(slug)
 export const FOOD_NAME = /\b(cookies|brownies|blondies|cupcakes|cheesecakes?|pies|bundt cakes?|cake balls|layer cakes?|king cakes?|pound cakes?|rum cakes?|fruitcakes?|chocolates|chocolate bars?|truffles|bonbons|candy|candies|caramels|toffee|fudge|brittle|pralines|popcorn|pretzels|jerky|beef sticks|meat sticks|ice cream pints?|pints of ice cream|gelato|hot sauces?|bbq sauces?|barbecue sauces?|sauce (sets?|trio|collection|gift|variety)|sauces|seasonings?|spice (sets?|rubs?|kits?|blends?|collection|gift)|spices|rubs|snack (box(es)?|crates?|baskets?|packs?|bundles?|assortment)|snacks|mixed nuts|cashews|pecans|almonds|pistachios|charcuterie (box|gift|set|kit)|cheese (box|gifts?|sets?|assortment|sampler|board gift)|salami|steaks|filet mignon|beignet mix|coffee (sampler|gift set|variety pack|tasting)|tea (sampler|gift set|variety pack|tasting)|gift baskets?|fruit (baskets?|bouquets?|arrangements?|box(es)?)|chocolate[- ](covered|dipped)|dipped strawberries|meltaways|cookie (tin|box|dough)|macarons|biscotti|shortbread|petit fours|baklava|honey (sets?|gift|trio|sampler)|jam (sets?|gift|trio)|preserves (set|gift))\b/i;
 export const NOT_FOOD = /\b(maker|machine|popper|cutters?|stand|pan|plates?|molds?|mould|scoop|bowls?|grinder|mill|rack|organizer|book|cookbook|candle|lip|balm|scrub|lotion|soap|wax melt|scented|plush|squishmallow|toy|ornaments?|socks?|tee|shirt|pajamas?|hoodie|blanket|mug|tumbler|pillow|jar opener|spoon|tongs?|thermometer|smoker|grill|skillet|knife|dispenser|shaker|holder|container|storage|keychain|charm|earrings?|necklace|lego|puzzle|game|costume|sticker|print|sign|sauce ?pan|dish|(cutting|serving|charcuterie|cheese|bread|cork|vision|game|bulletin|ironing|surf|paddle|skate|dart|cribbage|chess) ?boards?|hats?|caps?|towels?|napkins?|pouch|flags?|zippy|candy land|spa|bath|gift ?cards?|e-?gift|dogs?|cats?|horses?|pets?|puppy|kitten|coffee(?! (sampler|gift set|variety pack|tasting)))\b/i;
 export const FOOD_BRAND = /^(david'?s cookies|edible arrangements|cheryl'?s( cookies)?|the popcorn factory|popcornopolis|mrs\.? fields|milk bar|levain( bakery)?|godiva|lindt|see'?s( candies)?|harry (&|and) david|ferrero( rocher)?|ghirardelli|russell stover|whitman'?s|lake champlain chocolates|vosges|compart[eé]s|neuhaus|leonidas|teuscher|la maison du chocolat|wolferman'?s|omaha steaks|ecreamery|jeni'?s( splendid ice creams)?|goldbelly|sugarfina|dylan'?s candy bar|insomnia cookies|crumbl|baked by melissa|tate'?s( bake shop)?|brooklyn delhi|fly by jing|truff|graza|haven'?s kitchen|olipop|poppi|carnegie deli|zingerman'?s|stonewall kitchen|hickory farms|figi'?s|swiss colony)$/i;
-export const isFood = (p) => FOOD_BRAND.test(String(p.brand ?? "").trim()) || ((FOOD_NAME.test(String(p.name ?? "")) || FOOD_TIN.test(String(p.name ?? "")) || CANDY_BOX.test(String(p.name ?? ""))) && !NOT_FOOD.test(String(p.name ?? "")));
+/** Owner 11-19 ("remove from mens", Maker Wine's Red Wine Mixed Pack): wine and alcohol samplers count as food and drink. */
+export const DRINK_NAME = /\b(red|white|ros[eé]|sparkling)? ?wines?\b[^,]*\b(mixed pack|packs?|sampler|gift sets?|box|club|flight|trio|bottles?)\b|\b(bourbon|whiske?y|vodka|tequila|mezcal|gin|champagne|prosecco|cocktail mixers?|craft beer|beer)\b[^,]*\b(sampler|gift sets?|mixed pack|flight|trio|box)\b/i;
+export const DRINK_NOT = /\b(openers?|glass(es)?|aerators?|chillers?|stoppers?|racks?|decanters?|tumblers?|coolers?|totes?|bags?|stones|socks?|shirts?|tees?)\b/i;
+export const DRINK_BRAND = /^(maker wine|maker|winc|firstleaf|vinebox|bright cellars|naked wines|wine access|flaviar|cocktail courier|saucey)$/i;
+export const isFood = (p) => DRINK_BRAND.test(String(p.brand ?? "").trim()) || (DRINK_NAME.test(String(p.name ?? "")) && !DRINK_NOT.test(String(p.name ?? ""))) || FOOD_BRAND.test(String(p.brand ?? "").trim()) || ((FOOD_NAME.test(String(p.name ?? "")) || FOOD_TIN.test(String(p.name ?? "")) || CANDY_BOX.test(String(p.name ?? ""))) && !NOT_FOOD.test(String(p.name ?? "")));
 export const TREATS_GUIDE = "treats-and-food-gifts";
 export const FOOD_GUIDES = [TREATS_GUIDE, "louisiana-kitchen", "louisiana-sweets-and-bakeries", "coffee-and-beignets", "home-cook", "foodie", "coffee-lover",
   "tea-lover", "wine-lover", "wine-and-spirits", "grill-master", "baker", "chefs", "cooks-and-kitchen-staff"];
@@ -837,8 +841,10 @@ export const personalGiftOff = (slug, p) => {
   if (slug.startsWith("store-")) return false;
   const name = String(p.name ?? "");
   const brand = String(p.brand ?? "");
-  if (MEN_GUIDES.includes(slug) && /^chord$/i.test(brand.trim()) && /\bplaid cap\b/i.test(name)) return true;
-  if (/nixplay/i.test(brand) || /\bnixplay\b/i.test(name)) return /\b(canvas|photo book|hardcover)\b/i.test(name) || slug !== "grandparents";
+  // Owner 11-19: "hats are popular in mens but not like this": no CHORD item on any people guide.
+  if (/^chord$/i.test(brand.trim()) && GUIDE_GROUPS.get(slug) === "By person") return true;
+  // Owner 11-19 ("a man does not want this"): only nixplay digital frames, only on the grandparent guides.
+  if (/nixplay/i.test(brand) || /\bnixplay\b/i.test(name)) return !/\bframes?\b/i.test(name) || /\b(canvas|photo book|hardcover|throw|blanket|ornament)\b/i.test(name) || !["grandparents", "grandma", "grandpa"].includes(slug);
   if (/\bring\b/i.test(brand) && /\bdoorbell\b/i.test(name)) return slug !== "new-homeowner";
   return false;
 };
@@ -1196,3 +1202,49 @@ export const DRUGSTORE_ITEM = /\b(leave-?in|shampoo|conditioner|conditioning lot
 export const drugstoreOff = (slug, p) => !slug.startsWith("store-") && !/\bgift ?sets?\b|\bgift box\b|\bholiday (set|kit)\b/i.test(String(p.name ?? ""))
   && (DRUGSTORE_BRAND.test(String(p.brand ?? "").trim()) || DRUGSTORE_BRAND.test(String(p.name ?? "").split(/\s+/).slice(0, 2).join(" ")) || DRUGSTORE_BRAND.test(String(p.name ?? "").split(/\s+/)[0]))
   && DRUGSTORE_ITEM.test(String(p.name ?? ""));
+
+/**
+ * OWNER REMOVALS 11-19 ("you can find cuter more popular things than this"): MASON New York diamond jewelry leaves the
+ * people and budget guides (its store page stays); Re/Done tees leave every guide; and lashes: at most one lash item
+ * on a guide, never in its top 12 (lashOff drops True Beauty Lashes' "Holiday Glam Styles"; LASH marks the rest).
+ */
+export const masonOff = (slug, p) => ["By person", "By budget"].includes(GUIDE_GROUPS.get(slug)) && /^mason new york$/i.test(String(p.brand ?? "").trim());
+export const redoneOff = (slug, p) => !slug.startsWith("store-") && /^re\/?done$/i.test(String(p.brand ?? "").trim()) && /\b(tee|t-shirt|shirt)\b/i.test(String(p.name ?? ""));
+export const LASH = /\b(lash(es)?|eyelash(es)?)\b/i;
+export const lashOff = (slug, p) => !slug.startsWith("store-") && /holiday glam styles/i.test(String(p.name ?? "")) && /true beauty lashes/i.test(String(p.brand ?? ""));
+
+/** Owner 11-19 ("remove the black vera bradley, add in BÉIS or other popular ones"): the Air Birdie Weekender goes. */
+export const VERA_BRADLEY = /^vera bradley$/i;
+export const veraBradleyOff = (slug, p) => !slug.startsWith("store-") && /\bair birdie weekender\b/i.test(String(p.name ?? ""));
+
+/**
+ * NO HIKING GEAR FOR HER (owner 11-19: "pretty ugly for women guides. no one hikes here its louisiana"): hiking gear and
+ * hiking socks (Darn Tough, Smartwool hiking socks, trekking poles, hiking boots, trail packs) show only on the Hiker,
+ * Camper, Mountain Lover and outdoors guides; Louisiana outdoors means fishing, hunting, boating and the Gulf.
+ */
+export const HIKING = /\b(hik(e|er|ers|ing)|trekking|trail (pack|runner|shoe)s?|backpacking|darn tough)\b|^darn tough$/i;
+export const HIKING_OK_GUIDES = ["hiker", "camper", "mountain-lover", "outdoors-lover", "outdoorsman"];
+export const hikingOff = (slug, p) => !slug.startsWith("store-") && !HIKING_OK_GUIDES.includes(slug)
+  && (HIKING.test(String(p.name ?? "")) || /^darn tough( vermont)?$/i.test(String(p.brand ?? "").trim()) || (/^smartwool$/i.test(String(p.brand ?? "").trim()) && /\bhik/i.test(String(p.name ?? ""))));
+
+/**
+ * STAGE-1 OWNER RULES 11-19 ("why would you put this on womens guides"): cheap novelty socks (character or licensed
+ * no-shows, any socks under $10) show only on kids guides and Stocking Stuffers; barware and cocktail shakers only on
+ * men's guides, Hostess and Entertainer; fashion sneakers (adidas Gazelle / Samba, Veja, New Balance 530) never on the
+ * men's guides ("men do not wear this in louisiana").
+ */
+export const SOCKS = /\bsocks?\b|\bno-?shows?\b/i;
+export const NOVELTY_SOCK = /\b(nightmare before christmas|hello kitty|disney|marvel|star wars|grinch|peanuts|snoopy|sanrio|minecraft|pok[eé]mon|barbie|licensed|character|novelty|funny)\b|\bno-?show\b.*\b\d+[- ]?pack\b|\b\d+[- ]?pack\b.*\bno-?show\b/i;
+export const SOCK_OK_GUIDES = ["stocking-stuffers", "kids", "girls", "boys", "gender-neutral"];
+export const cheapSockOff = (slug, p) => !slug.startsWith("store-") && !SOCK_OK_GUIDES.includes(slug) && GUIDE_GROUPS.get(slug) !== "For kids"
+  && SOCKS.test(String(p.name ?? "")) && (NOVELTY_SOCK.test(String(p.name ?? "")) || (typeof p.price === "number" && p.price < 10));
+export const BARWARE = /\b(cocktail (shaker|set|kit)s?|shakers? set|bar (tool|set|kit)s?|happy hour (shaker|set)|whiskey stones|decanter|jigger|muddler|bar cart)\b|\bstanley\b.*\bshaker\b/i;
+export const BARWARE_OK_GUIDES = ["dad", "him", "boyfriend-or-husband", "grandpa", "brother", "father-in-law", "uncle", "brother-in-law", "hostess", "entertainer", "bartenders", "wine-lover", "new-homeowner"];
+export const barwareOff = (slug, p) => !slug.startsWith("store-") && !BARWARE_OK_GUIDES.includes(slug) && BARWARE.test(String(p.name ?? ""));
+export const FASHION_SNEAKER = /\b(gazelle|samba|campo|veja|new balance 530|nb 530|\b530 sneakers?)\b|^veja$/i;
+export const MEN_FAMILY_GUIDES = ["him", "dad", "boyfriend-or-husband", "grandpa", "brother", "father-in-law", "uncle", "brother-in-law"];
+export const fashionSneakerOff = (slug, p) => MEN_FAMILY_GUIDES.includes(slug) && (FASHION_SNEAKER.test(String(p.name ?? "")) || /^veja$/i.test(String(p.brand ?? "").trim())
+  // Owner 11-19 ("think more outdoors hunting fishing"): no Pura Vida string bracelets on the men's guides.
+  || /^pura vida( bracelets)?$/i.test(String(p.brand ?? "").trim())
+  // ... and no Warby Parker ("men dont wear warby parker here"); men's sunglasses are Costa, Oakley, Maui Jim, Pelagic.
+  || /^warby parker$/i.test(String(p.brand ?? "").trim()) || /\bwarby parker\b/i.test(String(p.name ?? "")));

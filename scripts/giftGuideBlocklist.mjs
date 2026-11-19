@@ -19,7 +19,13 @@ export const BLOCKED_BRANDS = ["SheVibe", "King Palm", "AnyListingSEO", "Loren",
   // Owner 11-19 ("don't think it should be on any gift guides"): a jade bangle, an Indian cookbook-and-sauce set and an
   // 8-pint ice cream shipment; and ("alot cuter things to pick from") an embroidered tablecloth, glass wall art and a
   // weighted blanket. Their store pages go too.
-  "Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets"];
+  "Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets",
+  // Owner 11-19 ("remove"): Dragontree crystal jewelry and ornaments, Deme by Gabriella dresses.
+  "Dragontree", "Dragontree Apothecary", "Deme by Gabriella", "Deme",
+  // Owner 11-19 ("remove these hats on every guide"): CHORD caps, store page too.
+  "CHORD",
+  // Owner 11-19 ("remove all life is good or limit it to 2 items total"): removed entirely, store page too.
+  "Life is Good"];
 
 const compact = (s) => String(s).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const blockedCompact = BLOCKED_BRANDS.map(compact);

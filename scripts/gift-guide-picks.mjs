@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -430,6 +430,16 @@ for (const f of readdirSync(dir).filter((x) => /^_curation-.*\.json$/.test(x)).s
   if (!v || typeof v !== "object" || Array.isArray(v)) continue;
   for (const [slug, c] of Object.entries(v)) if (!slug.startsWith("_") && c && typeof c === "object") CURATION[slug] = { ...c, file: f };
 }
+// The taste audit (lead 11-19, every _taste-audit-*.json: { "<slug>": [{ name, reason }] }) removes like the curation.
+for (const f of readdirSync(dir).filter((x) => /^_taste-audit-.*\.json$/.test(x)).sort()) {
+  const v = readJson(f);
+  if (!v || typeof v !== "object" || Array.isArray(v)) continue;
+  for (const [slug, rows] of Object.entries(v)) {
+    if (slug.startsWith("_") || !Array.isArray(rows)) continue;
+    const c = (CURATION[slug] ??= { file: f });
+    c.remove = [...(Array.isArray(c.remove) ? c.remove : []), ...rows.filter((r) => r && typeof r.name === "string")];
+  }
+}
 const CURATION_REMOVE = new Map(Object.entries(CURATION).map(([slug, c]) => [slug, new Set((Array.isArray(c.remove) ? c.remove : []).map((r) => compact(String(r?.name ?? r ?? ""))).filter(Boolean))]));
 /** Lead 11-19: Mail Carrier keeps its Walmart Creator picks at $20 or less (USPS gift limit; cheap is the point). */
 const MAIL_GUIDE = "mail-carrier-and-delivery-drivers";
@@ -664,7 +674,7 @@ for (const [slug, c] of Object.entries(CURATION)) {
  * image, each naming its guides (`fits` / `guides` / `guide_slugs` / `guide`), or grouped under their guide's slug ({ "<slug>": [rows] }, or { picks | links: [rows] }).
  */
 export const thinFillCounts = {};
-for (const f of readdirSync(dir).filter((x) => /^_(fill-thin|trending-brands)-.*\.json$/.test(x)).sort()) {
+for (const f of readdirSync(dir).filter((x) => /^_(fill-thin|trending-brands|curated-links)-.*\.json$/.test(x)).sort()) {
   const v = readJson(f);
   const c = (thinFillCounts[f] = { rows: 0, added: 0 });
   const rows = Array.isArray(v) ? v : Array.isArray(v?.picks) ? v.picks : Array.isArray(v?.links) ? v.links
@@ -2029,7 +2039,15 @@ const topPicks = noRepeats([...featuredTop, ...lovedTop]).slice(0, 10);
  * items. A guide left under UNIQUE_FLOOR picks is logged, never refilled with a repeat.
  */
 export const UNIQUE_FLOOR = 8;
-export const GROUP_SPECIFICITY = { "By career": 0, Pets: 1, Hobbies: 1, Louisiana: 1, "For kids": 2, Colors: 3, "Life moments": 3, "By person": 4, "By budget": 5 };
+/** The order guides claim a shared product in (lead 11-19); a guide not named here comes after, by group. */
+export const CLAIM_ORDER = ["mom", "wife", "her", "dad", "him", "boyfriend-or-husband", "girlfriend", "grandma", "grandpa", "sister", "brother", "best-friend",
+  "mother-in-law", "father-in-law", "aunt", "uncle", "girls-teens", "boys-teens", "gender-neutral-teens", "girls", "boys", "gender-neutral",
+  "girls-big-kids", "boys-big-kids", "gender-neutral-big-kids", "girls-little-kids", "boys-little-kids", "gender-neutral-little-kids",
+  "girls-toddlers", "boys-toddlers", "gender-neutral-toddlers", "girls-babies", "boys-babies", "gender-neutral-babies", "niece", "nephew", "cousins",
+  "stocking-stuffers", "under-5", "under-10", "under-15", "under-20", "under-25", "under-30", "under-40", "under-50", "under-75", "under-100", "100-and-up",
+  "secret-santa", "white-elephant", "coworkers", "boss", "teachers", "neighbor"];
+/** A job-specific item: it goes to a career guide that lists it, never a people guide. */
+export const JOB_ITEM = /\b(scrubs?|nurs(e|es|ing)|stethoscopes?|badge (reels?|holders?)|clogs?|compression socks|penlights?|trauma shears|teacher|classroom|lineman|linemen|lineworkers?|hard ?hats?|work boots?|welding|dental|hygienist|phlebotom\w*|pharmac\w*|paramedic|emt|firefighter|police|dispatcher|barista|bartender|server apron|chef'?s?|kitchen staff|hairstylist|shears|mechanic|electrician|hvac|offshore|oilfield|pipeline|refinery|trucker|truck driver)\b/i;
 export const uniqueCounts = { before: 0, after: 0, underFloor: [] };
 {
   const groupOf = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
@@ -2051,33 +2069,24 @@ export const uniqueCounts = { before: 0, after: 0, underFloor: [] };
   const topOf = (slug) => new Set((CURATION[slug]?.top12 ?? []).map((n) => compact(String(n))));
   const tops = new Map(guideSlugs.map((slug) => [slug, topOf(slug)]));
   const nameAt = (w) => compact(pageList[w.slug][w.i].name);
-  const fit = (w) => [tops.get(w.slug).has(nameAt(w)) && w.i < 12 ? 0 : 1, GROUP_SPECIFICITY[groupOf.get(w.slug)] ?? 4];
+  // Lead 11-19: guides claim in CLAIM_ORDER (the people guides first, careers last), so the main guides stay full;
+  // a job-specific item (scrubs, nurse clogs, a lineman tool) always goes to a career guide that lists it.
+  const groupRank = { "By person": 0, "For kids": 1, "By budget": 2, Hobbies: 4, Pets: 4, Colors: 5, "Life moments": 6, Louisiana: 7, "By career": 9 };
+  const claimRank = (slug) => {
+    const i = CLAIM_ORDER.indexOf(slug);
+    if (i >= 0) return i;
+    return 100 + (groupRank[groupOf.get(slug)] ?? 8) * 100 + INDEX.findIndex((g) => g.slug === slug);
+  };
   const owner = new Map();
   const count = new Map(guideSlugs.map((slug) => [slug, 0]));
-  // Products only one guide lists stay there; the rest go, fewest candidates first, to their best-fitting guide, and
-  // among equally good fits to the one holding the fewest picks so far.
   const entries = [...seen].map(([id, where]) => [id, where.filter((w, k) => where.findIndex((x) => x.slug === w.slug) === k)]);
-  for (const [id, where] of entries) if (where.length === 1) { owner.set(id, where[0]); count.set(where[0].slug, count.get(where[0].slug) + 1); }
-  for (const [id, where] of entries.filter(([, w]) => w.length > 1).sort((a, b) => a[1].length - b[1].length)) {
-    const bestFit = where.map(fit).reduce((a, b) => (b[0] < a[0] || (b[0] === a[0] && b[1] < a[1]) ? b : a));
-    const ok = where.filter((w) => fit(w)[0] === bestFit[0] && fit(w)[1] === bestFit[1]);
-    const w = ok.sort((a, b) => count.get(a.slug) - count.get(b.slug) || a.i - b.i)[0];
+  for (const [id, where] of entries) {
+    const p = pageList[where[0].slug][where[0].i];
+    const careers = where.filter((w) => groupOf.get(w.slug) === "By career");
+    const pool = JOB_ITEM.test(`${p.name} ${p.line ?? ""}`) && careers.length ? careers : where;
+    const w = [...pool].sort((a, b) => (pool === careers ? count.get(a.slug) - count.get(b.slug) : 0) || claimRank(a.slug) - claimRank(b.slug) || a.i - b.i)[0];
     owner.set(id, w);
     count.set(w.slug, count.get(w.slug) + 1);
-  }
-  // A guide under the floor takes back products it also listed from a guide that holds more than UNIQUE_SPARE (still
-  // one guide per product).
-  const UNIQUE_SPARE = 12;
-  for (const slug of guideSlugs) {
-    for (const [id, where] of entries) {
-      if (count.get(slug) >= UNIQUE_FLOOR) break;
-      const mine = where.find((w) => w.slug === slug);
-      const cur = owner.get(id);
-      if (!mine || cur.slug === slug || count.get(cur.slug) <= UNIQUE_SPARE) continue;
-      owner.set(id, mine);
-      count.set(cur.slug, count.get(cur.slug) - 1);
-      count.set(slug, count.get(slug) + 1);
-    }
   }
   for (const slug of guideSlugs) {
     const used = new Set();
@@ -2098,6 +2107,23 @@ export const uniqueCounts = { before: 0, after: 0, underFloor: [] };
   }
   uniqueCounts.after = dupes();
   console.log(`gift-guide-picks: repeated products across guides ${uniqueCounts.before} -> ${uniqueCounts.after}; unused library ${unusedCounts.added} of ${unusedCounts.rows} rows added; under ${UNIQUE_FLOOR}: ${uniqueCounts.underFloor.join(", ") || "none"}`);
+}
+// Lashes (owner 11-19: "no need for 2 eyelash sets"): one lash item at most on a guide, below its top 12.
+for (const slug of Object.keys(pageList)) {
+  if (slug.startsWith("store-")) continue;
+  const lashes = pageList[slug].filter((p) => LASH.test(p.name));
+  if (!lashes.length) continue;
+  const rest = pageList[slug].filter((p) => !LASH.test(p.name));
+  pageList[slug] = rest.length >= 12 ? [...rest.slice(0, 12), lashes[0], ...rest.slice(12)] : rest;
+}
+// Vera Bradley (owner 11-19): at most one per guide, and none in a women's guide's top 12.
+for (const slug of Object.keys(pageList)) {
+  if (slug.startsWith("store-")) continue;
+  const vb = pageList[slug].filter((p) => VERA_BRADLEY.test(String(p.brand ?? "").trim()));
+  if (!vb.length) continue;
+  const rest = pageList[slug].filter((p) => !VERA_BRADLEY.test(String(p.brand ?? "").trim()));
+  const at = WOMEN_GUIDES.includes(slug) ? 12 : Math.min(pageList[slug].indexOf(vb[0]), rest.length);
+  pageList[slug] = rest.length >= at ? [...rest.slice(0, at), vb[0], ...rest.slice(at)] : rest;
 }
 // Variety (owner 11-19): popular brands may repeat in a guide, but at most BRAND_TOP_MAX of one brand in its top 12;
 // the rest move just below it.
@@ -2161,6 +2187,8 @@ writeFileSync(
 const catalogSrc = readFileSync(new URL("../src/content/giftGuideCatalog.ts", import.meta.url), "utf8");
 const removedGuides = [...(catalogSrc.match(/export const REMOVED_GUIDES = \[([^\]]*)\]/)?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 const mergedGuides = [...(catalogSrc.match(/export const MERGED_GUIDES[^=]*= \{([^}]*)\}/)?.[1] ?? "").matchAll(/"([^"]+)": \[/g)].map((m) => m[1]);
+/** A guide with fewer picks than this is hidden from rows, search and search engines (lead 11-19); giftGuideCatalog.ts. */
+const GUIDE_MIN_PICKS = Number(catalogSrc.match(/export const GUIDE_MIN_PICKS = (\d+);/)?.[1] ?? 6);
 const minStorePicks = Number(catalogSrc.match(/export const STORE_ROW_MIN_PICKS = (\d+);/)?.[1]);
 if (!removedGuides.length || !mergedGuides.length || !minStorePicks) throw new Error("gift-guide-picks: could not read REMOVED_GUIDES / MERGED_GUIDES / STORE_ROW_MIN_PICKS");
 const entryOf = (slug) => {
@@ -2174,7 +2202,7 @@ const seo = {};
 const usedNames = new Set();
 for (const slug of chunkSlugs) {
   const n = pageList[slug]?.length ?? 0;
-  if (n === 0 || removedGuides.includes(slug) || mergedGuides.includes(slug) || (slug.startsWith("store-") && n < minStorePicks)) continue;
+  if (n === 0 || (!slug.startsWith("store-") && n < GUIDE_MIN_PICKS) || removedGuides.includes(slug) || mergedGuides.includes(slug) || (slug.startsWith("store-") && n < minStorePicks)) continue;
   const e = entryOf(slug) ?? { title: storeList[slug]?.name, lead: "shop", age: undefined };
   if (!e.title) continue;
   let named = /^gifts$/i.test(e.lead) ? `Gifts ${e.title.charAt(0).toLowerCase()}${e.title.slice(1)}` : /^gifts for\b/i.test(e.lead) || /\bgifts$/i.test(e.lead)

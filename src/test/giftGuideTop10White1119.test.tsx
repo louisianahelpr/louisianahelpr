@@ -28,7 +28,7 @@ import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 import {
   FOOD_GUIDES, GUIDE_GROUPS, SIBLING_FAMILIES, SIBLING_TOP, TREATS_GUIDE, decorOff, foodOff, isFood, lifeIsGoodOff, magazineOff, modelYearName,
-  namesModelYear, outdoorDecorOff, personalGiftOff, siblingOverlap, sperryOff, drugstoreOff, characterCollab, resaleOrUkShop, kidsCrocsOff,
+  namesModelYear, outdoorDecorOff, personalGiftOff, siblingOverlap, sperryOff, drugstoreOff, characterCollab, resaleOrUkShop, kidsCrocsOff, masonOff, redoneOff, lashOff, veraBradleyOff, hikingOff, cheapSockOff, barwareOff, fashionSneakerOff, LASH,
 } from "../../scripts/giftGuideRules.mjs";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 
@@ -108,10 +108,12 @@ describe("gift guides 11-19: the Top 10 is ten real holiday best-sellers", () =>
 
 describe("gift guides 11-19: the owner's content rules hold on every guide", () => {
   it("bans Ying Mart, Brooklyn Delhi, eCreamery, AimHave, Minteefy and Mosaic Weighted Blankets everywhere, store pages included", () => {
-    for (const brand of ["Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets"]) expect(blockedBrand({ brand }), brand).toBe(true);
+    for (const brand of ["Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets", "Dragontree", "Deme by Gabriella", "CHORD", "Life is Good"]) expect(blockedBrand({ brand }), brand).toBe(true);
     expect(blockedBrand({ name: "x", href: "https://www.awin1.com/cread.php?ued=https%3A%2F%2Fx.com", brand: "TangMosaic" })).toBe(false);
     const hits = slugs.flatMap((s) => chunk(s).filter((p) => blockedBrand(p)).map((p) => `${s}: ${p.name}`));
     expect(hits).toEqual([]);
+    expect(slugs.flatMap((s) => chunk(s).filter((p) => /brooklyn ?delhi/i.test(`${p.brand ?? ""} ${p.name}`) || /brooklyndelhi/i.test(p.href)).map((p) => `${s}: ${p.name}`))).toEqual([]);
+    expect(slugs.flatMap((s) => chunk(s).filter((p) => /life is good/i.test(`${p.brand ?? ""} ${p.name}`)).map((p) => `${s}: ${p.name}`)).length).toBeLessThanOrEqual(2);
     for (const s of ["store-ying-mart", "store-brooklyn-delhi", "store-ecreamery-ice-cream-and-gifts", "store-aimhave", "store-minteefy", "store-mosaic-weighted-blankets"]) expect(slugs).not.toContain(s);
   });
 
@@ -134,6 +136,9 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     }
     expect(isFood({ name: "Birthday Musical Cookie Tin Gift Set", brand: "Levain Bakery" })).toBe(true);
     for (const n of ["Ninja CREAMi Ice Cream Maker", "Candy Land", "King Cake Slice Baseball Hat", "Woofmas Holiday Cookies for Dogs, 4.5 oz"]) expect(isFood({ name: n }), n).toBe(false);
+    expect(foodOff("dad", { name: "Red Wine Mixed Pack", brand: "Maker Wine" })).toBe(true);
+    expect(foodOff("wine-lover", { name: "Red Wine Mixed Pack", brand: "Maker Wine" })).toBe(false);
+    expect(isFood({ name: "Rabbit Wine Bottle Opener" })).toBe(false);
     expect(foodOff("home-cook", { name: "Cajun Seasoning" })).toBe(false);
     expect(foodOff("store-milk-bar", { name: "Pumpkin Milk Bar® Pie", brand: "Milk Bar" })).toBe(false);
     expect(foodOff("mail-carrier-and-delivery-drivers", { name: "Nabisco Snacks Variety Pack", price: 12 })).toBe(false);
@@ -153,8 +158,20 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(decorOff("new-homeowner", { name: "Linen Tablecloth", brand: "Pottery Barn" })).toBe(false);
     expect(personalGiftOff("him", { name: "Gallery-Wrapped Canvas", brand: "nixplay" })).toBe(true);
     expect(personalGiftOff("grandparents", { name: "Smart Digital Photo Frame", brand: "nixplay" })).toBe(false);
+    expect(personalGiftOff("grandma", { name: "Woven Photo Throw Blanket", brand: "nixplay" })).toBe(true);
+    expect(masonOff("mom", { name: "1 Carat Diamond Stud Earrings", brand: "MASON New York" })).toBe(true);
+    expect(redoneOff("her", { name: "Classic Tee Snoopy Holiday", brand: "Re/Done" })).toBe(true);
+    expect(hikingOff("her", { name: "Women's Hiker Micro Crew Midweight Hiking Socks", brand: "Darn Tough" })).toBe(true);
+    expect(hikingOff("camper", { name: "Hiker Micro Crew", brand: "Darn Tough" })).toBe(false);
+    expect(cheapSockOff("her", { name: "Nightmare Before Christmas No Show Socks, 3-Pack", price: 4 })).toBe(true);
+    expect(cheapSockOff("stocking-stuffers", { name: "Hello Kitty No Show Socks, 5-Pack", price: 5 })).toBe(false);
+    expect(barwareOff("mom", { name: "Stanley Happy Hour Cocktail Shaker" })).toBe(true);
+    expect(barwareOff("dad", { name: "Stanley Happy Hour Cocktail Shaker" })).toBe(false);
+    expect(fashionSneakerOff("him", { name: "adidas Gazelle Shoes" })).toBe(true);
+    expect(fashionSneakerOff("her", { name: "adidas Gazelle Shoes" })).toBe(false);
+    expect(veraBradleyOff("mom", { name: "Air Birdie Weekender Travel Bag" })).toBe(true);
     expect(personalGiftOff("mom", { name: "Ring Battery Doorbell 2K Plus", brand: "Ring" })).toBe(true);
-    expect(personalGiftOff("dad", { name: "Black Watch Plaid Cap", brand: "CHORD" })).toBe(true);
+    expect(personalGiftOff("dad", { name: "Courchevel Wool Cap", brand: "CHORD" })).toBe(true);
     expect(drugstoreOff("mom", { name: "Cantu Smoothing Leave-In Conditioning Lotion with Shea Butter", brand: "Cantu" })).toBe(true);
     expect(drugstoreOff("mom", { name: "Holiday Gift Set", brand: "Sol de Janeiro" })).toBe(false);
     expect(characterCollab({ name: "Kitsch x BT21 Satin Pillowcase in CHIMMY in King", brand: "Mykitsch" })).toBe(true);
@@ -164,7 +181,7 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(resaleOrUkShop({ href: "https://www.durangoboots.com/products/x" })).toBe(false);
     expect(kidsCrocsOff("rns", { name: "Crocs Kids' Classic Clog" })).toBe(true);
     expect(kidsCrocsOff("girls-big-kids", { name: "Crocs Kids' Classic Clog" })).toBe(false);
-    for (const rule of [magazineOff, sperryOff, lifeIsGoodOff, outdoorDecorOff, decorOff, personalGiftOff, drugstoreOff, kidsCrocsOff]) expect(offenders(rule)).toEqual([]);
+    for (const rule of [magazineOff, sperryOff, lifeIsGoodOff, outdoorDecorOff, decorOff, personalGiftOff, drugstoreOff, kidsCrocsOff, masonOff, redoneOff, lashOff, veraBradleyOff, hikingOff, cheapSockOff, barwareOff, fashionSneakerOff]) expect(offenders(rule)).toEqual([]);
     expect(offenders((_s, p) => characterCollab(p) || resaleOrUkShop(p))).toEqual([]);
   });
 
@@ -200,6 +217,17 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     }
     expect(n).toBeGreaterThan(1500);
     expect(repeats).toEqual([]);
+  });
+
+  it("one lash item at most on a guide, never in its top 12; one Vera Bradley at most, none in a women's top 12", () => {
+    const bad = guides.flatMap((s) => {
+      const l = chunk(s);
+      const lashes = l.map((p, i) => [p, i] as const).filter(([p]) => LASH.test(p.name));
+      const vb = l.map((p, i) => [p, i] as const).filter(([p]) => /^vera bradley$/i.test((p.brand ?? "").trim()));
+      const women = ["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma"].includes(s);
+      return [...(lashes.length > 1 || lashes.some(([, i]) => i < 12) ? [`${s}: lashes`] : []), ...(vb.length > 1 || (women && vb.some(([, i]) => i < 12)) ? [`${s}: vera bradley`] : [])];
+    });
+    expect(bad).toEqual([]);
   });
 
   it("popular brands may repeat, but at most 4 of one brand in a guide's top 12", () => {

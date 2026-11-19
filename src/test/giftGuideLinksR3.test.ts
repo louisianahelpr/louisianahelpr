@@ -8,8 +8,8 @@
  * Louisiana businesses and the 25 Days sponsors keep their plain homepage links on purpose). This guard reads the rules
  * and every generated chunk (src/content/giftGuidePicks/<slug>.json).
  * @mutate scripts/giftGuideRules.mjs | export const bannedLink = (href) => BANNED_LINKS.get(String(href ?? "")) ?? ""; | export const bannedLink = (href) => "";
- * @mutate scripts/giftGuideRules.mjs | && !/selfridges\.com\/US\//.test(t)) | && false)
- * @mutate scripts/giftGuideRules.mjs |     || CURRENCY_FORCED.test(t); |     || false;
+ * @mutate scripts/giftGuideRules.mjs | && !selfridgesUs(t)) | && false)
+ * @mutate scripts/giftGuideRules.mjs |     \|\| CURRENCY_FORCED.test(t); |     \|\| false;
  * @mutate scripts/giftGuideRules.mjs | export const homepageLink = (href) => { | export const homepageLink = (href) => { return false;
  */
 import { existsSync, readFileSync } from "node:fs";

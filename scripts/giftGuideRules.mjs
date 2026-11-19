@@ -206,11 +206,19 @@ export const PET_ITEM = /\b(catnip|litter ?(box|robot)?|barkbox|meowbox|kitty ki
  * pin sephora.co.uk). nonUsUrl reads a store URL, domain or store name: a UK, Australian or Canadian site (.co.uk,
  * .com.au, .ca, a /uk/, /en-gb/, /en-au/ or /en-ca/ path, "spacenk.com/uk").
  */
+/** A Selfridges link on its US store: host selfridges.com (or a subdomain) and a path under /US/. */
+const selfridgesUs = (t) => {
+  const raw = /^https?:\/\//i.test(t) ? t : `https://${t}`;
+  if (!URL.canParse(raw)) return false;
+  const u = new URL(raw);
+  const h = u.hostname.toLowerCase();
+  return (h === "selfridges.com" || h.endsWith(".selfridges.com")) && u.pathname.startsWith("/US/");
+};
 export const nonUsUrl = (s) => {
   const t = String(s ?? "").trim();
   return /(\.co\.uk|\.com\.au|\.ca)(\/|\?|#|$)|\/(uk|gb|en-gb|en-au|en-ca)(\/|$)|\.uk$/i.test(t)
     // Links audit r3 (11-19): every Selfridges pin opened selfridges.com/GB (the UK site); only its /US/ store is US.
-    || (/selfridges/i.test(t) && !/selfridges\.com\/US\//.test(t))
+    || (/selfridges/i.test(t) && !selfridgesUs(t))
     // ... and FWRD pins forced the price into euros or pounds (?currency=GBP, tCurrency=EUR, tCountryCode=GB).
     || CURRENCY_FORCED.test(t);
 };

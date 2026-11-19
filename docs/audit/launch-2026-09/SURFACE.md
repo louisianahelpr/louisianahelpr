@@ -27,10 +27,10 @@ reports coverage against THIS file, not against the route list.
 | Forms (submittable) | form | 138 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 191 |
 | Email templates | **exported template** | 26 |
-| Notification types (defined in notification_type_pref_map) | type | 31 |
+| Notification types (defined in notification_type_pref_map) | type | 32 |
 | **Navigable surfaces** (places a person can stand) | mixed | **877** |
-| **Copy surfaces** (strings a person may read) | mixed | **1303** |
-| **Total auditable surface** | mixed | **2180** |
+| **Copy surfaces** (strings a person may read) | mixed | **1304** |
+| **Total auditable surface** | mixed | **2181** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -818,4 +818,4 @@ long/missing fields, and a working unsubscribe where required.
 
 ## Notification types (each is distinct copy + a tap destination)
 
-`admin_activity` · `admin_alert` · `application` · `declutter_listings` · `declutter_offers` · `declutter_pickups` · `declutter_price_drops` · `declutter_questions` · `declutter_refunds` · `declutter_sales` · `declutter_wanted` · `expired` · `financial_alerts` · `info` · `job_match` · `job_update` · `job_updates` · `message` · `new_offers` · `payment` · `review` · `shops_following` · `shops_messages` · `shops_orders` · `shops_updates` · `success` · `system_alert` · `transit_updates` · `verified` · `warning` · `work_status`
+`admin_activity` · `admin_alert` · `application` · `declutter_listings` · `declutter_offers` · `declutter_pickups` · `declutter_price_drops` · `declutter_questions` · `declutter_refunds` · `declutter_sales` · `declutter_wanted` · `expired` · `financial_alerts` · `giveaway_reminders` · `info` · `job_match` · `job_update` · `job_updates` · `message` · `new_offers` · `payment` · `review` · `shops_following` · `shops_messages` · `shops_orders` · `shops_updates` · `success` · `system_alert` · `transit_updates` · `verified` · `warning` · `work_status`

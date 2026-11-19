@@ -21,8 +21,20 @@ import {
   COVER_DIR, GINGHAM, MIN_SLOTS, SIZE, filledSlots, readManifest, shortInManifest,
 } from "../../scripts/check-gift-cover-items.mjs";
 
-/** Shown guides with no product photo the cover rules allow (gift cards and memberships are logos, never drawn). */
-const TEXT_ONLY: Record<string, string> = {};
+/**
+ * Shown guides with fewer than four clean product photos the cover rules allow, so their cover is the text-only arch
+ * (measured 2026-11-19 on main after #4759; the cover script prints each one's reasons as "SHORT <slug>"). Store pages
+ * here have only lifestyle or model shots, photos the store's CDN refuses (L.L.Bean answers 403), or under four
+ * products at all. Two-way: an entry whose cover gains products fails until it is removed.
+ */
+const FEW_PHOTOS = "fewer than 4 clean product-only photos";
+const CAREER_NEIGHBOURS = "3 usable photos; its other clean photos are on the career covers beside it";
+const TEXT_ONLY: Record<string, string> = {
+  "restaurant-servers": CAREER_NEIGHBOURS,
+  ...Object.fromEntries(["store-lululemon", "store-sephora", "store-ulta-beauty", "store-tiktok-shop", "store-journeys", "store-durango-boots", "store-anthropologie", "store-free-people", "store-crate-and-barrel", "store-uniform-advantage", "store-saks-fifth-avenue", "store-neiman-marcus", "store-maisonette", "store-allmodern", "store-birch-lane", "store-splendid", "store-joss-and-main", "store-over-the-moon", "store-jomashop", "store-atlas-coffee-club", "store-bass-pro-shops", "store-baublebar", "store-bonne-et-filou", "store-cabelas", "store-chefman", "store-chord", "store-clinique-online", "store-columbia", "store-davids-cookies", "store-dermstore", "store-diamond-art-club", "store-dragontree", "store-ecreamery-ice-cream-and-gifts", "store-hanna-andersson", "store-hearthsong", "store-jcrew", "store-julie-vos", "store-kitty-kick-stix", "store-ll-bean", "store-lillypulitzer", "store-literie-candle", "store-little-sleepies", "store-mac-cosmetics", "store-magic-makers", "store-magnolia", "store-makerfire", "store-mason-new-york", "store-milk-bar", "store-momcozy", "store-mud-pie", "store-nixplay", "store-pura-vida-bracelets", "store-re-done", "store-sharper-image", "store-simms-fishing", "store-tarte-cosmetics", "store-tuft-paw", "store-wild-one", "store-zonli"].map((s) => [s, FEW_PHOTOS])),
+};
+/** Covers with four products whose photos read as gingham to the pixel check (clear glass and white jars). */
+const PIXEL_PALE: Record<string, string> = { "store-mario-badescu": "clear and white skincare bottles" };
 
 const manifest = readManifest();
 const covers = new Set(COVER_SLUGS);
@@ -66,11 +78,19 @@ describe("gift guide covers show their products", () => {
 
   it("every shown cover file shows products outside the arch", async () => {
     const empty: string[] = [];
-    for (const s of checked) {
+    for (const s of checked.filter((x) => !(x in PIXEL_PALE))) {
       const n = filledSlots(await rgb(`${COVER_DIR}/${s}.webp`));
       if (n < MIN_SLOTS) empty.push(`${s} (${n} of 6 places)`);
     }
     expect(empty).toEqual([]);
+  });
+
+  it("PIXEL_PALE lists only shown four-item covers the pixel read misses (two-way)", async () => {
+    for (const s of Object.keys(PIXEL_PALE)) {
+      expect(shown, s).toContain(s);
+      expect(manifest[s]?.items.length ?? 0, s).toBeGreaterThanOrEqual(4);
+      expect(filledSlots(await rgb(`${COVER_DIR}/${s}.webp`)), s).toBeLessThan(MIN_SLOTS);
+    }
   });
 
   it("TEXT_ONLY lists only shown guides whose cover really has no products (two-way)", () => {

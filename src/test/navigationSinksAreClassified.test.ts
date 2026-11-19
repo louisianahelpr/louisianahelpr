@@ -108,6 +108,7 @@ const CLASSIFIED: Record<string, string> = {
   // Gift guides (owner 2026-11-18) and the admin stage-preview list (design audit area 10).
   "components/admin/AdminStagePreviews.tsx::p.href": "STAGE_PREVIEWS: a fixed list of in-app /admin/preview/... paths in the same file",
   "pages/info/giftGuides/GiftGuideView.tsx::pick.href": "GiftOut's prop (a guide's picks, our content file); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideLanding.tsx::pick.href": "GiftOut's prop (the Top 10 strip's picks, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.facebook": "shareLinks(): a fixed https://www.facebook.com/sharer/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.pinterest": "shareLinks(): a fixed https://www.pinterest.com/pin/create/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::smsHref(links.url, title, typeof navigator === \"undefined\" ? \"\" : navigator.userAgent)": "smsHref(): a fixed sms: scheme + encodeURIComponent(the guide's own URL and title) (\"Text this guide\", owner 2026-11-18)",

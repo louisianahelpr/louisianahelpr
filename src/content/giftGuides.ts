@@ -226,12 +226,8 @@ export const giftGuides = {
   priceApprox: (dollars: number) => `~$${dollars}`,
   /** One note per page under a list that shows prices: the oldest check date, "Nov 18". */
   pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
-  /** The landing's first row (owner 2026-11-18): the picks the most guides list. */
+  /** The landing's photo-card strip of the picks the most guides list, after the first guide rows (owner 11-18 PM). */
   topTitle: "Our Top 10",
-  /** The landing's guides a phone sees first, and the button that opens every row (owner 2026-11-18). */
-  startTitle: "Start here",
-  moreGuidesLabel: "More guides",
-  fewerGuidesLabel: "Fewer guides",
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
   giveaways: {
     title: "25 Days of Louisiana Giveaways",
@@ -251,10 +247,25 @@ export const giftGuides = {
   salesLabel: "Sales",
   /** The Sales list shows its first few, then this button opens the rest (design audit r2 #10: 229 in one list). */
   allSalesLabel: (n: number) => `See all sales (${n})`,
-  /** The phone's tool row under the title (design audit r2 #15: search, My list and codes sat at the page's end). */
+  /**
+   * The one slim icon row under every title (owner redesign 11-18 PM: "share text search list codes is too much buttons
+   * right here"): search, My list and Share. Text and Copy link live in Share's menu; codes are a page section.
+   */
   quickLabel: "Gift guide tools",
-  quickSearch: "Search",
-  quickCodes: "Codes",
+  searchLabel: "Search gift guides",
+  searchPlaceholder: "Search guides",
+  myListCount: (n: number) => `My list, ${n} saved`,
+  shareLabel: "Share",
+  shareMenuLabel: "Share options",
+  copyLink: "Copy link",
+  linkCopied: "Link copied",
+  textGuide: "Text this guide",
+  textGuides: "Text these guides",
+  moreShare: "More ways to share",
+  /** One collapsed section for every discount (owner 11-18 PM: "Codes should be a section with the other discount stuff"). */
+  dealsAndCodesLabel: "Deals & codes",
+  /** A store page's compact deals list (live audit r3 #1): its first few rows, then this opens the rest. */
+  allDealsLabel: (n: number) => `See all deals (${n})`,
   copyCode: "Copy",
   copiedCode: "Copied",
   codeEnds: (date: string) => `Ends ${date}`,

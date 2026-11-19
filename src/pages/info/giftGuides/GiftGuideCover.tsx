@@ -18,8 +18,9 @@ export function GiftGuideCover({ guide }: { guide: CatalogGuide }) {
 }
 
 /**
- * Every page's header (owner 2026-11-18, compact): the italic lead, the title and a small Share pill, centred on white
- * over a thin rule. No subtitle and no count under the title (owner 2026-11-18: "remove every 25 picks count and every
+ * Every page's header (owner 2026-11-18, compact): the italic lead, the title and the slim tool row (search, My list,
+ * Share; owner redesign 11-18 PM), centred on white over a thin rule. The title is the page's h1 (live audit r3 #7:
+ * "Gifts for Her", not the header's "Gift guides", which PublicHeaderPage paints as a plain line). No subtitle and no count under the title (owner 2026-11-18: "remove every 25 picks count and every
  * subtitle").
  *
  * A guide's page (with `tint`) draws it as a short, wide banner in its cover's look (owner 2026-11-18 PM: "make the top
@@ -27,26 +28,26 @@ export function GiftGuideCover({ guide }: { guide: CatalogGuide }) {
  * lead, the title and the LOUISIANA HELPR line, Share right under it. Real text and CSS only (no image); a
  * fixed height, so nothing below moves. Guard: src/test/giftGuidesPage.test.tsx.
  */
-export function GiftGuidesWords({ lead, title, titleId, share, tint }: { lead: string; title: string; titleId: string; share: ReactNode; tint?: CatalogGuide["tint"] }) {
+export function GiftGuidesWords({ lead, title, titleId, tools, tint }: { lead: string; title: string; titleId: string; tools: ReactNode; tint?: CatalogGuide["tint"] }) {
   if (tint) {
     return (
       <header className="gg-words gg-banner-wrap" data-gift-words="" data-gift-banner={tint}>
         <div className={`gg-banner gg-check gg-${tint}`}>
           <div className="gg-arch" data-gift-arch="">
             <p className="gg-lead">{lead}</p>
-            <h2 id={titleId}>{title}</h2>
+            <h1 id={titleId}>{title}</h1>
             <p className="gg-arch-foot">Louisiana Helpr</p>
           </div>
         </div>
-        <div className="gg-banner-share">{share}</div>
+        {tools}
       </header>
     );
   }
   return (
     <header className="gg-words" data-gift-words="">
       <p className="gg-lead">{lead}</p>
-      <h2 id={titleId}>{title}</h2>
-      {share}
+      <h1 id={titleId}>{title}</h1>
+      {tools}
     </header>
   );
 }

@@ -19,7 +19,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />} |       {false && <GiftGuideHelpr />}
  * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
  * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""} ${SEARCH_KEYWORDS[g.slug] ?? ""}`); |     const hay = fold(`${g.title} ${g.lead} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |       {query.trim() ? ( |       {false ? (
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {query.trim() && ( |         {false && (
  * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick), | loaded.set(slug, { picks: [],
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -171,7 +171,7 @@ describe("gift guides: a pick's photo that fails to load falls back to its initi
   });
 });
 
-describe("gift guides: the sidebar search filters guides by title and group", () => {
+describe("gift guides: the search in the tool row filters guides by title and group", () => {
   it("matches titles and group names, case- and accent-blind; empty words match nothing", () => {
     expect(searchGuides("")).toEqual([]);
     expect(searchGuides("   ")).toEqual([]);
@@ -190,21 +190,24 @@ describe("gift guides: the sidebar search filters guides by title and group", ()
     expect(searchGuides("xyzzy")).toEqual([]);
     expect(searchGuides("dillards").length + searchGuides("dillard's").length).toBeGreaterThan(0);
   });
-  it("the box sits at the top of the sidebar and typing replaces the groups with the matches", () => {
+  it("the box sits in the slim row under the title (owner redesign 11-18 PM); typing lists the matches under it", () => {
     const { container } = renderAt("/gift-guides");
-    const side = container.querySelector("[data-gift-sidebar]")!;
+    const row = container.querySelector("[data-gift-words] [data-gift-quick]")!;
     const input = screen.getByRole("searchbox", { name: "Search gift guides" });
-    expect(input.getAttribute("placeholder")).toBe("Search");
-    expect(side.firstElementChild?.contains(input)).toBe(true);
-    expect(side.querySelector("label svg")).not.toBeNull();
+    expect(input.getAttribute("placeholder")).toBe("Search guides");
+    expect(row.contains(input)).toBe(true);
+    expect(container.querySelectorAll("input[data-gift-search]").length).toBe(1);
+    expect(row.querySelector("label svg")).not.toBeNull();
     fireEvent.change(input, { target: { value: "gift cards" } });
-    const found = [...side.querySelectorAll("a[data-gift-found]")].map((a) => a.getAttribute("data-gift-found"));
+    const found = [...row.querySelectorAll("a[data-gift-found]")].map((a) => a.getAttribute("data-gift-found"));
     expect(found).toContain("gift-cards");
-    expect(side.querySelector("details[data-gift-group]")).toBeNull();
     fireEvent.change(input, { target: { value: "xyzzy" } });
-    expect(side.textContent).toContain("No guides match");
+    expect(row.textContent).toContain("No guides match");
     fireEvent.change(input, { target: { value: "" } });
-    expect(side.querySelectorAll("details[data-gift-group]").length).toBeGreaterThan(5);
+    expect(row.querySelector("[data-gift-search-results]")).toBeNull();
+    // The menu is the guides alone.
+    expect(container.querySelector("[data-gift-sidebar] input")).toBeNull();
+    expect(container.querySelectorAll("[data-gift-sidebar] details[data-gift-group]").length).toBeGreaterThan(5);
   });
 });
 
@@ -213,24 +216,25 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     window.localStorage.clear();
     resetGiftListForTests();
   });
-  it("a cover heart toggles aria-pressed, stays on the page, and counts in the sidebar's My list", () => {
+  it("a cover heart toggles aria-pressed, stays on the page, and counts on the tool row's My list icon", () => {
     window.localStorage.clear();
     resetGiftListForTests();
     const { container } = renderAt("/gift-guides");
-    // Mom is in "Start here" and in its row; both hearts read the same list.
     const heart = screen.getAllByRole("button", { name: "Save Mom to My list" })[0];
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(heart.closest("a")).toBeNull();
     const link = container.querySelector("[data-gift-my-list-link]")!;
-    expect(link.textContent).toContain("My list (0)");
+    expect(link.getAttribute("aria-label")).toBe("My list, 0 saved");
+    expect(link.textContent).toBe("0");
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
-    expect(container.querySelector("[data-gift-words] h2")?.textContent).toBe("Holiday Gift Guides");
-    expect(link.textContent).toContain("My list (1)");
+    expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe("Holiday Gift Guides");
+    expect(link.getAttribute("aria-label")).toBe("My list, 1 saved");
+    expect(link.textContent).toBe("1");
     expect(JSON.parse(window.localStorage.getItem("lh-gift-list")!).guides).toEqual(["mom"]);
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("false");
-    expect(link.textContent).toContain("My list (0)");
+    expect(link.getAttribute("aria-label")).toBe("My list, 0 saved");
   });
   it("a pick heart saves the pick; My list shows saved guides and picks", () => {
     const g = guideBySlug("mom")!;

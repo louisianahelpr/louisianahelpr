@@ -267,6 +267,26 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(guides.length).toBeGreaterThan(150);
     for (const g of guides) expect(pageOf(g).length, g).toBeGreaterThanOrEqual(25);
   });
+  it("no photo shows on two brands' rows, and no ShopMy collection row borrows a photo by its shared link (wrong-photo fix 11-18 PM)", () => {
+    // @mutate scripts/gift-guide-picks.mjs |     for (const g of groups) if (g !== owner) for (const r of g) clear.add(r); |     void owner;
+    const generic = /affiliate|program|walmart|amazon|target|shopmy/i;
+    // Two rows on one photo must share a brand, or share one link (one link is one thing, whatever each row calls it).
+    const rowsByImage = new Map<string, { b: string; href: string }[]>();
+    let rows = 0;
+    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, "")) as { name: string; image?: string; brand?: string; href: string }[]) {
+      if (!p.image || !p.brand || generic.test(p.brand)) continue;
+      rows += 1;
+      const b = p.brand.normalize("NFD").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      (rowsByImage.get(p.image) ?? rowsByImage.set(p.image, []).get(p.image)!).push({ b, href: p.href });
+    }
+    expect(rows).toBeGreaterThan(3000);
+    const shared = (h: string) => h.startsWith("https://shopmy.us/collections/");
+    const mixed = [...rowsByImage].filter(([, rs]) => rs.some((x) => rs.some((y) => !x.b.includes(y.b) && !y.b.includes(x.b) && (x.href !== y.href || shared(x.href)))));
+    expect(mixed.map(([i, rs]) => `${i} ${[...new Set(rs.map((r) => r.b))].join("/")}`)).toEqual([]);
+    // Builder 6's three (11-18 PM): the Cheirosa mist, the CozyChic throw and the Owala bottle never wear another product.
+    const named = (re: RegExp) => pages.flatMap((f) => (pageOf(f.replace(/\.json$/, "")) as { name: string; image?: string; href: string }[]).filter((p) => re.test(p.name)));
+    for (const p of named(/Cheirosa 62 Perfume Mist|CozyChic Throw|Owala 32oz/)) expect(p.href, p.name).not.toMatch(/^https:\/\/shopmy\.us\/collections\//);
+  });
   it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]
     const under5 = pageOf("under-5") as { name: string; price?: number }[];

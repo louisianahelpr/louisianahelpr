@@ -195,6 +195,15 @@ export const RENAMED = {
  * { image, source_url, store, href, checked_at, note? } } (a plain URL string is read too); "_no_photo" and other "_" keys
  * are not photos. Matched by the pick's link first, then its name. Optional file.
  */
+/** A link many products share (a ShopMy collection): never evidence of which product a photo shows. */
+const sharedLink = (h) => { try { const u = new URL(h); return u.hostname === "shopmy.us" && u.pathname.startsWith("/collections/"); } catch { return false; } };
+/** Lowercase letters and digits only. */
+const squash = (x) => String(x ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+/**
+ * A name-only photo match (wrong-photo fix 11-18 PM: a Cheirosa mist showed earbuds, a throw an UGG slipper) is kept only
+ * when the row's brand shows in the photo's own link, source page or image URL.
+ */
+const brandInSource = (brand, from) => { const b = squash(String(brand ?? "").split(/\s+/)[0]); return b.length >= 3 && squash(from).includes(b); };
 const MISSING_BY_NAME = new Map();
 const MISSING_BY_HREF = new Map();
 {
@@ -204,8 +213,9 @@ const MISSING_BY_HREF = new Map();
     if (name.startsWith("_")) continue;
     const image = typeof e === "string" ? e : e && typeof e.image === "string" ? e.image : undefined;
     if (!image) continue;
-    MISSING_BY_NAME.set(compact(name), image);
-    if (e && typeof e.href === "string") MISSING_BY_HREF.set(e.href, image);
+    MISSING_BY_NAME.set(compact(name), { image, from: [e?.href, e?.source_url, image].filter((x) => typeof x === "string").join(" ") });
+    // A shared link (a ShopMy collection holds many products) says nothing about which product a photo shows.
+    if (e && typeof e.href === "string" && !sharedLink(e.href)) MISSING_BY_HREF.set(e.href, image);
   }
 }
 const MISSING_IMAGES = MISSING_BY_NAME;
@@ -263,7 +273,10 @@ function toPick(p, where) {
   const ownImage = !tiff && !deadHost && !(typeof p.image === "string" && brokenImage(p.image)) && typeof p.image === "string" && p.image.startsWith("https://") && (!amazonHosted || (AMAZON_CDN_PHOTOS && p.image_source === "amazon-sitestripe" && new URL(p.image).hostname === "m.media-amazon.com")) ? p.image : undefined;
   // "All items need a picture, find one. No excuses." (owner 11-18 PM): a pick with no usable photo takes the one the
   // link library found for it (~/Desktop/Link-library/missing-images-1118.json), never an Amazon-hosted one.
-  const found = ownImage ? undefined : MISSING_BY_HREF.get(p.affiliate_href) ?? MISSING_BY_HREF.get(p.href) ?? MISSING_BY_NAME.get(compact(p.name ?? ""));
+  const byName = MISSING_BY_NAME.get(compact(p.name ?? ""));
+  const found = ownImage ? undefined : (!sharedLink(p.affiliate_href ?? "") && MISSING_BY_HREF.get(p.affiliate_href))
+    || (!sharedLink(p.href) && MISSING_BY_HREF.get(p.href))
+    || (byName && brandInSource(p.brand, byName.from) ? byName.image : undefined) || undefined;
   // The owner approved Amazon product images for these (11-18 PM): the CDN photo, on an Amazon link only (Associates).
   const amazonFound = Boolean(found) && AMAZON_IMAGE_HOST.test(new URL(found).hostname);
   const image = ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !isTiff(found)
@@ -523,14 +536,53 @@ const withTrending = (slug, list) => {
 {
   const twinPhoto = new Map();
   for (const list of Object.values(guides)) for (const p of list) if (p.image) {
-    if (!twinPhoto.has(p.href)) twinPhoto.set(p.href, p.image);
-    if (!twinPhoto.has(compact(p.name))) twinPhoto.set(compact(p.name), p.image);
+    if (!sharedLink(p.href) && !twinPhoto.has(p.href)) twinPhoto.set(p.href, p.image);
+    const key = `${squash(p.brand)}|${compact(p.name)}`;
+    if (squash(p.brand) && !twinPhoto.has(key)) twinPhoto.set(key, p.image);
   }
   for (const list of Object.values(guides)) list.forEach((p, i) => {
-    const image = p.image ? undefined : twinPhoto.get(p.href) ?? twinPhoto.get(compact(p.name));
+    const image = p.image ? undefined : (!sharedLink(p.href) && twinPhoto.get(p.href)) || twinPhoto.get(`${squash(p.brand)}|${compact(p.name)}`);
     // An Amazon-hosted photo only on an Amazon link (Associates rule).
     if (image && (!AMAZON_IMAGE_HOST.test(new URL(image).hostname) || isAmazonPick(p))) list[i] = { ...p, image };
   });
+}
+/**
+ * ONE PHOTO, ONE PRODUCT (wrong-photo fix 11-18 PM): a photo on rows of two different products (another brand, or names
+ * sharing under a quarter of their words) stays only on the row it belongs to: the ShopMy pin in its URL
+ * ("pins/zoom-<pin>-") matching the row's "go.shopmy.us/p-<pin>", else the largest group of rows naming one product.
+ * The other rows lose it and fall under "no photo, no row".
+ */
+const productWords = (p) => new Set(dedupeKey(p.name).split(" ").filter((w) => w.length > 2 && !squash(p.brand).includes(w)));
+const GENERIC_BRAND = /affiliate|program|walmart|amazon|target|shopmy/i;
+const sameProduct = (a, b) => {
+  // One link (not a shared collection) is one thing, whatever each row calls it.
+  if (a.href === b.href && !sharedLink(a.href)) return true;
+  const ba = GENERIC_BRAND.test(a.brand ?? "") ? "" : squash(a.brand);
+  const bb = GENERIC_BRAND.test(b.brand ?? "") ? "" : squash(b.brand);
+  if (ba && bb && ba !== bb && !ba.includes(bb) && !bb.includes(ba)) return false;
+  const wa = productWords(a);
+  const wb = productWords(b);
+  if (!wa.size || !wb.size) return true;
+  const both = [...wa].filter((w) => wb.has(w)).length;
+  return both / Math.min(wa.size, wb.size) >= 0.25;
+};
+export const suspectPhotos = { images: 0, cleared: 0 };
+{
+  const rowsByImage = new Map();
+  for (const list of [...Object.values(guides), swappedOut]) for (const p of list) if (p.image) (rowsByImage.get(p.image) ?? rowsByImage.set(p.image, []).get(p.image)).push(p);
+  const clear = new Set();
+  for (const [image, rows] of rowsByImage) {
+    const groups = [];
+    for (const r of rows) (groups.find((g) => sameProduct(g[0], r)) ?? (groups.push([]), groups[groups.length - 1])).push(r);
+    if (groups.length < 2) continue;
+    suspectPhotos.images += 1;
+    const pin = /pins\/zoom-(\d+)-/.exec(image)?.[1];
+    const owner = (pin && groups.find((g) => g.some((r) => r.href === `https://go.shopmy.us/p-${pin}`))) ?? [...groups].sort((a, b) => b.length - a.length)[0];
+    for (const g of groups) if (g !== owner) for (const r of g) clear.add(r);
+  }
+  const strip = (list) => list.map((p) => (clear.has(p) ? ((suspectPhotos.cleared += 1), { ...p, image: undefined }) : p));
+  for (const slug of Object.keys(guides)) guides[slug] = strip(guides[slug]);
+  swappedOut.splice(0, swappedOut.length, ...strip(swappedOut));
 }
 for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));
 /**
@@ -865,4 +917,4 @@ writeFileSync(
     `export const GIFT_GUIDE_SEO = ${JSON.stringify(seo)};\n`,
 );
 
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared`);

@@ -60,13 +60,13 @@ export const BRAND_SITES = ["www.zchocolat.com", "www.diecastmodelswholesale.com
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
  * Walmart Creator, CJ, Awin, Rakuten, ShopMy product links). Exact hosts; two-way (each is used by some link).
  */
-export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "www.jdoqocy.com", "www.dpbolvw.net", "www.tkqlhce.com", "www.awin1.com", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
+export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "www.jdoqocy.com", "www.dpbolvw.net", "www.awin1.com", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
 
 /**
  * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:
  * each link a product page from the shop's own list, HTTP 200 when opened). Exact hosts, never a wildcard.
  */
-export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "www.fleurtygirl.com", "www.nolacouture.com", "www.redstickspice.com", "nolacouture.com", "www.communitycoffee.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.cajunpowersauce.com", "shop.tabasco.com", "www.dirtycoast.com", "www.leahspralines.com", "www.frenchtruckcoffee.com", "www.cajungrocer.com", "www.camelliabrand.com", "www.steenssyrup.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "poches.com", "savoiesfoods.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
+export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "www.fleurtygirl.com", "www.nolacouture.com", "www.redstickspice.com", "www.communitycoffee.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.cajunpowersauce.com", "shop.tabasco.com", "www.dirtycoast.com", "www.leahspralines.com", "www.frenchtruckcoffee.com", "www.camelliabrand.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
 
 /**
  * Brands made in Louisiana: only these get the "Louisiana-made" badge (a pick marked louisianaFit that is not one of

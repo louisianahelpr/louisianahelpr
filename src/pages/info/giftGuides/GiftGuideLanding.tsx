@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { ROWS, guideBySlug, guidesIn, topPicks, type CatalogGuide, type CatalogPick, type GuideRow } from "@/content/giftGuideCatalog";
 import { PickThumb, storeLabel } from "./GiftGuideView";
-import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
+import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
@@ -112,7 +112,8 @@ function TopStrip() {
     <section aria-labelledby="gift-top-picks" data-gift-top="">
       <div className="gg-rowhead"><h2 id="gift-top-picks">{G.topTitle}</h2></div>
       <ul className="gg-row gg-toprow">{top.map((p, i) => <TopCard key={`${p.href} ${p.name}`} pick={p} n={i + 1} />)}</ul>
-      <PricesAsOf picks={top} />
+      {/* r4 audit Low #14: the "Prices as of" note only when most Top 10 cards show a price. */}
+      {top.filter((p) => showsPrice(p)).length * 2 > top.length && <PricesAsOf picks={top} />}
     </section>
   );
 }

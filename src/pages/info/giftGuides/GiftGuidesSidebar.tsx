@@ -3,7 +3,7 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { giftGuides as G, activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ROWS, guideBySlug, guidesIn, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { ROWS, STORES, guideBySlug, guidesIn, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { GiftOut } from "./GiftOut";
 
@@ -136,10 +136,11 @@ export function SalesList({ sales, first = SALES_FIRST }: { sales: readonly Sale
  * It starts COLLAPSED on every page and screen and never opens by itself (owner 11-18: "discount code shouldn't open
  * expanded"; no open state is remembered across pages). Hidden while it holds nothing.
  */
-export function DealsAndCodes() {
+export function DealsAndCodes({ guide }: { guide?: CatalogGuide } = {}) {
   const today = localToday();
-  const codes = activeCodes([...discountCodes, ...DEAL_CODES], today);
-  const sales = liveSales(SALES, today);
+  const allCodes = activeCodes([...discountCodes, ...DEAL_CODES], today);
+  const allSales = liveSales(SALES, today);
+  const { codes, sales } = guide ? guideDeals(guide, allCodes, allSales) : { codes: allCodes, sales: allSales };
   if (codes.length === 0 && sales.length === 0) return null;
   // Design spec 11-18 H5: a cream card; open, at most 8 rows show (codes first, then sales), each list with its See all.
   const stores = codesByStore(codes).length;
@@ -151,4 +152,38 @@ export function DealsAndCodes() {
       <SalesList sales={sales} first={DEALS_ROWS - codeRows} />
     </details>
   );
+}
+
+const normStore = (s: string) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+/** Guides for women or girls, and for men or boys (their deals must not be the other's). */
+const WOMENS_GUIDES = /^(mom|wife|her|girlfriend|grandma|sister|mother-in-law|aunt|best-friend|niece|sister-in-law|big-sisters|mom-to-be|new-mom|girls(-.*)?)$/;
+const MENS_GUIDES = /^(dad|him|boyfriend-or-husband|grandpa|brother|father-in-law|uncle|nephew|brother-in-law|new-dad|boys(-.*)?)$/;
+const MENS_DEAL = /\bmen'?s\b|\bmens\b|\bfor (him|men|dad)\b|\bboys?'?\b/i;
+const WOMENS_DEAL = /\bwomen'?s\b|\bwomens\b|\bfor (her|women|mom)\b|\bladies\b|\bgirls?'?\b/i;
+const PET_DEAL = /\bpets?\b|\bdogs?\b|\bcats?\b|\bpuppy\b|\bkitten\b|\bpet\s*(food|supplies)\b/i;
+/** At most this many deals and codes on a guide's page, codes first (owner 11-19). */
+const GUIDE_DEALS_MAX = 6;
+/**
+ * A guide's own deals and codes (owner 11-19: "deals and codes should not show in the womens section like this"): only
+ * stores and brands with picks on that guide, never a men's or pet deal on a women's guide (or the reverse, or a pet
+ * deal off the pet guides), at most GUIDE_DEALS_MAX, codes first by rank, then sales ending soonest. The full list stays
+ * on the landing.
+ */
+function guideDeals(guide: CatalogGuide, codes: DiscountCode[], sales: readonly Sale[]) {
+  const names = new Set<string>();
+  const slugs = new Set<string>();
+  for (const p of guide.picks) {
+    slugs.add(p.store);
+    const store = (STORES as Record<string, { name: string } | undefined>)[p.store]?.name;
+    if (store && p.store !== "amazon") names.add(normStore(store));
+    if (p.brand) names.add(normStore(p.brand));
+  }
+  const pets = guide.row === "pets";
+  const fits = (text: string) => !(WOMENS_GUIDES.test(guide.slug) && MENS_DEAL.test(text)) && !(MENS_GUIDES.test(guide.slug) && WOMENS_DEAL.test(text)) && (pets || !PET_DEAL.test(text));
+  const ownCodes = codes.filter((c) => names.has(normStore(c.store)) && fits(`${c.store} ${c.offer}`));
+  const codeRows = codesByStore(ownCodes).slice(0, GUIDE_DEALS_MAX);
+  const keptCodes = ownCodes.filter((c) => codeRows.some((r) => r.store === c.store));
+  const ownSales = [...sales].filter((x) => (slugs.has(x.slug) || names.has(normStore(x.store))) && fits(`${x.store} ${x.offer}`))
+    .sort((a, b) => a.ends.localeCompare(b.ends)).slice(0, Math.max(0, GUIDE_DEALS_MAX - codeRows.length));
+  return { codes: keptCodes, sales: ownSales };
 }

@@ -124,7 +124,7 @@ describe("gift-guide prices: a real guide page", () => {
       </MemoryRouter>,
     );
     await screen.findAllByText(/^~\$\d+$/);
-    expect(container.querySelectorAll("[data-gift-price]").length).toBeGreaterThan(3);
+    expect(container.querySelectorAll("[data-gift-price]").length).toBeGreaterThan(0); // one guide per product (owner 11-19)
     expect(container.querySelectorAll("[data-gift-prices-as-of]").length).toBe(1);
     vi.useRealTimers();
   });

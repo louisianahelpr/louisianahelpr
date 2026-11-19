@@ -28,27 +28,40 @@ import {
  * products at all. Two-way: an entry whose cover gains products fails until it is removed.
  */
 const FEW_PHOTOS = "fewer than 4 clean product-only photos";
-const CAREER_NEIGHBOURS = "2 usable photos; its other clean photos are on the career covers beside it";
+const ONE_GUIDE = "under 4 clean product photos left after one guide per product (owner 11-19)";
 /**
  * Re-measured 2026-11-19 after the r3 follow-up gathered store photos (scripts/gift-guide-store-cover-photos.json): 52
  * of the 59 store pages here now show products. These seven could not get four photos of products the store sells:
  * the site refuses automated requests or shoots on coloured, grey or model backdrops.
  */
 const TEXT_ONLY: Record<string, string> = {
-  "restaurant-servers": CAREER_NEIGHBOURS,
+  // Fit r4 (11-19): the brand cap of 3 now holds in the Louisiana guides, and North Louisiana keeps only North Louisiana
+  // items (one, the Duck Commander call, on a lifestyle photo); the shops' remaining photos are lifestyle shots.
+  "louisiana-sweets-and-bakeries": `${FEW_PHOTOS}: 2 clean photos after the brand cap; the bakeries' other photos are lifestyle shots`,
   "store-free-people": `${FEW_PHOTOS}: site and image server answer 403; its photos are grey-backdrop or on-model`,
   "store-crate-and-barrel": `${FEW_PHOTOS}: site answers 403; its studio photos sit on a grey gradient`,
   "store-birch-lane": `${FEW_PHOTOS}: Wayfair's sites answer 429; no clean photo of a product Birch Lane lists`,
-  "store-joss-and-main": `${FEW_PHOTOS}: Wayfair's sites answer 429; one clean photo of a product it lists`,
-  "store-chord": `${FEW_PHOTOS}: every cap photo on its site is on a coloured backdrop`,
-  "store-tuft-paw": `${FEW_PHOTOS}: 79 of its 80 product photos are on coloured backdrops`,
   "store-zonli": `${FEW_PHOTOS}: its site sits behind a bot challenge; its linked photos are on coloured backdrops`,
   // New approval 11-19: its 133-product Shopify catalog (first 8 photos each) has one plain-backdrop photo, a scarf on
   // cream; the rest are on-model shots beside care-icon or text panels.
   "store-cashmere-boutique": `${FEW_PHOTOS}: one plain-backdrop photo in its catalog; the rest are on-model with text panels`,
+  "crawfish-season": ONE_GUIDE,
+  "engineers": ONE_GUIDE,
+  "mardi-gras": ONE_GUIDE,
+  "store-jd-sports": ONE_GUIDE,
+  "store-loft": ONE_GUIDE,
+  "store-perigold": ONE_GUIDE,
+  "store-revolve": ONE_GUIDE,
+  "store-yeti": ONE_GUIDE,
+  "machinists": ONE_GUIDE,
+  "gender-neutral-big-kids": ONE_GUIDE,
+  "hunters": ONE_GUIDE,
 };
 /** Covers with four products whose photos read as gingham to the pixel check (clear glass and white jars). */
-const PIXEL_PALE: Record<string, string> = { "store-mario-badescu": "clear and white skincare bottles", "store-magnifique": "cream and oatmeal clay pots" };
+const PIXEL_PALE: Record<string, string> = {
+  "store-mario-badescu": "clear and white skincare bottles",
+  "store-magnifique": "cream and oatmeal clay pots",
+};
 
 const manifest = readManifest();
 const covers = new Set(COVER_SLUGS);
@@ -72,8 +85,8 @@ function plainGingham(): Buffer {
 
 describe("gift guide covers show their products", () => {
   it("reads every shown guide's cover", () => {
-    expect(shown.length).toBeGreaterThan(250);
-    expect(checked.length).toBeGreaterThan(250);
+    expect(shown.length).toBeGreaterThan(130); // one guide per product (owner 11-19) hides guides under 6 picks
+    expect(checked.length).toBeGreaterThan(110);
     for (const s of shown) expect(existsSync(`${COVER_DIR}/${s}.webp`), s).toBe(true);
   });
 

@@ -68,7 +68,7 @@ describe("gift guides: items that belong (owner 11-19)", () => {
       }
       expect(tumblers, slug).toBeLessThanOrEqual(TUMBLER_MAX);
     }
-    expect(picks).toBeGreaterThan(5000);
+    expect(picks).toBeGreaterThan(700); // one guide per product (owner 11-19): the guides are smaller
   });
 
   it("Gift Wrap & Cards holds wrap and cards only; Mail Carrier only checked prices of $20 or less", () => {

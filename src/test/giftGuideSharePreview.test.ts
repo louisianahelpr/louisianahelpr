@@ -41,7 +41,7 @@ describe("gift guide share preview (api/share.ts)", () => {
     expect([...COVER_WEBP_SLUGS].sort(), "add or remove the slug in src/lib/giftGuideShareImages.mjs").toEqual(covers);
   });
 
-  it.each(["mom", "dad", "store-amazon", "under-25"])("/gift-guides/%s previews with its own share JPG", async (slug) => {
+  it.each(["mom", "dad", "store-amazon", "her"])("/gift-guides/%s previews with its own share JPG", async (slug) => {
     expect(existsSync(`public/gift-guides/og/${slug}.jpg`)).toBe(true);
     const head = await headFor(`gift-guides/${slug}`);
     const url = `${ORIGIN}/gift-guides/og/${slug}.jpg`;

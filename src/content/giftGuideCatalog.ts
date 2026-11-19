@@ -398,12 +398,16 @@ const holdsMemo = new Map<string, boolean>();
 const holds = (slug: string): boolean => {
   if (holdsMemo.has(slug)) return holdsMemo.get(slug)!;
   const d = draftOf.get(slug);
-  const own = Boolean(d && (HAS_CHUNK.has(slug) || d.picks.length > 0 || d.links.length > 0));
+  // Lead 11-19 (one guide per product): a guide whose chunk holds fewer than GUIDE_MIN_PICKS picks is hidden like an
+  // empty one (no row, search or menu; its link opens "Picks coming soon" with related guides).
+  const own = Boolean(d && (HAS_CHUNK.has(slug) ? (slug.startsWith("store-") ? (CHUNK_PICK_COUNTS[slug] ?? 0) + (APPEND_CHUNK.has(slug) ? d.picks.length : 0) > 0 : false) || (CHUNK_PICK_COUNTS[slug] ?? 0) + (APPEND_CHUNK.has(slug) ? d.picks.length : 0) >= GUIDE_MIN_PICKS : d.picks.length > 0 || d.links.length > 0));
   const v = own || (HUBS[slug] ?? []).some((x) => x.slugs.some((c) => filled(c) && holds(c)));
   holdsMemo.set(slug, v);
   return v;
 };
 
+/** The fewest picks a (non-store) guide needs to show in rows, search and the menu (lead 11-19). */
+export const GUIDE_MIN_PICKS = 6;
 /** The fewest picks a store page needs to be a tile in the By store row and menu (lead 2026-11-18); its link still opens. */
 export const STORE_ROW_MIN_PICKS = 4;
 /** A guide's pick count without loading its chunk (static picks, plus its chunk's count). */

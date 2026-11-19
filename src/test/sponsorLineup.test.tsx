@@ -33,7 +33,7 @@ import path from "node:path";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
-import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { NOINDEX_PAGE_META, PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { About, BrandGets, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk, dayList, lineupWeekday, prizeWithoutBrand, recurringPartners } from "@/components/sponsor/Sections";
 import { WithEmailLink } from "@/pages/sponsor/SponsorRulesPage";
 import { ClaimSection, tileCount } from "@/components/sponsor/ClaimSection";
@@ -195,7 +195,7 @@ describe("no copy promises a brand its own day or its own spotlight (owner 2026-
       else if (v && typeof v === "object") Object.values(v).forEach(walk);
     };
     walk(sponsorPage);
-    walk([NOINDEX_PAGE_META["/sponsor"], NOINDEX_PAGE_META["/25days"]]);
+    walk([NOINDEX_PAGE_META["/sponsor"], PUBLIC_PAGE_META["/25days"]]);
     expect(strings.length).toBeGreaterThan(150);
     expect(strings.filter((s) => PROMISE.test(s))).toEqual([]);
   });

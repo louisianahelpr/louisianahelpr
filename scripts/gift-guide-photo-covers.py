@@ -18,7 +18,8 @@ It draws every guide in landing order. Six products, or four (two a side) when f
 short gets the same polished cover with no products. No product appears on two covers of the same landing section
 (owner 11-18: "No duplicates on cover", then "no repeats within a section"): a product counts as its brand (or line:
 any Stanley, any Squishmallow) and kind, the first cover in landing order keeps it, one boot cover per section, and a
-one-brand store page keeps its brand. A store page also uses its store's products named in other guides. scripts/check-gift-cover-duplicates.mjs checks the manifest.
+one-brand store page keeps its brand. Careers may repeat a product, never on two career
+covers next to each other (owner 11-18). Only covers whose products changed are redrawn unless GIFT_COVER_ALL=1. A store page also uses its store's products named in other guides. scripts/check-gift-cover-duplicates.mjs checks the manifest.
 No Louisiana items outside the Louisiana section (owner 11-18).
 
 Photos: each pick's own `image` from src/content/giftGuidePicks/<slug>.json, Amazon-hosted ones included (owner 11-18
@@ -96,7 +97,7 @@ COVER_SKIP = {"store-walmart": re.compile(r"welding|hot wheels", re.I),
 # mark), underwear and the like (a model in briefs), deodorant, and the white JBL Go photo (it cuts out grey).
 COVER_NEVER = re.compile(r"gift ?card|e-?gift|membership|subscription|underwear|bikini|\bperiod\b|\bbriefs?\b|"
                          r"\bbras?\b|lingerie|thong|compression|deodorant|body spray|collection|best ?sellers|"
-                         r"the best skincare|jbl go 4|spicebox|planner stickers", re.I)
+                         r"the best skincare|jbl go 4|spicebox|planner stickers|heated (electric|black buffalo)", re.I)  # "HEATED" badge photos
 COVER_SKIP["sister"] = re.compile(r"cozychic", re.I)  # a pale throw on the cream arch
 # Budget covers lead with colourful, recognisable gifts (owner 11-18): socks, tees, hats, lunch bags and the like last.
 PLAIN = re.compile(r"\bsocks?\b|\btees?\b|t-shirt|tasting cup|\bcrew\b|trucker hat|lunch (bag|lugger)|scalp massager", re.I)
@@ -367,7 +368,8 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True):
                 taken.append(p)
         if len(got) >= need:
             break
-    for c, p in light[:max(0, need - len(got))]:  # fewer than six otherwise: a light one, with the stronger shadow
+    # A light one (with the stronger shadow) only to reach four; four colourful beat six with light ones (owner 11-18).
+    for c, p in light[:max(0, 4 - len(got))]:
         got.append(c)
         taken.append(p)
     print(f"  {slug}: " + " | ".join((t.get("name") or "")[:28] for t in taken), flush=True)
@@ -542,11 +544,17 @@ def main():
     groups = {r["slug"]: r["group"] for r in rows}
     reserved = {b: st for b, st in reserved.items() if len(photos(st, group=groups[st], reserved=reserved)[0]) >= 4}
     # No repeats within a landing section (owner 11-18); a product may show again in another section.
+    # Careers may repeat a product, never on two career covers next to each other (the previous two in landing order).
     used, boots, manifest, kept, four = {}, set(), {}, [], []
+    career_recent = []
+    old = json.load(open(MANIFEST, encoding="utf8")) if os.path.exists(MANIFEST) else {}
     # Only guides that ship a cover (a guide with no picks is not built, and a stray cover file fails the two-way check).
     rows = [r for r in rows if os.path.exists(os.path.join(OUT, f"{r['slug']}.webp"))]
     for row in targets(rows):  # landing order: the index's order
-        sec = used.setdefault(row["group"], set())
+        if row["group"] == "By career":
+            sec = set().union(*career_recent) if career_recent else set()
+        else:
+            sec = used.setdefault(row["group"], set())
         prods, taken, own_brand = photos(row["slug"], group=row["group"], used=sec, reserved=reserved,
                                          boots_ok=row["group"] not in boots)
         if len(prods) == 5:
@@ -561,8 +569,12 @@ def main():
             sec.add(dedupe(t.get("name")))
             if "boot" in kinds(t):
                 boots.add(row["group"])
+        if row["group"] == "By career":
+            career_recent = (career_recent + [{cover_key(t, own_brand) for t in taken} | {dedupe(t.get("name")) for t in taken}])[-2:]
         manifest[row["slug"]] = {"section": row["group"],
                                  "items": [{"name": t.get("name"), "key": cover_key(t, own_brand)} for t in taken]}
+        if old.get(row["slug"]) == manifest[row["slug"]] and os.environ.get("GIFT_COVER_ALL") != "1":
+            continue  # the same products as the cover on disk: left as it is (GIFT_COVER_ALL=1 redraws every cover)
         draw(row, prods, os.path.join(OUT, f"{row['slug']}.webp"))
         print(f"cover {row['slug']} ({len(prods)})", flush=True)
     with open(MANIFEST, "w", encoding="utf8") as f:

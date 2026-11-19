@@ -2,7 +2,10 @@
  * No product on two gift guide covers of the same landing section (owner 11-18: "No duplicates on cover", then "no
  * repeats within a section"): the manifest the cover script writes (scripts/gift-guide-cover-items.json) holds each
  * cover's section and products, and scripts/check-gift-cover-duplicates.mjs finds a product key (brand or line plus
- * kind) or name on more than one cover of a section. The same product in two different sections is allowed.
+ * kind) or name on more than one cover of a section. The same product in two different sections is allowed. Careers
+ * may repeat, never on two career covers next to each other (the two before it in landing order).
+ *
+ * @mutate scripts/check-gift-cover-duplicates.mjs |       for (const k of new Set(ids(cover))) if (theirs.has(k)) out.push | for (const k of []) if (theirs.has(k)) out.push
  *
  * @mutate scripts/check-gift-cover-duplicates.mjs |         if (seen && !seen.includes(slug)) seen.push(slug); |         if (false) seen.push(slug);
  */
@@ -29,6 +32,14 @@ describe("gift guide covers carry no repeats within a section", () => {
   it("allows the same product in two different sections", () => {
     const twoRows: Manifest = { a: { section: "By person", items: [stanley("Stanley 40 oz")] }, b: { section: "By career", items: [stanley("Stanley 40 oz")] } };
     expect(coverDuplicates(twoRows)).toEqual([]);
+  });
+
+  it("careers repeat only away from their neighbors", () => {
+    const c = (items: { name: string; key: string }[]) => ({ section: "By career", items });
+    const spaced: Manifest = { a: c([stanley("S")]), b: c([{ name: "x", key: "x:1" }]), d: c([{ name: "y", key: "y:1" }]), e: c([stanley("S")]) };
+    expect(coverDuplicates(spaced)).toEqual([]);
+    const near: Manifest = { a: c([stanley("S")]), b: c([{ name: "x", key: "x:1" }]), d: c([stanley("S")]) };
+    expect(coverDuplicates(near)).toContain("By career neighbors key stanley:drink: a, d");
   });
 
   it("no product key or name is on two covers of one section", () => {

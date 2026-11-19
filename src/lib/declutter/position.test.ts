@@ -3,8 +3,9 @@
  * refusal word (location_required) for location off or refused, on the web
  * and in the app.
  *
- * @mutate src/lib/declutter/position.ts |       () => reject(new Error("location_required")), |       (e) => reject(e),
+ * @mutate src/lib/declutter/position.ts |       () => reject(Object.assign(new Error("location_required"), { designedRefusal: true })), |       (e) => reject(e),
  * @mutate src/lib/declutter/position.ts |       throw refused; |       throw e;
+ * @mutate src/lib/declutter/position.ts |       const refused = Object.assign(new Error("location_required"), { cause: e, designedRefusal: true }); |       const refused = Object.assign(new Error("location_required"), { cause: e });
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -33,6 +34,7 @@ describe("currentPosition (web)", () => {
       getCurrentPosition: (_ok: PositionCallback, no: PositionErrorCallback) => no({ code: 1 } as GeolocationPositionError),
     } });
     await expect(currentPosition()).rejects.toThrow("location_required");
+    await expect(currentPosition()).rejects.toMatchObject({ designedRefusal: true });
   });
 });
 
@@ -48,5 +50,6 @@ describe("currentPosition (app)", () => {
     native.get.mockRejectedValue(new Error("Location permission was denied"));
     vi.spyOn(console, "warn").mockImplementation(() => {});
     await expect(currentPosition()).rejects.toThrow(/^location_required$/);
+    await expect(currentPosition()).rejects.toMatchObject({ designedRefusal: true });
   });
 });

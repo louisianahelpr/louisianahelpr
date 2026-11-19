@@ -383,7 +383,7 @@ export const FILL_HREFS = new Set();
  * all-caps brand and a trailing burn-time or "including ..." clause go; tidyName then trims anything still long. */
 const cleanFillName = (n) => String(n).replace(/\s*\((Standard|Regular)[^)]*Size\)/gi, "").replace(/\bUnisex-Adult\s*/g, "")
   .replace(/^THE NORTH FACE\b/, "The North Face").replace(/\bWomens\b/g, "Women's").replace(/\bMens\b/g, "Men's")
-  .replace(/\s+with up to \d+ Hour Burn Time$/i, "").replace(/\s+including .*$/i, "").replace(/\s{2,}/g, " ").trim();
+  .replace(/\s+with up to \d+ Hour Burn Time$/i, "").replace(/\s+including .*$/i, "").replace(/\s*\((clearance|sale|on sale)\)/gi, "").replace(/\s{2,}/g, " ").trim();
 export const fillCounts = { rows: 0, store: 0, guides: 0, noStore: new Set() };
 {
   for (const f of ["_store-fill-amazon-1118.json", "_store-fill-shopmy-1118.json", "_store-fill-later-1118.json", "_store-fill-shark-1118.json"]) {
@@ -397,7 +397,9 @@ export const fillCounts = { rows: 0, store: 0, guides: 0, noStore: new Set() };
       if (!r || typeof r.href !== "string" || typeof r.name !== "string" || typeof r.image !== "string") continue;
       fillCounts.rows += 1;
       const key = String(r.store_slug ?? "").replace(/^store-/, "");
-      const slug = key ? `store-${key}` : "";
+      // A short key names the one store page it starts ("darn-tough" -> store-darn-tough-vermont).
+      const longer = key ? [...stores.keys()].filter((k) => k.startsWith(`store-${key}-`)) : [];
+      const slug = !key ? "" : stores.has(`store-${key}`) || longer.length !== 1 ? `store-${key}` : longer[0];
       let host = "";
       try { host = new URL(r.href).hostname; } catch { continue; }
       const { price: _price, commission: _commission, guides: _guides, ...row } = r;

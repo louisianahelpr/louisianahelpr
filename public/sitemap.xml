@@ -1197,6 +1197,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-bodyguardz</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-bombas</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1213,6 +1218,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-bose</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-brooklinen</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1277,11 +1287,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/store-darn-tough</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-darn-tough-vermont</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1293,6 +1298,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-depop</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-dermstore</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1597,6 +1607,16 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-parachutehome</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-pelican</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-perigold</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1608,6 +1628,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-pura-vida-bracelets</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-qvc</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1778,6 +1803,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-tushbaby</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/store-twelve-south</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

@@ -69,7 +69,7 @@ function FreshCard({ it, showPorch }: { it: FreshItem; showPorch: boolean }) {
               <span data-card-base-price="" className={`${FRESH_PRICE} font-bold tabular-nums text-foreground`}>
                 {itemPriceLabel(it.current_price_cents)}
                 {it.current_price_cents < it.price_cents && (
-                  <span className="ml-1.5 text-ds-13 font-medium text-[color:var(--lp-body)]">
+                  <span className="ml-1 text-ds-11 font-medium text-[color:var(--lp-body)]">
                     <span className="sr-only">Price dropped, was </span>
                     <s aria-hidden>{formatPrice(it.price_cents)}</s>
                   </span>
@@ -93,7 +93,7 @@ export function porchTagTellsApart(items: Pick<FreshItem, "porch_ok">[]): boolea
 
 /**
  * The Shop Declutter grid (owner 11-08): up to FRESH_DECLUTTER_LIMIT items in the /declutter browse card style (FreshCard
- * above), two across on a phone, three from sm, four from lg, then "See everything".
+ * above), three across on a phone, four from sm, six from lg (owner 11-18: "Make these smaller"), then "See everything".
  */
 export default function FreshDeclutterStrip({ items, shell = DECLUTTER_SHELL }: { items: FreshItem[]; shell?: BrowseShellCopy }) {
   const shown = items.slice(0, FRESH_DECLUTTER_LIMIT);

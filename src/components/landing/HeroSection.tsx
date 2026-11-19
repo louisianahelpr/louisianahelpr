@@ -20,6 +20,8 @@ import { removeLandingShellOncePainted } from "./landingShell";
  * Owner decision 11-18 (hero mockup B, "Color band"; overrides the 11-17 "white everywhere" rule for the hero only):
  * a soft olive-to-cream band (.landing-hero-band, pure CSS) behind the whole hero, the bar included, and "partner."
  * italic in the brand olive (.landing-h1-accent). The wording is unchanged. Guard: landingHeroBand1118.test.ts.
+ * Owner 11-18 later ("the landing view gets the full view also light up the green background"): the band is lighter
+ * (closer to cream) and the hero fills the whole first screen on a phone too. Guard: landingHeroFullScreen1118.test.ts.
  *
  * Honesty rules (LANDING-APPROVED.md): the search really searches
  * (heroSearch.ts); no parish select (owner, 2026-10-20); every proof line is a
@@ -47,10 +49,11 @@ const HeroSection = () => {
   return (
     // The first screen (owner, 2026-10-27: "it just needs to be centered on the page with the stuff
     // below smaller"): the H1, subhead and search are one block centred under the top bar's clearance.
-    // The proof row moved below the fold (owner, 2026-11-02). Owner 11-08: on a phone the section is
-    // 7.5rem (120px) shorter than the screen (and its bottom padding smaller), so the jobs section
-    // under it (LandingBrowseSwitch) peeks into the first screen; from sm it fills the screen as before.
-    <section className="landing-hero-band relative flex min-h-[calc(100svh-7.5rem)] sm:min-h-[100svh] flex-col px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-24 pb-4 sm:pb-8 lg:pb-10">
+    // The proof row moved below the fold (owner, 2026-11-02). Owner 11-18 ("make the jobs move down some so you
+    // have to scroll to see"): the section fills the whole first screen at every width, phone included (the 11-08
+    // phone peek is gone); its height is .landing-hero-band's min-height in src/index.css (100vh, then 100svh). The
+    // top bar is drawn over the band, so the full screen height already counts the bar.
+    <section className="landing-hero-band relative flex flex-col px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-24 pb-8 lg:pb-10">
       <div data-testid="landing-hero-block" className="flex flex-1 flex-col justify-center">
         <div className="relative mx-auto w-full max-w-[760px]">
           <div data-testid="landing-hero-column" className="flex flex-col items-center text-center min-w-0">

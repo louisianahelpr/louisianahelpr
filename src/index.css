@@ -5413,16 +5413,19 @@ html.page-scrolled .page-title-card:has(.explore-header),
 /* Owner decision 11-18 (hero mockup B, "Color band"; overrides the 11-17 "white everywhere" rule for the hero ONLY):
    a soft olive-to-cream band behind the whole hero, from the top bar through the search; the page below stays white.
    Pure CSS: no image, no font, no box change. "partner." is italic in the brand olive (synthesized from the upright
-   Montserrat already loaded; there is no italic face to fetch). --lp-action-strong on the band: 5.6:1 light, 5.9:1
-   dark. The search pill and the Jobs | Declutter switch keep their white surface and shadow on it.
-   Guard: src/test/landingHeroBand1118.test.ts. */
+   Montserrat already loaded; there is no italic face to fetch). The search pill and the Jobs | Declutter switch keep
+   their white surface and shadow on it. Guard: src/test/landingHeroBand1118.test.ts.
+   Owner 11-18 later ("light up the green background look"): the light band is brighter and airier, closer to cream
+   (was #dfe3c4 / #eef0de / #faf6ee); the guard holds --lp-ink, --lp-body and --lp-action-strong at AA on every stop.
+   And "the landing view gets the full view": the hero is the whole first screen at every width, so the jobs below
+   only show after a scroll; 100vh first for a browser without svh. Guard: src/test/landingHeroFullScreen1118.test.ts. */
 .landing-page {
-  --lp-hero-band: linear-gradient(160deg, #dfe3c4 0%, #eef0de 45%, #faf6ee 100%);
+  --lp-hero-band: linear-gradient(160deg, #eaeed6 0%, #f4f6ea 45%, #fdfaf4 100%);
 }
 [data-theme="dark"] .landing-page {
   --lp-hero-band: linear-gradient(160deg, #2e2f22 0%, #262620 45%, #1c1a17 100%);
 }
-.landing-page .landing-hero-band { background: var(--lp-hero-band); }
+.landing-page .landing-hero-band { background: var(--lp-hero-band); min-height: 100vh; min-height: 100svh; }
 .landing-page .landing-h1-accent { font-style: italic; color: var(--lp-action-strong); }
 /* At the very top the bar shows the band under it (Navbar's landing-nav-top); from the first scroll it is opaque. */
 .landing-page .glass-nav.landing-nav-top {

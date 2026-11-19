@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { forwardRef, useEffect, useState } from "react";
 import { prefetchRoute } from "@/lib/routePrefetch";
@@ -35,6 +36,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
   // design audit 11-10): on a phone the landing's bar keeps only the logo, Log in and Join free; its hero already has
   // the Jobs | Declutter switch, so the Jobs and Declutter links (and their divider) were a full bar of repeats there.
   const phoneHidden = landing ? " max-[639px]:hidden" : "";
+  // Owner 11-18 ("Shouldn't it be on the top nav?"): the short "Guides" link is the other way round: on the landing's
+  // phone bar (room beside Log in and Join free), and on the other pages only from sm (below 640 their bar carries Jobs
+  // and Declutter).
+  const guidesPhoneHidden = landing ? "" : " max-[639px]:hidden";
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/legal, /) sees none of the signed-out "Jobs | Log in · Join free"
@@ -170,8 +175,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 Declutter
               </Link>
             </Button>
-            {/* Owner 2026-11-18: "Holiday Gift Guides" in the public top bar. From md up only: below that the bar holds
-                exactly Jobs, Declutter, Log in and Join free beside the logo (measured at 320-375, owner 11-04). */}
+            {/* Owner 2026-11-18: "Holiday Gift Guides" in the public top bar, in full from md up; below md the short
+                "Guides" link under it takes its place. */}
             <Button
               asChild
               variant="ghost"
@@ -184,6 +189,29 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 data-testid="nav-gift-guides"
               >
                 Holiday Gift Guides
+              </Link>
+            </Button>
+            {/* Owner 2026-11-18, on the phone landing: "Where am I suppose to find the holiday guides here? Shouldn't it be
+                on the top nav?" (this overrides 11-04's phone bar of only Jobs, Declutter, Log in and Join free). Below md
+                the bar has a short "Guides" link with the gift icon, named "Holiday Gift Guides" in full (sr-only prefix). On the landing it
+                shows at every phone width (the bar there is only the logo, Log in and Join free, D021); on the other
+                public pages from sm, since below 640 their bar already carries Jobs and Declutter beside the logo (the
+                fit measured at 320-375 on 11-04). Guard: src/test/navGiftGuidesOnPhone1118.test.tsx. */}
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className={`md:hidden gap-1 rounded-full px-2 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${guidesPhoneHidden}`}
+            >
+              <Link
+                to="/gift-guides"
+                aria-current={location.pathname.startsWith("/gift-guides") ? "page" : undefined}
+                data-testid="nav-gift-guides-phone"
+              >
+                <Gift aria-hidden />
+                {/* Its name is "Holiday Gift Guides", which holds the visible word (WCAG 2.5.3, labelInName.test.tsx). */}
+                <span className="sr-only">Holiday Gift Guides</span>
+                <span aria-hidden>Guides</span>
               </Link>
             </Button>
             {/* The divider between the public links and the auth actions. Below 400px the bar drops it and

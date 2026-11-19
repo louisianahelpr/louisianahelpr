@@ -27,7 +27,7 @@
  * and the incl.-fee line smaller (13px). D017: the landing asks for a 640x800 thumbnail.
  * @mutate src/components/landing/FreshDeclutterStrip.tsx |   return items.some((i) => i.porch_ok) && items.some((i) => !i.porch_ok); |   return items.some((i) => i.porch_ok);
  * @mutate src/components/landing/FreshDeclutterStrip.tsx | {it.area_label \|\| "\u00a0"} | {it.condition_stars}
- * @mutate src/components/landing/FreshDeclutterSection.tsx | export const FRESH_PRICE = "text-ds-20 leading-tight"; | export const FRESH_PRICE = "text-ds-16 leading-tight";
+ * @mutate src/components/landing/FreshDeclutterSection.tsx | export const FRESH_PRICE = "text-ds-16 leading-tight"; | export const FRESH_PRICE = "text-ds-20 leading-tight";
  * @mutate src/components/landing/FreshDeclutterStrip.tsx | className={`line-clamp-2 break-words ${FRESH_TITLE}`} | className={`block line-clamp-2 break-words ${FRESH_TITLE}`}
  * @mutate src/lib/declutter/landingCardPhoto.ts | export const LANDING_CARD_PHOTO = { width: 640, height: 800 } as const; | export const LANDING_CARD_PHOTO = { width: 480, height: 480 } as const;
  */
@@ -68,12 +68,12 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
   });
 
   it("the grid wears the /declutter browse card style: price or Free, title, town, each to its item page, plus Shop Declutter", () => {
-    const items = Array.from({ length: 10 }, (_, i) => item(i + 1, i === 0 ? 0 : undefined));
+    const items = Array.from({ length: 14 }, (_, i) => item(i + 1, i === 0 ? 0 : undefined));
     render(<MemoryRouter><FreshDeclutterStrip items={items} /></MemoryRouter>);
     const strip = screen.getByTestId("landing-fresh-declutter");
     expect(within(strip).getByRole("heading", { name: "Popular on Declutter" })).toBeTruthy();
     const cards = within(screen.getByTestId("landing-fresh-declutter-list")).getAllByRole("listitem");
-    expect(FRESH_DECLUTTER_LIMIT).toBe(8); // owner 11-08: a grid of 8
+    expect(FRESH_DECLUTTER_LIMIT).toBe(12); // owner 11-18 ("Make these smaller"): 12 small cards (was 8, owner 11-08)
     expect(cards.length).toBe(FRESH_DECLUTTER_LIMIT); // never more than the limit, even when handed more
     // Every card is a browse-style card (data-item-card), all shown at every width.
     expect(cards.every((c) => c.querySelector("[data-item-card]") && !c.className.includes("hidden"))).toBe(true);
@@ -87,13 +87,14 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     expect(cards.every((c) => !c.querySelector("[data-card-condition]"))).toBe(true);
     expect(cards[0].querySelector("[data-card-town]")?.textContent).toBe("Town 1");
     expect(cards[1].querySelector("[data-card-town]")?.textContent).toBe("\u00a0");
-    // D006: list price first and big (20px step), the incl.-fee line under it smaller; two-line 16px titles.
+    // D006: list price first and biggest on the card, the incl.-fee line under it smaller; two-line titles. Owner 11-18
+    // ("Make these smaller"): 16px price, 13px title (were 20 and 15).
     const base = cards[1].querySelector("[data-card-base-price]") as HTMLElement;
-    expect(base.className.split(" ")).toContain("text-ds-20");
+    expect(base.className.split(" ")).toContain("text-ds-16");
     const priceLines = [...(cards[1].querySelector("[data-card-price]") as HTMLElement).children];
     expect(priceLines[0]).toBe(base);
     expect(priceLines[1]?.textContent).toMatch(/incl\. fee/);
-    expect((cards[1].querySelector("[data-card-title]") as HTMLElement).className).toMatch(/\bline-clamp-2\b.*\btext-ds-15\b/);
+    expect((cards[1].querySelector("[data-card-title]") as HTMLElement).className).toMatch(/\bline-clamp-2\b.*\btext-ds-13\b/);
     // A display class beside line-clamp-2 overrides its -webkit-box, so the clamp did nothing (WebKit 375 after-shot
     // 11-10: a four-line title). Never one on the title.
     expect((cards[1].querySelector("[data-card-title]") as HTMLElement).className.split(/\s+/)).not.toEqual(expect.arrayContaining(["block"]));
@@ -134,10 +135,11 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     expect(src).toMatch(/await import\("@\/integrations\/supabase\/client"\)/);
     expect(src).toMatch(/if \(document\.readyState === "complete"\) watch\(\);\s*else window\.addEventListener\("load", watch, \{ once: true \}\);/);
     expect(src).toMatch(/new IntersectionObserver\(/);
-    expect(src).toMatch(/\.from\("declutter_items"\)\s*\.select\(FRESH_SELECT\)\s*\.eq\("status", "live"\)\s*\.order\("live_at", \{ ascending: false \}\)\s*\.limit\(FRESH_DECLUTTER_LIMIT\)/);
-    // Owner 11-09 (10:55 PM): popular items first, one call (declutter_popular_items); the newest-first read above is
-    // only the fallback while the function is not deployed yet (PGRST202).
-    expect(src).toMatch(/supabase\.rpc\("declutter_popular_items", \{ p_limit: FRESH_DECLUTTER_LIMIT \}\)/);
+    expect(src).toMatch(/\.from\("declutter_items"\)\s*\.select\(FRESH_SELECT\)\s*\.eq\("status", "live"\)\s*\.order\("live_at", \{ ascending: false \}\)\s*\.limit\(FRESH_POOL_LIMIT\)/);
+    // Owner 11-09 (10:55 PM): popular items first (declutter_popular_items); the newest-first read above was only the
+    // fallback while the function is not deployed yet (PGRST202), and is that fallback still.
+    // Owner 11-18: the function's best FRESH_POPULAR_LIMIT plus the live pool above, cute picks first (cuteDeclutterPicks).
+    expect(src).toMatch(/supabase\.rpc\("declutter_popular_items", \{ p_limit: FRESH_POPULAR_LIMIT \}\)/);
     expect(src).toMatch(/isMissingRpcNamed\(popular\.error, "declutter_popular_items"\)/);
     expect(src).toMatch(/unwrap\(/);
     // A failed read says so (not silent); an empty one draws nothing.

@@ -18,3 +18,7 @@ export const SITE_ICON: RegExp;
 export const HOTLINK_BLOCKED: RegExp;
 export const NAME_MAX: number;
 export function tidyName(name: string): string;
+export const WRONG_IMAGES: Set<string>;
+export const LOGO_IMAGE: RegExp;
+export const PAGE_TITLE_NAME: RegExp;
+export const WRONG_GUIDE: Record<string, RegExp>;

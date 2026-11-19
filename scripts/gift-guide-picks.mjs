@@ -367,7 +367,12 @@ const isXtratuf = (p) => /^xtratuf$/i.test(p.brand ?? "") || p.store === "store-
  * A guide's featured entries: a pick name in that guide, or { name, from } borrowed from another guide (research 11-18
  * PM, the top 25 per guide). A borrowed pick reuses that guide's pick (link and photo) and must still fit this guide.
  */
-const featuredEntries = (slug) => (Array.isArray(FEATURED[slug]) ? FEATURED[slug] : [])
+/** Picks the owner put at the top of a guide herself (11-18 PM: "Subscription you can put Walmart plus here ... and Amazon"). */
+export const PINNED_TOP = {
+  subscriptions: ["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
+    "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"],
+};
+const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), ...(Array.isArray(FEATURED[slug]) ? FEATURED[slug] : [])]
   .filter((x) => typeof x === "string" || (x && typeof x === "object" && typeof x.name === "string"));
 const featuredNames = (slug) => featuredEntries(slug).map((x) => (typeof x === "string" ? x : x.name));
 const resolveFeatured = (slug, list, e) => {
@@ -416,9 +421,11 @@ for (const t of TRENDING) {
 }
 const isTrending = (p) => [...trendingPick.values()].some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name));
 const isAmazonPick = (p) => AMAZON.has(new URL(p.href).hostname);
+const NO_TRENDING = ["subscriptions", "gift-cards"];
 const withTrending = (slug, list) => {
   // Store pages stay store-only; the 25 Days guide stays sponsors-only.
-  if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || !trendingPick.size) return list;
+  // Subscriptions and gift cards stay what they say (a tumbler is neither).
+  if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || NO_TRENDING.includes(slug) || !trendingPick.size) return list;
   const out = [...list];
   const featured = featuredNames(slug);
   const isTop = (p) => isTrending(p) || featured.some((n) => sameName(n, p.name));

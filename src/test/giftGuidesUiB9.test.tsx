@@ -184,7 +184,7 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     expect(chips.map((a) => a.textContent)).toEqual(QUICK_PICKS.filter((c) => !c.slug || live(c.slug)).map((c) => c.label));
     expect(chips.length).toBeGreaterThan(5);
     for (const a of chips) expect(a.className.split(/\s+/)).toContain("h-11");
-    expect(chips.map((a) => a.getAttribute("href"))).toEqual(expect.arrayContaining(["/gift-guides/under-25", "/gift-guides?group=for-kids", "/gift-guides?group=louisiana"]));
+    expect(chips.map((a) => a.getAttribute("href"))).toEqual(expect.arrayContaining(["/gift-guides/under-25", "/gift-guides?group=for-kids#kids-by-age", "/gift-guides?group=louisiana"]));
   });
 
   it("the landing has no back arrow; a guide's goes to the landing", () => {

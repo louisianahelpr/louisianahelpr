@@ -5,4 +5,4 @@ export function giftGuideDescription(name: string, topNames: readonly string[] |
 export function publicOrGiftGuidePageMetaFor(
   pathname: string,
   tabParam: string | null | undefined,
-): PublicPageMeta | null;
+): (PublicPageMeta & { robots?: string }) | null;

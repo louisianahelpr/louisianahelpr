@@ -150,7 +150,10 @@ describe("vercel.json redirects", () => {
     const doorways = config.redirects.filter((x) => !x.has && x.destination.startsWith("/"));
     expect(doorways.length).toBeGreaterThan(15);
     for (const r of doorways) {
-      expect(app.includes(`path="${r.destination}"`), `${r.source} -> ${r.destination} has no App.tsx route`).toBe(true);
+      // A destination under a parameter route (/gift-guides/healthcare under /gift-guides/:slug) is served too.
+      const parent = r.destination.replace(/\/[^/]+$/, "/:slug");
+      const served = app.includes(`path="${r.destination}"`) || (r.destination.startsWith("/gift-guides/") && app.includes(`path="${parent}"`));
+      expect(served, `${r.source} -> ${r.destination} has no App.tsx route`).toBe(true);
     }
   });
 

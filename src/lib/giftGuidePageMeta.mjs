@@ -56,5 +56,11 @@ export function publicOrGiftGuidePageMetaFor(pathname, tabParam) {
   const path = pathname.replace(/\/+$/, "") || "/";
   const gift = path.match(/^\/gift-guides\/([a-z0-9-]+)$/)?.[1];
   if (gift && Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, gift)) return giftGuidePageMeta(gift);
+  // Any other /gift-guides/<slug> (a store page the link audits emptied, a hub, a mistyped slug) is noindex before JS
+  // (gg-r3 UX audit #12: the emptied store pages answered "index, follow" with the generic card).
+  if (gift) {
+    const description = "Hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.";
+    return { title: "Gift guides — Helpr", description, canonical: `${SITE_ORIGIN}/gift-guides`, ogTitle: "Holiday gift guides 2026", ogDescription: description, robots: NOINDEX_ROBOTS };
+  }
   return publicPageMetaFor(pathname, tabParam);
 }

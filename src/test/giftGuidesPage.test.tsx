@@ -835,7 +835,7 @@ describe("gift guides: links and disclosures on every view", () => {
         if (href.startsWith("/")) {
           // The one link out of the guides: the Hire-a-Helpr box's pre-filled Post a job (owner 2026-11-18).
           if (href === GIFT_WRAP_JOB_PATH) continue;
-          expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+|\?group=[a-z-]+|\?list=mine)?$/);
+          expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+|\?group=[a-z-]+(?:#[a-z-]+)?|\?list=mine)?$/);
           continue;
         }
         outbound += 1;

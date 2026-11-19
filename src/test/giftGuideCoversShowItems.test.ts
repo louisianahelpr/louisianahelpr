@@ -28,10 +28,21 @@ import {
  * products at all. Two-way: an entry whose cover gains products fails until it is removed.
  */
 const FEW_PHOTOS = "fewer than 4 clean product-only photos";
-const CAREER_NEIGHBOURS = "3 usable photos; its other clean photos are on the career covers beside it";
+const CAREER_NEIGHBOURS = "2 usable photos; its other clean photos are on the career covers beside it";
+/**
+ * Re-measured 2026-11-19 after the r3 follow-up gathered store photos (scripts/gift-guide-store-cover-photos.json): 52
+ * of the 59 store pages here now show products. These seven could not get four photos of products the store sells:
+ * the site refuses automated requests or shoots on coloured, grey or model backdrops.
+ */
 const TEXT_ONLY: Record<string, string> = {
   "restaurant-servers": CAREER_NEIGHBOURS,
-  ...Object.fromEntries(["store-lululemon", "store-sephora", "store-ulta-beauty", "store-tiktok-shop", "store-journeys", "store-durango-boots", "store-anthropologie", "store-free-people", "store-crate-and-barrel", "store-uniform-advantage", "store-saks-fifth-avenue", "store-neiman-marcus", "store-maisonette", "store-allmodern", "store-birch-lane", "store-splendid", "store-joss-and-main", "store-over-the-moon", "store-jomashop", "store-atlas-coffee-club", "store-bass-pro-shops", "store-baublebar", "store-bonne-et-filou", "store-cabelas", "store-chefman", "store-chord", "store-clinique-online", "store-columbia", "store-davids-cookies", "store-dermstore", "store-diamond-art-club", "store-dragontree", "store-ecreamery-ice-cream-and-gifts", "store-hanna-andersson", "store-hearthsong", "store-jcrew", "store-julie-vos", "store-kitty-kick-stix", "store-ll-bean", "store-lillypulitzer", "store-literie-candle", "store-little-sleepies", "store-mac-cosmetics", "store-magic-makers", "store-magnolia", "store-makerfire", "store-mason-new-york", "store-milk-bar", "store-momcozy", "store-mud-pie", "store-nixplay", "store-pura-vida-bracelets", "store-re-done", "store-sharper-image", "store-simms-fishing", "store-tarte-cosmetics", "store-tuft-paw", "store-wild-one", "store-zonli"].map((s) => [s, FEW_PHOTOS])),
+  "store-free-people": `${FEW_PHOTOS}: site and image server answer 403; its photos are grey-backdrop or on-model`,
+  "store-crate-and-barrel": `${FEW_PHOTOS}: site answers 403; its studio photos sit on a grey gradient`,
+  "store-birch-lane": `${FEW_PHOTOS}: Wayfair's sites answer 429; no clean photo of a product Birch Lane lists`,
+  "store-joss-and-main": `${FEW_PHOTOS}: Wayfair's sites answer 429; one clean photo of a product it lists`,
+  "store-chord": `${FEW_PHOTOS}: every cap photo on its site is on a coloured backdrop`,
+  "store-tuft-paw": `${FEW_PHOTOS}: 79 of its 80 product photos are on coloured backdrops`,
+  "store-zonli": `${FEW_PHOTOS}: its site sits behind a bot challenge; its linked photos are on coloured backdrops`,
 };
 /** Covers with four products whose photos read as gingham to the pixel check (clear glass and white jars). */
 const PIXEL_PALE: Record<string, string> = { "store-mario-badescu": "clear and white skincare bottles" };

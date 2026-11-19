@@ -400,7 +400,8 @@ LOUISIANA = re.compile(
 
 def allowed(slug, p, taken, group=""):
     """The variety rules for one more product on this cover, given the picks already on it."""
-    if group != "Louisiana" and slug != "purple-and-gold-lover" and LOUISIANA.search(f"{p.get('name') or ''} {p.get('brand') or ''}"):
+    # A store page shows its own products (Magnolia, the Texas home brand, matched "magnolia" and drew nothing).
+    if group != "Louisiana" and slug != "purple-and-gold-lover" and not slug.startswith("store-") and LOUISIANA.search(f"{p.get('name') or ''} {p.get('brand') or ''}"):
         return False  # owner 11-18: no Louisiana items on a cover outside the Louisiana section
     ks = kinds(p)
     if "boot" in ks and slug in NO_BOOTS and not re.search(r"\bugg\b", f"{p.get('brand')} {p.get('name')}", re.I):

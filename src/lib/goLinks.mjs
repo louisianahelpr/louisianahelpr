@@ -25,6 +25,8 @@ export const GO_LINK_HOSTS = Object.freeze([
   "www.awin1.com",
   "click.linksynergy.com",
   "go.shopmy.us",
+  // Sam's Club Creator membership links (gift guides, owner 11-19).
+  "samsclub.co",
 ]);
 
 /** Where an unknown slug or a refused target goes. */

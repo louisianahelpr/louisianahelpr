@@ -56,6 +56,8 @@ export const WORKFLOW_EXEMPT: Record<string, string> = {
 // @two-way src/test/noTestTrafficOnVercel.test.ts:const staleExempt =
 export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/uptime-check.mjs": "The uptime probe itself (uptime.yml, exempt above).",
+  "scripts/gift-guide-picks.mjs":
+    "The gift-guide importer writes our own hosted Sam's Club card photos (public/gift-guides/memberships/*.jpg) into the picks as https image URLs; it never requests the site.",
   "scripts/generate-sitemap.mjs": "Writes the domain into sitemap.xml <loc> entries as text; never fetches it.",
   "scripts/check-identity-linking.mjs":
     "Checks the Supabase auth redirect allow-list covers the OAuth return URL (Q445); never fetches it.",

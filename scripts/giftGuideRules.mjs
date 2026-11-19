@@ -230,3 +230,106 @@ export const collectionLink = (href) => {
     return /\/collections\//i.test(u.pathname) || /\/shop\/?$/i.test(u.pathname);
   } catch { return true; }
 };
+
+/**
+ * ITEMS THAT BELONG (owner 11-19: "some of them really don't belong at all"; fit beats count, she would rather a guide
+ * have 18 great items than 25 with filler, 2026-11-19). Fit audit round 2 (_fit-audit-r2-A/B-1118.json) found the same misfits
+ * pasted across many guides; these rules keep them out for good, on top of the audits' per-item lists.
+ * - FILLER_BLOCK: the generic filler block (Kindle, AirPods, Apple Watch, CREAMi, UGG, Theragun) stays out of the
+ *   career, hobby and color guides and Purple & Gold, except where FILLER_OK names it as the guide's own gift (a Kindle
+ *   for the Book Lover, AirPods for the Runner) and, in a color guide, a pick whose name says that color.
+ * - INSULATED: an insulated tumbler, bottle, travel mug or lunch box (Stanley, Owala and the like) shows in those guides
+ *   only in nurse, teacher and shift-worker guides (tumblerGuide; the outdoor hobbies keep a camp bottle), at most
+ *   TUMBLER_MAX per guide.
+ * - NOWHERE: Bartesian capsules, bundles and advent sets (they need the machine; the machine itself may stay) and Cooking Light (stopped publishing in 2018), in no guide.
+ * - PLACEHOLDER_PRODUCT: a store's error or category page standing in for a product ("Generic Error", "Gift Ideas").
+ * - E_GIFT: an eGift card only in Gift Cards and the experience guides, never in a product spot.
+ * - ANGLING stays out of Boater and Kayaker (fishing gear belongs in Fishermen); a toy grill out of Girls and Niece.
+ */
+export const FILLER_BLOCK = /\b(kindle|airpods|apple watch|creami|ugg|theragun)\b/i;
+export const INSULATED = /\b(tumblers?|quencher|freesip|iceflow|smoothsip|rambler|water bottles?|vacuum bottles?|insulated (bottles?|mugs?|cups?)|lunch ?(box|boxes|bags?)|travel mugs?|camp mugs?|legendary bottle|stay-hot)\b/i;
+export const TUMBLER_MAX = 3;
+const NURSE_OR_HEALTH = /nurse|^(rns|lpns|cnas|crnas|doctors|surgeons|healthcare|healthcare-workers|medical-assistants|physician-assistants|pharmacists|pharmacy-techs|respiratory-therapists|radiology-techs|lab-techs-phlebotomists|caregivers|nursing-home-staff|med-students|nursing-students|paramedics-and-emts|hospital-front-desk)$/;
+const TEACHER = /teacher|^(educators|paraprofessionals|principals-and-school-staff|professors|coaches)$/;
+const SHIFT = /^(first-responders|police-officers|firefighters|sheriffs-deputies|911-dispatchers|military|army|navy|air-force|marines|national-guard|coast-guard|veterans|oilfield-and-trades|offshore-workers|oilfield-workers|refinery-and-plant-workers|pipeline-workers|welders|pipefitters|linemen|electricians|plumbers|hvac-techs|mechanics|heavy-equipment-operators|crane-operators|construction-workers|truck-drivers|bus-drivers|delivery-drivers|boat-captains-and-deckhands|commercial-fishermen-and-shrimpers|machinists|farmers)$/;
+const OUTDOOR_HOBBY = /^(camper|mountain-lover|hunters|fishermen|boater|outdoorsman)$/;
+export const tumblerGuide = (slug) => NURSE_OR_HEALTH.test(slug) || TEACHER.test(slug) || SHIFT.test(slug) || OUTDOOR_HOBBY.test(slug);
+export const FILLER_OK = {
+  "book-lover": /kindle/i, homebody: /kindle|ugg/i, traveler: /kindle|airpods/i, "music-lover": /airpods/i,
+  runner: /airpods|apple watch|theragun/i, "gym-lover": /airpods|apple watch|theragun/i, "self-care-lover": /theragun/i,
+  "physical-therapists": /theragun/i, "occupational-therapists": /theragun/i, entertainer: /creami/i, "wine-lover": /wine tumbler/i,
+};
+export const GUIDE_COLOR = {
+  "purple-lover": /purple|lavender|lilac|violet|plum/i, "green-lover": /green|sage|olive|mint|emerald|forest/i, "red-lover": /\bred\b|cherry|crimson|scarlet|burgundy/i,
+  "yellow-lover": /yellow|lemon|sunflower|mustard|golden/i, "pink-lover": /pink|rose|blush|hibiscus|magenta/i, "blue-lover": /blue|navy|denim|cobalt|teal/i,
+  "black-lover": /black|onyx|\bjet\b|very very dark|midnight/i, "neutral-lover": /white|cream|beige|ivory|\btan\b|taupe|\boat|sand|clay|neutral|natural|grey|gray|stone/i,
+  "purple-and-gold-lover": /\blsu\b|tigers|purple|gold/i,
+};
+export const NOWHERE = /\bbartesian\b.*\b(capsules?|pods?|advent|bundles?|sampler|refresher|variety pack)\b|\b(capsules?|pods?|advent|bundles?|sampler|refresher|variety pack)\b.*\bbartesian\b|\bcooking light\b/i;
+export const PLACEHOLDER_PRODUCT = /^(generic error|gift ideas|error|page not found)$/i;
+export const E_GIFT = /\be-?gift ?cards?\b|\begift\b/i;
+export const TOY_GRILL = /\b(toy|play|gourmet) grill\b|\bgrill (play ?set|toy)\b/i;
+/** Guides the filler and tumbler rules read: career, hobby and color guides, and Purple & Gold. */
+export const fillerGuide = (slug, group) => ["By career", "Hobbies", "Colors"].includes(group) || slug === "purple-and-gold-lover";
+/**
+ * Why a pick does not belong on this page ("" when it does). `group` is the guide's index group; `researched` is true
+ * for a guide's own researched fill row (career/hobby/LSU fills), which the filler and tumbler-place rules do not read
+ * (the research picked it for that guide; the cap still counts it); `seen.tumblers` is the caller's running count.
+ */
+export const belongsWhy = (slug, group, p, seen = { tumblers: 0 }, researched = false) => {
+  const name = String(p.name ?? "");
+  const text = `${name} ${p.brand ?? ""}`;
+  if (NOWHERE.test(text)) return "bartesian or cooking light";
+  if (PLACEHOLDER_PRODUCT.test(name.trim())) return "placeholder";
+  if (E_GIFT.test(name) && slug !== "gift-cards" && !EXPERIENCE_GUIDES.includes(slug)) return "egift card";
+  if ((slug === "boater" || slug === "kayaker") && ANGLING.test(name)) return "fishing gear";
+  if ((slug.startsWith("girls") || slug === "niece") && TOY_GRILL.test(name)) return "toy grill";
+  if (slug.startsWith("store-") || !fillerGuide(slug, group)) return "";
+  const color = Boolean(GUIDE_COLOR[slug]?.test(name));
+  if (INSULATED.test(name) && !FILLER_OK[slug]?.test(name)) {
+    if (!researched && !color && !tumblerGuide(slug)) return "tumbler outside nurse/teacher/shift guides";
+    if (seen.tumblers >= TUMBLER_MAX) return "tumbler cap";
+    seen.tumblers += 1;
+    return "";
+  }
+  if (!researched && FILLER_BLOCK.test(text) && !FILLER_OK[slug]?.test(text) && !color) return "filler block";
+  return "";
+};
+/**
+ * Gift Wrap & Cards holds wrap, cards, gift bags, tags, ribbon and tissue only (owner 11-19), never a gift card.
+ * Mail Carrier & Delivery Drivers holds gifts of MAIL_CARRIER_MAX dollars or less (USPS gift rule): a pick with no
+ * known price stays out.
+ */
+export const WRAP_ITEM = /\b(wrap(ping)?|gift wrap|cards?|greeting|notecards?|gift bags?|bags?|tags?|ribbons?|bows?|tissue|gift box(es)?|twine|washi|stickers?|envelopes?)\b/i;
+export const wrapItem = (p) => WRAP_ITEM.test(p.name ?? "") && !GIFT_CARD.test(p.name ?? "");
+export const MAIL_CARRIER = "mail-carrier-and-delivery-drivers";
+export const MAIL_CARRIER_MAX = 20;
+/**
+ * Louisiana words on a national item's line (audit A line fixes; owner rule: Louisiana items only in the Louisiana
+ * section): the item stays, its line is rewritten. LINE_FIXES are the rewrites; a line that still names Louisiana after
+ * them is dropped (the row shows no line).
+ */
+export const LINE_FIXES = [
+  [/every South Louisiana man wears from the boat launch to the crawfish boil/i, "that goes from the boat launch to the backyard"],
+  [/bright Louisiana days/i, "bright, sunny days"], [/The gumbo pot they'll pass down\./i, "The Dutch oven they'll pass down."],
+  [/so the kids can match Daddy at the crawfish boil/i, "for puddles, boat days and muddy yards"], [/For BYOB crawfish boils\./i, "For BYOB dinners and picnics."],
+  [/cold duck blinds and football games/i, "cold mornings and football games"], [/cold, wet duck blinds/i, "cold, wet mornings in the field"],
+  [/for red beans Mondays/i, "for slow Sunday suppers"], [/for bourr[ée] night/i, "for card night"], [/the deer stand or duck blind/i, "the deer stand or the field"],
+  [/ or a muddy Mardi Gras parade/i, " or a muddy festival"], [/Louisiana included/i, "all 50 included"], [/soggy Louisiana ground/i, "soggy ground"],
+  [/ready for gumbo night/i, "ready for soup night"], [/tailgates, crawfish boils and ball games/i, "tailgates, backyard parties and ball games"],
+  [/brunch or Mardi Gras season/i, "brunch or a night out"], [/tames Louisiana humidity frizz/i, "tames humid-day frizz"],
+  [/sized right for a Louisiana winter/i, "sized right for a mild winter"], [/and Mardi Gras parade spots/i, "and parade spots"],
+  [/Louisiana downpours/i, "sudden downpours"], [/galas and Mardi Gras balls/i, "galas and holiday parties"], [/^For gumbo and red beans\.$/i, "For soups, stews and beans."],
+  [/for gumbo and red beans/i, "for soups, stews and chili"], [/Louisiana water hazards/i, "water hazards"], [/Cajun-injected turkey and pork/i, "juicy injected turkey and pork"],
+  [/shrimp, crab and crawfish boils/i, "shrimp and crab boils"], [/a fun pick for a Louisiana baby/i, "a fun pick for a little angler"],
+  [/at parades and the zoo/i, "at the fair and the zoo"], [/for gumbo and jambalaya/i, "for soups and stews"], [/Louisiana pop-up showers/i, "pop-up showers"],
+  [/bayou and offshore trips/i, "inshore and offshore trips"], [/first pot of gumbo/i, "first pot of soup"], [/even beignet dough/i, "even biscuit dough"],
+  [/to pair with the crawfish/i, "for the seafood lover"], [/for duck blinds, deer camp and muddy boat launches/i, "for deer camp and muddy boat launches"],
+  [/muddy yards, porches and crawfish boils/i, "muddy yards, porches and cookouts"],
+];
+export const LA_LINE = new RegExp(`${LOUISIANA_THEME.source}|\\b(bourr[ée]|duck blinds?|red beans)\\b`, "i");
+export const neutralLine = (line) => {
+  let out = String(line ?? "");
+  for (const [re, to] of LINE_FIXES) out = out.replace(re, to);
+  return LA_LINE.test(out) ? "" : out;
+};

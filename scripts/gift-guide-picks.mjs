@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, belongsWhy, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -274,8 +274,37 @@ const MISSING_IMAGES = MISSING_BY_NAME;
 /** A TIFF photo, unless the server converts it (KitchenAid's ".tif?fmt=png" is served as a PNG, ShopMy's mirror as JPEG). */
 // ShopMy's static.shopmy.us mirror sends JPEG bytes under a ".tif" name (checked 11-18 PM: a 600x600 baseline JPEG).
 const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b/i.test(u) && !/^https:\/\/static\.shopmy\.us\//.test(u);
+/**
+ * SOLD-OUT SWAPS (_soldout-swaps-1118.json, 13 Walmart rows as of 2026-11-19, owner 11-19): [{ old_href, new_href, name }]. Every row whose
+ * link is a sold-out product's opens the in-stock one instead, under its name, wherever it appears. The old row's file
+ * price is not the new product's (dropped), and its photo shows the old product, so the photo is kept only where the
+ * swap is the same product in another size, color or pack (SOLDOUT_SAME_LOOK, judged from the two names); the others
+ * fall to the photo finder. When the file gives the new product's Walmart Creator link (new_affiliate_href) and photo
+ * (new_image), those are used (all 13 have both, checked 2026-11-19); the file's new_price is not a checked price (not shown).
+ */
+export const SOLDOUT_SAME_LOOK = /CREAMi|DualZone|Tony Chachere|Ayieyill|Salted Coconut|Headlamp|MUK LUKS/i;
+const SOLDOUT = new Map();
+for (const s of readList("_soldout-swaps-1118.json")) {
+  if (typeof s?.old_href !== "string" || typeof s.new_href !== "string" || typeof s.name !== "string") continue;
+  if (!URL.canParse(s.new_href)) continue;
+  SOLDOUT.set(s.old_href, s);
+}
+export const soldout = { swapped: 0 };
+const withSoldoutSwap = (p) => {
+  const s = SOLDOUT.get(p.href) ?? SOLDOUT.get(p.affiliate_href);
+  if (!s) return p;
+  soldout.swapped += 1;
+  // The new product's Walmart Creator link (new_affiliate_href, on an AFFILIATE_HOSTS host) is its link; a row without
+  // one has no affiliate link and stays hidden like any other. Its own photo (new_image) wins over the old one.
+  const creator = (() => { try { return typeof s.new_affiliate_href === "string" && AFFILIATE.has(new URL(s.new_affiliate_href).hostname) ? s.new_affiliate_href : ""; } catch { return ""; } })();
+  const newImage = typeof s.new_image === "string" && s.new_image.startsWith("https://") ? s.new_image : "";
+  const { price: _p, price_source: _ps, price_checked_at: _pc, price_currency: _pcur, image: oldImage, ...rest } = p;
+  const image = newImage || (SOLDOUT_SAME_LOOK.test(s.name) ? oldImage : "");
+  return { ...rest, name: s.name, href: s.new_href, affiliate_href: creator || s.new_href, ...(image ? { image } : {}) };
+};
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
+  p = withSoldoutSwap(p);
   const fixed = withAmazonFixes(p);
   // A swap is a different product: the blocklist reads it too.
   if (fixed !== p && blockedBrand(fixed)) return hidden.push(`${where}: ${fixed.name} (swap) is a blocked brand`), null;
@@ -403,6 +432,28 @@ for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.jso
         add(slug, { brand: "", line: "", ...(isAmazonLink(p.href) ? { store: "Amazon", image_source: "amazon-sitestripe" } : { store: p.name.split(" ")[0] }), ...p, ...affiliate }, "_giftcards-subs-fill-1118.json");
       }
     }
+  }
+}
+/**
+ * SAM'S CLUB MEMBERSHIPS (owner 11-19, _sams-membership-1119.json): the Plus and Club memberships on Sam's Club Creator
+ * links (samsclub.co, AFFILIATE_HOSTS), pinned beside Walmart+ in Subscriptions (PINNED_TOP). Sam's Club's card art is
+ * an SVG, which the photo rules do not take: SAMS_IMAGES are the same cards rendered to JPEG and served from our own
+ * site (public/gift-guides/memberships/). No store page: we carry no other Sam's Club picks.
+ */
+export const SAMS_IMAGES = {
+  "Sam's Club Plus Membership": "https://www.louisianahelpr.com/gift-guides/memberships/sams-club-plus.jpg",
+  "Sam's Club Membership": "https://www.louisianahelpr.com/gift-guides/memberships/sams-club.jpg",
+};
+export const SAMS_LINES = { "Sam's Club Plus Membership": "Free shipping, early shopping hours and cash rewards.", "Sam's Club Membership": "A year of warehouse prices, gas savings and Scan & Go." };
+{
+  const v = readJson("_sams-membership-1119.json");
+  const list = (guides.subscriptions ??= []);
+  for (const r of [v?.alt_plus, v]) {
+    if (!r || typeof r.href !== "string" || !SAMS_IMAGES[r.name] || list.some((x) => x.href === r.href)) continue;
+    try { if (new URL(r.href).hostname !== "samsclub.co") continue; } catch { continue; /* not a link */ }
+    const store = storeFor("Sam's Club");
+    stores.get(store).hosts.add("samsclub.co");
+    list.push({ name: r.name, brand: "Sam's Club", line: SAMS_LINES[r.name], href: r.href, image: SAMS_IMAGES[r.name], store });
   }
 }
 /**
@@ -636,7 +687,7 @@ const isXtratuf = (p) => /^xtratuf$/i.test(p.brand ?? "") || p.store === "store-
  */
 /** Picks the owner put at the top of a guide herself (11-18 PM: "Subscription you can put Walmart plus here ... and Amazon"). */
 export const PINNED_TOP = {
-  subscriptions: ["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
+  subscriptions: ["Walmart+ membership", "Sam's Club Plus Membership", "Sam's Club Membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
     "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"],
 };
 /** Picks that may show without a photo (the owner's Subscriptions memberships, until one is found). */
@@ -1277,6 +1328,158 @@ export const PETS_FILL = new Map();
   }
 }
 /**
+ * ITEMS THAT BELONG (owner 11-19, Builder 12), on every page's list (the 25 Days sponsors guide aside), before the
+ * holistic pass below, in this order:
+ * 1. Fit audit round 2 (_fit-audit-r2-A-1118.json: people, budget, kids, life moments; _fit-audit-r2-B-1118.json:
+ *    careers, hobbies, pets, Louisiana, colors, store pages): { "<slug>": [{ name, href, position, reason }] }, read by
+ *    hand. A listed pick leaves that page (matched by link, or by the same name).
+ * 2. The lasting rules (belongsWhy in giftGuideRules.mjs): the filler block and tumblers in career, hobby and color
+ *    guides, Bartesian and Cooking Light nowhere, placeholders, eGift cards in product spots, fishing gear on Boater and
+ *    Kayaker, the toy grill on Girls and Niece.
+ * 3. Gift Wrap & Cards keeps wrap and card items only; Mail Carrier keeps picks with a known price of $20 or less (a
+ *    checked price, or the price the research file gave; the file price is not shown).
+ * 4. Researched fills (BELONG_FILLS), in file order after the guide's fitting picks: _career-fill-A-1118.json (career
+ *    guides a-m), _fill-B-1118.json (Purple & Gold, Artist, colors, Louisiana, careers n-z) and _purple-gold-1118.json
+ *    (more LSU picks). Same link, photo, fit and Louisiana rules as every pick; prices dropped (Amazon shows none).
+ * 5. A national page's line that names Louisiana is rewritten (neutralLine); the item stays.
+ * A guide left under BELONG_SHORT picks is kept and listed in belong.short for more research, never padded with filler
+ * (the holistic top-up from peer guides is off for the same reason).
+ */
+export const BELONG_FILLS = ["_career-fill-A-1118.json", "_fill-B-1118.json", "_purple-gold-1118.json"];
+export const BELONG_SHORT = 12;
+export const belong = { audit: 0, rules: {}, wrap: 0, mail: 0, fills: 0, fillSkipped: 0, lines: 0, short: [] };
+export const BELONG_FILL_HREFS = new Map();
+{
+  const groupOf = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  const audit = {};
+  for (const f of ["_fit-audit-r2-A-1118.json", "_fit-audit-r2-B-1118.json"]) {
+    const v = readJson(f);
+    for (const [slug, rows] of Object.entries(v && typeof v === "object" && !Array.isArray(v) ? v : {})) {
+      if (slug === SPONSORS_GUIDE || !Array.isArray(rows)) continue;
+      const a = (audit[slug] ??= { hrefs: new Set(), names: new Set() });
+      for (const r of rows) {
+        if (typeof r?.href === "string") a.hrefs.add(r.href);
+        if (typeof r?.name === "string" && compact(r.name)) a.names.add(compact(r.name));
+      }
+    }
+  }
+  // Prices the research files give (not checked, never shown), by link: Mail Carrier's $20 test only.
+  const filePrice = new Map();
+  const num = (x) => { const n = typeof x === "number" ? x : Number(String(x ?? "").replace(/[^0-9.]/g, "")); return Number.isFinite(n) && n > 0 ? n : undefined; };
+  const walk = (v, depth = 0) => {
+    if (!v || typeof v !== "object" || depth > 4) return;
+    if (Array.isArray(v)) { for (const x of v) walk(x, depth + 1); return; }
+    const n = num(v.price);
+    if (n !== undefined) for (const h of [v.href, v.affiliate_href, v.link, v.url]) if (typeof h === "string" && !filePrice.has(h)) filePrice.set(h, n);
+    for (const x of Object.values(v)) if (x && typeof x === "object") walk(x, depth + 1);
+  };
+  for (const d of [dir, LIB]) {
+    if (!existsSync(d)) continue;
+    for (const f of readdirSync(d).filter((x) => x.endsWith(".json"))) {
+      try { walk(JSON.parse(readFileSync(join(d, f), "utf8"))); } catch { continue; /* a half-written research file: no prices from it */ }
+    }
+  }
+  const priceOf = (p) => (typeof p.price === "number" ? p.price : filePrice.get(p.href));
+  const fillRows = {};
+  for (const f of BELONG_FILLS) {
+    const v = readJson(f);
+    for (const [slug, rows] of Object.entries(v && typeof v === "object" && !Array.isArray(v) ? v : {})) {
+      if (!Array.isArray(rows) || !GUIDE_SLUGS.has(slug) || slug.startsWith("store-") || slug === SPONSORS_GUIDE) continue;
+      for (const r of rows) if (r && typeof r.href === "string" && typeof r.name === "string") (fillRows[slug] ??= []).push({ r, f });
+    }
+  }
+  // MAIL CARRIER FILL (_mail-carrier-1119.json, lead 11-19): priced Walmart picks of $20 or less for Mail Carrier &
+  // Delivery Drivers, after its fitting picks. A list, { picks | links: [...] } or { "<slug>": [...] }; a walmrt.us link in
+  // `href` is the affiliate link (readList). Each row needs its own price at MAIL_CARRIER_MAX or less; its checked
+  // price shows only under the price rules (verifiedPrice).
+  const MAIL_FILL = "_mail-carrier-1119.json";
+  {
+    const v = readJson(MAIL_FILL);
+    const rows = Array.isArray(v) ? v : Array.isArray(v?.picks) ? v.picks : Array.isArray(v?.links) ? v.links : Array.isArray(v?.[MAIL_CARRIER]) ? v[MAIL_CARRIER] : [];
+    for (const raw of rows) {
+      const r = raw && !raw.affiliate_href && typeof raw.href === "string" && /^https:\/\/walmrt\.us\//.test(raw.href)
+        ? { ...raw, affiliate_href: raw.href, href: typeof raw.product_url === "string" ? raw.product_url : raw.href } : raw;
+      if (!r || typeof r.href !== "string" || typeof r.name !== "string" || !(num(r.price) <= MAIL_CARRIER_MAX)) continue;
+      (fillRows[MAIL_CARRIER] ??= []).push({ r, f: MAIL_FILL });
+    }
+  }
+  const fillPick = (r, f) => {
+    let host = "";
+    try { host = new URL(r.href).hostname; } catch { return null; }
+    const { price: _price, network: _network, ...rest } = r;
+    // Mail Carrier prices are Walmart Creator's own (lead 11-19: checked, source "walmart-creator", 2026-11-19).
+    const row = f === MAIL_FILL ? { ...rest, price: r.price, price_currency: "USD", price_source: "walmart-creator", price_checked_at: r.price_checked_at ?? "2026-11-19" } : rest;
+    if (f === MAIL_FILL) return toPick({ brand: "", line: "", store: "Walmart", ...row }, f);
+    const amazon = AMAZON.has(host);
+    return toPick({ brand: "", line: "", ...row, ...(amazon ? { store: "Amazon", image_source: "amazon-sitestripe" } : {}),
+      ...(!amazon && AFFILIATE.has(host) ? { affiliate_href: r.href } : {}) }, f);
+  };
+  // The fixed store pages (Amazon, zChocolat, Diecast) list every guide pick on their store: they go last, and a pick a
+  // guide still lists stays on them (its guide kept it).
+  const slugs = [...new Set([...Object.keys(pageList), ...Object.keys(fillRows)])].sort((x, y) => Number(FIXED_PAGES.has(x)) - Number(FIXED_PAGES.has(y)));
+  let inGuides = null;
+  for (const slug of slugs) {
+    if (slug === SPONSORS_GUIDE) continue;
+    if (FIXED_PAGES.has(slug) && !inGuides) inGuides = new Set(Object.entries(pageList).filter(([g]) => !g.startsWith("store-")).flatMap(([, l]) => l.map((p) => p.href)));
+    const guideListed = (p) => FIXED_PAGES.has(slug) && inGuides.has(p.href);
+    const group = groupOf.get(slug) ?? "";
+    const a = audit[slug];
+    const seen = { tumblers: 0 };
+    const out = [];
+    for (const p of pageList[slug] ?? []) {
+      if (a && (a.hrefs.has(p.href) || a.names.has(compact(p.name))) && !guideListed(p)) { belong.audit += 1; continue; }
+      const r = guideListed(p) ? "" : belongsWhy(slug, group, p, seen);
+      if (r) { belong.rules[r] = (belong.rules[r] ?? 0) + 1; if (process.env.GIFT_PICKS_VERBOSE) console.error(`BELONG ${slug}: ${r}: ${p.name}`); continue; }
+      if (slug === "gift-wrap-and-cards" && !wrapItem(p)) { belong.wrap += 1; continue; }
+      if (slug === MAIL_CARRIER && !(priceOf(p) <= MAIL_CARRIER_MAX)) { belong.mail += 1; continue; }
+      out.push(p);
+    }
+    for (const { r, f } of fillRows[slug] ?? []) {
+      const p = fillPick(r, f);
+      const dup = p && out.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name) || variantKey(x) === variantKey(p));
+      if (!p || !p.image || dup || !fitsGuide(slug, p) || louisianaBlocked(slug, p) || belongsWhy(slug, group, p, seen, true)
+        || (a && (a.hrefs.has(p.href) || a.names.has(compact(p.name))))) { if (!dup) belong.fillSkipped += 1; continue; }
+      out.push(p);
+      (BELONG_FILL_HREFS.get(slug) ?? BELONG_FILL_HREFS.set(slug, new Set()).get(slug)).add(p.href);
+      belong.fills += 1;
+    }
+    // 5. Louisiana words on a national page's line.
+    const national = !LOUISIANA_GUIDES.has(slug) && !LOUISIANA_STORE_PAGES.has(slug);
+    pageList[slug] = out.map((p) => {
+      if (!national || !LA_LINE.test(p.line ?? "")) return p;
+      belong.lines += 1;
+      return { ...p, line: neutralLine(p.line) };
+    });
+    if (!pageList[slug].length) delete pageList[slug];
+  }
+  // A fill row joins its store page too (an Amazon row under its guide's section on the Amazon page), and a store the
+  // fills alone use gets its STORES entry (name and hosts), so every pick names a store page.
+  const touched = new Set();
+  for (const [slug, hrefs] of BELONG_FILL_HREFS) {
+    for (const p of pageList[slug] ?? []) {
+      if (!hrefs.has(p.href) || !p.store) continue;
+      touched.add(p.store);
+      if (louisianaBlocked(p.store, p)) continue;
+      const page = (pageList[p.store] ??= []);
+      if (page.some((x) => x.href === p.href)) continue;
+      if (p.store !== "store-amazon") { page.push(p); continue; }
+      // Under its guide's section, the sections kept in AMAZON_SECTIONS order.
+      const section = AMAZON_SECTIONS.includes(groupOf.get(slug)) ? groupOf.get(slug) : "More finds";
+      const rank = AMAZON_SECTIONS.indexOf(section);
+      let at = 0;
+      page.forEach((x, i) => { if (AMAZON_SECTIONS.indexOf(x.section) <= rank) at = i + 1; });
+      page.splice(at, 0, { ...p, section });
+    }
+  }
+  for (const s of touched) if (stores.has(s)) storeList[s] = { name: stores.get(s).name, hosts: [...stores.get(s).hosts].sort() };
+  // A store page these removals emptied (no picks, no deals, no pick naming it) leaves the store list.
+  const named = new Set(Object.values(pageList).flat().map((p) => p.store).filter(Boolean));
+  for (const s of Object.keys(storeList)) if (!pageList[s]?.length && !deals[s]?.length && !named.has(s)) delete storeList[s];
+  const sorted = Object.entries(storeList).sort(([a], [b]) => a.localeCompare(b));
+  for (const [k] of sorted) delete storeList[k];
+  for (const [k, v] of sorted) storeList[k] = v;
+}
+/**
  * HOLISTIC FIT (design review 11-18, gg-holistic-1118/FINDINGS.md H2, H3, M1, M5), on every page's final list:
  * every page drops collection/shop links, placeholder names, medical and personal-care items and MISMATCHED_LINKS;
  * guides (store pages aside) also drop pet items outside the Pets guides, work boots on Mom/Her/Wife, men's items on
@@ -1366,17 +1569,9 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     else delete pageList[slug];
   }
   for (const [slug, list] of Object.entries(pageList)) {
+    // No top-up from peer guides (owner 11-19: fit beats count; a short guide is listed in belong.short for research).
     if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || slug === "gift-cards" || slug === "subscriptions" || list.length >= TOP_GIFTS) continue;
-    const peers = Object.entries(pageList).filter(([g]) => g !== slug && !g.startsWith("store-") && sectionOf.get(g) === sectionOf.get(slug));
-    for (const p of peers.flatMap(([, other]) => other.slice(0, 40))) {
-      if (list.length >= TOP_GIFTS) break;
-      if (PET_ANIMAL[slug] && !PET_ANIMAL[slug].test(p.name)) continue;
-      if (!p.image || !fitsGuide(slug, p) || louisianaBlocked(slug, p) || list.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
-      if (keep(slug, [...list, p], false).length !== list.length + 1) continue;
-      list.push(p);
-      holistic.toppedUp += 1;
-    }
-    if (list.length < TOP_GIFTS) holistic.short.push(`${slug}:${list.length}`);
+    holistic.short.push(`${slug}:${list.length}`);
   }
 }
 // Removing repeats can lift a later XTRATUF boot into the top: one in the first 12, two in the first 25, again.
@@ -1415,6 +1610,40 @@ for (const [slug, list] of Object.entries(deals)) {
  * "Top 10 most-loved" (owner 2026-11-18): the picks listed in the most guides (store pages not counted), photos
  * first, then by how many guides list them, then by name. Counted by link (and name, for shared ShopMy links).
  */
+// A researched fill row that is a product the Amazon page already lists under another link or name (same ASIN or same
+// name; the page keeps one row per product) takes the page's row, so the Amazon page still lists every guide pick on Amazon.
+{
+  const amazonPage = pageList["store-amazon"] ?? [];
+  const byAsin = new Map(amazonPage.map((x) => [asinOf(x), x]).filter(([a]) => a));
+  const byName = new Map(amazonPage.map((x) => [dedupeKey(x.name), x]));
+  const hrefs = new Set(amazonPage.map((x) => x.href));
+  const sectionOfSlug = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  for (const [slug, fills] of BELONG_FILL_HREFS) {
+    const list = pageList[slug];
+    if (!list) continue;
+    pageList[slug] = list.map((p) => {
+      if (!fills.has(p.href) || p.store !== "store-amazon" || hrefs.has(p.href)) return p;
+      const row = byAsin.get(asinOf(p)) ?? byName.get(dedupeKey(p.name));
+      if (!row) {
+        // Not on the page at all (a repeat pass dropped it as another guide's same-named row): it joins the page.
+        if (!louisianaBlocked("store-amazon", p)) {
+          const section = AMAZON_SECTIONS.includes(sectionOfSlug.get(slug)) ? sectionOfSlug.get(slug) : "More finds";
+          const rank = AMAZON_SECTIONS.indexOf(section);
+          let at = 0;
+          amazonPage.forEach((x, i) => { if (AMAZON_SECTIONS.indexOf(x.section) <= rank) at = i + 1; });
+          amazonPage.splice(at, 0, { ...p, section });
+          hrefs.add(p.href);
+          byName.set(dedupeKey(p.name), p);
+          if (asinOf(p)) byAsin.set(asinOf(p), p);
+        }
+        return p;
+      }
+      if (list.some((x) => x.href === row.href)) return p;
+      const { section: _section, ...own } = row;
+      return own;
+    });
+  }
+}
 const loved = new Map();
 for (const [slug, list] of Object.entries(pageList)) {
   if (slug.startsWith("store-")) continue;
@@ -1512,4 +1741,9 @@ writeFileSync(
 );
 
 if (process.env.GIFT_PICKS_VERBOSE) console.error(`RELINK SKIPPED:\n${earnings.relinkSkipped.join("\n")}\nSWAP SKIPPED:\n${earnings.swapSkipped.join("\n")}`);
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; non-US store links: ${NON_US_LINKS.size} (${nonUs.relinked} rows moved to a US link, ${nonUs.hidden} hidden); late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}`);
+for (const { slug } of INDEX) {
+  if (slug.startsWith("store-") || slug === SPONSORS_GUIDE || NOT_A_LIST.has(slug)) continue;
+  const n = pageList[slug]?.length ?? 0;
+  if (n < BELONG_SHORT) belong.short.push(`${slug}:${n}`);
+}
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; non-US store links: ${NON_US_LINKS.size} (${nonUs.relinked} rows moved to a US link, ${nonUs.hidden} hidden); late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}; belong: ${belong.audit} audit removals, rules ${JSON.stringify(belong.rules)}, ${belong.wrap} non-wrap, ${belong.mail} over $20 or unpriced on Mail Carrier, ${belong.fills} fills added (${belong.fillSkipped} skipped), ${belong.lines} lines neutralized, ${soldout.swapped} sold-out links swapped${belong.short.length ? `, under ${BELONG_SHORT}: ${belong.short.join(" ")}` : ""}`);

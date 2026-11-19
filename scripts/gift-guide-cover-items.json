@@ -6674,7 +6674,32 @@
  },
  "store-macys": {
   "section": "By store",
-  "items": []
+  "items": [
+   {
+    "name": "Mx Master Black 3s Wireless Mouse",
+    "key": "logitech:mouse"
+   },
+   {
+    "name": "Go Instant Camera Everything Box Bundle With Go Film And Keepsake Kit",
+    "key": "polaroid:kit"
+   },
+   {
+    "name": "18 Inch Doll Accessories",
+    "key": "thequeenstreasures:accessories"
+   },
+   {
+    "name": "Fisher-Price Little People Ultimate Music Parade Ride-On",
+    "key": "pawpatrol:ride"
+   },
+   {
+    "name": "Powera Wired Controller For Nintendo Switch",
+    "key": "nintendo:switch"
+   },
+   {
+    "name": "Charley Harper - Monteverde Jigsaw Puzzle- 1000 Pieces",
+    "key": "pomegranatecommunicationsinc:pieces"
+   }
+  ]
  },
  "store-best-buy": {
   "section": "By store",
@@ -6717,12 +6742,12 @@
     "key": "stanley:the iceflow bottle twist flip 0 47l ash"
    },
    {
-    "name": "STANLEY Quencher H2.0 Tumbler with Handle and Straw, 30 oz",
-    "key": "stanley:stanley quencher h2 0 tumbler with handle and straw 30 oz"
+    "name": "Quencher Moonlight Spiral Tumbler",
+    "key": "stanley:quencher moonlight spiral tumbler"
    },
    {
-    "name": "Stanley Stainless Steel H2.0 Flowstate Quencher Tumbler Pink Sugar Spider Webs",
-    "key": "stanley:stanley stainless steel h2 0 flowstate quencher tumbler pink sugar spider webs"
+    "name": "STANLEY Quencher H2.0 Tumbler with Handle and Straw, 30 oz",
+    "key": "stanley:stanley quencher h2 0 tumbler with handle and straw 30 oz"
    }
   ]
  },
@@ -7027,7 +7052,32 @@
  },
  "store-nordstrom-rack": {
   "section": "By store",
-  "items": []
+  "items": [
+   {
+    "name": "Women's Tasman II Slipper",
+    "key": "ugg:shoe"
+   },
+   {
+    "name": "Barefoot Dreams CozyChic Chunky Rib Throw Blanket",
+    "key": "nordstromrack:barefoot dreams cozychic chunky rib throw blanket"
+   },
+   {
+    "name": "Steve Madden Luca Suede Boots",
+    "key": "nordstromrack:steve madden luca suede boots"
+   },
+   {
+    "name": "adidas Handball Spezial Shoes",
+    "key": "nordstromrack:adidas handball spezial shoes"
+   },
+   {
+    "name": "Sam Edelman Bianka Slingback Pump",
+    "key": "nordstromrack:sam edelman bianka slingback pump"
+   },
+   {
+    "name": "Nike Baby Arctic Fleece Jacket",
+    "key": "nordstromrack:nike baby arctic fleece jacket"
+   }
+  ]
  },
  "store-zappos": {
   "section": "By store",
@@ -7035,6 +7085,14 @@
    {
     "name": "Novatm Backpack Diaper Bag Backpack Bags Black",
     "key": "herschelsupplyco:black"
+   },
+   {
+    "name": "Sorel Out N About IV Chillz Winter Boot",
+    "key": "zappos:sorel out n about iv chillz winter boot"
+   },
+   {
+    "name": "Dr. Martens 8065 Smooth Leather Mary Jane Shoes",
+    "key": "zappos:dr martens 8065 smooth leather mary jane shoes"
    },
    {
     "name": "Snowtrot™ Mid (Toddler/Little Kid/Big Kid)",
@@ -7076,6 +7134,14 @@
    {
     "name": "Ninja Air Fryer",
     "key": "ninja:fryer"
+   },
+   {
+    "name": "Shark FlexStyle Air Styling & Drying System",
+    "key": "sharkninja:shark flexstyle air styling drying system"
+   },
+   {
+    "name": "Shark SpeedStyle Hair Dryer for Curly & Coily Hair",
+    "key": "sharkninja:shark speedstyle hair dryer for curly coily hair"
    }
   ]
  },
@@ -7153,16 +7219,16 @@
     "key": "skims:robe"
    },
    {
-    "name": "Sleep Cami Set",
-    "key": "skims:cami"
-   },
-   {
     "name": "COTTON JERSEY LONG SLEEVE T-SHIRT | SOOT",
     "key": "item:cotton jersey long sleeve t shirt soot"
    },
    {
     "name": "COTTON RIB HENLEY LONG SLEEVE | SOOT",
     "key": "item:cotton rib henley long sleeve soot"
+   },
+   {
+    "name": "SKIMS SLEEP LONG SLEEVE BUTTON UP SET | LIGHT HEATHER GREY",
+    "key": "item:skims sleep long sleeve button up set light heather grey"
    }
   ]
  },
@@ -7193,7 +7259,24 @@
  },
  "store-kitsch": {
   "section": "By store",
-  "items": []
+  "items": [
+   {
+    "name": "Amazon Basics Satin Scrunchies – No Crease, No Damage Hair Ties – Frizz Free, Gentle, Stylish Scrunchies. Black, 8 Count, For Thin and Normal Hair",
+    "key": "item:amazon basics satin scrunchies no crease no damage hair ties frizz free gentle stylish scrunchies black 8 count for thin and normal hair"
+   },
+   {
+    "name": "Satin Pillowcase",
+    "key": "kitsch:satin pillowcase"
+   },
+   {
+    "name": "Satin Heatless Curling Set",
+    "key": "kitsch:satin heatless curling set"
+   },
+   {
+    "name": "Ultra Petite Satin Scrunchies 6pc Set",
+    "key": "kitsch:ultra petite satin scrunchies 6pc set"
+   }
+  ]
  },
  "store-madewell": {
   "section": "By store",

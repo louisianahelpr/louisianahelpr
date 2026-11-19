@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
-import { ROWS, guidesIn, topPicks, type CatalogPick, type GuideRow } from "@/content/giftGuideCatalog";
+import { ROWS, guideBySlug, guidesIn, topPicks, type CatalogGuide, type CatalogPick, type GuideRow } from "@/content/giftGuideCatalog";
 import { PickThumb, storeLabel } from "./GiftGuideView";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { GiftGuideTile } from "./GiftGuideTile";
@@ -15,6 +15,26 @@ import { sponsorPage } from "@/content/sponsorPage";
  * wrapped grid). Each tile opens /gift-guides/<slug>. "Our Top 10" is a short sideways strip of photo cards after the
  * first rows, then the rest of the rows, then the collapsed "Deals & codes" section.
  */
+/**
+ * The three Teens guides, also tiles in the For kids row (live audit r3 #4: they sat only under the Girls, Boys and
+ * Gender-Neutral hubs, so the landing reached none), each named so the three read apart.
+ */
+export const TEEN_TILES: { slug: string; label: string }[] = [
+  { slug: "girls-teens", label: "Teen Girls" },
+  { slug: "boys-teens", label: "Teen Boys" },
+  { slug: "gender-neutral-teens", label: "Gender-Neutral Teens" },
+];
+/** A landing row's tiles: its guides, and on For kids the Teens guides that hold picks. */
+const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
+  ...guidesIn(row).map((g) => ({ g })),
+  ...(row === "for-kids"
+    ? TEEN_TILES.flatMap(({ slug, label }) => {
+        const g = guideBySlug(slug);
+        return g && !g.empty ? [{ g, label }] : [];
+      })
+    : []),
+];
+
 /** The rows above the Top 10 strip (By person, For kids, By budget, Louisiana). */
 const ROWS_BEFORE_TOP = 4;
 
@@ -52,7 +72,7 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   const drawRow = ({ row, label, tint }: (typeof ROWS)[number]) => {
     const headingId = `gift-row-${row}`;
     // Owner 11-18 PM: each heading carries its guide count, "By person (24)": the guides this row (and See all) shows.
-    const list = guidesIn(row);
+    const list = rowTiles(row);
     return (
       <section key={row} aria-labelledby={headingId} data-gift-row={row}>
         <div className="gg-rowhead">
@@ -64,7 +84,7 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
           )}
         </div>
         <ul className={group ? "gg-wrap" : "gg-row"}>
-          {list.map((g) => <GiftGuideTile key={g.slug} g={g} />)}
+          {list.map(({ g, label }) => <GiftGuideTile key={g.slug} g={g} label={label} />)}
         </ul>
       </section>
     );

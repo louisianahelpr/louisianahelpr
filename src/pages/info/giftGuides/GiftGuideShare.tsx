@@ -41,7 +41,7 @@ const SHARE = "M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11
  * menu with Copy link, Text this guide (sms:), the phone's own share sheet where there is one (navigator.share),
  * Facebook and Pinterest. Escape or a tap outside closes it.
  */
-export function GiftGuideShare({ path, title, image, many = false }: { path: string; title: string; image?: string; many?: boolean }) {
+function GiftGuideShare({ path, title, image, many = false }: { path: string; title: string; image?: string; many?: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
@@ -84,7 +84,7 @@ export function GiftGuideShare({ path, title, image, many = false }: { path: str
       {open && (
         <span className="gg-share-menu" role="menu" aria-label={G.shareMenuLabel} data-gift-share-menu="">
           <InlineTextButton role="menuitem" onClick={copy} data-gift-copy-link="">{copied ? G.linkCopied : G.copyLink}</InlineTextButton>
-          <a role="menuitem" href={smsHref(url, title, navigator.userAgent)} data-gift-text="">{many ? G.textGuides : G.textGuide}</a>
+          <a role="menuitem" href={smsHref(links.url, title, typeof navigator === "undefined" ? "" : navigator.userAgent)} data-gift-text="">{many ? G.textGuides : G.textGuide}</a>
           {native && <InlineTextButton role="menuitem" onClick={shareSheet} data-gift-share-native="">{G.moreShare}</InlineTextButton>}
           <a role="menuitem" href={links.facebook} target="_blank" rel="noopener noreferrer">Facebook</a>
           <a role="menuitem" href={links.pinterest} target="_blank" rel="noopener noreferrer" data-gift-pin="">Pinterest</a>
@@ -95,7 +95,7 @@ export function GiftGuideShare({ path, title, image, many = false }: { path: str
 }
 
 /** My list as an icon with its count (a link to /gift-guides?list=mine). */
-export function MyListIcon({ current }: { current: boolean }) {
+function MyListIcon({ current }: { current: boolean }) {
   const list = useGiftList();
   const n = list.guides.length + list.picks.length;
   return (

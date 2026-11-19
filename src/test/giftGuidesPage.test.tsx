@@ -49,9 +49,8 @@
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | padding:8px 0;order:2} | padding:8px 0}
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | !group && !more ? "gg-rows gg-rows-folded" : "gg-rows" | "gg-rows"
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | /iPhone\|iPad\|iPod/.test(userAgent) ? "&" : "?" | "?"
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | {!group && topPicks().length > 0 && ( | {false && (
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       {!group && <TopStrip />} |       {false && <TopStrip />}
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.empty && g.row === row
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.thin && g.row === row
  * @mutate src/content/giftGuideCatalog.ts |     if (g.empty) return false; |     if (false) return false;
@@ -67,7 +66,7 @@
  * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <p className="gg-lead">{lead}</p>\n      <h2 id={titleId}>{title}</h2>\n |       <p className="gg-lead">{lead}</p>\n      <h2 id={titleId}>{title}</h2>\n      <p className="gg-line">25 picks</p>\n
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <p className="gg-lead">{lead}</p>\n      <h1 id={titleId}>{title}</h1>\n |       <p className="gg-lead">{lead}</p>\n      <h1 id={titleId}>{title}</h1>\n      <p className="gg-line">25 picks</p>\n
  * @mutate src/content/giftGuides.ts |   { rank: 1, store: "Muck Boot", code: "TAKE25", | { rank: 8, store: "Muck Boot US", code: "TAKE25",
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -96,6 +95,7 @@ import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, R
 import { GiftGuideView, PICKS_PAGE, STORE_DEALS_FIRST, storeDealRows, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
+import { TEEN_TILES } from "@/pages/info/giftGuides/GiftGuideLanding";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
@@ -323,7 +323,10 @@ describe("gift guides: the content inventory", () => {
 
 describe("gift guides: the landing opens to the guides", () => {
   it("shows one tile row per group, in order, each with See all; every top-level guide's tile links to /gift-guides/<slug>", () => {
-    const top = ROWS.flatMap((r) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === r.row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB)));
+    const top = ROWS.flatMap((r) => [
+      ...GUIDES.filter((g) => !g.empty && !g.thin && g.row === r.row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB)),
+      ...(r.row === "for-kids" ? TEEN_TILES.map((t) => guideBySlug(t.slug)!) : []),
+    ]);
     const { container } = renderAt("/gift-guides");
     const rows = [...container.querySelectorAll("[data-gift-row]")];
     // The heading is the group's name, then its guide count (owner 11-18 PM; checked in the row-count test).
@@ -387,7 +390,8 @@ describe("gift guides: the landing opens to the guides", () => {
       const g = guideBySlug(t.getAttribute("data-gift-tile")!)!;
       // The text cover (no cover file) repeats the name as a decorative, aria-hidden picture; the tile's words are the name.
       const words = [...t.childNodes].filter((n) => !(n instanceof Element && n.getAttribute("aria-hidden") === "true")).map((n) => n.textContent).join("");
-      expect(words, g.slug).toBe(`${g.title}${g.age ?? ""}`);
+      // The For kids row's Teens tiles are named apart ("Teen Girls"; live audit r3 #4).
+      expect(words, g.slug).toBe(`${TEEN_TILES.find((x) => x.slug === g.slug)?.label ?? g.title}${g.age ?? ""}`);
     }
     expect(container.textContent).not.toMatch(/\d+ picks?\b|\d+ guides\b|Coming soon|On ShopMy/);
     cleanup();
@@ -476,10 +480,16 @@ describe("gift guides: the landing opens to the guides", () => {
     expect([...view.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/under-25"]);
   });
 
-  it("kids in two taps: the row and menu show Girls / Boys / Gender-Neutral; each opens its five age covers", () => {
+  // Live audit r3 #4: the three Teens guides are tiles in the For kids row too, each named apart.
+  // @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   ...(row === "for-kids" |   ...(row === "nothing"
+  it("kids in two taps: the row shows Girls / Boys / Gender-Neutral and the three Teens guides; the menu the hubs; each hub opens its five age covers", () => {
     const { container } = renderAt("/gift-guides");
     const kidsRow = container.querySelector('[data-gift-row="for-kids"]')!;
-    expect([...kidsRow.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile")).sort()).toEqual(["boys", "gender-neutral", "girls"]);
+    const teens = TEEN_TILES.filter((t) => guideBySlug(t.slug) && !guideBySlug(t.slug)!.empty);
+    expect(teens.length).toBe(3);
+    expect([...kidsRow.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile")).sort()).toEqual(["boys", "boys-teens", "gender-neutral", "gender-neutral-teens", "girls", "girls-teens"]);
+    expect([...kidsRow.querySelectorAll("a[data-gift-tile] .gg-name")].map((n) => n.textContent).slice(3)).toEqual(["Teen Girls", "Teen Boys", "Gender-Neutral Teens"]);
+    expect(kidsRow.querySelector("[data-gift-row-count]")?.textContent).toBe("\u00a0(6)");
     const menu = container.querySelector('details[data-gift-group="for-kids"]')!;
     expect([...menu.querySelectorAll("a")].map((a) => a.getAttribute("href")).sort()).toEqual(["/gift-guides/boys", "/gift-guides/gender-neutral", "/gift-guides/girls"]);
     cleanup();

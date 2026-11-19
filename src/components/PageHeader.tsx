@@ -59,7 +59,10 @@ interface PageHeaderProps {
    * (the Declutter item page, owner mockup 11-01: the title with Save and Share in the right column).
    */
   hidesTitle?: boolean;
-  /** "p": the title is a plain line, not the h1, because the page's body holds its h1 (PageTitleBar `titleTag`). */
+  /**
+   * "p": the title is a plain one-line title, not the h1, because the page's body holds its h1 (PageTitleBar
+   * `titleTag`). It ignores wrapTitle / hidesTitle / phoneHidesTitle.
+   */
   titleTag?: "h1" | "p";
   /**
    * With `phoneHidesTitle`, on a pinned title row (AppPage `stickyHeader`, DA-9): paint the title, aria-hidden (the
@@ -370,7 +373,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
                   heading at 375) is set SMALLER on a phone (index.css `.page-title-long`), never cut with "...": the
                   whole title is always on the page. */}
               {titleTag === "p" ? (
-                <p className={`text-page-title leading-tight ${wrapTitle ? `break-words${title.length > LONG_TITLE_CHARS ? " page-title-long" : ""}` : "truncate"}${hidesTitle ? " sr-only" : phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
+                <p className="text-page-title leading-tight truncate">
                   {title}
                 </p>
               ) : (

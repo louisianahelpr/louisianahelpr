@@ -74,7 +74,8 @@ export interface PageTitleBarProps {
   titleHidden?: boolean;
   /**
    * "p" paints the same title as a plain line, not the page's h1, for a page whose own body holds its h1 (the gift
-   * guides: the guide's name in its banner is the h1, live audit 11-18 r3 #7). Default "h1".
+   * guides: the guide's name in its banner is the h1, live audit 11-18 r3 #7); a plain one-line title (no moment
+   * face, never hidden). Default "h1".
    */
   titleTag?: "h1" | "p";
 }
@@ -89,7 +90,7 @@ function DesktopRow({ title, back, actions, moment, titleHidden, titleTag = "h1"
         </div>
       )}
       {titleTag === "p" ? (
-        <p className={`${moment ? "font-moment " : ""}text-page-title leading-tight min-w-0 truncate text-foreground${titleHidden ? " sr-only" : ""}`}>{title}</p>
+        <p className="text-page-title leading-tight min-w-0 truncate text-foreground">{title}</p>
       ) : (
         <h1 className={`${moment ? "font-moment " : ""}text-page-title leading-tight min-w-0 truncate text-foreground${titleHidden ? " sr-only" : ""}`}>{title}</h1>
       )}

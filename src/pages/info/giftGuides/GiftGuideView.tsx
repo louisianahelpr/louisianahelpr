@@ -271,7 +271,7 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
       ))}
       {/* Owner redesign 11-18 PM: the codes and sales are one collapsed section in the list (after pick 10, or after
           a shorter list), never a button; a new one per guide, so it is closed again on the next guide. */}
-      <GiftGuideList key={guide.slug} guide={guide} after={<DealsAndCodes key={guide.slug} />} />
+      <GiftGuideList key={guide.slug} guide={guide} after={<DealsAndCodes key={guide.slug} guide={guide} />} />
       {picksReady(guide.slug) && <StoreDeals key={`deals ${guide.slug}`} guide={guide} />}
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>

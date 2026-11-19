@@ -28,7 +28,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -329,6 +329,8 @@ const withLinkUpgrade = (p) => {
 };
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
+  // Lead 11-19: Depop resale pages and UK-only boots.com show nowhere (their store pages too).
+  if (resaleOrUkShop(p)) return hidden.push(`${where}: ${p.name} opens a resale or UK-only shop`), null;
   p = withLinkUpgrade(withSoldoutSwap(p));
   const fixed = withAmazonFixes(p);
   // A swap is a different product: the blocklist reads it too.
@@ -658,11 +660,11 @@ for (const [slug, c] of Object.entries(CURATION)) {
   }
 }
 /**
- * THIN-GUIDE FILLS (lead 11-19, every _fill-thin-*.json): rows with a real href, name and image, each naming its guides
- * (`fits` / `guides` / `guide`), or grouped under their guide's slug ({ "<slug>": [rows] }, or { picks | links: [rows] }).
+ * THIN-GUIDE FILLS (lead 11-19, every _fill-thin-*.json and _trending-brands-*.json): rows with a real href, name and
+ * image, each naming its guides (`fits` / `guides` / `guide_slugs` / `guide`), or grouped under their guide's slug ({ "<slug>": [rows] }, or { picks | links: [rows] }).
  */
 export const thinFillCounts = {};
-for (const f of readdirSync(dir).filter((x) => /^_fill-thin-.*\.json$/.test(x)).sort()) {
+for (const f of readdirSync(dir).filter((x) => /^_(fill-thin|trending-brands)-.*\.json$/.test(x)).sort()) {
   const v = readJson(f);
   const c = (thinFillCounts[f] = { rows: 0, added: 0 });
   const rows = Array.isArray(v) ? v : Array.isArray(v?.picks) ? v.picks : Array.isArray(v?.links) ? v.links
@@ -672,15 +674,40 @@ for (const f of readdirSync(dir).filter((x) => /^_fill-thin-.*\.json$/.test(x)).
     c.rows += 1;
     let host = "";
     try { host = new URL(r.href).hostname; } catch { continue; }
-    const { price: _price, commission: _commission, fits, guides: gs, guide, _guide, ...row } = r;
+    const { price: _price, commission: _commission, commission_pct: _pct, network: _network, fits, guides: gs, guide, guide_slugs: slugs, _guide, ...row } = r;
     const raw = { brand: r.brand ?? "", line: r.why ?? r.line ?? "", ...row, image: r.image.replace(/^http:\/\//, "https://"),
       ...(r.affiliate_href ? {} : AFFILIATE.has(host) && !AMAZON.has(host) ? { affiliate_href: r.href } : {}), ...(AMAZON.has(host) ? { image_source: "amazon-sitestripe" } : {}) };
-    const targets = [...new Set([...(Array.isArray(fits) ? fits : []), ...(Array.isArray(gs) ? gs : []), ...(typeof guide === "string" ? [guide] : []), ...(_guide ? [_guide] : [])])];
+    const targets = [...new Set([...(Array.isArray(fits) ? fits : []), ...(Array.isArray(gs) ? gs : []), ...(Array.isArray(slugs) ? slugs : []), ...(typeof guide === "string" ? [guide] : []), ...(_guide ? [_guide] : [])])]
+      // Lead 11-19: the New Balance 574 is men's (him and teen boys only); a Saranoni toddler blanket goes on baby and new-mom guides only.
+      .filter((g) => !/\bnew balance 574\b/i.test(r.name) || /^(him|boyfriend-or-husband|boys-teens|dad|brother)$/.test(g))
+      .filter((g) => !/saranoni/i.test(`${r.brand ?? ""} ${r.name}`) || /bab(y|ies)|toddler|new-mom|mom-to-be/.test(g));
     for (const g of targets) {
       if (!GUIDE_SLUGS.has(g) || g.startsWith("store-")) continue;
       const before = guides[g]?.length ?? 0;
       add(g, raw, f);
       if ((guides[g]?.length ?? 0) > before) { FILL_HREFS.add(guides[g][guides[g].length - 1].href); c.added += 1; }
+    }
+  }
+}
+/**
+ * THE UNUSED LIBRARY (owner 11-19: "we have brands that literally nothing needs to be repeated"): the link library's
+ * unused product links (~/Desktop/Link-library/unused-by-guide.json, { "<slug>": [{ name, brand, affiliate_href,
+ * store_href, image, type, match }] }), each with a photo, join the guide they were matched to; every rule applies.
+ */
+export const unusedCounts = { rows: 0, added: 0 };
+{
+  const file = join(homedir(), "Desktop", "Link-library", "unused-by-guide.json");
+  const v = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
+  for (const [slug, rows] of Object.entries(v && typeof v === "object" && !Array.isArray(v) ? v : {})) {
+    if (!GUIDE_SLUGS.has(slug) || slug.startsWith("store-") || !Array.isArray(rows)) continue;
+    for (const r of rows) {
+      if (!r || r.type !== "product" || r.match === "store" || typeof r.name !== "string" || typeof r.image !== "string" || !r.image.startsWith("http")) continue;
+      const href = typeof r.store_href === "string" && r.store_href ? r.store_href : r.affiliate_href;
+      if (typeof href !== "string" || typeof r.affiliate_href !== "string" || collectionLink(href)) continue;
+      unusedCounts.rows += 1;
+      const before = guides[slug]?.length ?? 0;
+      add(slug, { brand: r.brand ?? "", line: "", name: r.name, href, affiliate_href: r.affiliate_href, image: r.image.replace(/^http:\/\//, "https://") }, "unused-by-guide.json");
+      if ((guides[slug]?.length ?? 0) > before) { FILL_HREFS.add(guides[slug][guides[slug].length - 1].href); unusedCounts.added += 1; }
     }
   }
 }
@@ -1986,6 +2013,116 @@ const featuredTop = (Array.isArray(FEATURED["top-10"]) ? FEATURED["top-10"] : []
   })
   .filter(Boolean);
 const topPicks = noRepeats([...featuredTop, ...lovedTop]).slice(0, 10);
+// Sibling overlap (owner 11-19): mom and wife (and every pair in a family) share no top-12 pick and at most 15% overall.
+{
+  const key = (p) => compact(p.name) || p.href;
+  const worst = () => Math.max(0, ...SIBLING_FAMILIES.flatMap((f) => f.flatMap((a) => f.filter((b) => b !== a && pageList[a] && pageList[b]).map((b) => siblingOverlap(pageList[a], pageList[b], key).share))));
+  const before = worst();
+  const removed = applySiblingOverlap(pageList, key);
+  console.log(`gift-guide-picks: sibling overlap ${Math.round(before * 100)}% -> ${Math.round(worst() * 100)}% worst pair; removed ${JSON.stringify(removed)}`);
+}
+/**
+ * ONE GUIDE PER PRODUCT (owner 11-19: "really and truly they don't need to share any items"): across the non-store
+ * guides every product (by link and by name) shows on exactly one guide, the one it fits best: a curated top-12 spot
+ * first, then the most specific audience (a career beats a hobby, then kids' ages, colors and life moments, then the
+ * people guides, then budgets), then its better rank, then the guide with fewer picks. Store pages keep their own
+ * items. A guide left under UNIQUE_FLOOR picks is logged, never refilled with a repeat.
+ */
+export const UNIQUE_FLOOR = 8;
+export const GROUP_SPECIFICITY = { "By career": 0, Pets: 1, Hobbies: 1, Louisiana: 1, "For kids": 2, Colors: 3, "Life moments": 3, "By person": 4, "By budget": 5 };
+export const uniqueCounts = { before: 0, after: 0, underFloor: [] };
+{
+  const groupOf = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  const guideSlugs = Object.keys(pageList).filter((slug) => !slug.startsWith("store-") && slug !== SPONSORS_GUIDE);
+  // One id per product: a link and a name both point at it.
+  const idOf = new Map();
+  const productId = (p) => {
+    const n = `n:${compact(p.name)}`;
+    const h = `h:${p.href}`;
+    const id = idOf.get(h) ?? idOf.get(n) ?? h;
+    idOf.set(h, id);
+    idOf.set(n, id);
+    return id;
+  };
+  const seen = new Map();
+  for (const slug of guideSlugs) pageList[slug].forEach((p, i) => { const id = productId(p); seen.set(id, [...(seen.get(id) ?? []), { slug, i }]); });
+  const dupes = () => { let n = 0; const c = new Map(); for (const slug of guideSlugs) for (const p of pageList[slug]) { const id = productId(p); c.set(id, (c.get(id) ?? 0) + 1); } for (const v of c.values()) n += Math.max(0, v - 1); return n; };
+  uniqueCounts.before = dupes();
+  const topOf = (slug) => new Set((CURATION[slug]?.top12 ?? []).map((n) => compact(String(n))));
+  const tops = new Map(guideSlugs.map((slug) => [slug, topOf(slug)]));
+  const nameAt = (w) => compact(pageList[w.slug][w.i].name);
+  const fit = (w) => [tops.get(w.slug).has(nameAt(w)) && w.i < 12 ? 0 : 1, GROUP_SPECIFICITY[groupOf.get(w.slug)] ?? 4];
+  const owner = new Map();
+  const count = new Map(guideSlugs.map((slug) => [slug, 0]));
+  // Products only one guide lists stay there; the rest go, fewest candidates first, to their best-fitting guide, and
+  // among equally good fits to the one holding the fewest picks so far.
+  const entries = [...seen].map(([id, where]) => [id, where.filter((w, k) => where.findIndex((x) => x.slug === w.slug) === k)]);
+  for (const [id, where] of entries) if (where.length === 1) { owner.set(id, where[0]); count.set(where[0].slug, count.get(where[0].slug) + 1); }
+  for (const [id, where] of entries.filter(([, w]) => w.length > 1).sort((a, b) => a[1].length - b[1].length)) {
+    const bestFit = where.map(fit).reduce((a, b) => (b[0] < a[0] || (b[0] === a[0] && b[1] < a[1]) ? b : a));
+    const ok = where.filter((w) => fit(w)[0] === bestFit[0] && fit(w)[1] === bestFit[1]);
+    const w = ok.sort((a, b) => count.get(a.slug) - count.get(b.slug) || a.i - b.i)[0];
+    owner.set(id, w);
+    count.set(w.slug, count.get(w.slug) + 1);
+  }
+  // A guide under the floor takes back products it also listed from a guide that holds more than UNIQUE_SPARE (still
+  // one guide per product).
+  const UNIQUE_SPARE = 12;
+  for (const slug of guideSlugs) {
+    for (const [id, where] of entries) {
+      if (count.get(slug) >= UNIQUE_FLOOR) break;
+      const mine = where.find((w) => w.slug === slug);
+      const cur = owner.get(id);
+      if (!mine || cur.slug === slug || count.get(cur.slug) <= UNIQUE_SPARE) continue;
+      owner.set(id, mine);
+      count.set(cur.slug, count.get(cur.slug) - 1);
+      count.set(slug, count.get(slug) + 1);
+    }
+  }
+  for (const slug of guideSlugs) {
+    const used = new Set();
+    pageList[slug] = pageList[slug].filter((p) => {
+      const id = productId(p);
+      if (used.has(id)) return false;
+      used.add(id);
+      return owner.get(id)?.slug === slug;
+    });
+  }
+  // A last sweep by link and by name, so a product whose link and name were seen under two ids still shows once.
+  const takenHref = new Map();
+  const takenName = new Map();
+  for (const slug of guideSlugs) for (const p of pageList[slug]) { if (!takenHref.has(p.href)) takenHref.set(p.href, slug); if (!takenName.has(compact(p.name))) takenName.set(compact(p.name), slug); }
+  for (const slug of guideSlugs) {
+    pageList[slug] = pageList[slug].filter((p) => takenHref.get(p.href) === slug && takenName.get(compact(p.name)) === slug);
+    if (pageList[slug].length < UNIQUE_FLOOR) uniqueCounts.underFloor.push(`${slug} (${pageList[slug].length})`);
+  }
+  uniqueCounts.after = dupes();
+  console.log(`gift-guide-picks: repeated products across guides ${uniqueCounts.before} -> ${uniqueCounts.after}; unused library ${unusedCounts.added} of ${unusedCounts.rows} rows added; under ${UNIQUE_FLOOR}: ${uniqueCounts.underFloor.join(", ") || "none"}`);
+}
+// Variety (owner 11-19): popular brands may repeat in a guide, but at most BRAND_TOP_MAX of one brand in its top 12;
+// the rest move just below it.
+export const BRAND_TOP_MAX = 4;
+for (const slug of Object.keys(pageList)) {
+  if (slug.startsWith("store-")) continue;
+  const list = pageList[slug];
+  const n = new Map();
+  const top = [];
+  const later = [];
+  for (const p of list.slice(0, 12)) {
+    const b = compact(p.brand ?? "");
+    n.set(b, (n.get(b) ?? 0) + 1);
+    (b && n.get(b) > BRAND_TOP_MAX ? later : top).push(p);
+  }
+  const rest = list.slice(12);
+  while (top.length < 12 && rest.length) {
+    const i = rest.findIndex((p) => !compact(p.brand ?? "") || (n.get(compact(p.brand ?? "")) ?? 0) < BRAND_TOP_MAX);
+    if (i < 0) break;
+    const [p] = rest.splice(i, 1);
+    n.set(compact(p.brand ?? ""), (n.get(compact(p.brand ?? "")) ?? 0) + 1);
+    top.push(p);
+  }
+  pageList[slug] = [...top, ...later, ...rest];
+}
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();

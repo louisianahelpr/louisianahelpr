@@ -127,7 +127,7 @@ export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
-  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p)) return false;
+  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p)) return false;
   // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
@@ -817,9 +817,9 @@ export const outdoorDecorOff = (slug, p) => WOMEN_GUIDES.includes(slug)
  * kitchen tools, cookbooks and food-themed clothes or decor are no food. Supersedes the 11-19 family-only food-tin rule.
  */
 export const FOOD_NAME = /\b(cookies|brownies|blondies|cupcakes|cheesecakes?|pies|bundt cakes?|cake balls|layer cakes?|king cakes?|pound cakes?|rum cakes?|fruitcakes?|chocolates|chocolate bars?|truffles|bonbons|candy|candies|caramels|toffee|fudge|brittle|pralines|popcorn|pretzels|jerky|beef sticks|meat sticks|ice cream pints?|pints of ice cream|gelato|hot sauces?|bbq sauces?|barbecue sauces?|sauce (sets?|trio|collection|gift|variety)|sauces|seasonings?|spice (sets?|rubs?|kits?|blends?|collection|gift)|spices|rubs|snack (box(es)?|crates?|baskets?|packs?|bundles?|assortment)|snacks|mixed nuts|cashews|pecans|almonds|pistachios|charcuterie (box|gift|set|kit)|cheese (box|gifts?|sets?|assortment|sampler|board gift)|salami|steaks|filet mignon|beignet mix|coffee (sampler|gift set|variety pack|tasting)|tea (sampler|gift set|variety pack|tasting)|gift baskets?|fruit (baskets?|bouquets?|arrangements?|box(es)?)|chocolate[- ](covered|dipped)|dipped strawberries|meltaways|cookie (tin|box|dough)|macarons|biscotti|shortbread|petit fours|baklava|honey (sets?|gift|trio|sampler)|jam (sets?|gift|trio)|preserves (set|gift))\b/i;
-export const NOT_FOOD = /\b(maker|machine|popper|cutters?|stand|pan|plates?|molds?|mould|scoop|bowls?|grinder|mill|rack|organizer|book|cookbook|candle|lip|balm|scrub|lotion|soap|wax melt|scented|plush|squishmallow|toy|ornaments?|socks?|tee|shirt|pajamas?|hoodie|blanket|mug|tumbler|pillow|jar opener|spoon|tongs?|thermometer|smoker|grill|skillet|knife|dispenser|shaker|holder|container|storage|keychain|charm|earrings?|necklace|lego|puzzle|game|costume|sticker|print|sign|sauce ?pan|dish|board(?! gift)|hats?|caps?|towels?|napkins?|pouch|flags?|zippy|candy land|spa|bath|gift ?cards?|e-?gift|dogs?|cats?|horses?|pets?|puppy|kitten|coffee(?! (sampler|gift set|variety pack|tasting)))\b/i;
+export const NOT_FOOD = /\b(maker|machine|popper|cutters?|stand|pan|plates?|molds?|mould|scoop|bowls?|grinder|mill|rack|organizer|book|cookbook|candle|lip|balm|scrub|lotion|soap|wax melt|scented|plush|squishmallow|toy|ornaments?|socks?|tee|shirt|pajamas?|hoodie|blanket|mug|tumbler|pillow|jar opener|spoon|tongs?|thermometer|smoker|grill|skillet|knife|dispenser|shaker|holder|container|storage|keychain|charm|earrings?|necklace|lego|puzzle|game|costume|sticker|print|sign|sauce ?pan|dish|(cutting|serving|charcuterie|cheese|bread|cork|vision|game|bulletin|ironing|surf|paddle|skate|dart|cribbage|chess) ?boards?|hats?|caps?|towels?|napkins?|pouch|flags?|zippy|candy land|spa|bath|gift ?cards?|e-?gift|dogs?|cats?|horses?|pets?|puppy|kitten|coffee(?! (sampler|gift set|variety pack|tasting)))\b/i;
 export const FOOD_BRAND = /^(david'?s cookies|edible arrangements|cheryl'?s( cookies)?|the popcorn factory|popcornopolis|mrs\.? fields|milk bar|levain( bakery)?|godiva|lindt|see'?s( candies)?|harry (&|and) david|ferrero( rocher)?|ghirardelli|russell stover|whitman'?s|lake champlain chocolates|vosges|compart[eé]s|neuhaus|leonidas|teuscher|la maison du chocolat|wolferman'?s|omaha steaks|ecreamery|jeni'?s( splendid ice creams)?|goldbelly|sugarfina|dylan'?s candy bar|insomnia cookies|crumbl|baked by melissa|tate'?s( bake shop)?|brooklyn delhi|fly by jing|truff|graza|haven'?s kitchen|olipop|poppi|carnegie deli|zingerman'?s|stonewall kitchen|hickory farms|figi'?s|swiss colony)$/i;
-export const isFood = (p) => FOOD_BRAND.test(String(p.brand ?? "").trim()) || (FOOD_NAME.test(String(p.name ?? "")) && !NOT_FOOD.test(String(p.name ?? "")));
+export const isFood = (p) => FOOD_BRAND.test(String(p.brand ?? "").trim()) || ((FOOD_NAME.test(String(p.name ?? "")) || FOOD_TIN.test(String(p.name ?? "")) || CANDY_BOX.test(String(p.name ?? ""))) && !NOT_FOOD.test(String(p.name ?? "")));
 export const TREATS_GUIDE = "treats-and-food-gifts";
 export const FOOD_GUIDES = [TREATS_GUIDE, "louisiana-kitchen", "louisiana-sweets-and-bakeries", "coffee-and-beignets", "home-cook", "foodie", "coffee-lover",
   "tea-lover", "wine-lover", "wine-and-spirits", "grill-master", "baker", "chefs", "cooks-and-kitchen-staff"];
@@ -1086,3 +1086,113 @@ export const retailerBrand = (name, brand) => {
   const maker = MAKER_PREFIXES.find((m) => n.startsWith(`${m} `));
   return maker === "Zatarains" ? "Zatarain's" : maker ?? "";
 };
+
+/**
+ * SIBLING OVERLAP (owner 11-19: "mom guide has a lot of the same items the wife guide has? there are soooooo many good
+ * options that we do not need to repeat this"). Within a family two guides share none of their top SIBLING_TOP picks,
+ * and at most SIBLING_MAX_SHARE of a guide's picks appear in any one sibling. A pick several want stays where it fits
+ * best (SIBLING_FIT, first match in family order), else where it ranks highest. Guard: giftGuideTop10White1119.test.ts.
+ */
+export const SIBLING_FAMILIES = [
+  ["grandma", "wife", "girlfriend", "mom", "her", "sister", "best-friend", "mother-in-law", "aunt"],
+  ["grandpa", "boyfriend-or-husband", "dad", "him", "brother", "father-in-law", "uncle"],
+];
+export const SIBLING_TOP = 12;
+export const SIBLING_MAX_SHARE = 0.15;
+/** The share rule never thins a guide under this many picks (the top-12 rule always applies). */
+export const SIBLING_MIN_PICKS = 20;
+export const SIBLING_FIT = {
+  grandma: /\b(blankets?|throws?|slippers?|robes?|photo|frames?|puzzles?|tea|cozy|cardigan|wrap)\b/i,
+  wife: /\b(jewel\w*|necklaces?|bracelets?|earrings?|rings?|perfume|parfum|eau de|barefoot dreams|silk|cashmere|lingerie|pajama set)\b/i,
+  girlfriend: /\b(jewel\w*|necklaces?|bracelets?|earrings?|perfume|parfum|eau de|barefoot dreams|silk|cashmere)\b/i,
+  mom: /\b(ember|owala|ugg|our place|mugs?|tumblers?|always pan|slippers?|blankets?|throws?|aura|frames?)\b/i,
+  her: /\b(sol de janeiro|laneige|lip|glow|stanley|belt bag|dyson|airwrap|trend\w*)\b/i,
+  sister: /\b(games?|cute|squishmallow|candles?|fun|bag charms?|claw clips?)\b/i,
+  "best-friend": /\b(games?|cute|candles?|fun|friendship|matching)\b/i,
+  "boyfriend-or-husband": /\b(watch|cologne|wallet|leather|whiskey|cufflinks?)\b/i,
+  grandpa: /\b(slippers?|robes?|photo|frames?|puzzles?|flannel|cardigan)\b/i,
+  dad: /\b(grill\w*|tools?|multitool|yeti|cooler|flashlight|wallet)\b/i,
+};
+/**
+ * Applies the sibling rule to { slug: picks[] } in place; `key` names a product. Returns { slug: removedCount }.
+ * Pass 1: a product in two siblings' top SIBLING_TOP stays in one (the fit, else the better rank). Pass 2: a guide whose
+ * share with one sibling is still over SIBLING_MAX_SHARE loses its lowest-ranked shared picks (never one in its top).
+ */
+export function applySiblingOverlap(pages, key) {
+  const removed = {};
+  const drop = (slug, k) => {
+    const before = pages[slug].length;
+    pages[slug] = pages[slug].filter((p) => key(p) !== k);
+    removed[slug] = (removed[slug] ?? 0) + before - pages[slug].length;
+  };
+  // Dropping a pick moves later picks up into the top, so the passes repeat until nothing changes.
+  for (let round = 0, before = -1; round < 20; round += 1) {
+    const total = Object.values(removed).reduce((a, b) => a + b, 0);
+    if (total === before) break;
+    before = total;
+  for (const fam of SIBLING_FAMILIES) {
+    const guides = fam.filter((g) => Array.isArray(pages[g]));
+    const at = (g, k) => pages[g].findIndex((p) => key(p) === k);
+    const tops = new Map();
+    for (const g of guides) pages[g].slice(0, SIBLING_TOP).forEach((p) => tops.set(key(p), [...(tops.get(key(p)) ?? []), g]));
+    for (const [k, inTop] of tops) {
+      const all = guides.filter((g) => at(g, k) >= 0);
+      if (all.length < 2 || !inTop.length) continue;
+      const pick = pages[all[0]][at(all[0], k)];
+      const fit = all.find((g) => SIBLING_FIT[g]?.test(`${pick.name} ${pick.brand ?? ""}`));
+      const owner = fit ?? [...all].sort((a, b) => at(a, k) - at(b, k) || guides.indexOf(a) - guides.indexOf(b))[0];
+      for (const g of all) if (g !== owner && at(g, k) >= 0 && at(g, k) < SIBLING_TOP) drop(g, k);
+    }
+    for (const g of guides) {
+      for (const s of guides) {
+        if (s === g) continue;
+        const theirs = new Set(pages[s].map(key));
+        const cap = Math.floor(pages[g].length * SIBLING_MAX_SHARE);
+        let shared = pages[g].map((p, i) => [key(p), i]).filter(([k]) => theirs.has(k));
+        while (shared.length > cap && pages[g].length > SIBLING_MIN_PICKS) {
+          const [k, i] = shared[shared.length - 1];
+          if (i < SIBLING_TOP) break;
+          drop(g, k);
+          shared = pages[g].map((p, j) => [key(p), j]).filter(([x]) => theirs.has(x));
+        }
+      }
+    }
+  }
+  }
+  return removed;
+}
+/** The share of `a`'s picks that `b` also lists, and how many of `a`'s top SIBLING_TOP are in `b`'s top. */
+export const siblingOverlap = (a, b, key) => {
+  const kb = new Set(b.map(key));
+  const topB = new Set(b.slice(0, SIBLING_TOP).map(key));
+  return { share: a.length ? a.filter((p) => kb.has(key(p))).length / a.length : 0, topShared: a.slice(0, SIBLING_TOP).filter((p) => topB.has(key(p))).length };
+};
+
+/**
+ * RESALE AND UK-ONLY SHOPS, KIDS' CROCS (lead 11-19, library check): a Depop page is someone's used listing and
+ * boots.com is a UK-only store, so neither shows anywhere; kids' Crocs show only on the kids guides.
+ */
+const hostOf = (u) => (URL.canParse(String(u ?? "")) ? new URL(String(u)).hostname.toLowerCase().replace(/^www\./, "") : "");
+export const RESALE_OR_UK_HOST = /^(depop\.com|boots\.com)$/;
+export const resaleOrUkShop = (p) => [p.href, p.affiliate_href].some((u) => RESALE_OR_UK_HOST.test(hostOf(u)))
+  || /^(depop|boots|boots uk)$/i.test(String(p.retailer ?? "").trim()) || /^store-(depop|boots)$/.test(String(p.store ?? ""));
+export const kidsCrocsOff = (slug, p) => !slug.startsWith("store-") && GUIDE_GROUPS.get(slug) !== "For kids"
+  && /\bcrocs\b/i.test(`${p.name} ${p.brand ?? ""}`) && /\b(kids?'?|toddlers?'?|little kids?|big kids?|juniors?|youth|boys'?|girls'?)\b/i.test(String(p.name ?? ""));
+
+/**
+ * CHARACTER COLLABS (owner 11-19: "remove, that's kind of ugly", on "Kitsch x BT21 Satin Pillowcase in CHIMMY in King"):
+ * a Kitsch x BT21 (or other "Brand x Character") print shows on no guide; plain Kitsch satin and curl sets stay.
+ */
+export const CHARACTER_COLLAB = /\bkitsch\s*x\s*\w+|\bx\s*(bt21|hello kitty|sanrio|disney|pokemon|pok[eé]mon|barbie|care bears|peanuts|minions|harry potter|star wars|marvel)\b|\bbt21\b|\bchimmy\b/i;
+export const characterCollab = (p) => CHARACTER_COLLAB.test(String(p.name ?? "")) && /kitsch|bt21|chimmy/i.test(`${p.name} ${p.brand ?? ""}`);
+
+/**
+ * DRUGSTORE BASICS ARE NO GIFT (owner 11-19: "remove", on Cantu's leave-in conditioning lotion): everyday drugstore hair
+ * and skin products (leave-ins, shampoos, conditioners, plain lotions; Cantu, Suave, Dove, Aveeno, CeraVe ...) show on
+ * no guide; a gift set stays (under the beauty rules), and store pages keep their own items.
+ */
+export const DRUGSTORE_BRAND = /^(cantu|suave|dove|aveeno|cerave|neutrogena|head (&|and) shoulders|pantene|tresemm[eé]|garnier|vaseline|jergens|nivea|cetaphil|eucerin|gold bond|lubriderm|aussie|herbal essences|v05|vo5|st\.? ives|olay|l'or[eé]al paris|mielle( organics)?|shea moisture|sheamoisture|not your mother'?s|ogx|aquaphor|eos)$/i;
+export const DRUGSTORE_ITEM = /\b(leave-?in|shampoo|conditioner|conditioning lotion|body lotion|body wash|lotion|moisturizing cream|hair oil|hair milk|curl cream|edge control|deodorant|dry shampoo)\b/i;
+export const drugstoreOff = (slug, p) => !slug.startsWith("store-") && !/\bgift ?sets?\b|\bgift box\b|\bholiday (set|kit)\b/i.test(String(p.name ?? ""))
+  && (DRUGSTORE_BRAND.test(String(p.brand ?? "").trim()) || DRUGSTORE_BRAND.test(String(p.name ?? "").split(/\s+/).slice(0, 2).join(" ")) || DRUGSTORE_BRAND.test(String(p.name ?? "").split(/\s+/)[0]))
+  && DRUGSTORE_ITEM.test(String(p.name ?? ""));

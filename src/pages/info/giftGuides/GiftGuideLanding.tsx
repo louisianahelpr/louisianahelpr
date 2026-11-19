@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { ROWS, guideBySlug, guidesIn, topPicks, type CatalogGuide, type CatalogPick, type GuideRow } from "@/content/giftGuideCatalog";
 import { PickThumb, storeLabel } from "./GiftGuideView";
-import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
+import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
 import { DealsAndCodes } from "./GiftGuidesSidebar";

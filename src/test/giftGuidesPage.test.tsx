@@ -937,7 +937,7 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
     expect(script).toMatch(/function toPick\(p, where\) \{\n\s*if \(blockedBrand\(p\)\) return hidden\.push/);
     expect(script).toMatch(/const addDeal = \(slug, d\) => \{\n\s*if \(blockedBrand\(d\)/);
     // _cj.json (SilverRushStyle's CJ links) lands in the guides it fits and on its store page, like _awin.json.
-    expect(script).toContain('for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json"]) {');
+    expect(script).toContain('for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later.json", "_later-mylinks.json", "_later-brands.json", "_walmart-under5-1118.json"]) {');
     for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.json", "_later-mylinks.json", "_later-brands.json"]) expect(script, f).toContain(`["${f}", []]`);
     // Deals and bounties: _later-promos.json (deal sections) and _amazon-bounties.json (Prime, Audible, registries).
     expect(script).toContain('for (const f of ["_later-deals.json", "_later-promos.json"]) {');
@@ -1199,7 +1199,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     expect(script).toContain("export const AMAZON_IMAGE_HOST = /(^|\\.)(media-amazon|images-amazon|ssl-images-amazon|amazon|amazon-adsystem)\\.com$/;");
     expect(script).toContain("AMAZON_IMAGE_HOST.test(new URL(p.image).hostname)");
     expect(script).toContain('JSON.parse(readFileSync(join(LIB, "unused-by-guide.json"), "utf8"))');
-    expect(script).toContain("const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut];");
+    expect(script).toContain("const everyPick = [...sortedGuides.flatMap(([, l]) => l), ...swappedOut.filter(hasPhoto)];");
     let photos = 0;
     let amazonCdn = 0;
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
@@ -1227,7 +1227,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
     // collection, not the retailer) is on no store page.
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null
-    // @mutate scripts/gift-guide-picks.mjs |   const image = !tiff && !deadHost && |   const image = !tiff && 
+    // @mutate scripts/gift-guide-picks.mjs |   const ownImage = !tiff && !deadHost && |   const ownImage = !tiff && 
     for (const [slug, list] of Object.entries(RESEARCHED_PICKS)) for (const p of list) {
       expect(p.image ?? "", `${slug}: ${p.name}`).not.toMatch(/\.tiff?(\?|#|$)/i);
       // ShopMy's S3 photos are all 403 (11-18 PM): none ships.

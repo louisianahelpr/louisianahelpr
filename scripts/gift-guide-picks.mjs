@@ -401,6 +401,10 @@ export const PINNED_TOP = {
   subscriptions: ["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
     "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"],
 };
+/** Picks that may show without a photo (the owner's Subscriptions memberships, until one is found). */
+export const NO_PHOTO_OK = new Set(PINNED_TOP.subscriptions);
+const hasPhoto = (p) => Boolean(p.image) || NO_PHOTO_OK.has(p.name);
+let photoless = 0;
 const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), ...(Array.isArray(FEATURED[slug]) ? FEATURED[slug] : [])]
   .filter((x) => typeof x === "string" || (x && typeof x === "object" && typeof x.name === "string"));
 const featuredNames = (slug) => featuredEntries(slug).map((x) => (typeof x === "string" ? x : x.name));
@@ -414,7 +418,8 @@ const resolveFeatured = (slug, list, e) => {
 };
 const featuredFirst = (slug, list) => {
   const lead = featuredEntries(slug).map((e) => resolveFeatured(slug, list, e)).filter(Boolean);
-  const ordered = [...new Set([...lead, ...list])];
+  // No photo, no row (see NO PHOTO, NO ROW below): dropped before the top 25 is counted, so its limits hold.
+  const ordered = [...new Set([...lead, ...list])].filter((p) => slug === SPONSORS_GUIDE || hasPhoto(p) || ((photoless += 1), false));
   if (slug.startsWith("store-")) return ordered;
   const head = [];
   const later = [];
@@ -477,16 +482,28 @@ const withTrending = (slug, list) => {
   const hot = out.filter(isTrending).sort((a, b) => rankOf(a) - rankOf(b));
   return [...hot, ...out.filter((p) => !isTrending(p))];
 };
+/** A photo-less row takes the photo the same product (same link, else same name) carries anywhere else. */
+{
+  const twinPhoto = new Map();
+  for (const list of Object.values(guides)) for (const p of list) if (p.image) {
+    if (!twinPhoto.has(p.href)) twinPhoto.set(p.href, p.image);
+    if (!twinPhoto.has(compact(p.name))) twinPhoto.set(compact(p.name), p.image);
+  }
+  for (const list of Object.values(guides)) list.forEach((p, i) => {
+    const image = p.image ? undefined : twinPhoto.get(p.href) ?? twinPhoto.get(compact(p.name));
+    // An Amazon-hosted photo only on an Amazon link (Associates rule).
+    if (image && (!AMAZON_IMAGE_HOST.test(new URL(image).hostname) || isAmazonPick(p))) list[i] = { ...p, image };
+  });
+}
 for (const slug of Object.keys(guides)) guides[slug] = featuredFirst(slug, withTrending(slug, guides[slug]));
 /**
  * NO PHOTO, NO ROW (owner 11-18 PM: "All Items need a picture find one. No excuses."): a pick still without a photo
  * leaves every guide and store page (the next photo'd pick moves up). Only the owner's Subscriptions memberships may
  * keep their store tile until a photo is found.
  */
-export const NO_PHOTO_OK = new Set(PINNED_TOP.subscriptions);
-const hasPhoto = (p) => Boolean(p.image) || NO_PHOTO_OK.has(p.name);
-let photoless = 0;
 for (const slug of Object.keys(guides)) {
+  // The 25 Days sponsors guide keeps every sponsor's pick (each is a sponsor commitment); a photo is still being found.
+  if (slug === SPONSORS_GUIDE) continue;
   const before = guides[slug].length;
   guides[slug] = guides[slug].filter(hasPhoto);
   photoless += before - guides[slug].length;

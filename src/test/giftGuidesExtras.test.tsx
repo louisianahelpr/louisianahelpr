@@ -226,7 +226,8 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     expect(heart.closest("a")).toBeNull();
     const link = container.querySelector("[data-gift-my-list-link]")!;
     expect(link.getAttribute("aria-label")).toBe("My list, 0 saved");
-    expect(link.textContent).toBe("0");
+    // No "0" badge on an empty list (pre-launch audit 11-18 PM).
+    expect(link.textContent).toBe("");
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe("Holiday Gift Guides");

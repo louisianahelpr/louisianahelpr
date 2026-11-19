@@ -59,6 +59,8 @@ interface PageHeaderProps {
    * (the Declutter item page, owner mockup 11-01: the title with Save and Share in the right column).
    */
   hidesTitle?: boolean;
+  /** "p": the title is a plain line, not the h1, because the page's body holds its h1 (PageTitleBar `titleTag`). */
+  titleTag?: "h1" | "p";
   /**
    * With `phoneHidesTitle`, on a pinned title row (AppPage `stickyHeader`, DA-9): paint the title, aria-hidden (the
    * h1 stays the heading), between back and the actions once the page has scrolled (index.css `.sticky-title-row`).
@@ -222,7 +224,7 @@ const LONG_TITLE_CHARS = 24;
 // `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
 // recorded in the retirement note below (title only; ~15 call sites still pass it).
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, hidesTitle = false, stickyTitle = false, wrapTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, hidesTitle = false, titleTag = "h1", stickyTitle = false, wrapTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -265,6 +267,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
       back={hideBack ? undefined : { onBack, backTo }}
       actions={desktopActions}
       titleHidden={hidesTitle}
+      titleTag={titleTag}
       phone={<>
       {showTopBar && (
         <header className="glass-header sticky top-0 z-50">
@@ -366,9 +369,15 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
               {/* JA-14 (Jobs audit 11-01; lead 11-01, B107): a long wrapping title (a 7-word job title took 3-4 lines of
                   heading at 375) is set SMALLER on a phone (index.css `.page-title-long`), never cut with "...": the
                   whole title is always on the page. */}
-              <h1 className={`text-page-title leading-tight ${wrapTitle ? `break-words${title.length > LONG_TITLE_CHARS ? " page-title-long" : ""}` : "truncate"}${hidesTitle ? " sr-only" : phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
-                {title}
-              </h1>
+              {titleTag === "p" ? (
+                <p className={`text-page-title leading-tight ${wrapTitle ? `break-words${title.length > LONG_TITLE_CHARS ? " page-title-long" : ""}` : "truncate"}${hidesTitle ? " sr-only" : phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
+                  {title}
+                </p>
+              ) : (
+                <h1 className={`text-page-title leading-tight ${wrapTitle ? `break-words${title.length > LONG_TITLE_CHARS ? " page-title-long" : ""}` : "truncate"}${hidesTitle ? " sr-only" : phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
+                  {title}
+                </h1>
+              )}
             </div>
             {/* Trailing actions on the TITLE row, not in a bar of their own.
                 `ml-auto` (rather than `justify-between` on the row, or

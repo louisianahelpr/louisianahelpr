@@ -1,17 +1,14 @@
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { Input } from "@/components/ui/input";
 import { giftGuides as G, activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { useState } from "react";
-import { MyListLink } from "./GiftGuideMyList";
 import { Button } from "@/components/ui/button";
-import { ROWS, guideBySlug, guidesIn, searchGuides, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { ROWS, guideBySlug, guidesIn, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { GiftOut } from "./GiftOut";
-import { ICON_STROKE_PX } from "@/lib/iconWeight";
 
 /**
- * Every guide by group (owner's final design 2026-11-18): a 220px sticky menu beside the page on desktop, above it on
+ * Every guide by group (owner's final design 2026-11-18): a 220px sticky menu beside the page on desktop, after it on
  * phones. Each group is a <details> that starts COLLAPSED; tapping its name opens it (+ / −). On a guide's page only
  * that guide's group starts open, and the open guide (or "All guides" on the landing) is aria-current, drawn
  * olive-soft. Each group carries a small square in its covers' palette. "For kids" lists Girls, Boys and
@@ -20,29 +17,10 @@ import { ICON_STROKE_PX } from "@/lib/iconWeight";
  */
 export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogGuide | null; myList?: boolean }) {
   const current = (slug: string | null) => (!myList && (active?.slug ?? null) === slug ? ({ "aria-current": "page" } as const) : {});
-  const [query, setQuery] = useState("");
-  const found = searchGuides(query);
   return (
     <nav key={active?.slug ?? ""} className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
-      {/* Owner 2026-11-18: a search box at the top of the menu filters every guide by its title or group. */}
-      <label id="gift-search" className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
-        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
-        <Input look="bare" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" aria-label="Search gift guides" data-gift-search="" />
-      </label>
-      <MyListLink current={myList} />
-      {query.trim() ? (
-        <ul data-gift-search-results="" aria-live="polite">
-          {found.length === 0 && <li className="gg-search-none">{G.searchNone}</li>}
-          {found.map((g) => (
-            <li key={g.slug}>
-              <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-found={g.slug}>{g.age ? `${g.title}, ${g.lead.replace(/^gifts for /, "")}` : g.title}</Link>
-            </li>
-          ))}
-        </ul>
-      ) : (<>
-      {/* Owner 2026-11-18: the codes sit at the TOP of the menu; a code past its last day hides itself. */}
-      <DiscountCodes codes={activeCodes([...discountCodes, ...DEAL_CODES], localToday())} />
-      <SalesList sales={liveSales(SALES, localToday())} />
+      {/* Owner redesign 11-18 PM: search and My list moved to the slim row under the title, and the codes and sales to
+          the page's one "Deals & codes" section; the menu is only the guides. */}
       <ul>
         <li><Link to="/gift-guides" {...current(null)} data-gift-side="">{G.allGuidesLabel}</Link></li>
       </ul>
@@ -58,7 +36,6 @@ export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogG
           </ul>
         </details>
       ))}
-      </>)}
     </nav>
   );
 }
@@ -70,9 +47,8 @@ const localToday = () => {
 };
 
 /**
- * The sidebar's "Discount codes" section (owner 2026-11-18): one box per store, by rank, each code with its own copy
- * button. Hidden while there are none. Starts COLLAPSED (+) on every screen and page (owner 11-18: "discount code
- * shouldn't open expanded"); opening it shows every code. No open/closed state is remembered.
+ * "Discount codes" (owner 2026-11-18), inside the collapsed "Deals & codes" section: one box per store, by rank, each
+ * code with its own copy button. Hidden while there are none.
  */
 export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
   const [copied, setCopied] = useState<string | null>(null);
@@ -85,8 +61,8 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
     );
   };
   return (
-    <details id="gift-codes" className="gg-codes" data-gift-codes="">
-      <summary>{G.codesLabel}</summary>
+    <div className="gg-codes" data-gift-codes="">
+      <h3 className="gg-deals-sub">{G.codesLabel}</h3>
       <ul>
         {codesByStore(codes).map(({ store, codes: list }) => (
           <li key={store} data-gift-code-store={store}>
@@ -106,7 +82,7 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
           </li>
         ))}
       </ul>
-    </details>
+    </div>
   );
 }
 
@@ -121,16 +97,16 @@ export const liveSales = (sales: readonly Sale[], today: string) => {
 const SALES_FIRST = 12;
 
 /**
- * The sidebar's "Sales" section (follow-up batch 2026-11-18), under Discount codes: one line per live store sale,
- * soonest end first, the offer opening the sale (affiliate link) and the store opening its guide page. Starts
- * collapsed (it is long); hidden while there are none.
+ * "Sales" (follow-up batch 2026-11-18), under Discount codes in "Deals & codes": one line per live store sale, soonest
+ * end first, the offer opening the sale (affiliate link) and the store opening its guide page; hidden while there are
+ * none.
  */
 export function SalesList({ sales }: { sales: readonly Sale[] }) {
   const [all, setAll] = useState(false);
   if (sales.length === 0) return null;
   return (
-    <details className="gg-codes" data-gift-sales="">
-      <summary>{G.salesLabel}</summary>
+    <div className="gg-codes" data-gift-sales="">
+      <h3 className="gg-deals-sub">{G.salesLabel}</h3>
       <ul>
         {(all ? sales : sales.slice(0, SALES_FIRST)).map((x) => (
           <li key={`${x.slug} ${x.href}`} data-gift-sale={x.slug}>
@@ -143,6 +119,26 @@ export function SalesList({ sales }: { sales: readonly Sale[] }) {
       {!all && sales.length > SALES_FIRST && (
         <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => setAll(true)} data-gift-all-sales="">{G.allSalesLabel(sales.length)}</Button>
       )}
+    </div>
+  );
+}
+
+/**
+ * "Deals & codes" (owner redesign 11-18 PM: "Codes should be a section with the other discount stuff right?"): ONE
+ * section holding the discount codes and the store sales, after the landing's guide rows and after a guide's picks.
+ * It starts COLLAPSED on every page and screen and never opens by itself (owner 11-18: "discount code shouldn't open
+ * expanded"; no open state is remembered across pages). Hidden while it holds nothing.
+ */
+export function DealsAndCodes() {
+  const today = localToday();
+  const codes = activeCodes([...discountCodes, ...DEAL_CODES], today);
+  const sales = liveSales(SALES, today);
+  if (codes.length === 0 && sales.length === 0) return null;
+  return (
+    <details id="gift-codes" className="gg-deals" data-gift-deals-codes="">
+      <summary>{G.dealsAndCodesLabel}</summary>
+      <DiscountCodes codes={codes} />
+      <SalesList sales={sales} />
     </details>
   );
 }

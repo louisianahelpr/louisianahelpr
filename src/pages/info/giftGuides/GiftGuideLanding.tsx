@@ -1,71 +1,83 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
-import { ROWS, guideBySlug, guidesIn, topPicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
-import { PickRow } from "./GiftGuideView";
-import { PricesAsOf } from "@/components/giftGuides/PickPrice";
+import { ROWS, guidesIn, topPicks, type CatalogPick, type GuideRow } from "@/content/giftGuideCatalog";
+import { PickThumb, storeLabel } from "./GiftGuideView";
+import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { GiftGuideTile } from "./GiftGuideTile";
+import { GiftOut } from "./GiftOut";
+import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { sponsorPage } from "@/content/sponsorPage";
-import { Button } from "@/components/ui/button";
 
 /**
- * /gift-guides opens to the guides, not their items (owner 2026-11-18: "open to the sections first"; final design):
- * one sideways-scrolling row of cover tiles per group, each with "See all" (/gift-guides?group=<row>: that group's
- * guides as a wrapped grid). Each tile opens /gift-guides/<slug>.
+ * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
+ * don't like it"; phone and desktop alike): one sideways-scrolling row of cover tiles per group (By person (n), For kids
+ * (n), By budget (n), Louisiana (n)...), each with "See all" (/gift-guides?group=<row>: that group's guides as a
+ * wrapped grid). Each tile opens /gift-guides/<slug>. "Our Top 10" is a short sideways strip of photo cards after the
+ * first rows, then the rest of the rows, then the collapsed "Deals & codes" section.
  */
-/** The guides a phone sees first (owner 2026-11-18), before "More guides" opens every row. */
-const START_HERE = ["mom", "dad", "her", "him", "kids", "under-25", "louisiana-made"];
+/** The rows above the Top 10 strip (By person, For kids, By budget, Louisiana). */
+const ROWS_BEFORE_TOP = 4;
+
+/** A Top 10 card: the photo (or the store's tile), a short name, the store, and the price on a non-Amazon pick. */
+function TopCard({ pick }: { pick: CatalogPick }) {
+  return (
+    <li data-gift-pick="" data-gift-top-card="">
+      <GiftOut href={pick.href} className="gg-topcard">
+        <PickThumb pick={pick} size={140} />
+        <span className="gg-topcard-name">{pick.name}</span>
+        <span className="gg-topcard-meta">
+          {storeLabel(pick) && <small>{storeLabel(pick)}</small>}
+          <PickPrice pick={pick} />
+        </span>
+        <span className="sr-only"> ({G.newTab})</span>
+      </GiftOut>
+    </li>
+  );
+}
+
+function TopStrip() {
+  const top = topPicks();
+  if (top.length === 0) return null;
+  return (
+    <section aria-labelledby="gift-top-picks" data-gift-top="">
+      <div className="gg-rowhead"><h2 id="gift-top-picks">{G.topTitle}</h2></div>
+      <ul className="gg-row gg-toprow">{top.map((p) => <TopCard key={`${p.href} ${p.name}`} pick={p} />)}</ul>
+      <PricesAsOf picks={top} />
+    </section>
+  );
+}
 
 export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   const rows = group ? ROWS.filter((r) => r.row === group) : ROWS;
-  const [more, setMore] = useState(false);
-  const start = START_HERE.map((s) => guideBySlug(s)).filter((g): g is CatalogGuide => Boolean(g && !g.empty));
+  const drawRow = ({ row, label, tint }: (typeof ROWS)[number]) => {
+    const headingId = `gift-row-${row}`;
+    // Owner 11-18 PM: each heading carries its guide count, "By person (24)": the guides this row (and See all) shows.
+    const list = guidesIn(row);
+    return (
+      <section key={row} aria-labelledby={headingId} data-gift-row={row}>
+        <div className="gg-rowhead">
+          <h2 id={headingId}><i className={`gg-dot gg-${tint}`} aria-hidden="true" />{label}<span className="gg-rowcount" data-gift-row-count="">&nbsp;({list.length})</span></h2>
+          {!group && (
+            <Link to={`/gift-guides?group=${row}`} className="gg-link" data-gift-see-all={row}>
+              {G.seeAllLabel} ›<span className="sr-only"> {label}</span>
+            </Link>
+          )}
+        </div>
+        <ul className={group ? "gg-wrap" : "gg-row"}>
+          {list.map((g) => <GiftGuideTile key={g.slug} g={g} />)}
+        </ul>
+      </section>
+    );
+  };
   return (
     <>
       {group && <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>}
-      {!group && topPicks().length > 0 && (
-        // Owner 2026-11-18: the picks the most guides list, first on the landing.
-        <section aria-labelledby="gift-top-picks" data-gift-top="">
-          <div className="gg-rowhead"><h2 id="gift-top-picks">{G.topTitle}</h2></div>
-          <ol className="gg-list">{topPicks().map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} />)}</ol>
-          <PricesAsOf picks={topPicks()} />
-        </section>
-      )}
-      {!group && start.length > 0 && (
-        <section aria-labelledby="gift-start" data-gift-start="">
-          <div className="gg-rowhead"><h2 id="gift-start">{G.startTitle}</h2></div>
-          <ul className="gg-row">{start.map((g) => <GiftGuideTile key={g.slug} g={g} />)}</ul>
-        </section>
-      )}
-      {!group && (
-        // On a phone the other rows wait behind this button (owner 2026-11-18); on a wider screen it is hidden and every
-        // row shows.
-        <Button type="button" variant="outline" size="inline" className="gg-more-btn" aria-expanded={more} onClick={() => setMore((m) => !m)} data-gift-more="">
-          {more ? G.fewerGuidesLabel : G.moreGuidesLabel}
-        </Button>
-      )}
-      <div className={!group && !more ? "gg-rows gg-rows-folded" : "gg-rows"} data-gift-rows="">
-      {rows.map(({ row, label, tint }) => {
-        const headingId = `gift-row-${row}`;
-        // Owner 11-18 PM: each heading carries its guide count, "By person (24)": the guides this row (and See all) shows.
-        const list = guidesIn(row);
-        return (
-          <section key={row} aria-labelledby={headingId} data-gift-row={row}>
-            <div className="gg-rowhead">
-              <h2 id={headingId}><i className={`gg-dot gg-${tint}`} aria-hidden="true" />{label}<span className="gg-rowcount" data-gift-row-count="">&nbsp;({list.length})</span></h2>
-              {!group && (
-                <Link to={`/gift-guides?group=${row}`} className="gg-link" data-gift-see-all={row}>
-                  {G.seeAllLabel} ›<span className="sr-only"> {label}</span>
-                </Link>
-              )}
-            </div>
-            <ul className={group ? "gg-wrap" : "gg-row"}>
-              {list.map((g) => <GiftGuideTile key={g.slug} g={g} />)}
-            </ul>
-          </section>
-        );
-      })}
+      <div className="gg-rows" data-gift-rows="">
+        {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}
       </div>
+      {!group && <TopStrip />}
+      {!group && <div className="gg-rows" data-gift-rows="">{rows.slice(ROWS_BEFORE_TOP).map(drawRow)}</div>}
+      {!group && <DealsAndCodes />}
       {!group && (
         // Owner 2026-11-18: the 25 Days card. App.tsx has no shopper giveaway page (/25days is the sponsors' page), so
         // it links to the Facebook page the giveaways run on.

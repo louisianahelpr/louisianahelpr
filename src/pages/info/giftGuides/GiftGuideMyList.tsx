@@ -38,14 +38,3 @@ export function GiftGuideMyList() {
     </section>
   );
 }
-
-/** The sidebar's My list entry, with how many things are saved. */
-export function MyListLink({ current }: { current: boolean }) {
-  const list = useGiftList();
-  const n = list.guides.length + list.picks.length;
-  return (
-    <Link to="/gift-guides?list=mine" className="gg-mylist" {...(current ? { "aria-current": "page" as const } : {})} data-gift-my-list-link="">
-      ♡ {G.myListLabel} ({n})
-    </Link>
-  );
-}

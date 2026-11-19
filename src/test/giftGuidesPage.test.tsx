@@ -79,8 +79,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   // The header's own row (back target, title, title actions) as PageHeader draws it, so a test can see what rides it.
-  PublicHeaderPage: ({ title, backTo, titleActions, children }: { title: string; backTo?: string; titleActions?: React.ReactNode; children: React.ReactNode }) => (
-    <main><div data-test-header-row="" data-back-to={backTo}><h1>{title}</h1>{titleActions}</div>{children}</main>
+  PublicHeaderPage: ({ title, titleTag = "h1", backTo, titleActions, children }: { title: string; titleTag?: "h1" | "p"; backTo?: string; titleActions?: React.ReactNode; children: React.ReactNode }) => (
+    <main><div data-test-header-row="" data-back-to={backTo}>{titleTag === "p" ? <p data-test-title="">{title}</p> : <h1 data-test-title="">{title}</h1>}{titleActions}</div>{children}</main>
   ),
 }));
 
@@ -93,7 +93,7 @@ import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
-import { GiftGuideView, PICKS_PAGE, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
+import { GiftGuideView, PICKS_PAGE, STORE_DEALS_FIRST, storeDealRows, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -159,7 +159,10 @@ describe("gift guides: the shipping pill rides the page header's row (owner 11-1
       expect(pill!.closest("[data-gift-guides]"), url).toBeNull();
       const row = pill!.closest("[data-test-header-row]");
       expect(row, url).not.toBeNull();
-      expect(row!.querySelector("h1")?.textContent, url).toBe(giftGuides.pageTitle);
+      // Live audit r3 #7: the header's "Gift guides" stays as drawn but is a plain line; the banner title is the h1.
+      // @mutate src/pages/info/GiftGuides.tsx | title={G.pageTitle} titleTag="p" | title={G.pageTitle}
+      expect(row!.querySelector("[data-test-title]")?.textContent, url).toBe(giftGuides.pageTitle);
+      expect(row!.querySelector("[data-test-title]")?.tagName, url).toBe("P");
       checked += 1;
       cleanup();
     }
@@ -328,29 +331,31 @@ describe("gift guides: the landing opens to the guides", () => {
     expect([...container.querySelectorAll("a[data-gift-see-all]")].map((a) => a.getAttribute("href"))).toEqual(ROWS.map((r) => `/gift-guides?group=${r.row}`));
     const tiles = [...container.querySelectorAll("[data-gift-rows] a[data-gift-tile]")];
     expect(tiles.length).toBeGreaterThan(30);
-    // "Start here" (owner 2026-11-18): Mom, Dad, Her, Him, Kids, Under $25, Louisiana-Made first; on a phone the rows
-    // fold behind "More guides" (a CSS class; the button is hidden on wider screens).
-    const start = [...container.querySelectorAll("[data-gift-start] a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
-    expect(start).toEqual(["mom", "dad", "her", "him", "kids", "under-25", "louisiana-made"].filter((x) => guideBySlug(x) && !guideBySlug(x)!.empty));
-    expect(start.length).toBeGreaterThan(4);
-    const folded = container.querySelector("[data-gift-rows]")!;
-    expect(folded.className).toContain("gg-rows-folded");
-    const more = container.querySelector("button[data-gift-more]")!;
-    expect(more.textContent).toBe("More guides");
-    expect(more.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(more);
-    expect(container.querySelector("[data-gift-rows]")!.className).not.toContain("gg-rows-folded");
-    expect(container.querySelector("button[data-gift-more]")!.getAttribute("aria-expanded")).toBe("true");
-    expect(GIFT_GUIDES_CSS).toMatch(/@media \(max-width:767px\)\{\.gg-more-btn\{display:flex[^}]*\}\.gg-rows-folded\{display:none\}\}/);
-    expect(GIFT_GUIDES_CSS).toContain(".gg-more-btn{display:none}");
+    // Owner redesign 11-18 PM ("the page the guide opens to on the phone view I don't like it"): the landing opens
+    // straight to the rows of guide covers, By person first, on every width: no "Start here" row, nothing folded behind
+    // "More guides", and nothing (no Top 10) above the first row.
+    expect(container.querySelector("[data-gift-start], button[data-gift-more], .gg-rows-folded")).toBeNull();
+    expect(GIFT_GUIDES_CSS).not.toMatch(/gg-rows-folded|gg-more-btn/);
+    const mainKids = [...container.querySelector(".gg-main")!.children];
+    expect(mainKids[0].matches("[data-gift-rows]")).toBe(true);
+    expect(mainKids[0].querySelector("[data-gift-row]")?.getAttribute("data-gift-row")).toBe(ROWS[0].row);
     // Design audit 11-18 (High): on a phone the menu sat 2,000–3,100 px above the picks; it now follows the page.
     const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.lastIndexOf("@media (max-width:767px){"));
     expect(phone).toMatch(/\.gg-side\{[^}]*order:2/);
     expect(phone).toMatch(/\.gg-main\{[^}]*order:1/);
     expect(tiles.map((a) => a.getAttribute("href"))).toEqual(top.map((g) => `/gift-guides/${g.slug}`));
-    // No guide's list on the landing; only the "Top 10 most-loved" row (owner 2026-11-18), first, ten picks at most.
+    // No guide's list on the landing; "Our Top 10" is a short sideways strip of photo cards AFTER the first four rows
+    // (By person, For kids, By budget, Louisiana; owner redesign 11-18 PM), ten picks at most.
+    // @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | const ROWS_BEFORE_TOP = 4; | const ROWS_BEFORE_TOP = 0;
     const topRow = container.querySelector("[data-gift-top]")!;
-    expect(topRow.compareDocumentPosition(rows[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(rows[3].compareDocumentPosition(topRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(topRow.compareDocumentPosition(rows[4]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(topRow.querySelector("ul.gg-row")).not.toBeNull();
+    expect(topRow.querySelector("ol")).toBeNull();
+    for (const card of topRow.querySelectorAll("[data-gift-top-card]")) {
+      expect(card.querySelector("a[data-gift-out] .gg-thumb")).not.toBeNull();
+      expect(card.querySelector(".gg-topcard-name")?.textContent).toBeTruthy();
+    }
     // Design audit r2 #17: "most-loved" claimed a ranking we don't have.
     expect(topRow.querySelector("h2")?.textContent).toBe("Our Top 10");
     const topRows = topRow.querySelectorAll("[data-gift-pick]");
@@ -369,11 +374,11 @@ describe("gift guides: the landing opens to the guides", () => {
     for (const t of text) expect(t.textContent).not.toMatch(/LOUISIANA HELPR/i);
   });
 
-  it("every header is compact: italic lead, title and a small Share pill; no subtitle, no pick count anywhere", () => {
+  it("every header is compact: italic lead, title (the page's h1) and the slim tool row; no subtitle, no pick count anywhere", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector(".gg-band")).toBeNull();
     const words = container.querySelector("[data-gift-words]");
-    expect([...(words?.children ?? [])].map((c) => c.textContent)).toEqual(["top-rated finds", "Holiday Gift Guides", "ShareText these guides"]);
+    expect([...(words?.children ?? [])].map((c) => c.tagName + (c.matches("[data-gift-quick]") ? "[tools]" : c.textContent))).toEqual(["Ptop-rated finds", "H1Holiday Gift Guides", "DIV[tools]"]);
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
     // age guide keeps its age band).
     const tiles = [...container.querySelectorAll("a[data-gift-tile]")];
@@ -388,9 +393,9 @@ describe("gift guides: the landing opens to the guides", () => {
     cleanup();
     const wordsOf = (path: string) => [...(renderAt(path).container.querySelector("[data-gift-words]")?.children ?? [])].map((c) => c.textContent);
     // A guide's header is its cover's look as a short banner (owner 11-18 PM): gingham in the guide's palette, a cream
-    // arch holding the lead, the title and the LOUISIANA HELPR line (real text, no image), Share right under it.
+    // arch holding the lead, the title and the LOUISIANA HELPR line (real text, no image), the tool row right under it.
     // @mutate src/pages/info/GiftGuides.tsx | titleId="gift-guide-title" tint={guide.tint} | titleId="gift-guide-title"
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", "ShareText this guide"]);
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", "0"]);
     cleanup();
     let banners = 0;
     for (const slug of ["mom", "girls-toddlers", "store-walmart", "under-25"]) {
@@ -401,7 +406,9 @@ describe("gift guides: the landing opens to the guides", () => {
       expect(head.querySelector(".gg-banner")?.className, slug).toBe(`gg-banner gg-check gg-${g.tint}`);
       const arch = head.querySelector("[data-gift-arch]")!;
       expect([...arch.children].map((x) => x.textContent), slug).toEqual([g.age ? `${g.lead}, ${g.age}` : g.lead, g.title, "Louisiana Helpr"]);
-      expect(arch.querySelector("h2")?.id, slug).toBe("gift-guide-title");
+      // Live audit r3 #7: the guide's name is the page's ONE h1; the header's "Gift guides" is a plain line.
+      expect(arch.querySelector("h1")?.id, slug).toBe("gift-guide-title");
+      expect(c.querySelectorAll("h1").length, slug).toBe(1);
       expect(head.querySelector("img"), slug).toBeNull();
       banners += 1;
       cleanup();
@@ -410,16 +417,15 @@ describe("gift guides: the landing opens to the guides", () => {
     // The landing keeps its plain header.
     expect(renderAt("/gift-guides").container.querySelector("[data-gift-banner]")).toBeNull();
     cleanup();
-    // "Text this guide" (owner 2026-11-18): an sms: link carrying the guide's URL; iOS's form, else Android's.
-    const text = renderAt("/gift-guides/mom").container.querySelector("a[data-gift-text]")!;
-    expect(text.getAttribute("href")).toMatch(/^sms:[?&]body=.*https%3A%2F%2Fwww\.louisianahelpr\.com%2Fgift-guides%2Fmom$/);
+    // "Text this guide" (owner 2026-11-18; in Share's menu since the 11-18 PM redesign): an sms: link carrying the
+    // guide's URL; iOS's form, else Android's.
     expect(smsHref("https://x.test/g", "Mom", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)")).toBe("sms:&body=Mom%20https%3A%2F%2Fx.test%2Fg");
     expect(smsHref("https://x.test/g", "Mom", "Mozilla/5.0 (Linux; Android 15)")).toBe("sms:?body=Mom%20https%3A%2F%2Fx.test%2Fg");
     cleanup();
     cleanup();
     const mom = renderAt("/gift-guides/mom").container;
     expect(mom.querySelector(".gg-band")).toBeNull();
-    expect(mom.querySelector("[data-gift-words] h2")?.textContent).toBe("Mom");
+    expect(mom.querySelector("[data-gift-words] h1")?.textContent).toBe("Mom");
   });
 
   it("a guide that holds nothing is in no row, search or menu; its own link opens Picks coming soon and related guides", () => {
@@ -507,7 +513,7 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(tiles).not.toContain("female-nurses");
   });
 
-  it("Discount codes sit at the top of the menu, hide when expired or empty, and each has a copy button", () => {
+  it("Discount codes sit in the collapsed Deals & codes section, hide when expired or empty, and each has a copy button", () => {
     expect(discountCodes.length).toBeGreaterThan(5);
     expect(discountCodes.map((c) => c.store)).not.toContain("Instant Funding");
     // A code past its last day hides itself; the section disappears when none is left.
@@ -528,15 +534,21 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(discountCodes.find((c) => c.code === "CYBER")?.dates).toBe("Nov 29 – Dec 6");
     expect(render(<MemoryRouter><DiscountCodes codes={[]} /></MemoryRouter>).container.querySelector("[data-gift-codes]")).toBeNull();
     cleanup();
-    // At the top of the menu, under the search box (owner 2026-11-18).
-    const side = renderAt("/gift-guides").container.querySelector("[data-gift-sidebar]")!;
-    expect(side.firstElementChild?.querySelector("[data-gift-search]")).not.toBeNull();
+    // Owner redesign 11-18 PM ("Codes should be a section with the other discount stuff right?"): one "Deals & codes"
+    // section on the page (after the landing's guide rows), never in the menu and never a button.
+    const page = renderAt("/gift-guides").container;
+    expect(page.querySelector("[data-gift-sidebar] [data-gift-codes]")).toBeNull();
+    const side = page.querySelector("details[data-gift-deals-codes]") as HTMLDetailsElement;
+    expect(side).not.toBeNull();
+    expect(side.querySelector(":scope > summary")?.textContent).toBe("Deals & codes");
     const codes = side.querySelector(":scope > [data-gift-codes]")!;
     expect(codes).not.toBeNull();
     // Owner 11-18 PM ("discount code shouldn't open expanded"): it starts collapsed; opening shows every code.
-    // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details id="gift-codes" className="gg-codes" data-gift-codes=""> | <details open id="gift-codes" className="gg-codes" data-gift-codes="">
-    expect((codes as HTMLDetailsElement).open).toBe(false);
-    expect(codes.compareDocumentPosition(side.querySelector("details[data-gift-group]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details id="gift-codes" className="gg-deals" data-gift-deals-codes=""> | <details open id="gift-codes" className="gg-deals" data-gift-deals-codes="">
+    expect(side.open).toBe(false);
+    const rowsOnPage = page.querySelectorAll("[data-gift-row]");
+    expect(rowsOnPage.length).toBe(ROW_LABELS.length);
+    expect(rowsOnPage[rowsOnPage.length - 1].compareDocumentPosition(side) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // One box per store, several codes inside: Muck Boot holds CYBER and TAKE25 (Nov 20–28), in the owner's order.
     const boxes = [...side.querySelectorAll("[data-gift-code-store]")];
     const d = new Date();
@@ -581,7 +593,7 @@ describe("gift guides: the landing opens to the guides", () => {
     if (thin[0]) {
       expect(searchGuides(thin[0].title).map((x) => x.slug)).toContain(thin[0].slug);
       const { container } = renderAt(`/gift-guides/${thin[0].slug}`);
-      expect(container.querySelector("[data-gift-words] h2")?.textContent).toBe(thin[0].title);
+      expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe(thin[0].title);
       expect(container.querySelector('[data-gift-row="by-store"]')).toBeNull();
       cleanup();
     }
@@ -598,7 +610,7 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(a.getAttribute("rel")).toContain("noopener");
   });
 
-  it("Sales sit under Discount codes, collapsed, soonest end first; a sale past its end day hides", () => {
+  it("Sales sit under Discount codes in the collapsed Deals & codes section, soonest end first; a sale past its end day hides", () => {
     expect(SALES.length).toBeGreaterThan(20);
     for (let i = 1; i < SALES.length; i++) expect(SALES[i - 1].ends <= SALES[i].ends, SALES[i].offer).toBe(true);
     const last = SALES[SALES.length - 1].ends;
@@ -608,10 +620,10 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(liveSales(SALES, next.toISOString().slice(0, 10))).toEqual([]);
     expect(render(<MemoryRouter><SalesList sales={[]} /></MemoryRouter>).container.querySelector("[data-gift-sales]")).toBeNull();
     cleanup();
-    const side = renderAt("/gift-guides").container.querySelector("[data-gift-sidebar]")!;
-    const sales = side.querySelector(":scope > details[data-gift-sales]") as HTMLDetailsElement | null;
+    const side = renderAt("/gift-guides").container.querySelector("details[data-gift-deals-codes]") as HTMLDetailsElement;
+    const sales = side.querySelector(":scope > [data-gift-sales]");
     expect(sales).not.toBeNull();
-    expect(sales!.open).toBe(false);
+    expect(side.open).toBe(false);
     const codes = side.querySelector(":scope > [data-gift-codes]")!;
     expect(codes.compareDocumentPosition(sales!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     for (const a of sales!.querySelectorAll("a[data-gift-out]")) expect(ALLOWED_HOSTS, a.getAttribute("href")!).toContain(new URL(a.getAttribute("href")!).hostname);
@@ -640,7 +652,7 @@ describe("gift guides: the landing opens to the guides", () => {
   it("an old /gift-guides#<slug> pin opens that guide's page; an unknown slug falls back to the landing", () => {
     renderAt("/gift-guides#for-him");
     expect(screen.getByTestId("where").textContent).toBe("/gift-guides/him");
-    expect(screen.getByRole("heading", { level: 2, name: "Him" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Him" })).toBeTruthy();
     cleanup();
     renderAt("/gift-guides/for-mom");
     expect(screen.getByTestId("where").textContent).toBe("/gift-guides/mom");
@@ -684,7 +696,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
     for (const slug of ["mom", "store-amazon", "store-walmart", "under-25", "25-days-sponsors"]) {
       const g = guideBySlug(slug)!;
       const { container } = renderAt(`/gift-guides/${slug}`);
-      expect(container.querySelector("[data-gift-words] h2")?.textContent, slug).toBe(g.title);
+      expect(container.querySelector("[data-gift-words] h1")?.textContent, slug).toBe(g.title);
       // Design audit 2026-11-18 #3: a long list draws 50 rows, then "Show more" adds 50 at a time (store-amazon drew 827).
       // ... and with six or fewer left it draws them all (design audit r2 #16: "Show more (1 more)").
       // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const upTo = guide.picks.length - shown <= SHOW_ALL_UNDER ? guide.picks.length : shown; |   const upTo = guide.picks.length;
@@ -952,15 +964,36 @@ describe("gift guides: design audit round 2 UI fixes", () => {
     expect(checked).toBeGreaterThan(20);
   });
 
-  // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const dealsAt = deals ? Math.min(DEALS_AFTER, upTo) : -1; |   const dealsAt = -1;
-  it("#12 a store's deals come right after its first 12 picks, its section heading once", () => {
+  // Live audit r3 #1 (High): Walmart's deals were ~3,500 px of photo-less rows and bare bold links before most picks.
+  // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |     if (seen.has(href) \|\| seen.has(norm(title))) return; |     if (false) return;
+  // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | (all ? rows : rows.slice(0, STORE_DEALS_FIRST)) | rows
+  it("#12 / r3 #1 a store's deals come after ALL its picks: one compact Sales-style list, 6 rows, then See all deals (n), no duplicate links", () => {
     const g = guideBySlug("store-walmart")!;
     expect(g.picks.length).toBeGreaterThan(12);
     const { container } = renderAt("/gift-guides/store-walmart");
-    const deals = container.querySelector("[data-gift-deals]");
+    expandAll(container);
+    const deals = container.querySelector("[data-gift-deals]")!;
     expect(deals).not.toBeNull();
-    const before = [...container.querySelectorAll("li[data-gift-pick]")].filter((li) => li.compareDocumentPosition(deals!) & Node.DOCUMENT_POSITION_FOLLOWING && !deals!.contains(li));
-    expect(before.length).toBe(12);
+    const picksAll = [...container.querySelectorAll("li[data-gift-pick]")];
+    expect(picksAll.length).toBe(g.picks.length);
+    for (const li of picksAll) expect(li.compareDocumentPosition(deals) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // No photo-less pick rows inside the deals: each deal is one line, the offer link and its end date.
+    expect(deals.querySelectorAll("li[data-gift-pick], .gg-thumb").length).toBe(0);
+    const rows = [...deals.querySelectorAll("li[data-gift-deal]")];
+    expect(rows.length).toBe(STORE_DEALS_FIRST);
+    for (const li of rows) expect(li.querySelector("a.gg-link[data-gift-out]"), li.textContent!).not.toBeNull();
+    const all = storeDealRows(g);
+    expect(all.length).toBeGreaterThan(STORE_DEALS_FIRST);
+    const more = deals.querySelector("button[data-gift-all-deals]")!;
+    expect(more.textContent).toBe(`See all deals (${all.length})`);
+    fireEvent.click(more);
+    expect(deals.querySelectorAll("li[data-gift-deal]").length).toBe(all.length);
+    // No link twice on the page (live audit r3 #1/#6: Xbox, AirPods, the mixer repeated in the deals).
+    const hrefs = [...container.querySelectorAll("[data-gift-guide] a[data-gift-out]")].map((a) => a.getAttribute("href"));
+    expect(hrefs.length).toBeGreaterThan(g.picks.length);
+    const pickHrefs = new Set(g.picks.map((p) => `https://${p.href.replace(/^https:\/\//, "")}`));
+    for (const a of deals.querySelectorAll("a[data-gift-out]")) expect(pickHrefs.has(a.getAttribute("href")!), a.getAttribute("href")!).toBe(false);
+    expect(new Set(all.map((r) => r.href)).size).toBe(all.length);
     cleanup();
     const amazon = renderAt("/gift-guides/store-amazon").container;
     const titles = [...amazon.querySelectorAll("[data-gift-section] > h3")].map((h) => h.textContent);
@@ -978,17 +1011,69 @@ describe("gift guides: design audit round 2 UI fixes", () => {
     expect(c.querySelectorAll("[data-gift-sale]").length).toBe(20);
   });
 
-  // @mutate src/pages/info/GiftGuides.tsx |         <nav className="gg-quick" aria-label={G.quickLabel} data-gift-quick=""> |         <nav className="gg-quick" aria-label={G.quickLabel} data-gift-quick="" hidden>
-  it("#15 the phone tool row under the title: Search, My list, Codes; shown only below 768 px", () => {
+  // Owner redesign 11-18 PM ("share text search list codes is too much buttons right here"): ONE slim row under every
+  // title, at every width: the search field, My list (an icon with its count) and Share (an icon). No pill buttons.
+  // @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <h1 id={titleId}>{title}</h1>\n      {tools} |       <h1 id={titleId}>{title}</h1>
+  // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       <MyListIcon current={myList} />\n |       <a href="#codes">Codes</a>\n      <MyListIcon current={myList} />\n
+  it("#15 / redesign: the tool row under the title is search, My list and Share, nothing else", () => {
+    for (const url of ["/gift-guides", "/gift-guides/mom", "/gift-guides/store-walmart"]) {
+      const { container } = renderAt(url);
+      const head = container.querySelector("[data-gift-words]")!;
+      const quick = head.querySelector("[data-gift-quick]")!;
+      expect(quick, url).not.toBeNull();
+      expect(quick.getAttribute("aria-label"), url).toBe("Gift guide tools");
+      expect(quick.querySelector("input[type=search][aria-label='Search gift guides']"), url).not.toBeNull();
+      const controls = [...quick.querySelectorAll("a, button")].filter((el) => !el.closest("[data-gift-search-results]"));
+      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(["My list, 0 saved", "Share"]);
+      // Icons only: 44px tap targets (RoundIconButton w-11 h-11; .gg-icon 44px), and no visible words.
+      expect(controls[1].className, url).toMatch(/\bw-11\b.*\bh-11\b/);
+      expect(GIFT_GUIDES_CSS).toMatch(/\.gg-icon\{[^}]*width:44px;height:44px/);
+      expect(controls[1].textContent, url).toBe("");
+      // The old pills are gone: no Text link, Codes button or Share pill outside the menu.
+      expect(container.textContent, url).not.toMatch(/Text th(is|ese) guides?|\bCodes\b/);
+      expect(container.querySelector("[data-gift-text]"), url).toBeNull();
+      // Under the title, above the guides.
+      expect(quick.compareDocumentPosition(container.querySelector(".gg-layout")!) & Node.DOCUMENT_POSITION_FOLLOWING, url).toBeTruthy();
+      cleanup();
+    }
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-quick\b|\.gg-share\{/);
+  });
+
+  // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |           {native && <InlineTextButton | {false && <InlineTextButton
+  it("Share opens a small menu: Copy link, Text this guide (sms:), and the phone's own share sheet where there is one", async () => {
+    const write = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText: write } });
     const { container } = renderAt("/gift-guides/mom");
-    const quick = container.querySelector("[data-gift-quick]")!;
-    expect(quick.hasAttribute("hidden")).toBe(false);
-    expect(quick.compareDocumentPosition(container.querySelector(".gg-layout")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(quick.textContent).toMatch(/Search.*My list.*Codes/);
-    expect(GIFT_GUIDES_CSS).toContain(".gg-quick{display:none}");
-    expect(GIFT_GUIDES_CSS).toMatch(/@media \(max-width:767px\)\{[^@]*\.gg \.gg-quick\{display:flex/);
-    expect(container.querySelector("#gift-search input")).not.toBeNull();
-    expect(container.querySelector("details#gift-codes summary")).not.toBeNull();
+    const share = screen.getByRole("button", { name: "Share" });
+    expect(share.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelector("[data-gift-share-menu]")).toBeNull();
+    fireEvent.click(share);
+    const menu = container.querySelector("[data-gift-share-menu]")!;
+    expect(share.getAttribute("aria-expanded")).toBe("true");
+    // jsdom has no navigator.share: no third item.
+    expect([...menu.querySelectorAll("[role=menuitem]")].map((x) => x.textContent)).toEqual(["Copy link", "Text this guide", "Facebook", "Pinterest"]);
+    const text = menu.querySelector("a[data-gift-text]")!;
+    expect(text.getAttribute("href")).toMatch(/^sms:[?&]body=.*https%3A%2F%2Fwww\.louisianahelpr\.com%2Fgift-guides%2Fmom$/);
+    fireEvent.click(menu.querySelector("[data-gift-copy-link]")!);
+    expect(write).toHaveBeenCalledWith("https://www.louisianahelpr.com/gift-guides/mom");
+    await screen.findByText("Link copied");
+    // Escape closes it.
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(container.querySelector("[data-gift-share-menu]")).toBeNull();
+    cleanup();
+    // With the phone's share sheet, a third item opens it with the guide's link.
+    const native = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { share: native });
+    try {
+      const land = renderAt("/gift-guides").container;
+      fireEvent.click(screen.getByRole("button", { name: "Share" }));
+      const items = [...land.querySelectorAll("[data-gift-share-menu] [role=menuitem]")];
+      expect(items.map((x) => x.textContent)).toEqual(["Copy link", "Text these guides", "More ways to share", "Facebook", "Pinterest"]);
+      fireEvent.click(items[2]);
+      expect(native).toHaveBeenCalledWith({ title: "Holiday Gift Guides", url: "https://www.louisianahelpr.com/gift-guides" });
+    } finally {
+      delete (navigator as { share?: unknown }).share;
+    }
   });
 });
 
@@ -997,13 +1082,23 @@ describe("gift guides: Discount codes stay closed while moving between guides (o
   // if clicked". Closed on the landing, still closed after opening Her from the menu; a click opens it.
   it("landing -> Gifts for Her -> Mom keeps the codes collapsed, every code inside", () => {
     const { container } = renderAt("/gift-guides");
-    const codesNow = () => container.querySelector("[data-gift-sidebar] > [data-gift-codes]") as HTMLDetailsElement;
+    // Owner redesign 11-18 PM: the codes are inside the page's one "Deals & codes" section.
+    const codesNow = () => container.querySelector("details[data-gift-deals-codes]") as HTMLDetailsElement;
     expect(codesNow().open).toBe(false);
+    // A tap opens it; the next page's section starts closed again.
+    fireEvent.click(codesNow().querySelector("summary")!);
+    codesNow().open = true;
     const her = [...container.querySelectorAll("[data-gift-sidebar] a")].find((a) => a.getAttribute("href") === "/gift-guides/her")!;
     expect(her).toBeTruthy();
     fireEvent.click(her);
     expect(container.querySelector('[data-testid="where"]')?.textContent).toBe("/gift-guides/her");
     expect(codesNow().open).toBe(false);
+    // Opened on Her, it is closed again on Mom (a new section per guide, nothing remembered).
+    // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <DealsAndCodes key={guide.slug} /> |       <DealsAndCodes />
+    codesNow().open = true;
+    // On a guide it comes after the picks.
+    const lastPick = [...container.querySelectorAll("li[data-gift-pick]")].pop()!;
+    expect(lastPick.compareDocumentPosition(codesNow()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const mom = [...container.querySelectorAll("[data-gift-sidebar] a")].find((a) => a.getAttribute("href") === "/gift-guides/mom")!;
     fireEvent.click(mom);
     expect(codesNow().open).toBe(false);

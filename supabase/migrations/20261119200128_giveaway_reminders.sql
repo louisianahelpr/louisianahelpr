@@ -108,6 +108,15 @@ ALTER TABLE public.giveaway_reminder_sends ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.giveaway_reminder_sends FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.giveaway_reminder_sends TO service_role;
 
+-- Every public table keeps the unconfirmed-email gate (Q807; db-smoke): the two tables above.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
 -- 5. The entry link the /25days button opens (NULL = the Facebook Page).
 ALTER TABLE public.sponsor_settings ADD COLUMN IF NOT EXISTS entry_url text;
 DO $do$

@@ -539,7 +539,7 @@ describe("gift guides: the landing opens to the guides", () => {
     cleanup();
     const girls = renderAt("/gift-guides/girls").container;
     expect([...girls.querySelectorAll("[data-gift-guide] a[data-gift-tile]")].map((a) => a.getAttribute("href"))).toEqual(
-      GUIDE_INDEX.filter((x) => x.parent === "girls").map((x) => `/gift-guides/${x.slug}`),
+      GUIDE_INDEX.filter((x) => x.parent === "girls" && !guideBySlug(x.slug)?.empty).map((x) => `/gift-guides/${x.slug}`),
     );
     cleanup();
     const side = renderAt("/gift-guides/girls").container;
@@ -557,13 +557,14 @@ describe("gift guides: the landing opens to the guides", () => {
       const roles = GUIDE_INDEX.filter((x) => x.parent === hub).map((x) => x.slug);
       expect(roles.length, hub).toBeGreaterThan(4);
       expect(childrenOf(g).map((c) => c.slug), hub).toEqual(roles.filter((x) => filledSlug(x) && !guideBySlug(x)?.empty));
-      expect(childrenOf(g).length, hub).toBeGreaterThan(0);
+      // (A hub whose roles all fell under 6 picks after one guide per product, owner 11-19, is hidden itself.)
+      expect(childrenOf(g).length > 0 || Boolean(g.empty) || g.picks.length >= 6, hub).toBe(true);
       for (const c of childrenOf(g)) expect(c.parent).toBe(hub);
     }
     expect(guideBySlug("teachers")!.parent).toBe("educators");
     const row = renderAt("/gift-guides").container.querySelector('[data-gift-row="by-career"]')!;
     const tiles = [...row.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
-    expect(tiles).toContain("healthcare");
+    if (!guideBySlug("healthcare")?.empty) expect(tiles).toContain("healthcare");
     expect(tiles).not.toContain("female-nurses");
   });
 
@@ -887,7 +888,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const listed = [...sitemap.matchAll(/<loc>https:\/\/www\.louisianahelpr\.com(\/gift-guides[^<]*)<\/loc>/g)].map((m) => m[1]);
     expect(listed).toContain("/gift-guides");
     const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", ""));
-    expect(guides.length).toBeGreaterThan(200);
+    expect(guides.length).toBeGreaterThan(130); // one guide per product + removal lists (owner 11-19)
     // Every listed guide opens, holds picks, and is no thin store page.
     for (const s of guides) {
       const g = guideBySlug(s);
@@ -923,7 +924,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const forA = ["hospital-stay", "new-job"].find((s) => GIFT_GUIDE_SEO[s]);
     if (forA) expect(GIFT_GUIDE_SEO[forA]).toBe(`Gifts for a ${GUIDE_INDEX.find((g) => g.slug === forA)!.title}`);
     const theGuides = Object.values(GIFT_GUIDE_SEO).filter((n) => /^Gifts for (the|a) /.test(n));
-    expect(theGuides.length).toBeGreaterThan(20); // one guide per product (owner 11-19): thin guides leave the index
+    expect(theGuides.length).toBeGreaterThan(5); // one guide per product (owner 11-19): thin guides leave the index
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/\b(the|a|an):/i);
     // Q178 (CI 11-18: /declutter/item/:id 418 -> 423 KB gz): the guides' name table stays out of publicPageMeta.mjs,
     // which Login, Signup, Index and the Declutter item page load cold; only GiftGuides.tsx and api/share.ts read it.
@@ -955,7 +956,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
 
 describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () => {
   it("SheVibe, King Palm, AnyListingSEO, Loren and Restoro never reach a guide, store page or deal; _cj.json is read", () => {
-    expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro", "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode", "NordVPN", "Surfshark", "Keeper Security", "NordPass", "hide.me", "Intego", "Corel", "Clip Studio Paint", "Daz 3D", "Wondershare", "Roxio", "Pinnacle Studio", "Lalal.ai", "Ashampoo", "AOMEI", "PandaOffice", "Jalbum", "O&O Software", "Abelssoft", "Paragon Software", "GearUP", "YUPLAY", "Whokeys", "DirectDeals", "Hero Wars", "Skytours", "Oojo", "Cheapvuelos", "Ovago", "HopeGoo", "Air India", "Ocean Hotels", "Rent Cars", "VIP Cars", "Carla Car Rental", "RVshare", "Undercover Tourist", "PARISCityVISION", "Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets", "Dragontree", "Dragontree Apothecary", "Deme by Gabriella", "Deme", "CHORD", "Life is Good", "The Jacket Maker", "Diamond Art Club", "Lubiwood", "nixplay"]);
+    expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro", "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode", "NordVPN", "Surfshark", "Keeper Security", "NordPass", "hide.me", "Intego", "Corel", "Clip Studio Paint", "Daz 3D", "Wondershare", "Roxio", "Pinnacle Studio", "Lalal.ai", "Ashampoo", "AOMEI", "PandaOffice", "Jalbum", "O&O Software", "Abelssoft", "Paragon Software", "GearUP", "YUPLAY", "Whokeys", "DirectDeals", "Hero Wars", "Skytours", "Oojo", "Cheapvuelos", "Ovago", "HopeGoo", "Air India", "Ocean Hotels", "Rent Cars", "VIP Cars", "Carla Car Rental", "RVshare", "Undercover Tourist", "PARISCityVISION", "Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets", "Dragontree", "Dragontree Apothecary", "Deme by Gabriella", "Deme", "CHORD", "Life is Good", "The Jacket Maker", "Diamond Art Club", "Lubiwood", "nixplay", "onn.", "Mainstays", "Hyper Tough", "Holiday Time", "Better Homes & Gardens", "Better Homes and Gardens", "Great Value", "Time and Tru"]);
     // ... and no code for one (the codes table and the codes the researched deals name).
     // @mutate scripts/gift-guide-picks.mjs | if (blockedBrand({ ...d, store })) continue; | void d;
     expect(src("scripts/gift-guide-picks.mjs")).toContain("if (blockedBrand({ ...d, store })) continue;");
@@ -1254,7 +1255,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image && !p.image.startsWith("https://m.media-amazon.com/")) brandSite += 1;
     expect(brandSite).toBeGreaterThan(40); // one guide per product (owner 11-19)
     // Floor re-measured 2026-11-18 after design audit r2 dropped page titles, store names and promos (4,397 photos).
-    expect(photos).toBeGreaterThan(4000);
+    expect(photos).toBeGreaterThan(2500); // one guide per product + removal lists (owner 11-19)
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
     // collection, not the retailer) is on no store page.
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null
@@ -1285,7 +1286,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
         expect(p.href, `${slug}: ${p.name}`).toBe("https://mavely.app.link/5HUUxI9Na8b");
       }
     }
-    expect(sized).toBeGreaterThan(2); // one guide per product (owner 11-19)
+    expect(sized).toBeGreaterThan(0); // one guide per product (owner 11-19)
     expect(anker).toBeGreaterThan(0); // one guide per product (owner 11-19)
     // XTRATUF in the Louisiana guides the lead named (11-18).
     // @mutate scripts/gift-guide-picks.mjs | for (const p of readList("_xtratuf.json")) if (names.includes(p.name)) add(slug, p, "_xtratuf.json"); | void names;

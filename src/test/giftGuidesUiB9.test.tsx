@@ -137,7 +137,7 @@ describe("H1: the kids age guides are two taps from the landing", () => {
     const links = [...ages.querySelectorAll("a[data-gift-age-link]")].map((a) => a.getAttribute("href"));
     const want = ["babies", "toddlers", "little-kids", "big-kids"].flatMap((t) => ["girls", "boys", "gender-neutral"].map((h) => `${h}-${t}`)).filter(live);
     expect(links).toEqual(want.map((s) => `/gift-guides/${s}`));
-    expect(links.length).toBeGreaterThan(8);
+    expect(links.length).toBeGreaterThan(3); // one guide per product (owner 11-19)
   });
 
   it("Niece, Nephew and Cousins carry BY AGE chips to their hub's age guides; Mom has none", () => {
@@ -182,7 +182,7 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     const { container } = renderAt("/gift-guides");
     const chips = [...container.querySelectorAll("[data-gift-quick-picks] a")];
     expect(chips.map((a) => a.textContent)).toEqual(QUICK_PICKS.filter((c) => !c.slug || live(c.slug)).map((c) => c.label));
-    expect(chips.length).toBeGreaterThan(5);
+    expect(chips.length).toBeGreaterThan(3); // one guide per product (owner 11-19)
     for (const a of chips) expect(a.className.split(/\s+/)).toContain("h-11");
     expect(chips.map((a) => a.getAttribute("href"))).toEqual(expect.arrayContaining([...(live("under-25") ? ["/gift-guides/under-25"] : []), "/gift-guides?group=for-kids#kids-by-age", "/gift-guides?group=louisiana"]));
   });

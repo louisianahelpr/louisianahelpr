@@ -24,7 +24,7 @@ export const BLOCKED_BRANDS = ["SheVibe", "King Palm", "AnyListingSEO", "Loren",
   "Dragontree", "Dragontree Apothecary", "Deme by Gabriella", "Deme",
   // Owner 11-19 ("remove these hats on every guide"): CHORD caps, store page too.
   "CHORD",
-  // Owner 11-19 ("remove all life is good or limit it to 2 items total"): removed entirely, store page too.
+  // Owner 2026-11-19 ("remove all life is good or limit it to 2 items total"): removed entirely, store page too.
   "Life is Good",
   // Owner 11-19 ("remove", a model-photo shearling biker jacket): The Jacket Maker, store page too.
   "The Jacket Maker",
@@ -33,7 +33,12 @@ export const BLOCKED_BRANDS = ["SheVibe", "King Palm", "AnyListingSEO", "Loren",
   // Owner 11-19 ("remove from all guides"): Lubiwood wooden art puzzles, store page too.
   "Lubiwood",
   // Owner 11-19 (flagged twice, "remove from all guides"): nixplay, frames included, store page too.
-  "nixplay"];
+  "nixplay",
+  // Lead 11-19 (pre-launch audit B): Walmart's own store brands are no gift brands. ("George" is matched as a brand
+  // only, in WALMART_BRAND_ONLY below, so a George Foreman grill stays.)
+  "onn.", "Mainstays", "Hyper Tough", "Holiday Time", "Better Homes & Gardens", "Better Homes and Gardens", "Great Value", "Time and Tru"];
+/** Store brands matched on the brand field only (a whole-word match on names would catch other products). */
+export const WALMART_BRAND_ONLY = ["George"];
 
 const compact = (s) => String(s).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const blockedCompact = BLOCKED_BRANDS.map(compact);
@@ -49,6 +54,7 @@ const hostCore = (h) => {
 
 /** True when a raw pick or deal ({ brand, store, retailer, storeName, name, title, href, affiliate_href }) is blocked. */
 export function blockedBrand(p) {
+  if (WALMART_BRAND_ONLY.some((b) => String(p.brand ?? "").trim().toLowerCase() === b.toLowerCase())) return true;
   for (const v of [p.brand, p.store, p.retailer, p.storeName]) if (v && blockedCompact.includes(compact(v))) return true;
   for (const v of [p.name, p.title, p.brand, p.store, p.retailer, p.storeName]) if (v && blockedWords.some((re) => re.test(String(v)))) return true;
   for (const h of [p.href, p.affiliate_href]) {

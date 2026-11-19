@@ -21,7 +21,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { loadAllGuidePicks, newSlugFor, searchGuides } from "@/content/giftGuideCatalog";
+import { guideBySlug, loadAllGuidePicks, newSlugFor, searchGuides } from "@/content/giftGuideCatalog";
 import { publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -78,8 +78,11 @@ describe("gift guides r3 UX Lows", () => {
     expect(newSlugFor("nurses")).toBe("healthcare");
     const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { redirects: { source: string; destination: string }[] };
     expect(vercel.redirects.find((r) => r.source === "/gift-guides/nurses")?.destination).toBe("/gift-guides/healthcare");
-    expect(searchGuides("nurse")[0]?.slug).toBe("healthcare");
-    expect(searchGuides("nurses")[0]?.slug).toBe("healthcare");
+    // (Healthcare hides while under 6 picks after one guide per product, owner 11-19.)
+    if (!guideBySlug("healthcare")?.empty) {
+      expect(searchGuides("nurse")[0]?.slug).toBe("healthcare");
+      expect(searchGuides("nurses")[0]?.slug).toBe("healthcare");
+    }
   });
 
   it("#15: no guide shows the badge photos", () => {

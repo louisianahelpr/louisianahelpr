@@ -2032,6 +2032,63 @@ const topPicks = noRepeats([...featuredTop, ...lovedTop]).slice(0, 10);
   const removed = applySiblingOverlap(pageList, key);
   console.log(`gift-guide-picks: sibling overlap ${Math.round(before * 100)}% -> ${Math.round(worst() * 100)}% worst pair; removed ${JSON.stringify(removed)}`);
 }
+// No photo, no row on the people, kids and budget guides (lead 11-19: a "Walmart" store tile is for store pages only).
+{
+  const groupOfSlug = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
+  for (const slug of Object.keys(pageList)) {
+    // Gift Cards and Subscriptions keep their store tiles (a gift card has no product photo).
+    if (slug.startsWith("store-") || ["gift-cards", "subscriptions"].includes(slug) || !["By person", "For kids", "By budget"].includes(groupOfSlug.get(slug))) continue;
+    pageList[slug] = pageList[slug].filter((p) => typeof p.image === "string" && p.image.startsWith("https://"));
+  }
+}
+/**
+ * FLAGGED ONCE, GONE EVERYWHERE (lead 11-19, pre-launch audit B: the one-guide rule moved flagged items to other guides).
+ * Every name a removal list flags (the curation files, the taste audit, the pre-launch audits _prelaunch-audit-*.json)
+ * leaves every non-store guide; a pre-launch audit's store-page removals leave that store page too.
+ */
+export const globalRemoveCounts = { names: 0, removed: 0 };
+{
+  const flagged = new Set();
+  const addName = (n) => {
+    const t = String(n ?? "").trim();
+    if (!t) return;
+    flagged.add(compact(t));
+    flagged.add(compact(t.replace(/\s*\([^)]*\)\s*$/, "")));
+  };
+  // A curation remove counts everywhere when its reason is about the item itself (off-brand, obscure, cheap, banned...),
+  // not about fit for that one guide ("fine for stocking stuffers", "better for Home Cook"); the taste audit's always do.
+  const QUALITY = /off-?brand|obscure|marketplace|owner|banned|cheap|filler|generic|knock-?off|not a (real )?gift|dated|ugly|tacky|low[- ]quality|drugstore|random|unknown|no-name|sold out|dead|broken|wrong (item|page|photo)|lifestyle photo|old model|outdated/i;
+  const FIT_ONLY = /fine (for|on|in)|better (for|on|in)|belongs|keep (it )?(in|on)|instead|move(d)? to|for (this|a) /i;
+  for (const c of Object.values(CURATION)) {
+    for (const r of Array.isArray(c.remove) ? c.remove : []) {
+      const why = String(r?.reason ?? r?.problem ?? "");
+      if (/^_taste-audit-/.test(String(c.file ?? "")) || (QUALITY.test(why) && !FIT_ONLY.test(why))) addName(r?.name ?? r);
+    }
+  }
+  const storeRemoves = new Map();
+  for (const f of readdirSync(dir).filter((x) => /^_prelaunch-audit-.*\.json$/.test(x)).sort()) {
+    const v = readJson(f);
+    if (!v || typeof v !== "object" || Array.isArray(v)) continue;
+    for (const [slug, entry] of Object.entries(v)) {
+      if (slug === SPONSORS_GUIDE) continue;
+      const rows = Array.isArray(entry) ? entry : Array.isArray(entry?.remove) ? entry.remove : [];
+      for (const r of rows) {
+        if (slug.startsWith("store-")) { const set = storeRemoves.get(slug) ?? new Set(); set.add(compact(String(r?.name ?? ""))); storeRemoves.set(slug, set); }
+        addName(r?.name);
+      }
+    }
+  }
+  flagged.delete("");
+  globalRemoveCounts.names = flagged.size;
+  for (const slug of Object.keys(pageList)) {
+    if (slug === SPONSORS_GUIDE) continue;
+    const before = pageList[slug].length;
+    const own = storeRemoves.get(slug);
+    pageList[slug] = slug.startsWith("store-") ? pageList[slug].filter((p) => !own?.has(compact(p.name)) && !blockedBrand(p)) : pageList[slug].filter((p) => !blockedBrand(p) && (!flagged.has(compact(p.name)) || keepsCheapWalmart(slug, p)));
+    globalRemoveCounts.removed += before - pageList[slug].length;
+  }
+  console.log(`gift-guide-picks: ${globalRemoveCounts.names} flagged names, ${globalRemoveCounts.removed} rows removed everywhere`);
+}
 /**
  * ONE GUIDE PER PRODUCT (owner 11-19: "really and truly they don't need to share any items"): across the non-store
  * guides every product (by link and by name) shows on exactly one guide, the one it fits best: a curated top-12 spot
@@ -2055,6 +2112,17 @@ export const uniqueCounts = { before: 0, after: 0, underFloor: [] };
   const guideSlugs = Object.keys(pageList).filter((slug) => !slug.startsWith("store-") && slug !== SPONSORS_GUIDE);
   // One id per product: a link and a name both point at it.
   const idOf = new Map();
+  // A product's core name (pre-launch audit 11-19: "UGG Tasman" and "Women's Tasman II Slipper", four adidas Samba
+  // rows): the brand, the words after its name's first comma, dash or parenthesis, gender words and sizes go.
+  const GENERIC_WORD = /^(signature|classic|original|mini|large|small|medium|new|holiday|christmas|premium|deluxe|essential|essentials|everyday|smart|wireless|portable|insulated|stainless|steel|cotton|cozy|soft|plush|luxury|gift|set|sets|pack|bundle|kit|collection|edition|limited|series|personalized|custom|womens|mens|unisex|kids|girls|boys|baby|toddler|adult|sherpa|fleece|knit|leather|suede|wool|cashmere|silk|satin|black|white|pink|blue|green|grey|gray|navy|cream|brown|tan|red|purple|gold|silver|card|cards|egift|giftcard|membership|subscription|subscriptions|monthly|annual|month|months|year|class|classes|tour|tours|ticket|tickets|experience|session|package|service|services|digital|online|virtual|book|books|calendar|planner)$/;
+  const core = (p) => {
+    const brand = compact(p.brand ?? "");
+    let n = String(p.name).toLowerCase().split(/\s[-–|]\s|,|\(/)[0].replace(/\b(women'?s|men'?s|unisex|kids'?|adults?|the|classic|original|ii|2nd gen|\d+(\.\d+)? ?(oz|qt|quart|in|inch|l|ml|pc|piece|pack|count|ct))\b/g, " ");
+    // The model word: the first word after the brand ("Samba", "Tasman", "Elisa", "Baies"), unless it is generic.
+    const words = n.split(/[^a-z0-9]+/).filter(Boolean).filter((w) => compact(w) !== brand && !brand.startsWith(compact(w)));
+    const model = words.find((w) => w.length >= 4 && !GENERIC_WORD.test(w));
+    return brand && model ? `c:${brand}:${model}` : "";
+  };
   const productId = (p) => {
     const n = `n:${compact(p.name)}`;
     const h = `h:${p.href}`;
@@ -2101,21 +2169,21 @@ export const uniqueCounts = { before: 0, after: 0, underFloor: [] };
   // A last sweep by link and by name, so a product whose link and name were seen under two ids still shows once.
   const takenHref = new Map();
   const takenName = new Map();
-  for (const slug of guideSlugs) for (const p of pageList[slug]) { if (!takenHref.has(p.href)) takenHref.set(p.href, slug); if (!takenName.has(compact(p.name))) takenName.set(compact(p.name), slug); }
+  const takenCore = new Map();
+  const byClaim = [...guideSlugs].sort((a, b) => claimRank(a) - claimRank(b));
+  for (const slug of byClaim) for (const p of pageList[slug]) { if (!takenHref.has(p.href)) takenHref.set(p.href, slug); if (!takenName.has(compact(p.name))) takenName.set(compact(p.name), slug); const c = core(p); if (c && !takenCore.has(c)) takenCore.set(c, slug); }
   for (const slug of guideSlugs) {
-    pageList[slug] = pageList[slug].filter((p) => takenHref.get(p.href) === slug && takenName.get(compact(p.name)) === slug);
+    const mine = new Set();
+    pageList[slug] = pageList[slug].filter((p) => {
+      const c = core(p);
+      if (c && mine.has(c)) return false; // the same product twice on one guide
+      if (c) mine.add(c);
+      return takenHref.get(p.href) === slug && takenName.get(compact(p.name)) === slug && (!c || takenCore.get(c) === slug);
+    });
     if (pageList[slug].length < UNIQUE_FLOOR) uniqueCounts.underFloor.push(`${slug} (${pageList[slug].length})`);
   }
   uniqueCounts.after = dupes();
   console.log(`gift-guide-picks: repeated products across guides ${uniqueCounts.before} -> ${uniqueCounts.after}; unused library ${unusedCounts.added} of ${unusedCounts.rows} rows added; under ${UNIQUE_FLOOR}: ${uniqueCounts.underFloor.join(", ") || "none"}`);
-}
-// No photo, no row on the people, kids and budget guides (lead 11-19: a "Walmart" store tile is for store pages only).
-{
-  const groupOfSlug = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
-  for (const slug of Object.keys(pageList)) {
-    if (slug.startsWith("store-") || !["By person", "For kids", "By budget"].includes(groupOfSlug.get(slug))) continue;
-    pageList[slug] = pageList[slug].filter((p) => typeof p.image === "string" && p.image.startsWith("https://"));
-  }
 }
 // One digital photo frame site-wide (owner 11-19), on Grandma or Grandparents.
 {
@@ -2226,7 +2294,8 @@ const removedGuides = [...(catalogSrc.match(/export const REMOVED_GUIDES = \[([^
 const mergedGuides = [...(catalogSrc.match(/export const MERGED_GUIDES[^=]*= \{([^}]*)\}/)?.[1] ?? "").matchAll(/"([^"]+)": \[/g)].map((m) => m[1]);
 /** A guide with fewer picks than this is hidden from rows, search and search engines (lead 11-19); giftGuideCatalog.ts. */
 /** Hub guides (a parent of other guides) show while any child holds picks, whatever their own count. */
-const HUB_SLUGS = new Set([...indexSrc.matchAll(/parent: "([^"]+)"/g)].map((m) => m[1]));
+const HUB_SLUGS = new Set([...indexSrc.matchAll(/slug: "([^"]+)"[^}]*?parent: "([^"]+)"/g)]
+  .filter((m) => (pageList[m[1]]?.length ?? 0) >= Number(catalogSrc.match(/export const GUIDE_MIN_PICKS = (\d+);/)?.[1] ?? 6)).map((m) => m[2]));
 const GUIDE_MIN_PICKS = Number(catalogSrc.match(/export const GUIDE_MIN_PICKS = (\d+);/)?.[1] ?? 6);
 const minStorePicks = Number(catalogSrc.match(/export const STORE_ROW_MIN_PICKS = (\d+);/)?.[1]);
 if (!removedGuides.length || !mergedGuides.length || !minStorePicks) throw new Error("gift-guide-picks: could not read REMOVED_GUIDES / MERGED_GUIDES / STORE_ROW_MIN_PICKS");

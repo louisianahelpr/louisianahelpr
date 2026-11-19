@@ -79,7 +79,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
         for (const i of d.items ?? []) expect(bannedLink(i.href), `${slug}: deal item ${i.name}`).toBe("");
       }
     }
-    expect(picks).toBeGreaterThan(4000); // one guide per product (owner 11-19): the guides are smaller
+    expect(picks).toBeGreaterThan(3000); // one guide per product (owner 11-19): the guides are smaller
     expect(deals).toBeGreaterThan(100);
   });
 

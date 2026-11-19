@@ -63,7 +63,7 @@ describe("gift guides holistic fit (11-18)", () => {
     expect(mensItem({ name: "Huk Women's Pursuit Hoodie", brand: "Huk" })).toBe(false);
     expect(mensItem({ name: "Carhartt Men's Loose Fit Flannel Shirt", brand: "Carhartt" })).toBe(true);
     expect(mensItem({ name: "Women's Ankle Deck Boot", brand: "XTRATUF" })).toBe(false);
-    for (const g of WOMEN_GUIDES.filter((x) => x !== "aunt")) expect(CHUNKS[g]?.length ?? 0, g).toBeGreaterThan(5); // one guide per product (owner 11-19): the guides are smaller
+    for (const g of WOMEN_GUIDES.filter((x) => x !== "aunt")) expect(CHUNKS[g]?.length ?? 0, g).toBeGreaterThan(2); // one guide per product (owner 11-19): the guides are smaller
     // The rows the review named (Her 11-19: two Huk shirts, the men's Sperry Authentic Original and Billfish).
     const named = new Set(["https://mavely.app.link/CUXXsAGUa8b", "https://mavely.app.link/H1gCiuGUa8b", "https://mavely.app.link/LPJLdGGUa8b", "https://mavely.app.link/bjXOnPBUa8b", "https://mavely.app.link/WUUrDKBUa8b", "https://mavely.app.link/OsRr4FBUa8b", "https://mavely.app.link/bJ14lBBUa8b", "https://mavely.app.link/QEjVswBUa8b"]);
     const bad = WOMEN_GUIDES.flatMap((g) => (CHUNKS[g] ?? []).filter((p) => mensItem(p) || named.has(p.href)).map((p) => `${g}: ${p.name} ${p.href}`));
@@ -90,11 +90,11 @@ describe("gift guides holistic fit (11-18)", () => {
     expect(instaxItem({ name: "FUJIFILM INSTAX MINI 12 Instant Film Camera" })).toBe(true);
     expect(instaxItem({ name: "Mini 12 Instant Camera", brand: "Instax" })).toBe(true);
     expect(instaxItem({ name: "Kindle Paperwhite 16GB" })).toBe(false);
-    for (const g of INSTAX_OFF.filter((x) => x !== "father-in-law")) expect(CHUNKS[g]?.length ?? 0, g).toBeGreaterThan(5); // one guide per product (owner 11-19): the guides are smaller
+    for (const g of INSTAX_OFF.filter((x) => x !== "father-in-law")) expect(CHUNKS[g]?.length ?? 0, g).toBeGreaterThan(2); // one guide per product (owner 11-19): the guides are smaller
     const bad = INSTAX_OFF.flatMap((g) => (CHUNKS[g] ?? []).filter(instaxItem).map((p) => `${g}: ${p.name}`));
     expect(bad).toEqual([]);
     // Photographer keeps its cameras.
-    expect((CHUNKS["photographer"] ?? []).some(instaxItem)).toBe(true);
+    expect(INSTAX_OFF).not.toContain("photographer"); // one guide per product (owner 11-19): Instax shows on one guide now
   });
 
   it("no AVIF or HEIF photo (not every browser shows one)", () => {

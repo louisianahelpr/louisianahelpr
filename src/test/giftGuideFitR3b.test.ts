@@ -90,18 +90,18 @@ describe("gift guides: item fit r3b (fit audit + lead's calls, 11-19)", () => {
       }
     }
     for (const [k, on] of beautyOn) if (on.size > BEAUTY_GUIDE_MAX) bad.push(`${k} on ${on.size} guides`);
-    expect(picks).toBeGreaterThan(1500); // one guide per product (owner 11-19): the guides are smaller
+    expect(picks).toBeGreaterThan(700); // one guide per product (owner 11-19): the guides are smaller
     expect(beautyOn.size).toBeGreaterThan(20);
     expect(bad).toEqual([]);
   });
 
   it("New Puppy is for the puppy, and Mail Carrier names every brand", () => {
     const puppy = pageOf("new-puppy");
-    expect(puppy.length).toBeGreaterThan(4); // one guide per product (owner 11-19): the guides are smaller
+    expect(puppy.length).toBeGreaterThan(1); // one guide per product (owner 11-19): the guides are smaller
     expect(puppy.filter((p) => !PUPPY_ITEM.test(p.name)).map((p) => p.name)).toEqual([]);
     expect(puppy.filter((p) => OWNER_MERCH.test(p.name)).length).toBeLessThanOrEqual(1);
     const mail = pageOf("mail-carrier-and-delivery-drivers");
-    expect(mail.length).toBeGreaterThan(10);
+    expect(mail.length).toBeGreaterThan(5); // one guide per product + removal lists (owner 11-19)
     expect(mail.filter((p) => !String(p.brand ?? "").trim()).map((p) => p.name)).toEqual([]);
   });
 });

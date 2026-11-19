@@ -36,9 +36,9 @@ export const storeLabel = (pick: CatalogPick) =>
 const isShopMyCollection = (href: string) => /^https:\/\/shopmy\.us\/collections\//.test(href);
 
 /** A loaded photo narrower than this is a blank pixel or a hotlink placeholder, not a product (owner 11-19: "no images?"). */
-export const MIN_PHOTO_WIDTH = 50;
+const MIN_PHOTO_WIDTH = 50;
 /** True when a finished image is broken or too small to be a product photo. */
-export const photoFailed = (img: HTMLImageElement) => img.complete && img.naturalWidth < MIN_PHOTO_WIDTH;
+const photoFailed = (img: HTMLImageElement) => img.complete && img.naturalWidth < MIN_PHOTO_WIDTH;
 
 export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: number }) {
   const [failed, setFailed] = useState(false);

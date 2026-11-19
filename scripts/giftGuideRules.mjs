@@ -1243,16 +1243,18 @@ export const cheapSockOff = (slug, p) => !slug.startsWith("store-") && !SOCK_OK_
 export const BARWARE = /\b(cocktail (shaker|set|kit)s?|shakers? set|bar (tool|set|kit)s?|happy hour (shaker|set)|whiskey stones|decanter|jigger|muddler|bar cart)\b|\bstanley\b.*\bshaker\b/i;
 export const BARWARE_OK_GUIDES = ["dad", "him", "boyfriend-or-husband", "grandpa", "brother", "father-in-law", "uncle", "brother-in-law", "hostess", "entertainer", "bartenders", "wine-lover", "new-homeowner"];
 export const barwareOff = (slug, p) => !slug.startsWith("store-") && !BARWARE_OK_GUIDES.includes(slug) && BARWARE.test(String(p.name ?? ""));
-export const FASHION_SNEAKER = /\b(gazelle|samba|campo|veja|new balance 530|nb 530|\b530 sneakers?)\b|^veja$/i;
+export const FASHION_SNEAKER = /\b(gazelle|samba|campo|veja|new balance 530|nb 530|\b530 sneakers?|air force 1|af1|dunk low|jordan 1)\b|^veja$/i;
 export const MEN_FAMILY_GUIDES = ["him", "dad", "boyfriend-or-husband", "grandpa", "brother", "father-in-law", "uncle", "brother-in-law"];
 export const fashionSneakerOff = (slug, p) => MEN_FAMILY_GUIDES.includes(slug) && (FASHION_SNEAKER.test(String(p.name ?? "")) || /^veja$/i.test(String(p.brand ?? "").trim())
   // Owner 11-19 ("think more outdoors hunting fishing"): no Pura Vida string bracelets on the men's guides.
   || /^pura vida( bracelets)?$/i.test(String(p.brand ?? "").trim())
   // ... and no Warby Parker ("men dont wear warby parker here"); men's sunglasses are Costa, Oakley, Maui Jim, Pelagic.
-  || /^warby parker$/i.test(String(p.brand ?? "").trim()) || /\bwarby parker\b/i.test(String(p.name ?? "")));
+  || /^warby parker$/i.test(String(p.brand ?? "").trim()) || /\bwarby parker\b/i.test(String(p.name ?? "")))
+  // Prescription glasses are no gift on any guide (pre-launch audit 11-19: Warby Parker frames on RNs).
+  || (!slug.startsWith("store-") && /^warby parker$/i.test(String(p.brand ?? "").trim()) && /\b(glasses|frames?|eyeglasses|prescription)\b/i.test(String(p.name ?? "")));
 
 /** Owner 11-19 ("remove"): FARM Rio's busy prints leave the people guides; Pura Vida's Engravable Bar Bracelet goes. */
-export const farmRioOff = (slug, p) => (GUIDE_GROUPS.get(slug) === "By person" && /^farm rio$/i.test(String(p.brand ?? "").trim()))
+export const farmRioOff = (slug, p) => (!slug.startsWith("store-") && /^farm rio$/i.test(String(p.brand ?? "").trim()))
   || (!slug.startsWith("store-") && /\bengravable bar bracelet\b/i.test(String(p.name ?? "")));
 /** Owner 11-19 ("no grandma wants legos"): no LEGO, Botanicals and adult sets included, on the grandparent guides. */
 // Broadened 11-19 ("remove any legos for adults"): LEGO only on the kids, age, niece, nephew and teens guides.
@@ -1292,7 +1294,7 @@ export const PASTEL = /\b(mint|cream|pink|blush|rose( quartz)?|lavender|lilac|pe
 export const blankOrPastelOff = (slug, p) => !slug.startsWith("store-") && (BLANK_ON_LIVE.has(String(p.image ?? ""))
   || (MEN_FAMILY_GUIDES.includes(slug) && /\b(coolers?|ice chest|tumblers?|mugs?|bottles?|quencher|rambler)\b/i.test(String(p.name ?? "")) && PASTEL.test(`${p.name} ${p.image ?? ""}`)));
 /** Owner 11-19 ("there are too many digital photobooks"): photo books and custom photo products only on New Parents /
- *  Grandparents guides; with the one frame (frameOff), at most 2 site-wide (capped in the import). */
+ *  Grandparents guides; with the one frame (frameOff), at most 2 site-wide (capped in the import, 2026-11-19). */
 export const PHOTO_PRODUCT = /\b(photo ?books?|custom photo|photo (album|blanket|canvas|calendar|print|mug|pillow|puzzle|ornament)s?|picture book (custom|personalized))\b|^(shutterfly|artifact uprising|mixbook|chatbooks|snapfish|minted)$/i;
 export const PHOTO_BOOK_GUIDES = ["new-mom", "new-dad", "grandparents", "new-grandparent"];
 export const photoProductOff = (slug, p) => !slug.startsWith("store-") && !PHOTO_BOOK_GUIDES.includes(slug)

@@ -244,7 +244,8 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     const all = pages.flatMap((f) => pageOf(f.replace(/\.json$/, "")).map((p) => p.name));
     expect(all.length).toBeGreaterThan(3000); // one guide per product (owner 11-19)
     for (const bad of [/Email Gift.*Corporate/, /Crispier Cooking/, /Skincare Routine Tools/]) expect(all.some((n) => bad.test(n)), String(bad)).toBe(false);
-    expect(all).toContain("Ninja Air Fryer");
+    // ("Ninja Air Fryer" left every guide with the 11-19 removal lists; its rename still holds wherever it shows.)
+    expect(all.filter((n) => /^Ninja Air Fryer/.test(n)).every((n) => n === "Ninja Air Fryer")).toBe(true);
     expect(all).toContain("12-Month Coffee Club Gift Subscription");
     // @mutate scripts/giftGuideRules.mjs |   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false; |   if (false) return false;
     expect(fitsGuide("home-cook", { name: "Shark Beauty LED Face Mask" })).toBe(false);
@@ -274,7 +275,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     const guides = pages.map((f) => f.replace(/\.json$/, "")).filter((s) => !s.startsWith("store-") && !["gift-cards", "subscriptions"].includes(s));
     expect(guides.length).toBeGreaterThan(150);
     // One guide per product (owner 11-19): a guide may end with none; under 6 it is hidden (giftGuideCatalog GUIDE_MIN_PICKS).
-    expect(guides.filter((g) => pageOf(g).length >= 6).length).toBeGreaterThan(80);
+    expect(guides.filter((g) => pageOf(g).length >= 6).length).toBeGreaterThan(40);
   });
   it("no photo shows on two brands' rows, and no ShopMy collection row borrows a photo by its shared link (wrong-photo fix 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs |     for (const g of groups) if (g !== owner) for (const r of g) clear.add(r); |     void owner;

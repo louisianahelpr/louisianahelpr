@@ -2425,6 +2425,35 @@
   "section": "Life moments",
   "items": []
  },
+ "treats-and-food-gifts": {
+  "section": "Life moments",
+  "items": [
+   {
+    "name": "Delicious Instant Seafoodboil Mix, Spicy Butter Seasoning",
+    "key": "crabitwhileitshot:seasoning"
+   },
+   {
+    "name": "Red Wine Mixed Pack",
+    "key": "makerwine:mixed"
+   },
+   {
+    "name": "Assorted Cookie Tin - 6 Count",
+    "key": "milkbar:count"
+   },
+   {
+    "name": "30th Anniversary Book Event Pre-Order",
+    "key": "levainbakery:order"
+   },
+   {
+    "name": "Fresh Baked Assorted Cookies Tin",
+    "key": "davidscookies:tin"
+   },
+   {
+    "name": "Assorted Chocolate Gold Gift Box, Red Ribbon, 30pc.",
+    "key": "godiva:ribbon"
+   }
+  ]
+ },
  "dog-lover": {
   "section": "Pets",
   "items": [

@@ -162,14 +162,14 @@ const MENS_DEAL = /\bmen'?s\b|\bmens\b|\bfor (him|men|dad)\b|\bboys?'?\b/i;
 const WOMENS_DEAL = /\bwomen'?s\b|\bwomens\b|\bfor (her|women|mom)\b|\bladies\b|\bgirls?'?\b/i;
 const PET_DEAL = /\bpets?\b|\bdogs?\b|\bcats?\b|\bpuppy\b|\bkitten\b|\bpet\s*(food|supplies)\b/i;
 /** At most this many deals and codes on a guide's page, codes first (owner 11-19). */
-export const GUIDE_DEALS_MAX = 6;
+const GUIDE_DEALS_MAX = 6;
 /**
  * A guide's own deals and codes (owner 11-19: "deals and codes should not show in the womens section like this"): only
  * stores and brands with picks on that guide, never a men's or pet deal on a women's guide (or the reverse, or a pet
  * deal off the pet guides), at most GUIDE_DEALS_MAX, codes first by rank, then sales ending soonest. The full list stays
  * on the landing.
  */
-export function guideDeals(guide: CatalogGuide, codes: DiscountCode[], sales: readonly Sale[]) {
+function guideDeals(guide: CatalogGuide, codes: DiscountCode[], sales: readonly Sale[]) {
   const names = new Set<string>();
   const slugs = new Set<string>();
   for (const p of guide.picks) {

@@ -363,7 +363,7 @@ for (const f of ["_awin.json", "_cj.json", "_impact.json", "_shopify-collabs.jso
     if (!slug.startsWith("store-") || !Array.isArray(rows)) continue;
     for (const p of rows) {
       if (!p || typeof p.href !== "string" || typeof p.name !== "string" || typeof p.image !== "string") continue;
-      if (OTHER_RETAILER.test(p.image) || /\b(printfresh|loft)\.com\b/i.test(p.note ?? "")) continue;
+      if (OTHER_RETAILER.test(p.image) || ["printfresh.com", "loft.com"].some((d) => String(p.note ?? "").toLowerCase().includes(d))) continue;
       // A plain retailer link takes the affiliate link the same product already has in another guide.
       const twin = AFFILIATE.has(new URL(p.href).hostname) ? undefined : listed.get(compact(p.name));
       const affiliate = AFFILIATE.has(new URL(p.href).hostname) ? { affiliate_href: p.href } : twin ? { affiliate_href: twin.href } : {};

@@ -8,7 +8,7 @@
  * Read:
  *   - <slug>.json: one guide's picks, in order (store-<x>.json is a store page's own "Louisiana Helpr Picks");
  *   - extras with a `fits` list of guide slugs: _awin.json, _cj.json (CJ links), _impact.json and _shopify-collabs.json (when present), _later.json, _later-mylinks.json (every Later link), _later-brands.json;
- *   - _momcozy-1118.json: Rakuten Momcozy links, New Mom only, below its top 25;
+ *   - late fills (LATE_FILLS): _momcozy-1118.json (New Mom) and _fidget-1118.json, below each guide's top 25;
  *   - store extras: _xtratuf.json, _warby-parker.json (+ Her/Him/Coworkers/RNs/Teens), _walmart.json,
  *     _tiktok-shop.json, _amazon-trending.json, _amazon-bounties.json (Prime/Audible/registries);
  *   - deal sections: _store-deal-sections.json, _walmart-collections.json, _amazon-hub.json, _later-deals.json,
@@ -422,20 +422,33 @@ export const fillCounts = { rows: 0, store: 0, guides: 0, noCommission: 0, noSto
   }
 }
 /**
- * Momcozy (batch 11-19, _momcozy-1118.json: { picks: [...] }, Rakuten deep links on click.linksynergy.com, photos from
- * momcozy.com, breast pumps already left out). New Mom only, below its audited top 25 (FILL_HREFS) like a store fill;
- * the file's other `fits` (Her, Baby Shower, budget guides) are not taken. File prices are not checked prices: dropped.
+ * LATE FILLS (batch 11-19): research files whose rows go into guides the lead named, each below the guide's audited
+ * top 25 (FILL_HREFS) like a store fill; the files' own `fits` are not taken. File prices are not checked prices:
+ * dropped. Every row needs its affiliate link (Rakuten on click.linksynergy.com, Awin on www.awin1.com: AFFILIATE_HOSTS).
+ * - _momcozy-1118.json: 10 Momcozy Rakuten deep links (breast pumps already left out), New Mom only.
+ * - _fidget-1118.json: The Fidget Company (Awin). The Executive Set (an executive desk set) in Dad and Coworkers; the
+ *   Classic Set in the big kids and teens guides, Stocking Stuffers and Coworkers. Its collection link is skipped (H3;
+ *   collectionLink would hide it anyway).
  */
-export const momcozyCounts = { rows: 0, added: 0 };
-{
-  const v = readJson("_momcozy-1118.json");
+export const LATE_FILLS = {
+  "_momcozy-1118.json": () => ["new-mom"],
+  "_fidget-1118.json": (r) => /\bexecutive\b/i.test(r.name) ? ["dad", "coworkers"]
+    : /\bclassic\b/i.test(r.name) ? ["boys-big-kids", "girls-big-kids", "gender-neutral-big-kids", "boys-teens", "girls-teens", "gender-neutral-teens", "stocking-stuffers", "coworkers"] : [],
+};
+export const lateFillCounts = {};
+for (const [f, guidesFor] of Object.entries(LATE_FILLS)) {
+  const v = readJson(f);
+  const c = (lateFillCounts[f] = { rows: 0, added: 0 });
   for (const r of Array.isArray(v?.picks) ? v.picks : []) {
-    if (!r || typeof r.href !== "string" || typeof r.name !== "string" || typeof r.affiliate_href !== "string") continue;
-    momcozyCounts.rows += 1;
+    if (!r || typeof r.href !== "string" || typeof r.name !== "string" || typeof r.affiliate_href !== "string" || collectionLink(r.href)) continue;
+    c.rows += 1;
     const { price: _price, compare_at: _compareAt, commission: _commission, fits: _fits, ...row } = r;
-    const before = guides["new-mom"]?.length ?? 0;
-    add("new-mom", row, "_momcozy-1118.json");
-    if ((guides["new-mom"]?.length ?? 0) > before) { FILL_HREFS.add(guides["new-mom"][guides["new-mom"].length - 1].href); momcozyCounts.added += 1; }
+    for (const g of guidesFor(r)) {
+      if (!GUIDE_SLUGS.has(g)) continue;
+      const before = guides[g]?.length ?? 0;
+      add(g, row, f);
+      if ((guides[g]?.length ?? 0) > before) { FILL_HREFS.add(guides[g][guides[g].length - 1].href); c.added += 1; }
+    }
   }
 }
 /** Store extras: the store page, and for Warby Parker the guides the owner named (11-18). */
@@ -1402,4 +1415,4 @@ writeFileSync(
 );
 
 if (process.env.GIFT_PICKS_VERBOSE) console.error(`RELINK SKIPPED:\n${earnings.relinkSkipped.join("\n")}\nSWAP SKIPPED:\n${earnings.swapSkipped.join("\n")}`);
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; momcozy: ${momcozyCounts.added} of ${momcozyCounts.rows} in new-mom`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}`);

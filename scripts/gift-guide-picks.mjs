@@ -384,7 +384,7 @@ export const FILL_HREFS = new Set();
 const cleanFillName = (n) => String(n).replace(/\s*\((Standard|Regular)[^)]*Size\)/gi, "").replace(/\bUnisex-Adult\s*/g, "")
   .replace(/^THE NORTH FACE\b/, "The North Face").replace(/\bWomens\b/g, "Women's").replace(/\bMens\b/g, "Men's")
   .replace(/\s+with up to \d+ Hour Burn Time$/i, "").replace(/\s+including .*$/i, "").replace(/\s*\((clearance|sale|on sale)\)/gi, "").replace(/\s{2,}/g, " ").trim();
-export const fillCounts = { rows: 0, store: 0, guides: 0, noStore: new Set() };
+export const fillCounts = { rows: 0, store: 0, guides: 0, noCommission: 0, noStore: new Set() };
 {
   for (const f of ["_store-fill-amazon-1118.json", "_store-fill-shopmy-1118.json", "_store-fill-later-1118.json", "_store-fill-shark-1118.json"]) {
     const v = readJson(f);
@@ -395,6 +395,9 @@ export const fillCounts = { rows: 0, store: 0, guides: 0, noStore: new Set() };
       : Object.entries(v).filter(([k, l]) => !k.startsWith("_") && Array.isArray(l)).flatMap(([k, l]) => l.map((r) => ({ store_slug: k, ...r })));
     for (const r of rows) {
       if (!r || typeof r.href !== "string" || typeof r.name !== "string" || typeof r.image !== "string") continue;
+      // A pin ShopMy shows at no commission (round 2, 11-18 night: the 4 Community Coffee pins, "none shown") earns
+      // nothing: left out.
+      if (/\bnone\b/i.test(String(r.commission ?? ""))) { fillCounts.noCommission += 1; continue; }
       fillCounts.rows += 1;
       const key = String(r.store_slug ?? "").replace(/^store-/, "");
       // A short key names the one store page it starts ("darn-tough" -> store-darn-tough-vermont).
@@ -702,6 +705,37 @@ export const suspectPhotos = { images: 0, cleared: 0 };
   swappedOut.splice(0, swappedOut.length, ...strip(swappedOut));
 }
 /**
+ * SHOPMY UPGRADES (11-18 night, _shopmy-upgrade-done-1118.json: [{ old_href, new_href, image, brand, same_product }]):
+ * a row on old_href moves to new_href when the checker marked it the same product. The pin's own photo replaces the old
+ * one (an Amazon photo never sits on a non-Amazon link), and the old store's checked price goes (it priced another
+ * store). A pin whose photo is a TIFF or a dead ShopMy S3 file is skipped. Optional file.
+ */
+export const shopmyUpgrades = { rows: 0, links: 0, skipped: 0 };
+{
+  const v = readJson("_shopmy-upgrade-done-1118.json");
+  const map = new Map();
+  for (const r of Array.isArray(v) ? v : []) {
+    if (!r || r.same_product !== true || typeof r.old_href !== "string" || typeof r.new_href !== "string" || r.old_href === r.new_href) continue;
+    const image = typeof r.image === "string" && r.image.startsWith("https://") && !isTiff(r.image) && !brokenImage(r.image)
+      && !/^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(r.image) ? r.image : undefined;
+    if (!image) { shopmyUpgrades.skipped += 1; continue; }
+    let host = "";
+    try { host = new URL(r.new_href).hostname; } catch { shopmyUpgrades.skipped += 1; continue; }
+    if (!AFFILIATE.has(host)) { shopmyUpgrades.skipped += 1; continue; }
+    const store = [r.brand, r.retailer].map((x) => (typeof x === "string" ? storeFor(x) : null)).find((x) => x && stores.has(x));
+    if (!map.has(r.old_href)) map.set(r.old_href, { href: r.new_href, image, store, host });
+  }
+  shopmyUpgrades.links = map.size;
+  for (const [slug, list] of Object.entries(guides)) guides[slug] = list.map((p) => {
+    const u = map.get(p.href);
+    if (!u) return p;
+    shopmyUpgrades.rows += 1;
+    const { price: _p, priceAt: _a, ...rest } = p;
+    if (u.store) stores.get(u.store).hosts.add(u.host);
+    return { ...rest, href: u.href, image: u.image, store: u.store ?? (rest.store === "store-amazon" ? undefined : rest.store) };
+  });
+}
+/**
  * BEST-PAYING LINK (11-18 night, ~/Desktop/Link-library/best-rates-1118.json: per brand, each network's rate and the
  * best): when one product (same brand, same full name, sizes included) is carried on two or more networks, every row of it uses the
  * best-paying network's link, provided that row has a photo. Only the same product is ever swapped in, so an audited top
@@ -971,6 +1005,135 @@ for (const slug of Object.keys(pageList)) {
   // Louisiana guides still name that store.
   if (kept.length || !slug.startsWith("store-")) pageList[slug] = kept;
 }
+/**
+ * EARNINGS + FIT (owner 11-18 night), on each guide's final list (store pages aside), in this order:
+ * 1. FIT TAIL (_fit-audit-tail-1118.json { "<slug>": { remove: [{ name, href }] } }): misfits leave positions 26 on; the
+ *    first TOP_GIFTS are never touched, so no guide drops under TOP_GIFTS.
+ * 2. FILLER (GUIDE_FILLER): Her/Mom filler the trending list put in a hobby guide's top 25 is replaced by fitting picks
+ *    from the guide's own lower list, then its related guides.
+ * 3. TOP EARNERS (_top-earners-plan-1118.json { "<slug>": { swap, relink, add } }): `swap` puts the named top earner in
+ *    the place of the named low-paying item; `relink` moves a row to the better-paying link only when the target is the
+ *    same product (sameVariant: no named size, color or gender that disagrees; Stanley, Owala and YETI each point at one
+ *    pin); `add` appends fitting photo'd top earners below the top 25. A target's own row (photo, store) is used when we
+ *    carry it; otherwise the row keeps its photo only if it is not Amazon-hosted, and drops the old store's price.
+ * 4. BOOTS (owner 11-18 night): XTRATUF and Muck Boot (CJ deep links) sit in the men's and outdoor guides, below the
+ *    top 25 unless already there (the XTRATUF limits below still hold).
+ */
+export const GUIDE_FILLER = {
+  "fish-lover": { out: ["UGG Women's Disquette", "Sol de Janeiro Perfume Cheirosa 62 Perfume Eau de Parfum", "Theragun Mini", "LANEIGE Lip Sleeping Mask", "e.l.f. Glow Reviver Lip Oil"],
+    from: ["fishermen", "commercial-fishermen-and-shrimpers", "boater", "store-simms-fishing"], fits: /\b(fish\w*|rods?|reels?|tackle|lures?|angl\w+|casting|pliers|waders?|bait|simms|penn|kastking|plano|bobbers?|hooks?)\b/i },
+  "vets-and-vet-techs": { out: ["UGG Women's Disquette", "Sol de Janeiro Perfume Cheirosa 62 Perfume Eau de Parfum", "LANEIGE Lip Sleeping Mask"],
+    from: ["dog-lover", "cat-person"], fits: /\b(dogs?|cats?|pets?|paws?|kitty|puppy|litter|leash|harness|treats?|vet\w*|fountain|bowl)\b/i },
+};
+export const BOOT_GUIDES = ["him", "boyfriend-or-husband", "dad", "grandpa", "brother", "fishermen", "hunters", "outdoorsman", "farmers"];
+export const earnings = { tailRemoved: 0, filler: 0, swaps: 0, swapSkipped: [], relinks: 0, relinkSkipped: [], adds: 0, boots: 0 };
+const SIZE_RE = /\b\d+(?:\.\d+)?[\s-]?(?:fl oz|oz|qt|quart|ml|inch|in|mm|gb|tb|pack|pk|count|ct|pairs?|pcs|pc|piece|lbs|lb)\b/gi;
+const sizesOf = (n) => new Set((String(n).toLowerCase().match(SIZE_RE) ?? []).map((x) => x.replace(/[\s-]/g, "").replace(/inch$/, "in").replace(/quart$/, "qt")));
+const colorsOf = (n) => new Set(String(n).toLowerCase().match(new RegExp(`\\b(${COLOR_WORDS})\\b`, "g")) ?? []);
+const genderOf = (n) => (/\b(women'?s|womens|ladies)\b/i.test(n) ? "w" : /\b(men'?s|mens)\b/i.test(n) ? "m" : /\b(kids'?|boys'?|girls'?|toddlers?|youth)\b/i.test(n) ? "k" : "");
+/** A model generation or year ("AirTag (2nd Generation)", "Gen 2", "(2024 model)"): one gen is not another. */
+const gensOf = (n) => new Set((String(n).toLowerCase().match(/\b\d+(?:st|nd|rd|th)\s?gen(?:eration)?\b|\bgen\s?\d+\b|\b20\d\d\b/g) ?? []).map((x) => x.replace(/\D/g, "")));
+/** The same product: every size, color and generation either name gives, the other names too, and no gender disagrees. */
+export const sameVariant = (from, to) => {
+  for (const pick of [sizesOf, colorsOf, gensOf]) {
+    const a = pick(from);
+    const b = pick(to);
+    // A row with no size or color named opens a page where the buyer picks one; a named one must match exactly.
+    if (a.size && (a.size !== b.size || [...a].some((x) => !b.has(x)))) return false;
+  }
+  const ga = genderOf(from);
+  const gb = genderOf(to);
+  return !ga || !gb || ga === gb;
+};
+{
+  const TAIL = readJson("_fit-audit-tail-1118.json") ?? {};
+  const PLAN = readJson("_top-earners-plan-1118.json") ?? {};
+  const pool = new Map();
+  for (const p of [...Object.values(guides).flat(), ...swappedOut]) if (p.image && !pool.has(p.href)) pool.set(p.href, p);
+  const isAmazonImage = (u) => { try { return AMAZON_IMAGE_HOST.test(new URL(u).hostname); } catch { return false; } };
+  const twin = (list, p) => list.findIndex((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name));
+  const named = (list, name) => list.findIndex((x) => compact(x.name) === compact(name));
+  const netOf = (href) => {
+    const h = new URL(href).hostname;
+    return AMAZON.has(h) ? "Amazon" : /(^|\.)shopmy\.us$/.test(h) ? "ShopMy" : h === "mavely.app.link" ? "Later" : h === "walmrt.us" ? "Walmart"
+      : h === "www.awin1.com" ? "Awin" : /(^|\.)(anrdoezrs|jdoqocy|dpbolvw|kqzyfj|tkqlhce)\.(net|com)$/.test(h) ? "CJ" : "Direct";
+  };
+  for (const slug of Object.keys(pageList)) {
+    if (slug.startsWith("store-") || slug === SPONSORS_GUIDE) continue;
+    let list = [...pageList[slug]];
+    // 1. Fit tail: positions 26 on only.
+    const gone = (TAIL[slug]?.remove ?? []).filter((r) => r && typeof r.name === "string");
+    const isGone = (p) => gone.some((r) => r.href === p.href || compact(r.name) === compact(p.name));
+    const tail = list.slice(TOP_GIFTS).filter((p) => !isGone(p));
+    earnings.tailRemoved += list.length - TOP_GIFTS - tail.length > 0 ? list.length - TOP_GIFTS - tail.length : 0;
+    list = [...list.slice(0, TOP_GIFTS), ...tail];
+    // 2. Filler.
+    const filler = GUIDE_FILLER[slug];
+    if (filler) {
+      const cands = [...list.slice(TOP_GIFTS), ...filler.from.flatMap((g) => pageList[g] ?? guides[g] ?? [])]
+        .filter((p) => p.image && filler.fits.test(p.name) && genderOf(p.name) !== "w" && genderOf(p.name) !== "k" && !isGone(p) && fitsGuide(slug, p) && !louisianaBlocked(slug, p));
+      for (const name of filler.out) {
+        const at = named(list.slice(0, TOP_GIFTS), name);
+        if (at < 0) continue;
+        const next = cands.find((c) => { const j = twin(list, c); return j < 0 || j >= TOP_GIFTS; });
+        if (!next) break;
+        const j = twin(list, next);
+        if (j >= 0) list.splice(j, 1);
+        list[at] = next;
+        earnings.filler += 1;
+      }
+    }
+    const plan = PLAN[slug] ?? {};
+    // 3a. Swaps.
+    for (const sw of Array.isArray(plan.swap) ? plan.swap : []) {
+      const at = named(list.slice(0, TOP_GIFTS), String(sw?.out ?? ""));
+      const p = sw?.in?.href ? pool.get(sw.in.href) : undefined;
+      if (at < 0 || !p || !fitsGuide(slug, p) || louisianaBlocked(slug, p)) { earnings.swapSkipped.push(`${slug}: ${sw?.out}${at < 0 ? " (not in top 25)" : !p ? " (no photo'd row)" : " (fit or Louisiana rule)"}`); continue; }
+      const j = twin(list, p);
+      if (j >= 0 && j < TOP_GIFTS) { earnings.swapSkipped.push(`${slug}: ${sw.out} (already in top 25)`); continue; }
+      if (j >= 0) list.splice(j, 1);
+      list[at] = p;
+      earnings.swaps += 1;
+    }
+    // 3b. Relinks.
+    for (const rl of Array.isArray(plan.relink) ? plan.relink : []) {
+      const to = rl?.to;
+      if (!to || typeof to.href !== "string" || typeof rl.name !== "string") continue;
+      const at = named(list, rl.name);
+      if (at < 0 || list[at].href === to.href) continue;
+      const cur = list[at];
+      // Already moved off the plan's starting network (a checked ShopMy upgrade above): left as it is.
+      if (typeof rl.from_network === "string" && netOf(cur.href) !== rl.from_network) continue;
+      if (!sameVariant(cur.name, to.name)) { earnings.relinkSkipped.push(`${slug}: "${cur.name}" -> "${to.name}" (variant)`); continue; }
+      if (list.some((x, k) => k !== at && x.href === to.href)) continue;
+      const own = pool.get(to.href);
+      let next;
+      if (own && sameVariant(cur.name, own.name)) next = own;
+      else if (cur.image && !isAmazonImage(cur.image)) { const { price: _p, priceAt: _a, store: _s, ...rest } = cur; next = { ...rest, href: to.href }; }
+      if (!next) { earnings.relinkSkipped.push(`${slug}: "${cur.name}" (no photo for the new link)`); continue; }
+      list[at] = next;
+      earnings.relinks += 1;
+    }
+    // 3c. Adds below the top 25.
+    for (const ad of Array.isArray(plan.add) ? plan.add : []) {
+      const p = ad?.href ? pool.get(ad.href) : undefined;
+      if (!p || isGone(p) || !fitsGuide(slug, p) || louisianaBlocked(slug, p) || twin(list, p) >= 0) continue;
+      list.push(p);
+      earnings.adds += 1;
+    }
+    // 4. Boots.
+    if (BOOT_GUIDES.includes(slug)) {
+      const boots = [...pool.values()].filter((p) => /^(xtratuf|muck boot)$/i.test(p.brand ?? "") && netOf(p.href) === "CJ"
+        && !["w", "k"].includes(genderOf(p.name)) && !/\bsteel toe\b/i.test(p.name) && fitsGuide(slug, p) && !louisianaBlocked(slug, p));
+      for (const brand of ["xtratuf", "muck boot"]) {
+        if (list.some((x) => (x.brand ?? "").toLowerCase() === brand)) continue;
+        const b = boots.find((x) => x.brand.toLowerCase() === brand && twin(list, x) < 0);
+        if (b) { list.push(b); earnings.boots += 1; }
+      }
+    }
+    pageList[slug] = noRepeats(list);
+  }
+}
 // Removing repeats can lift a later XTRATUF boot into the top: one in the first 12, two in the first 25, again.
 for (const slug of Object.keys(pageList)) {
   if (slug.startsWith("store-")) continue;
@@ -1101,4 +1264,5 @@ writeFileSync(
     `export const GIFT_GUIDE_SEO = ${JSON.stringify(seo)};\n`,
 );
 
-console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; store fills: ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}`);
+if (process.env.GIFT_PICKS_VERBOSE) console.error(`RELINK SKIPPED:\n${earnings.relinkSkipped.join("\n")}\nSWAP SKIPPED:\n${earnings.swapSkipped.join("\n")}`);
+console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}`);

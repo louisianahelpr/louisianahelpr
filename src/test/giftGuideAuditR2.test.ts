@@ -309,7 +309,8 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     for (const f of pages) {
       const slug = f.replace(/\.json$/, "");
       if (louisiana.has(slug) || ["store-community-coffee", "store-rebeccaillustrated"].includes(slug)) continue;
-      const list = pageOf(slug) as { name: string; brand?: string; href: string }[];
+      // The owner's own picks (ownerPick) are exempt from every rule (owner 11-19).
+      const list = (pageOf(slug) as { name: string; brand?: string; href: string; ownerPick?: true }[]).filter((p) => !p.ownerPick);
       // A Louisiana store's own page (every pick a Louisiana item: Julie Vos, Dirty Coast...) keeps its items.
       if (slug.startsWith("store-") && list.every((p) => isLouisianaItem(p, hosts))) continue;
       for (const p of list) {

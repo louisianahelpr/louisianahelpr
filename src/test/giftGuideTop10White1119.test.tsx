@@ -32,7 +32,7 @@ import {
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 
 for (const g of GUIDE_INDEX) GUIDE_GROUPS.set(g.slug, g.group);
-type Pick = { name: string; brand?: string; href: string; image?: string; price?: number; store?: string };
+type Pick = { name: string; brand?: string; href: string; image?: string; price?: number; store?: string; ownerPick?: true };
 const DIR = "src/content/giftGuidePicks";
 const chunk = (slug: string): Pick[] => JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks;
 const slugs = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
@@ -212,8 +212,9 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
       for (const a of fam) for (const b of fam) {
         if (a >= b || !slugs.includes(a) || !slugs.includes(b)) continue;
         pairs += 1;
-        const top = chunk(b).slice(0, SIBLING_TOP);
-        const n = siblingOverlap(chunk(a), top, key).topShared;
+        // The owner's own picks (ownerPick) lead every guide she names them for, exempt from every rule (owner 11-19).
+        const top = chunk(b).filter((p) => !p.ownerPick).slice(0, SIBLING_TOP);
+        const n = siblingOverlap(chunk(a).filter((p) => !p.ownerPick), top, key).topShared;
         if (n) shared.push(`${a} / ${b}: ${n}`);
       }
     }
@@ -221,13 +222,20 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(shared).toEqual([]);
   });
 
+  // Owner 11-19 (refined): "if you are going to use the same item for different guides, at least choose a different
+  // color": a colorway repeat has its own link, name and photo, so it never matches here; the same photo never shows on
+  // two guides. The owner's own picks (ownerPick) are exempt.
   it("every product shows on exactly one guide (owner: \"really and truly they don't need to share any items\"); store pages exempt", () => {
     const byHref = new Map<string, string>();
     const byName = new Map<string, string>();
+    const byImage = new Map<string, string>();
     const repeats: string[] = [];
     let n = 0;
     for (const s of guides) for (const p of chunk(s)) {
       n += 1;
+      if (p.ownerPick) continue;
+      if (p.image && byImage.has(p.image) && byImage.get(p.image) !== s) repeats.push(`${p.name}: same photo on ${byImage.get(p.image)} + ${s}`);
+      if (p.image) byImage.set(p.image, s);
       const name = p.name.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
       if (byHref.has(p.href) && byHref.get(p.href) !== s) repeats.push(`${p.name}: ${byHref.get(p.href)} + ${s}`);
       if (byName.has(name) && byName.get(name) !== s) repeats.push(`${p.name}: ${byName.get(name)} + ${s}`);

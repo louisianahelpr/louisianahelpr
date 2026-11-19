@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { GUIDES } from "@/content/giftGuideCatalog";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
+import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
 import {
   COVER_DIR, GINGHAM, MIN_SLOTS, SIZE, filledSlots, readManifest, shortInManifest,
 } from "../../scripts/check-gift-cover-items.mjs";
@@ -66,7 +67,14 @@ const PIXEL_PALE: Record<string, string> = {
 const manifest = readManifest();
 const covers = new Set(COVER_SLUGS);
 const shown = GUIDES.filter((g) => !g.empty && !g.thin && covers.has(g.slug)).map((g) => g.slug);
-const checked = shown.filter((s) => !(s in TEXT_ONLY));
+/**
+ * Owner 11-19 ("just leave it, no one is looking anyway"): a guide shows from 1 pick (GUIDE_MIN_PICKS), so a guide with
+ * fewer than SMALL_GUIDE picks (the ones hidden until then) may show a cover with fewer than four products. Read from the
+ * pick count, never from the cover.
+ */
+const SMALL_GUIDE = 6;
+const small = (s: string) => !s.startsWith("store-") && (CHUNK_PICK_COUNTS[s] ?? 0) < SMALL_GUIDE;
+const checked = shown.filter((s) => !(s in TEXT_ONLY) && !small(s));
 
 const rgb = async (file: string) =>
   sharp(file).removeAlpha().resize(SIZE, SIZE).raw().toBuffer();
@@ -85,7 +93,7 @@ function plainGingham(): Buffer {
 
 describe("gift guide covers show their products", () => {
   it("reads every shown guide's cover", () => {
-    expect(shown.length).toBeGreaterThan(130); // one guide per product (owner 11-19) hides guides under 6 picks
+    expect(shown.length).toBeGreaterThan(130); // every guide with a pick shows (owner 11-19)
     expect(checked.length).toBeGreaterThan(110);
     for (const s of shown) expect(existsSync(`${COVER_DIR}/${s}.webp`), s).toBe(true);
   });

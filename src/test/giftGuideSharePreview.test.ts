@@ -33,7 +33,8 @@ describe("gift guide share preview (api/share.ts)", () => {
 
   it("the slug lists match the image folders exactly (two-way)", () => {
     const inDir = (dir: string, ext: string) => readdirSync(dir).filter((f) => f.endsWith(ext)).map((f) => f.slice(0, -ext.length)).sort();
-    const og = inDir("public/gift-guides/og", ".jpg");
+    // landing.jpg is the landing's own 1200x630 card (holistic review 11-18 M7), no guide's: checked below.
+    const og = inDir("public/gift-guides/og", ".jpg").filter((s) => s !== "landing");
     const covers = inDir("public/gift-guides/covers", ".webp");
     expect(og.length).toBeGreaterThan(300);
     expect([...OG_JPG_SLUGS].sort(), "add or remove the slug in src/lib/giftGuideShareImages.mjs").toEqual(og);
@@ -73,8 +74,9 @@ describe("gift guide share preview (api/share.ts)", () => {
     expect(head).toContain('<meta property="og:image:alt" content="Gifts for Mom: holiday gift guide 2026"');
   });
 
-  it("a guide with no cover file keeps the brand card", async () => {
-    const slug = "store-atlas-coffee-club";
+  it("a page with no cover file keeps the brand card", async () => {
+    // Every guide has a cover since the covers round 2 (design review M2): a slug no guide uses has none.
+    const slug = "store-no-such-store";
     expect(existsSync(`public/gift-guides/covers/${slug}.webp`) || existsSync(`public/gift-guides/og/${slug}.jpg`)).toBe(false);
     const head = await headFor(`gift-guides/${slug}`);
     expect(head).toContain('<meta property="og:image" ');
@@ -88,9 +90,26 @@ describe("gift guide share preview (api/share.ts)", () => {
     expect(head).not.toContain("/gift-guides/og/");
   });
 
-  it("the landing keeps the brand card", async () => {
+  // Holistic review 11-18 M7: the landing shared the generic logo card; it now shares its own 1200x630 collage.
+  // @mutate api/share.ts |   if (id === "gift-guides") return | if (id === "gift-guides-x") return
+  it("the landing shares its own 1200x630 collage card, at most 150 KB", async () => {
     const head = await headFor("gift-guides");
-    expect(head).not.toContain("/gift-guides/covers/");
-    expect(head).not.toContain("/gift-guides/og/");
+    expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/og/landing.jpg?v=1"`);
+    expect(head).toContain('<meta property="og:image:type" content="image/jpeg"');
+    expect(head).toContain('<meta property="og:image:width" content="1200"');
+    expect(head).toContain('<meta property="og:image:height" content="630"');
+    expect(head.match(/<meta property="og:image" /g)).toHaveLength(1);
+    const jpg = readFileSync("public/gift-guides/og/landing.jpg");
+    expect(jpg.length).toBeLessThanOrEqual(150_000);
+    // The JPEG's own size, from its SOF0/SOF2 frame header.
+    let at = 2;
+    let size: [number, number] | null = null;
+    while (at < jpg.length && !size) {
+      const marker = jpg[at + 1];
+      const len = jpg.readUInt16BE(at + 2);
+      if (marker === 0xc0 || marker === 0xc2) size = [jpg.readUInt16BE(at + 7), jpg.readUInt16BE(at + 5)];
+      at += 2 + len;
+    }
+    expect(size).toEqual([1200, 630]);
   });
 });

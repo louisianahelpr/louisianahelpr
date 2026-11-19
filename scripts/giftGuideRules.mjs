@@ -10,7 +10,7 @@ const compact = (s) => String(s ?? "").toLowerCase().replace(/&/g, "and").replac
  * (Omaha Steaks, Bass Pro Shops), a sale or promo ("Black Friday Sale", "Cyber Monday Beauty Deals 2025"), a page title
  * dated before 2026 ("… Delivered 2024", while a "2027 Planner" is a product) or a guide name is no product, so the pick is hidden. Nothing is renamed beyond cutting those parts off.
  */
-export const PROMO_NAME = /\b(black friday|cyber monday|cyber week|sales?|deals?|coupons?|promo(tion)?s?|clearance|free shipping|valid thru|shop now|shop early|shop online|gift guides?|bogo|doorbusters?|savings?)\b|% off|\bbuy \d+,? get\b/i;
+export const PROMO_NAME = /\b(black friday|cyber monday|cyber week|sales?|deals?|coupons?|promo(tion)?s?|clearance|free shipping|valid thru|shop now|shop early|shop online|gift guides?|bogo|doorbusters?|savings?)\b|% off|\bbuy \d+,? get\b|\b\d+ get \d+ free\b/i;
 /** A year before the 2026 season (written 2026-11-18) in a page title ("… Delivered 2024 | Harry & David"); a product's model year ("Kindle (2024)") stays. */
 export const OLD_YEAR = /\b(19\d\d|20[01]\d|202[0-5])\b/;
 export const domainName = (s) => /^[\w-]+(\.[\w-]+)*\.(com|net|org|co|us|shop|store)$/i.test(s);
@@ -81,7 +81,7 @@ export const LOGO_IMAGE = /(^|[/_.-])(logos?|banners?|sprites?|icons?)([/_.0-9-]
 /** A logo product's own photo, not a store logo (Black Rifle's 3 Rounds Logo T-Shirt, photo finder 11-18 PM). */
 export const LOGO_PRODUCT = /THREE_ROUNDS_LOGO_[A-Z_]*SHIRT/;
 /** Image URLs that are no image ("…/Liquid%20error%20(snippets/social-meta-tags…", design audit r2 #8: T3 Micro). */
-export const brokenImage = (u) => /liquid(%20|\s|\+)error/i.test(u) || /[<>{}]/.test(u) || SITE_ICON.test(u) || HOTLINK_BLOCKED.test(u)
+export const brokenImage = (u) => /liquid(%20|\s|\+)error/i.test(u) || /[<>{}]/.test(u) || SITE_ICON.test(u) || HOTLINK_BLOCKED.test(u) || NO_SHOW_FORMAT.test(u.split("#")[0])
   || (LOGO_IMAGE.test(u.split("?")[0]) && !LOGO_PRODUCT.test(u)) || WRONG_IMAGES.has(u.split("?")[0]);
 /** A site's icon, logo or default share image, not the product (live audit r3 #12: vitamix default-meta-image, kitchenaid bookmark icon). */
 export const SITE_ICON = /favicon|apple-touch-icon|bookmark-icon|default-meta-image|meta-image\.|og-badge|\/logo[-_.]/i;
@@ -112,8 +112,20 @@ export const PAGE_TITLE_NAME = /^(client challenge|limited time( offer)?|access 
 /** Subscriptions holds gifts, not free trials or planners (owner 11-18 PM: "Try Prime free", "Audible free trial", the 12-Month Academic Planner off it). */
 export const WRONG_GUIDE = { him: /curling iron|hair crimper/i, "home-cook": /dumbbell/i, subscriptions: /free trial|\btry\b.*\bfree\b|\bplanner\b/i, dad: /tea club gift subscription/i };
 export const FACE_MASK_OFF = ["home-cook", "baker", "dad", "him", "diyer", "electricians", "mechanics", "construction-workers"];
+/**
+ * PET GUIDES ARE FOR THE PET (owner 11-18 night: "in the pet lover section you have fishing pliers and fish fillet but
+ * it's for a pet lover for a fish"). Fish Lover sits in Pets: it holds aquarium and pet-fish gifts only, never angling
+ * gear or food; Bird Lover holds pet-bird gifts, never hunting gear.
+ */
+export const ANGLING = /\b(fishing|angl(er|ers|ing)|pliers|fillet|lures?|rods?|reels?|tackle|waders?|bait|hooks?|lip grip(per)?|fish fry|breading|seasoning|kicker|flies)\b/i;
+export const AQUARIUM = /\b(aquariums?|betta|fish ?tanks?|fish ?bowls?|fish food|goldfish|koi|aquascap\w*|aquatic plants?|water test kit)\b/i;
+export const PET_ONLY = {
+  "fish-lover": (p) => AQUARIUM.test(p.name) && !ANGLING.test(p.name) && !/\b(marine biologist|crunchlabs)\b/i.test(`${p.name} ${p.brand ?? ""}`),
+  "bird-lover": (p) => !/\b(hunting|decoys?|duck call|shotgun|blind)\b/i.test(p.name),
+};
 export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
+  if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
   // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
@@ -130,7 +142,7 @@ export const fitsGuide = (slug, p) => {
  */
 export const NAME_MAX = 70;
 export function tidyName(name) {
-  let n = String(name ?? "").replace(/\s+/g, " ").trim();
+  let n = String(name ?? "").replace(/\s+/g, " ").trim().replace(/\s*-:\s*No Added Msg\s*$/i, "").replace(/\s+[-–]\s*$/, "").trim();
   const piped = /^[A-Z0-9 .&'’-]{2,40} \| (.+)$/.exec(n);
   if (piped) n = piped[1].trim();
   n = n.replace(/\s*[-,–]\s*(holiday and christmas gifts?|christmas gifts?|gifts? for (kids|boys|girls|men|women|him|her)|stocking stuffers?)\b.*$/i, "").trim();
@@ -155,7 +167,7 @@ export const LOUISIANA_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du Monde"
   "Poche's", "Randazzo King Cake", "Southern Candymakers", "Julie Vos", "Mam Papaul's", "Crew Dog", "Junior League of Baton Rouge",
   "Junior League of Lafayette", "Rebecca Illustrated", "Isaac Toups", "Ella Brennan", "John Folse", "Cajun Grocer", "Cajun Country", "Dupuy's",
   "Rip Van Winkle Gardens", "Justin Wilson", "Melissa M. Martin", "Jean-Paul Bourgeois", "Zydeco Chop Chop", "Paul Prudhomme", "Konriko"];
-export const LOUISIANA_THEME = /\b(louisiana|new orleans|nola|cajun|creole|lsu|mardi gras|king cakes?|crawfish|acadiana|baton rouge|lafayette|saints|pelicans|pralines?|beignets?|roux|gumbo|jambalaya|boudin|zydeco|fleur[- ]de[- ]lis|bayou|chicory)\b/i;
+export const LOUISIANA_THEME = /\b(louisiana|new orleans|nola|cajun|creole|lsu|mardi gras|king cakes?|crawfish|acadiana|baton rouge|lafayette|saints|pelicans|pralines?|beignets?|roux|gumbo|jambalaya|boudin|zydeco|fleur[- ]de[- ]lis|bayou|chicory|tabasco|zatarain'?s)\b/i;
 export const NATIONAL_BRANDS = /^(xtratuf|muck boot|bayou classic)/i;
 const squashName = (x) => String(x ?? "").normalize("NFD").toLowerCase().replace(/[^a-z0-9]+/g, "");
 const LA_BRAND_KEYS = new Set(LOUISIANA_BRANDS.map(squashName));
@@ -164,4 +176,57 @@ export const isLouisianaItem = (p, laHosts) => {
   let host = "";
   try { host = new URL(p.href).hostname; } catch { /* not a link: decided by brand and name */ }
   return laHosts.has(host) || LA_BRAND_KEYS.has(squashName(p.brand)) || LOUISIANA_THEME.test(p.name ?? "");
+};
+
+/** Image formats some browsers cannot show (holistic review 11-18 L5: AVIF Bose, HEIF/HEIC ShopMy): dropped like a broken photo. */
+export const NO_SHOW_FORMAT = /\.(avif|heif|heic)(\?|$)|[?&](fmt|format)=avif\b/i;
+/**
+ * HOLISTIC FIT (design review 11-18 H2/H3, ~/.lh-shots/design-audit-loop/gg-holistic-1118/FINDINGS.md):
+ * - NOT_A_GIFT_ITEM: medical and personal-care items are no gift (period products, acne and drying lotions, Aquaphor,
+ *   a breast pump, accessible "Enable" shampoo, net bath sponges, incontinence and nipple care). A breast pump and
+ *   nipple care stay on New Mom only.
+ * - PET_ITEM: pet supplies show only in the Pets guides (and Vets), never in people or budget guides.
+ * - WORK_BOOT: no work or chore boots on Mom, Her or Wife.
+ * - mensItem: no men's items on the WOMEN_GUIDES.
+ * - placeholderName: a name that is a category, not a product ("All Blenders", "Sterling Silver Rings", "Trail
+ *   Camera", "Outerwear"): "All <plural>", or no brand with at most three words and no model number.
+ * - collectionLink: a link to a collection or shop page, not a product (shopmy.us/collections, /collections/, /shop).
+ */
+export const NOT_A_GIFT_ITEM = /\b(period (underwear|bikini|panty|panties|pouch|briefs?)|menstrual|tampons?|maxi pads?|panty liners?|acne|pimple|drying lotion|aquaphor|breast ?pump|nipple|lanolin|enable shampoo|accessible shampoo|net (bath )?sponges?|bath net|incontinence|hemorrhoid|diaper rash|stool softener|laxative)\b/i;
+export const NEW_MOM_CARE = /\b(breast ?pump|nipple|lanolin)\b/i;
+export const PET_ITEM = /\b(catnip|litter ?(box|robot)?|barkbox|meowbox|kitty kick|cat (tree|toys?|bed|harness|brush|scratcher|treats?|window|hammock|fountain|food)|dog (macarons?|treats?|toys?|bed|bowl|harness|leash|collar|brush|food|stocking|paw cleaner|puzzle)|pet (fountain|carrier|bed|hair|camera|treats?|toys?)|chew toys?|dental (dog|chews?))\b|\bfor (dogs|cats)\b/i;
+/**
+ * Men's items stay off the women's guides, at any position (batch 11-19: Her listed Huk shirts and a men's Sperry boat
+ * shoe). A pick is men's when its name says so ("Men's", "Mens", "for Men", "Boys'"), when it is Huk apparel with no
+ * women's word (Huk's H1... styles are its men's line), or when it is a Sperry shoe whose photo carries Sperry's men's
+ * style code (_mm_ / _ms_; its women's photos carry _wm_).
+ */
+/**
+ * US stores only (batch 11-19, FB comment checks: Her's Rare Beauty blush pin opened spacenk.com/uk and a LANEIGE
+ * pin sephora.co.uk). nonUsUrl reads a store URL, domain or store name: a UK, Australian or Canadian site (.co.uk,
+ * .com.au, .ca, a /uk/, /en-gb/, /en-au/ or /en-ca/ path, "spacenk.com/uk").
+ */
+export const nonUsUrl = (s) => /(\.co\.uk|\.com\.au|\.ca)(\/|\?|#|$)|\/(uk|en-gb|en-au|en-ca)(\/|$)|\.uk$/i.test(String(s ?? "").trim());
+/** No Instax camera on the men's family guides, at any position (owner 11-19: "Why would a dad want an instax"). */
+export const INSTAX_OFF = ["dad", "him", "boyfriend-or-husband", "grandpa", "father-in-law"];
+export const instaxItem = (p) => /\binstax\b/i.test(`${p.name ?? ""} ${p.brand ?? ""}`);
+export const WOMEN_GUIDES = ["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma"];
+export const mensItem = (p) => {
+  const name = String(p.name ?? "");
+  if (/\b(men'?s|mens|for men|boys'?)\b/i.test(name)) return true;
+  if (/\b(women'?s|womens|ladies)\b/i.test(name)) return false;
+  if (/^huk$/i.test(String(p.brand ?? "").trim())) return true;
+  return /\bsperry\b/i.test(`${p.brand ?? ""} ${name}`) && /_m[ms]_/i.test(String(p.image ?? ""));
+};
+export const WORK_BOOT_OFF = ["mom", "her", "wife"];
+export const WORK_BOOT = /\b(work boots?|chore (boots?|classic)|steel toe|muckster|wetland boot)\b|^muck boot$/i;
+/** Category names the review found standing in for a product (11-18 H3). */
+export const CATEGORY_PLACEHOLDER = /^((sterling )?silver|gemstone|gold|diamond|pearl|sterling silver)\s+(rings|earrings|necklaces|bracelets|pendants|charms)$|^(outerwear|trail cameras?|solid original|jewelry|accessories|clothing|shoes)$/i;
+export const placeholderName = (p) => /^All\s+(\w+\s){0,2}\w+s$/.test(String(p.name ?? "").trim()) || CATEGORY_PLACEHOLDER.test(String(p.name ?? "").trim())
+  || (!String(p.brand ?? "").trim() && /^[A-Za-z&'’]+(\s[A-Za-z&'’]+){0,2}$/.test(String(p.name ?? "").trim()) && !/gift|card|code|subscription|membership/i.test(p.name));
+export const collectionLink = (href) => {
+  try {
+    const u = new URL(href);
+    return /\/collections\//i.test(u.pathname) || /\/shop\/?$/i.test(u.pathname);
+  } catch { return true; }
 };

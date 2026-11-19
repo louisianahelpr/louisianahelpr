@@ -130,8 +130,9 @@ describe("design audit r2: lines, variants, photos, brands", () => {
     expect(all.filter(({ p }) => ["Rei", "Ugg", "Laneige", "Xtratuf"].includes(p.brand))).toEqual([]);
   });
   it("a ShopMy collection row says 'Collection on ShopMy', never names the collection as one product's store", () => {
-    // Most collection rows had no photo and left with "no photo, no row" (owner 11-18 PM); the ones with a photo stay.
-    expect(all.filter(({ p }) => p.href.startsWith("https://shopmy.us/collections/")).length).toBeGreaterThan(10);
+    // Holistic review 11-18 H3: a collection link is no product, so no row keeps one (giftGuideHolistic1118.test.ts);
+    // the label stays for any collection link a static pick still carries.
+    expect(all.filter(({ p }) => p.href.startsWith("https://shopmy.us/collections/")).length).toBe(0);
     expect(VIEW).toContain('{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}');
   });
 });
@@ -155,7 +156,9 @@ describe("design audit r2: sales and search", () => {
     const inTitle = searchGuides("mom").map((g) => /mom/i.test(g.title));
     expect(inTitle.filter(Boolean).length).toBeGreaterThan(1);
     expect(inTitle.lastIndexOf(true)).toBeLessThan(inTitle.indexOf(false) === -1 ? Infinity : inTitle.indexOf(false));
-    expect(inTitle.indexOf(false)).toBeGreaterThan(-1);
+    // Holistic review 11-18 H5: "gift for mom" listed Mom plus 18 Life moments guides; a group's name now matches only
+    // as a whole word, so no guide is found through "moments".
+    expect(searchGuides("gift for mom").filter((g) => g.row === "life-moments" && !/mom/i.test(g.title))).toEqual([]);
   });
 });
 

@@ -17,8 +17,8 @@
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.shipsFast ? (["ships-fast"] as const) : []), |   ...(flags.trending ? (["ships-fast"] as const) : []),
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping" }) | t: "Gift wrap" })
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />} |       {false && <GiftGuideHelpr />}
- * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
- * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""} ${SEARCH_KEYWORDS[g.slug] ?? ""}`); |     const hay = fold(`${g.title} ${g.lead} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
+ * @mutate src/content/giftGuideCatalog.ts | return rest.every((w) => hay.includes(w) \|\| | return rest.some((w) => hay.includes(w) \|\|
+ * @mutate src/content/giftGuideCatalog.ts | hay.includes(w) \|\| (label.get(g.row) ?? []).includes(w)); | hay.includes(w));
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {query.trim() && ( |         {false && (
  * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick), | loaded.set(slug, { picks: [],
  */
@@ -122,7 +122,8 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(fitNotMade.some((p) => p.brand === "YETI")).toBe(true);
     expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(50);
     expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
-    expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(20);
+    // 15 measured 11-18 night: the 6 Zydeco Chop Chop rows left (their link opened the shop page, not a product; review H3).
+    expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(14);
   });
   it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
     expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);
@@ -139,8 +140,9 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     list.querySelectorAll("[data-gift-price]").forEach((el) => el.remove());
     expect(list.textContent).not.toMatch(/\$\s?\d/);
     const out = [...container.querySelectorAll("[data-gift-list] a")];
-    // One Shop link per pick; the count follows the data (_featured-order.json grows the list).
-    expect(out.length).toBe(guideBySlug("louisiana-made")!.picks.length);
+    // Two links per pick, both to the shop: the row (photo and name) and its visible Shop pill (holistic review 11-18
+    // H4); the count follows the data (_featured-order.json grows the list).
+    expect(out.length).toBe(2 * guideBySlug("louisiana-made")!.picks.length);
     expect(out.length).toBeGreaterThan(20);
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");
   });

@@ -6,7 +6,7 @@ import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { giftGuides as G } from "@/content/giftGuides";
-import { searchGuides } from "@/content/giftGuideCatalog";
+import { guideBySlug, loadSearchItems, searchGuides, searchItems, type SearchItem } from "@/content/giftGuideCatalog";
 import { useGiftList } from "./giftList";
 
 /** The share links for a gift-guides page (owner 2026-11-18): Facebook's sharer and Pinterest's pin builder, no SDK script. */
@@ -115,6 +115,18 @@ function MyListIcon({ current }: { current: boolean }) {
 export function GiftGuideTools({ path, title, image, many = false, myList = false }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean }) {
   const [query, setQuery] = useState("");
   const found = query.trim() ? searchGuides(query) : [];
+  // Holistic review 11-18 H5: product names too ("airpods"), from an index fetched on the first keystroke.
+  const [items, setItems] = useState<SearchItem[] | null>(null);
+  useEffect(() => {
+    if (!query.trim() || items) return;
+    let live = true;
+    loadSearchItems().then((x) => { if (live) setItems(x); }, (e: unknown) => {
+      // Offline or a stale deploy: the guide results still show; item results stay empty.
+      console.warn("gift guides: search index failed", e);
+    });
+    return () => { live = false; };
+  }, [query, items]);
+  const foundItems = query.trim() && items ? searchItems(items, query) : [];
   return (
     <div className="gg-tools" role="group" aria-label={G.quickLabel} data-gift-quick="">
       <div className="gg-tools-search">
@@ -124,10 +136,26 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
         </label>
         {query.trim() && (
           <ul className="gg-search-results" data-gift-search-results="" aria-live="polite">
-            {found.length === 0 && <li className="gg-search-none">{G.searchNone}</li>}
-            {found.map((g) => (
+            {found.length === 0 && foundItems.length === 0 && <li className="gg-search-none">{G.searchNone}</li>}
+            {found.length > 0 && foundItems.length > 0 && <li className="gg-search-head" aria-hidden="true">{G.searchGuidesTitle}</li>}
+            {found.slice(0, 12).map((g) => (
               <li key={g.slug}>
-                <Link to={`/gift-guides/${g.slug}`} onClick={() => setQuery("")} data-gift-found={g.slug}>{g.age ? `${g.title}, ${g.lead.replace(/^gifts for /, "")}` : g.title}</Link>
+                <Link to={`/gift-guides/${g.slug}`} onClick={() => setQuery("")} data-gift-found={g.slug}>
+                  {/* The guide's cover as a small thumbnail (holistic review 11-18 H5). */}
+                  {g.cover ? <img className="gg-search-thumb" loading="lazy" decoding="async" src={g.cover} alt="" width={36} height={36} /> : <span className={`gg-search-thumb gg-check gg-${g.tint}`} aria-hidden="true" />}
+                  <span>{g.age ? `${g.title}, ${g.lead.replace(/^gifts for /, "")}` : g.title}</span>
+                </Link>
+              </li>
+            ))}
+            {foundItems.length > 0 && <li className="gg-search-head" aria-hidden="true">{G.searchItemsTitle}</li>}
+            {foundItems.map(([name, slug]) => (
+              <li key={`${slug} ${name}`}>
+                <Link to={`/gift-guides/${slug}`} onClick={() => setQuery("")} data-gift-found-item={slug}>
+                  <span className="gg-search-item">
+                    <span className="gg-search-item-name">{name}</span>
+                    <small>{G.searchItemIn(guideBySlug(slug)?.title ?? "")}</small>
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

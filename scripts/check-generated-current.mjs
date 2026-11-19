@@ -88,6 +88,14 @@ export const REPO = resolve(import.meta.dirname, "..");
  */
 export const GENERATED = [
   {
+    // Holistic review 11-18 H5: gift-guide search reads product names from this index (lazy, on first keystroke).
+    id: "gift-guide-search-index",
+    script: "scripts/gift-guide-search-index.mjs",
+    cmd: ["node", "scripts/gift-guide-search-index.mjs"],
+    outputs: ["src/content/giftGuideSearchIndex.json"],
+    what: "every gift-guide product name with its link and the guide it sits in, for item search",
+  },
+  {
     // SURFACE.md's toast count is read from this same scanner (Q228).
     id: "toast-inventory",
     script: "scripts/toast-inventory.mjs",

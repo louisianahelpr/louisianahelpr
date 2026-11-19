@@ -257,6 +257,15 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     }
     expect(rows).toBeGreaterThan(5000);
   });
+  it("every guide still holds 25 picks after \"no photo, no row\" (owner 11-18 PM: \"All guides need 25\"), Gift cards and Subscriptions aside", () => {
+    // @mutate scripts/gift-guide-picks.mjs |   if (list.length >= TOP_GIFTS) continue; |   continue;
+    // Gift cards and Subscriptions hold every fitting photo'd pick in the data (back-filled from every page).
+    expect(pageOf("gift-cards").length).toBeGreaterThan(5);
+    expect(pageOf("subscriptions").length).toBeGreaterThan(15);
+    const guides = pages.map((f) => f.replace(/\.json$/, "")).filter((s) => !s.startsWith("store-") && !["gift-cards", "subscriptions"].includes(s));
+    expect(guides.length).toBeGreaterThan(150);
+    for (const g of guides) expect(pageOf(g).length, g).toBeGreaterThanOrEqual(25);
+  });
   it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]
     const under5 = pageOf("under-5") as { name: string; price?: number }[];

@@ -510,6 +510,26 @@ for (const slug of Object.keys(guides)) {
   if (!guides[slug].length) delete guides[slug];
 }
 
+/**
+ * BACK-FILL (owner 11-18 PM: "All guides need 25"): a guide under TOP_GIFTS after "no photo, no row" borrows fitting
+ * photo'd picks from every other guide. Only Gift cards and Subscriptions can fall short (their picks must be gift cards
+ * or memberships); every other guide measured 25+ after the removal (2026-11-18).
+ */
+const BACKFILL_FITS = { "gift-cards": (p) => fitsGuide("gift-cards", p), subscriptions: (p) => /\b(subscription|membership)\b/i.test(p.name) && !/free trial/i.test(p.name) };
+for (const [slug, fits] of Object.entries(BACKFILL_FITS)) {
+  const list = guides[slug] ?? [];
+  if (list.length >= TOP_GIFTS) continue;
+  for (const [from, other] of Object.entries(guides)) {
+    if (from === slug) continue;
+    for (const p of other) {
+      if (list.length >= TOP_GIFTS) break;
+      if (!p.image || !fits(p) || !fitsGuide(slug, p)) continue;
+      if (list.some((x) => x.href === p.href || dedupeKey(x.name) === dedupeKey(p.name))) continue;
+      list.push(p);
+    }
+  }
+  if (list.length) guides[slug] = list;
+}
 /** "Nov 22" / "2026-11-23 (...)" -> "2026-11-22"; anything else -> no end date. */
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 const endDate = (s) => {

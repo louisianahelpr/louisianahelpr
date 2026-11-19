@@ -115,6 +115,8 @@ function misses(text: string, found: Set<string>, where: string): string[] {
       continue;
     }
     if (/\.[a-z0-9]+$/i.test(seg) && existsSync(join(REPO, "public", seg))) continue;
+    // A static file deeper in public/ (/gift-guides/og/landing.jpg) is served by Vercel as-is.
+    if (/\.[a-z0-9]+$/i.test(path) && existsSync(join(REPO, "public", path))) continue;
     // A route prefix used with startsWith ("/user" for /user/:userId) is served when a child of it is.
     // A prefix ending in "/" for a route two segments deep ("/hire/" for /hire/:service/:town) is served when a grandchild is.
     if (!served(path) && !served(`${path}/x`) && !(path.endsWith("/") && served(`${path}x/x`))) out.push(`${where} :: ${path}`);

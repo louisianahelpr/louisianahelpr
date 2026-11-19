@@ -142,7 +142,7 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
               <li key={g.slug}>
                 <Link to={`/gift-guides/${g.slug}`} onClick={() => setQuery("")} data-gift-found={g.slug}>
                   {/* The guide's cover as a small thumbnail (holistic review 11-18 H5). */}
-                  {g.cover ? <img className="gg-search-thumb" src={g.cover} alt="" width={36} height={36} loading="lazy" decoding="async" /> : <span className={`gg-search-thumb gg-check gg-${g.tint}`} aria-hidden="true" />}
+                  {g.cover ? <img className="gg-search-thumb" loading="lazy" decoding="async" src={g.cover} alt="" width={36} height={36} /> : <span className={`gg-search-thumb gg-check gg-${g.tint}`} aria-hidden="true" />}
                   <span>{g.age ? `${g.title}, ${g.lead.replace(/^gifts for /, "")}` : g.title}</span>
                 </Link>
               </li>

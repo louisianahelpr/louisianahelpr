@@ -108,7 +108,17 @@ COVER_SKIP = {"store-walmart": re.compile(r"welding|hot wheels", re.I),
 COVER_NEVER = re.compile(r"gift ?card|e-?gift|membership|subscription|underwear|bikini|\bperiod\b|\bbriefs?\b|"
                          r"\bbras?\b|bralette|lingerie|thong|panty|panties|\bcami\b|camisole|slip dress|compression|deodorant|body spray|collection|best ?sellers|"
                          r"the best skincare|jbl go 4|spicebox|planner stickers|heated (electric|black buffalo)", re.I)  # "HEATED" badge photos
+# Clothes shot on a person (r3 H1 review: Lululemon's jogger and half-zip cut out as a whole model): never on a store
+# cover (the store photo fills are the brands' own model shots; the guides' own picks were reviewed on white).
+WORN = re.compile(r"\bjoggers?\b|leggings?|\bpants?\b|hoodie|half[- ]zip|quarter[- ]zip|funnel[- ]neck|pullover|"
+                  r"crewneck|sweatshirt|\bshorts?\b|\btank\b|\bdress\b|jumpsuit|romper|\bjackets?\b|\bparka\b|\bvest\b|"
+                  r"\bcoat\b|cardigan|sweater|blouse|\bshirt\b|\btop\b|\bonesie\b|pajamas?|\bpjs?\b", re.I)
 COVER_SKIP["sister"] = re.compile(r"cozychic", re.I)  # a pale throw on the cream arch
+# r3 M6 (11-19): pale items that wash out on the cream arch and the gingham.
+COVER_SKIP["girlfriend"] = re.compile(r"necklace", re.I)
+COVER_SKIP["cousins"] = re.compile(r"bottles?\b", re.I)
+COVER_SKIP["boater"] = re.compile(r"multi-?tool", re.I)
+COVER_SKIP["louisiana-boutiques"] = re.compile(r"earrings?", re.I)
 COVER_SKIP["artist"] = re.compile(r"controller|gaming|console|headset", re.I)  # design review M3: art supplies, not games
 # Budget covers lead with colourful, recognisable gifts (owner 11-18): socks, tees, hats, lunch bags and the like last.
 PLAIN = re.compile(r"\bsocks?\b|\btees?\b|t-shirt|tasting cup|\bcrew\b|trucker hat|lunch (bag|lugger)|scalp massager", re.I)
@@ -128,11 +138,22 @@ KINDS = {
     "speaker": re.compile(r"speaker|soundlink", re.I),
     "ereader": re.compile(r"kindle|e-reader", re.I),
     "massager": re.compile(r"theragun|massage gun|massager", re.I),
+    # r3 M4/M5 (11-19): the same item twice on one cover (two hand warmers, two Dutch ovens, two tourniquets) and the
+    # same item on neighbouring covers of a row under different colour names (a pink and a red KitchenAid mixer).
+    "warmer": re.compile(r"hand ?warmers?|body warmers?|\bwarmers\b", re.I),
+    "dutchoven": re.compile(r"dutch oven|cocotte|\ble creuset\b", re.I),
+    "tourniquet": re.compile(r"tourniquet", re.I),
+    "skillet": re.compile(r"skillet|cast[- ]iron pan|fry pan", re.I),
+    "mixer": re.compile(r"stand mixer|\bkitchenaid\b.*\bmixer\b", re.I),
+    "cards": re.compile(r"playing cards|\bbicycle\b.*\bcards?\b|deck of cards", re.I),
+    "diecast": re.compile(r"hot wheels|die-?cast|matchbox", re.I),
+    "handcream": re.compile(r"hand cream|hand balm|hand lotion", re.I),
+    "lip": re.compile(r"\blip (oil|balm|butter|mask|gloss|glowy|sleeping|treatment|tint)|lip ?balm|lip ?gloss|lip ?oil", re.I),
 }
 # A product line counts as its brand for "no duplicates across covers" (owner 11-18: any Squishmallow, any Stanley ...).
 LINES = re.compile(r"squishmallow|airpods|stanley|owala|blackstone|yeti|kindle|theragun|hydro ?flask|\bjbl\b|\blego\b|"
                    r"crayola|barbie|bluey|\bugg\b|xtratuf|ember|\bbose\b|ninja|dyson|traeger|leatherman|instax|nintendo|"
-                   r"laneige|sol de janeiro|cheirosa|carhartt|vera bradley", re.I)
+                   r"laneige|sol de janeiro|cheirosa|carhartt|vera bradley|hot wheels|kitchenaid|le creuset|l'occitane", re.I)
 
 
 def index():
@@ -170,6 +191,14 @@ def fetch(url):
     return data or None
 
 
+CUT_WHY = {}  # the last rejection reason per call (debug: why a photo was skipped)
+
+
+def _reject(why):
+    CUT_WHY["last"] = why
+    return None
+
+
 def cutout(data, tight=False):
     """The product on a near-white photo, as RGBA cropped to it; None for a photo that isn't on white."""
     try:
@@ -184,22 +213,27 @@ def cutout(data, tight=False):
         else:
             im = src.convert("RGB")
     except Exception:  # noqa: BLE001 - not an image the browser would show either
-        return None
+        return _reject("not an image")
     im.thumbnail((600, 600))
     a = np.asarray(im).astype(int)
     border = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
     # The studio backdrop: pure white, or one even light tone (a shop's #F5F5F5 or cream, r3 H1: 193 photos on the
     # short covers were clean product shots on an off-white backdrop and were all skipped as "not on white"). The
     # cutout measures each pixel's distance from that backdrop, so pure white behaves exactly as before.
+    # A photo may sit on two light tones (Lululemon: a pale grey panel on a white canvas): the second tone, when it
+    # holds a quarter of the border, counts as backdrop too, and each pixel is measured from the nearer tone.
+    light = lambda c: c.min() >= 205 and c.mean() >= 225  # noqa: E731 - white, grey #EBEBEB, Milk Bar's peach
     bg = np.median(border, axis=0)
-    if bg.min() < 228:
-        return None  # a dark or coloured backdrop: a lifestyle shot
-    off = np.abs(bg - a).max(axis=2)
-    boff = np.abs(bg - border).max(axis=1)
+    rest = border[np.abs(bg - border).max(axis=1) > 12]
+    tones = [bg] + ([np.median(rest, axis=0)] if len(rest) >= 0.25 * len(border) else [])
+    if not all(light(t) for t in tones):
+        return _reject("a dark or coloured backdrop")  # a lifestyle shot
+    off = np.min([np.abs(t - a).max(axis=2) for t in tones], axis=0)
+    boff = np.min([np.abs(t - border).max(axis=1) for t in tones], axis=0)
     if (boff <= 26).mean() < 0.85:
-        return None  # not on one even backdrop: a lifestyle shot
+        return _reject("not on one even backdrop")  # a lifestyle shot
     if (boff <= 6).mean() < 0.7:
-        return None  # an uneven backdrop (a cast shadow or a gradient, Sol de Janeiro's jar): it cuts out sliced
+        return _reject("an uneven backdrop")  # a cast shadow or a gradient (Sol de Janeiro's jar): it cuts out sliced
     fg = off > 26
     if tight:
         lab, _ = ndimage.label(off <= 2)
@@ -209,7 +243,7 @@ def cutout(data, tight=False):
     fg = ndimage.binary_opening(fg, iterations=1)
     lab, n = ndimage.label(fg)
     if n == 0:
-        return None
+        return _reject("nothing on the backdrop")
     sizes = ndimage.sum(fg, lab, range(1, n + 1))
     boxes = ndimage.find_objects(lab)
     big = [i + 1 for i, v in enumerate(sizes) if v >= 0.08 * sizes.max()]
@@ -225,28 +259,31 @@ def cutout(data, tight=False):
         thin = min(b[0].stop - b[0].start, b[1].stop - b[1].start) * 8 < max(b[0].stop - b[0].start, b[1].stop - b[1].start)
         here = lab == i + 1
         if not zone[here].any() or (thin and not near[here].any()):
-            return None
+            return _reject("a stray piece apart from the product")
         big.append(i + 1)
     if len(big) > 14:
-        return None  # many separate pieces: a word mark or a logo, not a product
+        return _reject("many separate pieces")  # many separate pieces: a word mark or a logo, not a product
     keep = np.isin(lab, big)
     # The opening above shaves thin attached parts (grill legs, glasses arms, cords): put back raw pixels touching them.
     keep |= raw & ndimage.binary_dilation(keep, iterations=3)
     fg = ndimage.binary_fill_holes(keep)
     edge = np.concatenate([fg[:2].ravel(), fg[-2:].ravel(), fg[:, :2].ravel(), fg[:, -2:].ravel()])
-    if edge.mean() > 0.015:
-        return None  # the product runs off its own photo: it would show sliced (a tight crop grazing the edge is fine)
+    # A product standing on the photo's bottom edge (Dillard's crops shoes and bags tight to the floor) is whole: only
+    # the bottom edge touched, along at most half its width.
+    rests = fg[-2:].any(axis=0).mean() <= 0.5 and not (fg[:2].any() or fg[:, :2].any() or fg[:, -2:].any())
+    if edge.mean() > 0.015 and not rests:
+        return _reject("the product runs off its own photo")  # the product runs off its own photo: it would show sliced (a tight crop grazing the edge is fine)
     if not tight and (off[fg] <= 40).mean() > 0.6:
-        return None  # white on white (the JBL Go): it cuts out grey
+        return _reject("white on white (the JBL Go)")  # white on white (the JBL Go): it cuts out grey
     share = fg.mean()
     if share < 0.04 or share > 0.9:
-        return None
+        return _reject("product too small or too big in its photo")
     ys, xs = np.nonzero(fg)
     w, h = xs.max() - xs.min() + 1, ys.max() - ys.min() + 1
     if max(w, h) > 3 * min(w, h):
-        return None  # a banner or badge ("HEATED"), not a product
+        return _reject("a banner or badge ('HEATED'), not a product")  # a banner or badge ("HEATED"), not a product
     if len(big) > 4 and fg.sum() < 0.2 * w * h:
-        return None  # a few sparse letters around an icon: a logo ("vstapn"), not a product
+        return _reject("a few sparse letters around an icon")  # a few sparse letters around an icon: a logo ("vstapn"), not a product
     alpha = Image.fromarray((fg * 255).astype("uint8")).filter(ImageFilter.GaussianBlur(1.0))
     out = im.convert("RGBA")
     out.putalpha(alpha)
@@ -417,7 +454,7 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
         # A store's own storefront pick (name == brand, "Bass Pro Shops") carries its logo, not a product.
         if (p.get("name") or "").strip().lower() == (p.get("brand") or "").strip().lower():
             continue
-        if COVER_NEVER.search(p.get("name") or "") or " " not in (p.get("name") or "").strip():
+        if COVER_NEVER.search(p.get("name") or "") or (slug.startswith("store-") and WORN.search(p.get("name") or "")) or " " not in (p.get("name") or "").strip():
             continue  # a one-word name ("Gisou") is a storefront pick: its photo is the word mark
         seen.add(u)
         cands.append(p)
@@ -654,7 +691,7 @@ def usable_count(row):
     skip = COVER_SKIP.get(slug)
     for p in candidates(slug):
         u = p.get("image")
-        if not u or not u.startswith("https://") or u in BAD_PHOTOS or u in STORE_REJECTS or COVER_NEVER.search(p.get("name") or ""):
+        if not u or not u.startswith("https://") or u in BAD_PHOTOS or u in STORE_REJECTS or COVER_NEVER.search(p.get("name") or "") or (slug.startswith("store-") and WORN.search(p.get("name") or "")):
             continue
         if (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, [], row["group"]):
             continue

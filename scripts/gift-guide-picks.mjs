@@ -426,14 +426,14 @@ export const fillCounts = { rows: 0, store: 0, guides: 0, noCommission: 0, noSto
  * top 25 (FILL_HREFS) like a store fill; the files' own `fits` are not taken. File prices are not checked prices:
  * dropped. Every row needs its affiliate link (Rakuten on click.linksynergy.com, Awin on www.awin1.com: AFFILIATE_HOSTS).
  * - _momcozy-1118.json: 10 Momcozy Rakuten deep links (breast pumps already left out), New Mom only.
- * - _fidget-1118.json: The Fidget Company (Awin). The Executive Set (an executive desk set) in Dad and Coworkers; the
- *   Classic Set in the big kids and teens guides, Stocking Stuffers and Coworkers. Its collection link is skipped (H3;
+ * - _fidget-1118.json: The Fidget Company (Awin). The Classic Set in the big kids and teens guides and Stocking
+ *   Stuffers; never Dad or Coworkers (owner 11-19). Both sets sit on its store page. Its collection link is skipped (H3;
  *   collectionLink would hide it anyway).
  */
 export const LATE_FILLS = {
   "_momcozy-1118.json": () => ["new-mom"],
-  "_fidget-1118.json": (r) => /\bexecutive\b/i.test(r.name) ? ["dad", "coworkers"]
-    : /\bclassic\b/i.test(r.name) ? ["boys-big-kids", "girls-big-kids", "gender-neutral-big-kids", "boys-teens", "girls-teens", "gender-neutral-teens", "stocking-stuffers", "coworkers"] : [],
+  // Owner 11-19: "Remove fidget from dad and coworker" (both sets stay on The Fidget Company's store page).
+  "_fidget-1118.json": (r) => /\bclassic\b/i.test(r.name) ? ["boys-big-kids", "girls-big-kids", "gender-neutral-big-kids", "boys-teens", "girls-teens", "gender-neutral-teens", "stocking-stuffers"] : [],
 };
 export const lateFillCounts = {};
 for (const [f, guidesFor] of Object.entries(LATE_FILLS)) {
@@ -443,6 +443,9 @@ for (const [f, guidesFor] of Object.entries(LATE_FILLS)) {
     if (!r || typeof r.href !== "string" || typeof r.name !== "string" || typeof r.affiliate_href !== "string" || collectionLink(r.href)) continue;
     c.rows += 1;
     const { price: _price, compare_at: _compareAt, commission: _commission, fits: _fits, ...row } = r;
+    // Every row also sits on its own store page, even one no guide takes (the Fidget Executive Set, owner 11-19).
+    const own = typeof r.store === "string" ? storeFor(r.store) : null;
+    if (own) add(own, row, f);
     for (const g of guidesFor(r)) {
       if (!GUIDE_SLUGS.has(g)) continue;
       const before = guides[g]?.length ?? 0;

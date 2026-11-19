@@ -1569,7 +1569,7 @@ export const holistic = { removed: 0, byRule: {}, toppedUp: 0, short: [] };
     if (PRICE_CAP[slug] && typeof p.price === "number" && p.price > PRICE_CAP[slug]) return "over budget";
     // Fit audit r4 (fitR4Why): per-guide misfits, medical care, stethoscopes and nurse items off their jobs, vague names,
     // wrong colors, North Louisiana's own items; a Louisiana guide lists items, not places.
-    if (LOUISIANA_GUIDES.has(slug) && placeRow(p, homepageLink(p.href))) return "r4: place, not an item";
+    if (LOUISIANA_GUIDES.has(slug) && placeRow(p)) return "r4: place, not an item";
     return fitR4Why(slug, sectionOf.get(slug) ?? "", p);
   };
   // A Pets guide drops filler that is not for its animal, women-coded beauty first, while it keeps TOP_GIFTS picks (owner
@@ -1769,8 +1769,13 @@ for (const [slug, list] of Object.entries(deals)) {
 }
 // Fit audit r4 names (R4_NAME_FIXES: "Salt, Fat" -> "Salt, Fat, Acid, Heat", "Venezia 18K" -> "St. Louis Venezia 18K
 // Sunglasses"), on every page's final list, then one row per product again.
+// Only a renamed row can newly repeat another (the same name, or the same link): that one goes; every other row stays as
+// the page's own rules left it (a store page keeps its color variants).
 for (const slug of Object.keys(pageList)) {
-  pageList[slug] = noRepeats(pageList[slug].map((p) => { const r = r4Name(p); return r.name === p.name ? p : { ...p, ...r }; }));
+  const seen = new Set();
+  pageList[slug] = pageList[slug].map((p) => { const r = r4Name(p); return r.name === p.name ? p : { ...p, ...r, renamed: true }; })
+    .filter((p) => { const k = [compact(p.name), p.href]; const dup = p.renamed && k.some((x) => seen.has(x)); k.forEach((x) => seen.add(x)); return !dup; })
+    .map(({ renamed: _r, ...p }) => p);
 }
 const loved = new Map();
 for (const [slug, list] of Object.entries(pageList)) {

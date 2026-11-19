@@ -748,7 +748,7 @@ export const vagueGiftName = (p) => {
 const TEACHERS = ["educators", "elementary-teachers", "high-school-teachers", "teachers", "paraprofessionals", "principals-and-school-staff"];
 const DENTAL = ["dentists", "dental-assistants", "dental-hygienists"];
 const BUDGET_25 = ["under-25", "under-20", "under-15", "under-10", "under-5"];
-const LA_PLACE = /\b(restaurant|house tours|festival of lights|syrup shop|foods)$/i;
+const LA_PLACE = /\b(restaurant( & market)?|house tours( and cafe)?|festival of lights|syrup shop|foods)$|^dupuy's abbeville$/i;
 /** The audit's per-guide misfits (R4_OFF[slug] tested against "<name> <brand>"). */
 export const R4_OFF = {
   ...Object.fromEntries(TEACHERS.map((g) => [g, /\bretirement\b|\bdentist\b|\bdoorbell\b|\bserver aprons?\b|\bwine tote\b/i])),
@@ -833,8 +833,8 @@ export const colorWhy = (slug, p) => {
 /** North Louisiana makers, teams and towns (Monroe, West Monroe, Shreveport, Bossier, Ruston, Natchitoches ...). */
 export const NORTH_LA = /\b(north louisiana|shreveport|bossier|monroe|ruston|natchitoches|minden|grambling|louisiana tech|la tech|ulm|warhawks|duck commander|lasyone'?s|cane river)\b/i;
 export const NORTH_LA_GUIDE = "north-louisiana";
-/** Louisiana guides' place rows: a homepage, event page or business name, not an item (Poche's, Dupuy's, Steen's shop). */
-export const placeRow = (p, homepage) => homepage || LA_PLACE.test(String(p.name ?? "").trim()) || /\/event-details\//i.test(String(p.href ?? ""));
+/** Louisiana guides' place rows: a business or event named as the pick, not an item (Poche's Restaurant & Market, Dupuy's Abbeville, Steen's Syrup Shop). */
+export const placeRow = (p) => LA_PLACE.test(String(p.name ?? "").trim()) || /\/event-details\//i.test(String(p.href ?? ""));
 /** Why a pick does not fit this page under the r4 rules ("" when it fits). `group` is its index group. */
 export const fitR4Why = (slug, group, p) => {
   const name = String(p.name ?? "");
@@ -872,7 +872,6 @@ export const TYPE_CAPS = [
   [/\bseat cushion\b/i, 2],
   [/\b\d+[- ]?(piece|pc|pcs)\b.*\btool (set|kit)\b/i, 1],
   [/\bcoffee club\b/i, 1],
-  [/\bsam'?s club\b.*\bmembership\b/i, 1],
   [/\bmulti-?tool\b|\bleatherman (wave|wingman|signal|charge|skeletool|rebar|free)\b/i, 2],
   [/\bcandles?\b|\btea gift set\b/i, 1, ["book-lover"]],
   [/\belectric toothbrush\b|\bwater flosser\b|\bsonicare\b|\boral-b\b|\bcocofloss\b/i, 1, DENTAL],

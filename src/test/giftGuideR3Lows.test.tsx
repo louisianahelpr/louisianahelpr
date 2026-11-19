@@ -10,7 +10,7 @@
  *  - #17: the "Kids by age" chip opens the Kids by age block (its anchor), not just the For kids group.
  *
  * @mutate scripts/gift-guide-photo-covers.py |         if (len(lines) <= 2 and all( |         if (len(lines) <= 3 and all(
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | ...(row === "for-kids" && G.ageHubLabels[g.slug] ? { label: g.title } : {}) | ...({})
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | (row === "for-kids" && G.ageHubLabels[g.slug] ? g.title : undefined) | (undefined)
  * @mutate src/lib/giftGuidePageMeta.mjs |   if (gift) { |   if (false) {
  * @mutate api/share.ts |     ...(page.robots ? { robots: page.robots } : {}), |
  * @mutate src/content/giftGuideCatalog.ts |     const keyword = q !== "" && (SEARCH_KEYWORDS[g.slug] ?? "").split(" ").includes(q); |     const keyword = false;

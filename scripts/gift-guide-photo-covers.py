@@ -96,6 +96,14 @@ for _k, _v in _load("_store-cover-images-r2-1118.json").items():
     if isinstance(_v, list):
         _have = {x.get("image") for x in STORE_IMAGES.get(_k, []) if isinstance(x, dict)}
         STORE_IMAGES[_k] = list(STORE_IMAGES.get(_k, [])) + [x for x in _v if isinstance(x, dict) and x.get("image") not in _have]
+# Store cover photos gathered for the text-only store covers (r3 follow-up, 11-19), kept in the repo: each a store's own
+# product photo on a plain backdrop (its product page's og:image or JSON-LD image, its Shopify catalog, or the link
+# library), fetched with a browser user agent at 1 request a second per host, checked against these cutout rules and by eye.
+_extra = os.path.join(ROOT, "scripts", "gift-guide-store-cover-photos.json")
+for _k, _v in (json.load(open(_extra, encoding="utf8")) if os.path.exists(_extra) else {}).items():
+    if isinstance(_v, list):
+        _have = {x.get("image") for x in STORE_IMAGES.get(_k, []) if isinstance(x, dict)}
+        STORE_IMAGES[_k] = list(STORE_IMAGES.get(_k, [])) + [x for x in _v if isinstance(x, dict) and x.get("image") not in _have]
 # Round 2 of the Amazon store fill (short store key -> products), the same way: after the store's own picks.
 STORE_FILL = {f"store-{k}": v for k, v in _load("_store-fill-amazon-1118.json").items() if isinstance(v, list)}
 _rej = os.path.join(ROOT, "scripts", "gift-guide-store-image-rejects.json")
@@ -204,7 +212,7 @@ def fetch(url):
         return data or None
     data = b""
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (cover builder)"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"})
         with urllib.request.urlopen(req, timeout=10) as r:
             data = r.read(6_000_000)
     except Exception as e:  # noqa: BLE001 - a dead photo just isn't used; the cache remembers it as empty
@@ -553,7 +561,10 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
             if group == "By store" and reserved.get(brand_word(p) or None, slug) != slug:
                 no("brand kept by its own store page")
                 continue
-            if key in {cover_key(t, own_brand) for t in taken}:
+            # A store page may show several of its own products of one kind (Durango Boots is all boots, r3 follow-up:
+            # its five boots all counted as "durango:boot" and the cover went text only): there the same item is the same name.
+            same = {dedupe(t.get("name")) for t in taken} if slug.startswith("store-") else {cover_key(t, own_brand) for t in taken}
+            if (dedupe(p.get("name")) if slug.startswith("store-") else key) in same:
                 no("same item already on this cover")
                 continue
             if not data:

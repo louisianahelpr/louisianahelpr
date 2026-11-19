@@ -31,8 +31,9 @@ export const TEEN_TILES: { slug: string; label: string }[] = [
  * A landing row's tiles: its guides, and on For kids the Teens guides that hold picks. The Girls, Boys and Gender-neutral
  * tiles carry a visible caption like the teen tiles (gg-r3 UX audit #10: only the teen tiles had one).
  */
+const hubCaption = (row: GuideRow, g: CatalogGuide) => (row === "for-kids" && G.ageHubLabels[g.slug] ? g.title : undefined);
 const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
-  ...guidesIn(row).map((g) => ({ g, ...(row === "for-kids" && G.ageHubLabels[g.slug] ? { label: g.title } : {}) })),
+  ...guidesIn(row).map((g) => ({ g, label: hubCaption(row, g) })),
   ...(row === "for-kids"
     ? TEEN_TILES.flatMap(({ slug, label }) => {
         const g = guideBySlug(slug);

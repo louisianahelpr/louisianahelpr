@@ -129,7 +129,7 @@ export const rows: Row[] = [
   { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" />, group: "Account" },
   // 25 Days of Louisiana Giveaways (owner 11-19, 20261119200128): a few reminders, Nov 30 to Dec 23. On for everyone;
   // push and the bell only. Shown once its columns are deployed (giveawayColumnsPresent).
-  { key: "giveaway_reminders", emailKey: "email_giveaway_reminders", label: "Giveaway reminders", description: "A few reminders about our 25 Days of Louisiana Giveaways in December.", icon: <Gift className="w-3.5 h-3.5" />, group: "Account", noEmailSwitch: "In the app only, no email for this" },
+  { key: "giveaway_reminders", emailKey: "email_giveaway_reminders", label: "Giveaway reminders", icon: <Gift className="w-3.5 h-3.5" />, group: "Account", noEmailSwitch: "In the app only, no email for this" },
 ];
 
 // ── The "Declutter" group (owner 2026-10-28, via the lead: "Yes, build them") ──

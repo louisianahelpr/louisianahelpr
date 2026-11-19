@@ -57,11 +57,13 @@ const TEXT_ONLY: Record<string, string> = {
   // store merges and the thin-guides-first claim, these hold under 4 clean product photos not already on a cover in
   // their section ("photo not on white" or the variety rule passed the rest over).
   "gift-wrap-and-cards": TRAIN_1530, "acadiana": TRAIN_1530, "fishermen": TRAIN_1530, "book-lover": TRAIN_1530,
-  "car-lover": TRAIN_1530, "pipefitters": TRAIN_1530, "electricians": TRAIN_1530, "hostess": TRAIN_1530, "mom-to-be": TRAIN_1530,
+  "car-lover": TRAIN_1530, "electricians": TRAIN_1530, "hostess": TRAIN_1530, "mom-to-be": TRAIN_1530,
   "store-nordstrom-rack": TRAIN_1530, "store-bluemercury": TRAIN_1530, "store-jellycat": TRAIN_1530, "store-kendra-scott": TRAIN_1530,
   "store-le-creuset": TRAIN_1530, "store-parachute-home": TRAIN_1530, "store-st-bernard": TRAIN_1530, "store-terrain": TRAIN_1530,
   "store-the-sleep-code": TRAIN_1530, "store-thenorthface": TRAIN_1530, "store-vevor": TRAIN_1530, "store-vuori": TRAIN_1530,
   "grill-master": TRAIN_1530, "new-puppy": TRAIN_1530, "store-saiehello": TRAIN_1530,
+  // After the _fill-1119-a import (title-checked Amazon rows), measured 2026-11-19.
+  "oilfield-and-trades": TRAIN_1530, "plumbers": TRAIN_1530, "educators": TRAIN_1530,
 };
 /** Covers with four products whose photos read as gingham to the pixel check (clear glass and white jars). */
 const PIXEL_PALE: Record<string, string> = {

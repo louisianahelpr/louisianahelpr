@@ -40,6 +40,10 @@
     "key": "yeti:cooler"
    },
    {
+    "name": "Authentic Original™ 2-Eye Boat Shoe",
+    "key": "sperry:shoe"
+   },
+   {
     "name": "Samsung Galaxy Watch9 44mm Bluetooth in Graphite",
     "key": "samsung:graphite"
    },
@@ -50,10 +54,6 @@
    {
     "name": "Vineyard Vines Classic Shep Shirt",
     "key": "vineyardvines:shirt"
-   },
-   {
-    "name": "HEYDUDE Austin Lift Leather Mule",
-    "key": "heydude:mule"
    }
   ]
  },
@@ -239,8 +239,8 @@
     "key": "landsend:gloves"
    },
    {
-    "name": "Dearfoams Fitzgerald Men's Slipper",
-    "key": "dearfoams:shoe"
+    "name": "FootJoy HyperFlex Golf Shoes",
+    "key": "footjoy:shoe"
    },
    {
     "name": "The North Face ThermoBall Traction Mules",
@@ -451,10 +451,6 @@
     "key": "southerntide:zip"
    },
    {
-    "name": "FootJoy Premiere Series Field Golf Shoes",
-    "key": "footjoy:shoe"
-   },
-   {
     "name": "Vortex Optics Diamondback HD 8x42 Binoculars",
     "key": "vortexoptics:binoculars"
    },
@@ -465,6 +461,10 @@
    {
     "name": "Leatherman Rebar Multitool",
     "key": "leatherman:multitool"
+   },
+   {
+    "name": "Carhartt Rain Defender Heavyweight Hooded Shirt Jacket",
+    "key": "carhartt:jacket"
    }
   ]
  },
@@ -580,8 +580,8 @@
     "key": "paddywax:boot"
    },
    {
-    "name": "Terrain Lithuanian Linen Dish Towel",
-    "key": "terrain:towel"
+    "name": "Jellycat Bunny",
+    "key": "jellycat:bunny"
    }
   ]
  },
@@ -756,12 +756,12 @@
     "key": "vevor:scooter"
    },
    {
-    "name": "KidKraft Let's Cook Play Kitchen",
-    "key": "kidkraft:kitchen"
+    "name": "Bombas Peanuts Toddler Gripper Calf Sock 4-Pack",
+    "key": "bombas:sock"
    },
    {
-    "name": "John Deere Bubble-N-Go Mower",
-    "key": "johndeere:mower"
+    "name": "KidKraft Let's Cook Play Kitchen",
+    "key": "kidkraft:kitchen"
    }
   ]
  },
@@ -964,12 +964,12 @@
     "key": "barefootdreams:blanket"
    },
    {
-    "name": "Bombas Peanuts Toddler Gripper Calf Sock 4-Pack",
-    "key": "bombas:sock"
-   },
-   {
     "name": "4-in-1 Kickin' Tunes Play Gym",
     "key": "babyeinstein:gym"
+   },
+   {
+    "name": "Burt's Bees Baby Bee Deluxe Gift Set",
+    "key": "burtsbees:gift"
    }
   ]
  },
@@ -2138,7 +2138,24 @@
  },
  "boater": {
   "section": "Hobbies",
-  "items": []
+  "items": [
+   {
+    "name": "Billfish™ 3-Eye Boat Shoe",
+    "key": "sperry:shoe"
+   },
+   {
+    "name": "Ray-Ban Aviator Classic Sunglasses",
+    "key": "rayban:sunglasses"
+   },
+   {
+    "name": "SUNNYLiFE Luxe Floating Chair",
+    "key": "sunnylife:chair"
+   },
+   {
+    "name": "YETI x Southern Tide Rambler Skipjack Tumbler",
+    "key": "yeti:drink"
+   }
+  ]
  },
  "kayaker": {
   "section": "Hobbies",
@@ -2212,7 +2229,24 @@
  },
  "pipefitters": {
   "section": "By career",
-  "items": []
+  "items": [
+   {
+    "name": "Leatherman Super Tool 300",
+    "key": "leatherman:tool"
+   },
+   {
+    "name": "RIDGID Pipe Wrench",
+    "key": "ridgid:wrench"
+   },
+   {
+    "name": "Milwaukee M12 Heated Jacket",
+    "key": "milwaukee:jacket"
+   },
+   {
+    "name": "DEWALT Tape Measure",
+    "key": "dewalt:measure"
+   }
+  ]
  },
  "linemen": {
   "section": "By career",
@@ -2408,7 +2442,24 @@
  },
  "small-business-owners": {
   "section": "By career",
-  "items": []
+  "items": [
+   {
+    "name": "Cross Pen",
+    "key": "cross:pen"
+   },
+   {
+    "name": "Belkin MagSafe Stand",
+    "key": "belkin:stand"
+   },
+   {
+    "name": "Anker 3-in-1 Charging Station",
+    "key": "anker:station"
+   },
+   {
+    "name": "Rocketbook Fusion Notebook",
+    "key": "rocketbook:notebook"
+   }
+  ]
  },
  "real-estate-agents": {
   "section": "By career",
@@ -2688,7 +2739,24 @@
  },
  "principals-and-school-staff": {
   "section": "By career",
-  "items": []
+  "items": [
+   {
+    "name": "12-Month Academic Planner",
+    "key": "thecontainerstore:planner"
+   },
+   {
+    "name": "Anker Power Bank",
+    "key": "anker:bank"
+   },
+   {
+    "name": "Post-it Notes Cube",
+    "key": "postit:cube"
+   },
+   {
+    "name": "Vera Bradley Lanyard",
+    "key": "verabradley:lanyard"
+   }
+  ]
  },
  "professors": {
   "section": "By career",
@@ -3737,12 +3805,12 @@
   "section": "By store",
   "items": [
    {
-    "name": "Vertuo Next Espresso Machine",
-    "key": "nespresso:machine"
-   },
-   {
     "name": "Stagg EKG Pro Electric Kettle",
     "key": "fellow:kettle"
+   },
+   {
+    "name": "Vertuo Next Espresso Machine",
+    "key": "nespresso:machine"
    },
    {
     "name": "Love Forever Flute Pair",
@@ -3949,6 +4017,10 @@
     "key": "bose:bose soundlink max bluetooth speaker"
    },
    {
+    "name": "Bose QuietComfort Headphones",
+    "key": "bose:bose quietcomfort headphones"
+   },
+   {
     "name": "Bose QuietComfort Ultra Earbuds (2nd Gen)",
     "key": "bose:bose quietcomfort ultra earbuds 2nd gen"
    },
@@ -3959,6 +4031,10 @@
    {
     "name": "Bose SoundLink Micro Speaker (2nd Gen)",
     "key": "bose:bose soundlink micro speaker 2nd gen"
+   },
+   {
+    "name": "Bose QuietComfort Ultra Headphones (2nd Gen)",
+    "key": "bose:bose quietcomfort ultra headphones 2nd gen"
    }
   ]
  },

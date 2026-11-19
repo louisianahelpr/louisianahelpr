@@ -411,7 +411,11 @@ const featuredFirst = (slug, list) => {
     }
     else later.push(p);
   }
-  return [...head, ...later.sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b))];
+  // Photos first inside the first TOP_GIFTS (pre-launch audit 11-18 PM: Dad #10 a text tile, Him #10 no photo); the
+  // owner's pinned picks keep the top whatever their photo.
+  const pinned = new Set((PINNED_TOP[slug] ?? []).map((n) => findByName(head, n)).filter(Boolean));
+  const top = [...head.filter((p) => pinned.has(p)), ...head.filter((p) => !pinned.has(p) && p.image), ...head.filter((p) => !pinned.has(p) && !p.image)];
+  return [...top, ...later.sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b))];
 };
 /**
  * TRENDING (owner 11-18 PM: "All guides should have the top trending gifts"): _featured-order.json's "trending" list,
@@ -574,6 +578,9 @@ for (const [slug, list] of sortedGuides) if (GUIDE_SLUGS.has(slug) && !storeList
   }
 }
 const FIXED_PAGES = new Set(["store-amazon", "store-zchocolat", "store-diecast-models"]);
+/** How many guides (store pages aside) list a link in their first TOP_GIFTS: a store page's gift score. */
+const topCount = new Map();
+for (const [slug, list] of sortedGuides) if (!slug.startsWith("store-")) for (const p of list.slice(0, TOP_GIFTS)) topCount.set(p.href, (topCount.get(p.href) ?? 0) + 1);
 for (const slug of Object.keys(storeList)) {
   if (FIXED_PAGES.has(slug)) continue;
   const byHref = new Map();
@@ -584,7 +591,11 @@ for (const slug of Object.keys(storeList)) {
     names.add(compact(p.name));
   }
   const firstWins = [...byHref.values()];
-  if (firstWins.length) pageList[slug] = [...firstWins.filter((p) => p.image), ...firstWins.filter((p) => !p.image)];
+  // Photos first, then the store's best gifts (pre-launch audit 11-18 PM: Walmart opened on a beard trimmer, an Elf
+  // plush and a $3.88 glass): trending picks, then the picks the most guides list in their first TOP_GIFTS.
+  const score = (p) => (isTrending(p) ? 1000 : 0) + (topCount.get(p.href) ?? 0);
+  const ranked = firstWins.map((p, i) => [p, i]).sort(([a, i], [b, j]) => Number(!a.image) - Number(!b.image) || score(b) - score(a) || i - j).map(([p]) => p);
+  if (ranked.length) pageList[slug] = ranked;
 }
 /** The fixed store pages (zChocolat, Diecast) list the static picks plus every researched pick on their host, by name. */
 for (const [slug, host] of [["store-zchocolat", "www.zchocolat.com"], ["store-diecast-models", "www.diecastmodelswholesale.com"]]) {

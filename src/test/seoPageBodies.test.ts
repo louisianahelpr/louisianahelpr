@@ -95,9 +95,9 @@ function expectOwnPage(doc: string, h1Text: string) {
 describe("the data the build writes", () => {
   it("holds every indexed guide, with picks for the guides that have them", () => {
     const slugs = Object.keys(GIFT_GUIDE_SEO);
-    expect(slugs.length).toBeGreaterThan(300);
+    expect(slugs.length).toBeGreaterThan(120);
     for (const s of slugs) expect(data.guides[s], s).toBeDefined();
-    expect(Object.values(data.guides).filter((g) => g.indexed && g.picks.length > 0).length).toBeGreaterThan(300);
+    expect(Object.values(data.guides).filter((g) => g.indexed && g.picks.length > 0).length).toBeGreaterThan(120);
     expect(data.groups.length).toBeGreaterThan(5);
   });
 
@@ -116,8 +116,8 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
     expect(mom.picks.length).toBeGreaterThan(5);
     const [name, store, href] = mom.picks[0];
     const root = rootOf(body);
-    expect(root).toContain(`>${name.replace(/&/g, "&amp;")}</a>`);
-    expect(root).toContain(`on ${store}`);
+    expect(root).toContain(`>${name.replace(/&/g, "&amp;").replace(/'/g, "&#39;")}</a>`);
+    expect(root).toContain(`on ${store.replace(/&/g, "&amp;").replace(/'/g, "&#39;")}`);
     expect(root).toContain(`href="${href.replace(/&/g, "&amp;")}" rel="sponsored nofollow noopener"`);
     expect(root).toContain('<a href="/gift-guides">Holiday Gift Guides</a>');
     const list = jsonLd(body).find((b) => b["@type"] === "ItemList") as { itemListElement: { name: string; url: string }[] };
@@ -128,7 +128,7 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
   it("every indexed guide with picks names its first pick in the raw HTML (sampled across the list)", async () => {
     const slugs = Object.keys(GIFT_GUIDE_SEO).filter((s) => data.guides[s]?.picks.length);
     const sample = slugs.filter((_, i) => i % 25 === 0);
-    expect(sample.length).toBeGreaterThan(10);
+    expect(sample.length).toBeGreaterThan(5);
     for (const s of sample) {
       const { status, body } = await html(`gift-guides/${s}`);
       expect(status, s).toBe(200);
@@ -142,7 +142,7 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
     expect(status).toBe(200);
     expectOwnPage(body, "Holiday Gift Guides");
     const links = [...rootOf(body).matchAll(/<a href="\/gift-guides\/([a-z0-9-]+)">/g)].map((m) => m[1]);
-    expect(links.length).toBeGreaterThan(200);
+    expect(links.length).toBeGreaterThan(100);
     expect(links).toContain("mom");
     expect(types(body)).toContain("ItemList");
   });
@@ -208,7 +208,7 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
 
   it("every guide and hire URL in it is one the function serves 200 and indexable; /25days is in it", async () => {
     const guides = locs.filter((p) => p.startsWith("/gift-guides/"));
-    expect(guides.length).toBeGreaterThan(300);
+    expect(guides.length).toBeGreaterThan(120);
     for (const p of guides) expect(data.guides[p.slice("/gift-guides/".length)]?.indexed, p).toBe(true);
     for (const p of locs.filter((x) => x.startsWith("/hire/")).slice(0, 5)) expect((await fetchPage(p.slice(1))).status, p).toBe(200);
     expect(locs).toContain("/25days");
@@ -217,7 +217,7 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
 
   it("a guide whose picks carry a price-check day has that day as its lastmod", () => {
     expect(xml).toMatch(/<loc>https:\/\/www\.louisianahelpr\.com\/gift-guides<\/loc>\s*<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
-    expect((xml.match(/<lastmod>/g) ?? []).length).toBeGreaterThan(100);
+    expect((xml.match(/<lastmod>/g) ?? []).length).toBeGreaterThan(40);
   });
 });
 

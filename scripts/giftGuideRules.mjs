@@ -772,10 +772,17 @@ export const foodTinOff = (slug, p) => (FOOD_TIN_OFF_GUIDES.includes(slug) || GU
  * NO MAGAZINES FOR FAMILY (owner 11-19: "remove magazine for mom"): a magazine subscription (Magazines.com, Magzter, any
  * "Magazine Subscription") shows only on Subscriptions, Book Lover and store pages.
  */
-export const MAGAZINE = /\bmagazines?\b|\bmagzter\b|\bmagazines\.com\b/i;
+/** The pick link's host is one of these domains (or a subdomain); parses the URL, so no unanchored substring match. */
+const hrefOnHost = (href, ...domains) => {
+  const raw = String(href ?? "");
+  if (!URL.canParse(raw)) return false;
+  const h = new URL(raw).hostname.toLowerCase();
+  return domains.some((d) => h === d || h.endsWith(`.${d}`));
+};
+export const MAGAZINE = /\bmagazines?\b|\bmagzter\b/i;
 export const MAGAZINE_OK_GUIDES = ["subscriptions", "book-lover"];
 export const magazineOff = (slug, p) => !slug.startsWith("store-") && !MAGAZINE_OK_GUIDES.includes(slug)
-  && (MAGAZINE.test(p.name) || /^(magazines\.com|magzter)$/i.test(String(p.brand ?? "").trim()) || /magazines\.com|magzter\.com/i.test(String(p.href ?? "")));
+  && (MAGAZINE.test(p.name) || /^(magazines\.com|magzter)$/i.test(String(p.brand ?? "").trim()) || hrefOnHost(p.href, "magazines.com", "magzter.com"));
 
 /**
  * NO WOMEN'S SPERRYS (owner 11-19: "no women wear sperrys these days"): women's Sperry boat shoes and loafers show on no
@@ -796,7 +803,7 @@ export const sperryOff = (slug, p) => {
  */
 export const LIFE_IS_GOOD = /\blife is good\b|^lig\b/i;
 export const lifeIsGoodOff = (slug, p) => !slug.startsWith("store-")
-  && (LIFE_IS_GOOD.test(String(p.brand ?? "")) || LIFE_IS_GOOD.test(p.name) || /lifeisgood\.com/i.test(String(p.href ?? "")));
+  && (LIFE_IS_GOOD.test(String(p.brand ?? "")) || LIFE_IS_GOOD.test(p.name) || hrefOnHost(p.href, "lifeisgood.com"));
 
 /**
  * NO BASS PRO BLANKETS FOR HER (owner 11-19: "there are a lot better blanket options than one from bass pro"): Bass Pro
@@ -806,7 +813,7 @@ export const lifeIsGoodOff = (slug, p) => !slug.startsWith("store-")
 export const OUTDOOR_STORE = /^(bass pro( shops)?|cabela'?s)$/i;
 export const HOME_DECOR = /\b(blankets?|throws?|sherpa|quilts?|pillows?|d[eé]cor|wall art|signs?|rugs?|curtains?|candles?|lamps?|mugs?|ornaments?)\b/i;
 export const outdoorDecorOff = (slug, p) => WOMEN_GUIDES.includes(slug)
-  && (OUTDOOR_STORE.test(String(p.brand ?? "").trim()) || OUTDOOR_STORE.test(String(p.store ?? "").trim()) || /^store-(bass-pro|cabela)/.test(String(p.store ?? "")) || OUTDOOR_STORE.test(String(p.retailer ?? "").trim()) || /basspro\.com|cabelas\.com/i.test(String(p.href ?? "")))
+  && (OUTDOOR_STORE.test(String(p.brand ?? "").trim()) || OUTDOOR_STORE.test(String(p.store ?? "").trim()) || /^store-(bass-pro|cabela)/.test(String(p.store ?? "")) || OUTDOOR_STORE.test(String(p.retailer ?? "").trim()) || hrefOnHost(p.href, "basspro.com", "cabelas.com"))
   && HOME_DECOR.test(p.name);
 
 /**

@@ -35,7 +35,6 @@ const ATTORNEY_IN_A_DEFINITION: Record<string, string> = {
 const ACCOUNTANT_AS_A_CAREER: Record<string, string> = {
   "src/content/giftGuideIndex.ts": "the gift guides' By career list: \"gifts for Accountants\"",
   "src/content/giftGuidePicks.ts": "generated from the gift-guide picks: the Accountants career guide's slug and picks",
-  "src/content/giftGuideSeo.mjs": "generated: the Accountants career guide's search name, \"Gifts for Accountants\"",
   "src/content/giftGuideCoverSlugs.ts": "generated: the gift guides with a cover file, by slug: the Accountants career guide's \"accountants\"",
   "src/lib/giftGuideShareImages.mjs": "the gift guides with a share image, by slug: the Accountants career guide's \"accountants\"",
 };

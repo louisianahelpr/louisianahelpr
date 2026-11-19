@@ -129,6 +129,14 @@ describe("vercel.json redirects", () => {
   // Owner's UI audit 11-09, F138: the section is called Homes everywhere (menu, dock, landing card), but its page is
   // /rentals, so a typed /homes was the Not Found page. Temporary (307), so a later /homes page is not stuck behind a
   // cached permanent redirect.
+  // Lead 11-19: a bare /go (the short link people type from the gift-guide pins) was a 404. Temporary (307), so a later
+  // /go page is not stuck behind a cached permanent redirect.
+  it("/go goes to the gift guides (temporary)", () => {
+    const r = config.redirects.find((x) => x.source === "/go");
+    expect(r?.destination).toBe("/gift-guides");
+    expect(r?.permanent).toBe(false);
+  });
+
   it("/homes goes to the Homes section's page, /rentals (temporary)", () => {
     const r = config.redirects.find((x) => x.source === "/homes");
     expect(r?.destination).toBe("/rentals");

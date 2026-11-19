@@ -279,15 +279,15 @@ const isTiff = (u) => /\.tiff?(\?|#|$)/i.test(u) && !/[?&]fmt=(png|jpe?g|webp)\b
  * link is a sold-out product's opens the in-stock one instead, under its name, wherever it appears. The old row's file
  * price is not the new product's (dropped), and its photo shows the old product, so the photo is kept only where the
  * swap is the same product in another size, color or pack (SOLDOUT_SAME_LOOK, judged from the two names); the others
- * fall to the photo finder. The new links are plain walmart.com product pages (SOLDOUT_HOSTS): no Walmart creator short
- * link exists for them yet.
+ * fall to the photo finder. When the file gives the new product's Walmart Creator link (new_affiliate_href) and photo
+ * (new_image), those are used; a row without a creator link opens the plain walmart.com product page (SOLDOUT_HOSTS).
  */
 export const SOLDOUT_HOSTS = new Set(listed("SOLDOUT_SWAP_HOSTS"));
 export const SOLDOUT_SAME_LOOK = /CREAMi|DualZone|Tony Chachere|Ayieyill|Salted Coconut|Headlamp|MUK LUKS/i;
 const SOLDOUT = new Map();
 for (const s of readList("_soldout-swaps-1118.json")) {
   if (typeof s?.old_href !== "string" || typeof s.new_href !== "string" || typeof s.name !== "string") continue;
-  try { if (!SOLDOUT_HOSTS.has(new URL(s.new_href).hostname)) continue; } catch { continue; /* not a link */ }
+  if (!URL.canParse(s.new_href)) continue;
   SOLDOUT.set(s.old_href, s);
 }
 export const soldout = { swapped: 0 };
@@ -296,9 +296,14 @@ const withSoldoutSwap = (p) => {
   const s = SOLDOUT.get(p.href) ?? SOLDOUT.get(p.affiliate_href);
   if (!s) return p;
   soldout.swapped += 1;
-  SOLDOUT_SWAPPED.add(s.new_href);
+  // A Walmart Creator link for the new product (new_affiliate_href, on an AFFILIATE_HOSTS host) earns; without one the
+  // plain product page is the link (SOLDOUT_HOSTS). The new product's own photo (new_image) wins over the old one.
+  const creator = (() => { try { return typeof s.new_affiliate_href === "string" && AFFILIATE.has(new URL(s.new_affiliate_href).hostname) ? s.new_affiliate_href : ""; } catch { return ""; } })();
+  const newImage = typeof s.new_image === "string" && s.new_image.startsWith("https://") ? s.new_image : "";
+  if (!creator) SOLDOUT_SWAPPED.add(s.new_href);
   const { price: _p, price_source: _ps, price_checked_at: _pc, price_currency: _pcur, image: oldImage, ...rest } = p;
-  return { ...rest, name: s.name, href: s.new_href, affiliate_href: s.new_href, ...(SOLDOUT_SAME_LOOK.test(s.name) && oldImage ? { image: oldImage } : {}) };
+  const image = newImage || (SOLDOUT_SAME_LOOK.test(s.name) ? oldImage : "");
+  return { ...rest, name: s.name, href: s.new_href, affiliate_href: creator || s.new_href, ...(image ? { image } : {}) };
 };
 function toPick(p, where) {
   if (blockedBrand(p)) return hidden.push(`${where}: ${p.name} is a blocked brand`), null;
@@ -1386,10 +1391,27 @@ export const BELONG_FILL_HREFS = new Map();
       for (const r of rows) if (r && typeof r.href === "string" && typeof r.name === "string") (fillRows[slug] ??= []).push({ r, f });
     }
   }
+  // MAIL CARRIER FILL (_mail-carrier-1119.json, lead 11-19): priced Walmart picks of $20 or less for Mail Carrier &
+  // Delivery Drivers, after its fitting picks. A list, { picks | links: [...] } or { "<slug>": [...] }; a walmrt.us link in
+  // `href` is the affiliate link (readList). Each row needs its own price at MAIL_CARRIER_MAX or less; its checked
+  // price shows only under the price rules (verifiedPrice).
+  const MAIL_FILL = "_mail-carrier-1119.json";
+  {
+    const v = readJson(MAIL_FILL);
+    const rows = Array.isArray(v) ? v : Array.isArray(v?.picks) ? v.picks : Array.isArray(v?.links) ? v.links : Array.isArray(v?.[MAIL_CARRIER]) ? v[MAIL_CARRIER] : [];
+    for (const raw of rows) {
+      const r = raw && !raw.affiliate_href && typeof raw.href === "string" && /^https:\/\/walmrt\.us\//.test(raw.href)
+        ? { ...raw, affiliate_href: raw.href, href: typeof raw.product_url === "string" ? raw.product_url : raw.href } : raw;
+      if (!r || typeof r.href !== "string" || typeof r.name !== "string" || !(num(r.price) <= MAIL_CARRIER_MAX)) continue;
+      (fillRows[MAIL_CARRIER] ??= []).push({ r, f: MAIL_FILL });
+    }
+  }
   const fillPick = (r, f) => {
     let host = "";
     try { host = new URL(r.href).hostname; } catch { return null; }
-    const { price: _price, network: _network, ...row } = r;
+    const { price: _price, network: _network, ...rest } = r;
+    const row = f === MAIL_FILL ? { ...rest, price: r.price } : rest;
+    if (f === MAIL_FILL) return toPick({ brand: "", line: "", store: "Walmart", ...row }, f);
     const amazon = AMAZON.has(host);
     return toPick({ brand: "", line: "", ...row, ...(amazon ? { store: "Amazon", image_source: "amazon-sitestripe" } : {}),
       ...(!amazon && AFFILIATE.has(host) ? { affiliate_href: r.href } : {}) }, f);

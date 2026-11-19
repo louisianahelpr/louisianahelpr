@@ -60,7 +60,13 @@ export const BRAND_SITES = ["www.zchocolat.com", "www.diecastmodelswholesale.com
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
  * Walmart Creator, CJ, Awin, Rakuten, ShopMy product links). Exact hosts; two-way (each is used by some link).
  */
-export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "www.jdoqocy.com", "www.dpbolvw.net", "www.tkqlhce.com", "www.awin1.com", "click.linksynergy.com", "go.shopmy.us"] as const;
+/**
+ * Plain store hosts a sold-out swap may open (owner 11-19, _soldout-swaps-1118.json): the in-stock Walmart product
+ * pages that replaced 13 sold-out ones, until Walmart creator short links exist for them. Only swapped rows use it
+ * (scripts/gift-guide-picks.mjs SOLDOUT_HOSTS).
+ */
+export const SOLDOUT_SWAP_HOSTS = ["www.walmart.com"] as const;
+export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "www.jdoqocy.com", "www.dpbolvw.net", "www.tkqlhce.com", "www.awin1.com", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
 
 /**
  * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:

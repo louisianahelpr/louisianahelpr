@@ -261,7 +261,9 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     }
     expect(rows).toBeGreaterThan(5000);
   });
-  it("every guide still holds 25 picks after \"no photo, no row\" (owner 11-18 PM: \"All guides need 25\"), Gift cards and Subscriptions aside", () => {
+  // Owner 11-19 retired the 25-pick floor: fit beats count ("she'd rather a guide have 18 great items than 25 with
+  // filler"). A guide keeps at least one pick; the ones under 12 are logged for research (giftGuideBelong1119).
+  it("every guide still holds picks after \"no photo, no row\", and Gift cards and Subscriptions hold every fitting pick", () => {
     // @mutate scripts/gift-guide-picks.mjs |       if (!p.image \|\| !fits(p) \|\| !fitsGuide(slug, p) \|\| louisianaBlocked(slug, p)) continue; |       continue;
     // Gift cards and Subscriptions hold every fitting photo'd pick in the data (back-filled from every page).
     expect(pageOf("gift-cards").length).toBeGreaterThan(25);
@@ -270,7 +272,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(pageOf("subscriptions").length).toBeGreaterThan(20);
     const guides = pages.map((f) => f.replace(/\.json$/, "")).filter((s) => !s.startsWith("store-") && !["gift-cards", "subscriptions"].includes(s));
     expect(guides.length).toBeGreaterThan(150);
-    for (const g of guides) expect(pageOf(g).length, g).toBeGreaterThanOrEqual(25);
+    for (const g of guides) expect(pageOf(g).length, g).toBeGreaterThanOrEqual(1);
   });
   it("no photo shows on two brands' rows, and no ShopMy collection row borrows a photo by its shared link (wrong-photo fix 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs |     for (const g of groups) if (g !== owner) for (const r of g) clear.add(r); |     void owner;
@@ -323,8 +325,9 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
   it("Subscriptions opens on Walmart+ and the giftable Amazon memberships (owner 11-18 PM), with no trending tumblers", () => {
     // @mutate scripts/gift-guide-picks.mjs | const featuredEntries = (slug) => [...(PINNED_TOP[slug] ?? []), | const featuredEntries = (slug) => [
     const names = pageOf("subscriptions").map((p) => p.name);
-    expect(names.slice(0, 5)).toEqual(["Walmart+ membership", "Gift Prime (3-month gift membership)", "Gift an Audible membership (1, 3, 6 or 12 months)",
-      "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"]);
+    // Owner 11-19: Sam's Club Plus and Club memberships sit beside Walmart+.
+    expect(names.slice(0, 7)).toEqual(["Walmart+ membership", "Sam's Club Plus Membership", "Sam's Club Membership", "Gift Prime (3-month gift membership)",
+      "Gift an Audible membership (1, 3, 6 or 12 months)", "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"]);
     expect(names.some((n) => /stanley|tumbler|airpods/i.test(n))).toBe(false);
     // Owner 11-18 PM: no free trials on Subscriptions.
     // @mutate scripts/giftGuideRules.mjs | subscriptions: /free trial\|\btry\b.*\bfree\b\|\bplanner\b/i | subscriptions: /^$/

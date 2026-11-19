@@ -13,7 +13,7 @@
  * @mutate src/content/giftGuideCatalog.ts |   { words: ["fishing", "fish", | {   words: ["xfishing", "fish",
  * @mutate src/content/giftGuideCatalog.ts |     if (BAND_WORDS[w]) { |     if (BAND_WORDS[w] && false) {
  * @mutate src/content/giftGuideCatalog.ts |   const words = meaningful.length ? meaningful : all; |   const words = all;
- * @mutate src/content/giftGuideCatalog.ts |     return rest.every((w) => hay.includes(w) \|\| (label.get(g.row) ?? []).includes(w)); |     return rest.every((w) => hay.includes(w) \|\| (label.get(g.row) ?? []).join(" ").includes(w));
+ * @mutate src/content/giftGuideCatalog.ts | (label.get(g.row) ?? []).includes(w)); | (label.get(g.row) ?? []).some((x) => x.includes(w)));
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |         {row === "for-kids" && !group && <KidsByAge />} |
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <Button asChild variant="outline" size="sm" className="gg-shop-btn"> |       <Button asChild variant="outline" size="inline" className="gg-shop-btn">
@@ -26,7 +26,6 @@ import { cleanup, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { GUIDES, guideBySlug, loadAllGuidePicks, searchGuides, searchItems, type SearchItem } from "@/content/giftGuideCatalog";
 import ITEMS from "@/content/giftGuideSearchIndex.json";
-// @ts-expect-error -- a plain .mjs generator with no .d.mts; only this test imports it
 import { buildIndex, indexText } from "../../scripts/gift-guide-search-index.mjs";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({

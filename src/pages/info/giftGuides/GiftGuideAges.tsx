@@ -48,7 +48,7 @@ export function KidsByAge() {
 }
 
 /** Which kids hub a guide's BY AGE chips open: Niece -> girls, Nephew -> boys, Cousins -> gender-neutral. */
-export const AGE_CHIPS_FOR: Record<string, (typeof KID_AGE_HUBS)[number]> = { niece: "girls", nephew: "boys", cousins: "gender-neutral" };
+const AGE_CHIPS_FOR: Record<string, (typeof KID_AGE_HUBS)[number]> = { niece: "girls", nephew: "boys", cousins: "gender-neutral" };
 
 /** BY AGE chips at the top of the Niece, Nephew and Cousins pages: that hub's age guides, babies to teens. */
 export function AgeChips({ slug }: { slug: string }) {

@@ -41,7 +41,7 @@ const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
 /** The rows above the Top 10 strip (holistic review 11-18 M9: Top 10 sat 5th; now right after By person). */
 const ROWS_BEFORE_TOP = 1;
 /** The first row's covers that load at once (holistic review 11-18 M10); the rest stay lazy. */
-export const PRIORITY_COVERS = 4;
+const PRIORITY_COVERS = 4;
 
 /**
  * The quick-pick chips under the search (holistic review 11-18 M9): the shopper tasks the review timed (a budget,

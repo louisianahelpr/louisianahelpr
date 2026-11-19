@@ -17,8 +17,8 @@
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.shipsFast ? (["ships-fast"] as const) : []), |   ...(flags.trending ? (["ships-fast"] as const) : []),
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping" }) | t: "Gift wrap" })
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />} |       {false && <GiftGuideHelpr />}
- * @mutate src/content/giftGuideCatalog.ts |     return words.every((w) => hay.includes(w)); |     return words.some((w) => hay.includes(w));
- * @mutate src/content/giftGuideCatalog.ts |     const hay = fold(`${g.title} ${g.lead} ${label.get(g.row) ?? ""} ${SEARCH_KEYWORDS[g.slug] ?? ""}`); |     const hay = fold(`${g.title} ${g.lead} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
+ * @mutate src/content/giftGuideCatalog.ts | return rest.every((w) => hay.includes(w) \|\| | return rest.some((w) => hay.includes(w) \|\|
+ * @mutate src/content/giftGuideCatalog.ts | hay.includes(w) \|\| (label.get(g.row) ?? []).includes(w)); | hay.includes(w));
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {query.trim() && ( |         {false && (
  * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick), | loaded.set(slug, { picks: [],
  */

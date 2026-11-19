@@ -2152,7 +2152,14 @@ export const JOB_ITEM = /\b(scrubs?|nurs(e|es|ing)|stethoscopes?|badge (reels?|h
 export const uniqueCounts = { before: 0, after: 0, underFloor: [], colorways: 0, brandFill: 0 };
 /** Colorway repeats (owner 11-19): a family guide refills to this many picks, a product shows in at most this many guides. */
 export const COLORWAY_TARGET = 40;
-export const COLORWAY_MAX = 3;
+/** Owner 1:25 PM ("no more than 2 duplicates"): a colorway repeat brings a product to at most 2 guides. */
+export const COLORWAY_MAX = DUP_GUIDE_MAX;
+/** Item types that make two products of one brand + model word (core() below). */
+export const CORE_KIND = [[/^(earrings?|studs?|hoops?|huggies)$/, "earring"], [/^(necklaces?|pendants?)$/, "necklace"], [/^(bracelets?|cuffs?|bangles?)$/, "bracelet"],
+  [/^rings?$/, "ring"], [/^masks?$/, "mask"], [/^pillowcases?$/, "pillowcase"], [/^robes?$/, "robe"], [/^towels?$/, "towel"], [/^(blankets?|throws?)$/, "blanket"],
+  [/^socks?$/, "sock"], [/^(totes?|bags?)$/, "bag"], [/^(wallets?|wristlets?|pouch|pouches)$/, "wallet"], [/^backpacks?$/, "backpack"], [/^mugs?$/, "mug"],
+  [/^tumblers?$/, "tumbler"], [/^(bottles?|jugs?)$/, "bottle"], [/^coolers?$/, "cooler"], [/^(jackets?|vests?)$/, "jacket"], [/^(hoodies?|sweatshirts?|pullovers?)$/, "top"],
+  [/^(pants?|joggers?|leggings?)$/, "pant"], [/^keychains?$/, "keychain"], [/^(creams?|lotions?|oils?|balms?)$/, "body"], [/^(mists?|perfumes?|parfums?)$/, "scent"]];
 export const BRAND_FILL_TARGET = 30;
 export const BRAND_FILL_PER_BRAND = 3;
 const WOMEN_BRANDS = /^(lululemon|ugg|kendra scott|sol de janeiro|slip|barefoot dreams|summer fridays|laneige|rare beauty|glow recipe|mejuri|baublebar|gorjana|stoney clover( lane)?|owala|stanley|kitsch|free people|anthropologie|southern marsh|comfort colors|simply southern|julie vos|spartina 449|rifle paper co\.?|tarte|charlotte tilbury|glossier|olive & june|skims|rothy'?s|madewell|lilly pulitzer|vineyard vines|hoka|on|birkenstock|new balance|adidas|nike|apple|dyson|sharkninja|shark|ninja|le creuset|our place|capri blue|voluspa|boy smells|homesick|paddywax|nest|otherland|bath & body works|tatcha|clinique|benefit|fresh|drunk elephant|beis|béis|calpak|dagne dover|kate spade( new york)?|coach|tory burch|michael kors|lake|little sleepies|brooklinen|parachute|crocs|kiehl'?s|dior|chanel|yeti|hydro flask|theragun|therabody|vuori|beyond yoga|alo|sperry|mud pie|magnolia|baggu)$/i;
@@ -2180,7 +2187,10 @@ const BRAND_FILL = [
     // The model word: the first word after the brand ("Samba", "Tasman", "Elisa", "Baies"), unless it is generic.
     const words = n.split(/[^a-z0-9]+/).filter(Boolean).filter((w) => compact(w) !== brand && !brand.startsWith(compact(w)));
     const model = words.find((w) => w.length >= 4 && !GENERIC_WORD.test(w));
-    return brand && model ? `c:${brand}:${model}` : "";
+    // 1119c: the item type too, when the name ends on one (a Brooklinen Mulberry silk eye mask and pillowcase, Julie Vos
+    // Cannes earrings and cuff, UGG Tasman slippers and socks are two products each); footwear keeps one key per model.
+    const kind = CORE_KIND.find(([re]) => re.test(words[words.length - 1] ?? ""))?.[1] ?? "";
+    return brand && model ? `c:${brand}:${model}${kind ? `:${kind}` : ""}` : "";
   };
   const productId = (p) => {
     const n = `n:${compact(p.name)}`;

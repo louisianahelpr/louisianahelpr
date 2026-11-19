@@ -1385,7 +1385,9 @@ for (const slug of chunkSlugs) {
   const e = entryOf(slug) ?? { title: storeList[slug]?.name, lead: "shop", age: undefined };
   if (!e.title) continue;
   let named = /^gifts$/i.test(e.lead) ? `Gifts ${e.title.charAt(0).toLowerCase()}${e.title.slice(1)}` : /^gifts for\b/i.test(e.lead) || /\bgifts$/i.test(e.lead)
-    ? (e.age ? `${cap(e.lead)}, ${e.title.toLowerCase()} (${e.age})` : /^gifts for$/i.test(e.lead) ? `Gifts for ${e.title}` : `${cap(e.lead)}: ${e.title}`)
+    ? (e.age ? `${cap(e.lead)}, ${e.title.toLowerCase()} (${e.age})` : /^gifts for$/i.test(e.lead) ? `Gifts for ${e.title}`
+      // "Gifts for the Coffee Lover", never "Gifts for the: Coffee Lover" (batch 11-19: the og:title read "the: ...").
+      : /^gifts for (the|a)$/i.test(e.lead) ? `${cap(e.lead)} ${e.title}` : `${cap(e.lead)}: ${e.title}`)
     : `${e.title} gift guide`;
   if (usedNames.has(named.toLowerCase())) named = `${named} (${slug.startsWith("store-") ? "store" : slug})`;
   usedNames.add(named.toLowerCase());

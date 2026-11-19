@@ -907,6 +907,15 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(giftGuidePageMeta(unlisted.slug, unlisted.title)).toMatchObject({ title: `${unlisted.title} gift guide — Helpr`, robots: expect.stringMatching(/noindex/) });
     expect(Object.keys(GIFT_GUIDE_SEO).sort()).toEqual(guides.sort());
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/undefined/);
+    // A "gifts for the" / "gifts for a" guide reads as one phrase (batch 11-19: og:title was "Gifts for the: Coffee
+    // Lover: holiday gift guide 2026"). No name puts a colon after a dangling article.
+    // @mutate scripts/gift-guide-picks.mjs | : /^gifts for (the\|a)$/i.test(e.lead) ? `${cap(e.lead)} ${e.title}` | : /^gifts for (the\|a)$/i.test(e.lead) ? `${cap(e.lead)}: ${e.title}`
+    expect(GIFT_GUIDE_SEO["coffee-lover"]).toBe("Gifts for the Coffee Lover");
+    expect(giftGuidePageMeta("coffee-lover").ogTitle).toBe("Gifts for the Coffee Lover: holiday gift guide 2026");
+    expect(GIFT_GUIDE_SEO["hospital-stay"]).toBe("Gifts for a Hospital Stay");
+    const theGuides = Object.values(GIFT_GUIDE_SEO).filter((n) => /^Gifts for (the|a) /.test(n));
+    expect(theGuides.length).toBeGreaterThan(40);
+    for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/\b(the|a|an):/i);
     // Q178 (CI 11-18: /declutter/item/:id 418 -> 423 KB gz): the guides' name table stays out of publicPageMeta.mjs,
     // which Login, Signup, Index and the Declutter item page load cold; only GiftGuides.tsx and api/share.ts read it.
     // @mutate src/lib/publicPageMeta.mjs | import { townPageMetaFor } from "./townPages.mjs"; | import { townPageMetaFor } from "./townPages.mjs";\nimport { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";

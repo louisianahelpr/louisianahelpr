@@ -1,7 +1,7 @@
 import {
   Briefcase, MessageSquare, DollarSign, Star, Megaphone,
   Navigation, CheckCircle2, Users, RefreshCw, Receipt, ShieldAlert, Sparkles,
-  Tag, HandCoins, MessageCircleQuestion, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search, Store, Info,
+  Tag, HandCoins, MessageCircleQuestion, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search, Store, Info, Gift,
 } from "lucide-react";
 import type { Prefs, Row } from "./types";
 
@@ -29,6 +29,8 @@ export const defaultPrefs: Prefs = {
   shops_updates: true, email_shops_updates: true,
   // New from shops you follow (20261112070000): in the app and push; no email is sent for it.
   shops_following: true, email_shops_following: false,
+  // 25 Days of Louisiana Giveaways reminders (20261119200128): in the app and push; no email is sent for it.
+  giveaway_reminders: true, email_giveaway_reminders: false,
   // Admin bell activity (20261112061000): the notices are always in an admin's bell; push and email default OFF.
   admin_activity: false, email_admin_activity: false,
   declutter_sales: true, email_declutter_sales: true,
@@ -125,6 +127,9 @@ export const rows: Row[] = [
   { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" />, group: "Account" },
   { key: "system_alerts", emailKey: "email_system_alerts", label: "Account and safety alerts", icon: <ShieldAlert className="w-3.5 h-3.5" />, group: "Account" },
   { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" />, group: "Account" },
+  // 25 Days of Louisiana Giveaways (owner 11-19, 20261119200128): a few reminders, Nov 30 to Dec 23. On for everyone;
+  // push and the bell only. Shown once its columns are deployed (giveawayColumnsPresent).
+  { key: "giveaway_reminders", emailKey: "email_giveaway_reminders", label: "Giveaway reminders", icon: <Gift className="w-3.5 h-3.5" />, group: "Account", noEmailSwitch: "In the app only, no email for this" },
 ];
 
 // ── The "Declutter" group (owner 2026-10-28, via the lead: "Yes, build them") ──

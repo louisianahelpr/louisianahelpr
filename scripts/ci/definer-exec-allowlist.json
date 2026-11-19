@@ -32,6 +32,7 @@
     "declutter_popular_items(integer)": "client",
     "public_profile_work_photos(text)": "client",
     "find_helprs(text, text, integer)": "reviewed 2026-11-09 (Q14): F071 owner decision, guests may view Find a Helpr (20261109212142_find_helprs_guests_may_view). Names masked to 'First L.', town/parish/skills/photo/ID flag only; no rate, phone, email or address; test, banned, deleted, unconfirmed and under-18 accounts never returned to a guest. Proof src/test/pglite/findHelprsDirectory.pglite.mjs.",
+    "giveaway_entry_url()": "reviewed 2026-11-19 (Q14): 25 Days giveaway entry link (20261119200128). The public /25days page is signed out by design; returns only sponsor_settings.entry_url (an https URL the owner sets, CHECK-constrained), and NULL unless sponsor_25days_on_for(auth.uid()). No member data.",
     "sponsor_public_state(text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). The public sponsor page is signed out by design; answers on=false unless sponsor_25days_on_for(auth.uid()). Returns per-day COUNTS (never names), the greeting brand NAME for a matching invite code (never its email), the sponsor wall (only confirmed + OK to show + shown), approved testimonials and reach stats.",
     "sponsor_log_visit(text, text, text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). Insert-only visit row (ref code, referrer origin, coarse device), refused while sponsor_25days is off for auth.uid(), rate limited per hashed address; returns nothing."
   },
@@ -721,6 +722,7 @@
     "public_profile_work_photos(text)": "client",
     "my_job_photos()": "client",
     "set_job_photo_shown(uuid, text, boolean)": "client",
+    "giveaway_entry_url()": "reviewed 2026-11-19 (Q14): 25 Days giveaway entry link (20261119200128). The public /25days page is signed out by design; returns only sponsor_settings.entry_url (an https URL the owner sets, CHECK-constrained), and NULL unless sponsor_25days_on_for(auth.uid()). No member data.",
     "sponsor_public_state(text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). The public sponsor page is signed out by design; answers on=false unless sponsor_25days_on_for(auth.uid()). Returns per-day COUNTS (never names), the greeting brand NAME for a matching invite code (never its email), the sponsor wall (only confirmed + OK to show + shown), approved testimonials and reach stats.",
     "sponsor_log_visit(text, text, text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). Insert-only visit row (ref code, referrer origin, coarse device), refused while sponsor_25days is off for auth.uid(), rate limited per hashed address; returns nothing.",
     "sponsor_admin_overview()": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; reads only.",

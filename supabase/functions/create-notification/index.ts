@@ -62,6 +62,8 @@ const ALLOWED_TYPES = new Set([
   "shops_updates",
   // New from shops you follow (20261112070000): written by a DB trigger; listed because this allowlist mirrors the CHECK.
   "shops_following",
+  // 25 Days of Louisiana Giveaways reminders (20261119200128): written by a DB cron; listed because this allowlist mirrors the CHECK.
+  "giveaway_reminders",
 ]);
 
 // Same-origin path check: link must be a server-relative path (starts with `/`,

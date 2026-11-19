@@ -29,6 +29,8 @@ export interface SponsorBackend {
   submit(payload: SponsorSignupPayload, logo: File | null): Promise<SponsorSubmitResult>;
   logoUrl(signupId: string): string;
   founderPhotoUrl(): string;
+  /** Where the "How to enter" button goes: sponsor_settings.entry_url (20261119200128), or null when not set yet. */
+  entryUrl(): Promise<string | null>;
 }
 
 const FUNCTION = "sponsor-25days";
@@ -61,9 +63,18 @@ type LooseRpc = { rpc: (fn: string, args?: Record<string, unknown>) => PromiseLi
 const sb = supabase as unknown as LooseRpc;
 const ok = <T,>(res: { data: unknown; error: unknown }): T => unwrap(res as Parameters<typeof unwrap>[0]) as T;
 
+/** Only a real https link is used; anything else falls back to the Facebook Page. */
+export function safeEntryUrl(v: unknown): string | null {
+  return typeof v === "string" && /^https:\/\/\S+$/.test(v) ? v : null;
+}
+
 const realBackend: SponsorBackend = {
   async publicState(ref) {
     return asState(ok(await sb.rpc("sponsor_public_state", { p_ref: ref })));
+  },
+  async entryUrl() {
+    const v = ok<unknown>(await sb.rpc("giveaway_entry_url"));
+    return safeEntryUrl(v);
   },
   async logVisit(ref, referrer, device) {
     ok(await sb.rpc("sponsor_log_visit", { p_ref: ref, p_referrer: referrer, p_device: device }));

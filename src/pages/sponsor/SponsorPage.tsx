@@ -93,6 +93,16 @@ export default function SponsorPage() {
   });
 
   const on = stateQ.data?.on === true;
+  // The "How to enter" link (owner 11-19): from the database so it changes with no app build; until it is set, or if
+  // it cannot be read, the Facebook Page.
+  const entryQ = useQuery({
+    queryKey: ["sponsor-25days", "entry-url", !!backend],
+    enabled: !!backend && on,
+    queryFn: () => (backend as SponsorBackend).entryUrl(),
+    staleTime: 60_000,
+    meta: { persist: false },
+  });
+  const enterUrl = entryQ.data ?? C.links.facebookPage;
   useEffect(() => {
     if (!backend || !on || !shouldLogVisit(refCode)) return;
     backend.logVisit(refCode, coarseReferrer(document.referrer), coarseDevice(navigator.userAgent)).catch((e: unknown) => {
@@ -133,7 +143,7 @@ export default function SponsorPage() {
       {pathname === "/25days" ? <Head25days /> : <HeadSponsor />}
       <div className="lh25 min-h-screen bg-premium-page">
         <SponsorChrome />
-        <Hero greetingBrand={state.greetingBrand} />
+        <Hero greetingBrand={state.greetingBrand} enterUrl={pathname === "/25days" ? enterUrl : undefined} />
         <TrustStrip />
         <div className="lh25-main">
           <About />

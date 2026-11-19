@@ -99,7 +99,8 @@ function HeadlineMain({ text }: { text: string }) {
   );
 }
 
-export function Hero({ greetingBrand }: { greetingBrand: string | null }) {
+/** enterUrl: the shoppers' "How to enter" link, given on /25days only (the brand-facing /sponsor has no such button). */
+export function Hero({ greetingBrand, enterUrl }: { greetingBrand: string | null; enterUrl?: string }) {
   return (
     <header className="lh25-hero">
       <div className="lh25-hero-inner">
@@ -117,6 +118,8 @@ export function Hero({ greetingBrand }: { greetingBrand: string | null }) {
         <div className="lh25-hero-ctas">
           <Button type="button" variant="ghost" className="lh25-btn lh25-btn-primary" onClick={() => scrollToId("claim")}>{C.hero.primaryCta}</Button>
           <Button type="button" variant="ghost" className="lh25-btn lh25-btn-outline" onClick={() => scrollToId("how")}>{C.hero.secondaryCta}</Button>
+          {/* Owner 11-19: where people enter the giveaways (sponsor_settings.entry_url, else the Facebook Page). */}
+          {enterUrl ? <a className="lh25-btn lh25-btn-outline" href={enterUrl} target="_blank" rel="noopener noreferrer" data-testid="giveaway-enter">{C.hero.enterCta}</a> : null}
         </div>
         <Countdown />
         <p className="lh25-deadline">{C.hero.deadline}</p>

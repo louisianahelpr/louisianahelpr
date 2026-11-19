@@ -99,6 +99,9 @@ export function createDemoBackend(): SponsorBackend {
     founderPhotoUrl() {
       return "";
     },
+    async entryUrl() {
+      return null;
+    },
   };
   return backend;
 }

@@ -22,6 +22,7 @@
  *   message_preview            migration 20261030150631 (Messages audit M6)
  *   declutter_questions, email_declutter_questions  migration 20261030170443 (Q2488)
  *   shops_* and email_shops_*  migration 20261108201153 (shops audit 11-08 #6, 6 columns)
+ *   giveaway_reminders, email_giveaway_reminders  migration 20261119200128 (25 Days reminders; the row hides until both exist)
  */
 const DECLUTTER_KINDS = [
   "declutter_listings", "declutter_offers", "declutter_sales", "declutter_pickups",
@@ -31,6 +32,8 @@ const DECLUTTER_KINDS = [
 const SHOPS_KINDS = ["shops_orders", "shops_messages", "shops_updates", "shops_following"] as const;
 
 const ADMIN_ACTIVITY_KINDS = ["admin_activity"] as const;
+
+const GIVEAWAY_KINDS = ["giveaway_reminders"] as const;
 
 const DEPLOY_LAG_COLUMNS = [
   "email_enabled", "saved_helper_availability", "email_quote_reminders",
@@ -43,6 +46,8 @@ const DEPLOY_LAG_COLUMNS = [
   ...SHOPS_KINDS.map((k) => `email_${k}` as const),
   ...ADMIN_ACTIVITY_KINDS,
   ...ADMIN_ACTIVITY_KINDS.map((k) => `email_${k}` as const),
+  ...GIVEAWAY_KINDS,
+  ...GIVEAWAY_KINDS.map((k) => `email_${k}` as const),
 ] as const;
 
 type LagColumn = (typeof DEPLOY_LAG_COLUMNS)[number];
@@ -66,6 +71,10 @@ export const shopsColumnsPresent = (present: ColumnPresence): boolean =>
 
 export const adminActivityColumnsPresent = (present: ColumnPresence): boolean =>
   ADMIN_ACTIVITY_KINDS.every((k) => present[k] && present[`email_${k}`]);
+
+/** Both Giveaway reminders columns are deployed (its row is shown only then). */
+export const giveawayColumnsPresent = (present: ColumnPresence): boolean =>
+  GIVEAWAY_KINDS.every((k) => present[k] && present[`email_${k}`]);
 
 /** Drops every key whose column is not deployed yet, so the upsert cannot PGRST204. */
 export function stripMissingColumns(payload: object, present: ColumnPresence): void {

@@ -636,6 +636,7 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  "giveaway_reminder_sends.user_id": { reason: "25 Days reminders (20261119200128): a service-role once-per-member send key (reminder key, time); the reminder itself is the member's notifications row, which the export already includes" },
   // Shops digital downloads (20261108182917; Shops is testers only).
   // CMP-4 instant book (20261101063725, 20261101065105); lead 11-01.
   // LEAD-LIST-FOR-SELLER (20261101034159): a private link (item, job, Helpr, seller, sent/decided times), service role only.

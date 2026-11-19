@@ -88,8 +88,9 @@ color:var(--gg-ink)}
 .gg-topcard-meta{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .gg-topcard-meta small{font-size:12px;color:var(--gg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gg-topcard:hover .gg-topcard-name,.gg-topcard:focus-visible .gg-topcard-name{text-decoration:underline}
-.gg-deals{margin:22px 0 0;border:1px solid var(--gg-line);border-radius:14px;padding:0 14px}
-.gg-deals>summary{list-style:none;cursor:pointer;display:flex;align-items:center;min-height:48px;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gg-muted)}
+.gg-deals{margin:22px 0;border:1px solid #ece6dc;border-radius:16px;padding:0 16px;background:#faf6ee;color:#3a2a20}
+.gg-deals>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:56px;font-size:15px;font-weight:700;color:#3a2a20}
+.gg-deals-count{font-size:13px;font-weight:500;color:#6f6259}
 .gg-deals>summary::-webkit-details-marker{display:none}
 .gg-deals>summary::after{content:"+";margin-left:auto;font-size:17px;line-height:1}
 .gg-deals[open]>summary::after{content:"\\2212"}

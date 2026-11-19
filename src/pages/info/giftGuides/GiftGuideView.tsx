@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, relatedGuides, subscribeGuidePicks, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
@@ -89,8 +89,10 @@ export const PICKS_PAGE = 50;
 
 /** "Show more" with this many or fewer left draws them all instead. */
 const SHOW_ALL_UNDER = 6;
+/** Deals & codes sit after this many picks (design spec 11-18 H5: never above pick #1, after the first 10). */
+export const DEALS_AFTER_PICKS = 10;
 
-function GiftGuideList({ guide }: { guide: CatalogGuide }) {
+function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNode }) {
   const [shown, setShown] = useState(PICKS_PAGE);
   if (!picksReady(guide.slug)) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];
@@ -112,7 +114,7 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
       ));
   return (
     <>
-      {draw(0, upTo)}
+      {after ? <>{draw(0, Math.min(DEALS_AFTER_PICKS, upTo))}{after}{draw(Math.min(DEALS_AFTER_PICKS, upTo), upTo)}</> : draw(0, upTo)}
       <PricesAsOf picks={guide.picks.slice(0, upTo)} />
       {left > 0 && (
         <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
@@ -225,10 +227,10 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
           </ul>
         </section>
       ))}
-      <GiftGuideList key={guide.slug} guide={guide} />
+      {/* Owner redesign 11-18 PM: the codes and sales are one collapsed section in the list (after pick 10, or after
+          a shorter list), never a button; a new one per guide, so it is closed again on the next guide. */}
+      <GiftGuideList key={guide.slug} guide={guide} after={<DealsAndCodes key={guide.slug} />} />
       {picksReady(guide.slug) && <StoreDeals key={`deals ${guide.slug}`} guide={guide} />}
-      {/* Owner redesign 11-18 PM: the codes and sales are one collapsed section after the picks, never a button. */}
-      <DealsAndCodes key={guide.slug} />
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>
   );

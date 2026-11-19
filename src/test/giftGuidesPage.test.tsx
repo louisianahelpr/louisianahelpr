@@ -92,7 +92,7 @@ import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, OLD_SLUGS, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
-import { GiftGuideView, PICKS_PAGE, STORE_DEALS_FIRST, storeDealRows, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
+import { GiftGuideView, DEALS_AFTER_PICKS, PICKS_PAGE, STORE_DEALS_FIRST, storeDealRows, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { TEEN_TILES } from "@/pages/info/giftGuides/GiftGuideLanding";
@@ -550,7 +550,11 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(page.querySelector("[data-gift-sidebar] [data-gift-codes]")).toBeNull();
     const side = page.querySelector("details[data-gift-deals-codes]") as HTMLDetailsElement;
     expect(side).not.toBeNull();
-    expect(side.querySelector(":scope > summary")?.textContent).toBe("Deals & codes");
+    expect(side.querySelector(":scope > summary .gg-deals-title")?.textContent).toBe("Deals & codes");
+    expect(side.querySelector("[data-gift-deals-count]")?.textContent).toMatch(/^\d+ deals? · \d+ codes?$|^\d+ (deals?|codes?)$/);
+    // Opened, at most DEALS_ROWS rows show, codes first (design spec 2026-11-18 H5); each list keeps its See all.
+    // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | const DEALS_ROWS = 8; | const DEALS_ROWS = 80;
+    expect(side.querySelectorAll("[data-gift-code-store], [data-gift-sale]").length).toBe(8);
     const codes = side.querySelector(":scope > [data-gift-codes]")!;
     expect(codes).not.toBeNull();
     // Owner 11-18 PM ("discount code shouldn't open expanded"): it starts collapsed; opening shows every code.
@@ -560,6 +564,8 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(rowsOnPage.length).toBe(ROW_LABELS.length);
     expect(rowsOnPage[rowsOnPage.length - 1].compareDocumentPosition(side) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // One box per store, several codes inside: Muck Boot holds CYBER and TAKE25 (Nov 20–28), in the owner's order.
+    const moreCodes = side.querySelector("button[data-gift-all-codes]");
+    if (moreCodes) fireEvent.click(moreCodes);
     const boxes = [...side.querySelectorAll("[data-gift-code-store]")];
     const d = new Date();
     const todayIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -1106,9 +1112,11 @@ describe("gift guides: Discount codes stay closed while moving between guides (o
     // Opened on Her, it is closed again on Mom (a new section per guide, nothing remembered).
     // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <DealsAndCodes key={guide.slug} /> |       <DealsAndCodes />
     codesNow().open = true;
-    // On a guide it comes after the picks.
-    const lastPick = [...container.querySelectorAll("li[data-gift-pick]")].pop()!;
-    expect(lastPick.compareDocumentPosition(codesNow()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // On a guide it comes right after pick 10 (design spec 11-18 H5), never above pick #1.
+    // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | export const DEALS_AFTER_PICKS = 10; | export const DEALS_AFTER_PICKS = 0;
+    const herPicks = [...container.querySelectorAll("li[data-gift-pick]")];
+    expect(herPicks.length).toBeGreaterThan(DEALS_AFTER_PICKS);
+    expect(herPicks.filter((li) => li.compareDocumentPosition(codesNow()) & Node.DOCUMENT_POSITION_FOLLOWING).length).toBe(DEALS_AFTER_PICKS);
     const mom = [...container.querySelectorAll("[data-gift-sidebar] a")].find((a) => a.getAttribute("href") === "/gift-guides/mom")!;
     fireEvent.click(mom);
     expect(codesNow().open).toBe(false);

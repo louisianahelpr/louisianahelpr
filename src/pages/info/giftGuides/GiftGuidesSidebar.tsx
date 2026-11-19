@@ -50,7 +50,8 @@ const localToday = () => {
  * "Discount codes" (owner 2026-11-18), inside the collapsed "Deals & codes" section: one box per store, by rank, each
  * code with its own copy button. Hidden while there are none.
  */
-export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
+export function DiscountCodes({ codes, first = Infinity }: { codes: DiscountCode[]; first?: number }) {
+  const [all, setAll] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   if (codes.length === 0) return null;
   const copy = (code: string) => {
@@ -64,7 +65,7 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
     <div className="gg-codes" data-gift-codes="">
       <h3 className="gg-deals-sub">{G.codesLabel}</h3>
       <ul>
-        {codesByStore(codes).map(({ store, codes: list }) => (
+        {(all ? codesByStore(codes) : codesByStore(codes).slice(0, first)).map(({ store, codes: list }) => (
           <li key={store} data-gift-code-store={store}>
             <span className="gg-code-store">{store}</span>
             {list.map((c) => (
@@ -82,6 +83,9 @@ export function DiscountCodes({ codes }: { codes: DiscountCode[] }) {
           </li>
         ))}
       </ul>
+      {!all && codesByStore(codes).length > first && (
+        <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => setAll(true)} data-gift-all-codes="">{G.allCodesLabel(codesByStore(codes).length)}</Button>
+      )}
     </div>
   );
 }
@@ -93,6 +97,9 @@ export const liveSales = (sales: readonly Sale[], today: string) => {
   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href)));
 };
 
+/** Rows Deals & codes shows when opened, codes first (design spec 11-18 H5). */
+const DEALS_ROWS = 8;
+
 /** The sales the list shows before "See all sales". */
 const SALES_FIRST = 12;
 
@@ -101,14 +108,14 @@ const SALES_FIRST = 12;
  * end first, the offer opening the sale (affiliate link) and the store opening its guide page; hidden while there are
  * none.
  */
-export function SalesList({ sales }: { sales: readonly Sale[] }) {
+export function SalesList({ sales, first = SALES_FIRST }: { sales: readonly Sale[]; first?: number }) {
   const [all, setAll] = useState(false);
   if (sales.length === 0) return null;
   return (
     <div className="gg-codes" data-gift-sales="">
       <h3 className="gg-deals-sub">{G.salesLabel}</h3>
       <ul>
-        {(all ? sales : sales.slice(0, SALES_FIRST)).map((x) => (
+        {(all ? sales : sales.slice(0, first)).map((x) => (
           <li key={`${x.slug} ${x.href}`} data-gift-sale={x.slug}>
             {guideBySlug(x.slug) && !guideBySlug(x.slug)!.empty ? <Link to={`/gift-guides/${x.slug}`} className="gg-code-store">{x.store}</Link> : <span className="gg-code-store">{x.store}</span>}
             <GiftOut href={x.href} className="gg-link">{x.offer}</GiftOut>
@@ -116,7 +123,7 @@ export function SalesList({ sales }: { sales: readonly Sale[] }) {
           </li>
         ))}
       </ul>
-      {!all && sales.length > SALES_FIRST && (
+      {!all && sales.length > first && (
         <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => setAll(true)} data-gift-all-sales="">{G.allSalesLabel(sales.length)}</Button>
       )}
     </div>
@@ -134,11 +141,14 @@ export function DealsAndCodes() {
   const codes = activeCodes([...discountCodes, ...DEAL_CODES], today);
   const sales = liveSales(SALES, today);
   if (codes.length === 0 && sales.length === 0) return null;
+  // Design spec 11-18 H5: a cream card; open, at most 8 rows show (codes first, then sales), each list with its See all.
+  const stores = codesByStore(codes).length;
+  const codeRows = Math.min(stores, DEALS_ROWS);
   return (
     <details id="gift-codes" className="gg-deals" data-gift-deals-codes="">
-      <summary>{G.dealsAndCodesLabel}</summary>
-      <DiscountCodes codes={codes} />
-      <SalesList sales={sales} />
+      <summary><span className="gg-deals-title">{G.dealsAndCodesLabel}</span><span className="gg-deals-count" data-gift-deals-count="">{G.dealsCount(sales.length, codes.length)}</span></summary>
+      <DiscountCodes codes={codes} first={codeRows} />
+      <SalesList sales={sales} first={DEALS_ROWS - codeRows} />
     </details>
   );
 }

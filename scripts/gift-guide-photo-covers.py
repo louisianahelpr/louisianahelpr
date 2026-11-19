@@ -15,9 +15,10 @@ order, from _featured-order.json), skipping a photo that will not cut out cleanl
 Run with a Python that has Pillow, numpy and scipy (not the repo's runtime; the covers are static files):
   python scripts/gift-guide-photo-covers.py   (every cover at once; writes scripts/gift-guide-cover-items.json)
 It draws every guide in landing order. Six products, or four (two a side) when fewer than six pass; a guide still
-short gets the same polished cover with no products. No product appears on two covers (owner 11-18: "No duplicates on
-cover"): a product counts as its brand (or line: any Stanley, any Squishmallow) and kind, the first cover in landing order
-keeps it, and a one-brand store page keeps its brand. scripts/check-gift-cover-duplicates.mjs checks the manifest.
+short gets the same polished cover with no products. No product appears on two covers of the same landing section
+(owner 11-18: "No duplicates on cover", then "no repeats within a section"): a product counts as its brand (or line:
+any Stanley, any Squishmallow) and kind, the first cover in landing order keeps it, one boot cover per section, and a
+one-brand store page keeps its brand. A store page also uses its store's products named in other guides. scripts/check-gift-cover-duplicates.mjs checks the manifest.
 No Louisiana items outside the Louisiana section (owner 11-18).
 
 Photos: each pick's own `image` from src/content/giftGuidePicks/<slug>.json, Amazon-hosted ones included (owner 11-18
@@ -95,7 +96,10 @@ COVER_SKIP = {"store-walmart": re.compile(r"welding|hot wheels", re.I),
 # mark), underwear and the like (a model in briefs), deodorant, and the white JBL Go photo (it cuts out grey).
 COVER_NEVER = re.compile(r"gift ?card|e-?gift|membership|subscription|underwear|bikini|\bperiod\b|\bbriefs?\b|"
                          r"\bbras?\b|lingerie|thong|compression|deodorant|body spray|collection|best ?sellers|"
-                         r"the best skincare|jbl go 4", re.I)
+                         r"the best skincare|jbl go 4|spicebox|planner stickers", re.I)
+COVER_SKIP["sister"] = re.compile(r"cozychic", re.I)  # a pale throw on the cream arch
+# Budget covers lead with colourful, recognisable gifts (owner 11-18): socks, tees, hats, lunch bags and the like last.
+PLAIN = re.compile(r"\bsocks?\b|\btees?\b|t-shirt|tasting cup|\bcrew\b|trucker hat|lunch (bag|lugger)|scalp massager", re.I)
 NO_BOOTS = {"mom", "her", "wife"}  # owner 11-18: no Muck/XTRATUF/rain boots on these; UGG is fine
 KINDS = {
     "boot": re.compile(r"\bboots?\b|xtratuf|muck ?boot|muckster|wellies", re.I),
@@ -193,8 +197,9 @@ def cutout(data, tight=False):
     # The opening above shaves thin attached parts (grill legs, glasses arms, cords): put back raw pixels touching them.
     keep |= raw & ndimage.binary_dilation(keep, iterations=3)
     fg = ndimage.binary_fill_holes(keep)
-    if fg[:3].any() or fg[-3:].any() or fg[:, :3].any() or fg[:, -3:].any():
-        return None  # the product runs off its own photo: it would show sliced
+    edge = np.concatenate([fg[:2].ravel(), fg[-2:].ravel(), fg[:, :2].ravel(), fg[:, -2:].ravel()])
+    if edge.mean() > 0.015:
+        return None  # the product runs off its own photo: it would show sliced (a tight crop grazing the edge is fine)
     if not tight and (np.abs(255 - a).max(axis=2)[fg] <= 40).mean() > 0.6:
         return None  # white on white (the JBL Go): it cuts out grey
     share = fg.mean()
@@ -245,7 +250,11 @@ def cover_key(p, own_brand=None):
         return f"item:{dedupe(p.get('name'))}"
     if own_brand and b == own_brand:
         return f"{b}:{dedupe(p.get('name'))}"  # a brand's own store page shows several of its products
-    return f"{b}:{','.join(sorted(kinds(p)))}"
+    ks = sorted(kinds(p))
+    if not ks:  # no known kind: its type is the name's last word ("... Rain Defender Jacket" -> jacket)
+        words = [w for w in re.findall(r"[a-z]+", (p.get("name") or "").lower()) if len(w) > 2 and w not in ("pack", "set", "with", "and")]
+        ks = words[-1:]
+    return f"{b}:{','.join(ks)}"
 
 
 def kinds(p):
@@ -282,8 +291,24 @@ def own_picks(slug):
         return []
 
 
+_STORE_POOL = {}
+
+
+def store_pool(slug):
+    """A store page's products named in any guide (the same store), for a store page whose own file has few photos."""
+    if not _STORE_POOL:
+        for f in sorted(os.listdir(PICKS)):
+            if f.endswith(".json"):
+                for q in json.load(open(os.path.join(PICKS, f), encoding="utf8")).get("picks", []):
+                    if q.get("store") and q.get("image"):
+                        _STORE_POOL.setdefault(q["store"], []).append(q)
+    return _STORE_POOL.get(slug, [])
+
+
 def candidates(slug):
     own = own_picks(slug)
+    if slug.startswith("store-"):
+        return own + [q for q in store_pool(slug) if q.get("store") == slug and q not in own]
     fit = FIT.get(slug) if isinstance(FIT.get(slug), dict) else None
     if not fit or not fit.get("final_top25"):
         return own
@@ -300,10 +325,12 @@ def candidates(slug):
     return out
 
 
-def photos(slug, need=6, group="", used=(), reserved=None):
+def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True):
     reserved = reserved or {}
     own_brand = next((b for b, st in reserved.items() if st == slug), None)
     picks = candidates(slug)
+    if slug.startswith("under-"):
+        picks = [q for q in picks if not PLAIN.search(q.get("name") or "")] + [q for q in picks if PLAIN.search(q.get("name") or "")]
     cands, seen = [], set()
     for p in picks:
         u = p.get("image")
@@ -325,8 +352,10 @@ def photos(slug, need=6, group="", used=(), reserved=None):
             skip = COVER_SKIP.get(slug)
             if len(got) >= need or (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, taken, group):
                 continue
+            if not boots_ok and "boot" in kinds(p) and not slug.startswith("store-"):
+                continue  # one boot cover per section (owner 11-18)
             key = cover_key(p, own_brand)
-            if key in used or dedupe(p.get("name")) in used or reserved.get(brand_word(p) or None, slug) != slug:
+            if key in used or dedupe(p.get("name")) in used or (group == "By store" and reserved.get(brand_word(p) or None, slug) != slug):
                 continue  # already on another cover, or a brand its own store page keeps (owner 11-18: "No duplicates")
             if key in {cover_key(t, own_brand) for t in taken}:
                 continue
@@ -490,7 +519,7 @@ def draw(row, prods, out):
 
 
 def brand_stores(rows):
-    """Store pages that sell one brand ("store-stanley", "store-durango-boots") keep that brand: no other cover shows it."""
+    """Store pages that sell one brand ("store-stanley", "store-durango-boots") keep that brand: no other store cover shows it."""
     out = {}
     for r in rows:
         if r["group"] != "By store":
@@ -512,11 +541,14 @@ def main():
     # A one-brand store keeps its brand only when its own cover can show at least four of its products.
     groups = {r["slug"]: r["group"] for r in rows}
     reserved = {b: st for b, st in reserved.items() if len(photos(st, group=groups[st], reserved=reserved)[0]) >= 4}
-    used, manifest, kept, four = set(), {}, [], []
+    # No repeats within a landing section (owner 11-18); a product may show again in another section.
+    used, boots, manifest, kept, four = {}, set(), {}, [], []
     # Only guides that ship a cover (a guide with no picks is not built, and a stray cover file fails the two-way check).
     rows = [r for r in rows if os.path.exists(os.path.join(OUT, f"{r['slug']}.webp"))]
     for row in targets(rows):  # landing order: the index's order
-        prods, taken, own_brand = photos(row["slug"], group=row["group"], used=used, reserved=reserved)
+        sec = used.setdefault(row["group"], set())
+        prods, taken, own_brand = photos(row["slug"], group=row["group"], used=sec, reserved=reserved,
+                                         boots_ok=row["group"] not in boots)
         if len(prods) == 5:
             prods, taken = prods[:4], taken[:4]  # two a side reads evenly; five leaves one side short
         if len(prods) < 4:
@@ -525,9 +557,12 @@ def main():
         elif len(prods) == 4:
             four.append(row["slug"])
         for t in taken:
-            used.add(cover_key(t, own_brand))
-            used.add(dedupe(t.get("name")))
-        manifest[row["slug"]] = [{"name": t.get("name"), "key": cover_key(t, own_brand)} for t in taken]
+            sec.add(cover_key(t, own_brand))
+            sec.add(dedupe(t.get("name")))
+            if "boot" in kinds(t):
+                boots.add(row["group"])
+        manifest[row["slug"]] = {"section": row["group"],
+                                 "items": [{"name": t.get("name"), "key": cover_key(t, own_brand)} for t in taken]}
         draw(row, prods, os.path.join(OUT, f"{row['slug']}.webp"))
         print(f"cover {row['slug']} ({len(prods)})", flush=True)
     with open(MANIFEST, "w", encoding="utf8") as f:

@@ -16,8 +16,18 @@
  * @mutate src/pages/info/giftGuides/wishListItems.ts | const pickItemId = (p: { href: string }) => itemId(p.href); | const pickItemId = (p: { href: string }) => itemId(`${p.href}#`);
  * @mutate src/pages/info/giftGuides/GiftGuideSharedList.tsx | <WishRow key={it.id} item={it} /> | <WishRow key={it.id} item={it} onRemove={() => undefined} />
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <Heart saved={saved} label={WISH.saveLabel(name)} | {null}<Heart saved={false} label={WISH.saveLabel(name)}
- * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |               {items.map((it) => <WishRow key={it.id} item={it} onRemove={() => removeFromWishList(it.id)} />)} |               {items.map((it) => <WishRow key={it.id} item={it} onRemove={() => undefined} />)}
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     removeFromWishList(it.id); |     void it;
  * @mutate src/pages/info/GiftGuides.tsx |   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />; |   if (false) return null;
+ * @mutate src/pages/info/giftGuides/giftList.tsx |   const cur = mine.owner !== null && mine.owner !== uid ? EMPTY : mine; |   const cur = mine;
+ * @mutate src/pages/info/giftGuides/giftList.tsx | const kept = remoteItems.filter((r) => !removedHere.has(r.i)).map(fromRemote); | const kept = remoteItems.map(fromRemote);
+ * @mutate src/pages/info/giftGuides/giftList.tsx | .filter((r): r is WishRef => r !== null).slice(0, MAX_LIST_ITEMS); | .filter((r): r is WishRef => r !== null);
+ * @mutate src/lib/giftNameClean.ts |   return Array.from(visible).slice(0, max).join(""); |   return visible.slice(0, max);
+ * @mutate src/pages/info/giftGuides/wishListSync.ts |     if (wasSignedIn.current \|\| giftListNow().owner !== null) clearWishList(); |     if (wasSignedIn.current) clearWishList();
+ * @mutate src/pages/info/giftGuides/GiftGuideHints.tsx |   if (result === "full") setNote("full"); |   if (result === "full") void 0;
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     (next ?? document.getElementById("gift-my-list"))?.focus(); |     document.getElementById("gift-my-list")?.focus();
+ * @mutate src/pages/info/giftGuides/wishListItems.ts |   const missingIds = loading ? [] : | const missingIds = true ? [] :
+ * @mutate src/pages/info/giftGuides/wishListItems.ts |   return d.item.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.item : `${d.brand}: ${d.item}`; |   return `${d.brand}: ${d.item}`;
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {item.out === "plain" ? item.store : G.onStore(item.store)} | {G.onStore(item.store)}
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -33,21 +43,29 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 // Signed out (the guest case); no Supabase client is loaded by these tests.
-vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
-const saveWishList = vi.fn(async (_name: string, _items: unknown[]) => "abc123defg");
+// Analytics (UX audit L7) are counted, never sent from a unit test.
+const track = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics", () => ({ track }));
+const auth = vi.hoisted(() => ({ user: null as null | { id: string } }));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: auth.user, isReady: true }) }));
+const saveWishList = vi.fn(async (_name: string, _items: unknown[]) => "abc123defghi");
+const getMyWishList = vi.fn(async (): Promise<{ code: string; name: string; items: { g: string; i: string }[] } | null> => null);
 const getSharedList = vi.fn();
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
   saveWishList: (name: string, items: unknown[]) => saveWishList(name, items),
   getSharedList: (code: string) => getSharedList(code),
+  getMyWishList: () => getMyWishList(),
 }));
 
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuideSharedList } from "@/pages/info/giftGuides/GiftGuideSharedList";
-import { addToWishList, giftListNow, itemId, listRefs, resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
+import { addToWishList, cleanListName, clearWishList, giftListNow, itemId, listRefs, markSynced, reconcileWithAccount, removeFromWishList, resetGiftListForTests, setListName, togglePick } from "@/pages/info/giftGuides/giftList";
+import { GIFT_WISH_RPC_ERROR_COPY } from "@/lib/giftWishListApi";
+import { GIFT_WISH_CSS } from "@/pages/info/giftGuides/giftWishStyles";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { resetFirstHeartForTests } from "@/pages/info/giftGuides/GiftGuideHints";
-import { bizItemId, dealItemId } from "@/pages/info/giftGuides/wishListItems";
+import { bizItemId, dealItemId, dealName } from "@/pages/info/giftGuides/wishListItems";
 
 await loadAllGuidePicks();
 
@@ -69,6 +87,9 @@ const fresh = () => {
   resetFirstHeartForTests();
   saveWishList.mockClear();
   getSharedList.mockReset();
+  getMyWishList.mockReset();
+  getMyWishList.mockResolvedValue(null);
+  auth.user = null;
 };
 beforeEach(fresh);
 afterEach(() => {
@@ -211,18 +232,18 @@ describe("My Wish List page", () => {
     await waitFor(() => expect(view.container.querySelector("[data-gift-wish-share-menu]")).not.toBeNull());
     expect(saveWishList).toHaveBeenCalledWith(WISH.title, [{ g: g.slug, i: itemId(g.picks[0].href) }]);
     const link = view.container.querySelector<HTMLInputElement>("[data-gift-wish-link]")!.value;
-    expect(link).toMatch(/\/gift-guides\/list\/abc123defg$/);
+    expect(link).toMatch(/\/gift-guides\/list\/abc123defghi$/);
     expect(view.container.querySelector("[data-gift-wish-text]")?.getAttribute("href")).toContain(encodeURIComponent(link));
     expect(view.container.querySelector("[data-gift-wish-copy]")).not.toBeNull();
   });
 
   it("a refused share says so and keeps the button", async () => {
-    saveWishList.mockRejectedValueOnce(Object.assign(new Error("x"), { kind: "rateLimited" }));
+    saveWishList.mockRejectedValueOnce(Object.assign(new Error("rate_limited"), { kind: "rateLimited", copy: GIFT_WISH_RPC_ERROR_COPY.gift_wish_list_save.rate_limited }));
     const g = pickedGuides[0];
     addToWishList({ href: g.picks[0].href, name: g.picks[0].name, guide: g.slug });
     const view = renderAt("/gift-guides/my-list");
     fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-wish-share-btn]")!);
-    await waitFor(() => expect(view.container.querySelector("[data-gift-wish-share-limited]")?.textContent).toBe(WISH.shareRateLimited));
+    await waitFor(() => expect(view.container.querySelector("[data-gift-wish-share-failed]")?.textContent).toBe(GIFT_WISH_RPC_ERROR_COPY.gift_wish_list_save.rate_limited));
     expect(view.container.querySelector<HTMLButtonElement>("[data-gift-wish-share-btn]")!.disabled).toBe(false);
   });
 });
@@ -232,9 +253,9 @@ describe("a shared list renders for a guest", () => {
     const g = pickedGuides[1];
     const refs = g.picks.slice(0, 3).map((p) => ({ g: g.slug, i: itemId(p.href) }));
     getSharedList.mockResolvedValue({ name: "Mom's Christmas List", items: [...refs, { g: "her", i: "gone00" }] });
-    const view = renderAt("/gift-guides/list/abc123defg");
+    const view = renderAt("/gift-guides/list/abc123defghi");
     await waitFor(() => expect(view.container.querySelectorAll("[data-gift-wish-item]").length).toBe(3));
-    expect(getSharedList).toHaveBeenCalledWith("abc123defg");
+    expect(getSharedList).toHaveBeenCalledWith("abc123defghi");
     expect(view.container.querySelector("#gift-shared-list")?.textContent).toBe("Mom's Christmas List");
     expect(view.container.querySelector("[data-gift-wish-remove]")).toBeNull();
     const first = view.container.querySelector("[data-gift-wish-item] [data-gift-shop]")?.closest("a");
@@ -244,7 +265,7 @@ describe("a shared list renders for a guest", () => {
   });
 
   it("an unknown code says the list is not there; a failed read offers a retry", async () => {
-    const missing = render(<MemoryRouter><GiftGuideSharedList code="zzzzzzzzzz" read={async () => null} /></MemoryRouter>);
+    const missing = render(<MemoryRouter><GiftGuideSharedList code="zzzzzzzzzzzz" read={async () => null} /></MemoryRouter>);
     await waitFor(() => expect(missing.container.querySelector("[data-gift-shared-missing]")?.textContent).toBe(WISH.sharedMissing));
     cleanup();
     let n = 0;
@@ -253,7 +274,7 @@ describe("a shared list renders for a guest", () => {
       if (n === 1) throw new Error("offline");
       return { name: "L", items: [] };
     });
-    const failing = render(<MemoryRouter><GiftGuideSharedList code="zzzzzzzzzz" read={read} /></MemoryRouter>);
+    const failing = render(<MemoryRouter><GiftGuideSharedList code="zzzzzzzzzzzz" read={read} /></MemoryRouter>);
     await waitFor(() => expect(failing.container.querySelector("[data-gift-shared-failed]")).not.toBeNull());
     fireEvent.click(screen.getByRole("button", { name: WISH.retry }));
     await waitFor(() => expect(failing.container.querySelector("[data-gift-shared-empty]")).not.toBeNull());
@@ -264,7 +285,7 @@ describe("how-to hints dismiss and stay dismissed", () => {
   it("the landing's three steps close with × and stay closed after a reload", () => {
     const view = renderAt("/gift-guides");
     const strip = view.container.querySelector("[data-gift-hint='how-to']")!;
-    expect([...strip.querySelectorAll("li")].map((l) => l.textContent)).toEqual([...HINTS.steps]);
+    expect([...strip.querySelectorAll("li > span")].map((l) => l.textContent)).toEqual([...HINTS.steps]);
     fireEvent.click(strip.querySelector<HTMLButtonElement>("[data-gift-hint-close='how-to']")!);
     expect(view.container.querySelector("[data-gift-hint='how-to']")).toBeNull();
     cleanup();
@@ -326,5 +347,139 @@ describe("how-to hints dismiss and stay dismissed", () => {
     const view = renderAt(`/gift-guides/${DEALS_SLUG}`);
     expect(view.container.querySelector("[data-gift-deals-help]")?.textContent).toBe(HINTS.deals);
     expect(guideBySlug(DEALS_SLUG)).toBeUndefined();
+  });
+});
+
+describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes", () => {
+  const g = () => pickedGuides[0];
+  const pick = (k: number) => ({ href: g().picks[k].href, name: g().picks[k].name, guide: g().slug });
+  const id = (k: number) => itemId(g().picks[k].href);
+
+  it("#2: a list saved under one account is cleared on sign-out, and never merged into another account", async () => {
+    addToWishList(pick(0));
+    reconcileWithAccount("acct-a", null);
+    expect(giftListNow().owner).toBe("acct-a");
+    // Another account signs in on the same device: A's gifts are dropped, B gets only its own list.
+    reconcileWithAccount("acct-b", { name: "B list", items: [{ g: g().slug, i: id(1) }] });
+    expect(giftListNow().picks.map((p) => p.id)).toEqual([id(1)]);
+    expect(giftListNow().name).toBe("B list");
+    // Signed out on the next visit: the account's list does not stay on the device.
+    renderAt("/gift-guides/my-list");
+    await waitFor(() => expect(giftListNow().picks).toEqual([]));
+    expect(giftListNow().owner).toBeNull();
+  });
+
+  it("#2: a guest list is folded into the account that signs in (and stays when nobody is signed in)", () => {
+    addToWishList(pick(0));
+    renderAt("/gift-guides/my-list");
+    expect(giftListNow().picks.length).toBe(1);
+    reconcileWithAccount("acct-a", { name: "My Wish List", items: [{ g: g().slug, i: id(1) }] });
+    expect(giftListNow().picks.map((p) => p.id)).toEqual([id(0), id(1)]);
+  });
+
+  it("#3: after a sync, a gift removed on another device stays removed; changes made here still apply", () => {
+    addToWishList(pick(0));
+    addToWishList(pick(1));
+    reconcileWithAccount("acct-a", null);
+    markSynced("acct-a");
+    // Here: gift 2 added, gift 1 removed. Elsewhere: gift 0 removed.
+    addToWishList(pick(2));
+    removeFromWishList(id(1));
+    reconcileWithAccount("acct-a", { name: "My Wish List", items: [{ g: g().slug, i: id(1) }] });
+    expect(giftListNow().picks.map((p) => p.id)).toEqual([id(2)]);
+  });
+
+  it("#6: a share never sends more than 100 refs, and a name is cut by character, never inside an emoji", () => {
+    // A list saved before the 100 cap (11-18 lists had none) can hold more: a share still sends at most 100.
+    const old = Array.from({ length: 120 }, (_, k) => ({ href: `https://www.amazon.com/dp/X${k}?tag=louisianahelpr-20`, name: `x${k}`, guide: "her" }));
+    window.localStorage.setItem("lh-gift-list", JSON.stringify({ guides: [], picks: old }));
+    resetGiftListForTests();
+    expect(giftListNow().picks.length).toBe(120);
+    expect(listRefs(giftListNow()).length).toBe(100);
+    const long = "🎄".repeat(70);
+    expect(Array.from(cleanListName(long)).length).toBe(60);
+    expect(cleanListName(long)).toBe("🎄".repeat(60));
+    expect(cleanListName("Mom\u202e\u200b's list")).toBe("Mom's list");
+    setListName("🎁".repeat(61));
+    expect(giftListNow().name).toBe("🎁".repeat(60));
+  });
+
+  it("M2: the 101st heart says the list is full", () => {
+    for (let k = 0; k < 100; k++) addToWishList({ href: `https://www.amazon.com/dp/Y${k}?tag=louisianahelpr-20`, name: `y${k}`, guide: "her" });
+    expect(togglePick(pick(0))).toBe("full");
+    const view = renderAt(`/gift-guides/${g().slug}`);
+    fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
+    expect(document.body.querySelector("[data-gift-hint='list-full']")?.textContent).toContain(WISH.listFull);
+  });
+
+  it("M3: Remove moves focus to the next row's Remove and reads the removal out", () => {
+    addToWishList(pick(0));
+    addToWishList(pick(1));
+    const view = renderAt("/gift-guides/my-list");
+    fireEvent.click(view.container.querySelectorAll<HTMLButtonElement>("[data-gift-wish-remove]")[0]);
+    expect(document.activeElement?.getAttribute("data-gift-wish-remove")).toBe(id(1));
+    expect(view.container.querySelector("[data-gift-wish-announce]")?.textContent).toBe(WISH.removed(g().picks[0].name));
+  });
+
+  it("M4 + L5: the list's name is the big title; an empty list has no name field", () => {
+    expect(renderAt("/gift-guides/my-list").container.querySelector("[data-gift-wish-name-input]")).toBeNull();
+    cleanup();
+    addToWishList(pick(0));
+    const view = renderAt("/gift-guides/my-list");
+    expect(view.container.querySelector("h2#gift-my-list")?.className).toContain("gg-wish-title");
+    expect(view.container.querySelector("[data-gift-wish-name-input]")).not.toBeNull();
+  });
+
+  it("M7: gifts the guides no longer carry are counted on a shared list, never silently dropped", async () => {
+    getSharedList.mockResolvedValue({ name: "L", items: [{ g: g().slug, i: id(0) }, { g: "her", i: "gone00" }, { g: "her", i: "gone01" }] });
+    const view = renderAt("/gift-guides/list/abc123defghi");
+    await waitFor(() => expect(view.container.querySelector("[data-gift-wish-missing]")?.textContent).toBe(WISH.missing(2)));
+    // The sender's name is the title, under a line that says it is someone's own list (security review #4).
+    expect(view.container.querySelector("[data-gift-shared-lead]")?.textContent).toBe(WISH.sharedLead);
+    expect(document.title).toBe("L — Helpr");
+  });
+
+  it("M6 + L2 + L6: a business shows its town, a deal's name never repeats its brand, a business with no link can be saved", async () => {
+    expect(dealName({ brand: "ELEMIS", item: "ELEMIS Pro-Collagen Cleansing Balm", deal: "x" } as Deal)).toBe("ELEMIS Pro-Collagen Cleansing Balm");
+    expect(dealName({ brand: "Yoto", item: "Mini player", deal: "x" } as Deal)).toBe("Yoto: Mini player");
+    const b = (smallBiz as SmallBiz[]).find((x) => x.href && x.town)!;
+    addToWishList({ href: b.href!, name: b.name, guide: SMALL_BIZ_SLUG, id: bizItemId(b) });
+    const noLink = (smallBiz as SmallBiz[]).find((x) => !x.href);
+    if (noLink) addToWishList({ href: "", name: noLink.name, guide: SMALL_BIZ_SLUG, id: bizItemId(noLink) });
+    const view = renderAt("/gift-guides/my-list");
+    const row = await waitFor(() => {
+      const r = view.container.querySelector(`[data-gift-wish-item="${bizItemId(b)}"]`);
+      expect(r).not.toBeNull();
+      return r!;
+    });
+    expect(row.querySelector(".gg-nm-meta")?.textContent).toBe(b.town);
+    if (noLink) {
+      const r2 = await waitFor(() => {
+        const r = view.container.querySelector(`[data-gift-wish-item="${bizItemId(noLink)}"]`);
+        expect(r).not.toBeNull();
+        return r!;
+      });
+      expect(r2.querySelector("[data-gift-shop]")).toBeNull();
+    }
+  });
+
+  it("H1 + L1 + L8: the heart's note stays one tidy line, the steps are numbered, hearts follow the theme", () => {
+    expect(GIFT_WISH_CSS).toMatch(/\.gg-toast-text\{flex:1 1 auto;min-width:0/);
+    expect(GIFT_WISH_CSS).toMatch(/\.gg-toast\{[^}]*width:max-content;max-width:min\(calc\(100vw - 32px\),30rem\)/);
+    expect(GIFT_WISH_CSS).not.toMatch(/gg-heart-sb\{[^}]*background:#fff/);
+    const view = renderAt("/gift-guides");
+    expect([...view.container.querySelectorAll("[data-gift-howto-steps] .gg-howto-n")].map((n) => n.textContent)).toEqual(["1", "2", "3"]);
+  });
+
+  it("L7: a heart tap is counted (gift_wish_heart)", () => {
+    const view = renderAt(`/gift-guides/${g().slug}`);
+    fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
+    expect(track).toHaveBeenCalledWith("gift_wish_heart", { result: "added" });
+  });
+
+  it("L3: the share text is a sentence, never the list name twice", () => {
+    expect(WISH.shareMessage).not.toMatch(/My Wish List/);
+    clearWishList();
+    expect(giftListNow().picks).toEqual([]);
   });
 });

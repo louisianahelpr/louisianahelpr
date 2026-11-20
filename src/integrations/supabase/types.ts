@@ -5674,16 +5674,19 @@ export type Database = {
           bucket: string
           hit_at: string
           id: number
+          snapshot: boolean
         }
         Insert: {
           bucket: string
           hit_at?: string
           id?: never
+          snapshot?: boolean
         }
         Update: {
           bucket?: string
           hit_at?: string
           id?: never
+          snapshot?: boolean
         }
         Relationships: []
       }
@@ -18557,7 +18560,13 @@ export type Database = {
       sponsor_log_visit: { Args: { p_device: string; p_ref: string; p_referrer: string }; Returns: undefined }
       gift_wish_list_get: { Args: { p_code: string }; Returns: Json }
       gift_wish_list_mine: { Args: never; Returns: Json }
-      gift_wish_list_save: { Args: { p_items: Json; p_name: string }; Returns: string }
+      gift_wish_list_new_code: { Args: never; Returns: string }
+      gift_wish_list_new_link: { Args: never; Returns: string }
+      gift_wish_list_prune: { Args: never; Returns: Json }
+      gift_wish_list_save: {
+        Args: { p_items: Json; p_name: string; p_test?: boolean }
+        Returns: string
+      }
       giveaway_entry_url: { Args: never; Returns: string | null }
       giveaway_reminder_sweep: { Args: never; Returns: Json }
       secret_santa_create: { Args: { p_avoid?: number[]; p_budget?: number; p_exchange_on?: string; p_gives_to: number[]; p_names: string[] }; Returns: Json }

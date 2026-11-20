@@ -262,7 +262,8 @@ rpc_exempt(fn, why) AS (
   ('apply_low_rating_flag', 'derived from reviews that already exist; needs a prior review by the caller, which a ban cannot add'),
   ('process_referral', 'enrols the caller only; enforce_referral_credit_eligibility already refuses banned accounts'),
   ('sponsor_log_visit', '25 Days page view counter (20261109162829): anon-callable, inserts one row of ref + referrer origin + device and posts no content anyone else reads; refusing a banned member would only hide a page view'),
-  ('gift_wish_list_save', 'Gift guides wish list (20261120062130, owner 11-20): saves a list of gift refs (guide slug + item id) and its name for a share link, or the caller own synced list; anon-callable by design (the guides are signed out), rate limited, posts no content to anyone else and moves no money; refusing a banned member would only stop them sharing a gift list')
+  ('gift_wish_list_save', 'Gift guides wish list (20261120062130, owner 11-20): saves a list of gift refs (guide slug + item id) and its name for a share link, or the caller own synced list; anon-callable by design (the guides are signed out), rate limited, posts no content to anyone else and moves no money; refusing a banned member would only stop them sharing a gift list'),
+  ('gift_wish_list_new_link', 'Gift guides wish list (20261120062130, security review #5): gives the caller own list a new share code so an old link stops working; it only reduces what others can see, moves no money and posts nothing')
 ),
 ops(op, bit) AS (VALUES ('INSERT', 4), ('DELETE', 8), ('UPDATE', 16)),
 tbls AS (

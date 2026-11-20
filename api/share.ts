@@ -1092,6 +1092,28 @@ function seoData(): SeoData | null {
 
 const hasOwn = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
 
+/**
+ * A shared wish list's link card (owner 2026-11-20; UX audit M1: it previewed as the generic Helpr card). The same card
+ * for every list: it never reads the list or shows its name (a visitor's own words stay off our card), and it is
+ * noindex in the head and the header. The gift guides' own collage is the picture.
+ */
+const WISH_LIST_CODE = /^[a-z0-9]{12}$/;
+function metaForWishList(code: string): Meta {
+  const ok = WISH_LIST_CODE.test(code);
+  return {
+    title: "A wish list — Helpr",
+    ogTitle: "Someone shared their wish list with you",
+    description: "See each gift on this holiday wish list and shop it, from the Louisiana Helpr gift guides.",
+    url: ok ? `${SITE_ORIGIN}/gift-guides/list/${code}` : `${SITE_ORIGIN}/gift-guides`,
+    robots: "noindex, nofollow",
+    noindexHeader: true,
+    image: { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: "Louisiana Helpr holiday gift guides" },
+  };
+}
+
+/** My Wish List's page (owner 2026-11-20): an SPA page under /gift-guides/, noindex, never the unknown-guide 404 (UX audit H2). */
+const MY_LIST_SLUG = "my-list";
+
 /** The guide slug in a rewrite's id ("gift-guides/<one segment>"), or null. */
 function giftGuideSlug(id: string): string | null {
   const m = /^gift-guides\/([^/]+)$/.exec(id);
@@ -1137,6 +1159,8 @@ function seoFor(url: URL): SeoOutcome {
   // The gift guides' fun pages (owner 2026-11-20: /gift-guides/swipe, /planner, /draw-names) are info pages, not guides.
   if (id.startsWith("gift-guides/") && !infoPageBody(`/${id}`)) {
     const slug = giftGuideSlug(id);
+    // My Wish List: the page itself, with the noindex head publicOrGiftGuidePageMetaFor gives any unlisted guide slug.
+    if (slug === MY_LIST_SLUG) return null;
     // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is no catalog guide: its own body, never a 404.
     // The Small Business Saturday page (owner 2026-11-19, big batch 1120): its own body, never a 404.
     if (slug === SMALL_BIZ_SLUG) {
@@ -1313,13 +1337,14 @@ const NOINDEX_CARDS: Record<string, { path: string; alt: string }> = {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book" | "matchmaker" | "profile"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book" | "matchmaker" | "profile" | "wishlist"; id: string } | null {
   const declared = url.searchParams.get("_og");
   if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop" || declared === "declutter" || declared === "book" || declared === "profile") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
   }
   if (declared === "signup") return { kind: "signup", id: "" };
   if (declared === "matchmaker") return { kind: "matchmaker", id: "" };
+  if (declared === "wishlist") return { kind: "wishlist", id: url.searchParams.get("_id") ?? "" };
 
   const pathname = url.pathname.replace(/\/+$/, "") || "/";
   const jobMatch = pathname.match(/^\/jobs\/([^/]+)$/);
@@ -1362,6 +1387,10 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
 
   if (route.kind === "matchmaker") {
     return metaForMatchmaker(url.searchParams);
+  }
+
+  if (route.kind === "wishlist") {
+    return metaForWishList(route.id);
   }
 
   if (route.kind === "book") {

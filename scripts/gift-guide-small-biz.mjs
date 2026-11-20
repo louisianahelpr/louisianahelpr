@@ -32,6 +32,11 @@ const LOGOS = join(REPO, "public/gift-guides/small-biz");
 
 /** Logo use declined (FOLLOWUP item 64): the card shows the name only. */
 const NO_LOGO = new Set(["sprinkle-in-time-too"]);
+/**
+ * Words the page says differently: the AllWays Lounge's street ("St. Claude Ave.") reads as the Marigny, since no
+ * member-facing text may say "Claude" (src/test/noClaudeInMemberCopy.test.ts).
+ */
+const REWORD = [[/\bon St\. Claude Ave(nue|\.)?/g, "in the Marigny"], [/\bSt\. Claude\b/g, "Marigny"]];
 /** Signed up after the file was made (owner's inbox 11-19 PM, 9:01 and 9:26 PM). */
 const ADDED = [
   {
@@ -116,7 +121,7 @@ for (const b of rows) {
   }
   cards.push({
     slug: b.slug, name: b.name, town: cleanText(b.town), category: b.category,
-    description: cleanText(b.description), gift: cleanText(b.best_gift),
+    description: REWORD.reduce((t, [re, to]) => t.replace(re, to), cleanText(b.description)), gift: REWORD.reduce((t, [re, to]) => t.replace(re, to), cleanText(b.best_gift)),
     ...(website || facebook || instagram ? { href: website ?? facebook ?? instagram } : {}),
     ...(website ? { website } : {}), ...(facebook ? { facebook } : {}), ...(instagram ? { instagram } : {}),
     ...(logo ? { logo } : {}), ships: shipsOf(b.shipping),

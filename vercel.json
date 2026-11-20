@@ -578,6 +578,10 @@
     },
     {
       "source": "/gift-guides/list/:code",
+      "destination": "/api/share?_og=wishlist&_id=:code"
+    },
+    {
+      "source": "/gift-guides/list/:code",
       "destination": "/index.html"
     },
     {

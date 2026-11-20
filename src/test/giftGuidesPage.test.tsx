@@ -965,7 +965,9 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       { source: "/gift-guides/:slug", destination: "/api/share?_og=page&_id=gift-guides/:slug" },
       { source: "/gift-guides", destination: "/index.html" },
       { source: "/gift-guides/:slug", destination: "/index.html" },
-      // A shared wish list (owner 2026-11-20): the SPA, before the not-found catch-all (noindex header in vercel.json).
+      // A shared wish list (owner 2026-11-20): its own noindex link card (api/share metaForWishList), before the not-found catch-all.
+      { source: "/gift-guides/list/:code", destination: "/api/share?_og=wishlist&_id=:code" },
+      // ... and the app's own rewrite for it (unknownUrlsAnswer404: every App.tsx route has one).
       { source: "/gift-guides/list/:code", destination: "/index.html" },
       // The fun pages (owner 2026-11-20): api/share.ts serves them first (their own info body); these are the SPA
       // entries the not-found guard needs; a Secret Santa reveal link goes straight to the SPA (noindex header).

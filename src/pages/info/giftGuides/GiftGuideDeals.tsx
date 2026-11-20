@@ -9,6 +9,7 @@ import { loadModule } from "@/lib/loadModule";
 import { HINTS, WISH } from "@/content/giftWishList";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
+import { dealName } from "./wishListItems";
 
 /**
  * /gift-guides/black-friday-cyber-monday (owner 2026-11-19): the deals guide. Deals first, one section per category
@@ -57,7 +58,7 @@ function DealCard({ deal }: { deal: Deal }) {
   // My Wish List (owner 2026-11-20): a deal card hearts like any gift; its ref is the deals page and its link's id.
   const id = itemId(deal.href);
   const saved = isSaved(useGiftList(), id);
-  const name = deal.item ? `${deal.brand}: ${deal.item}` : `${deal.brand}: ${deal.deal}`;
+  const name = dealName(deal);
   const copy = (code: string) => {
     void navigator.clipboard?.writeText(code).then(
       () => setCopied(true),

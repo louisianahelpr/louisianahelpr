@@ -1,72 +1,89 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
+import { track } from "@/lib/analytics";
 import { WISH, HINTS } from "@/content/giftWishList";
-import { sharedListPath } from "@/lib/giftWishListApi";
+import { newWishLink, sharedListPath, wishErrorCopy } from "@/lib/giftWishListApi";
 import { smsHref } from "./GiftGuideShare";
 import { Hint, dismissHint } from "./GiftHint";
 import type { WishRef } from "./giftList";
 
 /**
- * "Share my list" (owner 2026-11-20: "send their list to someone"). One tap saves the list (signed out: a snapshot;
- * signed in: the account's list) and gets its short link, /gift-guides/list/<code>. On a phone the phone's own share
- * sheet opens (Messages, Messenger, anything installed: navigator.share); elsewhere, or when the sheet fails, a small
- * menu: Copy link, Text message (sms:), Messenger (phones only: fb-messenger://, the web has no Messenger share link
- * without a Facebook app id) and the share sheet where there is one. The link carries only the code: never a name or
- * an email.
+ * "Share my list" (owner 2026-11-20: "send their list to someone"). The first tap saves the list (signed out: a
+ * snapshot; signed in: the account's list) and gets its short link, /gift-guides/list/<code>. Then a small menu: the
+ * phone's own share sheet first where there is one (Messages, Messenger, anything installed), Copy link, Text message
+ * (sms:) and Messenger (phones only: fb-messenger://, the web has no Messenger share link without a Facebook app id).
+ * The share sheet opens from its own tap, never after the save's wait, so iOS never refuses it for a lost user gesture
+ * (UX audit M5). Signed in, "Make a new link" gives the list a new code so a link sent before stops working (security
+ * review #5). The link carries only the code: never a name or an email.
  */
 
-/** A phone (touch first, with a share sheet): the share sheet opens straight away. */
-const phoneShare = () =>
-  typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
 const isMobileUa = (ua: string) => /iPhone|iPad|iPod|Android/.test(ua);
 
 /** Messenger's share link (the app, on a phone). */
 const messengerHref = (url: string) => `fb-messenger://share/?link=${encodeURIComponent(url)}`;
 
-export function GiftWishShare({ name, refs, save }: { name: string; refs: WishRef[]; save: (name: string, refs: WishRef[]) => Promise<string> }) {
-  const [state, setState] = useState<"idle" | "saving" | "menu" | "failed" | "limited">("idle");
+export function GiftWishShare({ name, refs, save, signedIn = false }: { name: string; refs: WishRef[]; save: (name: string, refs: WishRef[]) => Promise<string>; signedIn?: boolean }) {
+  const [state, setState] = useState<"idle" | "saving" | "menu" | "failed">("idle");
+  const [error, setError] = useState("");
   const [url, setUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [rotated, setRotated] = useState(false);
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
-  const message = WISH.shareMessage(name);
+  const native = typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const message = WISH.shareMessage;
+
+  const fail = (e: unknown) => {
+    // Not silent: the visitor is told in plain words, and can try again; nothing was shared.
+    setError(wishErrorCopy(e) ?? WISH.shareFailed);
+    setState("failed");
+  };
 
   const go = async () => {
     dismissHint("share");
     setCopied(false);
+    setRotated(false);
     setState("saving");
-    let link: string;
     try {
-      link = `${SITE_ORIGIN}${sharedListPath(await save(name, refs))}`;
+      setUrl(`${SITE_ORIGIN}${sharedListPath(await save(name, refs))}`);
+      setState("menu");
+      track("gift_wish_list_link", { items: refs.length, signed_in: signedIn });
     } catch (e) {
-      // Not silent: the visitor is told, and can try again; nothing was shared.
-      setState((e as { kind?: string }).kind === "rateLimited" ? "limited" : "failed");
-      return;
+      // Shown to the visitor in plain words (fail sets the alert line); they can tap again.
+      fail(e);
     }
-    setUrl(link);
-    if (phoneShare()) {
-      try {
-        await navigator.share({ title: name, text: message, url: link });
-        setState("idle");
-        return;
-      } catch (e) {
-        // Cancelled (AbortError): back to the button. Any other failure: the menu, so the link still goes.
-        if ((e as { name?: string }).name === "AbortError") {
-          setState("idle");
-          return;
-        }
+  };
+
+  const rotate = async () => {
+    setCopied(false);
+    try {
+      const code = await newWishLink();
+      if (code) {
+        setUrl(`${SITE_ORIGIN}${sharedListPath(code)}`);
+        setRotated(true);
+        track("gift_wish_list_new_link", {});
       }
+    } catch (e) {
+      // Shown to the visitor in plain words (fail sets the alert line); they can tap again.
+      fail(e);
     }
-    setState("menu");
   };
 
   const copy = () => {
+    track("gift_wish_list_share", { via: "copy" });
     void navigator.clipboard?.writeText(url).then(
       () => setCopied(true),
       // Clipboard refused: the link is on screen to copy by hand.
       () => setCopied(false),
     );
+  };
+
+  const sheet = () => {
+    track("gift_wish_list_share", { via: "sheet" });
+    navigator.share({ title: name, text: message, url }).catch((e: unknown) => {
+      // Cancelled, or the sheet is not allowed here: the menu's other ways stay on screen.
+      console.info("gift wish list: share sheet closed", (e as { name?: string }).name);
+    });
   };
 
   return (
@@ -75,26 +92,32 @@ export function GiftWishShare({ name, refs, save }: { name: string; refs: WishRe
       <Button type="button" className="btn-grad-primary gg-wish-share-btn" disabled={refs.length === 0 || state === "saving"} onClick={() => void go()} data-gift-wish-share-btn="">
         {state === "saving" ? WISH.sharing : WISH.share}
       </Button>
-      {state === "failed" && <p role="alert" className="gg-price-note" data-gift-wish-share-failed="">{WISH.shareFailed}</p>}
-      {state === "limited" && <p role="alert" className="gg-price-note" data-gift-wish-share-limited="">{WISH.shareRateLimited}</p>}
+      {state === "failed" && <p role="alert" className="gg-price-note" data-gift-wish-share-failed="">{error}</p>}
       {state === "menu" && url && (
         <div className="gg-wish-share-menu" role="group" aria-label={WISH.shareMenuLabel} data-gift-wish-share-menu="">
+          {native && (
+            <Button type="button" className="btn-grad-primary gg-wish-share-btn" onClick={sheet} data-gift-wish-native="">{WISH.sendWith}</Button>
+          )}
           <input className="gg-wish-link" readOnly value={url} aria-label={WISH.copyLink} onFocus={(e) => e.currentTarget.select()} data-gift-wish-link="" />
           <span className="gg-chips">
             <Button type="button" variant="outline" size="sm" className="gg-chip" onClick={copy} data-gift-wish-copy="">{copied ? WISH.copied : WISH.copyLink}</Button>
             <Button asChild variant="outline" size="sm" className="gg-chip">
-              <a href={smsHref(url, message, ua)} data-gift-wish-text="">{WISH.text}</a>
+              <a href={smsHref(url, message, ua)} onClick={() => track("gift_wish_list_share", { via: "text" })} data-gift-wish-text="">{WISH.text}</a>
             </Button>
             {isMobileUa(ua) && (
               <Button asChild variant="outline" size="sm" className="gg-chip">
-                <a href={messengerHref(url)} data-gift-wish-messenger="">{WISH.messenger}</a>
+                <a href={messengerHref(url)} onClick={() => track("gift_wish_list_share", { via: "messenger" })} data-gift-wish-messenger="">{WISH.messenger}</a>
               </Button>
-            )}
-            {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
-              <InlineTextButton onClick={() => navigator.share({ title: name, text: message, url }).catch(() => undefined)} data-gift-wish-native="">{WISH.moreShare}</InlineTextButton>
             )}
           </span>
           <p className="gg-price-note">{WISH.shareNote}</p>
+          {signedIn && (
+            <p className="gg-price-note" data-gift-wish-rotate-row="">
+              {rotated ? <span role="status" data-gift-wish-rotated="">{WISH.newLinkDone}</span> : (
+                <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => void rotate()} data-gift-wish-rotate="">{WISH.newLink}</Button>
+              )}
+            </p>
+          )}
         </div>
       )}
     </div>

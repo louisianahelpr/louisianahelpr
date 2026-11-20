@@ -66,17 +66,27 @@ export const dealItemId = (d: Deal) => itemId(d.href);
 /** A business's item id (its slug: its Visit link can change between website and Facebook). */
 export const bizItemId = (b: SmallBiz) => itemId(`biz:${b.slug}`);
 
+/**
+ * A deal card's name on a list: the product, led by the brand unless the product's own name already starts with it
+ * (UX audit L2: "ELEMIS: ELEMIS Pro-Collagen..."), else the brand and the sale.
+ */
+export const dealName = (d: Deal) => {
+  if (!d.item) return `${d.brand}: ${d.deal}`;
+  return d.item.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.item : `${d.brand}: ${d.item}`;
+};
+
 const fromPick = (p: CatalogPick): WishItem => ({ id: pickItemId(p), name: p.name, store: storeLabel(p), image: p.image, href: p.href, out: "affiliate", pick: p });
 
 /** One ref as a gift, or undefined while its source is not in (or when it is gone). */
 function resolve(r: WishRef): WishItem | undefined {
   if (r.g === DEALS_SLUG) {
     const d = deals?.find((x) => dealItemId(x) === r.i);
-    return d && { id: r.i, name: d.item ? `${d.brand}: ${d.item}` : `${d.brand}: ${d.deal}`, store: d.store ?? d.brand, image: d.image, href: d.href, out: "affiliate" };
+    return d && { id: r.i, name: dealName(d), store: d.store ?? d.brand, image: d.image, href: d.href, out: "affiliate" };
   }
   if (r.g === SMALL_BIZ_SLUG) {
     const b = biz?.find((x) => bizItemId(x) === r.i);
-    return b?.href ? { id: r.i, name: b.name, store: b.town || "Louisiana", image: b.logo, href: b.href, out: "plain" } : undefined;
+    // UX audit L6: a business with no link can be saved too; its row then has no Visit button.
+    return b && { id: r.i, name: b.name, store: b.town || "Louisiana", image: b.logo, href: b.href ?? "", out: "plain" };
   }
   const own = guideBySlug(r.g)?.picks.find((p) => pickItemId(p) === r.i);
   if (own) return fromPick(own);
@@ -99,7 +109,7 @@ const settled = (refs: WishRef[], failed: Set<string>) =>
  * The gifts for these refs, in order, each once, plus whether every source they need is in yet (`loading`).
  * `refs` with an empty guide (an old save) are looked up in every loaded guide.
  */
-export function useWishItems(refs: WishRef[]): { items: WishItem[]; loading: boolean } {
+export function useWishItems(refs: WishRef[]): { items: WishItem[]; loading: boolean; missing: number; missingIds: string[] } {
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   useSyncExternalStore(subscribe, () => version, () => version);
   const [failed, setFailed] = useState<Set<string>>(() => new Set());
@@ -118,5 +128,8 @@ export function useWishItems(refs: WishRef[]): { items: WishItem[]; loading: boo
   }, [need]);
   const seen = new Set<string>();
   const items = refs.map(resolve).filter((x): x is WishItem => x !== undefined && !seen.has(x.id) && !!seen.add(x.id));
-  return { items, loading: !settled(refs, failed) };
+  const loading = !settled(refs, failed);
+  // UX audit M7: gifts the guides no longer carry (counted once everything they need is in), never silently gone.
+  const missingIds = loading ? [] : [...new Set(refs.map((r) => r.i))].filter((i) => !seen.has(i));
+  return { items, loading, missing: missingIds.length, missingIds };
 }

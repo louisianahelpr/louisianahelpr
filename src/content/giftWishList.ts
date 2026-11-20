@@ -29,13 +29,24 @@ export const WISH = {
   messenger: "Messenger",
   moreShare: "More ways to share",
   shareFailed: "Couldn't make your link just now. Try again in a minute.",
-  shareRateLimited: "You've shared a lot just now. Try again in a few minutes.",
-  shareMessage: (name: string) => `${name}: here's my wish list`,
+  /** The share sheet's and the text message's words (UX audit L3: never "My Wish List: here's my wish list"). */
+  shareMessage: "Here's my wish list from the Louisiana Helpr gift guides.",
+  sendWith: "Send with…",
+  newLink: "Make a new link",
+  newLinkDone: "New link made. The old link no longer works.",
+  /** The 101st heart (UX audit M2). */
+  listFull: "Your list is full (100). Remove one to add more.",
+  /** Read out after Remove (UX audit M3). */
+  removed: (name: string) => `Removed ${name}`,
+  /** Gifts a list names that the guides no longer carry (UX audit M7). */
+  clearMissing: "Remove them",
+  missing: (n: number) => (n === 1 ? "1 gift isn't in our guides anymore." : `${n} gifts aren't in our guides anymore.`),
   shareNote: "Anyone with the link can see this list. No sign-in needed.",
   syncedNote: "Saved to your account, so it's on every device you sign in on.",
   deviceNote: "Saved on this device. Sign in to keep it on all your devices.",
   /** The shared list's page. */
-  sharedLead: "A wish list from Louisiana Helpr",
+  /** Above the list's name on a shared list: the name is the sender's own words, never ours (security review #4). */
+  sharedLead: "Someone shared their wish list with you",
   sharedIntro: "Tap Shop to buy any gift. Prices and stock are on the store's site.",
   sharedMissing: "This list isn't here anymore, or the link is incomplete.",
   sharedFailed: "Couldn't load this list. Check your connection and try again.",

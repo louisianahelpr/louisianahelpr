@@ -372,7 +372,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
                     aria-controls="item-protection"
                     onClick={() => setProtectionOpen((o) => !o)}
                     data-item-protection-toggle=""
-                    className="tap-44 gap-1.5 rounded-md text-ds-13 font-medium text-foreground"
+                    className="tap-44 gap-1.5 text-ds-13 font-medium text-foreground"
                   >
                     <ShieldCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                     {t("ip.buyerProtection")}

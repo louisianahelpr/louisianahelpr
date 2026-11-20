@@ -21,7 +21,7 @@ export const PhotoThumbButton = forwardRef<
     {...props}
     aria-current={current ? "true" : undefined}
     data-thumb-active={current ? "" : undefined}
-    className={`${PHOTO_THUMB_TARGET} ${current ? "border-foreground/70" : "border-border opacity-80 hover:opacity-100"}`}
+    className={`${PHOTO_THUMB_TARGET} ${current ? "border-foreground/70" : "border-border opacity-80"}`}
   >
     {children}
   </button>

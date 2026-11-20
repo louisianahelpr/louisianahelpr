@@ -20,7 +20,7 @@ import { getLang, t } from "@/lib/i18n/language";
 const DAY_CHOICES = [2, 3, 7, 14] as const;
 
 /** "Sun, Nov 23" in the member's language. */
-export function saleDay(iso: string | Date): string {
+function saleDay(iso: string | Date): string {
   return new Date(iso).toLocaleDateString(getLang() === "es" ? "es-US" : "en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 

@@ -3907,7 +3907,7 @@ console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${deal
 /**
  * FOLLOW-UP 1120 (lead 11-20): the owner's picks that show on no page, each with the rule that kept it off and a one-tap
  * suggestion, grouped by reason (true duplicates last, "already on the guides"). Written to the Desktop only when asked:
- *   GIFT_OWNER_REPORT=1 node scripts/gift-guide-picks.mjs   ->  ~/Desktop/Gift-guide-picks/_owner-picks-unplaced-1120.md
+ *   with GIFT_OWNER_REPORT set to "1", the import writes ~/Desktop/Gift-guide-picks/_owner-picks-unplaced-1120.md (added 2026-11-20)
  */
 if (process.env.GIFT_OWNER_REPORT === "1") {
   const shown = new Map();

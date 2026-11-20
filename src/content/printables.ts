@@ -18,6 +18,7 @@
  */
 
 import { OWNER_TAGS } from "./printableTagDesigns";
+import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 
 /** One rectangle on a design, in inches from its top-left corner. */
 export interface Box {
@@ -238,7 +239,7 @@ export const PRINTABLES: Printable[] = [
     preview: "/printables/declutter-checklist/preview.webp",
     files: [{ label: "Download & print (free)", href: "/printables/declutter-checklist/declutter-checklist.pdf" }],
     guides: [],
-    cta: { to: "/declutter/sell", label: "Sell what you clear out on Declutter" },
+    cta: { to: SELL_CHOOSER_PATH, label: "Sell what you clear out on Declutter" },
   },
 ];
 

@@ -45,12 +45,13 @@ describe("gift guides: import train 1530", () => {
       if (p.ownerPick && (ownerGuides.get(p.href)?.includes(s) ?? true)) continue;
       for (const k of [`h:${p.href}`, ...(p.image ? [`i:${p.image}`] : [])]) byKey.set(k, new Set([...(byKey.get(k) ?? []), s]));
     }
-    expect(n).toBeGreaterThan(1500);
+    expect(n).toBeGreaterThan(1400); // follow-up 1120: ~1,480 rows on ~30 guides + 26 store pages, measured 2026-11-20
     expect([...byKey].filter(([, v]) => v.size > 1).map(([k, v]) => `${k} on ${[...v].join(", ")}`)).toEqual([]);
   });
 
   it("no Camp Snap on Teen Boy", () => {
-    expect(pageOf("boys-teens").length).toBeGreaterThan(5);
+    // Follow-up 1120: Teens mixes girls, boys and any in one section of Kids (25 max), so fewer boys-teens rows.
+    expect(pageOf("boys-teens").length).toBeGreaterThan(1);
     expect(pageOf("boys-teens").filter((p) => /camp snap/i.test(`${p.brand ?? ""} ${p.name}`)).map((p) => p.name)).toEqual([]);
   });
 
@@ -59,8 +60,8 @@ describe("gift guides: import train 1530", () => {
       expect(pageOf(s).length, s).toBeGreaterThanOrEqual(10);
       expect(pageOf(s).length, s).toBeLessThanOrEqual(15);
     }
-    // Big batch 2026-11-20: the 30 kept store pages (src/content/giftGuideMerges.mjs STORE_PAGES_KEPT).
-    expect(stores.length).toBeGreaterThan(25);
+    // Follow-up 1120 (owner 11-20 ~2:45 AM, FINAL STORE LIST): 26 kept store pages, 25+ with picks measured 2026-11-20.
+    expect(stores.length).toBeGreaterThan(20);
     for (const s of stores) {
       const hrefs = pageOf(s).map((p) => p.href);
       const names = pageOf(s).map((p) => p.name.toLowerCase());

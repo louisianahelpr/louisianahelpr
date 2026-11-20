@@ -76,6 +76,29 @@ export const PUBLIC_PAGE_META = {
     ogTitle: "Holiday gift guides 2026 from Louisiana Helpr",
     ogDescription: "Gift ideas for everyone on your list, plus Louisiana favorites.",
   },
+  // Gift guides fun features (owner 2026-11-20): in the sitemap with the guides; giftGuidePageMeta.mjs answers these
+  // three before its noindex fallback for an unknown /gift-guides/<slug>.
+  "/gift-guides/swipe": {
+    title: "Swipe to find gifts — Helpr",
+    description: "Swipe through holiday gift ideas by who it's for and your budget. Save the ones you like to your wish list.",
+    canonical: `${SITE_ORIGIN}/gift-guides/swipe`,
+    ogTitle: "Swipe to find gifts from Louisiana Helpr",
+    ogDescription: "Swipe right to save, left to skip. Holiday gift ideas by person and budget.",
+  },
+  "/gift-guides/planner": {
+    title: "Holiday gift planner — Helpr",
+    description: "Plan who you're shopping for, set budgets, add gift ideas and track what you've bought. Private and free.",
+    canonical: `${SITE_ORIGIN}/gift-guides/planner`,
+    ogTitle: "Holiday gift planner from Louisiana Helpr",
+    ogDescription: "Budgets, gift ideas and what you've bought, all in one place.",
+  },
+  "/gift-guides/draw-names": {
+    title: "Secret Santa name drawer — Helpr",
+    description: "Draw Secret Santa names for free and send each person a private link to their match. No emails or phone numbers.",
+    canonical: `${SITE_ORIGIN}/gift-guides/draw-names`,
+    ogTitle: "Free Secret Santa drawer from Louisiana Helpr",
+    ogDescription: "Draw names, then text each person their match.",
+  },
   "/browse": {
     title: "Browse local jobs — Helpr",
     description:

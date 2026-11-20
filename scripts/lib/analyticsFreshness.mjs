@@ -160,6 +160,12 @@ export const MISSING_MILESTONES = {
  */
 export const NOT_MONITORED = {
   // Gift guides wish list (owner 2026-11-20, UX audit L7): usage counts read by hand; the outcome is gift_wish_lists rows.
+  // Gift guides fun features (owner 2026-11-20, UX audit L12): usage counts read by hand; quiet days are normal.
+  secret_santa_drawn: "usage count of Secret Santa groups drawn (size, pairs), read by hand; the outcome is secret_santa_groups rows",
+  secret_santa_reveal_opened: "usage count of Secret Santa reveal links opened, read by hand; a quiet day of zero is normal",
+  gift_swipe_round_done: "usage count of finished swipe rounds (cards, saved), read by hand",
+  gift_planner_person_added: "usage count of people added to the gift planner, read by hand",
+  gift_of_the_day_shared: "usage count of Gift of the Day shares, read by hand",
   gift_wish_heart: "usage count of gift guide hearts (added, removed, list full), read by hand; a quiet day of zero is normal",
   gift_wish_list_link: "usage count of share links made from My Wish List, read by hand; the outcome is the gift_wish_lists rows",
   gift_wish_list_share: "usage count of how a wish list link was sent (copy, text, Messenger, share sheet), read by hand",

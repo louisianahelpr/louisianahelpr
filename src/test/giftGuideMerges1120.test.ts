@@ -25,6 +25,7 @@ import { GUIDES, guideBySlug, newSlugFor } from "@/content/giftGuideCatalog";
 import { buildSeoData } from "@/prerender/seoData";
 import { blankComments } from "./helpers/blankNonCode";
 import { importRows1120, parseSwaps, productKey1120 } from "../../scripts/giftGuideBig1120.mjs";
+import { SPONSOR_SECTIONS_1120 } from "../../scripts/giftGuideFollowUp1120.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; section?: string; sectionId?: string; from?: string; swappedFrom?: string; campaignEnds?: string; fallback_href?: string; switch_on?: string };
 const DIR = "src/content/giftGuidePicks";
@@ -48,7 +49,9 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     expect(SECTION_CAP).toBe(25);
     const index = new Set(GUIDE_INDEX.map((g) => g.slug));
     const sections = GUIDE_MERGES.flatMap((m) => m.sections);
-    expect(GUIDE_MERGES.length).toBeGreaterThan(40);
+    // Follow-up 1120 (owner "FINAL MERGES", 11-20 ~1:10 AM): 26 merged guides measured 2026-11-20 (49 before); their
+    // old guides as sections stay listed (each keeps its 301).
+    expect(GUIDE_MERGES.length).toBeGreaterThan(20);
     expect(sections.length).toBeGreaterThan(180);
     expect(new Set(sections).size).toBe(sections.length);
     for (const m of GUIDE_MERGES) {
@@ -57,7 +60,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       for (const s of m.sections) expect(index.has(s), s).toBe(true);
     }
     for (const p of NEW_PARENTS) expect(GUIDE_MERGES.some((m) => m.parent === p), p).toBe(true);
-    expect(STORE_PAGES_KEPT.length).toBe(30);
+    // Owner pop-up 2026-11-20 ~2:45 AM (FINAL STORE LIST): 26 store pages.
+    expect(STORE_PAGES_KEPT.length).toBe(26);
   });
 
   it("every old slug opens <parent>#<section> in the page and answers a 301 there; a folded store page 301s to the landing", () => {
@@ -97,7 +101,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       const ids = list.map((p) => p.sectionId ?? "");
       const order = [...new Set(ids)];
       // Every section is one an old guide points to (or the guide's own Top picks), each in one run.
-      const known = new Set(["top-picks", ...m.sections.map((s) => SECTION_ANCHORS[s])]);
+      // Follow-up 1120: the two 25 Days sponsor sections on Shop Small Louisiana (no old guide points to them).
+      const known = new Set(["top-picks", ...m.sections.map((s) => SECTION_ANCHORS[s]), ...SPONSOR_SECTIONS_1120.map((x) => x.id)]);
       for (const id of order) if (!known.has(id)) bad.push(`${m.parent}: unknown section "${id}"`);
       expect(order.length, m.parent).toBe(ids.filter((x, i) => i === 0 || ids[i - 1] !== x).length);
       expect(order.length, m.parent).toBeLessThanOrEqual(SECTION_MAX);
@@ -111,7 +116,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       }
     }
     for (const [slug, list] of guideChunks) if (!GUIDE_MERGES.some((m) => m.parent === slug) && list.length > SECTION_CAP) bad.push(`${slug}: ${list.length} picks`);
-    expect(sections).toBeGreaterThan(80);
+    // Follow-up 1120: 80 sections on the ~30 guides, measured 2026-11-20 (more on the 65 guides before).
+    expect(sections).toBeGreaterThan(60);
     expect(bad).toEqual([]);
   });
 
@@ -130,7 +136,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
         }
       }
     }
-    expect(n).toBeGreaterThan(2000);
+    // Follow-up 1120: ~1,500 guide picks on the ~30 guides, measured 2026-11-20 (2,000+ on the 65 guides before).
+    expect(n).toBeGreaterThan(1300);
     expect(bad.slice(0, 10)).toEqual([]);
   });
 
@@ -204,9 +211,10 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     }
   });
 
-  it("the page lists ~65 guides (from ~250), every one reachable", () => {
+  it("the page lists ~30 guides (from ~250), every one reachable", () => {
     const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-"));
-    expect(shown.length).toBeGreaterThan(50);
-    expect(shown.length).toBeLessThan(80);
+    // Follow-up 1120 (owner "FINAL MERGES -> ~30"): 28 guides measured 2026-11-20.
+    expect(shown.length).toBeGreaterThan(24);
+    expect(shown.length).toBeLessThan(34);
   });
 });

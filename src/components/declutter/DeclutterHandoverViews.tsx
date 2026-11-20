@@ -120,7 +120,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   const payoutReady = payoutAccountReady(profile);
   const setupPaused = usePayoutSetupPaused();
   // Audit 1b D2-2: an open problem shows on both cards and hides booking and a second report.
-  const { problems, settled: problemsSettled } = useOpenProblemsRead(ids);
+  const { problems, settled: problemsSettled, answered: problemsAnswered } = useOpenProblemsRead(ids);
   // BUY-30: the order a notice opened shows whatever the chip.
   const linked = useLinkedOrder();
   const chosen = show ? orders.filter((o) => show(o.orderId) || o.orderId === linked) : orders;
@@ -134,6 +134,13 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
     : setupFeeAheadByOrder(payouts.data ?? [], setupFee.cents);
   const feeUnsure = setupFee.server ? new Set<string>() : setupFeeUnsureOrders(payouts.data ?? [], setupFee.cents);
   const waitingOnReads = bookings.isLoading || payouts.isLoading;
+  // VERIFY 11-20 (measured with a layout-shift + ResizeObserver run at 390, ~/.lh-shots/declutter-selling-shift-1120):
+  // the reserve kept the section's height, but the cards still drew first with no booking ("Paid. Waiting on the buyer
+  // to book a pickup time.", 277px) and grew to 568px when it came, so the door tips and "Message the buyer" INSIDE the
+  // first card moved down 31px on screen (Selling CLS +0.03-0.05). While those reads (and the open-problem read, which
+  // adds the on-hold note) are on the way, the section draws a card-height box per card instead, and the cards arrive
+  // whole.
+  const cardsWait = waitingOnReads || !problemsAnswered;
   if (bookings.isError) {
     return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;
   }
@@ -144,10 +151,11 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
     // pushed Offers off screen: Selling CLS 0.42-0.78 at 375). Until both reads answer, the section holds a card's
     // height (16rem, as PaidOrdersLoading's boxes) for each of its first 4 cards, so the cards grow into kept space.
     // Guard: paidOrdersWaitForBookings.
-    <section className="max-w-3xl space-y-3" aria-label={label ?? "Paid sales"} data-paid-orders-reserve={waitingOnReads ? "" : undefined}
+    <section className="max-w-3xl space-y-3" aria-label={label ?? "Paid sales"} data-paid-orders-reserve={waitingOnReads ? "" : undefined} aria-busy={cardsWait || undefined}
       style={waitingOnReads ? { minHeight: `${Math.min(4, shown.length) * 16.75 + 2}rem` } : undefined}>
       {heading ?? <h2 className="text-base font-semibold">Paid: pickup and handover</h2>}
-      {shown.map((o) => (
+      {cardsWait && shown.slice(0, 4).map((o) => <div key={o.orderId} className="h-64 rounded-[20px] border border-border bg-card" data-paid-order-bones="" aria-hidden />)}
+      {!cardsWait && shown.map((o) => (
         <OrderCard
           key={o.orderId}
           order={o}

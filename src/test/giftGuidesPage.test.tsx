@@ -29,7 +29,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details key={row} open={row === active?.row} | <details key={row} open
  * @mutate src/content/giftGuideCatalog.ts |     ...(children?.length ? { children } : {}), | 
- * @mutate src/content/giftGuideCatalog.ts | (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB) | !g.parent
+ * @mutate src/content/giftGuideCatalog.ts | g.row === row && !g.parent); | g.row === row && !g.parent && g.slug !== KIDS_HUB);
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | <Link to={`/gift-guides?group=${row}`} | <Link to="/gift-guides"
  * @mutate src/content/giftGuideCatalog.ts | 8978491: "mom", | 8978491: "nowhere", 
  * @mutate src/content/giftGuideCatalog.ts | 9000047: "gardener", | 9000047: "no-guide", 
@@ -102,7 +102,8 @@ import { newSlugFor } from "@/content/giftGuideCatalog";
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG } from "@/content/giftGuideSmallBiz.mjs";
-const OWN_PAGES = [DEALS_SLUG, SMALL_BIZ_SLUG];
+// The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are own pages too: in the sitemap, no guide.
+const OWN_PAGES = [DEALS_SLUG, SMALL_BIZ_SLUG, "swipe", "planner", "draw-names"];
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
@@ -221,7 +222,8 @@ describe("gift guides: the content inventory", () => {
 
   it("the artifact's 46 Amazon guides are all here, each with items; budget guides carry no computed price", () => {
     expect(AMAZON_GUIDES.length).toBe(46);
-    expect(AMAZON_GUIDES.reduce((n, g) => n + g.items.length, 0)).toBe(629);
+    // Follow-up 1120 (owner 2026-11-20 ~12:00 AM, "Remove Kendra Scott"): the artifact's 5 Kendra Scott rows are gone (629 -> 624).
+    expect(AMAZON_GUIDES.reduce((n, g) => n + g.items.length, 0)).toBe(624);
     for (const g of AMAZON_GUIDES) expect(g.items.length, g.slug).toBeGreaterThan(0);
     expect(AMAZON_GUIDES.filter((g) => g.row === "theme").map((g) => g.slug)).toEqual([
       "under-25", "under-50", "stocking-stuffers", "nurses", "louisiana-pantry", "home-finds", "under-10", "pet-lovers", "last-minute",
@@ -282,10 +284,10 @@ describe("gift guides: the content inventory", () => {
       expect(searchGuides(slug.replace(/-/g, " ")).map((g) => g.slug), slug).not.toContain(slug);
     }
     expect(GUIDE_INDEX.some((g) => g.group === "Experiences")).toBe(false);
-    // 1120: Gift Cards and Subscriptions are sections of Easy & Last-Minute Gifts, in By budget.
-    expect(guideBySlug("easy-and-last-minute")?.row).toBe("by-budget");
-    expect(newSlugFor("gift-cards")).toBe(`easy-and-last-minute#${SECTION_ANCHORS["gift-cards"]}`);
-    expect(newSlugFor("subscriptions")).toBe(`easy-and-last-minute#${SECTION_ANCHORS.subscriptions}`);
+    // Follow-up 1120: Easy & Last-Minute (its gift cards out, owner 11-20 ~12:20 AM) is a section of Gifts by Budget.
+    expect(guideBySlug("gifts-by-budget")?.row).toBe("by-budget");
+    expect(newSlugFor("gift-cards")).toBe(`gifts-by-budget#${SECTION_ANCHORS["gift-cards"]}`);
+    expect(newSlugFor("subscriptions")).toBe(`gifts-by-budget#${SECTION_ANCHORS.subscriptions}`);
     // Lead 11-18 PM (analytics: visits to store-hide-me-vpn, store-wondershare, store-rvshare): no VPN, software,
     // PC-cleaner, game, airline/travel-booking, car/RV-rental or ticket-resale store page, and the brands are blocked.
     // @mutate scripts/giftGuideBlocklist.mjs | "Wondershare", "Roxio", | "Roxio",
@@ -296,9 +298,10 @@ describe("gift guides: the content inventory", () => {
       expect(REMOVED_GUIDES, slug).toContain(slug);
       expect(blockedBrand({ store: name }), name).toBe(true);
     }
-    expect(guideBySlug("stay-at-home-parents")?.row).toBe("by-career");
+    // Follow-up 1120: Stay-at-Home Parents is a section of Family; By budget is Gifts by Budget, Splurge, then Gift Wrap.
+    expect(newSlugFor("stay-at-home-parents")?.startsWith("family")).toBe(true);
     const budget = guidesIn("by-budget").map((g) => g.slug);
-    expect(budget.indexOf("gift-wrap-and-cards")).toBe(budget.indexOf("stocking-stuffers") + 1);
+    expect(budget).toEqual(["gifts-by-budget", "splurge", "gift-wrap-and-cards"]);
     // The By store row is the list's store entries, in its order (Louisiana popularity).
     const listed = GUIDE_INDEX.filter((g) => g.group === "By store").map((g) => g.slug);
     // 174 after the lead's 11-18 PM cut of 40 VPN / software / travel / rental store entries.
@@ -322,27 +325,25 @@ describe("gift guides: the content inventory", () => {
     for (const s of viaShopMy.filter((x) => isFoldedStore(x))) expect(guideBySlug(s), s).toBeUndefined();
   });
 
-  it("Kids is a hub of Boys / Girls / Gender-Neutral, each holding its five ages as sections; removed guides are gone", () => {
+  it("Kids is ONE guide by age (Babies to Teens), each age mixing girls, boys and any; removed guides are gone", () => {
+    // Follow-up 1120 (owner pop-up 11-20 ~1:10 AM, "FINAL MERGES"): Girls, Boys and Gender-Neutral, with their five ages
+    // each, are one Kids guide whose sections are the ages; every old slug opens its age section (a hub's own picks lead).
     const kids = guideBySlug(KIDS_HUB)!;
-    expect(kids.picks).toEqual([]);
-    const genders = childrenOf(kids).map((c) => c.slug);
-    expect([...genders].sort()).toEqual(["boys", "gender-neutral", "girls"]);
-    for (const who of genders) {
-      // Big batch 1120 (owner pop-up ~8:45 PM, "15 -> 3"): the five age guides are sections of the gender guide.
-      const ages = GUIDE_INDEX.filter((x) => x.parent === who).map((x) => x.slug);
-      expect(ages.length, who).toBe(5);
-      expect(childrenOf(guideBySlug(who)!), who).toEqual([]);
-      for (const age of ages) {
+    expect(kids.children ?? []).toEqual([]);
+    const sections = [...new Set(kids.picks.map((p) => p.sectionId).filter(Boolean))];
+    expect(sections.filter((x) => x !== "top-picks")).toEqual(["babies", "toddlers", "little-kids", "big-kids", "teens"].filter((x) => sections.includes(x)));
+    expect(sections.length).toBeGreaterThan(3);
+    for (const who of ["girls", "boys", "gender-neutral"]) {
+      expect(guideBySlug(who), who).toBeUndefined();
+      for (const age of GUIDE_INDEX.filter((x) => x.parent === who).map((x) => x.slug)) {
         expect(guideBySlug(age), age).toBeUndefined();
-        expect(newSlugFor(age), age).toBe(`${who}#${age}`);
+        expect(newSlugFor(age), age).toBe(`${KIDS_HUB}#${SECTION_ANCHORS[age]}`);
+        expect(age.endsWith(SECTION_ANCHORS[age]), age).toBe(true);
       }
-      const sections = [...new Set(guideBySlug(who)!.picks.map((p) => p.sectionId).filter(Boolean))];
-      expect(sections.filter((x) => x !== "top-picks"), who).toEqual(ages.filter((x) => sections.includes(x)));
-      expect(sections.length, who).toBeGreaterThan(3);
     }
     for (const empty of REMOVED_GUIDES) expect(guideBySlug(empty), empty).toBeUndefined();
     expect(unplacedGuides()).toEqual([]);
-    expect(guideBySlug("girls")!.picks.find((p) => p.sectionId === "girls-toddlers")?.section).toBe("Toddlers (ages 1–3)");
+    expect(kids.picks.find((p) => p.sectionId === "toddlers")?.section).toBe("Toddlers (ages 1–3)");
   });
 
   it("the owner's guide list drives the order and the palettes; every listed guide with content is shown", () => {
@@ -351,8 +352,8 @@ describe("gift guides: the content inventory", () => {
     const shown = GUIDES.filter((g) => GUIDE_INDEX.some((x) => x.slug === g.slug)).map((g) => g.slug);
     expect(shown).toEqual(GUIDE_INDEX.filter((x) => shown.includes(x.slug)).map((x) => x.slug));
     expect(shown).toEqual(GUIDE_INDEX.filter((x) => !REMOVED_GUIDES.includes(x.slug) && !MERGED_GUIDES[x.slug] && !MERGED_INTO[x.slug] && !isFoldedStore(x.slug)).map((x) => x.slug));
-    // Big batch 1120: ~250 guides became ~65 (with sections) and the store pages 30.
-    expect(shown.length).toBeGreaterThan(80);
+    // Follow-up 1120: ~30 guides (with sections) and 26 store pages; 41+ shown on the owner's list, measured 2026-11-20.
+    expect(shown.length).toBeGreaterThan(35);
     for (const g of GUIDES) expect(ROWS.find((r) => r.row === g.row), g.slug).toBeTruthy();
     for (const x of GUIDE_INDEX.filter((i) => shown.includes(i.slug))) expect(guideBySlug(x.slug)!.tint).toBe(x.tint);
   });
@@ -366,7 +367,7 @@ describe("gift guides: the content inventory", () => {
 describe("gift guides: the landing opens to the guides", () => {
   it("shows one tile row per group, in order, each with See all; every top-level guide's tile links to /gift-guides/<slug>", () => {
     const top = ROWS.flatMap((r) => [
-      ...GUIDES.filter((g) => !g.empty && !g.thin && g.row === r.row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB)),
+      ...GUIDES.filter((g) => !g.empty && !g.thin && g.row === r.row && !g.parent),
       ...(r.row === "for-kids" ? TEEN_TILES.map((t) => guideBySlug(t.slug)!).filter((g) => g && !g.empty) : []),
     ]);
     const { container } = renderAt("/gift-guides");
@@ -441,8 +442,8 @@ describe("gift guides: the landing opens to the guides", () => {
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
     // age guide keeps its age band).
     const tiles = [...container.querySelectorAll("a[data-gift-tile]")];
-    // Big batch 2026-11-20: ~65 guides and 30 store pages.
-    expect(tiles.length).toBeGreaterThan(70);
+    // Follow-up 1120: ~30 guides and 26 store pages (50+ tiles measured 2026-11-20).
+    expect(tiles.length).toBeGreaterThan(40);
     for (const t of tiles) {
       const g = guideBySlug(t.getAttribute("data-gift-tile")!)!;
       // The text cover (no cover file) repeats the name as a decorative, aria-hidden picture; the tile's words are the name.
@@ -461,7 +462,7 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", ""]);
     cleanup();
     let banners = 0;
-    for (const slug of ["mom", "girls", "store-walmart", "under-25"]) {
+    for (const slug of ["mom", "kids", "store-walmart", "gifts-by-budget"]) {
       const g = guideBySlug(slug)!;
       const c = renderAt(`/gift-guides/${slug}`).container;
       const head = c.querySelector("[data-gift-words]")!;
@@ -496,8 +497,8 @@ describe("gift guides: the landing opens to the guides", () => {
     // guidesIn or searchGuides and the empty guide is listed again.
     const empty = GUIDES.filter((g) => g.empty);
     const holding = GUIDES.filter((g) => !g.empty);
-    // Big batch 2026-11-20: ~65 guides and 30 store pages.
-    expect(holding.length).toBeGreaterThan(80);
+    // Follow-up 1120: ~30 guides and 26 store pages (50+ holding picks, measured 2026-11-20).
+    expect(holding.length).toBeGreaterThan(40);
     // A hidden guide holds fewer than GUIDE_MIN_PICKS picks (lead 11-19, one guide per product).
     for (const g of empty) expect(g.picks.length, g.slug).toBeLessThan(6);
     for (const g of holding) expect(g.picks.length + g.links.length + (g.children?.length ?? 0) + (g.deals?.length ?? 0), g.slug).toBeGreaterThan(0);
@@ -536,37 +537,38 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides");
     cleanup();
     // (A budget guide that holds 6+ picks after one guide per product, owner 11-19.)
-    const budget = ["under-25", "under-50", "under-100", "under-30", "under-40", "under-20", "stocking-stuffers"].find((s) => guideBySlug(s) && !guideBySlug(s)!.empty)!;
+    // Follow-up 1120: Under $25, Under $50 and Stocking Stuffers are sections of Gifts by Budget.
+    const budget = ["gifts-by-budget", "splurge"].find((s) => guideBySlug(s) && !guideBySlug(s)!.empty)!;
     const view = renderAt(`/gift-guides/${budget}`).container;
     const open = ([...view.querySelectorAll("details[data-gift-group]")] as HTMLDetailsElement[]).filter((d) => d.open);
     expect(open.map((d) => d.getAttribute("data-gift-group"))).toEqual(["by-budget"]);
     expect([...view.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href"))).toEqual([`/gift-guides/${budget}`]);
   });
 
-  // Big batch 1120: the Teens guides are sections of Girls, Boys and Gender-Neutral; the row shows the three guides and
-  // Kids by age links every age section, teens included.
-  // @mutate src/pages/info/giftGuides/GiftGuideAges.tsx | const BANDS = KID_AGE_BANDS; | const BANDS = KID_AGE_BANDS.filter((b) => b.tail !== "teens");
-  it("kids in two taps: the row shows Girls / Boys / Gender-Neutral; Kids by age opens each age section, teens too; the menu the three", () => {
+  // Follow-up 1120 (owner 11-20 ~1:10 AM): ONE Kids guide by age; the row shows Kids and Kids by age links each age
+  // section, teens included.
+  // @mutate src/pages/info/giftGuides/GiftGuideAges.tsx |   const bands = KID_AGE_BANDS.flatMap((b) => { |   const bands = KID_AGE_BANDS.filter((b) => b.tail !== "teens").flatMap((b) => {
+  it("kids in two taps: the row shows Kids; Kids by age opens each age section, teens too; the menu Kids", () => {
     const { container } = renderAt("/gift-guides");
     const kidsRow = container.querySelector('[data-gift-row="for-kids"]')!;
     expect(TEEN_TILES).toEqual([]);
-    expect([...kidsRow.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile")).sort()).toEqual(["boys", "gender-neutral", "girls"]);
-    expect(kidsRow.querySelector("[data-gift-row-count]")?.textContent).toBe("\u00a0(3)");
+    expect([...kidsRow.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"))).toEqual(["kids"]);
+    expect(kidsRow.querySelector("[data-gift-row-count]")?.textContent).toBe("\u00a0(1)");
     const ageLinks = [...kidsRow.querySelectorAll("a[data-gift-age-link]")].map((a) => a.getAttribute("href"));
-    expect(ageLinks.length).toBeGreaterThan(10);
-    for (const h of ageLinks) expect(h).toMatch(/^\/gift-guides\/(girls|boys|gender-neutral)#(girls|boys|gender-neutral)-(babies|toddlers|little-kids|big-kids|teens)$/);
-    expect(ageLinks.some((h) => h!.endsWith("-teens"))).toBe(true);
+    expect(ageLinks.length).toBeGreaterThan(3);
+    for (const h of ageLinks) expect(h).toMatch(/^\/gift-guides\/kids#(babies|toddlers|little-kids|big-kids|teens)$/);
+    expect(ageLinks.some((h) => h!.endsWith("#teens"))).toBe(true);
     const menu = container.querySelector('details[data-gift-group="for-kids"]')!;
-    expect([...menu.querySelectorAll("a")].map((a) => a.getAttribute("href")).sort()).toEqual(["/gift-guides/boys", "/gift-guides/gender-neutral", "/gift-guides/girls"]);
+    expect([...menu.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/kids"]);
     cleanup();
-    const side = renderAt("/gift-guides/girls").container;
+    const side = renderAt("/gift-guides/kids").container;
     const open = ([...side.querySelectorAll("details[data-gift-group]")] as HTMLDetailsElement[]).filter((d) => d.open);
     expect(open.map((d) => d.getAttribute("data-gift-group"))).toEqual(["for-kids"]);
-    expect(open[0].querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides/girls");
+    expect(open[0].querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides/kids");
   });
 
-  it("career guides hold their roles as sections (1120); Teachers is a section of Teachers & School", () => {
-    for (const hub of ["healthcare", "oilfield-and-trades", "service-industry", "educators", "first-responders", "military"]) {
+  it("career guides hold their roles as sections (1120); Teachers is a section of Work Life (follow-up 1120)", () => {
+    for (const hub of ["healthcare", "heroes", "work-life"]) {
       const g = guideBySlug(hub)!;
       expect(g?.row, hub).toBe("by-career");
       const roles = GUIDE_MERGES.find((m) => m.parent === hub)!.sections;
@@ -578,7 +580,7 @@ describe("gift guides: the landing opens to the guides", () => {
       for (const id of ids) expect(roles.map((r) => SECTION_ANCHORS[r]), `${hub}#${id}`).toContain(id);
       expect(ids.length, hub).toBeGreaterThan(2);
     }
-    expect(newSlugFor("teachers")).toBe(`educators#${SECTION_ANCHORS.teachers}`);
+    expect(newSlugFor("teachers")).toBe(`work-life#${SECTION_ANCHORS.teachers}`);
     const row = renderAt("/gift-guides").container.querySelector('[data-gift-row="by-career"]')!;
     const tiles = [...row.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
     expect(tiles).toContain("healthcare");
@@ -775,8 +777,9 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       checked += 1;
       cleanup();
     }
-    expect(checked).toBeGreaterThan(50);
-    for (const slug of ["mom", "store-amazon", "store-walmart", "under-25", "25-days-sponsors"]) {
+    // Follow-up 1120: ~30 guides and 26 store pages (measured 2026-11-20: 49+ list guides).
+    expect(checked).toBeGreaterThan(40);
+    for (const slug of ["mom", "store-amazon", "store-walmart", "gifts-by-budget", "25-days-sponsors"]) {
       const g = guideBySlug(slug)!;
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-words] h1")?.textContent, slug).toBe(g.title);
@@ -796,7 +799,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
   it("every guide's palette is one of the three cover palettes; covers are the owner's files, two-way", () => {
     for (const g of GUIDES) expect(["green", "oat", "red"], g.slug).toContain(g.tint);
     expect(guideBySlug("mom")!.tint).toBe("green");
-    expect(guideBySlug("girls")!.tint).toBe("red");
+    expect(guideBySlug("kids")!.tint).toBe("red");
     expect(guideBySlug("mom")!.cover).toBe("/gift-guides/covers/mom.webp");
     for (const g of GUIDES.filter((x) => x.cover)) expect(existsSync(`public${g.cover}`), g.cover).toBe(true);
     // Two-way: every cover file shipped is some guide's cover.
@@ -909,7 +912,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     // The two own pages (the deals guide, Small Business Saturday) are in the sitemap too, but are no catalog guide.
     const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", "")).filter((s) => !OWN_PAGES.includes(s));
     expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.map((s) => `/gift-guides/${s}`)));
-    expect(guides.length).toBeGreaterThan(80); // big batch 1120: ~65 merged guides + 30 store pages
+    expect(guides.length).toBeGreaterThan(40); // follow-up 1120: ~30 merged guides + 26 store pages (measured 2026-11-20)
     // Every listed guide opens, holds picks, and is no thin store page.
     for (const s of guides) {
       const g = guideBySlug(s);
@@ -933,7 +936,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(mom.robots).toBeUndefined();
     expect(giftGuidePageMeta("store-walmart").title).toBe("Walmart gift guide — Helpr");
     // A guide not in the sitemap (empty, a hub, a thin store page) is noindex under its own title.
-    const unlisted = GUIDES.find((g) => !GIFT_GUIDE_SEO[g.slug])!;
+    // (Follow-up 1120: every shown guide is in the sitemap now; a probe stands in when none is left out.)
+    const unlisted = GUIDES.find((g) => !GIFT_GUIDE_SEO[g.slug]) ?? { slug: "probe-unlisted", title: "Probe" };
     expect(unlisted).toBeTruthy();
     expect(giftGuidePageMeta(unlisted.slug, unlisted.title)).toMatchObject({ title: `${unlisted.title} gift guide — Helpr`, robots: expect.stringMatching(/noindex/) });
     expect(Object.keys(GIFT_GUIDE_SEO).sort()).toEqual(guides.sort());
@@ -948,7 +952,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const forA = ["hospital-stay", "new-job"].find((s) => GIFT_GUIDE_SEO[s]);
     if (forA) expect(GIFT_GUIDE_SEO[forA]).toBe(`Gifts for a ${GUIDE_INDEX.find((g) => g.slug === forA)!.title}`);
     const theGuides = Object.values(GIFT_GUIDE_SEO).filter((n) => /^Gifts for (the|a) /.test(n));
-    expect(theGuides.length).toBeGreaterThan(5); // one guide per product (owner 11-19): thin guides leave the index
+    expect(theGuides.length).toBeGreaterThan(2); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20: Gifts for the Family, the Coffee Lover, the Car Lover
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/\b(the|a|an):/i);
     // Q178 (CI 11-18: /declutter/item/:id 418 -> 423 KB gz): the guides' name table stays out of publicPageMeta.mjs,
     // which Login, Signup, Index and the Declutter item page load cold; only GiftGuides.tsx and api/share.ts read it.
@@ -968,6 +972,12 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       { source: "/gift-guides/list/:code", destination: "/api/share?_og=wishlist&_id=:code" },
       // ... and the app's own rewrite for it (unknownUrlsAnswer404: every App.tsx route has one).
       { source: "/gift-guides/list/:code", destination: "/index.html" },
+      // The fun pages (owner 2026-11-20): api/share.ts serves them first (their own info body); these are the SPA
+      // entries the not-found guard needs; a Secret Santa reveal link goes straight to the SPA (noindex header).
+      { source: "/gift-guides/draw-names", destination: "/index.html" },
+      { source: "/gift-guides/swipe", destination: "/index.html" },
+      { source: "/gift-guides/planner", destination: "/index.html" },
+      { source: "/gift-guides/secret-santa/:code/:token", destination: "/index.html" },
     ]);
   });
 
@@ -984,7 +994,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
 
 describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () => {
   it("SheVibe, King Palm, AnyListingSEO, Loren and Restoro never reach a guide, store page or deal; _cj.json is read", () => {
-    expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro", "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode", "NordVPN", "Surfshark", "Keeper Security", "NordPass", "hide.me", "Intego", "Corel", "Clip Studio Paint", "Daz 3D", "Wondershare", "Roxio", "Pinnacle Studio", "Lalal.ai", "Ashampoo", "AOMEI", "PandaOffice", "Jalbum", "O&O Software", "Abelssoft", "Paragon Software", "GearUP", "YUPLAY", "Whokeys", "DirectDeals", "Hero Wars", "Skytours", "Oojo", "Cheapvuelos", "Ovago", "HopeGoo", "Air India", "Ocean Hotels", "Rent Cars", "VIP Cars", "Carla Car Rental", "RVshare", "Undercover Tourist", "PARISCityVISION", "Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets", "Dragontree", "Dragontree Apothecary", "Deme by Gabriella", "Deme", "CHORD", "Life is Good", "The Jacket Maker", "Diamond Art Club", "Lubiwood", "nixplay", "onn.", "Mainstays", "Hyper Tough", "Holiday Time", "Better Homes & Gardens", "Better Homes and Gardens", "Great Value", "Time and Tru", "DiecastModelsWholesale", "Diecast Models Wholesale", "Kaiya Baby", "Magic Story", "TechPals", "ZonliHome", "Zonli", "Kitty Kick Stix", "Makerfire", "Bonne et Filou", "The Fort Kit", "Cocinare", "Maker Wine", "Magic Makers", "The Fidget Company", "Gisada", "Imarku", "TOUCHBeauty", "Baleaf", "SILK THE RICH", "True Beauty Lashes", "Cashmere Boutique", "MelodySusie", "Lofree", "AndaSeat", "Xplora", "Byrokko", "Frost Buddy", "Forte Chocolate", "TempSpike", "TempPro", "Hairmax", "AmScope", "Adagio Teas", "Free Country", "BADESOFA", "Literie", "Ozark Trail"]);
+    expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro", "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode", "NordVPN", "Surfshark", "Keeper Security", "NordPass", "hide.me", "Intego", "Corel", "Clip Studio Paint", "Daz 3D", "Wondershare", "Roxio", "Pinnacle Studio", "Lalal.ai", "Ashampoo", "AOMEI", "PandaOffice", "Jalbum", "O&O Software", "Abelssoft", "Paragon Software", "GearUP", "YUPLAY", "Whokeys", "DirectDeals", "Hero Wars", "Skytours", "Oojo", "Cheapvuelos", "Ovago", "HopeGoo", "Air India", "Ocean Hotels", "Rent Cars", "VIP Cars", "Carla Car Rental", "RVshare", "Undercover Tourist", "PARISCityVISION", "Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets", "Dragontree", "Dragontree Apothecary", "Deme by Gabriella", "Deme", "CHORD", "Life is Good", "The Jacket Maker", "Diamond Art Club", "Lubiwood", "nixplay", "onn.", "Mainstays", "Hyper Tough", "Holiday Time", "Better Homes & Gardens", "Better Homes and Gardens", "Great Value", "Time and Tru", "DiecastModelsWholesale", "Diecast Models Wholesale", "Kaiya Baby", "Magic Story", "TechPals", "ZonliHome", "Zonli", "Kitty Kick Stix", "Makerfire", "Bonne et Filou", "The Fort Kit", "Cocinare", "Maker Wine", "Magic Makers", "The Fidget Company", "Gisada", "Imarku", "TOUCHBeauty", "Baleaf", "SILK THE RICH", "True Beauty Lashes", "Cashmere Boutique", "MelodySusie", "Lofree", "AndaSeat", "Xplora", "Byrokko", "Frost Buddy", "Forte Chocolate", "TempSpike", "TempPro", "Hairmax", "AmScope", "Adagio Teas", "Free Country", "BADESOFA", "Literie", "Ozark Trail",
+      "Kendra Scott", "Labubu", "Smiski", "Sonny Angel", "Lovesac", "Fishwife"]);
     // ... and no code for one (the codes table and the codes the researched deals name).
     // @mutate scripts/gift-guide-picks.mjs | if (blockedBrand({ ...d, store })) continue; | void d;
     expect(src("scripts/gift-guide-picks.mjs")).toContain("if (blockedBrand({ ...d, store })) continue;");
@@ -1049,15 +1060,16 @@ describe("gift guides: design audit round 2 UI fixes", () => {
   // @mutate src/content/giftGuideCatalog.ts |   }).map((g, i) => [g, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j).map(([g]) => g); |   });
   // @mutate src/content/giftGuideCatalog.ts |   "store-tractor-supply": "boots", hunters: "boots", farmers: "boots", |   "store-tractor-supply": "",
   it("#11 search: Louisiana words find their guides; a title match ranks first", () => {
-    expect(searchGuides("lsu").map((g) => g.slug)).toEqual(expect.arrayContaining(["game-day"]));
-    expect(searchGuides("saints").map((g) => g.slug)).toContain("game-day");
-    expect(searchGuides("boots").map((g) => g.slug)).toEqual(expect.arrayContaining(["store-tractor-supply", "hunters"]));
+    // Follow-up 1120: Game Day is a section of Louisiana Celebrations, Hunters of Outdoors & Travel.
+    expect(searchGuides("lsu").map((g) => g.slug)).toEqual(expect.arrayContaining(["louisiana-celebrations"]));
+    expect(searchGuides("saints").map((g) => g.slug)).toContain("louisiana-celebrations");
+    expect(searchGuides("boots").map((g) => g.slug)).toEqual(expect.arrayContaining(["store-tractor-supply", "outdoors-and-travel"]));
     const mom = searchGuides("mom").map((g) => g.slug);
     expect(mom[0]).toBe("mom");
     const firstOther = mom.findIndex((x) => !guideBySlug(x)!.title.toLowerCase().split(/[^a-z0-9]+/).some((w) => w.startsWith("mom")));
     expect(firstOther === -1 ? mom.length : firstOther).toBeGreaterThan(0);
-    // 1120: Mom-to-Be and New Mom are sections of New Baby & Parents; their titles still find it.
-    expect(mom).toContain("new-baby-and-parents");
+    // Follow-up 1120: Mom-to-Be and New Mom are sections of Life Moments; their titles still find it.
+    expect(mom).toContain("life-moments");
   });
 
   // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   : pick.store === "shopmy" ? pick.brand ?? "" |   : pick.store === "shopmy" ? "ShopMy"
@@ -1078,7 +1090,8 @@ describe("gift guides: design audit round 2 UI fixes", () => {
   // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | (all ? rows : rows.slice(0, STORE_DEALS_FIRST)) | rows
   it("#12 / r3 #1 a store's deals come after ALL its picks: one compact Sales-style list, 6 rows, then See all deals (n), no duplicate links", () => {
     const g = guideBySlug("store-walmart")!;
-    expect(g.picks.length).toBeGreaterThan(12);
+    // Follow-up 1120 (owner: 10-15 per store page): 11 Walmart picks after the audits' store-page cuts, measured 2026-11-20.
+    expect(g.picks.length).toBeGreaterThan(9);
     const { container } = renderAt("/gift-guides/store-walmart");
     expandAll(container);
     const deals = container.querySelector("[data-gift-deals]")!;
@@ -1241,9 +1254,10 @@ describe("gift guides: rows read in order (design audit 11-18 #8, #9)", () => {
     // @mutate src/content/giftGuideIndex.ts | slug: "under-5", | slug: "under-5x",
     const budget = GUIDE_INDEX.filter((g) => g.group === "By budget").map((g) => g.slug);
     // Big batch 1120: Splurge Gifts and Easy & Last-Minute Gifts (merged guides) sit where their first sections sat.
-    expect(budget).toEqual(["under-5", "under-10", "under-15", "under-20", "under-25", "under-30", "under-40", "under-50", "splurge", "under-75", "under-100", "100-and-up", "stocking-stuffers", "gift-wrap-and-cards", "gift-tags", "advent-calendars", "easy-and-last-minute", "gift-cards", "subscriptions"]);
+    // Follow-up 1120: Gifts by Budget (Stocking Stuffers, Under $25, Under $50, memberships) leads the row.
+    expect(budget).toEqual(["gifts-by-budget", "under-5", "under-10", "under-15", "under-20", "under-25", "under-30", "under-40", "under-50", "splurge", "under-75", "under-100", "100-and-up", "stocking-stuffers", "gift-wrap-and-cards", "gift-tags", "advent-calendars", "easy-and-last-minute", "gift-cards", "subscriptions"]);
     // The landing's By budget row: the guides that stay, in that order.
-    expect(guidesIn("by-budget").map((g) => g.slug)).toEqual(["under-25", "under-50", "splurge", "stocking-stuffers", "gift-wrap-and-cards", "easy-and-last-minute"]);
+    expect(guidesIn("by-budget").map((g) => g.slug)).toEqual(["gifts-by-budget", "splurge", "gift-wrap-and-cards"]);
     for (const hub of ["boys", "girls", "gender-neutral"]) {
       expect(GUIDE_INDEX.filter((g) => g.parent === hub).map((g) => g.slug.slice(hub.length + 1)), hub).toEqual(["babies", "toddlers", "little-kids", "big-kids", "teens"]);
       expect(GUIDE_INDEX.filter((g) => g.parent === hub).every((g) => /^ages \d+(–\d+|\+)$/.test(g.age ?? "")), hub).toBe(true);
@@ -1280,7 +1294,8 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
       }
     }
     // Owner 11-18 PM: photo-less Amazon picks show their CDN photo (measured below the floor = the switch is off).
-    expect(amazonCdn).toBeGreaterThan(500);
+    // Follow-up 1120: ~30 guides and 26 store pages hold ~390 Amazon CDN photos (measured 2026-11-20; 500+ on 65 guides).
+    expect(amazonCdn).toBeGreaterThan(300);
     // Brand-site photos (lead 11-18 PM): a photo-less Amazon pick takes the brand's own photo of the same product from
     // amazon-brand-images.json, its Amazon link kept (179 rows from 45 ASINs, measured 2026-11-18).
     // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"
@@ -1288,7 +1303,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image && !p.image.startsWith("https://m.media-amazon.com/")) brandSite += 1;
     expect(brandSite).toBeGreaterThan(15); // one guide per product (owner 11-19); 22 after the Amazon page kept its 15 best (1530 train)
     // Floor re-measured 2026-11-18 after design audit r2 dropped page titles, store names and promos (4,397 photos).
-    expect(photos).toBeGreaterThan(2500); // one guide per product + removal lists (owner 11-19)
+    expect(photos).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,850)
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
     // collection, not the retailer) is on no store page.
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null

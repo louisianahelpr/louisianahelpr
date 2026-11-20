@@ -286,6 +286,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   rental_leases: { by: ["landlord_id", "tenant_id"] },
   // Saved homes (20261019185723): the member's own hearts.
   saved_homes: { by: ["user_id"] },
+  gift_planner_plans: { by: ["user_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },

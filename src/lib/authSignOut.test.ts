@@ -92,6 +92,16 @@ describe("signOutWithPushCleanup", () => {
     expect(removePersistedClient).toHaveBeenCalledTimes(1);
   });
 
+  // @mutate src/lib/authSignOut.ts |   clearPlannerDevice();\n | \n
+  it("clears the gift planner kept on this device (security review of #4791), so the next person never sees it", async () => {
+    window.localStorage.setItem("lh-gift-planner", JSON.stringify({ ownerId: "u1", plan: { updatedAt: 1, people: [{ id: "p", name: "Mom", ideas: [] }] } }));
+    window.localStorage.setItem("someone-elses-key", "1");
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    await signOutWithPushCleanup();
+    expect(window.localStorage.getItem("lh-gift-planner")).toBeNull();
+    expect(window.localStorage.getItem("someone-elses-key")).toBe("1");
+  });
+
   // @mutate src/lib/authSignOut.ts |     clearSavedSellOne(), |     Promise.resolve(),
   // @mutate src/lib/authSignOut.ts |     clearSavedBunch(), |     Promise.resolve(),
   it("clears the selling work kept on this device (one listing and a bunch), so the next member never gets it", async () => {

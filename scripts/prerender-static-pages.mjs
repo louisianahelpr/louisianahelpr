@@ -64,10 +64,10 @@ await writeFile(
 );
 await rename(tmp, outPath);
 const guideCount = Object.keys(seoData?.guides ?? {}).length;
-// The gift guides' 2026-11-20 big batch merged ~250 guides into 65 and kept 30 store pages (96 entries with the Kids
-// hub); fewer than 60 means the catalog failed to load, not a real guide count.
-if (guideCount < 60) {
-  console.error(`prerender-static-pages: the gift guide SEO data holds ${guideCount} guides (expected about 96 on 2026-11-20)`);
+// The gift guides' follow-up train (2026-11-20) merged them into 28 guides and kept the owner's 26 store pages (54
+// entries, measured 2026-11-20; 96 after the big batch); fewer than 40 means the catalog failed to load, not a real count.
+if (guideCount < 40) {
+  console.error(`prerender-static-pages: the gift guide SEO data holds ${guideCount} guides (expected about 54 on 2026-11-20)`);
   process.exit(1);
 }
 const seoTmp = `${seoOutPath}.${process.pid}.tmp`;

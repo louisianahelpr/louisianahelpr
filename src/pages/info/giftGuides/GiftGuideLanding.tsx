@@ -13,6 +13,7 @@ import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
 import { DealsFeature } from "./GiftGuideDeals";
 import { SmallBizFeature } from "./GiftGuideSmallBiz";
 import { GatedBanners, GiftFinder } from "./GiftGuideFinder";
+import { GiftCountdown } from "./fun/GiftCountdown";
 import { HowToStrip } from "./GiftGuideHints";
 
 /**
@@ -53,9 +54,10 @@ const PRIORITY_COVERS = 4;
  * stocking stuffers, a kid by age, him, her, Louisiana), one tap each. A chip whose guide holds nothing is left out.
  */
 export const QUICK_PICKS: { label: string; to: string; slug?: string }[] = [
-  { label: "Under $25", to: "/gift-guides/under-25", slug: "under-25" },
-  { label: "Under $50", to: "/gift-guides/under-50", slug: "under-50" },
-  { label: "Stocking stuffers", to: "/gift-guides/stocking-stuffers", slug: "stocking-stuffers" },
+  // Follow-up 1120: Under $25, Under $50 and Stocking Stuffers are sections of Gifts by Budget.
+  { label: "Under $25", to: "/gift-guides/gifts-by-budget#under-25", slug: "gifts-by-budget" },
+  { label: "Under $50", to: "/gift-guides/gifts-by-budget#under-50", slug: "gifts-by-budget" },
+  { label: "Stocking stuffers", to: "/gift-guides/gifts-by-budget#stocking-stuffers", slug: "gifts-by-budget" },
   // Big batch 1120 (owner-approved quick picks, in her order: Under $25, Under $50, Stocking Stuffers, Her, Him, Kids, Louisiana).
   { label: "Her", to: "/gift-guides/her", slug: "her" },
   { label: "Him", to: "/gift-guides/him", slug: "him" },
@@ -186,6 +188,9 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
         {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}
       </div>
       {!group && <TopStrip />}
+      {/* Fun features (owner 2026-11-20): the Christmas countdown, the Gift of the Day and the three fun tools, after the
+          first row and the Top 10 (only the quick picks sit above the first row, holistic review 11-18 M9). */}
+      {!group && <GiftCountdown />}
       {/* Big batch 1120: the gift finder (who, budget, vibe), its answers in the URL; after the first row and the Top
           10, so nothing but the quick picks sits above the first row (holistic review 11-18 M9). */}
       {!group && <GiftFinder />}

@@ -107,6 +107,9 @@ const MAPS = "mapsSearchUrl(): a fixed https://maps.apple.com / maps:// / geo: p
 const CLASSIFIED: Record<string, string> = {
   // Gift guides (owner 2026-11-18) and the admin stage-preview list (design audit area 10).
   "components/admin/AdminStagePreviews.tsx::p.href": "STAGE_PREVIEWS: a fixed list of in-app /admin/preview/... paths in the same file",
+  "pages/info/giftGuides/fun/SwipeGifts.tsx::card.href": "GiftOut's prop (a swipe card is a guide pick, our content file); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/fun/GiftCountdown.tsx::gift.href": "GiftOut's prop (the Gift of the Day is one of the Top 10 picks, our content file); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/fun/GiftPlanner.tsx::i.href": "a planner idea's link, copied from a wish-list gift; cleanPlan (src/content/giftGuideFun1120.ts) keeps an idea's href only when it starts with https://, on every read from storage or the account",
   "pages/info/giftGuides/GiftGuideView.tsx::pick.href": "GiftOut's prop (a guide's picks, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideLanding.tsx::pick.href": "GiftOut's prop (the Top 10 strip's picks, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.facebook": "shareLinks(): a fixed https://www.facebook.com/sharer/... prefix + URLSearchParams",

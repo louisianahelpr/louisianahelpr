@@ -36,7 +36,7 @@ describe("gift guide share preview (api/share.ts)", () => {
     // landing.jpg is the landing's own 1200x630 card (holistic review 11-18 M7), no guide's: checked below.
     const og = inDir("public/gift-guides/og", ".jpg").filter((s) => s !== "landing");
     const covers = inDir("public/gift-guides/covers", ".webp");
-    expect(og.length).toBeGreaterThan(80); // 1120: ~65 guides + 30 store pages
+    expect(og.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (54)
     expect([...OG_JPG_SLUGS].sort(), "add or remove the slug in src/lib/giftGuideShareImages.mjs").toEqual(og);
     expect([...COVER_WEBP_SLUGS].sort(), "add or remove the slug in src/lib/giftGuideShareImages.mjs").toEqual(covers);
   });
@@ -53,7 +53,9 @@ describe("gift guide share preview (api/share.ts)", () => {
     // Exactly one og:image: the guide's own, never also the brand fallback.
     expect(head.match(/<meta property="og:image" /g)).toHaveLength(1);
     expect(head).toMatch(/<meta property="og:title" content="[^"]*holiday gift guide 2026"/);
-    expect(head).toMatch(/<meta property="og:description" content="[^"]*hand-picked holiday gift ideas/);
+    // The description names the guide's own count and first picks (giftGuideDescription, SEO P1): "Gifts for Mom 2026: 42 hand-picked gift ideas, like …".
+    // With the built SEO data it is the count and first picks; without it (CI builds none) the generic fallback.
+    expect(head).toMatch(/<meta property="og:description" content="[^"]*(\d+ hand-picked gift ideas?, like |hand-picked holiday gift ideas)/);
   });
 
   it("a guide with a WebP cover but no share JPG falls back to the cover", async () => {

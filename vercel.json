@@ -585,6 +585,22 @@
       "destination": "/index.html"
     },
     {
+      "source": "/gift-guides/draw-names",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/gift-guides/swipe",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/gift-guides/planner",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/gift-guides/secret-santa/:code/:token",
+      "destination": "/index.html"
+    },
+    {
       "source": "/go/:slug",
       "destination": "/api/go?slug=:slug"
     },
@@ -668,6 +684,15 @@
     },
     {
       "source": "/gift-guides/list/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/gift-guides/secret-santa/(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",

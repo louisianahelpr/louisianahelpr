@@ -7,8 +7,8 @@
  *
  * @mutate supabase/migrations/20261112094500_shops_review_report.sql |       IF v_htm_side = htm.sender_side THEN |       IF false THEN
  * @mutate supabase/migrations/20261112094500_shops_review_report.sql | IF v_htm_side IS NULL OR NOT public.feature_enabled_for('rentals') THEN | IF v_htm_side IS NULL THEN
- * @mutate supabase/migrations/20261120062130_gift_wish_lists.sql | ELSE to_jsonb(t) - 'member_id' - 'member_notified_at' | ELSE to_jsonb(t) - 'member_notified_at'
- * @mutate supabase/migrations/20261120062130_gift_wish_lists.sql | jsonb_build_object('home_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object( | jsonb_build_object('home_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object('sender_id', t.sender_id,
+ * @mutate supabase/migrations/20261120062334_gift_guide_secret_santa_planner.sql | ELSE to_jsonb(t) - 'member_id' - 'member_notified_at' | ELSE to_jsonb(t) - 'member_notified_at'
+ * @mutate supabase/migrations/20261120062334_gift_guide_secret_santa_planner.sql | jsonb_build_object('home_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object( | jsonb_build_object('home_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object('sender_id', t.sender_id,
  */
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

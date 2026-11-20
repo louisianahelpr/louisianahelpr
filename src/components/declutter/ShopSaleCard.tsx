@@ -70,7 +70,7 @@ export function ShopSaleCard({ userId }: { userId: string }) {
       </div>
       {open && <StartSaleSheet onClose={() => setOpen(false)} onDone={refresh} />}
       {s && (
-        <ConfirmSheet open={ending} plain title={s.status === "on" ? t("dt5.sale.endTitle") : t("dt5.sale.cancelTitle")}
+        <ConfirmSheet pair open={ending} plain title={s.status === "on" ? t("dt5.sale.endTitle") : t("dt5.sale.cancelTitle")}
           confirmLabel={s.status === "on" ? t("dt5.sale.end") : t("dt5.sale.cancel")} cancelLabel={t("dt5.sale.keep")}
           pending={end.isPending} onConfirm={() => end.mutate()} onClose={() => setEnding(false)} testId="declutter-shop-sale-end">
           {s.status === "on" ? t("dt5.sale.endBody") : t("dt5.sale.cancelBody")}
@@ -95,7 +95,7 @@ function StartSaleSheet({ onClose, onDone }: { onClose: () => void; onDone: () =
   });
   const from = tomorrow ? new Date(Date.now() + 86_400_000) : new Date();
   return (
-    <ConfirmSheet open plain title={t("dt5.sale.sheetTitle")} confirmLabel={t("dt5.sale.confirm")} pending={start.isPending}
+    <ConfirmSheet pair open plain title={t("dt5.sale.sheetTitle")} confirmLabel={t("dt5.sale.confirm")} pending={start.isPending}
       onConfirm={() => start.mutate()} onClose={onClose} testId="declutter-shop-sale">
       <span className="block space-y-3">
         <span className="block">{t("dt5.sale.sheetBody")}</span>

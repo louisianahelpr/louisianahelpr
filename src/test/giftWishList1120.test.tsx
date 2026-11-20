@@ -21,7 +21,7 @@
  * @mutate src/pages/info/giftGuides/giftList.tsx |   const cur = mine.owner !== null && mine.owner !== uid ? EMPTY : mine; |   const cur = mine;
  * @mutate src/pages/info/giftGuides/giftList.tsx | const kept = remoteItems.filter((r) => !removedHere.has(r.i)).map(fromRemote); | const kept = remoteItems.map(fromRemote);
  * @mutate src/pages/info/giftGuides/giftList.tsx | .filter((r): r is WishRef => r !== null).slice(0, MAX_LIST_ITEMS); | .filter((r): r is WishRef => r !== null);
- * @mutate src/pages/info/giftGuides/giftList.tsx |   return Array.from(visible).slice(0, MAX_LIST_NAME).join(""); |   return visible.slice(0, MAX_LIST_NAME);
+ * @mutate src/lib/giftNameClean.ts |   return Array.from(visible).slice(0, max).join(""); |   return visible.slice(0, max);
  * @mutate src/pages/info/giftGuides/wishListSync.ts |     if (wasSignedIn.current \|\| giftListNow().owner !== null) clearWishList(); |     if (wasSignedIn.current) clearWishList();
  * @mutate src/pages/info/giftGuides/GiftGuideHints.tsx |   if (result === "full") setNote("full"); |   if (result === "full") void 0;
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     (next ?? document.getElementById("gift-my-list"))?.focus(); |     document.getElementById("gift-my-list")?.focus();

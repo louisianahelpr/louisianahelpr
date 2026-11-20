@@ -1,6 +1,7 @@
 import { useSyncExternalStore, type MouseEvent } from "react";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
+import { cleanGiftName } from "@/lib/giftNameClean";
 
 /**
  * "My Wish List" (owner 2026-11-18 "My list"; 2026-11-20: "add something that they can add to their list and send their
@@ -142,16 +143,8 @@ export const togglePick = (pick: SavedPick): "added" | "removed" | "full" => {
 /** Rename the list (an empty name means the default, DEFAULT_LIST_NAME). */
 export const setListName = (name: string) => write({ ...read(), name: cleanListName(name) });
 
-/**
- * A list name as typed, made safe to keep: invisible and direction-changing characters dropped (the server drops the
- * same, security review #4), and at most MAX_LIST_NAME characters counted by code point, so an emoji is never cut in
- * half (a lone surrogate makes the save fail, #6).
- */
-export function cleanListName(name: string): string {
-  // eslint-disable-next-line no-control-regex -- control characters are exactly what this removes
-  const visible = name.replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, "");
-  return Array.from(visible).slice(0, MAX_LIST_NAME).join("");
-}
+/** A list name as typed, made safe to keep (src/lib/giftNameClean.ts: security review #4 and #6). */
+export const cleanListName = (name: string): string => cleanGiftName(name, MAX_LIST_NAME);
 
 /** The list's name as shown: the visitor's, or the default. */
 export const listName = (list: GiftList) => list.name.trim() || DEFAULT_LIST_NAME;

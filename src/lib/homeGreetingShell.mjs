@@ -61,22 +61,35 @@ export function saveGreetingName(userId, first) {
   }
 }
 
-/** Remove the cached name, unless it belongs to `keepUserId` (an account switch keeps only the new account's). */
+/**
+ * localStorage key of the member's own handle, JSON {"u": <user id>, "h": <handle>}, written by the entry's Home
+ * prefetch (src/boot/homePrefetch.ts OWN_HANDLE_KEY, a copy: the entry imports nothing from src/lib) so a returning
+ * member's page read starts beside the profile read (owner 11-20, Home speed). Same rules as the first name: one
+ * account's, cleared with it.
+ */
+export const OWN_HANDLE_KEY = "lh-home-own-handle";
+
+/**
+ * Remove the cached name (and the cached own handle), unless it belongs to `keepUserId` (an account switch keeps only
+ * the new account's).
+ */
 export function clearGreetingName(keepUserId) {
   const s = store();
   if (!s) return;
-  try {
-    if (keepUserId) {
-      const v = JSON.parse(s.getItem(GREETING_NAME_KEY) || "null");
-      if (v && v.u === keepUserId) return;
-    }
-    s.removeItem(GREETING_NAME_KEY);
-  } catch {
-    // A corrupt or unreadable entry: try a plain remove; if storage itself is blocked there is nothing stored to leak.
+  for (const key of [GREETING_NAME_KEY, OWN_HANDLE_KEY]) {
     try {
-      s.removeItem(GREETING_NAME_KEY);
+      if (keepUserId) {
+        const v = JSON.parse(s.getItem(key) || "null");
+        if (v && v.u === keepUserId) continue;
+      }
+      s.removeItem(key);
     } catch {
-      // Blocked storage holds no entry.
+      // A corrupt or unreadable entry: try a plain remove; if storage itself is blocked there is nothing stored to leak.
+      try {
+        s.removeItem(key);
+      } catch {
+        // Blocked storage holds no entry.
+      }
     }
   }
 }

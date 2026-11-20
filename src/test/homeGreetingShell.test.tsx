@@ -68,7 +68,7 @@ describe("a phone's Home draws no greeting, in the app or in the HTML (owner 11-
   });
 
   it("the HTML's greeting helpers are gone: no markup constants, no extra markup for the CSS inliner", () => {
-    expect(Object.keys(greetingModule).sort()).toEqual(["GREETING_NAME_KEY", "clearGreetingName", "greetingDate", "greetingFor", "readGreetingName", "saveGreetingName"]);
+    expect(Object.keys(greetingModule).sort()).toEqual(["GREETING_NAME_KEY", "OWN_HANDLE_KEY", "clearGreetingName", "greetingDate", "greetingFor", "readGreetingName", "saveGreetingName"]);
     const home = SHELLS.find((s: { id: string }) => s.id === "lh-home-shell") as { extra?: string } | undefined;
     expect(home).toBeTruthy();
     expect(home?.extra).toBeUndefined();

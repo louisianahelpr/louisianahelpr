@@ -13,7 +13,7 @@ import { planActions as A, useAccountSync, usePlan } from "./plannerStore";
  * (typed, or from the wish list), Bought marks, and spent vs budget per person and in total. Saved on this device, and
  * on the account when signed in (plannerStore). Private: nothing here is shared. Guard: src/test/giftGuideFun1120.test.tsx.
  */
-const PATH = "/gift-guides/planner";
+const PATH = "/gift-guides/planner" as const;
 
 function MoneyBar({ p }: { p: PlanPerson }) {
   const m = personMoney(p);
@@ -128,7 +128,7 @@ export default function GiftPlanner() {
     setName("");
   };
   return (
-    <FunPage title={W.plannerTitle} path={PATH} description={W.plannerLead}>
+    <FunPage title={W.plannerTitle} path={PATH}>
       <h2>{W.plannerTitle}</h2>
       <p className="gg-fun-lead">{W.plannerLead}</p>
       <Hint id="fun-planner">{W.hintPlanner}</Hint>

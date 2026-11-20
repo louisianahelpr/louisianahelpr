@@ -1134,7 +1134,8 @@ function seoFor(url: URL): SeoOutcome {
     if (!d) return null;
     return { kind: "page", body: giftGuidesLandingBody(d.groups), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB]), giftGuidesLandingLd(d.groups)] };
   }
-  if (id.startsWith("gift-guides/")) {
+  // The gift guides' fun pages (owner 2026-11-20: /gift-guides/swipe, /planner, /draw-names) are info pages, not guides.
+  if (id.startsWith("gift-guides/") && !infoPageBody(`/${id}`)) {
     const slug = giftGuideSlug(id);
     // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is no catalog guide: its own body, never a 404.
     // The Small Business Saturday page (owner 2026-11-19, big batch 1120): its own body, never a 404.

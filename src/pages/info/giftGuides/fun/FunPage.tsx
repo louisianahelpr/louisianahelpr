@@ -1,22 +1,19 @@
 import type { ReactNode } from "react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
 
-const SITE = "https://www.louisianahelpr.com";
+type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names";
 
 /**
  * The frame of the four fun pages (owner 2026-11-20): the gift guides' public header (back to /gift-guides), the
- * guides' own styles plus FUN_CSS, and one centered column. A private page (a Secret Santa reveal) is noindex.
+ * guides' own styles plus FUN_CSS, and one centered column. The three public pages take their head from
+ * PUBLIC_PAGE_META (the same words api/share.ts writes before JS); a private page (a Secret Santa reveal) is noindex.
  */
-export function FunPage({ title, path, description, noindex, children }: { title: string; path: string; description: string; noindex?: boolean; children: ReactNode }) {
-  usePageMeta({
-    title: `${title} — Helpr`,
-    description,
-    ...(noindex ? { robots: "noindex", noCanonical: true } : { canonical: `${SITE}${path}` }),
-    ogTitle: `${title} from Louisiana Helpr`,
-    ogDescription: description,
-  });
+export function FunPage({ title, path, noindex, children }: { title: string; path: FunPath; noindex?: boolean; children: ReactNode }) {
+  const meta = PUBLIC_PAGE_META[path];
+  usePageMeta(noindex ? { title: `${title} — Helpr`, description: meta.description, robots: "noindex", noCanonical: true } : meta);
   return (
     <PublicHeaderPage title={title} backTo="/gift-guides" bottomPaddingClassName="pb-12 md:pb-16">
       <style>{GIFT_GUIDES_CSS}{FUN_CSS}</style>

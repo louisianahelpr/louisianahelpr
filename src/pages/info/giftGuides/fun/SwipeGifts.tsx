@@ -19,7 +19,7 @@ import { FunPage } from "./FunPage";
  * tap the card = its details and Shop. The buttons do everything the gestures do (accessible). "Share my picks" at the
  * end shares the wish list's link. Guard: src/test/giftGuideFun1120.test.tsx.
  */
-const PATH = "/gift-guides/swipe";
+const PATH = "/gift-guides/swipe" as const;
 /** How far (px) a card is dragged before letting go counts as a swipe. */
 const SWIPE_DISTANCE = 90;
 
@@ -124,7 +124,7 @@ export default function SwipeGifts() {
   };
 
   return (
-    <FunPage title={W.swipeTitle} path={PATH} description={W.swipeHelp}>
+    <FunPage title={W.swipeTitle} path={PATH}>
       {!started ? (
         <section aria-labelledby="swipe-setup" data-swipe-setup="">
           <h2 id="swipe-setup">{W.swipeTitle}</h2>

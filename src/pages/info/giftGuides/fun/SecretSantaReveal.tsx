@@ -55,7 +55,7 @@ export default function SecretSantaReveal() {
   };
 
   return (
-    <FunPage title={W.revealTitle} path={SANTA_PATH} description={W.santaLead} noindex>
+    <FunPage title={W.revealTitle} path={SANTA_PATH} noindex>
       {state.kind === "loading" && <p className="gg-fun-lead" role="status" data-reveal-loading="">{W.revealLoading}</p>}
       {state.kind === "missing" && (
         <div className="gg-fun-card" data-reveal-missing="">

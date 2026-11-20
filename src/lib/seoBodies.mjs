@@ -201,6 +201,25 @@ export function twentyFiveDaysEventLd() {
 
 /** The main info pages: H1, intro, and the links a reader needs. Keyed by path. */
 const INFO_PAGES = {
+  // Gift guides fun features (owner 2026-11-20): one-segment pages under /gift-guides that are no guide.
+  "/gift-guides/swipe": {
+    name: "Swipe to find gifts",
+    h1: "Swipe to find gifts",
+    intro: "Pick who it's for and your budget, then swipe through gift ideas from our holiday gift guides. Swipe right to save a gift to your wish list.",
+    links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/planner", "Gift planner"], ["/gift-guides/draw-names", "Secret Santa drawer"]],
+  },
+  "/gift-guides/planner": {
+    name: "Gift planner",
+    h1: "Holiday gift planner and budget",
+    intro: "List who you're shopping for, set a budget for each person, add gift ideas and mark what you've bought. Your planner stays private.",
+    links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/swipe", "Swipe to find gifts"]],
+  },
+  "/gift-guides/draw-names": {
+    name: "Secret Santa drawer",
+    h1: "Free Secret Santa name drawer",
+    intro: "Type everyone's first name, add a budget and who can't draw each other, and send each person a private link to their match. No emails or phone numbers.",
+    links: [["/gift-guides/secret-santa", "Secret Santa and White Elephant gift ideas"], ["/gift-guides", "Holiday gift guides"]],
+  },
   "/declutter": {
     name: "Declutter",
     h1: "Declutter: used things for sale near you in Louisiana",

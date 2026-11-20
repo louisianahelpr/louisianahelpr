@@ -73,7 +73,7 @@ export default function SecretSanta() {
   };
 
   return (
-    <FunPage title={W.santaTitle} path={SANTA_PATH} description={W.santaLead}>
+    <FunPage title={W.santaTitle} path={SANTA_PATH}>
       {done ? (
         <section aria-labelledby="santa-done" data-santa-done="">
           <h2 id="santa-done">{W.santaDoneTitle}</h2>

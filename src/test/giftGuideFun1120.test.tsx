@@ -26,10 +26,10 @@ import { join } from "node:path";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
-import { topPicks } from "@/content/giftGuideCatalog";
+import { guideBySlug, topPicks } from "@/content/giftGuideCatalog";
 import {
   SWIPE_PER_STORE, SWIPE_ROUND, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giftOfTheDay, giveawayTieInOn, parseDollars,
-  personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan,
+  SANTA_PATH, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan,
 } from "@/content/giftGuideFun1120";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 
@@ -113,6 +113,12 @@ describe("Secret Santa draw", () => {
     expect(drawIsValid([1, 0, 0])).toBe(false);
     expect(drawIsValid([1, 2, 0], [[0, 1]])).toBe(false);
     expect(drawIsValid([1, 2, 0], [[1, 0]])).toBe(false);
+  });
+
+  it("the drawer never takes the Secret Santa gift guide's own address", () => {
+    expect(SANTA_PATH).not.toBe("/gift-guides/secret-santa");
+    expect(guideBySlug(SANTA_PATH.replace("/gift-guides/", ""))).toBeUndefined();
+    for (const p of ["swipe", "planner"]) expect(guideBySlug(p)).toBeUndefined();
   });
 
   it("a reveal link holds the group code and the token, never a name", () => {
@@ -267,7 +273,7 @@ describe("Christmas countdown and Gift of the Day", () => {
     const { container } = render(<MemoryRouter><GiftCountdown now={la("2026-12-10")} /></MemoryRouter>);
     expect(container.querySelector("[data-gift-countdown-days]")?.getAttribute("data-gift-countdown-days")).toBe("15");
     expect(container.querySelector("[data-gift-of-the-day]")).not.toBeNull();
-    expect([...container.querySelectorAll("[data-gift-fun-tool]")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/swipe", "/gift-guides/secret-santa", "/gift-guides/planner"]);
+    expect([...container.querySelectorAll("[data-gift-fun-tool]")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner"]);
     expect(container.querySelector("[data-gift-giveaway-on]")).toBeNull();
     act(() => cleanup());
     const after = render(<MemoryRouter><GiftCountdown now={la("2026-12-27")} /></MemoryRouter>);

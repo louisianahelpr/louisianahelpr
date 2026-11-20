@@ -100,9 +100,14 @@ export const duplicateName = (names: string[]) => {
   return null;
 };
 
-export const SANTA_PATH = "/gift-guides/secret-santa";
+/**
+ * The drawer. Not /gift-guides/secret-santa: that is the "Secret Santa & White Elephant" gift guide's own page (and its
+ * pins), so the drawer has a path of its own; the reveal links sit under /gift-guides/secret-santa/<code>/<token> (three
+ * segments, no clash with the guide).
+ */
+export const SANTA_PATH = "/gift-guides/draw-names" as const;
 /** A person's private reveal link: the group code and their token, never a name. */
-export const revealPath = (code: string, token: string) => `${SANTA_PATH}/${code}/${token}`;
+export const revealPath = (code: string, token: string) => `/gift-guides/secret-santa/${code}/${token}`;
 export const SANTA_CODE = /^[a-f0-9]{10}$/;
 export const SANTA_TOKEN = /^[a-f0-9]{64}$/;
 
@@ -270,7 +275,7 @@ export const FUN_WORDS = {
   toolsTitle: "Make it fun",
   tools: [
     { to: "/gift-guides/swipe", title: "Swipe to find gifts", body: "Swipe right to save, left to skip." },
-    { to: "/gift-guides/secret-santa", title: "Secret Santa drawer", body: "Draw names and text each person their match." },
+    { to: "/gift-guides/draw-names", title: "Secret Santa drawer", body: "Draw names and text each person their match." },
     { to: "/gift-guides/planner", title: "Gift planner", body: "Who's left, what you bought, and your budget." },
   ],
   // Countdown + Gift of the Day

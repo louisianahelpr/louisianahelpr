@@ -12,7 +12,7 @@
  *
  * @mutate src/content/giftGuideFun1120.ts |       if (taken[r] \|\| blocked[giver].has(r)) continue; |       if (taken[r]) continue;
  * @mutate src/content/giftGuideFun1120.ts |       blocked[b].add(a); |       blocked[b].add(b);
- * @mutate src/content/giftGuideFun1120.ts |     if (!p.href \|\| !p.name \|\| !fits(p) \|\| seen.has(p.href) \|\| used.has(p.href)) continue; |     if (!p.href \|\| !p.name \|\| !fits(p) \|\| used.has(p.href)) continue;
+ * @mutate src/content/giftGuideFun1120.ts |     if (!p.href \|\| !p.name \|\| seen.has(p.href) \|\| used.has(p.href)) continue; |     if (!p.href \|\| !p.name \|\| used.has(p.href)) continue;
  * @mutate src/content/giftGuideFun1120.ts |   const spent = sum(p.ideas.filter((i) => i.bought)); |   const spent = sum(p.ideas);
  * @mutate src/content/giftGuideFun1120.ts |   if (md > "12-25") return { kind: "after" }; |   if (md > "12-26") return { kind: "after" };
  * @mutate src/content/giftGuideFun1120.ts |   return flagOn && md >= "12-01" && md <= "12-25"; |   return md >= "12-01" && md <= "12-25";

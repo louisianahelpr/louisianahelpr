@@ -13,6 +13,7 @@ import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
 import { DealsFeature } from "./GiftGuideDeals";
 import { SmallBizFeature } from "./GiftGuideSmallBiz";
 import { GatedBanners, GiftFinder } from "./GiftGuideFinder";
+import { HowToStrip } from "./GiftGuideHints";
 
 /**
  * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
@@ -176,6 +177,7 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       {!group && <DealsFeature />}
       {/* Big batch 1120: the Small Business Saturday page, Nov 24 through Nov 29 (Louisiana). */}
       {!group && <SmallBizFeature />}
+      {!group && <HowToStrip />}
       {!group && <QuickPicks />}
       {/* Big batch 1120: the 25 Days banner and the Declutter link, OFF until the lead flips their flags. */}
       {!group && <GatedBanners />}

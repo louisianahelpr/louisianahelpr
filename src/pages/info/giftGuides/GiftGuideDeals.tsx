@@ -6,6 +6,10 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { DEALS_SLUG, DEALS_WORDS as W, dealSections, dealsFeatured, dealsTitle, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 import { loadModule } from "@/lib/loadModule";
+import { HINTS, WISH } from "@/content/giftWishList";
+import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
+import { heartTapped } from "./GiftGuideHints";
+import { dealName } from "./wishListItems";
 
 /**
  * /gift-guides/black-friday-cyber-monday (owner 2026-11-19): the deals guide. Deals first, one section per category
@@ -23,7 +27,7 @@ const DEALS_CSS = `
 .gg-deal-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (min-width:640px){.gg-deal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (min-width:1100px){.gg-deal-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.gg-deal{display:flex;flex-direction:column;gap:6px;min-width:0;padding:10px;border:1px solid var(--gg-line);border-radius:14px;background:#fff}
+.gg-deal{display:flex;flex-direction:column;gap:6px;min-width:0;padding:10px;border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card));color:var(--gg-ink)}
 .gg-deal-photo{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border-radius:10px;background:#faf6ee;overflow:hidden;isolation:isolate;text-decoration:none}
 .gg-deal-photo img{width:100%;height:100%;object-fit:contain;padding:8px;mix-blend-mode:multiply}
 .gg-deal-photo b{font-size:15px;color:var(--gg-muted);padding:8px;text-align:center}
@@ -33,7 +37,7 @@ const DEALS_CSS = `
 .gg-deal-code{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .gg-deal-code code{font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:var(--gg-soft);color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal .gg-deal-shop{margin-top:auto;width:100%;border-radius:999px;font-weight:700;color:var(--gg-olive);border-color:var(--gg-olive)}
-.gg-deals-feature{display:flex;align-items:center;gap:14px;margin:4px 0 14px;padding:12px;border-radius:14px;border:1px solid var(--gg-line);background:#fff;color:var(--gg-ink);text-decoration:none}
+.gg-deals-feature{display:flex;align-items:center;gap:14px;margin:4px 0 14px;padding:12px;border-radius:14px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);text-decoration:none}
 .gg-deals-feature img{width:88px;height:88px;flex:none;border-radius:10px;object-fit:cover}
 .gg-deals-feature b{display:block;font-size:16px}
 .gg-deals-feature span{display:block;font-size:13px;color:var(--gg-muted);margin-top:2px}
@@ -51,6 +55,10 @@ const loadDeals = () => loadModule(() => import("@/content/giftGuideDeals.json")
 function DealCard({ deal }: { deal: Deal }) {
   const [copied, setCopied] = useState(false);
   const [photoOk, setPhotoOk] = useState(true);
+  // My Wish List (owner 2026-11-20): a deal card hearts like any gift; its ref is the deals page and its link's id.
+  const id = itemId(deal.href);
+  const saved = isSaved(useGiftList(), id);
+  const name = dealName(deal);
   const copy = (code: string) => {
     void navigator.clipboard?.writeText(code).then(
       () => setCopied(true),
@@ -68,6 +76,7 @@ function DealCard({ deal }: { deal: Deal }) {
         )}
         <span className="sr-only">{W.shop(deal.brand)} ({G.newTab})</span>
       </GiftOut>
+      <Heart saved={saved} label={WISH.saveLabel(name)} onToggle={() => heartTapped(togglePick({ href: deal.href, name, guide: DEALS_SLUG, id }))} className="gg-heart-deal" />
       <p className="gg-deal-brand">{deal.brand}</p>
       <p className="gg-deal-text" data-gift-deal-text="">{deal.deal}</p>
       {deal.code && (
@@ -116,6 +125,8 @@ export function GiftGuideDeals({ now }: { now?: Date }) {
       <style>{DEALS_CSS}</style>
       <p className="gg-deals-intro">{W.intro}</p>
       <p className="gg-deals-ad" data-gift-deals-ad="">{W.disclosure}</p>
+      {/* Owner 2026-11-20 hints: the deals page's helper line. */}
+      <p className="gg-deals-ad" data-gift-deals-help="">{HINTS.deals}</p>
       {deals === null ? (
         <p className="gg-deal-meta" role="status">{W.loading}</p>
       ) : sections.length === 0 ? (

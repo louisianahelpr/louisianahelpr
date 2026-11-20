@@ -7,7 +7,8 @@ import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { giftGuides as G } from "@/content/giftGuides";
 import { guideBySlug, loadSearchItems, searchGuides, searchItems, type SearchItem } from "@/content/giftGuideCatalog";
-import { useGiftList } from "./giftList";
+import { MY_LIST_SLUG, useGiftList } from "./giftList";
+import { WISH } from "@/content/giftWishList";
 
 /** The share links for a gift-guides page (owner 2026-11-18): Facebook's sharer and Pinterest's pin builder, no SDK script. */
 const shareLinks = (path: string, title: string, image?: string) => {
@@ -94,12 +95,12 @@ function GiftGuideShare({ path, title, image, many = false }: { path: string; ti
   );
 }
 
-/** My list as an icon with its count (a link to /gift-guides?list=mine). */
+/** My Wish List as an icon with its count (a link to /gift-guides/my-list). */
 function MyListIcon({ current }: { current: boolean }) {
   const list = useGiftList();
   const n = list.guides.length + list.picks.length;
   return (
-    <Link to="/gift-guides?list=mine" className="gg-icon gg-mylist-icon" aria-label={G.myListCount(n)}
+    <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-icon gg-mylist-icon" aria-label={WISH.countLabel(n)}
       {...(current ? { "aria-current": "page" as const } : {})} data-gift-my-list-link="">
       <Icon d={HEART} fill={n > 0 ? "currentColor" : "none"} />
       {/* No count badge on an empty list (pre-launch audit 11-18 PM: a red "0"). */}

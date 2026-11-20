@@ -1,6 +1,9 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
+
+type Mode = "login" | "signup";
 
 /**
  * The Log in | Create account switch at the top of both auth cards (signup-confusion 11-19).
@@ -10,57 +13,41 @@ import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
  * cards looked alike (same H mark, same fields, same olive pill) and the only way across was one small line at the
  * very bottom. This switch says which form you are on before anything else, on every width.
  *
- * Two links, not tabs: each side is its own route (/login, /signup), so the current one carries aria-current="page".
- * The selected side wears btn-grad-primary (CLAUDE.md: selected controls wear it); both are 44px tall.
- * `signupHref`/`loginHref` keep the pending redirect; `email` rides in router state (never the URL) so a typed
- * address carries across. Guard: src/test/signupConfusion1119.test.tsx.
+ * It is the app's one segmented control (segmentedControlInvariant). Each side is its own route, so choosing the other
+ * side navigates there; `signupHref`/`loginHref` keep the pending redirect, and a typed `email` rides in router state
+ * (never the URL) so it carries across. Guard: src/test/signupConfusion1119.test.tsx.
  */
-// Literal class strings (not built by a function) so e2e/happy-path/gradInkSites.ts can rebuild the selected side's
-// classes and gradInkContrast.spec.ts can measure its ink on the gradient.
-const TAB = "flex-1 inline-flex items-center justify-center min-h-11 rounded-full px-3 text-ds-14 font-sans font-bold transition-colors";
-const TAB_ON = "btn-grad-primary !text-[hsl(var(--parchment))]";
-const TAB_OFF = "hover:bg-[hsl(var(--bark)/0.08)]";
-
 export function AuthModeTabs({
   active,
   signupHref = "/signup",
   loginHref = "/login",
   email,
 }: {
-  active: "login" | "signup";
+  active: Mode;
   signupHref?: string;
   loginHref?: string;
   email?: string;
 }) {
   const { t } = useLanguage();
-  const state = email && email.trim() ? { email: email.trim() } : undefined;
+  const navigate = useNavigate();
+  const go = (next: Mode) => {
+    const state = email && email.trim() ? { email: email.trim() } : undefined;
+    navigate(next === "login" ? loginHref : signupHref, { state });
+  };
   return (
-    <nav
-      aria-label={t("authTabs.label")}
-      data-testid="auth-mode-tabs"
-      className="flex w-full gap-1 p-1 rounded-full"
-      style={{ background: "hsl(var(--bark) / 0.08)" }}
-    >
-      <Link
-        to={loginHref}
-        state={state}
-        aria-current={active === "login" ? "page" : undefined}
-        className={`${TAB} ${active === "login" ? TAB_ON : TAB_OFF}`}
-        style={active === "login" ? undefined : { color: "hsl(var(--ink-deep) / 0.78)" }}
-        data-auth-tab="login"
-      >
-        {t("authTabs.login")}
-      </Link>
-      <Link
-        to={signupHref}
-        state={state}
-        aria-current={active === "signup" ? "page" : undefined}
-        className={`${TAB} ${active === "signup" ? TAB_ON : TAB_OFF}`}
-        style={active === "signup" ? undefined : { color: "hsl(var(--ink-deep) / 0.78)" }}
-        data-auth-tab="signup"
-      >
-        {t("authTabs.signup")}
-      </Link>
-    </nav>
+    <div data-testid="auth-mode-tabs">
+      <SegmentedControl<Mode>
+        options={[
+          { value: "login", label: t("authTabs.login") },
+          { value: "signup", label: t("authTabs.signup") },
+        ]}
+        value={active}
+        onChange={go}
+        ariaLabel={t("authTabs.label")}
+        semantics="tab"
+        labelSize="md"
+        className="w-full"
+      />
+    </div>
   );
 }

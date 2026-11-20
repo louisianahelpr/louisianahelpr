@@ -8,7 +8,7 @@
 // the single source of truth for form styling.
 
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { HelprMark } from "@/components/HelprMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { OrRule } from "@/components/auth/OrRule";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import { AuthModeTabs } from "@/components/auth/AuthModeTabs";
+import { safeInternalRedirect } from "@/lib/authRedirects";
 import {
   pendingEmailTypo,
   PASSWORD_MIN_LENGTH,
@@ -56,8 +57,6 @@ export interface SignupStep1Props {
   onContinue: () => void | Promise<void>;
   /** A reason line (e.g. "Create an account to get alerts") in place of the default. */
   subtitle?: string;
-  /** The switch's Log in side; keeps a pending ?redirect= (signup-confusion 11-19). */
-  loginHref?: string;
   /** The page's security box (<TurnstileField>), placed right above Continue as on Login (A3-C1). */
   captchaSlot?: ReactNode;
   /** The server refused the password (GoTrue weak_password, e.g. a leaked one) after step 2 (AUD31-53): shown under
@@ -88,9 +87,11 @@ export function SignupStep1({
   labelCls,
   onContinue,
   subtitle,
-  loginHref = "/login",
   captchaSlot,
 }: SignupStep1Props) {
+  // Signup-confusion 11-19: the switch's Log in side keeps a pending, same-site ?redirect=.
+  const pendingRedirect = safeInternalRedirect(useSearchParams()[0].get("redirect"));
+  const loginHref = pendingRedirect ? `/login?redirect=${encodeURIComponent(pendingRedirect)}` : "/login";
   // The Continue button stays visually active even before the policies box is
   // checked — a disabled grey button is a dead end the user can't learn from.
   // Tapping it while unchecked shakes + highlights the agreement box instead,

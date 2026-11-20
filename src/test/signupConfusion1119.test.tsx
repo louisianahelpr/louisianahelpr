@@ -19,9 +19,9 @@
  * @mutate src/pages/auth/Login.tsx |         setCredMismatch(true); |         setCredMismatch(false);
  * @mutate src/pages/auth/Login.tsx |                     <Link to={signupHref} state={forgotState} data-login-no-match-signup=""> |                     <Link to="/forgot-password" state={forgotState} data-login-no-match-signup="">
  * @mutate src/pages/auth/Login.tsx | <div className="w-full mb-3"><AuthModeTabs active="login" signupHref={signupHref} email={email} /></div> | <div className="w-full mb-3" />
- * @mutate src/pages/auth/Signup.tsx |     if (typeof carriedEmail === "string" && carriedEmail.trim()) setEmail(carriedEmail.trim()); |     if (typeof carriedEmail === "number") setEmail("");
+ * @mutate src/pages/auth/signup/useSignupDraftField.ts |     setEmail(carried.trim()); |     setEmail(email);
  * @mutate src/pages/auth/signup/SignupStep1.tsx | <div className="w-full mb-3"><AuthModeTabs active="signup" loginHref={loginHref} email={email} /></div> | <div className="w-full mb-3" />
- * @mutate src/pages/auth/Signup.tsx |   return safe ? `/login?redirect=${encodeURIComponent(safe)}` : "/login"; |   return "/login";
+ * @mutate src/pages/auth/signup/SignupStep1.tsx |   const loginHref = pendingRedirect ? `/login?redirect=${encodeURIComponent(pendingRedirect)}` : "/login"; |   const loginHref = "/login";
  * @mutate src/pages/auth/ForgotPassword.tsx |               <Link to="/signup" state={{ email: email.trim() }} | <Link to="/login" state={{ email: email.trim() }}
  * @mutate src/components/Navbar.tsx |                 to="/signup" |                 to="/login"
  * @mutate src/components/mobileNav/GateSheet.tsx |               navigate("/signup"); |               navigate("/login");
@@ -96,37 +96,55 @@ describe("signup-confusion 11-19: a new visitor on Log in is shown the way to Cr
     expect(await screen.findByTestId("signup-probe")).toHaveTextContent("charles@example.com");
   });
 
-  it("Log in opens with the Log in | Create account switch, Log in current", () => {
+  it("Log in opens with the Log in | Create account switch, Log in current; Create account goes to /signup with the email", async () => {
     localStorage.clear();
-    const { container } = render(wrap(<Login />));
+    const { container } = render(
+      wrap(
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<CarriedEmail />} />
+        </Routes>,
+      ),
+    );
     const tabs = container.querySelector("[data-testid='auth-mode-tabs']")!;
     expect(tabs).not.toBeNull();
-    const login = tabs.querySelector("[data-auth-tab='login']")!;
-    const signup = tabs.querySelector("[data-auth-tab='signup']")!;
-    expect(login.getAttribute("aria-current")).toBe("page");
-    expect(signup.getAttribute("aria-current")).toBeNull();
-    expect(signup.textContent).toBe("Create account");
-    expect(signup.getAttribute("href")).toBe("/signup");
+    const login = screen.getByRole("tab", { name: "Log in" });
+    const signup = screen.getByRole("tab", { name: "Create account" });
+    expect(login.getAttribute("aria-selected")).toBe("true");
+    expect(signup.getAttribute("aria-selected")).toBe("false");
     // The switch comes before the heading and the form.
     const h1 = container.querySelector("h1")!;
     expect(tabs.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.change(container.querySelector("#email")!, { target: { value: "charles@example.com" } });
+    fireEvent.click(signup);
+    expect(await screen.findByTestId("signup-probe")).toHaveTextContent("charles@example.com");
   });
 
   it("/signup opens with the switch (Create account current) and fills the carried email", () => {
     sessionStorage.clear();
     const { container } = render(wrap(<Signup />, { pathname: "/signup", state: { email: "charles@example.com" } }));
-    const tabs = container.querySelector("[data-testid='auth-mode-tabs']")!;
-    expect(tabs).not.toBeNull();
-    expect(tabs.querySelector("[data-auth-tab='signup']")!.getAttribute("aria-current")).toBe("page");
-    expect(tabs.querySelector("[data-auth-tab='login']")!.getAttribute("href")).toBe("/login");
+    expect(container.querySelector("[data-testid='auth-mode-tabs']")).not.toBeNull();
+    expect(screen.getByRole("tab", { name: "Create account" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Create your account");
     expect((container.querySelector("#email") as HTMLInputElement).value).toBe("charles@example.com");
   });
 
-  it("the switch keeps a pending same-site redirect in both directions", () => {
+  it("the switch keeps a pending same-site redirect in both directions", async () => {
     sessionStorage.clear();
-    const { container } = render(wrap(<Signup />, "/signup?redirect=%2Fjobs%2Fabc"));
-    expect(container.querySelector("[data-auth-tab='login']")!.getAttribute("href")).toBe("/login?redirect=%2Fjobs%2Fabc");
+    function LoginProbe() {
+      return <p data-testid="login-probe">{useLocation().search}</p>;
+    }
+    render(
+      wrap(
+        <Routes>
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<LoginProbe />} />
+        </Routes>,
+        "/signup?redirect=%2Fjobs%2Fabc",
+      ),
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Log in" }));
+    expect(await screen.findByTestId("login-probe")).toHaveTextContent("?redirect=%2Fjobs%2Fabc");
   });
 
   it("password reset's neutral sent screen offers Create one, to /signup", () => {

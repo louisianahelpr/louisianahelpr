@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import { clearSignupDraft, useSignupDraftField } from "./signup/useSignupDraftField";
+import { clearSignupDraft, useSignupDraftField, useSignupEmailField } from "./signup/useSignupDraftField";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
@@ -35,18 +35,12 @@ import {
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
-import { getSignupConfirmRedirect, safeInternalRedirect } from "@/lib/authRedirects";
+import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { isWeakPasswordError, recognizedAuthError, weakPasswordWords } from "@/lib/authErrors";
 import { completeSignupErrorCopy, isSignupAlreadyFinished, isSignupResumedOldAccount, SIGNUP_ALREADY_FINISHED_COPY, SIGNUP_RESUMED_OLD_ACCOUNT_COPY } from "./signup/completeSignupError";
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { useCityZipMismatch } from "./signup/useCityZipMismatch";
-
-/** Signup-confusion 11-19: the Log in | Create account switch keeps a pending, same-site ?redirect= on its Log in side. */
-const loginHrefFor = (raw: string | null): string => {
-  const safe = safeInternalRedirect(raw);
-  return safe ? `/login?redirect=${encodeURIComponent(safe)}` : "/login";
-};
 import { getLang, useLanguage } from "@/lib/i18n/language";
 import { joinName } from "@/lib/splitName";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -85,13 +79,7 @@ const Signup = () => {
   const [firstName, setFirstName] = useSignupDraftField("firstName"); // F259c: kept over a reload
   const [lastName, setLastName] = useSignupDraftField("lastName");
   const fullName = joinName(firstName, lastName);
-  const [email, setEmail] = useSignupDraftField("email");
-  // Signup-confusion 11-19: Log in's "Create an account" (after a miss) and the Log in | Create account switch carry
-  // the typed address in router state (never the URL), so a visitor who started on the wrong form keeps it.
-  const carriedEmail = (useLocation().state as { email?: unknown } | null)?.email;
-  useEffect(() => {
-    if (typeof carriedEmail === "string" && carriedEmail.trim()) setEmail(carriedEmail.trim());
-  }, [carriedEmail, setEmail]);
+  const [email, setEmail] = useSignupEmailField(); // signup-confusion 11-19: also fills an email Log in carried over
   const [password, setPassword] = useState("");
   const [location, setLocation] = useState("");
   // ZIP is optional (owner 2026-10-26); a typed one must be 5 digits. It resolves
@@ -565,7 +553,6 @@ const Signup = () => {
         {/* Step 1: Account credentials + agreements */}
         {step === 1 && (
           <SignupStep1
-            loginHref={loginHrefFor(searchParams.get("redirect"))}
             firstName={firstName}
             setFirstName={setFirstName}
             lastName={lastName}

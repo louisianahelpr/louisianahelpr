@@ -8,6 +8,7 @@ import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
 import { Heart, togglePick, useGiftList } from "./giftList";
 import { Button } from "@/components/ui/button";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { AgeChips } from "./GiftGuideAges";
@@ -205,9 +206,9 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
       {banded >= BUDGET_MIN_PICKS && (
         <div role="group" aria-label={G.budgetLabel} className="gg-budget" data-gift-budget="">
           {[null, ...BUDGETS].map((b) => (
-            <button key={b ?? "all"} type="button" className="gg-chip" aria-pressed={budget === b} data-gift-budget-choice={b ?? "all"} onClick={() => { setBudget(b); setShown(PICKS_PAGE); }}>
+            <ToggleChip key={b ?? "all"} pressed={budget === b} data-gift-budget-choice={b ?? "all"} onClick={() => { setBudget(b); setShown(PICKS_PAGE); }}>
               {b ? G.budgetUnder(b) : G.budgetAll}
-            </button>
+            </ToggleChip>
           ))}
         </div>
       )}

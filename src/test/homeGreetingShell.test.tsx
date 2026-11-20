@@ -17,7 +17,7 @@
  * @mutate src/main.tsx |           else if (event === "SIGNED_IN" && session?.user) clearGreetingName(session.user.id); |
  * @mutate src/pages/home/HomeDashboard.tsx |     if (user?.id && profileFirst !== null) saveGreetingName(user.id, profileFirst); |
  * @mutate src/lib/homeGreetingShell.mjs |     return v && v.u === userId && typeof v.n === "string" ? v.n : ""; |     return v && typeof v.n === "string" ? v.n : "";
- * @mutate src/lib/homeGreetingShell.mjs |       if (v && v.u === keepUserId) return; |       if (v) return;
+ * @mutate src/lib/homeGreetingShell.mjs |         if (v && v.u === keepUserId) continue; |         if (v) continue;
  * @mutate src/lib/homeGreetingShell.mjs |   if (lang === "es") return | if (lang === "xx") return
  */
 import { readFileSync } from "node:fs";
@@ -68,7 +68,7 @@ describe("a phone's Home draws no greeting, in the app or in the HTML (owner 11-
   });
 
   it("the HTML's greeting helpers are gone: no markup constants, no extra markup for the CSS inliner", () => {
-    expect(Object.keys(greetingModule).sort()).toEqual(["GREETING_NAME_KEY", "clearGreetingName", "greetingDate", "greetingFor", "readGreetingName", "saveGreetingName"]);
+    expect(Object.keys(greetingModule).sort()).toEqual(["GREETING_NAME_KEY", "OWN_HANDLE_KEY", "clearGreetingName", "greetingDate", "greetingFor", "readGreetingName", "saveGreetingName"]);
     const home = SHELLS.find((s: { id: string }) => s.id === "lh-home-shell") as { extra?: string } | undefined;
     expect(home).toBeTruthy();
     expect(home?.extra).toBeUndefined();

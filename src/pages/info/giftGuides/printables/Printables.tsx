@@ -34,7 +34,7 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
   };
   return (
     <li id={p.id} className="pr-card" data-printable-card={p.id}>
-      <img src={p.preview} alt="" className="pr-card-img" width={160} height={207} loading="lazy" decoding="async" />
+      <img loading="lazy" decoding="async" src={p.preview} alt="" className="pr-card-img" width={160} height={207} />
       <div className="pr-card-body">
         <h3>{p.title}</h3>
         <p>{p.blurb}</p>

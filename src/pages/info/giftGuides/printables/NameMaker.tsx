@@ -292,13 +292,13 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
           {product.designs.map((d) => (
             <label key={d.id} className={`pr-design${d.id === designId ? " is-on" : ""}`}>
               <NativeRadio name={`${uid}-design`} value={d.id} checked={d.id === designId} onChange={() => setDesignId(d.id)} className="sr-only" data-printable-design={d.id} />
-              <img src={d.thumb ?? d.image} alt="" width={designSize(product, d).w * 24} height={designSize(product, d).h * 24} loading="lazy" decoding="async" />
+              <img loading="lazy" decoding="async" src={d.thumb ?? d.image} alt="" width={designSize(product, d).w * 24} height={designSize(product, d).h * 24} />
               <span>{d.name}</span>
             </label>
           ))}
         </div>
         {product.designs.length > 1 && (
-          <label className="pr-check">
+          <label className="pr-check min-h-11">
             <Checkbox checked={mixDesigns} onCheckedChange={(v) => setMixDesigns(v === true)} data-printable-mix-designs="" />
             <span>{W.mixDesigns}</span>
           </label>

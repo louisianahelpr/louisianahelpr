@@ -68,8 +68,10 @@ describe("deals guide: the data", () => {
       for (const k of ["starts", "ends"] as const) if (d[k]) expect(d[k], `${d.brand} ${k}`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
     for (const c of DEAL_CATEGORIES) expect(deals.filter((d) => d.category === c).length, c).toBeLessThanOrEqual(DEALS_PER_SECTION);
-    // The 11 with no affiliate link and the 12 whose link reaches another store (lead 2026-11-19) are left out.
-    for (const brand of ["Aurate", "Quip", "Stokke", "Good American", "Summer Fridays", "Le Creuset", "UGG", "Kendra Scott", "Hydro Flask"]) {
+    // The 11 with no affiliate link and the 12 whose link reaches another store (lead 2026-11-19) are left out; follow-up
+    // 1120 (_bfcm-deals-1120.json skipped_fixed) gave Aurate, Quip, Good American, Summer Fridays and Le Creuset their
+    // own-store links, so they are in; Kendra Scott is blocked (owner 11-20) and the weak picks dropped.
+    for (const brand of ["Stokke", "UGG", "Kendra Scott", "Hydro Flask", "Ariat", "Academy Sports + Outdoors", "GreenPan", "Oura", "Lovesac"]) {
       expect(deals.map((d) => d.brand), brand).not.toContain(brand);
     }
   });

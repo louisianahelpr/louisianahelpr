@@ -3560,7 +3560,7 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
       if (seen.has(b.href)) continue;
       seen.add(b.href);
       add.push({ name, brand: name, line: String(b.description ?? ""), href: b.href, ...(b.logo ? { image: `https://www.louisianahelpr.com${b.logo}` } : {}),
-        store: "sponsor", sponsor: true, louisianaFit: true, section: g.title, sectionId: g.id });
+        store: "sponsor", sponsor: true, louisianaFit: true, commission: 0, type: "sponsor", from: SPONSORS_GUIDE, section: g.title, sectionId: g.id });
       followUpCounts1120.sponsors += 1;
     }
   }
@@ -3574,8 +3574,12 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
       const image = f.image ?? sponsorsGuide.find((p) => p.href === f.href)?.image;
       if (!image || region.some((p) => p.href === f.href)) continue;
       const at = region.find((p) => p.sectionId && (SECTION_ANCHORS[f.region] === p.sectionId));
-      region.push({ name: f.name, brand: f.brand, line: f.line, href: f.href, image, store: "sponsor", sponsor: true, louisianaFit: true,
-        ...(at ? { section: at.section, sectionId: at.sectionId } : {}) });
+      const row = { name: f.name, brand: f.brand, line: f.line, href: f.href, image, store: "sponsor", sponsor: true, louisianaFit: true, commission: 0, type: "sponsor", from: SPONSORS_GUIDE,
+        ...(at ? { section: at.section, sectionId: at.sectionId } : {}) };
+      // Listed by commission like every pick: after the paying ones, before any whose rate is unknown.
+      const runEnd = (id) => { let k = -1; region.forEach((p, i) => { if ((p.sectionId ?? "") === (id ?? "")) k = i; }); return k; };
+      const firstUnknown = region.findIndex((p) => (p.sectionId ?? "") === (row.sectionId ?? "") && typeof p.commission !== "number");
+      region.splice(firstUnknown >= 0 ? firstUnknown : runEnd(row.sectionId) + 1 || region.length, 0, row);
       followUpCounts1120.sponsors += 1;
     }
     // Each section stays one run (a sponsor joins its region's run).
@@ -3611,6 +3615,9 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
       if (!STORE_PAGES_KEPT.includes(slug) || typeof r.href !== "string" || !/^https:\/\//.test(r.href) || typeof r.name !== "string") continue;
       // A Louisiana item (LSU slides on Nike) stays in the Louisiana section (owner rule 11-18 PM).
       if (typeof r.image !== "string" || !/^https:\/\//.test(r.image) || brokenImage(r.image) || blockedBrand(r) || isLouisianaItem(r, LA_HOSTS)) continue;
+      // No price in a name ("Best of Beauty Holiday Box ($225 Value)": the value aside goes; any other "$" keeps it out).
+      r.name = String(r.name).replace(/\s*\([^)]*\$[^)]*\)/g, "").trim();
+      if (/\$\s?\d/.test(r.name)) continue;
       let host;
       try { host = new URL(r.href).hostname; } catch { continue; }
       if (!AFFILIATE.has(host) && !PLAIN_OK.has(host)) continue;

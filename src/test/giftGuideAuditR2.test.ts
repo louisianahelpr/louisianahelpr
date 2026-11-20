@@ -249,7 +249,8 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(all.length).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,750 rows)
     for (const bad of [/Email Gift.*Corporate/, /Crispier Cooking/, /Skincare Routine Tools/]) expect(all.some((n) => bad.test(n)), String(bad)).toBe(false);
     // ("Ninja Air Fryer" left every guide with the 11-19 removal lists; its rename still holds wherever it shows.)
-    expect(all.filter((n) => /^Ninja Air Fryer/.test(n)).every((n) => n === "Ninja Air Fryer")).toBe(true);
+    // (Follow-up 1120: a named model, "Ninja Air Fryer Pro 5 Qt", is a product, not the category row.)
+    expect(all.filter((n) => /^Ninja Air Fryer/.test(n)).every((n) => n === "Ninja Air Fryer" || /^Ninja Air Fryer (Pro|Max|XL)\b/.test(n))).toBe(true);
     // Follow-up 1120 (QA: brand-first names): the Atlas Coffee Club subscription names its maker first.
     expect(all).toContain("Atlas Coffee Club 12-Month Coffee Club Gift Subscription");
     // @mutate scripts/giftGuideRules.mjs |   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false; |   if (false) return false;

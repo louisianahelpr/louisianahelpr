@@ -14,7 +14,7 @@ import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { errorToast } from "@/lib/toast";
 import { userFacingError } from "@/lib/userFacingError";
 import { report } from "@/lib/errorLogger";
-import { safeDocumentUrl } from "@/lib/storagePath";
+import { openableDocumentUrl } from "@/lib/storagePath";
 
 export interface SbsAdminRow {
   id: string;
@@ -136,7 +136,7 @@ export function SbsReviewPanel() {
               <div className="text-xs text-muted-foreground">{r.town} · {r.category}</div>
               {r.deal && <div className="mt-1 [overflow-wrap:anywhere]">Deal: {r.deal}</div>}
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                {safeDocumentUrl(r.link) && <a href={safeDocumentUrl(r.link) ?? undefined} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center font-semibold text-primary underline [overflow-wrap:anywhere]">{r.link}</a>}
+                {openableDocumentUrl(r.link) && <a href={openableDocumentUrl(r.link) ?? undefined} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center font-semibold text-primary underline [overflow-wrap:anywhere]">{r.link}</a>}
                 <a href={`mailto:${r.contact_email}`} className="inline-flex min-h-11 items-center [overflow-wrap:anywhere]">{r.contact_email}</a>
                 {r.has_logo && <LogoPreview id={r.id} name={r.business_name} />}
               </div>

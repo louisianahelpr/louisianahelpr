@@ -107,7 +107,7 @@ const LEFT_ALONE: Record<string, string> = {
   // Not a stored file: row.external_url is the published social post's own address (Facebook/Instagram), which the
   // admin views on that site. openableDocumentUrl is only its https sanitizer here.
   // Not a stored file: a Small Business Saturday listing's own website/Facebook/Instagram, which the admin checks there.
-  "pages/admin/sponsors/SbsReviewPanel.tsx::<a href={safeDocumentUrl(r.link) ?? undefined}>": "a business's own public page (the listing request's link), not a stored file",
+  "pages/admin/sponsors/SbsReviewPanel.tsx::<a href={openableDocumentUrl(r.link) ?? undefined}>": "a business's own public page (the listing request's link), not a stored file",
   "components/admin/marketing/MarketingQueue.tsx::<a href={openableDocumentUrl(row.external_url) ?? undefined}>": "the published post on the social site, not a stored file",
 };
 

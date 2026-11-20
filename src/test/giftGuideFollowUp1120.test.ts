@@ -53,7 +53,7 @@ describe("gift guides follow-up 1120", () => {
   });
 
   it("no gift card and no 0% pick except a 25 Days sponsor's; the rule itself", () => {
-    const sponsor = (p: Pick) => p.sponsor === true;
+    const sponsor = (p: { sponsor?: boolean }) => p.sponsor === true;
     const kept = () => false;
     expect(followUpOut({ name: "Starbucks eGift Card", commission: 0 }, { sponsor, kept })).toBe("gift card");
     expect(followUpOut({ name: "Gulf Blue Mug", commission: 0 }, { sponsor, kept })).toBe("0%");

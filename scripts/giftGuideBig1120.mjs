@@ -93,11 +93,14 @@ export function importRows1120(readJson, rowsOf, dir) {
       const r = {
         ...r0, href, name: RENAME_1120[href] ?? r0.name, line: r0.line ?? "", _file: file, _source: source,
         // "Trending on TikTok" (owner-approved 9:05 PM): the owner's TikTok finds and the viral items.
-        ...(/tiktok|viral/i.test(String(r0.why ?? "")) || r0.tiktok === true ? { tiktok: true } : {}),
+        // Follow-up 1120 (lead): an owner pick marked trending wears "Trending on TikTok" too.
+        ...(/tiktok|viral/i.test(String(r0.why ?? "")) || r0.tiktok === true || r0.trending === true ? { tiktok: true } : {}),
         ...(r0.trending === true ? { trending: true } : {}),
         ...(PREORDER_BRANDS.includes(brand) ? { preorder: true } : {}),
         ...(BRAND_CODES[brand] ? { code: BRAND_CODES[brand].code } : {}),
-        ...([r0.guide, ...(Array.isArray(r0.guides) ? r0.guides : [])].some((g) => forced.has(`${g}|${compact(r0.name)}`)) ? { _forced: true } : {}),
+        // Follow-up 1120 (lead, the owner's newest TikTok picks: Drowsy, Shark TurboBlade, Rhode, Clarins, Sony XM6 ...): a
+        // Southern row marked trending is placed on its guide like her swaps.
+        ...([r0.guide, ...(Array.isArray(r0.guides) ? r0.guides : [])].some((g) => forced.has(`${g}|${compact(r0.name)}`)) || (file === "_southern-picks-1119.json" && r0.trending === true) ? { _forced: true } : {}),
         ...(ownerShop ? { _ownerShop: true } : {}),
       };
       // The price is never shown unchecked (scripts/giftGuidePrice.mjs); the import keeps only its budget band.

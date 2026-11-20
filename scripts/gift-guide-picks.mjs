@@ -3137,7 +3137,9 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       e.fresh = true;
       return e;
     };
-    const guidesOf = (r) => [r.guide, ...(Array.isArray(r.guides) ? r.guides : []), r._guide].filter((s) => typeof s === "string" && GUIDE_SLUGS.has(s) && isGuide(s));
+    // Follow-up 1120: a row naming a merged guide with no list of its own (Cozy & Self-Care, Splurge) goes to its first old guide.
+    const ownList = (s) => (GUIDE_SLUGS.has(s) && isGuide(s) ? s : [...BASE_MERGES, ...GUIDE_MERGES].find((m) => m.parent === s)?.sections.find((x) => GUIDE_SLUGS.has(x) && isGuide(x)) ?? null);
+    const guidesOf = (r) => [...new Set([r.guide, ...(Array.isArray(r.guides) ? r.guides : []), r._guide].filter((s) => typeof s === "string").map(ownList).filter(Boolean))];
     for (const r of rowsOf(readJson("_cc-placements-1119e.json"))) {
       // Joined campaigns only (owner 11-19: the bonus pays only on a joined campaign; the rest wait for a later train).
       if (!r || typeof r.asin !== "string" || typeof r.name !== "string" || !rateData.cc.has(r.asin)) continue;

@@ -272,13 +272,13 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/info/giftGuides/fun/SecretSanta.tsx` | input×3, select×1, date/calendar×1 | text, date |  | santa-done · fun-santa · santa-budget · $25 · santa-day |
+| `src/pages/info/giftGuides/fun/SecretSanta.tsx` | input×3, date/calendar×1 | text, date |  | santa-done · fun-santa · santa-budget · $25 · santa-day |
 
 ## /gift-guides/planner
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/info/giftGuides/fun/GiftPlanner.tsx` | input×7 | text, checkbox | 40, 120 | fun-planner · plan-totals |
+| `src/pages/info/giftGuides/fun/GiftPlanner.tsx` | input×6, checkbox/switch/radio×1 | text | 40, 120 | fun-planner · plan-totals |
 
 ## /help
 

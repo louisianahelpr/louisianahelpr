@@ -109,8 +109,9 @@ interface FinderResult { exact: CatalogPick[]; close: CatalogPick[] }
  *   1. exact: this person's picks within the budget and the vibe;
  *   then, as close matches, until FINDER_COUNT:
  *   2. this person's picks within the budget, any vibe;
- *   3. this person's vibe picks one budget up;
- *   4. the budget guides' picks within the budget that suit this person (men's/women's, kids), vibe first;
+ *   3. the budget guides' picks within the budget that suit this person (men's/women's, kids), vibe first (a real
+ *      in-budget pick always comes before one over it: Mom + Under $25 + Trendy leads with under-$25 gifts);
+ *   4. this person's vibe picks one budget up;
  *   5. this person's vibe picks with no known price, then any of their picks with no known price;
  *   6. anything else of theirs (so the list is empty only when their guide is).
  * Each tier keeps the guide's own order (owner picks and commission, high to low). "Any budget" fits every pick.
@@ -137,8 +138,8 @@ export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: Find
   const room = FINDER_COUNT - exact.length;
   for (const tier of [
     pool.filter(fits),
-    pool.filter((p) => vibed(p) && nextUp(p)),
     lent.filter(vibed), lent,
+    pool.filter((p) => vibed(p) && nextUp(p)),
     pool.filter((p) => vibed(p) && unknown(p)), pool.filter(unknown),
     pool,
   ]) take(tier, close, room);

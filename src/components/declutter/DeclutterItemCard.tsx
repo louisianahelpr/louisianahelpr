@@ -61,6 +61,18 @@ export type CardTag = "drop" | "delivery" | "new" | "demand";
 // F260q (owner 11-11): the card's words come from the dictionary (enDeclutter.ts / esDeclutter.ts).
 const TAG_WORDS: Record<CardTag, MsgKey> = { drop: "decl.card.drop", delivery: "decl.card.delivery", new: "decl.card.new", demand: "decl.card.demand" };
 
+/**
+ * The ONE tag a card's photo wears (post-merge check 11-20 #11: "Yours", "Porch pickup", "Trades OK" and "In demand"
+ * stacked over the photo). In order: your own listing; the card's one rule tag (new, may drop tonight, in demand, Helpr
+ * delivery); porch pickup; trades. Guard: src/test/declutterCardOnePhotoTag.test.tsx.
+ */
+export function photoTagOf(item: Pick<DeclutterItem, "porch_ok" | "accepts_trades">, tag: CardTag | null | undefined, mine: boolean | undefined): "mine" | "rule" | "porch" | "trades" | null {
+  if (mine) return "mine";
+  if (tag) return "rule";
+  if (item.porch_ok) return "porch";
+  return item.accepts_trades === true ? "trades" : null;
+}
+
 /** The first row's photo is usually the page's largest paint: it does not wait for the browser's lazy-load check. */
 const FIRST_ROW_PHOTO: Record<string, string> = { loading: "eager", fetchpriority: "high" };
 /** A later row still above the fold (Q2705, 11-07): loads at once, at the browser's own priority (the entry preloads it). */
@@ -82,6 +94,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
    */
   mine?: boolean }) {
   const save = mine ? undefined : saveProp;
+  const photoTag = photoTagOf(item, tag, mine);
   const guestSaveTo = mine ? undefined : guestSaveToProp;
   // Audit 11-10 F321: the short form ("3 mi", "About 1 mi"), so the condition beside it is not cut to "Lightly u...".
   const { t } = useLanguage();
@@ -146,13 +159,15 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
           />
         )}
         {/* Owner pick 4 (11-08): "Porch pickup" and "Trades OK" are tags on the photo (one PhotoTag style, shared with
-            Builder 3's trades badge), with the card's one rule tag (drop / delivery / new) under them. */}
-        {!noPhotoTags && (mine || item.porch_ok || item.accepts_trades === true || tag) && (
+            Builder 3's trades badge), as are "Yours" and the card's rule tag (drop / new / in demand / delivery).
+            Post-merge check 11-20 #11: up to four stacked over the photo with the heart beside them, so the photo wears
+            ONE: the first of photoTagOf's order. */}
+        {!noPhotoTags && photoTag && (
           <PhotoTagStack>
-            {mine && <PhotoTag data-card-mine="" tone="plain">{t("decl.card.yours")}</PhotoTag>}
-            {item.porch_ok && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>}
-            {item.accepts_trades === true && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>}
-            {tag && (
+            {photoTag === "mine" && <PhotoTag data-card-mine="" tone="plain">{t("decl.card.yours")}</PhotoTag>}
+            {photoTag === "porch" && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>}
+            {photoTag === "trades" && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>}
+            {photoTag === "rule" && tag && (
               <PhotoTag data-card-tag={tag} tone={tag === "delivery" ? "plain" : "deal"} title={tag === "new" ? t("decl.card.newTitle") : t(TAG_WORDS[tag])}>
                 {t(TAG_WORDS[tag])}
               </PhotoTag>

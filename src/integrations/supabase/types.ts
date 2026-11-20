@@ -3132,6 +3132,24 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_planner_plans: {
+        Row: {
+          plan: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          plan: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          plan?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       helpr_task_talk_messages: {
         Row: {
           body: string
@@ -12944,6 +12962,81 @@ export type Database = {
           },
         ]
       }
+      secret_santa_groups: {
+        Row: {
+          budget: number | null
+          code: string
+          created_at: string
+          exchange_on: string | null
+          expires_at: string
+          is_seed: boolean
+          size: number
+        }
+        Insert: {
+          budget?: number | null
+          code: string
+          created_at?: string
+          exchange_on?: string | null
+          expires_at: string
+          is_seed?: boolean
+          size: number
+        }
+        Update: {
+          budget?: number | null
+          code?: string
+          created_at?: string
+          exchange_on?: string | null
+          expires_at?: string
+          is_seed?: boolean
+          size?: number
+        }
+        Relationships: []
+      }
+      secret_santa_hits: {
+        Row: {
+          bucket: string
+          hit_at: string
+          id: number
+        }
+        Insert: {
+          bucket: string
+          hit_at?: string
+          id?: number
+        }
+        Update: {
+          bucket?: string
+          hit_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
+      secret_santa_people: {
+        Row: {
+          gives_to: number
+          group_code: string
+          name: string
+          slot: number
+          token_hash: string
+          wish_list_code: string | null
+        }
+        Insert: {
+          gives_to: number
+          group_code: string
+          name: string
+          slot: number
+          token_hash: string
+          wish_list_code?: string | null
+        }
+        Update: {
+          gives_to?: number
+          group_code?: string
+          name?: string
+          slot?: number
+          token_hash?: string
+          wish_list_code?: string | null
+        }
+        Relationships: []
+      }
       seed_purge_runs: {
         Row: {
           dry_run: boolean
@@ -18235,6 +18328,10 @@ export type Database = {
       sponsor_log_visit: { Args: { p_device: string; p_ref: string; p_referrer: string }; Returns: undefined }
       giveaway_entry_url: { Args: never; Returns: string | null }
       giveaway_reminder_sweep: { Args: never; Returns: Json }
+      secret_santa_create: { Args: { p_avoid?: number[]; p_budget?: number; p_exchange_on?: string; p_gives_to: number[]; p_names: string[] }; Returns: Json }
+      secret_santa_expire: { Args: never; Returns: Json }
+      secret_santa_reveal: { Args: { p_code: string; p_token: string }; Returns: Json }
+      secret_santa_set_wish_list: { Args: { p_code: string; p_token: string; p_wish_list_code: string | null }; Returns: boolean }
       sponsor_public_state: { Args: { p_ref?: string }; Returns: Json }
       sponsor_require_admin: { Args: never; Returns: undefined }
       sponsor_service_founder_photo: { Args: never; Returns: string }

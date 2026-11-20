@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1256,
-    "files": 363,
-    "rendering": 1178,
+    "calls": 1259,
+    "files": 365,
+    "rendering": 1181,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
-      "errorToast": 10,
+      "errorToast": 11,
       "successToast": 2,
-      "toast": 252,
-      "toast.error": 846,
+      "toast": 253,
+      "toast.error": 847,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 84,
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 466,
+      "literal": 467,
       "template": 100,
-      "dynamic": 743,
+      "dynamic": 746,
       "jsx": 0
     }
   },
@@ -4519,7 +4519,7 @@
     },
     {
       "file": "src/components/dashboard/applyConfirmDialog/ApplyBody.tsx",
-      "line": 261,
+      "line": 262,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -8067,7 +8067,7 @@
     },
     {
       "file": "src/components/declutter/SellerSetup.tsx",
-      "line": 112,
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9488,7 +9488,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 153,
+      "line": 155,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9515,7 +9515,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 163,
+      "line": 165,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9579,7 +9579,7 @@
     },
     {
       "file": "src/components/messages/useConversationListState.ts",
-      "line": 419,
+      "line": 430,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -9589,7 +9589,7 @@
     },
     {
       "file": "src/components/messages/useConversationListState.ts",
-      "line": 425,
+      "line": 436,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -14243,7 +14243,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 115,
+      "line": 116,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14257,7 +14257,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 243,
+      "line": 246,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14271,7 +14271,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 313,
+      "line": 316,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14281,11 +14281,25 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 469,
+      "line": 472,
       "kind": "errorToast",
       "title": {
         "form": "literal",
         "text": "That photo is over 5 MB."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/admin/sponsors/SbsReviewPanel.tsx",
+      "line": 102,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "That change was not saved"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Try again in a moment.\")"
       },
       "renders": true
     },
@@ -14341,7 +14355,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 179,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14351,7 +14365,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14361,7 +14375,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 216,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14371,7 +14385,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 234,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14381,7 +14395,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 262,
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14391,7 +14405,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 296,
+      "line": 298,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14411,7 +14425,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 177,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14421,7 +14435,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 178,
+      "line": 183,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14431,7 +14445,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 179,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14441,7 +14455,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 199,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14451,7 +14465,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 200,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14461,7 +14475,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 201,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14471,7 +14485,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 217,
+      "line": 222,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14481,7 +14495,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 300,
+      "line": 305,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14491,7 +14505,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 308,
+      "line": 313,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14501,7 +14515,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 380,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14511,7 +14525,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 449,
+      "line": 456,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14521,7 +14535,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 189,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14531,7 +14545,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 197,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15427,7 +15441,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 346,
+      "line": 347,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15481,7 +15495,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 386,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -15491,7 +15505,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 396,
+      "line": 397,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15637,8 +15651,62 @@
       "renders": true
     },
     {
+      "file": "src/pages/messages/useDeleteForMe.tsx",
+      "line": 38,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"msg.deletedForMe\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/useDeleteForMe.tsx",
+      "line": 41,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"msg.deleteForMeFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 609,
+      "line": 624,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15648,7 +15716,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 670,
+      "line": 685,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15658,7 +15726,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 702,
+      "line": 717,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15668,7 +15736,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 741,
+      "line": 756,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15778,7 +15846,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 266,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15788,7 +15856,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 326,
+      "line": 328,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15798,7 +15866,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 330,
+      "line": 332,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -15808,7 +15876,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 350,
+      "line": 352,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15818,7 +15886,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 370,
+      "line": 372,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -15828,7 +15896,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 383,
+      "line": 385,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15838,7 +15906,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 447,
+      "line": 449,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15848,7 +15916,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 452,
+      "line": 454,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -15858,7 +15926,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 456,
+      "line": 458,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -15868,7 +15936,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 475,
+      "line": 477,
       "kind": "toast.error",
       "title": {
         "form": "literal",

@@ -675,8 +675,8 @@ serve(async (req) => {
       return false;
     }
     // No payout without a verified ID (owner 2026-10-30): a wait, no try used, the payee told. Owner 2026-11-20: never
-    // for a Declutter seller or a Declutter manager (no ID anywhere in Declutter); a delivery Helpr and a Shops seller
-    // still wait. declutterKindSkipsIdHold is the one place that says which kinds.
+    // for a Declutter seller; a Declutter manager, a delivery Helpr and a Shops seller still wait.
+    // declutterKindSkipsIdHold is the one place that says which kinds.
     const idHold = declutterKindSkipsIdHold(kind) ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId);
     if (idHold.kind === "error") {
       await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", `ID check read failed: ${idHold.message}`);

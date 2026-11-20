@@ -17,7 +17,7 @@
  * the payout run: src/test/edge/declutter-money.test.ts ("owner 11-20").
  *
  * @mutate supabase/migrations/20261120184430_declutter_no_id_no_setup_fee.sql |   v_setup := 0;\n |   v_setup := public.declutter_setup_fee_due_cents(v_uid);\n
- * @mutate supabase/functions/_shared/payoutHold.ts |   return kind === "declutter" || kind === "declutter_manager"; |   return kind === "declutter";
+ * @mutate supabase/functions/_shared/payoutHold.ts |   return kind === "declutter"; |   return kind === "declutter" || kind === "declutter_manager";
  * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + addCents)} | {formatPrice(buyNowTotalCents(priceCents) + addCents + useFirstPayoutFeeCents())}
  */
 import { describe, expect, it } from "vitest";
@@ -80,16 +80,22 @@ describe("Declutter asks for no ID check and no setup fee (owner 2026-11-20)", (
     expect(mine).not.toMatch(/setup_fee_from_payout/);
   });
 
-  it("(s4) declutter-money: no ID hold for a Declutter seller or manager, a delivery Helpr and a shop still wait, no fee taken", () => {
+  it("(s4) declutter-money: no ID hold for a Declutter seller; a manager (Helpr-type role), a delivery Helpr and a shop still wait; no fee taken", () => {
     const hold = fs.readFileSync(path.join(ROOT, "supabase/functions/_shared/payoutHold.ts"), "utf8");
     const fn = /export function declutterKindSkipsIdHold\(kind: string\): boolean \{\s*return ([^;]+);/.exec(hold)?.[1] ?? "";
-    expect(fn).toBe('kind === "declutter" || kind === "declutter_manager"');
+    expect(fn).toBe('kind === "declutter"');
     const money = blankComments(fs.readFileSync(path.join(ROOT, "supabase/functions/declutter-money/index.ts"), "utf8"));
     expect(money).toContain('const idHold = declutterKindSkipsIdHold(kind) ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId);');
     expect(money.match(/checkIdentityHold\(/g)?.length).toBe(1);
     expect(money).not.toContain("declutter_payout_take_setup_fee");
     // The delivery Helpr's fee (kept) is still taken.
     expect(money).toContain('admin.rpc("helpr_task_payout_take_setup_fee"');
+    // Review of #4820: no Declutter edge function reads the shared fee reader (it still answers 200 for Jobs fees).
+    const edgeDirs = fs.readdirSync(path.join(ROOT, "supabase/functions")).filter((d) => d.startsWith("declutter-"));
+    expect(edgeDirs.length).toBeGreaterThan(3);
+    const readers = walkSource(edgeDirs.map((d) => path.join(ROOT, "supabase/functions", d)))
+      .filter((f) => /declutter_setup_fee_due_cents/.test(blankComments(readSource(f) ?? ""))).map(rel);
+    expect(readers).toEqual([]);
   });
 
   it("(c1) no Declutter client file opens the ID sheet, gates on the ID switch, or adds the setup fee", () => {
@@ -99,6 +105,12 @@ describe("Declutter asks for no ID check and no setup fee (owner 2026-11-20)", (
     expect(files.length).toBeGreaterThan(150);
     const bad = files.filter((f) => ASK.test(blankComments(readSource(f) ?? ""))).map(rel);
     expect(bad).toEqual([]);
+    // Home's Declutter to-dos (review of #4820): no "Verify your ID to get paid" item and no Declutter payout ID read.
+    // (Home's Jobs money tiles keep the Helpr's first-payout setup fee, so useFirstPayoutFee is allowed there.)
+    const HOME_ASK = /\bopenIdentityCheck(?:OrSay)?\s*\(|\bneedsIdentityCheck\s*\(|verify_id=1|idPayoutWait|declutterIdPayoutCents|todo\.idPayout|todo\.verifyId|declutter_my_setup_fee/;
+    const home = walkSource([path.join(ROOT, "src/pages/home")]).filter((f) => !/\.test\.(ts|tsx)$/.test(f));
+    expect(home.some((f) => f.endsWith("needsYouTodos.ts"))).toBe(true);
+    expect(home.filter((f) => HOME_ASK.test(blankComments(readSource(f) ?? ""))).map(rel)).toEqual([]);
   });
 
   it("(c2) no Declutter dictionary names an ID check or the setup fee, in English or Spanish", () => {

@@ -53,8 +53,6 @@ export interface NeedsYouInputs {
   continueDays?: Readonly<Record<string, ContinueDay>>;
 }
 
-/** Owner 11-12 1:00 AM: the seller's ID check is asked before the first payout, so Home says what it unlocks. */
-
 /** An open back-out notice rides on its job, as useActivityData does it (Q1575). */
 function withBackout<J extends { id: string; status?: string | null }>(j: J, backout: ReadonlyMap<string, BackoutNotice>): J {
   const open = backout.get(j.id);

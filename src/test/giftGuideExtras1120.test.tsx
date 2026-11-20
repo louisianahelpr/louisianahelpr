@@ -1,19 +1,21 @@
 /**
- * Gift guides big batch 1120 extras (owner approved 11-19 ~9:05-9:10 PM): the gift finder returns six picks from the
- * guides for three answers and shares them by URL; the shipping-deadline chip shows through a store's order-by day and
+ * Gift guides big batch 1120 extras (owner approved 11-19 ~9:05-9:10 PM): the gift finder always returns a list (owner
+ * 11-20: Mom + Under $25 + Trendy said "Nothing fits"), exact matches then close ones, and shares it by URL; the shipping-deadline chip shows through a store's order-by day and
  * hides after it; the 25 Days banner and the Declutter link stay OFF until the lead flips their flags; the budget filter
  * inside a guide keeps only picks within the budget; a merged guide's section links open their section.
  *
  * @mutate src/content/giftGuideExtras1120.ts |   if (!d \|\| today > d.orderBy) return null; |   if (!d) return null;
  * @mutate src/content/giftGuideExtras1120.ts |   giveawayBanner: { on: false, from: "2026-11-22" }, |   giveawayBanner: { on: true, from: "2026-11-22" },
- * @mutate src/content/giftGuideExtras1120.ts |   const fits = (p: CatalogPick) => budget === 0 \|\| (p.band !== undefined && p.band <= budget); |   const fits = (p: CatalogPick) => true;
+ * @mutate src/content/giftGuideExtras1120.ts |   const fits = (p: CatalogPick) => { const b = pickBand(p); return budget === 0 \|\| (b !== undefined && b <= budget); }; |   const fits = (p: CatalogPick) => true;
+ * @mutate src/content/giftGuideExtras1120.ts |     lent.filter(vibed), lent, |
+ * @mutate src/content/giftGuideExtras1120.ts |   if (p.price !== undefined && p.store !== "amazon") return | if (false) return
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | export const withinBudget = (picks: CatalogPick[], budget: number \| null) => (budget ? picks.filter((p) => p.band !== undefined && p.band <= budget) : picks); | export const withinBudget = (picks: CatalogPick[], budget: number \| null) => picks;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { FINDER_COUNT, FINDER_WHO, GIFT_GUIDE_FLAGS, SHIP_DEADLINES, deadlineChip, declutterTieInOn, finderPool, giftFinder, giveawayBannerOn, readFinder } from "@/content/giftGuideExtras1120";
+import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_COUNT, FINDER_VIBES, FINDER_WHO, pickBand, GIFT_GUIDE_FLAGS, SHIP_DEADLINES, deadlineChip, declutterTieInOn, finderPool, giftFinder, giveawayBannerOn, readFinder } from "@/content/giftGuideExtras1120";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -39,22 +41,52 @@ const renderAt = (url: string) =>
   );
 const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
 
-describe("gift finder (three taps, six picks, a share link)", () => {
-  it("returns six picks for every who, from that guide, within the budget, the vibe's first", () => {
+describe("gift finder (three taps, always a list, a share link)", () => {
+  const borrow = FINDER_BUDGET_GUIDES.flatMap(picksOf);
+  const all = (r: { exact: CatalogPick[]; close: CatalogPick[] }) => [...r.exact, ...r.close];
+
+  it("returns a full list for every who, from that guide, the vibe's first", () => {
     for (const w of FINDER_WHO) {
       const pool = finderPool(w.id, picksOf);
       expect(pool.length, w.id).toBeGreaterThan(5);
-      const any = giftFinder(pool, 0, "cozy");
-      expect(any.length, w.id).toBe(FINDER_COUNT);
-      expect(new Set(any.map((p) => p.href)).size).toBe(any.length);
-      for (const p of any) expect(pool, w.id).toContain(p);
+      const any = giftFinder(pool, 0, "cozy", borrow, w.id);
+      expect(all(any).length, w.id).toBe(FINDER_COUNT);
+      expect(new Set(all(any).map((p) => p.href)).size).toBe(FINDER_COUNT);
+      for (const p of all(any)) expect(pool, w.id).toContain(p);
     }
     const her = finderPool("her", picksOf);
-    for (const p of giftFinder(her, 50, "trendy")) expect(p.band ?? Infinity, p.name).toBeLessThanOrEqual(50);
+    for (const p of giftFinder(her, 50, "trendy", borrow, "her").exact) expect(pickBand(p) ?? Infinity, p.name).toBeLessThanOrEqual(50);
     // The vibe's picks lead: a Louisiana answer opens on a Louisiana pick when the pool holds one.
     const dad = finderPool("dad", picksOf);
-    const la = giftFinder(dad, 0, "louisiana");
+    const la = all(giftFinder(dad, 0, "louisiana", borrow, "dad"));
     if (dad.some((p) => /louisiana|lsu|saints|cajun|nola/i.test(`${p.name} ${p.brand ?? ""}`))) expect(`${la[0].name} ${la[0].brand ?? ""}`).toMatch(/louisiana|lsu|saints|cajun|nola|creole|bayou|crawfish|geaux/i);
+  });
+
+  it("never says nothing fits: every who x budget x vibe gives 6+ picks (owner 11-20: Mom + Under $25 + Trendy)", () => {
+    for (const w of FINDER_WHO) for (const b of FINDER_BUDGETS) for (const v of FINDER_VIBES) {
+      const r = all(giftFinder(finderPool(w.id, picksOf), b.id, v.id, borrow, w.id));
+      expect(r.length, `${w.id} ${b.id} ${v.id}`).toBeGreaterThanOrEqual(6);
+      expect(new Set(r.map((p) => p.href)).size, `${w.id} ${b.id} ${v.id}`).toBe(r.length);
+    }
+    // Mom + Under $25 + Trendy: real under-$25 picks lead (a known band, price or "Under $25" section), never men's or toys.
+    const mom = all(giftFinder(finderPool("mom", picksOf), 25, "trendy", borrow, "mom"));
+    expect(mom.slice(0, 6).every((p) => (pickBand(p) ?? Infinity) <= 25), mom.map((p) => p.name).join(", ")).toBe(true);
+    for (const p of mom) expect(`${p.name}`).not.toMatch(/\b(men'?s|boys'?|play-?doh|melissa & doug|squishmallows?)\b/i);
+    const dad = all(giftFinder(finderPool("dad", picksOf), 25, "practical", borrow, "dad"));
+    for (const p of dad) expect(p.name).not.toMatch(/\b(women'?s|lip|makeup|nail|earrings)\b/i);
+  });
+
+  it("an Amazon pick joins a budget only by its budget section, and no Amazon price is ever shown", () => {
+    const amazon = borrow.filter((p) => p.store === "amazon");
+    for (const p of amazon) expect(p.price, p.name).toBeUndefined();
+    const under100 = amazon.filter((p) => p.sectionId === "under-100");
+    if (under100.length) expect(pickBand(under100[0])).toBe(100);
+    for (const p of finderPool("mom", picksOf).filter((x) => x.store === "amazon" && x.sectionId === "top-picks")) expect(pickBand(p)).toBeUndefined();
+    const { container } = renderAt("/gift-guides?who=mom&budget=25&vibe=trendy");
+    const box = container.querySelector("[data-gift-finder-results]")!;
+    expect(box.querySelector("[data-gift-finder-none]")).toBeNull();
+    expect(box.textContent).not.toMatch(/Amazon picks show with Any budget/);
+    expect(box.querySelectorAll("li[data-gift-pick]").length).toBeGreaterThanOrEqual(6);
   });
 
   it("reads its answers from the link and draws the six on the landing", () => {

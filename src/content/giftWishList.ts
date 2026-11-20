@@ -17,8 +17,12 @@ export const WISH = {
   loading: "Loading your list…",
   guidesTitle: "Saved guides",
   giftsTitle: (n: number) => `Saved gifts (${n})`,
-  remove: "Remove",
-  removeLabel: (name: string) => `Remove ${name} from your list`,
+  /** The filled heart on a saved gift on My Wish List (owner 11-20: a heart, not a Remove button). */
+  removeLabel: (name: string) => `Remove ${name} from wish list`,
+  /** The toast after a heart takes a gift off (owner 11-20: "Removed · Undo", so a mis-tap isn't lost). */
+  removedToast: "Removed",
+  undo: "Undo",
+  undoLabel: (name: string) => `Undo: put ${name} back on your wish list`,
   visit: "Visit",
   share: "Share my list",
   sharing: "Getting your link…",

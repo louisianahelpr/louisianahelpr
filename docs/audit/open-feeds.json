@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-19T06:22Z",
+  "measured_at": "2026-11-20T01:49Z",
   "issues": {
     "readable": true,
     "open": [
@@ -15,7 +15,7 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44194466954",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44490394532",
         "runTruncated": false
       },
       {
@@ -43,7 +43,7 @@
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44208732248",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44586660540",
         "runTruncated": false
       },
       {
@@ -64,14 +64,14 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44380594646",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44599069200",
         "runTruncated": false
       },
       {
         "number": 3813,
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44078367075",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44543995849",
         "runTruncated": false
       },
       {
@@ -85,21 +85,21 @@
         "number": 4253,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44420512097",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44638961379",
         "runTruncated": false
       },
       {
         "number": 4270,
         "title": "nightly-red: nightly-live-smoke",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44021551725",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44456663415",
         "runTruncated": false
       },
       {
         "number": 4730,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44461502788",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44650562479",
         "runTruncated": false
       },
       {
@@ -110,17 +110,17 @@
         "runTruncated": false
       },
       {
-        "number": 4744,
-        "title": "nightly-red: feature-switch-audience",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44380983219",
-        "runTruncated": false
-      },
-      {
         "number": 4746,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44461502662",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44595002299",
+        "runTruncated": false
+      },
+      {
+        "number": 4766,
+        "title": "nightly-red: code-scanning-alerts",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44561408022",
         "runTruncated": false
       }
     ]
@@ -249,6 +249,14 @@
         "issue": 2366
       },
       {
+        "fingerprint": "79112fbf22c85121a80ec6470b33411f",
+        "source_kind": "workflow",
+        "source": "code-scanning",
+        "status": "open",
+        "title": "github code scanning: open alerts on main",
+        "issue": null
+      },
+      {
         "fingerprint": "905ec49763b55835fe7340b16107b79e",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
@@ -257,12 +265,12 @@
         "issue": null
       },
       {
-        "fingerprint": "a13c4edc69832354d5e579c068462874",
+        "fingerprint": "c2e77e40435efc12778adbbdcb9fc240",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: feature-switch-audience",
-        "issue": 4744
+        "title": "nightly-red: code-scanning-alerts",
+        "issue": 4766
       },
       {
         "fingerprint": "feb363ff214ac3c02969933acc795e1e",
@@ -327,6 +335,22 @@
         "status": "open",
         "title": "error: 404 — non-existent route: /spons=",
         "issue": null
+      },
+      {
+        "fingerprint": "8bae8e44ea4416d9e4d81e761bd840ec",
+        "source_kind": "sentry",
+        "source": "sentry:assets/NotFound",
+        "status": "open",
+        "title": "error: 404 — non-existent route: /go",
+        "issue": null
+      },
+      {
+        "fingerprint": "76b6114fb848f024bdeb5fc3beec116b",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/#days · error screen shown: we couldn't load this page",
+        "issue": null
       }
     ]
   },
@@ -348,8 +372,8 @@
     "issue #4553": "Q2802",
     "issue #4730": "Q1816",
     "issue #4733": "Q1816",
-    "issue #4744": "Q1816",
     "issue #4746": "Q1816",
+    "issue #4766": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0add1f9db848": "Q2830",
@@ -382,17 +406,19 @@
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
     "ledger 6cb2d5a2d9cd": "Q2824",
+    "ledger 76b6114fb848": "Q2833",
+    "ledger 79112fbf22c8": "Q2831",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 84d67dfda60d": "Q2827",
     "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
     "ledger 8a2e802edbe7": "Q2800",
+    "ledger 8bae8e44ea44": "Q2832",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 905ec49763b5": "Q2822",
     "ledger 9078a39b3304": "Q1615",
     "ledger 99390a68ded7": "Q1615",
-    "ledger a13c4edc6983": "Q1816",
     "ledger a58a12c35341": "Q2828",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
@@ -402,6 +428,7 @@
     "ledger b8b42cf124da": "Q2506",
     "ledger ba04c0f07725": "Q2532",
     "ledger bbdaee370c35": "Q1631",
+    "ledger c2e77e40435e": "Q1816",
     "ledger c540527c8265": "Q2517",
     "ledger c5d2aafd1f77": "Q2410",
     "ledger cae29df0662b": "Q2351",

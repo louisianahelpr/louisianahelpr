@@ -76,8 +76,8 @@ describe("JA-39: Next up for a Helpr on the way", () => {
     expect(takeHelperStepRequest("j1", "arrived")).toBe(false);
   });
 
-  it("Home's Next up button and its See all rows both run the to-do through todoTarget", () => {
+  it("Home's Needs you buttons (the single card, each listed row) and its See all rows all run the to-do through todoTarget", () => {
     const src = blankComments(readFileSync("src/pages/home/HomeDashboard.tsx", "utf8"));
-    expect(src.match(/navigate\(todoTarget\((next|td), requestHelperStep\)\)/g)?.length).toBe(2);
+    expect(src.match(/navigate\(todoTarget\((next|td), requestHelperStep\)\)/g)?.length).toBe(3);
   });
 });

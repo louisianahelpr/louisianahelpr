@@ -26,8 +26,8 @@
  * @mutate src/pages/home/HomeDashboard.tsx | useState(false);\n  const toggleTodo = () => setTodoOpen((o) => !o); | useState(() => sessionStorage.getItem("t") === "1");\n  const toggleTodo = () => setTodoOpen((o) => { sessionStorage.setItem("t", o ? "0" : "1"); return !o; });
  * @mutate src/pages/home/HomeDashboard.tsx |   useOnTabReselect("/home", () => setTodoOpen(false)); |   useOnTabReselect("/home", () => undefined);
  * @mutate src/pages/home/HomeDashboard.tsx |         {todoOpen && ( |         {todoCount > 0 && !todoOpen && <button type="button" onClick={toggleTodo} aria-expanded={false}>To do ({todoCount})</button>}\n        {todoOpen && (
- * @mutate src/pages/home/HomeDashboard.tsx |   const next = summary.todos[at]; |   const next = summary.todos[summary.todos.length - 1];
- * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => setShown(i)} |                       onClick={() => setShown(0)}
+ * @mutate src/pages/home/HomeDashboard.tsx |   const next = summary.todos[0]; |   const next = summary.todos[summary.todos.length - 1];
+ * @mutate src/pages/home/HomeDashboard.tsx |                     {listed.map((td, i) => { |                     {listed.slice(0, 1).map((td, i) => {
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const o of shopWaiting) { |   for (const o of shopWaiting.filter(() => false)) {
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: n > 0 ? (n === 1 ? tr("todo.reviewOne") |         title: j.title, _t: n > 0 ? (n === 1 ? tr("todo.reviewOne")
  * F204 (owner 11-09): Live now directly below Next up. The mutation puts it back above.
@@ -266,13 +266,13 @@ describe("Home", () => {
     expect(screen.getByTestId("where").textContent).toBe("/shops/dashboard");
     // Soonest deadline first; a handed-over order is not a to-do. Two held orders + two jobs I posted.
     expect(screen.getByTestId("next-up-see-all").textContent).toBe("See all (4)");
-    // A carousel over all four (mock-up 7): "1 of 4", and a dot shows the next one.
-    expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you · 1 of 4");
+    // Owner polish 11-20: a short list, not a carousel: "Needs you · 4", the first three as rows, See all for the rest.
+    expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you · 4");
+    const rows = [...document.querySelectorAll("[data-next-up-row]")];
+    expect(rows.length).toBe(3);
     // Spec v2 §5.2: these orders' clocks are years out, so they rank with the other "someone is
     // waiting on you" to-dos, by date: the applicants on Job a (Jan 2) come before the Jan 3 order.
-    fireEvent.click(document.querySelector('[data-next-up-dot="1"]') as HTMLElement);
-    expect(screen.getByTestId("next-up-title").textContent).toBe("Review 1 applicant");
-    expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you · 2 of 4");
+    expect(rows[1].textContent).toContain("Review 1 applicant");
   });
 
   it("a job's to-do is titled by its TASK, with your side and the job under it (spec v2 §5.2, board 165)", async () => {

@@ -11,6 +11,7 @@ import { startJobsPrefetch } from "./jobsPrefetch";
 import { startDeclutterItemPrefetch } from "./declutterItemPrefetch";
 import { startActivityCoresPrefetch } from "./activityCoresPrefetch";
 import { startProfilePrefetch } from "./profilePrefetch";
+import { startPersistedCacheRead } from "./persistedCacheEarly";
 
 /**
  * Set once the reads have started. index.html's head starts this chunk for a member with a live session (Builder 2, 11-15,
@@ -29,4 +30,6 @@ export function startSignedInPrefetch(pathname: string): void {
   startDeclutterItemPrefetch(pathname);
   startActivityCoresPrefetch(pathname);
   startProfilePrefetch(pathname, location.search);
+  // A returning member's saved query cache, read now so main.tsx can restore it before the first render (owner 11-20).
+  startPersistedCacheRead();
 }

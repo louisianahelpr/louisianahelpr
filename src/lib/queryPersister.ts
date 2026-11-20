@@ -18,8 +18,8 @@
  * happens at module import time, so SSR / pre-render passes don't crash.
  */
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import type { Query } from "@tanstack/react-query";
-import { defaultShouldDehydrateQuery } from "@tanstack/react-query";
+import type { DehydratedState, Query, QueryClient } from "@tanstack/react-query";
+import { defaultShouldDehydrateQuery, hydrate } from "@tanstack/react-query";
 import { del, get, set } from "idb-keyval";
 import { queryKeys } from "./queryKeys";
 
@@ -191,3 +191,35 @@ export const persistOptions = {
     },
   },
 } as const;
+
+/** window slot the entry's early IndexedDB read fills (src/boot/persistedCacheEarly.ts PERSISTED_CACHE_EARLY_KEY). */
+export const PERSISTED_CACHE_EARLY_SLOT = "__lhPersistedCacheEarly";
+
+/**
+ * Restore the persisted cache BEFORE the first render, from the read the entry started on the first network round
+ * (src/boot/persistedCacheEarly.ts; owner decision 11-20, Home speed for returning members). Returns true when it
+ * restored; QueryCacheHydrator then only subscribes for saving. Returns false, changing nothing, when the read has not
+ * answered yet, found nothing, or holds a payload the after-mount restore must judge (unparseable, expired, busted:
+ * persistQueryClientRestore discards those, exactly as before).
+ *
+ * The same rules as persistQueryClientRestore (maxAge, buster, then hydrate). hydrate() never replaces a query whose
+ * data is newer than the saved copy, so an answer already in the cache (the entry's prefetch, a read that finished)
+ * always wins; saved data still inside its staleTime shows first and refetches once stale, as staleTime means.
+ * Guard: src/test/persistedCacheEarly.test.ts.
+ */
+export function restorePersistedEarly(client: QueryClient): boolean {
+  if (typeof window === "undefined") return false;
+  const slot = (window as unknown as Record<string, unknown>)[PERSISTED_CACHE_EARLY_SLOT] as { raw?: unknown } | undefined;
+  if (!slot || typeof slot.raw !== "string") return false;
+  const raw = slot.raw;
+  slot.raw = null; // read once: the string can be large, and nothing else needs it
+  try {
+    const saved = JSON.parse(raw, deserializeReviver) as { timestamp?: number; buster?: string; clientState?: DehydratedState } | null;
+    if (!saved?.timestamp || !saved.clientState) return false;
+    if (Date.now() - saved.timestamp > persistOptions.maxAge || saved.buster !== persistOptions.buster) return false;
+    hydrate(client, saved.clientState);
+    return true;
+  } catch {
+    return false; // a payload the after-mount restore discards, as it always has
+  }
+}

@@ -2227,6 +2227,7 @@ export type Database = {
           drop_stop_cents: number | null
           drops_stopped: boolean
           floor_price_cents: number
+          haul_away_opt_in: boolean
           item_id: string
           keep_up_until_sold: boolean
           move_out_on: string | null
@@ -2252,6 +2253,7 @@ export type Database = {
           drop_stop_cents?: number | null
           drops_stopped?: boolean
           floor_price_cents: number
+          haul_away_opt_in?: boolean
           item_id: string
           keep_up_until_sold?: boolean
           move_out_on?: string | null
@@ -2277,6 +2279,7 @@ export type Database = {
           drop_stop_cents?: number | null
           drops_stopped?: boolean
           floor_price_cents?: number
+          haul_away_opt_in?: boolean
           item_id?: string
           keep_up_until_sold?: boolean
           move_out_on?: string | null
@@ -4954,24 +4957,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      declutter_free_still_asks: {
-        Row: {
-          answered_at: string | null
-          asked_at: string | null
-          item_id: string
-        }
-        Insert: {
-          answered_at?: string | null
-          asked_at?: string | null
-          item_id: string
-        }
-        Update: {
-          answered_at?: string | null
-          asked_at?: string | null
-          item_id?: string
-        }
-        Relationships: []
       }
       declutter_watchlist: {
         Row: {
@@ -18867,6 +18852,15 @@ export type Database = {
         Returns: boolean
       }
       declutter_handover_sweep: { Args: never; Returns: Json }
+      declutter_haul_away_opt_in_state: {
+        Args: { p_item_id: string }
+        Returns: boolean
+      }
+      declutter_haul_away_opt_ins: { Args: never; Returns: string[] }
+      declutter_haul_away_opted_in: {
+        Args: { p_item_id: string }
+        Returns: boolean
+      }
       declutter_haul_away_state: {
         Args: { p_item_ids?: string[] }
         Returns: {
@@ -19027,8 +19021,6 @@ export type Database = {
           pin_lng: number
         }[]
       }
-      declutter_free_still_available: { Args: { p_item_id: string }; Returns: string }
-      declutter_free_still_available_sweep: { Args: never; Returns: Json }
       declutter_mark_sold_elsewhere: { Args: { p_item_id: string }; Returns: string[] }
       declutter_mark_order_paid: {
         Args: {
@@ -20078,6 +20070,10 @@ export type Database = {
       declutter_set_auto_free_days: {
         Args: { p_days: number; p_item_id: string }
         Returns: number
+      }
+      declutter_set_haul_away_opt_in: {
+        Args: { p_item_id: string; p_on: boolean }
+        Returns: boolean
       }
       declutter_set_keep_up: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
       declutter_set_ship_options: {

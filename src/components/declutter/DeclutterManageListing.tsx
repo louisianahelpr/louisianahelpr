@@ -51,6 +51,7 @@ import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { ItemDeliveryRow } from "./SellerDeliverySettings";
 import { AutoFreeRow } from "./AutoFreeRow";
+import { HaulAwayOptInRow } from "./HaulAwayOptInRow";
 import { ShipItRow } from "./ShipItRow";
 import { DeclutterOfferRules } from "./DeclutterOfferRules";
 import { DeclutterTradeRules } from "./DeclutterTradeRules";
@@ -209,6 +210,8 @@ export function ManageListingSheet({
               <DeclutterTradeRules itemId={item.id} rowClassName={ROW} />
               {/* OWN-FREE: make it free after Never/7/14/21/30 days if unsold (only while it is live or paused and still priced). */}
               <AutoFreeRow itemId={item.id} rowClassName={ROW} />
+              {/* Owner 2026-11-20: haul-away is offered only when the seller turns this on (off by default). */}
+              <HaulAwayOptInRow itemId={item.id} rowClassName={ROW} />
               </ManageGroup>
               <ManageGroup title={t("lp.m.gWays")}>
               <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />

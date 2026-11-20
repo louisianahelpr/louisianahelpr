@@ -1936,6 +1936,21 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  declutter_set_haul_away_opt_in: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_choice: "Something went wrong. Try again.",
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  declutter_haul_away_opt_in_state: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_set_listing_drops: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
@@ -2174,13 +2189,6 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
   },
   // A2-5 (20261028192719): "Mark sold elsewhere" keeps the listing as history.
-  declutter_free_still_available: {
-    account_restricted: DC.account_restricted,
-    feature_disabled: DC.feature_disabled,
-    item_not_editable: DC.item_not_editable,
-    item_not_found: DC.item_not_found,
-    not_authenticated: DC.not_authenticated,
-  },
   declutter_mark_sold_elsewhere: {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,

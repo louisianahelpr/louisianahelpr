@@ -13,24 +13,24 @@
  * jobs restored, no hold check, no switch gate, no gift guard, no 7-day
  * age, and Part C without the PaymentIntent or gift guard each RED (2-6 checks).
  *
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |         ON CONFLICT (item_id) DO NOTHING | ON CONFLICT (item_id) DO UPDATE SET notified_at = now()
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |        AND public.feature_enabled_for_user('declutter_haul_away', i.seller_id) |        AND true
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |        AND NOT public.declutter_member_out(i.seller_id) |        AND true
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |          AND j.stripe_payment_intent_id IS NULL\n         AND j.updated_at <= now() - interval '1 day'\n         AND NOT EXISTS |          AND j.updated_at <= now() - interval '1 day'\n         AND NOT EXISTS
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |                           WHERE g.job_id = j.id AND g.status IN ('reserved', 'redeemed')); |                           WHERE false);
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |         IF v_pay IS DISTINCT FROM 'abandoned' OR v_job_touched |         IF v_job_touched
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |  OR v_pi IS NOT NULL\n | \n
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |                        WHERE g.job_id = v_link.job_id AND g.status IN ('reserved', 'redeemed')) THEN |                        WHERE false) THEN
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |         ON CONFLICT (item_id) DO NOTHING | ON CONFLICT (item_id) DO UPDATE SET notified_at = now()
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |        AND public.feature_enabled_for_user('declutter_haul_away', i.seller_id) |        AND true
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |        AND NOT public.declutter_member_out(i.seller_id) |        AND true
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |          AND j.stripe_payment_intent_id IS NULL\n         AND j.updated_at <= now() - interval '1 day'\n         AND NOT EXISTS |          AND j.updated_at <= now() - interval '1 day'\n         AND NOT EXISTS
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |                           WHERE g.job_id = j.id AND g.status IN ('reserved', 'redeemed')); |                           WHERE false);
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |         IF v_pay IS DISTINCT FROM 'abandoned' OR v_job_touched |         IF v_job_touched
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |  OR v_pi IS NOT NULL\n | \n
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |                        WHERE g.job_id = v_link.job_id AND g.status IN ('reserved', 'redeemed')) THEN |                        WHERE false) THEN
  * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |               AND j.stripe_payment_intent_id IS NULL)) |               AND true))
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |      FOR UPDATE OF j SKIP LOCKED |      
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |       ELSIF v_hold <> 'none' THEN |       ELSIF false THEN
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |         IF v_photos BETWEEN 3 AND 12 THEN |         IF true THEN
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |       IF NOT FOUND OR v_link.updated_at > now() - interval '7 days' THEN |       IF NOT FOUND THEN
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |      FOR UPDATE OF j SKIP LOCKED |      
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |       ELSIF v_hold <> 'none' THEN |       ELSIF false THEN
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |         IF v_photos BETWEEN 3 AND 12 THEN |         IF true THEN
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |       IF NOT FOUND OR v_link.updated_at > now() - interval '7 days' THEN |       IF NOT FOUND THEN
  * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql | REVOKE ALL ON FUNCTION public.declutter_haul_away_sweep() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_haul_away_sweep() FROM PUBLIC;
  * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |     PERFORM cron.schedule('declutter-haul-away', '21 15 * * *', |     PERFORM cron.schedule('declutter-haul-away', '23 3 * * *',
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |     WHEN OTHERS THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text, |     WHEN division_by_zero THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text,
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |     EXCEPTION WHEN lock_not_available THEN\n      v_locked := v_locked + 1;\n    WHEN OTHERS THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text, |     EXCEPTION WHEN OTHERS THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text,
- * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |       v_hold := public.declutter_haul_job_hold(v_link.job_id); |       v_hold := 'none';
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |     WHEN OTHERS THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text, |     WHEN division_by_zero THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text,
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |     EXCEPTION WHEN lock_not_available THEN\n      v_locked := v_locked + 1;\n    WHEN OTHERS THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text, |     EXCEPTION WHEN OTHERS THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text,
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |       v_hold := public.declutter_haul_job_hold(v_link.job_id); |       v_hold := 'none';
  * @mutate src/test/pglite/declutterHaulAwaySweep.pglite.mjs | if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIG); | if (!skip) await db.exec(MIG);
  * @mutate docs/archive/OPEN-done-2026-10.md | done-when: test src/test/declutterHaulAwaySweep.test.ts. | done-when: later.
  */
@@ -64,7 +64,8 @@ function newestSchedule(job: string): string | null {
 describe("Declutter haul-away daily sweep (20261027165903, Q1962)", () => {
   it("reads a real inventory (floors)", () => {
     expect(SWEEP.length).toBeGreaterThan(3_000);
-    expect(DEFS.get("declutter_haul_away_sweep")?.file).toBe(FILE);
+    // Restated by 20261120152652 (owner 2026-11-20: Part A only for listings whose seller opted in).
+    expect(DEFS.get("declutter_haul_away_sweep")?.file).toBe("20261120152652_declutter_haul_away_opt_in.sql");
     expect(body("declutter_haul_away_state").length).toBeGreaterThan(1_000);
     expect(body("declutter_haul_job_hold").length).toBeGreaterThan(500);
   });
@@ -88,10 +89,13 @@ describe("Declutter haul-away daily sweep (20261027165903, Q1962)", () => {
     expect(SWEEP).toContain("WHERE c.item_id = i.id AND c.status IN ('in_cart', 'paid'))");
     expect(SWEEP).toContain("AND public.feature_enabled_for_user('declutter', i.seller_id) AND public.feature_enabled_for_user('declutter_haul_away', i.seller_id) AND NOT public.declutter_member_out(i.seller_id)");
     // Once per listing: the claim (ON CONFLICT DO NOTHING ... RETURNING) comes before any notice.
-    const claim = at("INSERT INTO public.declutter_haul_away_notices (item_id) SELECT x FROM unnest(r.ids) x ON CONFLICT (item_id) DO NOTHING RETURNING item_id");
+    const claim = at("INSERT INTO public.declutter_haul_away_notices (item_id) SELECT x FROM unnest(r.ids) x WHERE public.declutter_haul_away_opted_in(x) ON CONFLICT (item_id) DO NOTHING RETURNING item_id");
     expect(claim).toBeGreaterThan(0);
     expect(at("PERFORM public.declutter_notify(r.seller_id, 'info', 'Haul-away is open'")).toBeGreaterThan(claim);
     expect(SWEEP).toContain("AND NOT EXISTS (SELECT 1 FROM public.declutter_haul_away_notices n WHERE n.item_id = i.id)");
+    // Owner 2026-11-20 (20261120152652): only a listing whose seller chose "offer me a haul-away"
+    // (src/test/declutterHaulAwayOptIn.test.ts holds the rest of that rule).
+    expect(SWEEP).toContain("AND public.declutter_haul_away_opted_in(i.id) AND NOT EXISTS (SELECT 1 FROM public.declutter_haul_away_notices n");
     // Through declutter_notify with the seller as the other party (the seed rule), never a raw insert.
     expect(SWEEP.match(/PERFORM public\.declutter_notify\(r\.seller_id, 'info', 'Haul-away is open', [^;]*?'\/declutter\?view=mine', r\.seller_id\);/g)).toHaveLength(2);
     expect(SWEEP).not.toMatch(/INSERT\s+INTO\s+public\.notifications/i);

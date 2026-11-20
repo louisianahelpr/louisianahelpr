@@ -50,7 +50,10 @@ switch `declutter_haul_away`, created for **testers** only (Declutter's own swit
 6. **The daily sweep (Q1962, migration 20261027165903, cron `declutter-haul-away` 15:21 UTC = 10:21 AM CDT).**
    (a) A listing for sale 14 days with no sale in progress and no haul-away (the H1 rule My listings uses)
    gets ONE "Haul-away is open" notice (bell through `declutter_notify`; push by the member's own switches),
-   one per seller per run, only where both switches are on for the seller; each listing is marked in
+   one per seller per run, only where both switches are on for the seller AND the seller turned on "If it
+   doesn't sell, offer me a haul-away" for that listing (owner 2026-11-20, migration 20261120152652: off by
+   default; My listings' haul-away card, line and tip follow the same choice, and a haul-away already booked or
+   linked shows regardless); each listing is marked in
    `declutter_haul_away_notices` before the notice, so it is never told twice. (b) A never-paid job left
    `failed` (declined card) after its checkout ran out could not be deleted by its poster under the jobs
    DELETE policy; the sweep moves such a haul-away job to `abandoned` (open, `failed`, no session, no

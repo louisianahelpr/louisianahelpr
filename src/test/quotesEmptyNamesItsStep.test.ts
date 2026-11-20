@@ -3,7 +3,7 @@
  * has no Get quotes; the choice is on the Price step (FormStep page 3, PriceModeChoice). The line names that step by
  * the stepper's own word, and the Price page is where the choice is drawn.
  *
- * @mutate src/components/quotes/JobListQuotes.tsx | On Post a Job's Price step, pick Get quotes | On Post a Job, pick Get quotes
+ * @mutate src/components/quotes/JobListQuotes.tsx | On Post a Job's Budget step, pick Get quotes | On Post a Job, pick Get quotes
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -19,8 +19,8 @@ describe("/quotes' empty state names the step Get quotes is on (F140)", () => {
     const quotes = read("src/components/quotes/JobListQuotes.tsx");
     const line = quotes.match(/Not sure what a job should cost\?[^<]*/)?.[0] ?? "";
     expect(line.length, "the empty line was found").toBeGreaterThan(40);
-    expect(en["postJob.rail.price"]).toBe("Price");
-    expect(line).toContain(`${en["postJob.rail.price"]} step, pick Get quotes`);
+    expect(en["postJob.rail.budget"]).toBe("Budget");
+    expect(line).toContain(`${en["postJob.rail.budget"]} step, pick Get quotes`);
   });
 
   it("Get quotes (PriceModeChoice) is drawn on the Price page, not page 1", () => {

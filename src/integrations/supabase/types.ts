@@ -20662,6 +20662,15 @@ export type Database = {
           sample_count: number
         }[]
       }
+      get_fair_price_hint: {
+        Args: { p_category: string; p_lat?: number; p_lng?: number }
+        Returns: {
+          high_dollars: number
+          low_dollars: number
+          sample_count: number | null
+          scope: string
+        }[]
+      }
       get_fill_rate_stats: {
         Args: { p_days?: number }
         Returns: {
@@ -21199,14 +21208,6 @@ export type Database = {
           is_urgent: boolean
           location: string
           title: string
-        }[]
-      }
-      get_price_guidance: {
-        Args: { p_category: string }
-        Returns: {
-          high_dollars: number
-          low_dollars: number
-          sample_count: number
         }[]
       }
       get_public_platform_settings: {

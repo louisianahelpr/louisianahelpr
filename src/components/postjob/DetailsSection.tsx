@@ -1,5 +1,8 @@
 import { useEffect } from "react";
-import { Briefcase } from "lucide-react";
+import { Briefcase, Camera } from "lucide-react";
+import { OptionalExtras } from "./OptionalExtras";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPostJob";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { CREDENTIAL_TIER_CATEGORIES } from "./detailsSection/detailsSectionConstants";
 import { TitleField } from "./detailsSection/TitleField";
@@ -41,6 +44,7 @@ export function DetailsSection({
   onClearVideo,
   placeholdersRefused,
 }: DetailsSectionProps) {
+  const { t: tr } = useLanguage();
   // Automatically reset to tier 0 when switching to a non-trade category
   // so the picker never shows a stale tier on a category where it's hidden.
   useEffect(() => {
@@ -71,6 +75,24 @@ export function DetailsSection({
         placeholdersRefused={placeholdersRefused}
       />
 
+      {/* Q2083 (owner Option 1): the poster says whether the job fixes a movable
+          item, cleans carpet, rugs, furniture or clothes, or alters clothes, the
+          work Louisiana taxes (La. R.S. 47:301.3 items 5 and 7; jobs.tax_kind).
+          Owner 2026-11-06: asked ONLY where that can be true (asksTaxKind).
+          Stays out of the fold below: it changes what the poster is charged. */}
+      {setTaxKind && asksTaxKind(category) && (
+        <TaxKindQuestion taxKind={taxKind ?? null} setTaxKind={setTaxKind} />
+      )}
+
+      {/* Owner 11-20 (ease batch): photos, who can apply, photo proof and the
+          video are optional, folded under one row. */}
+      <OptionalExtras
+        icon={Camera}
+        title={tr("postJob.extras.title")}
+        summary={imagePreviews.length > 0 ? tr(imagePreviews.length === 1 ? "postJob.extras.onePhoto" : "postJob.extras.photos", { n: imagePreviews.length }) : tr("postJob.extras.sub")}
+        filled={imagePreviews.length > 0 || credentialTier > 0 || !!scopeVideoUrl}
+        testId="post-job-extras"
+      >
       {/* "Who can apply?" credential-tier selector — only shown for
           trade categories where licensing/insurance makes sense.
           For all others the tier stays at 0 (open) and this block
@@ -82,14 +104,6 @@ export function DetailsSection({
             setCredentialTier={setCredentialTier}
           />
         </>
-      )}
-
-      {/* Q2083 (owner Option 1): the poster says whether the job fixes a movable
-          item, cleans carpet, rugs, furniture or clothes, or alters clothes, the
-          work Louisiana taxes (La. R.S. 47:301.3 items 5 and 7; jobs.tax_kind).
-          Owner 2026-11-06: asked ONLY where that can be true (asksTaxKind). */}
-      {setTaxKind && asksTaxKind(category) && (
-        <TaxKindQuestion taxKind={taxKind ?? null} setTaxKind={setTaxKind} />
       )}
 
       {/* Sits beside the credential tier because both answer the same
@@ -117,6 +131,7 @@ export function DetailsSection({
           onClearVideo={onClearVideo}
         />
       )}
+      </OptionalExtras>
     </SectionCard>
   );
 }

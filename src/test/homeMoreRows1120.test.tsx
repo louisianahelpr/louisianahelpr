@@ -10,7 +10,7 @@
  * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |   if (rows.length === 0) return null;\n  return (\n    <div data-home-recent-messages=""> |   return (\n    <div data-home-recent-messages="">
  * @mutate src/pages/home/homeDashboard/homeActive.ts |     .filter((j) => j.status === "open") |     .filter((j) => j.status !== "completed")
  * @mutate src/pages/home/homeDashboard/homeActive.ts |     .filter((i) => i.status === "live") |     .filter(() => true)
- * @mutate src/pages/home/HomeDashboard.tsx |             {pageSettled && <Suspense fallback={null}><HomeMoreRows user={user} active={summary.active} /></Suspense>} |             <Suspense fallback={null}><HomeMoreRows user={user} active={summary.active} /></Suspense>
+ * @mutate src/pages/home/HomeDashboard.tsx |             {pageSettled && <Suspense fallback={null}><HomeMoreRows user={user} from={summary.activeFrom} /></Suspense>} |             <Suspense fallback={null}><HomeMoreRows user={user} from={summary.activeFrom} /></Suspense>
  * @mutate src/components/mobileNav/useRecentConversationsPreview.ts |     meta: { persist: false }, |
  */
 import { readFileSync } from "node:fs";
@@ -121,7 +121,7 @@ describe("Your active listings and jobs (owner polish 11-20)", () => {
   });
 
   it("draws nothing with none, and the whole block tolerates a summary without the list", () => {
-    const { container } = draw(<HomeMoreRows user={user} active={[]} />);
+    const { container } = draw(<HomeMoreRows user={user} from={{ postedJobs: [], pendingApplicantCounts: {}, items: [] }} />);
     expect(container.querySelector("[data-home-active]")).toBeNull();
     expect(container.querySelector("[data-home-recent-messages]")).toBeNull();
   });
@@ -130,7 +130,7 @@ describe("Your active listings and jobs (owner polish 11-20)", () => {
     setLang("es");
     await ensureLangLoaded();
     preview.recent = [convo(1)];
-    draw(<HomeMoreRows user={user} active={[{ kind: "job", id: "job-a", title: "Cortar césped", to: "/jobs/a", applicants: 1 }]} />);
+    draw(<HomeMoreRows user={user} from={{ postedJobs: [{ id: "a", title: "Cortar césped", status: "open" }], pendingApplicantCounts: { a: 1 }, items: [] }} />);
     expect(screen.getByText("Mensajes recientes")).toBeTruthy();
     expect(screen.getByText("Sus anuncios y trabajos activos")).toBeTruthy();
     expect(screen.getByText("Abierto · 1 solicitante")).toBeTruthy();
@@ -142,7 +142,7 @@ describe("Home loads the rows lazily, after the page settles", () => {
   it("a lazy chunk, never a static import, drawn only once pageSettled, under Coming up in the main column", () => {
     expect(home).not.toMatch(/^import .*HomeMoreRows/m);
     expect(home).toContain('lazy(() => loadModule(() => import("./homeDashboard/HomeMoreRows"))');
-    const at = home.indexOf("<HomeMoreRows user={user} active={summary.active} />");
+    const at = home.indexOf("<HomeMoreRows user={user} from={summary.activeFrom} />");
     expect(at).toBeGreaterThan(home.indexOf('<GroupSection title={t("home.comingUp")}>'));
     expect(at).toBeLessThan(home.indexOf("<section data-home-side"));
     expect(home.slice(at - 60, at)).toContain("{pageSettled && <Suspense fallback={null}>");

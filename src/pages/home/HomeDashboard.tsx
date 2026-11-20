@@ -24,7 +24,6 @@ import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { type ComingUpItem } from "./homeDashboard/comingUp";
 import { useHomeMoney } from "./homeDashboard/homeMoney";
 import { HomeMoneyTiles } from "./homeDashboard/HomeMoneyTiles";
-import { ComingUpCta } from "./homeDashboard/ComingUpCta";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { readReservedHeight, useReservedHeight } from "./homeDashboard/reservedHeight";
@@ -54,6 +53,13 @@ const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));
 // Owner polish 11-20: Recent messages and Your active listings and jobs, under Your sections. Their own chunk, asked
 // only once the page has settled, so they never weigh on Home's first load (/home's critical-path budget).
 const HomeMoreRows = lazy(() => loadModule(() => import("./homeDashboard/HomeMoreRows")).then((m) => (m ? { default: m.default } : untilReload())));
+// Owner polish 11-20: the "Needs you" short list and the empty Coming up buttons, in their own chunk (not on /home's
+// critical path, Q178): started as Home mounts; until it lands Home draws its single to-do card and a 44px hold.
+type FirstExtras = typeof import("./homeDashboard/homeFirstExtras");
+let firstExtras: FirstExtras | null = null;
+// A plain import (not lazyModule.ts, which would join home-shared on /home's critical path). A failed fetch keeps the
+// single card and the 44px hold, and the next mount tries again; the chunk-reload recovery is main.tsx's.
+const loadFirstExtras = () => import("./homeDashboard/homeFirstExtras").then((m) => (firstExtras = m));
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 // Drawn only when a Coming up read fails, so the error card (and EmptyState under it) loads on its own and never rides
 // Home's first load (/home's critical-path budget, 2026-11-14).
@@ -84,6 +90,8 @@ function whenLine(c: ComingUpItem) {
 const sectionDef = (key: string) => SECTIONS.find((d) => d.key === key) ?? SECTIONS[0];
 /** A section's name as the member reads it (F260q: "Ventas" in Spanish); the config keeps its English label. */
 const sectionLabel = (d: { path: string; label: string }) => { const k = navKey(d.path, d.label); return k ? tNow(k) : d.label; };
+/** A to-do's section icon and name, for the Needs you list rows (homeFirstExtras). */
+const sectionOf = (key: string) => { const d = sectionDef(key); return { Icon: d.icon, label: sectionLabel(d) }; };
 
 /**
  * HOME (owner final decisions, 2026-10-19; 2026-10-20 the three stat boxes became
@@ -178,6 +186,10 @@ function HomeDashboardScreen() {
   }, [user?.id, profileFirst]);
   const today = greetingDate(new Date(), lang);
   const todoCount = summary.todos.length;
+  const [extras, setExtras] = useState<FirstExtras | null>(firstExtras);
+  useEffect(() => {
+    if (!extras) loadFirstExtras().then(setExtras, () => undefined /* the single card and the hold stay; see loadFirstExtras */);
+  }, [extras]);
 
   // Owner polish 11-20: Needs you is a SHORT LIST of the to-dos (most urgent first), no longer a carousel with dots
   // ("Needs you · 1 of 3"). One to-do keeps the big single card; more list up to NEXT_UP_LIST_MAX rows, each with its
@@ -279,7 +291,7 @@ function HomeDashboardScreen() {
                     {t("home.seeJob")}
                   </Button>
                 )}
-                {next && listed.length === 0 && (() => {
+                {next && !(listed.length > 0 && extras) && (() => {
                   // Board 7: the to-do's section, by icon and name, top right.
                   const d = sectionDef(next.section);
                   const Icon = d.icon;
@@ -291,49 +303,8 @@ function HomeDashboardScreen() {
                   );
                 })()}
               </div>
-              {next && listed.length > 0 ? (
-                <>
-                  <ul data-next-up-list="" aria-label={t("home.yourTodos")} className="flex flex-col divide-y divide-border/70">
-                    {listed.map((td, i) => {
-                      const d = sectionDef(td.section);
-                      const Icon = d.icon;
-                      return (
-                        <li key={td.id} data-next-up-row={i} className="flex items-center gap-3 py-2.5 first:pt-1 last:pb-0">
-                          <span aria-hidden title={sectionLabel(d)} className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-muted">
-                            <Icon className="w-4 h-4 text-primary" />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p data-testid={i === 0 ? "next-up-title" : undefined} className="text-ds-15 font-semibold leading-snug text-foreground line-clamp-2 [overflow-wrap:anywhere]">{td.title}</p>
-                            <p className="text-ds-13 text-muted-foreground truncate">
-                              {td.money && <span className="font-bold" style={{ color: "hsl(var(--accent-ink))" }}>{t("home.orderTotal", { amount: td.money })}</span>}
-                              {td.money && " · "}
-                              {td.meta}
-                            </p>
-                          </div>
-                          {/* Home keeps ONE primary action: the most urgent row's; the others are outline. */}
-                          <Button type="button" size="sm" variant={i === 0 ? "primary" : "outline"} data-testid={i === 0 ? "next-up-action" : undefined} data-next-up-row-action={i} onClick={() => navigate(todoTarget(td, requestHelperStep))} className="px-4 text-ds-14 font-semibold tracking-normal shadow-none shrink-0">
-                            {td.action}
-                          </Button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  {rest > 0 && (
-                    // The shared link Button (owner 11-06 pop-up: switch; 2px narrower, desktop hover underline).
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      data-testid="next-up-see-all"
-                      aria-expanded={todoOpen}
-                      aria-controls={todoOpen ? "home-todo-list" : undefined}
-                      onClick={toggleTodo}
-                      className="self-start px-1 -ml-1 text-ds-13 font-bold text-primary whitespace-nowrap"
-                    >
-                      {todoOpen ? t("home.hide") : t("home.seeAll", { n: todoCount })}
-                    </Button>
-                  )}
-                </>
+              {next && listed.length > 0 && extras ? (
+                <extras.NeedsYouList todos={listed} total={todoCount} rest={rest} open={todoOpen} onToggle={toggleTodo} sectionOf={sectionOf} onGo={(td) => navigate(todoTarget(td, requestHelperStep))} />
               ) : next ? (
                 <>
                   <p data-testid="next-up-title" className="text-ds-18 font-bold leading-snug text-foreground [overflow-wrap:anywhere]">{next.title}</p>
@@ -446,7 +417,8 @@ function HomeDashboardScreen() {
                 // Owner polish 11-20: the empty agenda offers Post a job and Find work (ComingUpCta).
                 <div className="px-4 py-4 flex flex-col gap-3">
                   <p data-testid="coming-up-empty" className="text-ds-14 text-muted-foreground">{summary.hasBookedJob ? t("home.nothingElse") : t("home.nothingYet")}</p>
-                  <ComingUpCta />
+                  {/* Its own chunk (homeFirstExtras); a 44px placeholder holds its row until it lands, so nothing moves. */}
+                  {extras ? <extras.ComingUpCta /> : <div aria-hidden data-coming-up-cta-hold="" className="h-11" />}
                 </div>
               ) : (
                 summary.upcoming.map((c, i) => {
@@ -494,7 +466,7 @@ function HomeDashboardScreen() {
             {/* Owner polish 11-20: under Coming up, where Home was blank. Below everything drawn at first paint, so their
                 late arrival moves nothing above them. Gated on the page settling ONLY (it fires within 4 s): the parent's
                 1440 shot showed nothing here while the near-you counts (same settle) had drawn. */}
-            {pageSettled && <Suspense fallback={null}><HomeMoreRows user={user} active={summary.active} /></Suspense>}
+            {pageSettled && <Suspense fallback={null}><HomeMoreRows user={user} from={summary.activeFrom} /></Suspense>}
             {nearYouDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}
 
             {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one

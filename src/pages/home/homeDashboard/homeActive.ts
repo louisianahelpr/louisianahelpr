@@ -10,7 +10,14 @@ export type HomeActiveItem =
 type PostedLike = { id: string; title?: string | null; status: string; created_at?: string | null };
 type ItemLike = { id: string; title?: string | null; status: string; current_price_cents?: number | null; live_at?: string | null };
 
-const newestFirst = (a?: string | null, b?: string | null) => (b ?? "").localeCompare(a ?? "");
+/** The reads the list is derived from (useHomeSummary's `activeFrom`), handed to the lazy HomeMoreRows. */
+export interface HomeActiveSource {
+  postedJobs: readonly PostedLike[];
+  pendingApplicantCounts: Readonly<Record<string, number>>;
+  items: readonly ItemLike[];
+}
+
+const newestFirst =(a?: string | null, b?: string | null) => (b ?? "").localeCompare(a ?? "");
 
 export function deriveHomeActive(
   postedJobs: readonly PostedLike[],

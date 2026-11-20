@@ -1,8 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { HeaderSearchSlot } from "./headerSearchSlot";
 import AppShell from "@/components/AppShell";
-import { GuestPublicFrame } from "@/components/marketing/GuestPublicFrame";
+// Owner polish 11-20 (/home critical-path budget, Q178): the guest frame (PublicLayout, the public header and footer)
+// is only ever drawn for a signed-out visitor, so it loads on demand: every member screen built on SectionScreen
+// (Home first) no longer downloads the public header and footer it never shows.
+const GuestPublicFrame = lazy(() => import("@/components/marketing/GuestPublicFrame").then((m) => ({ default: m.GuestPublicFrame })));
 import { useGuestPublicFrame } from "@/hooks/useGuestPublicFrame";
 import { AppTopBar } from "./AppTopBar";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -10,9 +13,6 @@ import { ExploreSearchEntry } from "./ExploreSearchEntry";
 import { ScrollAwayScope, ScrollAwaySpacer } from "./ScrollAwayScope";
 import type { SectionAdd, SectionKey } from "./sectionsConfig";
 import type { SectionMineMenu } from "./sectionMine";
-import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * A section's screen frame (owner, 2026-10-19): the shared top bar over a scrolling column. Same fixed-shell
@@ -40,14 +40,15 @@ export function SectionScreen({
   fab,
   showAdd = true,
   add,
-  homeLink = false,
+  homeLink,
   children,
 }: {
   /**
-   * Owner 11-20 (site polish A1): a small "← Home" link above the section's heading. Drawn only in a guest's public
-   * frame (a member's rail and bottom nav already carry Home). Declutter's guest Browse passes it.
+   * Owner 11-20 (site polish A1): a small "← Home" link above the section's heading (SectionHomeLink). Drawn only in
+   * a guest's public frame (a member's rail and bottom nav already carry Home). Declutter's guest Browse passes it.
+   * A node, not a flag, so its words and icon load with the page that draws it, never on /home (critical-path budget).
    */
-  homeLink?: boolean;
+  homeLink?: ReactNode;
   /** A section screen (not Home): draws the Explore header (chips row, tabs, search) above the scroll column. */
   section?: SectionKey;
   /** Omit on Home: the logo shows instead. */
@@ -95,18 +96,12 @@ export function SectionScreen({
   // (useGuestPublicFrame). The section's header (its bar, tabs and search) heads the page body, and the list follows
   // it in the same flow; a member keeps the steady header over AppShell's scroll column, as below.
   const guestFrame = useGuestPublicFrame();
-  const { t } = useLanguage();
   const header = (
       <>
         {section && (
           // py/gap = JobsSection's header stack (section-shell-alignment): the bar, 4px, the tabs, 4px, the search.
           <div data-explore-header="" className="explore-header page-measure w-full shrink-0 flex flex-col gap-1">
-            {homeLink && guestFrame && (
-              <Link to="/" data-section-home-link="" className="inline-flex min-h-11 w-fit items-center gap-1 text-ds-13 font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm -mb-2">
-                <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-                {t("nav.home")}
-              </Link>
-            )}
+            {guestFrame && homeLink}
             <AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} add={add} />
             {tabs}
             {globalSearch && <ExploreSearchEntry />}
@@ -126,6 +121,7 @@ export function SectionScreen({
   if (guestFrame) {
     return (
       <ScrollAwayScope>
+        <Suspense fallback={null}>
         <GuestPublicFrame>
           {/* The section's header stays put under the fixed public header while the window scrolls (owner 2026-10-30,
               e2e/a11y-prod/sectionTabsStayPut.spec.ts), on the page's own paper (bg-premium-page is fixed-attached,
@@ -139,6 +135,7 @@ export function SectionScreen({
           </div>
           <ScrollAwaySpacer />{content}
         </GuestPublicFrame>
+        </Suspense>
       </ScrollAwayScope>
     );
   }

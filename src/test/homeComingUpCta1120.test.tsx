@@ -5,7 +5,7 @@
  *
  * @mutate src/pages/home/homeDashboard/ComingUpCta.tsx | onClick={gate.gate("post", () => navigate("/post-job"))} | onClick={() => navigate("/post-job")}
  * @mutate src/pages/home/homeDashboard/ComingUpCta.tsx | onClick={() => navigate("/jobs")} | onClick={() => navigate("/home")}
- * @mutate src/pages/home/HomeDashboard.tsx |                   <ComingUpCta />\n | \n
+ * @mutate src/pages/home/HomeDashboard.tsx | {extras ? <extras.ComingUpCta /> : <div aria-hidden data-coming-up-cta-hold="" className="h-11" />} | {null}
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -74,7 +74,7 @@ describe("Coming up's empty state offers Post a job and Find work (owner polish 
     const home = blankComments(readFileSync("src/pages/home/HomeDashboard.tsx", "utf8"));
     const empty = home.indexOf('data-testid="coming-up-empty"');
     expect(empty).toBeGreaterThan(0);
-    const cta = home.indexOf("<ComingUpCta />", empty);
+    const cta = home.indexOf("<extras.ComingUpCta />", empty);
     expect(cta).toBeGreaterThan(empty);
     expect(cta).toBeLessThan(home.indexOf("</GroupSection>", empty));
   });

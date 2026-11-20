@@ -57,9 +57,9 @@ const HomeMoreRows = lazy(() => loadModule(() => import("./homeDashboard/HomeMor
 // critical path, Q178): started as Home mounts; until it lands Home draws its single to-do card and a 44px hold.
 type FirstExtras = typeof import("./homeDashboard/homeFirstExtras");
 let firstExtras: FirstExtras | null = null;
-// A plain import (not lazyModule.ts, which would join home-shared on /home's critical path). A failed fetch keeps the
-// single card and the 44px hold, and the next mount tries again; the chunk-reload recovery is main.tsx's.
-const loadFirstExtras = () => import("./homeDashboard/homeFirstExtras").then((m) => (firstExtras = m));
+// Through loadModule (not lazyModule.ts, which would join home-shared on /home's critical path). A failed fetch keeps
+// the single card and the 44px hold, and the next mount tries again; an empty module waits on the stale-chunk reload.
+const loadFirstExtras = () => loadModule(() => import("./homeDashboard/homeFirstExtras")).then((m) => (m ? (firstExtras = m) : untilReload()));
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 // Drawn only when a Coming up read fails, so the error card (and EmptyState under it) loads on its own and never rides
 // Home's first load (/home's critical-path budget, 2026-11-14).

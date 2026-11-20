@@ -18,7 +18,7 @@
  * @mutate src/components/landing/HowItWorksSection.tsx |   return mode === "declutter" ? "sell" : "hire"; |   return "hire";
  * @mutate src/components/landing/HowItWorksSection.tsx |   useEffect(() => setSide(sideForMode(mode)), [mode]); |
  * @mutate src/components/landing/HowItWorksSection.tsx |               tone="solid"\n |               tone="quiet"\n
- * @mutate src/components/landing/HowItWorksSection.tsx |                   <Icon key={side} className="h-5 w-5" strokeWidth={1.75} /> | {null}
+ * @mutate src/components/landing/HowItWorksSection.tsx |                   <Icon key={side} className="h-5 w-5" /> | {null}
  * @mutate src/components/landing/HowItWorksSection.tsx |         <div data-how-action="" className="flex justify-center sm:justify-start"> |         <div className="flex justify-center sm:justify-start">
  * @mutate src/components/landing/SectionsShowcase.tsx | const MONEY_HEADLINE = "Nobody gets paid until it’s really done, or really handed over."; | const MONEY_HEADLINE = "Nobody gets paid until the job is really done.";
  */

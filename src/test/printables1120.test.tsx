@@ -96,7 +96,7 @@ describe("the config", () => {
     expect(t.length).toBe(10);
     expect([t[0].w, t[0].h, t[0].rotate, t[0].scale]).toEqual([350, 200, false, 1]);
     expect(t[9].y + t[9].h - t[0].y).toBeCloseTo(1000);
-    // 9 to a page (3 x 3): a tall tag shrinks just enough (3 x 3.5 in > 10 in); the split vintage and square tags stay
+    // 9 to a page (3 x 3; 2026-11-20): a tall tag shrinks just enough (3 x 3.5 in > 10 in); the split vintage and square tags stay
     // real size; the postcard shrinks to 2.5 in wide, as the owner asked.
     const nine = tags.layouts.find((l) => l.id === "9")!;
     const tall = sheetSlots({ w: 2, h: 3.5 }, nine);
@@ -195,7 +195,7 @@ describe("the maker and the page", () => {
     fireEvent.change(screen.getByLabelText("To"), { target: { value: "Mia" } });
     fireEvent.change(screen.getByLabelText("From"), { target: { value: "Aunt Lexi" } });
     const root = document.querySelector("[data-printable-print-root]")!;
-    // The first tag is wide: 10 to the page.
+    // The first tag is wide: 10 to the page (2026-11-20).
     await waitFor(() => expect(root.querySelectorAll("[data-printable-item]").length).toBe(10));
     expect(root.querySelectorAll("[data-printable-cut]").length).toBe(10);
     expect(root.querySelectorAll("[data-printable-site]").length).toBe(10);
@@ -205,12 +205,12 @@ describe("the maker and the page", () => {
     expect(document.querySelector("[data-printable-preview]")!.textContent).toContain("Aunt Lexi");
     // No per-page chooser: each design prints on its own sheet.
     expect(document.querySelector("[data-printable-layout]")).toBeNull();
-    // A tall tag: 9 to the page, upright, shrunk to fit.
+    // A tall tag: 9 to the page (2026-11-20), upright, shrunk to fit.
     fireEvent.click(document.querySelector('[data-printable-design="green-pink-blue-watercolor-tree"]')!);
     await waitFor(() => expect(root.querySelectorAll("[data-printable-item]").length).toBe(9));
     expect(root.querySelector('[data-printable-item="0"]')!.getAttribute("transform")).not.toMatch(/rotate/);
     expect(root.querySelector('[data-printable-item="0"]')!.getAttribute("transform")).toMatch(/scale\(0\.95/);
-    // The postcard: 9 to the page at 2.5 in wide.
+    // The postcard: 9 to the page (2026-11-20) at 2.5 in wide.
     fireEvent.click(document.querySelector('[data-printable-design="green-cream-vintage"]')!);
     await waitFor(() => expect(root.querySelector('[data-printable-item="0"]')!.getAttribute("transform")).toMatch(/scale\(0\.45/));
     expect(root.querySelectorAll("[data-printable-item]").length).toBe(9);

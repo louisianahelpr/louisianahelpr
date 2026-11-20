@@ -32,6 +32,7 @@ const FEW_PHOTOS = "fewer than 4 clean product-only photos";
 const ONE_GUIDE = "under 4 clean product photos left after one guide per product (owner 11-19)";
 const READY_FILL = "under 4 clean product photos after the 1119c brand-link fill and taste pass: the rest are lifestyle shots or already on a cover in the section";
 const TRAIN_1530 = "under 4 clean product photos after the 1530 import train (taste cuts, fit audit, store merges, thin guides first)";
+const SORT_1119E = "under 4 clean product photos after the 1119e sort (commission order, 25 cap, type and brand caps, judgment cuts): the rest are lifestyle or on-model shots";
 const OWNER_FILL ="under 4 clean product photos after the owner picks and follow-up fills (11-19): the rest are on-model, lifestyle or already on a cover in the section";
 /**
  * Re-measured 2026-11-19 after the r3 follow-up gathered store photos (scripts/gift-guide-store-cover-photos.json): 52
@@ -48,7 +49,6 @@ const TEXT_ONLY: Record<string, string> = {
   "store-revolve": ONE_GUIDE,
   "machinists": ONE_GUIDE,
   // Measured 2026-11-19 after the owner picks and the follow-up fills (the cover script prints "SHORT <slug>").
-  "louisiana-made": OWNER_FILL,
   "mechanics": OWNER_FILL,
   // Ready pass 1119c (measured 2026-11-19 by the cover script's TEXT ONLY line): the brand-link fill moved photo'd
   // products between guides; these have under 4 clean product photos not already on a cover in their section.
@@ -57,20 +57,42 @@ const TEXT_ONLY: Record<string, string> = {
   // store merges and the thin-guides-first claim, these hold under 4 clean product photos not already on a cover in
   // their section ("photo not on white" or the variety rule passed the rest over).
   "gift-wrap-and-cards": TRAIN_1530, "acadiana": TRAIN_1530, "fishermen": TRAIN_1530, "book-lover": TRAIN_1530,
-  "car-lover": TRAIN_1530, "electricians": TRAIN_1530, "hostess": TRAIN_1530, "mom-to-be": TRAIN_1530,
-  "store-nordstrom-rack": TRAIN_1530, "store-bluemercury": TRAIN_1530, "store-jellycat": TRAIN_1530, "store-kendra-scott": TRAIN_1530,
-  "store-le-creuset": TRAIN_1530, "store-parachute-home": TRAIN_1530, "store-st-bernard": TRAIN_1530, "store-terrain": TRAIN_1530,
+  "car-lover": TRAIN_1530, "electricians": TRAIN_1530, 
+  "store-nordstrom-rack": TRAIN_1530, "store-jellycat": TRAIN_1530, "store-kendra-scott": TRAIN_1530,
+  "store-le-creuset": TRAIN_1530, "store-parachute-home": TRAIN_1530, "store-terrain": TRAIN_1530,
   "store-the-sleep-code": TRAIN_1530, "store-thenorthface": TRAIN_1530, "store-vevor": TRAIN_1530, "store-vuori": TRAIN_1530,
-  "grill-master": TRAIN_1530, "new-puppy": TRAIN_1530, "store-saiehello": TRAIN_1530,
+  "new-puppy": TRAIN_1530, "store-saiehello": TRAIN_1530,
   // After the _fill-1119-a import (title-checked Amazon rows), measured 2026-11-19.
   "oilfield-and-trades": TRAIN_1530, "plumbers": TRAIN_1530, "educators": TRAIN_1530,
+  // Sort pass 1119e, measured 2026-11-19 by the cover script's SHORT lines ("photo not on white" passed the rest over).
+  "uncle": SORT_1119E,
+  "nephew": SORT_1119E,
+  "purple-and-gold-lover": SORT_1119E,
+  "hunters": SORT_1119E,
+  "kayaker": SORT_1119E,
+  "healthcare": SORT_1119E,
+  "pipefitters": SORT_1119E,
+  "heavy-equipment-operators": SORT_1119E,
+  "crane-operators": SORT_1119E,
+  "bartenders": SORT_1119E,
+  "cashiers": SORT_1119E,
+  "hairstylists": SORT_1119E,
+  "farmers": SORT_1119E,
+  "physician-assistants": SORT_1119E,
+  "dentists": SORT_1119E,
+  "coaches": SORT_1119E,
+  "bus-drivers": SORT_1119E,
+  "firefighters": SORT_1119E,
+  "hospital-stay": SORT_1119E,
+  "store-joss-and-main": SORT_1119E,
+  "store-fragrancenet": SORT_1119E,
+  "store-kiehls": SORT_1119E,
 };
 /** Covers with four products whose photos read as gingham to the pixel check (clear glass and white jars). */
 const PIXEL_PALE: Record<string, string> = {
-  // 1119c, looked at 2026-11-19: four products each, two of them white or cream.
-  "sister-in-law": "white pajamas and a white bralette below a pink case and tote",
-  // 1530 train, looked at 2026-11-19: four products each, small or pale on the checks.
-  "store-rare-beauty": "slim pale-pink lip and cheek tubes, a nude mascara set and a pale-yellow tube",};
+  // Sort pass 1119e, looked at 2026-11-19: four products; the TheraFace mask and the Anker charging station are white.
+  "nurse-practitioners": "a white LED face mask and a white charging station below a red gift box and a black Theragun",
+};
 
 const manifest = readManifest();
 const covers = new Set(COVER_SLUGS);
@@ -116,7 +138,7 @@ describe("gift guide covers show their products", () => {
   });
 
   it("every shown cover lists at least four products in the manifest", () => {
-    expect(shortInManifest(manifest, checked)).toEqual([]);
+        expect(shortInManifest(manifest, checked)).toEqual([]);
   });
 
   it("every shown cover file shows products outside the arch", async () => {

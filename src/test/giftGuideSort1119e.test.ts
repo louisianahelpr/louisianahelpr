@@ -1,0 +1,105 @@
+/**
+ * Gift guides sort pass 1119e (owner 2026-11-19 evening), read from the shipped chunks:
+ *   - "Organize all of our gift guides by highest commission at the top to lowest commission at bottom": every guide pick
+ *     carries its effective `commission` (null = unknown) and each guide lists high to low, unknown last;
+ *   - "Only do 25 per guide": no non-store guide holds more than GUIDE_CAP;
+ *   - "don't have 7 cup choices in 1 guide": every pick carries its gift `type`, at most TYPE_MAX of one type per guide
+ *     (more only where the guide's topic is that type, THEME_TYPES);
+ *   - a Creator Connections swap pays the campaign total only while it runs, then the old link's rate is read again.
+ *
+ * @mutate scripts/giftGuideSort.mjs | export const GUIDE_CAP = 25; | export const GUIDE_CAP = 30;
+ * @mutate scripts/giftGuideSort.mjs | export const TYPE_MAX = 2; | export const TYPE_MAX = 7;
+ * @mutate scripts/giftGuideSort.mjs |   const ca = typeof a.commission === "number" ? a.commission : -1; |   const ca = 0;
+ * @mutate scripts/giftGuideSort.mjs | export const ccLive = (c, today) => Boolean(c) && | export const ccLive = (c, today) => Boolean(c) \|\|
+ */
+import { existsSync, readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
+import { GUIDE_CAP, TYPE_MAX, buildRateData, byCommission, commissionOf, pickType, typeMax } from "../../scripts/giftGuideSort.mjs";
+
+type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string };
+const DIR = "src/content/giftGuidePicks";
+const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
+/** Lists with their own order (scripts/gift-guide-picks.mjs SORT_FIXED) keep it; the sponsors guide is a sponsor list. */
+const FIXED = new Set(["subscriptions", "gift-cards", "gift-wrap-and-cards", "mail-carrier-and-delivery-drivers", "25-days-sponsors"]);
+const guides = readdirSync(DIR).filter((f: string) => f.endsWith(".json")).map((f: string) => f.replace(/\.json$/, "")).filter((s: string) => !s.startsWith("store-") && s !== "25-days-sponsors");
+
+describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)", () => {
+  it("reads the owner's numbers", () => {
+    expect(GUIDE_CAP).toBe(25);
+    expect(TYPE_MAX).toBe(2);
+  });
+
+  it("every guide pick carries its commission and type; each guide lists by commission, high to low, unknown last", () => {
+    expect(guides.length).toBeGreaterThan(200);
+    const bad: string[] = [];
+    let picks = 0;
+    let known = 0;
+    for (const slug of guides) {
+      const list = pageOf(slug);
+      for (const p of list) {
+        picks += 1;
+        if (!("commission" in p) || !(p.commission === null || typeof p.commission === "number")) bad.push(`${slug}: no commission: ${p.name}`);
+        if (typeof p.type !== "string" || !p.type) bad.push(`${slug}: no type: ${p.name}`);
+        if (typeof p.commission === "number") known += 1;
+      }
+      if (FIXED.has(slug)) continue;
+      const rate = (p: Pick) => (typeof p.commission === "number" ? p.commission : -1);
+      list.forEach((p, i) => { if (i > 0 && rate(p) > rate(list[i - 1])) bad.push(`${slug} #${i + 1}: ${p.name} (${p.commission}) above-rate after ${list[i - 1].name} (${list[i - 1].commission})`); });
+    }
+    expect(picks).toBeGreaterThan(2000);
+    expect(known).toBeGreaterThan(1800);
+    expect(bad.slice(0, 10)).toEqual([]);
+  });
+
+  it("no non-store guide holds more than 25 picks, nor more than its cap of one gift type", () => {
+    const bad: string[] = [];
+    for (const slug of guides) {
+      const list = pageOf(slug);
+      if (list.length > GUIDE_CAP) bad.push(`${slug}: ${list.length} picks`);
+      if (FIXED.has(slug)) continue;
+      const n = new Map<string, number>();
+      for (const p of list) n.set(p.type ?? "other", (n.get(p.type ?? "other") ?? 0) + 1);
+      for (const [t, c] of n) if (c > typeMax(slug, t)) bad.push(`${slug}: ${c} x ${t}`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("names the gift type the way a shopper would (singular and plural, the specific kind first)", () => {
+    const cases: [string, string, string][] = [
+      ["Kiehl's 5 O'Clock Shadow Shavers Gift Set", "Kiehl's", "grooming"],
+      ["Weber Original Kettle Grill (22 in.)", "Weber", "grill"],
+      ["Horse Print Sherpa Fleece Throw Blanket", "", "throw-blanket"],
+      ["YETI Rambler 20 oz Tumbler with MagSlider Lid", "YETI", "drinkware"],
+      ["Stanley Quencher H2.0 FlowState Tumbler 40 oz", "Stanley", "drinkware"],
+      ["L'Occitane Shea Collection Gift Set", "L'OCCITANE", "skincare"],
+      ["Alpha Industries MA-1 Slim Fit Bomber, Woodland Camo", "Alpha Industries", "jacket"],
+      ["HEYDUDE Paul Pro Classic", "HEYDUDE", "shoes"],
+      ["Smathers & Branson Fishing Flies Needlepoint Belt", "Smathers & Branson", "belt"],
+      ["3M Littmann Classic III Stethoscope, Caribbean Blue", "Littmann", "stethoscope"],
+      ["Capri Blue Volcano Candle", "Capri Blue", "candle"],
+    ];
+    for (const [name, brand, type] of cases) expect(pickType({ name, brand }), name).toBe(type);
+  });
+
+  it("reads each network's rate; a Creator Connections total pays only while the campaign runs", () => {
+    const data = buildRateData({
+      shopmyTsv: "id\tstore\tname\trate\tcreated\tclicks\torders\np-1\tStanley\tQuencher\t18%\tNov 19th\t4\t-\n",
+      rowsWithRate: [{ href: "https://go.shopmy.us/p-2", commission_pct: "15%" }],
+      campaigns: [{ campaign_id: "c1", opted_in: true, asins: ["B000000001"], total_pct: 33, bonus_pct: 23, starts: "2026-11-01", ends: "2026-12-17" },
+        { campaign_id: "c2", opted_in: false, asins: ["B000000002"], total_pct: 30, bonus_pct: 26, starts: "2026-11-01", ends: "2027-01-01" }],
+    });
+    const amazon = (asin: string) => ({ name: "Kiehl's Ultra Facial Cream", brand: "Kiehl's", href: `https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20` });
+    expect(commissionOf({ name: "Quencher", brand: "Stanley", href: "https://go.shopmy.us/p-1" }, data, "2026-11-19").pct).toBe(18);
+    expect(commissionOf({ name: "Throw", brand: "Barefoot Dreams", href: "https://go.shopmy.us/p-2" }, data, "2026-11-19").pct).toBe(15);
+    expect(commissionOf({ name: "Throw", brand: "x", href: "https://go.shopmy.us/p-3" }, data, "2026-11-19").pct).toBeNull();
+    expect(commissionOf(amazon("B000000001"), data, "2026-11-19").pct).toBe(33);
+    // After the end date the Associates base rate (10% luxury beauty) is read again: the swap reverts on the next run.
+    expect(commissionOf(amazon("B000000001"), data, "2026-12-18").pct).toBe(10);
+    // A campaign not joined pays no bonus (owner 11-19: joined campaigns only).
+    expect(commissionOf(amazon("B000000002"), data, "2026-11-19").pct).toBe(10);
+    expect(commissionOf({ name: "Pralines", brand: "Aunt Sally's", href: "https://auntsallys.com/products/pralines" }, data, "2026-11-19").pct).toBe(0);
+    const sorted = [{ name: "a", commission: null }, { name: "b", commission: 4 }, { name: "c", commission: 33 }, { name: "d", commission: 12 }].sort(byCommission).map((p) => p.name);
+    expect(sorted).toEqual(["c", "d", "b", "a"]);
+  });
+});

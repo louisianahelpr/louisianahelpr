@@ -42,10 +42,9 @@ describe("gift guides: owner follow-ups 11-19", () => {
     expect(bad).toEqual([]);
   });
 
-  it("owner picks lead their guides; Advent Calendars and Gift Tags hold picks; a guide shows from one pick", () => {
+  it("owner picks keep their badge on guides (no longer first: owner 11-19 ~6:40 PM sorts by commission); Advent Calendars and Gift Tags hold picks; a guide shows from one pick", () => {
     const withOwner = guides.filter((s: string) => pageOf(s).some((p) => p.ownerPick));
     expect(withOwner.length).toBeGreaterThan(20);
-    for (const s of withOwner) expect(pageOf(s)[0].ownerPick, s).toBe(true);
     for (const s of ["advent-calendars", "gift-tags"]) {
       expect(pageOf(s).length, s).toBeGreaterThan(3);
       expect(guideBySlug(s)?.empty, s).toBeFalsy();

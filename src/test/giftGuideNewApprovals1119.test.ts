@@ -80,7 +80,8 @@ describe("gift guides: new affiliate approvals (lead 11-19)", () => {
     }
     expect(bad).toEqual([]);
     // 73 of the file's 74 rows placed on 2026-11-19 (Truck Drivers' lunch box is over its tumbler cap).
-    expect(placed).toBeGreaterThan(3); // one guide per product (owner 11-19)
+    // 3 placed on 2026-11-19 (1119e sort: the 25 cap, the commission order and the judgment cuts; owner: recognizable brands only).
+    expect(placed).toBeGreaterThan(2);
     for (const s of STORES) expect(pageOf(s).filter((p) => isNewBrand(p.href)).length, s).toBeGreaterThan(0);
   });
 

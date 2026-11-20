@@ -133,6 +133,8 @@ const contentLinks = [
   ...giftGuides.sections.flatMap((s) => [s.shop.href, ...s.more.map((m) => m.href), ...s.picks.map((p) => p.href)]),
   ...AMAZON_GUIDES.flatMap((g) => g.items.map(([, href]) => href)),
   ...Object.values(RESEARCHED_PICKS).flat().map((p) => p.href),
+  // A store page's deal sections link out too (1119e: the CJ and Awin hosts are now used only by deals after the sort's cuts).
+  ...Object.values(import.meta.glob<PickChunk>("../content/giftGuidePicks/*.json", { eager: true, import: "default" })).flatMap((c) => (c.deals ?? []).flatMap((d) => [d.href, ...(d.items ?? []).map((i) => i.href)])),
 ];
 
 /** Renders the page at a URL, with a probe that shows where a redirect landed. */

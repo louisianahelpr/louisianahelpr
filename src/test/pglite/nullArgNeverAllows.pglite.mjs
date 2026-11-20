@@ -315,7 +315,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "check_dispute_velocity", "credential_document_path_ok", "dispute_evidence_url_ok", "has_role",
   "helper_credential_document_ok", "identity_is_verified", "is_party_to_job",
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
-  "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
+  "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
   // After feature_enabled_for_user: since 20261017085012 (Q1844) its SQL body calls it, and a SQL body is validated at CREATE.
   "helper_has_advanced_analytics",
@@ -342,6 +342,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "rentals_caller_is_active_tenant_of",
   // Rentals identity either verdict (20261019051407); after identity_is_verified, which its SQL body calls.
   "is_identity_verified",
+  // Owner 2026-11-20 (20261120205350): poster_id_cleared's SQL body calls is_identity_verified, and
+  // user_may_see_job_address's newest body calls poster_id_cleared (validated at CREATE), so both load here.
+  "poster_id_cleared", "user_may_see_job_address",
   // Homes listings (20261019043000); after is_identity_verified, which its newest SQL body calls (20261019061241).
   "rentals_listing_visible",
   // Homes public link (20261019062540) and listing photo storage checks (20261019071203).

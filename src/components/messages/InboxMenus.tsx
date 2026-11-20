@@ -1,7 +1,8 @@
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enScreens";
-import { Check, CheckSquare, ListFilter, Menu, Pin, Trash2 } from "lucide-react";
+import { Archive, Check, CheckSquare, ListFilter, Menu, Pin } from "lucide-react";
+import "@/lib/i18n/enMessages";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,8 +51,8 @@ function InboxViewItems({ canSelect, onSelect, onPinned, onRecentlyDeleted }: In
         Pinned
       </DropdownMenuItem>
       <DropdownMenuItem onClick={onRecentlyDeleted}>
-        <Trash2 className="w-4 h-4 mr-2" />
-        Recently deleted
+        <Archive className="w-4 h-4 mr-2" />
+        {t("msg.viewDeleted")}
       </DropdownMenuItem>
     </>
   );

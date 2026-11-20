@@ -322,3 +322,76 @@ describe("stripe-idv-webhook: an admin's decision and the current session win", 
     });
   }
 });
+
+// Live 2026-11-20: a member tapped "decline" on Stripe's consent step, and the
+// webhook put them in manual_review and paged every admin with nothing to review.
+// @mutate supabase/functions/stripe-idv-webhook/index.ts | if (err.code === "consent_declined") return true; | if (err.code === "consent_declined") return false;
+// @mutate supabase/functions/stripe-idv-webhook/index.ts | event.type === "identity.verification_session.requires_input" && consentDeclined(session) | event.type === "identity.verification_session.requires_input" && false
+describe("stripe-idv-webhook: a declined consent is the member backing out, not a review", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  async function deliverRequiresInput(lastError: { code?: string | null; reason?: string | null } | null) {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_idv_consent",
+      type: "identity.verification_session.requires_input",
+      data: { object: { id: "vs_consent1", metadata: { user_id: "user-1" }, last_error: lastError } },
+    });
+    scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }, { user_id: "admin-2" }] };
+    scenario.writeSelectRows.profiles = [{ user_id: "user-1" }];
+    return fn.fetch(webhookRequest(fn));
+  }
+
+  const statusWrite = () =>
+    scenario.writes.find((w) => w.table === "profiles" && w.op === "update" && "idv_status" in ((w.payload as object) ?? {}));
+  const adminAlerts = () =>
+    scenario.writes
+      .filter((w) => w.table === "notifications")
+      .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]) as Array<{ type?: string; user_id?: string }>)
+      .filter((n) => n.type === "admin_alert");
+
+  const declined = [
+    ["Stripe's code", { code: "consent_declined", reason: "The user declined to grant consent to collect and verify their data." }],
+    ["the reason text alone", { code: null, reason: "The user declined to grant consent to collect and verify their data." }],
+  ] as const;
+
+  for (const [label, lastError] of declined) {
+    it(`consent declined (${label}): reset to not_started, no session, no review flag, no admin alert`, async () => {
+      const res = await deliverRequiresInput(lastError);
+      expect(res.status).toBe(200);
+      const w = statusWrite();
+      expect(w?.payload).toEqual({
+        idv_session_id: null,
+        idv_status: "not_started",
+        idv_failure_reason: null,
+        legacy_manual_review: false,
+      });
+      // Still only over an undecided profile on this (or no) session.
+      expect(w?.filters).toEqual(expect.arrayContaining([
+        { op: "not", column: "idv_status", operator: "in", value: "(verified,failed)" },
+        { op: "or", column: "", value: "idv_session_id.is.null,idv_session_id.eq.vs_consent1" },
+      ]));
+      expect(adminAlerts()).toHaveLength(0);
+      expect(scenario.writes.filter((w) => w.table === "notifications")).toHaveLength(0);
+    });
+  }
+
+  it("a real requires_input failure still goes to manual review and alerts every admin", async () => {
+    const res = await deliverRequiresInput({ code: "document_unverified_other", reason: "The document was invalid." });
+    expect(res.status).toBe(200);
+    const w = statusWrite();
+    expect(w?.payload).toMatchObject({
+      idv_session_id: "vs_consent1",
+      idv_status: "manual_review",
+      idv_failure_reason: "The document was invalid.",
+      legacy_manual_review: true,
+    });
+    const alerts = adminAlerts();
+    expect(alerts.map((a) => a.user_id).sort()).toEqual(["admin-1", "admin-2"]);
+  });
+});

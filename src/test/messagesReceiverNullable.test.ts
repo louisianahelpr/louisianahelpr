@@ -244,7 +244,7 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
     for (const k of promiseKeys) expect(en[k], k).toMatch(PROMISE);
     for (const k of ["msg.hideDeletedBody", "msg.batchDeleted"] as const) {
       expect(en[k], k).not.toMatch(PROMISE);
-      expect(en[k], k).toMatch(/Recently Deleted/);
+      expect(en[k], k).toMatch(/Archived/);
     }
     const promises = [...page.matchAll(/t\("msg\.(?:hideBody|batchMixed|batchBody)"/g)].map((m) => m.index!);
     expect(promises.length).toBeGreaterThan(1);
@@ -255,7 +255,7 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
     expect(page).toMatch(/batchArchiveConfirm\?\.every\(\(c\) => c\.otherUserId === null\)\s*\?\s*t\("msg\.batchDeleted"\)/);
     // A mixed selection names both outcomes, never only the "new message" one.
     expect(page).toMatch(/:\s*batchArchiveConfirm\?\.some\(\(c\) => c\.otherUserId === null\)\s*\?\s*t\("msg\.batchMixed"\)/);
-    expect(en["msg.batchMixed"]).toMatch(/deleted account stays in Recently Deleted/);
+    expect(en["msg.batchMixed"]).toMatch(/deleted account stays in Archived/);
   });
 
   it("no archive path skips a deleted-account thread", () => {
@@ -274,7 +274,7 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
     expect(toggle).not.toMatch(/otherUserId === null/);
     // A team thread (no job to key an archive on) is the only other bare row.
     expect(list).toMatch(/return selectMode \|\| isRecentlyDeletedView \|\| c\.teamThread \? row : \(/);
-    expect(list).toMatch(/\.filter\(\(c\) => isConvoArchived\(userId, c\.jobId, c\.otherUserId, c\.lastAt\)\)/);
+    expect(list).toMatch(/\.filter\(\(c\) => isConvoArchived\(userId, c\.jobId, c\.otherUserId, c\.lastAt\)/);
   });
 
   it("behaviour: an archived deleted-account thread reads as archived, and resurfaces never on its own", async () => {

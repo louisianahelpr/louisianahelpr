@@ -10,7 +10,7 @@
  *
  * @mutate src/pages/messages/Messages.tsx |       embedded={twoPane}\n      activeKey={ |       embedded={false}\n      activeKey={
  * @mutate src/pages/messages/Messages.tsx |       {twoPane ? ( |       {false ? (
- * @mutate src/pages/messages/MessagesTwoPane.tsx |           style={spanAll ? undefined : { width: MESSAGES_LIST_PANE_PX }} |           style={spanAll ? undefined : { width: 340 }}
+ * @mutate src/pages/messages/useTwoPane.ts | export const MESSAGES_LIST_PANE_CLASS = "w-[360px] min-[1300px]:w-[420px]"; | export const MESSAGES_LIST_PANE_CLASS = "w-[340px]";
  * @mutate src/pages/messages/MessagesTwoPane.tsx |           ) : null} |           ) : <p>When you message someone, the conversation opens here.</p>}
  * @mutate src/pages/messages/useTwoPane.ts | export const TWO_PANE_MIN_WIDTH = 1140; | export const TWO_PANE_MIN_WIDTH = 900;
  * @mutate src/pages/messages/useTwoPane.ts |   return isWebDesktop && isWide; |   return isWide;
@@ -25,6 +25,9 @@ import {
   TWO_PANE_CHROME_PX,
   CHAT_PANE_FLOOR_PX,
   MESSAGES_LIST_PANE_PX,
+  MESSAGES_LIST_PANE_CLASS,
+  MESSAGES_LIST_PANE_WIDE_PX,
+  MESSAGES_LIST_PANE_WIDE_FROM,
 } from "@/pages/messages/useTwoPane";
 
 const read = (rel: string) => blankComments(readFileSync(resolve(__dirname, "..", rel), "utf8"));
@@ -46,11 +49,11 @@ describe("Messages matches board 38 without ever cutting the chat off", () => {
     expect(page).toMatch(/\{twoPane \? \(\s*<MessagesTwoPane list=\{listEl\} chat=\{chatEl\} hasConversations=\{conversations\.length > 0\} empty=\{!loading && !loadError && allConversations\?\.length === 0\} \/>/);
     expect(panes.length).toBeGreaterThan(800);
     expect(panes).toContain("<PageScaffold flushRight>"); // B107 (11-01): the open chat runs to the window edge on desktop
-    expect(panes).toMatch(/data-testid="messages-list-pane"[\s\S]*style=\{spanAll \? undefined : \{ width: MESSAGES_LIST_PANE_PX \}\}/);
+    expect(panes).toMatch(/data-testid="messages-list-pane"[\s\S]*shrink-0 border-r border-border \$\{MESSAGES_LIST_PANE_CLASS\}/);
     expect(panes).toMatch(/data-testid="messages-chat-pane" className="flex-1 min-w-0/);
     // A resting state when no thread is open; with no conversations the pane
     // stays empty, the inbox pane's empty state is the only one (A3-C19).
-    expect(panes).toMatch(/\) : hasConversations \? \(\s*<div data-testid="messages-chat-resting"[\s\S]*Pick a conversation[\s\S]*\) : null\}/);
+    expect(panes).toMatch(/\) : hasConversations \? \(\s*<div data-testid="messages-chat-resting"[\s\S]*t\("msg\.pickTitle"\)[\s\S]*\) : null\}/);
     expect(panes).not.toMatch(/No conversations yet|When you message someone/);
     // Narrower: the one-at-a-time swap is still there.
     expect(page).toMatch(/\) : !activeConvo \? \(\s*<SectionBoundary label="conversations">\{listEl\}<\/SectionBoundary>\s*\) : \(\s*<SectionBoundary label="chat">\{chatEl\}<\/SectionBoundary>/);
@@ -58,6 +61,9 @@ describe("Messages matches board 38 without ever cutting the chat off", () => {
 
   it("the split starts only where the chat keeps its 480px floor, and only on the desktop website", () => {
     expect(MESSAGES_LIST_PANE_PX).toBe(360);
+    // Wider where there is room (polish 2026-11-20): the chat keeps its floor at the wide width too.
+    expect(MESSAGES_LIST_PANE_CLASS).toBe(`w-[${MESSAGES_LIST_PANE_PX}px] min-[${MESSAGES_LIST_PANE_WIDE_FROM}px]:w-[${MESSAGES_LIST_PANE_WIDE_PX}px]`);
+    expect(MESSAGES_LIST_PANE_WIDE_FROM).toBeGreaterThanOrEqual(TWO_PANE_CHROME_PX + MESSAGES_LIST_PANE_WIDE_PX + CHAT_PANE_FLOOR_PX);
     expect(CHAT_PANE_FLOOR_PX).toBeGreaterThanOrEqual(480);
     expect(TWO_PANE_CHROME_PX).toBeGreaterThanOrEqual(248);
     expect(TWO_PANE_MIN_WIDTH).toBeGreaterThanOrEqual(TWO_PANE_CHROME_PX + MESSAGES_LIST_PANE_PX + CHAT_PANE_FLOOR_PX);

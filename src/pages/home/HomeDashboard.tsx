@@ -198,7 +198,12 @@ function HomeDashboardScreen() {
   // Owner polish 11-20 ("fill the empty space with useful rows"): every settled day, not only a quiet one.
   const pageSettled = usePageSettled();
   // Not for a new member: their own blocks (NewMemberHome, FirstJobHome) already list the jobs near them.
-  const nearYouDay = !welcome && !firstJob?.isNew && !summary.declutterPending && !summary.todosLoading && !summary.loading;
+  // Only the new-member rule (their own blocks list what is near them), once that read has answered; no wait on the
+  // other reads (a Declutter read that never settles kept it hidden on a member's 1440 Home, 11-20).
+  // Parent 11-20 shot: a new member who sells or buys on Declutter (no FirstJobHome) saw a blank Home; Near you shows
+  // whenever the first-job block does not.
+  const firstJobShown = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending;
+  const nearYouDay = !welcome && firstJob !== null && !firstJobShown;
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
   const nextUpRef = useRef<HTMLElement>(null);
@@ -486,6 +491,10 @@ function HomeDashboardScreen() {
               )}
             </GroupSection>
             )}
+            {/* Owner polish 11-20: under Coming up, where Home was blank. Below everything drawn at first paint, so their
+                late arrival moves nothing above them. Gated on the page settling ONLY (it fires within 4 s): the parent's
+                1440 shot showed nothing here while the near-you counts (same settle) had drawn. */}
+            {pageSettled && <Suspense fallback={null}><HomeMoreRows user={user} active={summary.active} /></Suspense>}
             {nearYouDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}
 
             {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one
@@ -547,9 +556,6 @@ function HomeDashboardScreen() {
             </div>
             {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
             </> : <div data-section-chips-held="" aria-hidden className="h-9" />}
-            {/* Owner polish 11-20: below Your sections (the column's end on a desktop, the page's on a phone), so their
-                late arrival moves nothing above them. */}
-            {pageSettled && <Suspense fallback={null}><HomeMoreRows user={user} active={summary.active} /></Suspense>}
             </>}
             <Suspense fallback={null}><GiftGuidesPromo where="home" /></Suspense>
           </section>

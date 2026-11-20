@@ -26,7 +26,7 @@
  * @mutate src/pages/home/HomeDashboard.tsx | useState(false);\n  const toggleTodo = () => setTodoOpen((o) => !o); | useState(() => sessionStorage.getItem("t") === "1");\n  const toggleTodo = () => setTodoOpen((o) => { sessionStorage.setItem("t", o ? "0" : "1"); return !o; });
  * @mutate src/pages/home/HomeDashboard.tsx |   useOnTabReselect("/home", () => setTodoOpen(false)); |   useOnTabReselect("/home", () => undefined);
  * @mutate src/pages/home/HomeDashboard.tsx |         {todoOpen && ( |         {todoCount > 0 && !todoOpen && <button type="button" onClick={toggleTodo} aria-expanded={false}>To do ({todoCount})</button>}\n        {todoOpen && (
- * @mutate src/pages/home/HomeDashboard.tsx |   const next = summary.todos[0]; |   const next = summary.todos[summary.todos.length - 1];
+ * @mutate src/pages/home/HomeDashboard.tsx |   const listed = todoCount > 1 ? summary.todos.slice(0, NEXT_UP_LIST_MAX) : []; |   const listed = todoCount > 1 ? summary.todos.slice().reverse().slice(0, NEXT_UP_LIST_MAX) : [];
  * @mutate src/pages/home/HomeDashboard.tsx |                     {listed.map((td, i) => { |                     {listed.slice(0, 1).map((td, i) => {
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const o of shopWaiting) { |   for (const o of shopWaiting.filter(() => false)) {
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: n > 0 ? (n === 1 ? tr("todo.reviewOne") |         title: j.title, _t: n > 0 ? (n === 1 ? tr("todo.reviewOne")

@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { SectionBoundary } from "@/components/SectionBoundary";
-import { MESSAGES_LIST_PANE_PX } from "./useTwoPane";
+import { MESSAGES_LIST_PANE_CLASS } from "./useTwoPane";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { MessagesSquare } from "lucide-react";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 
 /**
  * Board 38 (owner, 2026-10-20): desktop Messages as two panes in one PageScaffold.
@@ -27,8 +31,7 @@ export function MessagesTwoPane({ list, chat, hasConversations, empty = false }:
         <div
           data-testid="messages-list-pane"
           data-span-all={spanAll ? "" : undefined}
-          className={`min-h-0 flex flex-col ${spanAll ? "flex-1 min-w-0" : "shrink-0 border-r border-border"}`}
-          style={spanAll ? undefined : { width: MESSAGES_LIST_PANE_PX }}
+          className={`min-h-0 flex flex-col ${spanAll ? "flex-1 min-w-0" : `shrink-0 border-r border-border ${MESSAGES_LIST_PANE_CLASS}`}`}
         >
           <div className={`flex-1 min-h-0 flex flex-col px-4 pt-2${spanAll ? " mx-auto w-full max-w-2xl" : ""}`}>
             <SectionBoundary label="conversations">{list}</SectionBoundary>
@@ -38,9 +41,9 @@ export function MessagesTwoPane({ list, chat, hasConversations, empty = false }:
           {chat ? (
             <SectionBoundary label="chat">{chat}</SectionBoundary>
           ) : hasConversations ? (
-            <div data-testid="messages-chat-resting" className="flex-1 flex flex-col items-center justify-center gap-1.5 px-8 text-center">
-              <p className="font-display font-moment text-ds-22 text-foreground">Pick a conversation</p>
-              <p className="text-ds-14 text-muted-foreground max-w-sm">It opens here, next to your inbox.</p>
+            // The shared empty state (owner-approved polish 2026-11-20), not a hand-made one: a friendly resting pane.
+            <div data-testid="messages-chat-resting" className="flex-1 flex flex-col items-center justify-center px-8">
+              <EmptyState variant="bare" icon={MessagesSquare} title={t("msg.pickTitle")} body={t("msg.pickBody")} />
             </div>
           ) : null}
         </div>}

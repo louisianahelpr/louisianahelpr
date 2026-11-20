@@ -13,6 +13,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { withInbox } from "@/components/inbox/withInbox";
 import { archiveConversation } from "@/lib/archivedConversations";
+import { useDeleteForMe } from "./useDeleteForMe";
 
 import type { Conversation } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
@@ -423,6 +424,7 @@ const Messages = () => {
   // otherwise each keeps its own shell, because only one is on screen.
   // Section tabs: each tab lists only its own section's threads (+ support).
   const inbox = useMessageSections(conversations, allConversations);
+  const { requestDeleteForMe, deleteForMeDialog } = useDeleteForMe({ userId, activeConvo, closeThread }); // Delete for me (11-20)
 
   const listEl = (
     <ConversationList
@@ -431,6 +433,7 @@ const Messages = () => {
       sectionTabs={inbox.strip}
       sectionEmpty={inbox.sectionEmpty}
       mainEmptyBody={inbox.mainEmptyBody} orderTalks={inbox.orderTalks} inboxLead={inbox.inboxLead}
+      archivedView={inbox.archivedView} onArchivedViewChange={(on) => inbox.setSection(on ? "archived" : "all")} onDeleteForMe={requestDeleteForMe}
       loading={loading}
       loadError={loadError}
       retryInbox={retryInbox}
@@ -533,9 +536,7 @@ const Messages = () => {
         />
       )}
 
-      {/* Hide conversation confirmation — an honest local archive, not a
-          partial delete. Nothing is removed; the thread is just hidden
-          from this inbox and comes back if a new message arrives. */}
+      {/* Archive confirmation (renamed from "Hide", 2026-11-20): nothing is removed; the thread moves to Archived and comes back on a new message. */}
       <BrandConfirmDialog
         open={!!deleteConvoConfirm}
         onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
@@ -554,10 +555,7 @@ const Messages = () => {
         secondaryLabel={t("msg.cancel")}
       />
 
-      {/* Batch "hide conversations" confirmation — the multi-select
-          variant of the single-row hide above. Same honest local archive
-          (nothing deleted; each thread returns on a new message), one
-          combined confirm for all selected threads. */}
+      {/* Batch archive confirmation: the multi-select variant of the one above, one combined confirm. */}
       <BrandConfirmDialog
         open={!!batchArchiveConfirm}
         onOpenChange={(o) => { if (!o) setBatchArchiveConfirm(null); }}
@@ -581,6 +579,7 @@ const Messages = () => {
         secondaryLabel={t("msg.cancel")}
       />
 
+      {deleteForMeDialog}
       {/* Delete message confirmation */}
       <BrandConfirmDialog
         open={!!deleteMessageConfirm}

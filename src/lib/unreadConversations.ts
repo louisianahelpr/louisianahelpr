@@ -14,6 +14,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { isArchived } from "@/lib/archivedConversations";
+import { isClearedMessage } from "@/lib/clearedConversations";
 import { isTeamThreadKey, normalizeMessageRow, teamUserIdFromKey } from "@/lib/teamThread";
 
 /** PD-012: bounded. The nav shows "9+" and the icon badge a number, so the newest this many unread rows suffice. */
@@ -84,6 +85,9 @@ export function groupThreads<M extends ThreadRow>(rows: readonly M[], uid: strin
       }
       continue;
     }
+    // "Delete for me" (20261120201223): a row at or before the member's clear of this thread is gone from their
+    // side, for the inbox and the badge alike; a thread with nothing newer has no group at all.
+    if (isClearedMessage(uid, m.job_id, other, m.created_at)) continue;
     const key = `${m.job_id}_${other === null ? "deleted-account" : other}`;
     if (!convoMap.has(key)) convoMap.set(key, { otherUserId: other, jobId: m.job_id, messages: [] });
     convoMap.get(key)!.messages.push(m);

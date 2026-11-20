@@ -20,7 +20,7 @@ import { FunPage } from "./FunPage";
  */
 const PATH = "/gift-guides/swipe";
 /** How far (px) a card is dragged before letting go counts as a swipe. */
-export const SWIPE_DISTANCE = 90;
+const SWIPE_DISTANCE = 90;
 
 type Card = CatalogPick & { guide: string };
 

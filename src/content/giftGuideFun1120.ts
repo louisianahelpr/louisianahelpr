@@ -17,7 +17,7 @@ export const louisianaYmd = (now: Date) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 /** Whole days from one "YYYY-MM-DD" to another (calendar days, no clock). */
 const dayNumber = (ymd: string) => Math.round(Date.parse(`${ymd}T12:00:00Z`) / 86400000);
-export const daysBetween = (from: string, to: string) => dayNumber(to) - dayNumber(from);
+const daysBetween = (from: string, to: string) => dayNumber(to) - dayNumber(from);
 
 // ---------------------------------------------------------------------------------------------------------------
 // (1) Secret Santa

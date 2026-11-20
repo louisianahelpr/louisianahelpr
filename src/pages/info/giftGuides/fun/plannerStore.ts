@@ -44,10 +44,10 @@ const subscribe = (l: () => void) => {
 };
 
 export const usePlan = (): GiftPlan => useSyncExternalStore(subscribe, read, () => EMPTY_PLAN);
-export const planNow = () => read();
+
 
 /** A short random id for a person or an idea (only ever inside the planner). */
-export const newId = () => Math.random().toString(36).slice(2, 10);
+const newId = () => Math.random().toString(36).slice(2, 10);
 
 const mapPerson = (id: string, f: (p: PlanPerson) => PlanPerson) => {
   const cur = read();

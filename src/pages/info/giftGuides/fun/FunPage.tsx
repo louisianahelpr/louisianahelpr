@@ -26,7 +26,7 @@ export function FunPage({ title, path, description, noindex, children }: { title
 }
 
 /** Scoped under .gg like the guides' own CSS, shipped in the fun pages' lazy chunks only. */
-export const FUN_CSS = `
+const FUN_CSS = `
 .gg-fun{max-width:640px;margin:0 auto;padding:4px 0 24px}
 .gg-fun h2{font-size:20px;font-weight:700;margin:4px 0 6px;color:var(--gg-ink)}
 .gg-fun-lead{color:var(--gg-muted);font-size:14px;line-height:1.5;margin:0 0 16px}

@@ -253,6 +253,14 @@ export const EVIDENCE = [
     checkedBy: "src/test/giftGuidesPage.test.tsx (two-way link allowlist, Amazon tag, no prices) + src/test/giftGuidesExtras.test.tsx (badges, loaded guides)",
   },
   {
+    id: "gift-guide-deals",
+    script: "scripts/gift-guide-deals.mjs",
+    outputs: ["src/content/giftGuideDeals.json"],
+    refresh: "node scripts/gift-guide-deals.mjs (reads the lead's checked deals, ~/Desktop/Gift-guide-picks/_bfcm-deals-1119.json; not in CI)",
+    refreshedBy: "by the committer when the lead hands over new or changed deals (content, not a count); the page hides ended deals itself",
+    checkedBy: "src/test/giftGuideDeals1119.test.tsx (ready deals only, sort, 25 cap, no price, affiliate hosts, auto-hide, feature window, retitle)",
+  },
+  {
     id: "go-links",
     script: "scripts/go-links.mjs",
     outputs: ["src/content/goLinks.json", "src/content/goLinks.mjs"],

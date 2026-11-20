@@ -14,6 +14,8 @@ import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
+import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
+import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "@/content/giftGuideDeals.mjs";
 
 /**
  * /gift-guides and /gift-guides/<slug> (owner 2026-11-16, public 2026-11-18; rebuilt 2026-11-18 to the owner's final
@@ -36,10 +38,13 @@ export default function GiftGuides() {
   const { hash } = useLocation();
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
+  // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is its own page, not a catalog list of picks.
+  const deals = slug === DEALS_SLUG;
+  const dealsName = dealsTitle(louisianaDay(new Date()));
   // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
   // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion);
-  usePageMeta(guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);
+  usePageMeta(deals ? giftGuidePageMeta(DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
   // Visual check 11-18: at 375 the long pill squeezed "Gift guides" into "Gift / guid / es"; phones get the short words.
@@ -50,7 +55,7 @@ export default function GiftGuides() {
       {ship.endsWith(shipTail) && <span className="hidden sm:inline">{shipTail}</span>}
     </p>
   ) : undefined;
-  const myList = !guide && params.get("list") === "mine";
+  const myList = !guide && !deals && params.get("list") === "mine";
   const group = ROWS.find((r) => r.row === groupParam)?.row ?? (null as GuideRow | null);
 
   // Pins link to /gift-guides#for-her, /gift-guides/for-her or a folded guide (/gift-guides/female-nurses): send each
@@ -58,9 +63,9 @@ export default function GiftGuides() {
   const hashSlug = decodeURIComponent(hash.replace(/^#/, ""));
   const fromHash = hashSlug ? newSlugFor(hashSlug) : null;
   if (!slug && fromHash) return <Navigate to={`/gift-guides/${fromHash}`} replace />;
-  const moved = slug && !guide ? newSlugFor(slug) : null;
+  const moved = slug && !guide && !deals ? newSlugFor(slug) : null;
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
-  if (slug && !guide) return <Navigate to="/gift-guides" replace />;
+  if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;
 
   const footer = (
     <footer className="gg-disc">
@@ -76,7 +81,7 @@ export default function GiftGuides() {
   return (
     // Holistic review 11-18 L6: the landing's back arrow went home; the landing has none now (the bar's logo is the way
     // home), and My list or a group's page goes back to the landing.
-    <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide || myList || group ? "/gift-guides" : "/"} hideBack={!guide && !myList && !group} bottomPaddingClassName="pb-12 md:pb-16"
+    <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide || deals || myList || group ? "/gift-guides" : "/"} hideBack={!guide && !deals && !myList && !group} bottomPaddingClassName="pb-12 md:pb-16"
       titleActions={shipPill}>
       <style>{GIFT_GUIDES_CSS}</style>
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
@@ -88,7 +93,10 @@ export default function GiftGuides() {
         {/* Owner redesign 11-18 PM: under the title ONE slim row (search, My list, Share); Text and Copy link sit in
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
-        {guide ? (
+        {deals ? (
+          <GiftGuidesWords lead={DEALS_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="red"
+            tools={<GiftGuideTools path={`/gift-guides/${DEALS_SLUG}`} title={dealsName} image={DEALS_COVER} />} />
+        ) : guide ? (
           <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint}
             tools={<GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
         ) : (
@@ -97,7 +105,7 @@ export default function GiftGuides() {
         <div className="gg-layout">
           <GiftGuidesSidebar active={guide} myList={myList} />
           <div className="gg-main">
-            {guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
+            {deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>
         </div>
       </div>

@@ -17,7 +17,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |         {row === "for-kids" && !group && <KidsByAge />} |
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <Button asChild variant="outline" size="sm" className="gg-shop-btn"> |       <Button asChild variant="outline" size="inline" className="gg-shop-btn">
- * @mutate src/pages/info/GiftGuides.tsx | hideBack={!guide && !myList && !group} | hideBack={false}
+ * @mutate src/pages/info/GiftGuides.tsx | hideBack={!guide && !deals && !myList && !group} | hideBack={false}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

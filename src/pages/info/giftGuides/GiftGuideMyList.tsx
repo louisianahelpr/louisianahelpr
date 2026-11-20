@@ -1,40 +1,119 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { giftGuides as G } from "@/content/giftGuides";
-import { GUIDES, guideBySlug, guidePicksVersion, loadGuidePicks, subscribeGuidePicks } from "@/content/giftGuideCatalog";
+import { guideBySlug } from "@/content/giftGuideCatalog";
+import { WISH } from "@/content/giftWishList";
+import { saveWishList } from "@/lib/giftWishListApi";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { GiftGuideTile } from "./GiftGuideTile";
-import { PickRow } from "./GiftGuideView";
-import { PricesAsOf } from "@/components/giftGuides/PickPrice";
-import { useGiftList } from "./giftList";
+import { PickThumb } from "./GiftGuideView";
+import { GiftOut } from "./GiftOut";
+import { GiftWishShare } from "./GiftWishShare";
+import { MAX_LIST_NAME, listName, listRefs, pickId, removeFromWishList, setListName, useGiftList } from "./giftList";
+import { useWishItems, type WishItem } from "./wishListItems";
 
 /**
- * /gift-guides?list=mine (owner 2026-11-18): the guides and picks this visitor hearted, from this browser's My list.
- * A saved item the guides no longer carry is left out (never a dead tile or link). A pick saved from a guide whose
- * picks are a lazy chunk shows once that chunk is in (only those guides' chunks are fetched).
+ * /gift-guides/my-list (owner 2026-11-18 "My list"; 2026-11-20 "My Wish List": "add something that they can add to
+ * their list and send their list to someone"): the list's name (editable, never required), the saved guides as tiles,
+ * then every saved gift as a row (photo, name, where it is sold, Shop with our link, Remove) and "Share my list".
+ * Empty: one line saying how to fill it. A saved gift the guides no longer carry is left out (never a dead row).
  */
+
+function WishThumb({ item }: { item: WishItem }) {
+  const [failed, setFailed] = useState(false);
+  if (item.pick) return <PickThumb pick={item.pick} />;
+  if (item.image && !failed) {
+    return (
+      <span className="gg-photo">
+        <img className="gg-thumb" loading="lazy" decoding="async" src={item.image} alt="" width={52} height={52} referrerPolicy="no-referrer-when-downgrade" onError={() => setFailed(true)} />
+      </span>
+    );
+  }
+  return <span className="gg-thumb gg-letter" aria-hidden="true">{item.store}</span>;
+}
+
+/** A small business's own page (not an affiliate link), in a new tab. */
+function PlainOut({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
+  if (!/^https:\/\//.test(href)) return <span className={className}>{children}</span>;
+  return <a href={href} target="_blank" rel="noopener noreferrer" className={className} data-gift-sb-out="">{children}</a>;
+}
+
+/** One gift on a wish list: photo, name, where, Shop (our link) and, on the owner's own list, Remove. */
+export function WishRow({ item, onRemove }: { item: WishItem; onRemove?: () => void }) {
+  const Out = item.out === "plain" ? PlainOut : GiftOut;
+  return (
+    <li className="gg-wish-row" data-gift-wish-item={item.id}>
+      <Out href={item.href} className="gg-item">
+        <WishThumb item={item} />
+        <span className="gg-nm">
+          <span className="gg-nm-name">{item.name}</span>
+          {item.store && <small className="gg-nm-meta"><span>{G.onStore(item.store)}</span></small>}
+        </span>
+        <span className="sr-only"> ({G.newTab})</span>
+      </Out>
+      <span className="gg-wish-actions">
+        <Button asChild variant="outline" size="sm" className="gg-shop-btn">
+          <Out href={item.href}>
+            <span data-gift-shop="">{item.out === "plain" ? WISH.visit : G.shopAt(item.store)}</span>
+            <span aria-hidden="true">&nbsp;›</span>
+            <span className="sr-only">: {item.name} ({G.newTab})</span>
+          </Out>
+        </Button>
+        {onRemove && (
+          <Button type="button" variant="ghost" size="sm" className="gg-wish-remove" onClick={onRemove} aria-label={WISH.removeLabel(item.name)} data-gift-wish-remove={item.id}>
+            {WISH.remove}
+          </Button>
+        )}
+      </span>
+    </li>
+  );
+}
+
 export function GiftGuideMyList() {
   const list = useGiftList();
-  useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
-  const from = [...new Set(list.picks.map((p) => p.guide).filter((s): s is string => Boolean(s && guideBySlug(s))))].join(" ");
-  useEffect(() => {
-    for (const s of from.split(" ").filter(Boolean)) {
-      loadGuidePicks(s).catch((e: unknown) => {
-        // A failed chunk only leaves that guide's saved picks off the list this visit.
-        console.warn("gift guides: picks chunk failed", s, e);
-      });
-    }
-  }, [from]);
+  const { user } = useAuthReady();
+  // Every saved gift, an old save (no guide) included: it is looked up in the loaded guides.
+  const refs = list.picks.map((p) => ({ g: p.guide ?? "", i: pickId(p) }));
+  const { items, loading } = useWishItems(refs);
   const guides = list.guides.map((s) => guideBySlug(s)).filter((g) => g !== undefined);
-  const all = GUIDES.flatMap((g) => g.picks);
-  const picks = list.picks.map((s) => all.find((p) => p.href === s.href && p.name === s.name)).filter((p) => p !== undefined);
+  const empty = guides.length === 0 && list.picks.length === 0;
   return (
     <section aria-labelledby="gift-my-list" data-gift-my-list="">
       <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>
-      <div className="gg-rowhead"><h2 id="gift-my-list">{G.myListLabel}</h2></div>
-      {guides.length === 0 && picks.length === 0 && <p className="gg-soon" data-gift-my-list-empty="">{G.myListEmpty}</p>}
-      {guides.length > 0 && <ul className="gg-wrap">{guides.map((g) => <GiftGuideTile key={g.slug} g={g} />)}</ul>}
-      {picks.length > 0 && <ol className="gg-list" data-gift-list="">{picks.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} />)}</ol>}
-      <PricesAsOf picks={picks} />
+      <div className="gg-rowhead"><h2 id="gift-my-list">{listName(list)}</h2></div>
+      <label className="gg-wish-name" data-gift-wish-name="">
+        <span className="gg-finder-q">{WISH.nameLabel}</span>
+        <Input value={list.name} onChange={(e) => setListName(e.target.value)} placeholder={WISH.namePlaceholder} maxLength={MAX_LIST_NAME} aria-describedby="gift-wish-name-help" data-gift-wish-name-input="" />
+        <small id="gift-wish-name-help" className="gg-price-note">{WISH.nameHelp}</small>
+      </label>
+      {empty && (
+        <div className="gg-soon" data-gift-my-list-empty="">
+          <p>{WISH.empty}</p>
+          <Link to="/gift-guides" className="gg-link">{WISH.emptyCta} ›</Link>
+        </div>
+      )}
+      {list.picks.length > 0 && (
+        <>
+          <GiftWishShare name={listName(list)} refs={listRefs(list)} save={saveWishList} />
+          <p className="gg-price-note" data-gift-wish-where="">{user ? WISH.syncedNote : WISH.deviceNote}</p>
+          <div className="gg-rowhead"><h3>{WISH.giftsTitle(items.length)}</h3></div>
+          {loading && items.length === 0 ? (
+            <p className="gg-soon" role="status">{WISH.loading}</p>
+          ) : (
+            <ol className="gg-list gg-wish-list" data-gift-list="">
+              {items.map((it) => <WishRow key={it.id} item={it} onRemove={() => removeFromWishList(it.id)} />)}
+            </ol>
+          )}
+        </>
+      )}
+      {guides.length > 0 && (
+        <>
+          <div className="gg-rowhead"><h3>{WISH.guidesTitle}</h3></div>
+          <ul className="gg-wrap">{guides.map((g) => <GiftGuideTile key={g.slug} g={g} />)}</ul>
+        </>
+      )}
     </section>
   );
 }

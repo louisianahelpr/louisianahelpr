@@ -7,6 +7,9 @@ import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
+import { heartTapped } from "./GiftGuideHints";
+import { HINTS, WISH } from "@/content/giftWishList";
+import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
@@ -91,7 +94,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         </span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
-      <Heart saved={saved} label={`Save ${pick.name} to My list`} onToggle={() => togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })} className="gg-heart-pick" />
+      <Heart saved={saved} label={WISH.saveLabel(pick.name)} onToggle={() => heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) }))} className="gg-heart-pick" />
       {/* Holistic review 11-18 H4 (High): the Shop word was hidden on every item, so nothing said "tap to buy". A visible
           44px pill on every item, apart from the heart: "Shop at Amazon ›". */}
       <Button asChild variant="outline" size="sm" className="gg-shop-btn">
@@ -202,6 +205,7 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
           ))}
         </nav>
       )}
+      {banded >= BUDGET_MIN_PICKS && <Hint id="budget">{HINTS.budget}</Hint>}
       {banded >= BUDGET_MIN_PICKS && (
         <div role="group" aria-label={G.budgetLabel} className="gg-budget" data-gift-budget="">
           {[null, ...BUDGETS].map((b) => (

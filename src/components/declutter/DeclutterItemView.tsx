@@ -59,7 +59,6 @@ import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
 import { recordItemView } from "@/lib/declutter/itemViews";
 import { ItemViewsCount } from "./ItemViewsCount";
-import { DemandLine } from "./DemandLine";
 import { oneItemTotalDollars, PriceInclFee } from "./PriceInclFee";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
@@ -81,6 +80,9 @@ const ItemTradeOffers = lazy(() => import("./DeclutterTradeOffers").then((m) => 
 const OfferTradeButton = lazy(() => import("./DeclutterOfferTrade").then((m) => ({ default: m.OfferTradeButton })));
 // Q178 (Builder 2, 11-11): the free-item panels (DeclutterFreeClaim.tsx, 26 KB source) load only on a free listing, not on
 // every paid item page. The claim panel holds its place with a bone of its own height while its chunk arrives.
+// Q178 (11-20): the "In demand" / shop-sale line (#4779) loads on use. It waits on its own read after the page is up and
+// draws nothing below its thresholds, so it never needed to ride the item page's first chunk.
+const DemandLine = lazy(() => import("./DemandLine").then((m) => ({ default: m.DemandLine })));
 const FreeClaimPanelLazy = lazy(() => import("./DeclutterFreeClaim").then((m) => ({ default: m.FreeClaimPanel })));
 const FreeRequestsForGiverLazy = lazy(() => import("./DeclutterFreeClaim").then((m) => ({ default: m.FreeRequestsForGiver })));
 function FreeClaimPanel({ item }: { item: DeclutterItem }) {
@@ -332,7 +334,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
               {forSale && listedAgo(it.live_at) && <span data-item-listed="">{`${it.area_label || away ? " · " : ""}${listedAgo(it.live_at)}`}</span>}
             </p>
             {/* Declutter top 5 #3 (owner 11-19): "3 offers this week · 8 people saved this", real counts past a threshold. */}
-            {forSale && <DemandLine itemId={it.id} />}
+            {forSale && <Suspense fallback={null}><DemandLine itemId={it.id} /></Suspense>}
             {/* Owner 11-11 (F229): a buyer-protection line under a paid price, naming only what the app does: payment in
                 the app, porch pickup where this listing offers it, and 24 hours after the handover to report a problem. */}
             {it.current_price_cents > 0 && !isSeller && (

@@ -156,6 +156,7 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
       "src/pages/home/homeDashboard/useNeedsYouTodos.ts": 1, // B51: Home's derivations; an empty module leaves them unloaded (the hook stays loading, no to-dos) and loadModule's reload takes over
       "src/lib/sonnerFacade.ts": 1, // resets `loading`: the next toast loads Sonner
       "src/pages/auth/signup/useCityZipMismatch.ts": 1, // an advisory hint
+      "src/pages/info/giftGuides/GiftGuideSponsorRow.tsx": 1, // train 1120b: the sponsor logo row's list; an empty module leaves the row hidden (the guides around it work) and loadModule's reload takes over
       "src/hooks/useWebPush.ts": 1, // boot-bytes 11-15: the permission explainer not loaded = no ask this time; the cooldown is stamped only once the sheet shows (markAskShown), so the next visit asks
       "src/hooks/useNotifyWhenWorkLands.ts": 1, // Q2705 pass 3 (/jobs first screen): the job-match preference is already saved; only the OS push ask is skipped while the stale-chunk reload runs, and the next tap asks (same as useWebPush)
       "src/lib/cppRouting.ts": 1, // boot-bytes 11-15: PPO attribution from a PPO link, best-effort like recordPpoAttribution's own storage write; loadModule's reload takes over

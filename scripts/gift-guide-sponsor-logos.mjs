@@ -23,7 +23,7 @@ const LOGOS = process.env.SPONSOR_LOGOS_DIR ?? join(homedir(), "Desktop", "25 Da
 const OUT_DIR = join(REPO, "public/gift-guides/sponsors");
 const OUT = join(REPO, "src/content/giftGuideSponsorLogos.json");
 const PICKS = join(REPO, "src/content/giftGuidePicks");
-/** Our own Dec 25 entry is no sponsor. */
+/** Our own Christmas Day giveaway is no sponsor. */
 const NOT_A_SPONSOR = new Set(["Louisiana Helpr"]);
 /** Logos drawn white on clear (INDEX.md: "use on a dark background"): their circle is dark. */
 const DARK_LOGOS = new Set(["Everyday Dose", "3 Redneck Tenors"]);

@@ -108,6 +108,10 @@ const UNREACHABLE: Allowlist = {
   declutter_item_save_counts: {
     invalid_request: { reason: "fetchSaveCounts chunks the ids at PER_READ = 200, the RPC's own limit, so no call sends more" },
   },
+  // Declutter top 5 #3 (20261120012729): fetchSaveCounts sends PER_READ = 200 ids a call and fetchItemDemand one.
+  declutter_item_demand: {
+    invalid_request: { reason: "fetchSaveCounts chunks the ids at PER_READ = 200 (the RPC's own limit) and fetchItemDemand sends one id, so no call sends more" },
+  },
   // Owner 11-07 (20261107235110): fetchOnTimeHandovers feeds one seller-card badge; a failed read shows no badge
   // (SellerTrustBadges: a missing badge is never a claim), so no code's words exist at that site.
   // 20261108001932 (lead 11-07): get_user_last_active answers a coarse "Active today" band; every caller (profile,

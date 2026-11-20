@@ -10,6 +10,13 @@ export const enItemPage = {
   "ip.inclFee": "incl. fee",
   "ip.protected": "Protected: pay in the app, 24 hours to report a problem.",
   "ip.protectedPorch": "Protected: pay in the app, pick up from the porch, 24 hours to report a problem.",
+  // Declutter top 5 #3 (owner 11-19, 20261120012729): "in demand" lines, real counts past a threshold only.
+  "ip.demand.offers": "{n} offers this week",
+  "ip.demand.saves": "{n} people saved this",
+  "ip.demand.views": "{n} views today",
+  "ip.demand.label": "In demand",
+  // Declutter top 5 #4 (20261120014036): the seller's shop-wide sale, on a listing at its sale price.
+  "ip.sale": "Shop sale: {pct}% off until {when}",
   "ip.away.about": "About {n} mi away",
   "ip.away.under1": "Less than 1 mi away",
   "ip.away.n": "{n} mi away",

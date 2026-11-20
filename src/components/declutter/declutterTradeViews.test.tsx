@@ -36,7 +36,7 @@
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setDeclining(true)} data-offer-say-no=""> | disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })} data-offer-say-no="">
  * @mutate src/components/declutter/DeclutterOffersSection.tsx |   const wantedReply = o.from_wanted === true && o.my_side === "buyer"; |   const wantedReply = false;
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | o.my_side === "buyer" && o.awaiting === "seller" && ( | o.my_side === "buyer" && (
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? t("dof.theirPrice") : t("dof.theirCounter")) | : t("dof.theirCounter"))
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? t("dof.theirPrice") : saverOffer ? t("dt5.so.cardTag") : t("dof.theirCounter")) | : saverOffer ? t("dt5.so.cardTag") : t("dof.theirCounter"))
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply\n            ? t("dof.noReply" | : false\n            ? t("dof.noReply"
  * @mutate src/components/declutter/DeclutterTabHeads.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.

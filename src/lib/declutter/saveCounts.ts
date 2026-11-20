@@ -10,14 +10,33 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { isInDemand } from "./demand";
 
 const PER_READ = 200;
 
-export async function fetchSaveCounts(itemIds: string[]): Promise<Map<string, number> | null> {
+/**
+ * Declutter top 5 #3 (owner 11-19): given `inDemand`, the same one read per 200 items is declutter_item_demand
+ * (20261120012729), which answers the saves AND each item's offers this week; the ids past the "In demand" threshold
+ * (DEMAND_MIN in sellerTools.ts) are added to the set, for Browse's card tag. Before that read is deployed (PGRST202)
+ * it falls back to the save counts alone, so the hearts never lose their numbers.
+ */
+export async function fetchSaveCounts(itemIds: string[], inDemand?: Set<string>): Promise<Map<string, number> | null> {
   const out = new Map<string, number>();
   if (itemIds.length === 0) return out;
   const chunks: string[][] = [];
   for (let i = 0; i < itemIds.length; i += PER_READ) chunks.push(itemIds.slice(i, i + PER_READ));
+  if (inDemand) {
+    const rich = await Promise.all(chunks.map((ids) => supabase.rpc("declutter_item_demand", { p_item_ids: ids })));
+    if (!rich.some((res) => res.error && isMissingRpcNamed(res.error, "declutter_item_demand"))) {
+      for (const res of rich) {
+        for (const row of unwrap(res) ?? []) {
+          if (row.saves > 0) out.set(row.item_id, row.saves);
+          if (isInDemand(row)) inDemand.add(row.item_id);
+        }
+      }
+      return out;
+    }
+  }
   const answers = await Promise.all(chunks.map((ids) => supabase.rpc("declutter_item_save_counts", { p_item_ids: ids })));
   for (const res of answers) {
     if (res.error && isMissingRpcNamed(res.error, "declutter_item_save_counts")) return null;

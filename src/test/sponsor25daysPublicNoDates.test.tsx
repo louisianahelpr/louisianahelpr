@@ -78,10 +78,10 @@ describe("25 Days public pages: no sponsor day, no entry steps, no removed spons
     const text = JSON.stringify(sponsorPage.lineup);
     expect(REMOVED.filter((n) => text.includes(n))).toEqual([]);
     expect(PEOPLE.filter((n) => text.includes(n))).toEqual([]);
-    // The three owner-named sponsors show exactly as chosen; Tevin's name is not linked (no confirmed official Page).
+    // The three owner-named sponsors show exactly as chosen; Tevin's name links to his own page (owner 2026-11-19).
     const brands = new Set(sponsorPage.lineup.days.flatMap((d) => d.partners.map((p) => p.brand)));
     expect(NAMED_SPONSORS.filter((n) => !brands.has(n))).toEqual([]);
-    expect(Object.keys(sponsorPage.lineup.links)).not.toContain("Tevin Lewis, District 2 Alderman");
+    expect((sponsorPage.lineup.links as Record<string, string>)["Tevin Lewis, District 2 Alderman"]).toBe("https://www.facebook.com/profile.php?id=61562244154656");
     for (const b of brands) expect(b, b).not.toMatch(/Rabalais \(|Rudisill \(|^District 2 Alderman$|^The Fois$|^Custom wreath sashes$/);
   });
 });

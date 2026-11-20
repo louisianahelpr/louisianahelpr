@@ -199,7 +199,7 @@ export const sponsorPage = {
    * the tracker's calendar (170 giveaways from 104 brands as of 2026-11-19 7:15 PM). Check drift with `node scripts/check-25days-lineup.mjs`,
    * regenerate with `--print` (manual; never in CI).
    * Business names, prizes and Facebook Page links ONLY: never a contact person's name, email or phone (this page and repo are public).
-   * Owner 2026-11-19: three sponsors show by their own name (David Rabalais; Tevin Lewis, District 2 Alderman, unlinked;
+   * Owner 2026-11-19: three sponsors show by their own name (David Rabalais; Tevin Lewis, District 2 Alderman, linked to his own page;
    * Haylie Rudisill · Custom wreath sashes). The allowlist is PUBLIC_NAMES in scripts/check-25days-lineup.mjs.
    */
   lineup: {
@@ -275,6 +275,8 @@ export const sponsorPage = {
       "SRI Labs": "https://www.facebook.com/SRIBeautyLabs",
       "Suzi Marques Photography": "https://www.facebook.com/suzimarquesphotography",
       "David Rabalais": "https://www.facebook.com/davidrabalaisfilm/",
+      // Owner 2026-11-19: "just link to his personal page" (the tracker's h.fb for Tevin Lewis).
+      "Tevin Lewis, District 2 Alderman": "https://www.facebook.com/profile.php?id=61562244154656",
       "The Humble Home Decor & Candles": "https://www.facebook.com/profile.php?id=61591928826991",
       "The Sculpt Society": "https://www.facebook.com/sculptsociety",
       "The Soft Life Collective": "https://www.facebook.com/profile.php?id=61594580516352",

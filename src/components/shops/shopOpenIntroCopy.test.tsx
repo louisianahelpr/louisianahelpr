@@ -6,11 +6,11 @@
  * no payout gate (src/test/payoutSetupOnlyWhenOwed.test.ts pins that). So the
  * COPY changes: 18 or older only, payouts at the first sale.
  *
- * Shops audit 11-08 #9: it also says, before the form, that the ID check comes once before the first item goes live
- * (only while the ID check is on) and that the one-time setup fee comes out of the first payout.
+ * Shops audit 11-08 #9: it also says, before the form, that the one-time setup fee comes out of the first payout.
+ * No ID check for Shops (owner 2026-11-20), so the intro never mentions one.
  *
  * @mutate src/components/shops/ShopOpenIntro.tsx |       {" "}Payouts come later, when you make your first sale |       {" "}You need payouts set up first
- * @mutate src/components/shops/ShopOpenIntro.tsx |       {idCheck.on ? " Before your first item goes live you verify your ID once (about 2 minutes)." : ""} |
+ * @mutate src/components/shops/ShopOpenIntro.tsx |       {" "}Payouts come later | {" "}Before your first item goes live you verify your ID once (about 2 minutes).{" "}Payouts come later
  * @mutate src/components/shops/ShopOpenIntro.tsx |         ? `, and a one-time ${feeCents ? `${dollars(feeCents)} ` : ""}account setup fee comes out of your first payout.` |         ? "."
  */
 import { describe, expect, it, vi } from "vitest";
@@ -59,8 +59,8 @@ describe("/shops/mine intro: who may open a shop", () => {
     const text = intro.textContent ?? "";
     expect(text).toMatch(/18 or older/);
     expect(text).toMatch(/Payouts come later, when you make your first sale/);
-    // Shops audit 11-08 #9: the ID check and the setup fee are said before the form.
-    expect(text).toMatch(/Before your first item goes live you verify your ID once/);
+    // Shops audit 11-08 #9: the setup fee is said before the form; no ID check for Shops (owner 2026-11-20).
+    expect(text).not.toMatch(/verify your ID|ID check/i);
     expect(text).toMatch(/a one-time \$2 account setup fee comes out of your first payout\./);
     // Never a precondition on payouts before opening.
     expect(text).not.toMatch(/have payouts set up|payouts? (?:must|need)|set up payouts (?:first|before)/i);

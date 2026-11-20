@@ -57,8 +57,6 @@ const REQUIRED_MOMENTS: Readonly<Record<string, string>> = {
   "src/components/JobConfirmation.tsx": "Helpr: right after the hired Helpr's day-of confirm (never the poster)",
   // Delivery Helpr, when taking a delivery.
   "src/lib/helprTasks/api.ts": "delivery Helpr: taking a delivery (identity_required_to_deliver)",
-  // Shops: the server's own gate at the first live item / first order (20261105174853); opened only on its refusal.
-  "src/lib/shops/errors.ts": "Shops: opened only on the server's refusal at the first live item / first order",
   // Declutter as it stands on main; PR #4820 removes all Declutter ID. When it lands these four go RED here as
   // stale: delete them then.
   "src/lib/declutter/api.ts": "Declutter (until #4820): opened on the server's buy/list/claim refusal",

@@ -4,8 +4,8 @@
  * setup_fee_other_payout_first and, when another unsent payout could take the fee, names it as still to come
  * (20261112093000; behaviour proof src/test/pglite/shopsSetupFeeNoticeExact.pglite.mjs).
  *
- * @mutate supabase/migrations/20261112093000_shops_setup_fee_notice_exact.sql |     IF v_setup_fee > 0 AND public.setup_fee_other_payout_first(o.seller_id, v_payout, v_setup_fee) THEN |     IF false THEN
- * @mutate supabase/migrations/20261112093000_shops_setup_fee_notice_exact.sql |         END) \|\| public.setup_fee_later_words(v_fee_later) |         END)
+ * @mutate supabase/migrations/20261120203904_shops_no_id_check.sql |     IF v_setup_fee > 0 AND public.setup_fee_other_payout_first(o.seller_id, v_payout, v_setup_fee) THEN |     IF false THEN
+ * @mutate supabase/migrations/20261120203904_shops_no_id_check.sql |         END) \|\| public.setup_fee_later_words(v_fee_later) |         END)
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -29,7 +29,7 @@ describe("the shop's payout notice names the setup fee exactly", () => {
   });
   it("says the fee comes out of the first payout sent, in every amount branch", () => {
     const body = newestBody("shop_complete_handover");
-    expect((body.match(/\|\| public\.setup_fee_later_words\(v_fee_later\)/g) ?? []).length).toBe(3);
+    expect((body.match(/\|\| public\.setup_fee_later_words\(v_fee_later\)/g) ?? []).length).toBe(2); // no-account and on-its-way (the ID-wait branch went with 20261120203904)
     expect(newestBody("setup_fee_later_words")).toContain("setup fee comes out of the first payout we send. We tell you when it does.");
   });
 });

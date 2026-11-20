@@ -68,7 +68,13 @@ async function loadFresh() {
       return { default: () => null };
     });
   }
-  return await import("./routePrefetch");
+  const mod = await import("./routePrefetch");
+  // Warm the prefetch table in this fresh registry before the case runs: prefetchRoute imports it in the background,
+  // and on a cold CI runner its first transform outran settle()'s 30 ms, so the first case ("a job page warms the job
+  // page chunk") saw nothing loaded (#4788 Vitest shard 1/6, 2026-11-20; 13/13 on re-runs). The cases still assert
+  // which page chunk prefetchRoute warms; only the table's own load is no longer raced.
+  await import("@/lib/routePrefetchTable");
+  return mod;
 }
 
 /** Prefetch is fire-and-forget; let the table's dynamic import, then the page's, settle. */

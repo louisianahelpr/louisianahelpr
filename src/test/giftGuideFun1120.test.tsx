@@ -17,7 +17,7 @@
  * @mutate src/content/giftGuideFun1120.ts |   if (md > "12-25") return { kind: "after" }; |   if (md > "12-26") return { kind: "after" };
  * @mutate src/content/giftGuideFun1120.ts |   return flagOn && md >= "12-01" && md <= "12-25"; |   return md >= "12-01" && md <= "12-25";
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |     if (keep && addToWishList( |     if (false && addToWishList(
- * @mutate src/content/giftGuideFun1120.ts | export const cleanName = (n: string) => n.replace(INVISIBLE, "").trim(); | export const cleanName = (n: string) => n.trim();
+ * @mutate src/content/giftGuideFun1120.ts | export const cleanName = (n: string) => cleanGiftName(n, SANTA_NAME_MAX).trim(); | export const cleanName = (n: string) => n.trim();
  * @mutate src/content/giftGuideFun1120.ts |   LINKISH.test(n) ? "link" : | false ? "link" :
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |   if (viewer === undefined \|\| !copyBelongsTo(c.ownerId, viewer)) return EMPTY_PLAN; |   if (viewer === undefined) return EMPTY_PLAN;
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |         const local = copyBelongsTo(c.ownerId, userId) ? c.plan : EMPTY_PLAN; |         const local = c.plan;
@@ -324,7 +324,18 @@ describe("security review of #4791", () => {
     expect(nameProblem("me@mail.com")).toBe("link");
     expect(nameProblem("www.example")).toBe("link");
     expect(nameProblem("Call 337-555-0100")).toBe("phone");
-    expect(nameProblem("x".repeat(31))).toBe("long");
+    expect(cleanName("x".repeat(40))).toHaveLength(30);
+    expect(cleanName(`Ann\u0007\u061C\u180E`)).toBe("Ann");
+  });
+
+  it("the server strips the same characters as the shared client cleaner (src/lib/giftNameClean.ts)", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261120062334_gift_guide_secret_santa_planner.sql"), "utf8");
+    const client = readFileSync(join(process.cwd(), "src/lib/giftNameClean.ts"), "utf8");
+    const set = (src: string, re: RegExp) => (re.exec(src)?.[1] ?? "").toLowerCase().replace(/\\u0000-/, "\\u0001-");
+    const clientSet = set(client, /name\.replace\(\/\[([^\]]+)\]\/g/);
+    const serverSet = set(sql, /regexp_replace\(COALESCE\(p_names\[i\], ''\), '\[([^\]]+)\]'/);
+    expect(clientSet.length).toBeGreaterThan(20);
+    expect(serverSet).toBe(clientSet);
   });
 
   it("the planner: another account's device copy is never shown, never uploaded, and sign-out clears it", async () => {

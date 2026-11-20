@@ -8,6 +8,7 @@
  */
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { FINDER_WHO } from "@/content/giftGuideExtras1120";
+import { cleanGiftName } from "@/lib/giftNameClean";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Shared: today in Louisiana
@@ -92,15 +93,14 @@ export function drawIsValid(givesTo: number[], avoid: [number, number][] = []): 
 }
 
 /** The names as the organizer typed them, cleaned: trimmed, blanks dropped. */
-/**
- * Invisible and direction-changing characters (zero-width, bidi overrides and isolates, soft hyphen, BOM): stripped
- * from every name, so nobody can hide or flip text on a reveal page (security review of #4791, item 4).
- */
-const INVISIBLE = /[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g;
 /** A name that reads like a link or an email. */
 const LINKISH = /(:\/\/|www\.|@|[a-z0-9-]+\.(com|net|org|ly|io|co|us|info|biz|me|app|link|xyz|gg|tv|site|online|shop)(\b|\/))/i;
-/** One typed name, cleaned: invisible characters stripped, ends trimmed. */
-export const cleanName = (n: string) => n.replace(INVISIBLE, "").trim();
+/**
+ * One typed name, cleaned with the gift guides' shared cleaner (src/lib/giftNameClean.ts: control, zero-width and
+ * direction-changing characters dropped, at most SANTA_NAME_MAX characters by code point; security review of #4791,
+ * item 4), ends trimmed. secret_santa_create strips the same set on the server.
+ */
+export const cleanName = (n: string) => cleanGiftName(n, SANTA_NAME_MAX).trim();
 /** Why a cleaned name is refused (the server refuses the same), or null. */
 export const nameProblem = (n: string): "link" | "phone" | "long" | null =>
   LINKISH.test(n) ? "link" : n.replace(/[^0-9]/g, "").length >= 7 ? "phone" : n.length > SANTA_NAME_MAX ? "long" : null;

@@ -18,7 +18,8 @@
 --    pruned after a day. There is no low global refusal (a few abusers could switch it off for every family): past
 --    1000 groups in an hour one error_logs warning is written per hour, and only past 20000 in an hour (a storage
 --    brake, far above any real season) is a new group refused.
---    Names (item 4): invisible and direction-changing characters are stripped; a name that looks like a link, an
+--    Names (item 4): control, invisible and direction-changing characters are stripped (the same set as the
+--    client's src/lib/giftNameClean.ts); a name that looks like a link, an
 --    email or a phone number (7+ digits) is refused; at most 30 characters. Budget at most $500.
 --    Groups delete themselves (item 7) at the later of Jan 15 and the exchange day + 30 days, never more than 90 days
 --    after the group was made (expires_at, the secret-santa-expire job hourly). A group made by a signed-in test or
@@ -53,7 +54,7 @@ CREATE TABLE IF NOT EXISTS public.secret_santa_people (
   group_code text NOT NULL REFERENCES public.secret_santa_groups(code) ON DELETE CASCADE,
   slot smallint NOT NULL CHECK (slot BETWEEN 0 AND 29),
   name text NOT NULL CHECK (length(btrim(name)) BETWEEN 1 AND 30 AND name !~ '[[:cntrl:]]'
-    AND name !~ '[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]'
+    AND name !~ '[\u0001-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]'
     AND name !~* '(://|www\.|@|[a-z0-9-]+\.(com|net|org|ly|io|co|us|info|biz|me|app|link|xyz|gg|tv|site|online|shop)(\M|/))'
     AND length(regexp_replace(name, '[^0-9]', '', 'g')) < 7),
   token_hash text NOT NULL UNIQUE CHECK (token_hash ~ '^[0-9a-f]{64}$'),
@@ -156,7 +157,7 @@ BEGIN
     RAISE EXCEPTION 'bad_group_size' USING ERRCODE = '22023';
   END IF;
   FOR i IN 1..v_n LOOP
-    v_name := btrim(regexp_replace(COALESCE(p_names[i], ''), '[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]', '', 'g'));
+    v_name := btrim(regexp_replace(COALESCE(p_names[i], ''), '[\u0001-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]', '', 'g'));
     IF length(v_name) < 1 OR length(v_name) > 30 OR v_name ~ '[[:cntrl:]]'
        OR v_name ~* '(://|www\.|@|[a-z0-9-]+\.(com|net|org|ly|io|co|us|info|biz|me|app|link|xyz|gg|tv|site|online|shop)(\M|/))'
        OR length(regexp_replace(v_name, '[^0-9]', '', 'g')) >= 7 THEN

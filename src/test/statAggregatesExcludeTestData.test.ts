@@ -47,6 +47,9 @@ const REVIEW = "REVIEW: a displayed number that still counts test data (b62 phas
 
 // @two-way src/test/statAggregatesExcludeTestData.test.ts:Object.keys(ALLOWED).filter((n) => !inventory.has(n)
 const ALLOWED: Record<string, string> = {
+  // Declutter top 5 #2 (20261120012050): the Selling home counts ONLY the caller's own sales, views and saves on their own
+  // listings (seller_id = auth.uid()); a test seller sees their own test numbers, never anyone else's, and no one else sees them.
+  declutter_selling_home: "counts only the caller's own selling (seller_id = auth.uid()): a seller's own week, never a cross-member stat",
   shop_cottage_would_reach: "Shops S033 follow-up (20261112*): sums ONE shop's own home-food sales toward its legal yearly limit (La. R.S. 40:4.9); a test shop's orders are its own, never another member's, and nothing is shown to anyone else",
   // 25 Days sponsor admin (20261109162829): counts the visits to each invite link for the owner's admin page. Visits carry
   // no account, and sponsor_log_visit never records a signed-in test account's visit (is_test_member), so no test row is in it.

@@ -9,6 +9,8 @@
  * @mutate src/lib/declutter/demand.ts |   return d.offers_week >= DEMAND_MIN.offersWeek; |   return d.offers_week >= 1;
  */
 import { describe, expect, it, vi } from "vitest";
+// DemandLine relies on the item page to register its words (i18nDictionariesRideWithTheirScreens); a standalone render does it here.
+import "@/lib/i18n/enItemPage";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { newestFunction } from "@/test/helpers/parityReaders";

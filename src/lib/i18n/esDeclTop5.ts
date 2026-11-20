@@ -30,7 +30,7 @@ export const esDeclTop5: Record<keyof typeof enDeclTop5, string> = {
   "dt5.home.savers1": "1 anuncio guardado: envíe una oferta a quienes lo guardaron",
   "dt5.home.saversN": "{n} anuncios guardados: envíe una oferta a quienes los guardaron",
   "dt5.home.allDone": "Nada lo está esperando.",
-  "dt5.home.sales": "Ventas",
+  "dt5.home.sales": "Vendidos",
   "dt5.home.earnings": "Ganado",
   "dt5.home.views": "Vistas",
   "dt5.home.saves": "Guardados",

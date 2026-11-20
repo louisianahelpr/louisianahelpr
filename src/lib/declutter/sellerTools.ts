@@ -40,7 +40,7 @@ interface SaverOfferSent {
 }
 
 export async function sendSaverOffer(itemId: string, percent: number): Promise<SaverOfferSent> {
-  // The generated Args type has no null (Postgres arguments are all nullable): a percent, never a price, from here.
+  // nullable-arg: p_amount_cents is NULL because this sends a percent, never a price (the server takes exactly one).
   const res = await supabase.rpc("declutter_send_saver_offer", { p_item_id: itemId, p_percent_off: percent, p_amount_cents: null as unknown as number });
   if (res.error) {
     // The server's own words name the lowest price (below_your_lowest); every other refusal has its table line.

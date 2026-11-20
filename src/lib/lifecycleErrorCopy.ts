@@ -1974,6 +1974,7 @@ export const RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   declutter_end_shop_sale: {
+    account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
     sale_not_found: DC.sale_not_found,
@@ -1997,6 +1998,7 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
   },
   declutter_come_back: {
+    account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
     not_away: DC.not_away,

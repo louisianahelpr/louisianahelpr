@@ -8,7 +8,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Tag, TrendingUp } from "lucide-react";
 import { demandLines, fetchItemDemand } from "@/lib/declutter/demand";
-import "@/lib/i18n/enItemPage";
 import { getLang, t } from "@/lib/i18n/language";
 
 function saleDay(iso: string): string {

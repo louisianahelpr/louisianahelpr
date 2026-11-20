@@ -304,7 +304,11 @@ DECLARE
   v_sale public.declutter_shop_sales%ROWTYPE;
 BEGIN
   PERFORM public.require_feature('declutter');
-  -- Not the selling gate on purpose (as pause and withdraw): anyone may end their own sale and get their prices back.
+  -- The ban gate, as Pause and Take down have it (banGateCoverage); a banned seller's listings are hidden anyway and
+  -- the sale ends by itself. Not the selling gate on purpose: anyone else may end their own sale.
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;

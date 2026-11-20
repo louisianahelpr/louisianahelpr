@@ -13,6 +13,8 @@
  * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |  FOR EACH ROW WHEN (NEW.status IN ('live', 'paused') AND OLD.status IS DISTINCT FROM NEW.status) |  FOR EACH ROW WHEN (false)
  */
 import { describe, expect, it, vi } from "vitest";
+// DemandLine relies on the item page to register its words (i18nDictionariesRideWithTheirScreens); a standalone render does it here.
+import "@/lib/i18n/enItemPage";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { newestFunction } from "@/test/helpers/parityReaders";

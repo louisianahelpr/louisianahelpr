@@ -34,7 +34,9 @@
     "find_helprs(text, text, integer)": "reviewed 2026-11-09 (Q14): F071 owner decision, guests may view Find a Helpr (20261109212142_find_helprs_guests_may_view). Names masked to 'First L.', town/parish/skills/photo/ID flag only; no rate, phone, email or address; test, banned, deleted, unconfirmed and under-18 accounts never returned to a guest. Proof src/test/pglite/findHelprsDirectory.pglite.mjs.",
     "giveaway_entry_url()": "reviewed 2026-11-19 (Q14): 25 Days giveaway entry link (20261119200128). The public /25days page is signed out by design; returns only sponsor_settings.entry_url (an https URL the owner sets, CHECK-constrained), and NULL unless sponsor_25days_on_for(auth.uid()). No member data.",
     "sponsor_public_state(text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). The public sponsor page is signed out by design; answers on=false unless sponsor_25days_on_for(auth.uid()). Returns per-day COUNTS (never names), the greeting brand NAME for a matching invite code (never its email), the sponsor wall (only confirmed + OK to show + shown), approved testimonials and reach stats.",
-    "sponsor_log_visit(text, text, text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). Insert-only visit row (ref code, referrer origin, coarse device), refused while sponsor_25days is off for auth.uid(), rate limited per hashed address; returns nothing."
+    "sponsor_log_visit(text, text, text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). Insert-only visit row (ref code, referrer origin, coarse device), refused while sponsor_25days is off for auth.uid(), rate limited per hashed address; returns nothing.",
+    "declutter_item_demand(uuid[])": "client",
+    "declutter_seller_away_until(uuid)": "client"
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -739,7 +741,16 @@
     "shops_admin_review_permit(uuid, boolean, text)": "client",
     "shops_my_permits()": "client",
     "shops_submit_permit(text, text, date)": "client",
-    "shops_my_pickup_address_problem()": "client"
+    "shops_my_pickup_address_problem()": "client",
+    "declutter_send_saver_offer(uuid, integer, integer)": "reviewed 2026-11-19 (Declutter top 5, fresh pricing+authz review: AUTHZ/RLS clean): require_feature + ban + declutter_assert_member; the seller's own live listing only (seller_id = the caller, row locked); offers go to savers with no block, never test data to a real member; once per item per 24 h; moves no money.",
+    "declutter_selling_home()": "reviewed 2026-11-19 (Declutter top 5, fresh pricing+authz review: AUTHZ/RLS clean): reads only the caller's own selling (seller_id = auth.uid()); counts, never names.",
+    "declutter_item_demand(uuid[])": "client",
+    "declutter_start_shop_sale(integer, timestamp with time zone, timestamp with time zone)": "reviewed 2026-11-19 (Declutter top 5, fresh pricing+authz review: AUTHZ/RLS clean): require_feature + ban + declutter_assert_member; changes only the caller's own live listings' prices, never below each one's lowest price or above its listed price; one open sale per seller under an advisory lock.",
+    "declutter_end_shop_sale()": "reviewed 2026-11-19 (Declutter top 5, fresh pricing+authz review: AUTHZ/RLS clean): the caller's own open sale only; puts the caller's own prices back (never above the listed price).",
+    "declutter_bulk_discount(uuid[], integer)": "reviewed 2026-11-19 (Declutter top 5, fresh pricing+authz review: AUTHZ/RLS clean): require_feature + ban + declutter_assert_member; only the caller's own live/paused listings, never below each one's lowest price; refused during a running sale.",
+    "declutter_go_away(date)": "reviewed 2026-11-19 (Declutter top 5, fresh pricing+authz review: AUTHZ/RLS clean): require_feature + ban; pauses only the caller's own live listings through declutter_pause_listing (its own owner check and notices).",
+    "declutter_come_back()": "reviewed 2026-11-19 (Declutter top 5, fresh pricing+authz review: AUTHZ/RLS clean): the caller's own away row only; puts back only the listings that away paused, with Relist's own pickup-time rule.",
+    "declutter_seller_away_until(uuid)": "client"
   },
   "unscoped": {
     "declutter_popular_items(integer)": "reviewed 2026-11-10 (Q14): lh-authz-rls PASS-with-notes, migration 20261110054539, the landing's Declutter preview; deliberately reads no caller and answers the same for anon and members. Returns up to 24 guest-visible listings (live, declutter_open_to_guests(), seller not hidden, not is_seed, priced, with a photo): only the card columns of the anon column grant and the cover photo path, never a count, seller, saver or viewer id. SECURITY DEFINER only to rank by saves, offers, 30-day views (guest devices capped at 10) and category sales. Proof: src/test/pglite/declutterPopularItems.pglite.mjs, 18/18 applied 3x.",

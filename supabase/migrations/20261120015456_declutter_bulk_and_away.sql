@@ -281,6 +281,10 @@ DECLARE
   v_uid uuid := (SELECT auth.uid());
 BEGIN
   PERFORM public.require_feature('declutter');
+  -- The ban gate (banGateCoverage); a banned seller's away row ends by itself on its date.
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;

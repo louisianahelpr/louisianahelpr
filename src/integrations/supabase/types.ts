@@ -3182,6 +3182,7 @@ export type Database = {
           restored_at: string | null
           sale_cents: number
           sale_id: string
+          seller_changed_at: string | null
         }
         Insert: {
           before_cents: number
@@ -3190,6 +3191,7 @@ export type Database = {
           restored_at?: string | null
           sale_cents: number
           sale_id: string
+          seller_changed_at?: string | null
         }
         Update: {
           before_cents?: number
@@ -3198,6 +3200,7 @@ export type Database = {
           restored_at?: string | null
           sale_cents?: number
           sale_id?: string
+          seller_changed_at?: string | null
         }
         Relationships: [
           {
@@ -17001,6 +17004,8 @@ export type Database = {
       }
     }
     Functions: {
+      declutter_away_return: { Args: { p_seller: string }; Returns: number }
+      declutter_away_sweep: { Args: never; Returns: Json }
       declutter_bulk_discount: {
         Args: { p_item_ids: string[]; p_percent_off: number }
         Returns: number
@@ -17040,6 +17045,9 @@ export type Database = {
         Args: { p_amount_cents: number; p_item_id: string; p_percent_off: number }
         Returns: Json
       }
+      declutter_shop_sale_apply: { Args: { p_sale_id: string }; Returns: number }
+      declutter_shop_sale_restore: { Args: { p_sale_id: string }; Returns: number }
+      declutter_shop_sale_sweep: { Args: never; Returns: Json }
       declutter_start_shop_sale: {
         Args: { p_ends_at: string; p_percent_off: number; p_starts_at: string }
         Returns: string

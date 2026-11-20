@@ -7,6 +7,7 @@
 
 import { SITE_ORIGIN, NOINDEX_ROBOTS, publicPageMetaFor } from "./publicPageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
+import { DEALS_SLUG, dealsTitle, louisianaDay } from "../content/giftGuideDeals.mjs";
 
 /** "A, B and C" */
 function joinNames(names) {
@@ -37,6 +38,7 @@ export function giftGuideDescription(name, topNames, count) {
  * holds) give it its own description; without them, the template.
  */
 export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count = 0) {
+  if (slug === DEALS_SLUG) return dealsPageMeta(new Date());
   const named = Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, slug) ? GIFT_GUIDE_SEO[slug] : null;
   const name = named ?? `${fallbackTitle} gift guide`;
   const description =
@@ -51,11 +53,22 @@ export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count
   };
 }
 
+/**
+ * The Black Friday & Cyber Monday deals guide's head (owner 2026-11-19): indexed, named for the day (dealsTitle:
+ * "Holiday Deals" after Dec 1). It is no catalog guide, so it is not in GIFT_GUIDE_SEO.
+ */
+export function dealsPageMeta(now) {
+  const name = dealsTitle(louisianaDay(now));
+  const description = `${name} 2026: hand-checked sales and codes from brands like Charlotte Tilbury, Stanley, lululemon and Yoto, picked by Louisiana Helpr.`;
+  return { title: `${name} — Helpr`, description, canonical: `${SITE_ORIGIN}/gift-guides/${DEALS_SLUG}`, ogTitle: name, ogDescription: description };
+}
+
 /** publicPageMetaFor plus the indexed gift guides (api/share.ts's pre-JS head and route table). */
 export function publicOrGiftGuidePageMetaFor(pathname, tabParam) {
   const path = pathname.replace(/\/+$/, "") || "/";
   const gift = path.match(/^\/gift-guides\/([a-z0-9-]+)$/)?.[1];
   if (gift && Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, gift)) return giftGuidePageMeta(gift);
+  if (gift === DEALS_SLUG) return dealsPageMeta(new Date());
   // Any other /gift-guides/<slug> (a store page the link audits emptied, a hub, a mistyped slug) is noindex before JS
   // (gg-r3 UX audit #12: the emptied store pages answered "index, follow" with the generic card).
   if (gift) {

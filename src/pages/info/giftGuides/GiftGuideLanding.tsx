@@ -10,6 +10,7 @@ import { sponsorPage } from "@/content/sponsorPage";
 import { LAST_MINUTE, lastMinuteOn, shippingLine } from "@/content/giftGuideShipping";
 import { Button } from "@/components/ui/button";
 import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
+import { DealsFeature } from "./GiftGuideDeals";
 
 /**
  * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
@@ -171,6 +172,8 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   return (
     <>
       {group && <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>}
+      {/* Owner brief 2026-11-19: the deals guide sits at the very top, Nov 23 through Dec 1 (Louisiana). */}
+      {!group && <DealsFeature />}
       {!group && <QuickPicks />}
       {!group && <LastMinute />}
       <div className="gg-rows" data-gift-rows="">

@@ -96,6 +96,17 @@ export function giftGuideBody(slug, guide) {
   );
 }
 
+/**
+ * /gift-guides/black-friday-cyber-monday (owner 2026-11-19): the deals guide is no catalog guide (its deals load in the
+ * page), so its body is the breadcrumb, its H1 (the day's name), its intro and the disclosure.
+ */
+export function dealsGuideBody(slug, name, intro, disclosure) {
+  return page(
+    [HOME, GUIDES, { name, path: `/gift-guides/${slug}` }],
+    `<h1>${escapeHtml(name)}</h1><p>${escapeHtml(intro)}</p><p>${escapeHtml(disclosure)}</p><p><a href="/gift-guides">All holiday gift guides</a></p>`,
+  );
+}
+
 /** ItemList JSON-LD for a guide: each pick's name and shop URL (no Product offers: prices change daily). */
 export function giftGuideItemListLd(slug, guide) {
   const picks = (Array.isArray(guide.picks) ? guide.picks : []).filter((p) => safeHref(p[2]));

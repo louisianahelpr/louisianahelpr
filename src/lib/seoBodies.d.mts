@@ -23,6 +23,7 @@ export function escapeHtml(value: unknown): string;
 export function jsonLdScript(data: unknown): string;
 export function breadcrumbLd(crumbs: { name: string; path: string }[]): Record<string, unknown>;
 export function giftGuideBody(slug: string, guide: SeoGuide): string;
+export function dealsGuideBody(slug: string, name: string, intro: string, disclosure: string): string;
 export function giftGuideItemListLd(slug: string, guide: SeoGuide): Record<string, unknown>;
 export function giftGuidesLandingBody(groups: SeoData["groups"]): string;
 export function giftGuidesLandingLd(groups: SeoData["groups"]): Record<string, unknown>;

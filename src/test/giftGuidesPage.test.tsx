@@ -24,7 +24,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |           <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
+ * @mutate src/pages/info/GiftGuides.tsx | {deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details key={row} open={row === active?.row} | <details key={row} open
@@ -39,7 +39,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const { slug } = useParams<{ slug?: string }>(); |   const slug = undefined as string \| undefined; useParams();
  * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && fromHash) return | if (!slug && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
- * @mutate src/pages/info/GiftGuides.tsx | backTo={guide \|\| myList \|\| group ? "/gift-guides" : "/"} | backTo={guide \|\| myList \|\| group ? "/gift-guides/" : "/"}
+ * @mutate src/pages/info/GiftGuides.tsx | backTo={guide \|\| deals \|\| myList \|\| group ? "/gift-guides" : "/"} | backTo={guide \|\| deals \|\| myList \|\| group ? "/gift-guides/" : "/"}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading="lazy" decoding="async" | className="gg-thumb" decoding="async"
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
@@ -906,7 +906,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     for (const g of GUIDES.filter((x) => RESEARCHED_PICKS[x.slug] && !x.empty && !x.thin)) expect(guides, g.slug).toContain(g.slug);
     expect(PUBLIC_PAGE_META["/gift-guides"].canonical).toBe("https://www.louisianahelpr.com/gift-guides");
     expect(Object.keys(NOINDEX_PAGE_META)).not.toContain("/gift-guides");
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);');
+    // The deals guide (owner 2026-11-19) has its own head (src/test/giftGuideDeals1119.test.tsx).
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(deals ? giftGuidePageMeta(DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);');
     expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);");
     const mom = giftGuidePageMeta("mom");
     expect(mom.title).toBe("Gifts for Mom — Helpr");

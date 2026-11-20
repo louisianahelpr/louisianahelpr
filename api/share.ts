@@ -72,6 +72,7 @@ import { SEO_DATA } from "../scripts/generated/seo-data.js";
 import { findTownPage } from "../src/lib/townPages.mjs";
 import {
   breadcrumbLd,
+  dealsGuideBody,
   giftGuideBody,
   giftGuideItemListLd,
   giftGuidesLandingBody,
@@ -91,6 +92,7 @@ import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths 
 import { shareCardPriceLabel } from "../src/lib/declutter/shareCardPrice.mjs";
 import { jobShareDescription } from "../src/lib/jobShareLine.mjs";
 import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "../src/lib/giftGuideShareImages.mjs";
+import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "../src/content/giftGuideDeals.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -1132,9 +1134,14 @@ function seoFor(url: URL): SeoOutcome {
     return { kind: "page", body: giftGuidesLandingBody(d.groups), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB]), giftGuidesLandingLd(d.groups)] };
   }
   if (id.startsWith("gift-guides/")) {
+    const slug = giftGuideSlug(id);
+    // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is no catalog guide: its own body, never a 404.
+    if (slug === DEALS_SLUG) {
+      const name = dealsTitle(louisianaDay(new Date()));
+      return { kind: "page", body: dealsGuideBody(DEALS_SLUG, name, DEALS_WORDS.intro, DEALS_WORDS.disclosure), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${DEALS_SLUG}` }])] };
+    }
     const d = seoData();
     if (!d) return null;
-    const slug = giftGuideSlug(id);
     if (slug && hasOwn(d.guides, slug)) {
       const g = d.guides[slug];
       const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: g.name, path: `/gift-guides/${slug}` }]);
@@ -1224,6 +1231,8 @@ function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
   if (id === "gift-guides") return { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: name };
   const slug = /^gift-guides\/([a-z0-9-]+)$/.exec(id)?.[1];
   if (!slug) return undefined;
+  // The deals guide's own card (owner 2026-11-19), drawn by scripts/gift-guide-deals-cover.py.
+  if (slug === DEALS_SLUG) return { url: `${SITE_ORIGIN}/gift-guides/deals/${DEALS_SLUG}.jpg`, type: "image/jpeg", width: 600, height: 600, alt: name };
   // The share JPG first (600x600 JPEG, the format every link-preview crawler takes), then the WebP cover.
   if (OG_JPG_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/og/${slug}.jpg`, type: "image/jpeg", width: 600, height: 600, alt: name };
   if (COVER_WEBP_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/covers/${slug}.webp`, type: "image/webp", width: 480, height: 480, alt: name };

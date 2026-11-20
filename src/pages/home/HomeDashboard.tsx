@@ -24,6 +24,7 @@ import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { type ComingUpItem } from "./homeDashboard/comingUp";
 import { useHomeMoney } from "./homeDashboard/homeMoney";
 import { HomeMoneyTiles } from "./homeDashboard/HomeMoneyTiles";
+import { ComingUpCta } from "./homeDashboard/ComingUpCta";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { readReservedHeight, useReservedHeight } from "./homeDashboard/reservedHeight";
@@ -101,8 +102,8 @@ export default function HomeDashboard() {
 
 /** The card's name (F083, owner UI audit 11-09: "Pick one label ('Needs you') and use it everywhere"). */
 const NEEDS_YOU_KEY = "home.needsYou" as const;
-/** Next up shows at most this many dots: five 44px targets fit the 320 card; See all lists the rest. */
-const NEXT_UP_MAX_DOTS = 5;
+/** Needs you lists at most this many to-dos (owner polish 11-20: a short list); See all lists the rest. */
+const NEXT_UP_LIST_MAX = 3;
 
 function HomeDashboardScreen() {
   const { t, lang } = useLanguage();
@@ -175,10 +176,11 @@ function HomeDashboardScreen() {
   const today = greetingDate(new Date(), lang);
   const todoCount = summary.todos.length;
 
-  // Next up is a carousel over the to-dos (mock-up 7: "Next up · 1 of 5"); it opens on the most urgent.
-  const [shown, setShown] = useState(0);
-  const at = Math.min(shown, Math.max(0, todoCount - 1));
-  const next = summary.todos[at];
+  // Owner polish 11-20: Needs you is a SHORT LIST of the to-dos (most urgent first), no longer a carousel with dots
+  // ("Needs you · 1 of 3"). One to-do keeps the big single card; more list up to NEXT_UP_LIST_MAX rows, each with its
+  // own action, and See all opens the rest below. Guards: src/test/homeBoard7.test.ts, src/test/dashboardsShell.test.tsx.
+  const next = summary.todos[0];
+  const listed = todoCount > 1 ? summary.todos.slice(0, NEXT_UP_LIST_MAX) : [];
   // Design audit A D3 (owner approved 11-08): a new member with nothing to do sees ONE welcome card (WelcomeCard) in
   // place of "You're all caught up" and an empty "Coming up". Same "new" rule as the first-job checklist below.
   const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting;
@@ -187,7 +189,7 @@ function HomeDashboardScreen() {
   const guide = (fresh: boolean) => (
     <GetStartedGuide userId={user?.id} fresh={fresh} declutterOpen={sellOpen} hasPhoto={!!profile?.avatar_url} alertsOff={firstJob ? firstJob.alertsOff : null} />
   );
-  const rest = Math.max(0, todoCount - 1);
+  const rest = Math.max(0, todoCount - Math.max(1, listed.length));
   // Owner 2026-11-17 (item 4): a quiet day (nothing needs you, nothing booked) shows "Near you" under Coming up, its
   // chunk and reads asked only once the page has settled (usePageSettled), so Home's first paint is unchanged.
   const pageSettled = usePageSettled();
@@ -261,14 +263,14 @@ function HomeDashboardScreen() {
             <section ref={nextUpRef} data-testid="next-up" aria-label={t(NEEDS_YOU_KEY)} className="liquid-glass p-card flex flex-col gap-1.5" style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}>
               <div className="flex items-center justify-between gap-3">
                 <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? t("home.needsYouOf", { at: at + 1, n: todoCount }) : t(NEEDS_YOU_KEY)}
+                  {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? t("home.needsYouN", { n: todoCount }) : t(NEEDS_YOU_KEY)}
                 </h2>
                 {!next && summary.waiting && (
                   <Button type="button" variant="ghost" size="sm" data-testid="next-up-see-job" onClick={() => navigate(`/jobs/${summary.waiting!.jobId}`)} className="px-1 -my-2 -mr-1 text-ds-13 tracking-normal text-primary">
                     {t("home.seeJob")}
                   </Button>
                 )}
-                {next && (() => {
+                {next && listed.length === 0 && (() => {
                   // Board 7: the to-do's section, by icon and name, top right.
                   const d = sectionDef(next.section);
                   const Icon = d.icon;
@@ -280,7 +282,50 @@ function HomeDashboardScreen() {
                   );
                 })()}
               </div>
-              {next ? (
+              {next && listed.length > 0 ? (
+                <>
+                  <ul data-next-up-list="" aria-label={t("home.yourTodos")} className="flex flex-col divide-y divide-border/70">
+                    {listed.map((td, i) => {
+                      const d = sectionDef(td.section);
+                      const Icon = d.icon;
+                      return (
+                        <li key={td.id} data-next-up-row={i} className="flex items-center gap-3 py-2.5 first:pt-1 last:pb-0">
+                          <span aria-hidden title={sectionLabel(d)} className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-muted">
+                            <Icon className="w-4 h-4 text-primary" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p data-testid={i === 0 ? "next-up-title" : undefined} className="text-ds-15 font-semibold leading-snug text-foreground line-clamp-2 [overflow-wrap:anywhere]">{td.title}</p>
+                            <p className="text-ds-13 text-muted-foreground truncate">
+                              {td.money && <span className="font-bold" style={{ color: "hsl(var(--accent-ink))" }}>{t("home.orderTotal", { amount: td.money })}</span>}
+                              {td.money && " · "}
+                              {td.meta}
+                            </p>
+                          </div>
+                          {/* Home keeps ONE primary action: the most urgent row's; the others are outline. */}
+                          <Button type="button" size="sm" variant={i === 0 ? "primary" : "outline"} data-testid={i === 0 ? "next-up-action" : undefined} data-next-up-row-action={i} onClick={() => navigate(todoTarget(td, requestHelperStep))} className="px-4 text-ds-14 font-semibold tracking-normal shadow-none shrink-0">
+                            {td.action}
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {rest > 0 && (
+                    // The shared link Button (owner 11-06 pop-up: switch; 2px narrower, desktop hover underline).
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      data-testid="next-up-see-all"
+                      aria-expanded={todoOpen}
+                      aria-controls={todoOpen ? "home-todo-list" : undefined}
+                      onClick={toggleTodo}
+                      className="self-start px-1 -ml-1 text-ds-13 font-bold text-primary whitespace-nowrap"
+                    >
+                      {todoOpen ? t("home.hide") : t("home.seeAll", { n: todoCount })}
+                    </Button>
+                  )}
+                </>
+              ) : next ? (
                 <>
                   <p data-testid="next-up-title" className="text-ds-18 font-bold leading-snug text-foreground [overflow-wrap:anywhere]">{next.title}</p>
                   <p className="text-ds-14 text-muted-foreground">
@@ -288,50 +333,9 @@ function HomeDashboardScreen() {
                     {next.money && " · "}
                     {next.meta}
                   </p>
-                  {/* Board 7: dots left, See all + the ONE action right. Every dot is a 44px target (index.css floor),
-                      so at 320/375 they cannot share a line with the rest: the See all + action group WRAPS as one
-                      piece below the dots (See all left, action right) instead of covering them (axe target-size,
-                      TRAIN23). At most 5 dots fit 320; See all lists every to-do. */}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                    {todoCount > 1 && (
-                      <div className="flex items-center -ml-2 lg:hidden" role="group" aria-label={t("home.yourTodos")}>
-                        {summary.todos.slice(0, NEXT_UP_MAX_DOTS).map((td, i) => (
-                          <button
-                            key={td.id}
-                            type="button"
-                            data-next-up-dot={i}
-                            aria-label={t("home.todoDot", { at: i + 1, n: todoCount })}
-                            aria-current={i === at ? "true" : undefined}
-                            onClick={() => setShown(i)}
-                            className="h-11 w-5 flex items-center justify-center"
-                          >
-                            <span aria-hidden className={`h-1.5 rounded-full transition-all ${i === at ? "w-4 bg-primary" : "w-1.5 bg-border"}`} />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {/* Desktop (board 11): no dots; the action first, then See all beside it. */}
-                    <div data-next-up-actions className="ml-auto grow flex items-center justify-between gap-3 lg:ml-0 lg:grow-0 lg:flex-row-reverse lg:justify-end">
-                      {rest > 0 ? (
-                        // The shared link Button (owner 11-06 pop-up: switch; 2px narrower, desktop hover underline).
-                        <Button
-                          type="button"
-                          variant="link"
-                          size="sm"
-                          data-testid="next-up-see-all"
-                          aria-expanded={todoOpen}
-                          aria-controls={todoOpen ? "home-todo-list" : undefined}
-                          onClick={toggleTodo}
-                          className="px-1 -ml-1 text-ds-13 font-bold text-primary whitespace-nowrap"
-                        >
-                          {todoOpen ? t("home.hide") : t("home.seeAll", { n: todoCount })}
-                        </Button>
-                      ) : <span />}
-                      <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(todoTarget(next, requestHelperStep))} className="px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
-                        {next.action}
-                      </Button>
-                    </div>
-                  </div>
+                  <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(todoTarget(next, requestHelperStep))} className="self-end mt-1 px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
+                    {next.action}
+                  </Button>
                 </>
               ) : summary.todosLoading || money.pending || (!!firstJob?.isNew && summary.declutterPending) ? (
                 /* Q2706 (B98): the to-dos are still loading. Never "all caught up" before the reads answer; hold the
@@ -375,7 +379,7 @@ function HomeDashboardScreen() {
                 {/* Design audit area 02 #8 (11-18): the list repeated the to-do the card above still shows; it lists the
                     others ("rest") and the card keeps its own. */}
                 <GroupSection title={t("home.todo")} count={rest}>
-                  {summary.todos.filter((_, i) => i !== at).map((td, i, arr) => (
+                  {summary.todos.slice(listed.length).map((td, i, arr) => (
                     <GroupRow key={td.id} title={td.title} meta={td.meta} onClick={() => navigate(todoTarget(td, requestHelperStep))} last={i === arr.length - 1} />
                   ))}
                 </GroupSection>
@@ -430,7 +434,11 @@ function HomeDashboardScreen() {
             ) : welcome && summary.upcoming.length === 0 ? null : (
             <GroupSection title={t("home.comingUp")}>
               {summary.upcoming.length === 0 ? (
-                <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">{summary.hasBookedJob ? t("home.nothingElse") : t("home.nothingYet")}</p>
+                // Owner polish 11-20: the empty agenda offers Post a job and Find work (ComingUpCta).
+                <div className="px-4 py-4 flex flex-col gap-3">
+                  <p data-testid="coming-up-empty" className="text-ds-14 text-muted-foreground">{summary.hasBookedJob ? t("home.nothingElse") : t("home.nothingYet")}</p>
+                  <ComingUpCta />
+                </div>
               ) : (
                 summary.upcoming.map((c, i) => {
                   const d = sectionDef(c.section);

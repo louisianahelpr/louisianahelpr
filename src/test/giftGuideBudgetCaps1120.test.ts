@@ -39,14 +39,15 @@ describe("budget sections hold no pick over their cap (gg-live-1120)", () => {
   });
 
   it("moves an over-cap pick to the cheapest section that fits, drops one nothing fits, and refills only in budget", () => {
+    const U25 = "under-25"; // a guide section id (not a saved_searches row)
     const row = (name: string, sectionId: string, price?: number) => ({ name, href: `https://x.test/${name}`, sectionId, section: sectionId.toUpperCase(), ...(price === undefined ? {} : { price }) });
     const pages: Record<string, Row[]> = {
       "gifts-by-budget": [row("a", "under-25", 20), row("loom", "under-25", 34.99), row("b", "stocking-stuffers", 30), row("set", "stocking-stuffers", 66.4), row("c", "under-50", 45), row("amazon", "under-25")],
       "store-x": [{ name: "cheap", href: "https://x.test/cheap", price: 9 }, { name: "dear", href: "https://x.test/dear", price: 31 }],
     };
     const t = applyBudgetCaps(pages, { adds: [
-      { guide: "gifts-by-budget", section: "under-25", href: "https://x.test/cheap" },
-      { guide: "gifts-by-budget", section: "under-25", href: "https://x.test/dear" },
+      { guide: "gifts-by-budget", section: U25, href: "https://x.test/cheap" },
+      { guide: "gifts-by-budget", section: U25, href: "https://x.test/dear" },
     ] });
     const g = pages["gifts-by-budget"];
     expect(g.find((p) => p.name === "loom")?.sectionId).toBe("under-50");

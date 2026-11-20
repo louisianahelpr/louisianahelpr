@@ -102,7 +102,7 @@ const BEAUTY_NAME = /\b(shampoo|conditioner|volumi[sz]ing|serum|moisturi[sz]er|b
 /** Gift types that are men's gifts unless the name says women's (the reverse rule, for Her and Mom). */
 const MENS_TYPE = /^(cologne|aftershave|beard|shaving|razor)$/i;
 /** Whether a pick suits this person: men's things never go to Her/Mom, women's things never to Him/Dad, toys only to Kids. */
-export const finderFits = (who: FinderWho, p: CatalogPick) => {
+const finderFits = (who: FinderWho, p: CatalogPick) => {
   const text = `${p.name} ${p.brand ?? ""}`;
   if (who === "kids") return KID_THING.test(text);
   if (KID_THING.test(text)) return false;

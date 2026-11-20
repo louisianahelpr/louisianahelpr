@@ -6,6 +6,8 @@
  *   - "don't have 7 cup choices in 1 guide": every pick carries its gift `type`, at most TYPE_MAX of one type per guide
  *     (more only where the guide's topic is that type, THEME_TYPES);
  *   - a Creator Connections swap pays the campaign total only while it runs, then the old link's rate is read again.
+ * Big batch 1120: a merged guide (src/content/giftGuideMerges.mjs) holds its old guides as sections; each section is
+ * one list here (its own commission order, 25 cap and type caps, read with the old guide's slug).
  *
  * @mutate scripts/giftGuideSort.mjs | export const GUIDE_CAP = 25; | export const GUIDE_CAP = 30;
  * @mutate scripts/giftGuideSort.mjs | export const TYPE_MAX = 2; | export const TYPE_MAX = 7;
@@ -17,12 +19,24 @@ import { describe, expect, it } from "vitest";
 import { readdirSync } from "./helpers/trackedFiles";
 import { GUIDE_CAP, TYPE_MAX, buildRateData, byCommission, commissionOf, pickType, typeMax } from "../../scripts/giftGuideSort.mjs";
 
-type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string };
+type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string; sectionId?: string };
 const DIR = "src/content/giftGuidePicks";
 const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
 /** Lists with their own order (scripts/gift-guide-picks.mjs SORT_FIXED) keep it; the sponsors guide is a sponsor list. */
 const FIXED = new Set(["subscriptions", "gift-cards", "gift-wrap-and-cards", "mail-carrier-and-delivery-drivers", "25-days-sponsors"]);
-const guides = readdirSync(DIR).filter((f: string) => f.endsWith(".json")).map((f: string) => f.replace(/\.json$/, "")).filter((s: string) => !s.startsWith("store-") && s !== "25-days-sponsors");
+const guideSlugs = readdirSync(DIR).filter((f: string) => f.endsWith(".json")).map((f: string) => f.replace(/\.json$/, "")).filter((s: string) => !s.startsWith("store-") && s !== "25-days-sponsors");
+/** Each list a shopper reads as one: a guide, or each section of a merged guide (its old slug; "top-picks" is the guide's own). */
+const sectionLists = (): [string, Pick[]][] => guideSlugs.flatMap((slug: string) => {
+  const by = new Map<string, Pick[]>();
+  for (const p of pageOf(slug)) {
+    const k = p.sectionId && p.sectionId !== "top-picks" ? p.sectionId : slug;
+    by.set(k, [...(by.get(k) ?? []), p]);
+  }
+  return [...by.entries()];
+});
+const lists = sectionLists();
+const guides = lists.map(([slug]) => slug);
+const pageOfList = new Map(lists);
 
 describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)", () => {
   it("reads the owner's numbers", () => {
@@ -36,7 +50,7 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
     let picks = 0;
     let known = 0;
     for (const slug of guides) {
-      const list = pageOf(slug);
+      const list = pageOfList.get(slug)!;
       for (const p of list) {
         picks += 1;
         if (!("commission" in p) || !(p.commission === null || typeof p.commission === "number")) bad.push(`${slug}: no commission: ${p.name}`);
@@ -55,7 +69,7 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
   it("no non-store guide holds more than 25 picks, nor more than its cap of one gift type", () => {
     const bad: string[] = [];
     for (const slug of guides) {
-      const list = pageOf(slug);
+      const list = pageOfList.get(slug)!;
       if (list.length > GUIDE_CAP) bad.push(`${slug}: ${list.length} picks`);
       if (FIXED.has(slug)) continue;
       const n = new Map<string, number>();

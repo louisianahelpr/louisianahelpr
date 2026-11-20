@@ -117,6 +117,15 @@ export function importRows1120(readJson, rowsOf, dir) {
   return rows.filter((r) => winners.has(r));
 }
 
+/**
+ * Cuts the 1120 batch makes itself (FOLLOWUP item 67): Red Lover's "Marshall Pill" shows a Beats Pill photo (the name
+ * and the photo disagree, so it is dropped); Purple Lover's "Le Creuset Artisan 7-Quart" showed a Crock-Pot.
+ */
+export const CUTS_1120 = [
+  { guide: "*", href: "https://www.amazon.com/dp/B0D4STD5ZC?tag=louisianahelpr-20", item: "Marshall Pill", why: "photo is a Beats Pill" },
+  { guide: "*", item: "Le Creuset Artisan 7-Quart", why: "photo is a Crock-Pot" },
+];
+
 /** The swaps' swap_out lines as judgment cuts ({ guide, item, why }). */
 export const swapCuts = (dir) => {
   const p = join(dir, "_owner-swaps-1119.md");
@@ -129,4 +138,16 @@ export const budgetBand = (raw) => {
   const n = typeof raw === "number" ? raw : Number(String(raw ?? "").replace(/[$,\s]/g, ""));
   if (!(n > 0)) return undefined;
   return n <= 25 ? 25 : n <= 50 ? 50 : n <= 100 ? 100 : 500;
+};
+
+/**
+ * The sort's one-place key (1120): the brand and the name without its color and size words (dedupeKey), the maker's
+ * words and a leading "3M" left out of both, so "3M Littmann Classic III Stethoscope, Caribbean Blue" and "Littmann
+ * Classic III Stethoscope, Caribbean Blue" are one product (their color decides whether a second one may show).
+ */
+export const productKey1120 = (brand, name, dedupeKey) => {
+  const b = String(brand ?? "").toLowerCase().replace(/^3m\s+/, "").trim();
+  let n = String(name ?? "").toLowerCase().replace(/^3m\s+/, "");
+  if (b && n.startsWith(b)) n = n.slice(b.length);
+  return `${compact(b)}|${dedupeKey(n)}`;
 };

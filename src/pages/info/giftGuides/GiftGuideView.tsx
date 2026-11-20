@@ -192,7 +192,7 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
       {nav.length > 1 && (
         <nav aria-label={G.sectionNavLabel} className="gg-secnav" data-gift-section-nav="">
           {nav.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="gg-chip" data-gift-section-link={s.id} onClick={(e) => { e.preventDefault(); window.history.replaceState(null, "", `#${s.id}`); jump(s.id); }}>{s.title}</a>
+            <a key={s.id} href={`/gift-guides/${guide.slug}#${s.id}`} className="gg-chip" data-gift-section-link={s.id} onClick={(e) => { e.preventDefault(); window.history.replaceState(window.history.state, "", `#${s.id}`); jump(s.id); }}>{s.title}</a>
           ))}
         </nav>
       )}

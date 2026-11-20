@@ -61,7 +61,7 @@ export const BRAND_SITES = [] as const;
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
  * Walmart Creator, CJ, Awin, Rakuten, ShopMy product links). Exact hosts; two-way (each is used by some link).
  */
-export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "www.jdoqocy.com", "www.dpbolvw.net", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
+export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
 
 /**
  * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:
@@ -241,7 +241,7 @@ export const giftGuides = {
   /** One note per page under a list that shows prices: the oldest check date, "Nov 18". */
   pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
   /** The landing's photo-card strip of the picks the most guides list, after the first guide rows (owner 11-18 PM). */
-  topTitle: "Our Top 10",
+  topTitle: "Top 10 This Week",
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
   giveaways: {
     title: "25 Days of Louisiana Giveaways",

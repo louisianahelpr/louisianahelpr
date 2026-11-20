@@ -397,6 +397,13 @@ for (const [from, targets] of Object.entries(MERGED_GUIDES)) {
   }
 }
 // 1120: a guide merged into another as a section (MERGED_INTO) and a store page not kept (isFoldedStore) have no page.
+/** 1120: a guide merged into another as a section hands its collection links (ShopMy) to the parent guide. */
+for (const [from, { parent }] of Object.entries(MERGED_INTO)) {
+  const src = draftOf.get(from);
+  const d = draftOf.get(parent);
+  if (!src || !d) continue;
+  draftOf.set(parent, { ...d, links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
+}
 const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug] && !MERGED_INTO[slug] && !isFoldedStore(slug);
 
 /** Where an old or folded guide's link now goes (null: no such guide). */
@@ -531,7 +538,8 @@ export const guideBySlug = (slug: string | undefined) => GUIDES.find((g) => g.sl
  */
 export const SEARCH_KEYWORDS: Record<string, string> = {
   "purple-and-gold-lover": "lsu tigers geaux", "game-day": "saints lsu tigers tailgate football",
-  "store-muck-boot": "boots", "store-xtratuf": "boots", "store-durango-boots": "boots",
+  // 1120: the Muck, XTRATUF and Durango store pages folded into the guides; their boots sit on these pages now.
+  "store-tractor-supply": "boots", hunters: "boots", farmers: "boots",
   rns: "nurse nurses", lpns: "nurse nurses", healthcare: "nurse nurses", "healthcare-workers": "nurse nurses",
 };
 

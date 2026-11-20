@@ -292,6 +292,8 @@ export const TWO_WAY = {
 export const HISTORICAL = {
   "docs/audit/loading-states/skel-probe/measurements.json": "before-state of the 2026-09-22 skeleton fix (Q-loading-states), kept as its red-before evidence",
   "docs/audit/loading-states/skel-probe-after/measurements.json": "after-state of the same fix, kept as its green-after evidence",
+  "scripts/gift-guide-go-clicks.json": "go-link clicks per /go/<slug> for the 7 days before 2026-11-20 (read-only SQL on prod analytics_events, event go_link_click), read by scripts/gift-guide-picks.mjs for the landing's Top 10 This Week; a dated record, re-measured by hand before a train",
+  "scripts/gift-guide-cc-placements-1120.json": "the big batch 1120's picks for the joined Creator Connections campaigns the 1119e placements left out (best 1-3 per campaign, chosen 2026-11-20 from ~/Desktop/Gift-guide-picks/_amazon-cc-campaigns-1119.json); a dated record the importer reads",
   "scripts/gift-guide-popularity.json": "the gift guides' placement order for the 1119e sort train: Vercel Web Analytics pageviews per /gift-guides/<slug> (production, 2026-11-05..2026-11-20 UTC, read 2026-11-19 by the lead's agent through the Vercel MCP aggregate_pageviews) plus the lead's search-demand order; a dated record the importer reads, re-measured by hand when the order is refreshed",
 };
 

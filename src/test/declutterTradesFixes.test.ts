@@ -5,7 +5,6 @@
  * the lines that proof exercises, plus the two restated bodies the proof cannot run in its small world
  * (declutter_deadline_sweep's free branch and declutter_my_cart's source).
  *
- * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   IF v_all_swap THEN\n    PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy');\n  ELSE | IF false THEN\n    PERFORM 1;\n  ELSE
  * @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql |           IF v_line.swap_id IS NOT NULL THEN\n            PERFORM public.declutter_end_swap(v_line.swap_id, NULL); |           IF false THEN\n            PERFORM 1;
  * @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql |           v_reopened := v_reopened + public.declutter_reopen_voided_offers(v_line.id);\n          -- CHANGED (trades #2) |           -- CHANGED (trades #2)
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     PERFORM public.declutter_end_swap(v_line.swap_id, v_uid);\n    RETURN public.declutter_active_strike_count(v_uid); |     RETURN public.declutter_give_strike(v_uid, 'seller', 'cancelled_after_offers', p_item_id, 'x', v_line.id);

@@ -27,6 +27,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { triggerInventory } from "./helpers/migrationTriggers";
 import { walkSource, readSource } from "./helpers/walkSource";
+import { readdirSync as trackedReaddir } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../..");
 const MIG_DIR = path.join(ROOT, "supabase/migrations");
@@ -91,7 +92,7 @@ describe("Declutter asks for no ID check and no setup fee (owner 2026-11-20)", (
     // The delivery Helpr's fee (kept) is still taken.
     expect(money).toContain('admin.rpc("helpr_task_payout_take_setup_fee"');
     // Review of #4820: no Declutter edge function reads the shared fee reader (it still answers 200 for Jobs fees).
-    const edgeDirs = fs.readdirSync(path.join(ROOT, "supabase/functions")).filter((d) => d.startsWith("declutter-"));
+    const edgeDirs = trackedReaddir(path.join(ROOT, "supabase/functions")).filter((d) => d.startsWith("declutter-"));
     expect(edgeDirs.length).toBeGreaterThan(3);
     const readers = walkSource(edgeDirs.map((d) => path.join(ROOT, "supabase/functions", d)))
       .filter((f) => /declutter_setup_fee_due_cents/.test(blankComments(readSource(f) ?? ""))).map(rel);
@@ -116,7 +117,7 @@ describe("Declutter asks for no ID check and no setup fee (owner 2026-11-20)", (
   it("(c2) no Declutter dictionary names an ID check or the setup fee, in English or Spanish", () => {
     const WORDS = /\bID check|\bsetup fee|verify your ID|photo ID|verificación de identidad|identificación con foto|cargo único|tarifa única/i;
     const dir = path.join(ROOT, "src/lib/i18n");
-    const dicts = fs.readdirSync(dir).filter((f) => /^(en|es)(Decl|Free|Listing|Sell|ListFor)\w*\.ts$/.test(f));
+    const dicts = trackedReaddir(dir).filter((f) => /^(en|es)(Decl|Free|Listing|Sell|ListFor)\w*\.ts$/.test(f));
     expect(dicts.length).toBeGreaterThan(25);
     const bad: string[] = [];
     for (const f of dicts) {

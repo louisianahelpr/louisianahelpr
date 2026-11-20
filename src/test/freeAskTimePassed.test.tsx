@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |               {passed ? null : ( |               {false ? null : (
  * @mutate src/lib/lifecycleErrorCopy.ts |     request_time_passed: DC.request_time_passed,\n |
  * @mutate supabase/migrations/20261107174801_declutter_buy_now_one_page.sql |     v_free_asks := public.sweep_declutter_free_asks(p_now); |     v_free_asks := 0;
- * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |   IF v_req.pickup_at IS NOT NULL AND v_req.pickup_at <= now() THEN | IF false THEN
+ * @mutate supabase/migrations/20261120184430_declutter_no_id_no_setup_fee.sql |   IF v_req.pickup_at IS NOT NULL AND v_req.pickup_at <= now() THEN | IF false THEN
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

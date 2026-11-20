@@ -6,7 +6,7 @@
  * Reads the EFFECTIVE definition (newest CREATE, any dollar tag, comments blanked). Behaviour (real Postgres):
  * src/test/pglite/tradeOfferNoticeLeadsWithNoMoney.pglite.mjs (5 PASS; 2 FAIL with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261111201159_trade_offer_notice_leads_with_no_money.sql | format('No money changes hands. %s offered "%s" in trade for "%s". Accept or decline within 48 hours.', | format('%s offered "%s" in trade for "%s". Accept or decline within 48 hours. No money changes hands.',
+ * @mutate supabase/migrations/20261120184430_declutter_no_id_no_setup_fee.sql | format('No money changes hands. %s offered "%s" in trade for "%s". Accept or decline within 48 hours.', | format('%s offered "%s" in trade for "%s". Accept or decline within 48 hours. No money changes hands.',
  */
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

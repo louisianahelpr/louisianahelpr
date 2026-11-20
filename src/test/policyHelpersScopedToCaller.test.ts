@@ -138,7 +138,6 @@ const CROSS_USER: Record<string, string> = {
   "fn admin_activity_notice: has_role(p_actor)": "EXECUTE is service_role only and it runs inside the admin bell's AFTER triggers (20261112061000): pg_trigger_depth() > 0; it only skips an admin's own action, grants nothing",
   "fn admin_apply_account_action: has_role(p_admin_id)": "EXECUTE is service_role only (20261012185742; admin-action passes its verified caller): is_server_context()",
   "fn clear_test_mode_dispute_ledger: has_role(_admin)": "EXECUTE is service_role only (20261012215235; execute-dispute-split passes its verified admin): is_server_context()",
-  "fn declutter_free_claim_gate: has_role(p_member)": "returns first unless p_member = auth.uid() (20261031211922): the caller arm",
   "fn notify_on_job_update: has_role(NEW.cancelled_by)": "trigger body: only picks the Job cancelled notice's wording ('by our team'); grants nothing (F176, 20261109231855)",
   "fn enforce_block_on_message_insert: has_role(NEW.receiver_id)": "trigger body: pg_trigger_depth() > 0",
   "fn enforce_block_on_message_insert: has_role(NEW.sender_id)": "trigger body; also the caller (the bypass requires NEW.sender_id = auth.uid())",

@@ -6,8 +6,8 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
  * (`PHOTO_THUMB_IMG` on the caller's <img>), the current one ringed and fully opaque. `current` sets aria-current and
  * data-thumb-active; the caller passes the label ("Show photo 2 of 3"), onClick and the image as children.
  */
-export const PHOTO_THUMB_TARGET =
-  "relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-photo-empty transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+const PHOTO_THUMB_TARGET =
+  "relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-photo-empty transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background";
 /** The thumbnail's image: fills the square, cropped (the whole photo is in the frame above it). */
 export const PHOTO_THUMB_IMG = "h-full w-full object-cover";
 

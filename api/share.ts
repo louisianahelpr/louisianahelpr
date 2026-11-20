@@ -1246,11 +1246,14 @@ function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
  * tiled. Rendered from local files by ~/.lh-shots/b53/og/make.mjs. ?v= is the cache bust: bump it when the art
  * changes. Guard: src/test/sectionShareCards.test.ts.
  */
+/** The 25 Days card for people entering (owner 2026-11-19); the brand card (SPONSOR_CARD) stays on /sponsor. */
+const ENTRANT_CARD = { path: "/og-25days-enter.png?v=1", alt: "Free to enter: 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25" };
 const SECTION_CARDS: Record<string, { path: string; alt: string }> = {
   declutter: { path: "/og-declutter.png?v=1", alt: "Declutter on Louisiana Helpr: used things for sale from your Louisiana neighbors" },
   browse: { path: "/og-browse.png?v=1", alt: "Local jobs on Louisiana Helpr: hire help or find work near you" },
-  // 25 Days went public and indexed on 11-19 (owner decision): same card as before (public/og-25days.png, 1200x630).
-  "25days": { path: "/og-25days.png?v=2", alt: "You're Invited! 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25" },
+  // 25 Days went public and indexed on 11-19 (owner decision). Owner 2026-11-19: /25days is for people entering, so
+  // its card says "Free to enter" and louisianahelpr.com/25days (public/og-25days-enter.png, 1200x630).
+  "25days": ENTRANT_CARD,
 };
 
 /**
@@ -1284,8 +1287,8 @@ function metaForNoindexPage(id: string): Meta | null {
 const SPONSOR_CARD = { path: "/og-25days.png?v=2", alt: "You're Invited! 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25" };
 const NOINDEX_CARDS: Record<string, { path: string; alt: string }> = {
   sponsor: SPONSOR_CARD,
-  "25days": SPONSOR_CARD,
-  "25days/rules": SPONSOR_CARD,
+  "25days": ENTRANT_CARD,
+  "25days/rules": ENTRANT_CARD,
 };
 
 /**

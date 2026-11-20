@@ -29,7 +29,7 @@ import { resolve } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
-import { Hero } from "@/components/sponsor/Sections";
+import { EntrantHero, Hero } from "@/components/sponsor/Sections";
 import { safeEntryUrl } from "@/lib/sponsor/api";
 import { sponsorPage } from "@/content/sponsorPage";
 import { rows } from "@/components/notificationPreferences/constants";
@@ -73,9 +73,9 @@ describe("25 Days giveaway reminders (owner 11-19)", () => {
   });
 
   it("no reminder or button says HOW people enter (owner: don't say exactly what the plan is)", () => {
-    const words = [...seededRows().map((x) => x.message), sponsorPage.hero.enterCta].join(" ").toLowerCase();
+    const words = [...seededRows().map((x) => x.message), sponsorPage.entrant.enterCta].join(" ").toLowerCase();
     for (const how of ["share", "comment", "like ", "tag ", "follow"]) expect(words, how).not.toContain(how);
-    expect(sponsorPage.hero.enterCta).toBe("How to enter");
+    expect(sponsorPage.entrant.enterCta).toBe("Entry details on our Facebook page");
   });
 
   it("a cron runs the sweep every 15 minutes", () => {
@@ -117,9 +117,9 @@ describe("25 Days giveaway reminders (owner 11-19)", () => {
   });
 
   it("the page's How to enter button opens the configured link, else the Facebook Page", () => {
-    const { unmount } = render(<MemoryRouter><Hero greetingBrand={null} enterUrl="https://www.facebook.com/louisianahelpr/posts/1" /></MemoryRouter>);
+    const { unmount } = render(<MemoryRouter><EntrantHero enterUrl="https://www.facebook.com/louisianahelpr/posts/1" /></MemoryRouter>);
     const a = screen.getByTestId("giveaway-enter");
-    expect(a.textContent).toBe("How to enter");
+    expect(a.textContent).toBe("Entry details on our Facebook page");
     expect(a.getAttribute("href")).toBe("https://www.facebook.com/louisianahelpr/posts/1");
     expect(a.getAttribute("target")).toBe("_blank");
     unmount();
@@ -128,7 +128,7 @@ describe("25 Days giveaway reminders (owner 11-19)", () => {
     expect(screen.queryByTestId("giveaway-enter")).toBeNull();
     const page = read("src/pages/sponsor/SponsorPage.tsx");
     expect(page).toContain("const enterUrl = entryQ.data ?? C.links.facebookPage;");
-    expect(page).toContain('enterUrl={pathname === "/25days" ? enterUrl : undefined}');
+    expect(page).toContain("<EntrantHero enterUrl={enterUrl} />");
   });
 
   it("only an https link is used as the entry link", () => {

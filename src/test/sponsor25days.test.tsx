@@ -7,13 +7,13 @@
 // @mutate api/share.ts |   sponsor: SPONSOR_CARD, |   sponsorX: SPONSOR_CARD,
 // @mutate src/components/sponsor/ClaimSection.tsx |   const err = (k: FieldKey) => errors[k] ?? null; |   if (Date.now() > Date.UTC(2026, 10, 29)) return null; const err = (k: FieldKey) => errors[k] ?? null;
 // @mutate supabase/functions/sponsor-25days/index.ts |   if (!(await switchOn(admin, userId))) { |   if (Date.now() > 0) return json({ error: 'closed' }, 410); if (!(await switchOn(admin, userId))) {
-// @mutate src/content/sponsorPage.ts |     deadline: "Sign up by Sunday, Nov 22.", |     deadline: "Sign up by Nov 28.",
+// @mutate src/content/sponsorPage.ts |     deadline: "Sign up by Sunday, Nov 22. Late sponsors welcome!", |     deadline: "Sign up by Nov 28.",
 // @mutate src/components/sponsor/Sections.tsx |         <p className="lh25-deadline">{C.hero.deadline}</p> |         {null}
 // @mutate src/components/sponsor/ClaimSection.tsx |   shipTo: "helpr", notes: "", |   shipTo: "", notes: "",
 // @mutate src/components/sponsor/ClaimSection.tsx |   if (delivery === "helpr" \|\| delivery === "winner") return { ...form, shipTo: delivery }; |   if (delivery === "helpr" \|\| delivery === "winner") return { ...form, shipTo: "helpr" };
 // @mutate src/components/sponsor/ClaimSection.tsx |   return { ...form, shipTo: "winner", notes }; |   return { ...form, shipTo: "winner" };
 // @mutate src/components/sponsor/ClaimSection.tsx |   const [delivery, setDelivery] = useState<PrizeDelivery>("helpr"); |   const [delivery, setDelivery] = useState<PrizeDelivery>("winner");
-// @mutate src/content/sponsorPage.ts | are shared with that day's sponsor only to deliver the prize, and are not used for anything else. | are shared with that day's sponsor.
+// @mutate src/content/sponsorPage.ts | are shared with that business only to deliver the prize, and are not used for anything else. | are shared with that business.
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <DeliveryRow s={s} adminEmail={adminEmail} /> |       <Detail label="Ship your prize to">Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528</Detail>
 // @mutate supabase/functions/_shared/sponsorSignup.ts |     // Not given: stays null (sponsor_signups.prize_value is nullable since 20261110171648). |     errors.prizeValue = "required";
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <Detail label="Your prize">{s.prizeDescription}</Detail> |       <Detail label="Your prize">{s.prizeDescription} (about ${s.prizeValue})</Detail>
@@ -172,8 +172,8 @@ describe("hidden until filled", () => {
     expect(text).not.toMatch(/founder/i);
     expect(text).not.toContain("I started Louisiana Helpr because");
     expect(container.querySelector(".lh25-founder-photo")).toBeNull();
-    // FAQ: the eligibility answer is a placeholder, so its question is hidden.
-    expect(text).not.toContain("Who can enter the giveaways?");
+    // Owner 2026-11-19 filled it ("Louisiana residents 18 and older"), so the FAQ shows it with no bracket.
+    expect(text).toContain("Who can enter the giveaways?Louisiana residents 18 and older.");
     expect(text).toContain("Is this really free?");
     // Reach: no stats filled -> no section.
     expect(text).not.toContain(sponsorPage.reach.title);
@@ -235,7 +235,7 @@ describe("four prize delivery options, shipping to us first (owner 11-09, 11-17)
     expect(sponsorPage.trustStrip).toContain("Easy prize delivery");
     expect(JSON.stringify(sponsorPage.trustStrip)).not.toMatch(/by us/i);
     const fulfil = sponsorPage.rules.sections.find((x) => x.heading === "Prizes and fulfillment")!.body;
-    expect(fulfil).toContain("The winner's name and shipping address are shared with that day's sponsor only to deliver the prize, and are not used for anything else.");
+    expect(fulfil).toContain("The winner's name and shipping address are shared with that business only to deliver the prize, and are not used for anything else.");
   });
   it("the confirmation email gives our address for ship-to-us and the 24-hour promise for ship-to-winner", () => {
     const src = fs.readFileSync(path.resolve(__dirname, "../../supabase/functions/_shared/email-templates/sponsor-25days.tsx"), "utf8");
@@ -311,7 +311,9 @@ describe("links and rules", () => {
     }
   });
   it("the rules page stays a DRAFT until approved with no placeholder left", () => {
-    expect(rulesAreDraft(sponsorPage.rules)).toBe(true);
+    // Owner 2026-11-19 approved the rules ("Legal name: Louisiana Helpr"; "They can win once"): no placeholder is left.
+    expect(sponsorPage.rules.approved).toBe(true);
+    expect(rulesAreDraft(sponsorPage.rules)).toBe(false);
     // Owner 11-10: a draft is never shown to visitors; they get the pending note instead (the local ?demo preview still shows it).
     const page = fs.readFileSync(path.resolve(__dirname, "../pages/sponsor/SponsorRulesPage.tsx"), "utf8");
     expect(page).toContain("draft && !showDraft ?");
@@ -358,9 +360,9 @@ describe("dates, calendar file and CSV", () => {
 });
 
 describe("sign-ups never close (owner 2026-11-18: ask for Sunday, November 22; late sponsors still welcome)", () => {
-  const ASK = "Please sign up by Sunday, November 22 so we can include you in the full lineup.";
+  const ASK = "Please sign up by Sunday, November 22 so we can include you in the full lineup. Late sponsors are always welcome.";
   it("the hero asks short, the sign-up section asks in full; neither names a closing date", () => {
-    expect(sponsorPage.hero.deadline).toBe("Sign up by Sunday, Nov 22.");
+    expect(sponsorPage.hero.deadline).toBe("Sign up by Sunday, Nov 22. Late sponsors welcome!");
     expect(sponsorPage.claim.deadline).toBe(ASK);
     const files = [
       "src/content/sponsorPage.ts",
@@ -416,11 +418,13 @@ describe("link preview (api/share.ts, before JavaScript runs)", () => {
     const html = await (await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=${kind}&_id=${id}`))).text();
     const first = html.indexOf('<meta property="og:image" ');
     const block = html.slice(first, html.indexOf('<meta property="og:image" ', first + 1));
-    expect(block).toContain('<meta property="og:image" content="https://www.louisianahelpr.com/og-25days.png?v=2"');
+    // Owner 2026-11-19: /sponsor keeps the brand card; /25days and its rules get the entrant card.
+    const card = id === "sponsor" ? "og-25days.png?v=2" : "og-25days-enter.png?v=1";
+    expect(block).toContain(`<meta property="og:image" content="https://www.louisianahelpr.com/${card}"`);
     expect(block).toContain('<meta property="og:image:width" content="1200"');
     expect(html).toMatch(kind === "page" ? /<meta name="robots" content="index, follow"/ : /<meta name="robots" content="noindex/);
     expect(html).toContain("25 Days of Louisiana Giveaways");
-    const png = fs.readFileSync(path.join(ROOT, "public/og-25days.png"));
+    const png = fs.readFileSync(path.join(ROOT, `public/${card.split("?")[0]}`));
     expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
   });
   it("vercel.json routes the three paths through the preview function", () => {

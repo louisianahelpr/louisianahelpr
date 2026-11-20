@@ -53,21 +53,42 @@ export const sponsorPage = {
       "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays.",
     primaryCta: "Join the Giveaways 🎁",
     secondaryCta: "How It Works",
-    /**
-     * The shoppers' button (owner 11-19): opens where people enter. Never say HOW they enter here (owner: "don't say
-     * exactly what the plan is"). WHERE it goes is not in this file: the iOS app bundles this code, so the link lives in
-     * the database, sponsor_settings.entry_url (20261119200128), and changes with no app build. Until it is set, the
-     * button opens links.facebookPage.
-     */
-    enterCta: "How to enter",
     countdownLabel: "Giveaways start in",
     countdownLive: "The giveaways are live! Day {day} of 25",
     /**
      * Under the countdown (short: the hero has little room). Owner 2026-11-18: sign-ups never close; we only ask
      * brands to sign up by Sunday, November 22 so they make the full lineup.
      */
-    deadline: "Sign up by Sunday, Nov 22.",
+    deadline: "Sign up by Sunday, Nov 22. Late sponsors welcome!",
     countdownUnits: { days: "days", hours: "hours", minutes: "min", seconds: "sec" },
+  },
+
+  /**
+   * /25days, the page for PEOPLE ENTERING (owner 2026-11-19: "most people will see it from Facebook traffic"). The
+   * brand pitch and sign-up form live on /sponsor only. Never say HOW to enter here (owner: "don't say exactly what the
+   * plan is"): the button opens the entry post (sponsor_settings.entry_url, else the Facebook Page).
+   */
+  entrant: {
+    headlineLead: "Free to enter!",
+    /**
+     * Opens where people enter. WHERE it goes is not in this file: the iOS app bundles this code, so the link lives in
+     * the database, sponsor_settings.entry_url (20261119200128), and changes with no app build. Until it is set, the
+     * button opens links.facebookPage.
+     */
+    subhead: "Every day from December 1 to 25, Louisiana businesses are giving away gifts to Louisiana neighbors.",
+    enterCta: "Entry details on our Facebook page",
+    sponsorsCta: "See the sponsors",
+    title: "How the giveaways work",
+    points: [
+      "Free to enter. No purchase necessary.",
+      "Open to Louisiana residents 18 and older.",
+      "One entry covers all 25 days of drawings.",
+      "Each person can win once.",
+      "Winners are drawn at random and messaged on Facebook.",
+    ],
+    rulesLink: "Read the official rules",
+    businessAsk: "Are you a Louisiana business?",
+    businessLink: "Become a sponsor →",
   },
 
   trustStrip: [
@@ -175,13 +196,15 @@ export const sponsorPage = {
    * The final lineup (owner 2026-11-16: "each person will have their own day" is no longer true; some days have
    * two or three brands, each with its own winner). Source: the owner's 25 Days Sponsor Tracker (const S and D); owner 2026-11-17: every sponsor who said yes by
    * email or Facebook is listed on their tracker day. Owner 2026-11-18 (nothing stale anywhere): lineup.days is exactly
-   * the tracker's calendar (109 giveaways as of 2026-11-17 11:20 PM). Check drift with `node scripts/check-25days-lineup.mjs`,
+   * the tracker's calendar (170 giveaways from 104 brands as of 2026-11-19 7:15 PM). Check drift with `node scripts/check-25days-lineup.mjs`,
    * regenerate with `--print` (manual; never in CI).
    * Business names, prizes and Facebook Page links ONLY: never a contact person's name, email or phone (this page and repo are public).
+   * Owner 2026-11-19: three sponsors show by their own name (David Rabalais; Tevin Lewis, District 2 Alderman, linked to his own page;
+   * Haylie Rudisill · Custom wreath sashes). The allowlist is PUBLIC_NAMES in scripts/check-25days-lineup.mjs.
    */
   lineup: {
-    title: "The lineup",
-    intro: "The Louisiana businesses and brands giving away prizes this December. Tap a name to visit their page.",
+    title: "This year's sponsors",
+    intro: "The Louisiana businesses and brands giving away prizes this December. Tap a name to visit their Facebook page.",
     // Owner 2026-11-17: shown under the intro and by the sign-up day picker (claim.daysNote), and in the FAQ.
     daysNote: "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.",
     /** Phone only: the list opens with its first few partners and this button. */
@@ -191,56 +214,81 @@ export const sponsorPage = {
      * its Facebook Page, from the tracker's `h.fb` (const S). A business page only: never a contact's email or phone.
      */
     links: {
-"homerunPET": "https://www.facebook.com/Homerunpet",
-      "RYSE": "https://www.facebook.com/RYSESupps",
-      "CMI Entertainment: A Christmas Carol": "https://www.facebook.com/profile.php?id=100064790676343",
-      "Oil Center (Lafayette Festival of Lights)": "https://www.facebook.com/oilcenter",
-      "Faith & Fire BBQ": "https://www.facebook.com/profile.php?id=100093226599423",
-      "Boston Mints": "https://www.facebook.com/BostonMints",
-      "World Ballet Company: The Nutcracker": "https://www.facebook.com/WorldBalletCompany",
-      "The Fois": "https://www.facebook.com/davidrabalaisfilm/",
-      "Cher Bebe Embroidery": "https://www.facebook.com/profile.php?id=61589742615756",
-      "Manta Sleep": "https://www.facebook.com/mantasleep",
-      "Crabtrap Functional Fitness": "https://www.facebook.com/profile.php?id=61575510953985",
-      "RoseMae Eimear Creations": "https://www.facebook.com/profile.php?id=100089280845471",
-      "K18 Hair": "https://www.facebook.com/k18hair",
-      "Megan Benoit's Closet": "https://www.facebook.com/profile.php?id=100095652008390",
-      "Britt Creates": "https://www.facebook.com/profile.php?id=100092393785790",
-      "Oyu Botanica": "https://www.facebook.com/OYUBotanica",
-      "R&R Wedding Co.": "https://www.facebook.com/profile.php?id=61589566719811",
-      "IOKA Skin+Science": "https://www.facebook.com/iokaskinscience",
-      "Mystic Forests Nursery": "https://www.facebook.com/profile.php?id=61561396051654",
-      "Whimsies from Within": "https://www.facebook.com/profile.php?id=61593916496429",
-      "Rock Bottom Golf": "https://www.facebook.com/rockbottomgolf",
-      "Ripley's Crawfish": "https://www.facebook.com/profile.php?id=61571086266228",
-      "Written on the River": "https://www.facebook.com/writtenontheriver",
-      "Timeless Skin Care": "https://www.facebook.com/timelesshaskin/",
-      "Let's Create LLC": "https://www.facebook.com/letscreatellc",
-      "GentleStyle Brush (CLM Creations)": "https://www.facebook.com/gentlestylebrush",
-      "IDRA Wellness": "https://www.facebook.com/idrawellnessforyou",
-      "Rip Van Winkle Gardens": "https://www.facebook.com/rvwgardens",
-      "SRI Labs": "https://www.facebook.com/SRIBeautyLabs",
-      "Hello Darlin'": "https://www.facebook.com/profile.php?id=61596204632534",
-      "The Sculpt Society": "https://www.facebook.com/sculptsociety",
-      "Crew Dog": "https://www.facebook.com/profile.php?id=100092617234356",
-      "Aeva Beauty": "https://www.facebook.com/Aevabeautyllc",
-      "The Humble Home Decor & Candles": "https://www.facebook.com/profile.php?id=61591928826991",
-      "Zydeco Chop Chop": "https://www.facebook.com/ZydecoChopChop",
       "3 Redneck Tenors": "https://www.facebook.com/profile.php?id=100063637686864",
-      "LMNT": "https://www.facebook.com/drinkLMNT",
-      "Dolly's Boutique": "https://www.facebook.com/shopgirldolly",
-      "HOTWORX Baton Rouge (Millerville)": "https://www.facebook.com/hotworxbatonrougemillerville",
+      "Active Beauty": "https://www.facebook.com/RealActiveBeauty/",
+      "Aeva Beauty": "https://www.facebook.com/Aevabeautyllc",
+      "AllWays Lounge & Cabaret (New Orleans)": "https://www.facebook.com/TheAllWaysLoungeAndCabaret",
+      "aosu": "https://www.facebook.com/aosulife",
+      "Arey": "https://www.facebook.com/areygrey",
       "Basic Bee": "https://www.facebook.com/basicbeeshop",
-      "Hannahbelle Photography": "https://www.facebook.com/profile.php?id=61570091493348",
-      "Tushbaby": "https://www.facebook.com/TushBabyShop/",
-      "Dupuy's Abbeville": "https://www.facebook.com/dupuys",
-      "Salty Cat": "https://www.facebook.com/saltycattreats",
-      "The Soft Life Collective": "https://www.facebook.com/profile.php?id=61594580516352",
+      "Beaver's Abundance": "https://www.facebook.com/Beaversabundance",
+      "Boston Mints": "https://www.facebook.com/BostonMints",
+      "Botanical Nail and Skin Studio": "https://www.facebook.com/BotanicalNailandSkinStudio",
       "Bourque's Cajun Country Seasoning": "https://www.facebook.com/profile.php?id=100069299407902",
-      "Tiffany Morton Cosmetic Tattooing": "https://www.facebook.com/profile.php?id=61591561239859",
-      "Hilma": "https://www.facebook.com/HILMA.CO",
-      "Playtopia Lafayette": "https://www.facebook.com/playtopialafayette",
+      "Britt Creates": "https://www.facebook.com/profile.php?id=100092393785790",
+      "Candle Bloom Confections": "https://www.facebook.com/profile.php?id=61560992382547",
+      "Cat 5 Fishing Charters (Lake Charles)": "https://www.facebook.com/CaptBradleyLaningham",
+      "Cat Lady / CatLadyBox": "https://www.facebook.com/catladybox/",
+      "Cher Bebe Embroidery": "https://www.facebook.com/profile.php?id=61589742615756",
+      "City Sightseeing New Orleans": "https://www.facebook.com/CitySightseeingNewOrleans",
+      "CMI Entertainment: A Christmas Carol": "https://www.facebook.com/profile.php?id=100064790676343",
+      "Crabtrap Functional Fitness": "https://www.facebook.com/profile.php?id=61575510953985",
+      "Crew Dog": "https://www.facebook.com/profile.php?id=100092617234356",
+      "Criquet Shirts": "https://www.facebook.com/criquetshirts",
+      "Deming Delights": "https://www.facebook.com/profile.php?id=61555440822423",
+      "Dolly's Boutique": "https://www.facebook.com/shopgirldolly",
+      "Dupuy's Abbeville": "https://www.facebook.com/dupuys",
+      "Faith & Fire BBQ": "https://www.facebook.com/profile.php?id=100093226599423",
+      "Faulk's Game Call Co.": "https://www.facebook.com/Faulkcalls",
+      "Forgiven Hearts": "https://www.facebook.com/forgivenheartsllc",
+      "GentleStyle Brush (CLM Creations)": "https://www.facebook.com/gentlestylebrush",
+      "God's Country RV Resort": "https://www.facebook.com/GodsCountryResort/",
       "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)": "https://www.facebook.com/grandkyivballet",
+      "Hannahbelle Photography": "https://www.facebook.com/profile.php?id=61570091493348",
+      "Hello Darlin'": "https://www.facebook.com/profile.php?id=61596204632534",
+      "Hilma": "https://www.facebook.com/HILMA.CO",
+      "homerunPET": "https://www.facebook.com/Homerunpet",
+      "HOTWORX Baton Rouge (Millerville)": "https://www.facebook.com/hotworxbatonrougemillerville",
+      "HOTWORX Denham Springs": "https://www.facebook.com/HOTWORXDenhamSprings",
+      "IDRA Wellness": "https://www.facebook.com/idrawellnessforyou",
+      "IOKA Skin+Science": "https://www.facebook.com/iokaskinscience",
+      "Jessica Lanham Photography": "https://www.facebook.com/jessicalanhamphotography",
+      "K18 Hair": "https://www.facebook.com/k18hair",
+      "Le Petit Theatre (New Orleans)": "https://www.facebook.com/LePetitNOLA",
+      "Let's Create LLC": "https://www.facebook.com/letscreatellc",
+      "LMNT": "https://www.facebook.com/drinkLMNT",
+      "Manta Sleep": "https://www.facebook.com/mantasleep",
+      "Megan Benoit's Closet": "https://www.facebook.com/profile.php?id=100095652008390",
+      "Mystic Forests Nursery": "https://www.facebook.com/profile.php?id=61561396051654",
+      "Oil Center (Lafayette Festival of Lights)": "https://www.facebook.com/oilcenter",
+      "Oyu Botanica": "https://www.facebook.com/OYUBotanica",
+      "Paddlewheeler Creole Queen (New Orleans)": "https://www.facebook.com/PaddlewheelerCreoleQueen/",
+      "Playtopia Lafayette": "https://www.facebook.com/playtopialafayette",
+      "R&R Wedding Co.": "https://www.facebook.com/profile.php?id=61589566719811",
+      "Rip Van Winkle Gardens": "https://www.facebook.com/rvwgardens",
+      "Ripley's Crawfish": "https://www.facebook.com/profile.php?id=61571086266228",
+      "Rock Bottom Golf": "https://www.facebook.com/rockbottomgolf",
+      "RoseMae Eimear Creations": "https://www.facebook.com/profile.php?id=100089280845471",
+      "RYSE": "https://www.facebook.com/RYSESupps",
+      "Salty Cat": "https://www.facebook.com/saltycattreats",
+      "Saranoni": "https://www.facebook.com/saranoniblanket",
+      "SRI Labs": "https://www.facebook.com/SRIBeautyLabs",
+      "Suzi Marques Photography": "https://www.facebook.com/suzimarquesphotography",
+      "David Rabalais": "https://www.facebook.com/davidrabalaisfilm/",
+      // Owner 2026-11-19: "just link to his personal page" (the tracker's h.fb for Tevin Lewis).
+      "Tevin Lewis, District 2 Alderman": "https://www.facebook.com/profile.php?id=61562244154656",
+      "The Humble Home Decor & Candles": "https://www.facebook.com/profile.php?id=61591928826991",
+      "The Sculpt Society": "https://www.facebook.com/sculptsociety",
+      "The Soft Life Collective": "https://www.facebook.com/profile.php?id=61594580516352",
+      "Tiffany Morton Cosmetic Tattooing": "https://www.facebook.com/profile.php?id=61591561239859",
+      "Timeless Skin Care": "https://www.facebook.com/timelesshaskin/",
+      "Tufted Artworks": "https://www.facebook.com/TuftedArtworks",
+      "Tushbaby": "https://www.facebook.com/TushBabyShop/",
+      "Whimsies from Within": "https://www.facebook.com/profile.php?id=61593916496429",
+      "Wicks NOLA Candle Company": "https://www.facebook.com/wicksnola504",
+      "World Ballet Company: The Nutcracker": "https://www.facebook.com/WorldBalletCompany",
+      "Written on the River": "https://www.facebook.com/writtenontheriver",
+      "Zydeco Chop Chop": "https://www.facebook.com/ZydecoChopChop",
     } as Record<string, string>,
     /**
      * INTERNAL ONLY (owner rule 2026-11-17: "don't tell sponsors their day until it's final"): the page never shows
@@ -256,6 +304,8 @@ export const sponsorPage = {
           { brand: "CMI Entertainment: A Christmas Carol", prize: "Family four-pack to A Christmas Carol, Strand Theatre Shreveport, Dec 6" },
           { brand: "Oil Center (Lafayette Festival of Lights)", prize: "Tickets to the Festival of Lights" },
           { brand: "Faith & Fire BBQ", prize: "Bible" },
+          { brand: "FELCO North America", prize: "FELCO 2 pruner + FELCO 910 holster" },
+          { brand: "Le Petit Theatre (New Orleans)", prize: "One pair of tickets to THE SECRET GARDEN (runs Dec 3–27, 2026)" },
         ],
       },
       {
@@ -264,18 +314,21 @@ export const sponsorPage = {
           { brand: "Boston Mints", prize: "One lip gloss each day" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "World Ballet Company: The Nutcracker", prize: "Pair of Nutcracker tickets, Strand Theatre Shreveport, Dec 8" },
-          { brand: "The Fois", prize: "The Fois t-shirt (winner size) + koozie" },
+          { brand: "David Rabalais", prize: "The Fois t-shirt (winner size) + koozie" },
           { brand: "Cher Bebe Embroidery", prize: "Tea towel of choice" },
+          { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
         ],
       },
       {
         day: 3,
         partners: [
-          { brand: "District 2 Alderman", prize: "$25 Shucks gift card" },
+          { brand: "Tevin Lewis, District 2 Alderman", prize: "$25 Shucks gift card" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
-          { brand: "Manta Sleep", prize: "Manta PRO Sleep Mask" },
           { brand: "Crabtrap Functional Fitness", prize: "Free month membership" },
           { brand: "RoseMae Eimear Creations", prize: "Soap bar or bath soak (winner picks)" },
+          { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
+          { brand: "Forgiven Hearts", prize: "$25 gift certificate" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -286,6 +339,8 @@ export const sponsorPage = {
           { brand: "Megan Benoit's Closet", prize: "$30 gift card" },
           { brand: "Kate McLeod", prize: "One Daily Stone (body moisturizer)" },
           { brand: "Britt Creates", prize: "Resume refresh" },
+          { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
+          { brand: "Jessica Lanham Photography", prize: "$300 photography gift certificate: covers the $100 session fee + $200 toward any package (one per winner; 4 winners)" },
         ],
       },
       {
@@ -295,6 +350,9 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "R&R Wedding Co.", prize: "Day-of wedding coordination discount" },
           { brand: "Breads and Sweets by Babs", prize: "$25 gift certificate" },
+          { brand: "Olivia Grace Photography", prize: "One-hour photo session, up to 2 outfits, 30+ edited images" },
+          { brand: "Celebration Station (Baton Rouge)", prize: "Family Four Fun Pack: unlimited attractions for four people" },
+          { brand: "Jessica Lanham Photography", prize: "$300 photography gift certificate: covers the $100 session fee + $200 toward any package (one per winner; 4 winners)" },
         ],
       },
       {
@@ -304,6 +362,10 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Mystic Forests Nursery", prize: "5-gallon Rising Sun redbud" },
           { brand: "Rusty's Seasoning", prize: "Seasoning bundle" },
+          { brand: "Faulk's Game Call Co.", prize: "CA-11 Cane Duck Call" },
+          { brand: "Paddlewheeler Creole Queen (New Orleans)", prize: "Dinner Jazz Cruise for a party of two" },
+          { brand: "Jessica Lanham Photography", prize: "$300 photography gift certificate: covers the $100 session fee + $200 toward any package (one per winner; 4 winners)" },
+          { brand: "Hair Fashion and Spa (Opelousas)", prize: "$25 gift card" },
         ],
       },
       {
@@ -312,16 +374,21 @@ export const sponsorPage = {
           { brand: "Whimsies from Within", prize: "Mixed media wall hanging ($130)" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Rock Bottom Golf", prize: "$50 Rock Bottom Golf gift card" },
-          { brand: "Ripley's Crawfish", prize: "$100 gift card" },
+          { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
+          { brand: "Mind the Skin Labs", prize: "1 pack Signal (pre-flare patch) + 1 pack Surge (active-flare patch)" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
         day: 8,
         partners: [
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
-          { brand: "Written on the River", prize: "Tumbler with her Louisiana design" },
+          { brand: "Written on the River", prize: "Mug or tile with her Louisiana design" },
           { brand: "Timeless Skin Care", prize: "Skincare package" },
-          { brand: "The Fois", prize: "Toy Magnalite pot" },
+          { brand: "David Rabalais", prize: "Toy Magnalite pot" },
+          { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
+          { brand: "Candle Bloom Confections", prize: "Candle flower bouquet" },
+          { brand: "Active Beauty", prize: "Active Beauty product" },
         ],
       },
       {
@@ -329,7 +396,10 @@ export const sponsorPage = {
         partners: [
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Let's Create LLC", prize: "Permanent jewelry stainless steel bracelet" },
-          { brand: "The Fois", prize: "Roux spoon + Roundhouse Ya Maw Maw seasoning" },
+          { brand: "David Rabalais", prize: "Roux spoon + Roundhouse Ya Maw Maw seasoning" },
+          { brand: "Botanical Nail and Skin Studio", prize: "$50 gift card toward any service" },
+          { brand: "City Sightseeing New Orleans", prize: "Two 3-Day Hop-On Hop-Off Passes + Guided Walking Tours of the Garden District and French Quarter" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -339,6 +409,9 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Handmade By Hayli", prize: "Hair glitter" },
           { brand: "Bake & Brush", prize: "Bake & Brush gift card" },
+          { brand: "Criquet Shirts", prize: "$150 Criquet gift certificate" },
+          { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -347,6 +420,11 @@ export const sponsorPage = {
           { brand: "Boston Mints", prize: "One lip gloss each day" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "IDRA Wellness", prize: "Body lotion" },
+          { brand: "aosu", prize: "Aosu IndoorCam P1 Pro" },
+          { brand: "Beaver's Abundance", prize: "$50 gift card (plants only)" },
+          { brand: "AllWays Lounge & Cabaret (New Orleans)", prize: "Gift certificate: 2 show tickets + 2 free cocktails" },
+          { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -357,6 +435,9 @@ export const sponsorPage = {
           { brand: "Summar T. Photography", prize: "15-minute mini session (winner messages Summar T. Photography to book)" },
           { brand: "RoseMae Eimear Creations", prize: "Candle (winner picks scent)" },
           { brand: "Rip Van Winkle Gardens", prize: "Gift certificate: 2 house tours" },
+          { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
+          { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -366,6 +447,8 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Hello Darlin'", prize: "Sweet Hello Package: free 2-hr vintage audio guest book rental ($125)" },
           { brand: "Kee's Pretty Little Things", prize: "Prize to be announced" },
+          { brand: "The Crab Man Plus", prize: "Seasoning + tumbler" },
+          { brand: "Manta Sleep", prize: "Manta PRO Sleep Mask" },
         ],
       },
       {
@@ -374,7 +457,10 @@ export const sponsorPage = {
           { brand: "The Sculpt Society", prize: "Workout membership for a mama" },
           { brand: "Crew Dog", prize: "Cream LSU Teddy Embroidered Crewneck, size L" },
           { brand: "Aeva Beauty", prize: "$25 e-gift card" },
-          { brand: "The Humble Home Decor & Candles", prize: "Prize to be announced" },
+          { brand: "The Humble Home Decor & Candles", prize: "Gift card (her choice of store)" },
+          { brand: "Deming Delights", prize: "16 oz candle + mystery 6-pack of wax melts" },
+          { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
+          { brand: "God's Country RV Resort", prize: "One-night stay in a Conestoga Glamping Wagon at God's Country RV Resort, Shreveport (sleeps 4: king bed + twin bunks, climate control, mini fridge, microwave, Keurig; covered patio, private fire pit + grill; bathhouse nearby)" },
         ],
       },
       {
@@ -384,6 +470,8 @@ export const sponsorPage = {
           { brand: "Britt Creates", prize: "Headshot session" },
           { brand: "Zydeco Chop Chop", prize: "Seasoning gift basket" },
           { brand: "Proof & Pour Wax Co.", prize: "8 oz candle + wax melt (one set each day)" },
+          { brand: "Sky & Sol", prize: "1 full-size tube of sunscreen" },
+          { brand: "Cat Lady / CatLadyBox", prize: "$60 digital gift card (Cat Lady Box or catlady.com items)" },
         ],
       },
       {
@@ -392,7 +480,9 @@ export const sponsorPage = {
           { brand: "SRI Labs", prize: "KeeWee shampoo" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "3 Redneck Tenors", prize: "Pair of tickets, Feb 26 2027, Strand Theatre Shreveport" },
-          { brand: "Custom wreath sashes", prize: "Prize to be announced" },
+          { brand: "Haylie Rudisill · Custom wreath sashes", prize: "Santa wreath sash" },
+          { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
+          { brand: "Phyllis Guy Dance Center", prize: "One month of kids' dance classes (1 class a week; winner picks ballet, tap, jazz, hip hop, modern or musical theatre)" },
         ],
       },
       {
@@ -402,6 +492,9 @@ export const sponsorPage = {
           { brand: "LMNT", prize: "LMNT Variety Pack (ships to winner)" },
           { brand: "Bayou Grace Outfitters", prize: "T-shirt (winner picks design + size)" },
           { brand: "Dolly's Boutique", prize: "Faux fur collar wrap cape coat (one size)" },
+          { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
+          { brand: "Mind the Skin Labs", prize: "1 pack Signal + 1 pack Surge" },
+          { brand: "Jessica Lanham Photography", prize: "$300 photography gift certificate: covers the $100 session fee + $200 toward any package (one per winner; 4 winners)" },
         ],
       },
       {
@@ -410,7 +503,9 @@ export const sponsorPage = {
           { brand: "Boston Mints", prize: "One lip gloss each day" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "HOTWORX Baton Rouge (Millerville)", prize: "1 month free membership" },
-          { brand: "Basic Bee", prize: "Prize to be announced" },
+          { brand: "Basic Bee", prize: "Basic Bee honey gift set" },
+          { brand: "Saranoni", prize: "Saranoni Patterned Faux Fur Throw (Clove)" },
+          { brand: "Monarch Books (Baton Rouge)", prize: "Book bundle + 2 coffee mugs with stickers and bookmarks" },
         ],
       },
       {
@@ -420,6 +515,9 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Hannahbelle Photography", prize: "Free 20-minute photoshoot" },
           { brand: "Tushbaby", prize: "2-in-1 Convertible Carrier (winner picks color)" },
+          { brand: "aosu", prize: "Aosu IndoorCam P1 Pro" },
+          { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
+          { brand: "Bully Made 3D Prints & More", prize: "3D printed item (their choice)" },
         ],
       },
       {
@@ -428,8 +526,12 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Cher Bebe Embroidery", prize: "Custom wreath sash" },
           { brand: "Dupuy's Abbeville", prize: "$25 gift certificate" },
-          { brand: "Salty Cat", prize: "Salty Cat treat bundle (cat treats)" },
+          { brand: "Salty Cat", prize: "Salty Cat starter pack bundle + Salty Cat tote bag" },
           { brand: "Rip Van Winkle Gardens", prize: "$50 café gift certificate" },
+          { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
+          { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
+          { brand: "Sprinkle in Time Too (Sulphur)", prize: "2 free sundaes (redeem at the shop in Sulphur, LA)" },
+          { brand: "Cat 5 Fishing Charters (Lake Charles)", prize: "$100 gift card toward a fishing charter trip" },
         ],
       },
       {
@@ -439,6 +541,7 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Bourque's Cajun Country Seasoning", prize: "Gift basket" },
           { brand: "Rusty's Seasoning", prize: "Seasoning bundle" },
+          { brand: "HOTWORX Denham Springs", prize: "1-month Sweat Basic membership + free equipment rental" },
         ],
       },
       {
@@ -449,6 +552,10 @@ export const sponsorPage = {
           { brand: "Krazy Bull Kreations", prize: "$25 shop credit (freshies)" },
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
           { brand: "Handmade By Hayli", prize: "Car diffuser" },
+          { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
+          { brand: "Barclell Photography", prize: "Family photo sitting + 11x14 wall portrait" },
+          { brand: "Arey", prize: "Arey The System (hair serum + supplements, 1-month supply)" },
+          { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
         ],
       },
       {
@@ -469,6 +576,9 @@ export const sponsorPage = {
           { brand: "Playtopia Lafayette", prize: "1Play Package (1 child): sand play, soft play, book nook, RC Racetrack 30 min, RC Digger Pit 30 min, Lizard Wall 15 min" },
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
           { brand: "K18 Hair", prize: "K18 Molecular Repair Hair Mask" },
+          { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
+          { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
+          { brand: "Tufted Artworks", prize: "Handmade tufted fleur de lis Mardi Gras rug, ready to hang on the wall (~30 x 20 in.)" },
         ],
       },
       {
@@ -478,6 +588,7 @@ export const sponsorPage = {
           { brand: "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)", prize: "Family four-pack: 4 tickets, The Strand Theatre Shreveport, Fri Jan 22 2027, 7 PM" },
           { brand: "Proof & Pour Wax Co.", prize: "8 oz candle + wax melt (one set each day)" },
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
+          { brand: "Mind the Skin Labs", prize: "1 pack Signal + 1 pack Surge" },
         ],
       },
     ],
@@ -493,7 +604,7 @@ export const sponsorPage = {
     dayCount: { one: "{n} brand joined", many: "{n} brands joined", none: "Open" },
     full: "Full",
     /** The sign-up section has room for the full ask (owner 2026-11-18: sign-ups never close). */
-    deadline: "Please sign up by Sunday, November 22 so we can include you in the full lineup.",
+    deadline: "Please sign up by Sunday, November 22 so we can include you in the full lineup. Late sponsors are always welcome.",
     daysNote: "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.",
     anyDay: "Any day is fine",
     selectedNone: "Pick at least one day, or tick the any-day box.",
@@ -562,7 +673,7 @@ export const sponsorPage = {
     title: "Questions? We've got answers",
     items: [
       { q: "Is this really free?", a: "Yes. There's no fee to join; all we ask is a prize to give away." },
-      { q: "Who can enter the giveaways?", a: "[Louisiana residents 18+ — confirm]. Full details are in the Official Giveaway Rules." },
+      { q: "Who can enter the giveaways?", a: "Louisiana residents 18 and older. Full details are in the Official Giveaway Rules." },
       { q: "How is the winner picked?", a: "At random from eligible entries, and announced publicly on our Facebook page and group." },
       { q: "How does the prize get to the winner?", a: "Your choice, four easy ways. 1) Easiest: ship it or drop it off to us at 314 Lynn Street, Delcambre, LA 70528, and we deliver it to the winner. 2) Ship it straight to the winner: we send you their name and shipping address within 24 hours of the drawing, you ship within a week, and you send us a photo of the prize for the post. 3) Email a digital gift card, to us or to the winner. 4) Local pickup: the winner picks it up from you." },
       { q: "Can I sponsor more than one day?", a: "Absolutely! Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1." },
@@ -588,46 +699,51 @@ export const sponsorPage = {
   },
 
   rules: {
-    /** Set to true ONLY after the owner has reviewed every section and no [placeholder] is left. */
+    /** Set to true ONLY after the owner has reviewed every section and no [placeholder] is left (owner 2026-11-19). */
     // Shown to visitors instead of the rules while they are still a draft (owner 11-10).
     pendingNote: "The official rules for 25 Days of Louisiana Giveaways will be posted here before the first giveaway on December 1. Questions? Email admin@louisianahelpr.com.",
-    approved: false,
+    approved: true,
     draftBanner: "DRAFT – review before publishing",
     title: "Official giveaway rules",
     subtitle: "25 Days of Louisiana Giveaways · December 1–25, 2026",
-    backLink: "Back to the sponsor page",
+    backLink: "Back to 25 Days of Louisiana Giveaways",
     sections: [
       {
         heading: "No purchase necessary",
         body: "NO PURCHASE NECESSARY TO ENTER OR WIN. A purchase does not increase your chances of winning. Void where prohibited.",
       },
       {
+        heading: "Sponsor",
+        // Lead 2026-11-19 (privacy): the organizer is named by town only; never a street address in the rules.
+        body: "The giveaway is run by Louisiana Helpr, Delcambre, Louisiana. Prizes are provided by the participating businesses.",
+      },
+      {
         heading: "Who can enter",
-        body: "Open to legal residents of [Louisiana] who are [18] years of age or older at the time of entry. Employees of Louisiana Helpr and of the sponsor of a given day, and their immediate family members, may not win that day's prize. [Confirm eligibility.]",
+        body: "Open to legal residents of Louisiana who are 18 years of age or older at the time of entry. Employees of Louisiana Helpr and of a participating business, and their immediate family members, may not win that business's prize.",
       },
       {
         heading: "Entry period",
-        body: "Each day's giveaway opens when its post is published on that day between December 1 and December 25, 2026, and closes at [TIME] Central Time [on the following day]. Entries received after the close are not eligible.",
+        body: "Entries are accepted from when the official giveaway post is published on the Louisiana Helpr Facebook page through December 25, 2026 at 11:59 PM Central Time. One entry covers all 25 days: each eligible entry is included in every remaining daily drawing from December 1 to December 25, 2026.",
       },
       {
         heading: "How to enter",
-        body: "Follow the steps in the official entry post on the Louisiana Helpr Facebook page. Automated or bulk entries are void.",
+        body: "Enter as described in the official giveaway post on the Louisiana Helpr Facebook page. Automated or bulk entries are void.",
       },
       {
-        heading: "How winners are chosen and notified",
-        body: "One winner per sponsor per day is selected at random from all eligible entries within [24 hours] after the entry period closes. The winner is announced publicly on the Louisiana Helpr Facebook page and group and contacted by [Facebook message]. A winner who does not respond within [48 hours] forfeits the prize and an alternate winner may be selected at random.",
+        heading: "Drawings and winners",
+        body: "Each day's winners are drawn at random from all eligible entries. One win per person across the whole giveaway: once you win a prize, you are not eligible to win another. Winners are announced on the Louisiana Helpr Facebook page and group and notified by Facebook message. A winner must claim the prize within 48 hours of notification, or the prize is forfeited and a new winner is drawn at random.",
       },
       {
         heading: "Prizes and fulfillment",
-        body: "Each prize is provided by that day's sponsor, and its description and approximate retail value are stated in the giveaway post. The sponsor delivers the prize in one of these ways: by shipping or dropping it off to Louisiana Helpr, which delivers it to the winner; by shipping it directly to the winner; by emailing a digital gift card to Louisiana Helpr or the winner; or by local pickup, where the winner picks it up from the sponsor. The winner's name and shipping address are shared with that day's sponsor only to deliver the prize, and are not used for anything else. Prizes are not transferable and no cash substitute is offered except at the sponsor's discretion. Winners are responsible for any taxes on their prize. [Confirm fulfillment terms.]",
+        body: "Each prize is provided by the participating business that donated it, and its description is stated in the giveaway post. The business delivers the prize in one of these ways: by shipping or dropping it off to Louisiana Helpr, which delivers it to the winner; by shipping it directly to the winner; by emailing a digital gift card; or by local pickup, where the winner picks it up from the business. The winner's name and shipping address are shared with that business only to deliver the prize, and are not used for anything else. Prizes are not transferable and no cash substitute is offered except at the business's discretion. Winners are responsible for any taxes on their prize.",
       },
       {
         heading: "Facebook release",
-        body: "This giveaway is in no way sponsored, endorsed or administered by, or associated with, Facebook or Meta. By entering, you release Facebook and Meta from any and all liability related to this giveaway. You are providing your information to Louisiana Helpr and the day's sponsor, not to Facebook.",
+        body: "This giveaway is in no way sponsored, endorsed or administered by, or associated with, Facebook or Meta. By entering, you release Facebook and Meta from any and all liability related to this giveaway. You are providing your information to Louisiana Helpr, not to Facebook.",
       },
       {
         heading: "General",
-        body: "Louisiana Helpr may disqualify any entry it finds fraudulent or in violation of these rules, and may cancel or modify a giveaway if it cannot run as planned. Sponsor: [Louisiana Helpr legal name and address].",
+        body: "Louisiana Helpr may disqualify any entry it finds fraudulent or in violation of these rules, and may cancel or modify a drawing if it cannot run as planned. Void where prohibited.",
       },
       {
         heading: "Questions",

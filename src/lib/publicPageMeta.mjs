@@ -137,12 +137,13 @@ export const PUBLIC_PAGE_META = {
   // the event's only; never a sponsor's day (owner 11-17: don't share sponsor dates until final). /sponsor stays noindex.
   "/25days": {
     title: "25 Days of Louisiana Giveaways, December 1–25, 2026 — Helpr",
+    // Owner 2026-11-19: /25days is for people entering (most arrive from Facebook), so its preview speaks to them.
     description:
-      "A free giveaway every day from December 1 to 25, 2026, from Louisiana businesses, on Louisiana Helpr. Louisiana brands can join as partners: no fees, no contracts.",
+      "Free to enter: every day from December 1 to 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors. One entry covers all 25 days. Louisiana residents 18+.",
     canonical: `${SITE_ORIGIN}/25days`,
     ogTitle: "25 Days of Louisiana Giveaways: December 1–25",
     ogDescription:
-      "A free giveaway every day from December 1 to 25, 2026, from Louisiana businesses. Louisiana brands can join as partners.",
+      "Free to enter: Louisiana businesses give away gifts every day, December 1–25. One entry covers all 25 days. Louisiana residents 18+.",
   },
   "/help": {
     title: "Help center — Helpr",

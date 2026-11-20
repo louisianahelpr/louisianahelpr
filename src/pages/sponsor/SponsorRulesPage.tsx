@@ -95,7 +95,7 @@ export default function SponsorRulesPage() {
     <div className="lh25 min-h-screen bg-premium-page"><SponsorChrome />
       <div className="lh25-rules">
         {draft && showDraft ? <p className="lh25-draft" role="note" data-testid="rules-draft-banner">{C.rules.draftBanner}</p> : null}
-        <Link className="lh25-back" to="/sponsor">← {C.rules.backLink}</Link>
+        <Link className="lh25-back" to="/25days">← {C.rules.backLink}</Link>
         <h1>{C.rules.title}</h1>
         <p className="lh25-rules-sub">{C.rules.subtitle}</p>
         {/* Owner 11-10: an unfinished draft is never shown to the public; only the local preview (?demo) shows it. */}

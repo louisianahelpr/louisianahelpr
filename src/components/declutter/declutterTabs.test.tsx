@@ -156,6 +156,9 @@ vi.mock("@/components/AppPage", () => ({
 vi.mock("@/lib/declutter/haulAway", () => ({
   fetchHaulAwayState: async () => [],
   oneTripGroup: () => [],
+  // Owner 2026-11-20: the opt-in read and filter (haul-away only when the seller asked); every row kept here.
+  fetchHaulAwayOptIns: async () => new Set<string>(),
+  offeredHaulAwayRows: <T,>(rows: T[]) => rows,
   haulJobToDelete: () => null,
   deleteNeverPaidHaulJob: async () => true,
   cancelHaulAway: async () => "live",

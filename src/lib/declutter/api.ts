@@ -919,11 +919,6 @@ export async function withdrawItem(itemId: string): Promise<void> {
   await removeObjects((paths ?? []) as string[]);
 }
 
-/** The seller says their free listing is still there; the next ask is 14 days away (20261030232231). */
-export async function markStillAvailable(itemId: string): Promise<string> {
-  return rpcData(await supabase.rpc("declutter_free_still_available", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_free_still_available", e)) as string;
-}
-
 /** "Mark sold elsewhere" (A2-5): off sale like a withdraw, but the listing is kept as 'sold_elsewhere'. Its photos go the same way. */
 export async function markSoldElsewhere(itemId: string): Promise<void> {
   const paths = rpcData(await supabase.rpc("declutter_mark_sold_elsewhere", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_mark_sold_elsewhere", e));
@@ -1006,6 +1001,21 @@ export async function fetchKeepUp(itemId: string): Promise<boolean | "not_deploy
 
 export async function setKeepUp(itemId: string, on: boolean): Promise<boolean> {
   return rpcData(await supabase.rpc("declutter_set_keep_up", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_keep_up", e)) as boolean;
+}
+
+/**
+ * "If it doesn't sell, offer me a haul-away" (owner 2026-11-20): off by default; only a listing with it on gets the
+ * 14-day haul-away notice and the haul-away card on My listings (migration 20261120152652). null = haul-away is not
+ * open for this member (nothing to choose); "not_deployed" before the migration reaches prod (PGRST202).
+ */
+export async function fetchHaulAwayOptIn(itemId: string): Promise<boolean | null | "not_deployed"> {
+  const r = await supabase.rpc("declutter_haul_away_opt_in_state", { p_item_id: itemId });
+  if (isMissingRpcNamed(r.error, "declutter_haul_away_opt_in_state")) return "not_deployed";
+  return rpcData(r, (e) => rpcErrorMessage("declutter_haul_away_opt_in_state", e)) as boolean | null;
+}
+
+export async function setHaulAwayOptIn(itemId: string, on: boolean): Promise<boolean> {
+  return rpcData(await supabase.rpc("declutter_set_haul_away_opt_in", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_haul_away_opt_in", e)) as boolean;
 }
 
 /** Board 158: hide a live listing from buyers (photos and saves kept; open offers close). */

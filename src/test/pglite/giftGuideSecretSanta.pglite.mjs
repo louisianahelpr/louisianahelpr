@@ -36,7 +36,7 @@ const MUTANTS = {
   noRateLimit: ["hit_at > now() - interval '1 hour') >= 10", "hit_at > now() - interval '1 hour') >= 100000"],
   lowGlobalCap: ["     OR v_hour_total >= 20000 THEN", "     OR v_hour_total >= 300 THEN"],
   dayBucket: ["  v_bucket := md5('secret-santa:' || COALESCE(v_addr, 'no-address'));", "  v_bucket := md5('secret-santa:' || COALESCE(v_addr, 'no-address') || ':' || clock_timestamp()::text);"],
-  fullIpv6: ["      v_addr := host(network(set_masklen(v_addr::inet, 64))) || '/64';", "      v_addr := v_addr;"],
+  fullIpv6: ["      v_addr := 'v6net:' || host(network(set_masklen(v_addr::inet, 64)));", "      v_addr := v_addr;"],
   noSurgeLog: ["  IF v_hour_total >= 1000 AND NOT EXISTS (", "  IF false AND NOT EXISTS ("],
   linkNames: ["       OR v_name ~* '(://", "       OR v_name ~* '(NEVER"],
   phoneNames: ["       OR length(regexp_replace(v_name, '[^0-9]', '', 'g')) >= 7 THEN", "       THEN"],

@@ -126,7 +126,7 @@ BEGIN
   -- An IPv6 address counts by its /64; anything that is not an address counts as written.
   IF v_addr LIKE '%:%' THEN
     BEGIN
-      v_addr := host(network(set_masklen(v_addr::inet, 64))) || '/64';
+      v_addr := 'v6net:' || host(network(set_masklen(v_addr::inet, 64)));
     EXCEPTION WHEN others THEN
       v_addr := v_addr;  -- not a valid address: its own bucket
     END;

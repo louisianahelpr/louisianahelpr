@@ -13,7 +13,8 @@ import {
 } from "@/content/giftGuideFun1120";
 import { SantaSaveError, createSecretSanta } from "@/lib/giftGuideFunApi";
 import { Hint } from "../GiftHint";
-import { FunPage } from "./FunPage";
+import { FunBody, funHeader } from "./FunPage";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 
 /**
  * /gift-guides/secret-santa (owner 2026-11-20): the organizer types first names (and optionally a budget, a day and
@@ -81,7 +82,8 @@ export default function SecretSanta() {
   };
 
   return (
-    <FunPage title={W.santaTitle} path={SANTA_PATH}>
+    <PublicHeaderPage {...funHeader(W.santaTitle)}>
+      <FunBody title={W.santaTitle} path={SANTA_PATH}>
       {done ? (
         <section aria-labelledby="santa-done" data-santa-done="">
           <h2 id="santa-done">{W.santaDoneTitle}</h2>
@@ -166,6 +168,7 @@ export default function SecretSanta() {
           <p className="gg-fun-note">{W.santaKeepNote}</p>
         </form>
       )}
-    </FunPage>
+      </FunBody>
+    </PublicHeaderPage>
   );
 }

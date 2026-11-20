@@ -9,7 +9,8 @@ import { track } from "@/lib/analytics";
 import { FUN_WORDS as W, dollars, parseDollars, personMoney, planMoney, type PlanPerson } from "@/content/giftGuideFun1120";
 import { useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
-import { FunPage } from "./FunPage";
+import { FunBody, funHeader } from "./FunPage";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { planActions as A, useAccountSync, usePlan } from "./plannerStore";
 
 /**
@@ -141,7 +142,8 @@ export default function GiftPlanner() {
     setName("");
   };
   return (
-    <FunPage title={W.plannerTitle} path={PATH}>
+    <PublicHeaderPage {...funHeader(W.plannerTitle)}>
+      <FunBody title={W.plannerTitle} path={PATH}>
       <p className="gg-fun-lead">{W.plannerLead}</p>
       <Hint id="fun-planner">{W.hintPlanner}</Hint>
       {plan.people.length > 0 && (
@@ -170,6 +172,7 @@ export default function GiftPlanner() {
         {!user && <Link to="/login" className="gg-link min-h-0">{W.plannerSignIn}</Link>}
       </p>
       <Button asChild variant="link" size="inline" className="gg-link"><Link to="/gift-guides/swipe">{W.plannerFindGifts} ›</Link></Button>
-    </FunPage>
+      </FunBody>
+    </PublicHeaderPage>
   );
 }

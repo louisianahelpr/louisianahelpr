@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
@@ -7,19 +6,23 @@ import { GIFT_WISH_CSS } from "../giftWishStyles";
 
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names";
 
+/** The shared shell's props for a fun page: the gift guides' public header, back to /gift-guides, a wrapping title. */
+export const funHeader = (title: string) => ({ title, backTo: "/gift-guides", bottomPaddingClassName: "pb-12 md:pb-16", wrapTitle: true });
+
 /**
- * The frame of the four fun pages (owner 2026-11-20): the gift guides' public header (back to /gift-guides), the
- * guides' own styles plus FUN_CSS, and one centered column. The three public pages take their head from
- * PUBLIC_PAGE_META (the same words api/share.ts writes before JS); a private page (a Secret Santa reveal) is noindex.
+ * The body of the four fun pages (owner 2026-11-20), inside each page's own <PublicHeaderPage {...funHeader(title)}>
+ * (the shared shell, src/test/shellConsistency.test.ts): the guides' own styles plus FUN_CSS and one centered column.
+ * The three public pages take their head from PUBLIC_PAGE_META (the same words api/share.ts writes before JS); a
+ * private page (a Secret Santa reveal) is noindex.
  */
-export function FunPage({ title, path, noindex, children }: { title: string; path: FunPath; noindex?: boolean; children: ReactNode }) {
+export function FunBody({ title, path, noindex, children }: { title: string; path: FunPath; noindex?: boolean; children: ReactNode }) {
   const meta = PUBLIC_PAGE_META[path];
   usePageMeta(noindex ? { title: `${title} — Helpr`, description: meta.description, robots: "noindex", noCanonical: true } : meta);
   return (
-    <PublicHeaderPage title={title} backTo="/gift-guides" bottomPaddingClassName="pb-12 md:pb-16" wrapTitle>
+    <>
       <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
       <div className="gg gg-fun w-full" data-gift-fun={path}>{children}</div>
-    </PublicHeaderPage>
+    </>
   );
 }
 

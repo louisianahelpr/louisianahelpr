@@ -5,7 +5,8 @@ import { FUN_WORDS as W, SANTA_PATH } from "@/content/giftGuideFun1120";
 import { revealSecretSanta, setSecretSantaWishList, type SantaReveal } from "@/lib/giftGuideFunApi";
 import { saveWishList, sharedListPath } from "@/lib/giftWishListApi";
 import { listName, listRefs, useGiftList } from "../giftList";
-import { FunPage } from "./FunPage";
+import { FunBody, funHeader } from "./FunPage";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { track } from "@/lib/analytics";
 
 /**
@@ -59,7 +60,8 @@ export default function SecretSantaReveal() {
   };
 
   return (
-    <FunPage title={W.revealTitle} path={SANTA_PATH} noindex>
+    <PublicHeaderPage {...funHeader(W.revealTitle)}>
+      <FunBody title={W.revealTitle} path={SANTA_PATH} noindex>
       {state.kind === "loading" && <p className="gg-fun-lead" role="status" data-reveal-loading="">{W.revealLoading}</p>}
       {state.kind === "missing" && (
         <div className="gg-fun-card" data-reveal-missing="">
@@ -108,6 +110,7 @@ export default function SecretSantaReveal() {
           </div>
         </section>
       )}
-    </FunPage>
+      </FunBody>
+    </PublicHeaderPage>
   );
 }

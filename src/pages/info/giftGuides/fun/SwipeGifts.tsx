@@ -12,7 +12,8 @@ import { PickThumb, storeLabel } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
 import { addToWishList, itemId, listName, listRefs, useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
-import { FunPage } from "./FunPage";
+import { FunBody, funHeader } from "./FunPage";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 
 /**
  * /gift-guides/swipe (owner 2026-11-20): pick who and a budget, then 20 cards from the guides' picks (strongest first,
@@ -149,7 +150,8 @@ export default function SwipeGifts() {
   };
 
   return (
-    <FunPage title={W.swipeTitle} path={PATH}>
+    <PublicHeaderPage {...funHeader(W.swipeTitle)}>
+      <FunBody title={W.swipeTitle} path={PATH}>
       {!started ? (
         <section aria-labelledby="swipe-setup" data-swipe-setup="">
           <h2 id="swipe-setup" className="sr-only">{W.swipeTitle}</h2>
@@ -229,6 +231,7 @@ export default function SwipeGifts() {
           </div>
         </section>
       )}
-    </FunPage>
+      </FunBody>
+    </PublicHeaderPage>
   );
 }

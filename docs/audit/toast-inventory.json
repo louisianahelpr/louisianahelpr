@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1259,
-    "files": 364,
-    "rendering": 1180,
+    "calls": 1261,
+    "files": 365,
+    "rendering": 1182,
     "suppressedByPolicy": 79,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
-      "toast": 253,
-      "toast.error": 847,
+      "toast": 254,
+      "toast.error": 848,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 85,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 468,
       "template": 100,
-      "dynamic": 745,
+      "dynamic": 747,
       "jsx": 0
     }
   },
@@ -9488,7 +9488,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 153,
+      "line": 155,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9515,7 +9515,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 163,
+      "line": 165,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9579,7 +9579,7 @@
     },
     {
       "file": "src/components/messages/useConversationListState.ts",
-      "line": 419,
+      "line": 430,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -9589,7 +9589,7 @@
     },
     {
       "file": "src/components/messages/useConversationListState.ts",
-      "line": 425,
+      "line": 436,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -15471,7 +15471,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 346,
+      "line": 347,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15525,7 +15525,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 386,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -15535,7 +15535,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 396,
+      "line": 397,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15681,8 +15681,62 @@
       "renders": true
     },
     {
+      "file": "src/pages/messages/useDeleteForMe.tsx",
+      "line": 38,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"msg.deletedForMe\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/useDeleteForMe.tsx",
+      "line": 41,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"msg.deleteForMeFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 609,
+      "line": 624,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15692,7 +15746,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 670,
+      "line": 685,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15702,7 +15756,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 702,
+      "line": 717,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15712,7 +15766,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 741,
+      "line": 756,
       "kind": "toast.error",
       "title": {
         "form": "literal",

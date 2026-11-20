@@ -201,7 +201,7 @@ function restartOnDependencyChange(): Plugin {
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd());
-const { itemDeep: declutterItemDeep, itemPages: declutterItemPages, itemShared: declutterItemShared } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
+const { itemDeep: declutterItemDeep, itemPages: declutterItemPages, itemFirst: declutterItemFirst, itemShared: declutterItemShared } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff, declutterOnly });
 const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
 const jobsBrowseFirstScreen = jobsBrowseFirstScreenModules(process.cwd(), { homeOff });
 // Q2705 pass 2 (11-17): all of /jobs' Browse reach; the jobs-late, jobs-signed-in and jobs-dock groups read it.
@@ -1308,6 +1308,18 @@ export default defineConfig(({ mode, command }) => ({
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // Q178 (11-20): the part of declutter-first-screen the public item page reaches (bootReach.mjs
+            // declutterItemSplit itemFirst). In declutter-first-screen it put Selling's and Browse's first-screen code
+            // (~53 modules: seller delivery, wanted, saved searches, Helpr tasks' errors) on every cold item page. Above
+            // declutter-first-screen (17) so it wins them; /declutter fetches both in the same round.
+            {
+              name: "decl-item-first",
+              test: (id: string) => declutterItemFirst.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 17.1,
+              minSize: 0,
+              includeDependenciesRecursively: false
             },
             {
               name: "declutter-first-screen",

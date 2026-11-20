@@ -95,10 +95,10 @@ function expectOwnPage(doc: string, h1Text: string) {
 describe("the data the build writes", () => {
   it("holds every indexed guide, with picks for the guides that have them", () => {
     const slugs = Object.keys(GIFT_GUIDE_SEO);
-    // Big batch 2026-11-20: ~65 merged guides and 30 store pages (the old guides 301 to their sections).
-    expect(slugs.length).toBeGreaterThan(80);
+    // Follow-up 1120: 28 merged guides and 26 store pages (54, measured 2026-11-20; the old guides 301 to their sections).
+    expect(slugs.length).toBeGreaterThan(40);
     for (const s of slugs) expect(data.guides[s], s).toBeDefined();
-    expect(Object.values(data.guides).filter((g) => g.indexed && g.picks.length > 0).length).toBeGreaterThan(80);
+    expect(Object.values(data.guides).filter((g) => g.indexed && g.picks.length > 0).length).toBeGreaterThan(40);
     expect(data.groups.length).toBeGreaterThan(5);
   });
 
@@ -128,7 +128,8 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
 
   it("every indexed guide with picks names its first pick in the raw HTML (sampled across the list)", async () => {
     const slugs = Object.keys(GIFT_GUIDE_SEO).filter((s) => data.guides[s]?.picks.length);
-    const sample = slugs.filter((_, i) => i % 15 === 0);
+    // Follow-up 1120: every 8th of the 54 indexed guides (measured 2026-11-20).
+    const sample = slugs.filter((_, i) => i % 8 === 0);
     expect(sample.length).toBeGreaterThan(5);
     for (const s of sample) {
       const { status, body } = await html(`gift-guides/${s}`);
@@ -143,7 +144,7 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
     expect(status).toBe(200);
     expectOwnPage(body, "Holiday Gift Guides");
     const links = [...rootOf(body).matchAll(/<a href="\/gift-guides\/([a-z0-9-]+)">/g)].map((m) => m[1]);
-    expect(links.length).toBeGreaterThan(80); // 1120: ~65 guides + 30 store pages
+    expect(links.length).toBeGreaterThan(40); // follow-up 1120: 28 guides + 26 store pages = 54, measured 2026-11-20
     expect(links).toContain("mom");
     expect(types(body)).toContain("ItemList");
   });
@@ -157,9 +158,9 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
 
   it("no guide title anywhere reads 'Gifts for the: X'", async () => {
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/for the:/i);
-    // 1120: Artist is a section of Creatives & Hobbyists; Home Cook keeps its "for the" lead.
-    const { body } = await html("gift-guides/home-cook");
-    expect(/<title>([^<]*)<\/title>/.exec(body)?.[1]).toBe("Gifts for the Foodie &amp; Home Cook — Helpr");
+    // Follow-up 1120: Home Cook is a section of Home & Kitchen; Family keeps the "for the" lead.
+    const { body } = await html("gift-guides/family");
+    expect(/<title>([^<]*)<\/title>/.exec(body)?.[1]).toBe("Gifts for the Family — Helpr");
   });
 });
 
@@ -197,8 +198,14 @@ describe("real 404s, not the homepage under a 200", () => {
   });
 
   it("a catalog guide kept out of search answers 200 with noindex (not a 404)", async () => {
-    const [slug] = Object.entries(data.guides).find(([, g]) => !g.indexed)!;
-    const { status, body } = await html(`gift-guides/${slug}`);
+    // Follow-up 1120: every catalog guide holds 8+ picks and is indexed now; one kept out (when there is one) still
+    // answers 200 with noindex.
+    const unindexed = Object.entries(data.guides).find(([, g]) => !g.indexed);
+    if (!unindexed) {
+      expect(Object.values(data.guides).every((g) => g.indexed)).toBe(true);
+      return;
+    }
+    const { status, body } = await html(`gift-guides/${unindexed[0]}`);
     expect(status).toBe(200);
     expect(body).toContain('<meta name="robots" content="noindex, follow" />');
   });
@@ -213,7 +220,7 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
     // The fun pages (owner 2026-11-20) are info pages under /gift-guides: 200 with their own body, no guide.
     const own = ["/gift-guides/black-friday-cyber-monday", "/gift-guides/small-business-saturday", "/gift-guides/swipe", "/gift-guides/planner", "/gift-guides/draw-names"];
     const guides = locs.filter((p) => p.startsWith("/gift-guides/") && !own.includes(p));
-    expect(guides.length).toBeGreaterThan(80); // 1120: ~65 merged guides + 30 store pages
+    expect(guides.length).toBeGreaterThan(40); // follow-up 1120: 28 guides + 26 store pages = 54, measured 2026-11-20
     for (const p of guides) expect(data.guides[p.slice("/gift-guides/".length)]?.indexed, p).toBe(true);
     for (const p of own) {
       expect(locs, p).toContain(p);
@@ -226,7 +233,7 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
 
   it("a guide whose picks carry a price-check day has that day as its lastmod", () => {
     expect(xml).toMatch(/<loc>https:\/\/www\.louisianahelpr\.com\/gift-guides<\/loc>\s*<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
-    expect((xml.match(/<lastmod>/g) ?? []).length).toBeGreaterThan(40);
+    expect((xml.match(/<lastmod>/g) ?? []).length).toBeGreaterThan(25); // follow-up 1120: 33 measured 2026-11-20
   });
 });
 

@@ -52,13 +52,13 @@ describe("gift guides r3 UX Lows", () => {
     expect(py).toContain("if len(lines) > 2:  # a tighter break");
   });
 
-  it("#10: the Girls, Boys and Gender-neutral tiles carry a visible caption", () => {
+  // Follow-up 1120 (owner 11-20 ~1:10 AM): Girls, Boys and Gender-Neutral are sections of ONE Kids guide, so the For kids
+  // row is the Kids tile alone (no hub tiles left to caption).
+  it("#10: the For kids row shows the one Kids tile; Girls, Boys and Gender-neutral have no tiles of their own", () => {
     const { container } = renderAt("/gift-guides");
-    const caption = (slug: string) => container.querySelector(`[data-gift-row='for-kids'] [data-gift-tile='${slug}'] [data-gift-tile-name]`);
-    for (const [slug, text] of [["girls", "Girls"], ["boys", "Boys"], ["gender-neutral", "Gender-Neutral"]]) {
-      expect(caption(slug)?.textContent, slug).toBe(text);
-      expect(caption(slug)?.classList.contains("sr-only"), slug).toBe(false);
-    }
+    const row = container.querySelector("[data-gift-row='for-kids']")!;
+    expect([...row.querySelectorAll("[data-gift-tile]")].map((t) => t.getAttribute("data-gift-tile"))).toEqual(["kids"]);
+    for (const slug of ["girls", "boys", "gender-neutral"]) expect(row.querySelector(`[data-gift-tile='${slug}']`), slug).toBeNull();
   });
 
   it("#11: a Top 10 card name drops a trailing spec list, and wraps to three lines", () => {
@@ -88,7 +88,7 @@ describe("gift guides r3 UX Lows", () => {
   it("#15: no guide shows the badge photos", () => {
     const dir = "src/content/giftGuidePicks";
     const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
-    expect(files.length).toBeGreaterThan(90); // 1120: ~65 guides + 30 store pages
+    expect(files.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
     const hits = files.filter((f) => /b9346480-e5d8-405a-be12-eedecc9dad24|a1cad1c0a8ae4be69efa19221195a9c4/.test(readFileSync(`${dir}/${f}`, "utf8")));
     expect(hits).toEqual([]);
   });

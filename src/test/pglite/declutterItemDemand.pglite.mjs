@@ -5,6 +5,7 @@
  *
  *   node src/test/pglite/declutterItemDemand.pglite.mjs                     # ALL PASS (migration applied 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/declutterItemDemand.pglite.mjs  # RED: no such function
+ *   FIX_MIGRATION=skip node src/test/pglite/declutterItemDemand.pglite.mjs  # RED: 42804 COALESCE text/uuid (prod 2026-11-20)
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/declutterItemDemand.pglite.mjs
  *
  * Trimmed stand-in tables; declutter_watchlist is the real CREATE. auth.uid() and the visibility helpers are stubs
@@ -18,6 +19,12 @@ const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathna
 const mig = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261120012729_declutter_item_demand.sql`, "utf8");
 const foundation = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
 const watchTable = foundation.match(/CREATE TABLE IF NOT EXISTS public\.declutter_watchlist \([\s\S]*?\n\);/)[0];
+
+const viewsMig = readFileSync(`${MIG_DIR}20261105163501_declutter_item_views.sql`, "utf8");
+// The REAL declutter_item_views CREATE (device_id is uuid). A text stand-in hid the 42804 that broke prod (20261120121830).
+const viewsTable = viewsMig.match(/CREATE TABLE IF NOT EXISTS public\.declutter_item_views \([\s\S]*?\n\);/)[0]
+  .replace(/ REFERENCES public\.declutter_items\(id\) ON DELETE CASCADE/, "").replace(/ REFERENCES auth\.users\(id\) ON DELETE CASCADE/, "");
+const fixMig = readFileSync(`${MIG_DIR}20261120121830_declutter_views_coalesce_uuid.sql`, "utf8");
 
 let pass = 0, fail = 0;
 const ok = (cond, what) => { if (cond) { pass++; console.log(`PASS ${what}`); } else { fail++; console.log(`FAIL ${what}`); } };
@@ -42,9 +49,9 @@ create table public.test_accounts(user_id uuid primary key);
 insert into public.test_accounts values ('${Q}');
 create table public.declutter_items(id uuid primary key, seller_id uuid not null, status text not null, seller_hidden boolean not null default false, is_seed boolean not null default false, current_price_cents integer not null default 1000);
 create table public.declutter_offers(id uuid primary key default gen_random_uuid(), item_id uuid not null, buyer_id uuid not null, created_at timestamptz not null default now());
-create table public.declutter_item_views(id bigserial primary key, item_id uuid not null, viewer_id uuid, device_id text, created_at timestamptz not null default now());
 `);
 await db.exec(watchTable.replace(/REFERENCES public\.declutter_items\(id\) ON DELETE CASCADE/, ""));
+await db.exec(viewsTable);
 await db.exec(`
 insert into public.declutter_items values
   ('${it(1)}', '${S}', 'live', false, false), ('${it(2)}', '${S}', 'live', true, false),
@@ -57,7 +64,7 @@ insert into public.declutter_offers (item_id, buyer_id, created_at) values
   ('${it(1)}', '${T}', now() - interval '1 day'), ('${it(1)}', '${Q}', now() - interval '1 day'); -- test people: not counted
 insert into public.declutter_item_views (item_id, viewer_id, device_id, created_at) values
   ('${it(1)}', '${A}', null, now()), ('${it(1)}', '${A}', null, now()),   -- one person: 1
-  ('${it(1)}', null, 'dev-1', now()), ('${it(1)}', null, 'dev-2', now()), -- two devices: 3
+  ('${it(1)}', null, 'd0000000-0000-4000-8000-000000000001', now()), ('${it(1)}', null, 'd0000000-0000-4000-8000-000000000002', now()), -- two devices: 3
   ('${it(1)}', '${S}', null, now()),                                      -- the seller: not counted
   ('${it(1)}', '${T}', null, now()), ('${it(1)}', '${Q}', null, now()),   -- test people: not counted
   ('${it(1)}', '${B}', null, now() - interval '3 days');                  -- not today
@@ -65,7 +72,7 @@ insert into public.declutter_item_views (item_id, viewer_id, device_id, created_
 
 // And the newest definition: 20261120014036 (shop sale, #4) restates it with the sale columns; the counts must not move.
 const saleMig = readFileSync(`${MIG_DIR}20261120014036_declutter_shop_sale.sql`, "utf8");
-if (process.env.NEW_MIGRATION !== "skip") { for (let i = 0; i < 3; i++) await db.exec(mig); if (!process.env.MIGRATION_PATH) for (let i = 0; i < 3; i++) await db.exec(saleMig); }
+if (process.env.NEW_MIGRATION !== "skip") { for (let i = 0; i < 3; i++) await db.exec(mig); if (!process.env.MIGRATION_PATH) for (let i = 0; i < 3; i++) await db.exec(saleMig); if (!process.env.MIGRATION_PATH && process.env.FIX_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(fixMig); }
 
 const ALL = `array['${[1, 2, 3, 4].map(it).join("','")}']::uuid[]`;
 const set = async (k, v) => db.exec(`select set_config('t.${k}', '${v ?? ""}', false)`);

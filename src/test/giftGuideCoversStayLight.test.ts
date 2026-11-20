@@ -27,7 +27,7 @@ function webpSize(b: Buffer): { w: number; h: number } | null {
 describe("gift guide covers stay light", () => {
   it("every cover is a 480x480 WebP of at most 20 KB", () => {
     const files = readdirSync(DIR).filter((f) => f.endsWith(".webp"));
-    expect(files.length).toBeGreaterThan(80); // 1120: ~65 guides + 30 store pages
+    expect(files.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (54)
     for (const f of files) {
       const b = readFileSync(`${DIR}/${f}`);
       expect(b.length, f).toBeLessThanOrEqual(MAX_BYTES);

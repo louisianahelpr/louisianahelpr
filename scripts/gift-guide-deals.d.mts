@@ -24,6 +24,12 @@ export interface DealSources {
   cdn?: Record<string, string>;
 }
 export function loadSources(dir?: string): DealSources;
+export const DROP_1120: string[];
+export function withDeals1120(
+  deals: DealSources["deals"],
+  more: { remove_from_page?: { brand: string }[]; skipped_fixed?: (RawDeal & { category: string })[]; new_deals?: (RawDeal & { category: string })[] },
+  fills?: Record<string, string>,
+): DealSources["deals"];
 export function photoOf(image: string | undefined, cdn?: Record<string, string>): string | undefined;
 export function commissionOf(d: RawDeal, src: Pick<DealSources, "brandLinks" | "campaigns">): number;
 export function ownStoreLink(d: RawDeal, brandLinks: DealSources["brandLinks"]): BrandLink | null;

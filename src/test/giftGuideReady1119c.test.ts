@@ -35,7 +35,7 @@ describe("gift guides: ready pass 1119c", () => {
       n += 1;
       return (typeof p.price === "number" && p.price > PRICE_MAX) || nonGiftService(s, p) || blockedBrand(p);
     }).map((p) => `${s}: ${p.name}`));
-    expect(n).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
+    expect(n).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,750 rows)
     expect(bad).toEqual([]);
   });
 

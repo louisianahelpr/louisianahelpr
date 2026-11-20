@@ -23,10 +23,11 @@ export const FINDER_WHO: { id: FinderWho; label: string; guides: { slug: string;
   { id: "him", label: "Him", guides: [{ slug: "him" }] },
   { id: "mom", label: "Mom", guides: [{ slug: "mom" }] },
   { id: "dad", label: "Dad", guides: [{ slug: "dad" }] },
-  { id: "kids", label: "Kids", guides: [{ slug: "gender-neutral", sections: ["gender-neutral-little-kids", "gender-neutral-big-kids"] }, { slug: "girls", sections: ["girls-little-kids", "girls-big-kids"] }, { slug: "boys", sections: ["boys-little-kids", "boys-big-kids"] }] },
-  { id: "teen", label: "Teen", guides: [{ slug: "girls", sections: ["girls-teens"] }, { slug: "boys", sections: ["boys-teens"] }, { slug: "gender-neutral", sections: ["gender-neutral-teens"] }] },
-  { id: "friend", label: "Friend", guides: [{ slug: "friends" }] },
-  { id: "coworker", label: "Coworker", guides: [{ slug: "work-gifts" }] },
+  // Follow-up 1120: Kids is one guide by age; Friends and Coworkers are sections of Friends & Coworkers.
+  { id: "kids", label: "Kids", guides: [{ slug: "kids", sections: ["little-kids"] }, { slug: "kids", sections: ["big-kids"] }] },
+  { id: "teen", label: "Teen", guides: [{ slug: "kids", sections: ["teens"] }] },
+  { id: "friend", label: "Friend", guides: [{ slug: "friends-and-coworkers", sections: ["friends"] }] },
+  { id: "coworker", label: "Coworker", guides: [{ slug: "friends-and-coworkers", sections: ["coworkers-and-boss"] }] },
   { id: "grandparent", label: "Grandparent", guides: [{ slug: "grandparents" }] },
 ];
 export const FINDER_BUDGETS: { id: FinderBudget; label: string }[] = [
@@ -36,7 +37,7 @@ export const FINDER_BUDGETS: { id: FinderBudget; label: string }[] = [
 export const FINDER_VIBES: { id: FinderVibe; label: string; words: RegExp }[] = [
   { id: "cozy", label: "Cozy", words: /\b(cozy|cosy|sherpa|fleece|blanket|throw|slippers?|robe|pajamas?|pj|socks?|candle|sweatshirt|hoodie|barefoot dreams|ugg|weighted|heated)\b/i },
   { id: "practical", label: "Practical", words: /\b(tumbler|bottle|organizer|charger|charging|wallet|tool|kit|bag|backpack|tote|case|pouch|lunch|cooler|knife|multi-?tool|flashlight|headlamp|scanner|planner)\b/i },
-  { id: "trendy", label: "Trendy", words: /\b(stanley|owala|lululemon|jellycat|sol de janeiro|laneige|rare beauty|stoney clover|baublebar|summer fridays|dyson|crocs|squishmallow|needoh|kendra scott)\b/i },
+  { id: "trendy", label: "Trendy", words: /\b(stanley|owala|lululemon|jellycat|sol de janeiro|laneige|rare beauty|stoney clover|baublebar|summer fridays|dyson|crocs|squishmallow|needoh)\b/i },
   { id: "louisiana", label: "Louisiana", words: /\b(louisiana|lsu|saints|new orleans|nola|cajun|creole|acadiana|crawfish|beignet|mardi gras|fleur de lis|bayou|geaux)\b/i },
   { id: "outdoorsy", label: "Outdoorsy", words: /\b(yeti|cooler|fishing|fish|hunting|hunt|camp|camping|hiking|costa|huk|simms|aftco|columbia|boots?|rain|kayak|boat|grill|solo stove|duck|deer|outdoor)\b/i },
 ];

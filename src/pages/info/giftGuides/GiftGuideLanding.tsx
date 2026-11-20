@@ -54,9 +54,10 @@ const PRIORITY_COVERS = 4;
  * stocking stuffers, a kid by age, him, her, Louisiana), one tap each. A chip whose guide holds nothing is left out.
  */
 export const QUICK_PICKS: { label: string; to: string; slug?: string }[] = [
-  { label: "Under $25", to: "/gift-guides/under-25", slug: "under-25" },
-  { label: "Under $50", to: "/gift-guides/under-50", slug: "under-50" },
-  { label: "Stocking stuffers", to: "/gift-guides/stocking-stuffers", slug: "stocking-stuffers" },
+  // Follow-up 1120: Under $25, Under $50 and Stocking Stuffers are sections of Gifts by Budget.
+  { label: "Under $25", to: "/gift-guides/gifts-by-budget#under-25", slug: "gifts-by-budget" },
+  { label: "Under $50", to: "/gift-guides/gifts-by-budget#under-50", slug: "gifts-by-budget" },
+  { label: "Stocking stuffers", to: "/gift-guides/gifts-by-budget#stocking-stuffers", slug: "gifts-by-budget" },
   // Big batch 1120 (owner-approved quick picks, in her order: Under $25, Under $50, Stocking Stuffers, Her, Him, Kids, Louisiana).
   { label: "Her", to: "/gift-guides/her", slug: "her" },
   { label: "Him", to: "/gift-guides/him", slug: "him" },

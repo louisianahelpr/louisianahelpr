@@ -3,7 +3,7 @@
  * (12 PASS applied 3x; NEW_MIGRATION=skip RED; a planted body that counts refunded orders as sales 1 FAIL). Here: the
  * newest definition keeps the rules, and the card draws the to-dos and honest week-on-week words.
  *
- * @mutate supabase/migrations/20261120012050_declutter_selling_home.sql |      AND o.status IN ('paid', 'handed_over') |      AND true
+ * @mutate supabase/migrations/20261120121830_declutter_views_coalesce_uuid.sql |      AND o.status IN ('paid', 'handed_over') |      AND true
  * @mutate src/lib/declutter/sellerTools.ts |   if (last === 0) return { dir: "new", pct: 0 }; |   if (last === 0) return { dir: "up", pct: 100 };
  * @mutate src/components/declutter/SellingHome.tsx |   return rows.filter((r) => r.n > 0 && !(away && NOT_WHILE_AWAY.has(r.key))); |   return rows;
  *
@@ -47,7 +47,7 @@ const flat = (s: string) => blankSqlComments(s).replace(/\s+/g, " ");
 describe("Declutter top 5 #2: Selling home", () => {
   it("the newest declutter_selling_home: own selling only, real sales only, the nudge's own price-drop rule", () => {
     const d = newestFunction("declutter_selling_home");
-    expect(d.file).toContain("20261120012050");
+    expect(d.file).toContain("20261120121830"); // restated by the uuid views count fix (42804)
     const b = flat(d.body);
     for (const part of [
       "WHERE o.seller_id = v_uid AND o.status IN ('paid', 'handed_over')",

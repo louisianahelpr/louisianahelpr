@@ -21,6 +21,12 @@ const demandMig = readFileSync(`${MIG_DIR}20261120012729_declutter_item_demand.s
 const foundation = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
 const watchTable = foundation.match(/CREATE TABLE IF NOT EXISTS public\.declutter_watchlist \([\s\S]*?\n\);/)[0];
 
+const viewsMig = readFileSync(`${MIG_DIR}20261105163501_declutter_item_views.sql`, "utf8");
+// The REAL declutter_item_views CREATE (device_id is uuid). A text stand-in hid the 42804 that broke prod (20261120121830).
+const viewsTable = viewsMig.match(/CREATE TABLE IF NOT EXISTS public\.declutter_item_views \([\s\S]*?\n\);/)[0]
+  .replace(/ REFERENCES public\.declutter_items\(id\) ON DELETE CASCADE/, "").replace(/ REFERENCES auth\.users\(id\) ON DELETE CASCADE/, "");
+const fixMig = readFileSync(`${MIG_DIR}20261120121830_declutter_views_coalesce_uuid.sql`, "utf8");
+
 let pass = 0, fail = 0;
 const ok = (cond, what) => { if (cond) { pass++; console.log(`PASS ${what}`); } else { fail++; console.log(`FAIL ${what}`); } };
 
@@ -50,9 +56,9 @@ create table public.declutter_items(id uuid primary key, seller_id uuid not null
 create function public.declutter_auto_free_due() returns integer language sql as $$ select 0 $$;
 create table public.declutter_item_private(item_id uuid primary key references public.declutter_items(id), floor_price_cents integer, drop_stop_cents integer);
 create table public.declutter_offers(id uuid primary key default gen_random_uuid(), item_id uuid not null, buyer_id uuid not null, created_at timestamptz not null default now());
-create table public.declutter_item_views(id bigserial primary key, item_id uuid not null, viewer_id uuid, device_id text, created_at timestamptz not null default now());
 `);
 await db.exec(watchTable);
+await db.exec(viewsTable);
 await db.exec(`
 insert into public.declutter_items values
   ('${it(1)}', '${S}', 'live', 2000, 2000, false, false, now()),   -- 20% off -> $16
@@ -64,7 +70,7 @@ insert into public.declutter_items values
 insert into public.declutter_item_private values ('${it(1)}', null), ('${it(2)}', 3500), ('${it(5)}', null);
 `);
 await db.exec(demandMig);
-if (process.env.NEW_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(mig);
+if (process.env.NEW_MIGRATION !== "skip") { for (let i = 0; i < 3; i++) await db.exec(mig); if (!process.env.MIGRATION_PATH && process.env.FIX_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(fixMig); }
 
 const set = async (k, v) => db.exec(`select set_config('t.${k}', '${v ?? ""}', false)`);
 const call = async (uid, sql) => { await set("uid", uid); try { return { v: (await db.query(sql)).rows[0] }; } catch (e) { return { err: e.message }; } };

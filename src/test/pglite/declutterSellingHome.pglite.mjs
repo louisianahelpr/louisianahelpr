@@ -5,6 +5,7 @@
  *
  *   node src/test/pglite/declutterSellingHome.pglite.mjs                     # ALL PASS (migration applied 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/declutterSellingHome.pglite.mjs  # RED: no such function
+ *   FIX_MIGRATION=skip node src/test/pglite/declutterSellingHome.pglite.mjs  # RED: 42804 COALESCE text/uuid (prod 2026-11-20)
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/declutterSellingHome.pglite.mjs
  *
  * Tables are trimmed stand-ins with only the columns the function reads; declutter_watchlist is the real CREATE.
@@ -18,6 +19,12 @@ const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathna
 const mig = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261120012050_declutter_selling_home.sql`, "utf8");
 const foundation = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
 const watchTable = foundation.match(/CREATE TABLE IF NOT EXISTS public\.declutter_watchlist \([\s\S]*?\n\);/)[0];
+
+const viewsMig = readFileSync(`${MIG_DIR}20261105163501_declutter_item_views.sql`, "utf8");
+// The REAL declutter_item_views CREATE (device_id is uuid). A text stand-in hid the 42804 that broke prod (20261120121830).
+const viewsTable = viewsMig.match(/CREATE TABLE IF NOT EXISTS public\.declutter_item_views \([\s\S]*?\n\);/)[0]
+  .replace(/ REFERENCES public\.declutter_items\(id\) ON DELETE CASCADE/, "").replace(/ REFERENCES auth\.users\(id\) ON DELETE CASCADE/, "");
+const fixMig = readFileSync(`${MIG_DIR}20261120121830_declutter_views_coalesce_uuid.sql`, "utf8");
 
 let pass = 0, fail = 0;
 const ok = (cond, what) => { if (cond) { pass++; console.log(`PASS ${what}`); } else { fail++; console.log(`FAIL ${what}`); } };
@@ -36,10 +43,10 @@ create table public.declutter_items(id uuid primary key, seller_id uuid not null
 create table public.declutter_item_private(item_id uuid primary key, drops_stopped boolean not null default false);
 create table public.declutter_orders(id uuid primary key default gen_random_uuid(), seller_id uuid, status text not null, paid_at timestamptz,
   items_cents integer not null default 0, bundle_discount_cents integer not null default 0);
-create table public.declutter_item_views(id bigserial primary key, item_id uuid not null, viewer_id uuid, device_id text, created_at timestamptz not null default now());
 create table public.declutter_saver_offer_sends(id uuid primary key default gen_random_uuid(), item_id uuid not null, created_at timestamptz not null default now());
 `);
 await db.exec(watchTable.replace(/REFERENCES public\.declutter_items\(id\) ON DELETE CASCADE/, ""));
+await db.exec(viewsTable);
 await db.exec(`
 insert into public.declutter_items values
   ('${it(1)}', '${ME}', 'live', 2000, now() - interval '20 days', 'offers', 0),   -- old, drops off: price drop due; saved
@@ -59,7 +66,7 @@ insert into public.declutter_orders (seller_id, status, paid_at, items_cents, bu
   ('${OTHER}', 'paid', now() - interval '1 day', 4000, 0);            -- someone else's
 insert into public.declutter_item_views (item_id, viewer_id, device_id, created_at) values
   ('${it(1)}', '${A}', null, now() - interval '1 day'), ('${it(1)}', '${A}', null, now() - interval '2 days'), -- one person twice: 1
-  ('${it(1)}', null, 'dev-1', now() - interval '1 day'),                                                      -- a guest device: 1
+  ('${it(1)}', null, 'd0000000-0000-4000-8000-000000000001', now() - interval '1 day'),                                                      -- a guest device: 1
   ('${it(2)}', '${A}', null, now() - interval '1 day'),                                                       -- same person, other item: 1
   ('${it(2)}', '${B}', null, now() - interval '9 days'),                                                      -- last week
   ('${it(6)}', '${A}', null, now() - interval '1 day');                                                       -- someone else's item
@@ -70,13 +77,14 @@ insert into public.declutter_watchlist (user_id, item_id, created_at) values
 insert into public.declutter_saver_offer_sends (item_id, created_at) values ('${it(2)}', now() - interval '2 hours');
 `);
 
-if (process.env.NEW_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(mig);
+if (process.env.NEW_MIGRATION !== "skip") { for (let i = 0; i < 3; i++) await db.exec(mig); if (!process.env.MIGRATION_PATH && process.env.FIX_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(fixMig); }
 
 const home = async (uid) => {
   await db.exec(`select set_config('t.uid', '${uid ?? ""}', false)`);
   try { return { v: (await db.query(`select public.declutter_selling_home() r`)).rows[0].r }; } catch (e) { return { err: e.message }; }
 };
 const r = await home(ME);
+ok(r.err === undefined, `the seller's home reads with uuid device ids (prod 42804, 20261120121830) (${r.err ?? "ok"})`);
 const h = r.v ?? {};
 ok(h.week?.sales === 2 && h.week?.earnings_cents === 6500, `this week: 2 sales, $65 (a refund, an unpaid checkout and other sellers left out) (${JSON.stringify(h.week)})`);
 ok(h.last_week?.sales === 1 && h.last_week?.earnings_cents === 1500, `last week: 1 sale, $15; older sales left out (${JSON.stringify(h.last_week)})`);

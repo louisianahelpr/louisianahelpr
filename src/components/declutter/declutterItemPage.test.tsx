@@ -1193,7 +1193,7 @@ describe("the photo-first Declutter item page", () => {
       open();
       expect(await screen.findByRole("heading", { name: "iPhone Dock from OK Lighting", level: 2 })).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Share this item" }));
-      await waitFor(() => expect(shared.at(-1)).toMatchObject({ title: "iPhone dock from OK Lighting" }));
+      await waitFor(() => expect(shared[shared.length - 1]).toMatchObject({ title: "iPhone dock from OK Lighting" }));
     });
   });
 });

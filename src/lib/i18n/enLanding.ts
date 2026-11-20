@@ -41,6 +41,9 @@ export const enLanding = {
   "landing.how.side.hire": "I need help",
   "landing.how.side.work": "I want to work",
   "landing.how.side.sell": "Buy or sell",
+  // Owner 11-20 (site polish B2): the button under the three cards follows the switch.
+  "landing.how.findWork": "Find work",
+  "landing.how.startSelling": "Start selling",
   "landing.how.hire1Title": "Post what you need",
   "landing.how.hire1Desc": "Describe the job and set your price.",
   "landing.how.hire2Title": "Pick your Helpr",

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Camera, Handshake, MapPin, PackageCheck, PenLine, ShieldCheck, Tag, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { goSignedInOr } from "./goSignedInOr";
 import { HIRE_STEPS } from "./hireSteps";
@@ -101,13 +102,21 @@ function sideForMode(mode: LandingMode): Side {
 }
 
 /**
- * D012 / D020 (landing design audit 11-10): each side's ONE action, a quiet link beside the tabs (it was a lone outline
- * button under the steps, bottom-left at 1440, and the sell side had two). Same verbs as the rest of the landing.
+ * D012 / D020 (landing design audit 11-10): each side's ONE action. Owner 11-20 (site polish B2): a real button under
+ * the three cards (it was a quiet "Post a job →" link beside the switch), following the switch: Post a job / Find work /
+ * Start selling, on the same routes.
  */
-const SIDE_ACTION: Record<Side, { label: string; signedOut: string; signedIn: string; testId: string }> = {
-  hire: { label: "Post a job", signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job" },
-  work: { label: "Browse jobs", signedOut: "/browse", signedIn: "/browse", testId: "landing-find-work" },
-  sell: { label: "Sell something", signedOut: SELL_SIGNED_OUT, signedIn: SELL_PATH, testId: "landing-sell" },
+const SIDE_ACTION: Record<Side, { label: string; key: string; signedOut: string; signedIn: string; testId: string }> = {
+  hire: { label: "Post a job", key: "landing.postJob", signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job" },
+  work: { label: "Find work", key: "landing.how.findWork", signedOut: "/browse", signedIn: "/browse", testId: "landing-find-work" },
+  sell: { label: "Start selling", key: "landing.how.startSelling", signedOut: SELL_SIGNED_OUT, signedIn: SELL_PATH, testId: "landing-sell" },
+};
+
+/** Owner 11-20 (site polish B3): a small accent icon on each step card, one per step of each side. */
+const STEP_ICONS: Record<Side, LucideIcon[]> = {
+  hire: [PenLine, Users, ShieldCheck],
+  work: [MapPin, Handshake, Wallet],
+  sell: [Camera, Tag, PackageCheck],
 };
 
 const HowItWorksSection = () => {
@@ -122,7 +131,6 @@ const HowItWorksSection = () => {
   // F260q (owner 11-11): the Spanish words when the visitor's language is Spanish (enLanding.ts / esLanding.ts).
   const es = useGuestSpanish();
   const w = (key: string, english: string) => es?.[key] ?? english;
-  const ACTION_KEY: Record<Side, string> = { hire: "landing.postJob", work: "landing.browseJobs", sell: "landing.sell" };
 
   useLayoutEffect(() => {
     if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
@@ -157,7 +165,7 @@ const HowItWorksSection = () => {
       {/* ONE layout at every width: heading + toggle on one row (the toggle drops
           under the heading on a phone), three step cards below, three across
           from `sm`. Same measure as every other landing block. */}
-      <div className="mx-auto w-full max-w-6xl flex flex-col gap-8 md:gap-10">
+      <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 sm:gap-8 md:gap-10">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
           <h2
             className="font-display landing-serif text-balance landing-h2"
@@ -165,45 +173,34 @@ const HowItWorksSection = () => {
           >
             {w("landing.how.title", "How it works")}
           </h2>
-          {/* The app's shared control (selected = the olive primary), so the
-              marketing page and the app agree on what "selected" looks like.
-              `semantics="tab"`: it swaps the three step cards below. */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {/* D008 (landing design audit 11-10): the hero's quiet selected style, so the landing has ONE look for
-                "selected" (this switch was the solid olive, the hero's the white pill). */}
+          {/* The app's shared control, `semantics="tab"`: it swaps the three step cards below. Owner 11-20 (site polish
+              B1, replaces D008's quiet pill here): the selected side is filled solid olive with white words (the app's
+              primary, tone "solid"), all three a bit bigger on a 48px row. B4: centred on a phone, its own row. */}
+          <div data-how-switch="" className="flex w-full justify-center sm:w-auto">
             <SegmentedControl
               semantics="tab"
-              labelSize="md"
-              tone="quiet"
+              labelSize="lg"
+              tone="solid"
               ariaLabel={w("landing.how.sidesLabel", "Which side of Helpr are you on")}
               options={SIDE_OPTIONS.map((o) => ({ ...o, label: typeof o.label === "string" ? w(`landing.how.side.${o.value}`, o.label) : o.label }))}
               value={side}
               onChange={setSide}
             />
-            <Link
-              to={action.signedOut}
-              onClick={(e) => {
-                e.preventDefault();
-                void goSignedInOr(navigate, action.signedIn, action.signedOut);
-              }}
-              data-testid={action.testId}
-              className="inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold link-standard"
-              style={{ color: "var(--lp-action-strong)" }}
-            >
-              {w(ACTION_KEY[side], action.label)}
-              <ArrowRight className="w-4 h-4" aria-hidden />
-            </Link>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-3 sm:gap-4 lg:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-2.5 sm:gap-4 lg:gap-5">
           {/* Keyed by index, not title: switching sides swaps the copy in the
               SAME three nodes instead of remounting them, so the reveal is not
               re-armed on every toggle. */}
-          {STEPS[side].map((step, i) => (
+          {STEPS[side].map((step, i) => {
+            const Icon = STEP_ICONS[side][i];
+            return (
             <div
               key={i}
-              className="landing-card h-full min-w-0 flex flex-col p-6 lg:p-7"
+              data-how-step=""
+              // B4 (owner 11-20): a tighter stack on a phone (20px padding, 10px between cards).
+              className="landing-card h-full min-w-0 flex flex-col p-5 sm:p-6 lg:p-7"
               style={{
                 // Never an opacity of 0 (Q2228): the steps are readable in every state.
                   opacity: 1,
@@ -212,19 +209,30 @@ const HowItWorksSection = () => {
                 transition: reveal === "revealed" ? `transform 600ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 120}ms` : undefined,
               }}
             >
-              {/* The ordinal in Bodoni, olive (rust is for money only). */}
-              <span
-                aria-hidden
-                className="landing-serif-text block shrink-0 leading-none text-ds-40"
-                style={{ color: "var(--lp-action)" }}
-              >
-                {i + 1}
-              </span>
+              {/* The ordinal in Bodoni, olive (rust is for money only), and (B3, owner 11-20) the step's small accent
+                  icon on a soft olive tint at the card's right. */}
+              <div className="flex items-start justify-between gap-3">
+                <span
+                  aria-hidden
+                  className="landing-serif-text block shrink-0 leading-none text-ds-40"
+                  style={{ color: "var(--lp-action)" }}
+                >
+                  {i + 1}
+                </span>
+                <span
+                  aria-hidden
+                  data-how-step-icon=""
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.08)]"
+                  style={{ color: "var(--lp-action)" }}
+                >
+                  <Icon key={side} className="h-5 w-5" strokeWidth={1.75} />
+                </span>
+              </div>
               {/* `key={side}` remounts ONLY this text block when the toggle
                   flips, so the new copy fades in instead of snapping. */}
               <div
                 key={side}
-                className="min-w-0 mt-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300"
+                className="min-w-0 mt-3 sm:mt-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300"
               >
                 <h3 className="font-sans font-bold text-ds-17 lg:text-ds-20 tracking-tight leading-snug" style={{ color: "var(--lp-ink)" }}>
                   {w(`landing.how.${side}${i + 1}Title`, step.title)}
@@ -234,7 +242,26 @@ const HowItWorksSection = () => {
                 </p>
               </div>
             </div>
-          ))}
+            );
+          })}
+        </div>
+
+        {/* Owner 11-20 (site polish B2): the side's one action, a real button under the cards that follows the switch.
+            Outline, not filled: the hero's Search and the close's account button stay the page's two primaries. */}
+        <div data-how-action="" className="flex justify-center sm:justify-start">
+          <Button asChild variant="outline" size="lg" className="min-h-12 rounded-full px-6 text-ds-15 font-bold">
+            <Link
+              to={action.signedOut}
+              onClick={(e) => {
+                e.preventDefault();
+                void goSignedInOr(navigate, action.signedIn, action.signedOut);
+              }}
+              data-testid={action.testId}
+            >
+              {w(action.key, action.label)}
+              <ArrowRight className="w-4 h-4" aria-hidden />
+            </Link>
+          </Button>
         </div>
 
         {/* No Helpr Guarantee box here (owner, 2026-10-31: "it doesn't fit there"). The

@@ -135,9 +135,10 @@ export interface SegmentedControlProps<T extends string | number> {
   /**
    * The label size. "sm" (default) is the app's 11px segment label; "md" is 13px, for a control a first-time visitor
    * reads on the marketing page (owner's UI audit 11-09, F008: the landing's "I need help / I want to work").
-   * The 44px row is the same either way.
+   * The 44px row is the same either way. "lg" (owner 11-20, site polish B1: the landing's How it works switch "a bit
+   * bigger") is 13px on a phone and 15px from sm, on a 48px row.
    */
-  labelSize?: "sm" | "md";
+  labelSize?: "sm" | "md" | "lg";
 }
 
 export function SegmentedControl<T extends string | number>({
@@ -242,8 +243,9 @@ export function SegmentedControl<T extends string | number>({
               // segment 4px shorter than its siblings in Simple Mode, which is
               // invisible until you look at a control whose selected cell is
               // the only short one.
-              "segmented-option min-w-0 h-11 min-h-11 px-3 rounded-full font-sans font-semibold",
-              labelSize === "md" ? "text-ds-13" : "text-ds-11",
+              "segmented-option min-w-0 rounded-full font-sans font-semibold",
+              labelSize === "lg" ? "h-12 min-h-12 px-3 sm:px-4" : "h-11 min-h-11 px-3",
+              labelSize === "lg" ? "text-ds-13 sm:text-ds-15" : labelSize === "md" ? "text-ds-13" : "text-ds-11",
               "whitespace-nowrap transition-all active:scale-[0.98]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]",
               iconPosition === "top"

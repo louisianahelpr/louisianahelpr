@@ -9,27 +9,28 @@
  * @mutate src/lib/clearedConversations.ts |   return Number.isFinite(at) && Number.isFinite(cut) ? at <= cut : false; |   return Number.isFinite(at) && Number.isFinite(cut) ? at < cut : false;
  * @mutate src/lib/archivedConversations.ts |   if (cleared) map[key] = cleared; |   if (false) map[key] = cleared;
  * @mutate src/lib/archivedConversations.ts |   setClearMap(userId, rollClear); |   void rollClear;
+ * @mutate src/lib/archivedConversations.ts |     await markClearedRead(userId, jobId, otherUserId, now); |     void markClearedRead;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const upsert = vi.fn();
 const update = vi.fn();
 const del = vi.fn();
+const calls = vi.hoisted(() => [] as Array<[string, string, unknown[]]>);
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => {
-  // A chainable filter: .eq / .is return itself and it resolves to { error: null }.
-  const chain = (result: { error: unknown }) => {
+  // A chainable filter: every filter returns itself (recorded per table) and it resolves to { error: null }.
+  const chain = (result: { error: unknown }, table = "") => {
     const c: Record<string, unknown> = {};
-    c.eq = () => c;
-    c.is = () => c;
+    for (const m of ["eq", "is", "lte", "not", "select"]) c[m] = (...a: unknown[]) => { calls.push([table, m, a]); return c; };
     c.then = (res: (v: unknown) => unknown) => Promise.resolve(result).then(res);
     return c;
   };
   return {
     supabase: {
-      from: () => ({
+      from: (table: string) => ({
         upsert: (...a: unknown[]) => upsert(...a),
-        update: (...a: unknown[]) => { update(...a); return chain({ error: null }); },
+        update: (...a: unknown[]) => { update(...a); calls.push([table, "update", a]); return chain({ error: null }, table); },
         delete: () => { del(); return chain({ error: null }); },
       }),
     },
@@ -64,6 +65,15 @@ describe("delete for me", () => {
     expect(row.user_id).toBe(ME);
     expect(row.cleared_before).toBe(row.archived_at);
     expect(clearedBefore(ME, JOB, THEM)).toBe(row.cleared_before);
+    // The app-icon badge counts unread rows server-side: the cleared thread's unread messages TO me are marked
+    // read, scoped to my rows in this thread up to the clear, and the write is checked (.select).
+    const msg = calls.filter(([t]) => t === "messages");
+    expect(msg).toContainEqual(["messages", "update", [{ read: true }]]);
+    expect(msg).toContainEqual(["messages", "eq", ["receiver_id", ME]]);
+    expect(msg).toContainEqual(["messages", "eq", ["job_id", JOB]]);
+    expect(msg).toContainEqual(["messages", "eq", ["sender_id", THEM]]);
+    expect(msg).toContainEqual(["messages", "lte", ["created_at", row.cleared_before]]);
+    expect(msg.some(([, m]) => m === "select")).toBe(true);
     // The thread hides at once, and nothing in it is mine any more.
     expect(isArchived(ME, JOB, THEM, old.created_at)).toBe(true);
     expect(isClearedMessage(ME, JOB, THEM, old.created_at)).toBe(true);

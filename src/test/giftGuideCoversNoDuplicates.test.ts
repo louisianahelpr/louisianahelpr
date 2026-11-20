@@ -22,7 +22,7 @@ const stanley = (name: string) => ({ name, key: "stanley:drink" });
 
 describe("gift guide covers carry no repeats within a section", () => {
   it("lists every cover with its section and products", () => {
-    // 1120: ~65 guides + 30 store pages.
+    // 2026-11-20 (big batch): ~65 guides + 30 store pages.
     expect(Object.keys(manifest).length).toBeGreaterThan(80);
     expect(Object.values(manifest).reduce((n, c) => n + c.items.length, 0)).toBeGreaterThan(300);
     for (const c of Object.values(manifest)) expect(typeof c.section).toBe("string");

@@ -2972,7 +2972,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       for (const r of rowsOf(v)) {
         if (!r || !(typeof r.href === "string" || typeof r.affiliate_href === "string")) continue;
         if (r.commission_pct !== undefined) rowsWithRate.push(r);
-        // The 1120 import files (_thin-fill, _southern-picks) write the link's rate as `commission` (a number, in %).
+        // The big batch import files of 2026-11-20 (_thin-fill, _southern-picks) write the link's rate as `commission` (a number, in %).
         else if (typeof r.commission === "number" && /^_(thin-fill|southern-picks)-/.test(f)) rowsWithRate.push({ ...r, commission_pct: r.commission });
       }
     }

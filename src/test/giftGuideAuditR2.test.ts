@@ -203,7 +203,7 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
       const twice = keys.filter((k, i) => keys.indexOf(k) !== i);
       expect(twice, `${slug}: repeated product`).toEqual([]);
     }
-    // Big batch 1120: ~65 guides with their sections and 30 store pages (~280 lists).
+    // Big batch 2026-11-20: ~65 guides with their sections and 30 store pages (~280 lists).
     expect(pages).toBeGreaterThan(250);
     // Variants are one product; the Thin Blue and Thin Red Line flags are two.
     expect(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 15pc.")).toBe(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 30pc."));

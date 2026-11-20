@@ -59,7 +59,7 @@ describe("gift guides: import train 1530", () => {
       expect(pageOf(s).length, s).toBeGreaterThanOrEqual(10);
       expect(pageOf(s).length, s).toBeLessThanOrEqual(15);
     }
-    // Big batch 1120: the 30 kept store pages (src/content/giftGuideMerges.mjs STORE_PAGES_KEPT).
+    // Big batch 2026-11-20: the 30 kept store pages (src/content/giftGuideMerges.mjs STORE_PAGES_KEPT).
     expect(stores.length).toBeGreaterThan(25);
     for (const s of stores) {
       const hrefs = pageOf(s).map((p) => p.href);

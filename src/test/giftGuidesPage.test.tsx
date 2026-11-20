@@ -439,7 +439,7 @@ describe("gift guides: the landing opens to the guides", () => {
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
     // age guide keeps its age band).
     const tiles = [...container.querySelectorAll("a[data-gift-tile]")];
-    // Big batch 1120: ~65 guides and 30 store pages.
+    // Big batch 2026-11-20: ~65 guides and 30 store pages.
     expect(tiles.length).toBeGreaterThan(70);
     for (const t of tiles) {
       const g = guideBySlug(t.getAttribute("data-gift-tile")!)!;
@@ -494,7 +494,7 @@ describe("gift guides: the landing opens to the guides", () => {
     // guidesIn or searchGuides and the empty guide is listed again.
     const empty = GUIDES.filter((g) => g.empty);
     const holding = GUIDES.filter((g) => !g.empty);
-    // Big batch 1120: ~65 guides and 30 store pages.
+    // Big batch 2026-11-20: ~65 guides and 30 store pages.
     expect(holding.length).toBeGreaterThan(80);
     // A hidden guide holds fewer than GUIDE_MIN_PICKS picks (lead 11-19, one guide per product).
     for (const g of empty) expect(g.picks.length, g.slug).toBeLessThan(6);

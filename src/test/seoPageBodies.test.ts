@@ -95,7 +95,7 @@ function expectOwnPage(doc: string, h1Text: string) {
 describe("the data the build writes", () => {
   it("holds every indexed guide, with picks for the guides that have them", () => {
     const slugs = Object.keys(GIFT_GUIDE_SEO);
-    // Big batch 1120: ~65 merged guides and 30 store pages (the old guides 301 to their sections).
+    // Big batch 2026-11-20: ~65 merged guides and 30 store pages (the old guides 301 to their sections).
     expect(slugs.length).toBeGreaterThan(80);
     for (const s of slugs) expect(data.guides[s], s).toBeDefined();
     expect(Object.values(data.guides).filter((g) => g.indexed && g.picks.length > 0).length).toBeGreaterThan(80);

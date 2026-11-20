@@ -6,6 +6,7 @@ import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility
 import { seniorModeMetadataPatch, sessionSeniorFlag, syncSeniorMode } from "@/lib/simpleMode";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import { useSignupSourceReport } from "@/lib/signupSource";
+import { useRecordAppOpen } from "@/lib/appSignIns";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
@@ -83,6 +84,8 @@ export const SessionManager = () => {
   useWebPushBootSync(user?.id);
   // OPS-5: where this member came from (two short words, no personal data), sent once per new account.
   useSignupSourceReport(user?.id, user?.created_at);
+  // App sign-ins (owner 2026-11-20): who signs in on the native app, for the admin card. A no-op on the web.
+  useRecordAppOpen(user?.id);
   useWebPushAskAfterJobAction();
   // Sign-out loads nativePush.ts for its push cleanup (authSignOut.ts, inside a 2 s cap); warm it once a
   // signed-in page has settled so a slow link never spends that cap on the download.

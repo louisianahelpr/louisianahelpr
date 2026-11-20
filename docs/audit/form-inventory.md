@@ -118,6 +118,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterManageListing.tsx` | input×2, checkbox/switch/radio×1 | text |  | manage-drops · manage-price · manage-floor |
 | `src/components/declutter/DeclutterOfferRules.tsx` | checkbox/switch/radio×2 |  |  |  |
 | `src/components/declutter/DeclutterTradeRules.tsx` | checkbox/switch/radio×1 |  |  |  |
+| `src/components/declutter/HaulAwayOptInRow.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/declutter/ShipItRow.tsx` | checkbox/switch/radio×1 |  |  |  |
 
 ## /admin/preview/job

@@ -116,6 +116,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   gift_cards: { by: ["donor_id", "recipient_id", "recipient_email"] },
   // Gift guides wish list (20261120062130, owner 11-20): the member's own synced list.
   gift_wish_lists: { by: ["user_id"] },
+  // App sign-ins (20261120150247, owner 11-20): the member's own first and latest native-app sign-in.
+  app_installs: { by: ["user_id"] },
   referral_codes: { by: ["user_id"] },
   referral_credits: { by: ["user_id"] },
   referrals: { by: ["referrer_id", "referred_id"] },

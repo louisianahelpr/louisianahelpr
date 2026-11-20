@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 import { AdminFrame } from "./AdminFrame";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHome } from "@/components/admin/dashboard/DashboardHome";
@@ -17,6 +17,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { report } from "@/lib/errorLogger";
 
+// Lazy: the card's admin copy and state components are not on the /admin critical path (Q178 budget).
+const AppSignInsCard = lazy(() => import("@/components/admin/dashboard/AppSignInsCard").then((m) => ({ default: m.AppSignInsCard })));
 const AdminUsers = lazy(() => import("@/components/admin/AdminUsers"));
 const AdminJobs = lazy(() => import("@/components/admin/AdminJobs"));
 const AdminSettings = lazy(() => import("@/components/admin/AdminSettings"));
@@ -561,7 +563,12 @@ const Admin = () => {
             seriousAlerts: seriousAlertCount,
             dataError: homeDataError,
           })}
-        />
+        >
+          {/* Who signs in on the iPhone / Android app (owner 2026-11-20, 20261120150247). */}
+          <Suspense fallback={null}>
+            <AppSignInsCard />
+          </Suspense>
+        </DashboardHome>
       );
     }
   };

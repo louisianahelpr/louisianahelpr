@@ -91,14 +91,35 @@ const KID_THING = /\b(play-?doh|rainbow loom|loomi|melissa (&|and) doug|squish\w
 const MENS = /\b(men'?s|mens|for men|boys'?)\b|^huk$/i;
 const WOMENS = /\b(women'?s|womens|ladies|girls'?|lip|gloss|balm|makeup|mascara|blush|nail|mani|earrings|huggies|hoops?|bobby pins|hair|scrunchies?|bows?|eye patches|eye mask|perfume|parfum|tote|racerback|bandana|welly|emi jay|kitsch|summer fridays|tower 28|olive (&|and) june|sol de janeiro|laneige|bareminerals|benefit|kate spade|spartina|gorjana|baublebar|bath (&|and) body works)\b/i;
 const WORK_BOOT = /\b(work boots?|chore (boots?|classic)|steel toe|muckster|wetland boot)\b|^muck boot$/i;
-/** Whether a budget-guide pick may be borrowed for this person. */
-const borrowFits = (who: FinderWho, p: CatalogPick) => {
+/**
+ * Gift types (the import's `type`) that are women's gifts unless the name says men's: beauty, bath and body, hair and
+ * jewelry. Live check 11-20: Dad + Under $25 + Outdoorsy filled with a shower oil (type "bath") and pimple patches
+ * ("skincare") whose names no word list caught.
+ */
+const WOMENS_TYPE = /^(skincare|makeup|lip|nails?|bath|body-care|body care|body wash|body cream|hair-?care|hair-tool|hair-accessory|fragrance|fragrance mist|perfume|jewelry|earrings|lash|lashes|beauty|beauty-device|sleep-mask|cosmetic case)$/i;
+/** Beauty and body care by name, for a pick whose type is missing or wrong (Bondi Boost shampoo came in typed "shoes"). */
+const BEAUTY_NAME = /\b(shampoo|conditioner|volumi[sz]ing|serum|moisturi[sz]er|body (wash|cream|lotion|butter|oil|mist)|shower oil|pimple|mighty patch|eye patch(es)?|face mask|sheet mask)\b/i;
+/** Gift types that are men's gifts unless the name says women's (the reverse rule, for Her and Mom). */
+const MENS_TYPE = /^(cologne|aftershave|beard|shaving|razor)$/i;
+/** Whether a pick suits this person: men's things never go to Her/Mom, women's things never to Him/Dad, toys only to Kids. */
+export const finderFits = (who: FinderWho, p: CatalogPick) => {
   const text = `${p.name} ${p.brand ?? ""}`;
   if (who === "kids") return KID_THING.test(text);
   if (KID_THING.test(text)) return false;
-  if (who === "her" || who === "mom") return !MENS.test(p.name) && !MENS.test(p.brand ?? "") && !WORK_BOOT.test(p.name);
-  if (who === "him" || who === "dad") return !WOMENS.test(text);
+  if (who === "her" || who === "mom") return !MENS.test(p.name) && !MENS.test(p.brand ?? "") && !WORK_BOOT.test(p.name) && !(MENS_TYPE.test(p.type ?? "") && !WOMENS.test(p.name));
+  if (who === "him" || who === "dad") return !WOMENS.test(text) && !((WOMENS_TYPE.test(p.type ?? "") || BEAUTY_NAME.test(p.name)) && !MENS.test(p.name));
   return true;
+};
+/**
+ * One card per near-duplicate: the same brand's same gift type ("Stanley" + "can-cooler": the 10 oz Everyday Can Cooler
+ * and the Everyday Slim Can Cooler both showed for Mom + Under $25 + Trendy), else the same name once sizes, counts and
+ * the colour after a comma are dropped.
+ */
+export const nearDupKey = (p: CatalogPick) => {
+  const fold = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const brand = fold(p.brand ?? "");
+  if (brand && p.type && p.type !== "other") return `${brand}|${fold(p.type)}`;
+  return fold(p.name.split(",")[0].replace(/\b\d+(\.\d+)?\s*(oz|ml|l|in|inch|ct|count|pack|pk|piece|pc)\b|["”]/gi, ""));
 };
 
 /** The finder's answer: the picks that fit all three, then the closest ones (shown under "Close matches"). */
@@ -122,13 +143,19 @@ export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: Find
   const nextUp = (p: CatalogPick) => up !== 0 && pickBand(p) === up;
   const unknown = (p: CatalogPick) => pickBand(p) === undefined;
   const vibed = (p: CatalogPick) => isVibe(p, vibe);
-  const lent = budget === 0 || !who ? [] : borrow.filter((p) => fits(p) && borrowFits(who, p));
+  const lent = budget === 0 || !who ? [] : borrow.filter((p) => fits(p) && finderFits(who, p));
+  // A close match must suit the person too (gg-live-1120): the person's own list is theirs, but its tail never hands
+  // Dad a women's item, nor Mom a men's one.
+  const own = who ? pool.filter((p) => finderFits(who, p) || who === "kids") : pool;
   const seen = new Set<string>();
+  const near = new Set<string>();
   const take = (list: CatalogPick[], into: CatalogPick[], cap: number) => {
     for (const p of list) {
       if (into.length >= cap) return;
-      if (seen.has(p.href)) continue;
+      const key = nearDupKey(p);
+      if (seen.has(p.href) || near.has(key)) continue;
       seen.add(p.href);
+      near.add(key);
       into.push(p);
     }
   };
@@ -137,10 +164,12 @@ export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: Find
   const close: CatalogPick[] = [];
   const room = FINDER_COUNT - exact.length;
   for (const tier of [
-    pool.filter(fits),
+    own.filter(fits),
     lent.filter(vibed), lent,
-    pool.filter((p) => vibed(p) && nextUp(p)),
-    pool.filter((p) => vibed(p) && unknown(p)), pool.filter(unknown),
+    own.filter((p) => vibed(p) && nextUp(p)),
+    own.filter((p) => vibed(p) && unknown(p)), own.filter(unknown),
+    own,
+    // Always a list (owner 11-20): the person's whole guide last, only if all of the above ran dry.
     pool,
   ]) take(tier, close, room);
   return { exact, close };

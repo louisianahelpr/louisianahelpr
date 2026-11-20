@@ -183,6 +183,7 @@ GRANT EXECUTE ON FUNCTION public.gift_wish_list_mine() TO authenticated, service
 -- Download My Data covers the wish list: export_my_data(uuid) RESTATED FROM THE NEWEST CREATE
 -- (20261112081700_shops_export_rest.sql) verbatim, plus one gift_wish_lists block before RETURN (by user_id), and
 -- the 60 s statement_timeout in its header (20261115014233; src/test/exportMyDataKeepsItsTimeout.test.ts).
+DROP FUNCTION IF EXISTS public.export_my_data();
 CREATE OR REPLACE FUNCTION public.export_my_data(p_user_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql

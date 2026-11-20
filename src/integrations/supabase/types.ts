@@ -5521,6 +5521,54 @@ export type Database = {
           },
         ]
       }
+      gift_wish_list_hits: {
+        Row: {
+          bucket: string
+          hit_at: string
+          id: number
+        }
+        Insert: {
+          bucket: string
+          hit_at?: string
+          id?: never
+        }
+        Update: {
+          bucket?: string
+          hit_at?: string
+          id?: never
+        }
+        Relationships: []
+      }
+      gift_wish_lists: {
+        Row: {
+          code: string
+          created_at: string
+          is_seed: boolean
+          items: Json
+          name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_seed?: boolean
+          items?: Json
+          name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_seed?: boolean
+          items?: Json
+          name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       giveaway_reminder_sends: {
         Row: {
           reminder_key: string
@@ -18326,6 +18374,9 @@ export type Database = {
       sponsor_admin_set_wall: { Args: { p_show: boolean; p_signup_id: string }; Returns: undefined }
       sponsor_create_signup: { Args: { p_signup: Json; p_user_id: string }; Returns: Json }
       sponsor_log_visit: { Args: { p_device: string; p_ref: string; p_referrer: string }; Returns: undefined }
+      gift_wish_list_get: { Args: { p_code: string }; Returns: Json }
+      gift_wish_list_mine: { Args: never; Returns: Json }
+      gift_wish_list_save: { Args: { p_items: Json; p_name: string }; Returns: string }
       giveaway_entry_url: { Args: never; Returns: string | null }
       giveaway_reminder_sweep: { Args: never; Returns: Json }
       secret_santa_create: { Args: { p_avoid?: number[]; p_budget?: number; p_exchange_on?: string; p_gives_to: number[]; p_names: string[] }; Returns: Json }

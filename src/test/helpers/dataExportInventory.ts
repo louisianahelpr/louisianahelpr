@@ -114,6 +114,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // Q1297: the Helpr's own tip re-pay ledger (was EXEMPT until 20261005060801).
   tip_hold_redrives: { by: ["helper_id"] },
   gift_cards: { by: ["donor_id", "recipient_id", "recipient_email"] },
+  // Gift guides wish list (20261120062130, owner 11-20): the member's own synced list.
+  gift_wish_lists: { by: ["user_id"] },
   referral_codes: { by: ["user_id"] },
   referral_credits: { by: ["user_id"] },
   referrals: { by: ["referrer_id", "referred_id"] },

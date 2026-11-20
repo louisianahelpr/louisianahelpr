@@ -14,7 +14,7 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 69 |
+| Routes (non-redirect) | route | 73 |
 | Redirect-only routes | route | 5 |
 | `?tab=` variants | variant | 35 |
 | `?view=` variants | variant | 29 |
@@ -24,13 +24,13 @@ reports coverage against THIS file, not against the route list.
 | Multi-step flows — confirmed | flow | 59 |
 | Multi-step flows — probable | flow | 36 |
 | Back/next navigation only | flow | 71 |
-| Forms (submittable) | form | 139 |
+| Forms (submittable) | form | 141 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 191 |
 | Email templates | **exported template** | 26 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **882** |
+| **Navigable surfaces** (places a person can stand) | mixed | **888** |
 | **Copy surfaces** (strings a person may read) | mixed | **1317** |
-| **Total auditable surface** | mixed | **2199** |
+| **Total auditable surface** | mixed | **2205** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,11 +67,11 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 69 | 34 | agree |
+| Real routes | 73 | 34 | agree |
 | Redirect-only routes | 5 | 14 | agree |
 | Admin `?view=` | 29 | 24 | agree |
 | Overlay surfaces | 248 | 130 | agree within method (script counts every menu instance) |
-| Forms | 139 | ~38 | agree |
+| Forms | 141 | ~38 | agree |
 | Confirmed multi-step flows | 59 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -147,6 +147,10 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/fees`
 - [ ] `/safety`
 - [ ] `/gift-guides`
+- [ ] `/gift-guides/draw-names`
+- [ ] `/gift-guides/secret-santa/:code/:token`
+- [ ] `/gift-guides/swipe`
+- [ ] `/gift-guides/planner`
 - [ ] `/gift-guides/:slug`
 - [ ] `/gift-guides/list/:code`
 - [ ] `*`
@@ -765,6 +769,8 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/pages/auth/Login.tsx` (form tag)
 - [ ] `src/pages/auth/ResetPassword.tsx` (form tag)
 - [ ] `src/pages/helprs/FindHelprs.tsx` (form tag)
+- [ ] `src/pages/info/giftGuides/fun/GiftPlanner.tsx` (form tag)
+- [ ] `src/pages/info/giftGuides/fun/SecretSanta.tsx` (form tag)
 - [ ] `src/pages/info/Support.tsx` (form tag)
 - [ ] `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` (dialog/mutation)
 - [ ] `src/pages/jobs/appliedJobCard/DisputedSection.tsx` (dialog/mutation)

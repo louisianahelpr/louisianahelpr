@@ -51,6 +51,9 @@ import "@/lib/i18n/enSections";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 // The Holiday Gift Guides banner (owner mockup A, 11-18): its own chunk, last in the side column, so nothing moves.
 const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));
+// Owner polish 11-20: Recent messages and Your active listings and jobs, under Your sections. Their own chunk, asked
+// only once the page has settled, so they never weigh on Home's first load (/home's critical-path budget).
+const HomeMoreRows = lazy(() => loadModule(() => import("./homeDashboard/HomeMoreRows")).then((m) => (m ? { default: m.default } : untilReload())));
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 // Drawn only when a Coming up read fails, so the error card (and EmptyState under it) loads on its own and never rides
 // Home's first load (/home's critical-path budget, 2026-11-14).
@@ -190,11 +193,12 @@ function HomeDashboardScreen() {
     <GetStartedGuide userId={user?.id} fresh={fresh} declutterOpen={sellOpen} hasPhoto={!!profile?.avatar_url} alertsOff={firstJob ? firstJob.alertsOff : null} />
   );
   const rest = Math.max(0, todoCount - Math.max(1, listed.length));
-  // Owner 2026-11-17 (item 4): a quiet day (nothing needs you, nothing booked) shows "Near you" under Coming up, its
+  // Owner 2026-11-17 (item 4): a quiet day (nothing needs you, nothing booked) showed "Near you" under Coming up, its
   // chunk and reads asked only once the page has settled (usePageSettled), so Home's first paint is unchanged.
+  // Owner polish 11-20 ("fill the empty space with useful rows"): every settled day, not only a quiet one.
   const pageSettled = usePageSettled();
   // Not for a new member: their own blocks (NewMemberHome, FirstJobHome) already list the jobs near them.
-  const quietDay = !welcome && !firstJob?.isNew && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting && !summary.loading && summary.upcoming.length === 0 && !summary.upcomingFailed;
+  const nearYouDay = !welcome && !firstJob?.isNew && !summary.declutterPending && !summary.todosLoading && !summary.loading;
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
   const nextUpRef = useRef<HTMLElement>(null);
@@ -482,7 +486,7 @@ function HomeDashboardScreen() {
               )}
             </GroupSection>
             )}
-            {quietDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}
+            {nearYouDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}
 
             {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one
                 progress line. Board 189: before a member's first job, the first-job checklist and jobs near them.
@@ -543,6 +547,9 @@ function HomeDashboardScreen() {
             </div>
             {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
             </> : <div data-section-chips-held="" aria-hidden className="h-9" />}
+            {/* Owner polish 11-20: below Your sections (the column's end on a desktop, the page's on a phone), so their
+                late arrival moves nothing above them. */}
+            {pageSettled && <Suspense fallback={null}><HomeMoreRows user={user} active={summary.active} /></Suspense>}
             </>}
             <Suspense fallback={null}><GiftGuidesPromo where="home" /></Suspense>
           </section>

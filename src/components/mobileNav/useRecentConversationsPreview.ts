@@ -27,6 +27,9 @@ export function useRecentConversationsPreview(user: User | null | undefined, ena
     queryFn: () => inboxLoader().then((m) => (m ? m.fetchConversations(uid as string, thumbWarningShown) : untilReload())),
     enabled: enabled && !!uid,
     staleTime: 30_000,
+    // The rows carry message previews and signed attachment URLs: never kept in IndexedDB (queryKeys.messages, the
+    // inbox's own call sets the same). Home reads it on every settled load now (owner polish 11-20, HomeMoreRows).
+    meta: { persist: false },
   });
 
   return {

@@ -6,7 +6,7 @@
  *     grey tint on hover (they had none).
  * The other three Home controls stay as they are (owner + lead: pager dots, Coming-up rows, checklist steps).
  *
- * @mutate src/pages/home/HomeDashboard.tsx | variant="link"\n                          size="sm"\n                          data-testid="next-up-see-all" | variant="ghost"\n                          size="sm"\n                          data-testid="next-up-see-all"
+ * @mutate src/pages/home/HomeDashboard.tsx | variant="link"\n                      size="sm"\n                      data-testid="next-up-see-all" | variant="ghost"\n                      size="sm"\n                      data-testid="next-up-see-all"
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | <ListRow key={j.id} title={j.title} | <button type="button" key={j.id} title={j.title}
  */
 import { describe, expect, it } from "vitest";

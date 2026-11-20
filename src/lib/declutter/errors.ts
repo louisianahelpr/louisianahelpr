@@ -104,6 +104,10 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   no_savers: "Nobody who saved this can get an offer right now. They may already have one open.",
   saver_offer_rate_limited: "You can send one offer a day for each item. Try again tomorrow.",
   below_your_lowest: "That is below your lowest price. Pick a smaller discount or change your lowest price.",
+  // Declutter top 5 #4 (20261120014036): the shop-wide sale.
+  invalid_sale_dates: "A sale starts within 2 weeks and runs up to 2 weeks. Check the dates.",
+  sale_already_set: "You already have a sale set. End it first.",
+  sale_not_found: "There is no sale to end.",
   invalid_action: "That can't be done to this offer.",
   offer_not_found: "That offer isn't available.",
   offer_not_open: "This offer is already closed.",

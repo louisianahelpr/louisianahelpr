@@ -40,7 +40,7 @@ create table public.profiles(user_id uuid primary key, is_seed boolean not null 
 insert into public.profiles values ('${A}', false), ('${B}', false), ('${C}', false), ('${T}', true), ('${Q}', false);
 create table public.test_accounts(user_id uuid primary key);
 insert into public.test_accounts values ('${Q}');
-create table public.declutter_items(id uuid primary key, seller_id uuid not null, status text not null, seller_hidden boolean not null default false, is_seed boolean not null default false);
+create table public.declutter_items(id uuid primary key, seller_id uuid not null, status text not null, seller_hidden boolean not null default false, is_seed boolean not null default false, current_price_cents integer not null default 1000);
 create table public.declutter_offers(id uuid primary key default gen_random_uuid(), item_id uuid not null, buyer_id uuid not null, created_at timestamptz not null default now());
 create table public.declutter_item_views(id bigserial primary key, item_id uuid not null, viewer_id uuid, device_id text, created_at timestamptz not null default now());
 `);
@@ -63,7 +63,9 @@ insert into public.declutter_item_views (item_id, viewer_id, device_id, created_
   ('${it(1)}', '${B}', null, now() - interval '3 days');                  -- not today
 `);
 
-if (process.env.NEW_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(mig);
+// And the newest definition: 20261120014036 (shop sale, #4) restates it with the sale columns; the counts must not move.
+const saleMig = readFileSync(`${MIG_DIR}20261120014036_declutter_shop_sale.sql`, "utf8");
+if (process.env.NEW_MIGRATION !== "skip") { for (let i = 0; i < 3; i++) await db.exec(mig); if (!process.env.MIGRATION_PATH) for (let i = 0; i < 3; i++) await db.exec(saleMig); }
 
 const ALL = `array['${[1, 2, 3, 4].map(it).join("','")}']::uuid[]`;
 const set = async (k, v) => db.exec(`select set_config('t.${k}', '${v ?? ""}', false)`);
@@ -90,7 +92,7 @@ await set("blocked", "");
 ok((await demand(A, `(select array_agg(gen_random_uuid()) from generate_series(1, 201))`)).err?.includes("invalid_request"), "more than 200: refused");
 ok(JSON.stringify((await demand(A, `null::uuid[]`)).v) === "{}", "null: nothing");
 const cols = (await db.query(`select pg_get_function_result('public.declutter_item_demand(uuid[])'::regprocedure) r`)).rows[0].r;
-ok(cols === "TABLE(item_id uuid, saves integer, offers_week integer, views_today integer)", `numbers only (${cols})`);
+ok(cols === "TABLE(item_id uuid, saves integer, offers_week integer, views_today integer, sale_pct integer, sale_ends_at timestamp with time zone)", `numbers only (and the sale, 20261120014036) (${cols})`);
 const fn = (await db.query(`select proacl::text a, prosecdef d, provolatile v from pg_proc where proname = 'declutter_item_demand'`)).rows[0];
 ok(fn?.d === true && fn?.v === "s" && !/(^|[{,])=X/.test(fn.a) && /anon=X/.test(fn.a), `definer, stable, PUBLIC cannot, guests can (${fn?.a})`);
 

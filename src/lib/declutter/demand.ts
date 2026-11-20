@@ -13,6 +13,9 @@ export interface ItemDemand {
   saves: number;
   offers_week: number;
   views_today: number;
+  /** #4 shop-wide sale (20261120014036): set only while this listing's price is its sale price. */
+  sale_pct?: number | null;
+  sale_ends_at?: string | null;
 }
 
 /** Browse's "In demand" card tag: at least DEMAND_MIN.offersWeek different buyers made offers this week. */
@@ -35,5 +38,5 @@ export async function fetchItemDemand(itemId: string): Promise<ItemDemand | null
   const res = await supabase.rpc("declutter_item_demand", { p_item_ids: [itemId] });
   if (res.error && isMissingRpcNamed(res.error, "declutter_item_demand")) return null;
   const row = (unwrap(res) ?? [])[0];
-  return row ? { saves: row.saves, offers_week: row.offers_week, views_today: row.views_today } : null;
+  return row ? { saves: row.saves, offers_week: row.offers_week, views_today: row.views_today, sale_pct: row.sale_pct ?? null, sale_ends_at: row.sale_ends_at ?? null } : null;
 }

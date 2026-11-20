@@ -62,6 +62,7 @@ import { FreeAsksToPick, useFreeAsksToPick } from "./FreeAsksToPick";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMyTrades } from "./useMyTrades";
 import { SellingHome } from "./SellingHome";
+import { ShopSaleCard } from "./ShopSaleCard";
 import "@/lib/i18n/enDeclutter";
 import { t } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
@@ -211,6 +212,8 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {/* Declutter top 5 #2 (owner 11-19): the Selling home, the to-do list and the week's numbers, on the whole tab only
           and only for a seller with listings (a first-time seller sees the empty card below, not empty numbers). */}
       {only === null && (mine.data?.length ?? 0) > 0 && <SellingHome todo={todo} onPick={(g) => toggle(g)} />}
+      {/* Declutter top 5 #4: the shop-wide sale, while something is for sale or a sale is set. */}
+      {only === null && pricedLive && <ShopSaleCard userId={userId} />}
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
           selected filter beside the pressed one; the header's "Sell an item" button is the section's one add action. */}
       <StatusChips

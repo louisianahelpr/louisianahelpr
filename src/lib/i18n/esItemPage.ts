@@ -9,6 +9,7 @@ export const esItemPage: Record<keyof typeof enItemPage, string> = {
   "ip.demand.saves": "{n} personas guardaron esto",
   "ip.demand.views": "{n} vistas hoy",
   "ip.demand.label": "Muy buscado",
+  "ip.sale": "Oferta de la tienda: {pct}% menos hasta {when}",
   "ip.away.about": "A unos {n} mi",
   "ip.away.under1": "A menos de 1 mi",
   "ip.away.n": "A {n} mi",

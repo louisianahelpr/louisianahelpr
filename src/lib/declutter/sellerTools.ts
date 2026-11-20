@@ -115,3 +115,50 @@ export function weekChange(now: number, last: number): { dir: "up" | "down" | "s
   const pct = Math.round((Math.abs(now - last) / last) * 100);
   return { dir: now > last ? "up" : "down", pct };
 }
+
+/**
+ * #4 Shop-wide sale (20261120014036): X% off every live listing for a date range. While it runs each listing's price IS
+ * the sale price, so the cards' struck-through listed price, offers, Buy and checkout need nothing of their own. It
+ * ends by itself and puts prices back (not a price the seller changed during the sale).
+ */
+export const SHOP_SALE_PERCENTS = [10, 15, 20, 25, 30] as const;
+
+export interface ShopSale {
+  id: string;
+  percent_off: number;
+  starts_at: string;
+  ends_at: string;
+  status: "scheduled" | "on";
+}
+
+/** The seller's sale that is set or running, or null. Before the table exists (not deployed) there is none. */
+export async function fetchMyShopSale(sellerId: string): Promise<ShopSale | null> {
+  const res = await supabase
+    .from("declutter_shop_sales")
+    .select("id, percent_off, starts_at, ends_at, status")
+    .eq("seller_id", sellerId)
+    .in("status", ["scheduled", "on"])
+    .maybeSingle();
+  if (res.error && /declutter_shop_sales/.test(res.error.message ?? "")) return null;
+  return (unwrap(res) ?? null) as ShopSale | null;
+}
+
+export async function startShopSale(percent: number, startsAt: Date, endsAt: Date): Promise<string> {
+  const res = await supabase.rpc("declutter_start_shop_sale", { p_percent_off: percent, p_starts_at: startsAt.toISOString(), p_ends_at: endsAt.toISOString() });
+  if (res.error) throw Object.assign(new Error(res.error.message), { userMessage: rpcErrorMessage("declutter_start_shop_sale", res.error) ?? declutterErrorMessage(res.error) });
+  return res.data as string;
+}
+
+export async function endShopSale(): Promise<string> {
+  const res = await supabase.rpc("declutter_end_shop_sale");
+  if (res.error) throw Object.assign(new Error(res.error.message), { userMessage: rpcErrorMessage("declutter_end_shop_sale", res.error) ?? declutterErrorMessage(res.error) });
+  return res.data as string;
+}
+
+/** 11:59 PM local time `days` days after `from` (0 = tonight): a sale "through Sunday" runs to Sunday night. */
+export function saleEndOfDay(from: Date, days: number): Date {
+  const d = new Date(from);
+  d.setDate(d.getDate() + days);
+  d.setHours(23, 59, 0, 0);
+  return d;
+}

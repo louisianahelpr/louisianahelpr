@@ -4,7 +4,7 @@
  * body that counts test accounts' offers 2 FAIL). Here: the newest definition keeps those rules, the thresholds hold,
  * and the item page draws only what passes them.
  *
- * @mutate supabase/migrations/20261120012729_declutter_item_demand.sql |                AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = o.buyer_id)), |                AND true),
+ * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |                AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = o.buyer_id)), |                AND true),
  * @mutate src/lib/declutter/demand.ts |   if (d.saves >= DEMAND_MIN.saves) out.push({ key: "saves", n: d.saves }); |   if (d.saves >= 1) out.push({ key: "saves", n: d.saves });
  * @mutate src/lib/declutter/demand.ts |   return d.offers_week >= DEMAND_MIN.offersWeek; |   return d.offers_week >= 1;
  */
@@ -30,7 +30,7 @@ const draw = () => render(
 describe("Declutter top 5 #3: in demand", () => {
   it("the newest declutter_item_demand: save counts' visibility, test people never counted, numbers only", () => {
     const d = newestFunction("declutter_item_demand");
-    expect(d.file).toContain("20261120012729");
+    expect(d.file).toContain("20261120014036"); // restated by the shop sale (#4) with the sale columns
     const b = flat(d.body);
     for (const part of [
       "IF NOT public.declutter_open_to_guests() THEN RETURN;",

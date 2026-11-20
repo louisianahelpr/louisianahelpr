@@ -89,6 +89,8 @@ function tableRows(table: string, s: DeclutterPreviewSample): unknown[] | undefi
     case "gift_cards": return [];
     // Owner 11-08 trades card: no sample seller has saved listing defaults (or answered the card), so the app's defaults.
     case "declutter_seller_defaults": return [];
+    // Declutter top 5 #4: no sample seller has a shop sale set.
+    case "declutter_shop_sales": return [];
     // Declutter top 5 #1 (owner 11-19): no sample seller has sent an offer to savers yet.
     case "declutter_saver_offer_sends": return [];
     default: return undefined;

@@ -46,6 +46,27 @@ export const enDeclTop5 = {
   "dt5.home.window": "Last 7 days, next to the 7 before.",
   "dt5.home.worth1": "1 item for sale, worth {amount} if it sells.",
   "dt5.home.worthN": "{n} items for sale, worth {amount} if they all sell.",
+  // #4 Shop-wide sale (20261120014036).
+  "dt5.sale.title": "Shop sale",
+  "dt5.sale.none": "Take a percent off everything you have for sale, for a few days. Prices go back by themselves.",
+  "dt5.sale.start": "Start a sale",
+  "dt5.sale.on": "{pct}% off everything until {when}.",
+  "dt5.sale.scheduled": "{pct}% off everything from {from} until {when}.",
+  "dt5.sale.end": "End sale",
+  "dt5.sale.cancel": "Cancel sale",
+  "dt5.sale.sheetTitle": "Put everything on sale",
+  "dt5.sale.sheetBody": "Every listing for sale gets this much off, never below your lowest price. Buyers see the old price crossed out. When the sale ends, prices go back.",
+  "dt5.sale.pctOff": "{pct}% off",
+  "dt5.sale.starts": "Starts",
+  "dt5.sale.today": "Now",
+  "dt5.sale.tomorrow": "Tomorrow",
+  "dt5.sale.through": "Runs through",
+  "dt5.sale.days": "{n} days",
+  "dt5.sale.confirm": "Start sale",
+  "dt5.sale.started": "Your sale is on.",
+  "dt5.sale.set": "Your sale is set.",
+  "dt5.sale.ended": "Sale ended. Prices are back.",
+  "dt5.sale.cancelled": "Sale cancelled.",
 } as const;
 
 addEnglish(enDeclTop5);

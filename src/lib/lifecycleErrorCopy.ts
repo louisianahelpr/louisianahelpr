@@ -1960,6 +1960,22 @@ export const RPC_ERROR_COPY = {
     saver_offer_rate_limited: DC.saver_offer_rate_limited,
     under_18: DC.under_18,
   },
+  // Declutter top 5 #4 (20261120014036): the shop-wide sale's two buttons.
+  declutter_start_shop_sale: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_input: "Pick between 5% and 50% off.",
+    invalid_sale_dates: DC.invalid_sale_dates,
+    not_authenticated: DC.not_authenticated,
+    sale_already_set: DC.sale_already_set,
+    under_18: DC.under_18,
+  },
+  declutter_end_shop_sale: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    sale_not_found: DC.sale_not_found,
+  },
   // Declutter top 5 #2 (20261120012050): the Selling home's read, members only.
   declutter_selling_home: {
     not_authenticated: DC.not_authenticated,

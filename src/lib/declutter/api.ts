@@ -1702,4 +1702,4 @@ export async function fetchMyActiveStrikes(userId: string): Promise<number> {
  * Declutter top 5 (owner 11-19): Selling's seller-tool reads go through this module, the one every Selling test
  * stands in for, so a screen test never reaches the network for them. The code lives in sellerTools.ts.
  */
-export { fetchSaverOfferState, fetchSellingHome } from "@/lib/declutter/sellerTools";
+export { fetchMyShopSale, fetchSaverOfferState, fetchSellingHome } from "@/lib/declutter/sellerTools";

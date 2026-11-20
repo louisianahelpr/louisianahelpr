@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1248,
-    "files": 361,
-    "rendering": 1169,
+    "calls": 1252,
+    "files": 362,
+    "rendering": 1173,
     "suppressedByPolicy": 79,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
-      "toast": 248,
-      "toast.error": 841,
+      "toast": 250,
+      "toast.error": 843,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 85,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 468,
       "template": 100,
-      "dynamic": 734,
+      "dynamic": 738,
       "jsx": 0
     }
   },
@@ -8018,6 +8018,134 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(e)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ShopSaleCard.tsx",
+      "line": 34,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "r === \"cancelled\" ? t(\"dt5.sale.cancelled\") : t(\"dt5.sale.ended\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "t(\"dt5.sale.cancelled\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "t(\"dt5.sale.ended\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ShopSaleCard.tsx",
+      "line": 35,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ShopSaleCard.tsx",
+      "line": 72,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "tomorrow ? t(\"dt5.sale.set\") : t(\"dt5.sale.started\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "t(\"dt5.sale.set\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "t(\"dt5.sale.started\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ShopSaleCard.tsx",
+      "line": 73,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },

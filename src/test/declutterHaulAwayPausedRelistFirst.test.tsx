@@ -14,7 +14,7 @@
  *      for haul_away_not_unsold (a seller who paused an item after opening
  *      Post a Job gets that refusal) — each says to relist first.
  *
- * @mutate src/components/declutter/DeclutterHaulAway.tsx |     if (itemStatus !== "paused") return null; |     if (true) return null;
+ * @mutate src/components/declutter/DeclutterHaulAway.tsx |     if (itemStatus !== "paused" \|\| !optedIn) return null; |     if (true) return null;
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |       {pausedCount > 0 && ( |       {false && (
  * @mutate src/lib/declutter/haulAwayErrors.ts |  If it's paused, relist it first.", | ",
  * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |     ELSIF v_item.status <> 'ended' THEN |     ELSIF v_item.status NOT IN ('ended', 'paused') THEN
@@ -90,16 +90,21 @@ describe("Q2261: a paused listing is relisted before a haul-away (server half)",
 });
 
 describe("Q2261: the seller is told to relist first (screen half)", () => {
-  it("a paused listing (it has no haul-away row) says to relist it first", () => {
-    wrap(<HaulAwayItemLine row={undefined} itemStatus="paused" />);
+  it("a paused listing (it has no haul-away row) says to relist it first, when the seller asked for a haul-away", () => {
+    wrap(<HaulAwayItemLine row={undefined} itemStatus="paused" optedIn />);
     expect(screen.getByText("Paused items can't be hauled away. Relist it first to add it to a haul-away.")).toBeTruthy();
+  });
+
+  it("owner 2026-11-20: a paused listing whose seller did not ask for a haul-away says nothing about one", () => {
+    const { container } = wrap(<HaulAwayItemLine row={undefined} itemStatus="paused" />);
+    expect(container.textContent).toBe("");
   });
 
   it("no other status without a row gets that line", () => {
     const others = declutterStatuses().filter((s) => s !== "paused");
     expect(others.length).toBeGreaterThan(7);
     for (const s of others) {
-      const { container, unmount } = wrap(<HaulAwayItemLine row={undefined} itemStatus={s} />);
+      const { container, unmount } = wrap(<HaulAwayItemLine row={undefined} itemStatus={s} optedIn />);
       expect(container.textContent).toBe("");
       unmount();
     }

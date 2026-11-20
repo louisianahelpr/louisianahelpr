@@ -118,11 +118,12 @@ export function HaulAwayItemActions({
 /**
  * The haul-away line under one listing: hauled, booked, paying, not booked, or
  * when it opens. A paused listing has no row (the server lists only items for
- * sale or off sale), so its status says to relist it first (Q2261).
+ * sale or off sale), so its status says to relist it first (Q2261), only when the seller asked for a haul-away on
+ * it (owner 2026-11-20: `optedIn`; a row My listings kept is already one the seller asked for or booked).
  */
-export function HaulAwayItemLine({ row, itemStatus }: { row: HaulAwayRow | undefined; itemStatus?: string }) {
+export function HaulAwayItemLine({ row, itemStatus, optedIn = false }: { row: HaulAwayRow | undefined; itemStatus?: string; optedIn?: boolean }) {
   if (!row) {
-    if (itemStatus !== "paused") return null;
+    if (itemStatus !== "paused" || !optedIn) return null;
     return (
       <p className="text-xs text-muted-foreground" data-haul-state="paused">
         {PAUSED_HAUL_AWAY_ITEM_LINE()}

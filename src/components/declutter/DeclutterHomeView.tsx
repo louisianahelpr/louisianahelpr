@@ -37,7 +37,6 @@ import { useTradedFor } from "./useMyTrades";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
 import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
-import { StillAvailableSheet } from "./DeclutterStillAvailable";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useMyDropsTonight } from "./useMyDropsTonight";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTabHeads";
@@ -149,9 +148,11 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
     enabled: haulOn,
     queryFn: async () => {
       const lib = (await haulLib()) ?? (await untilReload());
-      const rows = await lib.fetchHaulAwayState();
+      const [all, optedIn] = await Promise.all([lib.fetchHaulAwayState(), lib.fetchHaulAwayOptIns()]);
+      // Owner 2026-11-20: only listings the seller asked a haul-away for (plus one already booked or linked).
+      const rows = lib.offeredHaulAwayRows(all, optedIn);
       // The items one trip can take, by the same rule as the server's link (isPostable).
-      return { rows, trip: lib.oneTripGroup(rows) };
+      return { rows, optedIn, trip: lib.oneTripGroup(rows) };
     },
   });
   const haulById = useMemo(() => new Map<string, HaulAwayRow>((haul.data?.rows ?? []).map((r) => [r.item_id, r])), [haul.data]);
@@ -262,7 +263,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
         <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">{t("decl.sl.allDrafts")}</Link></p>
       )}
       {haulOn && !haul.isError && !searching && (
-        <HaulAwayCard group={haul.data?.trip ?? []} pausedCount={list.filter((i) => i.status === "paused").length} />
+        <HaulAwayCard group={haul.data?.trip ?? []} pausedCount={list.filter((i) => i.status === "paused" && !!haul.data?.optedIn.has(i.id)).length} />
       )}
     {haulOn && haul.isError && (
       <ErrorState variant="inline" title={t("decl.sl.haulFail")} body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
@@ -347,7 +348,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                 )}
               </div>
             </div>
-            {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} />}
+            {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} optedIn={!!haul.data?.optedIn.has(item.id)} />}
             <PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />
             <SaverOfferLine item={item} saves={saverOffers.saves?.get(item.id) ?? 0} lastSend={saverOffers.sends?.get(item.id)} />
           </li>
@@ -355,7 +356,6 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
         })}
       </ul>
       {bulk.selecting && <BulkBar items={list} picked={bulk.picked} onDone={bulk.stop} />}
-      <StillAvailableSheet items={mine.data} />
       <ConfirmSheet open={!!asking} title={asking?.status === "draft" ? t("decl.sl.deleteQ") : t("decl.sl.takeDownQ")}
         confirmLabel={asking?.status === "draft" ? t("decl.sl.delete") : t("decl.sl.takeDown")} pending={takeDown.isPending} testId="declutter-take-down"
         onConfirm={() => asking && takeDown.mutate(asking.id)} onClose={() => setAsking(null)}>

@@ -220,7 +220,7 @@ describe("Declutter trade cards (slice 3)", () => {
   });
 
   it("Selling's To answer counts the open trade offers, and both tabs show the section", () => {
-    const views = src("src/components/declutter/DeclutterMineViews.tsx");
+    const views = src("src/components/declutter/DeclutterMineViews.tsx") + src("src/components/declutter/DeclutterBuyingViews.tsx");
     expect(views).toMatch(/\+ bundleAsks \+ tradeAsks \+ freeAsks\.length;/);
     expect(views).toMatch(/const tradeAsks = useTradeOffersToAnswer\(userId\)/);
     expect(views).toMatch(/<TradeOffersSection side="seller" userId=\{userId\} \/>/);

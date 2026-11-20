@@ -9,7 +9,7 @@
  * the Buying link without a Button around it. Plus a render of DeclutterEmptyCard: the shared compact card, no dash.
  *
  * @mutate src/components/declutter/DeclutterEmptyCard.tsx |       <EmptyState variant="compact" icon={icon} title={title} body={children} action={action} /> |       <div className="border-dashed"><p>{title}</p>{children}{action}</div>
- * @mutate src/components/declutter/DeclutterMineViews.tsx |           <Button asChild variant="outline" size="sm" className="rounded-full">\n            <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>\n          </Button> |           <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>
+ * @mutate src/components/declutter/DeclutterBuyingViews.tsx |           <Button asChild variant="outline" size="sm" className="rounded-full">\n            <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>\n          </Button> |           <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         <DeclutterEmptyCard icon={Search} title={t("decl.sl.noMatch", { q: search.trim() })} |         <div className="border-dashed" /><DeclutterEmptyCard icon={Search} title={t("decl.sl.noMatch", { q: search.trim() })}
  */
 import { describe, expect, it } from "vitest";
@@ -45,7 +45,7 @@ describe("empty states are one component (M5)", () => {
   });
 
   it("Buying's way back to shopping is a button, not a bare underlined link", () => {
-    const mine = code("DeclutterMineViews.tsx");
+    const mine = code("DeclutterBuyingViews.tsx");
     expect(mine).toMatch(/<Button asChild variant="outline"[^>]*>\s*<Link to="\/declutter" data-ended-browse="">/);
     expect(mine).not.toMatch(/data-ended-browse=""[^>]*underline/);
   });

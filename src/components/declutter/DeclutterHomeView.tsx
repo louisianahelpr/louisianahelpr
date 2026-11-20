@@ -496,7 +496,7 @@ function DeclutterMemberHome() {
       return next;
     }, { replace: true, state: location.state });
   }, [fromView, tabsReady, setParams, location.state]);
-  useWarmMineViews(view === "buying" || view === "selling");
+  useWarmMineViews(view === "buying" || view === "selling" ? view : null);
   const { t: tr } = useLanguage();
   // Owner 11-13: on Selling the bar searches the seller's own listings in place (it used to open Browse and search
   // everyone's). The words belong to the tab they were typed on, so switching tabs clears them (OWNER-DECISIONS 11-13).

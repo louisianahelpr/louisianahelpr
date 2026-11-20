@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/SellChooserEntry.tsx | font-semibold">{t("decl.hv.moreWays")}</span> | font-semibold">More ways to sell</span>
  * @mutate src/components/declutter/DeclutterDeliverEntry.tsx | text-sm">{t("decl.hv.deliver")}</span> | text-sm">Deliver for pay</span>
  * @mutate src/components/declutter/DeclutterDeliverEntry.tsx | muted-foreground">{t("decl.hv.deliverSub")}</span> | muted-foreground">Carry Declutter items for buyers near you</span>
- * @mutate src/components/declutter/DeclutterMineViews.tsx | bucketChips(trk.counts).map((c) => ({ ...c, label: t(`decl.mv.bk.${c.key}` as MsgKey) })) | bucketChips(trk.counts)
+ * @mutate src/components/declutter/DeclutterBuyingViews.tsx | bucketChips(trk.counts).map((c) => ({ ...c, label: t(`decl.mv.bk.${c.key}` as MsgKey) })) | bucketChips(trk.counts)
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
@@ -50,7 +50,7 @@ describe("Selling's small panels and Buying's chips follow the member's language
   });
 
   it("Buying's chips take their names from the dictionary", () => {
-    const src = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
+    const src = blankComments(readFileSync("src/components/declutter/DeclutterBuyingViews.tsx", "utf8"));
     expect(src).toMatch(/bucketChips\(trk\.counts\)\.map\(\(c\) => \(\{ \.\.\.c, label: t\(`decl\.mv\.bk\.\$\{c\.key\}` as MsgKey\) \}\)\)/);
   });
 

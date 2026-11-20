@@ -55,7 +55,10 @@ export interface GiftSection {
  * one the brand's own home page shows.
  */
 // 1530 train (lead 11-19): zChocolat left the For Her row and DiecastModelsWholesale is blocked; no link uses either host.
-export const BRAND_SITES = [] as const;
+// Big batch 1120 (lead, from the owner): the small nurse and RT shops she asked for by name before the "only where we
+// earn" rule (21 Collective, a 25 Days sponsor with code COLLECTIVE10; Seven2seven; Monochromatic Finds badge reels;
+// Vix Socks), shown on their own sites at 0% and sorted by commission like every pick (so they sit lower).
+export const BRAND_SITES = ["21collectiveco.com", "seven2seven.co", "monochromaticfinds.com", "vixsocks.com"] as const;
 
 /**
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
@@ -82,7 +85,7 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
 export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com"] as const;
 
 /** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
-export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop"];
+export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop", "21 Collective"];
 
 const shopmy = (id: number) => `https://shopmy.us/collections/${id}`;
 const PIN = "https://www.pinterest.com/lexilombas";

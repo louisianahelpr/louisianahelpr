@@ -2,6 +2,7 @@
 type Row = Record<string, unknown> & { name: string; brand?: string; href?: string; color?: string | null; commission?: number };
 export const BIG1120_DROP: RegExp[];
 export const PREORDER_BRANDS: string[];
+export const OWNER_SHOPS_1120: string[];
 export const BRAND_CODES: Record<string, { code: string; offer: string }>;
 export const RENAME_1120: Record<string, string>;
 export const CC_1120: string;

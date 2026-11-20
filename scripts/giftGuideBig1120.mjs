@@ -12,7 +12,8 @@
  *   - the same item in the same color in ONE place: a thin-fill row and a Southern row of the same product and color
  *     (Johnnie-O Sully, Autry Medalist, Duck Camp Mallard hat, Barbour Finn, Turtlebox Ranger) keep the higher
  *     commission, else the thin-fill one; a different color stays;
- *   - no Dr. Woof (0%, Australian); the old Ember Mug 2 is out; a 0% link never shows (owner TikTok picks only when we earn);
+ *   - no Dr. Woof (0%, Australian); the old Ember Mug 2 is out; a 0% link never shows (owner TikTok picks only when we earn),
+ *     except the small shops the owner asked for by name (OWNER_SHOPS_1120: placed on their guide, sorted low);
  *   - a row the owner found on TikTok (or a viral item) carries `tiktok` ("Trending on TikTok"); 21 Collective rows carry `preorder` (they
  *     ship up to 5 weeks) and its code COLLECTIVE10.
  * Guard: src/test/giftGuideMerges1120.test.ts.
@@ -48,6 +49,8 @@ export const colorOf = (r) => {
 
 /** Rows that never show (owner 11-19 PM). */
 export const BIG1120_DROP = [/\bdr\.? woof\b/i, /\bember mug 2\b/i];
+/** The small shops the owner asked for by name (lead 11-20): shown at 0%, placed on their guide, sorted low by commission. */
+export const OWNER_SHOPS_1120 = ["21 Collective", "Seven2Seven Collective", "Monochromatic Finds", "Vix Socks"];
 /** The pre-order brands (FOLLOWUP item 70: 21 Collective mocknecks ship up to 5 weeks). */
 export const PREORDER_BRANDS = ["21 Collective"];
 /** Discount codes shown on a brand's cards (FOLLOWUP item 89: 21 Collective, COLLECTIVE10, 10% off). */
@@ -83,7 +86,9 @@ export function importRows1120(readJson, rowsOf, dir) {
       const href = r0.asin ? `https://www.amazon.com/dp/${r0.asin}?tag=louisianahelpr-20` : r0.affiliate_href || r0.href;
       if (typeof href !== "string" || BIG1120_DROP.some((re) => re.test(`${r0.brand ?? ""} ${r0.name}`))) continue;
       // Owner 8:35 PM: a pick only where we earn. A plain 0% link (21 Collective, Dr. Woof) never shows.
-      if (r0.commission === 0 && !/^https:\/\/(www\.)?amazon\.com\//.test(href)) continue;
+      // Except the small shops she asked for by name (OWNER_SHOPS_1120, lead 11-20).
+      const ownerShop = OWNER_SHOPS_1120.includes(String(r0.brand ?? ""));
+      if (r0.commission === 0 && !ownerShop && !/^https:\/\/(www\.)?amazon\.com\//.test(href)) continue;
       const brand = String(r0.brand ?? "");
       const r = {
         ...r0, href, name: RENAME_1120[href] ?? r0.name, line: r0.line ?? "", _file: file, _source: source,
@@ -93,6 +98,7 @@ export function importRows1120(readJson, rowsOf, dir) {
         ...(PREORDER_BRANDS.includes(brand) ? { preorder: true } : {}),
         ...(BRAND_CODES[brand] ? { code: BRAND_CODES[brand].code } : {}),
         ...([r0.guide, ...(Array.isArray(r0.guides) ? r0.guides : [])].some((g) => forced.has(`${g}|${compact(r0.name)}`)) ? { _forced: true } : {}),
+        ...(ownerShop ? { _ownerShop: true } : {}),
       };
       // The price is never shown unchecked (scripts/giftGuidePrice.mjs); the import keeps only its budget band.
       if (typeof r0.price === "string" || typeof r0.price === "number") r.raw_price = r0.price;

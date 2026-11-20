@@ -274,7 +274,7 @@ describe("gift guides: pick badges come from optional fields, never a price", ()
   it("Trending (or Trending on TikTok), Pre-order, Louisiana-made, 25 Days sponsor, Ships fast, Local pickup, in that order", () => {
     expect(badgesFor("TABASCO", { louisianaFit: true, trending: true, shipsFast: true, localPickup: true })).toEqual(["trending", "louisiana-made", "ships-fast", "local-pickup"]);
     // Big batch 1120: a TikTok find wears "Trending on TikTok" in place of Trending; a pre-order says so.
-    expect(badgesFor("21 Collective", { trending: true, tiktok: true, preorder: true })).toEqual(["tiktok", "preorder"]);
+    expect(badgesFor("21 Collective", { trending: true, tiktok: true, preorder: true })).toEqual(["tiktok", "preorder", "sponsor"]); // 21 Collective is a 25 Days sponsor
     expect(badgesFor("Crew Dog")).toEqual(["sponsor"]);
     expect(badgesFor("YETI")).toEqual([]);
     expect(badgesFor(undefined, { localPickup: true })).toEqual(["local-pickup"]);

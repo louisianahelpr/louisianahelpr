@@ -3128,6 +3128,8 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
         e.forced = new Set(e.guides);
         for (const s of e.guides) swapKeep.add(`${s}|${href}`);
       }
+      // A small shop the owner asked for by name (OWNER_SHOPS_1120) is placed on its guide like an editor's add.
+      if (r._ownerShop) e.forced = new Set([...(e.forced ?? []), ...e.guides]);
       if (r.asin && rateData.cc.has(r.asin)) e.campaign = String(r.campaign_id ?? rateData.cc.get(r.asin)?.id ?? "");
     }
     // 3a. The fit audits' moves (AUDIT_1120): the item goes to its new guide, placed there like an editor's add.
@@ -3335,8 +3337,11 @@ export const SECTION_ANCHORS = {};
   // brand, one row per product); a section under SECTION_MIN folds into its closest sibling, and the two smallest
   // neighbours join while a guide has more than SECTION_MAX. Each pick keeps its old guide in `from` (never shown).
   const joinTitles = (parts) => (parts.length <= 1 ? parts.join("") : `${parts.slice(0, -1).join(", ")} & ${parts[parts.length - 1]}`);
+  // The small shops the owner asked for by name (BRAND_SITES, OWNER_SHOPS_1120) hold their places in a section: they
+  // claim theirs first (no type or brand cap), the rest fill by commission, and the section then lists by commission.
+  const ownerShop = (p) => { try { return BRANDS.has(new URL(p.href).hostname); } catch { return false; } };
   const fill = (rows, ownSlug) => {
-    const out = [];
+    const out = rows.filter(ownerShop).filter((p, i, all) => all.findIndex((x) => x.href === p.href) === i).slice(0, SECTION_CAP);
     // SORT_FIXED rows keep their own order and lead; the rest by commission.
     const ranked = rows.map((p, i) => ({ p, i })).sort((x, y) => Number(SORT_FIXED.has(y.p.from)) - Number(SORT_FIXED.has(x.p.from)) || (SORT_FIXED.has(x.p.from) && SORT_FIXED.has(y.p.from) ? x.i - y.i : byCommission({ ...x.p, _at: x.i }, { ...y.p, _at: y.i })));
     for (const { p } of ranked) {
@@ -3352,7 +3357,7 @@ export const SECTION_ANCHORS = {};
       if (LSU_ITEM.test(`${p.name} ${p.brand ?? ""}`) && out.filter((x) => LSU_ITEM.test(`${x.name} ${x.brand ?? ""}`)).length >= LSU_MAX) continue;
       out.push(p);
     }
-    return out;
+    return out.map((p, i) => ({ p, i })).sort((x, y) => Number(SORT_FIXED.has(y.p.from)) - Number(SORT_FIXED.has(x.p.from)) || (SORT_FIXED.has(x.p.from) && SORT_FIXED.has(y.p.from) ? x.i - y.i : byCommission({ ...x.p, _at: x.i }, { ...y.p, _at: y.i }))).map((x) => x.p);
   };
   for (const m of GUIDE_MERGES) {
     const spec = SECTION_GROUPS[m.parent];

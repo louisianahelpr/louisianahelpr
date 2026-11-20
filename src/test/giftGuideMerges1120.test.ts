@@ -145,7 +145,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     }
   });
 
-  it("the 1120 import: one row per product and color (higher commission), no Dr. Woof, old Ember Mug 2 or 0% link; TikTok, pre-order and code flags", () => {
+  it("the 1120 import: one row per product and color (higher commission), no Dr. Woof, old Ember Mug 2 or 0% link (but the owner's named shops); TikTok, pre-order and code flags", () => {
     const rows: Record<string, unknown[]> = {
       "_thin-fill-1119.json": [
         { guide: "dad", name: "johnnie-O Sully Quarter Zip Pullover", brand: "johnnie-O", href: "https://go.shopmy.us/p-1", image: "https://x/1.jpg", commission: 10 },
@@ -174,7 +174,9 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     // Another color stays (the owner's Fabletics scrubs, one color per section); another product of a line stays.
     expect(names).toEqual(expect.arrayContaining(["Fabletics Evolve 3-Pocket Scrub Top, Navy", "Fabletics Evolve 3-Pocket Scrub Top, Green Mystique",
       "Smathers & Branson Mallard Needlepoint Can Cooler", "Smathers & Branson x Tervis Mallard Needlepoint Tumbler"]));
-    expect(names.filter((x: string) => /Woof|Ember Mug 2|Core Mockneck/.test(x))).toEqual([]);
+    expect(names.filter((x: string) => /Woof|Ember Mug 2/.test(x))).toEqual([]);
+    // The small shops the owner asked for by name show at 0% (lead 11-20): 21 Collective, pre-order, code COLLECTIVE10.
+    expect(out.find((r: { name: string }) => r.name === "21 Collective Core Mockneck Navy")).toMatchObject({ preorder: true, code: "COLLECTIVE10", _ownerShop: true });
     const sully = out.find((r: { name: string }) => r.name.startsWith("Johnnie-O Sully")) as { tiktok?: boolean };
     expect(sully.tiktok).toBe(true);
     const rt = out.find((r: { name: string }) => r.name === "21 Collective RT Sweatshirt") as { preorder?: boolean; code?: string };

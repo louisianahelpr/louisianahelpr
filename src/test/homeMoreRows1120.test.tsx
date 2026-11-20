@@ -1,12 +1,12 @@
 /**
- * Owner polish 11-20 ("fill the empty space with useful rows"): signed-in Home adds, under Your sections,
+ * Owner polish 11-20 ("fill the empty space with useful rows"): signed-in Home adds, under Coming up,
  *   - "Recent messages": the last 3 conversations from the inbox's OWN query (shared cache), each opening its thread;
  *   - "Your active listings and jobs": open posted jobs and live Declutter listings, from Home's existing reads;
  * and shows "Near you" (jobs + Declutter items) on every settled day, not only a quiet one (newMemberHome1114.test.tsx).
  * All of it is a lazy chunk asked only once the page has settled, never with Home's first screen.
  *
  * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |             onClick={() => navigate(conversationLink(c))} |             onClick={() => navigate("/messages")}
- * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |   const rows = (recent ?? []).slice(0, HOME_MORE_SHOWN); |   const rows = recent ?? [];
+ * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |             right={c.unread > 0 ? | right={c.unread >= 0 ?
  * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |   if (rows.length === 0) return null;\n  return (\n    <div data-home-recent-messages=""> |   return (\n    <div data-home-recent-messages="">
  * @mutate src/pages/home/homeDashboard/homeActive.ts |     .filter((j) => j.status === "open") |     .filter((j) => j.status !== "completed")
  * @mutate src/pages/home/homeDashboard/homeActive.ts |     .filter((i) => i.status === "live") |     .filter(() => true)
@@ -139,11 +139,12 @@ describe("Your active listings and jobs (owner polish 11-20)", () => {
 
 describe("Home loads the rows lazily, after the page settles", () => {
   const home = blankComments(readFileSync("src/pages/home/HomeDashboard.tsx", "utf8"));
-  it("a lazy chunk, never a static import, drawn only once pageSettled, under Your sections", () => {
+  it("a lazy chunk, never a static import, drawn only once pageSettled, under Coming up in the main column", () => {
     expect(home).not.toMatch(/^import .*HomeMoreRows/m);
     expect(home).toContain('lazy(() => loadModule(() => import("./homeDashboard/HomeMoreRows"))');
     const at = home.indexOf("<HomeMoreRows user={user} active={summary.active} />");
-    expect(at).toBeGreaterThan(home.indexOf("data-section-chips"));
+    expect(at).toBeGreaterThan(home.indexOf('<GroupSection title={t("home.comingUp")}>'));
+    expect(at).toBeLessThan(home.indexOf("<section data-home-side"));
     expect(home.slice(at - 60, at)).toContain("{pageSettled && <Suspense fallback={null}>");
   });
   it("the shared conversations read is never kept in IndexedDB", () => {

@@ -1,6 +1,6 @@
 /**
- * HOME'S MORE ROWS (owner polish 11-20: "fill the empty space with useful rows"). Two small blocks for Home's side
- * column, under Your sections:
+ * HOME'S MORE ROWS (owner polish 11-20: "fill the empty space with useful rows"). Two small blocks for Home's main
+ * column, under Coming up:
  *   - "Recent messages": the last 3 conversations, each opening its thread. The SAME query (key and loader) the
  *     Messages inbox and the dock's long-press preview use (useRecentConversationsPreview), so the caches are shared:
  *     opening Messages after Home paints from this read, and back. Nothing drawn with no conversation or on a failed read.
@@ -91,10 +91,10 @@ export function ActiveRows({ active }: { active: readonly HomeActiveItem[] }) {
   );
 }
 
-/** Both blocks, in Home's side column (HomeDashboard lazy-loads this as one chunk). */
+/** Both blocks, under Coming up (HomeDashboard lazy-loads this as one chunk). */
 export default function HomeMoreRows({ user, active = [] }: { user: User | null | undefined; active: readonly HomeActiveItem[] }) {
   return (
-    <div data-home-more="" className="flex flex-col gap-section mt-2">
+    <div data-home-more="" className="flex flex-col gap-section empty:hidden">
       <RecentMessagesRows user={user} />
       <ActiveRows active={active} />
     </div>

@@ -60,6 +60,26 @@ on:
       - "vite.config.ts"
       - "package.json"
       - "package-lock.json"
+      # Guide fast lane (owner, 2026-11-20): a PR that changes only gift-guide
+      # lane does not start this audit. Exactly the src/ and public/ entries
+      # of scripts/ci/guide-only.mjs GUIDE_CONTENT (src/test/guideFastLane.test.ts).
+      - "!src/content/giftGuidePicks/**"
+      - "!src/content/giftGuide*.ts"
+      - "!src/content/giftGuide*.json"
+      - "!src/content/giftGuide*.mjs"
+      - "!src/content/giftGuide*.d.mts"
+      - "!src/content/goLinks.json"
+      - "!src/content/goLinks.mjs"
+      - "!src/content/goLinks.d.mts"
+      - "!src/lib/giftGuideShareImages.mjs"
+      - "!src/lib/giftGuideShareImages.d.mts"
+      - "!public/gift-guides/**"
+      - "!public/sitemap.xml"
+      - "!src/test/giftGuide*.test.ts"
+      - "!src/test/giftGuide*.test.tsx"
+      - "!src/test/goLinks.test.ts"
+      - "!src/test/helpers/giftGuide*.ts"
+      - "!src/test/fixtures/giftGuide*.json"
   schedule:
     - cron: "0 6 * * 0"   # Sunday 06:00 UTC — long-term trend tracking
   workflow_dispatch:

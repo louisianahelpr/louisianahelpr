@@ -69,5 +69,5 @@ describe("full-suite vitest jobs have timeout headroom", () => {
   });
 });
 
-// @mutate .github/workflows/vitest.yml | timeout-minutes: 25 | timeout-minutes: 10
+// @mutate .github/workflows/vitest.yml | name: Vitest shard ${{ matrix.shard }}/6\n    needs: scope\n    if: ${{ !cancelled() && needs.scope.outputs.guide_only != 'true' }}\n    runs-on: ubuntu-latest\n    timeout-minutes: 25 | name: Vitest shard ${{ matrix.shard }}/6\n    needs: scope\n    if: ${{ !cancelled() && needs.scope.outputs.guide_only != 'true' }}\n    runs-on: ubuntu-latest\n    timeout-minutes: 10
 // @mutate .github/workflows/test.yml | timeout-minutes: 25 | timeout-minutes: 15

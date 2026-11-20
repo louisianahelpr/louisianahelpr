@@ -12,9 +12,10 @@ export interface Decision {
 /** The run-name marker every batch run carries. */
 export const BATCH_MARK: string;
 export const DEBOUNCE_MS: number;
+export const HOURLY_MS: number;
 export const COMPARE_FILE_CAP: number;
 export const UI_PATHS: string[];
-export const TARGETS: { file: string; paths: string[] }[];
+export const TARGETS: { file: string; paths: string[]; debounceMs?: number }[];
 export function matchesPaths(file: string, patterns: string[]): boolean;
 export function batchRuns<T extends BatchRun>(runs: T[]): T[];
 export function decide(args: {
@@ -23,4 +24,5 @@ export function decide(args: {
   now: number;
   paths?: string[];
   changedFiles?: string[] | null;
+  debounceMs?: number;
 }): Decision;

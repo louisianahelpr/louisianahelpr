@@ -24,7 +24,7 @@ const PAIRS = [
 ];
 // @mutate .github/workflows/vitest.yml |           test "$COV_SHARDS" = "success" |           true
 // @mutate .github/workflows/vitest.yml |         shard: [1, 2, 3, 4] |         shard: [1, 2, 3]
-// @mutate .github/workflows/vitest.yml |     needs: coverage-shard\n    if: ${{ always() && github.event_name != 'merge_group' }} |     needs: coverage-shard
+// @mutate .github/workflows/vitest.yml |     needs: [scope, coverage-shard]\n    if: ${{ always() && github.event_name != 'merge_group' }} |     needs: [scope, coverage-shard]
 describe("each sharded check passes only when every one of its shards passed", () => {
   const entries = Object.entries(wf.jobs);
   const shardJobs = entries.filter(([, j]) => (j.steps ?? []).some((s) => /vitest run[^\n]*--shard=\$\{\{ matrix\.shard \}\}\/(\d+)/.test(s.run ?? "")));
@@ -48,7 +48,9 @@ describe("each sharded check passes only when every one of its shards passed", (
     it(`'${p.gate}' needs ${p.shardJob}, always runs, and fails unless their result is success`, () => {
       const [, g] = entries.find(([, j]) => j.name === p.gate)!;
       const needs = Array.isArray(g.needs) ? g.needs : [g.needs];
-      expect(needs).toEqual([p.shardJob]);
+      // Plus the guide fast lane's scope job (and, for the required check, the lane
+      // itself): 2026-11-20, src/test/guideFastLane.test.ts pins those branches.
+      expect(needs.filter((n) => n !== "scope" && n !== "guide-fast-lane")).toEqual([p.shardJob]);
       expect(g.if).toMatch(/always\(\)/);
       const run = (g.steps ?? []).map((s) => s.run ?? "").join("\n");
       expect(run).toContain(`test "$${p.resultVar}" = "success"`);

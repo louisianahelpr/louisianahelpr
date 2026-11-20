@@ -30,6 +30,13 @@ export const BATCH_MARK = "(main batch ";
 /** At most one batch per target per this long (cron is every 20 min). */
 export const DEBOUNCE_MS = 15 * 60 * 1000;
 
+/**
+ * Owner, 2026-11-20 (a gift-guide PR waited ~5 hours behind ~15 queued
+ * background jobs): the background targets run at most hourly. A target's
+ * `debounceMs` overrides DEBOUNCE_MS.
+ */
+export const HOURLY_MS = 60 * 60 * 1000;
+
 /** GitHub's compare API lists at most 300 files (GitHub REST docs, checked 2026-10-02); at or past it the list may be truncated. */
 export const COMPARE_FILE_CAP = 300;
 
@@ -49,8 +56,11 @@ export const UI_PATHS = [
 
 /** The workflows dispatched as main batches. A target without `paths` runs for every new HEAD. */
 export const TARGETS = [
-  { file: "e2e-real-backend.yml", paths: [] },
-  { file: "ui-sweep.yml", paths: UI_PATHS },
+  { file: "e2e-real-backend.yml", paths: [], debounceMs: HOURLY_MS },
+  { file: "ui-sweep.yml", paths: UI_PATHS, debounceMs: HOURLY_MS },
+  // Was on every push to main (2026-11-20). Its batch run regenerates main's
+  // inventories and lands any drift, as the push run did.
+  { file: "staleness-watch.yml", paths: [], debounceMs: HOURLY_MS },
 ];
 
 /** Does `file` match any pattern (exact path, or `dir/**` prefix)? */
@@ -70,12 +80,12 @@ export function batchRuns(runs) {
  * commit to HEAD, or null when it could not be read.
  * Returns { action: "dispatch" | "skip", reason, base }.
  */
-export function decide({ head, runs, now, paths = [], changedFiles = null }) {
+export function decide({ head, runs, now, paths = [], changedFiles = null, debounceMs = DEBOUNCE_MS }) {
   const last = batchRuns(runs)[0];
   if (!last) return { action: "dispatch", reason: "no earlier main batch", base: null };
   if (last.head_sha === head) return { action: "skip", reason: `HEAD ${head.slice(0, 9)} already batched`, base: last.head_sha };
   const age = now - Date.parse(last.created_at);
-  if (!(age >= DEBOUNCE_MS)) return { action: "skip", reason: `last batch is ${Math.round(age / 60000)} min old (< ${DEBOUNCE_MS / 60000})`, base: last.head_sha };
+  if (!(age >= debounceMs)) return { action: "skip", reason: `last batch is ${Math.round(age / 60000)} min old (< ${debounceMs / 60000})`, base: last.head_sha };
   if (paths.length > 0 && Array.isArray(changedFiles) && changedFiles.length > 0 && changedFiles.length < COMPARE_FILE_CAP) {
     if (!changedFiles.some((f) => matchesPaths(f, paths))) {
       return { action: "skip", reason: `none of ${changedFiles.length} changed file(s) is a watched path`, base: last.head_sha };
@@ -105,7 +115,7 @@ function main() {
         console.log(`::warning::${t.file}: compare ${prior.head_sha.slice(0, 9)}...${head.slice(0, 9)} failed, dispatching anyway (${String(e.message).split("\n")[0]})`);
       }
     }
-    const d = decide({ head, runs, now, paths: t.paths, changedFiles });
+    const d = decide({ head, runs, now, paths: t.paths, changedFiles, debounceMs: t.debounceMs });
     console.log(`${t.file}: ${d.action} -- ${d.reason}`);
     if (d.action === "dispatch") gh(["workflow", "run", t.file, "--repo", repo, "--ref", "main", "-f", "batch=true"]);
   }

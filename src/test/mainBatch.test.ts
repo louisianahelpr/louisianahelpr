@@ -1,5 +1,5 @@
 // @mutate scripts/ci/main-batch.mjs |   if (last.head_sha === head) return | if (last.head_sha === "never") return
-// @mutate scripts/ci/main-batch.mjs |   if (!(age >= DEBOUNCE_MS)) return | if (false) return
+// @mutate scripts/ci/main-batch.mjs |   if (!(age >= debounceMs)) return | if (false) return
 // @mutate scripts/ci/main-batch.mjs | && r.conclusion !== "cancelled" |
 // @mutate scripts/ci/main-batch.mjs | changedFiles.length < COMPARE_FILE_CAP | true
 // @mutate scripts/ci/main-batch.mjs |   if (!last) return { action: "dispatch" | if (!last) return { action: "skip"
@@ -55,6 +55,12 @@ describe("main-batch decide()", () => {
     const debounceMin = DEBOUNCE_MS / 60_000;
     expect(decide({ head: HEAD, runs: [batch(OLD, debounceMin - 1)], now: NOW }).action).toBe("skip");
     expect(decide({ head: HEAD, runs: [batch(OLD, debounceMin)], now: NOW }).action).toBe("dispatch");
+  });
+
+  it("a target's debounceMs (hourly, 2026-11-20) overrides the default window", () => {
+    const hourly = 60 * 60_000;
+    expect(decide({ head: HEAD, runs: [batch(OLD, 59)], now: NOW, debounceMs: hourly }).action).toBe("skip");
+    expect(decide({ head: HEAD, runs: [batch(OLD, 60)], now: NOW, debounceMs: hourly }).action).toBe("dispatch");
   });
 
   it("ignores a cancelled batch (it checked nothing)", () => {

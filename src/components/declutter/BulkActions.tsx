@@ -117,7 +117,10 @@ export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; pic
   const busy = each.isPending || discount.isPending;
   if (chosen.length === 0) return null;
   return (
-    <div className="sticky bottom-2 z-10 space-y-2 rounded-[20px] border border-border bg-card p-3 shadow-sm" role="group" aria-label={chosen.length === 1 ? t("dt5.bulk.count1") : t("dt5.bulk.countN", { n: chosen.length })} data-bulk-bar="">
+    // VERIFY 11-20 (low): on dark, bg-card with shadow-sm had no edge, so the list seemed to run under "2 selected". The
+    // bar floats over the list, so it wears the elevated surface (--popover: the sheet tone, lifted on dark, the card
+    // tone on light) and the sheet rung of the elevation ladder, with its border.
+    <div className="sticky bottom-2 z-10 space-y-2 rounded-[20px] border border-border bg-popover p-3 shadow-[var(--shadow-elevated)]" role="group" aria-label={chosen.length === 1 ? t("dt5.bulk.count1") : t("dt5.bulk.countN", { n: chosen.length })} data-bulk-bar="">
       <HideSectionCreateFab />
       <p className="text-ds-13 font-semibold">{chosen.length === 1 ? t("dt5.bulk.count1") : t("dt5.bulk.countN", { n: chosen.length })}</p>
       <div className="flex flex-wrap gap-2">
@@ -126,7 +129,7 @@ export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; pic
         {paused.length > 0 && <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => each.mutate("resume")} data-bulk-action="resume">{t("dt5.bulk.resume")}</Button>}
         <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setAsking("sold")} data-bulk-action="sold">{t("dt5.bulk.sold")}</Button>
       </div>
-      <ConfirmSheet open={asking === "discount"} plain title={chosen.length === 1 ? t("dt5.bulk.discountTitle1") : t("dt5.bulk.discountTitle", { n: chosen.length })} confirmLabel={t("dt5.bulk.discountConfirm")}
+      <ConfirmSheet pair open={asking === "discount"} plain title={chosen.length === 1 ? t("dt5.bulk.discountTitle1") : t("dt5.bulk.discountTitle", { n: chosen.length })} confirmLabel={t("dt5.bulk.discountConfirm")}
         pending={discount.isPending} onConfirm={() => discount.mutate()} onClose={() => setAsking(null)} testId="declutter-bulk-discount">
         <span className="block space-y-3">
           <span className="block">{t("dt5.bulk.discountBody")}</span>
@@ -135,11 +138,11 @@ export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; pic
           </span>
         </span>
       </ConfirmSheet>
-      <ConfirmSheet open={asking === "sold"} destructive title={chosen.length === 1 ? t("dt5.bulk.soldTitle1") : t("dt5.bulk.soldTitle", { n: chosen.length })} confirmLabel={t("dt5.bulk.sold")}
+      <ConfirmSheet pair open={asking === "sold"} destructive title={chosen.length === 1 ? t("dt5.bulk.soldTitle1") : t("dt5.bulk.soldTitle", { n: chosen.length })} confirmLabel={t("dt5.bulk.sold")}
         pending={each.isPending} onConfirm={() => each.mutate("sold")} onClose={() => setAsking(null)} testId="declutter-bulk-sold">
         {t("dt5.bulk.soldBody")}
       </ConfirmSheet>
-      <ConfirmSheet open={asking === "pause"} plain title={live.length === 1 ? t("dt5.bulk.pauseTitle1") : t("dt5.bulk.pauseTitle", { n: live.length })}
+      <ConfirmSheet pair open={asking === "pause"} plain title={live.length === 1 ? t("dt5.bulk.pauseTitle1") : t("dt5.bulk.pauseTitle", { n: live.length })}
         confirmLabel={t("dt5.bulk.pause")} pending={each.isPending} onConfirm={() => each.mutate("pause")} onClose={() => setAsking(null)} testId="declutter-bulk-pause">
         {t("dt5.bulk.pauseBody")}
       </ConfirmSheet>

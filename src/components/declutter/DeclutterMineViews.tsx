@@ -30,7 +30,8 @@ import { FreeAsksToPick, useFreeAsksToPick } from "./FreeAsksToPick";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { BundleRequestsSection, useBundleAsksToAnswer } from "./DeclutterBundleRequests";
 import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffers";
-import { SellingTodo, SellingWeek } from "./SellingHome";
+import { SellingTodo, SellingWeek, useSellingTopSettled } from "./SellingHome";
+import { DeclutterTabBones } from "./DeclutterSkeletons";
 import { useSalesToHandOver } from "./useSalesToHandOver";
 import { ShopSaleCard } from "./ShopSaleCard";
 import { AwayCard } from "./AwayMode";
@@ -95,11 +96,15 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   // Area 06 M1 (11-18): so do a refund request or report waiting on the seller and a Helpr delivery still to hand to its
   // Helpr; they sat under "No offers yet" and Your listings. (Order only: the chip counts are unchanged.)
   const soldFirst = only === null && ((todo?.salesOpen ?? 0) + (todo?.salesDelivering ?? 0) > 0 || reports.size > 0);
+  // VERIFY 11-20: the first screen waits for the reads it is laid out from (useSellingTopSettled), so nothing above the
+  // chips and the sales pops in or drops a row after they draw. A failed read lets it through (no listings, no to-do).
+  const topSettled = useSellingTopSettled(userId, only === null && hasListings);
   const sold = show("sold") && <>
     {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
     <SellerPayoutPrompt />
     <PaidOrders side="seller" />
   </>;
+  if (mine.isPending || !topSettled) return <DeclutterTabBones />;
   return (
     <div className="space-y-6">
       {/* Declutter top 5 #2 (owner 11-19): the Selling home's to-dos, on the whole tab only and only for a seller with

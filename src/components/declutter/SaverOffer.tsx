@@ -75,6 +75,7 @@ function SaverOfferSheet({ item, onClose }: { item: DeclutterItem; onClose: () =
   });
   return (
     <ConfirmSheet
+      pair
       open
       plain
       title={t("dt5.so.title", { title: item.title })}

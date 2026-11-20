@@ -57,20 +57,43 @@ function changeWords(now: number, last: number): string {
 }
 
 const homeQuery = { queryKey: ["declutter", "selling-home"], queryFn: () => fetchSellingHome(), staleTime: 60_000 };
+/** The away card's read and key (AwayMode.tsx), so the to-do and the tab's first paint add no request. */
+const awayQuery = (userId: string) => ({ queryKey: ["declutter", "away", userId], queryFn: () => fetchMyAway(userId) });
+
+/**
+ * VERIFY 11-20 (~/.lh-shots/declutter-top5-1120/VERIFY.md, Medium x2): the to-do card drew with every row and dropped
+ * the away-hidden ones when the away read landed (CLS 0.14-0.15 at 375/390), and it popped in above the chips and the
+ * sales once the listings read answered (CLS 0.12-0.13). The whole Selling tab holds its bones until the reads the
+ * first screen is laid out from have answered (or failed): the listings (whether the to-do shows), the Selling home
+ * and the away state (which rows it has), or failed once. `on` is false when the to-do is not shown (a chip picked, no
+ * listings).
+ */
+export function useSellingTopSettled(userId: string, on: boolean): boolean {
+  const home = useQuery({ ...homeQuery, enabled: on });
+  const away = useQuery({ ...awayQuery(userId), enabled: on });
+  // A read that has failed once lets the tab through at once: the app's retries (seconds of backoff) never hold Selling.
+  // errorUpdateCount too: a failed read with no data goes back to pending when the to-do mounts and asks again
+  // (retryOnMount), and failureCount restarts at 0, so without it the tab flipped between bones and content forever.
+  const waiting = (q: { isPending: boolean; failureCount: number; errorUpdateCount: number }) =>
+    q.isPending && q.failureCount === 0 && q.errorUpdateCount === 0;
+  return !on || (!waiting(home) && !waiting(away));
+}
 
 /** The to-do card at the top of Selling. Bones of a heading and two rows while its read is on the way. */
 export function SellingTodo({ todo, handOver, onPick, userId }: { todo: DeclutterTodo | null; handOver: number | null; onPick: (g: Group) => void; userId: string }) {
   const home = useQuery(homeQuery);
   // The same read and key as the away card, so this adds no request.
-  const away = useQuery({ queryKey: ["declutter", "away", userId], queryFn: () => fetchMyAway(userId) });
-  if (home.isPending) return <div className="h-[164px] animate-pulse rounded-[20px] bg-muted/60" data-selling-home-bones="" aria-hidden />;
+  const away = useQuery(awayQuery(userId));
+  // VERIFY 11-20: never the rows before the away state is known (they would drop while the seller is away).
+  if (home.isPending || away.isPending) return <div className="h-[164px] max-w-3xl animate-pulse rounded-[20px] bg-muted/60" data-selling-home-bones="" aria-hidden />;
   const h = home.data;
   if (!h || !anyActivity(h)) return null;
   const rows = sellingTodoRows(todo, h, !!away.data, handOver);
   return (
     // The rows run the card's full width (flush), so their 16px padding lines the text up under "To do" (11-20 #1:
     // they sat 16px in from it, inside the card's own padding).
-    <section className="overflow-hidden rounded-[20px] border border-border bg-card pt-4" aria-label={t("dt5.home.todo")} data-selling-home="">
+    // VERIFY 11-20 (low): max-w-3xl, the paid sales' reading column, so at 1440 the card is as wide as the lists below.
+    <section className="max-w-3xl overflow-hidden rounded-[20px] border border-border bg-card pt-4" aria-label={t("dt5.home.todo")} data-selling-home="">
       <div className="px-4"><SectionHeading title={t("dt5.home.todo")} /></div>
       {rows.length === 0 ? (
         <p className="px-4 pb-4 pt-1 text-ds-13 text-muted-foreground" data-selling-home-done="">{t("dt5.home.allDone")}</p>

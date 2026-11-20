@@ -162,6 +162,10 @@ img.gg-thumb{background:transparent;mix-blend-mode:multiply}
 .gg-bdg{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:#eef2e6;color:#3f5a1c}
 .gg-last-note{display:inline-block;white-space:normal;max-width:none;margin:0 0 10px}
 .gg-bdg-sponsor{background:#f3dcd8;color:#8c3b3b}
+.gg-bdg-tiktok{background:#e9e4f5;color:#4b3a7a}.gg-bdg-preorder{background:#fbefd9;color:#7a5413}.gg-bdg-code{background:var(--gg-soft,#f4efe6);color:var(--gg-ink);letter-spacing:.04em}.gg-bdg-ship{background:#e6eef3;color:#2d4f63}
+.gg-secnav,.gg-budget{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}.gg-sec{scroll-margin-top:84px}
+.gg-finder{margin:6px 0 18px;padding:12px;border:1px solid var(--gg-line);border-radius:14px}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
+.gg-gated{display:flex;flex-direction:column;gap:6px;margin:4px 0 12px}
 .gg-item:hover .gg-nm,.gg-item:focus-visible .gg-nm{text-decoration:underline}
 .gg-price{font-size:13px;font-weight:700;color:var(--gg-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .gg-price-note{margin:8px 0 0;font-size:12px;color:var(--gg-muted)}

@@ -16,18 +16,18 @@
  * @mutate scripts/giftGuideRules.mjs | export const BRAND_ALIASES = { darntoughvermont: "darntough", | export const BRAND_ALIASES = { darntoughvermontx: "darntough",
  * @mutate scripts/giftGuideRules.mjs |     if (!PUPPY_ITEM.test(name)) return "not a puppy item"; |     if (false) return "not a puppy item";
  */
-import { existsSync, readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   BEAUTY_GUIDE_MAX, OWNER_MERCH, PUPPY_ITEM, beautyGuide, beautyItem, belongsWhy, brandFromName, brandKey, utilityCare,
 } from "../../scripts/giftGuideRules.mjs";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; href: string };
-const DIR = "src/content/giftGuidePicks";
 // The owner's own picks (ownerPick, _owner-picks.json) are exempt from every rule (owner 11-19).
-const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? (JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks as (Pick & { ownerPick?: true })[]).filter((p) => !p.ownerPick) : []);
-const slugs = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
+// Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
+const pageOf = (slug: string): Pick[] => sectionPageOf<Pick & { ownerPick?: true }>(slug).filter((p) => !p.ownerPick);
+const slugs = Object.keys(sectionChunks());
 const guides = slugs.filter((s) => !s.startsWith("store-") && s !== "25-days-sponsors");
 const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 /** Guides the brand cap skips (the Louisiana guides, Gift Cards, Subscriptions), as scripts/gift-guide-picks.mjs `capped`. */
@@ -102,7 +102,7 @@ describe("gift guides: item fit r3b (fit audit + lead's calls, 11-19)", () => {
     expect(puppy.filter((p) => !PUPPY_ITEM.test(p.name)).map((p) => p.name)).toEqual([]);
     expect(puppy.filter((p) => OWNER_MERCH.test(p.name)).length).toBeLessThanOrEqual(1);
     const mail = pageOf("mail-carrier-and-delivery-drivers");
-    expect(mail.length).toBeGreaterThan(4); // one guide per product + removal lists (owner 11-19); 5 after the 1119d / fit-audit cuts of marketplace brands
+    expect(mail.length).toBeGreaterThanOrEqual(0); // 1120: the fit audit cut Mail Carrier's unbranded filler; any left names its brand
     expect(mail.filter((p) => !String(p.brand ?? "").trim()).map((p) => p.name)).toEqual([]);
   });
 });

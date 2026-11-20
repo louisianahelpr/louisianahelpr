@@ -114,6 +114,11 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/GiftGuideShare.tsx::smsHref(links.url, title, typeof navigator === \"undefined\" ? \"\" : navigator.userAgent)": "smsHref(): a fixed sms: scheme + encodeURIComponent(the guide's own URL and title) (\"Text this guide\", owner 2026-11-18)",
   "pages/info/giftGuides/GiftGuideDeals.tsx::deal.href": "GiftOut's prop (the Black Friday & Cyber Monday deals, generated from our content file; the generator keeps https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideView.tsx::d.href": "GiftOut's prop (a store page's deal sections, generated from our content files; the import keeps https:// affiliate links only); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideSmallBiz.tsx::href": "Out's own anchor (Small Business Saturday, 1120): renders a link only for an https:// URL, else plain text",
+  "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.href": "Out's prop (a sponsor's website, else Facebook, else Instagram, from our generated content file; https only, scripts/gift-guide-small-biz.mjs); Out forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.website": "Out's prop (a sponsor's website from our generated content file); Out forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.facebook": "Out's prop (a sponsor's Facebook Page from our generated content file); Out forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.instagram": "Out's prop (a sponsor's Instagram from our generated content file); Out forces the https:// scheme",
   "pages/info/giftGuides/GiftGuidesSidebar.tsx::x.href": "GiftOut's prop (the Sales list, generated from our content files' deal links; https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideLanding.tsx::sponsorPage.links.facebookPage": "a fixed https://www.facebook.com/... constant in src/content/sponsorPage.ts (the 25 Days card's follow link)",
   // 25 Days sponsor page (owner 2026-11-09).

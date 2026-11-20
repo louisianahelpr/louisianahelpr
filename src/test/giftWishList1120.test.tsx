@@ -10,7 +10,7 @@
  * Server side: src/test/pglite/giftWishLists.pglite.mjs.
  *
  * @mutate src/pages/info/giftGuides/giftList.tsx |   if (isSaved(cur, id)) return true; |   if (false) return true;
- * @mutate src/pages/info/giftGuides/giftList.tsx | export const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: pickId(p) } : null); | export const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: p.href } : null);
+ * @mutate src/pages/info/giftGuides/giftList.tsx | const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: pickId(p) } : null); | const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: p.href } : null);
  * @mutate src/pages/info/giftGuides/GiftHint.tsx |     window.localStorage.setItem(PREFIX + id, "1"); |     void id;
  * @mutate src/pages/info/giftGuides/GiftHint.tsx |   dismissedNow.add(id); |   void dismissedNow;
  * @mutate src/pages/info/giftGuides/wishListItems.ts |   const own = guideBySlug(r.g)?.picks.find((p) => pickItemId(p) === r.i); |   const own = guideBySlug(r.g)?.picks.find((p) => p.name === r.i);

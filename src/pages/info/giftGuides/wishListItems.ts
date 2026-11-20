@@ -60,7 +60,7 @@ const loadBiz = () =>
   }));
 
 /** A pick's item id (its link). */
-export const pickItemId = (p: { href: string }) => itemId(p.href);
+const pickItemId = (p: { href: string }) => itemId(p.href);
 /** A deal card's item id (its link). */
 export const dealItemId = (d: Deal) => itemId(d.href);
 /** A business's item id (its slug: its Visit link can change between website and Facebook). */
@@ -120,11 +120,3 @@ export function useWishItems(refs: WishRef[]): { items: WishItem[]; loading: boo
   const items = refs.map(resolve).filter((x): x is WishItem => x !== undefined && !seen.has(x.id) && !!seen.add(x.id));
   return { items, loading: !settled(refs, failed) };
 }
-
-/** For tests: forget the fetched deals and businesses. */
-export const resetWishSourcesForTests = () => {
-  deals = null;
-  biz = null;
-  dealsLoad = null;
-  bizLoad = null;
-};

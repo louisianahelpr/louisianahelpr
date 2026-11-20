@@ -15,7 +15,7 @@ import type { WishRef } from "@/pages/info/giftGuides/giftList";
 /** A shared list's page: /gift-guides/list/<code>. */
 export const sharedListPath = (code: string) => `/gift-guides/list/${code}`;
 /** A list code as the server makes them (10 lowercase letters or digits). */
-export const LIST_CODE = /^[a-z0-9]{10}$/;
+const LIST_CODE = /^[a-z0-9]{10}$/;
 
 export interface SharedList { name: string; items: WishRef[] }
 
@@ -32,14 +32,14 @@ const isRef = (v: unknown): v is WishRef => {
 };
 
 /** A list as the server answered it, or null when the answer is not one. */
-export function asSharedList(data: unknown): SharedList | null {
+function asSharedList(data: unknown): SharedList | null {
   const d = data as { name?: unknown; items?: unknown } | null;
   if (!d || typeof d !== "object" || !Array.isArray(d.items)) return null;
   return { name: typeof d.name === "string" ? d.name : "", items: d.items.filter(isRef) };
 }
 
 /** Why a save did not happen: too many shares from here just now, or anything else (offline, a server error). */
-export class WishListSaveError extends Error {
+class WishListSaveError extends Error {
   constructor(public readonly kind: "rateLimited" | "failed", message: string) {
     super(message);
   }

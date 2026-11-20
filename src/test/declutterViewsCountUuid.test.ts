@@ -19,7 +19,8 @@
  * @mutate supabase/migrations/20261120121830_declutter_views_coalesce_uuid.sql | (SELECT count(DISTINCT COALESCE(v.viewer_id, v.device_id))::integer | (SELECT count(DISTINCT COALESCE(v.viewer_id::text, v.device_id))::integer
  * @mutate src/test/pglite/declutterSellingHome.pglite.mjs | await db.exec(viewsTable); | await db.exec(`create table public.declutter_item_views(item_id uuid, viewer_id uuid, device_id text, created_at timestamptz)`);
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

@@ -6,6 +6,7 @@
  *
  * @mutate supabase/migrations/20261120015456_declutter_bulk_and_away.sql |         WHERE id = v_id AND seller_id = p_seller AND status = 'paused'; |         WHERE seller_id = p_seller AND status = 'paused';
  * @mutate supabase/migrations/20261120015456_declutter_bulk_and_away.sql |     v_cents := greatest(100, COALESCE(r.floor_price_cents, 100),\n                        round(r.current_price_cents * (100 - p_percent_off) / 100.0)::integer); |     v_cents := greatest(100,\n                        round(r.current_price_cents * (100 - p_percent_off) / 100.0)::integer);
+ * @mutate supabase/migrations/20261120015456_declutter_bulk_and_away.sql |   ELSIF v_uid <> p_seller_id\n        AND p_seller_id = ANY | ELSIF false\n        AND p_seller_id = ANY
  * @mutate src/components/declutter/BulkActions.tsx | export const bulkPickable = (i: Pick<DeclutterItem, "status">) => i.status === "live" \|\| i.status === "paused"; | export const bulkPickable = (i: Pick<DeclutterItem, "status">) => i.status !== "draft";
  */
 import { describe, expect, it, vi } from "vitest";
@@ -42,6 +43,17 @@ describe("Declutter top 5 #5: bulk actions and away mode", () => {
     const ret = flat(newestFunction("declutter_away_return").body);
     expect(ret).toContain("v_ok := EXISTS (SELECT 1 FROM public.declutter_pickup_windows w WHERE w.seller_id = p_seller) AND NOT public.declutter_seller_out(p_seller);");
     expect(ret).toContain("WHERE id = v_id AND seller_id = p_seller AND status = 'paused';");
+  });
+
+  it("review 11-19 #3 and #7: no price cut on top of a running sale; the public away date follows the listings' visibility", () => {
+    expect(flat(newestFunction("declutter_bulk_discount").body)).toContain("RAISE EXCEPTION 'sale_running'");
+    const slp = newestFunction("declutter_set_listing_price");
+    expect(slp.file).toContain("20261120015456");
+    expect(flat(slp.body)).toContain("IF p_price_cents < v_item.current_price_cents AND EXISTS ( SELECT 1 FROM public.declutter_shop_sale_items x JOIN public.declutter_shop_sales s ON s.id = x.sale_id AND s.status = 'on'");
+    const until = flat(newestFunction("declutter_seller_away_until").body);
+    expect(until).toContain("IF NOT public.declutter_open_to_guests() THEN RETURN NULL;");
+    expect(until).toContain("p_seller_id = ANY (COALESCE((SELECT public.declutter_my_block_partners()), '{}'::uuid[]))");
+    expect(until).toContain("IF v_uid IS DISTINCT FROM p_seller_id AND public.declutter_seller_out(p_seller_id) THEN RETURN NULL;");
   });
 
   it("only listings for sale or paused can be ticked", () => {

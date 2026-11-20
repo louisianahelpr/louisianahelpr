@@ -212,7 +212,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
     <div className="space-y-6">
       {/* Declutter top 5 #2 (owner 11-19): the Selling home, the to-do list and the week's numbers, on the whole tab only
           and only for a seller with listings (a first-time seller sees the empty card below, not empty numbers). */}
-      {only === null && (mine.data?.length ?? 0) > 0 && <SellingHome todo={todo} onPick={(g) => toggle(g)} />}
+      {only === null && (mine.data?.length ?? 0) > 0 && <SellingHome todo={todo} userId={userId} onPick={(g) => toggle(g)} />}
       {/* Declutter top 5 #4: the shop-wide sale, while something is for sale or a sale is set. */}
       {only === null && pricedLive && <ShopSaleCard userId={userId} />}
       {/* Declutter top 5 #5: away mode, for a seller with listings (and always while away, to come back). */}

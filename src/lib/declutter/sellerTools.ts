@@ -206,6 +206,17 @@ export function calendarDayWords(ymd: string, lang: "en" | "es" = "en"): string 
   return new Date(y, m - 1, d).toLocaleDateString(lang === "es" ? "es-US" : "en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
+/**
+ * Review 11-19 #5: the end the sheet sends. Normally 11:59 PM on the last day; never less than a day after the start (a
+ * late-night "now" start still runs a full day) and never more than 14 days (the server allows 14 days and 2 hours).
+ */
+export function saleEnd(from: Date, days: number): Date {
+  const end = saleEndOfDay(from, days - 1).getTime();
+  const min = from.getTime() + 24 * 3600_000;
+  const max = from.getTime() + 14 * 24 * 3600_000;
+  return new Date(Math.min(Math.max(end, min), max));
+}
+
 /** 11:59 PM local time `days` days after `from` (0 = tonight): a sale "through Sunday" runs to Sunday night. */
 export function saleEndOfDay(from: Date, days: number): Date {
   const d = new Date(from);

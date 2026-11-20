@@ -9,7 +9,7 @@
  */
 import { ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchSellingHome } from "@/lib/declutter/api";
+import { fetchMyAway, fetchSellingHome } from "@/lib/declutter/api";
 import { weekChange, type SellingHome as Home, type WeekNumbers } from "@/lib/declutter/sellerTools";
 import { formatPrice } from "@/lib/declutter/formatPrice";
 import { SectionHeading } from "./DeclutterTabHeads";
@@ -44,12 +44,15 @@ function changeWords(now: number, last: number): string {
   return c.dir === "new" ? t("dt5.home.new") : t("dt5.home.same");
 }
 
-export function SellingHome({ todo, onPick }: { todo: DeclutterTodo | null; onPick: (g: Group) => void }) {
+export function SellingHome({ todo, onPick, userId }: { todo: DeclutterTodo | null; onPick: (g: Group) => void; userId: string }) {
   const home = useQuery({ queryKey: ["declutter", "selling-home"], queryFn: () => fetchSellingHome(), staleTime: 60_000 });
+  // Lead 11-19: while away (#5) the paused listings are paused on purpose, so "put back up" is not a to-do. The same
+  // read and key as the away card, so this adds no request.
+  const away = useQuery({ queryKey: ["declutter", "away", userId], queryFn: () => fetchMyAway(userId) });
   if (home.isPending) return <div className="h-[244px] animate-pulse rounded-[20px] bg-muted/60" data-selling-home-bones="" aria-hidden />;
   const h = home.data;
   if (!h || !anyActivity(h)) return null;
-  const rows = sellingTodoRows(todo, h);
+  const rows = sellingTodoRows(todo, h).filter((r) => !(r.key === "relist" && away.data));
   const tiles: { label: MsgKey; now: number; last: number; money?: boolean }[] = [
     { label: "dt5.home.sales", now: h.week.sales, last: h.last_week.sales },
     { label: "dt5.home.earnings", now: h.week.earnings_cents, last: h.last_week.earnings_cents, money: true },

@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Tag } from "lucide-react";
 import { fetchMyShopSale } from "@/lib/declutter/api";
-import { SHOP_SALE_PERCENTS, endShopSale, saleEndOfDay, startShopSale } from "@/lib/declutter/sellerTools";
+import { SHOP_SALE_PERCENTS, endShopSale, saleEnd, startShopSale } from "@/lib/declutter/sellerTools";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
@@ -67,7 +67,7 @@ function StartSaleSheet({ onClose, onDone }: { onClose: () => void; onDone: () =
     mutationFn: () => {
       const now = new Date();
       const from = tomorrow ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0) : now;
-      return startShopSale(pct, from, saleEndOfDay(from, days - 1));
+      return startShopSale(pct, from, saleEnd(from, days)); // review 11-19 #5: clamped to 1-14 days
     },
     onSuccess: () => { toast(tomorrow ? t("dt5.sale.set") : t("dt5.sale.started")); onDone(); onClose(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -88,7 +88,7 @@ function StartSaleSheet({ onClose, onDone }: { onClose: () => void; onDone: () =
           <ToggleChip pressed={!tomorrow} onClick={() => setTomorrow(false)}>{t("dt5.sale.today")}</ToggleChip>
           <ToggleChip pressed={tomorrow} onClick={() => setTomorrow(true)}>{t("dt5.sale.tomorrow")}</ToggleChip>
         </span>
-        <span className="block text-ds-13 font-semibold text-foreground">{t("dt5.sale.through")} {saleDay(saleEndOfDay(from, days - 1))}</span>
+        <span className="block text-ds-13 font-semibold text-foreground">{t("dt5.sale.through")} {saleDay(saleEnd(from, days))}</span>
         <span role="group" aria-label={t("dt5.sale.through")} className="flex flex-wrap gap-2">
           {DAY_CHOICES.map((d) => (
             <ToggleChip key={d} pressed={days === d} onClick={() => setDays(d)} data-shop-sale-days={d}>{t("dt5.sale.days", { n: d })}</ToggleChip>

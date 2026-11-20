@@ -15,9 +15,11 @@
 --   declutter_start_shop_sale(p_percent_off, p_starts_at, p_ends_at) -> uuid. Starts at once when p_starts_at <= now.
 --                               Up to 14 days long, starting within 14 days.
 --   declutter_end_shop_sale()   ends the running sale now (prices back) or cancels a scheduled one.
---   declutter_shop_sale_sweep() every 15 minutes (cron declutter-shop-sales): starts due sales, ends due sales, discounts
---                               listings that went live during a sale, and puts back a reserved listing's price once it is
---                               back on sale after the sale ended (for 3 days).
+--   declutter_shop_sale_sweep() every 15 minutes (cron declutter-shop-sales): ends due sales, puts back what was waiting,
+--                               THEN starts due sales and discounts listings that went live during a sale (review 11-19 #2).
+--   trg_declutter_items_shop_sale_return / _price  a listing that comes back on sale after its sale ended gets its price
+--                               back in the same write (review #1); any price change the sale did not make marks the row so
+--                               the put-back leaves it alone (review #6). One open row per listing across sales (review #2).
 --   declutter_item_demand       RESTATED (DROP + CREATE: two more columns) so the item page can say "15% off, sale ends
 --                               Sun" from the read it already makes: sale_pct, sale_ends_at, only for a listing whose
 --                               price right now is its sale price. Body otherwise verbatim from 20261120012729.
@@ -43,7 +45,8 @@ CREATE TABLE IF NOT EXISTS public.declutter_shop_sales (
   status text NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'on', 'ended', 'cancelled')),
   created_at timestamptz NOT NULL DEFAULT now(),
   ended_at timestamptz,
-  CONSTRAINT declutter_shop_sales_range CHECK (ends_at > starts_at AND ends_at <= starts_at + interval '14 days')
+  -- Review 11-19 #5: 2 hours of slack over 14 days, so a 14-day sale across a clock change is never refused.
+  CONSTRAINT declutter_shop_sales_range CHECK (ends_at > starts_at AND ends_at <= starts_at + interval '14 days 2 hours')
 );
 CREATE UNIQUE INDEX IF NOT EXISTS declutter_shop_sales_one_open
   ON public.declutter_shop_sales (seller_id) WHERE status IN ('scheduled', 'on');
@@ -63,10 +66,15 @@ CREATE TABLE IF NOT EXISTS public.declutter_shop_sale_items (
   sale_cents integer NOT NULL CHECK (sale_cents BETWEEN 100 AND 100000),
   created_at timestamptz NOT NULL DEFAULT now(),
   restored_at timestamptz,
+  -- Review 11-19 #6: set when anything but the sale itself changed this listing's price while the row was open (the
+  -- seller's Change price, a free-after-N-days, ...): the put-back then leaves that price alone, even when it happens to
+  -- equal the sale price. Written by trg_declutter_items_shop_sale_price.
+  seller_changed_at timestamptz,
   PRIMARY KEY (sale_id, item_id),
   CONSTRAINT declutter_shop_sale_items_lower CHECK (sale_cents < before_cents)
 );
-CREATE INDEX IF NOT EXISTS declutter_shop_sale_items_item_idx ON public.declutter_shop_sale_items (item_id) WHERE restored_at IS NULL;
+-- Review 11-19 #2: at most ONE open row per listing across every sale, so two sales can never stack on one price.
+CREATE UNIQUE INDEX IF NOT EXISTS declutter_shop_sale_items_one_open ON public.declutter_shop_sale_items (item_id) WHERE restored_at IS NULL;
 ALTER TABLE public.declutter_shop_sale_items ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.declutter_shop_sale_items FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.declutter_shop_sale_items TO authenticated;
@@ -91,8 +99,11 @@ COMMENT ON TABLE public.declutter_shop_sale_items IS
 
 -- ---------------------------------------------------------------------------
 -- 2. The price step, shared by start and sweep: discount every live priced listing of the sale's seller that has no
---    row for this sale yet. The UPDATE only lands while the price is still the one read (a race with the seller's own
---    change or a sale is skipped, never overwritten). Returns how many listings were discounted.
+--    row for this sale AND no open row from any other sale (review 11-19 #2: a listing still waiting for an ended sale's
+--    put-back is never discounted again on top; the unique index declutter_shop_sale_items_one_open backs this up).
+--    The UPDATE only lands while the price is still the one read (a race with the seller's own change is skipped, never
+--    overwritten). The price writes are marked as the sale's own (declutter.shop_sale_engine), so the price trigger
+--    below does not take them for the seller's. Returns how many listings were discounted.
 CREATE OR REPLACE FUNCTION public.declutter_shop_sale_apply(p_sale_id uuid)
 RETURNS integer
 LANGUAGE plpgsql
@@ -109,6 +120,7 @@ BEGIN
   IF NOT FOUND THEN
     RETURN 0;
   END IF;
+  PERFORM set_config('declutter.shop_sale_engine', 'on', true);
   FOR r IN
     SELECT i.id, i.current_price_cents, p.floor_price_cents
       FROM public.declutter_items i
@@ -116,7 +128,8 @@ BEGIN
      WHERE i.seller_id = v_sale.seller_id
        AND i.status = 'live'
        AND i.current_price_cents >= 200
-       AND NOT EXISTS (SELECT 1 FROM public.declutter_shop_sale_items x WHERE x.sale_id = p_sale_id AND x.item_id = i.id)
+       AND NOT EXISTS (SELECT 1 FROM public.declutter_shop_sale_items x
+                        WHERE x.item_id = i.id AND (x.sale_id = p_sale_id OR x.restored_at IS NULL))
      ORDER BY i.id
      FOR UPDATE OF i SKIP LOCKED
   LOOP
@@ -130,15 +143,20 @@ BEGIN
     VALUES (p_sale_id, r.id, r.current_price_cents, v_cents);
     v_n := v_n + 1;
   END LOOP;
+  PERFORM set_config('declutter.shop_sale_engine', '', true);
   RETURN v_n;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_shop_sale_apply(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_shop_sale_apply(uuid) TO service_role;
 
--- 3. Put prices back: every row of the sale not yet put back. A listing still at its sale price and live or paused goes
---    back to its price before; one whose price the seller changed keeps the seller's price; a reserved one waits (the
---    sweep tries again for 3 days, so a hold that runs out puts it back); anything else (sold, taken down) is done.
+-- 3. Put prices back: every row of the sale not yet put back (review 11-19 #1 and #6).
+--    - the price was changed by anything but the sale (seller_changed_at): that price stays; the row closes;
+--    - live or paused at the sale price: back to the price before; the row closes;
+--    - a FINAL status (completed, withdrawn, rejected, removed, sold_elsewhere): nothing to put back; the row closes;
+--    - anything else (reserved, sold, ended, in review, ...) can still come back on sale (a hold that runs out, a missed
+--      pickup, a lapsed trade, a listing round): the row WAITS, and trg_declutter_items_shop_sale_return puts the price
+--      back the moment the listing is live or paused again, however long that takes.
 CREATE OR REPLACE FUNCTION public.declutter_shop_sale_restore(p_sale_id uuid)
 RETURNS integer
 LANGUAGE plpgsql
@@ -149,30 +167,88 @@ DECLARE
   r record;
   v_n integer := 0;
 BEGIN
+  PERFORM set_config('declutter.shop_sale_engine', 'on', true);
   FOR r IN
-    SELECT x.item_id, x.before_cents, x.sale_cents, i.status, i.current_price_cents, i.price_cents
+    SELECT x.item_id, x.before_cents, x.sale_cents, x.seller_changed_at, i.status, i.current_price_cents, i.price_cents
       FROM public.declutter_shop_sale_items x
       JOIN public.declutter_items i ON i.id = x.item_id
      WHERE x.sale_id = p_sale_id AND x.restored_at IS NULL
      ORDER BY x.item_id
      FOR UPDATE OF i SKIP LOCKED
   LOOP
-    IF r.status = 'reserved' AND r.current_price_cents = r.sale_cents THEN
-      CONTINUE; -- waits: a hold that runs out comes back at the sale price, and the sweep puts it back then
-    END IF;
-    IF r.status IN ('live', 'paused') AND r.current_price_cents = r.sale_cents THEN
+    IF r.seller_changed_at IS NULL AND r.status IN ('live', 'paused') AND r.current_price_cents = r.sale_cents THEN
       UPDATE public.declutter_items
          SET current_price_cents = least(r.before_cents, r.price_cents), updated_at = now()
        WHERE id = r.item_id;
       v_n := v_n + 1;
+    ELSIF r.seller_changed_at IS NULL AND r.status NOT IN ('live', 'paused', 'completed', 'withdrawn', 'rejected', 'removed', 'sold_elsewhere') THEN
+      CONTINUE; -- waits: it can still come back on sale, and the return trigger puts the price back then
     END IF;
     UPDATE public.declutter_shop_sale_items SET restored_at = now() WHERE sale_id = p_sale_id AND item_id = r.item_id;
   END LOOP;
+  PERFORM set_config('declutter.shop_sale_engine', '', true);
   RETURN v_n;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_shop_sale_restore(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_shop_sale_restore(uuid) TO service_role;
+
+-- 3a. Review 11-19 #6: any price change on a listing with an open sale row that the sale did not make itself marks the
+--     row, so the put-back never overwrites a deliberate price (even one equal to the sale price).
+CREATE OR REPLACE FUNCTION public.declutter_items_shop_sale_price()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF COALESCE(current_setting('declutter.shop_sale_engine', true), '') <> 'on' THEN
+    UPDATE public.declutter_shop_sale_items
+       SET seller_changed_at = now()
+     WHERE item_id = NEW.id AND restored_at IS NULL AND seller_changed_at IS NULL;
+  END IF;
+  RETURN NULL;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_items_shop_sale_price() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_declutter_items_shop_sale_price ON public.declutter_items;
+CREATE TRIGGER trg_declutter_items_shop_sale_price
+  AFTER UPDATE OF current_price_cents ON public.declutter_items
+  FOR EACH ROW WHEN (NEW.current_price_cents IS DISTINCT FROM OLD.current_price_cents)
+  EXECUTE FUNCTION public.declutter_items_shop_sale_price();
+
+-- 3b. Review 11-19 #1: a listing whose sale has ended (or was cancelled) and that comes back on sale (live or paused)
+--     while still at its sale price gets its price back in the same write, whenever that happens (a missed pickup or a
+--     lapsed trade can put a sold listing back up days later). BEFORE, so the price rides the same row write.
+CREATE OR REPLACE FUNCTION public.declutter_items_shop_sale_return()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  x record;
+BEGIN
+  SELECT si.sale_id, si.before_cents, si.sale_cents, si.seller_changed_at INTO x
+    FROM public.declutter_shop_sale_items si
+    JOIN public.declutter_shop_sales s ON s.id = si.sale_id AND s.status IN ('ended', 'cancelled')
+   WHERE si.item_id = NEW.id AND si.restored_at IS NULL
+   LIMIT 1;
+  IF FOUND THEN
+    IF x.seller_changed_at IS NULL AND NEW.current_price_cents = x.sale_cents THEN
+      NEW.current_price_cents := least(x.before_cents, NEW.price_cents);
+    END IF;
+    UPDATE public.declutter_shop_sale_items SET restored_at = now() WHERE sale_id = x.sale_id AND item_id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_items_shop_sale_return() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_declutter_items_shop_sale_return ON public.declutter_items;
+CREATE TRIGGER trg_declutter_items_shop_sale_return
+  BEFORE UPDATE OF status ON public.declutter_items
+  FOR EACH ROW WHEN (NEW.status IN ('live', 'paused') AND OLD.status IS DISTINCT FROM NEW.status)
+  EXECUTE FUNCTION public.declutter_items_shop_sale_return();
 
 -- ---------------------------------------------------------------------------
 -- 4. The seller's two buttons.
@@ -196,7 +272,8 @@ BEGIN
     RAISE EXCEPTION 'invalid_input' USING ERRCODE = '22023', HINT = 'Pick between 5% and 50% off.';
   END IF;
   v_start := greatest(COALESCE(p_starts_at, now()), now());
-  IF p_ends_at IS NULL OR p_ends_at <= v_start OR p_ends_at > v_start + interval '14 days' OR v_start > now() + interval '14 days' THEN
+  -- Review 11-19 #5: 2 hours of slack over 14 days (a clock change inside the sale), as the table's own CHECK.
+  IF p_ends_at IS NULL OR p_ends_at <= v_start OR p_ends_at > v_start + interval '14 days 2 hours' OR v_start > now() + interval '14 days' THEN
     RAISE EXCEPTION 'invalid_sale_dates' USING ERRCODE = '22023',
       HINT = 'A sale starts within 2 weeks and runs up to 2 weeks.';
   END IF;
@@ -277,6 +354,20 @@ BEGIN
       PERFORM public.log_cron_defect('declutter_shop_sale_sweep', r.id::text, format('ending shop sale %s failed: %s (%s)', r.id, SQLERRM, SQLSTATE));
     END;
   END LOOP;
+  -- Review 11-19 #2: put-backs BEFORE any discount. Ended or cancelled sales with a listing still waiting (it was
+  -- reserved or sold at the end): a listing that has reached a final status closes; one back on sale was already put
+  -- back by trg_declutter_items_shop_sale_return; this catches anything else. No time limit (review #1: a sold
+  -- listing can come back days later).
+  FOR r IN SELECT DISTINCT s.id FROM public.declutter_shop_sales s
+             JOIN public.declutter_shop_sale_items x ON x.sale_id = s.id AND x.restored_at IS NULL
+            WHERE s.status IN ('ended', 'cancelled') LIMIT 500 LOOP
+    BEGIN
+      v_restored := v_restored + public.declutter_shop_sale_restore(r.id);
+    EXCEPTION WHEN OTHERS THEN
+      v_errors := v_errors + 1;
+      PERFORM public.log_cron_defect('declutter_shop_sale_sweep', r.id::text, format('shop sale %s put-back failed: %s (%s)', r.id, SQLERRM, SQLSTATE));
+    END;
+  END LOOP;
   -- Due to start.
   FOR r IN SELECT s.id FROM public.declutter_shop_sales s WHERE s.status = 'scheduled' AND s.starts_at <= now() ORDER BY s.starts_at LIMIT 200 LOOP
     BEGIN
@@ -295,17 +386,6 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN
       v_errors := v_errors + 1;
       PERFORM public.log_cron_defect('declutter_shop_sale_sweep', r.id::text, format('shop sale %s new listings failed: %s (%s)', r.id, SQLERRM, SQLSTATE));
-    END;
-  END LOOP;
-  -- Ended in the last 3 days with a listing still waiting (it was reserved at the end).
-  FOR r IN SELECT DISTINCT s.id FROM public.declutter_shop_sales s
-             JOIN public.declutter_shop_sale_items x ON x.sale_id = s.id AND x.restored_at IS NULL
-            WHERE s.status = 'ended' AND s.ended_at > now() - interval '3 days' LIMIT 500 LOOP
-    BEGIN
-      v_restored := v_restored + public.declutter_shop_sale_restore(r.id);
-    EXCEPTION WHEN OTHERS THEN
-      v_errors := v_errors + 1;
-      PERFORM public.log_cron_defect('declutter_shop_sale_sweep', r.id::text, format('shop sale %s put-back failed: %s (%s)', r.id, SQLERRM, SQLSTATE));
     END;
   END LOOP;
   RETURN jsonb_build_object('started', v_started, 'ended', v_ended, 'discounted', v_items, 'put_back', v_restored, 'errors', v_errors);
@@ -452,9 +532,9 @@ BEGIN
        AND i.live_at IS NOT NULL AND i.live_at <= now() - interval '12 hours'
        AND i.current_price_cents > greatest(p.floor_price_cents, (ceil(COALESCE(p.drop_stop_cents, p.floor_price_cents) / 100.0) * 100)::integer)
        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today)
-       -- CHANGED 20261120014036 (Declutter top 5 #4): never on top of a running shop sale; the sale puts back the exact price.
+       -- CHANGED 20261120014036 (Declutter top 5 #4): never on a listing with an OPEN shop-sale row, running or still
+       -- waiting for its put-back (review 11-19 #4), so the put-back always restores the exact price.
        AND NOT EXISTS (SELECT 1 FROM public.declutter_shop_sale_items x
-                         JOIN public.declutter_shop_sales s ON s.id = x.sale_id AND s.status = 'on'
                         WHERE x.item_id = i.id AND x.restored_at IS NULL)
     RETURNING i.id, i.title, i.current_price_cents, i.is_seed
   LOOP

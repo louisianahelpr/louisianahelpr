@@ -21,7 +21,8 @@ const home = {
   live_count: 3,
   live_value_cents: 5100,
 };
-vi.mock("@/lib/declutter/api", () => ({ fetchSellingHome: async () => home }));
+const awayState = vi.hoisted(() => ({ away: null as null | { back_on: string } }));
+vi.mock("@/lib/declutter/api", () => ({ fetchSellingHome: async () => home, fetchMyAway: async () => awayState.away }));
 
 import { SellingHome, sellingTodoRows } from "./SellingHome";
 
@@ -57,7 +58,7 @@ describe("Declutter top 5 #2: Selling home", () => {
     const onPick = vi.fn();
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <SellingHome todo={{ sellerOffers: 2, salesOpen: 0 } as never} onPick={onPick} />
+        <SellingHome todo={{ sellerOffers: 2, salesOpen: 0 } as never} userId="u1" onPick={onPick} />
       </QueryClientProvider>,
     );
     expect(await screen.findByText("Answer 2 offers")).toBeTruthy();
@@ -69,5 +70,18 @@ describe("Declutter top 5 #2: Selling home", () => {
     expect(screen.getByText(/3 items for sale, worth \$51 if they all sell\./)).toBeTruthy();
     fireEvent.click(screen.getByText("Answer 2 offers"));
     expect(onPick).toHaveBeenCalledWith("offers");
+  });
+
+  it("while away, paused listings are not a to-do (they come back by themselves)", async () => {
+    awayState.away = { back_on: "2026-11-30" };
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <SellingHome todo={{ sellerOffers: 2, salesOpen: 0 } as never} userId="u1" onPick={() => {}} />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText("Answer 2 offers")).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText("1 paused listing to put back up")).toBeNull();
+    awayState.away = null;
   });
 });

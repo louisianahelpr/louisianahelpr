@@ -1697,6 +1697,8 @@ export const RPC_ERROR_COPY = {
   // can refuse with its own codes; managerMode.ts falls back to that RPC's words.
   declutter_manage: {
     account_restricted: DC.account_restricted,
+    // Review 11-19 #3 (20261120015456): a manager lowering a price during the seller's running shop sale.
+    sale_running: DC.sale_running,
     act_as_seller_failed: "That didn't go through, and nothing was changed. Try again.",
     act_as_seller_not_restored: "That didn't go through, and nothing was changed. Try again.",
     area_looks_like_address: DC.area_looks_like_address,
@@ -1979,6 +1981,7 @@ export const RPC_ERROR_COPY = {
   // Declutter top 5 #5 (20261120015456): bulk discount and away mode.
   declutter_bulk_discount: {
     account_restricted: DC.account_restricted,
+    sale_running: DC.sale_running,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
     invalid_input: "Pick between 5% and 50% off, for 1 to 100 listings.",
@@ -2004,6 +2007,7 @@ export const RPC_ERROR_COPY = {
   },
   declutter_set_listing_price: {
     account_restricted: DC.account_restricted,
+    sale_running: DC.sale_running,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
     invalid_floor_price: DC.invalid_floor_price,

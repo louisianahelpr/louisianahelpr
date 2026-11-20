@@ -111,6 +111,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // Declutter top 5 #5 (20261120015456): away mode.
   invalid_away_date: "Pick a day from tomorrow to 90 days out.",
   not_away: "Your shop is already open.",
+  // Review 11-19 #3: no price cut on top of a running shop sale.
+  sale_running: "End your sale to change prices.",
   invalid_action: "That can't be done to this offer.",
   offer_not_found: "That offer isn't available.",
   offer_not_open: "This offer is already closed.",

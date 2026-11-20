@@ -77,6 +77,7 @@ export const enDeclErrors = {
   "de.sale_not_found": "There is no sale to end.",
   "de.invalid_away_date": "Pick a day from tomorrow to 90 days out.",
   "de.not_away": "Your shop is already open.",
+  "de.sale_running": "End your sale to change prices.",
   "de.invalid_action": "That can't be done to this offer.",
   "de.offer_not_found": "That offer isn't available.",
   "de.offer_not_open": "This offer is already closed.",

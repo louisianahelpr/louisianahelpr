@@ -44,8 +44,16 @@ create table public.notices(user_id uuid, title text, message text);
 create function public.declutter_notify(p_user uuid, p_type text, p_title text, p_message text, p_link text, p_other uuid default null)
   returns void language sql as $$ insert into public.notices values (p_user, p_title, p_message) $$;
 create table public.declutter_items(id uuid primary key, seller_id uuid not null references auth.users(id), title text not null default 'x',
-  status text not null, current_price_cents integer not null, updated_at timestamptz not null default now());
-create table public.declutter_item_private(item_id uuid primary key references public.declutter_items(id), floor_price_cents integer);
+  status text not null, current_price_cents integer not null, updated_at timestamptz not null default now(), price_cents integer not null default 5000);
+create table public.declutter_item_private(item_id uuid primary key references public.declutter_items(id), floor_price_cents integer,
+  drops_stopped boolean not null default false, drop_stop_cents integer, updated_at timestamptz not null default now());
+-- The shop-sale tables (20261120014036), trimmed: the bulk discount and Change price read them (review 11-19 #3).
+create table public.declutter_shop_sales(id uuid primary key default gen_random_uuid(), seller_id uuid not null, status text not null);
+create table public.declutter_shop_sale_items(sale_id uuid not null references public.declutter_shop_sales(id), item_id uuid not null,
+  sale_cents integer not null default 100, restored_at timestamptz);
+-- Visibility stubs for the public away date (review 11-19 #7), each driven by a setting.
+create function public.declutter_open_to_guests() returns boolean language sql stable as $$ select coalesce(nullif(current_setting('t.guests', true), ''), 'on') = 'on' $$;
+create function public.declutter_my_block_partners() returns uuid[] language sql stable as $$ select nullif(current_setting('t.blocked', true), '')::uuid[] $$;
 create table public.declutter_pickup_windows(seller_id uuid not null);
 `);
 await db.exec(cut(slice3, /CREATE TABLE IF NOT EXISTS public\.declutter_offers \([\s\S]*?\n\);/));
@@ -115,6 +123,35 @@ await db.exec(`insert into public.declutter_pickup_windows values ('${S}'); upda
 await call(S, `select public.declutter_go_away(((now() AT TIME ZONE 'America/Chicago')::date + 5))`);
 r = await call(S, `select public.declutter_come_back() n`);
 ok(r.v?.n === 5 && (await row(1)).status === "live", `"I'm back" puts them all back at once (${r.v?.n ?? r.err})`);
+
+// ---- Review 11-19 findings.
+// #3: no lowering on top of a running shop sale, in bulk or one at a time; raising is still allowed.
+await db.exec(`insert into public.declutter_item_private (item_id, floor_price_cents) values ('${it(1)}', 100) on conflict (item_id) do nothing`);
+await db.exec(`insert into public.declutter_shop_sales (id, seller_id, status) values ('a0000000-0000-4000-8000-000000000001', '${S}', 'on');
+  insert into public.declutter_shop_sale_items (sale_id, item_id, sale_cents) values ('a0000000-0000-4000-8000-000000000001', '${it(1)}', 1600)`);
+await db.exec(`update public.declutter_items set current_price_cents = 1600 where id = '${it(1)}'`);
+ok(/sale_running/.test((await call(S, `select public.declutter_bulk_discount(array['${it(1)}','${it(2)}']::uuid[], 10)`)).err ?? ""), "#3 bulk % off with a listing in a running sale: refused (End your sale to change prices)");
+ok((await row(1)).c === 1600, "#3 and nothing changed");
+ok(/sale_running/.test((await call(S, `select public.declutter_set_listing_price('${it(1)}', 1200, 100)`)).err ?? ""), "#3 Change price LOWER during a running sale: refused");
+r = await call(S, `select public.declutter_set_listing_price('${it(1)}', 1800, 100) p`);
+ok(r.v?.p === 1800, `#3 Change price HIGHER during the sale: allowed (${r.v?.p ?? r.err})`);
+await db.exec(`update public.declutter_shop_sales set status = 'ended'; update public.declutter_shop_sale_items set restored_at = now()`);
+ok((await call(S, `select public.declutter_bulk_discount(array['${it(1)}']::uuid[], 10) n`)).v?.n === 1, "#3 after the sale, bulk % off works again");
+
+// #7: the public away date follows the listings' own visibility.
+await call(S, `select public.declutter_go_away(((now() AT TIME ZONE 'America/Chicago')::date + 5))`);
+ok(!!(await call(null, `select public.declutter_seller_away_until('${S}') d`)).v?.d, "#7 setup: a guest sees the date");
+await set("guests", "off");
+ok((await call(null, `select public.declutter_seller_away_until('${S}') d`)).v?.d === null, "#7 a guest while Declutter is closed to guests: nothing");
+await set("guests", "");
+await set("blocked", `{${S}}`);
+ok((await call(B, `select public.declutter_seller_away_until('${S}') d`)).v?.d === null, "#7 a member in a block with the seller: nothing");
+await set("blocked", "");
+ok(!!(await call(B, `select public.declutter_seller_away_until('${S}') d`)).v?.d, "#7 a member with no block: the date");
+await set("out", S);
+ok((await call(B, `select public.declutter_seller_away_until('${S}') d`)).v?.d === null, "#7 a seller out of Declutter (hidden): nothing");
+ok(!!(await call(S, `select public.declutter_seller_away_until('${S}') d`)).v?.d, "#7 the seller still sees their own");
+await set("out", "");
 
 for (const [fn, members, guests] of [["declutter_bulk_discount", true, false], ["declutter_go_away", true, false], ["declutter_come_back", true, false],
   ["declutter_away_return", false, false], ["declutter_away_sweep", false, false], ["declutter_seller_away_until", true, true]]) {

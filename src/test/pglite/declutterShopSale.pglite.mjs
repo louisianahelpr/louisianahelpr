@@ -142,6 +142,67 @@ ok(await price(7) === 1750, `30% off stops at the seller's lowest price ($17.50)
 await call(S, `select public.declutter_end_shop_sale()`);
 ok(await price(7) === 1999, "and comes back to $19.99");
 
+// ---- Review 11-19 findings, each red on the pre-review body.
+await db.exec(`update public.declutter_items set status = 'withdrawn' where seller_id = '${S}'`); // a clean shop
+await db.exec(`
+insert into public.declutter_items (id, seller_id, status, price_cents, current_price_cents) values
+  ('${it("a")}', '${S}', 'live', 2000, 2000), ('${it("b")}', '${S}', 'live', 2000, 2000), ('${it("c")}', '${S}', 'live', 2000, 2000);
+`);
+// #1: sold during the sale, the sale ends, the listing is relisted (missed pickup): it must be $20, not $16.
+r = await call(S, `select public.declutter_start_shop_sale(20, now(), now() + interval '3 days') id`);
+ok(await price("a") === 1600, "#1 setup: $20 at 20% is $16");
+await db.exec(`update public.declutter_items set status = 'sold' where id = '${it("a")}'`);
+await call(S, `select public.declutter_end_shop_sale()`);
+await sweep();
+ok((await db.query(`select count(*)::int c from public.declutter_shop_sale_items where item_id = '${it("a")}' and restored_at is null`)).rows[0].c === 1, "#1 a sold listing's put-back keeps waiting (it can come back)");
+await db.exec(`update public.declutter_items set status = 'live' where id = '${it("a")}'`);
+ok(await price("a") === 2000, `#1 relisted after the sale ended: back to $20 at once (${await price("a")})`);
+await db.exec(`update public.declutter_items set status = 'completed' where id = '${it("c")}'`); // c: final status after the end
+await sweep();
+ok((await db.query(`select count(*)::int c from public.declutter_shop_sale_items where item_id = '${it("c")}' and restored_at is null`)).rows[0].c === 0, "#1 a final status (completed) closes its put-back");
+
+// #2: sale A ends while b is held in a cart, sale B starts; b comes back: it ends at the original price, never stacked.
+await db.exec(`update public.declutter_items set status = 'live', current_price_cents = 2000 where id in ('${it("a")}', '${it("b")}')`);
+await db.exec(`update public.declutter_shop_sale_items set restored_at = now() where restored_at is null`);
+r = await call(S, `select public.declutter_start_shop_sale(20, now(), now() + interval '3 days') id`);
+ok(await price("b") === 1600, "#2 setup: sale A puts b at $16");
+await db.exec(`update public.declutter_items set status = 'reserved' where id = '${it("b")}'`);
+await call(S, `select public.declutter_end_shop_sale()`);
+r = await call(S, `select public.declutter_start_shop_sale(20, now(), now() + interval '3 days') id`);
+ok(!!r.v?.id && await price("b") === 1600, "#2 sale B starts while b is still held at sale A's price (untouched)");
+await sweep();
+ok(await price("b") === 1600 && (await db.query(`select count(*)::int c from public.declutter_shop_sale_items where item_id = '${it("b")}' and restored_at is null`)).rows[0].c === 1,
+  "#2 the sweep never discounts a listing that still has an open row (no second row, no stacking)");
+await db.exec(`update public.declutter_items set status = 'live' where id = '${it("b")}'`); // the hold ran out
+ok(await price("b") === 2000, `#2 back on sale: sale A's price is put back first ($20) (${await price("b")})`);
+await sweep();
+ok(await price("b") === 1600, `#2 then sale B discounts it from $20, once ($16) (${await price("b")})`);
+await call(S, `select public.declutter_end_shop_sale()`);
+ok(await price("b") === 2000, `#2 sale B ends: the original $20 (${await price("b")})`);
+
+// #4: a listing with an open row of an ENDED sale (its put-back still waiting) is never dropped by the nightly sweep.
+await db.exec(`update public.declutter_items set drop_pct = 5, last_price_drop_on = null where id = '${it("b")}'`);
+await db.exec(`insert into public.declutter_item_private (item_id, floor_price_cents) values ('${it("b")}', 500) on conflict (item_id) do nothing`);
+r = await call(S, `select public.declutter_start_shop_sale(20, now(), now() + interval '3 days') id`);
+await db.exec(`update public.declutter_shop_sales set status = 'ended', ended_at = now() where status = 'on'`); // ended, put-back not run yet
+await db.query(`select public.declutter_price_drop_sweep()`);
+ok(await price("b") === 1600, `#4 the nightly drop skips a listing whose ended sale's put-back is still waiting (${await price("b")})`);
+await sweep();
+ok(await price("b") === 2000, "#4 and the put-back then restores the exact $20");
+
+// #6: the seller deliberately sets exactly the sale price during the sale: the end keeps it.
+await db.exec(`update public.declutter_items set drop_pct = 0 where id = '${it("b")}'`);
+r = await call(S, `select public.declutter_start_shop_sale(20, now(), now() + interval '3 days') id`);
+await db.exec(`update public.declutter_items set current_price_cents = 1700 where id = '${it("b")}'`);
+await db.exec(`update public.declutter_items set current_price_cents = 1600 where id = '${it("b")}'`); // back to exactly the sale price, by hand
+await call(S, `select public.declutter_end_shop_sale()`);
+ok(await price("b") === 1600, `#6 a seller's own price equal to the sale price is kept at the end (${await price("b")})`);
+
+// #5: a 14-day sale across a clock change (14 days and 1 hour) is accepted; past the 2-hour slack it is not.
+ok(!!(await call(S, `select public.declutter_start_shop_sale(10, now() + interval '1 day', now() + interval '15 days 1 hour') id`)).v?.id, "#5 14 days + 1 hour (a clock change): accepted");
+await call(S, `select public.declutter_end_shop_sale()`);
+ok(/invalid_sale_dates/.test((await call(S, `select public.declutter_start_shop_sale(10, now() + interval '1 day', now() + interval '15 days 3 hours')`)).err ?? ""), "#5 14 days + 3 hours: refused");
+
 for (const [fn, sig, members] of [["declutter_start_shop_sale", "integer, timestamp with time zone, timestamp with time zone", true], ["declutter_end_shop_sale", "", true], ["declutter_shop_sale_sweep", "", false], ["declutter_shop_sale_apply", "uuid", false], ["declutter_shop_sale_restore", "uuid", false]]) {
   const a = (await db.query(`select proacl::text a from pg_proc where proname = '${fn}'`)).rows[0]?.a ?? "";
   ok(!/(^|[{,])=X/.test(a) && !/anon=X/.test(a) && (members ? /authenticated=X/.test(a) : !/authenticated=X/.test(a)), `${fn}(${sig}): ${members ? "members" : "service role only"} (${a})`);

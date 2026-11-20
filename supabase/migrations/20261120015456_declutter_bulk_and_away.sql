@@ -23,7 +23,8 @@
 --   declutter_away_sweep()       hourly (cron declutter-away-return): returns every seller whose back_on has come.
 --   declutter_seller_away_until(p_seller_id) -> date: the public page's "Away until" line; NULL when not away. Anyone
 --                                who can open a profile (anon too); only a date, nothing else.
--- No feature switch (owner: ship on for everyone).
+-- Review 11-19 #3: bulk % off and Change price refuse to LOWER a listing in a running shop sale (sale_running, "End your
+-- sale to change prices."); the sale's own put-back stays exact. No feature switch (owner: ship on for everyone).
 -- REPLAY-SAFE: CREATE TABLE IF NOT EXISTS, DROP POLICY IF EXISTS, CREATE OR REPLACE, cron.schedule by name (replaces),
 -- ON CONFLICT. Proof: src/test/pglite/declutterBulkAndAway.pglite.mjs (applied 3x; NEW_MIGRATION=skip red).
 
@@ -52,6 +53,13 @@ BEGIN
   IF p_item_ids IS NULL OR cardinality(p_item_ids) = 0 OR cardinality(p_item_ids) > 100 THEN
     RAISE EXCEPTION 'invalid_input' USING ERRCODE = '22023', HINT = 'Pick 1 to 100 listings.';
   END IF;
+  -- Review 11-19 #3: never on top of a running shop sale (the cut would stack on the sale price and stay after it).
+  IF EXISTS (SELECT 1 FROM public.declutter_shop_sale_items x
+               JOIN public.declutter_shop_sales s ON s.id = x.sale_id AND s.status = 'on'
+               JOIN public.declutter_items i ON i.id = x.item_id AND i.seller_id = v_uid
+              WHERE x.item_id = ANY (p_item_ids) AND x.restored_at IS NULL) THEN
+    RAISE EXCEPTION 'sale_running' USING ERRCODE = '55000', HINT = 'End your sale to change prices.';
+  END IF;
   FOR r IN
     SELECT i.id, i.current_price_cents, p.floor_price_cents
       FROM public.declutter_items i
@@ -74,6 +82,85 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_bulk_discount(uuid[], integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_bulk_discount(uuid[], integer) TO authenticated, service_role;
+
+-- 1b. Review 11-19 #3: "Change price" may not LOWER a listing in a running shop sale either. Restated VERBATIM from
+--     20261103173728 (its newest definition); the one change is marked CHANGED 20261120015456.
+CREATE OR REPLACE FUNCTION public.declutter_set_listing_price(
+  p_item_id uuid, p_price_cents integer, p_floor_price_cents integer
+)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+  v_item public.declutter_items%ROWTYPE;
+  v_stopped boolean;
+BEGIN
+  PERFORM public.require_feature('declutter');
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  v_uid := public.declutter_assert_member(true);
+
+  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404';
+  END IF;
+  IF v_item.status NOT IN ('live', 'paused') THEN
+    RAISE EXCEPTION 'item_not_editable' USING ERRCODE = '22023';
+  END IF;
+  IF p_price_cents IS NULL OR p_price_cents < 100 OR p_price_cents > 100000 THEN
+    RAISE EXCEPTION 'invalid_price' USING ERRCODE = '22023', HINT = 'The price must be between $1 and $1,000.';
+  END IF;
+  -- Never above the price it was listed at (authz review 2): raising then cutting
+  -- would put a "was" price on the card the item was never really offered at.
+  IF p_price_cents > v_item.price_cents THEN
+    RAISE EXCEPTION 'price_above_listed'
+      USING ERRCODE = '22023', HINT = 'You can lower the price, or raise it back up to the price you listed it at.';
+  END IF;
+  -- CHANGED 20261120015456 (review 11-19 #3): no lowering while the listing is in a running shop sale; the sale's price
+  -- would stack and stay. Raising it (back toward the listed price) is still allowed and is kept after the sale.
+  IF p_price_cents < v_item.current_price_cents AND EXISTS (
+       SELECT 1 FROM public.declutter_shop_sale_items x
+         JOIN public.declutter_shop_sales s ON s.id = x.sale_id AND s.status = 'on'
+        WHERE x.item_id = p_item_id AND x.restored_at IS NULL) THEN
+    RAISE EXCEPTION 'sale_running' USING ERRCODE = '55000', HINT = 'End your sale to change prices.';
+  END IF;
+  IF p_floor_price_cents IS NULL OR p_floor_price_cents < 100 OR p_floor_price_cents > p_price_cents THEN
+    RAISE EXCEPTION 'invalid_floor_price'
+      USING ERRCODE = '22023', HINT = 'The lowest price must be at least $1 and no more than the price.';
+  END IF;
+
+  SELECT p.drops_stopped INTO v_stopped FROM public.declutter_item_private p WHERE p.item_id = p_item_id;
+
+  UPDATE public.declutter_items
+     SET current_price_cents = p_price_cents,
+         updated_at = now()
+   WHERE id = p_item_id;
+
+  -- A floor change re-picks the stop (trg_declutter_item_private_drop_stop).
+  UPDATE public.declutter_item_private
+     SET floor_price_cents = p_floor_price_cents, updated_at = now()
+   WHERE item_id = p_item_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404';
+  END IF;
+  -- Prod CHECK declutter_item_private_stop_above_floor: stop > floor. A stop one
+  -- cent above a price that sits at the floor still means "never drop" (the
+  -- sweep drops only while current > greatest(floor, stop)). Money review 2.
+  IF COALESCE(v_stopped, false) THEN
+    UPDATE public.declutter_item_private
+       SET drop_stop_cents = greatest(p_price_cents, p_floor_price_cents + 1), updated_at = now()
+     WHERE item_id = p_item_id;
+  END IF;
+  RETURN p_price_cents;
+END;
+$fn$;
+
+REVOKE ALL ON FUNCTION public.declutter_set_listing_price(uuid, integer, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_set_listing_price(uuid, integer, integer) TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- 2. Away mode.
@@ -237,14 +324,34 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_away_sweep() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_away_sweep() TO service_role;
 
+-- Review 11-19 #7: the same visibility as the listings themselves (declutter_item_demand / the items policies): a guest
+-- only while Declutter is open to guests; nobody across a block; nothing for a seller out of Declutter (hidden).
 CREATE OR REPLACE FUNCTION public.declutter_seller_away_until(p_seller_id uuid)
 RETURNS date
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT a.back_on FROM public.declutter_seller_away a WHERE a.seller_id = p_seller_id;
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+BEGIN
+  IF p_seller_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+  IF v_uid IS NULL THEN
+    IF NOT public.declutter_open_to_guests() THEN
+      RETURN NULL;
+    END IF;
+  ELSIF v_uid <> p_seller_id
+        AND p_seller_id = ANY (COALESCE((SELECT public.declutter_my_block_partners()), '{}'::uuid[])) THEN
+    RETURN NULL;
+  END IF;
+  IF v_uid IS DISTINCT FROM p_seller_id AND public.declutter_seller_out(p_seller_id) THEN
+    RETURN NULL;
+  END IF;
+  RETURN (SELECT a.back_on FROM public.declutter_seller_away a WHERE a.seller_id = p_seller_id);
+END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_seller_away_until(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_seller_away_until(uuid) TO anon, authenticated, service_role;

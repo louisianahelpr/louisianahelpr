@@ -75,6 +75,7 @@ export const esDeclErrors: Record<keyof typeof enDeclErrors, string> = {
   "de.sale_not_found": "No hay ninguna oferta para terminar.",
   "de.invalid_away_date": "Elija un día entre mañana y 90 días.",
   "de.not_away": "Su tienda ya está abierta.",
+  "de.sale_running": "Termine su oferta para cambiar precios.",
   "de.invalid_action": "Eso no se puede hacer con esta oferta.",
   "de.offer_not_found": "Esa oferta no está disponible.",
   "de.offer_not_open": "Esta oferta ya está cerrada.",

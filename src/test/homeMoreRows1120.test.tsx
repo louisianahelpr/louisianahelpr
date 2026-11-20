@@ -6,7 +6,7 @@
  * All of it is a lazy chunk asked only once the page has settled, never with Home's first screen.
  *
  * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |             onClick={() => navigate(conversationLink(c))} |             onClick={() => navigate("/messages")}
- * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |   const rows = (recent ?? []).slice(0, HOME_MORE_SHOWN); |   const rows = recent ?? [];
+ * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |             right={c.unread > 0 ? | right={c.unread >= 0 ?
  * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |   if (rows.length === 0) return null;\n  return (\n    <div data-home-recent-messages=""> |   return (\n    <div data-home-recent-messages="">
  * @mutate src/pages/home/homeDashboard/homeActive.ts |     .filter((j) => j.status === "open") |     .filter((j) => j.status !== "completed")
  * @mutate src/pages/home/homeDashboard/homeActive.ts |     .filter((i) => i.status === "live") |     .filter(() => true)

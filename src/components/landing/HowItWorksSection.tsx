@@ -249,7 +249,7 @@ const HowItWorksSection = () => {
         {/* Owner 11-20 (site polish B2): the side's one action, a real button under the cards that follows the switch.
             Outline, not filled: the hero's Search and the close's account button stay the page's two primaries. */}
         <div data-how-action="" className="flex justify-center sm:justify-start">
-          <Button asChild variant="outline" size="lg" className="min-h-12 rounded-full px-6 text-ds-15 font-bold">
+          <Button asChild variant="outline" size="md" className="rounded-full px-6 font-bold">
             <Link
               to={action.signedOut}
               onClick={(e) => {

@@ -61,7 +61,7 @@ export function DeclutterLocationButton({ ask }: { ask: OriginAsk }) {
   if (ask.asking) return <p data-location-finding="" className="shrink-0 px-2 text-ds-13 text-muted-foreground" role="status">{t("decl.loc.finding")}</p>;
   if (!offerAsk(ask)) return null;
   return (
-    <Button type="button" variant="outline" size="sm" data-location-button="" className="h-11 shrink-0 gap-1.5 rounded-full px-3 text-ds-13" title={milesFromWords(ask)} onClick={ask.askDevice}>
+    <Button type="button" variant="outline" size="sm" data-location-button="" className="shrink-0 gap-1.5 rounded-full px-3 text-ds-13" title={milesFromWords(ask)} onClick={ask.askDevice}>
       <MapPin className="h-4 w-4 shrink-0" aria-hidden />
       {ask.asked ? t("decl.loc.tryAgain") : t("decl.loc.use")}
     </Button>

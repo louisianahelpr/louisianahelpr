@@ -101,6 +101,8 @@ describe("delete for me", () => {
     expect(del).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledWith({ archived_at: cut });
     expect(clearedBefore(ME, job3, THEM)).toBe(cut);
+    // Restore puts the row back on the clear moment, so nothing at or before it lists again.
+    expect(isArchived(ME, job3, THEM, cut)).toBe(true);
     // A message after the clear is visible again; one before it is not.
     expect(isArchived(ME, job3, THEM, new Date(Date.now() + 60_000).toISOString())).toBe(false);
     expect(isClearedMessage(ME, job3, THEM, "2020-01-01T00:00:00.000Z")).toBe(true);

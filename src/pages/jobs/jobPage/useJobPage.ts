@@ -137,7 +137,9 @@ export async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party
   if (own) return { job: toRow(own), party: true };
   const browse = unwrap<Record<string, unknown> | null>(
     // readJobsAheadOfDb: BASE_COLUMNS names helper_fee_percent, which the view gains in 20261025235701 (Q2400).
-    await readJobsAheadOfDb(`${BASE_COLUMNS}, expires_at`, (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id).maybeSingle<Record<string, unknown>>(), { browseView: true }),
+    // direct_offer_status (owner 11-20 review): the view admits a pending offeree, so the page must see "pending" here to
+    // offer Accept / Decline; the fallback below is not reached for a funded offer.
+    await readJobsAheadOfDb(`${BASE_COLUMNS}, expires_at, direct_offer_status`, (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id).maybeSingle<Record<string, unknown>>(), { browseView: true }),
   );
   if (browse && !(typeof browse.expires_at === "string" && new Date(browse.expires_at) <= new Date())) {
     return { job: toRow(browse), party: false };

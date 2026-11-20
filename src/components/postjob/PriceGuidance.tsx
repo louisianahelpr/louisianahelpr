@@ -18,7 +18,8 @@ import "@/lib/i18n/enPostJob";
  */
 interface FairPriceHint {
   scope: "near" | "state" | "typical";
-  count: number | null;
+  /** How many jobs back a real range, as a band ("5+"), never an exact count (location privacy). */
+  band: string | null;
   low: number;
   high: number;
 }
@@ -43,7 +44,7 @@ function useFairPriceHint(category: string | null | undefined): FairPriceHint | 
       const r = Array.isArray(rows) ? rows[0] : null;
       if (!r || r.low_dollars == null || r.high_dollars == null) return null;
       const scope = r.scope === "near" || r.scope === "state" ? r.scope : "typical";
-      return { scope, count: r.sample_count ?? null, low: r.low_dollars, high: r.high_dollars };
+      return { scope, band: r.sample_band ?? null, low: r.low_dollars, high: r.high_dollars };
     },
   });
   return data ?? null;
@@ -66,7 +67,7 @@ function PriceGuidanceView({ g, category, budget, onUse }: { g: FairPriceHint; c
   const what = jobCategoryLabel(category).toLowerCase();
   const range = `$${g.low}–$${g.high}`;
   const headline = t(g.scope === "near" ? "postJob.hint.near" : g.scope === "state" ? "postJob.hint.state" : "postJob.hint.typical", { what });
-  const source = g.scope === "typical" ? t("postJob.hint.typicalSource") : t("postJob.hint.realSource", { n: g.count ?? 0 });
+  const source = g.scope === "typical" ? t("postJob.hint.typicalSource") : t("postJob.hint.realSource", { n: g.band ?? "5+" });
   const below = budget > 0 && budget < g.low && kept !== budget;
   if (below) {
     return (

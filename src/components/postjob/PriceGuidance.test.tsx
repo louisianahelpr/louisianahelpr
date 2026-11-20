@@ -39,18 +39,18 @@ beforeEach(() => {
 });
 
 describe("fair price hint (owner 11-20)", () => {
-  it("near: the real range near the member, its count and the poster's price; the saved point is sent (rounded)", async () => {
-    state.rows = [{ scope: "near", sample_count: 7, low_dollars: 40, high_dollars: 80 }];
+  it("near: the real range near the member, its band (never an exact count) and the poster's price; the saved point is sent (rounded)", async () => {
+    state.rows = [{ scope: "near", sample_band: "5+", low_dollars: 40, high_dollars: 80 }];
     wrap(<PriceGuidanceCard category="yard_work" budget={60} onUse={() => {}} />);
     expect(await screen.findByText("$40–$80")).toBeInTheDocument();
     expect(screen.getByText(/Most yard work jobs near you are/i)).toBeInTheDocument();
-    expect(screen.getByText("From 7 recent jobs posted on Helpr. You're at $60.")).toBeInTheDocument();
+    expect(screen.getByText("From 5+ recent jobs posted on Helpr. You're at $60.")).toBeInTheDocument();
     expect(state.calls).toEqual([{ fn: "get_fair_price_hint", args: { p_category: "yard_work", p_lat: 30.22, p_lng: -92.02 } }]);
   });
 
   it("typical (thin data, or a guest): says typical, never 'on Helpr' or 'near you'; no point when none is saved", async () => {
     state.profile = null;
-    state.rows = [{ scope: "typical", sample_count: null, low_dollars: 40, high_dollars: 80 }];
+    state.rows = [{ scope: "typical", sample_band: null, low_dollars: 40, high_dollars: 80 }];
     wrap(<PriceGuidanceCard category="yard_work" budget={0} onUse={() => {}} />);
     expect(await screen.findByText("$40–$80")).toBeInTheDocument();
     expect(screen.getByText(/A fair start for yard work is/i)).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe("fair price hint (owner 11-20)", () => {
   });
 
   it("below the range: a gentle nudge; Use $40 sets the price, Keep hides the nudge", async () => {
-    state.rows = [{ scope: "state", sample_count: 9, low_dollars: 40, high_dollars: 80 }];
+    state.rows = [{ scope: "state", sample_band: "5+", low_dollars: 40, high_dollars: 80 }];
     const onUse = vi.fn();
     wrap(<PriceGuidanceCard category="yard_work" budget={25} onUse={onUse} />);
     expect(await screen.findByText("That's below the usual range")).toBeInTheDocument();

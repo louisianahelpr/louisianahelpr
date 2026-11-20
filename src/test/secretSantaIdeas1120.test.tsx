@@ -12,7 +12,7 @@
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |     if (keep && santa) { |     if (false) {
  * @mutate src/pages/info/giftGuides/fun/santaIdeas.ts |   if (toPlanner && saveIdeaToPlanner(santa.match, santa.budget, card)) return "planner"; |
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |     } else if (keep && forName) { |     } else if (false) {
- * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |   const plannerReady = isReady && (!user || sync !== "device"); |   const plannerReady = isReady;
+ * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |   const plannerReady = isReady && (!user \|\| sync !== "device"); |   const plannerReady = isReady;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";

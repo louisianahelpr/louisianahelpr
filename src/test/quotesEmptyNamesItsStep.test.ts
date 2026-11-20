@@ -25,8 +25,8 @@ describe("/quotes' empty state names the step Get quotes is on (F140)", () => {
 
   it("Get quotes (PriceModeChoice) is drawn on the Price page, not page 1", () => {
     const form = read("src/pages/post-job/FormStep.tsx");
-    const page3 = form.indexOf('<div data-form-page="3"');
-    const page4 = form.indexOf('<div data-form-page="4"');
+    const page3 = form.indexOf('<div data-form-page="4"'); // owner 11-20: Budget is page 4, after When
+    const page4 = form.indexOf("</form>");
     const choice = form.indexOf("<PriceModeChoice");
     expect(page3).toBeGreaterThan(0);
     expect(choice).toBeGreaterThan(page3);

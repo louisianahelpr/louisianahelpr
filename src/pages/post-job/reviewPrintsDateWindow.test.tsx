@@ -45,7 +45,8 @@ function makeForm(over: Record<string, unknown> = {}): ReturnType<typeof usePost
   } as unknown as ReturnType<typeof usePostJobForm>;
 }
 
-const whenRow = () => (screen.getByText("When").closest("div")!.textContent ?? "").replace(/\s+/g, " ");
+// The review row, not the rail's "When" step (owner 11-20).
+const whenRow = () => (screen.getAllByText("When").find((el) => !el.closest("nav"))!.closest("div")!.textContent ?? "").replace(/\s+/g, " ");
 
 describe("Q2408: Post a job's review prints an 'Any time this week' window, not its first day", () => {
   it("Nov 5 through Nov 11 reads 'Any day Nov 5-11'", () => {

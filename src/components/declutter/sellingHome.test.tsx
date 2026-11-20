@@ -5,7 +5,16 @@
  *
  * @mutate supabase/migrations/20261120012050_declutter_selling_home.sql |      AND o.status IN ('paid', 'handed_over') |      AND true
  * @mutate src/lib/declutter/sellerTools.ts |   if (last === 0) return { dir: "new", pct: 0 }; |   if (last === 0) return { dir: "up", pct: 100 };
- * @mutate src/components/declutter/SellingHome.tsx |   return rows.filter((r) => r.n > 0); |   return rows;
+ * @mutate src/components/declutter/SellingHome.tsx |   return rows.filter((r) => r.n > 0 && !(away && NOT_WHILE_AWAY.has(r.key))); |   return rows;
+ *
+ * Post-merge check 11-20 (~/.lh-shots/declutter-top5-1120): #6 the to-do, the Pickups chip and the Sold heading read
+ * ONE count of sales to hand over (on-hold sales left out); #9 while away nothing nudges a price or an offer; #1 the
+ * row's label fills it so the chevron sits at the right edge; #5 only the to-dos sit at the top of Selling.
+ * @mutate src/components/declutter/SellingHome.tsx | const NOT_WHILE_AWAY = new Set(["savers", "drops", "relist"]); | const NOT_WHILE_AWAY = new Set(["relist"]);
+ * @mutate src/components/declutter/SellingHome.tsx |     { key: "handover", n: handOver ?? todo?.salesOpen ?? 0, | { key: "handover", n: todo?.salesOpen ?? 0,
+ * @mutate src/components/declutter/useSalesToHandOver.ts |   return Math.max(0, declutterTodo(lines, []).salesOpen - held); |   return declutterTodo(lines, []).salesOpen;
+ * @mutate src/components/declutter/SellingHome.tsx | <span className="min-w-0 flex-1" data-selling-todo-label=""> | <span className="min-w-0" data-selling-todo-label="">
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && hasListings && <SellingTodo | {only === null && hasListings && <SellingWeek />}{only === null && hasListings && <SellingTodo
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -13,6 +22,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { newestFunction } from "@/test/helpers/parityReaders";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
 import { weekChange } from "@/lib/declutter/sellerTools";
+import { readFileSync } from "node:fs";
+import { blankComments } from "@/test/helpers/blankNonCode";
+import { salesToHandOver } from "./useSalesToHandOver";
 
 const home = {
   week: { sales: 2, earnings_cents: 6500, views: 30, saves: 0 },
@@ -24,7 +36,11 @@ const home = {
 const awayState = vi.hoisted(() => ({ away: null as null | { back_on: string } }));
 vi.mock("@/lib/declutter/api", () => ({ fetchSellingHome: async () => home, fetchMyAway: async () => awayState.away }));
 
-import { SellingHome, sellingTodoRows } from "./SellingHome";
+import { SellingTodo, SellingWeek, sellingTodoRows } from "./SellingHome";
+
+const SellingHome = ({ todo, userId, onPick, handOver = null }: { todo: never; userId: string; onPick: (g: string) => void; handOver?: number | null }) => (
+  <><SellingTodo todo={todo} handOver={handOver} userId={userId} onPick={onPick} /><SellingWeek /></>
+);
 
 const flat = (s: string) => blankSqlComments(s).replace(/\s+/g, " ");
 
@@ -54,6 +70,37 @@ describe("Declutter top 5 #2: Selling home", () => {
     expect(sellingTodoRows(null, null)).toEqual([]);
   });
 
+  it("11-20 #9: while away only the sales and offers are to-dos; no price nudge, no saver offer, no put back up", () => {
+    const busy = { todo: { to_relist: 1, price_drops: 2, savers_to_offer: 3 } };
+    expect(sellingTodoRows({ sellerOffers: 1, salesOpen: 1 }, busy).map((r) => r.key)).toEqual(["handover", "offers", "savers", "drops", "relist"]);
+    expect(sellingTodoRows({ sellerOffers: 1, salesOpen: 1 }, busy, true).map((r) => r.key)).toEqual(["handover", "offers"]);
+  });
+
+  it("11-20 #6: the to-do's hand-over count is the shared one, which leaves out a sale on hold for a problem", () => {
+    const line = (order_id: string, extra: Record<string, unknown> = {}) => ({ my_side: "seller", status: "paid", order_id, order_status: "paid", handover: "pickup", ...extra }) as never;
+    const lines = [line("o1"), line("o2"), line("o3"), line("o4")];
+    expect(salesToHandOver(lines, new Set<string>())).toBe(4);
+    expect(salesToHandOver(lines, new Set(["o2"]))).toBe(3);
+    // The to-do row says the shared number, not the cart's raw salesOpen.
+    expect(sellingTodoRows({ sellerOffers: 0, salesOpen: 4 }, null, false, 3)).toEqual([expect.objectContaining({ key: "handover", n: 3 })]);
+    // The chip and the Sold heading read the same count (source pins; the behaviour is in declutterTabs/sellingDash).
+    const dash = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
+    expect(dash).toContain('{ key: "sold", label: t("decl.mv.pickups"), count: handOver ?? todo?.salesOpen ?? 0, hot: true }');
+    expect(dash).toContain("<SellingTodo todo={todo} handOver={handOver}");
+    const parts = blankComments(readFileSync("src/components/declutter/DeclutterTabParts.tsx", "utf8"));
+    expect(parts).toContain("const toHandOver = salesToHandOver(lines, problems);");
+  });
+
+  it("11-20 #5: only the to-dos sit above the chips; the week's numbers, Shop sale and Away come after the lists", () => {
+    const dash = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
+    const at = (s: string) => { const i = dash.indexOf(s); expect(i, s).toBeGreaterThan(-1); return i; };
+    const chips = at("<StatusChips");
+    expect(at("<SellingTodo")).toBeLessThan(chips);
+    for (const below of ["<SellingWeek />", "<ShopSaleCard userId={userId} />", "<AwayCard userId={userId} />"]) {
+      expect(at(below), below).toBeGreaterThan(at("{!soldFirst && sold}"));
+    }
+  });
+
   it("draws the to-dos, the four numbers with their change, and a to-do opens its list", async () => {
     const onPick = vi.fn();
     render(
@@ -63,6 +110,10 @@ describe("Declutter top 5 #2: Selling home", () => {
     );
     expect(await screen.findByText("Answer 2 offers")).toBeTruthy();
     expect(screen.getByText("1 paused listing to put back up")).toBeTruthy();
+    // 11-20 #1: the label fills the row, so ListRow's trailing chevron sits at the right edge, not after the words.
+    const label = screen.getByText("Answer 2 offers");
+    expect(label.className.split(/\s+/)).toContain("flex-1");
+    expect(label.closest("button")!.lastElementChild!.tagName.toLowerCase()).toBe("svg");
     expect(screen.queryByText(/send their savers/)).toBeNull();
     expect(screen.getByText("Up 100% on last week")).toBeTruthy(); // sales 2 vs 1
     expect(screen.getByText("Down 25% on last week")).toBeTruthy(); // views 30 vs 40

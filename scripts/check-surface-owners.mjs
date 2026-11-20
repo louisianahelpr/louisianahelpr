@@ -70,6 +70,8 @@ const OWNERS = {
   "/gift-guides": ["lh-copy-content", "lh-compliance-store"],
   // One guide's own page (11-18): same owners as the index.
   "/gift-guides/:slug": ["lh-copy-content", "lh-compliance-store"],
+  // A shared wish list (owner 2026-11-20): the same lanes as the guides it lists.
+  "/gift-guides/list/:code": ["lh-copy-content", "lh-compliance-store"],
   "/terms/full": ["lh-compliance-store"],
   "/privacy/full": ["lh-compliance-store"],
   // /gift-card (a redirect onto this tab) was deleted with Q194, 2026-09-23.

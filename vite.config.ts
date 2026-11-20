@@ -8,7 +8,7 @@ import { execSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, adminIconFiles, bootModules, clientReachers, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, sellingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, jobsBrowseReach, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, adminIconFiles, bootModules, clientReachers, bootIconFiles, declutterItemSplit, declutterTabSplit,guestIconSplit, guestBrowseSplit, sellingIconFiles, buyingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, jobsBrowseReach, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 /** The register-on-import English screen dictionaries (src/lib/i18n/en*.ts minus enCore/enRegistry and the en.ts type). */
@@ -201,7 +201,8 @@ function restartOnDependencyChange(): Plugin {
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd());
-const { itemDeep: declutterItemDeep, itemPages: declutterItemPages, itemShared: declutterItemShared } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
+const { browseFirst: declutterBrowseFirst, buyingFirst: declutterBuyingFirst } = declutterTabSplit(process.cwd(), { declutterOnly });
+const { itemDeep: declutterItemDeep,itemPages: declutterItemPages, itemFirst: declutterItemFirst, itemShared: declutterItemShared } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff, declutterOnly });
 const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
 const jobsBrowseFirstScreen = jobsBrowseFirstScreenModules(process.cwd(), { homeOff });
 // Q2705 pass 2 (11-17): all of /jobs' Browse reach; the jobs-late, jobs-signed-in and jobs-dock groups read it.
@@ -213,6 +214,7 @@ const itemIcons = itemIconFiles(process.cwd());
 const adminIcons = adminIconFiles(process.cwd());
 const { own: guestIcons, shared: guestSharedIcons, declutter: declutterIcons } = guestIconSplit(process.cwd());
 const sellingIcons = sellingIconFiles(process.cwd());
+const buyingIcons = buyingIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
 // B88: Home's PAGE reach. The every-page roots load after Home's first paint; with them here, their shared code
 // (Legal's public page table, ...) rode app-shared onto every page's boot. Build: boot 204 -> 202 KB gz,
@@ -797,7 +799,7 @@ export default defineConfig(({ mode, command }) => ({
         // worker with a non-JavaScript MIME type is refused, so a PDF would never draw in the app. Every other asset
         // keeps its own name.
         assetFileNames: (asset) => (/\.mjs$/.test(asset.names?.[0] ?? "") ? "assets/[name]-[hash].js" : "assets/[name]-[hash][extname]"),
-        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" || chunk.name === "icons-item" || chunk.name === "icons-selling" ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
+        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" || chunk.name === "icons-item" || chunk.name === "icons-selling" || chunk.name === "icons-buying" ?"assets/icons-[hash].js" : "assets/[name]-[hash].js"),
         // ── Chunk graph shape ────────────────────────────────────────────
         // Expressed as rolldown's `codeSplitting` rather than `manualChunks`
         // because the two are MUTUALLY EXCLUSIVE — rolldown logs
@@ -961,6 +963,15 @@ export default defineConfig(({ mode, command }) => ({
               name: "icons-selling",
               test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && sellingIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
               priority: 90.52,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // Q178 (11-20): the icons the Buying tab draws (bootReach.mjs buyingIconFiles), now that Buying is its own
+            // module: unpinned, the merge put them in two chunks of other screens' icons on Buying's first screen.
+            {
+              name: "icons-buying",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && buyingIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 90.51,
               minSize: 0,
               includeDependenciesRecursively: false
             },
@@ -1308,6 +1319,37 @@ export default defineConfig(({ mode, command }) => ({
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // Q178 (11-20): the part of declutter-first-screen the public item page reaches (bootReach.mjs
+            // declutterItemSplit itemFirst). In declutter-first-screen it put Selling's and Browse's first-screen code
+            // (~53 modules: seller delivery, wanted, saved searches, Helpr tasks' errors) on every cold item page. Above
+            // declutter-first-screen (17) so it wins them; /declutter fetches both in the same round.
+            {
+              name: "decl-item-first",
+              test: (id: string) => declutterItemFirst.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 17.1,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // Q178 (11-20): declutter-first-screen split by tab (bootReach.mjs declutterTabSplit). In one chunk Browse
+            // and Selling downloaded Buying's checkout code and the member tabs' code too. Browse fetches only
+            // decl-browse-first; only Buying fetches decl-buying-first; a member's tabs fetch the rest beside them.
+            {
+              name: "decl-browse-first",
+              test: (id: string) => declutterBrowseFirst.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 17.05,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            {
+              name: "decl-buying-first",
+              test: (id: string) => declutterBuyingFirst.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 17.02,
+              minSize: 0,
+              includeDependenciesRecursively: false
             },
             {
               name: "declutter-first-screen",

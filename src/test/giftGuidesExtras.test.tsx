@@ -227,22 +227,22 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     window.localStorage.clear();
     resetGiftListForTests();
     const { container } = renderAt("/gift-guides");
-    const heart = screen.getAllByRole("button", { name: "Save Mom to My list" })[0];
+    const heart = screen.getAllByRole("button", { name: "Save Mom to My Wish List" })[0];
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(heart.closest("a")).toBeNull();
     const link = container.querySelector("[data-gift-my-list-link]")!;
-    expect(link.getAttribute("aria-label")).toBe("My list, 0 saved");
+    expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
     // No "0" badge on an empty list (pre-launch audit 11-18 PM).
     expect(link.textContent).toBe("");
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe("Holiday Gift Guides");
-    expect(link.getAttribute("aria-label")).toBe("My list, 1 saved");
+    expect(link.getAttribute("aria-label")).toBe("My Wish List, 1 saved");
     expect(link.textContent).toBe("1");
     expect(JSON.parse(window.localStorage.getItem("lh-gift-list")!).guides).toEqual(["mom"]);
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("false");
-    expect(link.getAttribute("aria-label")).toBe("My list, 0 saved");
+    expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
   });
   it("a pick heart saves the pick; My list shows saved guides and picks", () => {
     const g = guideBySlug("mom")!;
@@ -256,15 +256,15 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     cleanup();
     const mine = renderAt("/gift-guides?list=mine").container;
     expect(mine.querySelector("[data-gift-my-list]")).not.toBeNull();
-    expect(mine.querySelectorAll("[data-gift-my-list] [data-gift-pick]").length).toBe(1);
-    expect(mine.querySelector("[data-gift-my-list] [data-gift-pick]")?.textContent).toContain(g.picks[0].name);
+    expect(mine.querySelectorAll("[data-gift-my-list] [data-gift-wish-item]").length).toBe(1);
+    expect(mine.querySelector("[data-gift-my-list] [data-gift-wish-item]")?.textContent).toContain(g.picks[0].name);
   });
   it("blocked storage still works for the visit", () => {
     const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
     renderAt("/gift-guides");
-    const heart = screen.getAllByRole("button", { name: "Save Dad to My list" })[0];
+    const heart = screen.getAllByRole("button", { name: "Save Dad to My Wish List" })[0];
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     spy.mockRestore();

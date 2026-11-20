@@ -159,6 +159,11 @@ export const MISSING_MILESTONES = {
  * Held equal to the source both ways by the guard.
  */
 export const NOT_MONITORED = {
+  // Gift guides wish list (owner 2026-11-20, UX audit L7): usage counts read by hand; the outcome is gift_wish_lists rows.
+  gift_wish_heart: "usage count of gift guide hearts (added, removed, list full), read by hand; a quiet day of zero is normal",
+  gift_wish_list_link: "usage count of share links made from My Wish List, read by hand; the outcome is the gift_wish_lists rows",
+  gift_wish_list_share: "usage count of how a wish list link was sent (copy, text, Messenger, share sheet), read by hand",
+  gift_wish_list_new_link: "usage count of 'Make a new link' taps, read by hand; rare by design",
   address_lookup_result: "diagnostic count of the address lookup's outcomes and source, read by hand after a deploy; carries no address",
   address_location_used: "diagnostic: a seller's shared location stood in for an address the lookup found only the area of",
   address_location_refused: "diagnostic: a shared location was too far from the area the lookup found; zero is the good case",

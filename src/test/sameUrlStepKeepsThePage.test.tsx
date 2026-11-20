@@ -83,8 +83,10 @@ const PASSWORD = "Str0ng!Passw0rd#";
 
 describe("sign-up's step 2 keeps step 1's fields inside the real route wrapper", () => {
   let nav: ReturnType<typeof useNavigate> = () => {};
+  let routerState: unknown = null;
   function Nav() {
     nav = useNavigate();
+    routerState = useLocation().state;
     return null;
   }
   function renderSignup() {
@@ -106,7 +108,11 @@ describe("sign-up's step 2 keeps step 1's fields inside the real route wrapper",
     fireEvent.change(passwordField()!, { target: { value: PASSWORD } });
     fireEvent.click(document.getElementById("policies")!);
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
-    await screen.findByRole("button", { name: /^create account$/i });
+    await screen.findByRole("button", { name: /^create account$/i }, { timeout: 4000 });
+    // React Router commits a navigation in a transition, but setStep(2) is urgent, so step 2 can paint while the
+    // router still sits on step 1's entry. Pressing Back in that gap reads no step-2 entry (it just shows step 1),
+    // and Forward then has nowhere to go: the CI flake on a loaded runner (#4792, #4794). Wait for the entry itself.
+    await waitFor(() => expect(routerState).toMatchObject({ step: 2 }), { timeout: 4000 });
   }
 
   it("Continue reaches step 2 with the page still mounted, and Create account sends the typed password", async () => {
@@ -128,7 +134,7 @@ describe("sign-up's step 2 keeps step 1's fields inside the real route wrapper",
     await waitFor(() => expect(passwordField()?.value).toBe(PASSWORD));
     // Forward (a POP to the step-2 entry) shows step 2 again, still the same page.
     act(() => nav(1));
-    await screen.findByRole("button", { name: /^create account$/i });
+    await screen.findByRole("button", { name: /^create account$/i }, { timeout: 4000 });
     act(() => nav(-1));
     await waitFor(() => expect(passwordField()?.value).toBe(PASSWORD));
     // A real navigation (a plain push, no KEEP_PAGE) remounts: the marker does not leak past its own step.

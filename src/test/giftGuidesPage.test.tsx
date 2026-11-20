@@ -24,7 +24,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |           <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
+ * @mutate src/pages/info/GiftGuides.tsx | {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details key={row} open={row === active?.row} | <details key={row} open
@@ -36,10 +36,10 @@
  * @mutate src/content/giftGuideCatalog.ts | "for-him": "him", | "for-him": "him-x",
 
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | className="gg-cover" loading="lazy" decoding="async" | className="gg-cover" decoding="async"
- * @mutate src/pages/info/GiftGuides.tsx |   const { slug } = useParams<{ slug?: string }>(); |   const slug = undefined as string \| undefined; useParams();
- * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && fromHash) return | if (!slug && fromHash && false) return
+ * @mutate src/pages/info/GiftGuides.tsx |   const slug = myListPage ? undefined : rawSlug; |   const slug = undefined as string \| undefined; void rawSlug;
+ * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && !shared && !myListPage && fromHash) return | if (!slug && !shared && !myListPage && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
- * @mutate src/pages/info/GiftGuides.tsx | backTo={guide \|\| deals \|\| myList \|\| group ? "/gift-guides" : "/"} | backTo={guide \|\| deals \|\| myList \|\| group ? "/gift-guides/" : "/"}
+ * @mutate src/pages/info/GiftGuides.tsx | backTo={guide \|\| deals \|\| myList \|\| shared \|\| group ? "/gift-guides" : "/"} | backTo={guide \|\| deals \|\| myList \|\| shared \|\| group ? "/gift-guides/" : "/"}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading="lazy" decoding="async" | className="gg-thumb" decoding="async"
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
@@ -381,11 +381,13 @@ describe("gift guides: the landing opens to the guides", () => {
     // "More guides", and nothing (no Top 10) above the first row.
     expect(container.querySelector("[data-gift-start], button[data-gift-more], .gg-rows-folded")).toBeNull();
     expect(GIFT_GUIDES_CSS).not.toMatch(/gg-rows-folded|gg-more-btn/);
-    // Holistic review 11-18 M9: the one thing above the first row is the quick-pick chip row (under the search).
+    // Holistic review 11-18 M9: the one thing above the first row is the quick-pick chip row (under the search), after
+    // the first-visit "How to use the gift guides" strip (owner 2026-11-20 hints; dismissible, gone once closed).
     const mainKids = [...container.querySelector(".gg-main")!.children];
-    expect(mainKids[0].matches("[data-gift-quick-picks]")).toBe(true);
-    expect(mainKids[1].matches("[data-gift-rows]")).toBe(true);
-    mainKids.splice(0, 1);
+    expect(mainKids[0].matches("[data-gift-hint='how-to']")).toBe(true);
+    expect(mainKids[1].matches("[data-gift-quick-picks]")).toBe(true);
+    expect(mainKids[2].matches("[data-gift-rows]")).toBe(true);
+    mainKids.splice(0, 2);
     expect(mainKids[0].querySelector("[data-gift-row]")?.getAttribute("data-gift-row")).toBe(ROWS[0].row);
     // Design audit 11-18 (High): on a phone the menu sat 2,000–3,100 px above the picks; holistic review 11-18 M9: it
     // then sat at the bottom of the phone page, a second copy of the rows. Phones have no sidebar (the rows, the chips
@@ -894,11 +896,12 @@ describe("gift guides: links and disclosures on every view", () => {
 describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, public 2026-11-18)", () => {
   it("App.tsx: /gift-guides and /gift-guides/<slug> render the page for everyone, with no ?preview=1 gate", () => {
     const app = src("src/App.tsx");
-    for (const path of ["/gift-guides", "/gift-guides/:slug"]) {
+    for (const path of ["/gift-guides", "/gift-guides/:slug", "/gift-guides/list/:code"]) {
       expect(app).toContain(`<Route path="${path}" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />`);
     }
     expect(app).not.toMatch(/GiftGuidesPreviewGate|params\.get\("preview"\)/);
-    expect(app.split("\n").filter((l) => l.includes("<GiftGuides />")).length).toBe(2);
+    // + the shared wish list (owner 2026-11-20).
+    expect(app.split("\n").filter((l) => l.includes("<GiftGuides />")).length).toBe(3);
   });
 
   it("is indexed (follow-up 2026-11-18, SEO): the landing and every guide holding picks are in the sitemap, two-way; each guide sets its own head", () => {
@@ -923,7 +926,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(Object.keys(NOINDEX_PAGE_META)).not.toContain("/gift-guides");
     // The deals guide (owner 2026-11-19) has its own head (src/test/giftGuideDeals1119.test.tsx).
     // ... and so does the Small Business Saturday page (1120).
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(deals ? giftGuidePageMeta(smallBiz ? SMALL_BIZ_SLUG : DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);');
+    // My Wish List and a shared list (owner 2026-11-20) are noindex (src/test/giftWishList1120.test.tsx).
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain(': deals ? giftGuidePageMeta(smallBiz ? SMALL_BIZ_SLUG : DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],');
     expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);");
     const mom = giftGuidePageMeta("mom");
     expect(mom.title).toBe("Gifts for Mom — Helpr");
@@ -963,6 +967,10 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       { source: "/gift-guides/:slug", destination: "/api/share?_og=page&_id=gift-guides/:slug" },
       { source: "/gift-guides", destination: "/index.html" },
       { source: "/gift-guides/:slug", destination: "/index.html" },
+      // A shared wish list (owner 2026-11-20): its own noindex link card (api/share metaForWishList), before the not-found catch-all.
+      { source: "/gift-guides/list/:code", destination: "/api/share?_og=wishlist&_id=:code" },
+      // ... and the app's own rewrite for it (unknownUrlsAnswer404: every App.tsx route has one).
+      { source: "/gift-guides/list/:code", destination: "/index.html" },
     ]);
   });
 
@@ -1131,7 +1139,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
       expect(quick.getAttribute("aria-label"), url).toBe("Gift guide tools");
       expect(quick.querySelector("input[type=search][aria-label='Search gift guides']"), url).not.toBeNull();
       const controls = [...quick.querySelectorAll("a, button")].filter((el) => !el.closest("[data-gift-search-results]"));
-      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(["My list, 0 saved", "Share"]);
+      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(["My Wish List, 0 saved", "Share"]);
       // Icons only: 44px tap targets (RoundIconButton w-11 h-11; .gg-icon 44px), and no visible words.
       expect(controls[1].className, url).toMatch(/\bw-11\b.*\bh-11\b/);
       expect(GIFT_GUIDES_CSS).toMatch(/\.gg-icon\{[^}]*width:44px;height:44px/);

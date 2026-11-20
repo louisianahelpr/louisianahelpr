@@ -6,7 +6,10 @@ import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
-import { Heart, togglePick, useGiftList } from "./giftList";
+import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
+import { heartTapped } from "./GiftGuideHints";
+import { HINTS, WISH } from "@/content/giftWishList";
+import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
@@ -66,7 +69,7 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
 }
 
 export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
-  const saved = useGiftList().picks.some((p) => p.href === pick.href && p.name === pick.name);
+  const saved = isSaved(useGiftList(), itemId(pick.href));
   // Big batch 1120: a pick wears Trending (or "Trending on TikTok") only from its own flag. The old "first 3 of a guide"
   // badge went with the featured order (owner 11-19 ~6:40 PM: every guide sorts by commission now).
   const badges = pick.badges;
@@ -92,7 +95,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         </span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
-      <Heart saved={saved} label={`Save ${pick.name} to My list`} onToggle={() => togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })} className="gg-heart-pick" />
+      <Heart saved={saved} label={WISH.saveLabel(pick.name)} onToggle={() => heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) }))} className="gg-heart-pick" />
       {/* Holistic review 11-18 H4 (High): the Shop word was hidden on every item, so nothing said "tap to buy". A visible
           44px pill on every item, apart from the heart: "Shop at Amazon ›". */}
       <Button asChild variant="outline" size="sm" className="gg-shop-btn">
@@ -203,6 +206,7 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
           ))}
         </nav>
       )}
+      {banded >= BUDGET_MIN_PICKS && <Hint id="budget">{HINTS.budget}</Hint>}
       {banded >= BUDGET_MIN_PICKS && (
         <div role="group" aria-label={G.budgetLabel} className="gg-budget" data-gift-budget="">
           {[null, ...BUDGETS].map((b) => (

@@ -1,14 +1,41 @@
 /**
- * Buying and Selling under the section tabs (owner, 2026-10-19). The EXISTING
- * lists and cards (cart, offers, purchases; listings, offers on your items,
- * sales waiting for payment, paid sales) are only placed under status boxes:
- * a chip row (boards 47 + 26, spec v2 §3 "Status filters on mine tabs"):
- * "All · n" first, then one chip per list with its count inside; a chip shows
- * only that list, "All" shows every list (no "tap again for all"). The counts
- * are what needs the member (the same reads as the tab badges,
- * useDeclutterTodo), so a chip never counts what its list hides. ?status=
- * keeps the choice, as the boxes did.
+ * Selling under the section tabs (owner, 2026-10-19). The EXISTING lists and cards (listings, offers on your items,
+ * sales waiting for payment, paid sales) are only placed under status boxes: a chip row (boards 47 + 26, spec v2 §3
+ * "Status filters on mine tabs"): "All · n" first, then one chip per list with its count inside; a chip shows only that
+ * list, "All" shows every list (no "tap again for all"). The counts are what needs the member (the same reads as the
+ * tab badges, useDeclutterTodo), so a chip never counts what its list hides. ?status= keeps the choice, as the boxes
+ * did.
+ *
+ * Buying lives in DeclutterBuyingViews.tsx (Q178, 11-20): in this module it put the cart, checkout and order tracker on
+ * the Selling tab's first screen. So this module imports the shared order views from their own files
+ * (DeclutterOffersSection, DeclutterTabParts), never from DeclutterTradeViews, whose own code is the buyer's cart.
+ * Guard: src/boot/declutterTabsLoadAlone.test.ts.
  */
+import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ToggleChip } from "@/components/ui/ToggleChip";
+import { useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
+import { myItemsQuery, PAST_LISTING } from "./myItemsQuery";
+import type { DeclutterTodo } from "@/lib/declutter/tabs";
+import { OffersSection } from "./DeclutterOffersSection";
+import { PaidOrders } from "./DeclutterTabParts";
+import { SalesWaiting, useWaitingChipLabel } from "./DeclutterSalesWaiting";
+import { TakenDownSection } from "./DeclutterTakenDown";
+import { useEndedSales } from "./DeclutterEndedSales";
+import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
+import { DeclutterNotice } from "./declutterUi";
+import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
+import { DeclutterTradesPrompt } from "./DeclutterTradesPrompt";
+import { FreeAsksToPick, useFreeAsksToPick } from "./FreeAsksToPick";
+import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
+import { BundleRequestsSection, useBundleAsksToAnswer } from "./DeclutterBundleRequests";
+import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffers";
+import { SellingTodo, SellingWeek } from "./SellingHome";
+import { useSalesToHandOver } from "./useSalesToHandOver";
+import { ShopSaleCard } from "./ShopSaleCard";
+import { AwayCard } from "./AwayMode";
+import "@/lib/i18n/enDeclutter";
+import { t } from "@/lib/i18n/language";
 
 function StatusChips<K extends string>({ chips, value, onPick }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void }) {
   // Area 06 L2 (11-18): "All · 15" beside the tab's "Selling 5" counted History (taken down, ended) too; All counts
@@ -28,144 +55,6 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
           {c.count > 0 && <span className={value === c.key || !c.hot ? "" : "text-[hsl(var(--accent-ink))]"}> · {c.count}</span>}
         </ToggleChip>
       ))}
-    </div>
-  );
-}
-import type { ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ToggleChip } from "@/components/ui/ToggleChip";
-import { StatusBoxes, useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
-import { fetchMyOffers } from "@/lib/declutter/api";
-import { myItemsQuery, PAST_LISTING } from "./myItemsQuery";
-import type { DeclutterTodo } from "@/lib/declutter/tabs";
-import { CartView, OffersSection, PaidOrders, SectionHeading } from "./DeclutterTradeViews";
-import { bucketChips, EndedLine, useBuyingTracker } from "./BuyingOrders";
-import { PickupDayCard } from "./DeclutterPickupDayCard";
-import { DeclutterTabBones } from "./DeclutterSkeletons";
-import { ORDER_BUCKETS } from "./OrderSteps";
-import { usePaySettling } from "./DeclutterPaySettling";
-import { SalesWaiting, useWaitingChipLabel } from "./DeclutterSalesWaiting";
-import { TakenDownSection } from "./DeclutterTakenDown";
-import { useEndedSales } from "./DeclutterEndedSales";
-import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
-import { DeclutterNotice } from "./declutterUi";
-import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
-import { DeclutterTradesPrompt } from "./DeclutterTradesPrompt";
-import { FreePauseLine, MyFreeAsks, useMyFreeAsks } from "./DeclutterFreeClaim";
-import { WatchingList } from "./DeclutterWatching";
-import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
-import { BundleRequestsSection, useBundleAsksToAnswer } from "./DeclutterBundleRequests";
-import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffers";
-import { FreeAsksToPick, useFreeAsksToPick } from "./FreeAsksToPick";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useMyTrades } from "./useMyTrades";
-import { SellingHome } from "./SellingHome";
-import { ShopSaleCard } from "./ShopSaleCard";
-import { AwayCard } from "./AwayMode";
-import "@/lib/i18n/enDeclutter";
-import { t } from "@/lib/i18n/language";
-import type { MsgKey } from "@/lib/i18n/en";
-
-const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
-
-/**
- * Whether the buyer has any offer, and whether one waits on THEIR answer (a seller's counter). The same read and key as
- * OffersSection. Audit DB-6: a counter to answer sat under every order, below the fold; it now comes before them.
- */
-function useBuyerOffers(): { has: boolean | null; toAnswer: boolean } {
-  const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
-  const mine = (offers.data ?? []).filter((o) => o.my_side === "buyer");
-  return {
-    has: offers.data ? mine.length > 0 : offers.isError ? true : null,
-    toAnswer: mine.some((o) => o.status === "open" && o.awaiting === "buyer"),
-  };
-}
-
-/**
- * Buying = an order tracker, mirroring Jobs > Posted (owner 2026-10-28: "buyers and sellers need a very organized way
- * to keep track of all their purchases"): one chip per ORDER_BUCKETS group that holds orders, with its count; each
- * order card shows its steps and ONE next action (BuyingOrders.tsx). A checkout still in the cart is the buyer's to
- * pay, so it sits under Needs you. Offers are grouped on their own below the orders, except that a seller's counter to
- * answer puts them right after the checkouts (audit DB-6: needs-you first, history last). With nothing at all the tab
- * says so once.
- */
-export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
-  const [asked, toggle] = useStatusFilter(BUCKET_KEYS);
-  const trk = useBuyingTracker();
-  const chips = bucketChips(trk.counts).map((c) => ({ ...c, label: t(`decl.mv.bk.${c.key}` as MsgKey) }));
-  // A chip with nothing in it is not shown, so a stale ?status= for an empty group shows every order.
-  const only = asked && trk.counts[asked] > 0 ? asked : null;
-  const offers = useBuyerOffers();
-  const settling = usePaySettling();
-  const orders = chips.length > 0;
-  const showCart = trk.ready && (only === null || only === "needs_you") && (trk.checkouts > 0 || settling.settling);
-  const ended = only === null || only === "cancelled" ? trk.ended : [];
-  // Q2630 (audit 1102c R5): a paid order refunded in full did not go ahead, so it is filed under Ended (like a checkout
-  // that ran out), not under Your orders. Its card keeps the amount and day ("Cancelled. $42.70 was refunded ...").
-  const refunded = (id: string) => !!trk.views.get(id)?.facts.cancelled;
-  const endedOrders = only === null || only === "cancelled" ? [...trk.views.keys()].filter(refunded).length : 0;
-  const nothingActive = trk.ready && chips.every((c) => c.key === "cancelled") && offers.has === false && !showCart;
-  // Builder 187 (seen in the preview, the same in the app): a member whose only Buying is an open free ask read
-  // "Nothing bought yet." above "Free items you asked for". The notice waits for the asks read and needs none.
-  const freeAsks = useMyFreeAsks();
-  const { user } = useCurrentUser();
-  const buyerTrades = useMyTrades("buyer", user?.id ?? null);
-  // F409 (whole-app audit 11-10, measured B3g 11-12): "Your pickups today" draws at the TOP of the tab once the bookings
-  // and open-problem reads answer; the chips and cart drew first and were pushed down 289px (Buying CLS 0.33-0.58 at 375
-  // on a seeded buyer). With a paid order to pick up, the tab shows its bones until those two reads answer (or fail),
-  // so the pickup card arrives with the rest. Guard: paidOrdersWaitForBookings.
-  if (trk.ready && trk.live.length > 0 && !trk.pickupsSettled) return <DeclutterTabBones />;
-  return (
-    <div className="space-y-6">
-      {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
-      <FreePauseLine />
-      {/* D-NEW11: on a day with pickups booked, what to do today comes first. */}
-      {/* NIGHT-BUYINGopenpr-1: never on an order on hold (the same open-problem read as its card's "On hold"). */}
-      <PickupDayCard orders={trk.live} bookings={trk.bookings} held={new Set(trk.live.filter((o) => trk.views.get(o.orderId)?.facts.problem).map((o) => o.orderId))} />
-      {/* Q2569 (audit 1102a): with every order in one group the row read "All · 2" "Cancelled · 2", the chip only
-          repeating All; the chips show once there are two groups to choose between. */}
-      {chips.length > 1 && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
-      {/* Lead 11-08: never "Nothing bought yet." above the buyer's own trade offers. */}
-      {trk.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && !buyerTrades.isLoading && !buyerTrades.data?.length && (
-        <DeclutterNotice title={t("decl.mv.noneBought")}>
-          {t("decl.mv.noneBoughtBody")}
-        </DeclutterNotice>
-      )}
-      {showCart && <CartView />}
-      {/* Audit 11-10 F374: the chip on narrows the offers and trade offers too (buyingBucket), not only the orders. */}
-      {offers.has && offers.toAnswer && <OffersSection side="buyer" only={only} />}
-      {/* Q2268: the buyer's asks for several items, and what the seller answered. */}
-      <BundleRequestsSection side="buyer" userId={user?.id ?? null} />
-      {/* Declutter trades slice 3: the buyer's trade offers from the last 7 days, with Take it back while open. */}
-      <TradeOffersSection side="buyer" userId={user?.id ?? null} only={only} />
-      <PaidOrders side="buyer" views={trk.views} scope={(id) => !refunded(id)} show={(id) => only === null || trk.views.get(id)?.bucket === only} />
-      {/* Design audit 11-17 #33: only ended orders left one card, a left-aligned button and a blank screen. The empty
-          state's line and its centred button come first, then the Ended list. */}
-      {nothingActive && (ended.length > 0 || endedOrders > 0) && (
-        <div className="flex flex-col items-center gap-3 py-4 text-center" data-buying-nothing-active="">
-          <p className="text-ds-15 text-muted-foreground">{t("decl.mv.nothingActive")}</p>
-          {/* M5 (iOS audit 11-16): a real button, not a bare underlined link (the empty states' one action style). */}
-          <Button asChild variant="outline" size="sm" className="rounded-full">
-            <Link to="/declutter" data-ended-browse="">{t("decl.mv.findBrowse")}</Link>
-          </Button>
-        </div>
-      )}
-      {(ended.length > 0 || endedOrders > 0) && (
-        <section className="space-y-2" aria-label={t("decl.mv.ended")}>
-          {/* "Ended", not "Ended before paying": an order cancelled after it was paid or claimed is kept here too (A2-4). */}
-          <SectionHeading title={t("decl.mv.ended")} />
-          {endedOrders > 0 && <PaidOrders side="buyer" views={trk.views} scope={refunded} ended />}
-          {ended.length > 0 && <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>}
-          {/* Q2569: only ended orders, nothing on the way and no offer out: the way back to shopping is above the list. */}
-        </section>
-      )}
-      {offers.has && !offers.toAnswer && <OffersSection side="buyer" only={only} />}
-      {/* The Free change (Q2487): the free items this member asked for, until the giver picks. */}
-      <MyFreeAsks />
-      {/* SS-5: the items the member hearted, so they can be found again. */}
-      <WatchingList />
     </div>
   );
 }
@@ -198,6 +87,9 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const freeAsks = useFreeAsksToPick(userId, (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0));
   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks + freeAsks.length;
   const waitingLabel = useWaitingChipLabel();
+  // 11-20 #6: the to-do, the chip and the Sold heading say ONE number of sales to hand over (on-hold sales left out).
+  const handOver = useSalesToHandOver();
+  const hasListings = (mine.data?.length ?? 0) > 0;
   // AUD31-4: a sale to hand over is the seller's next move, so on the whole tab it comes before the offers, the
   // listings and their empty cards (at 375 it sat at the very bottom, behind the floating +).
   // Area 06 M1 (11-18): so do a refund request or report waiting on the seller and a Helpr delivery still to hand to its
@@ -210,13 +102,11 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   </>;
   return (
     <div className="space-y-6">
-      {/* Declutter top 5 #2 (owner 11-19): the Selling home, the to-do list and the week's numbers, on the whole tab only
-          and only for a seller with listings (a first-time seller sees the empty card below, not empty numbers). */}
-      {only === null && (mine.data?.length ?? 0) > 0 && <SellingHome todo={todo} userId={userId} onPick={(g) => toggle(g)} />}
-      {/* Declutter top 5 #4: the shop-wide sale, while something is for sale or a sale is set. */}
-      {only === null && pricedLive && <ShopSaleCard userId={userId} />}
-      {/* Declutter top 5 #5: away mode, for a seller with listings (and always while away, to come back). */}
-      {only === null && (mine.data?.length ?? 0) > 0 && <AwayCard userId={userId} />}
+      {/* Declutter top 5 #2 (owner 11-19): the Selling home's to-dos, on the whole tab only and only for a seller with
+          listings (a first-time seller sees the empty card below, not empty numbers). Post-merge check 11-20 #5: only the
+          to-dos sit up here; the week's numbers, Shop sale and Away mode are below the lists, so a sale to hand over is
+          on the first screen. */}
+      {only === null && hasListings && <SellingTodo todo={todo} handOver={handOver} userId={userId} onPick={(g) => toggle(g)} />}
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
           selected filter beside the pressed one; the header's "Sell an item" button is the section's one add action. */}
       <StatusChips
@@ -229,7 +119,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
           { key: "listings", label: t("decl.mv.listings"), count: listed },
           { key: "waiting", label: waitingLabel, count: todo?.salesAwaitingPayment ?? 0 },
           // F128 (UI audit 11-09): "Hand over" was unclear; these are the sales still to hand to the buyer.
-          { key: "sold", label: t("decl.mv.pickups"), count: todo?.salesOpen ?? 0, hot: true },
+          { key: "sold", label: t("decl.mv.pickups"), count: handOver ?? todo?.salesOpen ?? 0, hot: true },
           // Only while there is one (owner 2026-10-28: chips only for lists that hold something).
           ...(history > 0 ? [{ key: "taken" as const, label: t("decl.mv.history"), count: history }] : []),
         ]}
@@ -247,6 +137,17 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
       {!soldFirst && sold}
       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />}
+      {/* Declutter top 5 (owner 11-19), after the work that waits on the seller (11-20 #5): the week's numbers (#2), the
+          shop-wide sale while something is for sale or a sale is set (#4), and away mode (#5). */}
+      {only === null && hasListings && (
+        <div className="space-y-3" data-shop-tools="">
+          <SellingWeek />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {pricedLive && <ShopSaleCard userId={userId} />}
+            <AwayCard userId={userId} />
+          </div>
+        </div>
+      )}
       {/* Owner 11-08: the one-time "Turn on trades for all your listings?" card, until answered (on the account).
           Audit 11-10 F399: after the to-dos and the lists, so the work that waits on the seller comes first. */}
       {only === null && <DeclutterTradesPrompt userId={userId} />}

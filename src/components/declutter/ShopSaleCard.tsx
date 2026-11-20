@@ -3,6 +3,10 @@
  * opens a sheet (10 to 30% off, now or tomorrow, 2 to 14 days). With one set or running: what it is, until when, and
  * End / Cancel. The server lowers each live listing's price to its sale price and puts it back at the end
  * (20261120014036), so this card only starts and ends it.
+ *
+ * Post-merge check 11-20 (~/.lh-shots/declutter-top5-1120): #7 End / Cancel ask first in the in-app sheet (they ran in
+ * one tap); #13 while its read is on the way the card holds its place (SHOP_TOOL_MIN, the same floor as the card), so
+ * it never pops in and moves what is below.
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +23,14 @@ import { getLang, t } from "@/lib/i18n/language";
 
 const DAY_CHOICES = [2, 3, 7, 14] as const;
 
+/** The Shop sale and Away cards' floor, shared by their bones so neither pops in (11-20 #13). */
+export const SHOP_TOOL_MIN = "min-h-[172px] sm:min-h-[136px]";
+
+/** The place a shop tool card holds while its read is on the way. */
+export function ShopToolBones({ name }: { name: string }) {
+  return <div className={`${SHOP_TOOL_MIN} animate-pulse rounded-[20px] bg-muted/60`} data-shop-tool-bones={name} aria-hidden />;
+}
+
 /** "Sun, Nov 23" in the member's language. */
 function saleDay(iso: string | Date): string {
   return new Date(iso).toLocaleDateString(getLang() === "es" ? "es-US" : "en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -28,16 +40,18 @@ export function ShopSaleCard({ userId }: { userId: string }) {
   const qc = useQueryClient();
   const sale = useQuery({ queryKey: ["declutter", "shop-sale", userId], queryFn: () => fetchMyShopSale(userId) });
   const [open, setOpen] = useState(false);
+  const [ending, setEnding] = useState(false);
   const refresh = () => void qc.invalidateQueries({ queryKey: ["declutter"] });
   const end = useMutation({
     mutationFn: () => endShopSale(),
-    onSuccess: (r) => { toast(r === "cancelled" ? t("dt5.sale.cancelled") : t("dt5.sale.ended")); refresh(); },
+    onSuccess: (r) => { toast(r === "cancelled" ? t("dt5.sale.cancelled") : t("dt5.sale.ended")); setEnding(false); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (sale.isPending || sale.isError) return null;
+  if (sale.isPending) return <ShopToolBones name="sale" />;
+  if (sale.isError) return null;
   const s = sale.data;
   return (
-    <section className="flex items-start gap-3 rounded-[20px] border border-border bg-card p-4" aria-label={t("dt5.sale.title")} data-shop-sale={s?.status ?? "none"}>
+    <section className={`flex ${SHOP_TOOL_MIN} items-start gap-3 rounded-[20px] border border-border bg-card p-4`} aria-label={t("dt5.sale.title")} data-shop-sale={s?.status ?? "none"}>
       <Tag className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--sienna-ink))]" aria-hidden />
       <div className="min-w-0 flex-1 space-y-2">
         <p className="text-ds-15 font-semibold">{t("dt5.sale.title")}</p>
@@ -49,12 +63,19 @@ export function ShopSaleCard({ userId }: { userId: string }) {
         {!s ? (
           <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setOpen(true)} data-shop-sale-start="">{t("dt5.sale.start")}</Button>
         ) : (
-          <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={end.isPending} onClick={() => end.mutate()} data-shop-sale-end="">
+          <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={end.isPending} onClick={() => setEnding(true)} data-shop-sale-end="">
             {s.status === "on" ? t("dt5.sale.end") : t("dt5.sale.cancel")}
           </Button>
         )}
       </div>
       {open && <StartSaleSheet onClose={() => setOpen(false)} onDone={refresh} />}
+      {s && (
+        <ConfirmSheet open={ending} plain title={s.status === "on" ? t("dt5.sale.endTitle") : t("dt5.sale.cancelTitle")}
+          confirmLabel={s.status === "on" ? t("dt5.sale.end") : t("dt5.sale.cancel")} cancelLabel={t("dt5.sale.keep")}
+          pending={end.isPending} onConfirm={() => end.mutate()} onClose={() => setEnding(false)} testId="declutter-shop-sale-end">
+          {s.status === "on" ? t("dt5.sale.endBody") : t("dt5.sale.cancelBody")}
+        </ConfirmSheet>
+      )}
     </section>
   );
 }

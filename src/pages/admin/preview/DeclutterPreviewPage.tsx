@@ -25,7 +25,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
-import { BuyingDash, SellingDash } from "@/components/declutter/DeclutterMineViews";
+import { BuyingDash } from "@/components/declutter/DeclutterBuyingViews";
+import { SellingDash } from "@/components/declutter/DeclutterMineViews";
 import { declutterTodo } from "@/lib/declutter/tabs";
 // Loaded on demand, never statically: a static import from this admin route made DeclutterHomeView a chunk of its own
 // (shared by two lazy routes), which put ~1.8 KB gz more on /declutter's critical path (Q178 budget, train 2 11-02).

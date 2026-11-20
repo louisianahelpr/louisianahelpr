@@ -149,7 +149,9 @@ const DECLUTTER_ROOTS = [
   // A member's tabs: DeclutterHomeEntry loads this lazily, and src/boot/declutterRoute.ts starts it beside the page for a
   // visitor with a session (Q2705, 2026-11-14), so it is a first screen's code, as it was when the page imported it.
   "src/components/declutter/DeclutterHomeView.tsx",
+  // Selling, and Buying (its own module since Q178, 11-20: one module put the cart on the Selling first screen).
   "src/components/declutter/DeclutterMineViews.tsx",
+  "src/components/declutter/DeclutterBuyingViews.tsx",
   "src/components/declutter/DeclutterBrowseView.tsx",
 ];
 /** /profile starts its page through src/boot/profileRoute.ts; the page itself is named so the walk reaches it. */
@@ -280,6 +282,40 @@ export function declutterItemSplit(root, split = signedInSplit(root)) {
     // fetches signed-in-pages) download that whole chunk, Declutter's api and seller tools included (lab, 375: 30 KB
     // gz on /jobs' first round for these ~6 modules). Their own chunk; the item page fetches it beside its own.
     itemShared: new Set([...itemPages].filter((f) => restReach.has(f))),
+    // Q178 (11-20, after #4779): the part of declutter-first-screen (declutterOnly) the item page reaches. That chunk
+    // is Selling's and Browse's first-screen code (seller delivery, wanted posts, saved searches, Helpr tasks' error
+    // copy, ...); the item page runs 25 of its 78 modules, yet fetched all of it (~34 KB gz of its 420). Its own chunk:
+    // the item page fetches only this one, /declutter fetches both in the same round. Empty when `split` has no
+    // declutterOnly (callers that pass only deep/homeOff).
+    itemFirst: new Set([...(split.declutterOnly ?? [])].filter((f) => reach.has(f))),
+  };
+}
+
+/** /declutter's Browse first screen: the page and its default tab, which src/boot/declutterRoute.ts starts together. */
+const DECLUTTER_BROWSE_ROOTS = ["src/pages/declutter/DeclutterPage.tsx", "src/components/declutter/DeclutterBrowseView.tsx"];
+/** A member's home view and Selling: everything in DECLUTTER_ROOTS but Buying and Browse. */
+const DECLUTTER_MEMBER_ROOTS = ["src/components/declutter/DeclutterHomeView.tsx", "src/components/declutter/DeclutterMineViews.tsx"];
+const DECLUTTER_BUYING_ROOT = "src/components/declutter/DeclutterBuyingViews.tsx";
+
+/**
+ * Q178 (11-20): declutter-first-screen (declutterOnly) split by which tab reaches each module. In one chunk, Browse
+ * (/declutter, 458 KB gz on main) and Selling downloaded Buying's checkout code (seller delivery and its errors, Helpr
+ * tasks' error copy, meetups, porch days, shipping policy, ...) and Selling's and the home view's (donate, haul-away,
+ * wanted posts, the Declutter dictionaries), all of it on every /declutter visit.
+ * - `browseFirst`: what Browse's first screen reaches. /declutter fetches only this one of the three.
+ * - `buyingFirst`: what only Buying reaches (not Browse, the home view or Selling). Only Buying fetches it.
+ * declutter-first-screen keeps the rest (the home view's and Selling's), which a member's tabs fetch in the same round.
+ * Modules decl-item-first or an explicit vite.config group claims stay there (higher priority).
+ */
+export function declutterTabSplit(root, split = signedInSplit(root)) {
+  const roots = (list) => staticReach(root, list.map((r) => toPosix(path.join(root, r))));
+  const browse = roots(DECLUTTER_BROWSE_ROOTS);
+  const member = roots(DECLUTTER_MEMBER_ROOTS);
+  const buying = roots([DECLUTTER_BUYING_ROOT]);
+  const only = [...(split.declutterOnly ?? [])];
+  return {
+    browseFirst: new Set(only.filter((f) => browse.has(f))),
+    buyingFirst: new Set(only.filter((f) => buying.has(f) && !browse.has(f) && !member.has(f))),
   };
 }
 
@@ -556,7 +592,7 @@ export function adminIconFiles(root) {
     }
   }
   const { own, shared, declutter } = guestIconSplit(root);
-  const taken = new Set([...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root), ...own, ...shared, ...declutter, ...sellingIconFiles(root)]);
+  const taken = new Set([...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root), ...own, ...shared, ...declutter, ...sellingIconFiles(root), ...buyingIconFiles(root)]);
   return new Set([...out].filter((i) => !taken.has(i)));
 }
 
@@ -627,13 +663,26 @@ export function guestIconFiles(root) {
  */
 const DECLUTTER_SELLING_ROOTS = ["src/components/declutter/DeclutterMineViews.tsx"];
 export function sellingIconFiles(root) {
+  return tabIconFiles(root, DECLUTTER_SELLING_ROOTS, []);
+}
+/**
+ * The icons the Declutter Buying tab draws (DeclutterBuyingViews, its own module since Q178 11-20), not already pinned
+ * above or as Selling's. vite.config pins them as `icons-buying`: unpinned, the entriesAware merge put them in chunks of
+ * other screens' icons, and the Buying first screen fetched two such chunks (8.8 KB gz; 552 -> 554 KB gz, measured).
+ */
+const DECLUTTER_BUYING_ROOTS = ["src/components/declutter/DeclutterBuyingViews.tsx"];
+export function buyingIconFiles(root) {
+  return tabIconFiles(root, DECLUTTER_BUYING_ROOTS, sellingIconFiles(root));
+}
+/** The icons `roots` statically draw, less every set pinned before them (and `alsoTaken`). */
+function tabIconFiles(root, roots, alsoTaken) {
   const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
   const fileOf = new Map();
   for (const m of index.matchAll(/export \{([^}]*)\} from '\.\/icons\/([^']+)\.mjs'/g)) {
     for (const n of m[1].matchAll(/default as (\w+)/g)) fileOf.set(n[1], m[2]);
   }
   const drawn = new Set();
-  for (const f of staticReach(root, DECLUTTER_SELLING_ROOTS.map((r) => toPosix(path.join(root, r))))) {
+  for (const f of staticReach(root, roots.map((r) => toPosix(path.join(root, r))))) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
     const src = stripComments(fs.readFileSync(f, "utf8"));
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
@@ -644,7 +693,7 @@ export function sellingIconFiles(root) {
     }
   }
   const split = guestIconSplit(root);
-  const taken = new Set([...split.shared, ...split.own, ...split.declutter, ...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root)]);
+  const taken = new Set([...split.shared, ...split.own, ...split.declutter, ...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root), ...alsoTaken]);
   return new Set([...drawn].filter((i) => !taken.has(i)));
 }
 

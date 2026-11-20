@@ -182,6 +182,8 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "gift-guides", url: "/gift-guides" },
   // 2026-11-18: one guide opens at /gift-guides/<slug>; "mom" stands in for the shared guide page.
   { name: "gift-guide", url: "/gift-guides/mom" },
+  // 2026-11-20: a shared wish list (/gift-guides/list/<12-character code>); an unknown code paints the "isn't here" state.
+  { name: "gift-wish-list", url: "/gift-guides/list/aaaaaaaaaaaa" },
   // OPS-4 town + service pages (src/lib/townPages.mjs): one of the 40 stands in for the shared page.
   { name: "hire-town", url: "/hire/handyman/lafayette" },
   { name: "terms-full", url: "/terms/full" },

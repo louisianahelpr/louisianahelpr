@@ -257,7 +257,6 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   }
   return (
     <section className="space-y-3" aria-label={t("decl.sl.yours")}>
-      {/* Declutter top 5 #5: the heading with Select (one action on many listings, BulkActions.tsx). */}
       <BulkHeading title={t("decl.sl.yours")} items={list} bulk={bulk} />
       {!searching && list.filter((i) => i.status === "draft").length > 1 && (
         <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">{t("decl.sl.allDrafts")}</Link></p>
@@ -280,7 +279,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              {bulk.selecting && <BulkPick item={item} picked={bulk.picked.has(item.id)} onToggle={() => bulk.toggle(item.id)} />}
+              <BulkPick item={item} selecting={bulk.selecting} picked={bulk.picked.has(item.id)} onToggle={() => bulk.toggle(item.id)}>
               {/* NIGHT-SELL-Sellinglist-4 (night audit 10-30): at 375 the title takes two lines and the row itself opens the
                   item (a draft's opens Finish listing), so View is only a button from sm up. */}
               <Link
@@ -300,7 +299,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                   {item.status !== "draft" && <ItemViewsCount sellerId={userId} itemId={item.id} />}
                 </div>
                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} agreed={agreed.get(item.id)} />
-              </Link>
+              </Link></BulkPick>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
                 {item.status === "draft" ? (
                   <Button type="button" size="sm" aria-label={t("decl.sl.finishAria", { title: item.title })} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
@@ -496,7 +495,7 @@ function DeclutterMemberHome() {
       return next;
     }, { replace: true, state: location.state });
   }, [fromView, tabsReady, setParams, location.state]);
-  useWarmMineViews(view === "buying" || view === "selling");
+  useWarmMineViews(view === "buying" || view === "selling" ? view : null);
   const { t: tr } = useLanguage();
   // Owner 11-13: on Selling the bar searches the seller's own listings in place (it used to open Browse and search
   // everyone's). The words belong to the tab they were typed on, so switching tabs clears them (OWNER-DECISIONS 11-13).

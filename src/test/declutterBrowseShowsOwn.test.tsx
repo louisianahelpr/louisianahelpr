@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const others = useMemo(() => listed ?? [], [listed]); |   const others = useMemo(() => (listed ?? []).filter((i) => i.seller_id !== userId), [listed, userId]);
  * @mutate src/components/declutter/DeclutterFreeView.tsx |     return applyBrowseFilters(nearestFirst(items.data ?? [], from, null), FREE_ONLY, "", undefined); |     return applyBrowseFilters(nearestFirst((items.data ?? []).filter((i) => i.seller_id !== userId), from, null), FREE_ONLY, "", undefined);
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   mine={!!userId && item.seller_id === userId} |
- * @mutate src/components/declutter/DeclutterItemCard.tsx |             {mine && <PhotoTag data-card-mine="" tone="plain">{t("decl.card.yours")}</PhotoTag>} |
+ * @mutate src/components/declutter/DeclutterItemCard.tsx |             {photoTag === "mine" && <PhotoTag data-card-mine="" tone="plain">{t("decl.card.yours")}</PhotoTag>} |
  * @mutate src/components/declutter/DeclutterItemCard.tsx |   const save = mine ? undefined : saveProp; |   const save = saveProp;
  * @mutate src/boot/declutterPrefetch.ts |     if (typeof i?.id !== "string") continue; |     if (typeof i?.id !== "string" \|\| i.id === "mine") continue;
  */

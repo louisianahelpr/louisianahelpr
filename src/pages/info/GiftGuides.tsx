@@ -7,9 +7,15 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { useSyncExternalStore } from "react";
 import { ROWS, guideBySlug, guidePicksVersion, newSlugFor, subscribeGuidePicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
+import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
 import { GiftGuideLanding } from "./giftGuides/GiftGuideLanding";
 import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
+import { GiftGuideSharedList } from "./giftGuides/GiftGuideSharedList";
+import { useWishListSync } from "./giftGuides/wishListSync";
+import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
+import { WISH } from "@/content/giftWishList";
+import { MY_LIST_SLUG } from "./giftGuides/giftList";
 import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
@@ -36,7 +42,13 @@ function guideHead(guide: CatalogGuide) {
 }
 
 export default function GiftGuides() {
-  const { slug } = useParams<{ slug?: string }>();
+  const { slug: rawSlug, code } = useParams<{ slug?: string; code?: string }>();
+  // My Wish List is /gift-guides/my-list (owner 2026-11-20); a shared list is /gift-guides/list/<code>.
+  const myListPage = rawSlug === MY_LIST_SLUG;
+  const slug = myListPage ? undefined : rawSlug;
+  const shared = code !== undefined;
+  // Signed in, the wish list is kept on the account too.
+  useWishListSync();
   const { hash } = useLocation();
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
@@ -49,7 +61,10 @@ export default function GiftGuides() {
   // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
   // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion);
-  usePageMeta(deals ? giftGuidePageMeta(smallBiz ? SMALL_BIZ_SLUG : DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);
+  usePageMeta(
+    shared || myListPage ? { title: `${WISH.title} — Helpr`, description: PUBLIC_PAGE_META["/gift-guides"].description, robots: "noindex" }
+    : deals ? giftGuidePageMeta(smallBiz ? SMALL_BIZ_SLUG : DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
+  );
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
   // Visual check 11-18: at 375 the long pill squeezed "Gift guides" into "Gift / guid / es"; phones get the short words.
@@ -60,14 +75,17 @@ export default function GiftGuides() {
       {ship.endsWith(shipTail) && <span className="hidden sm:inline">{shipTail}</span>}
     </p>
   ) : undefined;
-  const myList = !guide && !deals && params.get("list") === "mine";
+  // The old My list address (?list=mine) opens My Wish List's own page.
+  const oldMyList = !slug && !shared && !myListPage && params.get("list") === "mine";
+  const myList = myListPage;
   const group = ROWS.find((r) => r.row === groupParam)?.row ?? (null as GuideRow | null);
 
   // Pins link to /gift-guides#for-her, /gift-guides/for-her or a folded guide (/gift-guides/female-nurses): send each
   // old slug, folded guide or #<slug> to the guide's page now (newSlugFor).
   const hashSlug = decodeURIComponent(hash.replace(/^#/, ""));
   const fromHash = hashSlug ? newSlugFor(hashSlug) : null;
-  if (!slug && fromHash) return <Navigate to={`/gift-guides/${fromHash}`} replace />;
+  if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />;
+  if (!slug && !shared && !myListPage && fromHash) return <Navigate to={`/gift-guides/${fromHash}`} replace />;
   const moved = slug && !guide && !deals ? newSlugFor(slug) : null;
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
   if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;
@@ -86,9 +104,11 @@ export default function GiftGuides() {
   return (
     // Holistic review 11-18 L6: the landing's back arrow went home; the landing has none now (the bar's logo is the way
     // home), and My list or a group's page goes back to the landing.
-    <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide || deals || myList || group ? "/gift-guides" : "/"} hideBack={!guide && !deals && !myList && !group} bottomPaddingClassName="pb-12 md:pb-16"
+    <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide || deals || myList || shared || group ? "/gift-guides" : "/"} hideBack={!guide && !deals && !myList && !shared && !group} bottomPaddingClassName="pb-12 md:pb-16"
       titleActions={shipPill}>
-      <style>{GIFT_GUIDES_CSS}</style>
+      <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS}</style>
+      {/* The first heart's one-time "Saved to your wish list" note (owner 2026-11-20 hints), on every gift guides page. */}
+      <FirstHeartHint />
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="">
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}
@@ -115,7 +135,7 @@ export default function GiftGuides() {
         <div className="gg-layout">
           <GiftGuidesSidebar active={guide} myList={myList} />
           <div className="gg-main">
-            {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
+            {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>
         </div>
       </div>

@@ -16,7 +16,7 @@ import { loadModule } from "@/lib/loadModule";
 
 export interface SponsorLogo { name: string; slug: string; logo?: string; href: string; external?: boolean; dark?: boolean }
 
-export const SPONSOR_ROW_CSS = `
+const SPONSOR_ROW_CSS = `
 .gg-spons{margin:18px 0 6px;padding:14px 0 12px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card))}
 .gg-spons .gg-rowhead{padding:0 14px;margin-top:0}
 .gg-spons-end{display:flex;align-items:center;gap:8px}
@@ -41,7 +41,7 @@ export const SPONSOR_ROW_CSS = `
 const loadSponsors = () => loadModule(() => import("@/content/giftGuideSponsorLogos.json"));
 
 /** "Le Petit Theatre" -> "LP"; "aosu" -> "A". */
-export const initials = (name: string) => name.split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+const initials = (name: string) => name.split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 
 function Logo({ s }: { s: SponsorLogo }) {
   const [ok, setOk] = useState(true);

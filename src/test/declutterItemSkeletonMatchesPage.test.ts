@@ -8,8 +8,8 @@
  * shows one full-width square. Read from source: the class is "the skeleton's
  * AppPage header props and photo frame drift from the page's".
  *
- * @mutate src/components/declutter/DeclutterSkeletons.tsx | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader phoneBleed> | <AppPage title="Item" backTo="/declutter" phoneBleed>
- * @mutate src/components/declutter/DeclutterSkeletons.tsx | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader phoneBleed> | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle phoneBleed>
+ * @mutate src/components/declutter/DeclutterSkeletons.tsx | <AppPage title="Item" backTo="/declutter" desktopHidesHeader phoneHidesTitle hidesTitle stickyHeader phoneBleed> | <AppPage title="Item" backTo="/declutter" phoneBleed>
+ * @mutate src/components/declutter/DeclutterSkeletons.tsx | <AppPage title="Item" backTo="/declutter" desktopHidesHeader phoneHidesTitle hidesTitle stickyHeader phoneBleed> | <AppPage title="Item" backTo="/declutter" desktopHidesHeader phoneHidesTitle hidesTitle phoneBleed>
  * @mutate src/components/declutter/DeclutterSkeletons.tsx |           <Skeleton className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} /> |           <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl bg-photo-empty" />
  * @mutate scripts/audit/measure-loading-states.mjs | !e.closest("[data-sonner-toaster]") && !e.closest(".sticky-title-row")) | !e.closest("[data-sonner-toaster]"))
  * @mutate src/components/declutter/DeclutterSkeletons.tsx | <Skeleton className="h-52 w-full rounded-2xl" style={{ minHeight: reserve }} aria-hidden /> | <Skeleton className="h-52 w-full rounded-2xl" aria-hidden />
@@ -39,8 +39,8 @@ describe("the Declutter item skeleton is the item page's shape (Q1837)", () => {
   const fn = skeletons.slice(fnStart, skeletons.indexOf("\n}\n", fnStart));
 
   it("wears the page's own header props", () => {
-    const page = appPageFlags(view, view.indexOf("title={it.title}") - 200);
-    expect(page.start, "DeclutterItemView's <AppPage title={it.title}> not found").toBeGreaterThan(0);
+    const page = appPageFlags(view, view.indexOf("title={shownTitle}") - 200);
+    expect(page.start, "DeclutterItemView's <AppPage title={shownTitle}> not found").toBeGreaterThan(0);
     expect(page.flags.length, "the item page sets its header props").toBeGreaterThan(1);
     const bone = appPageFlags(skeletons, fnStart);
     expect(fnStart, "DeclutterItemSkeleton not found").toBeGreaterThan(0);

@@ -82,11 +82,17 @@ interface AppPageProps {
    * is `[data-phone-bleed]` in src/index.css, so the shared wrapper's class string stays Profile's (profileTabScroll).
    */
   phoneBleed?: boolean;
+  /**
+   * From lg the header row (back + title) is not drawn at all (owner 11-20, Declutter item page polish #1: the back
+   * arrow sat alone on its own row above a big empty gap). The page then draws its own way back (the item page's
+   * breadcrumb) and its own h1 for that width; a phone keeps the row and its back arrow.
+   */
+  desktopHidesHeader?: boolean;
   /** Page content. */
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader: stickyAsked, wrapTitle, phoneBleed, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader: stickyAsked, wrapTitle, phoneBleed, desktopHidesHeader, children }: AppPageProps) {
   // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
   // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
   usePageTitle(`${title} — Helpr`);
@@ -97,7 +103,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTi
   const stickyHeader = stickyAsked && !guestFrame;
   const body = (
             <ProfileTabBody>
-              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} />
+              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} desktopHidden={desktopHidesHeader} />
               {children}
             </ProfileTabBody>
   );

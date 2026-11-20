@@ -586,6 +586,11 @@ export interface GuestSellerCard {
   idChecked: boolean;
   /** F359d: completed handovers (20261112002528); 0 before that migration is deployed. A count only. */
   pickups: number;
+  /** Item page polish (owner 11-20, 20261120185250): the seller's public /u handle, null with no public page (or before
+   *  that migration is deployed). The guest card links there only when it has one. */
+  handle: string | null;
+  /** That public page's own "member since" (ISO), null with no public page. */
+  memberSince: string | null;
 }
 
 /**
@@ -597,13 +602,15 @@ export async function fetchGuestSellerCard(itemId: string): Promise<GuestSellerC
   const res = await supabase.rpc("declutter_guest_seller_card", { p_item_id: itemId });
   if (res.error && isMissingRpcNamed(res.error, "declutter_guest_seller_card")) return null;
   // The function raises nothing of its own (no row instead), so a failure is the transport's: thrown as is.
-  const rows = (unwrap(res) ?? []) as { display_name: string | null; avg_rating: number | string | null; review_count: number | null; id_checked: boolean | null; pickup_count?: number | null }[];
+  const rows = (unwrap(res) ?? []) as { display_name: string | null; avg_rating: number | string | null; review_count: number | null; id_checked: boolean | null; pickup_count?: number | null; handle?: string | null; member_since?: string | null }[];
   const row = rows[0];
   const name = typeof row?.display_name === "string" ? row.display_name.trim() : "";
   if (!row || name === "") return null;
   const count = Number(row.review_count ?? 0);
   const avg = row.avg_rating == null ? null : Number(row.avg_rating);
-  return { name, avg: count > 0 && avg !== null && Number.isFinite(avg) ? avg : null, count: count > 0 ? count : 0, idChecked: row.id_checked === true, pickups: pickupCount(row.pickup_count) };
+  return { name, avg: count > 0 && avg !== null && Number.isFinite(avg) ? avg : null, count: count > 0 ? count : 0, idChecked: row.id_checked === true, pickups: pickupCount(row.pickup_count),
+    handle: typeof row.handle === "string" && row.handle.trim() !== "" ? row.handle.trim() : null,
+    memberSince: typeof row.member_since === "string" && row.member_since !== "" ? row.member_since : null };
 }
 
 /** A whole number of pickups at or above 0; anything else (missing, NULL, not a number) is 0, which shows nothing. */

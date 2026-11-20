@@ -3,12 +3,16 @@
  * then the title with Save and Share beside it, the price with the condition chip, the place line; Make an offer
  * (left) and Buy now (right) with the delivery line under them (OfferPanel, with a bar above the dock on a phone);
  * the seller card with "12+ more items" folded in; "About this item" then Category and Size; ONE pickup block;
- * the public Questions (board 162); Report at the bottom. Two columns from lg, the item column sticky.
+ * the public Questions (board 162); Report at the bottom. Two columns from lg.
+ * Owner 11-20 (item page polish): from lg the lone back row is gone (a "← Declutter · <Category>" breadcrumb sits
+ * above the title) and the GALLERY column is the sticky one, so the left side never sits empty while the details
+ * scroll; the condition chip and ONE icon row (Buyer protection, place + porch pickup, listed) replace three stacked
+ * lines; titles show in smart title case (displayTitle, display only).
  */
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { Heart, MessageCircle, Share2 } from "lucide-react";
+import { ArrowLeft, Clock, Heart, MapPin, MessageCircle, Share2, ShieldCheck } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
@@ -65,6 +69,7 @@ import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
 import { SellerTrustBadges } from "./SellerTrustBadges";
 import { useAfterPaint } from "./useAfterPaint";
 import { listedAgo } from "@/lib/declutter/sellerBadges";
+import { displayTitle } from "@/lib/declutter/displayTitle";
 import { useTradedFor } from "./useMyTrades";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
@@ -135,6 +140,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const [params] = useSearchParams();
   const preview = ownListing && params.get("preview") === "buyer";
   const [previewPressed, setPreviewPressed] = useState(false);
+  // Owner 11-20 #5: "Buyer protection" in the meta row opens the protection words under it (no popover library).
+  const [protectionOpen, setProtectionOpen] = useState(false);
   // AUD31-15: the Questions hint's "Make an offer" opens the offer box (OfferPanel's askSignal).
   const [offerAsk, setOfferAsk] = useState(0);
   const isSeller = ownListing && !preview;
@@ -182,6 +189,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
     return <DeclutterItemUnavailable detail={item.isError ? declutterErrorMessage(item.error) : undefined} top={item.isError ? null : <SoldItemCard itemId={itemId} />} more={<NewestItemsRow viewerId={user?.id ?? null} />} />;
   }
   const it = item.data;
+  // Owner 11-20 #7: the title as shown (smart title case); the stored title and its share text are the seller's own.
+  const shownTitle = displayTitle(it.title);
+  const categoryName = CATEGORY_LABEL[it.category] ? t(`decl.cat.${it.category}` as MsgKey) : t("decl.cat.other");
   const miles =
     geo.status === "ready" ? milesBetween({ lat: geo.lat, lng: geo.lng }, { lat: Number(it.area_lat), lng: Number(it.area_lng) }) : null;
   // Audit DC-7: the seller's own listing is not "About 52 mi away" from them; no distance on their own page.
@@ -265,8 +275,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
   return (
     <AppPage
-      title={it.title}
+      title={shownTitle}
       backTo="/declutter"
+      // Owner 11-20 #1: from lg the back arrow no longer sits alone on its own row above an empty gap; the details column
+      // carries a "← Declutter · <Category>" breadcrumb instead. A phone keeps its pinned back arrow.
+      desktopHidesHeader
       // Owner mockup 11-01: the title is painted once, in the item column with Save and Share beside it; the header
       // keeps back (pinned while the buyer scrolls, DA-9) and the h1 for screen readers.
       phoneHidesTitle
@@ -276,17 +289,35 @@ export default function ItemView({ itemId }: { itemId: string }) {
       phoneBleed
     >
       <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
-        <div className={ITEM_PHOTO_BLEED} data-item-photo-bleed="">
-          <DeclutterGallery urls={urls} display={display} category={it.category} title={it.title} />
+        {/* Owner 11-20 #2: on a computer the photos stay in view while the details scroll (it was the other way round,
+            and the left side sat empty under a short gallery). */}
+        <div className="lg:sticky lg:top-4 lg:self-start [[data-guest-public-frame]_&]:lg:top-[84px]" data-item-gallery-column="">
+          <div className={ITEM_PHOTO_BLEED} data-item-photo-bleed="">
+            <DeclutterGallery urls={urls} display={display} category={it.category} title={shownTitle} />
+          </div>
         </div>
 
-        {/* Owner mockup 11-01: on a computer the item column stays in view while the photos scroll. */}
-        <div className="mt-4 lg:mt-0 min-w-0 space-y-5 lg:sticky lg:top-0" data-item-column="">
+        <div className="mt-4 lg:mt-0 min-w-0 space-y-5" data-item-column="">
           <section aria-label={t("decl.item.priceAndCondition")} className="space-y-2">
-            <div className="flex items-start justify-between gap-3">
-              {/* The title once (audit #47), with Save and Share beside it (owner mockup 11-01). */}
-              <h2 className="min-w-0 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere] lg:text-ds-28">{it.title}</h2>
-              {saveShare}
+            <div>
+              {/* Owner 11-20 #1: from lg, the way back is a small breadcrumb above the title, each part a link. The page's
+                  h1 for that width is here too (the header row that holds it on a phone is not drawn from lg). */}
+              <nav aria-label={t("ip.breadcrumb")} data-item-breadcrumb="" className="mb-1 hidden flex-wrap items-center gap-x-1.5 text-ds-13 text-muted-foreground lg:flex">
+                <Link to="/declutter" data-item-breadcrumb-home="" className="inline-flex min-h-11 items-center gap-1 font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md">
+                  <ArrowLeft className="h-4 w-4" aria-hidden />
+                  Declutter
+                </Link>
+                <span aria-hidden>·</span>
+                <Link to={`/declutter?cat=${encodeURIComponent(it.category)}`} data-item-breadcrumb-category="" className="inline-flex min-h-11 items-center font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md">
+                  {categoryName}
+                </Link>
+              </nav>
+              <h1 className="sr-only max-lg:hidden" data-item-desktop-h1="">{shownTitle}</h1>
+              <div className="flex items-start justify-between gap-3">
+                {/* The title once (audit #47), with Save and Share beside it (owner mockup 11-01). */}
+                <h2 className="min-w-0 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere] lg:text-ds-28" data-item-title="">{shownTitle}</h2>
+                {saveShare}
+              </div>
             </div>
             {/* The condition chip under the price (board D5, owner mockup 11-01), not again as a Details row. Design
                 audit 11-17 #17: price, chip and "Listed 1 week ago" shared one line and "Trades OK" wrapped alone, so the
@@ -326,22 +357,53 @@ export default function ItemView({ itemId }: { itemId: string }) {
               )}
               </div>
             </div>
-            <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
-              {/* Owner 11-07: lead with free porch pickup where it applies (nothing is charged to pick it up). */}
-              {it.porch_ok !== false && <span data-item-porch-free="" className="font-semibold text-foreground">{t("decl.item.freePorch")} · </span>}
-              {[it.area_label, away].filter(Boolean).join(" · ")}
-              {/* Owner 11-07 (Vinted review): how fresh the listing is; in this grey meta line since design audit 11-17 #17. */}
-              {forSale && listedAgo(it.live_at) && <span data-item-listed="">{`${it.area_label || away ? " · " : ""}${listedAgo(it.live_at)}`}</span>}
-            </p>
-            {/* Declutter top 5 #3 (owner 11-19): "3 offers this week · 8 people saved this", real counts past a threshold. */}
-            {forSale && <Suspense fallback={null}><DemandLine itemId={it.id} /></Suspense>}
-            {/* Owner 11-11 (F229): a buyer-protection line under a paid price, naming only what the app does: payment in
-                the app, porch pickup where this listing offers it, and 24 hours after the handover to report a problem. */}
-            {it.current_price_cents > 0 && !isSeller && (
-              <p data-item-protected="" className="text-ds-13 text-muted-foreground">
+            {/* Owner 11-20 #5: one tidy row of small icon + words under the condition chip, in place of three stacked
+                lines in three styles: Buyer protection (its words open under the row), the place with porch pickup, and
+                how fresh the listing is. */}
+            <ul data-item-meta="" className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-ds-13 leading-snug text-muted-foreground">
+              {/* Owner 11-11 (F229): protection only under a paid price, and never on the seller's own page. */}
+              {it.current_price_cents > 0 && !isSeller && (
+                <li data-item-protected="">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="inline"
+                    aria-expanded={protectionOpen}
+                    aria-controls="item-protection"
+                    onClick={() => setProtectionOpen((o) => !o)}
+                    data-item-protection-toggle=""
+                    className="tap-44 gap-1.5 rounded-md text-ds-13 font-medium text-foreground"
+                  >
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    {t("ip.buyerProtection")}
+                  </Button>
+                </li>
+              )}
+              {(it.area_label || away || it.porch_ok !== false) && (
+                <li data-item-where="" className="inline-flex items-center gap-1.5 [overflow-wrap:anywhere]">
+                  <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                  <span>
+                    {[it.area_label, away].filter(Boolean).join(" · ")}
+                    {/* Owner 11-07: porch pickup where it applies (nothing is charged to pick it up). */}
+                    {it.porch_ok !== false && <span data-item-porch-free="">{`${it.area_label || away ? " · " : ""}${t("ip.porchPickup")}`}</span>}
+                  </span>
+                </li>
+              )}
+              {/* Owner 11-07 (Vinted review): how fresh the listing is. */}
+              {forSale && listedAgo(it.live_at) && (
+                <li data-item-listed="" className="inline-flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 shrink-0" aria-hidden />
+                  {listedAgo(it.live_at)}
+                </li>
+              )}
+            </ul>
+            {it.current_price_cents > 0 && !isSeller && protectionOpen && (
+              <p id="item-protection" data-item-protected-detail="" className="rounded-xl bg-muted/60 px-3 py-2 text-ds-13 text-muted-foreground">
                 {it.porch_ok !== false ? t("ip.protectedPorch") : t("ip.protected")}
               </p>
             )}
+            {/* Declutter top 5 #3 (owner 11-19): "3 offers this week · 8 people saved this", real counts past a threshold. */}
+            {forSale && <Suspense fallback={null}><DemandLine itemId={it.id} /></Suspense>}
             {isSeller && <ItemViewsCount sellerId={it.seller_id} itemId={it.id} />}
             {/* Area 06b M9: the seller's own item page has no seller card; a link to the public page buyers see instead. */}
             {isSeller && (
@@ -431,7 +493,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <h2 id="declutter-details" className="text-base font-semibold">{t("decl.item.about")}</h2>
             {it.description && <p className="pb-1 text-ds-15 whitespace-pre-line [overflow-wrap:anywhere]" data-item-description="">{it.description}</p>}
             <dl className="divide-y divide-border border-t border-border">
-              <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ? t(`decl.cat.${it.category}` as MsgKey) : t("decl.cat.other")}</Detail>
+              <Detail label={t("decl.item.category")}>{categoryName}</Detail>
               <Detail label={t("decl.item.size")}>{SIZE_LABEL[it.delivery_size] ? t(`decl.size.${it.delivery_size}` as MsgKey) : null}</Detail>
             </dl>
           </section>

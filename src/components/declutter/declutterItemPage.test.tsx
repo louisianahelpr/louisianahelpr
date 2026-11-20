@@ -19,7 +19,7 @@
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {pickupCount > 0 && <span data-seller-pickups | {false && <span data-seller-pickups
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {pickupCount > 0 && <span data-seller-pickups | {pickupCount >= 0 && <span data-seller-pickups
  * @mutate src/components/declutter/DeclutterGuest.tsx |         {c.pickups > 0 && <span data-guest-seller-pickups | {false && <span data-guest-seller-pickups
- * @mutate src/lib/declutter/api.ts | idChecked: row.id_checked === true, pickups: pickupCount(row.pickup_count) }; | idChecked: row.id_checked === true, pickups: 0 };
+ * @mutate src/lib/declutter/api.ts | idChecked: row.id_checked === true, pickups: pickupCount(row.pickup_count), | idChecked: row.id_checked === true, pickups: 0,
  * @mutate src/components/declutter/DeclutterShareCard.tsx |   void shareNative({ title: it.title, text: shareText(it), url: listingLink(it.id) }); |   void shareNative({ title: it.title, text: shareText(it), url: getPublicOrigin() });
  * @mutate src/components/ui/StickyActionBar.tsx | className="fixed inset-x-0 bottom-0 z-40 border-t | className="inset-x-0 bottom-0 z-40 border-t
  * @mutate src/components/ui/StickyActionBar.tsx |   useDockYield(active && phone); |   void phone;
@@ -30,7 +30,7 @@
  * DA-9 (Declutter audit 2026-10-30): back, share and heart stay pinned on the item page while it scrolls.
  * @mutate src/components/declutter/DeclutterItemView.tsx |       stickyHeader\n      // Owner 11-14 |       // Owner 11-14
  * @mutate src/components/AppPage.tsx | data-own-title-row={stickyHeader ? "" : undefined} | data-own-title-row={undefined}
- * @mutate src/components/AppPage.tsx | hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} /> | hidesTitle={hidesTitle} wrapTitle={wrapTitle} />
+ * @mutate src/components/AppPage.tsx | hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} desktopHidden={desktopHidesHeader} /> | hidesTitle={hidesTitle} wrapTitle={wrapTitle} desktopHidden={desktopHidesHeader} />
  * @mutate src/components/profile/ProfileTabHeader.tsx | "sticky-title-row sticky top-[calc(-1*var(--shell-gap))] z-40 -mx-3 px-3 -mb-[var(--section-gap)]" | "sticky-title-row -mx-3 px-3 -mb-[var(--section-gap)]"
  * @mutate src/components/PageHeader.tsx |             {stickyTitle && phoneHidesTitle && ( |             {false && (
  * @mutate src/components/profile/ProfileTabHeader.tsx |         phoneHidesTitle={phoneHidesTitle}\n |
@@ -87,7 +87,7 @@ const state = {
   trades: [] as unknown[],
 };
 const calls: [string, unknown[]][] = [];
-const GUEST_CARD: { display_name: string; avg_rating: number | null; review_count: number; id_checked: boolean; pickup_count?: number } = { display_name: "Dana R.", avg_rating: 4.5, review_count: 2, id_checked: true, pickup_count: 12 };
+const GUEST_CARD: { display_name: string; avg_rating: number | null; review_count: number; id_checked: boolean; pickup_count?: number; handle?: string | null; member_since?: string | null } = { display_name: "Dana R.", avg_rating: 4.5, review_count: 2, id_checked: true, pickup_count: 12 };
 const guestCard = { row: { ...GUEST_CARD } };
 // A PostgREST builder that records each call and resolves to state.tableRows.
 const builder: object = new Proxy({}, {
@@ -118,8 +118,8 @@ vi.mock("@/hooks/useUserLocation", () => ({
   deriveFallbackLocation: async () => null,
 }));
 vi.mock("@/components/AppPage", () => ({
-  default: ({ title, children, titleActions, phoneHidesTitle, hidesTitle, stickyHeader }: { title: string; children: React.ReactNode; titleActions?: React.ReactNode; phoneHidesTitle?: boolean; hidesTitle?: boolean; stickyHeader?: boolean }) => (
-    <main data-sticky-header={stickyHeader ? "" : undefined}>
+  default: ({ title, children, titleActions, phoneHidesTitle, hidesTitle, stickyHeader, desktopHidesHeader }: { title: string; children: React.ReactNode; titleActions?: React.ReactNode; phoneHidesTitle?: boolean; hidesTitle?: boolean; stickyHeader?: boolean; desktopHidesHeader?: boolean }) => (
+    <main data-sticky-header={stickyHeader ? "" : undefined} data-desktop-hides-header={desktopHidesHeader ? "" : undefined}>
       <h1 data-phone-hides-title={phoneHidesTitle ? "" : undefined} data-hides-title={hidesTitle ? "" : undefined}>{title}</h1>
       {titleActions}
       {children}
@@ -248,26 +248,36 @@ describe("the photo-first Declutter item page", () => {
   });
 
   // Owner 11-11 F229: a protection line under a paid price, naming porch pickup only where the listing offers it.
-  // @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && !isSeller && (\n              <p data-item-protected="" |  {false && (\n              <p data-item-protected=""
+  // Owner 11-20 #5: the words sit behind "Buyer protection" in the one meta row, opened by a tap.
+  // @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && !isSeller && (\n                <li data-item-protected=""> | {false && (\n                <li data-item-protected="">
+  // @mutate src/components/declutter/DeclutterItemView.tsx | onClick={() => setProtectionOpen((o) => !o)} | onClick={() => undefined}
   // @mutate src/components/declutter/DeclutterItemView.tsx | {it.porch_ok !== false ? t("ip.protectedPorch") : t("ip.protected")} | {t("ip.protectedPorch")}
   it("F229: a paid listing says what protects the buyer; porch only where it is offered; none on a free item", async () => {
     const { unmount } = open();
-    expect((await screen.findByText(/^Protected:/)).textContent).toBe("Protected: pay in the app, pick up from the porch, 24 hours to report a problem.");
+    const toggle = await screen.findByRole("button", { name: "Buyer protection" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle.closest("[data-item-meta]")).not.toBeNull();
+    expect(screen.queryByText(/^Protected:/)).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/^Protected:/).textContent).toBe("Protected: pay in the app, pick up from the porch, 24 hours to report a problem.");
     unmount();
     state.item = { ...ITEM, porch_ok: false };
     const second = open();
-    expect((await screen.findByText(/^Protected:/)).textContent).toBe("Protected: pay in the app, 24 hours to report a problem.");
+    fireEvent.click(await screen.findByRole("button", { name: "Buyer protection" }));
+    expect(screen.getByText(/^Protected:/).textContent).toBe("Protected: pay in the app, 24 hours to report a problem.");
     second.unmount();
     state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
     open();
-    await screen.findByText("Oak rocking chair", { selector: "h2" });
+    await screen.findByText("Oak Rocking Chair", { selector: "h2" });
     expect(screen.queryByText(/^Protected:/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Buyer protection" })).toBeNull();
   });
 
   it("three photos: one full-width track, a counter and dots that follow the swipe, and a tap opens the full-screen viewer", async () => {
     state.photos = [0, 1, 2].map((i) => ({ id: `p${i}`, item_id: ID, storage_path: `a/${i}.jpg`, position: i }));
     open();
-    const track = await screen.findByRole("group", { name: "Photos of Oak rocking chair" });
+    const track = await screen.findByRole("group", { name: "Photos of Oak Rocking Chair" });
     expect(within(track).getAllByRole("img")).toHaveLength(3);
     expect(screen.getByText("1/3")).toBeInTheDocument();
     expect(document.querySelectorAll("[data-gallery-dots] > button")).toHaveLength(3);
@@ -279,10 +289,11 @@ describe("the photo-first Declutter item page", () => {
     expect(document.querySelectorAll("[data-gallery-dots] > button")[1]).toHaveAttribute("data-dot-active");
     // F060 (UI audit 11-09): each dot is a button that shows its photo (the way back to photo 1 with a mouse).
     // @mutate src/components/declutter/DeclutterGallery.tsx |  onClick={() => go(i)} /> |  />
-    fireEvent.click(screen.getByRole("button", { name: "Show photo 1 of 3" }));
+    const dots = document.querySelector("[data-gallery-dots]") as HTMLElement;
+    fireEvent.click(within(dots).getByRole("button", { name: "Show photo 1 of 3" }));
     expect(screen.getByText("1/3")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Show photo 1 of 3" })).toHaveAttribute("aria-current", "true");
-    fireEvent.click(screen.getByRole("button", { name: "Show photo 2 of 3" }));
+    expect(within(dots).getByRole("button", { name: "Show photo 1 of 3" })).toHaveAttribute("aria-current", "true");
+    fireEvent.click(within(dots).getByRole("button", { name: "Show photo 2 of 3" }));
     fireEvent.click(screen.getByRole("button", { name: "Open photo 2 of 3 full screen" }));
     expect(await screen.findByRole("dialog", { name: "Photo viewer" })).toBeInTheDocument();
   });
@@ -303,7 +314,7 @@ describe("the photo-first Declutter item page", () => {
     await screen.findByRole("region", { name: "Price and condition" });
     expect(screen.getAllByText(/Lightly used/).length).toBe(1);
     const title = document.querySelector("[aria-label='Price and condition'] h2")!;
-    expect(title.textContent).toBe("Oak rocking chair");
+    expect(title.textContent).toBe("Oak Rocking Chair");
     expect(title.className.split(/\s+/)).not.toContain("lg:sr-only");
     expect(title.parentElement!.querySelector("[data-item-save-share]")).not.toBeNull();
     // The header's h1 is not painted at any width (the page paints the title once, here).
@@ -452,7 +463,7 @@ describe("the photo-first Declutter item page", () => {
 
   it("no photos: the category tint, never a blank box, and no dots", async () => {
     open();
-    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 });
     expect(document.querySelector("[data-gallery-empty] [data-photo-placeholder]")).not.toBeNull();
     expect(document.querySelector("[data-gallery-dots]")).toBeNull();
   });
@@ -469,10 +480,10 @@ describe("the photo-first Declutter item page", () => {
     expect(document.querySelector("[data-seller-tags]")).toBeNull();
   });
 
-  it("seller card: First L., stars and joined date; a seller with no reviews shows no stars and no 'No reviews yet'", async () => {
+  it("seller card: First L., stars and Member since (owner 11-20); a seller with no reviews shows no stars and no 'No reviews yet'", async () => {
     const { unmount } = open();
     expect(await screen.findByText("Dana R.")).toBeInTheDocument();
-    expect(screen.getByText("Joined March 2025")).toBeInTheDocument();
+    expect(screen.getByText("Member since Mar 2025")).toBeInTheDocument();
     expect(document.querySelector("[data-seller-rating]")?.textContent).toContain("12 reviews");
     expect(screen.getByRole("link", { name: /^See the seller,\s*Dana R\./ })).toHaveAttribute("href", "/user/u2?from=declutter");
     // F359d (owner 11-11): the completed pickup count, words and number only.
@@ -626,7 +637,7 @@ describe("the photo-first Declutter item page", () => {
     state.more = [{ ...ITEM, id: "x", seller_id: "u9", title: "Other thing" }];
     state.similar = [{ ...ITEM, id: "y", seller_id: "u9", title: "Similar thing" }];
     open();
-    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 });
     // Give the row reads time to land (they would within a tick) before saying they are absent.
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(screen.queryByRole("status", { name: "Loading more items" })).toBeNull();
@@ -644,8 +655,8 @@ describe("the photo-first Declutter item page", () => {
   });
   it("phone header: back + share + heart only (the h1 stays for screen readers), the full title under the price", async () => {
     open();
-    expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 1 })).toHaveAttribute("data-phone-hides-title");
-    expect(screen.getByRole("heading", { name: "Oak rocking chair", level: 2 })).toBeInTheDocument();
+    expect((await screen.findAllByRole("heading", { name: "Oak Rocking Chair", level: 1 }))[0]).toHaveAttribute("data-phone-hides-title");
+    expect(screen.getByRole("heading", { name: "Oak Rocking Chair", level: 2 })).toBeInTheDocument();
   });
 
   it("PageHeader / ProfileTabHeader: phoneHidesTitle hides the h1 below sm only; without it nothing changes", () => {
@@ -664,7 +675,7 @@ describe("the photo-first Declutter item page", () => {
 
   it("DA-9: the item page asks for a pinned title row, so back, share and heart stay on screen as it scrolls", async () => {
     open();
-    await screen.findByRole("heading", { name: "Oak rocking chair", level: 1 });
+    await screen.findAllByRole("heading", { name: "Oak Rocking Chair", level: 1 });
     expect(screen.getByRole("main")).toHaveAttribute("data-sticky-header");
   });
 
@@ -724,12 +735,12 @@ describe("the photo-first Declutter item page", () => {
     // Drops off: no line at all.
     state.drop = { sale_mode: "offers", last_price_drop_on: null, drop_pct: 0 };
     const offOpen = open();
-    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 });
     expect(document.querySelector("[data-price-drop]")).toBeNull();
     offOpen.unmount();
     state.drop = { sale_mode: "fixed", last_price_drop_on: null };
     open();
-    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 });
     expect(document.querySelector("[data-price-drop]")).toBeNull();
   });
 
@@ -861,7 +872,7 @@ describe("the photo-first Declutter item page", () => {
     counted.unmount();
     state.more = [{ ...ITEM, id: "a3", title: "Rug", status: "reserved" }];
     open();
-    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 });
     await screen.findByText("More from this seller");
     expect(document.querySelector("[data-bundle-line]")).toBeNull();
   });
@@ -913,7 +924,7 @@ describe("the photo-first Declutter item page", () => {
     guest.on = true;
     state.item = { ...ITEM, live_at: new Date(Date.now() - 60_000).toISOString() };
     const first = open();
-    expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 })).toBeInTheDocument();
     expect(document.querySelector("[data-item-price]")?.textContent).toContain("$40");
     const join = document.querySelector("[data-guest-join]") as HTMLElement;
     expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
@@ -955,7 +966,7 @@ describe("the photo-first Declutter item page", () => {
     // AUD31-68: a Buy-now-only listing (accepts_offers false) asks a guest to sign up to buy it, never to make an offer.
     state.item = { ...ITEM, live_at: new Date(Date.now() - 60_000).toISOString(), accepts_offers: false };
     const noOffers = open();
-    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 });
     const joinNoOffers = document.querySelector("[data-guest-join]") as HTMLElement;
     expect(within(joinNoOffers).getByRole("link", { name: "Buy now" })).toBeInTheDocument();
     expect(joinNoOffers.textContent).not.toMatch(/offer/i);
@@ -979,7 +990,7 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByText("No longer available.")).toBeInTheDocument();
     const row = await screen.findByRole("region", { name: "New on Declutter" });
     // L008: a card is named by its own text (title and price), not an aria-label.
-    expect(within(row).getAllByRole("link").map((a) => a.textContent)).toEqual([expect.stringMatching(/Desk lamp.*\$40/)]);
+    expect(within(row).getAllByRole("link").map((a) => a.textContent)).toEqual([expect.stringMatching(/Desk Lamp.*\$40/)]);
     // Not sold (withdrawn, removed, ...): nothing of the listing.
     expect(document.querySelector("[data-sold-item]")).toBeNull();
   });
@@ -1052,11 +1063,137 @@ describe("the photo-first Declutter item page", () => {
       rpcSpy.mockClear();
       state.item = { ...ITEM };
       open();
-      await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+      await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 });
       expect(screen.queryByText("You bought this.")).toBeNull();
       await waitFor(() => expect(rpcSpy.mock.calls.map((c) => c[0])).toContain("declutter_item_pickup_windows"));
     } finally {
       (supabase as { rpc: unknown }).rpc = realRpc;
     }
+  });
+  // Owner 11-20 (Declutter item page polish, items 1, 2, 3, 6, 7; #4, the price, was not approved and is untouched).
+  describe("owner 11-20 item page polish", () => {
+    // #1: from lg the lone back row is gone; a breadcrumb sits above the title, each part a link; a phone keeps back.
+    // @mutate src/components/declutter/DeclutterItemView.tsx |       desktopHidesHeader\n |
+    // @mutate src/components/profile/ProfileTabHeader.tsx | ${desktopHidden ? " lg:hidden" : ""} | ${desktopHidden ? "" : ""}
+    // @mutate src/components/declutter/DeclutterItemView.tsx | <Link to={`/declutter?cat=${encodeURIComponent(it.category)}`} data-item-breadcrumb-category="" | <Link to="/declutter" data-item-breadcrumb-category=""
+    it("#1: a '← Declutter · Furniture' breadcrumb from lg, the page's own h1 there, and no desktop back row", async () => {
+      open();
+      const nav = await screen.findByRole("navigation", { name: "Where this item is in Declutter" });
+      expect(nav.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "lg:flex"]));
+      expect(within(nav).getByRole("link", { name: "Declutter" })).toHaveAttribute("href", "/declutter");
+      expect(within(nav).getByRole("link", { name: "Furniture" })).toHaveAttribute("href", "/declutter?cat=furniture");
+      expect(nav.querySelector("svg")).not.toBeNull();
+      // The breadcrumb leads the title block, above the title.
+      const title = document.querySelector("[data-item-title]")!;
+      expect(nav.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // The desktop h1 is for screen readers, and only from lg (the header's h1 serves a phone).
+      const h1 = document.querySelector("[data-item-desktop-h1]")!;
+      expect(h1.tagName).toBe("H1");
+      expect(h1.textContent).toBe("Oak Rocking Chair");
+      expect(h1.className.split(/\s+/)).toEqual(expect.arrayContaining(["sr-only", "max-lg:hidden"]));
+      expect(screen.getByRole("main")).toHaveAttribute("data-desktop-hides-header");
+      cleanup();
+      // The real header row: hidden from lg only when asked; the phone keeps its pinned back arrow.
+      const asked = render(<MemoryRouter><ProfileTabHeader title="Item" backTo="/declutter" sticky desktopHidden /></MemoryRouter>);
+      const row = asked.container.firstElementChild!;
+      expect(row.className.split(/\s+/)).toContain("lg:hidden");
+      expect(row.className.split(/\s+/)).toContain("sticky");
+      expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
+      asked.unmount();
+      const plain = render(<MemoryRouter><ProfileTabHeader title="Item" backTo="/declutter" /></MemoryRouter>);
+      expect(plain.container.firstElementChild!.className.split(/\s+/)).not.toContain("lg:hidden");
+    });
+
+    // #2: the gallery column is the sticky one on a computer; the details column scrolls.
+    // @mutate src/components/declutter/DeclutterItemView.tsx | <div className="lg:sticky lg:top-4 lg:self-start [[data-guest-public-frame]_&]:lg:top-[84px]" data-item-gallery-column=""> | <div data-item-gallery-column="">
+    it("#2: the gallery column is sticky from lg and the details column is not", async () => {
+      open();
+      await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 });
+      const gallery = document.querySelector("[data-item-gallery-column]")!;
+      expect(gallery.className.split(/\s+/)).toEqual(expect.arrayContaining(["lg:sticky", "lg:self-start"]));
+      expect(gallery.querySelector("[data-item-photo-bleed]")).not.toBeNull();
+      expect(document.querySelector("[data-item-column]")!.className).not.toMatch(/sticky/);
+    });
+
+    // #2: thumbnails under the photo from lg (each a small square crop), tapping one shows its photo; dots below lg.
+    // @mutate src/components/declutter/DeclutterGallery.tsx |             <PhotoThumbButton key={url} current={i === at} aria-label={`Show photo ${i + 1} of ${urls.length}`} onClick={() => go(i)}> |             <PhotoThumbButton key={url} current={i === at} aria-label={`Show photo ${i + 1} of ${urls.length}`}>
+    // @mutate src/components/declutter/DeclutterGallery.tsx | <div className={`flex justify-center ${item ? "lg:hidden" : ""}`} data-gallery-dots=""> | <div className="flex justify-center" data-gallery-dots="">
+    it("#2: a row of thumbnails from lg replaces the dots; tapping one switches the photo", async () => {
+      state.photos = [0, 1, 2].map((i) => ({ id: `p${i}`, item_id: ID, storage_path: `a/${i}.jpg`, position: i }));
+      open();
+      await screen.findByRole("group", { name: "Photos of Oak Rocking Chair" });
+      const thumbs = document.querySelector("[data-gallery-thumbs]") as HTMLElement;
+      expect(thumbs.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "lg:flex"]));
+      expect(document.querySelector("[data-gallery-dots]")!.className.split(/\s+/)).toContain("lg:hidden");
+      const buttons = within(thumbs).getAllByRole("button");
+      expect(buttons).toHaveLength(3);
+      const img = buttons[1].querySelector("img")!;
+      expect(img.getAttribute("src")).toContain("/render/image/public/job-photos/a/1.jpg?width=160&height=160&resize=cover");
+      expect(img).toHaveAttribute("loading", "lazy");
+      expect(buttons[0]).toHaveAttribute("aria-current", "true");
+      fireEvent.click(buttons[2]);
+      expect(screen.getByText("3/3")).toBeInTheDocument();
+      expect(buttons[2]).toHaveAttribute("aria-current", "true");
+      expect(buttons[0]).not.toHaveAttribute("aria-current");
+    });
+
+    // #3: a photo whose shape is not the 4:3 frame (a tall one) sits on its own blurred, darkened copy, not grey bars.
+    // @mutate src/components/declutter/DeclutterGallery.tsx |     const off = w > 0 && h > 0 && Math.abs(w / h - FRAME_RATIO) / FRAME_RATIO > 0.03; |     const off = false;
+    // @mutate src/components/declutter/DeclutterGallery.tsx |                 onLoad={measure(url)}\n |
+    it("#3: a portrait photo gets the blurred backdrop from sm (shown whole); a 4:3 photo gets none", async () => {
+      state.photos = [0, 1].map((i) => ({ id: `p${i}`, item_id: ID, storage_path: `a/${i}.jpg`, position: i }));
+      open();
+      const track = await screen.findByRole("group", { name: "Photos of Oak Rocking Chair" });
+      const [tall, wide] = within(track).getAllByRole("img") as HTMLImageElement[];
+      Object.defineProperty(tall, "naturalWidth", { configurable: true, value: 600 });
+      Object.defineProperty(tall, "naturalHeight", { configurable: true, value: 900 });
+      Object.defineProperty(wide, "naturalWidth", { configurable: true, value: 800 });
+      Object.defineProperty(wide, "naturalHeight", { configurable: true, value: 600 });
+      fireEvent.load(tall);
+      fireEvent.load(wide);
+      const slides = track.querySelectorAll(":scope > button");
+      expect(slides[0]).toHaveAttribute("data-photo-backdrop");
+      const backdrop = slides[0].querySelector("[data-gallery-backdrop]") as HTMLElement;
+      expect(backdrop).toHaveAttribute("aria-hidden");
+      expect(backdrop.style.backgroundImage).toContain("unit-test.invalid");
+      expect(backdrop.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "sm:block", "blur-2xl", "bg-cover"]));
+      // The photo itself is still shown whole from sm, over the backdrop.
+      expect(tall.className.split(/\s+/)).toEqual(expect.arrayContaining(["sm:object-contain", "relative", "sm:bg-transparent"]));
+      expect(slides[1]).not.toHaveAttribute("data-photo-backdrop");
+      expect(slides[1].querySelector("[data-gallery-backdrop]")).toBeNull();
+    });
+
+    // #6: the signed-out card opens the seller's public page when they have one, and says Member since.
+    // @mutate src/components/declutter/DeclutterGuest.tsx |   if (!c.handle) return <div data-guest-seller="" className={box}>{body}</div>; |   return <div data-guest-seller="" className={box}>{body}</div>;
+    // @mutate src/components/declutter/DeclutterGuest.tsx |   const since = c.handle ? memberSinceLabel(c.memberSince) : null; |   const since = null;
+    // @mutate src/lib/declutter/api.ts |     handle: typeof row.handle === "string" && row.handle.trim() !== "" ? row.handle.trim() : null, |     handle: null,
+    it("#6: a guest's seller card links to /u/<handle> and says Member since when the seller has a public page", async () => {
+      guest.on = true;
+      guestCard.row = { ...GUEST_CARD, handle: "dana-r", member_since: "2025-03-10T12:00:00Z" } as typeof guestCard.row;
+      open();
+      const seller = await screen.findByText("Dana R.");
+      const card = seller.closest("[data-guest-seller]") as HTMLElement;
+      expect(card.tagName).toBe("A");
+      expect(card).toHaveAttribute("href", "/u/dana-r");
+      expect(card.querySelector("[data-guest-seller-since]")?.textContent).toBe("Member since Mar 2025");
+      expect(card.querySelector("[data-guest-seller-rating]")?.textContent).toBe("4.5 stars from · 2 reviews");
+      // Still no photo and no member card for a guest.
+      expect(card.querySelectorAll("img")).toHaveLength(0);
+      expect(document.querySelector("[data-seller-card]")).toBeNull();
+    });
+
+    // #7: the title shows in smart title case; the stored title (share text) is the seller's own.
+    // @mutate src/components/declutter/DeclutterItemView.tsx |   const shownTitle = displayTitle(it.title); |   const shownTitle = it.title;
+    it("#7: 'Vintage duck touch Lamp' shows as 'Vintage Duck Touch Lamp'; brand casing and the shared title stay", async () => {
+      state.item = { ...ITEM, title: "Vintage duck touch Lamp" };
+      open();
+      expect(await screen.findByRole("heading", { name: "Vintage Duck Touch Lamp", level: 2 })).toBeInTheDocument();
+      cleanup();
+      state.item = { ...ITEM, title: "iPhone dock from OK Lighting" };
+      open();
+      expect(await screen.findByRole("heading", { name: "iPhone Dock from OK Lighting", level: 2 })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Share this item" }));
+      await waitFor(() => expect(shared.at(-1)).toMatchObject({ title: "iPhone dock from OK Lighting" }));
+    });
   });
 });

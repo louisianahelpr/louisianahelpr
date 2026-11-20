@@ -22,12 +22,14 @@ import { describe, expect, it } from "vitest";
 import {
   BEAUTY_GUIDE_MAX, OWNER_MERCH, PUPPY_ITEM, beautyGuide, beautyItem, belongsWhy, brandFromName, brandKey, utilityCare,
 } from "../../scripts/giftGuideRules.mjs";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; href: string };
 const DIR = "src/content/giftGuidePicks";
 // The owner's own picks (ownerPick, _owner-picks.json) are exempt from every rule (owner 11-19).
-const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? (JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks as (Pick & { ownerPick?: true })[]).filter((p) => !p.ownerPick) : []);
-const slugs = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
+// Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
+const pageOf = (slug: string): Pick[] => sectionPageOf<Pick & { ownerPick?: true }>(slug).filter((p) => !p.ownerPick);
+const slugs = Object.keys(sectionChunks());
 const guides = slugs.filter((s) => !s.startsWith("store-") && s !== "25-days-sponsors");
 const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 /** Guides the brand cap skips (the Louisiana guides, Gift Cards, Subscriptions), as scripts/gift-guide-picks.mjs `capped`. */

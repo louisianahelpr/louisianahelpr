@@ -15,11 +15,13 @@ import { describe, expect, it } from "vitest";
 import { readdirSync } from "./helpers/trackedFiles";
 import { DUP_GUIDE_MAX, NON_GIFT_SERVICE, PRICE_MAX, nonGiftService } from "../../scripts/giftGuideRules.mjs";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; href: string; affiliate_href?: string; image?: string; price?: number; ownerPick?: true; retailer?: string; store?: string };
 const DIR = "src/content/giftGuidePicks";
-const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
-const slugs = readdirSync(DIR).filter((f: string) => f.endsWith(".json")).map((f: string) => f.replace(/\.json$/, "")).filter((s: string) => s !== "25-days-sponsors");
+// Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
+const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
+const slugs = Object.keys(sectionChunks()).filter((s: string) => s !== "25-days-sponsors");
 const guides = slugs.filter((s: string) => !s.startsWith("store-"));
 
 describe("gift guides: ready pass 1119c", () => {
@@ -51,7 +53,7 @@ describe("gift guides: ready pass 1119c", () => {
   it("no JD Sports listing on a guide; Community Coffee is off Louisiana Made", () => {
     const jd = guides.flatMap((s: string) => pageOf(s).filter((p) => /\bjd ?sports\b|jdsports\./i.test(`${p.retailer ?? ""} ${p.store ?? ""} ${p.href} ${p.affiliate_href ?? ""} ${p.image ?? ""}`)).map((p) => `${s}: ${p.name}`));
     expect(jd).toEqual([]);
-    expect(pageOf("louisiana-made").length).toBeGreaterThan(5);
+    expect(pageOf("louisiana-made").length).toBeGreaterThan(3); // 1120: a section of Shop Small Louisiana
     expect(pageOf("louisiana-made").filter((p) => /community coffee/i.test(`${p.name} ${p.brand ?? ""}`)).map((p) => p.name)).toEqual([]);
   });
 });

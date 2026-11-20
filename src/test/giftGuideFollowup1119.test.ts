@@ -16,11 +16,13 @@ import { describe, expect, it } from "vitest";
 import { readdirSync } from "./helpers/trackedFiles";
 import { BABY_OK, BABY_ITEM, MEN_COLOR_GUIDES, MEN_PASTEL, OLD_ELECTRONICS, OWNER_REMOVED } from "../../scripts/giftGuideRules.mjs";
 import { GUIDE_MIN_PICKS, guideBySlug } from "@/content/giftGuideCatalog";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; ownerPick?: true; retailer?: string; store?: string };
 const DIR = "src/content/giftGuidePicks";
-const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
-const slugs = readdirSync(DIR).filter((f: string) => f.endsWith(".json")).map((f: string) => f.replace(/\.json$/, ""));
+// Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
+const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
+const slugs = Object.keys(sectionChunks());
 const guides = slugs.filter((s: string) => !s.startsWith("store-"));
 
 describe("gift guides: owner follow-ups 11-19", () => {

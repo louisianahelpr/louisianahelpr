@@ -24,15 +24,15 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
-import { SEARCH_KEYWORDS, searchGuides } from "@/content/giftGuideCatalog";
+import { SEARCH_KEYWORDS, searchGuides, sectionWords } from "@/content/giftGuideCatalog";
 import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
 import { LOUISIANA_SHOPS, SPONSOR_SITES } from "@/content/giftGuides";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; sponsor?: true };
-const CHUNKS: Record<string, Pick[]> = Object.fromEntries(
-  readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => [f.replace(/\.json$/, ""), (JSON.parse(readFileSync(join(DIR, f), "utf8")) as { picks: Pick[] }).picks]),
-);
+// Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
+const CHUNKS: Record<string, Pick[]> = sectionChunks<Pick>();
 const VIEW = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/GiftGuideView.tsx"), "utf8");
 /** Louisiana shops and 25 Days sponsors (no store page, not a ShopMy collection) keep their own words, on purpose. */
 const local = (p: Pick) => !p.store && !p.href.startsWith("https://shopmy.us/");
@@ -147,19 +147,21 @@ describe("design audit r2: sales and search", () => {
   it("#11 'lsu', 'saints', 'boots' and 'nurse' find their guides; a title match ranks first", () => {
     const slugs = (q: string) => searchGuides(q).map((g) => g.slug);
     expect(Object.keys(SEARCH_KEYWORDS).length).toBeGreaterThan(5);
-    expect(slugs("lsu")).toContain("purple-and-gold-lover");
+    // 1120: Purple & Gold Lover is a section of Game Day; its LSU words find Game Day.
+    expect(slugs("lsu")).toContain("game-day");
     expect(slugs("saints")).toContain("game-day");
-    expect(slugs("boots")).toContain("store-muck-boot");
+    // 1120: the Muck Boot store page folded into the guides; Tractor Supply carries the boots now.
+    expect(slugs("boots")).toContain("store-tractor-supply");
     // One guide per product (owner 11-19): a nurse guide under 6 picks is hidden; whatever nurse guide shows matches.
     expect(slugs("nurse").every((s) => /nurs|healthcare|cnas|rns|lpns/.test(s))).toBe(true);
     expect(slugs("mom")[0]).toBe("mom");
     // Every guide titled with the word comes before any guide that only matches through its lead or row.
     const inTitle = searchGuides("mom").map((g) => /mom/i.test(g.title));
-    expect(inTitle.filter(Boolean).length).toBeGreaterThan(1);
+    expect(inTitle.filter(Boolean).length).toBeGreaterThan(0); // 1120: Mom-to-Be and New Mom are sections now
     expect(inTitle.lastIndexOf(true)).toBeLessThan(inTitle.indexOf(false) === -1 ? Infinity : inTitle.indexOf(false));
     // Holistic review 11-18 H5: "gift for mom" listed Mom plus 18 Life moments guides; a group's name now matches only
     // as a whole word, so no guide is found through "moments".
-    expect(searchGuides("gift for mom").filter((g) => g.row === "life-moments" && !/mom/i.test(g.title))).toEqual([]);
+    expect(searchGuides("gift for mom").filter((g) => g.row === "life-moments" && !/mom/i.test(`${g.title} ${sectionWords(g.slug)}`))).toEqual([]); // 1120: a section title counts
   });
 });
 
@@ -178,7 +180,7 @@ describe("gift guides: featured order and Our Top 10 (owner 11-18 PM: \"This can
       expect(picks.slice(0, 12).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(1);
       expect(picks.slice(0, 25).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(2);
     }
-    expect(guides).toBeGreaterThan(150);
+    expect(guides).toBeGreaterThan(150); // 1120: counted per section (helpers/giftGuideSections.ts)
   });
 });
 
@@ -203,7 +205,8 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
       const twice = keys.filter((k, i) => keys.indexOf(k) !== i);
       expect(twice, `${slug}: repeated product`).toEqual([]);
     }
-    expect(pages).toBeGreaterThan(300);
+    // Big batch 1120: ~65 guides with their sections and 30 store pages (~280 lists).
+    expect(pages).toBeGreaterThan(250);
     // Variants are one product; the Thin Blue and Thin Red Line flags are two.
     expect(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 15pc.")).toBe(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 30pc."));
     expect(key("Thin Blue Line US Flag, 3x5")).not.toBe(key("Thin Red Line US Flag, 3x5"));
@@ -219,16 +222,16 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
   });
 });
 describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
-  const pageOf = (slug: string): { name: string; image?: string; href: string }[] =>
-    JSON.parse(readFileSync(join(process.cwd(), `src/content/giftGuidePicks/${slug}.json`), "utf8")).picks;
-  const pages = readdirSync(join(process.cwd(), "src/content/giftGuidePicks")).filter((f) => f.endsWith(".json"));
+  // Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
+  const pageOf = (slug: string): { name: string; image?: string; href: string }[] => sectionPageOf(slug);
+  const pages = Object.keys(sectionChunks()).map((s) => `${s}.json`);
   it("drops the audited wrong thumbnails and any logo/banner/icon image", () => {
     // @mutate scripts/giftGuideRules.mjs |   \|\| (LOGO_IMAGE.test(u.split("?")[0]) && !LOGO_PRODUCT.test(u)) \|\| WRONG_IMAGES.has(u.split("?")[0]); |   ;
     expect(WRONG_IMAGES.size).toBeGreaterThan(20);
     expect(brokenImage("https://res.cloudinary.com/mavely/image/upload/v1/Sonos_logo_c655260285.jpg")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/1033/0751/files/LinkSharing-SEO-Thumbnail_1.jpg?v=1")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/0001/files/carhartt-iconic-beanie.jpg")).toBe(false);
-    expect(pages.length).toBeGreaterThan(300);
+    expect(pages.length).toBeGreaterThan(250);
     for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) if (p.image) expect(brokenImage(p.image), `${f}: ${p.name}`).toBe(false);
   });
   it("drops picks named after a web page, and the wrong-guide picks (curling iron in Him, dumbbell stand in Home Cook)", () => {
@@ -320,7 +323,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
         expect(isLouisianaItem(p, hosts), `${slug}: ${p.name} (${p.brand})`).toBe(false);
       }
     }
-    expect(checked).toBeGreaterThan(3000); // one guide per product (owner 11-19)
+    expect(checked).toBeGreaterThan(2400); // 1120: 30 store pages (was ~490)
   });
   it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]

@@ -36,7 +36,7 @@ describe("gift guide share preview (api/share.ts)", () => {
     // landing.jpg is the landing's own 1200x630 card (holistic review 11-18 M7), no guide's: checked below.
     const og = inDir("public/gift-guides/og", ".jpg").filter((s) => s !== "landing");
     const covers = inDir("public/gift-guides/covers", ".webp");
-    expect(og.length).toBeGreaterThan(300);
+    expect(og.length).toBeGreaterThan(80); // 1120: ~65 guides + 30 store pages
     expect([...OG_JPG_SLUGS].sort(), "add or remove the slug in src/lib/giftGuideShareImages.mjs").toEqual(og);
     expect([...COVER_WEBP_SLUGS].sort(), "add or remove the slug in src/lib/giftGuideShareImages.mjs").toEqual(covers);
   });

@@ -15,13 +15,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { E_GIFT, FILLER_OK, INSULATED, LA_LINE, NOWHERE, TUMBLER_MAX, belongsWhy, fillerGuide, neutralLine, tumblerGuide, wrapItem } from "../../scripts/giftGuideRules.mjs";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; line?: string; href: string; price?: number; image?: string };
 const DIR = "src/content/giftGuidePicks";
-const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
+// Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
+const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
 const indexSrc = readFileSync("src/content/giftGuideIndex.ts", "utf8");
 const groupOf = new Map([...indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)].map((m) => [m[2], m[1]]));
-const slugs = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
+const slugs = Object.keys(sectionChunks());
 const guides = slugs.filter((s) => !s.startsWith("store-") && s !== "25-days-sponsors");
 
 describe("gift guides: items that belong (owner 11-19)", () => {

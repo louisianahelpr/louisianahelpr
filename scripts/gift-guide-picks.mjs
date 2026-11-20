@@ -3063,6 +3063,8 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       const e = addRow(r, href, guidesOf(r), r._source, `big1120 ${r._file}`);
       if (!e) continue;
       if (r._forced) {
+        // Her own swap (owner 11-19 PM): an owner pick, exempt from the page rules like her other picks.
+        e.p = { ...e.p, ownerPick: true };
         e.forced = new Set(e.guides);
         for (const s of e.guides) swapKeep.add(`${s}|${href}`);
       }
@@ -3303,13 +3305,21 @@ export const weeklyTop = (() => {
   const keep = topPicks.filter((p) => /\bCREAMi\b/i.test(p.name)).slice(0, 1);
   const out = [...keep];
   const brands = new Set(keep.map((p) => compact(p.brand ?? "")));
+  // A card's name: brand first, no trailing spec after a comma, at most 40 letters (else the next pick); no work gear
+  // (the owner's 11-19 Top 10: holiday best-sellers, no career items).
+  const cardName = (p) => {
+    const base = p.name.split(",")[0].trim();
+    return p.brand && !base.toLowerCase().startsWith(String(p.brand).toLowerCase()) && !/^(amazon|walmart|target|shopmy)/i.test(p.brand) ? `${p.brand} ${base}` : base;
+  };
+  const CAREER = /\b(nurs\w*|scrubs?|compression|dansko|bombas|clogs?|stethoscope|badge reel|teacher|shift)\b/i;
   for (const p of [...cands].sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name))) {
     if (out.length >= 10) break;
     const b = compact(p.brand ?? "");
-    if ((b && brands.has(b)) || out.some((x) => x.href === p.href)) continue;
+    const name = cardName(p);
+    if ((b && brands.has(b)) || out.some((x) => x.href === p.href) || name.length > 40 || CAREER.test(`${name} ${p.line ?? ""}`)) continue;
     brands.add(b);
     const { section: _s, sectionId: _i, ...rest } = p;
-    out.push(rest);
+    out.push({ ...rest, name });
   }
   return out;
 })();

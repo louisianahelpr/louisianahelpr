@@ -69,7 +69,7 @@ describe("gift-guide prices: the import keeps only checked, fresh, non-Amazon pr
 describe("gift-guide prices: the generated chunks", () => {
   it("no Amazon pick in any chunk (or the Top 10) carries a price; every price has a check day", () => {
     const all = Object.entries(CHUNKS).flatMap(([slug, picks]) => picks.map((p) => ({ slug, p })));
-    expect(Object.keys(CHUNKS).length).toBeGreaterThan(100);
+    expect(Object.keys(CHUNKS).length).toBeGreaterThan(90); // 1120: ~65 guides + 30 store pages
     expect(all.length).toBeGreaterThan(1000);
     for (const { slug, p } of [...all, ...TOP_PICKS.map((p) => ({ slug: "top", p }))]) {
       if (p.price === undefined) continue;

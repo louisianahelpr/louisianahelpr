@@ -17,7 +17,6 @@
  * @mutate scripts/giftGuideBlocklist.mjs |   "Ying Mart", "YingMart", "Brooklyn Delhi", | "YingMart",
  */
 import { readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { fireEvent, render } from "@testing-library/react";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
@@ -30,12 +29,13 @@ import {
   namesModelYear, outdoorDecorOff, personalGiftOff, siblingOverlap, sperryOff, drugstoreOff, characterCollab, resaleOrUkShop, kidsCrocsOff, masonOff, redoneOff, lashOff, veraBradleyOff, hikingOff, cheapSockOff, barwareOff, fashionSneakerOff, LASH, legoOff, farmRioOff, isFoodSub, foodSubOff, iceCreamOff, crockPotOff, DIGITAL_FRAME, PHOTO_PRODUCT, JIGSAW, groceryCandyOff,
 } from "../../scripts/giftGuideRules.mjs";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 for (const g of GUIDE_INDEX) GUIDE_GROUPS.set(g.slug, g.group);
 type Pick = { name: string; brand?: string; href: string; image?: string; price?: number; store?: string; ownerPick?: true };
-const DIR = "src/content/giftGuidePicks";
-const chunk = (slug: string): Pick[] => JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks;
-const slugs = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
+// Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
+const chunk = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
+const slugs = Object.keys(sectionChunks());
 const guides = slugs.filter((s) => !s.startsWith("store-") && s !== "25-days-sponsors");
 // The owner's own picks (ownerPick) are exempt from every rule (owner 11-19).
 const offenders = (rule: (slug: string, p: Pick) => boolean) =>
@@ -86,10 +86,10 @@ describe("gift guides 11-19: every Shop button sits on the same line in a row", 
 
 describe("gift guides 11-19: the Top 10 is ten real holiday best-sellers", () => {
   it("lists the owner's best-sellers, short brand-first names, photos, one per brand, no career items", () => {
-    expect(TOP_PICKS.map((p) => p.name)).toEqual([
-      "Stanley Quencher H2.0 FlowState, 30 oz", "Owala FreeSip Water Bottle, 24 oz", "Apple AirPods 4", "LANEIGE Lip Sleeping Mask",
-      "Ninja CREAMi Ice Cream Maker", "UGG Disquette Slippers", "Theragun Mini", "Ember Mug 2, 14 oz", "YETI Rambler 20 oz Tumbler", "lululemon Everywhere Belt Bag",
-    ]);
+    // Big batch 1120 (owner-approved "Top 10 This Week"): ranked by go-link clicks, then commission x popularity
+    // (scripts/gift-guide-picks.mjs weeklyTop); the owner's keep, the Ninja CREAMi, stays in it.
+    expect(TOP_PICKS.length).toBe(10);
+    expect(TOP_PICKS.map((p) => p.name)).toContain("Ninja CREAMi Ice Cream Maker");
     for (const p of TOP_PICKS) {
       expect(p.image, p.name).toMatch(/^https:\/\//);
       expect(p.name.length, p.name).toBeLessThanOrEqual(40);

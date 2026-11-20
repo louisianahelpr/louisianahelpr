@@ -61,7 +61,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
   });
 
   it("no page shows a banned, non-US or homepage-only link (picks, deals, deal items)", () => {
-    expect(slugs.length).toBeGreaterThan(400);
+    expect(slugs.length).toBeGreaterThan(90); // 1120: ~65 guides + 30 store pages
     let picks = 0;
     let deals = 0;
     for (const slug of slugs) {
@@ -80,7 +80,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
       }
     }
     expect(picks).toBeGreaterThan(3000); // one guide per product (owner 11-19): the guides are smaller
-    expect(deals).toBeGreaterThan(100);
+    expect(deals).toBeGreaterThan(50); // 1120: the deal sections of the 30 kept store pages
   });
 
   it("the Selfridges store page is gone with its cover and share image (every pin opened the UK site)", () => {

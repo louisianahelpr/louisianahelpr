@@ -7,7 +7,7 @@
  * Every pick carries a `store`, read from its link's host (storeOf), and each "Shop by store" guide is every pick on
  * that store. Guard: src/test/giftGuidesPage.test.tsx.
  */
-import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
+import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, NATIONAL_SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
@@ -39,7 +39,7 @@ const FIXED_STORES: Record<FixedStore, { name: string; hosts: readonly string[] 
   // The Louisiana shops' own sites (each pick names its brand, so "On <brand>" is shown, not this name).
   louisiana: { name: "a Louisiana shop", hosts: LOUISIANA_SHOPS },
   // The 25 Days sponsors' own sites (each pick names its brand, shown as "On <brand>").
-  sponsor: { name: "a 25 Days sponsor", hosts: SPONSOR_SITES },
+  sponsor: { name: "a 25 Days sponsor", hosts: [...SPONSOR_SITES, ...NATIONAL_SPONSOR_SITES] },
 };
 
 /** Every store: the fixed ones, then each researched store page (its name and the hosts its picks' links use). */

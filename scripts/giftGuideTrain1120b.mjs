@@ -14,6 +14,9 @@
  * Guard: src/test/giftGuideTrain1120b.test.ts.
  */
 
+/** The fewest picks a kept store page shows (owner 11-20 ~1:35 AM: "10-15 of that store's best-paying, most popular items"). */
+export const STORE_MIN = 10;
+
 /** Letters and digits only, lower case ("Café Du Monde" -> "cafedumonde"). */
 export const fold = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 
@@ -26,18 +29,24 @@ export const matches = (p, rule) => {
 };
 const inSection = (p, rule) => !rule.section || fold(p.section).includes(fold(rule.section));
 
+/** A rate for the sort: a known rate, else below every known one (the guides list "by commission, unknown last"). */
+const rateOf = (p) => (typeof p.commission === "number" ? p.commission : -1);
+
 /**
- * Inserts `pick` at the end of its section on `list` (after the section's last pick), or at the end of the page.
- * A guide whose picks carry no section takes it as is.
+ * Places `pick` in its section on `list` (a page without sections: the whole page) at its commission's place, so the
+ * guide still reads best-paying first and a sponsor (0%) lands at the section's end. It takes the section's title, id
+ * and old-guide origin (`from`) from the section it joins.
  */
-export function placeInSection(list, pick, sectionTitle) {
-  if (!sectionTitle) return [...list, pick];
-  const want = fold(sectionTitle);
-  const at = list.reduce((last, p, i) => (fold(p.section).includes(want) ? i : last), -1);
-  if (at < 0) return [...list, pick];
-  const host = list[at];
-  const placed = { ...pick, section: host.section, ...(host.sectionId ? { sectionId: host.sectionId } : {}) };
-  return [...list.slice(0, at + 1), placed, ...list.slice(at + 1)];
+export function placeInSection(list, pick, sectionTitle, keepFrom = false) {
+  const want = sectionTitle ? fold(sectionTitle) : null;
+  const idx = list.map((p, i) => ({ p, i })).filter(({ p }) => (want ? fold(p.section).includes(want) : true)).map(({ i }) => i);
+  if (!idx.length) return [...list, pick];
+  const host = list[idx[idx.length - 1]];
+  const { from: _f, section: _s, sectionId: _id, ...bare } = pick;
+  const placed = { ...bare, ...(host.section ? { section: host.section } : {}), ...(host.sectionId ? { sectionId: host.sectionId } : {}), ...(keepFrom && pick.from ? { from: pick.from } : host.from ? { from: host.from } : {}) };
+  const before = idx.find((i) => rateOf(list[i]) < rateOf(placed));
+  const at = before ?? idx[idx.length - 1] + 1;
+  return [...list.slice(0, at), placed, ...list.slice(at)];
 }
 
 /** A sponsor brand's picks: its brand field, or a name that starts with the brand (first word of a "Brand (Maker)" name). */
@@ -67,11 +76,14 @@ export function applyTrain1120b(pageList, deals, spec, ctx) {
     if (i < 0) { say("move", r); continue; }
     const p = { ...from[i], ...(r.set ?? {}) };
     pageList[r.guide] = from.filter((_, j) => j !== i);
-    const to = page(r.to);
-    // A move into a page without sections drops the old section fields; into a section, placeInSection sets them.
-    const { section: _s, sectionId: _id, ...bare } = p;
-    pageList[r.to] = placeInSection(to, r.section ? bare : (to.some((x) => x.section) ? p : bare), r.section);
+    pageList[r.to] = placeInSection(page(r.to), p, r.section);
     counts.move += 1;
+  }
+  for (const r of spec.sets ?? []) {
+    const list = page(r.guide);
+    const i = list.findIndex((p) => matches(p, r));
+    if (i < 0) { say("set", r); continue; }
+    list[i] = { ...list[i], ...r.set };
   }
   for (const r of spec.cuts ?? []) {
     const list = page(r.guide);
@@ -167,8 +179,46 @@ export function applyTrain1120b(pageList, deals, spec, ctx) {
       base = rest;
     } else base = { ...s.row, brand: s.brand.replace(/\s*\(.*\)\s*$/, "").replace(/\s*\/.*$/, "") };
     const pick = { ...base, ...(s.set ?? {}), brand: base.brand ?? s.brand, line: s.line || base.line || "", sponsor: true, commission: 0 };
-    pageList[s.guide] = placeInSection(page(s.guide), pick, s.section);
+    // A sponsor may name the old guide its section row reads as (`set.from`: Boston Mints on Siblings is a sister gift).
+    pageList[s.guide] = placeInSection(page(s.guide), pick, s.section, Boolean(s.set?.from));
     counts.sponsorsPlaced += 1;
+  }
+
+  // Every guide's sections read best-paying first again (a restored rate or a placed row can sit out of order); a stable
+  // sort, so picks of one rate keep their order, and an unknown rate stays last.
+  for (const slug of Object.keys(pageList)) {
+    if (!isPeopleGuide(slug)) continue;
+    const order = [];
+    for (const p of pageList[slug]) if (!order.includes(p.section ?? "")) order.push(p.section ?? "");
+    pageList[slug] = order.flatMap((sec) => pageList[slug].filter((p) => (p.section ?? "") === sec).map((p, i) => ({ p, i })).sort((a, b) => rateOf(b.p) - rateOf(a.p) || a.i - b.i).map((x) => x.p));
+  }
+
+  // Store pages hold 10-15 picks (owner 11-20 ~1:35 AM): a page the cuts left short takes that store's own picks from
+  // the guides (store pages may repeat guide items, 11-19 final rule), best-paying first, photo'd only.
+  counts.storeFill = 0;
+  counts.storeShort = [];
+  for (const slug of ctx.storePages ?? []) {
+    const list = page(slug);
+    if (!list.length || list.length >= STORE_MIN) continue;
+    // A product already on the page (by link or by name: "Apple AirPods Pro 3" on two links) is not added twice.
+    const nameKey = (p) => `n:${fold(String(p.name).split(",")[0])}`;
+    const have = new Set([...list.map((p) => p.href), ...list.map(nameKey)]);
+    const pool = Object.entries(pageList).filter(([s]) => isPeopleGuide(s)).flatMap(([, l]) => l)
+      // A brand's own page (Apple, Old Navy...) also takes that brand's guide picks.
+      .filter((p) => (p.store === slug || fold(p.brand) === fold(slug.slice(6))) && p.image && !have.has(p.href) && !p.sponsor)
+      .sort((a, b) => (Number(b.commission) || 0) - (Number(a.commission) || 0));
+    const add = [];
+    for (const p of pool) {
+      if (list.length + add.length >= STORE_MIN) break;
+      if (have.has(p.href) || have.has(nameKey(p))) continue;
+      have.add(p.href);
+      have.add(nameKey(p));
+      const { section: _s, sectionId: _i, from: _f, ...rest } = p;
+      add.push(rest);
+    }
+    pageList[slug] = [...list, ...add];
+    counts.storeFill += add.length;
+    if (pageList[slug].length < STORE_MIN) counts.storeShort.push(`${slug}:${pageList[slug].length}`);
   }
 
   // The Walmart deals box.
@@ -198,11 +248,39 @@ export function applyTrain1120b(pageList, deals, spec, ctx) {
   for (const s of spec.sales ?? []) {
     if (Array.isArray(ctx.sales) && !ctx.sales.some((x) => x.href === s.href)) {
       const { why: _w, ...sale } = s;
-      ctx.sales.push(sale);
+      // The sidebar lists sales soonest end first.
+      const at = ctx.sales.findIndex((x) => x.ends > sale.ends);
+      ctx.sales.splice(at < 0 ? ctx.sales.length : at, 0, sale);
       counts.sales += 1;
     }
   }
   return { counts, missing };
+}
+
+/**
+ * The BF/CM deals page (src/content/giftGuideDeals.json, scripts/gift-guide-deals.mjs): `spec.dealsPage` drops a
+ * brand's row by its featured item, swaps a featured item, and adds rows at the end of their category. Returns
+ * { deals, missing }.
+ */
+export function applyDealsPage1120b(deals, dp) {
+  const missing = [];
+  if (!dp) return { deals, missing };
+  const hit = (d, r) => d.brand === r.brand && fold(d.item).includes(fold(r.item));
+  let out = [...deals];
+  for (const r of dp.drop ?? []) {
+    if (!out.some((d) => hit(d, r))) { missing.push(`deals drop: ${r.brand} ${r.item}`); continue; }
+    out = out.filter((d) => !hit(d, r));
+  }
+  for (const r of dp.set ?? []) {
+    if (!out.some((d) => hit(d, r))) { missing.push(`deals set: ${r.brand} ${r.item}`); continue; }
+    out = out.map((d) => (hit(d, r) ? { ...d, ...r.to } : d));
+  }
+  for (const r of dp.add ?? []) {
+    if (out.some((d) => d.brand === r.brand)) continue;
+    const at = out.reduce((last, d, i) => (d.category === r.category ? i : last), -1);
+    out = at < 0 ? [...out, r] : [...out.slice(0, at + 1), r, ...out.slice(at + 1)];
+  }
+  return { deals: out, missing };
 }
 
 function hostOf(u) {

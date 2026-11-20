@@ -50,7 +50,9 @@ for (const m of indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)) GUI
 const listed = (name) => [...(content.match(new RegExp(`export const ${name} = \\[([^\\]]*)\\]`))?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 const AMAZON = new Set(["www.amazon.com", "amazon.com", "amzn.to"]);
 const LOUISIANA = new Set(listed("LOUISIANA_SHOPS"));
-const SPONSORS = new Set(listed("SPONSOR_SITES"));
+const SPONSORS = new Set([...listed("SPONSOR_SITES"), ...listed("NATIONAL_SPONSOR_SITES")]);
+/** The Louisiana sponsors' hosts only (a national sponsor's shop is no Louisiana item; train 1120b). */
+const LA_SPONSORS = new Set(listed("SPONSOR_SITES"));
 /**
  * The 25 Days sponsors by name (follow-up 1120: their 0% picks stay, owner 11-20 ~12:05 AM): SPONSOR_BRANDS and every
  * confirmed Louisiana sponsor on the Small Business Saturday page (src/content/giftGuideSmallBiz.json).
@@ -1007,7 +1009,7 @@ for (const [slug, c] of Object.entries(CURATION)) {
 }
 /** The Louisiana section's guides (giftGuideIndex.ts group "Louisiana"): the only guides that hold Louisiana items. */
 const LOUISIANA_GUIDES = new Set([...indexSrc.matchAll(/group: "Louisiana"[^}]*?slug: "([^"]+)"/g)].map((m) => m[1]));
-const LA_HOSTS = new Set([...LOUISIANA, ...SPONSORS]);
+const LA_HOSTS = new Set([...LOUISIANA, ...LA_SPONSORS]);
 /** Store pages that are themselves a Louisiana brand's keep their own items. */
 const LOUISIANA_STORE_PAGES = new Set(["store-community-coffee", "store-rebeccaillustrated"]);
 const auditGone = (slug, p) => !MOVED_TO_LOUISIANA.includes(slug) && !slug.startsWith("store-")
@@ -3818,7 +3820,7 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
  */
 {
   const spec = JSON.parse(readFileSync(new URL("./gift-guide-train-1120b.json", import.meta.url), "utf8"));
-  const t = applyTrain1120b(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales });
+  const t = applyTrain1120b(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT] });
   console.log(`gift-guide-picks: train 1120b ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
 /**

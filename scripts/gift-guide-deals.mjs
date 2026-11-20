@@ -27,6 +27,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { DEAL_CATEGORIES, DEALS_PER_SECTION, louisianaDay } from "../src/content/giftGuideDeals.mjs";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
+import { applyDealsPage1120b } from "./giftGuideTrain1120b.mjs";
 
 const REPO = resolve(import.meta.dirname, "..");
 const OUT = join(REPO, "src/content/giftGuideDeals.json");
@@ -190,7 +191,12 @@ export const dealsText = (deals) => `[\n${deals.map((d) => JSON.stringify(d)).jo
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const today = louisianaDay(new Date());
-  const { deals, order, skipped } = buildDeals(loadSources(), today);
+  const built = buildDeals(loadSources(), today);
+  const { order, skipped } = built;
+  // Train 1120b (scripts/gift-guide-train-1120b.json, dealsPage): the re-audit's featured-item fixes and Georgia Boot.
+  const train = applyDealsPage1120b(built.deals, JSON.parse(readFileSync(join(REPO, "scripts/gift-guide-train-1120b.json"), "utf8")).dealsPage);
+  const deals = train.deals;
+  if (train.missing.length) console.log(`Train 1120b NOT FOUND: ${train.missing.join(" | ")}`);
   for (const [c, b, r] of order) console.log(`${c.padEnd(15)} ${String(r).padStart(5)}%  ${b}`);
   console.log(`\n${deals.length} deals (as of ${today}).`);
   console.log(`No affiliate link yet (${skipped.noLink.length}): ${skipped.noLink.join(", ")}`);

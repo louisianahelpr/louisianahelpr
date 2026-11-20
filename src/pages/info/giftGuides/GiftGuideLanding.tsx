@@ -15,6 +15,7 @@ import { SmallBizFeature } from "./GiftGuideSmallBiz";
 import { GatedBanners, GiftFinder } from "./GiftGuideFinder";
 import { GiftCountdown } from "./fun/GiftCountdown";
 import { HowToStrip } from "./GiftGuideHints";
+import { SponsorRow } from "./GiftGuideSponsorRow";
 
 /**
  * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
@@ -187,6 +188,8 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       <div className="gg-rows" data-gift-rows="">
         {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}
       </div>
+      {/* Train 1120b (owner 11-20 ~8:40 AM, mockup): the 25 Days sponsors' logo row, after the first row, before the Top 10. */}
+      {!group && <SponsorRow />}
       {!group && <TopStrip />}
       {/* Fun features (owner 2026-11-20): the Christmas countdown, the Gift of the Day and the three fun tools, after the
           first row and the Top 10 (only the quick picks sit above the first row, holistic review 11-18 M9). */}

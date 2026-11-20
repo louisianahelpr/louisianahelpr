@@ -87,8 +87,13 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
  */
 // Follow-up 1120 (owner 11-20 ~12:40 AM): every confirmed Louisiana sponsor on Shop Small Louisiana links its website,
 // Facebook or Instagram (src/content/giftGuideSmallBiz.json); City Sightseeing New Orleans on Louisiana by Region.
-// Train 1120b (owner 11-20 ~8:35 AM): the national sponsors' own shops for their one guide spot (mindtheskinlabs.com on).
-export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com", "basicbee.co", "www.facebook.com", "www.zydecochopchop.com", "www.beaversabundance.com", "www.faulkcalls.com", "davidrabalaisfilm.com", "www.softlifecollective.org", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.botanicalnailandskinstudio.com", "www.crabtrapfunctionalfitness.com", "streamsideparks.com", "www.lepetittheatre.com", "www.creolequeen.com", "www.theallwayslounge.net", "brittcreatesstudio.com", "jessicalanhamphoto.com", "www.instagram.com", "rrwedco.com", "suzimarquesphotography.com", "citysightseeingneworleans.com", "mindtheskinlabs.com", "idrawellness.com", "arey.com", "bostonmints.com", "www.hilma.co", "saranoni.com", "america.felco.com", "skyandsol.co", "criquetshirts.com", "www.aosulife.com", "catlady.com", "www.demingdelights.com", "21collectiveco.com"] as const;
+export const SPONSOR_SITES = ["thestrandtheatre.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com", "basicbee.co", "www.facebook.com", "www.zydecochopchop.com", "www.beaversabundance.com", "www.faulkcalls.com", "davidrabalaisfilm.com", "www.softlifecollective.org", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.botanicalnailandskinstudio.com", "www.crabtrapfunctionalfitness.com", "streamsideparks.com", "www.lepetittheatre.com", "www.creolequeen.com", "www.theallwayslounge.net", "brittcreatesstudio.com", "jessicalanhamphoto.com", "www.instagram.com", "rrwedco.com", "suzimarquesphotography.com", "citysightseeingneworleans.com"] as const;
+/**
+ * The national 25 Days sponsors' own shops (train 1120b, owner 11-20 ~8:35 AM: each gets one best-fit guide spot with
+ * the sponsor badge, 0% allowed). Kept apart from SPONSOR_SITES, which are Louisiana businesses: a Louisiana host's
+ * pick stays in the Louisiana section, a national sponsor's does not.
+ */
+export const NATIONAL_SPONSOR_SITES = ["homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "mindtheskinlabs.com", "idrawellness.com", "arey.com", "bostonmints.com", "www.hilma.co", "saranoni.com", "skyandsol.co", "criquetshirts.com", "www.aosulife.com", "catlady.com", "www.demingdelights.com", "21collectiveco.com"] as const;
 
 /** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
 export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop", "21 Collective"];
@@ -251,6 +256,14 @@ export const giftGuides = {
   pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
   /** The landing's photo-card strip of the picks the most guides list, after the first guide rows (owner 11-18 PM). */
   topTitle: "Top 10 This Week",
+  /** The landing's sponsor logo row (train 1120b, owner 11-20 ~8:40 AM; GiftGuideSponsorRow.tsx). No giveaway days. */
+  sponsorRow: {
+    title: "Our 25 Days sponsors",
+    intro: "Thank you to the businesses giving away gifts in our 25 Days of Louisiana Giveaways.",
+    allHref: "/gift-guides/25-days-sponsors",
+    left: "Scroll sponsors left",
+    right: "Scroll sponsors right",
+  },
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
   giveaways: {
     title: "25 Days of Louisiana Giveaways",

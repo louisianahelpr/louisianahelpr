@@ -55,19 +55,22 @@ export interface GiftSection {
  * one the brand's own home page shows.
  */
 // 1530 train (lead 11-19): zChocolat left the For Her row and DiecastModelsWholesale is blocked; no link uses either host.
-export const BRAND_SITES = [] as const;
+// Big batch 1120 (lead, from the owner): the small nurse and RT shops she asked for by name before the "only where we
+// earn" rule (21 Collective, a 25 Days sponsor with code COLLECTIVE10; Seven2seven; Monochromatic Finds badge reels;
+// Vix Socks), shown on their own sites at 0% and sorted by commission like every pick (so they sit lower).
+export const BRAND_SITES = ["21collectiveco.com", "seven2seven.co", "monochromaticfinds.com", "vixsocks.com"] as const;
 
 /**
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
  * Walmart Creator, CJ, Awin, Rakuten, ShopMy product links). Exact hosts; two-way (each is used by some link).
  */
-export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "www.jdoqocy.com", "www.dpbolvw.net", "www.awin1.com", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
+export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
 
 /**
  * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:
  * each link a product page from the shop's own list, HTTP 200 when opened). Exact hosts, never a wildcard.
  */
-export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "www.fleurtygirl.com", "www.nolacouture.com", "www.communitycoffee.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.cajunpowersauce.com", "shop.tabasco.com", "www.dirtycoast.com", "www.leahspralines.com", "www.frenchtruckcoffee.com", "www.camelliabrand.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
+export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "www.fleurtygirl.com", "www.nolacouture.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.dirtycoast.com", "www.leahspralines.com", "www.frenchtruckcoffee.com", "www.camelliabrand.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
 
 /**
  * Brands made in Louisiana: only these get the "Louisiana-made" badge (a pick marked louisianaFit that is not one of
@@ -82,7 +85,7 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
 export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com"] as const;
 
 /** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
-export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop"];
+export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop", "21 Collective"];
 
 const shopmy = (id: number) => `https://shopmy.us/collections/${id}`;
 const PIN = "https://www.pinterest.com/lexilombas";
@@ -234,14 +237,14 @@ export const giftGuides = {
   /** A ShopMy collection link opens a page of many products, not this one (design audit r2 #3/#9): the row says so. */
   collectionOnShopMy: "Collection on ShopMy",
   /** The pick badges (owner 2026-11-18). Never a price. */
-  badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
+  badges: { trending: "Trending", tiktok: "Trending on TikTok", preorder: "Pre-order", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
   /** A non-Amazon pick's checked price beside Shop (owner 11-18), rounded to the dollar: "~$24". Never on Amazon. */
   priceApprox: (dollars: number) => `~$${dollars}`,
   /** One note per page under a list that shows prices: the oldest check date, "Nov 18". */
   pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
   /** The landing's photo-card strip of the picks the most guides list, after the first guide rows (owner 11-18 PM). */
-  topTitle: "Our Top 10",
+  topTitle: "Top 10 This Week",
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
   giveaways: {
     title: "25 Days of Louisiana Giveaways",
@@ -292,6 +295,16 @@ export const giftGuides = {
   loadingPicks: "Loading picks…",
   /** Under a long list (design audit 11-18 #3: store-amazon drew 827 rows at once): the next 50. */
   showMorePicks: (left: number) => `Show more (${left} more)`,
+  /** A merged guide's section links under its banner (1120): one per section, "Jump to" read by screen readers. */
+  sectionNavLabel: "Jump to a section",
+  /** A brand's discount code on its cards (1120: 21 Collective). */
+  codeChip: (code: string) => `Code ${code}`,
+  /** The budget filter inside every guide (owner-approved 11-19 9:05 PM). Amazon shows no prices, so its items leave a budget view. */
+  budgetLabel: "Budget",
+  budgetAll: "Any price",
+  budgetUnder: (n: number) => `Under $${n}`,
+  budgetNote: "Amazon items aren't sorted by price here (Amazon doesn't let us list its prices).",
+  budgetNone: "Nothing in this budget yet. Try a higher one.",
   sections: [
     {
       id: "for-her",

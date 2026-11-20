@@ -50,6 +50,7 @@
     "gitleaks",
     "jq",
     "psql",
-    "openssl"
+    "openssl",
+    "sips"
   ]
 }

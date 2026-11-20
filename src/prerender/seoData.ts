@@ -1,5 +1,5 @@
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
-import { GUIDES, MERGED_GUIDES, OLD_SLUGS, ROWS, STORES, childrenOf, guidesIn, loadAllGuidePicks, newSlugFor, relatedGuides } from "@/content/giftGuideCatalog";
+import { GUIDES, MERGED_GUIDES, OLD_SLUGS, RETIRED_SLUGS, ROWS, STORES, childrenOf, guidesIn, loadAllGuidePicks, newSlugFor, relatedGuides } from "@/content/giftGuideCatalog";
 import type { SeoData, SeoGuide } from "@/lib/seoBodies.mjs";
 
 /**
@@ -38,9 +38,11 @@ export async function buildSeoData(): Promise<SeoData> {
     guides[g.slug] = { name, indexed, picks, count: indexed ? new Set(g.picks.filter((p) => p.name && p.href).map((p) => p.href)).size : 0, ...(related.length ? { related } : {}) };
   }
   const moved: Record<string, string> = {};
-  for (const old of [...Object.keys(OLD_SLUGS), ...Object.keys(MERGED_GUIDES)]) {
+  for (const old of [...Object.keys(OLD_SLUGS), ...Object.keys(MERGED_GUIDES), ...RETIRED_SLUGS()]) {
     const to = newSlugFor(old);
     if (to && to !== old && !guides[old]) moved[old] = to;
+    // 1120: a folded store page (no page of its own, its items in the guides) opens the gift guides landing page ("").
+    else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
   }
   const groups: SeoData["groups"] = ROWS.map((r) => [
     r.label,

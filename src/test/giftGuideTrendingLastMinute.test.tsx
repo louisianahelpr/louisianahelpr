@@ -6,8 +6,7 @@
  *     Gift cards and Subscriptions tiles and an "Arrives by Christmas" note carrying the shipping pill's words; hidden
  *     before Dec 15 and after Dec 25.
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const TRENDING_TOP = 3; | const TRENDING_TOP = 4;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | position <= TRENDING_TOP && !guide.slug.startsWith("store-") | position <= TRENDING_TOP
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const badges = pick.badges; |   const badges = ["trending" as const, ...(pick.badges ?? [])];
  * @mutate src/content/giftGuideShipping.ts |   return month === 12 && day >= 15 && day <= 25; |   return month === 12 && day >= 14 && day <= 25;
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       {!group && <LastMinute />} |       {null}
  */
@@ -44,19 +43,30 @@ const renderAt = (url: string) =>
 const rowBadges = (root: HTMLElement) =>
   [...root.querySelectorAll("[data-gift-list] > li[data-gift-pick]")].map((li) => [...li.querySelectorAll("[data-gift-badge]")].map((b) => b.textContent));
 
-describe("gift guides: Trending on the first three picks", () => {
-  it.each(["mom", "dad", "her"])("%s: picks 1-3 wear one Trending pill, pick 4 on never does", (slug) => {
-    expect(guideBySlug(slug)!.picks.length).toBeGreaterThan(5);
+describe("gift guides: Trending only where the pick is trending (big batch 1120)", () => {
+  // Owner 11-19 ~6:40 PM: every guide sorts by commission, so "the first three" is no featured order any more; a pick
+  // wears Trending, or "Trending on TikTok" (owner-approved 9:05 PM), only from its own flag, at most one of the two.
+  it.each(["mom", "dad", "her"])("%s: each row wears Trending only from its own flag, never two", (slug) => {
+    const picks = guideBySlug(slug)!.picks;
+    expect(picks.length).toBeGreaterThan(5);
     const { container } = renderAt(`/gift-guides/${slug}`);
     const rows = rowBadges(container);
     expect(rows.length).toBeGreaterThan(5);
     for (const [i, words] of rows.entries()) {
-      const n = words.filter((w) => w === "Trending").length;
-      expect(n, `${slug} #${i + 1}`).toBe(i < 3 ? 1 : 0);
+      const n = words.filter((w) => w === "Trending" || w === "Trending on TikTok").length;
+      const own = (picks[i].badges ?? []).filter((b) => b === "trending" || b === "tiktok").length;
+      expect(n, `${slug} #${i + 1}`).toBe(own);
+      expect(n, `${slug} #${i + 1}`).toBeLessThanOrEqual(1);
     }
-    const pill = container.querySelector('[data-gift-badge="trending"]')!;
+  });
+  it("some guide shows a Trending on TikTok pill, drawn as a badge", () => {
+    const slug = ["him", "her", "mom", "dad", "healthcare", "game-day", "brother"].find((s) => guideBySlug(s)?.picks.some((p) => p.badges?.includes("tiktok")));
+    expect(slug).toBeTruthy();
+    const { container } = renderAt(`/gift-guides/${slug}`);
+    const pill = container.querySelector('[data-gift-badge="tiktok"]')!;
     expect(pill.tagName).toBe("I");
     expect(pill.className).toContain("gg-bdg");
+    expect(pill.textContent).toBe("Trending on TikTok");
   });
 
   it("a store page's list wears no Trending pill", () => {
@@ -109,7 +119,7 @@ describe("gift guides: Last-minute gifts, Dec 15-25 in Louisiana", () => {
     expect(sec).not.toBeNull();
     expect(sec.querySelector("h2")?.textContent).toBe("Last-minute gifts");
     const tiles = [...sec.querySelectorAll("[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
-    expect(tiles).toEqual(expect.arrayContaining(["gift-cards", "subscriptions"]));
+    expect(tiles).toEqual(expect.arrayContaining(["easy-and-last-minute"]));
     for (const t of sec.querySelectorAll("[data-gift-tile]")) expect(t.getAttribute("href")).toBe(`/gift-guides/${t.getAttribute("data-gift-tile")}`);
     expect(sec.querySelector("[data-gift-last-minute-note]")?.textContent).toBe(`Arrives by Christmas: ${SHIP_LINES.late}`);
     // Above every guide row.

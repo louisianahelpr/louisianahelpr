@@ -24,7 +24,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { GUIDES, guideBySlug, loadAllGuidePicks, searchGuides, searchItems, type SearchItem } from "@/content/giftGuideCatalog";
+import { GUIDES, guideBySlug, loadAllGuidePicks, searchGuides, searchItems, sectionWords, type SearchItem } from "@/content/giftGuideCatalog";
 import ITEMS from "@/content/giftGuideSearchIndex.json";
 import { buildIndex, indexText } from "../../scripts/gift-guide-search-index.mjs";
 
@@ -56,7 +56,8 @@ describe("H5: search finds what shoppers type", () => {
   it("fishing finds the fishing guides, not only a store", () => {
     // The review: "fishing" returned only the Simms store.
     const hits = slugs("fishing");
-    expect(hits.filter((s) => !s.startsWith("store-")).slice(0, 2)).toEqual(["fishermen", "fish-lover"].filter(live).slice(0, 2));
+    // 1120: Fish Lover (aquarium fish) is a section of Pet Lovers, which follows Fishermen.
+    expect(hits.filter((s) => !s.startsWith("store-"))[0]).toBe("fishermen");
     expect(slugs("something for my husband who fishes")).toEqual(expect.arrayContaining(["fishermen", "boyfriend-or-husband"].filter(live)));
   });
 
@@ -82,7 +83,8 @@ describe("H5: search finds what shoppers type", () => {
   it("filler words are dropped: 'gift for mom' is Mom, and no guide matches through 'Life moments'", () => {
     const mom = searchGuides("gift for mom");
     expect(mom[0].slug).toBe("mom");
-    expect(mom.filter((g) => !/mom/i.test(g.title))).toEqual([]);
+    // 1120: a merged guide is found through its sections' titles too (New Baby & Parents holds Mom-to-Be and New Mom).
+    expect(mom.filter((g) => !/mom/i.test(`${g.title} ${sectionWords(g.slug)}`))).toEqual([]);
     expect(slugs("gifts")).not.toEqual([]);
   });
 
@@ -127,16 +129,18 @@ describe("H5: search finds what shoppers type", () => {
 });
 
 describe("H1: the kids age guides are two taps from the landing", () => {
-  it("the For kids row carries Kids by age: four bands, each with its Girls, Boys and Gender-neutral guides", () => {
+  // 1120: the age guides are sections of Girls, Boys and Gender-Neutral; Kids by age opens each section, teens included.
+  it("the For kids row carries Kids by age: five bands, each with its Girls, Boys and Gender-neutral sections", () => {
     const { container } = renderAt("/gift-guides");
     const row = container.querySelector("[data-gift-row='for-kids']")!;
     const ages = row.querySelector("[data-gift-ages]")!;
     expect(ages).not.toBeNull();
-    expect([...ages.querySelectorAll("[data-gift-age-band]")].map((b) => b.getAttribute("data-gift-age-band"))).toEqual(["babies", "toddlers", "little-kids", "big-kids"]);
+    expect([...ages.querySelectorAll("[data-gift-age-band]")].map((b) => b.getAttribute("data-gift-age-band"))).toEqual(["babies", "toddlers", "little-kids", "big-kids", "teens"]);
     expect(ages.querySelector("[data-gift-age-band='little-kids'] .gg-age-name")?.textContent).toBe("Little kids 4–7");
     const links = [...ages.querySelectorAll("a[data-gift-age-link]")].map((a) => a.getAttribute("href"));
-    const want = ["babies", "toddlers", "little-kids", "big-kids"].flatMap((t) => ["girls", "boys", "gender-neutral"].map((h) => `${h}-${t}`)).filter(live);
-    expect(links).toEqual(want.map((s) => `/gift-guides/${s}`));
+    const want = ["babies", "toddlers", "little-kids", "big-kids", "teens"].flatMap((t) => ["girls", "boys", "gender-neutral"].map((h) => [h, `${h}-${t}`]))
+      .filter(([h, id]) => guideBySlug(h)!.picks.some((p) => p.sectionId === id));
+    expect(links).toEqual(want.map(([h, id]) => `/gift-guides/${h}#${id}`));
     expect(links.length).toBeGreaterThan(3); // one guide per product (owner 11-19)
   });
 
@@ -213,6 +217,6 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     const h = Number(/\.gg-banner\{height:(\d+)px/.exec(phone)?.[1]);
     expect(h).toBeGreaterThan(0);
     expect(h).toBeLessThanOrEqual(96);
-    expect(GUIDES.length).toBeGreaterThan(100);
+    expect(GUIDES.length).toBeGreaterThan(80); // 1120: ~65 guides + 30 store pages
   });
 });

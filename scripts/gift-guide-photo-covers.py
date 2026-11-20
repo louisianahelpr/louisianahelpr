@@ -196,7 +196,10 @@ def index():
     owner = {r["slug"] for r in out}
     stores = json.loads(m.group(1)) if m else {}
     extra = sorted(((s_, st["name"]) for s_, st in stores.items() if s_ not in owner), key=lambda x: x[1].lower())
-    return out + [{"group": "By store", "slug": s_, "title": n, "lead": "shop", "child": False, "owner": False} for s_, n in extra]
+    # Big batch 1120: a guide merged into another as a section, or a folded store page, has no chunk and no page: no
+    # cover. The Kids hub (no list of its own) keeps its cover.
+    has_page = lambda s_: s_ == "kids" or os.path.exists(os.path.join(PICKS, f"{s_}.json"))
+    return [r for r in out if has_page(r["slug"])] + [{"group": "By store", "slug": s_, "title": n, "lead": "shop", "child": False, "owner": False} for s_, n in extra if has_page(s_)]
 
 
 def targets(rows):
@@ -838,7 +841,8 @@ def main():
     if stores_only:  # repeats are counted within a section, so the store section can be redrawn on its own
         manifest = {s_: c for s_, c in old.items() if c.get("section") != "By store"}
     # Only guides that ship a cover (a guide with no picks is not built, and a stray cover file fails the two-way check).
-    all_rows = [r for r in rows if not r["owner"] or os.path.exists(os.path.join(OUT, f"{r['slug']}.webp"))]
+    # A guide made new by the 1120 merges (Pet Lovers, Fitness Lovers ...) gets its first cover here.
+    all_rows = [r for r in rows if not r["owner"] or os.path.exists(os.path.join(OUT, f"{r['slug']}.webp")) or os.path.exists(os.path.join(PICKS, f"{r['slug']}.json"))]
     rows = [r for r in targets(all_rows) if not stores_only or r["group"] == "By store"]
     order = [r["slug"] for r in rows]
     career_order = [r["slug"] for r in rows if r["group"] == "By career"]

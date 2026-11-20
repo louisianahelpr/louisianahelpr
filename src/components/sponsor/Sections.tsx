@@ -14,6 +14,7 @@ import type { SponsorPublicState, SponsorStatKey } from "@/lib/sponsor/types";
 import { prefersReducedMotion } from "./confetti";
 import { FleurDeLis, Icon, Sparkle, StarRule } from "./Decor";
 import { Button } from "@/components/ui/button";
+import { safeDocumentUrl } from "@/lib/storagePath";
 
 /** Dev preview only: show [placeholders] highlighted instead of hiding them. */
 export const PlaceholderPreview = createContext(false);
@@ -345,13 +346,6 @@ export function PreviewCard() {
 
 /* ── I2) THE LINEUP ──────────────────────────────────────────────────── */
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
-
-/** "Tue" for December `day` of the event year (a calendar date, so UTC is exact). Exported for its test. */
-export function lineupWeekday(day: number): string {
-  return WEEKDAYS[new Date(Date.UTC(C.event.year, 11, day)).getUTCDay()];
-}
-
 /** How many brands the published lineup lists for December `day` (0 when none). Exported for ClaimSection. */
 export function lineupCount(day: number): number {
   return C.lineup.days.find((d) => d.day === day)?.partners.length ?? 0;
@@ -373,120 +367,63 @@ export function prizeWithoutBrand(brand: string, prize: string): string {
   return p;
 }
 
-/** "1–13, 15, 16 and 18–22": runs of three or more days collapse to a range. Exported for its test. */
-export function dayList(days: readonly number[]): string {
-  const sorted = [...new Set(days)].sort((a, b) => a - b);
-  const parts: string[] = [];
-  for (let i = 0; i < sorted.length; ) {
-    let j = i;
-    while (j + 1 < sorted.length && sorted[j + 1] === sorted[j] + 1) j++;
-    if (j - i >= 2) parts.push(`${sorted[i]}–${sorted[j]}`);
-    else for (let k = i; k <= j; k++) parts.push(String(sorted[k]));
-    i = j + 1;
-  }
-  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : (parts[0] ?? "");
-}
-
-/** "A 12-pack of …" reads "a 12-pack of …" after a colon mid-sentence; any other first word keeps its case. */
-function midSentence(text: string): string {
-  return /^(A|An|The) /.test(text) ? text.charAt(0).toLowerCase() + text.slice(1) : text;
-}
-
-type RecurringPartner = { brand: string; prize: string; days: number[] };
+export type PublicPartner = { brand: string; prizes: string[]; page: string | null };
 
 /**
- * Design audit r2 #18 (presentation only): a brand that gives the same prize on more than half of the days (RYSE,
- * on 20 of the 25) is said once above the lineup instead of in nearly every card. Derived from the data, so the
- * line always matches the owner's lineup; a brand with different prizes on different days stays in its cards.
+ * The public lineup: every brand ONCE, A to Z, with its distinct prizes and its Facebook Page link (owner
+ * 2026-11-19). Owner rule 2026-11-17 ("don't tell sponsors their day until it's final"): nothing here says which
+ * day a brand is on, or how many days it has; lineup.days stays internal data.
  */
-export function recurringPartners(days: typeof C.lineup.days = C.lineup.days): RecurringPartner[] {
-  const seen = new Map<string, { prizes: Set<string>; days: number[] }>();
+export function publicPartners(days: typeof C.lineup.days = C.lineup.days): PublicPartner[] {
+  const seen = new Map<string, Set<string>>();
   for (const d of days) {
     for (const p of d.partners) {
-      const e = seen.get(p.brand) ?? { prizes: new Set<string>(), days: [] };
-      e.prizes.add(p.prize);
-      e.days.push(d.day);
-      seen.set(p.brand, e);
+      const prizes = seen.get(p.brand) ?? new Set<string>();
+      const prize = prizeWithoutBrand(p.brand, p.prize);
+      if (prize) prizes.add(prize);
+      seen.set(p.brand, prizes);
     }
   }
-  const out: RecurringPartner[] = [];
-  for (const [brand, e] of seen) {
-    if (e.prizes.size === 1 && e.days.length * 2 > days.length) out.push({ brand, prize: [...e.prizes][0], days: e.days });
-  }
-  return out;
+  const links: Record<string, string> = C.lineup.links;
+  return [...seen]
+    .map(([brand, prizes]) => ({ brand, prizes: [...prizes], page: safeDocumentUrl(links[brand]) }))
+    .sort((a, b) => a.brand.localeCompare(b.brand, "en", { sensitivity: "base" }));
 }
 
-/** The lineup in weeks (Dec 1–7, 8–14, 15–21, 22–25). */
-function lineupWeekOf(day: number): number {
-  return Math.floor((day - C.event.firstDay) / 7);
-}
+/** On a phone this many partners show before the "Show all" button. */
+const PHONE_FIRST = 12;
 
 /**
- * The final lineup (owner 2026-11-16): every day with its brand or brands and their prizes. A day with more
- * than one brand says how many winners it has, since each brand's prize has its own winner (a recurring brand's
- * prize included: it is still that day's giveaway, said once above the cards).
- *
- * On a phone (under 640px) only Dec 1–7 shows at first; each later week opens with its own "Show Dec 8–14" button
- * (design audit r2 #18: the 25 cards were about 7,000px tall). Wider screens show every day and no buttons; that
- * split is CSS only (sponsor.css .lh25-lineup-later / .lh25-lineup-more-row), so nothing measures the screen.
+ * The lineup (owner 2026-11-19): an undated A-Z grid of the partners and their prizes, each name linking to the
+ * business's Facebook Page when we know it. On a phone (under 640px) only the first 12 show until "Show all" is
+ * tapped; wider screens show every card and no button (CSS only: sponsor.css .lh25-lineup-later / .lh25-lineup-more-row).
  */
 export function Lineup() {
-  const recurring = recurringPartners();
-  const recurringBrands = new Set(recurring.map((r) => r.brand));
-  const [openWeeks, setOpenWeeks] = useState<ReadonlySet<number>>(() => new Set([0]));
+  const partners = publicPartners();
+  const [all, setAll] = useState(false);
   return (
     <section className="lh25-section" id="lineup" aria-labelledby="lh25-lineup">
       <SectionTitle><span id="lh25-lineup">{C.lineup.title}</span></SectionTitle>
       <p className="lh25-lede lh25-center">{C.lineup.intro}</p>
-      <p className="lh25-hint lh25-center lh25-days-note" data-testid="lineup-days-note">{C.lineup.daysNote}</p>
-      {recurring.map((r) => (
-        <p key={r.brand} className="lh25-lineup-recurring lh25-center" data-testid="lineup-recurring">
-          {C.lineup.recurring.replace("{brand}", r.brand).replace("{prize}", midSentence(prizeWithoutBrand(r.brand, r.prize) || r.brand)).replace("{days}", dayList(r.days))}
-        </p>
-      ))}
-      <ol className="lh25-lineup">
-        {C.lineup.days.map((d) => {
-          const week = lineupWeekOf(d.day);
-          const open = openWeeks.has(week);
-          const firstOfWeek = d.day === C.event.firstDay + week * 7;
-          const lastOfWeek = Math.min(C.event.lastDay, C.event.firstDay + week * 7 + 6);
-          const shown = d.partners.filter((p) => !recurringBrands.has(p.brand));
-          const partners = shown.length > 0 ? shown : d.partners;
-          return [
-            firstOfWeek && !open ? (
-              <li key={`more-${week}`} className="lh25-lineup-more-row">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="lh25-btn lh25-btn-outline lh25-lineup-more"
-                  onClick={() => setOpenWeeks((w) => new Set([...w, week]))}
-                >
-                  {C.lineup.showWeek.replace("{from}", String(d.day)).replace("{to}", String(lastOfWeek))}
-                </Button>
-              </li>
-            ) : null,
-            <li key={d.day} className={`lh25-lineup-day${open ? "" : " lh25-lineup-later"}`} data-testid={`lineup-day-${d.day}`}>
-              <div className="lh25-lineup-head">
-                <span className="lh25-lineup-date">{lineupWeekday(d.day)}<span className="lh25-lineup-dot" aria-hidden="true">·</span>Dec {d.day}</span>
-                {d.partners.length > 1 ? (
-                  <span className="lh25-lineup-winners">{C.lineup.winners.replace("{n}", String(d.partners.length))}</span>
-                ) : null}
-              </div>
-              <ul className="lh25-lineup-partners">
-                {partners.map((p) => {
-                  const prize = prizeWithoutBrand(p.brand, p.prize);
-                  return (
-                    <li key={p.brand}>
-                      <span className="lh25-lineup-brand">{p.brand}</span>
-                      {prize ? <span className="lh25-lineup-prize">{prize}</span> : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </li>,
-          ];
-        })}
-      </ol>
+      <ul className="lh25-lineup">
+        {partners.map((p, i) => (
+          <li key={p.brand} className={`lh25-lineup-day${all || i < PHONE_FIRST ? "" : " lh25-lineup-later"}`} data-testid="lineup-partner">
+            {p.page ? (
+              <a className="lh25-lineup-brand" href={p.page} target="_blank" rel="noopener noreferrer">{p.brand}</a>
+            ) : (
+              <span className="lh25-lineup-brand">{p.brand}</span>
+            )}
+            {p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)}
+          </li>
+        ))}
+        {!all && partners.length > PHONE_FIRST ? (
+          <li className="lh25-lineup-more-row">
+            <Button type="button" variant="ghost" className="lh25-btn lh25-btn-outline lh25-lineup-more" onClick={() => setAll(true)}>
+              {C.lineup.showAll.replace("{n}", String(partners.length))}
+            </Button>
+          </li>
+        ) : null}
+      </ul>
     </section>
   );
 }

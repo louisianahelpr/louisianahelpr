@@ -164,7 +164,7 @@ export const sponsorPage = {
     cardSponsorLine: "Featuring: YOUR BRAND HERE!",
     logoPlaceholder: "Your logo",
     caption:
-      "🎁 GIVEAWAY TIME! Today's giveaway features YOUR BRAND HERE, a Louisiana favorite. To enter: share this post, like and follow Louisiana Helpr and today's sponsor pages, and tag 2 friends in the comments. A winner is picked at random tomorrow. Good luck, y'all! ⚜️",
+      "🎁 GIVEAWAY TIME! Today's giveaway features YOUR BRAND HERE, a Louisiana favorite. Entry details coming soon on our Facebook page. Good luck, y'all! ⚜️",
   },
 
   sponsorWall: {
@@ -177,21 +177,76 @@ export const sponsorPage = {
    * email or Facebook is listed on their tracker day. Owner 2026-11-18 (nothing stale anywhere): lineup.days is exactly
    * the tracker's calendar (109 giveaways as of 2026-11-17 11:20 PM). Check drift with `node scripts/check-25days-lineup.mjs`,
    * regenerate with `--print` (manual; never in CI).
-   * Brand names and prizes ONLY: never a sponsor's contact name, email or phone (this page and repo are public).
+   * Business names, prizes and Facebook Page links ONLY: never a contact person's name, email or phone (this page and repo are public).
    */
   lineup: {
     title: "The lineup",
-    intro: "25 days, one giveaway post a day. When brands share a day, each prize has its own winner, and every partner is featured and tagged on our socials.",
+    intro: "The Louisiana businesses and brands giving away prizes this December. Tap a name to visit their page.",
     // Owner 2026-11-17: shown under the intro and by the sign-up day picker (claim.daysNote), and in the FAQ.
     daysNote: "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.",
-    winners: "{n} winners",
+    /** Phone only: the list opens with its first few partners and this button. */
+    showAll: "Show all {n} partners",
     /**
-     * Design audit r2 #18: a brand with the same prize on most days (RYSE) is said once above the cards, with its
-     * days, instead of in every card. Display only: the days below still list every brand and prize as given.
+     * Owner 2026-11-19: "We can link their facebooks or website for people to reach out." Each business name links to
+     * its Facebook Page, from the tracker's `h.fb` (const S). A business page only: never a contact's email or phone.
      */
-    recurring: "{brand} on most days: {prize}, Dec {days}",
-    /** Phone only: each later week of the lineup opens with this button. */
-    showWeek: "Show Dec {from}–{to}",
+    links: {
+"homerunPET": "https://www.facebook.com/Homerunpet",
+      "RYSE": "https://www.facebook.com/RYSESupps",
+      "CMI Entertainment: A Christmas Carol": "https://www.facebook.com/profile.php?id=100064790676343",
+      "Oil Center (Lafayette Festival of Lights)": "https://www.facebook.com/oilcenter",
+      "Faith & Fire BBQ": "https://www.facebook.com/profile.php?id=100093226599423",
+      "Boston Mints": "https://www.facebook.com/BostonMints",
+      "World Ballet Company: The Nutcracker": "https://www.facebook.com/WorldBalletCompany",
+      "The Fois": "https://www.facebook.com/davidrabalaisfilm/",
+      "Cher Bebe Embroidery": "https://www.facebook.com/profile.php?id=61589742615756",
+      "Manta Sleep": "https://www.facebook.com/mantasleep",
+      "Crabtrap Functional Fitness": "https://www.facebook.com/profile.php?id=61575510953985",
+      "RoseMae Eimear Creations": "https://www.facebook.com/profile.php?id=100089280845471",
+      "K18 Hair": "https://www.facebook.com/k18hair",
+      "Megan Benoit's Closet": "https://www.facebook.com/profile.php?id=100095652008390",
+      "Britt Creates": "https://www.facebook.com/profile.php?id=100092393785790",
+      "Oyu Botanica": "https://www.facebook.com/OYUBotanica",
+      "R&R Wedding Co.": "https://www.facebook.com/profile.php?id=61589566719811",
+      "IOKA Skin+Science": "https://www.facebook.com/iokaskinscience",
+      "Mystic Forests Nursery": "https://www.facebook.com/profile.php?id=61561396051654",
+      "Whimsies from Within": "https://www.facebook.com/profile.php?id=61593916496429",
+      "Rock Bottom Golf": "https://www.facebook.com/rockbottomgolf",
+      "Ripley's Crawfish": "https://www.facebook.com/profile.php?id=61571086266228",
+      "Written on the River": "https://www.facebook.com/writtenontheriver",
+      "Timeless Skin Care": "https://www.facebook.com/timelesshaskin/",
+      "Let's Create LLC": "https://www.facebook.com/letscreatellc",
+      "GentleStyle Brush (CLM Creations)": "https://www.facebook.com/gentlestylebrush",
+      "IDRA Wellness": "https://www.facebook.com/idrawellnessforyou",
+      "Rip Van Winkle Gardens": "https://www.facebook.com/rvwgardens",
+      "SRI Labs": "https://www.facebook.com/SRIBeautyLabs",
+      "Hello Darlin'": "https://www.facebook.com/profile.php?id=61596204632534",
+      "The Sculpt Society": "https://www.facebook.com/sculptsociety",
+      "Crew Dog": "https://www.facebook.com/profile.php?id=100092617234356",
+      "Aeva Beauty": "https://www.facebook.com/Aevabeautyllc",
+      "The Humble Home Decor & Candles": "https://www.facebook.com/profile.php?id=61591928826991",
+      "Zydeco Chop Chop": "https://www.facebook.com/ZydecoChopChop",
+      "3 Redneck Tenors": "https://www.facebook.com/profile.php?id=100063637686864",
+      "LMNT": "https://www.facebook.com/drinkLMNT",
+      "Dolly's Boutique": "https://www.facebook.com/shopgirldolly",
+      "HOTWORX Baton Rouge (Millerville)": "https://www.facebook.com/hotworxbatonrougemillerville",
+      "Basic Bee": "https://www.facebook.com/basicbeeshop",
+      "Hannahbelle Photography": "https://www.facebook.com/profile.php?id=61570091493348",
+      "Tushbaby": "https://www.facebook.com/TushBabyShop/",
+      "Dupuy's Abbeville": "https://www.facebook.com/dupuys",
+      "Salty Cat": "https://www.facebook.com/saltycattreats",
+      "The Soft Life Collective": "https://www.facebook.com/profile.php?id=61594580516352",
+      "Bourque's Cajun Country Seasoning": "https://www.facebook.com/profile.php?id=100069299407902",
+      "Tiffany Morton Cosmetic Tattooing": "https://www.facebook.com/profile.php?id=61591561239859",
+      "Hilma": "https://www.facebook.com/HILMA.CO",
+      "Playtopia Lafayette": "https://www.facebook.com/playtopialafayette",
+      "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)": "https://www.facebook.com/grandkyivballet",
+    } as Record<string, string>,
+    /**
+     * INTERNAL ONLY (owner rule 2026-11-17: "don't tell sponsors their day until it's final"): the page never shows
+     * which day a brand is on. The Lineup renders an undated A-Z list of brands and prizes; these days feed only the
+     * sign-up calendar's brand counts (ClaimSection tileCount).
+     */
     days: [
       {
         day: 1,
@@ -209,14 +264,14 @@ export const sponsorPage = {
           { brand: "Boston Mints", prize: "One lip gloss each day" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "World Ballet Company: The Nutcracker", prize: "Pair of Nutcracker tickets, Strand Theatre Shreveport, Dec 8" },
-          { brand: "David Rabalais (The Fois)", prize: "The Fois t-shirt (winner size) + koozie" },
+          { brand: "The Fois", prize: "The Fois t-shirt (winner size) + koozie" },
           { brand: "Cher Bebe Embroidery", prize: "Tea towel of choice" },
         ],
       },
       {
         day: 3,
         partners: [
-          { brand: "Tevin Lewis, District 2 Alderman", prize: "$25 Shucks gift card" },
+          { brand: "District 2 Alderman", prize: "$25 Shucks gift card" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Manta Sleep", prize: "Manta PRO Sleep Mask" },
           { brand: "Crabtrap Functional Fitness", prize: "Free month membership" },
@@ -266,16 +321,15 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Written on the River", prize: "Tumbler with her Louisiana design" },
           { brand: "Timeless Skin Care", prize: "Skincare package" },
-          { brand: "David Rabalais (The Fois)", prize: "Toy Magnalite pot" },
+          { brand: "The Fois", prize: "Toy Magnalite pot" },
         ],
       },
       {
         day: 9,
         partners: [
-          { brand: "Peigneur Property Rentals", prize: "$25 gift card" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Let's Create LLC", prize: "Permanent jewelry stainless steel bracelet" },
-          { brand: "David Rabalais (The Fois)", prize: "Roux spoon + Roundhouse Ya Maw Maw seasoning" },
+          { brand: "The Fois", prize: "Roux spoon + Roundhouse Ya Maw Maw seasoning" },
         ],
       },
       {
@@ -293,7 +347,6 @@ export const sponsorPage = {
           { brand: "Boston Mints", prize: "One lip gloss each day" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "IDRA Wellness", prize: "Body lotion" },
-          { brand: "Victoria Nicole Fine Art Portraits", prize: "Mini boudoir experience + 2 digitals ($850)" },
         ],
       },
       {
@@ -339,7 +392,7 @@ export const sponsorPage = {
           { brand: "SRI Labs", prize: "KeeWee shampoo" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "3 Redneck Tenors", prize: "Pair of tickets, Feb 26 2027, Strand Theatre Shreveport" },
-          { brand: "Haylie Rudisill (custom wreath sashes)", prize: "Prize to be announced" },
+          { brand: "Custom wreath sashes", prize: "Prize to be announced" },
         ],
       },
       {
@@ -558,7 +611,7 @@ export const sponsorPage = {
       },
       {
         heading: "How to enter",
-        body: "Follow the entry steps listed in that day's giveaway post on the Louisiana Helpr Facebook page or group, for example [like the post, comment, and share]. Limit [one entry per person per day]. Automated or bulk entries are void.",
+        body: "Follow the steps in the official entry post on the Louisiana Helpr Facebook page. Automated or bulk entries are void.",
       },
       {
         heading: "How winners are chosen and notified",

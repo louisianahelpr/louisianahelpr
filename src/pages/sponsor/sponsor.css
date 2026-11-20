@@ -215,9 +215,10 @@ div.lh25.lh25 {
 .lh25-wall-tile img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .lh25-wall-name { font: italic 400 16px/1.2 var(--head); color: var(--green); text-align: center; overflow-wrap: anywhere; }
 
-/* Lineup: one card per December day; a shared day lists each brand and says how many winners */
+/* Lineup (owner 11-19): one undated card per partner, A-Z: name (a link to its Facebook Page when known) and prizes */
 .lh25-lineup { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; /* r2 #29: a 2-brand card does not stretch its row-mates into blank space */ }
-.lh25-lineup-day { background: var(--paper); border: 1px solid var(--line); border-top: 2px solid var(--gold); padding: 14px 16px; min-width: 0; }
+.lh25-lineup-day { background: var(--paper); border: 1px solid var(--line); border-top: 2px solid var(--gold); padding: 14px 16px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+a.lh25-lineup-brand { text-decoration: underline; text-decoration-color: var(--gold); text-underline-offset: 3px; }
 .lh25-lineup-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .lh25-lineup-date { font: italic 400 19px/1.2 var(--head); color: var(--ox); }
 /* Design audit r2 #23: the dot sat against the italic "Dec"; upright, with room each side. */

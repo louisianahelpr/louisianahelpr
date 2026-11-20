@@ -106,13 +106,14 @@ export const nameProblem = (n: string): "link" | "phone" | "long" | null =>
   LINKISH.test(n) ? "link" : n.replace(/[^0-9]/g, "").length >= 7 ? "phone" : n.length > SANTA_NAME_MAX ? "long" : null;
 /** The names as the organizer typed them, cleaned, blanks dropped. */
 export const cleanNames = (names: string[]) => names.map(cleanName).filter(Boolean);
-/** The first name typed twice (ignoring case), or null. */
+/** The first name typed twice (ignoring case), in the spelling typed first (UX audit L3), or null. */
 export const duplicateName = (names: string[]) => {
-  const seen = new Set<string>();
+  const seen = new Map<string, string>();
   for (const n of names) {
     const k = n.toLowerCase();
-    if (seen.has(k)) return n;
-    seen.add(k);
+    const first = seen.get(k);
+    if (first !== undefined) return first;
+    seen.set(k, n);
   }
   return null;
 };
@@ -165,18 +166,21 @@ export const swipePool = (who: SwipeWho, picksOf: (slug: string) => CatalogPick[
 };
 
 /**
- * One round: up to 20 cards within the budget (a budget keeps only picks with a known band at most it; Amazon picks
- * carry none, so they come with "Any budget"), strongest first, each link once, at most 5 per store, none already
- * seen this visit. A light shuffle inside each run of 4 keeps rounds from feeling the same.
+ * One round: up to 20 cards, strongest first, each link once, at most 5 per store, none already seen this visit. With
+ * a budget, the picks known to fit it (a price band at most the budget) come first, then the picks with no band (Amazon
+ * allows no price outside its own site, and some shops publish none), never a pick known to cost more (UX audit H3:
+ * a band-only round left 0-1 cards for some people and budgets). A light shuffle inside each run of 4 keeps rounds
+ * from feeling the same.
  */
 export function swipeRound<T extends CatalogPick>(pool: T[], budget: SwipeBudget, seen: ReadonlySet<string>, rand: () => number = Math.random): T[] {
   const fits = (p: CatalogPick) => budget === 0 || (p.band !== undefined && p.band <= budget);
+  const unknown = (p: CatalogPick) => budget !== 0 && p.band === undefined;
   const perStore = new Map<string, number>();
   const used = new Set<string>();
   const out: T[] = [];
-  for (const p of pool) {
+  for (const p of [...pool.filter(fits), ...pool.filter(unknown)]) {
     if (out.length >= SWIPE_ROUND) break;
-    if (!p.href || !p.name || !fits(p) || seen.has(p.href) || used.has(p.href)) continue;
+    if (!p.href || !p.name || seen.has(p.href) || used.has(p.href)) continue;
     const n = perStore.get(p.store) ?? 0;
     if (n >= SWIPE_PER_STORE) continue;
     perStore.set(p.store, n + 1);
@@ -316,7 +320,8 @@ export const FUN_WORDS = {
   santaBudget: "Budget (optional)",
   santaDate: "Gift exchange day (optional)",
   santaAvoidTitle: "Can't draw each other (optional)",
-  santaAvoidHelp: "Like spouses or roommates.",
+  santaAvoidHelp: "Like spouses or roommates. A group of 3 can't have a pair (there would be no way to draw).",
+  santaPickPerson: "Pick a person",
   santaAvoidAdd: "Add a pair",
   santaAvoidRemove: "Remove pair",
   santaPickA: "First person",
@@ -344,11 +349,13 @@ export const FUN_WORDS = {
   revealHi: (name: string) => `Hi ${name}! You're getting a gift for`,
   revealBudget: (b: number) => `Budget: $${b}`,
   revealDate: (d: string) => `Exchange: ${d}`,
-  revealTheirList: (name: string) => `See ${name}'s wish list`,
+  revealTheirList: "See their wish list",
+  revealLoadFailed: "We couldn't open your match. Check your connection and try again.",
+  revealBrowse: "Browse the gift guides",
   revealNoList: (name: string) => `${name} hasn't shared a wish list yet. Check back later, or browse the guides.`,
   revealMyList: "Make your own wish list",
   revealMyListHelp: "Heart gifts in the guides, then share your list so your Secret Santa can see it.",
-  revealShareMine: "Share my wish list with my Secret Santa",
+  revealShareMine: "Share my list with my Santa",
   revealShared: "Your Secret Santa can see your wish list now.",
   revealShareFailed: "We couldn't share your list. Try again.",
   revealEmptyList: "Your wish list is empty. Heart a few gifts first.",
@@ -373,8 +380,8 @@ export const FUN_WORDS = {
   swipeDoneNone: "Nothing caught your eye? Try another round.",
   swipeMore: "Another round",
   swipeChange: "Change who or budget",
-  swipeShare: "Share my picks",
-  swipeShareText: "Here are the gifts I picked on Louisiana Helpr:",
+  swipeShare: "Share my wish list",
+  swipeShareText: "Here's my wish list on Louisiana Helpr:",
   swipeSeeList: "See my wish list",
   swipeEmpty: "No gifts fit that budget yet. Try another one.",
   swipeLoading: "Loading gifts...",
@@ -404,7 +411,9 @@ export const FUN_WORDS = {
   plannerTotalBudget: "Budget",
   plannerTotalSpent: "Spent",
   plannerTotalLeft: "Left",
-  plannerTotalBought: (b: number, n: number) => `${b} of ${n} gifts bought`,
+  plannerTotalOver: "Over",
+  plannerUnnamed: "Someone",
+  plannerTotalBought: (b: number, n: number) => `${b} of ${n} ${n === 1 ? "gift" : "gifts"} bought`,
   plannerEmpty: "Add the first person you're shopping for.",
   plannerFindGifts: "Find gift ideas",
   plannerBadAmount: "Type an amount like 25 or 25.50.",
@@ -412,5 +421,5 @@ export const FUN_WORDS = {
   hintSwipe: "Tip: drag a card right to save it, left to skip. Or use the buttons.",
   hintSanta: "Tip: we never ask for emails or phone numbers. You send each link yourself.",
   hintPlanner: "Tip: tap Bought when you get a gift, and we'll add up what you've spent.",
-  hintGotd: "Tip: a new Gift of the Day every day until Christmas.",
+  hintGotd: "Tip: a new Gift of the Day every day.",
 };

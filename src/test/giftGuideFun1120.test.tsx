@@ -22,18 +22,21 @@
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |   if (viewer === undefined \|\| !copyBelongsTo(c.ownerId, viewer)) return EMPTY_PLAN; |   if (viewer === undefined) return EMPTY_PLAN;
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |         const local = copyBelongsTo(c.ownerId, userId) ? c.plan : EMPTY_PLAN; |         const local = c.plan;
  * @mutate src/lib/giftPlannerDevice.ts |   resets.forEach((fn) => fn()); |   void resets;
+ * @mutate src/content/giftGuideFun1120.ts |   for (const p of [...pool.filter(fits), ...pool.filter(unknown)]) { |   for (const p of pool.filter(fits)) {
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto} | .gg-plan-budget{flex:none}
  * @mutate supabase/migrations/20261120062334_gift_guide_secret_santa_planner.sql |      AND me.token_hash = encode(sha256(convert_to(p_token, 'UTF8')), 'hex')\n     AND g.expires_at > now()\n$fn$; |      AND g.expires_at > now()\n$fn$;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
-import { guideBySlug, topPicks } from "@/content/giftGuideCatalog";
+import { guideBySlug, loadAllGuidePicks, topPicks } from "@/content/giftGuideCatalog";
 import {
-  SWIPE_PER_STORE, SWIPE_ROUND, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giftOfTheDay, giveawayTieInOn, parseDollars,
+  SWIPE_BUDGETS, SWIPE_PER_STORE, SWIPE_ROUND, SWIPE_WHO, duplicateName, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giftOfTheDay, giveawayTieInOn, parseDollars,
   SANTA_PATH, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan,
 } from "@/content/giftGuideFun1120";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
@@ -193,13 +196,26 @@ describe("swipe rounds", () => {
     expect(Math.max(...per.values())).toBeLessThanOrEqual(SWIPE_PER_STORE);
     for (const p of r) expect(p.band).toBeLessThanOrEqual(25);
   });
-  it("leaves out what was already seen, and Amazon picks (no band) only come with Any budget", () => {
+  it("leaves out what was already seen; picks with no price band come after the ones known to fit, never one known to cost more", () => {
     const first = swipeRound(pool, 0, new Set(), seededRandom(2));
     const second = swipeRound(pool, 0, new Set(first.map((p) => p.href)), seededRandom(3));
     expect(second.some((p) => first.some((q) => q.href === p.href))).toBe(false);
-    const amazon = [pick(1, { store: "amazon", band: undefined })];
-    expect(swipeRound(amazon, 25, new Set())).toEqual([]);
-    expect(swipeRound(amazon, 0, new Set()).length).toBe(1);
+    const mixed = [pick(1, { store: "amazon", band: undefined }), pick(2, { band: 100 }), pick(3, { band: 25 })];
+    const r = swipeRound(mixed, 25, new Set(), () => 0.99);
+    expect(r.map((p) => p.name).sort()).toEqual(["Gift 1", "Gift 3"]);
+    expect(swipeRound(mixed, 0, new Set()).length).toBe(3);
+  });
+
+  it("every who and budget gives at least 10 cards from the real guides (UX audit H3)", async () => {
+    await loadAllGuidePicks();
+    const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
+    const thin: string[] = [];
+    for (const w of SWIPE_WHO) for (const b of SWIPE_BUDGETS) {
+      const n = swipeRound(swipePool(w.id, picksOf), b.id, new Set(), seededRandom(1)).length;
+      if (n < 10) thin.push(`${w.id}/${b.id}: ${n}`);
+    }
+    expect(SWIPE_WHO.length * SWIPE_BUDGETS.length).toBeGreaterThan(30);
+    expect(thin).toEqual([]);
   });
 
   it("Save puts the card on the wish list; Skip does not", async () => {
@@ -350,5 +366,39 @@ describe("security review of #4791", () => {
     const src = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/SecretSanta.tsx"), "utf8");
     expect(src).toContain("{W.santaNoPeek}");
     expect(src).not.toMatch(/givesTo\[|names\[givesTo/);
+  });
+});
+
+describe("UX audit of #4791", () => {
+  const css = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/FunPage.tsx"), "utf8");
+  it("H1: the planner's budget and price boxes keep their width over the generic flex:1 rules, and the add row wraps at 320", () => {
+    // (0,2,0) beats `.gg-plan-head input` (0,1,1) and `.gg-fun-row>input` (0,1,1).
+    expect(css).toContain(".gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto}");
+    expect(css).toContain(".gg-plan-add{flex-wrap:wrap}");
+    expect(css).toContain("@media (max-width:379px){.gg-plan-add>input:first-child{flex:1 1 100%}}");
+    expect(css).toMatch(/\.gg-fun input,\.gg-fun select\{[^}]*min-width:0/);
+    expect(readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/GiftPlanner.tsx"), "utf8")).toContain('className="gg-fun-row gg-plan-add mt-2"');
+  });
+  it("M3 and M5: a 44px Bought target; theme-token borders", () => {
+    expect(css).toContain(".gg-plan-check{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px");
+    expect(css).not.toContain("#ddd8cc");
+  });
+  it("H2: the reveal buttons wrap within the screen and use the short words", async () => {
+    reveal.mockResolvedValue({ name: "Mary Beth", match: "Thibodeaux-Broussard Jr.", budget: 25, exchangeOn: null, size: 4, matchWishList: "abcde12345", myWishList: null });
+    const { container } = render(
+      <MemoryRouter initialEntries={[revealPath("abcdef0123", "c".repeat(64))]}>
+        <Routes><Route path="/gift-guides/secret-santa/:code/:token" element={<SecretSantaReveal />} /></Routes>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.querySelector("[data-reveal-their-list]")).not.toBeNull());
+    const btn = container.querySelector("[data-reveal-their-list]")!;
+    expect(btn.textContent).toBe("See their wish list");
+    expect(btn.className).toMatch(/whitespace-normal/);
+    expect(btn.className).toMatch(/max-w-full/);
+    // L5: no Share with an empty list.
+    expect(container.querySelector("[data-reveal-share-mine]")).toBeNull();
+  });
+  it("L3: a duplicate name is named in the spelling typed first", () => {
+    expect(duplicateName(["Ann", "ben", "Ben"])).toBe("ben");
   });
 });

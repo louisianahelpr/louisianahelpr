@@ -16,7 +16,7 @@ export function FunPage({ title, path, noindex, children }: { title: string; pat
   const meta = PUBLIC_PAGE_META[path];
   usePageMeta(noindex ? { title: `${title} — Helpr`, description: meta.description, robots: "noindex", noCanonical: true } : meta);
   return (
-    <PublicHeaderPage title={title} backTo="/gift-guides" bottomPaddingClassName="pb-12 md:pb-16">
+    <PublicHeaderPage title={title} backTo="/gift-guides" bottomPaddingClassName="pb-12 md:pb-16" wrapTitle>
       <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
       <div className="gg gg-fun w-full" data-gift-fun={path}>{children}</div>
     </PublicHeaderPage>
@@ -31,7 +31,7 @@ const FUN_CSS = `
 .gg-fun-card{border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card));padding:16px;margin:0 0 14px}
 .gg-fun-row{display:flex;gap:8px;align-items:center}
 .gg-fun-row>input,.gg-fun-row>select{flex:1;min-width:0}
-.gg-fun input,.gg-fun select{min-height:44px;font:500 15px Montserrat,sans-serif;padding:8px 12px;border:1px solid #ddd8cc;border-radius:10px;background:hsl(var(--background));color:var(--gg-ink)}
+.gg-fun input,.gg-fun select{min-height:44px;font:500 15px Montserrat,sans-serif;padding:8px 12px;border:1px solid hsl(var(--input));border-radius:10px;background:hsl(var(--background));color:var(--gg-ink);min-width:0}
 .gg-fun label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--gg-ink)}
 .gg-fun-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .gg-fun-err{color:hsl(var(--destructive));font-size:13px;font-weight:600;margin:8px 0 0}
@@ -39,8 +39,8 @@ const FUN_CSS = `
 .gg-fun-x{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border:0;background:transparent;border-radius:999px;color:var(--gg-muted);cursor:pointer;font-size:20px}
 .gg-fun-big{font-size:28px;font-weight:800;margin:6px 0;color:var(--gg-olive);overflow-wrap:anywhere}
 .gg-fun-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.gg-swipe-stage{position:relative;height:440px;max-width:360px;margin:0 auto;touch-action:pan-y}
-.gg-swipe-card{position:absolute;inset:0;border:1px solid var(--gg-line);border-radius:20px;background:hsl(var(--card));box-shadow:0 6px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;padding:16px;user-select:none;transition:transform .2s ease}
+.gg-swipe-stage{position:relative;max-width:360px;margin:0 auto;touch-action:pan-y}
+.gg-swipe-card{position:relative;border:1px solid var(--gg-line);border-radius:20px;background:hsl(var(--card));box-shadow:0 6px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;padding:16px;user-select:none;transition:transform .2s ease}
 .gg-swipe-card.is-dragging{transition:none}
 .gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter{width:220px;height:220px}
 .gg-swipe-card .gg-thumb{width:220px;height:220px;object-fit:contain}
@@ -61,15 +61,19 @@ const FUN_CSS = `
 .gg-plan-money{display:flex;justify-content:space-between;font-size:12.5px;color:var(--gg-muted)}
 .gg-plan-money .over{color:#b26862;font-weight:700}
 .gg-plan-idea{display:flex;gap:6px;align-items:center}
-.gg-plan-idea input[type="checkbox"]{width:22px;height:22px;min-height:0;flex:none;accent-color:hsl(var(--bark))}
+.gg-plan-check{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;cursor:pointer}
+.gg-plan-check input[type="checkbox"]{width:22px;height:22px;min-height:0;margin:0;accent-color:hsl(var(--bark))}
 .gg-plan-idea .gg-plan-iname{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere}
 .gg-plan-idea.bought .gg-plan-iname{text-decoration:line-through;color:var(--gg-muted)}
 .gg-plan-price{width:90px;flex:none}
+.gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto}
+.gg-plan-add{flex-wrap:wrap}
+@media (max-width:379px){.gg-plan-add>input:first-child{flex:1 1 100%}}
 .gg-plan-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
 .gg-plan-totals b{display:block;font-size:18px}
 .gg-plan-totals span{font-size:12px;color:var(--gg-muted)}
 .gg-santa-link{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid var(--gg-line);padding:10px 0}
 .gg-santa-link:first-child{border-top:0}
 .gg-santa-link b{font-size:15px;overflow-wrap:anywhere}
-@media (max-width:479px){.gg-swipe-stage{height:420px}.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:200px;height:200px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
+@media (max-width:479px){.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:200px;height:200px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
 `;

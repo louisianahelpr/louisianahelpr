@@ -10,6 +10,10 @@ import { getPublicOrigin } from "@/lib/authRedirects";
 import { PickThumb, storeLabel } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
 import { Hint } from "../GiftHint";
+import { track } from "@/lib/analytics";
+
+/** The card's anchor: a shared Gift of the Day opens the landing at the card. */
+const GOTD_ID = "gift-of-the-day";
 
 /**
  * On the /gift-guides landing (owner 2026-11-20): the Christmas countdown (Louisiana days), the Gift of the Day (one of
@@ -24,8 +28,9 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
   const [msg, setMsg] = useState<string | null>(null);
   const share = async () => {
     if (!gift) return;
-    const out = await shareNative({ title: W.gotdTitle, text: W.gotdShareText(gift.name), url: `${getPublicOrigin()}/gift-guides`, suppressCopyConfirmation: true });
+    const out = await shareNative({ title: W.gotdTitle, text: W.gotdShareText(gift.name), url: `${getPublicOrigin()}/gift-guides#${GOTD_ID}`, suppressCopyConfirmation: true });
     setMsg(out === "copied" ? W.gotdCopied : null);
+    if (out === "shared" || out === "copied") track("gift_of_the_day_shared", { how: out });
   };
   return (
     <section aria-label={W.gotdTitle} data-gift-countdown="">
@@ -44,7 +49,7 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
           </div>
         )}
         {gift && (
-          <div className="gg-gotd" data-gift-of-the-day={gift.href}>
+          <div className="gg-gotd" id={GOTD_ID} data-gift-of-the-day={gift.href}>
             <PickThumb pick={gift} size={72} />
             <div className="gg-gotd-body">
               <p className="gg-gotd-k">{W.gotdTitle}</p>
@@ -57,7 +62,7 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
                 <Button asChild variant="outline" size="sm" className="gg-chip">
                   <GiftOut href={gift.href}>{W.gotdShop}<span className="sr-only"> {gift.name} (opens in a new tab)</span></GiftOut>
                 </Button>
-                <Button type="button" variant="link" size="inline" className="gg-link" aria-label={W.gotdShareLabel} onClick={() => void share()} data-gift-gotd-share="">{msg ?? W.gotdShare}</Button>
+                <Button type="button" variant="outline" size="sm" className="gg-chip" aria-label={W.gotdShareLabel} onClick={() => void share()} data-gift-gotd-share="">{msg ?? W.gotdShare}</Button>
               </span>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { copyToClipboard, shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
+import { track } from "@/lib/analytics";
 import {
   FUN_WORDS as W, SANTA_BUDGET_MAX, SANTA_DAY_MAX_DAYS, SANTA_MAX, SANTA_MIN, SANTA_NAME_MAX, SANTA_PATH, cleanName, cleanNames, drawSecretSanta, duplicateName,
   louisianaYmd, nameProblem, parseDollars, revealPath,
@@ -44,8 +45,8 @@ export default function SecretSanta() {
     let b: number | undefined;
     if (budget.trim()) {
       const v = parseDollars(budget);
-      if (v === undefined || v < 1 || v > SANTA_BUDGET_MAX) return setError(W.santaBudgetMax(SANTA_BUDGET_MAX));
-      b = Math.round(v);
+      if (v === undefined || !Number.isInteger(v) || v < 1 || v > SANTA_BUDGET_MAX) return setError(W.santaBudgetMax(SANTA_BUDGET_MAX));
+      b = v;
     }
     // The pairs point at the typed rows; map them onto the cleaned (blank-free) list.
     const at = new Map(filled.map((x, k) => [x.i, k]));
@@ -56,6 +57,7 @@ export default function SecretSanta() {
     try {
       const { code, tokens } = await createSecretSanta({ names: clean, givesTo, avoid, budget: b, day: day || undefined });
       setDone({ names: clean, links: tokens.map((t) => `${getPublicOrigin()}${revealPath(code, t)}`) });
+      track("secret_santa_drawn", { size: clean.length, pairs: avoid.length, budget: b !== undefined, day: Boolean(day) });
     } catch (err) {
       const limited = err instanceof SantaSaveError && err.kind === "rateLimited";
       // A rate limit is expected and told to the organizer; anything else is reported too.
@@ -138,9 +140,12 @@ export default function SecretSanta() {
               {pairs.map(([a, c], k) => (
                 <li key={k} className="gg-fun-row" data-santa-pair={k}>
                   {([a, c] as const).map((v, side) => (
-                    <select key={side} aria-label={side === 0 ? W.santaPickA : W.santaPickB} value={v}
+                    <select key={side} aria-label={side === 0 ? W.santaPickA : W.santaPickB} value={v} data-santa-pair-pick={side}
                       onChange={(e) => setPairs(pairs.map((p, j) => (j === k ? (side === 0 ? [Number(e.target.value), p[1]] : [p[0], Number(e.target.value)]) : p)))}>
-                      {names.map((n, i) => <option key={i} value={i}>{n.trim() || W.santaNamePlaceholder(i + 1)}</option>)}
+                      <option value={-1}>{W.santaPickPerson}</option>
+                      {names.map((n, i) => (
+                        <option key={i} value={i} disabled={i === (side === 0 ? c : a)}>{cleanName(n) || W.santaNamePlaceholder(i + 1)}</option>
+                      ))}
                     </select>
                   ))}
                   <button type="button" className="gg-fun-x" aria-label={W.santaAvoidRemove} onClick={() => setPairs(pairs.filter((_, j) => j !== k))}>
@@ -149,7 +154,7 @@ export default function SecretSanta() {
                 </li>
               ))}
             </ul>
-            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setPairs([...pairs, [0, Math.min(1, names.length - 1)]])} data-santa-pair-add="">
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setPairs([...pairs, [-1, -1]])} data-santa-pair-add="">
               {W.santaAvoidAdd}
             </Button>
           </div>

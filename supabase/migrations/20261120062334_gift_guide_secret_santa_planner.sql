@@ -141,7 +141,8 @@ BEGIN
   -- A surge: one warning per hour for the team, and the draw still goes ahead.
   IF v_hour_total >= 1000 AND NOT EXISTS (
        SELECT 1 FROM public.error_logs e
-        WHERE e.created_at > now() - interval '1 hour' AND e.tags->>'kind' = 'secret-santa-surge') THEN
+        WHERE e.created_at > now() - interval '1 hour' AND e.tags->>'kind' = 'secret-santa-surge'
+          AND coalesce(e.tags ->> 'origin', '') <> 'client') THEN
     INSERT INTO public.error_logs (severity, message, tags, context)
     VALUES ('warning', format('Secret Santa: %s groups drawn in the last hour', v_hour_total),
             jsonb_build_object('source', 'secret-santa', 'kind', 'secret-santa-surge'),

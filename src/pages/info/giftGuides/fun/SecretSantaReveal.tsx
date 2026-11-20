@@ -6,6 +6,7 @@ import { revealSecretSanta, setSecretSantaWishList, type SantaReveal } from "@/l
 import { saveWishList, sharedListPath } from "@/lib/giftWishListApi";
 import { listName, listRefs, useGiftList } from "../giftList";
 import { FunPage } from "./FunPage";
+import { track } from "@/lib/analytics";
 
 /**
  * /gift-guides/secret-santa/<code>/<token> (owner 2026-11-20): one person's private reveal. It shows ONLY their match,
@@ -28,7 +29,10 @@ export default function SecretSantaReveal() {
   const load = useCallback(() => {
     setState({ kind: "loading" });
     revealSecretSanta(code, token).then(
-      (r) => setState(r ? { kind: "ok", r } : { kind: "missing" }),
+      (r) => {
+        setState(r ? { kind: "ok", r } : { kind: "missing" });
+        track("secret_santa_reveal_opened", { found: Boolean(r), match_list: Boolean(r?.matchWishList) });
+      },
       (e: unknown) => {
         console.warn("secret santa: reveal failed", e);
         setState({ kind: "error" });
@@ -65,7 +69,7 @@ export default function SecretSantaReveal() {
       )}
       {state.kind === "error" && (
         <div className="gg-fun-card" data-reveal-error="">
-          <p className="m-0">{W.santaFailed}</p>
+          <p className="m-0">{W.revealLoadFailed}</p>
           <Button type="button" variant="outline" size="sm" className="mt-2" onClick={load}>{W.revealRetry}</Button>
         </div>
       )}
@@ -79,7 +83,7 @@ export default function SecretSantaReveal() {
             <div className="gg-fun-actions justify-center">
               {state.r.matchWishList ? (
                 <Button asChild className="btn-grad-primary h-auto max-w-full whitespace-normal text-center">
-                  <Link to={sharedListPath(state.r.matchWishList)} data-reveal-their-list="">{W.revealTheirList(state.r.match)}</Link>
+                  <Link to={sharedListPath(state.r.matchWishList)} data-reveal-their-list="">{W.revealTheirList}</Link>
                 </Button>
               ) : (
                 <p className="gg-fun-note w-full" data-reveal-no-list="">{W.revealNoList(state.r.match)}</p>
@@ -93,9 +97,11 @@ export default function SecretSantaReveal() {
             <p className="m-0 font-semibold">{W.revealMyList}</p>
             <p className="gg-fun-note mt-1">{W.revealMyListHelp}</p>
             <div className="gg-fun-actions">
-              <Button type="button" variant="outline" className="h-auto max-w-full whitespace-normal text-center" disabled={sharing} onClick={() => void shareMine()} data-reveal-share-mine="">{W.revealShareMine}</Button>
+              {refs.length > 0 && (
+                <Button type="button" variant="outline" className="h-auto max-w-full whitespace-normal text-center" disabled={sharing} onClick={() => void shareMine()} data-reveal-share-mine="">{W.revealShareMine}</Button>
+              )}
               <Button asChild variant="link" size="inline" className="gg-link">
-                <Link to="/gift-guides" data-reveal-make-list="">{W.revealMyList} ›</Link>
+                <Link to="/gift-guides" data-reveal-make-list="">{W.revealBrowse} ›</Link>
               </Button>
             </div>
             {shareMsg && <p className="gg-fun-note" role="status" data-reveal-share-msg="">{shareMsg}</p>}

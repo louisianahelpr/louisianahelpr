@@ -6,6 +6,7 @@ import { FUN_WORDS as W, SWIPE_BUDGETS, SWIPE_WHO, swipePool, swipeRound, type S
 import { PickPrice } from "@/components/giftGuides/PickPrice";
 import { shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
+import { track } from "@/lib/analytics";
 import { saveWishList, sharedListPath } from "@/lib/giftWishListApi";
 import { PickThumb, storeLabel } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
@@ -72,6 +73,19 @@ export default function SwipeGifts() {
 
   const card = round[at];
   const finished = started && round.length > 0 && at >= round.length;
+  // UX audit L8: the next card's photo loads while this one is shown, so it appears at once.
+  const nextImage = round[at + 1]?.image;
+  useEffect(() => {
+    if (!nextImage) return;
+    const img = new Image();
+    img.referrerPolicy = "no-referrer-when-downgrade";
+    img.src = nextImage;
+  }, [nextImage]);
+  useEffect(() => {
+    if (finished) track("gift_swipe_round_done", { who, budget, cards: round.length, saved: saved.length });
+    // Once per finished round.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
 
   const next = (keep: boolean) => {
     if (!card) return;
@@ -81,6 +95,18 @@ export default function SwipeGifts() {
     setDx(0);
     setAt((i) => i + 1);
   };
+
+  useEffect(() => {
+    if (!card) return;
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      if (e.key === "ArrowRight") next(true);
+      else if (e.key === "ArrowLeft") next(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest("a,button")) return;

@@ -1,3 +1,6 @@
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -67,13 +70,13 @@ function Person({ p }: { p: PlanPerson }) {
   return (
     <li className="gg-plan-person" data-plan-person={p.id}>
       <div className="gg-plan-head">
-        <input aria-label={W.plannerPersonName} value={p.name} maxLength={40} onChange={(e) => A.renamePerson(p.id, e.target.value)}
+        <Input aria-label={W.plannerPersonName} value={p.name} maxLength={40} onChange={(e) => A.renamePerson(p.id, e.target.value)}
           onBlur={() => { if (!p.name.trim()) A.renamePerson(p.id, W.plannerUnnamed); }} data-plan-name={p.id} />
-        <input className="gg-plan-budget" aria-label={`${W.plannerBudget} (${p.name})`} placeholder={W.plannerBudget} inputMode="decimal" value={budgetText}
+        <Input className="gg-plan-budget" aria-label={`${W.plannerBudget} (${p.name})`} placeholder={W.plannerBudget} inputMode="decimal" value={budgetText}
           onChange={(e) => typeBudget(e.target.value)} data-plan-budget={p.id} />
-        <button type="button" className="gg-fun-x" aria-label={W.plannerRemovePerson(p.name)} onClick={() => A.removePerson(p.id)} data-plan-remove={p.id}>
+        <RoundIconButton className="gg-fun-x" aria-label={W.plannerRemovePerson(p.name)} onClick={() => A.removePerson(p.id)} data-plan-remove={p.id}>
           <span aria-hidden="true">×</span>
-        </button>
+        </RoundIconButton>
       </div>
       <MoneyBar p={p} />
       {p.ideas.length > 0 && (
@@ -81,10 +84,10 @@ function Person({ p }: { p: PlanPerson }) {
           {p.ideas.map((i) => (
             <li key={i.id} className={i.bought ? "gg-plan-idea bought" : "gg-plan-idea"} data-plan-idea={i.id}>
               <label className="gg-plan-check">
-                <input type="checkbox" checked={i.bought} aria-label={`${W.plannerBought}: ${i.name}`} onChange={(e) => A.setIdea(p.id, i.id, { bought: e.target.checked })} data-plan-bought={i.id} />
+                <Checkbox checked={i.bought} aria-label={`${W.plannerBought}: ${i.name}`} onCheckedChange={(v) => A.setIdea(p.id, i.id, { bought: v === true })} data-plan-bought={i.id} />
               </label>
               <span className="gg-plan-iname">{i.href ? <a href={i.href} target="_blank" rel="sponsored noopener" className="gg-link min-h-0">{i.name}</a> : i.name}</span>
-              <input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice}: ${i.name}`} inputMode="decimal" placeholder="$" defaultValue={i.price !== undefined ? String(i.price) : ""}
+              <Input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice}: ${i.name}`} inputMode="decimal" placeholder="$" defaultValue={i.price !== undefined ? String(i.price) : ""}
                 onBlur={(e) => {
                   const t = e.target.value.trim();
                   const v = t ? parseDollars(t) : undefined;
@@ -92,16 +95,16 @@ function Person({ p }: { p: PlanPerson }) {
                   setErr(null);
                   A.setIdea(p.id, i.id, { price: v });
                 }} data-plan-price={i.id} />
-              <button type="button" className="gg-fun-x" aria-label={W.plannerRemoveIdea(i.name)} onClick={() => A.removeIdea(p.id, i.id)}>
+              <RoundIconButton className="gg-fun-x" aria-label={W.plannerRemoveIdea(i.name)} onClick={() => A.removeIdea(p.id, i.id)}>
                 <span aria-hidden="true">×</span>
-              </button>
+              </RoundIconButton>
             </li>
           ))}
         </ul>
       )}
       <form className="gg-fun-row gg-plan-add mt-2" onSubmit={addIdea}>
-        <input aria-label={`${W.plannerIdeaName} (${p.name})`} placeholder={W.plannerIdeaName} value={idea} maxLength={120} onChange={(e) => setIdea(e.target.value)} data-plan-idea-name={p.id} />
-        <input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice} (${p.name})`} placeholder={W.plannerIdeaPrice} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} data-plan-idea-price={p.id} />
+        <Input aria-label={`${W.plannerIdeaName} (${p.name})`} placeholder={W.plannerIdeaName} value={idea} maxLength={120} onChange={(e) => setIdea(e.target.value)} data-plan-idea-name={p.id} />
+        <Input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice} (${p.name})`} placeholder={W.plannerIdeaPrice} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} data-plan-idea-price={p.id} />
         <Button type="submit" variant="outline" size="sm" data-plan-add-idea={p.id}>{W.plannerAddIdea}</Button>
       </form>
       {list.picks.length > 0 && (
@@ -159,7 +162,7 @@ export default function GiftPlanner() {
       {plan.people.length === 0 && <p className="gg-fun-note" data-plan-empty="">{W.plannerEmpty}</p>}
       <ul className="gg-fun-list">{plan.people.map((p) => <Person key={p.id} p={p} />)}</ul>
       <form className="gg-fun-row mt-3" onSubmit={add}>
-        <input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} data-plan-new-name="" />
+        <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} data-plan-new-name="" />
         <Button type="submit" className="btn-grad-primary" data-plan-add-person="">{W.plannerAddPerson}</Button>
       </form>
       <p className="gg-fun-note" data-plan-sync={sync}>

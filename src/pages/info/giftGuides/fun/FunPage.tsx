@@ -63,7 +63,7 @@ const FUN_CSS = `
 .gg-plan-money .over{color:#b26862;font-weight:700}
 .gg-plan-idea{display:flex;gap:6px;align-items:center}
 .gg-plan-check{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;cursor:pointer}
-.gg-plan-check input[type="checkbox"]{width:22px;height:22px;min-height:0;margin:0;accent-color:hsl(var(--bark))}
+.gg-plan-check>button{width:22px;height:22px}
 .gg-plan-idea .gg-plan-iname{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere}
 .gg-plan-idea.bought .gg-plan-iname{text-decoration:line-through;color:var(--gg-muted)}
 .gg-plan-price{width:90px;flex:none}

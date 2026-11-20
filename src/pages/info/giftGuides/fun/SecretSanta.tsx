@@ -1,3 +1,6 @@
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/select";
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { copyToClipboard, shareNative } from "@/lib/nativeShare";
@@ -110,16 +113,16 @@ export default function SecretSanta() {
               <ul className="gg-fun-list mt-2">
                 {names.map((n, i) => (
                   <li key={i} className="gg-fun-row">
-                    <input aria-label={W.santaNamePlaceholder(i + 1)} placeholder={W.santaNamePlaceholder(i + 1)} value={n} maxLength={SANTA_NAME_MAX} autoComplete="off"
+                    <Input aria-label={W.santaNamePlaceholder(i + 1)} placeholder={W.santaNamePlaceholder(i + 1)} value={n} maxLength={SANTA_NAME_MAX} autoComplete="off"
                       onChange={(e) => setNames(names.map((x, k) => (k === i ? e.target.value : x)))} data-santa-name={i} />
                     {names.length > SANTA_MIN && (
-                      <button type="button" className="gg-fun-x" aria-label={W.santaRemoveName(n)} data-santa-remove={i}
+                      <RoundIconButton className="gg-fun-x" aria-label={W.santaRemoveName(n)} data-santa-remove={i}
                         onClick={() => {
                           setNames(names.filter((_, k) => k !== i));
                           setPairs(pairs.filter(([a, c]) => a !== i && c !== i).map(([a, c]) => [a > i ? a - 1 : a, c > i ? c - 1 : c]));
                         }}>
                         <span aria-hidden="true">×</span>
-                      </button>
+                      </RoundIconButton>
                     )}
                   </li>
                 ))}
@@ -129,9 +132,9 @@ export default function SecretSanta() {
               <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setNames([...names, ""])} data-santa-add="">{W.santaAddName}</Button>
             )}
             <label htmlFor="santa-budget">{W.santaBudget}</label>
-            <input id="santa-budget" inputMode="decimal" placeholder="$25" value={budget} onChange={(e) => setBudget(e.target.value)} data-santa-budget="" />
+            <Input id="santa-budget" inputMode="decimal" placeholder="$25" value={budget} onChange={(e) => setBudget(e.target.value)} data-santa-budget="" />
             <label htmlFor="santa-day">{W.santaDate}</label>
-            <input id="santa-day" type="date" min={louisianaYmd(new Date())} max={louisianaYmd(new Date(Date.now() + SANTA_DAY_MAX_DAYS * 86400000))} value={day} onChange={(e) => setDay(e.target.value)} data-santa-day="" />
+            <Input id="santa-day" type="date" min={louisianaYmd(new Date())} max={louisianaYmd(new Date(Date.now() + SANTA_DAY_MAX_DAYS * 86400000))} value={day} onChange={(e) => setDay(e.target.value)} data-santa-day="" />
           </div>
           <div className="gg-fun-card">
             <p className="m-0 text-sm font-semibold">{W.santaAvoidTitle}</p>
@@ -140,17 +143,17 @@ export default function SecretSanta() {
               {pairs.map(([a, c], k) => (
                 <li key={k} className="gg-fun-row" data-santa-pair={k}>
                   {([a, c] as const).map((v, side) => (
-                    <select key={side} aria-label={side === 0 ? W.santaPickA : W.santaPickB} value={v} data-santa-pair-pick={side}
+                    <NativeSelect wrapperClassName="min-w-0 flex-1" key={side} aria-label={side === 0 ? W.santaPickA : W.santaPickB} value={v} data-santa-pair-pick={side}
                       onChange={(e) => setPairs(pairs.map((p, j) => (j === k ? (side === 0 ? [Number(e.target.value), p[1]] : [p[0], Number(e.target.value)]) : p)))}>
                       <option value={-1}>{W.santaPickPerson}</option>
                       {names.map((n, i) => (
                         <option key={i} value={i} disabled={i === (side === 0 ? c : a)}>{cleanName(n) || W.santaNamePlaceholder(i + 1)}</option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   ))}
-                  <button type="button" className="gg-fun-x" aria-label={W.santaAvoidRemove} onClick={() => setPairs(pairs.filter((_, j) => j !== k))}>
+                  <RoundIconButton className="gg-fun-x" aria-label={W.santaAvoidRemove} onClick={() => setPairs(pairs.filter((_, j) => j !== k))}>
                     <span aria-hidden="true">×</span>
-                  </button>
+                  </RoundIconButton>
                 </li>
               ))}
             </ul>

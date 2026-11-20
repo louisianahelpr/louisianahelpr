@@ -413,7 +413,7 @@ describe("Declutter location ask", () => {
     at("/declutter", <DeclutterPage />);
     await screen.findByText("Oak rocking chair");
     // ONE search on Browse: "Search Declutter" with its filters, never Explore's "Search all sections" above it.
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx | globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}> | globalSearch search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs} homeLink={!member}> | globalSearch search={head.search} mine={head.mine} fab={fab} tabs={head.tabs} homeLink={!member}>
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     expect(screen.getAllByRole("searchbox", { name: "Search Declutter" })).toHaveLength(1);
     // The chip row: All, then the categories on the list (never one with nothing for sale), each one tap.

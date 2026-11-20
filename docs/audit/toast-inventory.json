@@ -4614,7 +4614,7 @@
     },
     {
       "file": "src/components/declutter/AwayMode.tsx",
-      "line": 30,
+      "line": 41,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4641,7 +4641,7 @@
     },
     {
       "file": "src/components/declutter/AwayMode.tsx",
-      "line": 31,
+      "line": 42,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4651,7 +4651,7 @@
     },
     {
       "file": "src/components/declutter/AwayMode.tsx",
-      "line": 57,
+      "line": 69,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4678,7 +4678,7 @@
     },
     {
       "file": "src/components/declutter/AwayMode.tsx",
-      "line": 58,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4688,7 +4688,7 @@
     },
     {
       "file": "src/components/declutter/BulkActions.tsx",
-      "line": 84,
+      "line": 98,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4725,7 +4725,7 @@
     },
     {
       "file": "src/components/declutter/BulkActions.tsx",
-      "line": 96,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4735,7 +4735,7 @@
     },
     {
       "file": "src/components/declutter/BulkActions.tsx",
-      "line": 101,
+      "line": 115,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7573,7 +7573,7 @@
     },
     {
       "file": "src/components/declutter/SaverOffer.tsx",
-      "line": 68,
+      "line": 69,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -7627,7 +7627,7 @@
     },
     {
       "file": "src/components/declutter/SaverOffer.tsx",
-      "line": 73,
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8154,7 +8154,7 @@
     },
     {
       "file": "src/components/declutter/ShopSaleCard.tsx",
-      "line": 34,
+      "line": 47,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -8208,7 +8208,7 @@
     },
     {
       "file": "src/components/declutter/ShopSaleCard.tsx",
-      "line": 35,
+      "line": 48,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8218,7 +8218,7 @@
     },
     {
       "file": "src/components/declutter/ShopSaleCard.tsx",
-      "line": 72,
+      "line": 93,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -8272,7 +8272,7 @@
     },
     {
       "file": "src/components/declutter/ShopSaleCard.tsx",
-      "line": 73,
+      "line": 94,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -96,7 +96,7 @@ describe("F128: Selling's unclear phrases are plain words", () => {
     // Audit 11-10 F323: "Have someone sell for you" read like "How a Helpr helps you list" (paid by the hour, no share).
     const mine = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterMineViews.tsx"), "utf8"));
     const mgr = blankComments(readFileSync(join(SRC, "components/declutter/ManagerPanel.tsx"), "utf8"));
-    expect(mine).toContain('{ key: "sold", label: t("decl.mv.pickups"), count: todo?.salesOpen ?? 0, hot: true },');
+    expect(mine).toContain('{ key: "sold", label: t("decl.mv.pickups"), count: handOver ?? todo?.salesOpen ?? 0, hot: true },'); // 11-20 #6: the shared hand-over count (useSalesToHandOver)
     expect(readFileSync(join(SRC, "lib/i18n/enDeclutter.ts"), "utf8")).toContain('"decl.mv.pickups": "Pickups to do",');
     expect((mgr.match(/>Let a friend sell for you</g) ?? []).length).toBe(2);
     expect(mgr).not.toMatch(/Get help selling|Have someone sell for you|, for a share\./);

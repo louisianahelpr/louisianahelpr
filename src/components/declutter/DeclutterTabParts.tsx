@@ -7,6 +7,7 @@
  */
 import { lazy, Suspense, useState, type ReactNode } from "react";
 import { useOpenProblems } from "./useOpenProblems";
+import { paidOrderIds, salesToHandOver } from "./useSalesToHandOver";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { useFoldableSales } from "./useFoldableSales";
 import { useQuery } from "@tanstack/react-query";
@@ -81,9 +82,9 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   useLinkedOrderOutcome(side, cart.data); // F403: a bad or wrong-side link says so instead of a silent empty tab
   // Q2631 (audit 1102c R6): an order on hold for a problem is not "to hand over" (its card says "On hold until the
   // problem is decided."). The same read and key the order cards make (useOpenProblems), so it adds no request.
-  const problems = useOpenProblems(lines.filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id as string), side === "seller");
-  const held = new Set(lines.filter((l) => l.status === "paid" && l.order_status === "paid" && l.handover !== "delivery" && l.order_id && problems.has(l.order_id)).map((l) => l.order_id as string)).size;
-  const toHandOver = Math.max(0, todo.salesOpen - held);
+  // 11-20 #6: the one count (useSalesToHandOver.ts) the Selling to-do and the Pickups chip read too.
+  const problems = useOpenProblems(paidOrderIds(lines), side === "seller");
+  const toHandOver = salesToHandOver(lines, problems);
   // A3-78: a finished sale still waiting on the seller (a refund request to answer, the item back to confirm) is never
   // folded away: the seller's one deadline on the tab stays in the list.
   const awaiting = useSellerReportsToAnswer();

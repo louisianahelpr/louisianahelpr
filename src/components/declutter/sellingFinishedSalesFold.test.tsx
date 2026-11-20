@@ -82,8 +82,9 @@ describe("soldstates-2: Selling folds finished sales", () => {
 
   // Q2631 (audit 1102c R6): an order on hold for a problem still counted in "Sold: pickup and payout · 1 to hand over"
   // while its card said "On hold until the problem is decided." Held orders are left out of the count.
-  // @mutate src/components/declutter/DeclutterTabParts.tsx |   const toHandOver = Math.max(0, todo.salesOpen - held); |   const toHandOver = todo.salesOpen;
-  // @mutate src/components/declutter/DeclutterTabParts.tsx | l.order_status === "paid" && l.handover !== "delivery" && l.order_id && problems.has(l.order_id) | l.order_status === "paid" && l.handover !== "delivery" && l.order_id
+  // 11-20 #6: the count lives in useSalesToHandOver.ts now (the Selling to-do and chip read it too).
+  // @mutate src/components/declutter/DeclutterTabParts.tsx |   const toHandOver = salesToHandOver(lines, problems); |   const toHandOver = todo.salesOpen;
+  // @mutate src/components/declutter/useSalesToHandOver.ts | l.order_status === "paid" && l.handover !== "delivery" && l.order_id && problems.has(l.order_id) | l.order_status === "paid" && l.handover !== "delivery" && l.order_id
   it("Q2631: an order on hold for a problem is not counted to hand over", async () => {
     state.cart = [line(1, "paid"), line(2, "paid")];
     state.problems = [{ id: "p1", order_id: line(2, "x").order_id, reporter_side: "buyer", reason: "not_as_described" }];

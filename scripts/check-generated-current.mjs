@@ -292,6 +292,7 @@ export const TWO_WAY = {
 export const HISTORICAL = {
   "docs/audit/loading-states/skel-probe/measurements.json": "before-state of the 2026-09-22 skeleton fix (Q-loading-states), kept as its red-before evidence",
   "docs/audit/loading-states/skel-probe-after/measurements.json": "after-state of the same fix, kept as its green-after evidence",
+  "scripts/gift-guide-popularity.json": "the gift guides' placement order for the 1119e sort train: Vercel Web Analytics pageviews per /gift-guides/<slug> (production, 2026-11-05..2026-11-20 UTC, read 2026-11-19 by the lead's agent through the Vercel MCP aggregate_pageviews) plus the lead's search-demand order; a dated record the importer reads, re-measured by hand when the order is refreshed",
 };
 
 /**

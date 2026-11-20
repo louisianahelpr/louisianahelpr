@@ -49,6 +49,7 @@ export function GiftWishShare({ name, refs, save, signedIn = false }: { name: st
       setState("menu");
       track("gift_wish_list_link", { items: refs.length, signed_in: signedIn });
     } catch (e) {
+      // Shown to the visitor in plain words (fail sets the alert line); they can tap again.
       fail(e);
     }
   };
@@ -63,6 +64,7 @@ export function GiftWishShare({ name, refs, save, signedIn = false }: { name: st
         track("gift_wish_list_new_link", {});
       }
     } catch (e) {
+      // Shown to the visitor in plain words (fail sets the alert line); they can tap again.
       fail(e);
     }
   };

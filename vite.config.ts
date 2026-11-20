@@ -1224,6 +1224,17 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
+            // The poster's ID at the offer (owner 11-20, src/lib/posterIdAtOffer.ts): the hire screens import it (offer
+            // handlers, instant book, series dates, Post a job). Left to bootReach it joined signed-in-pages, and one of
+            // those importers in /declutter's closure then put that whole 19.9 KB gz chunk on its critical path
+            // (selling 519 KB, buying 579 KB gz, over budget). It rides alone with its importers.
+            {
+              name: "poster-id-at-offer",
+              test: /[\\/]src[\\/]lib[\\/]posterIdAtOffer\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             // Money's payout reads (useEarningsData). Profile's tab panels start them beside the Earnings tab's chunk
             // (B72), so rolldown put the module in the Profile chunk, and the lazy Earnings tab then imported the whole
             // Profile chunk and its closure: 7 rounds and 500 KB gz on /profile?tab=earnings against 6 and 460 (train

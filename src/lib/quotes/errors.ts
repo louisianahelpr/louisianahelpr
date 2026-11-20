@@ -20,8 +20,8 @@ const JOB_INSERT_REFUSAL_COPY: ReadonlyArray<{ match: RegExp; copy: string }> = 
   { match: /^Maximum budget is \$/, copy: `A job can be up to ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}. Split a bigger project into separate jobs.` },
   { match: /maximum of 5 open jobs at a time/, copy: "You can have up to 5 open jobs at a time. Close one, or wait for one to be booked, then try again." },
   { match: /^email_unconfirmed\b/, copy: "Confirm your email address first: open the link we emailed you, then try again." },
-  // 20261021081258: Stripe Identity before a post (the quote's job is a post); api.ts also opens the ID sheet.
-  { match: /^identity_required_to_post\b/, copy: "Verify your ID with Stripe first. It takes about 2 minutes, once; then book again." },
+  // 20261120205350: the poster's Stripe Identity before an offer (the quote's job names the quoter); api.ts also opens the ID sheet.
+  { match: /^identity_required_to_offer\b/, copy: "Verify your ID with Stripe first. It takes about 2 minutes, once; then book again." },
   // 20261021110531 (Q2291): a member job outside Louisiana is refused at insert.
   { match: /^job_address_not_louisiana\b/, copy: "Helpr is in Louisiana only for now. Use a Louisiana address." },
   // 20261030063902 (Q1755): a test account is never offered, hired on or joined to a real job (the quote's offer names the Helpr).

@@ -22,7 +22,7 @@
  * works.
  *
  * @mutate supabase/migrations/20261012184600_scope_policy_helpers_to_caller.sql |        _user_id IS NOT DISTINCT FROM auth.uid()\n       OR public.is_server_context()\n       OR pg_trigger_depth() > 0 |        true
- * @mutate supabase/migrations/20261012184600_scope_policy_helpers_to_caller.sql |     AND (_user_id IS NOT DISTINCT FROM auth.uid() OR public.is_server_context())\n | \n
+ * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql |     AND (_user_id IS NOT DISTINCT FROM auth.uid() OR public.is_server_context())\n | \n
  * @mutate supabase/migrations/20261012184600_scope_policy_helpers_to_caller.sql |       OR EXISTS (SELECT 1 FROM public.jobs j WHERE j.id = _job_id AND j.customer_id = auth.uid())\n | \n
  * @mutate supabase/migrations/20261012184600_scope_policy_helpers_to_caller.sql |      AND EXISTS (SELECT 1 FROM public.user_roles r\n                  WHERE r.user_id = m.sender_id AND r.role = 'admin'::public.app_role) |      AND COALESCE(public.has_role(m.sender_id, 'admin'::public.app_role), false)
  * @mutate scripts/ci/definer-exec-allowlist.json |   "unscoped": {\n |   "unscoped": {\n    "has_role(uuid, app_role)": "reviewed 2026-10-05 (Q1284): policy helper used by every admin policy with auth.uid(); called directly it says whether an id is an admin.",\n

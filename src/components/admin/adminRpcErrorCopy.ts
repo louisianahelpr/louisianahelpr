@@ -150,6 +150,10 @@ export const ADMIN_RPC_ERROR_COPY = {
     // Q1415 (d): the review decides the money; a hold release cannot pre-empt it.
     ban_review_open: "This Helpr is under an open ban review, so their payouts stay held until it's decided. Lifting the review in the Ban review queue releases the hold; confirming the ban keeps it.",
   },
+  // Admin home → App sign-ins this week card (owner 2026-11-20, 20261120150247).
+  admin_app_signins_week: {
+    admin_only: "Only admins can see app sign-ins.",
+  },
   // AdminAnalytics → Sign-up leads card (Q1587, 20261012030524).
   admin_list_signup_leads: {
     admin_only: "Only admins can see sign-up leads.",

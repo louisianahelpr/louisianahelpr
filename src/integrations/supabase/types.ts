@@ -146,6 +146,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_installs: {
+        Row: {
+          app_version: string | null
+          first_seen_at: string
+          last_seen_at: string
+          platform: string
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          first_seen_at?: string
+          last_seen_at?: string
+          platform: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          first_seen_at?: string
+          last_seen_at?: string
+          platform?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       apple_sign_in_tokens: {
         Row: {
           client_id: string
@@ -17309,6 +17333,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_app_signins_week: { Args: never; Returns: Json }
       admin_apply_account_action: {
         Args: {
           p_action: string
@@ -22131,6 +22156,10 @@ export type Database = {
         }[]
       }
       reap_stranded_instant_payouts: { Args: never; Returns: Json }
+      record_app_open: {
+        Args: { p_app_version?: string; p_platform: string }
+        Returns: boolean
+      }
       record_booking_source: { Args: { p_helpr_id: string }; Returns: string }
       record_error_log_throttle_drop: {
         Args: { p_kind: string }

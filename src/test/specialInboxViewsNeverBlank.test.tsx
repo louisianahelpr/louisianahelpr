@@ -66,7 +66,7 @@ function openOptions() {
 }
 
 const VIEWS: Array<[string, RegExp]> = [
-  ["Recently deleted", /Nothing here\. Swipe a chat left/],
+  ["Archived", /Nothing archived\. Swipe a chat left/], // "Recently deleted" until 2026-11-20
   ["Pinned", /No conversations are pinned\./],
 ];
 

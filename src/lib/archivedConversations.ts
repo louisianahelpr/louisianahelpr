@@ -42,6 +42,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { isGoneReference } from "@/lib/goneReference";
 import { isTeamThreadKey } from "@/lib/teamThread";
+import { emitClearedChanged, getClearMap, setClearMap, type ClearMap } from "@/lib/clearedConversations";
 
 const STORAGE_KEY = "helpr_archived_conversations";
 
@@ -60,6 +61,7 @@ function emitArchiveChanged(): void {
     window.dispatchEvent(new Event(ARCHIVE_CHANGED_EVENT));
   }
 }
+
 
 /**
  * Q335 (owner, 2026-09-26): a job's deleted-account thread (otherUserId null,
@@ -106,6 +108,12 @@ function userScopedKey(userId: string): string {
 
 /** In-memory cache, keyed by user id. */
 const cache = new Map<string, ArchiveMap>();
+
+
+function sameMap(a: Record<string, string>, b: Record<string, string>): boolean {
+  const ak = Object.keys(a);
+  return ak.length === Object.keys(b).length && ak.every((k) => b[k] === a[k]);
+}
 
 /**
  * Q511: the keys THIS device archived whose server write is not yet
@@ -190,6 +198,17 @@ function isMissingTable(error: unknown): boolean {
   return code === "PGRST205" || code === "42P01";
 }
 
+/**
+ * True when thread_archives exists but `cleared_before` does not yet
+ * (20261120201223 not deployed): 42703 from Postgres, PGRST204 from PostgREST's
+ * schema cache. The read then falls back to the pre-clear columns.
+ */
+function isMissingColumn(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = (error as { code?: string }).code;
+  return code === "42703" || code === "PGRST204";
+}
+
 function readLocal(userId: string): ArchiveMap {
   try {
     const raw = safeStorage.getItem(userScopedKey(userId));
@@ -225,13 +244,23 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   // Seed from the mirror first so the very first paint is right.
   const local = readLocal(userId);
   cache.set(userId, local);
+  const previousCleared = getClearMap(userId);
 
   // `thread_archives` (20260831011232_add_thread_archives.sql) is in the
   // generated Supabase types, so these reads and writes are fully typed.
-  const { data, error } = await supabase
+  // cleared_before is "delete for me" (20261120201223); until that migration
+  // deploys the read retries without it, and nothing reads as cleared.
+  type ArchiveRow = { job_id: string; other_user_id: string | null; archived_at: string; cleared_before?: string | null };
+  let { data, error }: { data: ArchiveRow[] | null; error: { code?: string; message: string } | null } = await supabase
     .from("thread_archives")
-    .select("job_id, other_user_id, archived_at")
+    .select("job_id, other_user_id, archived_at, cleared_before")
     .eq("user_id", userId);
+  if (error && isMissingColumn(error)) {
+    ({ data, error } = await supabase
+      .from("thread_archives")
+      .select("job_id, other_user_id, archived_at")
+      .eq("user_id", userId));
+  }
 
   if (error) {
     // Never swallow silently (see CLAUDE.md) — but a not-yet-deployed table
@@ -244,8 +273,16 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   }
 
   const server: ArchiveMap = {};
-  for (const r of (data ?? []) as { job_id: string; other_user_id: string | null; archived_at: string }[]) {
+  const serverCleared: ClearMap = {};
+  for (const r of data ?? []) {
     server[conversationKey(r.job_id, r.other_user_id)] = r.archived_at;
+    if (r.cleared_before) serverCleared[conversationKey(r.job_id, r.other_user_id)] = r.cleared_before;
+  }
+  setClearMap(userId, serverCleared);
+  // A clear made on another device changes which messages the inbox holds.
+  if (!sameMap(previousCleared, serverCleared)) {
+    emitClearedChanged();
+    emitArchiveChanged();
   }
 
   // Merge-up: a thread archived while this table didn't exist yet (or
@@ -403,8 +440,13 @@ export function unarchiveConversation(
   if (!userId || isTeamThreadKey(jobId)) return;
   const key = conversationKey(jobId, otherUserId);
   const previous = getArchiveMap(userId)[key];
+  // "Delete for me" survives a restore: a thread that was cleared and then
+  // archived again keeps its row, with archived_at moved back to the clear
+  // moment, so it lists again showing only its post-clear messages.
+  const cleared = getClearMap(userId)[key];
   const map = { ...getArchiveMap(userId) };
-  delete map[key];
+  if (cleared) map[key] = cleared;
+  else delete map[key];
   cache.set(userId, map);
   writeLocal(userId, map);
   // Q511: a restore cancels any unconfirmed archive of the same thread.
@@ -412,10 +454,15 @@ export function unarchiveConversation(
   emitArchiveChanged();
 
   void (async () => {
-    const base = supabase.from("thread_archives")
-      .delete()
-      .eq("user_id", userId)
-      .eq("job_id", jobId);
+    const base = cleared
+      ? supabase.from("thread_archives")
+        .update({ archived_at: cleared })
+        .eq("user_id", userId)
+        .eq("job_id", jobId)
+      : supabase.from("thread_archives")
+        .delete()
+        .eq("user_id", userId)
+        .eq("job_id", jobId);
     // Q335: the deleted-account row is other_user_id IS NULL; `.eq(col, null)`
     // would match nothing.
     const { error } = await (otherUserId === null
@@ -456,4 +503,59 @@ export function isArchived(
   return Number.isFinite(lastMs) && Number.isFinite(archivedMs)
     ? lastMs <= archivedMs
     : true;
+}
+
+
+/**
+ * "Delete for me": take a conversation off THIS member's list. Nothing is
+ * deleted on the server: the member's own thread_archives row gets
+ * cleared_before = now (and archived_at = now, so it hides at once). Every
+ * message up to now stays hidden from them; the other person keeps the whole
+ * thread, and a new message brings the thread back with only what came after.
+ * Not listed in Archived, so not restorable.
+ *
+ * Optimistic like archiveConversation; resolves false (after rolling back) when
+ * the server refused, so the caller can say so.
+ */
+export async function deleteConversationForMe(
+  userId: string,
+  jobId: string,
+  otherUserId: string | null,
+): Promise<boolean> {
+  if (!userId || isTeamThreadKey(jobId)) return false;
+  const key = conversationKey(jobId, otherUserId);
+  const now = new Date().toISOString();
+  const prevArchive = getArchiveMap(userId)[key];
+  const prevCleared = getClearMap(userId)[key];
+  const archiveMap = { ...getArchiveMap(userId), [key]: now };
+  const clearMap = { ...getClearMap(userId), [key]: now };
+  cache.set(userId, archiveMap);
+  writeLocal(userId, archiveMap);
+  setClearMap(userId, clearMap);
+  // Never pushed by the archive merge-up: the server read is the truth for clears.
+  setPending(userId, key, false);
+  emitClearedChanged();
+  emitArchiveChanged();
+
+  const { error } = await supabase.from("thread_archives").upsert(
+    { user_id: userId, job_id: jobId, other_user_id: otherUserId, archived_at: now, cleared_before: now },
+    { onConflict: "user_id,job_id,other_user_id" },
+  );
+  if (!error) return true;
+  const rollArchive = { ...getArchiveMap(userId) };
+  if (prevArchive) rollArchive[key] = prevArchive;
+  else delete rollArchive[key];
+  const rollClear = { ...getClearMap(userId) };
+  if (prevCleared) rollClear[key] = prevCleared;
+  else delete rollClear[key];
+  cache.set(userId, rollArchive);
+  writeLocal(userId, rollArchive);
+  setClearMap(userId, rollClear);
+  emitClearedChanged();
+  emitArchiveChanged();
+  // A job or person deleted while the inbox was open: nothing to clear, not a fault.
+  if (!isGoneReference(error)) {
+    report(error, { severity: "warning", tags: { source: "archivedConversations.deleteConversationForMe" } });
+  }
+  return false;
 }

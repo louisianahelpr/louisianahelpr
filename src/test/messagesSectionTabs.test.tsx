@@ -196,7 +196,7 @@ describe("the hook", () => {
     render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
     const chips = screen.getAllByRole("button").map((b) => b.textContent);
     // Declutter is switched off here and has no threads: no chip (owner 2026-10-21).
-    expect(chips).toEqual(["All", "Unread · 1", "Jobs", "Shops", "Homes"]);
+    expect(chips).toEqual(["All", "Unread · 1", "Jobs", "Shops", "Homes", "Archived"]);
     expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -209,7 +209,7 @@ describe("the hook", () => {
       const { result } = renderHook(() => useMessageSections([JOB, TEAM], [JOB, TEAM]), { wrapper: wrap("/messages?section=jobs") });
       expect(result.current.section).toBe("all");
       render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
-      expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["All", "Unread · 1"]);
+      expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["All", "Unread · 1", "Archived"]);
     } finally {
       featureOn.shops = true;
       featureOn.rentals = true;
@@ -274,9 +274,9 @@ describe("the hook", () => {
       }
     };
     // Neither open: Jobs is the lone section left, and a lone section chip is not drawn (A3-L8).
-    expect(chipsWith(new Set(["declutter"]))).toEqual(["All", "Unread · 1"]);
-    expect(chipsWith(null)).toEqual(["All", "Unread · 1"]);
-    expect(chipsWith(new Set(["declutter", "shops"]))).toEqual(["All", "Unread · 1", "Jobs", "Shops"]);
+    expect(chipsWith(new Set(["declutter"]))).toEqual(["All", "Unread · 1", "Archived"]);
+    expect(chipsWith(null)).toEqual(["All", "Unread · 1", "Archived"]);
+    expect(chipsWith(new Set(["declutter", "shops"]))).toEqual(["All", "Unread · 1", "Jobs", "Shops", "Archived"]);
   });
 
   it("a hidden section has no chip, and its URL falls back to All", () => {

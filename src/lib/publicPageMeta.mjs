@@ -102,7 +102,7 @@ export const PUBLIC_PAGE_META = {
   // Free holiday printables (owner 2026-11-20): gift tags with names, made in the browser.
   "/gift-guides/printables": {
     title: "Free printable Christmas gift tags with names — Helpr",
-    description: "Free printable Christmas gift tags with names: pick a design, type To and From, and print a sheet of 8 at home. No sign-up.",
+    description: "Free printable Christmas gift tags with names: pick a design, type To and From, and print a sheet of 9 or 10 at home. No sign-up.",
     canonical: `${SITE_ORIGIN}/gift-guides/printables`,
     ogTitle: "Free printable Christmas gift tags with names",
     ogDescription: "Pick a tag, type the names, print at home. Free from Louisiana Helpr.",

@@ -13,6 +13,7 @@ import {
   cleanName,
   designSize,
   fitLine,
+  layoutFor,
   pageSlots,
   sheetPages,
   slotTransform,
@@ -22,6 +23,7 @@ import {
   type OverlayDesign,
   type OverlayProduct,
   type SheetItem,
+  type SheetLayout,
 } from "@/content/printables";
 
 /**
@@ -111,9 +113,8 @@ function ItemSvg({ product, item, font }: { product: OverlayProduct; item: Sheet
 }
 
 /** One letter page: the items in their slots, and the dashed cut lines. */
-function PageSvg({ product, layoutIdx, items, font, className, label }: { product: OverlayProduct; layoutIdx: number; items: SheetItem[]; font: Font; className: string; label: string }) {
-  const layout = product.layouts[layoutIdx];
-  // Each item's own slot: a landscape and a portrait tag take the same 3.5 x 2.5 in place, the portrait one turned.
+function PageSvg({ product, layout, items, font, className, label }: { product: OverlayProduct; layout: SheetLayout; items: SheetItem[]; font: Font; className: string; label: string }) {
+  // Each item's own slot in the design's sheet (10 wide tags, or 9 of the rest shrunk to fit).
   const slots = pageSlots(items.map((item) => designSize(product, item.design)), layout);
   return (
     <svg className={className} viewBox={`0 0 ${PAGE.w} ${PAGE.h}`} role="img" aria-label={label} xmlns="http://www.w3.org/2000/svg">
@@ -143,7 +144,7 @@ const loadImage = (src: string) =>
     img.src = src;
   });
 
-async function drawPage(product: OverlayProduct, layoutIdx: number, items: SheetItem[], font: Font, images: Map<string, HTMLImageElement>): Promise<HTMLCanvasElement> {
+async function drawPage(product: OverlayProduct, layout: SheetLayout, items: SheetItem[], font: Font, images: Map<string, HTMLImageElement>): Promise<HTMLCanvasElement> {
   const k = DPI / 100;
   const canvas = document.createElement("canvas");
   canvas.width = PAGE.w * k;
@@ -152,7 +153,6 @@ async function drawPage(product: OverlayProduct, layoutIdx: number, items: Sheet
   if (!ctx) throw new Error("printables: no canvas");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const layout = product.layouts[layoutIdx];
   const slots = pageSlots(items.map((item) => designSize(product, item.design)), layout);
   items.forEach((item, i) => {
     const s = slots[i];
@@ -214,7 +214,7 @@ async function drawPage(product: OverlayProduct, layoutIdx: number, items: Sheet
   return canvas;
 }
 
-async function makePdf(product: OverlayProduct, layoutIdx: number, pages: SheetItem[][], font: Font): Promise<Blob> {
+async function makePdf(product: OverlayProduct, layout: SheetLayout, pages: SheetItem[][], font: Font): Promise<Blob> {
   const srcs = [...new Set(pages.flat().map((i) => i.design.image))];
   const images = new Map<string, HTMLImageElement>();
   await Promise.all(srcs.map(async (s) => images.set(s, await loadImage(s))));
@@ -222,7 +222,7 @@ async function makePdf(product: OverlayProduct, layoutIdx: number, pages: SheetI
   const doc = new jsPDF({ unit: "in", format: "letter", orientation: "portrait" });
   for (let p = 0; p < pages.length; p++) {
     if (p > 0) doc.addPage("letter", "portrait");
-    const canvas = await drawPage(product, layoutIdx, pages[p], font, images);
+    const canvas = await drawPage(product, layout, pages[p], font, images);
     doc.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0.5, 0.5, PAGE.w / 100, PAGE.h / 100);
   }
   return doc.output("blob");
@@ -245,7 +245,9 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const font = NAME_FONTS.find((f) => f.id === fontId) ?? NAME_FONTS[0];
-  const layout = product.layouts[layoutIdx] ?? product.layouts[0];
+  // A design that names its sheet prints on it (gift tags); otherwise the shopper's choice.
+  const designLayouts = product.designs.some((d) => d.layout);
+  const layout = layoutFor(product, product.designs.find((d) => d.id === designId), layoutIdx);
   const perPage = layout.cols * layout.rows;
   const maxRows = perPage * 4;
 
@@ -273,7 +275,7 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
     setSaving(true);
     setErr(null);
     try {
-      const blob = await makePdf(product, layoutIdx, pages, font);
+      const blob = await makePdf(product, layout, pages, font);
       await saveOrShareFile({ blob, filename: `louisiana-helpr-${product.id}.pdf`, label: product.title, source: "printables.pdf" });
     } catch (e: unknown) {
       console.warn("printables: pdf failed", e);
@@ -317,7 +319,7 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
         </div>
       </fieldset>
 
-      {product.layouts.length > 1 && (
+      {product.layouts.length > 1 && !designLayouts && (
         <fieldset className="pr-set">
           <legend>{W.layout}</legend>
           <div className="pr-chips">
@@ -383,7 +385,7 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
         </div>
         <div>
           <p className="pr-k">{W.sheet} <span>({W.pages(pages.length)})</span></p>
-          <PageSvg product={product} layoutIdx={layoutIdx} items={pages[0]} font={font} className="pr-page-thumb" label={W.sheet} />
+          <PageSvg product={product} layout={layout} items={pages[0]} font={font} className="pr-page-thumb" label={W.sheet} />
         </div>
       </div>
 
@@ -402,7 +404,7 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
         createPortal(
           <div className="lh-print-root" aria-hidden="true" data-printable-print-root="">
             {pages.map((items, i) => (
-              <PageSvg key={i} product={product} layoutIdx={layoutIdx} items={items} font={font} className="lh-print-page" label={`${W.sheet} ${i + 1}`} />
+              <PageSvg key={i} product={product} layout={layout} items={items} font={font} className="lh-print-page" label={`${W.sheet} ${i + 1}`} />
             ))}
           </div>,
           document.body,

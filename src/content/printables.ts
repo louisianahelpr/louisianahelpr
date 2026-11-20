@@ -51,6 +51,8 @@ export interface OverlayDesign {
    * left (default: the middle of the design); false when the design prints it itself.
    */
   siteLine?: { y: number; color: string; x?: number } | false;
+  /** The id of the product layout this design prints on (gift tags: "10" wide, "9" the rest). Default: the chosen one. */
+  layout?: string;
 }
 
 interface OverlayField {
@@ -75,6 +77,8 @@ export interface SheetLayout {
   rotate: boolean | "portrait";
   /** Printed size = design size x scale. */
   scale: number;
+  /** Shrink the items (never grow them) until the grid fits the page: 9 tall tags or 9 postcards on one sheet. */
+  fit?: boolean;
   /** Dashed cut lines around each item. */
   cutLines: boolean;
 }
@@ -138,13 +142,17 @@ export const PRINTABLES: Printable[] = [
     kind: "overlay",
     id: "gift-tags",
     title: "Gift tags with names",
-    blurb: "Pick a tag, type the names, and print a sheet of 8 with cut lines.",
+    blurb: "Pick a tag, type the names, and print a sheet of 9 or 10 with cut lines.",
     ready: true,
-    // The owner's tags are 3.5 x 2 in (a few 2 x 3.5 in, turned on the sheet); each design names its own size.
+    // Each design names its own size and its sheet (src/content/printableTagDesigns.ts).
     size: { w: 3.5, h: 2 },
     fields: TO_FROM,
-    // 2 across, 4 down: landscape tags as they are, portrait ones turned, every tag at its real size.
-    layouts: [{ id: "8", label: "8 per page", cols: 2, rows: 4, rotate: "portrait", scale: 1, cutLines: true }],
+    // The owner's sheets: wide 3.5 x 2 in tags 10 to a page (2 across, 5 down) at real size; tall, square, the split
+    // vintage tags and the postcard 9 to a page (3 x 3), shrunk only as much as the page needs.
+    layouts: [
+      { id: "10", label: "10 per page", cols: 2, rows: 5, rotate: false, scale: 1, cutLines: true },
+      { id: "9", label: "9 per page", cols: 3, rows: 3, rotate: false, scale: 1, fit: true, cutLines: true },
+    ],
     mix: true,
     unit: "tag",
     // The owner's Canva tags (src/content/printableTagDesigns.ts).
@@ -156,7 +164,8 @@ export const PRINTABLES: Printable[] = [
     id: "santa-letter",
     title: "Letter to Santa and Nice List",
     blurb: "Type your child's name for a letter to Santa or a Nice List certificate.",
-    ready: true,
+    // Hidden: the owner designs every printable herself; the Nice List below is a stand-in until hers arrives.
+    ready: false,
     size: { w: 8.5, h: 11 },
     fields: [{ key: "name", label: "Child's name", placeholder: "Mia" }],
     layouts: [{ id: "1", label: "1 per page", cols: 1, rows: 1, rotate: false, scale: 0.88, cutLines: false }],
@@ -262,6 +271,10 @@ export const PAGE = { w: 750, h: 1000 } as const;
 /** A design's size in inches: its own, else its product's. */
 export const designSize = (p: OverlayProduct, d: OverlayDesign) => d.size ?? p.size;
 
+/** The sheet a design prints on: the one it names, else the chosen one (the product's first by default). */
+export const layoutFor = (p: OverlayProduct, d: OverlayDesign | undefined, chosen = 0): SheetLayout =>
+  p.layouts.find((l) => l.id === d?.layout) ?? p.layouts[chosen] ?? p.layouts[0];
+
 /** Where one item sits on the page: its top-left, its printed size, and whether it is turned a quarter turn. */
 export interface Slot {
   x: number;
@@ -292,7 +305,15 @@ function footprint(size: { w: number; h: number }, layout: SheetLayout) {
  * take the same cell). Throws when the grid does not fit the page.
  */
 export function pageSlots(sizes: { w: number; h: number }[], layout: SheetLayout): Slot[] {
-  const feet = sizes.map((s) => footprint(s, layout));
+  let feet = sizes.map((s) => footprint(s, layout));
+  let scale = layout.scale;
+  if (layout.fit && feet.length) {
+    const k = Math.min(1, PAGE.w / (Math.max(...feet.map((f) => f.w)) * layout.cols), PAGE.h / (Math.max(...feet.map((f) => f.h)) * layout.rows));
+    if (k < 1) {
+      scale *= k;
+      feet = sizes.map((s) => footprint(s, { ...layout, scale }));
+    }
+  }
   const cw = Math.max(0, ...feet.map((f) => f.w));
   const ch = Math.max(0, ...feet.map((f) => f.h));
   const gw = cw * layout.cols;
@@ -303,7 +324,7 @@ export function pageSlots(sizes: { w: number; h: number }[], layout: SheetLayout
   return feet.slice(0, layout.cols * layout.rows).map((f, i) => {
     const c = i % layout.cols;
     const r = Math.floor(i / layout.cols);
-    return { x: x0 + c * cw + (cw - f.w) / 2, y: y0 + r * ch + (ch - f.h) / 2, w: f.w, h: f.h, rotate: f.rotate, scale: layout.scale };
+    return { x: x0 + c * cw + (cw - f.w) / 2, y: y0 + r * ch + (ch - f.h) / 2, w: f.w, h: f.h, rotate: f.rotate, scale };
   });
 }
 
@@ -332,7 +353,10 @@ export function cleanName(s: string): string {
 export function sheetPages(p: OverlayProduct, perPage: number, opts: { mode: "same" | "each"; same: Names; rows: Names[]; designId: string; mixDesigns: boolean }): SheetItem[][] {
   const chosen = p.designs.find((d) => d.id === opts.designId) ?? p.designs[0];
   if (!chosen) return [];
-  const designAt = (i: number) => (opts.mixDesigns && p.designs.length > 1 ? p.designs[(p.designs.indexOf(chosen) + i) % p.designs.length] : chosen);
+  // Mixing cycles only the designs that print on the same sheet at the same size as the chosen one.
+  const size = designSize(p, chosen);
+  const group = p.designs.filter((d) => d.layout === chosen.layout && designSize(p, d).w === size.w && designSize(p, d).h === size.h);
+  const designAt = (i: number) => (opts.mixDesigns && group.length > 1 ? group[(group.indexOf(chosen) + i) % group.length] : chosen);
   const filled = (n: Names) => p.fields.some((f) => (n[f.key] ?? "").trim() !== "");
   const names: Names[] = opts.mode === "same" ? Array.from({ length: perPage }, () => opts.same) : opts.rows.filter(filled);
   const items = names.map((n, i) => ({ design: designAt(i), names: n }));

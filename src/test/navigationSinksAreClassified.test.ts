@@ -127,6 +127,7 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.website": "Out's prop (a sponsor's website from our generated content file); Out forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.facebook": "Out's prop (a sponsor's Facebook Page from our generated content file); Out forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.instagram": "Out's prop (a sponsor's Instagram from our generated content file); Out forces the https:// scheme",
+  "pages/info/giftGuides/SmallBizLocal.tsx::href": "safeDocumentUrl(b.link) (src/lib/storagePath.ts): an approved Featured local listing's link, https:// only (also the sbs_featured_submissions CHECK link ~ '^https://' and the shared validator cleanLink); the anchor renders only when it is non-null; rel noopener nofollow ugc",
   "pages/info/giftGuides/GiftGuidesSidebar.tsx::x.href": "GiftOut's prop (the Sales list, generated from our content files' deal links; https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideLanding.tsx::sponsorPage.links.facebookPage": "a fixed https://www.facebook.com/... constant in src/content/sponsorPage.ts (the 25 Days card's follow link)",
   // 25 Days sponsor page (owner 2026-11-09).

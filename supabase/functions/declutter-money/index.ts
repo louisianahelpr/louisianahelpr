@@ -675,7 +675,8 @@ serve(async (req) => {
       return false;
     }
     // No payout without a verified ID (owner 2026-10-30): a wait, no try used, the payee told.
-    const idHold = await checkIdentityHold(admin, payeeId);
+    // Except a Shops seller (owner 2026-11-20: no ID check for Shops; 20261120203904).
+    const idHold = kind === "shop" ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId);
     if (idHold.kind === "error") {
       await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", `ID check read failed: ${idHold.message}`);
       return false;

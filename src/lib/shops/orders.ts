@@ -14,7 +14,6 @@ import { unwrap } from "@/lib/supabaseResult";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./rpcErrorCopy";
-import { openShopsIdentityCheckFor } from "./errors";
 import { louisianaNow } from "./louisianaClock";
 import type { ShopHour } from "./api";
 
@@ -353,8 +352,6 @@ async function invokeShopCheckout(body: Record<string, unknown>): Promise<Record
         })
       : null;
     const refusal = new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable");
-    // The first order needs the ID check (20261105174853; shop-checkout answers 403 identity_required_to_buy).
-    void openShopsIdentityCheckFor(refusal);
     throw refusal;
   }
   return (data ?? {}) as Record<string, unknown>;

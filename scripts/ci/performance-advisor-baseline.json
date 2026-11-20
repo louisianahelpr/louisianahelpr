@@ -311,6 +311,9 @@
     "public.giveaway_reminder_sends.giveaway_reminder_sends_user_id_idx",
     "public.secret_santa_groups.secret_santa_groups_expires_idx",
     "public.secret_santa_hits.secret_santa_hits_bucket_idx",
-    "public.secret_santa_hits.secret_santa_hits_at_idx"
+    "public.secret_santa_hits.secret_santa_hits_at_idx",
+    "public.sbs_featured_submissions.sbs_featured_submissions_status_idx",
+    "public.sbs_featured_submissions.sbs_featured_submissions_email_idx",
+    "public.sbs_featured_submissions.sbs_featured_submissions_reviewed_by_idx"
   ]
 }

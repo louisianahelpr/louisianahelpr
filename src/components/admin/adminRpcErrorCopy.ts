@@ -516,6 +516,13 @@ export const ADMIN_RPC_ERROR_COPY = {
   sponsor_admin_save_settings: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD },
   sponsor_admin_save_testimonial: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That testimonial was deleted. Refresh the page." },
   sponsor_admin_delete_testimonial: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That testimonial was already deleted. Refresh the page." },
+  // Small Business Saturday "Featured local" review (/admin/sponsors, 20261120152039).
+  sbs_admin_list: { not_authorized: "Only an admin can see the Small Business Saturday requests." },
+  sbs_admin_review: {
+    not_authorized: "Only an admin can approve or reject a listing.",
+    not_found: "That listing is gone. Refresh the page.",
+    invalid_status: "That choice did not save. Refresh the page and try again.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type AdminMappedRpc = keyof typeof ADMIN_RPC_ERROR_COPY;

@@ -1,13 +1,13 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1259,
-    "files": 364,
-    "rendering": 1180,
+    "calls": 1261,
+    "files": 365,
+    "rendering": 1182,
     "suppressedByPolicy": 79,
     "byKind": {
       "confirmConsequential": 33,
-      "errorToast": 10,
+      "errorToast": 12,
       "successToast": 2,
       "toast": 253,
       "toast.error": 847,
@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 468,
+      "literal": 470,
       "template": 100,
-      "dynamic": 745,
+      "dynamic": 747,
       "jsx": 0
     }
   },
@@ -14253,7 +14253,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 115,
+      "line": 116,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14267,7 +14267,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 243,
+      "line": 246,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14281,7 +14281,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 313,
+      "line": 316,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14291,11 +14291,39 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 469,
+      "line": 472,
       "kind": "errorToast",
       "title": {
         "form": "literal",
         "text": "That photo is over 5 MB."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/admin/sponsors/SbsReviewPanel.tsx",
+      "line": 73,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "That change was not saved"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Try again in a moment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/admin/sponsors/SbsReviewPanel.tsx",
+      "line": 119,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "The logo could not be opened"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Try again in a moment.\")"
       },
       "renders": true
     },

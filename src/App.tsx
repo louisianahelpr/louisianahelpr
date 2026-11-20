@@ -161,7 +161,6 @@ const SmsOptIn = lazyWithPreload(() => import("./pages/info/SmsOptIn"));
 const Fees = lazyWithPreload(() => import("./pages/info/Fees"));
 const Safety = lazyWithPreload(() => import("./pages/info/Safety"));
 const GiftGuides = lazyWithPreload(() => import("./pages/info/GiftGuides"));
-// Gift guides fun features (owner 2026-11-20): each its own lazy chunk.
 const SecretSanta = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SecretSanta"));
 const SecretSantaReveal = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SecretSantaReveal"));
 const SwipeGifts = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SwipeGifts"));
@@ -463,8 +462,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Owner 2026-11-18: the gift guides are public (Pinterest pins link to /gift-guides#<section id>); the
           2026-11-17 ?preview=1 gate is gone. Rebuilt 2026-11-18: /gift-guides lists the guides, /gift-guides/<slug> opens one. */}
       <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* Gift guides fun features (owner 2026-11-20): the Secret Santa drawer (not /gift-guides/secret-santa, the gift guide
-          of that name) and each person's private reveal, swipe, planner. */}
       <Route path="/gift-guides/draw-names" element={<RouteErrorBoundary>{routeEl(<PageTransition><SecretSanta /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/secret-santa/:code/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><SecretSantaReveal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/swipe" element={<RouteErrorBoundary>{routeEl(<PageTransition><SwipeGifts /></PageTransition>)}</RouteErrorBoundary>} />

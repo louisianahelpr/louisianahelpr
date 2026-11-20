@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS public.secret_santa_people (
     AND length(regexp_replace(name, '[^0-9]', '', 'g')) < 7),
   token_hash text NOT NULL UNIQUE CHECK (token_hash ~ '^[0-9a-f]{64}$'),
   gives_to smallint NOT NULL CHECK (gives_to BETWEEN 0 AND 29 AND gives_to <> slot),
-  wish_list_code text CHECK (wish_list_code IS NULL OR wish_list_code ~ '^[a-z0-9]{10}$'),
+  wish_list_code text CHECK (wish_list_code IS NULL OR wish_list_code ~ '^[a-z0-9]{12}$'),
   PRIMARY KEY (group_code, slot)
 );
 COMMENT ON TABLE public.secret_santa_people IS
@@ -286,7 +286,7 @@ AS $fn$
 DECLARE
   v_rows integer;
 BEGIN
-  IF p_wish_list_code IS NOT NULL AND p_wish_list_code !~ '^[a-z0-9]{10}$' THEN
+  IF p_wish_list_code IS NOT NULL AND p_wish_list_code !~ '^[a-z0-9]{12}$' THEN
     RAISE EXCEPTION 'bad_wish_list' USING ERRCODE = '22023';
   END IF;
   UPDATE public.secret_santa_people me
@@ -336,7 +336,7 @@ BEGIN
     VALUES ('secret-santa-expire', interval '3 hours',
             'Gift guides Secret Santa: hourly, deletes groups past Jan 15 (expires_at) and day-old rate-limit hits.',
             'exempt',
-            'Most hours nothing has expired; a run that deletes nothing is the healthy state.')
+            'Most hours nothing has expired, so a run that deletes nothing is the healthy state.')
     ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;

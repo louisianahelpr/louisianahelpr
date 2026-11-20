@@ -66,7 +66,7 @@ export default function SecretSanta() {
       const limited = err instanceof SantaSaveError && err.kind === "rateLimited";
       // A rate limit is expected and told to the organizer; anything else is reported too.
       if (!limited) report(err, { tags: { feature: "secret-santa", step: "create" } });
-      setError(limited ? W.santaRateLimited : W.santaFailed);
+      setError(limited ? W.santaRateLimited : err instanceof SantaSaveError && err.words ? err.words : W.santaFailed);
     } finally {
       setBusy(false);
     }

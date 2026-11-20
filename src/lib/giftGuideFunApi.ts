@@ -17,6 +17,38 @@ interface PlanTable {
 }
 interface Client { rpc: Rpc; from: (t: "gift_planner_plans") => PlanTable }
 
+/**
+ * Each code the Secret Santa functions raise, in plain words (src/test/rpcErrorCopyCoverage.test.ts, both ways). The
+ * drawer checks names, pairs, budget and day before sending, so most of these show only if a request was made by hand.
+ */
+export const SANTA_RPC_ERROR_COPY = {
+  secret_santa_create: {
+    rate_limited: "That's a lot of draws in a row. Try again in a little while.",
+    bad_group_size: "Add 3 to 30 names.",
+    bad_name: "Just a first name, please (no links or phone numbers).",
+    duplicate_name: "Two names are the same. Add a last initial to tell them apart.",
+    bad_draw: "The names didn't draw right. Tap Draw names again.",
+    bad_avoid: "One of the can't-draw pairs isn't right. Check the pairs and try again.",
+    draw_breaks_avoid: "The draw matched a can't-draw pair. Tap Draw names again.",
+    bad_budget: "Pick a whole-dollar budget from $1 to $500.",
+    bad_date: "Pick an exchange day from today to about 3 months out.",
+    no_code: "We couldn't save the draw. Try again.",
+  },
+  secret_santa_set_wish_list: {
+    bad_wish_list: "That wish list link isn't right. Share your list again.",
+  },
+} satisfies Record<string, Record<string, string>>;
+
+/** Words for an error a Secret Santa call returned, or null when it is not one of its codes (whole-token match). */
+function rpcErrorMessage(rpc: keyof typeof SANTA_RPC_ERROR_COPY, error: Err): string | null {
+  const raw = error?.message ?? "";
+  const table: Record<string, string> = SANTA_RPC_ERROR_COPY[rpc];
+  for (const code of Object.keys(table)) {
+    if (new RegExp(`(^|[^a-z0-9_])${code}($|[^a-z0-9_])`).test(raw)) return table[code];
+  }
+  return null;
+}
+
 const client = async (): Promise<Client | null> => {
   const m = await loadModule(() => import("@/integrations/supabase/client"));
   return m ? (m.supabase as unknown as Client) : null;
@@ -24,7 +56,7 @@ const client = async (): Promise<Client | null> => {
 
 /** Why a draw was not saved: too many draws from here just now, or anything else. */
 export class SantaSaveError extends Error {
-  constructor(public readonly kind: "rateLimited" | "failed", message: string) {
+  constructor(public readonly kind: "rateLimited" | "failed", message: string, public readonly words: string | null = null) {
     super(message);
   }
 }
@@ -40,7 +72,7 @@ export async function createSecretSanta(input: { names: string[]; givesTo: numbe
     p_budget: input.budget ?? null,
     p_exchange_on: input.day ?? null,
   });
-  if (error) throw new SantaSaveError(/rate_limited/.test(error.message ?? "") ? "rateLimited" : "failed", error.message ?? "save failed");
+  if (error) throw new SantaSaveError(/rate_limited/.test(error.message ?? "") ? "rateLimited" : "failed", error.message ?? "save failed", rpcErrorMessage("secret_santa_create", error));
   const d = data as { code?: unknown; tokens?: unknown } | null;
   const tokens = Array.isArray(d?.tokens) ? d.tokens.filter((t): t is string => typeof t === "string" && SANTA_TOKEN.test(t)) : [];
   if (typeof d?.code !== "string" || !SANTA_CODE.test(d.code) || tokens.length !== input.names.length) throw new SantaSaveError("failed", "bad answer");
@@ -49,7 +81,8 @@ export async function createSecretSanta(input: { names: string[]; givesTo: numbe
 
 export interface SantaReveal { name: string; match: string; budget: number | null; exchangeOn: string | null; size: number; matchWishList: string | null; myWishList: string | null }
 
-const LIST = /^[a-z0-9]{10}$/;
+/** A wish list share code (gift_wish_lists.code, 12 lowercase letters or digits). */
+const LIST = /^[a-z0-9]{12}$/;
 /** One person's match (null when the link is wrong or the group expired). Throws when the server could not be asked. */
 export async function revealSecretSanta(code: string, token: string): Promise<SantaReveal | null> {
   if (!SANTA_CODE.test(code) || !SANTA_TOKEN.test(token)) return null;
@@ -75,7 +108,7 @@ export async function setSecretSantaWishList(code: string, token: string, listCo
   const sb = await client();
   if (!sb) throw new Error("secret santa: client not loaded");
   const { data, error } = await sb.rpc("secret_santa_set_wish_list", { p_code: code, p_token: token, p_wish_list_code: listCode });
-  if (error) throw new Error(`secret santa: ${error.message ?? "save failed"}`);
+  if (error) throw new Error(rpcErrorMessage("secret_santa_set_wish_list", error) ?? `secret santa: ${error.message ?? "save failed"}`);
   return data === true;
 }
 

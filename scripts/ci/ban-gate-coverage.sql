@@ -263,6 +263,8 @@ rpc_exempt(fn, why) AS (
   ('process_referral', 'enrols the caller only; enforce_referral_credit_eligibility already refuses banned accounts'),
   ('sponsor_log_visit', '25 Days page view counter (20261109162829): anon-callable, inserts one row of ref + referrer origin + device and posts no content anyone else reads; refusing a banned member would only hide a page view'),
   ('gift_wish_list_save', 'Gift guides wish list (20261120062130, owner 11-20): saves a list of gift refs (guide slug + item id) and its name for a share link, or the caller own synced list; anon-callable by design (the guides are signed out), rate limited, posts no content to anyone else and moves no money; refusing a banned member would only stop them sharing a gift list'),
+  ('secret_santa_create', 'Gift guides Secret Santa (20261120062334, owner 11-20): stores a drawn group (first names, slots, a budget, a day) with no account; anon-callable by design (the drawer is signed out), rate limited per address, posts no content to anyone and moves no money; refusing a banned member would only stop them drawing names'),
+  ('secret_santa_set_wish_list', 'Gift guides Secret Santa (20261120062334): attaches a wish list code to the one row its token hash opens; anon-callable by design (reveal links have no account), posts no content and moves no money'),
   ('gift_wish_list_new_link', 'Gift guides wish list (20261120062130, security review #5): gives the caller own list a new share code so an old link stops working; it only reduces what others can see, moves no money and posts nothing')
 ),
 ops(op, bit) AS (VALUES ('INSERT', 4), ('DELETE', 8), ('UPDATE', 16)),

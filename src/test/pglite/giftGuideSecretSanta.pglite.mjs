@@ -133,11 +133,11 @@ try {
 
   // Wish list: through one's own token; the match sees it.
   const setList = async (code, tok, list) => (await q(`SELECT public.secret_santa_set_wish_list($1, $2, $3) AS r`, [code, tok, list]))[0].r;
-  check((await setList(g.code, g.tokens[1], "abcde12345")) === true, "Ben attaches his wish list through his own token");
-  check((await rev(g.code, g.tokens[0])).match_wish_list === "abcde12345", "Ann (who draws Ben) sees Ben's wish list code");
+  check((await setList(g.code, g.tokens[1], "abcde1234567")) === true, "Ben attaches his wish list through his own token");
+  check((await rev(g.code, g.tokens[0])).match_wish_list === "abcde1234567", "Ann (who draws Ben) sees Ben's wish list code");
   check((await rev(g.code, g.tokens[2])).match_wish_list === null, "Cal (who draws Dee) sees no list");
-  check((await setList(g.code, "0".repeat(64), "zzzzz99999")) === false, "a wrong token attaches nothing");
-  check((await rev(g.code, g.tokens[0])).match_wish_list === "abcde12345", "Ben's list is unchanged by a wrong token");
+  check((await setList(g.code, "0".repeat(64), "zzzzz9999999")) === false, "a wrong token attaches nothing");
+  check((await rev(g.code, g.tokens[0])).match_wish_list === "abcde1234567", "Ben's list is unchanged by a wrong token");
   check(/bad_wish_list/.test(await err(`SELECT public.secret_santa_set_wish_list($1, $2, 'Bad Code!')`, [g.code, g.tokens[1]]) ?? ""), "refuses a list code that is not one");
 
   // is_seed: a test member's group.

@@ -164,7 +164,7 @@ describe("Secret Santa draw", () => {
   });
 
   it("the reveal page shows the match, the budget and the match's wish list link", async () => {
-    reveal.mockResolvedValue({ name: "Ann", match: "Ben", budget: 25, exchangeOn: "2026-12-20", size: 4, matchWishList: "abcde12345", myWishList: null });
+    reveal.mockResolvedValue({ name: "Ann", match: "Ben", budget: 25, exchangeOn: "2026-12-20", size: 4, matchWishList: "abcde1234567", myWishList: null });
     const { container } = render(
       <MemoryRouter initialEntries={[revealPath("abcdef0123", "a".repeat(64))]}>
         <Routes><Route path="/gift-guides/secret-santa/:code/:token" element={<SecretSantaReveal />} /></Routes>
@@ -173,7 +173,7 @@ describe("Secret Santa draw", () => {
     await waitFor(() => expect(container.querySelector("[data-reveal-match]")?.textContent).toBe("Ben"));
     expect(reveal).toHaveBeenCalledWith("abcdef0123", "a".repeat(64));
     expect(container.querySelector("[data-reveal-budget]")?.textContent).toContain("$25");
-    expect(container.querySelector("[data-reveal-their-list]")?.getAttribute("href")).toBe("/gift-guides/list/abcde12345");
+    expect(container.querySelector("[data-reveal-their-list]")?.getAttribute("href")).toBe("/gift-guides/list/abcde1234567");
   });
 
   it("a wrong link says so", async () => {
@@ -400,7 +400,7 @@ describe("UX audit of #4791", () => {
     expect(css).not.toContain("#ddd8cc");
   });
   it("H2: the reveal buttons wrap within the screen and use the short words", async () => {
-    reveal.mockResolvedValue({ name: "Mary Beth", match: "Thibodeaux-Broussard Jr.", budget: 25, exchangeOn: null, size: 4, matchWishList: "abcde12345", myWishList: null });
+    reveal.mockResolvedValue({ name: "Mary Beth", match: "Thibodeaux-Broussard Jr.", budget: 25, exchangeOn: null, size: 4, matchWishList: "abcde1234567", myWishList: null });
     const { container } = render(
       <MemoryRouter initialEntries={[revealPath("abcdef0123", "c".repeat(64))]}>
         <Routes><Route path="/gift-guides/secret-santa/:code/:token" element={<SecretSantaReveal />} /></Routes>

@@ -54,7 +54,8 @@ describe("gift guide share preview (api/share.ts)", () => {
     expect(head.match(/<meta property="og:image" /g)).toHaveLength(1);
     expect(head).toMatch(/<meta property="og:title" content="[^"]*holiday gift guide 2026"/);
     // The description names the guide's own count and first picks (giftGuideDescription, SEO P1): "Gifts for Mom 2026: 42 hand-picked gift ideas, like …".
-    expect(head).toMatch(/<meta property="og:description" content="[^"]*\d+ hand-picked gift ideas?, like /);
+    // With the built SEO data it is the count and first picks; without it (CI builds none) the generic fallback.
+    expect(head).toMatch(/<meta property="og:description" content="[^"]*(\d+ hand-picked gift ideas?, like |hand-picked holiday gift ideas)/);
   });
 
   it("a guide with a WebP cover but no share JPG falls back to the cover", async () => {

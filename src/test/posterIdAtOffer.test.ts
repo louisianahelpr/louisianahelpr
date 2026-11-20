@@ -27,6 +27,8 @@
  * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql | DROP POLICY IF EXISTS "Targeted helper can view direct offer" ON public.jobs;\n |
  * @mutate src/pages/jobs/jobPage/useJobPage.ts |   const offered = (offers ?? []).find((r) => r.id === id); |   const offered = undefined as Record<string, unknown> \| undefined;
  * @mutate src/components/jobs/InstantBookPanel.tsx |       if (isPosterIdRefusal(e)) void openPosterIdCheckFor(e);\n |
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql |              CASE WHEN j.helper_confirmed_at IS NOT NULL THEN j.location ELSE public.mask_job_location(j.location) END AS location, |              j.location,
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql |              CASE WHEN g.helper_confirmed_at IS NOT NULL THEN j.location ELSE public.mask_job_location(j.location) END, |              j.location,
  * @mutate src/pages/post-job/PostJob.tsx |       {form.step === "entry" ? ( |       {needsIdentityCheck(null) ? <span>Verify your ID to post</span> : form.step === "entry" ? (
  */
 import { describe, expect, it } from "vitest";
@@ -109,6 +111,32 @@ describe("the poster's ID is asked at the offer, never at the post (owner 2026-1
     }
     // The job page reads the masked offer for a pending direct offer.
     expect(src("src/pages/jobs/jobPage/useJobPage.ts")).toMatch(/rpc\("get_my_pending_direct_offers"\)\.eq\("id", id\)\)[\s\S]{0,200}const offered = \(offers \?\? \[\]\)\.find\(\(r\) => r\.id === id\);/);
+  });
+
+  it("3b. no notice builder sends the street address to a Helpr who has not accepted (exact inventory)", () => {
+    // Every function the migrations leave that writes a notification and reads a job's location, each with why it
+    // cannot hand an offered Helpr the street. EXACT both ways (a new one fails here until it is judged).
+    // Behaviour: src/test/pglite/startReminderAddressAfterAccept.pglite.mjs.
+    const JUDGED: Readonly<Record<string, string>> = {
+      sweep_helpr_start_reminders: "names the street only with helper_confirmed_at / a confirmed crew seat, else mask_job_location (20261120220306)",
+      deliver_parish_match_alert: "prints only the town (a regexp of the location's town part), to members who never applied",
+      notify_saved_searches_on_new_job: "matches a saved search's keyword against the location; the notice never prints it",
+      jobs_open_edit_tells_applicants: "compares the old and new location to say the place changed; never prints it",
+      clear_job_accept_pending: "compares the old and new location to spot a term edit; its notice prints no place",
+      request_job_detail_change: "the notice names the changed fields ('address'), never the address itself",
+      respond_job_detail_change: "compares the requested change; the notices name the job, never the address",
+      settle_job_detail_change: "applies an agreed change; the notices name the job, never the address",
+    };
+    const writers = [...DEFS.keys()].filter((n) => {
+      const b = body(n);
+      return /INSERT INTO public\.notifications\b|public\.declutter_notify\(|public\.notify_/.test(b) && /\b(?:j|v_job|NEW|OLD|rec|t)\.location\b/.test(b);
+    }).sort();
+    expect(writers.length).toBeGreaterThan(5);
+    expect(writers).toEqual(Object.keys(JUDGED).sort());
+    const sweep = body("sweep_helpr_start_reminders");
+    expect(sweep).toContain("CASE WHEN j.helper_confirmed_at IS NOT NULL THEN j.location ELSE public.mask_job_location(j.location) END AS location");
+    expect(sweep).toContain("CASE WHEN g.helper_confirmed_at IS NOT NULL THEN j.location ELSE public.mask_job_location(j.location) END");
+    expect(sweep).not.toMatch(/SELECT j\.id AS job_id, j\.helper_id AS user_id, j\.title, j\.location/);
   });
 
   it("4. the app answers the refusal at every offer call site (exact), in English and Spanish", () => {

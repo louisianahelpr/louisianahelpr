@@ -77,8 +77,8 @@ describe("the final lineup", () => {
     const got = Object.fromEntries(days.map((d) => [d.day, d.partners.map((p) => p.brand)]));
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
-    // 177 giveaways (owner 2026-11-19: show the full sponsor list; the tracker's calendar as of 2026-11-20 6:30 PM), and no brand twice on one day (each partner's row is keyed by its brand).
-    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(177);
+    // 176 giveaways (owner 2026-11-19: show the full sponsor list; the tracker's calendar as of 2026-11-20 6:45 PM), and no brand twice on one day (each partner's row is keyed by its brand).
+    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(176);
     for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
 

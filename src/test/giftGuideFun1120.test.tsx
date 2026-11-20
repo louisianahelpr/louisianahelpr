@@ -307,7 +307,7 @@ describe("Christmas countdown and Gift of the Day", () => {
     const { container } = render(<MemoryRouter><GiftCountdown now={la("2026-12-10")} /></MemoryRouter>);
     expect(container.querySelector("[data-gift-countdown-days]")?.getAttribute("data-gift-countdown-days")).toBe("15");
     expect(container.querySelector("[data-gift-of-the-day]")).not.toBeNull();
-    expect([...container.querySelectorAll("[data-gift-fun-tool]")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner"]);
+    expect([...container.querySelectorAll("[data-gift-fun-tool]")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner", "/gift-guides/printables"]);
     expect(container.querySelector("[data-gift-giveaway-on]")).toBeNull();
     act(() => cleanup());
     const after = render(<MemoryRouter><GiftCountdown now={la("2026-12-27")} /></MemoryRouter>);

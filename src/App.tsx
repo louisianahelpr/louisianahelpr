@@ -165,6 +165,7 @@ const SecretSanta = lazyWithPreload(() => import("./pages/info/giftGuides/fun/Se
 const SecretSantaReveal = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SecretSantaReveal"));
 const SwipeGifts = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SwipeGifts"));
 const GiftPlanner = lazyWithPreload(() => import("./pages/info/giftGuides/fun/GiftPlanner"));
+const Printables = lazyWithPreload(() => import("./pages/info/giftGuides/printables/Printables"));
 const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 /**
@@ -466,6 +467,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/gift-guides/secret-santa/:code/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><SecretSantaReveal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/swipe" element={<RouteErrorBoundary>{routeEl(<PageTransition><SwipeGifts /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/planner" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftPlanner /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Owner 2026-11-20: free holiday printables (gift tags with names, and more as the owner's files arrive). */}
+      <Route path="/gift-guides/printables" element={<RouteErrorBoundary>{routeEl(<PageTransition><Printables /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Owner 2026-11-20: a shared wish list (/gift-guides/list/<code>), no sign-in. */}
       <Route path="/gift-guides/list/:code" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />

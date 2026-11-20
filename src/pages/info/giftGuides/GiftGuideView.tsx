@@ -16,6 +16,7 @@ import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { AgeChips } from "./GiftGuideAges";
 import { SmallBizLink } from "./GiftGuideSmallBiz";
+import { PrintablesLink } from "./printables/PrintablesLink";
 import { SHOP_SMALL_GUIDE } from "@/content/giftGuideSmallBiz.mjs";
 import { deadlineChip, louisianaToday } from "@/content/giftGuideExtras1120";
 
@@ -326,6 +327,8 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
       <AgeChips slug={guide.slug} />
       {/* Big batch 1120: Shop Small Louisiana opens with the way to the Small Business Saturday page. */}
       {guide.slug === SHOP_SMALL_GUIDE && <SmallBizLink />}
+      {/* Owner 2026-11-20: the free printables this guide links to (gift tags on Gift Wrap & Cards), once each is ready. */}
+      <PrintablesLink slug={guide.slug} />
       {/* Holistic review 11-18 L3: how many gifts the guide holds, once its list is in. */}
       {picksReady(guide.slug) && guide.picks.length > 0 && (
         <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>

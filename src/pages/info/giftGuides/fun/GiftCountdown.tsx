@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PRINTABLES_PATH, PRINTABLES_WORDS } from "@/content/printables";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { loadSearchItems, newSlugFor, topPicks, type SearchItem } from "@/content/giftGuideCatalog";
@@ -97,7 +98,7 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
       )}
       <div className="gg-rowhead"><h2 id="gift-fun-tools">{W.toolsTitle}</h2></div>
       <ul className="gg-fun-tools" aria-labelledby="gift-fun-tools" data-gift-fun-tools="">
-        {W.tools.map((t) => (
+        {[...W.tools, { to: PRINTABLES_PATH, ...PRINTABLES_WORDS.tile }].map((t) => (
           <li key={t.to}>
             <Link to={t.to} className="gg-fun-tool" data-gift-fun-tool={t.to}><b>{t.title}</b><span>{t.body}</span></Link>
           </li>

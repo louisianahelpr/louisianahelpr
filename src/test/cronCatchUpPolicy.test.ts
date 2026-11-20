@@ -60,6 +60,8 @@ const CATCH_UP_SAFE = [
   // daily-match-digest left with the digest itself (Q1657, 20261018035944).
   "detect-suspicious-user-patterns",
   "engagement-automations",
+  // gift-wish-list-prune (20261120062130): an idempotent delete of 90-day-old snapshots.
+  "gift-wish-list-prune",
   // job-match-roundups (20261025182522): claims its batch before sending.
   "job-match-roundups",
   // expiring-jobs-push left the list in 20261005060246 (Q994): it runs hourly

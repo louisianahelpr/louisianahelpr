@@ -837,6 +837,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  "src/pages/info/giftGuides/GiftGuideMyList.tsx": "the wish list's name (owner 2026-11-20): optional, kept on the device by cleanListName (invisible and direction-changing characters dropped, 60 characters by code point); when shared, gift_wish_list_save strips the same characters and refuses a link or a 7+ digit run (invalid_name, shown in plain words). Proven by src/test/giftWishList1120.test.tsx (#6) and src/test/pglite/giftWishLists.pglite.mjs (#4).",
+  "src/pages/info/giftGuides/GiftWishShare.tsx": "a read-only text box holding the list's own share link (selected for copying); nothing typed is sent. The share itself sends only the list name and gift refs (giftWishList1120.test.tsx).",
   "src/pages/info/giftGuides/GiftGuideShare.tsx": "one search box (the tool row under every guide title since the 11-18 PM redesign; was the menu search in GiftGuidesSidebar) that filters the bundled gift-guide catalog on the device (searchGuides); nothing is sent or written, so messy text can only change which guide links show (owner 2026-11-18).",
   "src/components/admin/AdminAuditLog.tsx": "admin-only (Admin -> Audit log); a sweep account is not an admin. No text input: one \"Show test rows\" on/off switch (design audit area 10, 11-18) that filters the list on the device; nothing is written to the server.",
   // Shops paperwork queue (20261110195956, lead train 11-10): not swept yet (new 11-10).

@@ -20,6 +20,7 @@ import { PROFILE_RPC_ERROR_COPY } from "@/lib/declutter/profileErrors";
 import { PROFILE_LINK_RPC_ERROR_COPY } from "@/lib/profileLink/errorCopy";
 import { HIRE_ME_RPC_ERROR_COPY } from "@/lib/hireMe";
 import { HOME_TALK_RPC_ERROR_COPY } from "@/lib/rentals/talkRpcErrorCopy";
+import { GIFT_WISH_RPC_ERROR_COPY } from "@/lib/giftWishListApi";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -474,7 +475,9 @@ const HIRE_ME = HIRE_ME_RPC_ERROR_COPY as CopyTable;
 const TRADE = TRADE_RPC_ERROR_COPY as CopyTable;
 // Homes messages (Q2209), likewise (src/lib/rentals/talkRpcErrorCopy.ts, 20261106182837).
 const HOME_TALK = HOME_TALK_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME, ...TRADE, ...HOME_TALK };
+// The gift guides wish list (src/lib/giftWishListApi.ts, 20261120062130): the Share button and Make a new link show these.
+const GIFT_WISH = GIFT_WISH_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME, ...TRADE, ...HOME_TALK, ...GIFT_WISH };
 /** An RPC that checks the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 /**
@@ -589,7 +592,7 @@ describe("every code a client-called RPC raises has copy at its call site", () =
 
   it("no copy or allowlist entry names a code the RPC does not raise, or an RPC no client calls", () => {
     const stale: string[] = [];
-    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["DONATE_RPC_ERROR_COPY", DONATE], ["BUNDLE_RPC_ERROR_COPY", BUNDLE], ["PROFILE_RPC_ERROR_COPY", PROFILE], ["PROFILE_LINK_RPC_ERROR_COPY", PROFILE_LINK], ["HIRE_ME_RPC_ERROR_COPY", HIRE_ME], ["TRADE_RPC_ERROR_COPY", TRADE], ["UNREACHABLE", UNREACHABLE]] as const) {
+    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["DONATE_RPC_ERROR_COPY", DONATE], ["BUNDLE_RPC_ERROR_COPY", BUNDLE], ["PROFILE_RPC_ERROR_COPY", PROFILE], ["PROFILE_LINK_RPC_ERROR_COPY", PROFILE_LINK], ["HIRE_ME_RPC_ERROR_COPY", HIRE_ME], ["TRADE_RPC_ERROR_COPY", TRADE], ["GIFT_WISH_RPC_ERROR_COPY", GIFT_WISH], ["UNREACHABLE", UNREACHABLE]] as const) {
       for (const [rpc, codes] of Object.entries(entries)) {
         if (!calls.has(rpc)) stale.push(`${table}.${rpc}: no client calls this RPC`);
         for (const code of Object.keys(codes)) {

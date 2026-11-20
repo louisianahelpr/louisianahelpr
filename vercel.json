@@ -577,6 +577,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/gift-guides/list/:code",
+      "destination": "/api/share?_og=wishlist&_id=:code"
+    },
+    {
+      "source": "/gift-guides/list/:code",
+      "destination": "/index.html"
+    },
+    {
       "source": "/go/:slug",
       "destination": "/api/go?slug=:slug"
     },
@@ -655,6 +663,15 @@
         {
           "key": "Reporting-Endpoints",
           "value": "csp-endpoint=\"https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/csp-report\""
+        }
+      ]
+    },
+    {
+      "source": "/gift-guides/list/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
         }
       ]
     },

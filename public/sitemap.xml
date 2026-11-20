@@ -110,6 +110,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/draw-names</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/easy-and-last-minute</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -329,6 +334,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/planner</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/secret-santa</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -499,6 +509,11 @@
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-yeti</loc>
     <lastmod>2026-11-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/swipe</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

@@ -33,16 +33,16 @@ export function KidsByAge() {
   useEffect(() => {
     if (hash === `#${KIDS_BY_AGE_ID}`) ref.current?.scrollIntoView({ block: "start" });
   }, [hash]);
-  const chips = KID_AGE_BANDS.flatMap((b) => {
+  const bands = KID_AGE_BANDS.flatMap((b) => {
     const g = ageLink(b.tail);
     return g ? [{ b, g }] : [];
   });
-  if (chips.length === 0) return null;
+  if (bands.length === 0) return null;
   return (
     <div ref={ref} id={KIDS_BY_AGE_ID} className="gg-ages" aria-labelledby="gift-ages" data-gift-ages="" role="group">
       <h3 id="gift-ages" className="gg-ages-title">{G.agesTitle}</h3>
       <span className="gg-chips">
-        {chips.map(({ b, g }) => (
+        {bands.map(({ b, g }) => (
           <Button key={b.tail} asChild variant="outline" size="sm" className="gg-chip">
             <Link to={g.to} data-gift-age-link={g.slug} data-gift-age-band={b.tail}>
               {b.label} {ages(b)}

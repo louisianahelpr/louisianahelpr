@@ -60,7 +60,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       for (const s of m.sections) expect(index.has(s), s).toBe(true);
     }
     for (const p of NEW_PARENTS) expect(GUIDE_MERGES.some((m) => m.parent === p), p).toBe(true);
-    // Owner pop-up 11-20 ~2:45 AM (FINAL STORE LIST): 26 store pages.
+    // Owner pop-up 2026-11-20 ~2:45 AM (FINAL STORE LIST): 26 store pages.
     expect(STORE_PAGES_KEPT.length).toBe(26);
   });
 

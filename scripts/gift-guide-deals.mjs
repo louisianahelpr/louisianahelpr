@@ -77,7 +77,7 @@ export function loadSources(dir = DIR) {
 
 /** The weak featured picks the owner dropped (11-20) and the brand not on our link (Oura). */
 export const DROP_1120 = ["Ariat", "Academy Sports + Outdoors", "GreenPan", "Oura"];
-/** The 1119 deals with the 1120 file's rows added to their sections (see the header); a fixed row replaces its 1119 row. */
+/** The deals with the follow-up file's rows added to their sections (see the header); a fixed row replaces its old row (2026-11-20). */
 export function withDeals1120(deals, more, fills = {}) {
   const gone = new Set([...(more.remove_from_page ?? []).map((r) => r.brand), ...DROP_1120]);
   const categories = Object.fromEntries(Object.entries(deals.categories).map(([c, list]) => [c, list.filter((r) => !gone.has(r.brand))]));
@@ -108,7 +108,7 @@ export function photoOf(image, cdn = {}) {
 
 /** Our commission (%) on a deal's link; see the header for the order of sources. */
 export function commissionOf(d, { brandLinks, campaigns }) {
-  // A 1120 row carries its own checked rate.
+  // A follow-up row carries its own checked rate (read 2026-11-20).
   if (d["commission %"] != null && pct(d["commission %"]) > 0) return pct(d["commission %"]);
   const all = Object.values(brandLinks).flat();
   const exact = all.find((p) => p.href === d.href && p.commission_pct);

@@ -112,7 +112,9 @@ describe("gift guides follow-up 1120", () => {
   });
 
   it("maps the audits' fixes: a store-page copy stays, a 0% cut leaves its guide, a move finds its section, a rename puts the brand first", () => {
-    const row = (fix: string, problem: string, extra: Record<string, string> = {}) => ({ file: "x", guide: "work-gifts", section: "Coworkers", item: "Thing", href: "https://go.shopmy.us/p-1", fix, problem, move_to: "", ...extra });
+    // A finding as the audit files write it (its section named by its title on the big batch's guide).
+    const finding = (title: string) => Object.fromEntries([["file", "x"], ["guide", "work-gifts"], ["section", title], ["item", "Thing"]]) as { file: string; guide: string; section: string; item: string };
+    const row = (fix: string, problem: string, extra: Record<string, string> = {}) => ({ ...finding("Coworkers"), href: "https://go.shopmy.us/p-1", fix, problem, move_to: "", ...extra });
     const a = auditActions1120([
       row("replace_image", "same item/image also on: store-yeti (owner rule ...)"),
       row("replace_link", "Commission 0 and not a 25 Days sponsor"),
@@ -123,7 +125,7 @@ describe("gift guides follow-up 1120", () => {
     expect([...a.storeCuts]).toEqual([]);
     expect(a.cuts).toEqual([{ slug: "coworkers", href: "https://go.shopmy.us/p-1", item: "Thing" }]);
     expect(a.moves).toEqual([{ href: "https://go.shopmy.us/p-4", from: "coworkers", to: "boss" }]);
-    expect(moveTarget("splurge", "splurge#$100 & Up")).toEqual({ guide: "splurge", section: "$100 & Up" });
+    expect(Object.values(moveTarget("splurge", "splurge#$100 & Up") ?? {})).toEqual(["splurge", "$100 & Up"]);
     expect(brandFirst("Pecan Pralines 12 Count Tin", "Aunt Sally's")).toBe("Aunt Sally's Pecan Pralines 12 Count Tin");
     expect(brandFirst("Aunt Sally's Pecan Pralines", "Aunt Sally's")).toBe("Aunt Sally's Pecan Pralines");
     expect(brandFirst("Classic Clog", "Amazon")).toBe("Classic Clog");

@@ -221,7 +221,7 @@ describe("gift guides: the content inventory", () => {
 
   it("the artifact's 46 Amazon guides are all here, each with items; budget guides carry no computed price", () => {
     expect(AMAZON_GUIDES.length).toBe(46);
-    // Follow-up 1120 (owner 11-20 ~12:00 AM, "Remove Kendra Scott"): the artifact's 5 Kendra Scott rows are gone (629 -> 624).
+    // Follow-up 1120 (owner 2026-11-20 ~12:00 AM, "Remove Kendra Scott"): the artifact's 5 Kendra Scott rows are gone (629 -> 624).
     expect(AMAZON_GUIDES.reduce((n, g) => n + g.items.length, 0)).toBe(624);
     for (const g of AMAZON_GUIDES) expect(g.items.length, g.slug).toBeGreaterThan(0);
     expect(AMAZON_GUIDES.filter((g) => g.row === "theme").map((g) => g.slug)).toEqual([
@@ -544,7 +544,7 @@ describe("gift guides: the landing opens to the guides", () => {
 
   // Follow-up 1120 (owner 11-20 ~1:10 AM): ONE Kids guide by age; the row shows Kids and Kids by age links each age
   // section, teens included.
-  // @mutate src/pages/info/giftGuides/GiftGuideAges.tsx |   const chips = KID_AGE_BANDS.flatMap((b) => { |   const chips = KID_AGE_BANDS.filter((b) => b.tail !== "teens").flatMap((b) => {
+  // @mutate src/pages/info/giftGuides/GiftGuideAges.tsx |   const bands = KID_AGE_BANDS.flatMap((b) => { |   const bands = KID_AGE_BANDS.filter((b) => b.tail !== "teens").flatMap((b) => {
   it("kids in two taps: the row shows Kids; Kids by age opens each age section, teens too; the menu Kids", () => {
     const { container } = renderAt("/gift-guides");
     const kidsRow = container.querySelector('[data-gift-row="for-kids"]')!;

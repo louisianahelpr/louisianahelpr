@@ -16,7 +16,7 @@
  * @mutate src/lib/identityCheck.ts |   if (waiting \|\| opts.entryLink) toast.error(IDENTITY_SHEET_UNAVAILABLE); |   if (opts.entryLink) toast.error(IDENTITY_SHEET_UNAVAILABLE);
  * @mutate src/lib/identityCheck.ts |   if (waiting \|\| opts.entryLink) toast.error(IDENTITY_SHEET_UNAVAILABLE); |   if (waiting) toast.error(IDENTITY_SHEET_UNAVAILABLE);
  * @mutate src/components/identity/IdentityCheckMount.tsx | "IdentityCheckHost", () => markIdentitySheetUnavailable({ | "IdentityCheckHost", () => void ({
- * @mutate src/components/profile/SettingsTab.tsx | onClick={() => openIdentityCheckOrSay("general")} /> | onClick={() => void openIdentityCheck("general")} />
+ * @mutate src/components/AwardGateDialog.tsx |     openIdentityCheckOrSay("accept"); |     void openIdentityCheck("accept");
  */
 import React, { Suspense } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

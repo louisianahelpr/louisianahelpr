@@ -10,13 +10,16 @@
  *      in one row; the trust badges went 2026-11-17);
  *   3. "Shops and Homes are on the way" stays, as one line, and the Coming soon cards shrink away (D005,
  *      landingOpeningSoonCopy.test.tsx).
- * D008 (11-10): How it works wears the hero's quiet selected style, one look for "selected" on the landing.
- * D012 / D020 (11-10): each side has ONE action, a link beside the tabs (it was a lone outline button under the steps).
+ * D008 (11-10): How it works wore the hero's quiet selected style; owner 11-20 (site polish B1) made it solid olive.
+ * D012 / D020 (11-10): each side has ONE action. Owner 11-20 (site polish B1-B3): the selected side is solid olive, the
+ * action is a real button under the cards (Post a job / Find work / Start selling), and each step card has an icon.
  *
  * @mutate src/components/landing/HowItWorksSection.tsx |   { value: "sell", label: "Buy or sell" }, |
  * @mutate src/components/landing/HowItWorksSection.tsx |   return mode === "declutter" ? "sell" : "hire"; |   return "hire";
  * @mutate src/components/landing/HowItWorksSection.tsx |   useEffect(() => setSide(sideForMode(mode)), [mode]); |
- * @mutate src/components/landing/HowItWorksSection.tsx |               tone="quiet"\n |
+ * @mutate src/components/landing/HowItWorksSection.tsx |               tone="solid"\n |               tone="quiet"\n
+ * @mutate src/components/landing/HowItWorksSection.tsx |                   <Icon key={side} className="h-5 w-5" strokeWidth={1.75} /> | {null}
+ * @mutate src/components/landing/HowItWorksSection.tsx |         <div data-how-action="" className="flex justify-center sm:justify-start"> |         <div className="flex justify-center sm:justify-start">
  * @mutate src/components/landing/SectionsShowcase.tsx | const MONEY_HEADLINE = "Nobody gets paid until it’s really done, or really handed over."; | const MONEY_HEADLINE = "Nobody gets paid until the job is really done.";
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -57,8 +60,13 @@ describe("owner #7: the landing gives Declutter equal weight below the hero", ()
     expect(screen.getByTestId("landing-sell").getAttribute("href")).toBe(SELL_SIGNED_OUT);
     expect(screen.queryByTestId("landing-shop")).toBeNull(); // D012: one action per side
     expect(screen.queryByTestId("landing-post-job")).toBeNull();
-    // D020: the action sits in the tabs' row, not alone under the steps.
-    expect(screen.getByRole("tablist").parentElement?.contains(screen.getByTestId("landing-sell"))).toBe(true);
+    // Owner 11-20 (site polish B2, replaces D020): the action is a real button under the three cards, worded "Start selling".
+    const action = screen.getByTestId("landing-sell");
+    expect(action.textContent).toBe("Start selling");
+    expect(action.closest("[data-how-action]")).not.toBeNull();
+    expect(screen.getByRole("tablist").parentElement?.contains(action)).toBe(false);
+    const lastStep = [...document.querySelectorAll("[data-how-step]")].pop()!;
+    expect(lastStep.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("D012: every side has exactly one action link besides the tabs", () => {
@@ -90,10 +98,17 @@ describe("owner #7: the landing gives Declutter equal weight below the hero", ()
     expect(selected().textContent).toBe("Buy or sell");
   });
 
-  it("D008: the selected tab wears the hero's quiet style, never the solid olive", () => {
+  it("B1 (owner 11-20, replaces D008): the selected side is filled solid olive with white words; each step card has its icon", () => {
     render(<MemoryRouter><HowItWorksSection /></MemoryRouter>);
-    expect(selected().className).toContain("segmented-option-quiet-selected");
-    expect(selected().className).not.toContain("btn-grad-primary");
+    expect(selected().className).toContain("btn-grad-primary");
+    expect(selected().className).not.toContain("segmented-option-quiet-selected");
+    // B3: a small accent icon on every step card, on every side.
+    for (const t of screen.getAllByRole("tab")) {
+      fireEvent.click(t);
+      const steps = [...document.querySelectorAll("[data-how-step]")];
+      expect(steps.length, t.textContent!).toBe(3);
+      for (const s of steps) expect(s.querySelector("[data-how-step-icon] svg"), t.textContent!).not.toBeNull();
+    }
   });
 
   it("tweak 2 / D009: one band headline covers jobs and Declutter; three steps in a row; no badges (owner 2026-11-17)", () => {

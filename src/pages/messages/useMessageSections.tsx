@@ -114,8 +114,9 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   );
 
   const shown = useMemo(() => threadsForFilter(conversations, section), [conversations, section]);
+  // The Archived chip lists from the WHOLE pre-archive list (ConversationList filters it to the archive).
   const shownAll = useMemo(
-    () => (allConversations ? threadsForFilter(allConversations, section) : allConversations),
+    () => (allConversations && section !== "archived" ? threadsForFilter(allConversations, section) : allConversations),
     [allConversations, section],
   );
 
@@ -126,6 +127,8 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     { value: "unread", label: unread > 0 ? t("msg.filterUnreadN", { n: unread }) : t("msg.filterUnread") },
     // Area 08 H2: the section chips in the app language (the nav's own words: Trabajos, Declutter, Tiendas, Casas).
     ...chipTabs.map((k) => ({ value: k, label: SECTION_CHIP_KEY[k] ? t(SECTION_CHIP_KEY[k]) : sectionByKey(k).label })),
+    // Archived (owner-approved polish 2026-11-20): the archive as the last chip, the way back to a hidden thread.
+    { value: "archived", label: t("msg.filterArchived") },
   ];
   // M6 (iOS audit 11-16): the shared FilterChips, the same row the Notifications tab uses (All first).
   const strip = (
@@ -133,7 +136,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   );
 
   let empty: SectionEmpty | null = null;
-  if (section !== "all" && section !== "unread" && section !== "jobs") {
+  if (section !== "all" && section !== "unread" && section !== "archived" && section !== "jobs") {
     const def = sectionByKey(section);
     const copy = SECTION_INBOX_EMPTY[section];
     // A closed section only has a chip while it holds threads, so its chip never shows an empty list.
@@ -166,6 +169,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
       : null;
   return {
     section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty, orderTalks: orderTalkInbox, inboxLead,
+    archivedView: section === "archived", setSection,
     mainEmptyBody: mainInboxEmptyBody(live.declutter),
   };
 }

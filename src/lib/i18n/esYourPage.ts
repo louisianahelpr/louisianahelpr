@@ -21,6 +21,7 @@ export const esYourPage: Record<keyof typeof enYourPage, string> = {
   "yp.everything": "Todo lo que vende está en",
   "yp.copyLink": "Copiar enlace",
   "yp.pageLead": "Su perfil público:",
+  "yp.lineLead": "Su perfil:",
   // The You page (design audit r2 #31)
   "yp.you.publicProfile": "Perfil público",
   "yp.you.yourProfile": "Su perfil",

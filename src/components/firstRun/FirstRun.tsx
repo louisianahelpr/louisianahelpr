@@ -1,6 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check } from "lucide-react";
+import { Briefcase, Search, Sofa, type LucideIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ChoiceCard } from "@/components/ui/ChoiceCard";
+import { SELL_START_PATH } from "@/lib/declutter/sellChooser";
+import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
@@ -8,15 +12,19 @@ import type { SectionKey } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enNewMember";
+import type { MsgKey } from "@/lib/i18n/en";
 import { saveFirstRunPicks, useFirstRunPicks, type FirstRunPick } from "./firstRunPicks";
 
 /**
  * FIRST RUN (board 53) + THE SHORT TOUR (owner 2026-10-20; replaces the old
  * 7-step OnboardingTour).
  *
- * 1. "What brings you to Helpr?": multi-select cards covering both sides. The
- *    picks ONLY reorder Home's sections (useSectionPrefs.putFirst); nothing is
- *    locked, and Skip is always top right. Only open sections are offered.
+ * 1. "What brings you here?" (owner 2026-11-20, ease batch item 2): ONE question right after sign-up, three
+ *    single-tap answers, Hire help / Find work / Sell stuff, each going straight to Post a job / Jobs near you /
+ *    Declutter's one-item Sell. The answer also puts that section first on Home (useSectionPrefs.putFirst); nothing
+ *    is locked, and Skip is always top right (Skip still runs the short tour). Profile details are asked later, only
+ *    when an action needs them (ProtectedRoute fullProfile, src/lib/profileGateRoutes.ts). Sell stuff shows only
+ *    while Declutter is open for the member. Before: four multi-select cards that only reordered Home.
  * 2. Four or five coach marks on the REAL chrome (the dock and the top row's
  *    Messages on a phone, the sidebar on desktop; owner 11-14), worded for the picks: one line, dots, Skip and
  *    Next, "Done" on the last. Olive actions, sentence case, no rust.
@@ -26,11 +34,10 @@ import { saveFirstRunPicks, useFirstRunPicks, type FirstRunPick } from "./firstR
  */
 
 type Pick = FirstRunPick;
-export const FIRST_RUN_OPTIONS: { id: Pick; title: string; sub: string; section: SectionKey }[] = [
-  { id: "hire", title: "Get help with a job", sub: "Yard, cleaning, moving, assembly and more", section: "jobs" },
-  { id: "earn", title: "Earn by helping neighbors", sub: "Pick up jobs near you", section: "jobs" },
-  { id: "sell", title: "Sell things I don't need", sub: "List an item for neighbors to buy", section: "declutter" },
-  { id: "deal", title: "Find a good deal", sub: "Local items from your neighbors", section: "declutter" },
+export const FIRST_RUN_OPTIONS: { id: Pick; title: string; sub: string; section: SectionKey; to: string; icon: LucideIcon }[] = [
+  { id: "hire", title: "Hire help", sub: "Post a job in three short steps", section: "jobs", to: "/post-job", icon: Briefcase },
+  { id: "earn", title: "Find work", sub: "Jobs near you, paid through Helpr", section: "jobs", to: "/jobs", icon: Search },
+  { id: "sell", title: "Sell stuff", sub: "Snap a photo, set a price, post", section: "declutter", to: SELL_START_PATH, icon: Sofa },
 ];
 
 /** Where each coach mark points: the phone first, then the desktop sidebar (owner 11-14: the phone dock is Home, Jobs,
@@ -114,6 +121,7 @@ export default function FirstRunScreens({ startInTour, onDone, onPicks, userId }
 }) {
   const [phase, setPhase] = useState<"pick" | "tour">(startInTour ? "tour" : "pick");
   const [picks, setPicks] = useState<Pick[]>([]);
+  const navigate = useNavigate();
   // A replay ("Take the tour again") is worded for the picks made on the first run.
   const storedPicks = useFirstRunPicks(userId);
   const desktop = useIsWebDesktop();
@@ -126,16 +134,21 @@ export default function FirstRunScreens({ startInTour, onDone, onPicks, userId }
     return (
       <FirstRunPicker
         options={options}
-        picks={picks}
-        onToggle={(id) => setPicks((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))}
         onSkip={() => setPhase("tour")}
-        onContinue={() => {
-          if (onPicks) onPicks(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
-          else {
-            putFirst(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
-            if (userId) saveFirstRunPicks(userId, picks);
+        onPick={(o) => {
+          track("first_run_intent", { pick: o.id });
+          // The admin onboarding preview takes the pick itself and shows the tour (it never leaves the preview).
+          if (onPicks) {
+            onPicks([o.section]);
+            setPicks([o.id]);
+            setPhase("tour");
+            return;
           }
-          setPhase("tour");
+          putFirst([o.section]);
+          if (userId) saveFirstRunPicks(userId, [o.id]);
+          // Straight to the action (owner 11-20): the first run is done; no tour stands between them and it.
+          onDone();
+          navigate(o.to);
         }}
       />
     );
@@ -143,8 +156,8 @@ export default function FirstRunScreens({ startInTour, onDone, onPicks, userId }
   return <CoachMarks steps={tourSteps(picks.length ? picks : storedPicks, declutterOpen, desktop)} onDone={onDone} />;
 }
 
-function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
-  options: typeof FIRST_RUN_OPTIONS; picks: Pick[]; onToggle: (id: Pick) => void; onSkip: () => void; onContinue: () => void;
+function FirstRunPicker({ options, onSkip, onPick }: {
+  options: typeof FIRST_RUN_OPTIONS; onSkip: () => void; onPick: (o: (typeof FIRST_RUN_OPTIONS)[number]) => void;
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => { headingRef.current?.focus(); }, []);
@@ -159,45 +172,24 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
             {t("firstRun.title")}
           </h1>
           <p className="text-ds-14 text-muted-foreground mt-1">{t("firstRun.lede")}</p>
+          {/* One tap is the answer and goes straight there (owner 11-20): the shared first-step card (ChoiceCard). */}
           <ul className="mt-4 flex flex-col gap-3">
             {options.map((o) => {
-              const on = picks.includes(o.id);
+              const Icon = o.icon;
               return (
                 <li key={o.id}>
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={on}
-                    onClick={() => onToggle(o.id)}
+                  <ChoiceCard
                     data-first-run-option={o.id}
-                    className="btn-press w-full flex items-center gap-3 rounded-[20px] bg-card px-4 py-3.5 text-left min-h-[64px] transition-colors"
-                    style={{ border: `1px solid hsl(var(${on ? "--bark" : "--border"}))`, boxShadow: on ? "inset 0 0 0 1px hsl(var(--bark))" : undefined }}
-                  >
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-ds-16 font-bold text-foreground">{t(`firstRun.${o.id}.title`)}</span>
-                      <span className="block text-ds-13 text-muted-foreground">{t(`firstRun.${o.id}.sub`)}</span>
-                    </span>
-                    <span
-                      aria-hidden
-                      data-first-run-check=""
-                      className="shrink-0 w-[18px] h-[18px] rounded-[5px] flex items-center justify-center"
-                      style={on ? { background: "hsl(var(--bark))" } : { border: "1.5px solid hsl(var(--border))" }}
-                    >
-                      {on && <Check className="w-3 h-3" style={{ color: "hsl(var(--primary-foreground))" }} />}
-                    </span>
-                  </button>
+                    icon={<Icon className="h-5 w-5" aria-hidden />}
+                    title={t(`firstRun.${o.id}.title` as MsgKey)}
+                    line={t(`firstRun.${o.id}.sub` as MsgKey)}
+                    onClick={() => onPick(o)}
+                  />
                 </li>
               );
             })}
           </ul>
           <p className="text-ds-13 text-muted-foreground mt-3">{t("firstRun.note")}</p>
-        </div>
-      </div>
-      <div className="border-t border-border bg-background px-5 pt-3 pb-[max(1rem,var(--safe-area-bottom,0px))]">
-        <div className="mx-auto w-full max-w-[480px]">
-          <Button type="button" variant="primary" onClick={onContinue} className="w-full">
-            {t("firstRun.continue")}
-          </Button>
         </div>
       </div>
     </div>,

@@ -35,7 +35,7 @@
  * read, not a better one. The measure is VN-25's business and is guarded by
  * ChatView.layout.test.tsx.
  *
- * @mutate src/components/messages/ChatView.tsx | overflow-x-clip ${timeline.length === 0 ? "my-auto" : "mt-auto"} | overflow-x-clip
+ * @mutate src/components/messages/ChatView.tsx | overflow-x-clip ${timeline.length === 0 ? "my-auto" : ""} | overflow-x-clip
  * @mutate src/components/messages/ChatView.tsx | <div data-off-platform-note className="w-full mt-3 shrink-0 rounded-md bg-muted | <div data-off-platform-note className="w-full mt-auto shrink-0 rounded-md bg-muted
  */
 import { describe, it, expect, vi, afterEach } from "vitest";

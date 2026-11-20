@@ -220,7 +220,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   get_helper_analytics: "hides",
   get_open_jobs_for_map: "hides",
   get_parish_activity: "hides",
-  get_price_guidance: "hides",
+  get_fair_price_hint: "hides", // 20261120205106 (owner 11-20 ease batch): seed jobs, test and seed accounts never set a real range
   get_public_open_jobs: "hides",
   get_public_profile_reviews: "hides",
   get_public_profile_stats: "hides",

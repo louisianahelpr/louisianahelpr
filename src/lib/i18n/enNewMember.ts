@@ -29,18 +29,15 @@ export const enNewMember = {
   "home.ns.seeAll": "See all",
   // Area 11b M1: the first-run picker (FirstRun.tsx), so a Spanish member's first screen is Spanish too.
   "firstRun.skip": "Skip",
-  "firstRun.title": "What brings you to Helpr?",
-  "firstRun.lede": "Pick any. You can do all of it with one account.",
-  "firstRun.hire.title": "Get help with a job",
-  "firstRun.hire.sub": "Yard, cleaning, moving, assembly and more",
-  "firstRun.earn.title": "Earn by helping neighbors",
-  "firstRun.earn.sub": "Pick up jobs near you",
-  "firstRun.sell.title": "Sell things I don't need",
-  "firstRun.sell.sub": "List an item for neighbors to buy",
-  "firstRun.deal.title": "Find a good deal",
-  "firstRun.deal.sub": "Local items from your neighbors",
-  "firstRun.note": "This only sets what you see first on Home. Nothing is locked.",
-  "firstRun.continue": "Continue",
+  "firstRun.title": "What brings you here?",
+  "firstRun.lede": "Tap one to start. One account does it all.",
+  "firstRun.hire.title": "Hire help",
+  "firstRun.hire.sub": "Post a job in three short steps",
+  "firstRun.earn.title": "Find work",
+  "firstRun.earn.sub": "Jobs near you, paid through Helpr",
+  "firstRun.sell.title": "Sell stuff",
+  "firstRun.sell.sub": "Snap a photo, set a price, post",
+  "firstRun.note": "You can do the others any time. Nothing is locked.",
 } as const;
 
 addEnglish(enNewMember);

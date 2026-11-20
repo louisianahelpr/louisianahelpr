@@ -12,7 +12,7 @@
  *
  * @mutate src/components/messages/ConversationRow.tsx |       {trailing && <div data-row-trailing className="shrink-0 self-center">{trailing}</div>} |       {trailing && <div data-row-trailing className="absolute right-2 top-1/2 shrink-0 self-center">{trailing}</div>}
  * @mutate src/components/messages/ConversationRow.tsx |       {trailing && <div data-row-trailing className="shrink-0 self-center">{trailing}</div>} |       {null}
- * @mutate src/components/messages/ConversationListBody.tsx |                           trailing={restore} |                           trailing={undefined}
+ * @mutate src/components/messages/ConversationListBody.tsx |                           trailing={restore ?? | trailing={undefined ??
  * @mutate src/components/messages/RestoreConversationButton.tsx |       className="gap-1 px-3 | className="absolute right-2 gap-1 px-3
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -70,7 +70,7 @@ describe("Q1465: Recently deleted's Restore sits in the row's flow, never over t
   it("the list hands Restore to the row's trailing slot, and Restore is not absolutely positioned", () => {
     const list = blankComments(fs.readFileSync(path.join(ROOT, "src/components/messages/ConversationListBody.tsx"), "utf8"));
     expect(list).toMatch(/const restore = isRecentlyDeletedView && userId \? <RestoreConversationButton /);
-    expect(list).toMatch(/trailing=\{restore\}/);
+    expect(list).toMatch(/trailing=\{restore \?\? /); // Restore first; the desktop ⋯ menu (2026-11-20) only where there is no Restore
     const button = blankComments(fs.readFileSync(path.join(ROOT, "src/components/messages/RestoreConversationButton.tsx"), "utf8"));
     expect(button).toMatch(/Restore conversation with/);
     expect(button).not.toMatch(/\babsolute\b/);

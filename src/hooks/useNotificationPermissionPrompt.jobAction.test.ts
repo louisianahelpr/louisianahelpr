@@ -5,7 +5,7 @@
  * call, not just the first: the ask keeps its own 14-day cooldown, and a
  * member who said Not now once is asked again after a later job action.
  *
- * @mutate src/hooks/useNotificationPermissionPrompt.ts |   else if (typeof window !== "undefined") {\n    window.dispatchEvent(new Event(JOB_ACTION_EVENT)); |   else if (typeof window !== "undefined") {
+ * @mutate src/hooks/useNotificationPermissionPrompt.ts |   else if (typeof window !== "undefined") {\n    window.dispatchEvent(jobActionEvent(opts?.context)); |   else if (typeof window !== "undefined") {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -41,7 +41,7 @@ describe("recordJobActionForPermissionPrompt", () => {
 // Q2003 (lead 11-04): a post leaves Post a Job for Stripe Checkout (or /payment-success) at once, so its ask is
 // offered on the page the poster comes back to, not on the page that is leaving.
 // @mutate src/hooks/useNotificationPermissionPrompt.ts |   if (opts?.askOnReturn) safeStorage.setItem(ASK_AFTER_POST_KEY, String(Date.now()));\n  else if | if
-// @mutate src/hooks/useNotificationPermissionPrompt.ts |   window.dispatchEvent(new Event(JOB_ACTION_EVENT));\n  return true; |   return true;
+// @mutate src/hooks/useNotificationPermissionPrompt.ts |   window.dispatchEvent(jobActionEvent("posted"));\n  return true; |   return true;
 // @mutate src/pages/post-job/useJobSubmit.ts | recordJobActionForPermissionPrompt({ askOnReturn: true }); | recordJobActionForPermissionPrompt();
 // @mutate src/pages/post-job/PaymentSuccess.tsx |     offerPushAskAfterPostReturn(); |
 describe("Q2003: a post's notifications ask waits for the page it returns to", () => {

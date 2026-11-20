@@ -10,7 +10,7 @@
  * Explore badge and "To do 2" on Home.
  *
  * One fixture through the real bridge, the real dock, the real sidebar and the
- * real Home (only the network is faked): badge == to-dos == "See all (n)".
+ * real Home (only the network is faked): badge == to-dos == "Needs you · n" (owner polish 11-20: a short list, its rows).
  *
  * @mutate src/components/mobileNav/dockBadgeCount.ts |     : badgeKey === "todoShops"\n          ? todo.shops |     : badgeKey === "todoShops"\n          ? todo.total
  * @mutate src/components/mobileNav/dockItems.ts | label: shops.label, badgeKey: "todoShops", comingSoon: true }, | label: shops.label, comingSoon: true },
@@ -21,7 +21,7 @@
  * @mutate src/components/DesktopSidebarNav.tsx | const count = soon \|\| (path === exploreItem.path && visibleSections.length > 0) ? 0 : badgeFor(badgeKey); | const count = soon ? 0 : badgeFor(badgeKey);
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup, act } from "@testing-library/react";
+import { render, screen, cleanup, act, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -129,7 +129,7 @@ async function mountAll() {
     </QueryClientProvider>,
   );
   // The bridge and Home settle on the same to-do list.
-  await screen.findByTestId("next-up-see-all");
+  await waitFor(() => expect(document.querySelectorAll("[data-next-up-row]").length).toBe(2));
   await act(async () => {
     await new Promise((r) => setTimeout(r, 0));
   });
@@ -141,8 +141,10 @@ describe("badge = To-do (owner, 2026-10-20)", () => {
   it("21 new applicants on one job + one order to answer = 2 everywhere: the dock's section badges, sidebar, Next up, See all", async () => {
     await mountAll();
     // Home: the to-do list is one per job / order.
-    expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you · 1 of 2");
-    expect(screen.getByTestId("next-up-see-all").textContent).toBe("See all (2)");
+    expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you · 2");
+    expect(document.querySelectorAll("[data-next-up-row]").length).toBe(2);
+    // Both fit the short list (owner polish 11-20), so there is no See all.
+    expect(screen.queryByTestId("next-up-see-all")).toBeNull();
     // The phone dock (owner 11-14: Home, Jobs, Declutter, Shops, Homes): each section tab carries its share, as the
     // sidebar does (never "9+" from 21 applicants); Home carries none (it would double-count). Shops is open to this
     // viewer here, so its tab carries its share (a closed one carries none: navSoonAndTopMessages.test.tsx).

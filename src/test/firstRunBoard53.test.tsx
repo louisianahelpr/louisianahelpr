@@ -22,11 +22,12 @@ import { firstRunStorageKey } from "@/components/firstRun/firstRunGate";
 const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "..", p), "utf8"));
 
 describe("first run (board 53) and the short tour", () => {
-  it("offers four both-sided picks, two needing Declutter open", () => {
+  it("offers three one-tap answers (owner 11-20: Hire help, Find work, Sell stuff), Sell only with Declutter open, each going straight to its action", () => {
     expect(FIRST_RUN_OPTIONS.map((o) => o.title)).toEqual([
-      "Get help with a job", "Earn by helping neighbors", "Sell things I don't need", "Find a good deal",
+      "Hire help", "Find work", "Sell stuff",
     ]);
-    expect(FIRST_RUN_OPTIONS.filter((o) => o.section === "declutter").length).toBe(2);
+    expect(FIRST_RUN_OPTIONS.filter((o) => o.section === "declutter").length).toBe(1);
+    expect(FIRST_RUN_OPTIONS.map((o) => o.to)).toEqual(["/post-job", "/jobs", "/declutter/sell"]);
     const src = read("components/firstRun/FirstRun.tsx");
     expect(src).toContain('FIRST_RUN_OPTIONS.filter((o) => o.section === "jobs" || declutterOpen)');
   });
@@ -61,11 +62,11 @@ describe("first run (board 53) and the short tour", () => {
     for (const [picks, open, text] of CASES) expect(tourSteps(picks, open).find((s) => s.target === "create")?.text, picks.join("+")).toBe(text);
   });
 
-  it("picks only reorder Home: putFirst puts them first and keeps the rest in order", () => {
+  it("the pick puts its section first on Home (putFirst keeps the rest in order), then goes straight to its action", () => {
     const prefs = read("components/sections/useSectionPrefs.ts");
     expect(prefs).toContain("order: [...first, ...prefs.order.filter((k) => !first.includes(k))]");
     const src = read("components/firstRun/FirstRun.tsx");
-    expect(src).toContain("putFirst(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));");
+    expect(src).toMatch(/putFirst\(\[o\.section\]\);[\s\S]*?onDone\(\);\s*navigate\(o\.to\);/);
     expect(src).not.toMatch(/setHidden|--burnt-sienna|--accent|--money/);
   });
 

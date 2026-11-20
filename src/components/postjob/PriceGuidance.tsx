@@ -1,78 +1,86 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useFeature } from "@/hooks/useFeature";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPostJob";
 
-/** What most real completed jobs in a category paid (get_price_guidance, 20261021054721). */
-interface PriceGuidance {
-  count: number;
+/**
+ * Owner 2026-11-20 (ease batch, item 1): a fair price hint from recent similar jobs near the poster, computed on the
+ * server (get_fair_price_hint, 20261120205106) from REAL non-seed jobs: "near" = 5+ jobs from 3+ posters within 25
+ * miles, "state" = the same statewide, "typical" = a fixed starting range for the category when real data is thin
+ * (and the only answer a guest gets). Each scope says what it is: only a real range says "near you" or "on Helpr".
+ * It replaced board 190's statewide get_price_guidance (30+ completed jobs, testers switch), which never showed.
+ */
+interface FairPriceHint {
+  scope: "near" | "state" | "typical";
+  count: number | null;
   low: number;
   high: number;
 }
 
-const MONEY = { color: "hsl(var(--burnt-sienna))" } as const;
-
-/**
- * Board 190: the middle half of what REAL completed jobs in this category paid in the last 90 days.
- * The server returns a range only when 30+ jobs back it (owner: hidden until ~30 real jobs); below that,
- * off ('price_guidance', testers), not deployed or failed, this is null and the screen shows nothing
- * (truth rule: every number is real or hidden).
- */
-function usePriceGuidance(category: string | null | undefined): PriceGuidance | null {
-  const on = useFeature("price_guidance");
-  // Not keyed by member: the answer is a statewide aggregate, the same for everyone (signed out reads 0).
+/** The hint for a category; null while loading, on an error (reported), or for a category with no range. */
+function useFairPriceHint(category: string | null | undefined): FairPriceHint | null {
+  const { profile } = useCurrentUser();
+  // The member's saved point (profiles.latitude/longitude); without one the server answers statewide.
+  const lat = typeof profile?.latitude === "number" ? Math.round(profile.latitude * 100) / 100 : null;
+  const lng = typeof profile?.longitude === "number" ? Math.round(profile.longitude * 100) / 100 : null;
   const { data } = useQuery({
-    queryKey: ["price-guidance", category ?? null],
-    enabled: on && !!category,
+    queryKey: ["fair-price-hint", category ?? null, lat, lng, !!profile],
+    enabled: !!category,
     staleTime: 10 * 60 * 1000,
-    queryFn: async (): Promise<PriceGuidance | null> => {
-      const { data: rows, error } = await supabase.rpc("get_price_guidance", { p_category: category as string });
+    queryFn: async (): Promise<FairPriceHint | null> => {
+      const { data: rows, error } = await supabase.rpc("get_fair_price_hint", { p_category: category as string, ...(lat !== null && lng !== null ? { p_lat: lat, p_lng: lng } : {}) });
       if (error) {
-        // 42501 = feature_disabled when the switch flips off mid-session: expected, not a warning.
-        if (!isMissingRpcNamed(error, "get_price_guidance") && error.code !== "42501") report(error, { severity: "warning", tags: { source: "usePriceGuidance" } });
+        // A brand-new RPC not yet deployed (PGRST202) is expected for a few minutes after a merge: the card is left out.
+        if (!isMissingRpcNamed(error, "get_fair_price_hint")) report(error, { severity: "warning", tags: { source: "useFairPriceHint" } });
         return null;
       }
       const r = Array.isArray(rows) ? rows[0] : null;
-      if (!r || r.low_dollars == null || r.high_dollars == null || !(r.sample_count > 0)) return null;
-      return { count: r.sample_count, low: r.low_dollars, high: r.high_dollars };
+      if (!r || r.low_dollars == null || r.high_dollars == null) return null;
+      const scope = r.scope === "near" || r.scope === "state" ? r.scope : "typical";
+      return { scope, count: r.sample_count ?? null, low: r.low_dollars, high: r.high_dollars };
     },
   });
-  return on && data ? data : null;
+  return data ?? null;
 }
 
 /**
- * The card under the price (board 190): "Most jobs paid $80–$120", a bar with a marker at the poster's
- * price, the count and window; below the range, a gentle nudge with "Use $80" / "Keep $40". Nothing at
- * all when there is no real range.
+ * The card under the price: "Most yard jobs near you are $40–$80", a bar with a marker at the poster's price; below
+ * the range, a gentle nudge with "Use $40" / "Keep $25". Nothing while there is no range.
  */
 export function PriceGuidanceCard({ category, budget, onUse }: { category: string; budget: number; onUse: (dollars: number) => void }) {
-  const g = usePriceGuidance(category);
+  const g = useFairPriceHint(category);
   return g ? <PriceGuidanceView g={g} category={category} budget={budget} onUse={onUse} /> : null;
 }
 
-/** The card itself, for a range the server returned. */
-function PriceGuidanceView({ g, category, budget, onUse }: { g: PriceGuidance; category: string; budget: number; onUse: (dollars: number) => void }) {
+const MONEY = { color: "hsl(var(--burnt-sienna))" } as const;
+
+function PriceGuidanceView({ g, category, budget, onUse }: { g: FairPriceHint; category: string; budget: number; onUse: (dollars: number) => void }) {
+  const { t } = useLanguage();
   const [kept, setKept] = useState<number | null>(null);
   const what = jobCategoryLabel(category).toLowerCase();
   const range = `$${g.low}–$${g.high}`;
+  const headline = t(g.scope === "near" ? "postJob.hint.near" : g.scope === "state" ? "postJob.hint.state" : "postJob.hint.typical", { what });
+  const source = g.scope === "typical" ? t("postJob.hint.typicalSource") : t("postJob.hint.realSource", { n: g.count ?? 0 });
   const below = budget > 0 && budget < g.low && kept !== budget;
   if (below) {
     return (
-      <section aria-label="Price guidance" className="rounded-2xl border border-border bg-card p-4" data-testid="price-guidance-nudge">
-        <p className="font-semibold text-foreground">That's below what most jobs paid</p>
+      <section aria-label={t("postJob.hint.label")} className="rounded-2xl border border-border bg-card p-4" data-testid="price-guidance-nudge" data-scope={g.scope}>
+        <p className="font-semibold text-foreground">{t("postJob.hint.below")}</p>
         <p className="mt-1 text-ds-13 text-muted-foreground">
-          Most {what} jobs on Helpr paid <span className="whitespace-nowrap" style={MONEY}>{range}</span>. Lower prices usually take longer to fill.
+          {headline} <span className="whitespace-nowrap" style={MONEY}>{range}</span>. {t("postJob.hint.belowWhy")}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button type="button" size="sm" variant="outline" onClick={() => setKept(budget)}>
-            Keep ${budget}
+            {t("postJob.hint.keep", { n: budget })}
           </Button>
           <Button type="button" size="sm" className="btn-grad-primary" onClick={() => onUse(g.low)}>
-            Use ${g.low}
+            {t("postJob.hint.use", { n: g.low })}
           </Button>
         </div>
       </section>
@@ -82,9 +90,9 @@ function PriceGuidanceView({ g, category, budget, onUse }: { g: PriceGuidance; c
   const span = g.high - g.low || 1;
   const pos = budget > 0 ? Math.min(100, Math.max(0, 25 + ((budget - g.low) / span) * 50)) : null;
   return (
-    <section aria-label="Price guidance" className="rounded-2xl border border-border bg-card p-4" data-testid="price-guidance">
+    <section aria-label={t("postJob.hint.label")} className="rounded-2xl border border-border bg-card p-4" data-testid="price-guidance" data-scope={g.scope}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="font-semibold text-foreground">Most {what} jobs paid</p>
+        <p className="font-semibold text-foreground">{headline}</p>
         <p className="shrink-0 whitespace-nowrap font-semibold tabular-nums" style={MONEY}>{range}</p>
       </div>
       <div className="relative mt-3 h-2 rounded-full bg-muted" aria-hidden>
@@ -94,7 +102,8 @@ function PriceGuidanceView({ g, category, budget, onUse }: { g: PriceGuidance; c
         )}
       </div>
       <p className="mt-2 text-ds-13 text-muted-foreground">
-        From {g.count} completed jobs on Helpr in the last 90 days.{budget > 0 ? ` You're at $${budget}.` : ""}
+        {source}
+        {budget > 0 ? ` ${t("postJob.hint.youre", { n: budget })}` : ""}
       </p>
     </section>
   );

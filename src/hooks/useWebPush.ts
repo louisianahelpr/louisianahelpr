@@ -28,6 +28,14 @@ import { JOB_ACTION_EVENT } from "@/hooks/useNotificationPermissionPrompt";
  */
 const loadExplainer = () => loadModule(() => import("@/hooks/usePermissionRationale")).then((m) => m?.explainPermission ?? null);
 
+/**
+ * Owner 11-20 (ease batch, item 3): the ask's words for the action that raised it ("Want a ping when someone
+ * applies?"), loaded with the ask (never on a page's first load). Null (no context, or the load came back empty): the
+ * sheet's general words.
+ */
+const loadAskWords = (context: string | null) =>
+  context ? loadModule(() => import("@/lib/pushAskWords")).then((m) => m?.pushAskWords(context) ?? null) : Promise.resolve(null);
+
 export const WEB_PUSH_ASKED_KEY = "web-push-asked-at";
 /** One ask per 14 days, like the Activity nudges (pushPermissionNudge.ts). */
 export const WEB_PUSH_ASK_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
@@ -51,16 +59,16 @@ export function webPushAskKind(now: number = Date.now()): "ask" | "home_screen" 
 /** One ask at a time: a Sell a bunch publishes several items in a row, each offering the ask (PUSH-REACH). */
 let askInFlight = false;
 
-export async function offerWebPushAfterJobAction(): Promise<void> {
+export async function offerWebPushAfterJobAction(context: string | null = null): Promise<void> {
   if (askInFlight) return;
   askInFlight = true;
   try {
     // Q2003 (owner 2026-11-03): the app asks with this same sheet after a post or an application, not with a
     // floating "Get notified?" toast.
-    if (isNativePlatform) await askNativeOnce();
+    if (isNativePlatform) await askNativeOnce(context);
     else {
       const kind = webPushAskKind();
-      if (kind) await askOnce(kind);
+      if (kind) await askOnce(kind, context);
     }
   } finally {
     askInFlight = false;
@@ -68,14 +76,14 @@ export async function offerWebPushAfterJobAction(): Promise<void> {
 }
 
 /** The app: the notifications sheet, then the OS prompt from its button; same 14-day cooldown as the website. */
-async function askNativeOnce(): Promise<void> {
+async function askNativeOnce(context: string | null): Promise<void> {
   const last = Number(safeStorage.getItem(WEB_PUSH_ASKED_KEY) ?? 0);
   if (Number.isFinite(last) && last > 0 && Date.now() - last < WEB_PUSH_ASK_COOLDOWN_MS) return;
   // Undecided only: granted needs no ask, and iOS never shows its prompt again after a refusal.
   if ((await readPushPermission()) !== "prompt") return;
   const { requestPushPermission } = await import("@/lib/nativePush");
   if (!(await waitForNoModal(60_000))) return;
-  const explainPermission = await loadExplainer();
+  const [explainPermission, words] = await Promise.all([loadExplainer(), loadAskWords(context)]);
   if (!explainPermission) return;
   const agreed = await explainPermission(
     "notifications",
@@ -83,7 +91,7 @@ async function askNativeOnce(): Promise<void> {
       const granted = await requestPushPermission();
       track("web_push_ask", { kind: "native", step: "os_answer", answer: granted ? "granted" : "not_granted" });
     },
-    { onShown: () => markAskShown("native") },
+    { onShown: () => markAskShown("native"), ...(words ? { words } : {}) },
   );
   if (!agreed) track("web_push_ask", { kind: "native", step: "not_now" });
 }
@@ -97,10 +105,10 @@ function markAskShown(kind: "ask" | "home_screen" | "native"): void {
   track("web_push_ask", { kind, step: "shown" });
 }
 
-async function askOnce(kind: "ask" | "home_screen"): Promise<void> {
+async function askOnce(kind: "ask" | "home_screen", context: string | null = null): Promise<void> {
   // Never over the job's own confirmation dialog; skip (and ask next time) if one stays open.
   if (!(await waitForNoModal(60_000))) return;
-  const explainPermission = await loadExplainer();
+  const [explainPermission, words] = await Promise.all([loadExplainer(), kind === "ask" ? loadAskWords(context) : Promise.resolve(null)]);
   if (!explainPermission) return;
   // PUSH-REACH: the ask's funnel is recorded, so "2 web subscriptions" can be told apart into never asked,
   // asked and said no, said yes but the save failed, or an iPhone outside the Home Screen.
@@ -119,15 +127,17 @@ async function askOnce(kind: "ask" | "home_screen"): Promise<void> {
       const saved = await subscribeWebPushOnUse();
       track("web_push_ask", { kind, step: "saved", result: saved });
     }
-  }, { onShown });
-  if (!agreed) track("web_push_ask", { kind, step: "not_now" });
+  }, { onShown, ...(words ? { words } : {}) });
+  if (!agreed) track("web_push_ask", { kind, step: "not_now", context });
 }
 
 export function useWebPushAskAfterJobAction(): void {
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const onAction = () => {
-      void offerWebPushAfterJobAction();
+    const onAction = (e: Event) => {
+      // Owner 11-20: the action names itself (jobActionEvent), so the ask can say what it is for.
+      const context = (e as CustomEvent<{ context?: string | null } | null>).detail?.context ?? null;
+      void offerWebPushAfterJobAction(context);
     };
     window.addEventListener(JOB_ACTION_EVENT, onAction);
     return () => window.removeEventListener(JOB_ACTION_EVENT, onAction);

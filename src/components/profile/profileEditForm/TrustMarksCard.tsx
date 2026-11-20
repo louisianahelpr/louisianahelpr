@@ -13,9 +13,9 @@ import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedN
  *   - Phone: "Added" once a phone is saved (there is no phone verification,
  *     so the board's "Done" would claim a check nobody ran); else "Add",
  *     which focuses the phone field above.
- *   - Photo ID: from profiles.idv_status (identityView): "Verified" when verified,
- *     "Checking" while Stripe or our team is on it, else "Verify now", which
- *     opens the ID check sheet.
+ *   - Photo ID: from profiles.idv_status (identityView), READ-ONLY: "Verified" when verified,
+ *     "Checking" while Stripe or our team is on it, else no row. It never starts the
+ *     ID check (owner 11-20; guard src/test/noProactiveIdEntryPoints.test.ts).
  *   - Payout bank: from profiles.stripe_payouts_enabled: "Added", else "Set up",
  *     which opens Money, where payouts are set up.
  */

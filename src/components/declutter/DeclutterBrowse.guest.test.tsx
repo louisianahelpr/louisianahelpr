@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/DeclutterGuest.tsx |   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo; the H stays on the phone only.\n  const barShown = useIsWebDesktop(); |   const barShown = false;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         primary={guest |         primary={false
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         secondary={wanted ? { |         secondary={true ? {
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` } | { label: t("decl.signUpToSell"), to: "/signup" }
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_START_PATH)}` } | { label: t("decl.signUpToSell"), to: "/signup" }
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, | queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0,
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -128,17 +128,23 @@ describe("BUY-16: guests browse Declutter", () => {
     show(<DeclutterHome />);
     expect(await screen.findByText("Thing 1")).toBeInTheDocument();
     expect(document.querySelector('[data-guest-join="browse"]')).toBeNull();
+    // Owner 11-20 (site polish A3): Browse alone is no tab row of one; the row says "2 items" plainly, with the
+    // search, the compact "Use my location" and Filters at its end.
+    // @mutate src/components/declutter/DeclutterGuestHome.tsx | {browse.count === undefined ? null : browse.count === 1 ? t("decl.results.one") : t("decl.results.many", { n: browse.count })} | {null}
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getByTestId("browse-count-only").textContent).toBe("2 items");
+    expect(screen.getByRole("button", { name: "Use my location" })).toBeInTheDocument();
     // Desktop draws the map beside the list for a member; a guest still gets no map and no pins read.
     expect(screen.queryByRole("button", { name: /the map/ })).toBeNull();
     expect(screen.queryByText("THE MAP")).toBeNull();
     expect(reads).toEqual([]);
   });
 
-  it("a guest's empty Browse offers Sign up to sell (back to the sell chooser), never Sell something; a member keeps Sell something", async () => {
+  it("a guest's empty Browse offers Sign up to sell (back to one item, ease batch 11-20), never Sell something; a member keeps Sell something", async () => {
     state.items = [];
     const g = show(<DeclutterHome />);
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Sign up to sell" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/declutter/sell?mode=choose")}`);
+    expect(screen.getByRole("link", { name: "Sign up to sell" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/declutter/sell")}`);
     // No Wanted for a guest, so no "Post what you're looking for" link under the pill.
     expect(screen.getByText("New items show up here as people list them.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Post what you're looking for" })).toBeNull();
@@ -146,7 +152,7 @@ describe("BUY-16: guests browse Declutter", () => {
     g.unmount();
     show(<DeclutterBrowse userId="me" chrome={(h) => ({ tabs: <div>{h.end}{h.search}</div> })} />);
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
+    expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell");
     expect(screen.queryByRole("link", { name: "Sign up to sell" })).toBeNull();
   });
 

@@ -25,6 +25,7 @@ export const enYourPage = {
   "yp.everything": "Everything you sell is on",
   "yp.copyLink": "Copy link",
   "yp.pageLead": "Your public profile:",
+  "yp.lineLead": "Your profile:",
   // The You page (design audit r2 #31)
   "yp.you.publicProfile": "Public profile",
   "yp.you.yourProfile": "Your profile",

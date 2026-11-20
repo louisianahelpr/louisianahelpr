@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PetPicker } from "@/components/postjob/PetPicker";
-import { MapPin, Shield, Zap } from "lucide-react";
+import { MapPin, Shield, SlidersHorizontal, Zap } from "lucide-react";
+import { OptionalExtras } from "@/components/postjob/OptionalExtras";
 import { useEffect, useState } from "react";
 import { AddressBlock } from "@/components/postjob/AddressBlock";
 import { RecurringSchedulePicker } from "@/components/postjob/RecurringSchedulePicker";
@@ -301,62 +302,6 @@ export function LogisticsSection({
       icon={MapPin}
       complete={logisticsComplete}
     >
-      {/* Whether a job repeats is the first scheduling fact (owner,
-          2026-08-24): it changes what the date below means (single visit vs
-          series start), so it stays ABOVE the date, at the top of the screen.
-          Board 45 does not draw it; it is kept, not dropped.
-
-          Job type — One-time / Repeats / Group are mutually exclusive (a series
-          books one standing helper across many dates; group splits one date
-          across many helpers), so a segmented control makes that obvious up
-          front instead of toggles that quietly disable each other.
-
-          Repeats: the poster picks weekdays and a number of weeks, the budget is
-          PER VISIT, and `charge-recurring-visits` bills the saved card a few days
-          before each date, creating the job row only AFTER the money is in
-          escrow, so an unfunded visit cannot exist for a helper to walk into.
-          One standing helper holds every date and can release a single one they
-          can't make. (It was withdrawn once because every visit after the first
-          was posted with nothing behind it; see RECURRING_ENABLED above.) */}
-      <div className="space-y-3">
-        <Label id="job-type-label">{tr("postJob.f.jobType")}</Label>
-        {/* With Group withdrawn, a restored draft carrying `isGroupJob: true`
-            (useJobEntry:123 rehydrates it) must not leave the whole control
-            unselected — One-Time is what that draft now IS, and
-            `jobSubmitHelpers` forces the same coercion on the way into the
-            insert. */}
-        <SegmentedControl
-          ariaLabel={tr("postJob.f.jobType")}
-          layout="grid"
-          gridClassName={jobTypeCols(jobTypeOptions.length)}
-          options={jobTypeOptions}
-          value={
-            isRecurring ? "recurring" : GROUP_JOBS_ENABLED && isGroupJob ? "group" : "once"
-          }
-          onChange={(next) => {
-            setIsRecurring(next === "recurring");
-            setIsGroupJob(next === "group");
-          }}
-        />
-
-        {isRecurring && (
-          <RecurringSchedulePicker
-            days={recurrenceDays}
-            setDays={setRecurrenceDays}
-            weeks={recurrenceWeeks}
-            setWeeks={setRecurrenceWeeks}
-            startDate={dateNeeded}
-            budget={budgetNum}
-            splitOk={seriesSplitOk}
-            setSplitOk={setSeriesSplitOk}
-          />
-        )}
-
-        {GROUP_JOBS_ENABLED && isGroupJob && (
-          <GroupJobCard helpersNeeded={helpersNeeded} setHelpersNeeded={setHelpersNeeded} budgetNum={budgetNum} />
-        )}
-      </div>
-
       {/* WHEN (board 45): "A set time" / "Flexible" write jobs.is_flexible_schedule.
           Flexible is a SUBSTITUTE for a start time (owner 2026-09-19: "they also
           need times unless they were checked off as flexible"): with no time the
@@ -561,6 +506,72 @@ export function LogisticsSection({
         </div>
       </div>
 
+      {/* Owner 11-20 (ease batch, item 1): Repeats / Group, pets, access notes and materials are optional, folded
+          under one row at the foot of When (it opens by itself when one is already set: a series, a note, a pet).
+          The date above still reads "Start date" for a series (dateLabel). */}
+      <OptionalExtras
+        icon={SlidersHorizontal}
+        title={tr("postJob.more.title")}
+        summary={tr("postJob.more.sub")}
+        filled={isRecurring || (GROUP_JOBS_ENABLED && isGroupJob) || !!specialRequirements.trim() || (selectedPetIds?.length ?? 0) > 0 || !!includeMaterials}
+        testId="post-job-more-options"
+      >
+      {/* Whether a job repeats is the first scheduling fact (owner,
+          2026-08-24): it changes what the date below means (single visit vs
+          series start), so it stays ABOVE the date, at the top of the screen.
+          Board 45 does not draw it; it is kept, not dropped.
+
+          Job type — One-time / Repeats / Group are mutually exclusive (a series
+          books one standing helper across many dates; group splits one date
+          across many helpers), so a segmented control makes that obvious up
+          front instead of toggles that quietly disable each other.
+
+          Repeats: the poster picks weekdays and a number of weeks, the budget is
+          PER VISIT, and `charge-recurring-visits` bills the saved card a few days
+          before each date, creating the job row only AFTER the money is in
+          escrow, so an unfunded visit cannot exist for a helper to walk into.
+          One standing helper holds every date and can release a single one they
+          can't make. (It was withdrawn once because every visit after the first
+          was posted with nothing behind it; see RECURRING_ENABLED above.) */}
+      <div className="space-y-3">
+        <Label id="job-type-label">{tr("postJob.f.jobType")}</Label>
+        {/* With Group withdrawn, a restored draft carrying `isGroupJob: true`
+            (useJobEntry:123 rehydrates it) must not leave the whole control
+            unselected — One-Time is what that draft now IS, and
+            `jobSubmitHelpers` forces the same coercion on the way into the
+            insert. */}
+        <SegmentedControl
+          ariaLabel={tr("postJob.f.jobType")}
+          layout="grid"
+          gridClassName={jobTypeCols(jobTypeOptions.length)}
+          options={jobTypeOptions}
+          value={
+            isRecurring ? "recurring" : GROUP_JOBS_ENABLED && isGroupJob ? "group" : "once"
+          }
+          onChange={(next) => {
+            setIsRecurring(next === "recurring");
+            setIsGroupJob(next === "group");
+          }}
+        />
+
+        {isRecurring && (
+          <RecurringSchedulePicker
+            days={recurrenceDays}
+            setDays={setRecurrenceDays}
+            weeks={recurrenceWeeks}
+            setWeeks={setRecurrenceWeeks}
+            startDate={dateNeeded}
+            budget={budgetNum}
+            splitOk={seriesSplitOk}
+            setSplitOk={setSeriesSplitOk}
+          />
+        )}
+
+        {GROUP_JOBS_ENABLED && isGroupJob && (
+          <GroupJobCard helpersNeeded={helpersNeeded} setHelpersNeeded={setHelpersNeeded} budgetNum={budgetNum} />
+        )}
+      </div>
+
       {/* PETS — only on a pet-care job. See PetPicker for why this exists at
           all; in short, a pet profile could not previously reach the person
           holding the leash. It sits directly above the access notes because
@@ -577,6 +588,8 @@ export function LogisticsSection({
       {materialsToggleRelevant && setIncludeMaterials && (
         <MaterialsToggle includeMaterials={includeMaterials} setIncludeMaterials={setIncludeMaterials} materialsNote={materialsNote} setMaterialsNote={setMaterialsNote} />
       )}
+
+      </OptionalExtras>
 
     </SectionCard>
   );

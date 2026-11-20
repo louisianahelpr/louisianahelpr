@@ -215,8 +215,11 @@ export interface ApplyBlockNotice {
  * report an internal read failure to somebody mid-application — the accept-step
  * dialog still covers it if it persists.
  */
+// Never the ID check (owner 11-20, said many times): applying is not a required moment, so the apply step carries no
+// "Verify my ID" link; the ID is asked when hired (AwardGateDialog) or at the first payout.
+// Guard: src/test/noProactiveIdEntryPoints.test.ts.
 export function helperApplyBlockNotice(
-  reason: Exclude<AwardBlockReason, "helper_unknown">,
+  reason: "helper_payout_setup_incomplete",
 ): ApplyBlockNotice {
   switch (reason) {
     case "helper_payout_setup_incomplete":
@@ -226,14 +229,6 @@ export function helperApplyBlockNotice(
           "Helpr pays through Stripe. If you accept an offer first, the job becomes yours as soon as your payout account is set up. It takes about two minutes, once.",
         ctaLabel: "Set up payouts",
         href: "/profile?tab=payment",
-      };
-    case "helper_identity_unverified":
-      return {
-        headline: "You can apply and accept offers. Verify your ID before your first job.",
-        body:
-          "Stripe checks a photo ID and a selfie. If you accept an offer first, the job becomes yours as soon as it's done. It takes about 2 minutes, once.",
-        ctaLabel: "Verify my ID",
-        href: "/home?verify_id=1",
       };
   }
 }

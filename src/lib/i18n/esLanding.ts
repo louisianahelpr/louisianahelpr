@@ -36,6 +36,8 @@ export const esLanding: Record<keyof typeof enLanding, string> = {
   "landing.how.side.hire": "Busco ayuda",
   "landing.how.side.work": "Busco trabajo",
   "landing.how.side.sell": "Compra y venta",
+  "landing.how.findWork": "Buscar trabajo",
+  "landing.how.startSelling": "Empezar a vender",
   "landing.how.hire1Title": "Publique lo que necesita",
   "landing.how.hire1Desc": "Describa el trabajo y ponga su precio.",
   "landing.how.hire2Title": "Elija a su Helpr",

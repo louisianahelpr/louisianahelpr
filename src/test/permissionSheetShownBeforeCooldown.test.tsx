@@ -4,7 +4,7 @@
  * page that leaves before the sheet renders (a post handing off to Stripe Checkout) does not spend the ask.
  *
  * @mutate src/components/PermissionRationaleDialog.tsx |     __markRationaleShown();\n  }, [token]); |   }, [token]);
- * @mutate src/hooks/usePermissionRationale.ts |   return explainThenRun(kind, run, opts?.onShown); |   opts?.onShown?.(); return explainThenRun(kind, run);
+ * @mutate src/hooks/usePermissionRationale.ts |   return explainThenRun(kind, run, opts?.onShown, opts?.words); |   opts?.onShown?.(); return explainThenRun(kind, run);
  */
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";

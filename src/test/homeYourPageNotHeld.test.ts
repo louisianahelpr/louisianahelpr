@@ -12,7 +12,7 @@
  *   mounts only once its skeleton lifts (the section switches, ~1 s after the profile row), so the page starts the
  *   card's read as soon as the profile names the handle, as Home does.
  *
- * @mutate src/pages/home/HomeDashboard.tsx |             {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />}\n            {holdBelowNextUp && <HeldBlocksSkeleton side />}\n            {!holdBelowNextUp && <>\n | {holdBelowNextUp && <HeldBlocksSkeleton side />}\n            {!holdBelowNextUp && <>\n            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />}\n
+ * @mutate src/pages/home/HomeDashboard.tsx |             {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" line />}\n            {holdBelowNextUp && <HeldBlocksSkeleton side />}\n            {!holdBelowNextUp && <>\n | {holdBelowNextUp && <HeldBlocksSkeleton side />}\n            {!holdBelowNextUp && <>\n            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" line />}\n
  * @mutate src/pages/profile/useProfileEarlyReads.ts |     if (myHandle) void queryClient.prefetchQuery(publicPageQuery(myHandle)); |
  * @mutate src/pages/profile/Profile.tsx |   useProfileEarlyReads(myHandle, tab, userId); |
  * @mutate src/components/profile/ProfileLanding.tsx | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} knownHandle={profile?.handle} /> | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} />

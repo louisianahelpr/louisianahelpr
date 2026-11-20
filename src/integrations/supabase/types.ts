@@ -16229,6 +16229,7 @@ export type Database = {
       thread_archives: {
         Row: {
           archived_at: string
+          cleared_before: string | null
           id: string
           job_id: string
           other_user_id: string | null
@@ -16236,6 +16237,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string
+          cleared_before?: string | null
           id?: string
           job_id: string
           other_user_id?: string | null
@@ -16243,6 +16245,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string
+          cleared_before?: string | null
           id?: string
           job_id?: string
           other_user_id?: string | null
@@ -20718,6 +20721,15 @@ export type Database = {
           sample_count: number
         }[]
       }
+      get_fair_price_hint: {
+        Args: { p_category: string; p_lat?: number; p_lng?: number }
+        Returns: {
+          high_dollars: number
+          low_dollars: number
+          sample_count: number | null
+          scope: string
+        }[]
+      }
       get_fill_rate_stats: {
         Args: { p_days?: number }
         Returns: {
@@ -21255,14 +21267,6 @@ export type Database = {
           is_urgent: boolean
           location: string
           title: string
-        }[]
-      }
-      get_price_guidance: {
-        Args: { p_category: string }
-        Returns: {
-          high_dollars: number
-          low_dollars: number
-          sample_count: number
         }[]
       }
       get_public_platform_settings: {

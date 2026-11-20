@@ -31,7 +31,7 @@ export const publicPageQuery = (handle: string) => ({
   staleTime: 10 * 60_000,
 });
 
-export function YourPageLink({ name, className = "", forSale = 0, knownHandle, slim = false }: { name?: string | null; className?: string; forSale?: number; knownHandle?: string | null; slim?: boolean }) {
+export function YourPageLink({ name, className = "", forSale = 0, knownHandle, slim = false, line = false }: { name?: string | null; className?: string; forSale?: number; knownHandle?: string | null; slim?: boolean; line?: boolean }) {
   // A caller that already has the member's profile row (Home) passes its handle: no read at all.
   const { data: readHandle } = useQuery({
     enabled: !knownHandle,
@@ -82,11 +82,14 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
   // F127 (UI audit 11-09; owner 11-05 placed the link on Home and leading Selling, "mine is kind of hidden"; lead 11-09:
   // keep it easy to find, but not a third full card): Selling's is ONE slim line, "Your page · Copy · Share", with the
   // same two actions. Home and You keep the card.
-  if (slim) {
+  // Owner polish 11-20: Home's card is ONE compact line too, naming the address: "Your profile: louisianahelpr.com/u/<handle>
+  // · Copy · Share" (`line`). Guard: src/test/yourPageLink.test.tsx.
+  if (slim || line) {
     return (
-      <p data-your-page-link="" data-your-page-slim="" className={`flex min-w-0 flex-wrap items-center gap-x-1.5 text-ds-13 text-muted-foreground ${className}`}>
-        <Link to={`/u/${encodeURIComponent(handle)}`} className="link-standard font-semibold text-foreground" aria-label={t("yp.pageAt", { link: profileLinkLabel(handle) })}>
-          {t("yp.page")}
+      <p data-your-page-link="" data-your-page-slim="" data-your-page-line={line ? "" : undefined} className={`flex min-w-0 flex-wrap items-center gap-x-1.5 text-ds-13 text-muted-foreground ${className}`}>
+        {line && <span>{t("yp.lineLead")}</span>}
+        <Link to={`/u/${encodeURIComponent(handle)}`} className={`link-standard font-semibold text-foreground${line ? " min-w-0 break-all" : ""}`} aria-label={t("yp.pageAt", { link: profileLinkLabel(handle) })}>
+          {line ? profileLinkLabel(handle) : t("yp.page")}
         </Link>
         <span aria-hidden>·</span>
         <InlineTextButton onClick={() => void copy()} data-your-page-copy="" aria-label={t("yp.copyLabel")} className="inline-flex items-center gap-1 font-semibold text-foreground">

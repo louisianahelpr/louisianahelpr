@@ -28,10 +28,10 @@ display:
 
 versioning:
   # Marketing version (CFBundleShortVersionString) — what users see.
-  marketing_version: "1.0.4"
+  marketing_version: "1.0.5"
   # Build number floor. CI bumps past this automatically; only set higher
   # when App Store Connect's API lags and rejects a duplicate build.
-  current_project_version: "7601"
+  current_project_version: "7602"
 
 build:
   ios_deployment_target: "15.0"

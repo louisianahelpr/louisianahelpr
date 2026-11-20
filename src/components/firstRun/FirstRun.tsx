@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Briefcase, Search, Sofa, type LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChoiceCard } from "@/components/ui/ChoiceCard";
-import { SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_START_PATH } from "@/lib/declutter/sellChooser";
 import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
@@ -12,6 +12,7 @@ import type { SectionKey } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enNewMember";
+import type { MsgKey } from "@/lib/i18n/en";
 import { saveFirstRunPicks, useFirstRunPicks, type FirstRunPick } from "./firstRunPicks";
 
 /**
@@ -36,7 +37,7 @@ type Pick = FirstRunPick;
 export const FIRST_RUN_OPTIONS: { id: Pick; title: string; sub: string; section: SectionKey; to: string; icon: LucideIcon }[] = [
   { id: "hire", title: "Hire help", sub: "Post a job in three short steps", section: "jobs", to: "/post-job", icon: Briefcase },
   { id: "earn", title: "Find work", sub: "Jobs near you, paid through Helpr", section: "jobs", to: "/jobs", icon: Search },
-  { id: "sell", title: "Sell stuff", sub: "Snap a photo, set a price, post", section: "declutter", to: SELL_ONE_PATH, icon: Sofa },
+  { id: "sell", title: "Sell stuff", sub: "Snap a photo, set a price, post", section: "declutter", to: SELL_START_PATH, icon: Sofa },
 ];
 
 /** Where each coach mark points: the phone first, then the desktop sidebar (owner 11-14: the phone dock is Home, Jobs,
@@ -180,8 +181,8 @@ function FirstRunPicker({ options, onSkip, onPick }: {
                   <ChoiceCard
                     data-first-run-option={o.id}
                     icon={<Icon className="h-5 w-5" aria-hidden />}
-                    title={t(`firstRun.${o.id}.title`)}
-                    line={t(`firstRun.${o.id}.sub`)}
+                    title={t(`firstRun.${o.id}.title` as MsgKey)}
+                    line={t(`firstRun.${o.id}.sub` as MsgKey)}
                     onClick={() => onPick(o)}
                   />
                 </li>

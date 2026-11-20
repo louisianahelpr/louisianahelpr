@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 29 |
 | Overlay surfaces | **instance** | 248 |
 | — of which hand-rolled, no dialog primitive | instance | 13 (across 10 files) |
-| Toast messages | **call site** | 1259 (across 364 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1260 (across 365 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 59 |
 | Multi-step flows — probable | flow | 36 |
 | Back/next navigation only | flow | 71 |
-| Forms (submittable) | form | 141 |
+| Forms (submittable) | form | 142 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 191 |
 | Email templates | **exported template** | 26 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **888** |
-| **Copy surfaces** (strings a person may read) | mixed | **1317** |
-| **Total auditable surface** | mixed | **2205** |
+| **Navigable surfaces** (places a person can stand) | mixed | **889** |
+| **Copy surfaces** (strings a person may read) | mixed | **1318** |
+| **Total auditable surface** | mixed | **2207** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 5 | 14 | agree |
 | Admin `?view=` | 29 | 24 | agree |
 | Overlay surfaces | 248 | 130 | agree within method (script counts every menu instance) |
-| Forms | 141 | ~38 | agree |
+| Forms | 142 | ~38 | agree |
 | Confirmed multi-step flows | 59 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -771,6 +771,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/pages/helprs/FindHelprs.tsx` (form tag)
 - [ ] `src/pages/info/giftGuides/fun/GiftPlanner.tsx` (form tag)
 - [ ] `src/pages/info/giftGuides/fun/SecretSanta.tsx` (form tag)
+- [ ] `src/pages/info/giftGuides/SmallBizSubmitForm.tsx` (form tag)
 - [ ] `src/pages/info/Support.tsx` (form tag)
 - [ ] `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` (dialog/mutation)
 - [ ] `src/pages/jobs/appliedJobCard/DisputedSection.tsx` (dialog/mutation)

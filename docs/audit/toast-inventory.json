@@ -1,13 +1,13 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1261,
+    "calls": 1260,
     "files": 365,
-    "rendering": 1182,
+    "rendering": 1181,
     "suppressedByPolicy": 79,
     "byKind": {
       "confirmConsequential": 33,
-      "errorToast": 12,
+      "errorToast": 11,
       "successToast": 2,
       "toast": 253,
       "toast.error": 847,
@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 470,
+      "literal": 469,
       "template": 100,
-      "dynamic": 747,
+      "dynamic": 746,
       "jsx": 0
     }
   },
@@ -14301,25 +14301,11 @@
     },
     {
       "file": "src/pages/admin/sponsors/SbsReviewPanel.tsx",
-      "line": 73,
+      "line": 102,
       "kind": "errorToast",
       "title": {
         "form": "literal",
         "text": "That change was not saved"
-      },
-      "description": {
-        "form": "dynamic",
-        "text": "userFacingError(e, \"Try again in a moment.\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/admin/sponsors/SbsReviewPanel.tsx",
-      "line": 119,
-      "kind": "errorToast",
-      "title": {
-        "form": "literal",
-        "text": "The logo could not be opened"
       },
       "description": {
         "form": "dynamic",

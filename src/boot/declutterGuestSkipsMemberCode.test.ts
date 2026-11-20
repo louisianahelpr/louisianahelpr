@@ -36,7 +36,6 @@ const MEMBER_ONLY = [
   "src/components/declutter/ListedWhatNext.tsx",
   "src/components/declutter/BoughtWhatNext.tsx",
   "src/components/whatNext/WhatNextSheet.tsx",
-  "src/components/declutter/DeclutterStillAvailable.tsx",
   "src/components/declutter/DeclutterConfirmSheet.tsx",
   "src/components/notificationPanel/NotificationBell.tsx",
   "src/components/inbox/InboxButton.tsx",

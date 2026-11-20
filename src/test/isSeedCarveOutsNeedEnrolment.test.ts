@@ -163,7 +163,6 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_price_drop_sweep: "hides",
   declutter_price_hint: "hides",
   sweep_job_post_drafts: "alerts", // 20261030223154: a test or seed member never gets the draft reminder
-  declutter_free_still_available_sweep: "alerts", // 20261030232231: a test listing or seller is never asked
   declutter_move_reminder_sweep: "alerts", // 20261030221156: a test listing or seller never gets the reminder
   // Owner 11-07 (20261107174801): a seed item or a seed account on either side never gets the Buy now hold reminder.
   declutter_buy_now_last_call_sweep: "alerts",

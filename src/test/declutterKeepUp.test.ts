@@ -6,8 +6,8 @@
  * Behaviour (renew with no cap, no notices, off mid-way never ends sooner than 3 days with the notice due, refusals)
  * is the PGlite proof src/test/pglite/declutterKeepUp.pglite.mjs (applied 3x, 7 mutants each red).
  *
- * @mutate supabase/migrations/20261029154323_declutter_keep_up_until_sold.sql |       IF public.declutter_keeps_up(r.id) THEN |       IF false THEN
- * @mutate supabase/migrations/20261029154323_declutter_keep_up_until_sold.sql |        AND NOT public.declutter_keeps_up(i.id) |        AND true
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |       IF public.declutter_keeps_up(r.id) THEN |       IF false THEN
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |        AND NOT public.declutter_keeps_up(i.id) |        AND true
  * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |   IF v_was AND NOT p_on AND v_item.status = 'live' THEN |   IF false THEN
  * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | -- The item's row lock: the sweep reads the switch under the same lock.\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE; | -- The item's row lock: the sweep reads the switch under the same lock.\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id FOR UPDATE;
  * @mutate supabase/migrations/20261029154323_declutter_keep_up_until_sold.sql | REVOKE ALL ON FUNCTION public.declutter_set_keep_up(uuid, boolean) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_set_keep_up(uuid, boolean) FROM PUBLIC;

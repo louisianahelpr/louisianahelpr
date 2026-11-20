@@ -1,11 +1,12 @@
 {
-  "generated": "2026-11-20T15:15:14.153Z",
-  "guards": 4291,
-  "registered": 4291,
+  "generated": "2026-11-20T20:16:19.920Z",
+  "guards": 4288,
+  "registered": 4288,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminTestMarkedRows.test.ts",
+    "src/components/declutter/setupFeeNamesTheAmount.test.ts",
     "src/test/declutterGiftOnlyClose.test.ts",
     "src/test/giftGuidesPromo.test.tsx",
     "src/test/giveawayReminders.test.tsx"

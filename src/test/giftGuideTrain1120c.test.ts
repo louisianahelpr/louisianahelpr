@@ -8,7 +8,7 @@
  *   - XTRATUF XT25: a dated code chip on every XTRATUF card, the code in Deals & codes and a row on the deals page;
  *   - the owner adds waiting on links are listed and NOT placed.
  *
- * @mutate scripts/giftGuideTrain1120c.mjs |       pageList[slug] = pageList[slug].filter((p) => !(typeof p.price === "number" && p.price > cap.max) || keep(p)); |       pageList[slug] = pageList[slug].filter(() => true);
+ * @mutate scripts/giftGuideTrain1120c.mjs |       pageList[slug] = pageList[slug].filter((p) => !(typeof p.price === "number" && p.price > cap.max) \|\| keep(p)); |       pageList[slug] = pageList[slug].filter(() => true);
  * @mutate scripts/giftGuideTrain1120c.mjs |         return { ...p, code: c.code, ...(c.ends ? { codeEnds: c.ends } : {}) }; |         return { ...p, code: c.code };
  */
 import { readFileSync } from "node:fs";

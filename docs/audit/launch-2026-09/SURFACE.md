@@ -21,16 +21,16 @@ reports coverage against THIS file, not against the route list.
 | Overlay surfaces | **instance** | 247 |
 | — of which hand-rolled, no dialog primitive | instance | 13 (across 10 files) |
 | Toast messages | **call site** | 1259 (across 364 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 59 |
+| Multi-step flows — confirmed | flow | 58 |
 | Multi-step flows — probable | flow | 36 |
 | Back/next navigation only | flow | 71 |
 | Forms (submittable) | form | 142 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 192 |
 | Email templates | **exported template** | 26 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **889** |
+| **Navigable surfaces** (places a person can stand) | mixed | **888** |
 | **Copy surfaces** (strings a person may read) | mixed | **1317** |
-| **Total auditable surface** | mixed | **2206** |
+| **Total auditable surface** | mixed | **2205** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 29 | 24 | agree |
 | Overlay surfaces | 247 | 130 | agree within method (script counts every menu instance) |
 | Forms | 142 | ~38 | agree |
-| Confirmed multi-step flows | 59 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 58 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -489,7 +489,6 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/tracker/jobNextStep.ts` | compare |
 | `src/components/tracker/jobProgressState.ts` | compare |
 | `src/content/giftGuidesAmazon.ts` | stepper-name |
-| `src/content/giftWishList.ts` | step-array |
 | `src/content/sponsorPage.ts` | step-array |
 | `src/lib/awardGate.ts` | step-array |
 | `src/lib/feedPhase.ts` | compare |

@@ -460,18 +460,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* F255 (owner 2026-11-11): costs, safety; 11-16 Holiday Gift Guides (src/content/giftGuides.ts). */}
       <Route path="/fees" element={<RouteErrorBoundary>{routeEl(<PageTransition><Fees /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/safety" element={<RouteErrorBoundary>{routeEl(<PageTransition><Safety /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* Owner 2026-11-18: the gift guides are public (Pinterest pins link to /gift-guides#<section id>); the
-          2026-11-17 ?preview=1 gate is gone. Rebuilt 2026-11-18: /gift-guides lists the guides, /gift-guides/<slug> opens one. */}
+      {/* Owner 2026-11-18: public gift guides (pins link to /gift-guides#<section id>); /gift-guides/<slug> opens one; 11-20 fun pages + printables. */}
       <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/draw-names" element={<RouteErrorBoundary>{routeEl(<PageTransition><SecretSanta /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/secret-santa/:code/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><SecretSantaReveal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/swipe" element={<RouteErrorBoundary>{routeEl(<PageTransition><SwipeGifts /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/planner" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftPlanner /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* Owner 2026-11-20: free holiday printables (gift tags with names, and more as the owner's files arrive). */}
       <Route path="/gift-guides/printables" element={<RouteErrorBoundary>{routeEl(<PageTransition><Printables /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* Owner 2026-11-20: a shared wish list (/gift-guides/list/<code>), no sign-in. */}
-      <Route path="/gift-guides/list/:code" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/gift-guides/list/:code" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />{/* 11-20: a shared wish list, no sign-in. */}
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).
           Same as above: no redirect exists, and none is warranted on current

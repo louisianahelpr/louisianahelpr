@@ -125,7 +125,7 @@ function PageSvg({ product, layoutIdx, items, font, className, label }: { produc
       ))}
       {layout.cutLines &&
         items.map((_, i) => (
-          <rect key={`cut${i}`} x={slots[i].x} y={slots[i].y} width={slots[i].w} height={slots[i].h} fill="none" stroke="#8a8a8a" strokeWidth={0.7} strokeDasharray="5 4" data-printable-cut="" />
+          <rect key={`cut${i}`} x={slots[i].x} y={slots[i].y} width={slots[i].w} height={slots[i].h} className="pr-cut" data-printable-cut="" />
         ))}
     </svg>
   );
@@ -449,6 +449,8 @@ const MAKER_CSS = `${fontFaces}
 .pr-actions{display:flex;flex-wrap:wrap;gap:8px}
 .pr-err{color:hsl(var(--destructive-ink));font-size:13px;font-weight:600;margin:0}
 .pr-note{color:var(--gg-muted);font-size:12px;margin:0}
+/* The cut lines (a class, not attributes: icon stroke weights are ratcheted, src/test/typeAndIconScaleRatchet.test.ts). */
+.pr-cut{fill:none;stroke:#8a8a8a;stroke-width:0.7;stroke-dasharray:5 4}
 .lh-print-root{display:none}
 @media print{
   @page{size:letter portrait;margin:0.5in}

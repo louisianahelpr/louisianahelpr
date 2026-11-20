@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { NativeRadio } from "@/components/ui/NativeRadio";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { PRINTABLES_PATH, PRINTABLES_WORDS as W, shownPrintables, type DownloadProduct, type OverlayProduct } from "@/content/printables";
@@ -71,19 +72,19 @@ export default function Printables() {
         <style>{PAGE_CSS}</style>
         <p className="gg-fun-lead">{W.lead}</p>
         {makers.length > 0 && (
-          <ul className="pr-makers" aria-label={W.title}>
+          // One maker at a time: a radio group (arrow keys move between them), not a row of toggle buttons.
+          <div className="pr-makers" role="radiogroup" aria-label={W.title}>
             {makers.map((m) => (
-              <li key={m.id} id={m.id}>
-                <button type="button" className={`pr-maker-card${m.id === active ? " is-on" : ""}`} aria-pressed={m.id === active} onClick={() => setActive(m.id)} data-printable-card={m.id}>
-                  <img src={m.designs[0].thumb ?? m.designs[0].image} alt="" width={56} height={Math.round((56 * m.size.h) / m.size.w)} />
-                  <span>
-                    <b>{m.title}</b>
-                    <small>{m.blurb}</small>
-                  </span>
-                </button>
-              </li>
+              <label key={m.id} id={m.id} className={`pr-maker-card${m.id === active ? " is-on" : ""}`} data-printable-card={m.id}>
+                <NativeRadio name="printable-maker" value={m.id} checked={m.id === active} onChange={() => setActive(m.id)} className="sr-only" />
+                <img src={m.designs[0].thumb ?? m.designs[0].image} alt="" width={56} height={Math.round((56 * m.size.h) / m.size.w)} />
+                <span>
+                  <b>{m.title}</b>
+                  <small>{m.blurb}</small>
+                </span>
+              </label>
             ))}
-          </ul>
+          </div>
         )}
         {product && (
           <section className="gg-fun-card" aria-label={`${W.making}: ${product.title}`}>
@@ -105,13 +106,13 @@ export default function Printables() {
 }
 
 const PAGE_CSS = `
-.pr-makers{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
-.pr-maker-card{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card));padding:10px 12px;cursor:pointer;color:var(--gg-ink);min-height:44px}
+.pr-makers{margin:0 0 14px;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.pr-makers .pr-maker-card{margin:0;font-size:inherit;display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card));padding:10px 12px;cursor:pointer;color:var(--gg-ink);min-height:44px}
 .pr-maker-card img{flex:none;width:44px;height:auto;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .pr-maker-card b{display:block;font-size:15px}
 .pr-maker-card small{display:block;font-size:12.5px;color:var(--gg-muted);margin-top:2px}
-.pr-maker-card.is-on{border-color:var(--gg-olive);box-shadow:inset 0 0 0 1px var(--gg-olive);background:var(--gg-soft)}
-.pr-maker-card:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px}
+.pr-makers .pr-maker-card.is-on{border-color:var(--gg-olive);box-shadow:inset 0 0 0 1px var(--gg-olive);background:var(--gg-soft)}
+.pr-maker-card:focus-within{outline:2px solid var(--gg-olive);outline-offset:2px}
 .pr-cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .pr-card{display:flex;gap:12px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card));padding:12px;min-width:0}
 .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}

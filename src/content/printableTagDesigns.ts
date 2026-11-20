@@ -186,17 +186,6 @@ export const OWNER_TAGS: OverlayDesign[] = [
     siteLine: { y: 1.93, color: "#b0152a" },
   },
   {
-    id: "red-retro-festive-ribbon",
-    name: "Joy ribbons",
-    image: "/printables/tags/red-retro-festive-ribbon.jpg",
-    thumb: "/printables/tags/red-retro-festive-ribbon.webp",
-    size: { w: 3.5, h: 2.0 },
-    boxes: { to: { x: 1.29, y: 0.97, w: 1.09, h: 0.28, align: "left" }, from: { x: 1.4, y: 1.24, w: 0.98, h: 0.28, align: "left" } },
-    ink: "#c83a3e",
-    labels: false,
-    siteLine: { y: 1.93, color: "#c83a3e" },
-  },
-  {
     id: "red-simple-retro-festive-mistletoe-berries",
     name: "Joy berries",
     image: "/printables/tags/red-simple-retro-festive-mistletoe-berries.jpg",

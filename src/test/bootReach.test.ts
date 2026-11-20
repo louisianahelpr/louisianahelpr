@@ -12,6 +12,9 @@
  * @mutate scripts/perf/bootReach.mjs |     itemShared: new Set([...itemPages].filter((f) => restReach.has(f))), |     itemShared: new Set(),
  * @mutate src/lib/quotes/api.ts | import { loadModule } from "@/lib/loadModule"; | import { loadModule } from "@/lib/loadModule"; import "@/lib/declutter/photos";
  * @mutate vite.config.ts |               name: "item-shared", |               name: "declutter-item-pages",
+ * @mutate scripts/perf/bootReach.mjs |     itemFirst: new Set([...(split.declutterOnly ?? [])].filter((f) => reach.has(f))), |     itemFirst: new Set(),
+ * @mutate vite.config.ts |               name: "decl-item-first", |               name: "declutter-first-screen",
+ * @mutate vite.config.ts |               priority: 17.1, |               priority: 16.9,
  * @mutate vite.config.ts |               priority: 15.75, |               priority: 15.6,
  * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]); | const reach = new Set();
  * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]); | const reach = staticReach(root, publicRoots(root));
@@ -41,7 +44,7 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { GUEST_CHROME_ROOTS, ITEM_PAGES_PINNED_RE, declutterItemSplit, firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { GUEST_CHROME_ROOTS, ITEM_PAGES_PINNED_RE, buyingIconFiles, declutterItemSplit, declutterTabSplit, firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, sellingIconFiles, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -316,5 +319,99 @@ describe("declutterItemSplit itemShared: the job lists do not download Declutter
     const prioOf = (name: string) => Number(cfg.match(new RegExp(`name:\\s*"${name}"[\\s\\S]*?priority:\\s*([\\d.]+)`))?.[1]);
     expect(prio).toBeGreaterThan(prioOf("declutter-item-pages"));
     expect(prio).toBeLessThan(prioOf("leaves"));
+  });
+});
+
+describe("declutterItemSplit itemFirst: the item page skips Selling's and Browse's first-screen code (Q178, 11-20)", () => {
+  // Measured 2026-11-20 (built with bundle-size.yml's env, critical-path.mjs): the item page reached 25 of
+  // declutter-first-screen's 78 modules and fetched the whole chunk (33.8 KB gz). With decl-item-first:
+  // /declutter/item/:id 420 -> 397 KB gz; /declutter 457 -> 458 (one more chunk, same round).
+  const split = signedInSplit(ROOT);
+  const { itemFirst } = declutterItemSplit(ROOT, split);
+  const item = staticReach(ROOT, [abs("src/pages/declutter/DeclutterItemPage.tsx")]);
+
+  it("inventory: itemFirst is the item page's part of declutterOnly, and a strict part", () => {
+    expect(split.declutterOnly.size).toBeGreaterThan(40);
+    expect(itemFirst.size).toBeGreaterThan(10);
+    expect(itemFirst.size).toBeLessThan(split.declutterOnly.size);
+    for (const f of itemFirst) expect(split.declutterOnly.has(f), f).toBe(true);
+    for (const f of split.declutterOnly) expect(itemFirst.has(f), f).toBe(item.has(f));
+  });
+
+  it("Selling's and Browse's own first-screen code stays out of itemFirst", () => {
+    for (const rel of ["src/lib/declutter/wanted.ts", "src/lib/savedSearches.ts", "src/lib/declutter/sellerDelivery.ts"]) {
+      expect(split.declutterOnly.has(abs(rel)), `${rel} is declutter-first-screen code`).toBe(true);
+      expect(itemFirst.has(abs(rel)), `${rel} would ride on the item page`).toBe(false);
+    }
+  });
+
+  it("vite.config.ts gives itemFirst its own group above declutter-first-screen", () => {
+    const cfg = blankComments(readFileSync(join(ROOT, "vite.config.ts"), "utf8"));
+    const group = cfg.match(/name:\s*"decl-item-first"[\s\S]*?\n\s*\},/)?.[0] ?? "";
+    expect(group).toMatch(/declutterItemFirst\.has\(/);
+    expect(cfg).toMatch(/itemFirst:\s*declutterItemFirst\b[^}]*\}\s*=\s*declutterItemSplit\(process\.cwd\(\),\s*\{[^}]*\bdeclutterOnly\s*\}\)/);
+    const prioOf = (name: string) => Number(cfg.match(new RegExp(`name:\\s*"${name}"[\\s\\S]*?priority:\\s*([\\d.]+)`))?.[1]);
+    expect(prioOf("decl-item-first")).toBeGreaterThan(prioOf("declutter-first-screen"));
+  });
+});
+
+// @mutate scripts/perf/bootReach.mjs |     browseFirst: new Set(only.filter((f) => browse.has(f))), |     browseFirst: new Set(only),
+// @mutate scripts/perf/bootReach.mjs |     buyingFirst: new Set(only.filter((f) => buying.has(f) && !browse.has(f) && !member.has(f))), |     buyingFirst: new Set(only.filter((f) => buying.has(f) && !browse.has(f))),
+// @mutate vite.config.ts |               priority: 17.05, |               priority: 16.95,
+// @mutate vite.config.ts |               name: "decl-buying-first", |               name: "declutter-first-screen-b",
+// @mutate scripts/perf/bootReach.mjs |   return tabIconFiles(root, DECLUTTER_BUYING_ROOTS, sellingIconFiles(root)); |   return tabIconFiles(root, DECLUTTER_BUYING_ROOTS, []);
+// @mutate vite.config.ts |               name: "icons-buying", |               name: "icons-buying-off", test: () => false, _was:
+describe("declutterTabSplit: Browse, Selling and Buying each fetch their own part of declutter-first-screen (Q178, 11-20)", () => {
+  // Measured 2026-11-20 (bundle-size.yml's env, critical-path.mjs): in one declutter-first-screen chunk, /declutter
+  // (Browse) and Selling downloaded Buying's checkout code (seller delivery, Helpr tasks' error copy, meetups, porch
+  // days) and the member tabs' code. With Buying its own module, decl-browse-first and decl-buying-first:
+  // /declutter 458 -> 438 KB gz, /declutter?tab=selling 552 -> 487, Buying 552 -> 548.
+  const split = signedInSplit(ROOT);
+  const { browseFirst, buyingFirst } = declutterTabSplit(ROOT, split);
+  const reachOf = (...rels: string[]) => staticReach(ROOT, rels.map(abs));
+  const browse = reachOf("src/pages/declutter/DeclutterPage.tsx", "src/components/declutter/DeclutterBrowseView.tsx");
+  const member = reachOf("src/components/declutter/DeclutterHomeView.tsx", "src/components/declutter/DeclutterMineViews.tsx");
+
+  it("inventory: both sets are strict parts of declutterOnly, apart, and each is exactly its tab's part", () => {
+    expect(split.declutterOnly.size).toBeGreaterThan(40);
+    expect(browseFirst.size).toBeGreaterThan(3);
+    expect(buyingFirst.size).toBeGreaterThan(10);
+    expect(browseFirst.size + buyingFirst.size).toBeLessThan(split.declutterOnly.size);
+    for (const f of browseFirst) expect(split.declutterOnly.has(f) && browse.has(f), f).toBe(true);
+    for (const f of buyingFirst) expect(split.declutterOnly.has(f) && !browse.has(f) && !member.has(f) && !browseFirst.has(f), f).toBe(true);
+  });
+
+  it("Buying's checkout code stays out of Browse's part, and Browse's filters out of Buying's", () => {
+    for (const rel of ["src/lib/declutter/sellerDelivery.ts", "src/lib/helprTasks/errorCopy.ts", "src/lib/declutter/porchDays.ts"]) {
+      expect(buyingFirst.has(abs(rel)), `${rel} is Buying-only code`).toBe(true);
+      expect(browseFirst.has(abs(rel)), `${rel} would ride on Browse`).toBe(false);
+    }
+    for (const rel of ["src/lib/declutter/browseFilters.ts", "src/lib/savedSearches.ts"]) {
+      expect(browseFirst.has(abs(rel)), `${rel} is Browse's first screen`).toBe(true);
+      expect(buyingFirst.has(abs(rel)), rel).toBe(false);
+    }
+  });
+
+  it("vite.config.ts gives both their groups between decl-item-first and declutter-first-screen, and pins Buying's icons", () => {
+    const cfg = blankComments(readFileSync(join(ROOT, "vite.config.ts"), "utf8"));
+    expect(cfg).toMatch(/browseFirst:\s*declutterBrowseFirst,\s*buyingFirst:\s*declutterBuyingFirst\s*\}\s*=\s*declutterTabSplit\(process\.cwd\(\),\s*\{\s*declutterOnly\s*\}\)/);
+    const group = (name: string) => cfg.match(new RegExp(`name:\\s*"${name}"[\\s\\S]*?\\n\\s*\\},`))?.[0] ?? "";
+    expect(group("decl-browse-first")).toMatch(/declutterBrowseFirst\.has\(/);
+    expect(group("decl-buying-first")).toMatch(/declutterBuyingFirst\.has\(/);
+    const prioOf = (name: string) => Number(cfg.match(new RegExp(`name:\\s*"${name}"[\\s\\S]*?priority:\\s*([\\d.]+)`))?.[1]);
+    for (const name of ["decl-browse-first", "decl-buying-first"]) {
+      expect(prioOf(name), name).toBeGreaterThan(prioOf("declutter-first-screen"));
+      expect(prioOf(name), name).toBeLessThan(prioOf("decl-item-first"));
+    }
+    expect(group("icons-buying")).toMatch(/buyingIcons\.has\(/);
+    expect(prioOf("icons-buying")).toBeLessThan(prioOf("icons-selling"));
+    expect(prioOf("icons-buying")).toBeGreaterThan(prioOf("icons-item"));
+  });
+
+  it("Buying's icon pin holds icons only Buying draws (none of Selling's)", () => {
+    const buyingIcons = buyingIconFiles(ROOT);
+    const sellingIcons = sellingIconFiles(ROOT);
+    expect(buyingIcons.size).toBeGreaterThan(0);
+    for (const i of buyingIcons) expect(sellingIcons.has(i), i).toBe(false);
   });
 });

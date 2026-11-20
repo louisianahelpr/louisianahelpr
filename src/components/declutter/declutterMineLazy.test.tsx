@@ -4,7 +4,8 @@
  * for 6 ms although the warm-up had already fetched the chunk: React.lazy suspends on its first render whatever the
  * chunk's state. DeclutterMineLazy now draws the loaded module directly once it is in hand.
  *
- * @mutate src/components/declutter/DeclutterMineLazy.tsx |   const [Impl] = useState(() => loaded?.BuyingDash ?? LazyBuying); |   const [Impl] = useState(() => LazyBuying);
+ * @mutate src/components/declutter/DeclutterMineLazy.tsx |   const [Impl] = useState(() => loadedBuying?.BuyingDash ?? LazyBuying); |   const [Impl] = useState(() => LazyBuying);
+ * @mutate src/components/declutter/DeclutterMineLazy.tsx | const loadBuyingViews = () => loadModule(() => import("./DeclutterBuyingViews")).then((m) => (m ? (loadedBuying = m) : null)); | const loadBuyingViews = () => loadModule(() => import("./DeclutterBuyingViews"));
  * @mutate src/components/declutter/DeclutterMineLazy.tsx |   const [Impl] = useState(() => loaded?.SellingDash ?? LazySelling); |   const [Impl] = useState(() => LazySelling);
  * @mutate src/components/declutter/DeclutterMineLazy.tsx | const loadMineViews = () => loadModule(() => import("./DeclutterMineViews")).then((m) => (m ? (loaded = m) : null)); | const loadMineViews = () => loadModule(() => import("./DeclutterMineViews"));
  */
@@ -12,8 +13,10 @@ import { describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { Suspense } from "react";
 
-vi.mock("./DeclutterMineViews", () => ({
+vi.mock("./DeclutterBuyingViews", () => ({
   BuyingDash: () => <p>buying body</p>,
+}));
+vi.mock("./DeclutterMineViews", () => ({
   SellingDash: ({ listings }: { listings: React.ReactNode }) => <div><p>selling body</p>{listings}</div>,
 }));
 vi.mock("@/lib/routePrefetch", () => ({ whenPageSettled: (fn: () => void) => { fn(); return () => {}; } }));
@@ -21,14 +24,14 @@ vi.mock("@/lib/routePrefetch", () => ({ whenPageSettled: (fn: () => void) => { f
 import { BuyingDash, SellingDash, useWarmMineViews } from "./DeclutterMineLazy";
 
 function Warm() {
-  useWarmMineViews(false);
+  useWarmMineViews(null);
   return null;
 }
 
 describe("DeclutterMineLazy", () => {
   it("once warmed, Buying and Selling draw at once: the fallback never mounts", async () => {
     render(<Warm />);
-    await act(async () => { await import("./DeclutterMineViews"); await Promise.resolve(); });
+    await act(async () => { await import("./DeclutterMineViews"); await import("./DeclutterBuyingViews"); await Promise.resolve(); });
     let fallbacks = 0;
     function Bones() { fallbacks++; return <p>bones</p>; }
     const { unmount } = render(<Suspense fallback={<Bones />}><BuyingDash todo={null} /></Suspense>);

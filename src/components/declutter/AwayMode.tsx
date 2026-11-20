@@ -3,6 +3,10 @@
  * day the seller picks (3 days to 2 weeks); while away it says until when, with "I'm back". On the seller's public page,
  * AwayBanner says "Away until Mon, Nov 30". The server pauses with Pause's own steps and puts the listings back up on
  * that day by itself (20261120015456).
+ *
+ * Post-merge check 11-20 (~/.lh-shots/declutter-top5-1120): #2 "1 week", never "1 weeks"; #8 the sheet is the plain
+ * one with Not now and the action side by side, as the Sale and bulk sheets are; #13 while its read is on the way the
+ * card holds its place (ShopToolBones), so it never pops in.
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,10 +18,17 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { SHOP_TOOL_MIN, ShopToolBones } from "./ShopSaleCard";
 import "@/lib/i18n/enDeclTop5";
 import { getLang, t } from "@/lib/i18n/language";
 
-const AWAY_CHOICES = [{ days: 3, key: "days" }, { days: 7, key: "weeks" }, { days: 14, key: "weeks" }] as const;
+const AWAY_CHOICES = [3, 7, 14] as const;
+
+/** "3 days", "1 week", "2 weeks" (11-20 #2: the chip said "1 weeks"). */
+export function awayChoiceWords(days: number): string {
+  if (days % 7 !== 0) return t("dt5.away.days", { n: days });
+  return days === 7 ? t("dt5.away.week1") : t("dt5.away.weeks", { n: days / 7 });
+}
 
 const dayWords = (ymd: string) => calendarDayWords(ymd, getLang() === "es" ? "es" : "en");
 
@@ -30,10 +41,11 @@ export function AwayCard({ userId }: { userId: string }) {
     onSuccess: () => { toast(t("dt5.away.returned")); void qc.invalidateQueries({ queryKey: ["declutter"] }); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (away.isPending || away.isError) return null;
+  if (away.isPending) return <ShopToolBones name="away" />;
+  if (away.isError) return null;
   const a = away.data;
   return (
-    <section className="flex items-start gap-3 rounded-[20px] border border-border bg-card p-4" aria-label={t("dt5.away.title")} data-away={a ? "on" : "off"}>
+    <section className={`flex ${SHOP_TOOL_MIN} items-start gap-3 rounded-[20px] border border-border bg-card p-4`} aria-label={t("dt5.away.title")} data-away={a ? "on" : "off"}>
       <Plane className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
       <div className="min-w-0 flex-1 space-y-2">
         <p className="text-ds-15 font-semibold">{t("dt5.away.title")}</p>
@@ -58,15 +70,13 @@ function GoAwaySheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   return (
-    <ConfirmSheet open title={t("dt5.away.sheetTitle")} confirmLabel={t("dt5.away.confirm")} pending={go.isPending}
+    <ConfirmSheet pair open plain title={t("dt5.away.sheetTitle")} confirmLabel={t("dt5.away.confirm")} pending={go.isPending}
       onConfirm={() => go.mutate()} onClose={onClose} testId="declutter-go-away">
       <span className="block space-y-3">
         <span className="block">{t("dt5.away.sheetBody")}</span>
         <span role="group" aria-label={t("dt5.away.sheetTitle")} className="flex flex-wrap gap-2">
-          {AWAY_CHOICES.map((c) => (
-            <ToggleChip key={c.days} pressed={days === c.days} onClick={() => setDays(c.days)} data-away-days={c.days}>
-              {c.key === "days" ? t("dt5.away.days", { n: c.days }) : t("dt5.away.weeks", { n: c.days / 7 })}
-            </ToggleChip>
+          {AWAY_CHOICES.map((d) => (
+            <ToggleChip key={d} pressed={days === d} onClick={() => setDays(d)} data-away-days={d}>{awayChoiceWords(d)}</ToggleChip>
           ))}
         </span>
         <span className="block font-semibold text-foreground" data-away-back-on="">{t("dt5.away.backOn", { when: dayWords(backOn) })}</span>

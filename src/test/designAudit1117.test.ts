@@ -176,6 +176,6 @@ describe("design audit 11-17", () => {
 
   it("#35: the item page's carousel cards wear no photo tags", () => {
     expect(src("src/components/declutter/DeclutterItemRows.tsx")).toMatch(/<ItemCard[\s\S]*?noPhotoTags[\s\S]*?\/>/);
-    expect(src("src/components/declutter/DeclutterItemCard.tsx")).toContain("{!noPhotoTags && (mine || item.porch_ok");
+    expect(src("src/components/declutter/DeclutterItemCard.tsx")).toContain("{!noPhotoTags && photoTag && ("); // 11-20 #11: the one photo tag (photoTagOf)
   });
 });

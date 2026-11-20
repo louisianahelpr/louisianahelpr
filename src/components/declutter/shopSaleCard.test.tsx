@@ -10,12 +10,15 @@
  * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |          SET current_price_cents = least(r.before_cents, r.price_cents), updated_at = now() |          SET current_price_cents = r.before_cents, updated_at = now()
  * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |        AND NOT EXISTS (SELECT 1 FROM public.declutter_shop_sale_items x\n                        WHERE x.item_id = i.id AND x.restored_at IS NULL)\n    RETURNING | AND true\n    RETURNING
  * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |                         WHERE x.item_id = i.id AND (x.sale_id = p_sale_id OR x.restored_at IS NULL)) |                         WHERE x.item_id = i.id AND x.sale_id = p_sale_id)
+ * Post-merge check 11-20: #7 End / Cancel ask first in the in-app sheet; #13 the card holds its place while it loads.
+ * @mutate src/components/declutter/ShopSaleCard.tsx | disabled={end.isPending} onClick={() => setEnding(true)} data-shop-sale-end=""> | disabled={end.isPending} onClick={() => end.mutate()} data-shop-sale-end="">
+ * @mutate src/components/declutter/ShopSaleCard.tsx |   if (sale.isPending) return <ShopToolBones name="sale" />; |   if (sale.isPending) return null;
  * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |  FOR EACH ROW WHEN (NEW.status IN ('live', 'paused') AND OLD.status IS DISTINCT FROM NEW.status) |  FOR EACH ROW WHEN (false)
  */
 import { describe, expect, it, vi } from "vitest";
 // DemandLine relies on the item page to register its words (i18nDictionariesRideWithTheirScreens); a standalone render does it here.
 import "@/lib/i18n/enItemPage";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { newestFunction } from "@/test/helpers/parityReaders";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
@@ -24,7 +27,9 @@ const state = vi.hoisted(() => ({
   sale: null as null | { id: string; percent_off: number; starts_at: string; ends_at: string; status: "on" | "scheduled" },
   demand: null as null | { saves: number; offers_week: number; views_today: number; sale_pct: number | null; sale_ends_at: string | null },
 }));
+const ended = vi.hoisted(() => ({ n: 0 }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyShopSale: async () => state.sale }));
+vi.mock("@/lib/declutter/sellerTools", async (orig) => ({ ...(await orig<object>()), endShopSale: async () => { ended.n += 1; return "ended"; } }));
 vi.mock("@/lib/declutter/demand", async (orig) => ({ ...(await orig<object>()), fetchItemDemand: async () => state.demand }));
 
 import { ShopSaleCard } from "./ShopSaleCard";
@@ -74,12 +79,21 @@ describe("Declutter top 5 #4: shop-wide sale", () => {
   it("Selling: no sale offers to start one; a running one says until when and can be ended", async () => {
     state.sale = null;
     const a = wrap(<ShopSaleCard userId="u1" />);
+    // 11-20 #13: it holds its place while it loads, never pops in.
+    expect(a.container.querySelector('[data-shop-tool-bones="sale"]')).not.toBeNull();
     expect(await screen.findByText("Start a sale")).toBeTruthy();
     a.unmount();
     state.sale = { id: "s1", percent_off: 20, starts_at: "2026-11-20T15:00:00Z", ends_at: "2026-11-23T05:59:00Z", status: "on" };
     wrap(<ShopSaleCard userId="u1" />);
     expect(await screen.findByText(/^20% off everything until /)).toBeTruthy();
     expect(screen.getByText("End sale")).toBeTruthy();
+    // 11-20 #7: End asks first; nothing ends until it is confirmed.
+    fireEvent.click(screen.getByText("End sale"));
+    const title = await screen.findByText("End your sale now?");
+    expect(ended.n).toBe(0);
+    const confirm = [...title.closest("[data-confirm-sheet]")!.querySelectorAll("button")].find((b) => b.textContent === "End sale")!;
+    fireEvent.click(confirm);
+    await waitFor(() => expect(ended.n).toBe(1));
   });
 
   it("the item page says the sale only for a listing at its sale price", async () => {

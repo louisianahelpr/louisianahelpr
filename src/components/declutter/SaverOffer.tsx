@@ -16,7 +16,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
   SAVER_OFFER_PERCENTS, saverOfferAllowed, saverOfferCents, sendSaverOffer,
 } from "@/lib/declutter/sellerTools";
-import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import "@/lib/i18n/enDeclTop5";
@@ -46,12 +46,13 @@ export function SaverOfferLine({ item, saves, lastSend }: { item: DeclutterItem;
   if (saves < 1) return null;
   return (
     <>
-      <p className="text-ds-13 text-muted-foreground" data-saver-offer="">
-        {saves === 1 ? t("dt5.so.saved1") : t("dt5.so.savedN", { n: saves })}{" "}
-        <InlineTextButton className="font-semibold text-foreground underline underline-offset-2" onClick={() => setOpen(true)} data-saver-offer-open="">
+      {/* Post-merge check 11-20 #10: a real 44px button, not a 19px underlined link inside the line. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-saver-offer="">
+        <p className="text-ds-13 text-muted-foreground">{saves === 1 ? t("dt5.so.saved1") : t("dt5.so.savedN", { n: saves })}</p>
+        <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setOpen(true)} data-saver-offer-open="">
           {t("dt5.so.send")}
-        </InlineTextButton>
-      </p>
+        </Button>
+      </div>
       {open && <SaverOfferSheet item={item} onClose={() => setOpen(false)} />}
     </>
   );
@@ -74,6 +75,7 @@ function SaverOfferSheet({ item, onClose }: { item: DeclutterItem; onClose: () =
   });
   return (
     <ConfirmSheet
+      pair
       open
       plain
       title={t("dt5.so.title", { title: item.title })}

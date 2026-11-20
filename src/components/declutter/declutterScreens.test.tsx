@@ -250,6 +250,7 @@ async function toStep5() {
 beforeAll(async () => {
   await import("./DeclutterTradeViews");
   await import("./DeclutterMineViews");
+  await import("./DeclutterBuyingViews");
   await import("./DeclutterBrowseView");
 }, 30_000);
 

@@ -9,3 +9,14 @@ export function cleanGiftName(name: string, max: number): string {
   const visible = name.replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, "");
   return Array.from(visible).slice(0, max).join("");
 }
+
+/**
+ * Why a name cannot be shown on our page, or null: a link ("link": http:, www., or any word.tld such as evil.com) or a
+ * phone number ("phone": 7+ digits, ignoring spaces, dots, dashes, brackets and +). The same rule as the server's
+ * invalid_name in gift_wish_list_save (20261120062130), so a name the page accepts is never refused later.
+ */
+export function giftNameProblem(name: string): "link" | "phone" | null {
+  if (/(https?:|www\.|\.[a-z]{2,}\/|\b[a-z0-9-]+\.[a-z]{2,}\b)/i.test(name)) return "link";
+  if (/[0-9]{7,}/.test(name.replace(/[\s().+-]/g, ""))) return "phone";
+  return null;
+}

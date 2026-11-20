@@ -16,7 +16,7 @@
 -- Access is through server functions only (RLS on, no policy, no table privilege for anon/authenticated):
 --   gift_wish_list_save(p_name, p_items, p_test) -> code   anon + authenticated. Validates every item ref, at most 100
 --        items. The name: invisible and direction-changing characters are stripped, then 1..60 characters, and never a
---        link (http://, www., a domain with a path) or a run of 7+ digits (a phone number), since it shows on our page.
+--        link (http://, www., a domain such as evil.com, with or without a path) or a run of 7+ digits (a phone number), since it shows on our page.
 --        Rate limited: signed out, 10 saves per address per 10 minutes and 2000 snapshots an hour overall (only
 --        snapshots add rows, so only they count toward the overall cap); signed in, 60 saves per account per 10
 --        minutes (a save only updates the account's one row). The address is the LAST x-forwarded-for entry (as
@@ -89,6 +89,8 @@ LANGUAGE plpgsql
 VOLATILE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
+-- The rate-limit bucket's day (current_date) is Louisiana's day (the replay gate's CURRENT_DATE rule).
+SET "TimeZone" TO 'America/Chicago'
 AS $fn$
 DECLARE
   v_uid uuid := (SELECT auth.uid());
@@ -123,7 +125,7 @@ BEGIN
   v_name := btrim(regexp_replace(COALESCE(p_name, ''), '[[:cntrl:]\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]', '', 'g'));
   v_name := COALESCE(NULLIF(v_name, ''), 'My Wish List');
   IF length(v_name) > 60
-     OR v_name ~* '(https?:|www\.|\.[a-z]{2,}/)'
+     OR v_name ~* '(https?:|www\.|\.[a-z]{2,}/|\m[a-z0-9-]+\.[a-z]{2,}\M)'
      OR regexp_replace(v_name, '[\s().+-]', '', 'g') ~ '[0-9]{7,}' THEN
     RAISE EXCEPTION 'invalid_name' USING ERRCODE = '22023';
   END IF;

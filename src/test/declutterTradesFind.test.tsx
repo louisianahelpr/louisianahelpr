@@ -12,7 +12,7 @@
  * @mutate src/lib/declutter/browseFilters.ts |   put("trades", s.filters.tradesOnly ? "1" : null);\n |
  * @mutate src/lib/declutter/browseFilters.ts |     + (f.tradesOnly ? 1 : 0)\n |
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx |             <Chip on={filters.tradesOnly} onClick={() => onChange({ ...filters, tradesOnly: !filters.tradesOnly })}>{t("decl.filter.trades")}</Chip>\n |
- * @mutate src/components/declutter/DeclutterItemCard.tsx | {item.accepts_trades === true && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>} | {false && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>}
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | {photoTag === "trades" && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>} | {false && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>}
  * @mutate src/components/declutter/DeclutterGuest.tsx |       {trades && <p data-guest-trades="" | {false && <p data-guest-trades=""
  * @mutate src/components/declutter/DeclutterItemView.tsx |               {it.accepts_trades === true && !free && ( |               {false && (
  * @mutate src/components/declutter/DeclutterItemView.tsx | trades={!free && it.accepts_trades === true} /> | trades={false} />
@@ -79,7 +79,8 @@ describe("Trades audit 11-08 #3: buyers can find trades", () => {
   });
 
   it("a card says Trades OK only for a listing that takes trades", () => {
-    const { container, unmount } = wrap(<ItemCard item={item({ accepts_trades: true })} miles={null} approximate={false} />);
+    // 11-20 #11: the photo wears one tag and porch pickup comes before trades, so this listing has no porch pickup.
+    const { container, unmount } = wrap(<ItemCard item={item({ accepts_trades: true, porch_ok: false })} miles={null} approximate={false} />);
     expect(container.querySelector("[data-card-trades]")?.textContent).toBe("Trades OK");
     unmount();
     const off = wrap(<ItemCard item={item({ accepts_trades: false })} miles={null} approximate={false} />);

@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { getMyWishList, saveWishList } from "@/lib/giftWishListApi";
+import { getMyWishList, saveWishList, wishErrorCopy } from "@/lib/giftWishListApi";
 import { clearWishList, giftListNow, listName, listRefs, markSynced, pickId, reconcileWithAccount, subscribeGiftList } from "./giftList";
 
 /**
@@ -13,6 +13,23 @@ import { clearWishList, giftListNow, listName, listRefs, markSynced, pickId, rec
  * never overwrites the account's list. A failed save leaves the list on the device and is retried on the next change.
  */
 const SAVE_AFTER_MS = 1500;
+
+// The last sync refusal's words (null: none), for My Wish List.
+let syncProblem: string | null = null;
+const problemListeners = new Set<() => void>();
+function setSyncProblem(p: string | null) {
+  if (p === syncProblem) return;
+  syncProblem = p;
+  problemListeners.forEach((l) => l());
+}
+const subscribeProblem = (l: () => void) => {
+  problemListeners.add(l);
+  return () => {
+    problemListeners.delete(l);
+  };
+};
+/** Why the account's copy is behind (a refused save), or null. */
+export const useSyncProblem = () => useSyncExternalStore(subscribeProblem, () => syncProblem, () => null);
 
 export function useWishListSync() {
   const { user, isReady } = useAuthReady();
@@ -37,11 +54,18 @@ export function useWishListSync() {
       if (l.owner !== uid) return;
       const now = { ids: l.picks.map(pickId), name: l.name };
       if (l.synced && JSON.stringify(l.synced) === JSON.stringify(now)) return;
+      // Never synced and nothing in it (a member who only opened a guide): no row is made for an empty list.
+      if (!l.synced && l.picks.length === 0 && !l.name.trim()) return;
       saveWishList(listName(l), listRefs(l)).then(
-        () => markSynced(uid),
+        () => {
+          markSynced(uid);
+          setSyncProblem(null);
+        },
         (e: unknown) => {
-          // The list stays on this device; the next change tries again.
+          // The list stays on this device; the next change tries again. A refusal with words (a name the server will not
+          // keep) is shown on My Wish List instead of "Saved to your account".
           console.warn("gift wish list: sync save failed", e);
+          setSyncProblem(wishErrorCopy(e));
         },
       );
     };

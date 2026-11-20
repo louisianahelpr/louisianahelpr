@@ -46,7 +46,10 @@ export const BLOCKED_BRANDS = ["SheVibe", "King Palm", "AnyListingSEO", "Loren",
   "Cashmere Boutique", "MelodySusie", "Lofree", "AndaSeat", "Xplora", "Byrokko", "Frost Buddy", "Forte Chocolate",
   "TempSpike", "TempPro", "Hairmax", "AmScope", "Adagio Teas",
   // Lead 11-19 (1530 train): a knockoff label, an unknown sofa seller, a mattress-sheet seller and a Walmart house brand.
-  "Free Country", "BADESOFA", "Literie", "Ozark Trail"];
+  "Free Country", "BADESOFA", "Literie", "Ozark Trail",
+  // Owner 2026-11-20 ~12:00 AM ("Remove Kendra Scott"): every guide, the store page, the deals and the Small Biz page.
+  // Owner 11-20: no Labubu ("not popular in Louisiana"), Smiski, Sonny Angel or Lovesac ("don't add"), Fishwife ("remove").
+  "Kendra Scott", "Labubu", "Smiski", "Sonny Angel", "Lovesac", "Fishwife"];
 /** Store brands matched on the brand field only (a whole-word match on names would catch other products). */
 export const WALMART_BRAND_ONLY = ["George",
   // 1119c: obscure network brands whose names are ordinary words ("Enable", "Autonomous"), matched on the brand only.

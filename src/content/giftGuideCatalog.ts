@@ -507,11 +507,11 @@ export const GUIDES: CatalogGuide[] = ROWS.flatMap((r) => [
 ]);
 
 /**
- * The guides a group's row and menu list, in order (owner 2026-11-18, "covers in two taps"): top-level guides, with
- * the Kids hub replaced by its own children (Girls, Boys, Gender-Neutral); each of those opens its five age guides.
- * A guide that holds nothing is not listed.
+ * The guides a group's row and menu list, in order (owner 2026-11-18, "covers in two taps"): top-level guides only.
+ * Follow-up 1120 (owner 11-20 ~1:10 AM): Kids is ONE guide by age (Girls, Boys and Gender-Neutral are its sections), so
+ * it is listed itself. A guide that holds nothing is not listed.
  */
-export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB));
+export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === row && !g.parent);
 
 
 /**

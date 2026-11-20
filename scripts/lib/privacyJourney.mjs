@@ -100,7 +100,7 @@ export const EXPORT_SECTIONS = [
   "helper_credentials", "helper_verifications", "verification_checks",
   "helper_w9_records", "instant_payouts", "payout_transfers", "crew_cancellation_fee_shares", "crew_block_fees", "cancellation_fee_transfers",
   "payment_refunds",
-  "chargeback_clawbacks", "tips", "tip_hold_redrives", "gift_cards", "referral_codes", "referral_credits", "referrals",
+  "chargeback_clawbacks", "tips", "tip_hold_redrives", "gift_cards", "gift_wish_lists", "referral_codes", "referral_credits", "referrals",
   "reports", "user_blocks", "user_bans", "user_violations", "user_roles",
   "legal_acceptances", "login_history", "email_tracking", "email_send_log", "suppressed_emails",
   "job_checkins", "job_tracking", "group_job_helpers", "recurring_visit_releases", "recurring_visit_payments", "job_revisions",

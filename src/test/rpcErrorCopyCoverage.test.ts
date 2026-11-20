@@ -91,6 +91,14 @@ const UNREACHABLE: Allowlist = {
   declutter_my_setup_fee: { not_authenticated: { reason: "read only with a signed-in user; a failed read shows no fee figure, never words" } },
   // Sponsor giveaway page view counter (20261109162829, 2026-11-09): the page calls it only after sponsor_public_state said on=true for the
   // same visitor, it shows nothing, and a failure is dropped (src/pages/sponsor/SponsorPage.tsx): no words to show.
+  // Gift guides wish list (20261120062130): GiftWishShare shows its own two lines (WISH.shareRateLimited for rate_limited,
+  // WISH.shareFailed for anything else); the client never sends a bad ref, an empty guest list or a long name.
+  gift_wish_list_save: {
+    rate_limited: { reason: "GiftWishShare maps it to WISH.shareRateLimited (src/content/giftWishList.ts); the sync drops it and keeps the list on the device" },
+    invalid_items: { reason: "the client sends only refs it built (listRefs: guide slug + itemId), each shape the server accepts; a refusal shows WISH.shareFailed" },
+    invalid_name: { reason: "the name field caps at MAX_LIST_NAME (60), the server's own limit; a refusal shows WISH.shareFailed" },
+    empty_list: { reason: "the Share button is disabled while the list holds no gift; a refusal shows WISH.shareFailed" },
+  },
   sponsor_log_visit: { feature_disabled: { reason: "a page-view counter with no screen; called only after the page read on=true, and a refusal is dropped silently" } },
   // Digital downloads (20261108185110): shop_complete_handover refuses a download's buyer finish and an early auto finish.
   // A download never has a Helpr delivery (shops_request_digital_order writes none), so no Helpr task reaches them.

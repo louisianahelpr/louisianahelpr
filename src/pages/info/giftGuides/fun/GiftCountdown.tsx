@@ -6,6 +6,7 @@ import { GIFT_GUIDE_FLAGS } from "@/content/giftGuideExtras1120";
 import { FUN_WORDS as W, christmasCountdown, giftOfTheDay, giveawayTieInOn } from "@/content/giftGuideFun1120";
 import { PickPrice } from "@/components/giftGuides/PickPrice";
 import { shareNative } from "@/lib/nativeShare";
+import { getPublicOrigin } from "@/lib/authRedirects";
 import { PickThumb, storeLabel } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
 import { Hint } from "../GiftHint";
@@ -23,7 +24,7 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
   const [msg, setMsg] = useState<string | null>(null);
   const share = async () => {
     if (!gift) return;
-    const out = await shareNative({ title: W.gotdTitle, text: W.gotdShareText(gift.name), url: `${window.location.origin}/gift-guides`, suppressCopyConfirmation: true });
+    const out = await shareNative({ title: W.gotdTitle, text: W.gotdShareText(gift.name), url: `${getPublicOrigin()}/gift-guides`, suppressCopyConfirmation: true });
     setMsg(out === "copied" ? W.gotdCopied : null);
   };
   return (

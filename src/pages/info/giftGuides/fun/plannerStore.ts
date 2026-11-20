@@ -64,8 +64,9 @@ export const planActions = {
   },
   renamePerson: (id: string, name: string) => mapPerson(id, (p) => ({ ...p, name: name.slice(0, 40) })),
   setBudget: (id: string, budget: number | undefined) => mapPerson(id, (p) => {
-    const { budget: _old, ...rest } = p;
-    return budget === undefined ? rest : { ...rest, budget };
+    const next = { ...p, budget };
+    if (budget === undefined) delete next.budget;
+    return next;
   }),
   removePerson(id: string) {
     const cur = read();
@@ -141,8 +142,3 @@ export function useAccountSync(userId: string | null): SyncState {
   return state;
 }
 
-/** For tests: forget the in-memory copy so the next read goes back to storage. */
-export const resetPlanForTests = () => {
-  loaded = false;
-  memory = EMPTY_PLAN;
-};

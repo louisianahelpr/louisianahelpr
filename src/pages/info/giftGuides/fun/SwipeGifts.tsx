@@ -5,6 +5,7 @@ import { guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, subscribeGu
 import { FUN_WORDS as W, SWIPE_BUDGETS, SWIPE_WHO, swipePool, swipeRound, type SwipeBudget, type SwipeWho } from "@/content/giftGuideFun1120";
 import { PickPrice } from "@/components/giftGuides/PickPrice";
 import { shareNative } from "@/lib/nativeShare";
+import { getPublicOrigin } from "@/lib/authRedirects";
 import { saveWishList, sharedListPath } from "@/lib/giftWishListApi";
 import { PickThumb, storeLabel } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
@@ -115,7 +116,7 @@ export default function SwipeGifts() {
     setShareMsg(null);
     try {
       const code = await saveWishList(listName(list), listRefs(list));
-      await shareNative({ title: W.swipeTitle, text: W.swipeShareText, url: `${window.location.origin}${sharedListPath(code)}` });
+      await shareNative({ title: W.swipeTitle, text: W.swipeShareText, url: `${getPublicOrigin()}${sharedListPath(code)}` });
     } catch (e) {
       console.warn("swipe: share failed", e);
       setShareMsg(W.revealShareFailed);

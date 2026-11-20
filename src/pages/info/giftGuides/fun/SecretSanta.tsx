@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { copyToClipboard, shareNative } from "@/lib/nativeShare";
+import { getPublicOrigin } from "@/lib/authRedirects";
+import { report } from "@/lib/errorLogger";
 import {
   FUN_WORDS as W, SANTA_MAX, SANTA_MIN, SANTA_NAME_MAX, SANTA_PATH, cleanNames, drawSecretSanta, duplicateName, louisianaYmd, parseDollars, revealPath,
 } from "@/content/giftGuideFun1120";
@@ -50,9 +52,12 @@ export default function SecretSanta() {
     setBusy(true);
     try {
       const { code, tokens } = await createSecretSanta({ names: clean, givesTo, avoid, budget: b, day: day || undefined });
-      setDone({ names: clean, links: tokens.map((t) => `${window.location.origin}${revealPath(code, t)}`) });
+      setDone({ names: clean, links: tokens.map((t) => `${getPublicOrigin()}${revealPath(code, t)}`) });
     } catch (err) {
-      setError(err instanceof SantaSaveError && err.kind === "rateLimited" ? W.santaRateLimited : W.santaFailed);
+      const limited = err instanceof SantaSaveError && err.kind === "rateLimited";
+      // A rate limit is expected and told to the organizer; anything else is reported too.
+      if (!limited) report(err, { tags: { feature: "secret-santa", step: "create" } });
+      setError(limited ? W.santaRateLimited : W.santaFailed);
     } finally {
       setBusy(false);
     }

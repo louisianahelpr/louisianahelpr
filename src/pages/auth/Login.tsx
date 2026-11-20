@@ -27,7 +27,7 @@ import { useCaptcha } from "@/hooks/useCaptcha";
 import { signInWithTimeout, isTransportFailure } from "@/lib/loginTransport";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { queryKeys } from "@/lib/queryKeys";
-import { EMAIL_NOT_CONFIRMED_MESSAGE, friendlyAuthError } from "@/lib/authErrors";
+import { EMAIL_NOT_CONFIRMED_MESSAGE, friendlyAuthError, isInvalidCredentials } from "@/lib/authErrors";
 import { isExpectedSocialRefusal, takeOAuthRedirectError } from "@/lib/oauthRedirectError";
 import { report } from "@/lib/errorLogger";
 import {
@@ -37,6 +37,7 @@ import { LOGIN_ATTEMPT_LIMIT, LOGIN_ATTEMPT_WINDOW_MS, LOGIN_LOCKOUT_MS, clearAt
 import { safeInternalRedirect } from "@/lib/authRedirects";
 import { useLanguage } from "@/lib/i18n/language";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { AuthModeTabs } from "@/components/auth/AuthModeTabs";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 const Login = () => {
@@ -119,6 +120,10 @@ const Login = () => {
   // F028 (owner UI audit 11-09): a wrong email or password said so only in a toast in the corner that went away,
   // while the email field still wore its green check. The words now sit above Log in until either field changes.
   const [credError, setCredError] = useState<string | null>(null);
+  // Signup-confusion 11-19: true when the miss was GoTrue's invalid_credentials, which it returns alike for an unknown
+  // email and a wrong password. Then the words say "don't match an account" and a big Create account button (with the
+  // typed email) sits under them, because a new visitor on the wrong form is the likeliest reason; it never says which.
+  const [credMismatch, setCredMismatch] = useState(false);
   const [loading, setLoading] = useState(false);
   const captcha = useCaptcha();
   const [showPassword, setShowPassword] = useState(false);
@@ -155,6 +160,7 @@ const Login = () => {
     setAttempted(true);
     // F028 review: a new try clears the last wrong-password words, so they never sit beside a lockout or network toast.
     setCredError(null);
+    setCredMismatch(false);
     if (!emailValid) {
       hapticError();
       emailRef.current?.focus();
@@ -208,6 +214,9 @@ const Login = () => {
       if (next.lockedUntil && next.lockedUntil > now) {
         const minutesLeft = Math.ceil((next.lockedUntil - now) / 60000);
         toast.error(t("login.tooManyAttempts", { minutes: minutesLeft }));
+      } else if (isInvalidCredentials(error)) {
+        setCredMismatch(true);
+        setCredError(t("login.noMatch"));
       } else {
         setCredError(friendlyAuthError(error.message));
       }
@@ -339,6 +348,8 @@ const Login = () => {
               {/* The H mark used everywhere else (owner 2026-10-20: never in a circle). */}
               <HelprMark to="/" size="lg" emblemOnly />
             </div>
+            {/* Signup-confusion 11-19: which form this is, before anything else (AuthModeTabs). */}
+            <div className="w-full mb-3"><AuthModeTabs active="login" signupHref={signupHref} email={email} /></div>
             <h1 className="text-page-title text-foreground">{t("login.title")}</h1>
             <p className="text-ds-14 text-muted-foreground">{t("login.welcome")}</p>
           </div>
@@ -418,7 +429,7 @@ const Login = () => {
                 spellCheck={false}
                 enterKeyHint="next"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setCredError(null); }}
+                onChange={(e) => { setEmail(e.target.value); setCredError(null); setCredMismatch(false); }}
                 required
                 autoComplete="email"
                 aria-invalid={emailError}
@@ -456,7 +467,7 @@ const Login = () => {
                 // Login and ForgotPassword the outliers rather than the rule.
                 // All three auth screens are now label-only.
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); setCredError(null); }}
+                onChange={(e) => { setPassword(e.target.value); setCredError(null); setCredMismatch(false); }}
                 required
                 autoComplete="current-password"
                 aria-invalid={passwordError}
@@ -494,7 +505,17 @@ const Login = () => {
               {/* F259f (audit 11-10): an unverified account was told to check its inbox with no way to get the email
                   again, and a second "Forgot password?" under the one on the Password row. It now gets the check-email
                   page (its Resend button), carrying the typed address; every other error keeps Forgot password. */}
-              {credError === EMAIL_NOT_CONFIRMED_MESSAGE ? (
+              {credMismatch ? (
+                <span className="basis-full mt-2 space-y-2" data-login-no-match="">
+                  <span className="block font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{t("login.newToHelpr")}</span>
+                  <Button asChild variant="primary" size="lg" className="w-full rounded-full">
+                    <Link to={signupHref} state={forgotState} data-login-no-match-signup="">
+                      {t("login.createAccountCta")}
+                    </Link>
+                  </Button>
+                  <LoginForgotNudge state={forgotState} />
+                </span>
+              ) : credError === EMAIL_NOT_CONFIRMED_MESSAGE ? (
                 <Link to="/signup-pending" state={{ email: email.trim() }} data-login-resend-verify="" className="font-bold underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
                   {t("login.resendVerify")}
                 </Link>

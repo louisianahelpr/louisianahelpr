@@ -18,6 +18,7 @@ import { ArrowBigUp, Eye, EyeOff, Check, X } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { OrRule } from "@/components/auth/OrRule";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
+import { AuthModeTabs } from "@/components/auth/AuthModeTabs";
 import {
   pendingEmailTypo,
   PASSWORD_MIN_LENGTH,
@@ -55,6 +56,8 @@ export interface SignupStep1Props {
   onContinue: () => void | Promise<void>;
   /** A reason line (e.g. "Create an account to get alerts") in place of the default. */
   subtitle?: string;
+  /** The switch's Log in side; keeps a pending ?redirect= (signup-confusion 11-19). */
+  loginHref?: string;
   /** The page's security box (<TurnstileField>), placed right above Continue as on Login (A3-C1). */
   captchaSlot?: ReactNode;
   /** The server refused the password (GoTrue weak_password, e.g. a leaked one) after step 2 (AUD31-53): shown under
@@ -85,6 +88,7 @@ export function SignupStep1({
   labelCls,
   onContinue,
   subtitle,
+  loginHref = "/login",
   captchaSlot,
 }: SignupStep1Props) {
   // The Continue button stays visually active even before the policies box is
@@ -208,6 +212,8 @@ export function SignupStep1({
           {/* The H mark used everywhere else (owner 2026-10-20: never in a circle). */}
           <HelprMark to="/" size="lg" emblemOnly />
         </div>
+        {/* Signup-confusion 11-19: which form this is, before anything else (AuthModeTabs). */}
+        <div className="w-full mb-3"><AuthModeTabs active="signup" loginHref={loginHref} email={email} /></div>
         <h1 className="text-page-title text-foreground">{t("signup.title")}</h1>
         <p className="text-ds-14 text-muted-foreground">{subtitle ?? t("signup.subtitle")}</p>
       </div>

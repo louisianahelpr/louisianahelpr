@@ -16900,6 +16900,15 @@ export type Database = {
       }
     }
     Functions: {
+      declutter_item_demand: {
+        Args: { p_item_ids: string[] }
+        Returns: {
+          item_id: string
+          offers_week: number
+          saves: number
+          views_today: number
+        }[]
+      }
       declutter_my_trade_buyer_names: {
         Args: never
         Returns: {

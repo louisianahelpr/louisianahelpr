@@ -48,6 +48,7 @@ function readRpc(name: string, body: Record<string, unknown>, s: DeclutterPrevie
     case "declutter_my_item_view_counts": return [];
     // Declutter top 5 #1: the sample listings have no saves yet, so Selling draws no "N people saved this".
     case "declutter_item_save_counts": return [];
+    case "declutter_item_demand": return [];
     // Declutter top 5 #2: the Selling home with nothing in the two weeks (the samples carry no dated history), so it
     // draws only the to-dos the sample's own offers and sales give it.
     case "declutter_selling_home": {

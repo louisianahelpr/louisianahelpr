@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchSellingHome } from "@/lib/declutter/api";
 import { weekChange, type SellingHome as Home, type WeekNumbers } from "@/lib/declutter/sellerTools";
 import { formatPrice } from "@/lib/declutter/formatPrice";
+import { SectionHeading } from "./DeclutterTabHeads";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import "@/lib/i18n/enDeclTop5";
 import { t } from "@/lib/i18n/language";
@@ -58,7 +59,7 @@ export function SellingHome({ todo, onPick }: { todo: DeclutterTodo | null; onPi
   return (
     <section className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-label={t("dt5.home.title")} data-selling-home="">
       <div className="space-y-1.5">
-        <h2 className="text-ds-15 font-semibold">{t("dt5.home.todo")}</h2>
+        <SectionHeading title={t("dt5.home.todo")} />
         {rows.length === 0 ? (
           <p className="text-ds-13 text-muted-foreground" data-selling-home-done="">{t("dt5.home.allDone")}</p>
         ) : (
@@ -76,7 +77,7 @@ export function SellingHome({ todo, onPick }: { todo: DeclutterTodo | null; onPi
         )}
       </div>
       <div className="space-y-2">
-        <h2 className="text-ds-15 font-semibold">{t("dt5.home.title")}</h2>
+        <SectionHeading title={t("dt5.home.title")} />
         <ul className="grid grid-cols-2 gap-2" data-selling-stats="">
           {tiles.map((tile) => (
             <li key={tile.label} className="rounded-xl bg-muted/50 px-3 py-2" data-selling-stat={tile.label}>

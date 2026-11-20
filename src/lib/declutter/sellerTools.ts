@@ -9,6 +9,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { declutterErrorMessage } from "./errors";
 import { fetchSaveCounts } from "./saveCounts";
 
@@ -43,7 +44,7 @@ export async function sendSaverOffer(itemId: string, percent: number): Promise<S
   const res = await supabase.rpc("declutter_send_saver_offer", { p_item_id: itemId, p_percent_off: percent, p_amount_cents: null as unknown as number });
   if (res.error) {
     // The server's own words name the lowest price (below_your_lowest); every other refusal has its table line.
-    throw Object.assign(new Error(res.error.message), { userMessage: declutterErrorMessage(res.error) });
+    throw Object.assign(new Error(res.error.message), { userMessage: rpcErrorMessage("declutter_send_saver_offer", res.error) ?? declutterErrorMessage(res.error) });
   }
   return res.data as unknown as SaverOfferSent;
 }
@@ -100,7 +101,8 @@ export interface SellingHome {
 export async function fetchSellingHome(): Promise<SellingHome | null> {
   const res = await supabase.rpc("declutter_selling_home");
   if (res.error && isMissingRpcNamed(res.error, "declutter_selling_home")) return null;
-  return unwrap(res) as unknown as SellingHome;
+  if (res.error) throw Object.assign(new Error(res.error.message), { userMessage: rpcErrorMessage("declutter_selling_home", res.error) ?? undefined });
+  return res.data as unknown as SellingHome;
 }
 
 /**

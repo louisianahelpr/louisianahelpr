@@ -228,7 +228,6 @@ const SignupPending = () => {
     resendOnArrival.current = true;
     void handleResend();
     // handleResend reads the latest state when it runs; this fires once per arrival.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resendAsked, prefillEmail]);
 
   // Numbered rather than icon-only: the three cards are a SEQUENCE (verify →

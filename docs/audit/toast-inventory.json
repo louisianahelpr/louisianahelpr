@@ -14385,7 +14385,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 179,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14395,7 +14395,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14405,7 +14405,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 216,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14415,7 +14415,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 234,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14425,7 +14425,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 262,
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14435,7 +14435,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 296,
+      "line": 298,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14455,7 +14455,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 177,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14465,7 +14465,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 178,
+      "line": 183,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14475,7 +14475,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 179,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14485,7 +14485,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 199,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14495,7 +14495,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 200,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14505,7 +14505,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 201,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14515,7 +14515,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 217,
+      "line": 222,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14525,7 +14525,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 300,
+      "line": 305,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14535,7 +14535,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 308,
+      "line": 313,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14545,7 +14545,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 380,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14555,7 +14555,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 449,
+      "line": 456,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14565,7 +14565,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 189,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14575,7 +14575,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 197,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15876,7 +15876,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 266,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15886,7 +15886,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 326,
+      "line": 328,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15896,7 +15896,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 330,
+      "line": 332,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -15906,7 +15906,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 350,
+      "line": 352,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15916,7 +15916,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 370,
+      "line": 372,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -15926,7 +15926,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 383,
+      "line": 385,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15936,7 +15936,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 447,
+      "line": 449,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15946,7 +15946,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 452,
+      "line": 454,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -15956,7 +15956,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 456,
+      "line": 458,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -15966,7 +15966,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 475,
+      "line": 477,
       "kind": "toast.error",
       "title": {
         "form": "literal",

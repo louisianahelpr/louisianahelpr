@@ -22,11 +22,12 @@ import { firstRunStorageKey } from "@/components/firstRun/firstRunGate";
 const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "..", p), "utf8"));
 
 describe("first run (board 53) and the short tour", () => {
-  it("offers four both-sided picks, two needing Declutter open", () => {
+  it("offers three one-tap answers (owner 11-20: Hire help, Find work, Sell stuff), Sell only with Declutter open, each going straight to its action", () => {
     expect(FIRST_RUN_OPTIONS.map((o) => o.title)).toEqual([
-      "Get help with a job", "Earn by helping neighbors", "Sell things I don't need", "Find a good deal",
+      "Hire help", "Find work", "Sell stuff",
     ]);
-    expect(FIRST_RUN_OPTIONS.filter((o) => o.section === "declutter").length).toBe(2);
+    expect(FIRST_RUN_OPTIONS.filter((o) => o.section === "declutter").length).toBe(1);
+    expect(FIRST_RUN_OPTIONS.map((o) => o.to)).toEqual(["/post-job", "/jobs", "/declutter/sell"]);
     const src = read("components/firstRun/FirstRun.tsx");
     expect(src).toContain('FIRST_RUN_OPTIONS.filter((o) => o.section === "jobs" || declutterOpen)');
   });

@@ -869,7 +869,11 @@ export default defineConfig(({ mode, command }) => ({
                 if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";
                 // B75 11-01: realtime-js, phoenix and storage-js load on first use (lazyRealtime.ts, lazyStorage.ts), in
                 // their own chunk; pinned in "supabase" they would ride on every page's boot again.
-                if (/@supabase[\\/](realtime-js|phoenix|storage-js)[\\/]/.test(id)) return "supabase-lazy";
+                // Home boot JS (owner 11-20): realtime and storage are two chunks, not one. Signed-in chrome opens a realtime
+                // channel while /home's first screen is still drawing, and in one chunk that pulled storage-js (+ its
+                // iceberg-js) down with it (~8 KB on the wire) though no first screen touches a file.
+                if (/@supabase[\\/](realtime-js|phoenix)[\\/]/.test(id)) return "supabase-realtime";
+                if (/@supabase[\\/]storage-js[\\/]|[\\/]iceberg-js[\\/]/.test(id)) return "supabase-storage";
                 if (id.includes("@supabase")) return "supabase";
                 // react-day-picker is only imported by <Calendar> which is always
                 // React.lazy'd — keep it off the critical path by not pinning it to

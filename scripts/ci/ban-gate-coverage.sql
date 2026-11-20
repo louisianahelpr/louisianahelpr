@@ -179,6 +179,7 @@ rpc_exempt(fn, why) AS (
   ('rpc_poster_approve_member', 'JOBS-3 (20261101044659): its one write is the group_job_helpers UPDATE that stamps poster_confirmed_completion_at (UPDATE, ban-gated), with the member notice in the same transaction, so a call by a banned poster rolls back whole'),
   ('rpc_poster_report_member_no_show', 'JOBS-3 (20261101031804): deletes the no-show member group_job_helpers row (DELETE, ban-gated) in the same transaction as its applications + jobs + user_violations writes, so a call by a banned poster rolls back whole'),
   ('record_job_view', 'writes job_views INSERT, ban-gated'),
+  ('record_app_open', 'app sign-ins (20261120150247, owner 2026-11-20): writes only the own app_installs row of the caller (first and latest native-app sign-in time, platform, app version); nothing another member sees, so a banned member changes nothing'),
   ('record_my_signup_source', 'OPS-5 (20261031220447): writes only the own member_signup_sources row of the caller (a sign-up source tag, accounts under 2 days old); nothing another member sees, so a banned member changes nothing'),
   ('record_profile_view', 'writes profile_views INSERT, ban-gated (its handler turns the refusal into false, no row)'),
   ('set_available_now', 'writes profiles.available_until, refused by the banned-profile lock'),

@@ -14,6 +14,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
+/**
+ * Stripe Identity's last_error when the member declined the consent step:
+ * code `consent_declined` (docs.stripe.com/api/identity/verification_sessions/object,
+ * last_error.code), reason "The user declined to grant consent to collect and
+ * verify their data." The reason text is a fallback for a payload without the code.
+ */
+function consentDeclined(session: Stripe.Identity.VerificationSession): boolean {
+  const err = session.last_error as { code?: string | null; reason?: string | null } | null | undefined;
+  if (!err) return false;
+  if (err.code === "consent_declined") return true;
+  return /declined to grant consent/i.test(err.reason ?? "");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -451,6 +464,21 @@ serve(async (req) => {
           updateData.idv_failure_reason = `Auto-approve threshold not met (${confidence} < ${threshold})`;
           updateData.legacy_manual_review = true;
         }
+      } else if (event.type === "identity.verification_session.requires_input" && consentDeclined(session)) {
+        // The member tapped "decline" on Stripe's consent screen (live
+        // 2026-11-20: 7 seconds in, restarted a minute later). Nothing was
+        // submitted, so there is nothing for an admin to review: it is the
+        // member backing out, like closing the tab. Back to not_started with
+        // no session (stripe-idv-start then claims a fresh attempt through the
+        // restart path, still capped by claim_idv_attempt), no manual-review
+        // flag, no admin alert, and so nothing for the 24-hour sweep
+        // (sweep_idv_review_waiting reads idv_status = 'manual_review') either.
+        updateData = {
+          idv_session_id: null,
+          idv_status: "not_started",
+          idv_failure_reason: null,
+          legacy_manual_review: false,
+        };
       } else if (event.type === "identity.verification_session.requires_input") {
         // NOT 'failed'. The account gets exactly ONE billable Stripe Identity
         // attempt (claim_idv_attempt, capped at 1 because the $2 onboarding fee

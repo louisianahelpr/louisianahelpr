@@ -10,11 +10,11 @@
  *   - the evening sweep runs it; the choice is the seller's own listing only, and only 7, 14, 21 or 30.
  * Backend proof, nine planted defects each RED, NEW_MIGRATION=skip RED: src/test/pglite/declutterAutoFreeDays.pglite.mjs.
  *
- * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |      WHERE p.auto_free_days IS NOT NULL\n       AND i.status = 'live' |      WHERE i.status = 'live'
- * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |        AND COALESCE(i.live_at, i.submitted_at, i.created_at) + make_interval(days => p.auto_free_days) <= now() |        AND true
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |      WHERE p.auto_free_days IS NOT NULL\n       AND i.status = 'live' |      WHERE i.status = 'live'
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |        AND COALESCE(i.live_at, i.submitted_at, i.created_at) + make_interval(days => p.auto_free_days) <= now() |        AND true
  * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |   v_n := v_n + public.declutter_auto_free_due();\n |
- * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |       AND NOT i.seller_hidden\n       AND i.current_price_cents > 0 |       AND NOT i.seller_hidden\n       AND i.sale_mode = 'offers'\n       AND i.current_price_cents > 0
- * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |       CONTINUE WHEN v_days IS NULL OR it.started + make_interval(days => v_days) > now(); |       CONTINUE WHEN v_days IS NULL;
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |       AND NOT i.seller_hidden\n       AND i.current_price_cents > 0 |       AND NOT i.seller_hidden\n       AND i.sale_mode = 'offers'\n       AND i.current_price_cents > 0
+ * @mutate supabase/migrations/20261120152652_declutter_haul_away_opt_in.sql |       CONTINUE WHEN v_days IS NULL OR it.started + make_interval(days => v_days) > now(); |       CONTINUE WHEN v_days IS NULL;
  * @mutate supabase/migrations/20261103124851_money_free_switch_handovers_shop_item_not_found_is_404.sql |   IF p_days IS NOT NULL AND p_days NOT IN (7, 14, 21, 30) THEN |   IF p_days IS NOT NULL AND p_days NOT IN (7, 12, 14, 21, 30) THEN
  */
 import { describe, expect, it } from "vitest";

@@ -36,6 +36,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { newestFunction } from "./helpers/parityReaders";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { guideBySlug, loadAllGuidePicks, loadSearchItems, topPicks } from "@/content/giftGuideCatalog";
 import {
@@ -337,7 +338,9 @@ describe("security review of #4791", () => {
   });
 
   it("the server strips the same characters as the shared client cleaner (src/lib/giftNameClean.ts)", () => {
-    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261120062334_gift_guide_secret_santa_planner.sql"), "utf8");
+    // The NEWEST definition of secret_santa_create (guardsReadTheNewestMigration: a later migration restated
+    // export_my_data from the same file, so the file is no longer pinned by name).
+    const sql = newestFunction("secret_santa_create").body;
     const client = readFileSync(join(process.cwd(), "src/lib/giftNameClean.ts"), "utf8");
     const set = (src: string, re: RegExp) => (re.exec(src)?.[1] ?? "").toLowerCase().replace(/\\u0000-/, "\\u0001-");
     const clientSet = set(client, /name\.replace\(\/\[([^\]]+)\]\/g/);

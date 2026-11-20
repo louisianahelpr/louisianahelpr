@@ -178,6 +178,13 @@ const UNREACHABLE: Allowlist = {
   record_my_signup_source: {
     not_signed_in: { reason: "no message exists at this site: reportSignupSource only runs signed in and only reports errors" },
   },
+  // App sign-ins (20261120150247, owner 2026-11-20): recordAppOpen (src/lib/appSignIns.ts) runs in the background only
+  // in the native app with a member signed in (SessionManager); any error is report()ed and no message exists.
+  record_app_open: {
+    not_authenticated: { reason: "no message exists at this site: useRecordAppOpen only calls it with a signed-in member and only reports errors" },
+    invalid_platform: { reason: "nativeAppPlatform() sends only 'ios' or 'android' and skips the call otherwise; no message exists" },
+    invalid_app_version: { reason: "appVersion() sends the version only when it matches the server's pattern, else none; no message exists" },
+  },
   // LEAD-POST-SLOW (a), 20261031160546: these make their item through declutter_create_item_with_id with a fresh
   // gen_random_uuid(), never an id from the caller, so its item_id_taken (an id already used) can't happen.
   declutter_create_item: {

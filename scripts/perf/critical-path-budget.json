@@ -1,6 +1,6 @@
 {
   "_what": "Q178 critical-path budget, checked by `node scripts/perf/critical-path.mjs --check` against the BUILT bundle (bundle-size.yml, npm run gate). Rounds are exact both ways; KB is a band (+5% fails as a regression, -10% fails as a stale budget). Lower these in the same commit as the change that lowers them.",
-  "_measured": "2026-11-20 2:13 AM CST (Mac clock), local vite build with bundle-size.yml env on fix/declutter-item-bundle-1120 (Q178, after #4779 put /declutter/item/:id at 420 KB gz on main): decl-item-first splits the 25 of declutter-first-screen's 78 modules the item page reaches into their own chunk, and the item page's DemandLine loads on use: /declutter/item/:id 420 -> 397 KB gz; /declutter 457 -> 458, /declutter?tab=selling 551 -> 552 (one more chunk, same round); /jobs 314 -> 310; every other row equal to main",
+  "_measured": "2026-11-20 4:15 AM CST, re-measured 4:37 AM CST after merging #4792 into the branch (selling 487 -> 488, /declutter/item/:id 397 -> 398, both in band, budgets kept) (Mac clock), local vite build with bundle-size.yml env on fix/declutter-selling-bundle-1120 (Q178; main 236f6db2ad measured /declutter?tab=selling 552, /declutter 458): Buying moved out of DeclutterMineViews into its own module DeclutterBuyingViews (Selling no longer downloads the cart, checkout and order tracker), Buying icons pinned (icons-buying), and declutter-first-screen split by tab (bootReach.mjs declutterTabSplit: decl-browse-first, decl-buying-first): /declutter?tab=selling 552 -> 487, /declutter 458 -> 438, /declutter?tab=buying 552 -> 548 (new row: was the same chunk as Selling); /profile 346 -> 342, /admin 280 -> 281 (main chunk preload lists, in band); every other row equal to main, rounds unchanged",
   "entry": {
     "staticChunks": 2,
     "kb": 4.7
@@ -69,12 +69,17 @@
     "/declutter": {
       "routeRound": 2,
       "rounds": 2,
-      "jsKB": 455
+      "jsKB": 438
     },
     "/declutter?tab=selling": {
       "routeRound": 2,
       "rounds": 2,
-      "jsKB": 532
+      "jsKB": 487
+    },
+    "/declutter?tab=buying": {
+      "routeRound": 2,
+      "rounds": 2,
+      "jsKB": 548
     }
   }
 }

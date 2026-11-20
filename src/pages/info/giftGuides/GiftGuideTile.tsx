@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import type { CatalogGuide } from "@/content/giftGuideCatalog";
 import { GiftGuideCover } from "./GiftGuideCover";
 import { Heart, toggleGuide, useGiftList } from "./giftList";
+import { WISH } from "@/content/giftWishList";
 
 /** A guide's tile: its square cover and its name (owner 2026-11-18: no pick count under it; a kids age guide keeps
  *  its age band, which says which guide it is). Opens /gift-guides/<slug>.
@@ -19,7 +20,7 @@ export function GiftGuideTile({ g, label, priority = false }: { g: CatalogGuide;
       </Link>
       {/* Owner 2026-11-18: a heart saves the guide to My list; it is the link's sibling, so tapping it never opens the
           guide. */}
-      <Heart saved={saved} label={`Save ${label ?? g.title} to My list`} onToggle={() => toggleGuide(g.slug)} className="gg-heart-tile" />
+      <Heart saved={saved} label={WISH.saveLabel(label ?? g.title)} onToggle={() => toggleGuide(g.slug)} className="gg-heart-tile" />
     </li>
   );
 }

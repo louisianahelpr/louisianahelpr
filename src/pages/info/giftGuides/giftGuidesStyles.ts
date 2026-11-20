@@ -73,7 +73,7 @@ color:var(--gg-ink)}
 .gg-share-menu{position:absolute;z-index:6;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;min-width:150px;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px}
 .gg-share-menu a,.gg-share-menu button{display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:13px;font-weight:600;color:var(--gg-ink);text-decoration:none;background:none;border:0;text-align:left;border-radius:8px}
 .gg-share-menu a:hover,.gg-share-menu button:hover{background:hsl(var(--muted) / .6)}
-:root[data-theme="dark"] .gg-words .gg-lead,:root[data-theme="dark"] .gg-words h2{color:var(--gg-ink)}
+:root[data-theme="dark"] .gg-words .gg-lead,:root[data-theme="dark"] .gg-words h2,:root[data-theme="dark"] .gg-words > h1{color:var(--gg-ink)}
 .gg-check{background-color:#faf7f0;background-image:repeating-linear-gradient(0deg,var(--c-dark) 0 30px,transparent 30px 60px),repeating-linear-gradient(90deg,var(--c-dark) 0 30px,transparent 30px 60px)}
 .gg-dot{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.1);margin-right:8px;flex:none;background:var(--c-dot)}
 .gg-textcover{display:flex;align-items:center;justify-content:center;padding:14%;text-align:center;border:1px solid var(--gg-line)}

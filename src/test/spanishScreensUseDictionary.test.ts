@@ -118,6 +118,7 @@ const CONVERTED = [
   "src/components/declutter/BunchDraftsSection.tsx",
   "src/components/declutter/SellingNowRow.tsx",
   "src/components/declutter/DeclutterMineViews.tsx",
+  "src/components/declutter/DeclutterBuyingViews.tsx",
   "src/components/declutter/DeclutterBunchView.tsx",
   "src/components/declutter/DeclutterBunchRow.tsx",
   "src/components/declutter/TabletSellRow.tsx",

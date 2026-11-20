@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { loadSearchItems, newSlugFor, topPicks, type SearchItem } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDE_FLAGS } from "@/content/giftGuideExtras1120";
 import { FUN_WORDS as W, christmasCountdown, giftOfTheDay, giveawayTieInOn } from "@/content/giftGuideFun1120";
@@ -70,7 +71,7 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
           <span className="gg-today-k">{W.gotdTitle}:</span>
           <GiftOut href={gift.href} className="gg-today-name">{shortName(gift.name)}<span className="sr-only"> (opens in a new tab)</span></GiftOut>
           <PickPrice pick={gift} />
-          <button type="button" className="gg-today-share" aria-label={W.gotdShareLabel} onClick={() => void share()} data-gift-gotd-share="">{msg ?? W.gotdShare}</button>
+          <Button type="button" variant="ghost" size="inline" className="gg-today-share" aria-label={W.gotdShareLabel} onClick={() => void share()} data-gift-gotd-share="">{msg ?? W.gotdShare}</Button>
         </span>
       )}
       {giveawayTieInOn(now, GIFT_GUIDE_FLAGS.giveawayBanner.on) && (

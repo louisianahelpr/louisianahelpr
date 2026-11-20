@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { loadModule } from "@/lib/loadModule";
 
@@ -93,12 +95,12 @@ export function SponsorRow() {
         <h2 id="gift-sponsors">{G.sponsorRow.title}</h2>
         <span className="gg-spons-end">
         <span className="gg-spons-btns">
-          <button type="button" className="gg-spons-btn" aria-label={G.sponsorRow.left} onClick={() => scroll(-1)}>
-            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-          </button>
-          <button type="button" className="gg-spons-btn" aria-label={G.sponsorRow.right} onClick={() => scroll(1)}>
-            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-          </button>
+          <Button type="button" variant="ghost" size="inline" className="gg-spons-btn" aria-label={G.sponsorRow.left} onClick={() => scroll(-1)}>
+            <ChevronLeft aria-hidden="true" />
+          </Button>
+          <Button type="button" variant="ghost" size="inline" className="gg-spons-btn" aria-label={G.sponsorRow.right} onClick={() => scroll(1)}>
+            <ChevronRight aria-hidden="true" />
+          </Button>
         </span>
         <Link to={G.sponsorRow.allHref} className="gg-link" data-gift-sponsors-all="">{G.seeAllLabel} ›<span className="sr-only"> {G.sponsorRow.title}</span></Link>
         </span>

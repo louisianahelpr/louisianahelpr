@@ -20,7 +20,7 @@ import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
 import { MessagePreviewRow } from "./notificationPreferences/MessagePreviewRow";
-import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, shopsColumnsPresent, adminActivityColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
+import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, shopsColumnsPresent, adminActivityColumnsPresent, giveawayColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
 import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
 import { ShopsNotificationGroup } from "./notificationPreferences/ShopsNotificationGroup";
@@ -489,6 +489,8 @@ const NotificationPreferences = ({ textAlerts = null }: { textAlerts?: ReactNode
       {/* "Show message text in alerts" sits right under Messages (Messages audit M6). F103 (owner UI audit 11-09): a
           header where the group changes (Messages, Jobs, Money, Account), the way the Declutter group has one. */}
       {rows.map((item, i) => {
+        // The Giveaway reminders row (20261119200128) waits for its columns, like the Declutter and Shops groups.
+        if (item.key === "giveaway_reminders" && !giveawayColumnsPresent(columns)) return null;
         const header = item.group && item.group !== rows[i - 1]?.group ? <NotificationGroupHeader key={`group-${item.group}`} title={item.group} /> : null;
         return item.key !== "messages" ? <Fragment key={item.key}>{header}{renderRow(item)}</Fragment> : (
         <Fragment key={item.key}>

@@ -119,6 +119,7 @@ const CLASSIFIED: Record<string, string> = {
   "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,
   "pages/auth/completeProfile/ConsentStep.tsx::href": "link()'s prop: its only callers pass the fixed in-app paths \"/terms\", \"/rules\" and \"/privacy\"",
   "components/sponsor/Sections.tsx::href": "ExternalButton's prop: every caller passes C.links.* (our content file constants) or filledUrl() output (^https?:// only)",
+  "components/sponsor/Sections.tsx::enterUrl": "Hero's How to enter link (20261119200128): SponsorPage passes giveaway_entry_url() through safeEntryUrl() (^https://\\S+$ only; the column is CHECK-constrained to https too), else the constant C.links.facebookPage",
   "components/sponsor/Sections.tsx::group": "filledUrl(C.links.facebookGroup): our content file value, only when it matches ^https?:// with no placeholder",
   "components/sponsor/Sections.tsx::C.links.facebookPage": "a constant https:// URL in src/content/sponsorPage.ts",
   "components/sponsor/Sections.tsx::C.links.website": "a constant https:// URL in src/content/sponsorPage.ts",

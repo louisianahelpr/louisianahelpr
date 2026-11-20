@@ -93,6 +93,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   claim_confirm_reminders: "hides",
   // payout setup after the hire (20261025162003): an enrolled seed Helpr with no payout account gets no reminder
   claim_payout_setup_reminders: "hides",
+  giveaway_reminder_sweep: "hides", // 25 Days reminders (20261119200128): a seed or test account never gets a giveaway reminder; notifications only, gates no money
   complete_pending_accepts_on_setup: "alerts",
   create_quote_request: "tags",
   // Admin review card leaves out test sellers' listings (owner rule, 2026-10-28).

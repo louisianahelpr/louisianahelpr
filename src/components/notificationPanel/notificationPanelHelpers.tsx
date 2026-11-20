@@ -1,6 +1,6 @@
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enChatParts";
-import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, ShieldAlert, Megaphone, Tag, HandCoins, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search, MessageCircleQuestion, Store, Activity } from "lucide-react";
+import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, ShieldAlert, Megaphone, Tag, HandCoins, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search, MessageCircleQuestion, Store, Activity, Gift } from "lucide-react";
 import type { Notification } from "./types";
 
 // Icons take their colour from the circle they sit in (board 28: olive, or the money tint for money kinds).
@@ -39,6 +39,7 @@ export const typeIcons: Record<string, React.ReactNode> = {
   shops_messages: <MessageCircle className="w-4 h-4" />,
   shops_updates: <Info className="w-4 h-4" />,
   shops_following: <Store className="w-4 h-4" />,
+  giveaway_reminders: <Gift className="w-4 h-4" />,
   // Area 08 L9 (design audit 11-18): member activity wore the generic "i"; it gets its own glyph.
   admin_activity: <Activity className="w-4 h-4" />,
 };

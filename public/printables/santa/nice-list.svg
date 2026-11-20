@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="8.5in" height="11in" viewBox="0 0 850 1100">
+<defs><pattern id="g" width="44" height="44" patternUnits="userSpaceOnUse"><rect width="44" height="44" fill="#faf7ef"/><rect width="22" height="44" fill="#b16864" opacity=".55"/><rect width="44" height="22" fill="#b16864" opacity=".55"/></pattern></defs>
+<rect width="850" height="1100" fill="url(#g)"/>
+<rect x="44" y="44" width="762" height="1012" rx="28" fill="#faf7ef"/>
+<rect x="60" y="60" width="730" height="980" rx="20" fill="none" stroke="#8f2f2a" stroke-width="2"/>
+<text x="425" y="170" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="20" letter-spacing="6" fill="#8f2f2a">OFFICIAL CERTIFICATE</text>
+<text x="425" y="285" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="96" fill="#3f5a3a">Nice List</text>
+<g stroke="#8f2f2a" stroke-width="2"><line x1="330" y1="330" x2="405" y2="330"/><line x1="445" y1="330" x2="520" y2="330"/></g>
+<rect x="418" y="323" width="14" height="14" transform="rotate(45 425 330)" fill="#8f2f2a"/>
+<text x="425" y="420" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="30" fill="#5b4a3a">This certifies that</text>
+<line x1="150" y1="580" x2="700" y2="580" stroke="#5b4a3a" stroke-width="1.5"/>
+<text x="425" y="660" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="27" fill="#5b4a3a">has been very good this year and is on</text>
+<text x="425" y="700" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="27" fill="#5b4a3a">Santa's Nice List for Christmas.</text>
+<text x="425" y="850" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="44" fill="#8f2f2a">Santa Claus</text>
+<line x1="275" y1="870" x2="575" y2="870" stroke="#5b4a3a" stroke-width="1.2"/>
+<text x="425" y="898" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="15" letter-spacing="3" fill="#5b4a3a">NORTH POLE</text>
+<text x="425" y="1000" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="18" letter-spacing="5" fill="#8f2f2a">LOUISIANA HELPR</text>
+</svg>

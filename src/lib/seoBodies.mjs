@@ -220,6 +220,12 @@ const INFO_PAGES = {
     intro: "Type everyone's first name, add a budget and who can't draw each other, and send each person a private link to their match. No emails or phone numbers.",
     links: [["/gift-guides/secret-santa", "Secret Santa and White Elephant gift ideas"], ["/gift-guides", "Holiday gift guides"]],
   },
+  "/gift-guides/printables": {
+    name: "Free printables",
+    h1: "Free printable Christmas gift tags with names",
+    intro: "Pick a gift tag design, type the To and From names, and print a sheet of 9 or 10 tags with cut lines at home. Free, with no sign-up, and nothing is saved.",
+    links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/gift-wrap-and-cards", "Gift wrap and card ideas"]],
+  },
   "/declutter": {
     name: "Declutter",
     h1: "Declutter: used things for sale near you in Louisiana",

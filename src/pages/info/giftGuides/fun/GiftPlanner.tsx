@@ -12,6 +12,7 @@ import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { planActions as A, useAccountSync, usePlan } from "./plannerStore";
+import { PRINTABLES, PRINTABLES_PATH, isShown } from "@/content/printables";
 
 /**
  * /gift-guides/planner (owner 2026-11-20): the people you're shopping for (a name only), a budget each, gift ideas
@@ -19,6 +20,7 @@ import { planActions as A, useAccountSync, usePlan } from "./plannerStore";
  * on the account when signed in (plannerStore). Private: nothing here is shared. Guard: src/test/giftGuideFun1120.test.tsx.
  */
 const PATH = "/gift-guides/planner" as const;
+const PLANNER_SHEET = PRINTABLES.find((p) => p.id === "gift-planner-sheet");
 
 function MoneyBar({ p }: { p: PlanPerson }) {
   const m = personMoney(p);
@@ -172,6 +174,10 @@ export default function GiftPlanner() {
         {!user && <Link to="/login" className="gg-link min-h-0">{W.plannerSignIn}</Link>}
       </p>
       <Button asChild variant="link" size="inline" className="gg-link"><Link to="/gift-guides/swipe">{W.plannerFindGifts} ›</Link></Button>
+      {/* Owner 2026-11-20: the printable gift list and budget sheet, once the owner's file is in (src/content/printables.ts). */}
+      {PLANNER_SHEET && isShown(PLANNER_SHEET) && (
+        <Button asChild variant="link" size="inline" className="gg-link"><Link to={`${PRINTABLES_PATH}#${PLANNER_SHEET.id}`} data-plan-printable="">{PLANNER_SHEET.title} ›</Link></Button>
+      )}
       </FunBody>
     </PublicHeaderPage>
   );

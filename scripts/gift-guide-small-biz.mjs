@@ -19,7 +19,7 @@
  * Not in CI (it reads the lead's folder): registered in scripts/check-generated-current.mjs (gift-guide-small-biz).
  * Guard: src/test/giftGuideSmallBiz1120.test.tsx.
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
 import { extname, join, resolve } from "node:path";
@@ -46,12 +46,22 @@ const ADDED = [
   },
 ];
 
-/** Text a shopper may read: no giveaway words, no price, no day, tidy spaces. */
-export const cleanText = (s) => String(s ?? "")
+/** One pass of the clean-up below. */
+const cleanOnce = (s) => s
   .replace(/\s*\([^)]*(giveaway|winner|prize|\$|confirm|verified|tracker)[^)]*\)/gi, "")
   .replace(/[^.;]*\b(giveaway|winner|prize)\b[^.;]*[.;]?/gi, "")
   .replace(/\s*(from|starting at|only)?\s*\$\s?\d[\d,.]*(\s*(and|-|to)\s*up)?/gi, "")
   .replace(/\s{2,}/g, " ").replace(/\s+([.,;:])/g, "$1").replace(/^[\s,;:-]+|[\s,;:-]+$/g, "").trim();
+/**
+ * Text a shopper may read: no giveaway words, no price, no day, tidy spaces. Repeated until nothing changes, so a
+ * removal that joins two pieces into a new match is removed too (CodeQL: incomplete multi-character sanitization).
+ */
+export const cleanText = (s) => {
+  let prev;
+  let out = String(s ?? "");
+  for (let i = 0; i < 20 && out !== prev; i++) { prev = out; out = cleanOnce(out); }
+  return out;
+};
 
 const https = (u) => (typeof u === "string" && /^https:\/\//.test(u) ? u : undefined);
 /** Ships, or local only, read from the business's own shipping note. */
@@ -69,13 +79,18 @@ for (const b of rows) {
   const instagram = https(b.instagram_url);
   let logo;
   const file = b.logo_file && !NO_LOGO.has(b.slug) ? join(DIR, b.logo_file) : null;
-  if (file && existsSync(file)) {
+  if (file) {
     const ext = extname(file).toLowerCase() === ".png" ? ".png" : ".jpg";
     const to = join(LOGOS, `${b.slug}${ext}`);
-    copyFileSync(file, to);
-    // At most 240 px a side (the card draws it at 72); macOS sips keeps the format.
-    execFileSync("sips", ["-Z", "240", to], { stdio: "ignore" });
-    logo = `/gift-guides/small-biz/${b.slug}${ext}`;
+    try {
+      copyFileSync(file, to);
+      // At most 240 px a side (the card draws it at 72); macOS sips keeps the format.
+      execFileSync("sips", ["-Z", "240", to], { stdio: "ignore" });
+      logo = `/gift-guides/small-biz/${b.slug}${ext}`;
+    } catch (e) {
+      // A logo the folder does not hold: the card shows the name instead.
+      if (e?.code !== "ENOENT") throw e;
+    }
   }
   cards.push({
     slug: b.slug, name: b.name, town: cleanText(b.town), category: b.category,

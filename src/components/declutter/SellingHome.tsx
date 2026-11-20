@@ -13,6 +13,7 @@ import { fetchMyAway, fetchSellingHome } from "@/lib/declutter/api";
 import { weekChange, type SellingHome as Home, type WeekNumbers } from "@/lib/declutter/sellerTools";
 import { formatPrice } from "@/lib/declutter/formatPrice";
 import { SectionHeading } from "./DeclutterTabHeads";
+import { ListRow } from "@/components/ui/ListRow";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import "@/lib/i18n/enDeclTop5";
 import { t } from "@/lib/i18n/language";
@@ -69,11 +70,11 @@ export function SellingHome({ todo, onPick, userId }: { todo: DeclutterTodo | nu
           <ul className="divide-y divide-border">
             {rows.map((r) => (
               <li key={r.key}>
-                <button type="button" onClick={() => onPick(r.group)} data-selling-todo={r.key}
-                  className="flex min-h-[44px] w-full items-center justify-between gap-3 text-left text-ds-14 font-medium text-foreground">
+                <ListRow variant="flush" onClick={() => onPick(r.group)} data-selling-todo={r.key}
+                  className="text-ds-14 font-medium text-foreground"
+                  trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
                   <span className="min-w-0">{r.n === 1 ? t(r.one) : t(r.many, { n: r.n })}</span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                </button>
+                </ListRow>
               </li>
             ))}
           </ul>

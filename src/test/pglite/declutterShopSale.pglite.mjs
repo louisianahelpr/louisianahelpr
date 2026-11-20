@@ -82,7 +82,7 @@ const demAll = (await db.query(`select item_id, sale_pct from public.declutter_i
 ok(demAll.length === 2 && demAll[0].sale_pct === 20 && demAll[1].sale_pct === null && dem?.e === true, `buyers read "20% off, ends ..." only on a discounted listing (${JSON.stringify(demAll)})`);
 
 ok(/sale_already_set/.test((await call(S, `select public.declutter_start_shop_sale(10, now(), now() + interval '1 day')`)).err ?? ""), "a second sale while one runs: refused");
-ok(/invalid_sale_dates/.test((await call(S2, `select public.declutter_start_shop_sale(10, now(), now() + interval '20 days')`)).err ?? ""), "longer than 2 weeks: refused");
+ok(/shop_sale_dates/.test((await call(S2, `select public.declutter_start_shop_sale(10, now(), now() + interval '20 days')`)).err ?? ""), "longer than 2 weeks: refused");
 ok(/invalid_input/.test((await call(S2, `select public.declutter_start_shop_sale(70, now(), now() + interval '1 day')`)).err ?? ""), "more than 50% off: refused");
 ok(/not_authenticated/.test((await call(null, `select public.declutter_start_shop_sale(10, now(), now() + interval '1 day')`)).err ?? ""), "signed out: refused");
 
@@ -201,7 +201,7 @@ ok(await price("b") === 1600, `#6 a seller's own price equal to the sale price i
 // #5: a 14-day sale across a clock change (14 days and 1 hour) is accepted; past the 2-hour slack it is not.
 ok(!!(await call(S, `select public.declutter_start_shop_sale(10, now() + interval '1 day', now() + interval '15 days 1 hour') id`)).v?.id, "#5 14 days + 1 hour (a clock change): accepted");
 await call(S, `select public.declutter_end_shop_sale()`);
-ok(/invalid_sale_dates/.test((await call(S, `select public.declutter_start_shop_sale(10, now() + interval '1 day', now() + interval '15 days 3 hours')`)).err ?? ""), "#5 14 days + 3 hours: refused");
+ok(/shop_sale_dates/.test((await call(S, `select public.declutter_start_shop_sale(10, now() + interval '1 day', now() + interval '15 days 3 hours')`)).err ?? ""), "#5 14 days + 3 hours: refused");
 
 for (const [fn, sig, members] of [["declutter_start_shop_sale", "integer, timestamp with time zone, timestamp with time zone", true], ["declutter_end_shop_sale", "", true], ["declutter_shop_sale_sweep", "", false], ["declutter_shop_sale_apply", "uuid", false], ["declutter_shop_sale_restore", "uuid", false]]) {
   const a = (await db.query(`select proacl::text a from pg_proc where proname = '${fn}'`)).rows[0]?.a ?? "";

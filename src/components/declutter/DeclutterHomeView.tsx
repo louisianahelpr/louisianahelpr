@@ -13,7 +13,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { SaverOfferLine, useSaverOfferData } from "./SaverOffer";
-import { BulkBar, BulkPick, bulkPickable, useBulkSelect } from "./BulkActions";
+import { BulkBar, BulkHeading, BulkPick, useBulkSelect } from "./BulkActions";
 import "@/lib/i18n/enDeclTop5";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -116,9 +116,8 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
   const dropsTonight = useMyDropsTonight(mine.data ?? [], myDrops.data);
-  // Declutter top 5 #1 (owner 11-19): "N people saved this. Send them an offer" under each live priced row.
+  // Declutter top 5 (owner 11-19): #1 "Send them an offer" under each saved row; #5 bulk actions (Select).
   const saverOffers = useSaverOfferData(userId, mine.data);
-  // Declutter top 5 #5: bulk actions (Select, then one action on every ticked listing).
   const bulk = useBulkSelect();
   // The Free change (Q2487): each live free listing shows its open asks as "Requests (n)"; read only when there is one.
   // Builder 187: only once someone has asked; a "Requests (0)" button opened a list with nobody in it.
@@ -258,15 +257,8 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   }
   return (
     <section className="space-y-3" aria-label={t("decl.sl.yours")}>
-      {/* Declutter top 5 #5 (owner 11-19): "Select" ticks listings for one action on all of them (BulkActions.tsx). */}
-      <div className="flex items-center justify-between gap-3">
-        <SectionHeading title={t("decl.sl.yours")} />
-        {list.filter(bulkPickable).length > 1 && (
-          <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={bulk.selecting ? bulk.stop : bulk.start} data-bulk-toggle="">
-            {bulk.selecting ? t("dt5.bulk.done") : t("dt5.bulk.select")}
-          </Button>
-        )}
-      </div>
+      {/* Declutter top 5 #5: the heading with Select (one action on many listings, BulkActions.tsx). */}
+      <BulkHeading title={t("decl.sl.yours")} items={list} bulk={bulk} />
       {!searching && list.filter((i) => i.status === "draft").length > 1 && (
         <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">{t("decl.sl.allDrafts")}</Link></p>
       )}

@@ -335,16 +335,19 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
 DECLARE
   v_uid uuid := (SELECT auth.uid());
+  v_hidden boolean;
 BEGIN
   IF p_seller_id IS NULL THEN
     RETURN NULL;
   END IF;
-  IF v_uid IS NULL THEN
-    IF NOT public.declutter_open_to_guests() THEN
-      RETURN NULL;
-    END IF;
-  ELSIF v_uid <> p_seller_id
-        AND p_seller_id = ANY (COALESCE((SELECT public.declutter_my_block_partners()), '{}'::uuid[])) THEN
+  -- A guest (no member: this is a READ for anon, never a trusted server write) sees it only while Declutter is open to
+  -- guests; a member never across a block. Worked out as a value first, so no branch trusts a bare NULL uid.
+  v_hidden := CASE
+    WHEN v_uid IS NULL THEN NOT public.declutter_open_to_guests()
+    ELSE v_uid <> p_seller_id
+         AND p_seller_id = ANY (COALESCE((SELECT public.declutter_my_block_partners()), '{}'::uuid[]))
+  END;
+  IF v_hidden THEN
     RETURN NULL;
   END IF;
   IF v_uid IS DISTINCT FROM p_seller_id AND public.declutter_seller_out(p_seller_id) THEN

@@ -1968,7 +1968,7 @@ export const RPC_ERROR_COPY = {
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
     invalid_input: "Pick between 5% and 50% off.",
-    invalid_sale_dates: DC.invalid_sale_dates,
+    shop_sale_dates: DC.shop_sale_dates,
     not_authenticated: DC.not_authenticated,
     sale_already_set: DC.sale_already_set,
     under_18: DC.under_18,

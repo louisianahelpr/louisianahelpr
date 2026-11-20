@@ -12,8 +12,10 @@ import { markSoldElsewhere, pauseListing, relistListing } from "@/lib/declutter/
 import { BULK_PERCENTS, bulkDiscount } from "@/lib/declutter/sellerTools";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { SectionHeading } from "./DeclutterTabHeads";
 import "@/lib/i18n/enDeclTop5";
 import { t } from "@/lib/i18n/language";
 
@@ -31,10 +33,24 @@ export function useBulkSelect() {
 export function BulkPick({ item, picked, onToggle }: { item: DeclutterItem; picked: boolean; onToggle: () => void }) {
   if (!bulkPickable(item)) return null;
   return (
-    <label className="flex min-h-[44px] min-w-[44px] shrink-0 cursor-pointer items-center justify-center" data-bulk-pick={item.id}>
-      <input type="checkbox" className="h-5 w-5 accent-[hsl(var(--bark))]" checked={picked} onChange={onToggle}
-        aria-label={t("dt5.bulk.pick", { title: item.title })} />
+    // The shared Checkbox; the 44px label row around it is the tap target (checkboxesAreEighteenPx).
+    <label className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center" data-bulk-pick={item.id}>
+      <Checkbox checked={picked} onCheckedChange={onToggle} aria-label={t("dt5.bulk.pick", { title: item.title })} />
     </label>
+  );
+}
+
+/** Your listings' heading, with Select / Done once two or more listings can be ticked. */
+export function BulkHeading({ title, items, bulk }: { title: string; items: DeclutterItem[]; bulk: ReturnType<typeof useBulkSelect> }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <SectionHeading title={title} />
+      {items.filter(bulkPickable).length > 1 && (
+        <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={bulk.selecting ? bulk.stop : bulk.start} data-bulk-toggle="">
+          {bulk.selecting ? t("dt5.bulk.done") : t("dt5.bulk.select")}
+        </Button>
+      )}
+    </div>
   );
 }
 

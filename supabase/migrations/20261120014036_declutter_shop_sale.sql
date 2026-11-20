@@ -274,7 +274,7 @@ BEGIN
   v_start := greatest(COALESCE(p_starts_at, now()), now());
   -- Review 11-19 #5: 2 hours of slack over 14 days (a clock change inside the sale), as the table's own CHECK.
   IF p_ends_at IS NULL OR p_ends_at <= v_start OR p_ends_at > v_start + interval '14 days 2 hours' OR v_start > now() + interval '14 days' THEN
-    RAISE EXCEPTION 'invalid_sale_dates' USING ERRCODE = '22023',
+    RAISE EXCEPTION 'shop_sale_dates' USING ERRCODE = '22023',
       HINT = 'A sale starts within 2 weeks and runs up to 2 weeks.';
   END IF;
   PERFORM pg_advisory_xact_lock(hashtext('declutter_shop_sale:' || v_uid::text));

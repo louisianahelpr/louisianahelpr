@@ -24,13 +24,13 @@ reports coverage against THIS file, not against the route list.
 | Multi-step flows — confirmed | flow | 58 |
 | Multi-step flows — probable | flow | 35 |
 | Back/next navigation only | flow | 71 |
-| Forms (submittable) | form | 138 |
+| Forms (submittable) | form | 139 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 191 |
 | Email templates | **exported template** | 26 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **878** |
+| **Navigable surfaces** (places a person can stand) | mixed | **879** |
 | **Copy surfaces** (strings a person may read) | mixed | **1317** |
-| **Total auditable surface** | mixed | **2195** |
+| **Total auditable surface** | mixed | **2196** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 5 | 14 | agree |
 | Admin `?view=` | 29 | 24 | agree |
 | Overlay surfaces | 248 | 130 | agree within method (script counts every menu instance) |
-| Forms | 138 | ~38 | agree |
+| Forms | 139 | ~38 | agree |
 | Confirmed multi-step flows | 58 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -668,6 +668,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/userDetail/DeclutterAmountsOwed.tsx` (dialog/mutation)
 - [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
+- [ ] `src/components/declutter/BulkActions.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterBundleRequests.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterEditListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterHandoverTalk.tsx` (form tag)

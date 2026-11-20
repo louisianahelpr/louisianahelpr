@@ -147,7 +147,7 @@ const DECLUTTER_FILES = [
   "20261105042758_declutter_gift_refund_rows.sql",
   // Declutter top 5 #1 (owner 11-19): the offer to savers (no_savers, saver_offer_rate_limited, below_your_lowest).
   "20261120010630_declutter_offer_to_savers.sql",
-  // Declutter top 5 #4: the shop-wide sale (invalid_sale_dates, sale_already_set, sale_not_found).
+  // Declutter top 5 #4: the shop-wide sale (shop_sale_dates, sale_already_set, sale_not_found).
   "20261120014036_declutter_shop_sale.sql",
   // Declutter top 5 #5: bulk discount and away mode (invalid_away_date, not_away).
   "20261120015456_declutter_bulk_and_away.sql",

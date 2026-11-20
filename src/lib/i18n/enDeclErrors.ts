@@ -72,7 +72,7 @@ export const enDeclErrors = {
   "de.no_savers": "Nobody who saved this can get an offer right now. They may already have one open.",
   "de.saver_offer_rate_limited": "You can send one offer a day for each item. Try again tomorrow.",
   "de.below_your_lowest": "That is below your lowest price. Pick a smaller discount or change your lowest price.",
-  "de.invalid_sale_dates": "A sale starts within 2 weeks and runs up to 2 weeks. Check the dates.",
+  "de.shop_sale_dates": "A sale starts within 2 weeks and runs up to 2 weeks. Check the dates.",
   "de.sale_already_set": "You already have a sale set. End it first.",
   "de.sale_not_found": "There is no sale to end.",
   "de.invalid_away_date": "Pick a day from tomorrow to 90 days out.",

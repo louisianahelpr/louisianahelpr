@@ -8,7 +8,7 @@ Generated from findings.jsonl as of its newest entry: 2026-11-05T02:21:25.579Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
 - **Findings:** 0 open (0 open launch blockers), 357 fixed, 4 wontfix, 22 obsolete, 14 retracted, 32 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
-- **Surface:** 2195 auditable surfaces (878 navigable, 1317 copy) per SURFACE.md
+- **Surface:** 2196 auditable surfaces (879 navigable, 1317 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
 very different.** `RAN — no report` means findings exist in the bus with no
@@ -63,7 +63,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | — | `lh-mkt-instagram` | NOT STARTED | – | – | – |
 | — | `lh-mkt-orchestrator` | NOT STARTED | – | – | – |
 
-## Surface coverage — 2195 auditable surfaces, not 46 lanes
+## Surface coverage — 2196 auditable surfaces, not 46 lanes
 
 Routes are 3% of the surface. Coverage is measured against SURFACE.md classes,
 each naming the lane accountable for it.
@@ -79,7 +79,7 @@ each naming the lane accountable for it.
 | Multi-step flows — confirmed | 58 | `lh-e2e-journeys` | COVERED |
 | Multi-step flows — probable | 35 | `lh-e2e-journeys` | COVERED |
 | Back/next navigation only | 71 | `lh-e2e-journeys` · `lh-state-matrix` | COVERED |
-| Forms (submittable) | 138 | `lh-input-boundary` | COVERED |
+| Forms (submittable) | 139 | `lh-input-boundary` | COVERED |
 | Admin components (components/admin + pages/admin/Admin*) | 191 | `lh-admin-moderation` | COVERED |
 | Email templates | 26 | `lh-email-delivery` | COVERED |
 | Notification types (defined in notification_type_pref_map) | 32 | `lh-notifications` | COVERED |

@@ -78,7 +78,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/BulkActions.tsx` | input×1 | checkbox |  |  |
+| `src/components/declutter/BulkActions.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/declutter/DeclutterBundleRequests.tsx` | checkbox/switch/radio×2 |  |  | bundle-ask-title |
 | `src/components/declutter/DeclutterNoHelpr.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterPickupWindows.tsx` | input×1, date/calendar×1 | datetime-local |  | declutter-no-pickup-slots · declutter-slot-picker · Pickup day · helpr-same-pickup-slot |

@@ -23,8 +23,10 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: ADMIN }, isReady: true }) }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
-vi.mock("@/components/declutter/DeclutterMineViews", () => ({
+vi.mock("@/components/declutter/DeclutterBuyingViews", () => ({
   BuyingDash: () => { throw new TypeError("Cannot read properties of undefined (reading 'title')"); },
+}));
+vi.mock("@/components/declutter/DeclutterMineViews", () => ({
   SellingDash: () => null,
 }));
 

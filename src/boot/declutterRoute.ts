@@ -47,8 +47,14 @@ export function declutterTabChunkFor(search: string): (() => Promise<unknown>) |
   if (view === "wanted" || tab === "wanted") return () => import("@/components/declutter/DeclutterWantedViews");
   if (tab === "free") return () => import("@/components/declutter/DeclutterFreeView");
   if (tab === "deliver") return null;
-  if (tab === "buying" || tab === "selling" || ["buying", "selling", "mine", "offers", "cart"].includes(view ?? "")) {
-    return () => import("@/components/declutter/DeclutterMineViews");
+  // Q178 (11-20): Buying and Selling are two chunks, so each starts only its own. ?view=offers opens the side with an
+  // offer waiting (oldDeclutterView, decided once the badge reads answer), so it starts both, as the one chunk did.
+  if (tab === "buying") return () => import("@/components/declutter/DeclutterBuyingViews");
+  if (tab === "selling") return () => import("@/components/declutter/DeclutterMineViews");
+  if (["buying", "cart"].includes(view ?? "")) return () => import("@/components/declutter/DeclutterBuyingViews");
+  if (["selling", "mine"].includes(view ?? "")) return () => import("@/components/declutter/DeclutterMineViews");
+  if (view === "offers") {
+    return () => Promise.all([import("@/components/declutter/DeclutterMineViews"), import("@/components/declutter/DeclutterBuyingViews")]);
   }
   return () => import("@/components/declutter/DeclutterBrowseView");
 }

@@ -2,7 +2,7 @@
  * SS-5 (saved audit 10-30): a hearted Declutter item can be found again. Buying lists "Watching" (each row opens its
  * item page), and a new heart's toast says where it went, with a way there.
  *
- * @mutate src/components/declutter/DeclutterMineViews.tsx |       <WatchingList /> |       {null}
+ * @mutate src/components/declutter/DeclutterBuyingViews.tsx |       <WatchingList /> |       {null}
  * A3-98 (audit 7, 11-01): one word, "Save", for keeping something for later in both sections (Jobs' "Save job").
  * @mutate src/components/declutter/DeclutterWatching.tsx | <h2 className="text-base font-semibold">Saved</h2> | <h2 className="text-base font-semibold">Watching</h2>
  * @mutate src/components/declutter/DeclutterWatching.tsx | aria-label="Saved" data-watching="" | aria-label="Watching" data-watching=""
@@ -85,7 +85,7 @@ describe("Watching under Buying (SS-5)", () => {
   });
 
   it("Buying shows the list, and a heart turned ON (item page and Browse) shows the toast", () => {
-    const mine = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
+    const mine = blankComments(readFileSync("src/components/declutter/DeclutterBuyingViews.tsx", "utf8"));
     expect(mine).toContain("<WatchingList />");
     const page = blankComments(readFileSync("src/components/declutter/DeclutterItemView.tsx", "utf8"));
     expect(page).toContain("useWatchToggle(user?.id, () => toastWatching(navigate));");

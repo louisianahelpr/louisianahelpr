@@ -14,23 +14,23 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 68 |
+| Routes (non-redirect) | route | 69 |
 | Redirect-only routes | route | 5 |
 | `?tab=` variants | variant | 35 |
 | `?view=` variants | variant | 29 |
 | Overlay surfaces | **instance** | 248 |
 | — of which hand-rolled, no dialog primitive | instance | 13 (across 10 files) |
 | Toast messages | **call site** | 1259 (across 364 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 58 |
-| Multi-step flows — probable | flow | 35 |
+| Multi-step flows — confirmed | flow | 59 |
+| Multi-step flows — probable | flow | 36 |
 | Back/next navigation only | flow | 71 |
 | Forms (submittable) | form | 139 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 191 |
 | Email templates | **exported template** | 26 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **879** |
+| **Navigable surfaces** (places a person can stand) | mixed | **882** |
 | **Copy surfaces** (strings a person may read) | mixed | **1317** |
-| **Total auditable surface** | mixed | **2196** |
+| **Total auditable surface** | mixed | **2199** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,12 +67,12 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 68 | 34 | agree |
+| Real routes | 69 | 34 | agree |
 | Redirect-only routes | 5 | 14 | agree |
 | Admin `?view=` | 29 | 24 | agree |
 | Overlay surfaces | 248 | 130 | agree within method (script counts every menu instance) |
 | Forms | 139 | ~38 | agree |
-| Confirmed multi-step flows | 58 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 59 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -148,6 +148,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/safety`
 - [ ] `/gift-guides`
 - [ ] `/gift-guides/:slug`
+- [ ] `/gift-guides/list/:code`
 - [ ] `*`
 
 ## Redirect-only routes (verify they land correctly, incl. query preservation)
@@ -485,6 +486,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/tracker/jobNextStep.ts` | compare |
 | `src/components/tracker/jobProgressState.ts` | compare |
 | `src/content/giftGuidesAmazon.ts` | stepper-name |
+| `src/content/giftWishList.ts` | step-array |
 | `src/content/sponsorPage.ts` | step-array |
 | `src/lib/awardGate.ts` | step-array |
 | `src/lib/feedPhase.ts` | compare |
@@ -552,6 +554,7 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/UserAvatar.tsx` | union-state |
 | `src/pages/auth/ResetPassword.tsx` | union-state |
 | `src/pages/auth/signupPending/ConfirmLinkPanel.tsx` | union-state |
+| `src/pages/info/giftGuides/GiftWishShare.tsx` | union-state |
 | `src/pages/jobs/appliedJobCard/OfferedActions.tsx` | union-state |
 | `src/pages/messages/Messages.tsx` | union-state |
 | `src/pages/posts/CompletionChoiceSheet.tsx` | union-state |

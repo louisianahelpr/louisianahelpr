@@ -89,6 +89,8 @@ LANGUAGE plpgsql
 VOLATILE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
+-- The rate-limit bucket's day (current_date) is Louisiana's day (the replay gate's CURRENT_DATE rule).
+SET "TimeZone" TO 'America/Chicago'
 AS $fn$
 DECLARE
   v_uid uuid := (SELECT auth.uid());

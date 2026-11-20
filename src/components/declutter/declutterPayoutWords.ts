@@ -18,11 +18,6 @@ export interface PayoutLineContext {
   /** A refund request is open, offered, returning or with Louisiana Helpr: declutter_sale_final holds the payout. */
   refundOpen?: boolean;
   /**
-   * The one-time setup fee declutter_payout_take_setup_fee will take from THIS row when it is sent (0 when none, or
-   * when it cannot be told which of several unsent payouts takes it): computed by setupFeeAheadByOrder.
-   */
-  setupFeeAhead?: number;
-  /**
    * The seller's payout account is ready (payoutAccountReady: Stripe answered payouts on). Without it the payout run
    * puts the row off (declutter-money "no_account"), so no day is promised. Absent counts as ready.
    */
@@ -54,21 +49,17 @@ export interface PayoutLineContext {
  */
 const REFUND_HOLDS: ReadonlySet<string> = new Set(["pending", "failed", "held_for_review", "unknown"]);
 
-/** The SQL caps the fee at $100 (declutter_setup_fee_due_cents: least(10000, ...)). */
-const SETUP_FEE_CAP = 10_000;
-
 /**
  * F360b / F398 / F404 (owner 11-11 ~2:10 PM): every seller order card says "You get $X, paid on <date>", with the
  * delivery ("You get $50 ($45 + $5 delivery)") and a part refund ("You get $25 after the $20 refund"), from the payout
- * row's own numbers (amount_cents = items + delivery - refunded - manager share - debt; the setup fee taken at the send,
- * 20261031214749 / 20261101233256), and no fee words. The parts are shown only when they add up to the amount.
+ * row's own numbers (amount_cents = items + delivery - refunded - manager share - debt; owner 2026-11-20: no setup fee
+ * is taken from a Declutter payout any more, so a row's setup_fee_cents is only ever a past one), and no fee words. The parts are shown only when they add up to the amount.
  * Audit 11-10 F392 (High): every status reads as words, and a payout that went out says when (executed_at, Central).
  */
 export function payoutLine(payout: MyPayout, problemOpen: boolean, ctx: PayoutLineContext = {}): string {
   if (payout.status === "nothing_due") return payoutStatusWords(payout);
-  const ahead = Math.max(0, ctx.setupFeeAhead ?? 0);
-  const amount = payout.amount_cents - ahead;
-  const addsUp = ahead === 0 && (payout.setup_fee_cents ?? 0) === 0
+  const amount = payout.amount_cents;
+  const addsUp = (payout.setup_fee_cents ?? 0) === 0
     && payout.items_cents + (payout.delivery_cents ?? 0) - (payout.refunded_cents ?? 0) - payout.debt_cents === payout.amount_cents;
   const parts = addsUp ? payoutBreakdown(payout) : "";
   const gets = `You get ${formatPrice(amount)}${parts}`;
@@ -94,56 +85,9 @@ export function payoutLine(payout: MyPayout, problemOpen: boolean, ctx: PayoutLi
 }
 
 /**
- * The setup fee each unsent payout will lose at its send, by order id. declutter_payout_take_setup_fee takes the fee
- * from the first row the payout run sends (ORDER BY next_attempt_at) that has no fee yet, no try yet, and leaves at
- * least $1; the client cannot see next_attempt_at, so the fee is shown only when exactly one row qualifies.
+ * The seller's pre-handover "You get" (no payout row yet): items + delivery (declutter_complete_handover's payout).
+ * Owner 2026-11-20: no setup fee ever comes out of a Declutter payout.
  */
-export function setupFeeAheadByOrder(payouts: MyPayout[], feeCents: number): Map<string, number> {
-  const out = new Map<string, number>();
-  const fee = Math.min(feeCents, SETUP_FEE_CAP);
-  // A row already carries the fee: it is taken (the cached profile may not say so yet), so no other row loses it.
-  if (fee <= 0 || payouts.some((p) => (p.setup_fee_cents ?? 0) > 0)) return out;
-  const could = payouts.filter((p) => (p.status === "pending" || p.status === "failed") && (p.setup_fee_cents ?? 0) === 0
-    && p.attempts === 0 && p.amount_cents - fee >= 100);
-  if (could.length === 1) out.set(could[0].order_id, fee);
-  return out;
-}
-
-/**
- * Owner 11-11 ~3:25 PM: with the server's answer (declutter_my_setup_fee) the fee shows on the ONE sale it names, and
- * only while that sale's payout row is still unsent with no fee taken (a row that took it already shows its own
- * smaller amount). No row is unsure: the server named the sale.
- */
-export function setupFeeAheadFromServer(payouts: MyPayout[], feeCents: number, orderId: string | null | undefined): Map<string, number> {
-  const out = new Map<string, number>();
-  const fee = Math.min(feeCents, SETUP_FEE_CAP);
-  if (fee <= 0 || !orderId) return out;
-  const row = payouts.find((p) => p.order_id === orderId);
-  if (row && (row.status === "pending" || row.status === "failed") && (row.setup_fee_cents ?? 0) === 0) out.set(orderId, fee);
-  return out;
-}
-
-/**
- * Owner 11-11 ~3:25 PM: the seller's pre-handover "You get" (no payout row yet): items + delivery, less the one-time
- * setup fee only on the sale the server names (declutter_my_setup_fee). `fee` null: the server's answer is not used
- * (the pre-deploy fallback shows no fee here, as before).
- */
-export function preHandoverSellerCents(orderId: string, itemsCents: number, deliveryCents: number,
-  fee: { cents: number; orderId?: string | null } | null): number {
-  const gross = itemsCents + Math.max(0, deliveryCents);
-  const cut = fee && fee.orderId === orderId ? Math.min(Math.max(0, fee.cents), SETUP_FEE_CAP) : 0;
-  return cut > 0 && gross - cut >= 100 ? gross - cut : gross;
-}
-
-/**
- * lh-money-escrow review 4: the unsent rows whose figure cannot be told, so they show none rather than one too high
- * by the fee: when two or more could take it (the run's next_attempt_at order is not readable), and any unsent row
- * whose try count is unknown (the read without `attempts`).
- */
-export function setupFeeUnsureOrders(payouts: MyPayout[], feeCents: number): Set<string> {
-  const fee = Math.min(feeCents, SETUP_FEE_CAP);
-  if (fee <= 0 || payouts.some((p) => (p.setup_fee_cents ?? 0) > 0)) return new Set();
-  const unsent = payouts.filter((p) => (p.status === "pending" || p.status === "failed") && p.amount_cents - fee >= 100);
-  const could = unsent.filter((p) => p.attempts === 0);
-  return new Set([...(could.length > 1 ? could : []), ...unsent.filter((p) => p.attempts === undefined)].map((p) => p.order_id));
+export function preHandoverSellerCents(itemsCents: number, deliveryCents: number): number {
+  return itemsCents + Math.max(0, deliveryCents);
 }

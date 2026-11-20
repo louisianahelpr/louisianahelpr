@@ -164,9 +164,8 @@ export const TermsContent = () => {
             {/* Owner 2026-10-21: keep the one-time setup fee and disclose it here, in the
                 fee list. Quoted from platform_settings via feeLabel (the number
                 release-payout takes), never a literal (termsStripe1099AndSetupFee). */}
-            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. {idOn
-              ? "A Helpr or a Declutter seller pays it out of their first payout; if you post a job, buy on Declutter or claim a free item on Declutter before your first payout, it is charged then instead. It is never charged twice."
-              : "A Helpr pays it out of their first payout; if you post a job, buy on Declutter or list on Declutter before your first payout, it is charged then instead. It is never charged twice."}</p>
+            {/* Owner 2026-11-20: Declutter (buying, selling, free items) never charges it. */}
+            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr pays it out of their first payout; if you post a job before your first payout, it is charged then instead. It is never charged twice. Declutter never charges it.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the one-time account setup fee and the service fee above.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the service fee above taken from each Helpr's share of the job price, bonus included.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
@@ -193,7 +192,7 @@ export const TermsContent = () => {
         title={feeLabel ? `One-time ${feeLabel} account setup fee` : "One-time account setup fee"}
         body={
           <>
-            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first, your first job post, your first payout, or your first Declutter {idOn ? "purchase or free claim" : "purchase or listing"}, is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
+            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first, your first job post or your first payout, is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
             <p><strong className="text-foreground">If you post first:</strong> the fee is added as a line item at checkout the first time you post.</p>
             <p><strong className="text-foreground">If you only earn:</strong> the fee is deducted from your first payout, automatically.</p>
             <p>You'll never be charged twice. Once paid, your account is set.</p>
@@ -209,7 +208,7 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">If Stripe can't confirm your ID automatically</strong>, our team reviews it by hand, usually within 24 hours. There is no self-service retry, so make sure your photos are clear, well lit, and show all four corners of the ID.</p>
             <p>Once verified (by Stripe or by our team), you're set for the life of your account.</p>
           </> : <>
-            <p><strong className="text-foreground">Helpr does not check members&apos; IDs right now.</strong> No photo ID is asked for to post, accept or start a job, or to buy or sell on Declutter, and no member is shown as ID-verified unless their ID was checked earlier. We will update these Terms before an ID check starts again. Payout setup is separate: when you set up payouts, our payments partner verifies your payment details.</p>
+            <p><strong className="text-foreground">Helpr does not check members&apos; IDs right now.</strong> No photo ID is asked for to post, accept or start a job, and no member is shown as ID-verified unless their ID was checked earlier. We will update these Terms before an ID check starts again. Payout setup is separate: when you set up payouts, our payments partner verifies your payment details.</p>
           </>
         }
       />
@@ -276,8 +275,7 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">In good standing:</strong> signed in, not banned, and with fewer than 3 active Declutter strikes.</p>
             <p><strong className="text-foreground">Items in Louisiana.</strong> Items and pickups are in Louisiana. Buyers may live anywhere.</p>
             <p>Sellers can list without setting up payouts. A seller sets up payouts with Stripe at their first paid sale, and the sale money is held until that setup is finished. Buyers save a card before making an offer or buying.</p>
-            {idOn && <p><strong className="text-foreground">Verify your ID once.</strong> Before your first Declutter purchase, or before your first payout as a seller, you verify your ID with Stripe Identity (a photo ID and a selfie). You do it once for all of Louisiana Helpr: if you already did it for Jobs, you don&apos;t do it again.</p>}
-            <p>The one-time account setup fee is charged once per account, whichever comes first: your first Jobs payout, or your first Declutter purchase or listing.</p>
+            <p><strong className="text-foreground">No ID check and no setup fee.</strong> Buying, selling and free items on Declutter never ask for an ID check or the one-time account setup fee.</p>
           </>
         }
       />

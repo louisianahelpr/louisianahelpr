@@ -53,13 +53,13 @@ export function useIdentityCheckLastAnswerStore(): boolean | null {
   return useSyncExternalStore(subscribeIdentityCheckLastAnswer, identityCheckLastAnswer, identityCheckLastAnswer);
 }
 
-/** The last real answer now (null: not known), for a caller that loads this module lazily (useSellerSetupFee). */
-export function identityCheckLastAnswer(): boolean | null {
+/** The last real answer now (null: not known). */
+function identityCheckLastAnswer(): boolean | null {
   return lastAnswer;
 }
 
 /** Listen for a new last answer; returns the unsubscribe. */
-export function subscribeIdentityCheckLastAnswer(l: () => void): () => void {
+function subscribeIdentityCheckLastAnswer(l: () => void): () => void {
   answerListeners.add(l);
   return () => {
     answerListeners.delete(l);

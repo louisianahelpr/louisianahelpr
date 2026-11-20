@@ -53,7 +53,7 @@ const view = (over: Partial<BuyerOrderView> = {}): BuyerOrderView => ({
 });
 const summary = () => render(
   <CheckoutPriceSummary itemCount={1} itemsCents={1200} discountCents={0} way="pickup_home" wayCents={0} serviceFeeCents={130}
-    setupFeeCents={0} setupFeeKnown taxCents={0} payCents={1330} />,
+    taxCents={0} payCents={1330} />,
 );
 const days = [{ ymd: "2026-11-20", label: "Fri 11/20", slots: [{ iso: "2026-11-20T21:00:00Z", label: "3:00 PM" }] }];
 

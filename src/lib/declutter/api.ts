@@ -20,8 +20,6 @@ import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
 import { trackFunnel } from "@/lib/declutter/funnel";
-import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
-import { freeClaimFeeRefusal, openFreeClaimFirstTime, promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
 import { takeMinePrefetch, takeMineQuestions } from "@/lib/declutter/minePrefetchTake";
 import { readItems, type ItemRead } from "@/lib/declutter/myReads";
@@ -37,16 +35,6 @@ export type Handover = "pickup_home" | "porch" | "delivery" | "seller_delivery" 
 
 export const DECLUTTER_PHOTO_BUCKET = "job-photos";
 
-/** A Declutter refusal that is the ID check (identity_required_to_buy / _to_list) opens the one ID sheet. */
-function openIdentitySheetFor(err: unknown): void {
-  const kind = identityRefusal(err);
-  if (kind === "buy" || kind === "list" || kind === "claim") openIdentityCheck(kind);
-  // A first free claim (owner 2026-10-30): the one-time fee first, on its one short screen.
-  else if (freeClaimFeeRefusal(err)) openFreeClaimFirstTime();
-  // Q2352: the first listing's one-time setup fee (after the ID check): offer the fee page.
-  else if (setupFeeRefusal(err)) promptAccountSetupFee();
-}
-
 /**
  * A Declutter RPC's data, or a throw carrying the plain words for its refusal
  * (RPC_ERROR_COPY via rpcErrorMessage at each call site, the rpcErrorCopyCoverage
@@ -54,9 +42,8 @@ function openIdentitySheetFor(err: unknown): void {
  */
 export function rpcData<T>(result: { data: T; error: { message: string } | null; status?: number }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
-  // Stripe Identity once, at the first Declutter purchase or listing (20261021202226): open the one ID sheet
-  // instead of a dead-end message. A trigger raises it under any buy/list RPC, so it is read here, for all.
-  openIdentitySheetFor(result.error);
+  // Owner 2026-11-20: no Declutter RPC asks for an ID check or the setup fee any more (20261120184430), so no refusal
+  // here opens the ID sheet or the fee page.
   try {
     unwrap(result);
   } catch (thrown) {
@@ -1581,7 +1568,6 @@ export async function invokeDeclutter(fn: "declutter-card" | "declutter-checkout
         })
       : null;
     const code = typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable";
-    openIdentitySheetFor(code);
     throw new Error(code);
   }
   return (data ?? {}) as Record<string, unknown>;

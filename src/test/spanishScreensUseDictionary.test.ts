@@ -114,7 +114,6 @@ const CONVERTED = [
   "src/components/declutter/DeclutterBunchBar.tsx",
   "src/components/declutter/DeclutterBunchResults.tsx",
   "src/components/declutter/DeclutterBunchMovingSale.tsx",
-  "src/components/declutter/BunchFeeGate.tsx",
   "src/components/declutter/BunchDraftsSection.tsx",
   "src/components/declutter/SellingNowRow.tsx",
   "src/components/declutter/DeclutterMineViews.tsx",

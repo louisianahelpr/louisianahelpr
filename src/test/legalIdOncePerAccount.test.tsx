@@ -52,7 +52,8 @@ describe("L003: the Terms' short version says the real ID rule to a signed-out v
     expect(first).toMatch(/^You must be 18\+\. Every account verifies its email address before it can post or take jobs\./);
     expect(first).toContain(`You also verify ${ID_ONCE_PER_ACCOUNT}.`);
     expect(ID_ONCE_PER_ACCOUNT).toMatch(/once per account/);
-    expect(ID_ONCE_PER_ACCOUNT).toMatch(/post a job.*hired.*delivery.*list an item.*buy/);
+    // Owner 2026-11-20: Declutter (list, buy) never asks for it.
+    expect(ID_ONCE_PER_ACCOUNT).toMatch(/post a job.*hired.*delivery$/);
   });
 
   // Lead 11-09: identity_check is on for everyone, so before any answer (the build-time prerender of /legal, a guest's

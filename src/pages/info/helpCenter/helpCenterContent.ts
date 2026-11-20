@@ -210,7 +210,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // and on Declutter at listing, buying, a free claim or taking a delivery (B49, ported 10-31).
         get a() {
           return identityCheckOn()
-            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. We ask for your ID once: when you post a job, when you're hired, or before your first payout, and on Declutter before your first payout as a seller, or when you buy, claim a free item or take a delivery."
+            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. We ask for your ID once: when you post a job, when you're hired, before your first payout, or when you take a delivery. Buying, selling and free items on Declutter never ask for it."
             : "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email.";
         },
       },
@@ -325,7 +325,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `You're paid ${STANDARD_PAYOUT_DAYS_AFTER_APPROVAL} days after the person who posted the job approves it. Your bank shows it ${STANDARD_PAYOUT_WINDOW}. ${SETUP_FEE_PHRASE.charAt(0).toUpperCase()}${SETUP_FEE_PHRASE.slice(1)} comes out of your first payout, unless you already paid it on a job you posted or on Declutter.`,
+        a: `You're paid ${STANDARD_PAYOUT_DAYS_AFTER_APPROVAL} days after the person who posted the job approves it. Your bank shows it ${STANDARD_PAYOUT_WINDOW}. ${SETUP_FEE_PHRASE.charAt(0).toUpperCase()}${SETUP_FEE_PHRASE.slice(1)} comes out of your first payout, unless you already paid it on a job you posted.`,
       },
       {
         q: "What if the person who posted the job doesn't confirm completion?",
@@ -363,7 +363,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // unrounded, and the refund sentence left out the kept setup fee and
         // crew block fees (refundToPayerCents). The setup fee's amount is a live DB setting:
         // HelpCenter fills SETUP_FEE_PHRASE from it (withSetupFeeAmount, F236/F258).
-        a: `When you post a job, you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types (auto and appliance repair). Your first paid job also carries ${SETUP_FEE_PHRASE}, charged once per account, unless you already paid it on a job you did or on Declutter. On Declutter, the buyer pays the item price plus a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS}, once per checkout, and the seller keeps the whole item price. When you do a job, every job shows exactly what you will take home before you apply. Job payouts are rounded down to the whole dollar (tips are paid in full). If a paid job is cancelled, the cancel screen shows exactly what you will get back before you confirm. If the mistake was ours, you get everything back.`,
+        a: `When you post a job, you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types (auto and appliance repair). Your first paid job also carries ${SETUP_FEE_PHRASE}, charged once per account, unless you already paid it on a job you did. On Declutter, the buyer pays the item price plus a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS}, once per checkout, and the seller keeps the whole item price. When you do a job, every job shows exactly what you will take home before you apply. Job payouts are rounded down to the whole dollar (tips are paid in full). If a paid job is cancelled, the cancel screen shows exactly what you will get back before you confirm. If the mistake was ours, you get everything back.`,
       },
       {
         q: "What if there's a dispute?",

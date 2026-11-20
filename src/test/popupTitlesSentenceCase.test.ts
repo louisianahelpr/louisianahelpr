@@ -200,7 +200,8 @@ describe("every pop-up title is sentence case", () => {
     // 243 (merge 11-18): 244 above, -1 for Filter jobs below.
     // 245 (train 11-18, one batch): the counts above added together once every 11-18 PR is in (area 06b +2 talk branches,
     // area 03 +1 More options, area 04 -1 Filter jobs, area 09 -1 Log out?, r3 +/-0 ...), measured on the merged tree.
-    expect(all.length).toBe(245);
+    // 244 (owner 2026-11-20): -1, the free claim's first-time fee screen (FreeClaimFirstTime) is gone with the Declutter $2.
+    expect(all.length).toBe(244);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

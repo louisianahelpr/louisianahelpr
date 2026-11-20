@@ -338,7 +338,7 @@ const SignupPending = () => {
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-pending-step="3">You're in.</p>
               {idCheckOn && (
                 <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  Once per account there's a quick ID check: when you post a job, get hired, or list, buy or claim on Declutter, or at your first payout.
+                  Once per account there's a quick ID check: when you post a job, get hired, or at your first payout.
                 </p>
               )}
             </div>

@@ -13,7 +13,6 @@ import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { daysBetween, formatMoveDate, louisianaToday } from "@/lib/declutter/moveDates";
 import { attestItem, publishItem, requestAiCheckWithRetry, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
-import { setupFeeRefusal } from "@/lib/declutter/setupFee";
 import "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
 
@@ -192,25 +191,17 @@ export async function publishMany(
   const listed: string[] = [];
   let next = 0;
   let done = 0;
-  // lh-silent-failure review of the Q2352 rebase #3: the one-time setup fee is an ACCOUNT refusal, so every later
-  // item would be refused the same way. Once one is, the ones not started yet are not tried.
-  let accountRefusal: { error: unknown } | null = null;
   const worker = async () => {
     while (next < itemIds.length) {
       const i = next++;
       const id = itemIds[i];
-      if (accountRefusal) {
-        out[i] = { id, error: accountRefusal.error };
-      } else {
-        try {
-          await attestItem(id);
-          out[i] = { id, status: await publishItem(id) };
-          listed.push(id);
-        } catch (error) {
-          // Not swallowed: the refusal is returned for this item, and the screen tells the seller how many were not listed and why.
-          out[i] = { id, error };
-          if (setupFeeRefusal(error)) accountRefusal = { error };
-        }
+      try {
+        await attestItem(id);
+        out[i] = { id, status: await publishItem(id) };
+        listed.push(id);
+      } catch (error) {
+        // Not swallowed: the refusal is returned for this item, and the screen tells the seller how many were not listed and why.
+        out[i] = { id, error };
       }
       done += 1;
       onProgress(done, itemIds.length, i);

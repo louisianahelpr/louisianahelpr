@@ -44,6 +44,8 @@ import { showsPrice } from "@/components/giftGuides/PickPrice";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
+// The fun pages report usage (UX audit L12); no analytics row leaves a unit test.
+vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 const reveal = vi.fn();
 const loadAccountPlan = vi.fn();
 const saveAccountPlan = vi.fn();

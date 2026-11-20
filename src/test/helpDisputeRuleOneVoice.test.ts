@@ -16,7 +16,7 @@
  *
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | ${DONE_IS_FINAL} | Once a job is marked done, it's final and can't be disputed.
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | Jobs > Working for a job | My Jobs for a job
- * @mutate src/pages/info/helpCenter/helpCenterContent.ts | or on Declutter.` | or on Declutter. Every payout goes on the standard schedule.`
+ * @mutate src/pages/info/helpCenter/helpCenterContent.ts | on a job you posted.` | on a job you posted. Every payout goes on the standard schedule.`
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: `Yes. ${NO_HIRE_REFUND} After | a: `Yes. Cancelling is free before you accept someone. After
  * @mutate src/pages/profile/Receipts.tsx | ? CARD_COST_NOT_REFUNDED : undefined, | ? undefined : undefined,
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | Only Helprs who meet your choice can apply. | Only Helprs who meet what you set can apply — it's enforced by the database.

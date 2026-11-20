@@ -17,7 +17,7 @@
  * the payout run: src/test/edge/declutter-money.test.ts ("owner 11-20").
  *
  * @mutate supabase/migrations/20261120184430_declutter_no_id_no_setup_fee.sql |   v_setup := 0;\n |   v_setup := public.declutter_setup_fee_due_cents(v_uid);\n
- * @mutate supabase/functions/_shared/payoutHold.ts |   return kind === "declutter"; |   return kind === "declutter" || kind === "declutter_manager";
+ * @mutate supabase/functions/_shared/payoutHold.ts |   return kind === "declutter"; |   return kind === "declutter" \|\| kind === "declutter_manager";
  * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + addCents)} | {formatPrice(buyNowTotalCents(priceCents) + addCents + useFirstPayoutFeeCents())}
  */
 import { describe, expect, it } from "vitest";

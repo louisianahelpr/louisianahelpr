@@ -1893,7 +1893,7 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
   });
 
   // AUD31-1: the seller who delivers is paid the items AND the delivery; the note says both, once.
-  // @mutate src/components/declutter/declutterPayoutWords.ts |   const gross = itemsCents + Math.max(0, deliveryCents); |   const gross = itemsCents;
+  // @mutate src/components/declutter/declutterPayoutWords.ts |   return itemsCents + Math.max(0, deliveryCents); |   return itemsCents;
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         deliveryCents={b.data.delivery_cents ?? 0} /> |         />
   it("AUD31-1: a seller-delivers sale's money note names the item price plus the delivery", async () => {
     state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null, delivery_cents: 1000 };

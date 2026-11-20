@@ -11,7 +11,7 @@
  *     listed, and an item that failed is named with its reason.
  *   - "A bunch of things" is a choice in "What do you want to sell?" (DeclutterSellChooser, owner 2026-10-30).
  *
- * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items;
+ * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it)); |   return items;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       ?? (!attested ? t("lp.bv.tickBox") : null) |       ?? null
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {item.flagged && ( |       {false && (
  * @mutate src/components/declutter/DeclutterBunchView.tsx |         setItems((its) => addSorted(its, made)); |         void made;

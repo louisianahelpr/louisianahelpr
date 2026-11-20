@@ -161,6 +161,11 @@ const SmsOptIn = lazyWithPreload(() => import("./pages/info/SmsOptIn"));
 const Fees = lazyWithPreload(() => import("./pages/info/Fees"));
 const Safety = lazyWithPreload(() => import("./pages/info/Safety"));
 const GiftGuides = lazyWithPreload(() => import("./pages/info/GiftGuides"));
+// Gift guides fun features (owner 2026-11-20): each its own lazy chunk.
+const SecretSanta = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SecretSanta"));
+const SecretSantaReveal = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SecretSantaReveal"));
+const SwipeGifts = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SwipeGifts"));
+const GiftPlanner = lazyWithPreload(() => import("./pages/info/giftGuides/fun/GiftPlanner"));
 const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 /**
@@ -458,6 +463,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Owner 2026-11-18: the gift guides are public (Pinterest pins link to /gift-guides#<section id>); the
           2026-11-17 ?preview=1 gate is gone. Rebuilt 2026-11-18: /gift-guides lists the guides, /gift-guides/<slug> opens one. */}
       <Route path="/gift-guides" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Gift guides fun features (owner 2026-11-20): Secret Santa (and each person's private reveal), swipe, planner. */}
+      <Route path="/gift-guides/secret-santa" element={<RouteErrorBoundary>{routeEl(<PageTransition><SecretSanta /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/gift-guides/secret-santa/:code/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><SecretSantaReveal /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/gift-guides/swipe" element={<RouteErrorBoundary>{routeEl(<PageTransition><SwipeGifts /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/gift-guides/planner" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftPlanner /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).

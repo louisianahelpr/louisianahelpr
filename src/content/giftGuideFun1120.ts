@@ -147,11 +147,11 @@ export const swipePool = (who: SwipeWho, picksOf: (slug: string) => CatalogPick[
  * carry none, so they come with "Any budget"), strongest first, each link once, at most 5 per store, none already
  * seen this visit. A light shuffle inside each run of 4 keeps rounds from feeling the same.
  */
-export function swipeRound(pool: CatalogPick[], budget: SwipeBudget, seen: ReadonlySet<string>, rand: () => number = Math.random): CatalogPick[] {
+export function swipeRound<T extends CatalogPick>(pool: T[], budget: SwipeBudget, seen: ReadonlySet<string>, rand: () => number = Math.random): T[] {
   const fits = (p: CatalogPick) => budget === 0 || (p.band !== undefined && p.band <= budget);
   const perStore = new Map<string, number>();
   const used = new Set<string>();
-  const out: CatalogPick[] = [];
+  const out: T[] = [];
   for (const p of pool) {
     if (out.length >= SWIPE_ROUND) break;
     if (!p.href || !p.name || !fits(p) || seen.has(p.href) || used.has(p.href)) continue;
@@ -161,7 +161,7 @@ export function swipeRound(pool: CatalogPick[], budget: SwipeBudget, seen: Reado
     used.add(p.href);
     out.push(p);
   }
-  const mixed: CatalogPick[] = [];
+  const mixed: T[] = [];
   for (let i = 0; i < out.length; i += 4) mixed.push(...shuffled(out.slice(i, i + 4), rand));
   return mixed;
 }
@@ -274,7 +274,7 @@ export const FUN_WORDS = {
     { to: "/gift-guides/planner", title: "Gift planner", body: "Who's left, what you bought, and your budget." },
   ],
   // Countdown + Gift of the Day
-  daysLeft: (d: number) => (d === 1 ? "1 day until Christmas" : `${d} days until Christmas`),
+  daysLeft: (d: number) => (d === 1 ? "day until Christmas" : "days until Christmas"),
   eve: "Christmas is tomorrow!",
   today: "Merry Christmas!",
   gotdTitle: "Gift of the Day",

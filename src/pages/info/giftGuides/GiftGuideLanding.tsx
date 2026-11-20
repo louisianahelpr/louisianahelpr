@@ -13,6 +13,7 @@ import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
 import { DealsFeature } from "./GiftGuideDeals";
 import { SmallBizFeature } from "./GiftGuideSmallBiz";
 import { GatedBanners, GiftFinder } from "./GiftGuideFinder";
+import { GiftCountdown } from "./fun/GiftCountdown";
 
 /**
  * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
@@ -179,6 +180,8 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       {!group && <QuickPicks />}
       {/* Big batch 1120: the 25 Days banner and the Declutter link, OFF until the lead flips their flags. */}
       {!group && <GatedBanners />}
+      {/* Fun features (owner 2026-11-20): the Christmas countdown, the Gift of the Day and the three fun tools. */}
+      {!group && <GiftCountdown />}
       {!group && <LastMinute />}
       <div className="gg-rows" data-gift-rows="">
         {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}

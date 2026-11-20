@@ -84,7 +84,6 @@ export default function SwipeGifts() {
   useEffect(() => {
     if (finished) track("gift_swipe_round_done", { who, budget, cards: round.length, saved: saved.length });
     // Once per finished round.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished]);
 
   const next = (keep: boolean) => {

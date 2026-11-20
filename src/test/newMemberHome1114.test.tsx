@@ -23,7 +23,7 @@
  * Coming up: up to 3 jobs and up to 4 items, from the same reads and rows, after the page settles.
  * @mutate src/pages/home/homeDashboard/NewMemberHome.tsx | <ForSaleNearYou userId={userId} max={4} /> | <ForSaleNearYou userId={userId} />
  * @mutate src/pages/home/HomeDashboard.tsx |             {nearYouDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />} |             {nearYouDay && <NearYouBlock userId={user?.id} sell={sellOpen} />}
- * @mutate src/pages/home/HomeDashboard.tsx | const nearYouDay = !welcome && firstJob !== null && !firstJob.isNew; | const nearYouDay = !welcome && firstJob !== null;
+ * @mutate src/pages/home/HomeDashboard.tsx | const nearYouDay = !welcome && firstJob !== null && !firstJobShown; | const nearYouDay = !welcome && firstJob !== null;
  * @mutate src/pages/home/HomeDashboard.tsx |             {welcome ? <NewMemberHome userId={user?.id} sell={sellOpen} guide={guide(true)} /> : ( |             {welcome ? <WelcomeCard sell={sellOpen} /> : (
  */
 import { readFileSync } from "node:fs";
@@ -276,7 +276,8 @@ describe("Home's quiet day: Near you under Coming up (owner 11-17, item 4)", () 
     expect(home).toContain("const NearYouBlock = newMemberBlock((m) => m.NearYouBlock);");
     expect(home).toContain("{nearYouDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}");
     // Not for a new member (their own blocks list what is near them), once that read has answered.
-    expect(home).toContain("const nearYouDay = !welcome && firstJob !== null && !firstJob.isNew;");
+    expect(home).toContain("const firstJobShown = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending;");
+    expect(home).toContain("const nearYouDay = !welcome && firstJob !== null && !firstJobShown;");
     expect(home).not.toMatch(/^import .*NewMemberHome/m);
   });
 });

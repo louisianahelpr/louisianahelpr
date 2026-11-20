@@ -200,7 +200,10 @@ function HomeDashboardScreen() {
   // Not for a new member: their own blocks (NewMemberHome, FirstJobHome) already list the jobs near them.
   // Only the new-member rule (their own blocks list what is near them), once that read has answered; no wait on the
   // other reads (a Declutter read that never settles kept it hidden on a member's 1440 Home, 11-20).
-  const nearYouDay = !welcome && firstJob !== null && !firstJob.isNew;
+  // Parent 11-20 shot: a new member who sells or buys on Declutter (no FirstJobHome) saw a blank Home; Near you shows
+  // whenever the first-job block does not.
+  const firstJobShown = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending;
+  const nearYouDay = !welcome && firstJob !== null && !firstJobShown;
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
   const nextUpRef = useRef<HTMLElement>(null);

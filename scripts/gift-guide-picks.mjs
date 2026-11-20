@@ -3480,7 +3480,8 @@ export const weeklyTop = (() => {
     const name = cardName(p);
     if ((b && brands.has(b)) || out.some((x) => x.href === p.href) || name.length > 40 || CAREER.test(`${name} ${p.line ?? ""}`)) continue;
     brands.add(b);
-    const { section: _s, sectionId: _i, ...rest } = p;
+    // Only what a Top 10 card shows (the rate, type and origin stay in the sort; members never read a commission).
+    const { section: _s, sectionId: _i, commission: _c, type: _t, from: _f, swappedFrom: _sf, swappedFromPct: _sp, campaignEnds: _ce, fallback_href: _fh, switch_on: _so, band: _b, ...rest } = p;
     out.push({ ...rest, name });
   }
   return out;

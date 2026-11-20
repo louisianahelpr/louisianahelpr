@@ -228,3 +228,8 @@ export const SAUCE_OK: (slug: string) => boolean;
 export const nonGiftService: (slug: string, p: { name: string; brand?: string }) => boolean;
 export const PRICE_MAX: number;
 export const DUP_GUIDE_MAX: number;
+export const SHOPMY_S3: RegExp;
+export const shopmyCdnUrl: (u: unknown) => string | null;
+export const KIDS_TOY: RegExp;
+export const ADULT_HOBBY_GUIDES: string[];
+export const kidsToyOff: (slug: string, p: { name: string; brand?: string }) => boolean;

@@ -274,9 +274,12 @@ const uniqueByHref = (picks: CatalogPick[]) => [...new Map(picks.map((p) => [p.h
 const uniqueByName = (picks: CatalogPick[]) => [...new Map(picks.map((p) => [p.name, p] as const)).values()];
 
 /** Every pick on the given stores: a "By store" guide. */
+/** The most picks the Amazon store page shows (owner: 10-15 per store page; lead 11-19, 1530 train). */
+export const AMAZON_PAGE_MAX = 15;
 const storeGuide = (stores: GiftStore[], slug: string, title: string, line: string, links: GiftLink[] = []): Draft => {
   const picks = allPicks().filter((p) => stores.includes(p.store));
-  return { slug, lead: "shop by store", title, line, picks: stores.includes("amazon") ? uniqueByHref(picks) : uniqueByName(picks), links };
+  // The Amazon page keeps its first AMAZON_PAGE_MAX (owner: 10-15 per store page; lead 11-19, 1530 train).
+  return { slug, lead: "shop by store", title, line, picks: stores.includes("amazon") ? uniqueByHref(picks).slice(0, AMAZON_PAGE_MAX) : uniqueByName(picks), links };
 };
 
 
@@ -335,7 +338,9 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
   "store-keeper-security", "store-intego", "store-corel", "store-clip-studio-paint", "store-daz-3d", "store-wondershare", "store-roxio", "store-pinnacle",
   "store-lalal-ai", "store-ashampoo", "store-aomei", "store-pandaoffice", "store-jalbum", "store-abelssoft", "store-gearup", "store-yuplay",
   "store-whokeys", "store-directdeals", "store-hero-wars", "store-skytours", "store-oojo", "store-cheapvuelos", "store-ovago", "store-hopegoo",
-  "store-air-india", "store-ocean-hotels", "store-rent-cars", "store-vip-cars", "store-carla-car-rental", "store-rvshare", "store-undercover-tourist", "store-pariscityvision"];
+  "store-air-india", "store-ocean-hotels", "store-rent-cars", "store-vip-cars", "store-carla-car-rental", "store-rvshare", "store-undercover-tourist", "store-pariscityvision",
+  // Lead 11-19 (1530 train): blocked stores (Free Country, Gilt, Literie) and the diecast store; their brands are blocked too.
+  "store-free-country", "store-gilt", "store-literie-candle", "store-diecast-models", "store-bade-sofa"];
 
 /**
  * Guides the owner folded into others (2026-11-18: Female Nurses and Male Nurses go into RNs, LPNs and CNAs). Each
@@ -344,7 +349,19 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
  */
 export const MERGED_GUIDES: Record<string, string[]> = { "female-nurses": ["rns", "lpns", "cnas"], "male-nurses": ["rns", "lpns", "cnas"], "store-muck-boot-company": ["store-muck-boot"],
   // gg-r3 UX audit #13: the old Nurses guide's link opens Healthcare (vercel.json redirects it before the app loads too).
-  nurses: ["healthcare"] };
+  nurses: ["healthcare"],
+  // Store audit C + 1530 train (lead 11-19): duplicate store slugs fold into one canonical page (STORE_MERGES in
+  // scripts/gift-guide-picks.mjs); the old slug's link opens the canonical page.
+  "store-anker-us": ["store-anker"], "store-barefootdreams": ["store-barefoot-dreams"], "store-erincondren": ["store-erin-condren"],
+  "store-elysebreannedesign": ["store-elyse-breanne-design"], "store-flauntcases": ["store-flaunt"], "store-glowrecipe": ["store-glow-recipe"],
+  "store-rhodeskin": ["store-rhode-skin"], "store-rebeccaillustrated": ["store-rebecca-illustrated"], "store-mykitsch": ["store-kitsch"],
+  "store-shopfavoritedaughter": ["store-favorite-daughter"], "store-katespadeoutlet": ["store-kate-spade-new-york"], "store-american-eagle": ["store-ae"],
+  "store-casemate": ["store-case-mate"], "store-parachutehome": ["store-parachute-home"], "store-melissaanddoug": ["store-melissa-and-doug"],
+  "store-peakdesign": ["store-peak-design"], "store-kate-spade-outlet": ["store-kate-spade-new-york"], "store-warbyparker": ["store-warby-parker"],
+  "store-southerntide": ["store-southern-tide"], "store-saint-bernard": ["store-st-bernard"], "store-stbernard": ["store-st-bernard"],
+  "store-papersourcecom": ["store-paper-source"], "store-lillypulitzer": ["store-lilly-pulitzer"], "store-llbean": ["store-ll-bean"],
+  "store-riflepaperco": ["store-rifle-paper-co"], "store-soldejaneiro": ["store-sol-de-janeiro"], "store-rmsbeauty": ["store-rms-beauty"],
+  "store-kitchenaid": ["store-kitchen-aid"], "store-oliveandjune": ["store-olive-and-june"], "store-spartina449": ["store-spartina-449"] };
 
 const draftOf = new Map(DRAFTS.map((d) => [d.slug, d] as const));
 /** A guide with a researched chunk lists exactly the chunk's picks, in their order (APPEND_CHUNK: static, then chunk). */
@@ -408,8 +425,8 @@ const holds = (slug: string): boolean => {
 
 /** The fewest picks a (non-store) guide needs to show in rows, search and the menu (lead 11-19). */
 export const GUIDE_MIN_PICKS = 1;
-/** The fewest picks a store page needs to be a tile in the By store row and menu (lead 2026-11-18); its link still opens. */
-export const STORE_ROW_MIN_PICKS = 4;
+/** The fewest picks a store page needs to be a tile in the By store row, the menu, search and the sitemap (lead 2026-11-18; 4 -> 6 lead 11-19, 1530 train: under 6 is not linked until filled); its link still opens. */
+export const STORE_ROW_MIN_PICKS = 6;
 /** A guide's pick count without loading its chunk (static picks, plus its chunk's count). */
 const pickCount = (slug: string) => {
   const d = draftOf.get(slug)!;
@@ -444,12 +461,13 @@ const build = (slug: string, group: string, tint: GuideTint, listed?: { title: s
       if (slug === "store-amazon") {
         const hrefs = new Set<string>();
         const names = new Set<string>();
-        return [...base.map((p) => ({ ...p, section: c.picks[0]?.section })), ...c.picks].filter((p) => {
+        // The import's 15 best lead; the page keeps AMAZON_PAGE_MAX in all (lead 11-19, 1530 train).
+        return [...c.picks, ...base.map((p) => ({ ...p, section: c.picks[0]?.section }))].filter((p) => {
           if (hrefs.has(p.href) || names.has(p.name)) return false;
           hrefs.add(p.href);
           names.add(p.name);
           return true;
-        });
+        }).slice(0, AMAZON_PAGE_MAX);
       }
       return uniqueByName([...base, ...c.picks]);
     } });
@@ -645,7 +663,8 @@ export const searchGuides = (query: string): CatalogGuide[] => {
     return t === q || keyword ? 0 : t.startsWith(q) ? 1 : rest.every((w) => t.includes(w)) ? 2 : 3;
   };
   const byWords = rest.length === 0 ? [] : GUIDES.filter((g) => {
-    if (g.empty) return false;
+    // A store page under STORE_ROW_MIN_PICKS (thin) is no search result either (lead 11-19); its link still opens.
+    if (g.empty || g.thin) return false;
     const hay = fold(`${g.title} ${g.lead} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
     return rest.every((w) => hay.includes(w) || (label.get(g.row) ?? []).includes(w));
   }).map((g, i) => [g, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([g]) => g);

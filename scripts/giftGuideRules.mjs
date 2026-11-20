@@ -129,7 +129,7 @@ export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
-  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p) || masonOff(slug, p) || redoneOff(slug, p) || lashOff(slug, p) || veraBradleyOff(slug, p) || hikingOff(slug, p) || cheapSockOff(slug, p) || barwareOff(slug, p) || fashionSneakerOff(slug, p) || farmRioOff(slug, p) || legoOff(slug, p) || grandSunglassesOff(slug, p) || frameOff(slug, p) || foodSubOff(slug, p) || iceCreamOff(slug, p) || crockPotOff(slug, p) || blankOrPastelOff(slug, p) || photoProductOff(slug, p) || puzzleOff(slug, p) || groceryCandyOff(slug, p) || jdDrinkwareOff(slug, p) || followUpOff(slug, p)) return false;
+  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || kidsToyOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p) || masonOff(slug, p) || redoneOff(slug, p) || lashOff(slug, p) || veraBradleyOff(slug, p) || hikingOff(slug, p) || cheapSockOff(slug, p) || barwareOff(slug, p) || fashionSneakerOff(slug, p) || farmRioOff(slug, p) || legoOff(slug, p) || grandSunglassesOff(slug, p) || frameOff(slug, p) || foodSubOff(slug, p) || iceCreamOff(slug, p) || crockPotOff(slug, p) || blankOrPastelOff(slug, p) || photoProductOff(slug, p) || puzzleOff(slug, p) || groceryCandyOff(slug, p) || jdDrinkwareOff(slug, p) || followUpOff(slug, p)) return false;
   // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
@@ -1296,7 +1296,10 @@ export const foodSubOff = (slug, p) => !slug.startsWith("store-") && !(slug in F
 export const SHIPPED_ICE_CREAM = /\b(ice cream|gelato)\b[^,]*\b(pints?|gift|box|sampler|collection|pack|delivery|club)\b|\bpints?\b[^,]*\bice cream\b|^(ecreamery|jeni'?s( splendid ice creams)?|salt (&|and) straw|mcconnell'?s( fine ice creams)?|van leeuwen)$/i;
 export const iceCreamOff = (slug, p) => !slug.startsWith("store-") && !/\b(maker|machine|creami|scoop|bowl)\b/i.test(String(p.name ?? ""))
   && (SHIPPED_ICE_CREAM.test(String(p.name ?? "")) || SHIPPED_ICE_CREAM.test(String(p.brand ?? "").trim()));
-export const crockPotOff = (slug, p) => !slug.startsWith("store-") && /\bcrock-?pot\b/i.test(`${p.name} ${p.brand ?? ""}`) && !/\b(smart|wi-?fi|app)\b/i.test(String(p.name ?? ""));
+// Owner 11-19 (clarified): only a BASIC slow cooker is off; an upgraded multi-cooker (Ninja PossibleCooker, Instant Pot Pro /
+// Duo Crisp, Our Place Dream Cooker, Crock-Pot Express) is welcome where it fits.
+export const crockPotOff = (slug, p) => !slug.startsWith("store-") && /\b(crock-?pot|slow ?cooker)\b/i.test(`${p.name} ${p.brand ?? ""}`)
+  && !/\b(smart|wi-?fi|app|express|multi-?(cooker|use)|pressure|possible ?cooker|duo crisp|pro|dream cooker)\b/i.test(String(p.name ?? ""));
 /**
  * Owner 11-19 screenshots: photos that showed as blank boxes on the live men's guides (Southern Tide's Skipjack Polo
  * ShopMy pin, Stanley's 12 oz camp mug PNG; both answer 200 to curl, cause not yet confirmed) leave the people guides,
@@ -1385,3 +1388,22 @@ export const nonGiftService = (slug, p) => NON_GIFT_SERVICE.test(`${p.name} ${p.
 export const PRICE_MAX = 500;
 /** A product shows in at most 2 non-store guides (owner 1:25 PM: "no more than 2 duplicates"), owner picks included. */
 export const DUP_GUIDE_MAX = 2;
+/**
+ * ShopMy's old S3 photo hosts (403 to every request since 11-18) and the CDN that serves the same key now (lead 11-19,
+ * 1530 train; curl 11-19: all 1,114 old URLs in the picks folder answer 200 at the new host). shopmyCdnUrl returns the
+ * new URL, or null for anything else. Only URLs checked by scripts/gift-guide-shopmy-cdn.mjs are swapped.
+ */
+export const SHOPMY_S3 = /https:\/\/production-shopmyshelf-(uploads|pins)\.s3[.-]us-east-2\.amazonaws\.com\//;
+export const shopmyCdnUrl = (u) => {
+  const m = typeof u === "string" ? u.match(new RegExp(`^${SHOPMY_S3.source}([^?#\\s"]+)$`)) : null;
+  return m ? `https://static.shopmy.us/${m[1]}/${m[2]}` : null;
+};
+/**
+ * Kids' toys stay off the adult hobby guides (owner 2026-11-19: "The horse lover guide has a toy horse on it. Remove
+ * it."): Breyer-type figurines, plush and stuffed animals, toy horses and playsets on the Hobbies guides and Horse Lover
+ * (a pet toy for the animal itself, like a horse's Jolly Ball or a dog's plush, is not a kids' toy).
+ */
+export const KIDS_TOY = /\b(breyer|schleich|plush(ie)?s?|stuffed (animals?|horses?|toys?)|stuff(y|ies)|squishmallows?|toy (horses?|ponies|pony)|rocking horse|hobby horse|playsets?|play set|my little pony)\b/i;
+export const ADULT_HOBBY_GUIDES = ["horse-lover"];
+export const kidsToyOff = (slug, p) => (GUIDE_GROUPS.get(slug) === "Hobbies" || ADULT_HOBBY_GUIDES.includes(slug))
+  && KIDS_TOY.test(`${p.name} ${p.brand ?? ""}`) && !/\b(dogs?|cats?|pets?|for horses|horse toy)\b/i.test(String(p.name ?? ""));

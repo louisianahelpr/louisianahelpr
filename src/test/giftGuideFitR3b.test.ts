@@ -102,7 +102,7 @@ describe("gift guides: item fit r3b (fit audit + lead's calls, 11-19)", () => {
     expect(puppy.filter((p) => !PUPPY_ITEM.test(p.name)).map((p) => p.name)).toEqual([]);
     expect(puppy.filter((p) => OWNER_MERCH.test(p.name)).length).toBeLessThanOrEqual(1);
     const mail = pageOf("mail-carrier-and-delivery-drivers");
-    expect(mail.length).toBeGreaterThan(5); // one guide per product + removal lists (owner 11-19)
+    expect(mail.length).toBeGreaterThan(4); // one guide per product + removal lists (owner 11-19); 5 after the 1119d / fit-audit cuts of marketplace brands
     expect(mail.filter((p) => !String(p.brand ?? "").trim()).map((p) => p.name)).toEqual([]);
   });
 });

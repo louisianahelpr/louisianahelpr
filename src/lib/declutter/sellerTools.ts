@@ -8,6 +8,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { declutterErrorMessage } from "./errors";
 import { fetchSaveCounts } from "./saveCounts";
 
@@ -75,4 +76,40 @@ export async function fetchSaverOfferState(sellerId: string, itemIds: string[]):
  */
 export function isSaverOffer(o: { my_side: string; awaiting: string; counter_count: number; from_wanted?: boolean | null }): boolean {
   return o.my_side === "buyer" && o.awaiting === "buyer" && o.counter_count === 0 && o.from_wanted !== true;
+}
+
+/**
+ * #2 Selling home (20261120012050): the seller's to-do counts and the last 7 days next to the 7 before. Offers to
+ * answer and sales to hand over come from Selling's own to-do read (useDeclutterTodo), not from here.
+ */
+export interface WeekNumbers {
+  sales: number;
+  earnings_cents: number;
+  views: number;
+  saves: number;
+}
+export interface SellingHome {
+  week: WeekNumbers;
+  last_week: WeekNumbers;
+  todo: { to_relist: number; price_drops: number; savers_to_offer: number };
+  live_count: number;
+  live_value_cents: number;
+}
+
+/** null before the read reaches prod (PGRST202): Selling then simply draws no home card. */
+export async function fetchSellingHome(): Promise<SellingHome | null> {
+  const res = await supabase.rpc("declutter_selling_home");
+  if (res.error && isMissingRpcNamed(res.error, "declutter_selling_home")) return null;
+  return unwrap(res) as unknown as SellingHome;
+}
+
+/**
+ * How this week compares with last week, honestly: "up" / "down" with a whole percent when last week had any, "new"
+ * when last week had none and this week has some, "same" otherwise (never a made-up percent from zero).
+ */
+export function weekChange(now: number, last: number): { dir: "up" | "down" | "same" | "new"; pct: number } {
+  if (now === last) return { dir: "same", pct: 0 };
+  if (last === 0) return { dir: "new", pct: 0 };
+  const pct = Math.round((Math.abs(now - last) / last) * 100);
+  return { dir: now > last ? "up" : "down", pct };
 }

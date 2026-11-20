@@ -16915,6 +16915,7 @@ export type Database = {
         Args: { p_order_id: string; p_refund_cents: number }
         Returns: number
       }
+      declutter_selling_home: { Args: never; Returns: Json }
       declutter_send_saver_offer: {
         Args: { p_amount_cents: number; p_item_id: string; p_percent_off: number }
         Returns: Json

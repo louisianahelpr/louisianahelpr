@@ -8,8 +8,9 @@
  */
 import { useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { IdCard, Star } from "lucide-react";
+import { ChevronRight, IdCard, Star } from "lucide-react";
 import { fetchGuestSellerCard, pickupsLabel } from "@/lib/declutter/api";
+import { memberSinceLabel } from "@/lib/declutter/memberSince";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
@@ -227,20 +228,24 @@ export function DeclutterGuestBrowseJoin() {
 
 /**
  * A guest's seller card (BUY-16; F227/F319, owner 11-11: "first name + last initial, rating, ID-checked badge (no
- * photo, no profile page)"). From declutter_guest_seller_card: "Ann S.", stars only when the seller has reviews, and
- * "ID checked" only when the server says so, and (F359d) "12 pickups" when they have any. A monogram, never the photo; not a link (a member's page is for members).
+ * photo)"). From declutter_guest_seller_card: "Ann S.", stars only when the seller has reviews, and "ID checked" only
+ * when the server says so, and (F359d) "12 pickups" when they have any. A monogram, never the photo.
+ * Owner 11-20 (item page polish #6, reverses 11-11's "no profile page"): when the seller has a public profile page the
+ * whole card opens it (/u/<handle>, open to anyone, signed out too) and says "Member since Mar 2025"; both come from
+ * the same read (20261120185250), only for a seller with a public page. Without one, the card is not a link.
  * Nothing while it loads, on a failed read, or with no row: the listing reads the same without it.
  */
 export function DeclutterGuestSeller({ itemId, free = false }: { itemId: string; free?: boolean }) {
   const card = useQuery({ queryKey: ["declutter", "guest-seller-card", itemId], queryFn: () => fetchGuestSellerCard(itemId) });
   const c = card.data;
   if (!c) return null;
-  return (
-    <div data-guest-seller="" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+  const since = c.handle ? memberSinceLabel(c.memberSince) : null;
+  const body = (
+    <>
       <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
         {c.name.charAt(0).toUpperCase()}
       </span>
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         {/* F049 (UI audit 11-09): a giveaway is given, not sold. */}
         <span className="block text-xs text-muted-foreground">{free ? "Given by" : "Sold by"}</span>
         <span className="block truncate font-semibold">{c.name}</span>
@@ -256,6 +261,7 @@ export function DeclutterGuestSeller({ itemId, free = false }: { itemId: string;
         )}
         {/* F359d (owner 11-11): the completed pickup count, nothing else about them; none at 0. */}
         {c.pickups > 0 && <span data-guest-seller-pickups="" className="block text-xs text-foreground">{pickupsLabel(c.pickups)}</span>}
+        {since && <span data-guest-seller-since="" className="block text-xs text-muted-foreground">{since}</span>}
         {c.idChecked && (
           <span data-guest-seller-id="" className="mt-1 inline-flex items-center gap-1 rounded-full bg-[hsl(var(--bark)/0.08)] px-2 py-0.5 text-xs font-semibold text-foreground">
             <IdCard className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -263,6 +269,19 @@ export function DeclutterGuestSeller({ itemId, free = false }: { itemId: string;
           </span>
         )}
       </span>
-    </div>
+    </>
+  );
+  const box = "flex items-center gap-3 rounded-2xl border border-border bg-card p-3";
+  if (!c.handle) return <div data-guest-seller="" className={box}>{body}</div>;
+  return (
+    <Link
+      to={`/u/${encodeURIComponent(c.handle)}`}
+      data-guest-seller=""
+      data-guest-seller-link=""
+      className={`${box} min-h-[72px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+    >
+      {body}
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+    </Link>
   );
 }

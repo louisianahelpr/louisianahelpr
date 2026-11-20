@@ -1,7 +1,7 @@
 /**
  * The seller card on a Declutter item (owner, 2026-10-19, as on Marketplace /
  * OfferUp / Mercari): photo, name ("First L."), stars ONLY when the seller has
- * reviews, and "Joined <month year>". No response time: we hold no reply-time
+ * reviews, and "Member since <Mon YYYY>" (owner 11-20; was "Joined <month year>"). No response time: we hold no reply-time
  * figure for another member, and an invented one would be a lie. F359d (owner 11-11): "12 pickups", the seller's
  * completed handovers, a count only (no dates, items or buyers). The whole
  * card opens the seller's profile. Messages open after checkout, so there is
@@ -16,20 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchSellerCard, fetchSellerPickupCount, fetchSellerRating, fetchSellerReviewTags, pickupsLabel } from "@/lib/declutter/api";
 import { topReviewTags } from "@/lib/declutter/reviewTags";
 import { formatName } from "@/lib/utils";
-import { getLang } from "@/lib/i18n/language";
-import { wordInLang } from "@/lib/i18n/inLang";
+import { memberSinceLabel } from "@/lib/declutter/memberSince";
 import { memberProfilePath, PROFILE_FROM_DECLUTTER } from "@/lib/profileLink/memberProfilePath";
-
-/** "Joined March 2025" from an ISO date; null when there is no usable date. */
-function joinedLabel(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  // Design audit r2 #35: "Joined March 2025" was English for a Spanish reader.
-  const es = getLang() === "es";
-  const date = d.toLocaleDateString(es ? "es-US" : "en-US", { month: "long", year: "numeric", timeZone: "America/Chicago" });
-  return wordInLang("ip.joined", `Joined ${date}`, { date });
-}
 
 /** `noun`: who the card is about, for its accessible name (the job page reuses this card for the poster). */
 export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, action = null, seeLabel }: {
@@ -61,7 +49,7 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, a
   const loading = card.isLoading || stats.isLoading;
   const reviews = stats.data?.count ?? 0;
   const name = formatName(card.data?.name, "A neighbor");
-  const joined = joinedLabel(card.data?.joinedAt);
+  const joined = memberSinceLabel(card.data?.joinedAt);
   const see = seeLabel ?? `See the ${noun}`;
   // DA-18: the rating is in the link's name: the card's words read "4.0 stars from 1 review" (the sr-only words below).
   const link = (

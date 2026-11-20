@@ -5,7 +5,7 @@
  * the phone title wraps onto a second line instead of ending in "...".
  *
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |       <AppPage title={TITLE} backTo={QUOTE_HOMES.myRequests} wrapTitle> |       <AppPage title={TITLE} backTo={QUOTE_HOMES.myRequests}>
- * @mutate src/components/AppPage.tsx | hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} /> | hidesTitle={hidesTitle} sticky={stickyHeader} />
+ * @mutate src/components/AppPage.tsx | hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} desktopHidden={desktopHidesHeader} /> | hidesTitle={hidesTitle} sticky={stickyHeader} desktopHidden={desktopHidesHeader} />
  * @mutate src/components/profile/ProfileTabHeader.tsx |         wrapTitle={wrapTitle}\n |
  */
 import { afterEach, describe, expect, it } from "vitest";

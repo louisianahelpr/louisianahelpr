@@ -4,7 +4,7 @@
  * from ONE shared header, ProfileTabHeader (Profile tabs, and AppPage's sub-screens through it), which forwarded
  * PageHeader's default one-line `truncate` title. It now asks PageHeader to wrap (`wrapTitle`, break-words) unless a caller turns it off.
  *
- * @mutate src/components/profile/ProfileTabHeader.tsx | sticky, wrapTitle = true } | sticky, wrapTitle }
+ * @mutate src/components/profile/ProfileTabHeader.tsx | sticky, wrapTitle = true, desktopHidden } | sticky, wrapTitle, desktopHidden }
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";

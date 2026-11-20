@@ -47,7 +47,6 @@ export const enDeclutter = {
   "decl.item.unsave": "Remove from saved",
   "decl.item.share": "Share this item",
   "decl.item.priceAndCondition": "Price and condition",
-  "decl.item.freePorch": "Free porch pickup",
   "decl.item.claimed": "You claimed this.",
   "decl.item.bought": "You bought this.",
   "decl.item.pickupIn": "Your pickup and messages are in",

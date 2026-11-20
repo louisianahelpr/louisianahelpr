@@ -432,15 +432,15 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {nearFinds && ( |                 {false && (
   // @mutate src/lib/declutter/searchMatch.ts |     const near = [...vocab].find((v) => v.length >= 4 && oneEditApart(w, v)); |     const near = [...vocab].find((v) => v.length >= 4 && v === w);
   it("a one-letter typo that finds nothing offers the search that would", async () => {
-    state.live = [{ ...ITEM, id: "e2", seller_id: "s9", title: "Brass floor lamp" }];
+    state.live = [{ ...ITEM, id: "e2", seller_id: "s9", title: "Brass Floor Lamp" }];
     at("/declutter?q=lamb");
     expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Search for lamp instead" }));
-    expect(await screen.findByText("Brass floor lamp")).toBeInTheDocument();
+    expect(await screen.findByText("Brass Floor Lamp")).toBeInTheDocument();
   });
 
   it("a search with no near word offers nothing (no guess)", async () => {
-    state.live = [{ ...ITEM, id: "e3", seller_id: "s9", title: "Brass floor lamp" }];
+    state.live = [{ ...ITEM, id: "e3", seller_id: "s9", title: "Brass Floor Lamp" }];
     at("/declutter?q=sofa");
     expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Search for .* instead$/ })).toBeNull();
@@ -449,9 +449,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // Audit 1110 F311: an emoji alone has no words to match, so every item shows; the list says so.
   // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const wordlessSearch = q !== "" && searchWords(query).length === 0; |   const wordlessSearch = false;
   it("searching only an emoji shows every item with a 'Search with words' line", async () => {
-    state.live = [{ ...ITEM, id: "e1", seller_id: "s9", title: "Brass floor lamp" }];
+    state.live = [{ ...ITEM, id: "e1", seller_id: "s9", title: "Brass Floor Lamp" }];
     at(`/declutter?q=${encodeURIComponent("🪑")}`);
-    expect(await screen.findByText("Brass floor lamp")).toBeInTheDocument();
+    expect(await screen.findByText("Brass Floor Lamp")).toBeInTheDocument();
     expect(screen.getByText(/Search with words, like chair/)).toHaveAttribute("data-search-wordless");
     expect(screen.queryByText("Nothing matches that search.")).toBeNull();
   });
@@ -466,25 +466,25 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/DeclutterHomeView.tsx | const MINE_TABS_FREE = [...MINE_TABS, "free"] as const; | const MINE_TABS_FREE = [...MINE_TABS] as const;
   it("the Free tab lists the live free items, your own marked Yours, and says so when there are none", async () => {
     state.live = [
-      { ...ITEM, id: "f1", seller_id: "s9", title: "Free bookshelf", price_cents: 0, current_price_cents: 0 },
-      { ...ITEM, id: "f2", seller_id: "s9", title: "Brass floor lamp" },
-      { ...ITEM, id: "f3", seller_id: "u1", title: "My own free crib", price_cents: 0, current_price_cents: 0 },
+      { ...ITEM, id: "f1", seller_id: "s9", title: "Free Bookshelf", price_cents: 0, current_price_cents: 0 },
+      { ...ITEM, id: "f2", seller_id: "s9", title: "Brass Floor Lamp" },
+      { ...ITEM, id: "f3", seller_id: "u1", title: "My Own Free Crib", price_cents: 0, current_price_cents: 0 },
     ];
     const first = at("/declutter?tab=free");
-    expect(await screen.findByText("Free bookshelf")).toBeInTheDocument();
+    expect(await screen.findByText("Free Bookshelf")).toBeInTheDocument();
     expect(tab(/^Free/)).toHaveAttribute("aria-selected", "true");
-    expect(screen.queryByText("Brass floor lamp")).toBeNull();
-    expect(screen.getByText("My own free crib").closest("li")?.querySelector("[data-card-mine]")?.textContent).toBe("Yours");
-    expect(screen.getByText("Free bookshelf").closest("li")?.querySelector("[data-card-mine]")).toBeNull();
+    expect(screen.queryByText("Brass Floor Lamp")).toBeNull();
+    expect(screen.getByText("My Own Free Crib").closest("li")?.querySelector("[data-card-mine]")?.textContent).toBe("Yours");
+    expect(screen.getByText("Free Bookshelf").closest("li")?.querySelector("[data-card-mine]")).toBeNull();
     expect(screen.getByTestId("declutter-free-list").querySelectorAll("li").length).toBe(2);
     first.unmount();
     // Wanted off: Free is still a tab.
     state.wantedOn = false;
-    state.live = [{ ...ITEM, id: "f2", seller_id: "s9", title: "Brass floor lamp" }];
+    state.live = [{ ...ITEM, id: "f2", seller_id: "s9", title: "Brass Floor Lamp" }];
     at("/declutter?tab=free");
     expect(await screen.findByText("Nothing free right now.")).toBeInTheDocument();
     expect(tab(/^Free/)).toHaveAttribute("aria-selected", "true");
-    expect(screen.queryByText("Brass floor lamp")).toBeNull();
+    expect(screen.queryByText("Brass Floor Lamp")).toBeNull();
   });
 
   it("lead 10-28 (shot 04): a search that finds nothing says so, never \"Opens soon\", with Show all items and the Wanted link", async () => {
@@ -525,9 +525,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
     empty.unmount();
     // A list: the link closes the end card under the cards.
-    state.live = [{ ...ITEM, id: "i40", seller_id: "s9", title: "Brass floor lamp" }];
+    state.live = [{ ...ITEM, id: "i40", seller_id: "s9", title: "Brass Floor Lamp" }];
     at("/declutter");
-    expect(await screen.findByText("Brass floor lamp")).toBeInTheDocument();
+    expect(await screen.findByText("Brass Floor Lamp")).toBeInTheDocument();
     const link = within(screen.getByTestId("browse-end-card")).getByTestId("declutter-wanted-link");
     fireEvent.click(link);
     expect(await screen.findByRole("heading", { name: "Your Wanted posts" })).toBeInTheDocument();
@@ -535,7 +535,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(where).toBe("/declutter?tab=wanted");
     // The way back: the Browse tab, right there in the same row.
     fireEvent.click(tab(/^Browse/));
-    expect(await screen.findByText("Brass floor lamp")).toBeInTheDocument();
+    expect(await screen.findByText("Brass Floor Lamp")).toBeInTheDocument();
     expect(where).toBe("/declutter");
   });
 

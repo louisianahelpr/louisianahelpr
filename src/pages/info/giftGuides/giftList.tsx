@@ -32,7 +32,7 @@ const DEFAULT_LIST_NAME = "My Wish List";
 /** The most gifts one list holds (the server's own cap, gift_wish_list_save). */
 const MAX_LIST_ITEMS = 100;
 /** The longest list name (the server's CHECK). */
-export const MAX_LIST_NAME = 60;
+const MAX_LIST_NAME = 60;
 const EMPTY: GiftList = { guides: [], picks: [], name: "", owner: null, synced: null };
 let memory: GiftList = EMPTY;
 let loaded = false;

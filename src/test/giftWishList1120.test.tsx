@@ -18,6 +18,16 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <Heart saved={saved} label={WISH.saveLabel(name)} | {null}<Heart saved={false} label={WISH.saveLabel(name)}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     removeFromWishList(it.id); |     void it;
  * @mutate src/pages/info/GiftGuides.tsx |   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />; |   if (false) return null;
+ * @mutate src/pages/info/giftGuides/giftList.tsx |   const cur = mine.owner !== null && mine.owner !== uid ? EMPTY : mine; |   const cur = mine;
+ * @mutate src/pages/info/giftGuides/giftList.tsx | const kept = remoteItems.filter((r) => !removedHere.has(r.i)).map(fromRemote); | const kept = remoteItems.map(fromRemote);
+ * @mutate src/pages/info/giftGuides/giftList.tsx | .filter((r): r is WishRef => r !== null).slice(0, MAX_LIST_ITEMS); | .filter((r): r is WishRef => r !== null);
+ * @mutate src/pages/info/giftGuides/giftList.tsx |   return Array.from(visible).slice(0, MAX_LIST_NAME).join(""); |   return visible.slice(0, MAX_LIST_NAME);
+ * @mutate src/pages/info/giftGuides/wishListSync.ts |     if (wasSignedIn.current \|\| giftListNow().owner !== null) clearWishList(); |     if (wasSignedIn.current) clearWishList();
+ * @mutate src/pages/info/giftGuides/GiftGuideHints.tsx |   if (result === "full") setNote("full"); |   if (result === "full") void 0;
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     (next ?? document.getElementById("gift-my-list"))?.focus(); |     document.getElementById("gift-my-list")?.focus();
+ * @mutate src/pages/info/giftGuides/wishListItems.ts |   const missingIds = loading ? [] : | const missingIds = true ? [] :
+ * @mutate src/pages/info/giftGuides/wishListItems.ts |   return d.item.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.item : `${d.brand}: ${d.item}`; |   return `${d.brand}: ${d.item}`;
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {item.out === "plain" ? item.store : G.onStore(item.store)} | {G.onStore(item.store)}
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -33,6 +43,9 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 // Signed out (the guest case); no Supabase client is loaded by these tests.
+// Analytics (UX audit L7) are counted, never sent from a unit test.
+const track = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics", () => ({ track }));
 const auth = vi.hoisted(() => ({ user: null as null | { id: string } }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: auth.user, isReady: true }) }));
 const saveWishList = vi.fn(async (_name: string, _items: unknown[]) => "abc123defghi");
@@ -377,7 +390,11 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
   });
 
   it("#6: a share never sends more than 100 refs, and a name is cut by character, never inside an emoji", () => {
-    for (let k = 0; k < 120; k++) addToWishList({ href: `https://www.amazon.com/dp/X${k}?tag=louisianahelpr-20`, name: `x${k}`, guide: "her" });
+    // A list saved before the 100 cap (11-18 lists had none) can hold more: a share still sends at most 100.
+    const old = Array.from({ length: 120 }, (_, k) => ({ href: `https://www.amazon.com/dp/X${k}?tag=louisianahelpr-20`, name: `x${k}`, guide: "her" }));
+    window.localStorage.setItem("lh-gift-list", JSON.stringify({ guides: [], picks: old }));
+    resetGiftListForTests();
+    expect(giftListNow().picks.length).toBe(120);
     expect(listRefs(giftListNow()).length).toBe(100);
     const long = "🎄".repeat(70);
     expect(Array.from(cleanListName(long)).length).toBe(60);
@@ -452,6 +469,12 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     expect(GIFT_WISH_CSS).not.toMatch(/gg-heart-sb\{[^}]*background:#fff/);
     const view = renderAt("/gift-guides");
     expect([...view.container.querySelectorAll("[data-gift-howto-steps] .gg-howto-n")].map((n) => n.textContent)).toEqual(["1", "2", "3"]);
+  });
+
+  it("L7: a heart tap is counted (gift_wish_heart)", () => {
+    const view = renderAt(`/gift-guides/${g().slug}`);
+    fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
+    expect(track).toHaveBeenCalledWith("gift_wish_heart", { result: "added" });
   });
 
   it("L3: the share text is a sentence, never the list name twice", () => {

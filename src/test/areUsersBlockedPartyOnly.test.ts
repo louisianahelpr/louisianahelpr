@@ -122,6 +122,8 @@ const EXPECTED_CALLERS = [
   "declutter_send_handover_message",
   // The paid-order chat: membership is checked first (buyer_id = v_uid OR seller_id = v_uid), then are_users_blocked(o.buyer_id, o.seller_id).
   "declutter_send_order_message",
+  // Declutter top 5 #1 (20261120010630): the pair (each saver, the caller as seller: declutter_assert_member() / auth.uid()).
+  "declutter_send_saver_offer",
   "declutter_set_porch_place",
   "declutter_set_watch",
   "declutter_start_checkout",

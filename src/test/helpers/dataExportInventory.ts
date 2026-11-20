@@ -639,6 +639,12 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  // Declutter top 5 (owner 11-19, 20261120010630 / 20261120014036 / 20261120015456). Not added to export_my_data in this
+  // train: its one-function-per-section rewrite is the open export rebuild (docs/OPEN.md), and each row below is either
+  // a ledger of something already exported or a short-lived setting.
+  "declutter_saver_offer_sends.seller_id": { reason: "Declutter top 5 #1 (20261120010630): the once-a-day send ledger (item, percent, price, how many, when), service-role writes only; every offer it sent is a declutter_offers row exported under seller_id, and the notices are exported in notifications" },
+  "declutter_shop_sales.seller_id": { reason: "Declutter top 5 #4 (20261120014036): a shop-wide sale's setting (percent, start, end, status), at most one open per seller and ended within 14 days; the prices it set are the declutter_items rows exported under seller_id" },
+  "declutter_seller_away.seller_id": { reason: "Declutter top 5 #5 (20261120015456): the away-until date and the listings it paused, deleted when the seller comes back; the listings are declutter_items rows exported under seller_id" },
   "giveaway_reminder_sends.user_id": { reason: "25 Days reminders (20261119200128): a service-role once-per-member send key (reminder key, time); the reminder itself is the member's notifications row, which the export already includes" },
   // Shops digital downloads (20261108182917; Shops is testers only).
   // CMP-4 instant book (20261101063725, 20261101065105); lead 11-01.

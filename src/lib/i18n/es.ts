@@ -25,6 +25,7 @@ import { esChatEvents } from "./esChatEvents";
 import { esSellForm } from "./esSellForm";
 import { esDeclOffers } from "./esDeclOffers";
 import { esDeclSell } from "./esDeclSell";
+import { esDeclTop5 } from "./esDeclTop5";
 import { esTodos } from "./esTodos";
 import { esListingParts } from "./esListingParts";
 import { esTracker } from "./esTracker";
@@ -77,6 +78,7 @@ export const es: Record<MsgKey, string> = {
   ...esSellForm,
   ...esDeclOffers,
   ...esDeclSell,
+  ...esDeclTop5,
   ...esTodos,
   ...esListingParts,
   ...esTracker,

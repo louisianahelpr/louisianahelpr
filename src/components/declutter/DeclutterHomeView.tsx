@@ -12,6 +12,9 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { SaverOfferLine, useSaverOfferData } from "./SaverOffer";
+import { BulkBar, BulkHeading, BulkPick, useBulkSelect } from "./BulkActions";
+import "@/lib/i18n/enDeclTop5";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -113,6 +116,9 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
   const dropsTonight = useMyDropsTonight(mine.data ?? [], myDrops.data);
+  // Declutter top 5 (owner 11-19): #1 "Send them an offer" under each saved row; #5 bulk actions (Select).
+  const saverOffers = useSaverOfferData(userId, mine.data);
+  const bulk = useBulkSelect();
   // The Free change (Q2487): each live free listing shows its open asks as "Requests (n)"; read only when there is one.
   // Builder 187: only once someone has asked; a "Requests (0)" button opened a list with nobody in it.
   const anyFreeLive = (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0);
@@ -251,7 +257,8 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   }
   return (
     <section className="space-y-3" aria-label={t("decl.sl.yours")}>
-      <SectionHeading title={t("decl.sl.yours")} />
+      {/* Declutter top 5 #5: the heading with Select (one action on many listings, BulkActions.tsx). */}
+      <BulkHeading title={t("decl.sl.yours")} items={list} bulk={bulk} />
       {!searching && list.filter((i) => i.status === "draft").length > 1 && (
         <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">{t("decl.sl.allDrafts")}</Link></p>
       )}
@@ -273,6 +280,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              {bulk.selecting && <BulkPick item={item} picked={bulk.picked.has(item.id)} onToggle={() => bulk.toggle(item.id)} />}
               {/* NIGHT-SELL-Sellinglist-4 (night audit 10-30): at 375 the title takes two lines and the row itself opens the
                   item (a draft's opens Finish listing), so View is only a button from sm up. */}
               <Link
@@ -342,10 +350,12 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
             </div>
             {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} />}
             <PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />
+            <SaverOfferLine item={item} saves={saverOffers.saves?.get(item.id) ?? 0} lastSend={saverOffers.sends?.get(item.id)} />
           </li>
           );
         })}
       </ul>
+      {bulk.selecting && <BulkBar items={list} picked={bulk.picked} onDone={bulk.stop} />}
       <StillAvailableSheet items={mine.data} />
       <ConfirmSheet open={!!asking} title={asking?.status === "draft" ? t("decl.sl.deleteQ") : t("decl.sl.takeDownQ")}
         confirmLabel={asking?.status === "draft" ? t("decl.sl.delete") : t("decl.sl.takeDown")} pending={takeDown.isPending} testId="declutter-take-down"

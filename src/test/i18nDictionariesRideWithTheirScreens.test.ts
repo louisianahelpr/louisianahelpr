@@ -42,6 +42,7 @@ function srcFiles(): string[] {
 }
 const RELY_ON_PARENT = [
   "src/components/declutter/DeclutterPriceHint.tsx enDeclPanels",
+  "src/components/declutter/DemandLine.tsx enItemPage", // Declutter top 5 #3/#4: only ever inside the item page
   "src/components/declutter/FreeAskSheet.tsx enFree",
   "src/components/declutter/OfferSentWhatNext.tsx enOffer",
   "src/components/declutter/sellForm.ts enSellForm",

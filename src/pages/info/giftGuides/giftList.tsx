@@ -22,9 +22,9 @@ const KEY = "lh-gift-list";
 /** My Wish List's page: /gift-guides/my-list. */
 export const MY_LIST_SLUG = "my-list";
 /** The list's name until the visitor gives it one (no field is ever required). */
-export const DEFAULT_LIST_NAME = "My Wish List";
+const DEFAULT_LIST_NAME = "My Wish List";
 /** The most gifts one list holds (the server's own cap, gift_wish_list_save). */
-export const MAX_LIST_ITEMS = 100;
+const MAX_LIST_ITEMS = 100;
 /** The longest list name (the server's CHECK). */
 export const MAX_LIST_NAME = 60;
 const EMPTY: GiftList = { guides: [], picks: [], name: "" };
@@ -52,7 +52,7 @@ export function itemId(key: string): string {
 /** A saved gift's id (an old save from before ids carries only its link). */
 export const pickId = (p: SavedPick) => p.id ?? itemId(p.href);
 /** A saved gift's ref, or null when it was saved with no guide (an old save; it shows, but a share leaves it out). */
-export const refOf = (p: SavedPick): WishRef | null => (p.guide ? { g: p.guide, i: pickId(p) } : null);
+const refOf = (p: SavedPick): WishRef | null => (p.guide ? { g: p.guide, i: pickId(p) } : null);
 
 const isPick = (v: unknown): v is SavedPick => {
   const p = v as SavedPick;

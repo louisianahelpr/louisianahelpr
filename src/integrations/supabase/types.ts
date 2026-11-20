@@ -2819,6 +2819,7 @@ export type Database = {
           is_seed: boolean
           item_id: string
           respond_by: string
+          saver_offer_id: string | null
           seller_id: string
           status: string
           updated_at: string
@@ -2836,6 +2837,7 @@ export type Database = {
           is_seed?: boolean
           item_id: string
           respond_by: string
+          saver_offer_id?: string | null
           seller_id: string
           status?: string
           updated_at?: string
@@ -2853,6 +2855,7 @@ export type Database = {
           is_seed?: boolean
           item_id?: string
           respond_by?: string
+          saver_offer_id?: string | null
           seller_id?: string
           status?: string
           updated_at?: string
@@ -3104,6 +3107,151 @@ export type Database = {
           retained_at?: string
         }
         Relationships: []
+      }
+      declutter_saver_offer_sends: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          item_id: string
+          percent_off: number | null
+          price_cents: number
+          sent_count: number
+          seller_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          item_id: string
+          percent_off?: number | null
+          price_cents: number
+          sent_count: number
+          seller_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          item_id?: string
+          percent_off?: number | null
+          price_cents?: number
+          sent_count?: number
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_saver_offer_sends_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_seller_away: {
+        Row: {
+          back_on: string
+          paused_item_ids: string[]
+          seller_id: string
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          back_on: string
+          paused_item_ids?: string[]
+          seller_id: string
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          back_on?: string
+          paused_item_ids?: string[]
+          seller_id?: string
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+        ]
+      }
+      declutter_shop_sale_items: {
+        Row: {
+          before_cents: number
+          created_at: string
+          item_id: string
+          restored_at: string | null
+          sale_cents: number
+          sale_id: string
+          seller_changed_at: string | null
+        }
+        Insert: {
+          before_cents: number
+          created_at?: string
+          item_id: string
+          restored_at?: string | null
+          sale_cents: number
+          sale_id: string
+          seller_changed_at?: string | null
+        }
+        Update: {
+          before_cents?: number
+          created_at?: string
+          item_id?: string
+          restored_at?: string | null
+          sale_cents?: number
+          sale_id?: string
+          seller_changed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_shop_sale_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_shop_sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_shop_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_shop_sales: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          ends_at: string
+          id: string
+          percent_off: number
+          seller_id: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          ends_at: string
+          id?: string
+          percent_off: number
+          seller_id: string
+          starts_at: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          ends_at?: string
+          id?: string
+          percent_off?: number
+          seller_id?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+        ]
       }
       declutter_talk_reminder_sends: {
         Row: {
@@ -16997,6 +17145,26 @@ export type Database = {
       }
     }
     Functions: {
+      declutter_away_return: { Args: { p_seller: string }; Returns: number }
+      declutter_away_sweep: { Args: never; Returns: Json }
+      declutter_bulk_discount: {
+        Args: { p_item_ids: string[]; p_percent_off: number }
+        Returns: number
+      }
+      declutter_come_back: { Args: never; Returns: number }
+      declutter_end_shop_sale: { Args: never; Returns: string }
+      declutter_go_away: { Args: { p_back_on: string }; Returns: number }
+      declutter_item_demand: {
+        Args: { p_item_ids: string[] }
+        Returns: {
+          item_id: string
+          offers_week: number
+          sale_ends_at: string | null
+          sale_pct: number | null
+          saves: number
+          views_today: number
+        }[]
+      }
       declutter_my_trade_buyer_names: {
         Args: never
         Returns: {
@@ -17011,6 +17179,19 @@ export type Database = {
       declutter_refund_gift_split: {
         Args: { p_order_id: string; p_refund_cents: number }
         Returns: number
+      }
+      declutter_seller_away_until: { Args: { p_seller_id: string }; Returns: string }
+      declutter_selling_home: { Args: never; Returns: Json }
+      declutter_send_saver_offer: {
+        Args: { p_amount_cents: number; p_item_id: string; p_percent_off: number }
+        Returns: Json
+      }
+      declutter_shop_sale_apply: { Args: { p_sale_id: string }; Returns: number }
+      declutter_shop_sale_restore: { Args: { p_sale_id: string }; Returns: number }
+      declutter_shop_sale_sweep: { Args: never; Returns: Json }
+      declutter_start_shop_sale: {
+        Args: { p_ends_at: string; p_percent_off: number; p_starts_at: string }
+        Returns: string
       }
       poster_finish_job_refusal: { Args: { p_job_id: string; p_now?: string; p_user_id: string }; Returns: string }
       redeem_gift_card_for_declutter_order: {

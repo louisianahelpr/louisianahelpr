@@ -23,7 +23,7 @@ const phoneShare = () =>
 const isMobileUa = (ua: string) => /iPhone|iPad|iPod|Android/.test(ua);
 
 /** Messenger's share link (the app, on a phone). */
-export const messengerHref = (url: string) => `fb-messenger://share/?link=${encodeURIComponent(url)}`;
+const messengerHref = (url: string) => `fb-messenger://share/?link=${encodeURIComponent(url)}`;
 
 export function GiftWishShare({ name, refs, save }: { name: string; refs: WishRef[]; save: (name: string, refs: WishRef[]) => Promise<string> }) {
   const [state, setState] = useState<"idle" | "saving" | "menu" | "failed" | "limited">("idle");

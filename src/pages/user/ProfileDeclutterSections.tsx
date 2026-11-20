@@ -1,6 +1,7 @@
 import { MovingSaleBanner } from "@/components/declutter/MovingSaleBanner";
 import { SellingNowRow } from "@/components/declutter/SellingNowRow";
 import { DeclutterProfileSection } from "@/components/declutter/DeclutterProfileSection";
+import { AwayBanner } from "@/components/declutter/AwayMode";
 
 /**
  * A member's Declutter on their public profile (/user/:userId), as one group: their moving sale (board 164), what
@@ -11,6 +12,8 @@ import { DeclutterProfileSection } from "@/components/declutter/DeclutterProfile
 export function ProfileDeclutterSections({ userId }: { userId: string }) {
   return (
     <>
+      {/* Declutter top 5 #5 (owner 11-19): "Away until Mon, Nov 30" while the seller is away. */}
+      <AwayBanner sellerId={userId} />
       <MovingSaleBanner sellerId={userId} />
       <SellingNowRow sellerId={userId} />
       <DeclutterProfileSection userId={userId} />

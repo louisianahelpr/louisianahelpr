@@ -35,6 +35,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.card.drop": "Puede bajar esta noche",
   "decl.card.delivery": "Entrega con Helpr",
   "decl.card.new": "Nuevo",
+  "decl.card.demand": "Muy buscado",
   "decl.card.newTitle": "Nuevo desde la última vez que vio esta búsqueda",
   "decl.card.wasPrice": "Bajó de precio, antes ",
   "decl.card.bundle": "Oferta por lote",

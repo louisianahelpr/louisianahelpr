@@ -100,6 +100,19 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   offer_too_low: "Offers must be at least half the current price.",
   offer_already_open: "You already have an offer on this item. Change it under Offers.",
   offer_rate_limited: "You can make 3 offers a day on one item. Try again tomorrow.",
+  // Declutter top 5 #1 (owner 11-19, 20261120010630): the seller's offer to the people who saved a listing.
+  no_savers: "Nobody who saved this can get an offer right now. They may already have one open.",
+  saver_offer_rate_limited: "You can send one offer a day for each item. Try again tomorrow.",
+  below_your_lowest: "That is below your lowest price. Pick a smaller discount or change your lowest price.",
+  // Declutter top 5 #4 (20261120014036): the shop-wide sale.
+  shop_sale_dates: "A sale starts within 2 weeks and runs up to 2 weeks. Check the dates.",
+  sale_already_set: "You already have a sale set. End it first.",
+  sale_not_found: "There is no sale to end.",
+  // Declutter top 5 #5 (20261120015456): away mode.
+  invalid_away_date: "Pick a day from tomorrow to 90 days out.",
+  not_away: "Your shop is already open.",
+  // Review 11-19 #3: no price cut on top of a running shop sale.
+  sale_running: "End your sale to change prices.",
   invalid_action: "That can't be done to this offer.",
   offer_not_found: "That offer isn't available.",
   offer_not_open: "This offer is already closed.",

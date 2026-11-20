@@ -10,10 +10,10 @@
  * Server side: src/test/pglite/giftWishLists.pglite.mjs.
  *
  * @mutate src/pages/info/giftGuides/giftList.tsx |   if (isSaved(cur, id)) return true; |   if (false) return true;
- * @mutate src/pages/info/giftGuides/giftList.tsx | export const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: pickId(p) } : null); | export const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: p.href } : null);
+ * @mutate src/pages/info/giftGuides/giftList.tsx | const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: pickId(p) } : null); | const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: p.href } : null);
  * @mutate src/pages/info/giftGuides/GiftHint.tsx |     window.localStorage.setItem(PREFIX + id, "1"); |     void id;
  * @mutate src/pages/info/giftGuides/GiftHint.tsx |   dismissedNow.add(id); |   void dismissedNow;
- * @mutate src/pages/info/giftGuides/wishListItems.ts |   const own = guideBySlug(r.g)?.picks.find((p) => pickItemId(p) === r.i); |   const own = guideBySlug(r.g)?.picks.find((p) => p.name === r.i);
+ * @mutate src/pages/info/giftGuides/wishListItems.ts | const pickItemId = (p: { href: string }) => itemId(p.href); | const pickItemId = (p: { href: string }) => itemId(`${p.href}#`);
  * @mutate src/pages/info/giftGuides/GiftGuideSharedList.tsx | <WishRow key={it.id} item={it} /> | <WishRow key={it.id} item={it} onRemove={() => undefined} />
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <Heart saved={saved} label={WISH.saveLabel(name)} | {null}<Heart saved={false} label={WISH.saveLabel(name)}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |               {items.map((it) => <WishRow key={it.id} item={it} onRemove={() => removeFromWishList(it.id)} />)} |               {items.map((it) => <WishRow key={it.id} item={it} onRemove={() => undefined} />)}
@@ -93,6 +93,9 @@ describe("hearts persist and one heart covers the gift everywhere", () => {
     resetGiftListForTests(); // the in-memory copy forgotten: the next read is storage, as after a reload
     const refs = listRefs(giftListNow());
     expect(refs).toEqual([{ g: g.slug, i: itemId(g.picks[0].href) }]);
+    // Adding the same gift again (another page, a swipe) keeps it once.
+    expect(addToWishList({ href: g.picks[0].href, name: g.picks[0].name, guide: g.slug })).toBe(true);
+    expect(giftListNow().picks.length).toBe(1);
     expect(refs[0].i).toMatch(/^[a-z0-9]{1,16}$/);
   });
 
@@ -142,6 +145,7 @@ describe("deal and Small Business cards heart too, and come back from their refs
       return h!;
     });
     fireEvent.click(heart);
+    expect(heart.getAttribute("aria-pressed")).toBe("true");
     const ref = listRefs(giftListNow())[0];
     expect(ref.g).toBe(DEALS_SLUG);
     const deal = (deals as Deal[]).find((d) => dealItemId(d) === ref.i);
@@ -266,6 +270,19 @@ describe("how-to hints dismiss and stay dismissed", () => {
     cleanup();
     resetHintsForTests(); // this visit's memory gone: only storage remembers
     expect(renderAt("/gift-guides").container.querySelector("[data-gift-hint='how-to']")).toBeNull();
+  });
+
+  it("a dismissal holds for the visit even when storage refuses the write", () => {
+    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked"); });
+    try {
+      const view = renderAt("/gift-guides");
+      fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-hint-close='how-to']")!);
+      expect(view.container.querySelector("[data-gift-hint='how-to']")).toBeNull();
+      cleanup();
+      expect(renderAt("/gift-guides").container.querySelector("[data-gift-hint='how-to']")).toBeNull();
+    } finally {
+      set.mockRestore();
+    }
   });
 
   it("the quiz, budget and share hints show once and close", () => {

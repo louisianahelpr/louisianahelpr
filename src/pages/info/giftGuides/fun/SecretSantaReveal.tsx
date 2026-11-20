@@ -78,13 +78,13 @@ export default function SecretSantaReveal() {
             {state.r.exchangeOn && <p className="m-0 text-sm" data-reveal-day="">{W.revealDate(niceDay(state.r.exchangeOn))}</p>}
             <div className="gg-fun-actions justify-center">
               {state.r.matchWishList ? (
-                <Button asChild className="btn-grad-primary">
+                <Button asChild className="btn-grad-primary h-auto min-h-11 max-w-full whitespace-normal text-center">
                   <Link to={sharedListPath(state.r.matchWishList)} data-reveal-their-list="">{W.revealTheirList(state.r.match)}</Link>
                 </Button>
               ) : (
                 <p className="gg-fun-note w-full" data-reveal-no-list="">{W.revealNoList(state.r.match)}</p>
               )}
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" className="h-auto min-h-11 max-w-full whitespace-normal text-center">
                 <Link to="/gift-guides/swipe" data-reveal-find="">{W.revealFindGifts}</Link>
               </Button>
             </div>
@@ -93,7 +93,7 @@ export default function SecretSantaReveal() {
             <p className="m-0 font-semibold">{W.revealMyList}</p>
             <p className="gg-fun-note mt-1">{W.revealMyListHelp}</p>
             <div className="gg-fun-actions">
-              <Button type="button" variant="outline" disabled={sharing} onClick={() => void shareMine()} data-reveal-share-mine="">{W.revealShareMine}</Button>
+              <Button type="button" variant="outline" className="h-auto min-h-11 max-w-full whitespace-normal text-center" disabled={sharing} onClick={() => void shareMine()} data-reveal-share-mine="">{W.revealShareMine}</Button>
               <Button asChild variant="link" size="inline" className="gg-link">
                 <Link to="/gift-guides" data-reveal-make-list="">{W.revealMyList} ›</Link>
               </Button>

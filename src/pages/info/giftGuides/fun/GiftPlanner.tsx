@@ -129,7 +129,6 @@ export default function GiftPlanner() {
   };
   return (
     <FunPage title={W.plannerTitle} path={PATH}>
-      <h2>{W.plannerTitle}</h2>
       <p className="gg-fun-lead">{W.plannerLead}</p>
       <Hint id="fun-planner">{W.hintPlanner}</Hint>
       {plan.people.length > 0 && (

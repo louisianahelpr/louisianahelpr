@@ -127,7 +127,7 @@ export default function SwipeGifts() {
     <FunPage title={W.swipeTitle} path={PATH}>
       {!started ? (
         <section aria-labelledby="swipe-setup" data-swipe-setup="">
-          <h2 id="swipe-setup">{W.swipeTitle}</h2>
+          <h2 id="swipe-setup" className="sr-only">{W.swipeTitle}</h2>
           <p className="gg-fun-lead">{W.swipeHelp}</p>
           <div role="group" aria-label={W.swipeWho} className="gg-finder-step">
             <p className="gg-finder-q">{W.swipeWho}</p>

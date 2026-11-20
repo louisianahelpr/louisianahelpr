@@ -87,7 +87,7 @@ export default function SecretSanta() {
               <div key={done.links[i]} className="gg-santa-link" data-santa-person={i}>
                 <b>{n}</b>
                 <span className="gg-fun-row">
-                  <Button type="button" size="sm" className="btn-grad-primary" onClick={() => send(i)} data-santa-send={i}>{W.santaSend(n)}</Button>
+                  <Button type="button" size="sm" className="btn-grad-primary h-auto min-h-11 max-w-full whitespace-normal text-center" onClick={() => send(i)} data-santa-send={i}>{W.santaSend(n)}</Button>
                   <Button type="button" size="sm" variant="outline" onClick={() => void copy(i)} data-santa-copy={i}>{copied === i ? W.santaCopied : W.santaCopy}</Button>
                 </span>
               </div>
@@ -100,7 +100,6 @@ export default function SecretSanta() {
         </section>
       ) : (
         <form onSubmit={(e) => void submit(e)} noValidate data-santa-form="">
-          <h2>{W.santaTitle}</h2>
           <p className="gg-fun-lead">{W.santaLead}</p>
           <Hint id="fun-santa">{W.hintSanta}</Hint>
           <div className="gg-fun-card">

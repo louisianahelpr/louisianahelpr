@@ -337,7 +337,7 @@ export const FUN_WORDS = {
   santaCopy: "Copy link",
   santaCopied: "Copied",
   santaShareText: (name: string) => `${name}, here's your Secret Santa match. Open it when no one's looking!`,
-  santaKeepNote: "Links work until Jan 15. We don't save emails or phone numbers.",
+  santaKeepNote: "Links stop working after the holidays. We don't save emails or phone numbers.",
   santaStartOver: "Start a new group",
   // Reveal
   revealTitle: "Your Secret Santa",

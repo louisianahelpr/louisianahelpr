@@ -3,6 +3,7 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
+import { GIFT_WISH_CSS } from "../giftWishStyles";
 
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names";
 
@@ -16,7 +17,7 @@ export function FunPage({ title, path, noindex, children }: { title: string; pat
   usePageMeta(noindex ? { title: `${title} — Helpr`, description: meta.description, robots: "noindex", noCanonical: true } : meta);
   return (
     <PublicHeaderPage title={title} backTo="/gift-guides" bottomPaddingClassName="pb-12 md:pb-16">
-      <style>{GIFT_GUIDES_CSS}{FUN_CSS}</style>
+      <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
       <div className="gg gg-fun w-full" data-gift-fun={path}>{children}</div>
     </PublicHeaderPage>
   );

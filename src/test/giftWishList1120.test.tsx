@@ -9,7 +9,7 @@
  *   - every hint is dismissible and stays dismissed; storage that throws never breaks the page.
  * Server side: src/test/pglite/giftWishLists.pglite.mjs.
  *
- * @mutate src/pages/info/giftGuides/giftList.tsx |   if (isSaved(cur, id)) return true; |   if (false) return true;
+ * @mutate src/pages/info/giftGuides/giftList.tsx | export function addToWishList(pick: SavedPick): boolean {\n  const cur = read();\n  const id = pickId(pick);\n  if (isSaved(cur, id)) return true; | export function addToWishList(pick: SavedPick): boolean {\n  const cur = read();\n  const id = pickId(pick);\n  if (false) return true;
  * @mutate src/pages/info/giftGuides/giftList.tsx | const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: pickId(p) } : null); | const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: p.href } : null);
  * @mutate src/pages/info/giftGuides/GiftHint.tsx |     window.localStorage.setItem(PREFIX + id, "1"); |     void id;
  * @mutate src/pages/info/giftGuides/GiftHint.tsx |   dismissedNow.add(id); |   void dismissedNow;
@@ -31,7 +31,7 @@
  * @mutate src/lib/giftNameClean.ts |   return Array.from(visible).slice(0, max).join(""); |   return visible.slice(0, max);
  * @mutate src/pages/info/giftGuides/wishListSync.ts |     if (wasSignedIn.current \|\| giftListNow().owner !== null) clearWishList(); |     if (wasSignedIn.current) clearWishList();
  * @mutate src/pages/info/giftGuides/GiftGuideHints.tsx |   if (result === "full") setNote("full"); |   if (result === "full") void 0;
- * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     (next ?? document.getElementById("gift-my-list"))?.focus(); |     document.getElementById("gift-my-list")?.focus();
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     setGone((xs) => [...xs.filter((x) => x.item.id !== it.id), g]); |     void g;
  * @mutate src/pages/info/giftGuides/wishListItems.ts |   const missingIds = loading ? [] : | const missingIds = true ? [] :
  * @mutate src/pages/info/giftGuides/wishListItems.ts |   return d.item.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.item : `${d.brand}: ${d.item}`; |   return `${d.brand}: ${d.item}`;
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {item.out === "plain" ? item.store : G.onStore(item.store)} | {G.onStore(item.store)}

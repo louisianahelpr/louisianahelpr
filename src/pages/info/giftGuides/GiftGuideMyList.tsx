@@ -174,7 +174,7 @@ export function GiftGuideMyList() {
       {toast && createPortal(
         <div className="gg-toast" role="status" data-gift-wish-toast="">
           <span className="gg-toast-text">{WISH.removedToast}</span>
-          <button type="button" className="gg-toast-link gg-toast-undo" onClick={() => saveAgain(toast)} aria-label={WISH.undoLabel(toast.item.name)} data-gift-wish-undo="">{WISH.undo}</button>
+          <Button type="button" variant="link" size="inline" className="gg-toast-link gg-toast-undo" onClick={() => saveAgain(toast)} aria-label={WISH.undoLabel(toast.item.name)} data-gift-wish-undo="">{WISH.undo}</Button>
         </div>,
         document.body,
       )}

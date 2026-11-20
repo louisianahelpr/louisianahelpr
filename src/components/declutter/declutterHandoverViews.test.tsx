@@ -890,7 +890,8 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByText("Next: put it out and take one photo where the buyer will find it")).toBeInTheDocument();
     // Deep audit #31: one payout rule, the live one, never "when the buyer marks it". LEAD-DOOR-PAYLINE: the porch rule.
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {sellerPayoutRule(kind)} | You're paid when the buyer marks it picked up.
-    expect(screen.getByText(/You get/).textContent).toBe("You get $40 after the handover. Details");
+    // VERIFY 11-20: a paid card mounts once its booking is in, so its own money read starts then (wait for it).
+    expect((await screen.findByText(/You get/)).textContent).toBe("You get $40 after the handover. Details");
     expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it" or takes their pickup photo, unless they ask for a refund. If the buyer says nothing, you\'re paid about 48 hours after the later of the pickup time and your porch photo. With no porch photo, the money stays held until the buyer confirms.');
   });
 
@@ -1069,7 +1070,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     const second = show([line({ handover: "porch", porch_ok: true })]);
     expect(await screen.findByText("Not out yet. We'll tell you when it's on the porch. Don't go before then.")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Step 2 of 4: Time booked" })).toBeInTheDocument();
-    expect(screen.getByText(/Pickup day:/).textContent).toMatch(/Today/);
+    expect((await screen.findByText(/Pickup day:/)).textContent).toMatch(/Today/);
     expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
     // BUY-17 (owner 11-03): on the pickup day itself, "I got it" stays greyed out until the porch photo, with the reason.
     expect(await screen.findByRole("button", { name: "I got it" })).toBeDisabled();
@@ -1205,7 +1206,9 @@ describe("boards 159 + 160: handover sheets", () => {
     state.bookings = [slot(60)];
     state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     show([line({ handover: "porch" })]);
-    fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
+    // VERIFY 11-20: the card mounts with its booking, so "I got it" enables once the card's own handover read answers.
+    await waitFor(() => expect(screen.getByRole("button", { name: "I got it" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "I got it" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Something's not right" }));
     expect(await screen.findByLabelText("What went wrong?")).toBeInTheDocument();
     expect(state.calls).toEqual([]);
@@ -1565,7 +1568,9 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
     state.bookings = [slot(60)];
     state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     show([line({ handover: "porch" })]);
-    fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
+    // VERIFY 11-20: the card mounts with its booking, so "I got it" enables once the card's own handover read answers.
+    await waitFor(() => expect(screen.getByRole("button", { name: "I got it" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "I got it" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Something's not right" }));
     await screen.findByLabelText("What went wrong?");
     expect(options()).toEqual(["It isn't as described", "It's damaged", "I felt unsafe", "Something else"]);
@@ -2098,9 +2103,9 @@ describe("A3-63 follow-up: moving a porch pickup offers 2-hour windows", () => {
   });
   const chipsAfterMove = async () => {
     fireEvent.click(await screen.findByRole("button", { name: "Move the pickup" }));
-    const day = within(screen.getByRole("group", { name: "Pickup day" })).getAllByRole("button")[1];
+    const day = within(await screen.findByRole("group", { name: "Pickup day" })).getAllByRole("button")[1];
     fireEvent.click(day);
-    return within(screen.getByRole("group", { name: `Pickup time on ${day.textContent}` })).getAllByRole("button").map((b) => b.textContent);
+    return within(await screen.findByRole("group", { name: `Pickup time on ${day.textContent}` })).getAllByRole("button").map((b) => b.textContent);
   };
 
   it("porch, buyer: the move's chips are windows, 9–11 AM and 11 AM–1 PM", async () => {

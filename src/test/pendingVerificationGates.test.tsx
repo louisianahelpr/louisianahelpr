@@ -70,7 +70,9 @@ describe("a pending sign-up holds only the final step (owner 11-20)", () => {
 
   it("while waiting they can browse and start a post: /signup-pending links to jobs, a new job post and Declutter, all open to guests", () => {
     const pending = read("src/pages/auth/SignupPending.tsx");
-    for (const to of ["/browse", "/post-job", "/declutter"]) expect(pending).toContain(`<Link to="${to}">`);
+    for (const to of ["/browse", "/declutter"]) expect(pending).toContain(`<Link to="${to}">`);
+    // Start a post carries the under-18 gate (Q1586(c), under18CannotApplyOrPost).
+    expect(pending).toMatch(/<Link to="\/post-job" onClick=\{[^}]*explainAge\("post"\)[\s\S]{0,40}\{\.\.\.ageGatedProps\("post"\)\}>/);
     const app = read("src/App.tsx");
     expect(app).toContain("<ProtectedRoute fullProfile allowGuest><PostJob /></ProtectedRoute>");
     expect(app).toMatch(/path="\/declutter" element=\{<RouteErrorBoundary>\{routeEl\(<DeclutterGuestOrMember/);

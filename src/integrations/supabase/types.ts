@@ -20212,6 +20212,13 @@ export type Database = {
         Returns: undefined
       }
       facilitator_threshold_check: { Args: never; Returns: Json }
+      fair_price_typical: {
+        Args: { p_category: string }
+        Returns: {
+          high_dollars: number
+          low_dollars: number
+        }[]
+      }
       file_approval_escalation: {
         Args: { p_anchor: string; p_job_id: string; p_reason: string }
         Returns: boolean

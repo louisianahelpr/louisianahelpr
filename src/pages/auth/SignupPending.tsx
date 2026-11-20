@@ -18,6 +18,7 @@ import { clearPendingSignup } from "@/lib/pendingSignup";
 import "@/lib/i18n/enVerify";
 import { useLanguage } from "@/lib/i18n/language";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { useAgeGate } from "@/hooks/useAgeGate";
 import { Button } from "@/components/ui/button";
 import { ConfirmLinkPanel } from "./signupPending/ConfirmLinkPanel";
 import { confirmLinkItem, confirmLinkJob, readConfirmLink } from "../../../supabase/functions/_shared/confirmLink";
@@ -51,6 +52,8 @@ const SignupPending = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t: tv } = useLanguage();
+  // Q1586(c): Start a post opens /post-job (a pending member with a saved birthday under 18 gets the line instead).
+  const { underAge: ageUnder, explain: explainAge, gatedProps: ageGatedProps } = useAgeGate();
   // The address arrives in router state (Signup does navigate(..., { state }))
   // which lives in the history entry and is LOST on reload — and "keep this
   // page open" makes reloading a very natural thing to do while waiting. Mirror
@@ -367,7 +370,7 @@ const SignupPending = () => {
         <nav aria-label={tv("verify.whileWait")} className="border-t pt-4 space-y-2" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }} data-testid="pending-while-you-wait">
           <p className="text-ds-13 font-sans font-semibold text-center" style={{ color: "hsl(var(--ink-deep))" }}>{tv("verify.whileWait")}</p>
           <Button asChild variant="outline" className="w-full"><Link to="/browse">{tv("verify.browseJobs")}</Link></Button>
-          <Button asChild variant="outline" className="w-full"><Link to="/post-job">{tv("verify.startPost")}</Link></Button>
+          <Button asChild variant="outline" className="w-full"><Link to="/post-job" onClick={(e) => { if (ageUnder) { e.preventDefault(); explainAge("post"); } }} {...ageGatedProps("post")}>{tv("verify.startPost")}</Link></Button>
           <Button asChild variant="outline" className="w-full"><Link to="/declutter">{tv("verify.browseDeclutter")}</Link></Button>
         </nav>
 

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useAgeGate } from "@/hooks/useAgeGate";
 import { createPortal } from "react-dom";
 import { Briefcase, Search, Sofa, type LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -128,6 +129,8 @@ export default function FirstRunScreens({ startInTour, onDone, onPicks, userId }
   const live = useSectionTabs();
   const { putFirst } = useSectionPrefs();
   const declutterOpen = !!live.find((t) => t.path === "/declutter")?.on;
+  // Q1586(c): "Hire help" opens /post-job, so an under-18 member's tap explains instead (the form refuses too).
+  const { underAge, explain: explainAge } = useAgeGate();
   const options = FIRST_RUN_OPTIONS.filter((o) => o.section === "jobs" || declutterOpen);
 
   if (phase === "pick") {
@@ -137,6 +140,10 @@ export default function FirstRunScreens({ startInTour, onDone, onPicks, userId }
         onSkip={() => setPhase("tour")}
         onPick={(o) => {
           track("first_run_intent", { pick: o.id });
+          if (o.to === "/post-job" && underAge) {
+            explainAge("post");
+            return;
+          }
           // The admin onboarding preview takes the pick itself and shows the tour (it never leaves the preview).
           if (onPicks) {
             onPicks([o.section]);

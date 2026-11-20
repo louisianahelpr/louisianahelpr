@@ -29,8 +29,8 @@ import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
-import { auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
-import { BASE_MERGES, GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, NO_LIST_SECTIONS, SECTION_CAP, SECTION_GROUPS, SECTION_MAX, SECTION_MIN, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
+import { SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
+import { BASE_MERGES, GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, NO_LIST_SECTIONS, STORE_PAGES_KEPT, SECTION_CAP, SECTION_GROUPS, SECTION_MAX, SECTION_MIN, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
 import { GUIDE_CAP, buildRateData, byCommission, ccTwin, commissionOf, guideRanks, itemPopularity, pickType, sectionGuides, typeMax, CROWD_TYPES, KNOWN_BRAND, THIN_TARGET } from "./giftGuideSort.mjs";
 import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3, INSULATED, TUMBLER_MAX, fillerGuide, FILLER_OK, R4_OFF, kidsToyOff } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
@@ -3048,12 +3048,15 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     // (_zero-commission-swaps-1120.json); its earning add is placed below, so the sort refills before anything drops.
     const ZERO_1120 = zeroSwaps1120(readJson);
     for (const c of ZERO_1120.cuts) {
+      // The owner's keeps stay (the Sam's Club Plus membership, OWNER_KEEP: the file swapped it for a Prime gift).
+      if (protectedHref.has(`h:${c.href}`)) continue;
       const from = AUDIT_1120.oldSlug(c.guide, c.section) ?? c.guide;
       const parent = MERGED_INTO[from]?.parent ?? from;
       for (const sl of [parent, ...(GUIDE_MERGES.find((m) => m.parent === parent)?.sections ?? [])]) judged.set(sl, new Set([...(judged.get(sl) ?? []), `h:${c.href}`]));
     }
     // FOLLOW-UP 1120: no gift card and no 0% link on any guide, except a 25 Days sponsor's and the owner's keeps.
-    const followUpGone = (p) => Boolean(followUpOut(p, { sponsor: isSponsorPick, kept: (x) => [...OWNER_KEEP, ...SORT_KEEP].some((k) => k.href === x.href) }));
+    // The memberships list (Subscriptions: Prime, Audible, Kindle Unlimited, Walmart+, Sam's Club) pays a bounty, not a rate.
+    const followUpGone = (p, slug) => slug !== "subscriptions" && Boolean(followUpOut(p, { sponsor: isSponsorPick, kept: (x) => [...OWNER_KEEP, ...SORT_KEEP].some((k) => k.href === x.href) }));
     const judgedOut = (slug, p) => [judged.get(slug), judged.get("*")].some((s) => s && (s.has(`h:${p.href}`) || s.has(`n:${compact(p.name)}`)));
     sortCounts.judged = 0;
     // The owner's three keeps (11-19): the Dyson Airwrap on Mom, the lululemon boxers on Husband, the CREAMi in the Top 10.
@@ -3175,6 +3178,8 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     }
     // FOLLOW-UP 1120: the 0% swaps' earning adds, the earning Louisiana picks and the Louisiana Goldbelly links, each
     // placed on its guide like an editor's add (a guide named by its big-batch parent takes its first old guide).
+    const LA_FOOD_FALLBACK = ["louisiana-sweets-and-bakeries", "louisiana-kitchen", TREATS_GUIDE];
+    const LA_ITEM_FALLBACK = ["louisiana-made", "louisiana-boutiques", "louisiana-small-businesses"];
     const placeOn = (guide, section) => {
       const s0 = AUDIT_1120.oldSlug(guide, section) ?? guide;
       if (GUIDE_SLUGS.has(s0) && isGuide(s0)) return s0;
@@ -3190,7 +3195,13 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       const e = addRow({ ...a.row, line: a.row.line ?? a.row.why ?? "" }, href, [slug], "follow-up 1120", "followup1120") ?? (had ? (had.guides.add(slug), had) : null);
       if (process.env.GIFT_FU_DEBUG) console.error(`FUADD ${slug} ${a.row.name} -> ${e ? "pool" : "held"}`);
       if (!e) continue;
-      e.forced = new Set([...(e.forced ?? []), slug]);
+      // Placed where every page rule allows it (a food gift on a food guide, a Louisiana item in the Louisiana section):
+      // its own guide, else the Louisiana sweets, kitchen or treats guide for food, else Louisiana-Made / Boutiques.
+      const tries = [slug, ...(foodOff(slug, e.p) ? LA_FOOD_FALLBACK : []), ...(!LOUISIANA_GUIDES.has(slug) && isLouisianaItem(e.p, LA_HOSTS) ? LA_ITEM_FALLBACK : [])];
+      const on = tries.find((x) => GUIDE_SLUGS.has(x) && isGuide(x) && gate(x, e.p));
+      if (!on) continue;
+      e.guides.add(on);
+      e.forced = new Set([...(e.forced ?? []), on]);
       sortCounts.followUpAdds += 1;
     }
     // 3a. The fit audits' moves (AUDIT_1120): the item goes to its new guide, placed there like an editor's add.
@@ -3271,7 +3282,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       e.on.add(slug);
     };
     // A forced row (an editor's add, a fit-audit move) still leaves a guide a later judgment cut names (1120 fit audits).
-    const eligible = (slug, e) => e.guides.has(slug) && !jdSports(e.p) && !followUpGone(e.p) && (e.was?.includes(slug) ? !judgedOut(slug, e.p) && !excludedRow(e.p) : e.forced?.has(slug) ? !holisticWhy(slug, e.p) && !judgedOut(slug, e.p) : gate(slug, e.p));
+    const eligible = (slug, e) => e.guides.has(slug) && !jdSports(e.p) && !followUpGone(e.p, slug) && (e.was?.includes(slug) ? !judgedOut(slug, e.p) && !excludedRow(e.p) : e.forced?.has(slug) ? !holisticWhy(slug, e.p) && !judgedOut(slug, e.p) : gate(slug, e.p));
     // The keeps claim their guide first (1120): the owner's newest call wins the one place an item may show (her swap put
     // the Weezie toiletry bag on Traveler, so Sister, earlier in the order, no longer takes the same bag).
     for (const slug of order) for (const e of pool.values()) if (keepOn(slug, e.p) && !e.on.has(slug) && !SORT_FIXED.has(slug)) take(slug, e, placed.get(slug));
@@ -3530,16 +3541,13 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
 {
   const SHOP_SMALL = "shop-small-louisiana";
   const biz = JSON.parse(readFileSync(new URL("../src/content/giftGuideSmallBiz.json", import.meta.url), "utf8"));
-  const SHOPS = new Set(["Food & Sweets", "Home & Decor", "Art & Gifts", "Fashion & Accessories", "Kids"]);
-  const groups = [
-    { id: "sponsors-shops-and-makers", title: "25 Days Sponsors: Shops & Makers", rows: biz.filter((b) => SHOPS.has(b.category)) },
-    { id: "sponsors-experiences-and-services", title: "25 Days Sponsors: Experiences & Services", rows: biz.filter((b) => !SHOPS.has(b.category)) },
-  ];
+  const groups = SPONSOR_SECTIONS_1120.map((g) => ({ ...g, rows: biz.filter((b) => g.categories.includes(b.category)) }));
   const list = pageList[SHOP_SMALL] ?? [];
   // The guide's own picks keep their sections (a single list takes one, so the sponsor sections sit beside it).
   const own = list.map((p) => (p.sectionId ? p : { ...p, section: "Louisiana-Made, Boutiques & Artists", sectionId: "louisiana-made" }));
   if (!list.some((p) => p.sectionId)) for (const m of GUIDE_MERGES.filter((x) => x.parent === SHOP_SMALL)) for (const sl of m.sections) SECTION_ANCHORS[sl] = "louisiana-made";
-  const seen = new Set(own.map((p) => p.href));
+  // A sponsor whose link another guide already shows (Dupuy's gift certificate on Louisiana by Region) stays there: one place.
+  const seen = new Set([...own, ...Object.entries(pageList).filter(([s]) => !s.startsWith("store-") && s !== SPONSORS_GUIDE).flatMap(([, l]) => l)].map((p) => p.href));
   const add = [];
   for (const g of groups) {
     for (const b of g.rows.slice(0, SECTION_CAP)) {
@@ -3560,10 +3568,38 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
     // The sponsors guide lists each sponsor as they gave it (a sponsor's gift card included).
     if (slug === SPONSORS_GUIDE) continue;
     pageList[slug] = pageList[slug].filter((p) => {
-      const w = followUpOut(p, { sponsor: isSponsorPick, kept }) || (blockedBrand(p) ? "blocked" : "") || (excludes.some((m) => `${p.name} ${p.brand ?? ""}`.toLowerCase().includes(m)) ? "excluded" : "");
+      const w = (p.from === "subscriptions" ? "" : followUpOut(p, { sponsor: isSponsorPick, kept })) || (blockedBrand(p) ? "blocked" : "") || (excludes.some((m) => `${p.name} ${p.brand ?? ""}`.toLowerCase().includes(m)) ? "excluded" : "");
       if (w) followUpCounts1120.out[w] = (followUpCounts1120.out[w] ?? 0) + 1;
       return !w;
     });
+  }
+  // THE STORE PAGES (owner pop-up 11-20 ~2:45 AM, FINAL STORE LIST; ~/Desktop/Gift-guide-picks/_store-fill-1120.json):
+  // each kept page takes its fill rows (that store's best-paying, most popular items), one row per link and name, best
+  // commission first, at most STORE_CAP; a new page (Old Navy, Dick's, JCPenney, TJ Maxx & Marshalls ...) is registered.
+  {
+    let fill = [];
+    try { fill = readJson("_store-fill-1120.json")?.items ?? []; } catch { fill = []; /* mid-write: read on the next run */ }
+    const STORE_NAMES_1120 = { "store-old-navy": "Old Navy", "store-dicks-sporting-goods": "Dick's Sporting Goods", "store-jcpenney": "JCPenney", "store-tj-maxx-marshalls": "TJ Maxx & Marshalls", "store-sams-club": "Sam's Club", "store-at-home": "At Home", "store-nike": "Nike" };
+    const pct = (c) => (typeof c === "number" ? c : Number.parseFloat(String(c ?? "")) || null);
+    followUpCounts1120.storeFill = 0;
+    for (const r of Array.isArray(fill) ? fill : []) {
+      const slug = String(r?.store_slug ?? "");
+      if (!STORE_PAGES_KEPT.includes(slug) || typeof r.href !== "string" || !/^https:\/\//.test(r.href) || typeof r.name !== "string") continue;
+      if (typeof r.image !== "string" || !/^https:\/\//.test(r.image) || brokenImage(r.image) || blockedBrand(r)) continue;
+      let host;
+      try { host = new URL(r.href).hostname; } catch { continue; }
+      if (!AFFILIATE.has(host) && !PLAIN_OK.has(host)) continue;
+      storeList[slug] ??= { name: STORE_NAMES_1120[slug] ?? slug.slice(6), hosts: [] };
+      if (!storeList[slug].hosts.includes(host)) storeList[slug].hosts = [...storeList[slug].hosts, host].sort();
+      const list = pageList[slug] ?? [];
+      if (list.some((p) => p.href === r.href || compact(p.name) === compact(r.name))) continue;
+      pageList[slug] = [...list, { name: brandFirst(tidyName(r.name), r.brand), brand: String(r.brand ?? ""), line: String(r.why ?? ""), href: r.href, image: r.image, store: slug, commission: pct(r.commission), ...(r.type ? { type: String(r.type) } : {}) }];
+      followUpCounts1120.storeFill += 1;
+    }
+    for (const slug of STORE_PAGES_KEPT) {
+      if (!pageList[slug] || slug === "store-amazon") continue;
+      pageList[slug] = pageList[slug].map((p, i) => ({ p, i })).sort((a, b) => (Number(b.p.commission) || 0) - (Number(a.p.commission) || 0) || a.i - b.i).slice(0, STORE_CAP).map((x) => x.p);
+    }
   }
   // One Weber griddle: the best-paying one stays (a guide before a store page on a tie).
   const griddles = Object.entries(pageList).flatMap(([slug, l]) => l.filter((p) => /\bweber\b/i.test(`${p.brand ?? ""} ${p.name}`) && /\bgriddle\b/i.test(p.name)).map((p) => ({ slug, p })));
@@ -3576,7 +3612,9 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
       const r = AUDIT_1120.renames?.get(p.href);
       if (r) { const n = renameOf(r, name, p.brand); if (n && n !== name) { name = n; followUpCounts1120.renamed += 1; } }
       if (!p.sponsor && slug !== SPONSORS_GUIDE) { const n = brandFirst(name, p.brand); if (n !== name) { name = n; followUpCounts1120.brandFirst += 1; } }
-      return name === p.name ? p : { ...p, name };
+      // A 25 Days sponsor's pick wears the sponsor badge wherever it shows (Dupuy's on Louisiana by Region).
+      const sponsor = !slug.startsWith("store-") && !p.sponsor && isSponsorPick(p) ? { sponsor: true } : {};
+      return name === p.name && !sponsor.sponsor ? p : { ...p, name, ...sponsor };
     });
   }
   console.log(`gift-guide-picks: follow-up 1120: ${followUpCounts1120.sponsors} sponsors on ${SHOP_SMALL} (${followUpCounts1120.namedOnly} named only), out ${JSON.stringify(followUpCounts1120.out)}, ${followUpCounts1120.griddles} extra Weber griddles out, ${followUpCounts1120.renamed} audit renames, ${followUpCounts1120.brandFirst} names brand first, ${sortCounts.followUpAdds ?? 0} earning adds placed in the pool, audits ${JSON.stringify(AUDIT_1120.followUp)}`);

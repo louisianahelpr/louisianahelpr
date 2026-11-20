@@ -836,7 +836,10 @@ export const DRINK_NOT = /\b(openers?|glass(es)?|aerators?|chillers?|stoppers?|r
 export const DRINK_BRAND = /^(maker wine|maker|winc|firstleaf|vinebox|bright cellars|naked wines|wine access|flaviar|cocktail courier|saucey)$/i;
 export const isFood = (p) => DRINK_BRAND.test(String(p.brand ?? "").trim()) || (DRINK_NAME.test(String(p.name ?? "")) && !DRINK_NOT.test(String(p.name ?? ""))) || FOOD_BRAND.test(String(p.brand ?? "").trim()) || ((FOOD_NAME.test(String(p.name ?? "")) || FOOD_TIN.test(String(p.name ?? "")) || CANDY_BOX.test(String(p.name ?? ""))) && !NOT_FOOD.test(String(p.name ?? "")));
 export const TREATS_GUIDE = "treats-and-food-gifts";
+// Follow-up 1120 (audit p2: keep the Mardi Gras and crawfish sections at 8+ with earning Louisiana food): king cakes on
+// Mardi Gras, boil seasoning on the crawfish guides, Louisiana pantry staples on Louisiana Pantry.
 export const FOOD_GUIDES = [TREATS_GUIDE, "louisiana-kitchen", "louisiana-sweets-and-bakeries", "coffee-and-beignets", "home-cook", "foodie", "coffee-lover",
+  "mardi-gras", "crawfish-season", "crawfish-boil-host", "louisiana-pantry",
   "tea-lover", "wine-lover", "wine-and-spirits", "grill-master", "baker", "chefs", "cooks-and-kitchen-staff"];
 export const foodOff = (slug, p) => !slug.startsWith("store-") && !FOOD_GUIDES.includes(slug) && isFood(p) && !(slug === "subscriptions" && isFoodSub(p))
   && !(slug === "mail-carrier-and-delivery-drivers" && typeof p.price === "number" && p.price <= 20);

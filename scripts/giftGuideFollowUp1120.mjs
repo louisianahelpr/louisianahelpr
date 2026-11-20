@@ -17,6 +17,9 @@
 /** A gift card (an e-gift card, a gift certificate counts only when it is no sponsor's: see followUpOut). */
 export const GIFT_CARD = /\b(e-?gift\s*cards?|gift\s*cards?|gift\s*certificates?)\b/i;
 
+/** A membership gift (Sam's Club, Walmart+, Prime, Audible, Kindle Unlimited, Game Pass): paid by bounty, kept by the owner. */
+export const MEMBERSHIP = /\b(membership|walmart\+|kindle unlimited|game pass)\b/i;
+
 /** The audit files, in order. */
 export const AUDIT_FILES_1120 = ["_audit-full-1120-p1.json", "_audit-full-1120-p2.json", "_audit-full-1120-p3.json", "_guide-qa-fixes-1120.json"];
 
@@ -115,6 +118,9 @@ export function auditActions1120(rows, oldSlug) {
       out.counts.move += 1;
       continue;
     }
+    // "Commission None" is an affiliate link whose rate is not on file, not a 0% link (the 0% swaps file's own rule), and
+    // the memberships (Sam's Club, Walmart+, Prime, Audible) stay: the owner kept them (OWNER_KEEP) and they pay a bounty.
+    if ((r.fix === "replace_link" && /commission (none|null)\b/i.test(r.problem)) || MEMBERSHIP.test(r.item)) { out.counts.skipped += 1; continue; }
     // A broken or foreign photo, a 0% link, a cut or a removal: the item leaves (the sort fills its place).
     if (["cut", "remove", "replace_link", "replace_image"].includes(r.fix)) {
       out.cuts.push({ slug: from, href: r.href, item: r.item });
@@ -171,12 +177,18 @@ export function louisianaAdds1120(readJson) {
   return out;
 }
 
+/** The two sponsor sections on Shop Small Louisiana (owner 11-20 ~12:40 AM: every confirmed Louisiana sponsor featured). */
+export const SPONSOR_SECTIONS_1120 = [
+  { id: "sponsors-shops-and-makers", title: "25 Days Sponsors: Shops & Makers", categories: ["Food & Sweets", "Home & Decor", "Art & Gifts", "Fashion & Accessories"] },
+  { id: "sponsors-experiences-and-services", title: "25 Days Sponsors: Kids, Experiences & Services", categories: ["Kids", "Beauty & Wellness", "Experiences & Tours", "Services"] },
+];
+
 /**
  * Whether a pick leaves every guide (the follow-up's hard rules): a gift card, or a 0% link, unless it is a 25 Days
  * sponsor's (owner 11-20 ~12:40 AM: sponsors are featured at 0%) or one of the owner's named keeps.
  */
 export const followUpOut = (p, { sponsor, kept }) => {
-  if (sponsor(p) || kept(p)) return "";
+  if (sponsor(p) || kept(p) || MEMBERSHIP.test(String(p.name ?? ""))) return "";
   if (GIFT_CARD.test(String(p.name ?? ""))) return "gift card";
   if (p.commission === 0) return "0%";
   return "";

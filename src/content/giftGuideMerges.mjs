@@ -267,9 +267,10 @@ export const SECTION_GROUPS = {
   },
   "gifts-by-budget": {
     groups: [
-      { id: "stocking-stuffers", title: "Stocking Stuffers", from: ["stocking-stuffers", "easy-and-last-minute", "gift-cards", "subscriptions", "advent-calendars"] },
+      { id: "stocking-stuffers", title: "Stocking Stuffers", from: ["stocking-stuffers"] },
       { id: "under-25", title: "Under $25", from: ["under-25", "under-5", "under-10", "under-15", "under-20"] },
       { id: "under-50", title: "Under $50", from: ["under-50", "under-30", "under-40"] },
+      { id: "memberships-and-advent-calendars", title: "Memberships & Advent Calendars", from: ["easy-and-last-minute", "gift-cards", "subscriptions", "advent-calendars"] },
     ],
   },
   "louisiana-celebrations": {
@@ -313,7 +314,7 @@ export const SECTION_GROUPS = {
 export const STORE_PAGES_KEPT = [
   "store-walmart", "store-amazon", "store-target", "store-best-buy", "store-ulta-beauty", "store-sephora", "store-bath-and-body-works",
   "store-lululemon", "store-stanley", "store-yeti", "store-carhartt", "store-baublebar", "store-crocs", "store-hoka", "store-apple",
-  "store-coach", "store-nike", "store-at-home", "store-old-navy", "store-sams-club", "store-jcpenney", "store-tj-maxx",
+  "store-coach", "store-nike", "store-at-home", "store-old-navy", "store-sams-club", "store-jcpenney", "store-tj-maxx-marshalls",
   "store-dicks-sporting-goods", "store-dillards", "store-tractor-supply", "store-bass-pro-shops",
 ];
 

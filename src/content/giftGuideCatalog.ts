@@ -620,7 +620,8 @@ export const searchIntent = (words: string[]): { slugs: string[]; used: Set<stri
     if (g && !g.empty && !slugs.includes(s)) slugs.push(s);
   };
   // A budget: "$25", "under 25", "25 dollars" -> the nearest Under $X guide at or above it.
-  const budgets = [...new Set(GUIDES.flatMap((g) => /^under-(\d+)$/.exec(g.slug)?.[1] ?? []).map(Number))].sort((a, b) => a - b);
+  // Follow-up 1120: the Under $X guides are sections of Gifts by Budget (and Splurge) now; add() opens their guide.
+  const budgets = [...new Set(OWNER_INDEX.flatMap((g) => /^under-(\d+)$/.exec(g.slug)?.[1] ?? []).map(Number))].sort((a, b) => a - b);
   const budgetSlugs: string[] = [];
   words.forEach((w, i) => {
     const n = /^\$?(\d+)$/.exec(w)?.[1];

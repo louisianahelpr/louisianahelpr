@@ -2654,6 +2654,8 @@ export const POOL_SKIP = new Set(["https://go.shopmy.us/p-107927002", "https://g
 /** The sort pass's counts (1119e) and what it placed, for the commission inventory. */
 export const sortCounts = { crowd: 0, swapped: 0, held: 0, ownerHeld: [], brandHeld: 0, brandNoGuide: 0, ccCampaigns: 0, ccOf: 0, judged: 0, overCap: 0 };
 export const SORT_POOL = [];
+/** Follow-up 1120: why each owner pick sits on none of her guides (href -> { name, reasons: [{ guide, kind, detail, holders }] }). */
+export const OWNER_DIAG_1120 = new Map();
 export const SORT_RANKS = [];
 export const SORT_CTX = {};
 /** The owner's keeps through the sort and the cap (11-19): the Dyson Airwrap on Mom, the lululemon boxers on Husband. */
@@ -3297,6 +3299,64 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       productColors.set(k, new Set([...(productColors.get(k) ?? []), pickColor(e.p)]));
       e.on.add(slug);
     };
+    /**
+     * FOLLOW-UP 1120 (lead 11-20: "owner picks beat ours"): why a row cannot take a guide, as { kind, detail, holders }
+     * (canTake's checks, in its order), or null when it can. A type, brand or full-list block is one an owner pick may
+     * bump a lower-paying pick of ours out of; the others (one place per item and color, LSU, lash) are her firm rules.
+     */
+    const blockOf = (slug, e, list) => {
+      const p = e.p;
+      const where = (pred) => [...placed].filter(([, l]) => l.some(pred)).map(([g]) => g);
+      if (usedHref.has(p.href) || (p.image && usedImage.has(p.image)) || usedName.has(compact(p.name))) return { kind: "same item", detail: "the same link, photo or name is already on a guide", holders: where((x) => x.href === p.href || (p.image && x.image === p.image) || compact(x.name) === compact(p.name)) };
+      if (LASH.test(p.name)) return { kind: "lash", detail: "one lash item at most, never a top pick", holders: [] };
+      if (VERA_BRADLEY.test(String(p.brand ?? "").trim())) return { kind: "vera bradley", detail: "Vera Bradley is out (owner 11-19)", holders: [] };
+      const k = productK(p);
+      const color = pickColor(p);
+      if ((productOn.get(k)?.size ?? 0) >= DUP_GUIDE_MAX || productOn.get(k)?.has(slug) || (productOn.has(k) && (!color || [...(productColors.get(k) ?? [])].some((c) => !c || c === color)))) {
+        return { kind: "same item", detail: `the same product ${color ? `in ${color} ` : "(no color named) "}is already placed`, holders: [...(productOn.get(k) ?? [])] };
+      }
+      if (LSU_ITEM.test(`${p.name} ${p.brand ?? ""}`) && list.filter((x) => LSU_ITEM.test(`${x.name} ${x.brand ?? ""}`)).length >= LSU_MAX) return { kind: "lsu", detail: `two LSU items already on ${slug}`, holders: list.filter((x) => LSU_ITEM.test(`${x.name} ${x.brand ?? ""}`)).map((x) => x.name) };
+      if (list.filter((x) => x.type === p.type).length >= typeMax(slug, p.type)) return { kind: "type", detail: `${typeMax(slug, p.type)} "${p.type}" already on ${slug}`, holders: list.filter((x) => x.type === p.type).map((x) => x.name) };
+      if (list.some((x) => variantKey(x) === variantKey(p))) return { kind: "same item", detail: `another size or color of it is on ${slug}`, holders: list.filter((x) => variantKey(x) === variantKey(p)).map((x) => x.name) };
+      for (const [kind, max] of typeCaps(slug, p)) {
+        const held = list.filter((x) => typeCaps(slug, x).some(([kk]) => kk === kind));
+        if (held.length >= max) return { kind: "type", detail: `${max} "${kind}" already on ${slug}`, holders: held.map((x) => x.name) };
+      }
+      const b = brandKey(p.brand ?? "");
+      const brandMax = LOUISIANA_GUIDES.has(slug) ? BRAND_CAP : GUIDE_GROUPS.get(slug) === "By person" ? 1 : SORT_BRAND_MAX;
+      if (b && !["gift-cards", "subscriptions", "advent-calendars", "gift-tags"].includes(slug) && !/affiliate|program|walmart|amazon|target|shopmy/i.test(p.brand ?? "") && list.filter((x) => brandKey(x.brand ?? "") === b).length >= brandMax) {
+        return { kind: "brand", detail: `${brandMax} ${p.brand} already on ${slug}`, holders: list.filter((x) => brandKey(x.brand ?? "") === b).map((x) => x.name) };
+      }
+      if (list.length >= GUIDE_CAP) return { kind: "full", detail: `${slug} already holds ${GUIDE_CAP}`, holders: [] };
+      return null;
+    };
+    /** Takes a placed pick back off a guide (its one-place keys follow what the guides still hold). */
+    const untake = (slug, p, list) => {
+      list.splice(list.indexOf(p), 1);
+      usedHref.delete(p.href);
+      usedName.delete(compact(p.name));
+      if (p.image) usedImage.delete(p.image);
+      const k = productK(p);
+      const left = [...placed].flatMap(([g, l]) => l.filter((x) => productK(x) === k).map((x) => [g, x]));
+      if (left.length) { productOn.set(k, new Set(left.map(([g]) => g))); productColors.set(k, new Set(left.map(([, x]) => pickColor(x)))); } else { productOn.delete(k); productColors.delete(k); }
+      pool.get(p.href)?.on.delete(slug);
+    };
+    sortCounts.ownerBumped = [];
+    /** An owner pick blocked by a type, brand or full-list cap takes the place of our lowest-paying pick that holds it. */
+    const ownerTake = (slug, e, list) => {
+      for (let tries = 0; tries < 3; tries++) {
+        const why = blockOf(slug, e, list);
+        if (!why) { take(slug, e, list); return true; }
+        if (!["type", "brand", "full"].includes(why.kind)) return false;
+        const ours = list.filter((x) => !x.ownerPick && !keepOn(slug, x) && !pool.get(x.href)?.forced?.has(slug) && !pool.get(x.href)?.campaign
+          && (why.kind === "full" || why.holders.includes(x.name)));
+        const victim = ours.sort((a, b) => (Number(a.commission) || 0) - (Number(b.commission) || 0))[0];
+        if (!victim) return false;
+        untake(slug, victim, list);
+        sortCounts.ownerBumped.push(`${slug}: ${e.p.name} over ${victim.name}`);
+      }
+      return false;
+    };
     // A forced row (an editor's add, a fit-audit move) still leaves a guide a later judgment cut names (1120 fit audits).
     const eligible = (slug, e) => e.guides.has(slug) && !jdSports(e.p) && !followUpGone(e.p, slug) && (e.was?.includes(slug) ? !judgedOut(slug, e.p) && !excludedRow(e.p) : e.forced?.has(slug) ? !holisticWhy(slug, e.p) && !judgedOut(slug, e.p) : gate(slug, e.p));
     // The keeps claim their guide first (1120): the owner's newest call wins the one place an item may show (her swap put
@@ -3314,7 +3374,9 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       for (const e of cands.filter((x) => keepOn(slug, x.p) && !x.on.has(slug))) take(slug, e, list);
       // A joined Creator Connections pick (lead 11-19: every joined campaign on a guide) and an editor's add claim their
       // slot before the commission order fills the rest (still one type and brand cap; the page sorts them in after).
-      for (const e of cands.filter((x) => !keepOn(slug, x.p) && (x.campaign || x.forced?.has(slug) || ownerOn(slug, x.p)))) if (canTake(slug, e, list)) take(slug, e, list);
+      for (const e of cands.filter((x) => !keepOn(slug, x.p) && (x.campaign || x.forced?.has(slug)) && !ownerOn(slug, x.p))) if (canTake(slug, e, list)) take(slug, e, list);
+      // The owner's own picks next: each takes its place, bumping a lower-paying pick of ours past a type, brand or full cap.
+      for (const e of cands.filter((x) => !keepOn(slug, x.p) && ownerOn(slug, x.p) && !x.on.has(slug))) ownerTake(slug, e, list);
       const ranked = cands.filter((x) => !keepOn(slug, x.p) && !x.on.has(slug)).map((e) => ({ e, commission: e.p.commission, _pop: e.pop, _at: e.at ?? 999 })).sort(byCommission);
       for (const { e } of ranked) {
         if (list.length >= GUIDE_CAP) break;
@@ -3357,6 +3419,44 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       sortCounts.held += 1;
       if (e.source === "owner pick") sortCounts.ownerHeld.push(e.p.name);
       for (const s of e.was ?? []) if (judgedOut(s, e.p)) sortCounts.judged += 1;
+    }
+    // FOLLOW-UP 1120 (lead 11-20: a clear answer for every owner pick left out): why each pick she added sits on none of
+    // the guides she named, read with the same rules the sort used (OWNER_DIAG_1120, written to the Desktop report).
+    {
+      const gateWhy = (slug, p) => {
+        const group = GUIDE_GROUPS.get(slug) ?? "";
+        if (followUpGone(p, slug)) return "pays no commission (0% link)";
+        if (jdSports(p)) return "JD Sports listing";
+        const w = why(slug, p);
+        if (w) return `page rule: ${w}`;
+        if (excludedRow(p)) return "on the owner's exclude list";
+        if (!fitsGuide(slug, p)) return `does not fit ${slug}`;
+        const b = belongsWhy(slug, group, p, { tumblers: 0 }, true);
+        if (b) return `fit rule: ${b}`;
+        const r4 = fitR4Why(slug, group, p);
+        if (r4) return `fit rule: ${r4}`;
+        if (louisianaBlocked(slug, p)) return "a Louisiana item outside the Louisiana section";
+        if (MEN_COLOR_GUIDES.includes(slug) && MEN_PASTEL.test(`${p.name} ${String(p.image ?? "").replace(/[-_]/g, " ")}`)) return "pastel on a men's guide";
+        if (typeof p.price === "number" && p.price > PRICE_MAX) return "over $500";
+        if (judgedOut(slug, p)) return `an audit cut it from ${slug}`;
+        const h = holisticWhy(slug, p);
+        if (h) return `fit rule: ${h}`;
+        return "";
+      };
+      for (const [href, gs] of ownerGuides) {
+        const e = pool.get(href);
+        if (!e) continue;
+        const targets = [...new Set(gs.map(ownGuide1120).filter(Boolean))];
+        if (targets.some((g) => e.on.has(g))) continue;
+        const reasons = targets.map((g) => {
+          if (!GUIDE_SLUGS.has(g) || !isGuide(g)) return { guide: g, kind: "no guide", detail: `${g} is no list`, holders: [] };
+          const gw = gateWhy(g, e.p);
+          if (gw) return { guide: g, kind: "rule", detail: gw, holders: [] };
+          const blk = blockOf(g, e, placed.get(g) ?? []);
+          return blk ? { guide: g, ...blk } : { guide: g, kind: "full", detail: `${g} filled before it`, holders: [] };
+        });
+        OWNER_DIAG_1120.set(href, { name: e.p.name, brand: e.p.brand, commission: e.p.commission, type: e.p.type, placedOn: [...e.on], reasons });
+      }
     }
     for (const slug of order) pageList[slug] = SORT_FIXED.has(slug) ? placed.get(slug) : placed.get(slug).sort((a, b) => byCommission({ ...a, _pop: pool.get(a.href)?.pop }, { ...b, _pop: pool.get(b.href)?.pop }));
     sortCounts.ccCampaigns = ccPlaced.size;
@@ -3803,3 +3903,68 @@ for (const { slug } of INDEX) {
   if (n < BELONG_SHORT) belong.short.push(`${slug}:${n}`);
 }
 console.log(`gift-guide-picks: ${pageRepeats} repeats removed from pages, ${dealRepeats} from deal items; ${Object.keys(guides).length} guides, ${Object.values(guides).flat().length} picks, ${chunkSlugs.length} chunks, ${Object.keys(storeList).length} store pages, ${sales.length} sales; ${hidden.length} hidden (GIFT_PICKS_VERBOSE=1 lists them); ${photoless} photo-less rows removed, ${MISSING_IMAGES.size} found photos read; ${suspectPhotos.images} shared photos on two products, ${suspectPhotos.cleared} rows cleared; ${rateSwitches.switched} links moved to a better-paying network; shopmy upgrades: ${shopmyUpgrades.rows} rows on ${shopmyUpgrades.links} links (${shopmyUpgrades.skipped} skipped); earnings: ${earnings.tailRemoved} tail misfits out, ${earnings.filler} filler replaced, ${earnings.swaps} swaps (${earnings.swapSkipped.length} skipped), ${earnings.relinks} relinks (${earnings.relinkSkipped.length} skipped), ${earnings.adds} adds, ${earnings.boots} boots; holistic: ${holistic.removed} out (${Object.entries(holistic.byRule).map(([k, n]) => `${k} ${n}`).join(", ")}), ${holistic.toppedUp} topped up${holistic.short.length ? `, short: ${holistic.short.join(" ")}` : ""}; store fills: ${fillCounts.noCommission} no-commission pins skipped, ${fillCounts.rows} rows, ${fillCounts.store} on store pages, ${fillCounts.guides} in guides${fillCounts.noStore.size ? `, no store page: ${[...fillCounts.noStore].join(" ")}` : ""}; non-US store links: ${NON_US_LINKS.size} (${nonUs.relinked} rows moved to a US link, ${nonUs.hidden} hidden); late fills: ${Object.entries(lateFillCounts).map(([f, c]) => `${f} ${c.rows} rows, ${c.added} placed`).join(", ")}; belong: ${belong.audit} audit removals, rules ${JSON.stringify(belong.rules)}, ${belong.wrap} non-wrap, ${belong.mail} over $20 or unpriced on Mail Carrier, ${belong.fills} fills added (${belong.fillSkipped} skipped), ${belong.lines} lines neutralized, ${soldout.swapped} sold-out links swapped; new approvals: ${newApprovals.rows} rows, ${newApprovals.placed} placed, ${newApprovals.skipped.length} skipped${newApprovals.skipped.length ? ` (${newApprovals.skipped.join("; ")})` : ""}, ${linkUpgrades.rows} rows on an upgraded link; links r3: ${linksR3.relinked} picks moved to a twin link, ${holistic.byRule["homepage link"] ?? 0} homepage links and ${Object.entries(holistic.byRule).filter(([k]) => k.startsWith("banned link")).reduce((n, [, v]) => n + v, 0)} banned links removed, ${linksR3.deals} deals and ${linksR3.dealItems} deal items dropped${linksR3.storesEmptied.length ? `, store pages emptied: ${linksR3.storesEmptied.join(" ")}` : ""}${belong.short.length ? `, under ${BELONG_SHORT}: ${belong.short.join(" ")}` : ""}`);
+
+/**
+ * FOLLOW-UP 1120 (lead 11-20): the owner's picks that show on no page, each with the rule that kept it off and a one-tap
+ * suggestion, grouped by reason (true duplicates last, "already on the guides"). Written to the Desktop only when asked:
+ *   GIFT_OWNER_REPORT=1 node scripts/gift-guide-picks.mjs   ->  ~/Desktop/Gift-guide-picks/_owner-picks-unplaced-1120.md
+ */
+if (process.env.GIFT_OWNER_REPORT === "1") {
+  const shown = new Map();
+  for (const [slug, list] of Object.entries(pageList)) for (const p of list) shown.set(p.href, [...(shown.get(p.href) ?? []), slug]);
+  const label = (g) => (MERGED_INTO[g] ? `${MERGED_INTO[g].parent} (${g})` : g);
+  const owner = (readJson("_owner-picks.json") ?? []).filter((r) => r && typeof r.href === "string" && typeof r.name === "string");
+  const exc = (readJson("_owner-excludes.json") ?? []).map((x) => String(x?.match ?? "").toLowerCase()).filter(Boolean);
+  const groups = new Map();
+  const add = (group, line) => groups.set(group, [...(groups.get(group) ?? []), line]);
+  let unplaced = 0;
+  for (const r of owner) {
+    if (shown.has(r.href)) continue;
+    unplaced += 1;
+    const item = `${r.name}${r.brand && !String(r.name).toLowerCase().includes(String(r.brand).toLowerCase()) ? ` (${r.brand})` : ""}`;
+    const guidesNamed = (Array.isArray(r.guides) ? r.guides : []).map(label).join(", ") || "no guide named";
+    const d = OWNER_DIAG_1120.get(r.href);
+    const sorted = SORT_POOL.find((x) => x.p.href === r.href);
+    if (!d && sorted?.on.size) {
+      // Placed by the sort, then left out when its old guide joined a merged guide's section (the section's own caps).
+      const g = [...sorted.on][0];
+      const parent = MERGED_INTO[g]?.parent ?? g;
+      const sec = (pageList[parent] ?? []).filter((x) => x.from === g || x.sectionId === SECTION_ANCHORS[g]);
+      const same = sec.filter((x) => (x.type ?? "other") === (sorted.p.type ?? "other")).map((x) => x.name);
+      add("Left out when its section merged", `| ${item} | ${guidesNamed} | ${label(g)}: its merged section already holds ${same.length ? `2 "${sorted.p.type}" (${same.slice(0, 3).join("; ")})` : "25 or its brand"} | swap for ${same[same.length - 1] ?? "the lowest-paying pick"} in ${label(g)} |`);
+      continue;
+    }
+    if (!d) {
+      const img = String(r.image ?? "");
+      if (!img.startsWith("https://") || /^https:\/\/production-shopmyshelf-[a-z]+\.s3[.-]/.test(img)) add("No product photo", `| ${item} | ${guidesNamed} | no photo on the row (no row ships without one) | add a product photo in ShopMy, then it places on the next run |`);
+      else if (exc.some((m) => `${r.name} ${r.brand ?? ""}`.toLowerCase().includes(m))) add("On the exclude list", `| ${item} | ${guidesNamed} | on _owner-excludes.json | remove it from the exclude list to show it |`);
+      else if (blockedBrand(r)) add("Blocked brand", `| ${item} | ${guidesNamed} | its brand is on the blocklist | none (blocked by the owner) |`);
+      else add("Not imported", `| ${item} | ${guidesNamed} | the import held it before placing (its guide is gone, or its link is not an earning link on an allowed host) | re-add it on a current guide with an earning ShopMy or Amazon link |`);
+      continue;
+    }
+    const first = d.reasons[0] ?? { guide: "", kind: "full", detail: "no guide named", holders: [] };
+    const holders = (first.holders ?? []).slice(0, 4);
+    const kind = d.reasons.every((x) => x.kind === "same item") ? "same item" : (d.reasons.find((x) => x.kind !== "same item") ?? first).kind;
+    const why = d.reasons.map((x) => `${label(x.guide)}: ${x.detail}${x.holders?.length ? ` (${x.holders.slice(0, 4).join("; ")})` : ""}`).join(" · ");
+    if (kind === "same item") {
+      const where = [...new Set(d.reasons.flatMap((x) => x.holders ?? []))].map(label).join(", ");
+      add("Already on the guides (true duplicates)", `| ${item} | ${guidesNamed} | ${why} | none: it is already on ${where || "another guide"} |`);
+    } else if (kind === "type" || kind === "brand") {
+      const x = d.reasons.find((y) => y.kind === kind);
+      add(kind === "type" ? "Two of that gift type already on her guide" : "That brand already on her guide", `| ${item} | ${guidesNamed} | ${why} | swap for ${x.holders?.[x.holders.length - 1] ?? "one of them"} in ${label(x.guide)} (the picks holding it are hers, keeps or a joined Amazon campaign; ours were already bumped) |`);
+    } else if (kind === "lsu" || kind === "lash" || kind === "vera bradley") {
+      add("LSU / lash / Vera Bradley caps", `| ${item} | ${guidesNamed} | ${why} | swap for ${holders[holders.length - 1] ?? "the one there"} in ${label(first.guide)} |`);
+    } else if (kind === "rule") {
+      add("A page rule keeps it off that guide", `| ${item} | ${guidesNamed} | ${why} | move it to a guide where it fits, or say "keep it" and it is placed as a must-have |`);
+    } else {
+      add("Guide or section full", `| ${item} | ${guidesNamed} | ${why} | say "must-have" and it bumps the lowest-paying pick there |`);
+    }
+  }
+  const order = [...groups.keys()].sort((a, b) => Number(a.startsWith("Already")) - Number(b.startsWith("Already")));
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  const lines = [`# Owner picks not on the guides (${today})`, "",
+    `${owner.length} picks in _owner-picks.json; ${owner.length - unplaced} show on a page, ${unplaced} do not. Each row: the item, the guides she named, the rule that kept it off (the picks holding the place), and a one-tap suggestion. Generated by scripts/gift-guide-picks.mjs (GIFT_OWNER_REPORT=1).`, ""];
+  for (const g of order) lines.push(`## ${g} (${groups.get(g).length})`, "", "| Item | Her guides | Why it is not shown | Suggestion |", "|---|---|---|---|", ...groups.get(g), "");
+  writeFileSync(join(dir, "_owner-picks-unplaced-1120.md"), `${lines.join("\n")}\n`);
+  console.log(`gift-guide-picks: owner picks ${owner.length - unplaced} of ${owner.length} shown; ${unplaced} listed in _owner-picks-unplaced-1120.md; ${sortCounts.ownerBumped?.length ?? 0} of ours bumped for hers`);
+}

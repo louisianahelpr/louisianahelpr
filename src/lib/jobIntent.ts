@@ -166,6 +166,8 @@ export function signupSubtitle(reason: string | null | undefined, redirect: stri
   if (notify) return notify;
   // F052 (UI audit 11-09): a guest who pressed a Declutter card's heart.
   if (reason === SAVE_ITEM_REASON) return t("signup.saveItemSubtitle");
+  // Owner 11-20 (ease batch): a guest who started a job post; it is kept on the device (src/lib/guestPostDraft.ts).
+  if (reason === "post") return t("signup.postSubtitle");
   const safe = safeInternalRedirect(redirect);
   const path = safe ? new URL(safe, "https://x.invalid").pathname : "";
   if (path.startsWith("/declutter/item/")) return t("signup.itemSubtitle");

@@ -20,7 +20,7 @@
  * @mutate src/components/sections/SectionScreen.tsx |   const guestFrame = useGuestPublicFrame(); |   const guestFrame = false;
  * @mutate src/components/sections/SectionScreen.tsx |             className="sticky z-30 -mx-5 | className="z-30 -mx-5
  * @mutate src/hooks/useAppShellViewport.ts | \|\| (framedGuest && isGuestPublicFrameRoute(pathname))) { | ) {
- * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/", "/shops/", "/book/"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search", "/jobs/", "/shops/", "/book/"] as const;
+ * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/", "/shops/", "/book/", "/post-job"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search", "/jobs/", "/shops/", "/book/", "/post-job"] as const;
  * @mutate src/lib/guestPublicFrame.ts | "/jobs/", "/shops/", "/book/"] as const; | "/jobs/"] as const;
  * @mutate src/lib/guestPublicFrame.ts | const NOT_GUEST_PAGES = ["/jobs/settings", "/shops/mine", "/shops/orders", "/shops/dashboard"]; | const NOT_GUEST_PAGES = ["/jobs/settings"];
  * @mutate src/lib/guestPublicFrame.ts |   !NOT_GUEST_PAGES.includes(pathname) && |
@@ -97,7 +97,7 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
     expect(isGuestPublicFrameRoute("/jobs/settings")).toBe(false);
     expect(isGuestPublicFrameRoute("/jobs")).toBe(false);
     for (const p of ["/shops", "/shops/mine", "/shops/orders", "/shops/dashboard", "/book/"]) expect(isGuestPublicFrameRoute(p), p).toBe(false);
-    expect(GUEST_PUBLIC_FRAME_ROUTES.length).toBe(8);
+    expect(GUEST_PUBLIC_FRAME_ROUTES.length).toBe(9); // owner 11-20: /post-job (a guest starts a post)
   });
 
   it("guest: AppPage (item page, /helprs, /search) draws the public header and footer, not AppShell", () => {

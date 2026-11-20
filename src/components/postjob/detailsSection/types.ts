@@ -38,4 +38,6 @@ export interface DetailsSectionProps {
   onClearVideo?: () => void;
   /** Continue was pressed with a [placeholder] still in the description (POST-H15): the field shows it in red. */
   placeholdersRefused?: boolean;
+  /** Owner 11-20: a guest starting a post. Photos cannot ride the draft through sign-up, so they are added after. */
+  photosAfterSignup?: boolean;
 }

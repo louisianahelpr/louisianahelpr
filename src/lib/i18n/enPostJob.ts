@@ -28,6 +28,8 @@ export const enPostJob = {
   "postJob.extras.sub": "Optional. A photo helps Helprs say yes.",
   "postJob.extras.onePhoto": "1 photo added",
   "postJob.extras.photos": "{n} photos added",
+  "postJob.extras.photosAfterSignup": "You can add photos after you sign up. Everything else you type here is kept.",
+  "postJob.signUpToPost": "Sign up to post",
   "postJob.more.title": "More options",
   "postJob.more.sub": "Optional: repeats, access and parking notes.",
   // Owner 11-20: the fair price hint (get_fair_price_hint)

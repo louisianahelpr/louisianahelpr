@@ -112,6 +112,9 @@ export function FormStep({ form }: FormStepProps) {
     submitLabel = t("postJob.review");
   } else if (!form.budgetComplete) {
     submitLabel = t("postJob.setBudget");
+  } else if (form.isGuest) {
+    // Owner 11-20 (ease batch): a guest's post is ready; the draft stays on the device through sign-up.
+    submitLabel = t("postJob.signUpToPost");
   }
 
   // ONE QUESTION PER SCREEN (boards 23, 44, 3, 45, 46): What, Details, Price,
@@ -269,6 +272,12 @@ export function FormStep({ form }: FormStepProps) {
             if (backTo.label === PLACEHOLDER_BLOCK) refusePlaceholders();
             return;
           }
+          // Owner 11-20: a guest signs up here; the post is kept on the device and finished after (guestPostDraft.ts).
+          if (form.isGuest) {
+            e.preventDefault();
+            if (!submitDisabled) form.finishAsGuest();
+            return;
+          }
           form.setQuoteReview(askingQuotes);
           if (!askingQuotes) return form.handleReview(e);
           if (submitDisabled) { e.preventDefault(); return; }
@@ -336,7 +345,8 @@ export function FormStep({ form }: FormStepProps) {
             requirePhotoProof={form.requirePhotoProof}
             setRequirePhotoProof={form.setRequirePhotoProof}
             scopeVideoUrl={form.scopeVideoPreviewUrl}
-            onVideoSelect={form.handleVideoSelect}
+            onVideoSelect={form.isGuest ? undefined : form.handleVideoSelect}
+            photosAfterSignup={form.isGuest}
             onClearVideo={form.clearVideo}
             placeholdersRefused={placeholdersRefused}
           />

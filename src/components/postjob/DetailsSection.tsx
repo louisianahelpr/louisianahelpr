@@ -43,6 +43,7 @@ export function DetailsSection({
   onVideoSelect,
   onClearVideo,
   placeholdersRefused,
+  photosAfterSignup,
 }: DetailsSectionProps) {
   const { t: tr } = useLanguage();
   // Automatically reset to tier 0 when switching to a non-trade category
@@ -115,6 +116,9 @@ export function DetailsSection({
         setRequirePhotoProof={setRequirePhotoProof}
       />
 
+      {photosAfterSignup ? (
+        <p className="text-ds-13 text-muted-foreground" data-testid="photos-after-signup">{tr("postJob.extras.photosAfterSignup")}</p>
+      ) : (
       <PhotoUpload
         imagePreviews={imagePreviews}
         imageFiles={imageFiles}
@@ -123,6 +127,7 @@ export function DetailsSection({
         uploadProgressByIndex={uploadProgressByIndex}
         onReorderImages={onReorderImages}
       />
+      )}
 
       {onVideoSelect && (
         <VideoScope

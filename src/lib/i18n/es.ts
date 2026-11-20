@@ -375,6 +375,7 @@ export const es: Record<MsgKey, string> = {
   "signup.notifySubtitle": "Regístrese para recibir un aviso cuando llegue trabajo pagado.",
   "signup.itemSubtitle": "Regístrese y le llevaremos directamente de vuelta a este artículo.",
   "signup.jobSubtitle": "Regístrese para postularse y le llevaremos directamente de vuelta a este trabajo.",
+  "signup.postSubtitle": "Su trabajo quedó guardado en este dispositivo. Regístrese y verifique su correo, y le traeremos de vuelta para publicarlo.",
   "signup.saveItemSubtitle": "Regístrese para guardar artículos. Le llevaremos directamente de vuelta a donde estaba.",
   "zip.unknown": "No reconocemos ese código postal como de Louisiana. Los trabajos se asignan por parroquia, así que revíselo; si no, el trabajo cercano no le llegará.",
 
@@ -459,6 +460,8 @@ export const es: Record<MsgKey, string> = {
   "postJob.extras.sub": "Opcional. Una foto ayuda a que los Helprs digan que sí.",
   "postJob.extras.onePhoto": "1 foto agregada",
   "postJob.extras.photos": "{n} fotos agregadas",
+  "postJob.extras.photosAfterSignup": "Puede agregar fotos después de registrarse. Todo lo demás que escriba aquí se guarda.",
+  "postJob.signUpToPost": "Regístrese para publicar",
   "postJob.more.title": "Más opciones",
   "postJob.more.sub": "Opcional: repetir, notas de acceso y estacionamiento.",
   "postJob.hint.label": "Precio justo",

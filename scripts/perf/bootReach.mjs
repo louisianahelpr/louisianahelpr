@@ -280,6 +280,12 @@ export function declutterItemSplit(root, split = signedInSplit(root)) {
     // fetches signed-in-pages) download that whole chunk, Declutter's api and seller tools included (lab, 375: 30 KB
     // gz on /jobs' first round for these ~6 modules). Their own chunk; the item page fetches it beside its own.
     itemShared: new Set([...itemPages].filter((f) => restReach.has(f))),
+    // Q178 (11-20, after #4779): the part of declutter-first-screen (declutterOnly) the item page reaches. That chunk
+    // is Selling's and Browse's first-screen code (seller delivery, wanted posts, saved searches, Helpr tasks' error
+    // copy, ...); the item page runs 25 of its 78 modules, yet fetched all of it (~34 KB gz of its 420). Its own chunk:
+    // the item page fetches only this one, /declutter fetches both in the same round. Empty when `split` has no
+    // declutterOnly (callers that pass only deep/homeOff).
+    itemFirst: new Set([...(split.declutterOnly ?? [])].filter((f) => reach.has(f))),
   };
 }
 

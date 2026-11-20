@@ -12,6 +12,9 @@
  * @mutate scripts/perf/bootReach.mjs |     itemShared: new Set([...itemPages].filter((f) => restReach.has(f))), |     itemShared: new Set(),
  * @mutate src/lib/quotes/api.ts | import { loadModule } from "@/lib/loadModule"; | import { loadModule } from "@/lib/loadModule"; import "@/lib/declutter/photos";
  * @mutate vite.config.ts |               name: "item-shared", |               name: "declutter-item-pages",
+ * @mutate scripts/perf/bootReach.mjs |     itemFirst: new Set([...(split.declutterOnly ?? [])].filter((f) => reach.has(f))), |     itemFirst: new Set(),
+ * @mutate vite.config.ts |               name: "decl-item-first", |               name: "declutter-first-screen",
+ * @mutate vite.config.ts |               priority: 17.1, |               priority: 16.9,
  * @mutate vite.config.ts |               priority: 15.75, |               priority: 15.6,
  * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]); | const reach = new Set();
  * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]); | const reach = staticReach(root, publicRoots(root));
@@ -316,5 +319,38 @@ describe("declutterItemSplit itemShared: the job lists do not download Declutter
     const prioOf = (name: string) => Number(cfg.match(new RegExp(`name:\\s*"${name}"[\\s\\S]*?priority:\\s*([\\d.]+)`))?.[1]);
     expect(prio).toBeGreaterThan(prioOf("declutter-item-pages"));
     expect(prio).toBeLessThan(prioOf("leaves"));
+  });
+});
+
+describe("declutterItemSplit itemFirst: the item page skips Selling's and Browse's first-screen code (Q178, 11-20)", () => {
+  // Measured 2026-11-20 (built with bundle-size.yml's env, critical-path.mjs): the item page reached 25 of
+  // declutter-first-screen's 78 modules and fetched the whole chunk (33.8 KB gz). With decl-item-first:
+  // /declutter/item/:id 420 -> 397 KB gz; /declutter 457 -> 458 (one more chunk, same round).
+  const split = signedInSplit(ROOT);
+  const { itemFirst } = declutterItemSplit(ROOT, split);
+  const item = staticReach(ROOT, [abs("src/pages/declutter/DeclutterItemPage.tsx")]);
+
+  it("inventory: itemFirst is the item page's part of declutterOnly, and a strict part", () => {
+    expect(split.declutterOnly.size).toBeGreaterThan(40);
+    expect(itemFirst.size).toBeGreaterThan(10);
+    expect(itemFirst.size).toBeLessThan(split.declutterOnly.size);
+    for (const f of itemFirst) expect(split.declutterOnly.has(f), f).toBe(true);
+    for (const f of split.declutterOnly) expect(itemFirst.has(f), f).toBe(item.has(f));
+  });
+
+  it("Selling's and Browse's own first-screen code stays out of itemFirst", () => {
+    for (const rel of ["src/lib/declutter/wanted.ts", "src/lib/savedSearches.ts", "src/lib/declutter/sellerDelivery.ts"]) {
+      expect(split.declutterOnly.has(abs(rel)), `${rel} is declutter-first-screen code`).toBe(true);
+      expect(itemFirst.has(abs(rel)), `${rel} would ride on the item page`).toBe(false);
+    }
+  });
+
+  it("vite.config.ts gives itemFirst its own group above declutter-first-screen", () => {
+    const cfg = blankComments(readFileSync(join(ROOT, "vite.config.ts"), "utf8"));
+    const group = cfg.match(/name:\s*"decl-item-first"[\s\S]*?\n\s*\},/)?.[0] ?? "";
+    expect(group).toMatch(/declutterItemFirst\.has\(/);
+    expect(cfg).toMatch(/itemFirst:\s*declutterItemFirst\b[^}]*\}\s*=\s*declutterItemSplit\(process\.cwd\(\),\s*\{[^}]*\bdeclutterOnly\s*\}\)/);
+    const prioOf = (name: string) => Number(cfg.match(new RegExp(`name:\\s*"${name}"[\\s\\S]*?priority:\\s*([\\d.]+)`))?.[1]);
+    expect(prioOf("decl-item-first")).toBeGreaterThan(prioOf("declutter-first-screen"));
   });
 });

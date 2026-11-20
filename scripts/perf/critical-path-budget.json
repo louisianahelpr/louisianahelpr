@@ -1,6 +1,6 @@
 {
   "_what": "Q178 critical-path budget, checked by `node scripts/perf/critical-path.mjs --check` against the BUILT bundle (bundle-size.yml, npm run gate). Rounds are exact both ways; KB is a band (+5% fails as a regression, -10% fails as a stale budget). Lower these in the same commit as the change that lowers them.",
-  "_measured": "2026-11-17 10:20 PM CST (Mac clock), local vite build with bundle-size.yml env on perf/jobs-first-screen-1117 (Q2705 pass 3: nativePush, QuickApplyHandler and fetchJobForPin load on use; browse-guest-screen splits guest /browse's own part out of browse-first-screen; native-push outranks signed-in-deep): /jobs 319 -> 309 KB gz; every other row within 1 KB of main",
+  "_measured": "2026-11-20 2:13 AM CST (Mac clock), local vite build with bundle-size.yml env on fix/declutter-item-bundle-1120 (Q178, after #4779 put /declutter/item/:id at 420 KB gz on main): decl-item-first splits the 25 of declutter-first-screen's 78 modules the item page reaches into their own chunk, and the item page's DemandLine loads on use: /declutter/item/:id 420 -> 397 KB gz; /declutter 457 -> 458, /declutter?tab=selling 551 -> 552 (one more chunk, same round); /jobs 314 -> 310; every other row equal to main",
   "entry": {
     "staticChunks": 2,
     "kb": 4.7
@@ -44,7 +44,7 @@
     "/declutter/item/:id": {
       "routeRound": 2,
       "rounds": 2,
-      "jsKB": 400
+      "jsKB": 397
     },
     "/admin": {
       "routeRound": 2,

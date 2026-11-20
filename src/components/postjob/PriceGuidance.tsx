@@ -16,7 +16,7 @@ import "@/lib/i18n/enPostJob";
  * (and the only answer a guest gets). Each scope says what it is: only a real range says "near you" or "on Helpr".
  * It replaced board 190's statewide get_price_guidance (30+ completed jobs, testers switch), which never showed.
  */
-export interface FairPriceHint {
+interface FairPriceHint {
   scope: "near" | "state" | "typical";
   count: number | null;
   low: number;
@@ -24,7 +24,7 @@ export interface FairPriceHint {
 }
 
 /** The hint for a category; null while loading, on an error (reported), or for a category with no range. */
-export function useFairPriceHint(category: string | null | undefined): FairPriceHint | null {
+function useFairPriceHint(category: string | null | undefined): FairPriceHint | null {
   const { profile } = useCurrentUser();
   // The member's saved point (profiles.latitude/longitude); without one the server answers statewide.
   const lat = typeof profile?.latitude === "number" ? Math.round(profile.latitude * 100) / 100 : null;

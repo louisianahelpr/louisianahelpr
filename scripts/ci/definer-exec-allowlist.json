@@ -3,7 +3,7 @@
     "choose_new_social_account(uuid)": "client",
     "early_access_cutoff()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view, whose callers need EXECUTE; returns a timestamp only.",
     "get_open_jobs_for_map()": "client",
-    "get_fair_price_hint(text, double precision, double precision)": "reviewed 2026-11-20 (owner ease batch item 1): Post a job's fair price hint for a guest starting a post before sign-up. For anon it reads no table: it returns only the fixed typical range per category (fair_price_typical); real ranges (5+ jobs from 3+ posters, middle half only) go to signed-in members. Proof: src/test/pglite/fairPriceHint.pglite.mjs.",
+    "get_fair_price_hint(text, double precision, double precision)": "client",
     "get_parish_for_zip(text)": "client",
     "get_public_open_jobs(integer)": "reviewed 2026-10-05 (Q14): public landing-teaser browse data (masked, seed-gated, Q182 parity list); no app caller now, scripts/launch-go.mjs calls it as anon at launch.",
     "get_public_platform_settings()": "client",

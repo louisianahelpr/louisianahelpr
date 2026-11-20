@@ -72,7 +72,7 @@ export const JOB_ACTION_EVENT = "helpr:job-action";
  * "...when they reply?" after a message). The action names itself in the event's detail; src/lib/pushAskWords.ts has
  * the words. No context: the sheet's general words.
  */
-export function jobActionEvent(context?: string): Event {
+function jobActionEvent(context?: string): Event {
   return new CustomEvent(JOB_ACTION_EVENT, { detail: { context: context ?? null } });
 }
 

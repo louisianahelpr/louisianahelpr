@@ -11,7 +11,7 @@ import { signupUrlFor } from "@/lib/jobIntent";
 export const GUEST_POST_RESUME_PATH = "/post-job?resume=draft";
 
 /** The ?reason= Signup reads to say the post is kept (signupSubtitle). */
-export const GUEST_POST_REASON = "post";
+const GUEST_POST_REASON = "post";
 
 /** Where a guest's "Sign up to post" goes. */
 export function guestPostSignupUrl(): string {

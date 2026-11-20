@@ -11,16 +11,15 @@
  * @mutate scripts/giftGuideRules.mjs | export const MEN_COLOR_GUIDES = [...MEN_FAMILY_GUIDES, "nephew", "boys-teens", "brother-in-law", "new-dad"]; | export const MEN_COLOR_GUIDES = [];
  * @mutate src/content/giftGuideCatalog.ts | export const GUIDE_MIN_PICKS = 1; | export const GUIDE_MIN_PICKS = 6;
  */
-import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { readdirSync } from "./helpers/trackedFiles";
 import { BABY_OK, BABY_ITEM, MEN_COLOR_GUIDES, MEN_PASTEL, OLD_ELECTRONICS, OWNER_REMOVED } from "../../scripts/giftGuideRules.mjs";
 import { GUIDE_MIN_PICKS, guideBySlug } from "@/content/giftGuideCatalog";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; ownerPick?: true; retailer?: string; store?: string };
-const DIR = "src/content/giftGuidePicks";
-const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
-const slugs = readdirSync(DIR).filter((f: string) => f.endsWith(".json")).map((f: string) => f.replace(/\.json$/, ""));
+// Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
+const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
+const slugs = Object.keys(sectionChunks());
 const guides = slugs.filter((s: string) => !s.startsWith("store-"));
 
 describe("gift guides: owner follow-ups 11-19", () => {
@@ -38,14 +37,13 @@ describe("gift guides: owner follow-ups 11-19", () => {
   it("the named removals and old electronics show on no page, store pages included", () => {
     let n = 0;
     const bad = slugs.flatMap((s: string) => pageOf(s).filter((p) => { n += 1; return !p.ownerPick && (OWNER_REMOVED(p) || OLD_ELECTRONICS.test(p.name)); }).map((p) => `${s}: ${p.name}`));
-    expect(n).toBeGreaterThan(3000);
+    expect(n).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
     expect(bad).toEqual([]);
   });
 
-  it("owner picks lead their guides; Advent Calendars and Gift Tags hold picks; a guide shows from one pick", () => {
+  it("owner picks keep their badge on guides (no longer first: owner 11-19 ~6:40 PM sorts by commission); Advent Calendars and Gift Tags hold picks; a guide shows from one pick", () => {
     const withOwner = guides.filter((s: string) => pageOf(s).some((p) => p.ownerPick));
     expect(withOwner.length).toBeGreaterThan(20);
-    for (const s of withOwner) expect(pageOf(s)[0].ownerPick, s).toBe(true);
     for (const s of ["advent-calendars", "gift-tags"]) {
       expect(pageOf(s).length, s).toBeGreaterThan(3);
       expect(guideBySlug(s)?.empty, s).toBeFalsy();

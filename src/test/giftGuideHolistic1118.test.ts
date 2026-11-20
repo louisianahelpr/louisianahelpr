@@ -11,21 +11,18 @@
  * @mutate scripts/gift-guide-picks.mjs |     if (INSTAX_OFF.includes(slug) && instaxItem(p)) return "instax"; |
  * @mutate scripts/giftGuideRules.mjs | export const NO_SHOW_FORMAT = /\.(avif\|heif\|heic)(\?\|$)\|[?&](fmt\|format)=avif\b/i; | export const NO_SHOW_FORMAT = /^$/;
  */
-import { readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ANGLING, NEW_MOM_CARE, NOT_A_GIFT_ITEM, WOMEN_GUIDES, brokenImage, collectionLink, fitsGuide, INSTAX_OFF, instaxItem, mensItem, nonUsUrl, placeholderName } from "../../scripts/giftGuideRules.mjs";
+import { sectionChunks } from "./helpers/giftGuideSections";
 
-const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; href: string; image?: string };
-const CHUNKS: Record<string, Pick[]> = Object.fromEntries(
-  readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => [f.replace(/\.json$/, ""), (JSON.parse(readFileSync(join(DIR, f), "utf8")) as { picks: Pick[] }).picks]),
-);
+// Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
+const CHUNKS: Record<string, Pick[]> = sectionChunks<Pick>();
 
 describe("gift guides holistic fit (11-18)", () => {
   it("reads every chunk", () => {
-    expect(Object.keys(CHUNKS).length).toBeGreaterThan(400);
+    // Big batch 2026-11-20: ~65 guides split into ~250 sections, and the 30 kept store pages.
+    expect(Object.keys(CHUNKS).length).toBeGreaterThan(250);
   });
 
   it("Fish Lover holds pet-fish gifts, never angling gear", () => {

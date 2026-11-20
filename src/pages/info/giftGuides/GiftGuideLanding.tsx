@@ -11,6 +11,8 @@ import { LAST_MINUTE, lastMinuteOn, shippingLine } from "@/content/giftGuideShip
 import { Button } from "@/components/ui/button";
 import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
 import { DealsFeature } from "./GiftGuideDeals";
+import { SmallBizFeature } from "./GiftGuideSmallBiz";
+import { GatedBanners, GiftFinder } from "./GiftGuideFinder";
 
 /**
  * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
@@ -23,11 +25,8 @@ import { DealsFeature } from "./GiftGuideDeals";
  * The three Teens guides, also tiles in the For kids row (live audit r3 #4: they sat only under the Girls, Boys and
  * Gender-Neutral hubs, so the landing reached none), each named so the three read apart.
  */
-export const TEEN_TILES: { slug: string; label: string }[] = [
-  { slug: "girls-teens", label: "Teen girls" },
-  { slug: "boys-teens", label: "Teen boys" },
-  { slug: "gender-neutral-teens", label: "Gender-neutral teens" },
-];
+// 1120: the Teens guides are sections of Girls, Boys and Gender-Neutral now (Kids by age links each); no tiles of their own.
+export const TEEN_TILES: { slug: string; label: string }[] = [];
 /**
  * A landing row's tiles: its guides, and on For kids the Teens guides that hold picks. The Girls, Boys and Gender-neutral
  * tiles carry a visible caption like the teen tiles (gg-r3 UX audit #10: only the teen tiles had one).
@@ -56,10 +55,11 @@ export const QUICK_PICKS: { label: string; to: string; slug?: string }[] = [
   { label: "Under $25", to: "/gift-guides/under-25", slug: "under-25" },
   { label: "Under $50", to: "/gift-guides/under-50", slug: "under-50" },
   { label: "Stocking stuffers", to: "/gift-guides/stocking-stuffers", slug: "stocking-stuffers" },
-  // gg-r3 UX audit #17: the chip opens the Kids by age block itself (KidsByAge scrolls to its anchor).
-  { label: G.kidsByAgeChip, to: `/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}` },
-  { label: "Him", to: "/gift-guides/him", slug: "him" },
+  // Big batch 1120 (owner-approved quick picks, in her order: Under $25, Under $50, Stocking Stuffers, Her, Him, Kids, Louisiana).
   { label: "Her", to: "/gift-guides/her", slug: "her" },
+  { label: "Him", to: "/gift-guides/him", slug: "him" },
+  // gg-r3 UX audit #17: the chip opens the Kids by age block itself (KidsByAge scrolls to its anchor).
+  { label: "Kids", to: `/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}` },
   { label: "Louisiana", to: "/gift-guides?group=louisiana" },
 ];
 
@@ -174,12 +174,19 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       {group && <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>}
       {/* Owner brief 2026-11-19: the deals guide sits at the very top, Nov 23 through Dec 1 (Louisiana). */}
       {!group && <DealsFeature />}
+      {/* Big batch 1120: the Small Business Saturday page, Nov 24 through Nov 29 (Louisiana). */}
+      {!group && <SmallBizFeature />}
       {!group && <QuickPicks />}
+      {/* Big batch 1120: the 25 Days banner and the Declutter link, OFF until the lead flips their flags. */}
+      {!group && <GatedBanners />}
       {!group && <LastMinute />}
       <div className="gg-rows" data-gift-rows="">
         {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}
       </div>
       {!group && <TopStrip />}
+      {/* Big batch 1120: the gift finder (who, budget, vibe), its answers in the URL; after the first row and the Top
+          10, so nothing but the quick picks sits above the first row (holistic review 11-18 M9). */}
+      {!group && <GiftFinder />}
       {!group && <div className="gg-rows" data-gift-rows="">{rows.slice(ROWS_BEFORE_TOP).map(drawRow)}</div>}
       {!group && <DealsAndCodes />}
       {!group && (

@@ -15,24 +15,22 @@
  * @mutate scripts/giftGuideRules.mjs |   if (EXPERIENCE_GUIDES.includes(slug)) return EXPERIENCE.test(p.name) && !NOT_A_GIFT.test(p.name); |
  * @mutate scripts/giftGuideRules.mjs |   if (/\bkni(fe\|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false; |
  * @mutate scripts/giftGuideRules.mjs | export const brokenImage = (u) => /liquid(%20\|\s\|\+)error/i.test(u) \|\| /[<>{}]/.test(u) \|\| | export const brokenImage = (u) => /[<>{}]/.test(u) \|\|
- * @mutate src/content/giftGuideCatalog.ts |  ${SEARCH_KEYWORDS[g.slug] ?? ""}`); | `);
+ * @mutate src/content/giftGuideCatalog.ts |  ${SEARCH_KEYWORDS[g.slug] ?? ""} ${sectionWords(g.slug)}`); | `);
  * @mutate src/content/giftGuideCatalog.ts | .sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j) | .sort(([, i], [, j]) => i - j)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? | {false ? G.collectionOnShopMy : storeLabel(pick) ?
  */
 import { readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
-import { SEARCH_KEYWORDS, searchGuides } from "@/content/giftGuideCatalog";
+import { SEARCH_KEYWORDS, searchGuides, sectionWords } from "@/content/giftGuideCatalog";
 import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
 import { LOUISIANA_SHOPS, SPONSOR_SITES } from "@/content/giftGuides";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
-const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; sponsor?: true };
-const CHUNKS: Record<string, Pick[]> = Object.fromEntries(
-  readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => [f.replace(/\.json$/, ""), (JSON.parse(readFileSync(join(DIR, f), "utf8")) as { picks: Pick[] }).picks]),
-);
+// Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
+const CHUNKS: Record<string, Pick[]> = sectionChunks<Pick>();
 const VIEW = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/GiftGuideView.tsx"), "utf8");
 /** Louisiana shops and 25 Days sponsors (no store page, not a ShopMy collection) keep their own words, on purpose. */
 const local = (p: Pick) => !p.store && !p.href.startsWith("https://shopmy.us/");
@@ -70,7 +68,7 @@ describe("design audit r2: names are products", () => {
     expect(productName("2027 Dreambook + Planner", ["Erin Condren"], "erincondren")).toBe("2027 Dreambook + Planner");
   });
   it("no generated pick (outside Louisiana shops and sponsors) is a page title, a promo, or just its brand", () => {
-    expect(all.length).toBeGreaterThan(3000); // one guide per product (owner 11-19)
+    expect(all.length).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
     const bad = all.filter(({ p }) => !local(p) && !p.sponsor && (/\s\|\s?|\s?\|\s/.test(p.name) || PROMO_NAME.test(p.name) || (p.brand && p.brand.toLowerCase() === p.name.toLowerCase())));
     expect(bad.map(({ slug, p }) => `${slug}: ${p.name}`).slice(0, 10)).toEqual([]);
   });
@@ -147,19 +145,21 @@ describe("design audit r2: sales and search", () => {
   it("#11 'lsu', 'saints', 'boots' and 'nurse' find their guides; a title match ranks first", () => {
     const slugs = (q: string) => searchGuides(q).map((g) => g.slug);
     expect(Object.keys(SEARCH_KEYWORDS).length).toBeGreaterThan(5);
-    expect(slugs("lsu")).toContain("purple-and-gold-lover");
+    // 1120: Purple & Gold Lover is a section of Game Day; its LSU words find Game Day.
+    expect(slugs("lsu")).toContain("game-day");
     expect(slugs("saints")).toContain("game-day");
-    expect(slugs("boots")).toContain("store-muck-boot");
+    // 1120: the Muck Boot store page folded into the guides; Tractor Supply carries the boots now.
+    expect(slugs("boots")).toContain("store-tractor-supply");
     // One guide per product (owner 11-19): a nurse guide under 6 picks is hidden; whatever nurse guide shows matches.
     expect(slugs("nurse").every((s) => /nurs|healthcare|cnas|rns|lpns/.test(s))).toBe(true);
     expect(slugs("mom")[0]).toBe("mom");
     // Every guide titled with the word comes before any guide that only matches through its lead or row.
     const inTitle = searchGuides("mom").map((g) => /mom/i.test(g.title));
-    expect(inTitle.filter(Boolean).length).toBeGreaterThan(1);
+    expect(inTitle.filter(Boolean).length).toBeGreaterThan(0); // 1120: Mom-to-Be and New Mom are sections now
     expect(inTitle.lastIndexOf(true)).toBeLessThan(inTitle.indexOf(false) === -1 ? Infinity : inTitle.indexOf(false));
     // Holistic review 11-18 H5: "gift for mom" listed Mom plus 18 Life moments guides; a group's name now matches only
     // as a whole word, so no guide is found through "moments".
-    expect(searchGuides("gift for mom").filter((g) => g.row === "life-moments" && !/mom/i.test(g.title))).toEqual([]);
+    expect(searchGuides("gift for mom").filter((g) => g.row === "life-moments" && !/mom/i.test(`${g.title} ${sectionWords(g.slug)}`))).toEqual([]); // 1120: a section title counts
   });
 });
 
@@ -178,7 +178,7 @@ describe("gift guides: featured order and Our Top 10 (owner 11-18 PM: \"This can
       expect(picks.slice(0, 12).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(1);
       expect(picks.slice(0, 25).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(2);
     }
-    expect(guides).toBeGreaterThan(150);
+    expect(guides).toBeGreaterThan(150); // 1120: counted per section (helpers/giftGuideSections.ts)
   });
 });
 
@@ -203,7 +203,8 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
       const twice = keys.filter((k, i) => keys.indexOf(k) !== i);
       expect(twice, `${slug}: repeated product`).toEqual([]);
     }
-    expect(pages).toBeGreaterThan(300);
+    // Big batch 2026-11-20: ~65 guides with their sections and 30 store pages (~280 lists).
+    expect(pages).toBeGreaterThan(250);
     // Variants are one product; the Thin Blue and Thin Red Line flags are two.
     expect(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 15pc.")).toBe(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 30pc."));
     expect(key("Thin Blue Line US Flag, 3x5")).not.toBe(key("Thin Red Line US Flag, 3x5"));
@@ -219,16 +220,16 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
   });
 });
 describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
-  const pageOf = (slug: string): { name: string; image?: string; href: string }[] =>
-    JSON.parse(readFileSync(join(process.cwd(), `src/content/giftGuidePicks/${slug}.json`), "utf8")).picks;
-  const pages = readdirSync(join(process.cwd(), "src/content/giftGuidePicks")).filter((f) => f.endsWith(".json"));
+  // Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
+  const pageOf = (slug: string): { name: string; image?: string; href: string }[] => sectionPageOf<{ name: string; image?: string; href: string }>(slug);
+  const pages = Object.keys(sectionChunks()).map((s) => `${s}.json`);
   it("drops the audited wrong thumbnails and any logo/banner/icon image", () => {
     // @mutate scripts/giftGuideRules.mjs |   \|\| (LOGO_IMAGE.test(u.split("?")[0]) && !LOGO_PRODUCT.test(u)) \|\| WRONG_IMAGES.has(u.split("?")[0]); |   ;
     expect(WRONG_IMAGES.size).toBeGreaterThan(20);
     expect(brokenImage("https://res.cloudinary.com/mavely/image/upload/v1/Sonos_logo_c655260285.jpg")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/1033/0751/files/LinkSharing-SEO-Thumbnail_1.jpg?v=1")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/0001/files/carhartt-iconic-beanie.jpg")).toBe(false);
-    expect(pages.length).toBeGreaterThan(300);
+    expect(pages.length).toBeGreaterThan(250);
     for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) if (p.image) expect(brokenImage(p.image), `${f}: ${p.name}`).toBe(false);
   });
   it("drops picks named after a web page, and the wrong-guide picks (curling iron in Him, dumbbell stand in Home Cook)", () => {
@@ -244,7 +245,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
   it("renames page-title rows to the plain product (Atlas \"Corporate\" gifts, the SharkNinja category rows) and keeps the face mask out of Dad and Home Cook", () => {
     // @mutate scripts/gift-guide-picks.mjs |   const rawName = RENAMED[p.href] ?? RENAMED[p.affiliate_href] ?? ( |   const rawName = (
     const all = pages.flatMap((f) => pageOf(f.replace(/\.json$/, "")).map((p) => p.name));
-    expect(all.length).toBeGreaterThan(3000); // one guide per product (owner 11-19)
+    expect(all.length).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
     for (const bad of [/Email Gift.*Corporate/, /Crispier Cooking/, /Skincare Routine Tools/]) expect(all.some((n) => bad.test(n)), String(bad)).toBe(false);
     // ("Ninja Air Fryer" left every guide with the 11-19 removal lists; its rename still holds wherever it shows.)
     expect(all.filter((n) => /^Ninja Air Fryer/.test(n)).every((n) => n === "Ninja Air Fryer")).toBe(true);
@@ -263,7 +264,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
       rows += 1;
       if (!allowed.has(p.name) && f !== "25-days-sponsors.json") expect(p.image, `${f}: ${p.name}`).toBeTruthy();
     }
-    expect(rows).toBeGreaterThan(3000); // one guide per product (owner 11-19)
+    expect(rows).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
   });
   // Owner 11-19 retired the 25-pick floor: fit beats count ("she'd rather a guide have 18 great items than 25 with
   // filler", 2026-11-19). A guide keeps at least one pick; the ones under 12 are logged for research (giftGuideBelong1119).
@@ -273,7 +274,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(pageOf("gift-cards").length).toBeGreaterThan(5); // one guide per product (owner 11-19)
     // (Dupuy's Gift Certificate is a Louisiana business: the Louisiana rule keeps it in the Louisiana section.)
     expect(pageOf("gift-cards").some((p) => /Dupuy/.test(p.name))).toBe(false);
-    expect(pageOf("subscriptions").length).toBeGreaterThan(5); // one guide per product (owner 11-19)
+    expect(pageOf("subscriptions").length).toBeGreaterThan(2); // 1120: the fit audit cut the photo-less memberships
     const guides = pages.map((f) => f.replace(/\.json$/, "")).filter((s) => !s.startsWith("store-") && !["gift-cards", "subscriptions"].includes(s));
     expect(guides.length).toBeGreaterThan(150);
     // One guide per product (owner 11-19): a guide may end with none; under 6 it is hidden (giftGuideCatalog GUIDE_MIN_PICKS).
@@ -291,7 +292,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
       const b = p.brand.normalize("NFD").toLowerCase().replace(/[^a-z0-9]+/g, "");
       (rowsByImage.get(p.image) ?? rowsByImage.set(p.image, []).get(p.image)!).push({ b, href: p.href });
     }
-    expect(rows).toBeGreaterThan(3000);
+    expect(rows).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
     const shared = (h: string) => h.startsWith("https://shopmy.us/collections/");
     const mixed = [...rowsByImage].filter(([, rs]) => rs.some((x) => rs.some((y) => !x.b.includes(y.b) && !y.b.includes(x.b) && (x.href !== y.href || shared(x.href)))));
     expect(mixed.map(([i, rs]) => `${i} ${[...new Set(rs.map((r) => r.b))].join("/")}`)).toEqual([]);
@@ -320,7 +321,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
         expect(isLouisianaItem(p, hosts), `${slug}: ${p.name} (${p.brand})`).toBe(false);
       }
     }
-    expect(checked).toBeGreaterThan(3000); // one guide per product (owner 11-19)
+    expect(checked).toBeGreaterThan(2000); // 1120: 30 store pages and the fit audits
   });
   it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]
@@ -337,7 +338,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     const order = ["Walmart+ membership", "Sam's Club Plus Membership", "Sam's Club Membership", "Gift Prime (3-month gift membership)",
       "Gift an Audible membership (1, 3, 6 or 12 months)", "Gift Kindle Unlimited (6, 12 or 24 months)", "Audible Premium Plus annual membership"];
     const kept = order.filter((n) => names.includes(n));
-    expect(kept.length).toBeGreaterThan(1);
+    expect(kept.length).toBeGreaterThan(0); // 1120: Sam's Club Plus (owner keep) leads
     expect(names.slice(0, kept.length)).toEqual(kept);
     expect(names.some((n) => /stanley|tumbler|airpods/i.test(n))).toBe(false);
     // Owner 11-18 PM: no free trials on Subscriptions.

@@ -16,14 +16,15 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { readdirSync } from "./helpers/trackedFiles";
 import { GUIDE_GROUPS, KIDS_TOY, SHOPMY_S3, kidsToyOff, shopmyCdnUrl } from "../../scripts/giftGuideRules.mjs";
 import { MERGED_GUIDES, guideBySlug } from "@/content/giftGuideCatalog";
+import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; ownerPick?: true; store?: string };
 const DIR = "src/content/giftGuidePicks";
-const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
-const slugs = readdirSync(DIR).filter((f: string) => f.endsWith(".json")).map((f: string) => f.replace(/\.json$/, "")).filter((s: string) => s !== "25-days-sponsors");
+// Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
+const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
+const slugs = Object.keys(sectionChunks()).filter((s: string) => s !== "25-days-sponsors");
 const guides = slugs.filter((s: string) => !s.startsWith("store-"));
 const stores = slugs.filter((s: string) => s.startsWith("store-"));
 // The index groups, as the import reads them (kidsToyOff checks the Hobbies group).
@@ -58,7 +59,8 @@ describe("gift guides: import train 1530", () => {
       expect(pageOf(s).length, s).toBeGreaterThanOrEqual(10);
       expect(pageOf(s).length, s).toBeLessThanOrEqual(15);
     }
-    expect(stores.length).toBeGreaterThan(200);
+    // Big batch 2026-11-20: the 30 kept store pages (src/content/giftGuideMerges.mjs STORE_PAGES_KEPT).
+    expect(stores.length).toBeGreaterThan(25);
     for (const s of stores) {
       const hrefs = pageOf(s).map((p) => p.href);
       const names = pageOf(s).map((p) => p.name.toLowerCase());

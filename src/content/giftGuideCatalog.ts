@@ -11,7 +11,8 @@ import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS,
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
-import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
+import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, SECTION_ANCHORS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
+import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 
 /**
  * The owner's list plus every store page the researched picks name (follow-up batch 2026-11-18: every store or brand
@@ -76,10 +77,18 @@ export interface CatalogPick {
   /** A checked price (USD) and its check day (YYYY-MM-DD, Louisiana), from the import (owner 11-18). Never on Amazon. */
   price?: number;
   priceAt?: string;
+  /** A merged guide's section (1120): the old guide's slug, the section's anchor (/gift-guides/healthcare#rns). */
+  sectionId?: string;
+  /** The budget filter's band (1120): the price is at most this ($25, $50, $100; 500 = over $100). Never shown; none on Amazon. */
+  band?: 25 | 50 | 100 | 500;
+  /** Ships later than usual (pre-order, 1120: 21 Collective). */
+  preorder?: true;
+  /** The brand's discount code shown on the card (1120: 21 Collective, COLLECTIVE10). */
+  code?: string;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
-export type PickBadge = "trending" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup" | "shop-louisiana";
+export type PickBadge = "trending" | "tiktok" | "preorder" | "louisiana-made" | "sponsor" | "ships-fast" | "local-pickup" | "shop-louisiana";
 
 /**
  * "Shop Louisiana" (owner 2026-11-18): a pick sold by a Louisiana shop, unless it already carries the stronger
@@ -94,8 +103,10 @@ const withShopLouisiana = (badges: PickBadge[], store: GiftStore): PickBadge[] =
  * marked louisianaFit AND its brand is Louisiana-based, "25 Days sponsor" for a sponsor's pick or any pick on the
  * sponsors guide (lead 2026-11-18), Ships fast and Local pickup (optional flags). Never a price.
  */
-export const badgesFor = (brand: string | undefined, flags: { louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true } = {}): PickBadge[] => [
-  ...(flags.trending ? (["trending"] as const) : []),
+export const badgesFor = (brand: string | undefined, flags: { louisianaFit?: true; trending?: true; tiktok?: true; preorder?: true; shipsFast?: true; localPickup?: true; sponsor?: true } = {}): PickBadge[] => [
+  // "Trending on TikTok" (owner-approved 11-19 9:05 PM) replaces the plain Trending on the same pick.
+  ...(flags.tiktok ? (["tiktok"] as const) : flags.trending ? (["trending"] as const) : []),
+  ...(flags.preorder ? (["preorder"] as const) : []),
   ...(flags.louisianaFit && brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
   ...(flags.sponsor || (brand && SPONSOR_BRANDS.includes(brand)) ? (["sponsor"] as const) : []),
   ...(flags.shipsFast ? (["ships-fast"] as const) : []),
@@ -231,6 +242,7 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   const store = researchedStore(p);
   const badges = withShopLouisiana(badgesFor(p.brand, p), store);
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
+    ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.code ? { code: p.code } : {}),
     // Never an Amazon price (Associates rule), whatever the generated file holds.
     ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) };
 };
@@ -384,14 +396,28 @@ for (const [from, targets] of Object.entries(MERGED_GUIDES)) {
     draftOf.set(t, { ...d, picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]), links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
   }
 }
-const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug];
+// 1120: a guide merged into another as a section (MERGED_INTO) and a store page not kept (isFoldedStore) have no page.
+/** 1120: a guide merged into another as a section hands its collection links (ShopMy) to the parent guide. */
+for (const [from, { parent }] of Object.entries(MERGED_INTO)) {
+  const src = draftOf.get(from);
+  const d = draftOf.get(parent);
+  if (!src || !d) continue;
+  draftOf.set(parent, { ...d, links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
+}
+const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug] && !MERGED_INTO[slug] && !isFoldedStore(slug);
 
 /** Where an old or folded guide's link now goes (null: no such guide). */
 export const newSlugFor = (slug: string): string | null => {
   const s = OLD_SLUGS[slug] ?? slug;
   const to = MERGED_GUIDES[s]?.[0] ?? s;
+  // 1120: a guide merged into another opens the parent at its section ("healthcare#nurses"; the section groups name
+  // the section, SECTION_ANCHORS), or at the top when its picks folded into a guide with one list.
+  const into = MERGED_INTO[to];
+  if (into) return GUIDES.some((g) => g.slug === into.parent) ? (SECTION_ANCHORS[to] ? `${into.parent}#${SECTION_ANCHORS[to]}` : into.parent) : null;
   return GUIDES.some((g) => g.slug === to) ? to : null;
 };
+/** Every old slug the merges (1120) and the folded store pages retire: each answers a 301 (api/share.ts). */
+export const RETIRED_SLUGS = (): string[] => [...Object.keys(MERGED_INTO), ...GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug)];
 const parentOf = new Map(Object.entries(HUBS).flatMap(([hub, groups]) => groups.flatMap((x) => x.slugs.map((c) => [c, hub] as const))));
 
 
@@ -513,7 +539,8 @@ export const guideBySlug = (slug: string | undefined) => GUIDES.find((g) => g.sl
  */
 export const SEARCH_KEYWORDS: Record<string, string> = {
   "purple-and-gold-lover": "lsu tigers geaux", "game-day": "saints lsu tigers tailgate football",
-  "store-muck-boot": "boots", "store-xtratuf": "boots", "store-durango-boots": "boots",
+  // 1120: the Muck, XTRATUF and Durango store pages folded into the guides; their boots sit on these pages now.
+  "store-tractor-supply": "boots", hunters: "boots", farmers: "boots",
   rns: "nurse nurses", lpns: "nurse nurses", healthcare: "nurse nurses", "healthcare-workers": "nurse nurses",
 };
 
@@ -586,7 +613,9 @@ const BUDGET_WORDS = new Set(["under", "below", "less", "than", "max", "dollars"
 export const searchIntent = (words: string[]): { slugs: string[]; used: Set<string> } => {
   const used = new Set<string>();
   const slugs: string[] = [];
-  const add = (s: string) => {
+  const add = (s0: string) => {
+    // 1120: a guide merged into another as a section is found as its parent guide.
+    const s = MERGED_INTO[s0]?.parent ?? s0;
     const g = guideBySlug(s);
     if (g && !g.empty && !slugs.includes(s)) slugs.push(s);
   };
@@ -665,13 +694,26 @@ export const searchGuides = (query: string): CatalogGuide[] => {
   const byWords = rest.length === 0 ? [] : GUIDES.filter((g) => {
     // A store page under STORE_ROW_MIN_PICKS (thin) is no search result either (lead 11-19); its link still opens.
     if (g.empty || g.thin) return false;
-    const hay = fold(`${g.title} ${g.lead} ${SEARCH_KEYWORDS[g.slug] ?? ""}`);
+    const hay = fold(`${g.title} ${g.lead} ${SEARCH_KEYWORDS[g.slug] ?? ""} ${sectionWords(g.slug)}`);
     return rest.every((w) => hay.includes(w) || (label.get(g.row) ?? []).includes(w));
   }).map((g, i) => [g, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([g]) => g);
   // A title that is the query itself ("mom", "tractor supply") leads; otherwise the meaning's guides lead.
   const meant = intent.slugs.map((s) => guideBySlug(s)!);
   const merged = byWords.length > 0 && rank(byWords[0]) <= 1 ? [...byWords, ...meant] : [...meant, ...byWords];
   return [...new Map(merged.map((g) => [g.slug, g] as const)).values()];
+};
+
+/**
+ * A merged guide's searchable words (1120): each folded section's title and search keywords ("RNs nurse nursing" on
+ * Healthcare Workers), so a shopper typing an old guide's name still finds the guide that holds it.
+ */
+const sectionWordsMemo = new Map<string, string>();
+export const sectionWords = (slug: string): string => {
+  if (!sectionWordsMemo.has(slug)) {
+    const kids = Object.entries(MERGED_INTO).filter(([, v]) => v.parent === slug).map(([s]) => s);
+    sectionWordsMemo.set(slug, kids.map((s) => `${OWNER_INDEX.find((g) => g.slug === s)?.title ?? ""} ${SEARCH_KEYWORDS[s] ?? ""}`).join(" "));
+  }
+  return sectionWordsMemo.get(slug)!;
 };
 
 /** One item row of the search index (scripts/gift-guide-search-index.mjs): its name and the guide it sits in. */

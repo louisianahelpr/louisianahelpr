@@ -120,7 +120,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     for (const p of sponsors) expect(p.badges, p.name).toContain("sponsor");
     const fitNotMade = all.filter((p) => p.louisianaFit && !LOUISIANA_MADE_BRANDS.includes(p.brand));
     expect(fitNotMade.some((p) => p.brand === "YETI")).toBe(true);
-    expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(50);
+    expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(35); // 1120: 30 store pages
     expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
     // 15 measured 11-18 night: the 6 Zydeco Chop Chop rows left (their link opened the shop page, not a product; review H3).
     expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(5); // one guide per product (owner 11-19)
@@ -132,7 +132,8 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(container.querySelector('a[href*="hilma"]')).toBeNull();
   });
   it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {
-    const { container } = renderAt("/gift-guides/louisiana-made");
+    // 1120: Louisiana-Made is a section of Shop Small Louisiana.
+    const { container } = renderAt("/gift-guides/shop-small-louisiana");
     const badges = [...container.querySelectorAll("[data-gift-badge]")].map((b) => b.textContent);
     expect(badges).toContain("Louisiana-made");
     // The only "$" on the list is a checked price beside Shop (src/test/giftGuidePrices.test.tsx), never in a name, line or badge.
@@ -142,7 +143,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     const out = [...container.querySelectorAll("[data-gift-list] a")];
     // Two links per pick, both to the shop: the row (photo and name) and its visible Shop pill (holistic review 11-18
     // H4); the count follows the data (_featured-order.json grows the list).
-    expect(out.length).toBe(2 * guideBySlug("louisiana-made")!.picks.length);
+    expect(out.length).toBe(2 * guideBySlug("shop-small-louisiana")!.picks.length);
     expect(out.length).toBeGreaterThan(10); // one guide per product (owner 11-19)
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");
   });
@@ -180,7 +181,8 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     expect(searchGuides("   ")).toEqual([]);
     expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"].filter((s) => guideBySlug(s) && !guideBySlug(s)!.empty)));
     // By group: "by budget" finds every guide in that row, even ones whose title lacks the word (Gift Cards, Subscriptions).
-    const holding = ["gift-cards", "subscriptions", "stocking-stuffers"].filter((x) => !guideBySlug(x)?.empty);
+    // 1120: Gift Cards and Subscriptions are sections of Easy & Last-Minute Gifts.
+    const holding = ["easy-and-last-minute", "stocking-stuffers"].filter((x) => guideBySlug(x) && !guideBySlug(x)?.empty);
     expect(holding.length).toBeGreaterThan(0);
     expect(searchGuides("by budget").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
     // The Experiences row is gone (owner 11-18 PM): searching for it finds none of its old guides.
@@ -203,7 +205,8 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     expect(row.querySelector("label svg")).not.toBeNull();
     fireEvent.change(input, { target: { value: "gift cards" } });
     const found = [...row.querySelectorAll("a[data-gift-found]")].map((a) => a.getAttribute("data-gift-found"));
-    expect(found).toContain("gift-cards");
+    // 1120: "gift cards" finds Easy & Last-Minute Gifts, whose Gift Cards section holds them.
+    expect(found).toContain("easy-and-last-minute");
     fireEvent.change(input, { target: { value: "xyzzy" } });
     expect(row.textContent).toContain("No guides match");
     fireEvent.change(input, { target: { value: "" } });
@@ -268,12 +271,14 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
 });
 
 describe("gift guides: pick badges come from optional fields, never a price", () => {
-  it("Trending, Louisiana-made, 25 Days sponsor, Ships fast, Local pickup, in that order", () => {
+  it("Trending (or Trending on TikTok), Pre-order, Louisiana-made, 25 Days sponsor, Ships fast, Local pickup, in that order", () => {
     expect(badgesFor("TABASCO", { louisianaFit: true, trending: true, shipsFast: true, localPickup: true })).toEqual(["trending", "louisiana-made", "ships-fast", "local-pickup"]);
+    // Big batch 1120: a TikTok find wears "Trending on TikTok" in place of Trending; a pre-order says so.
+    expect(badgesFor("21 Collective", { trending: true, tiktok: true, preorder: true })).toEqual(["tiktok", "preorder", "sponsor"]); // 21 Collective is a 25 Days sponsor
     expect(badgesFor("Crew Dog")).toEqual(["sponsor"]);
     expect(badgesFor("YETI")).toEqual([]);
     expect(badgesFor(undefined, { localPickup: true })).toEqual(["local-pickup"]);
-    expect(Object.values(giftGuides.badges)).toEqual(["Trending", "Louisiana-made", "25 Days sponsor", "Ships fast", "Local pickup", "Shop Louisiana"]);
+    expect(Object.values(giftGuides.badges)).toEqual(["Trending", "Trending on TikTok", "Pre-order", "Louisiana-made", "25 Days sponsor", "Ships fast", "Local pickup", "Shop Louisiana"]);
     for (const label of Object.values(giftGuides.badges)) expect(label).not.toMatch(/\$/);
   });
 });

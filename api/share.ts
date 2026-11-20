@@ -93,6 +93,7 @@ import { shareCardPriceLabel } from "../src/lib/declutter/shareCardPrice.mjs";
 import { jobShareDescription } from "../src/lib/jobShareLine.mjs";
 import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "../src/lib/giftGuideShareImages.mjs";
 import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "../src/content/giftGuideDeals.mjs";
+import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS, smallBizDay, smallBizTitle } from "../src/content/giftGuideSmallBiz.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -1136,6 +1137,11 @@ function seoFor(url: URL): SeoOutcome {
   if (id.startsWith("gift-guides/")) {
     const slug = giftGuideSlug(id);
     // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is no catalog guide: its own body, never a 404.
+    // The Small Business Saturday page (owner 2026-11-19, big batch 1120): its own body, never a 404.
+    if (slug === SMALL_BIZ_SLUG) {
+      const name = smallBizTitle(smallBizDay(new Date()));
+      return { kind: "page", body: dealsGuideBody(SMALL_BIZ_SLUG, name, SMALL_BIZ_WORDS.intro, SMALL_BIZ_WORDS.featuredLine), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${SMALL_BIZ_SLUG}` }])] };
+    }
     if (slug === DEALS_SLUG) {
       const name = dealsTitle(louisianaDay(new Date()));
       return { kind: "page", body: dealsGuideBody(DEALS_SLUG, name, DEALS_WORDS.intro, DEALS_WORDS.disclosure), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${DEALS_SLUG}` }])] };
@@ -1147,7 +1153,8 @@ function seoFor(url: URL): SeoOutcome {
       const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: g.name, path: `/gift-guides/${slug}` }]);
       return { kind: "page", body: giftGuideBody(slug, g), jsonLd: g.picks.length ? [crumbs, giftGuideItemListLd(slug, g)] : [crumbs] };
     }
-    if (slug && hasOwn(d.moved, slug) && /^[a-z0-9-]+$/.test(d.moved[slug])) return { kind: "moved", location: `${SITE_ORIGIN}/gift-guides/${d.moved[slug]}` };
+    // 1120: a merged guide's old slug 301s to its section ("healthcare#rns"); a folded store page to the landing page ("").
+    if (slug && hasOwn(d.moved, slug) && /^([a-z0-9-]+(#[a-z0-9-]+)?)?$/.test(d.moved[slug])) return { kind: "moved", location: d.moved[slug] ? `${SITE_ORIGIN}/gift-guides/${d.moved[slug]}` : `${SITE_ORIGIN}/gift-guides` };
     return { kind: "notfound", body: notFoundBody("gift-guide") };
   }
   if (id.startsWith("hire/")) {

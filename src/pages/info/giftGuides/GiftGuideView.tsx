@@ -8,9 +8,13 @@ import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
 import { Heart, togglePick, useGiftList } from "./giftList";
 import { Button } from "@/components/ui/button";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { AgeChips } from "./GiftGuideAges";
+import { SmallBizLink } from "./GiftGuideSmallBiz";
+import { SHOP_SMALL_GUIDE } from "@/content/giftGuideSmallBiz.mjs";
+import { deadlineChip, louisianaToday } from "@/content/giftGuideExtras1120";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -61,10 +65,13 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
   return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{storeLabel(pick)}</span>;
 }
 
-export function PickRow({ pick, guide, trending = false }: { pick: CatalogPick; guide?: string; trending?: boolean }) {
+export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
   const saved = useGiftList().picks.some((p) => p.href === pick.href && p.name === pick.name);
-  // A featured-order top pick wears "Trending" first (owner-approved 2026-11-18), never twice.
-  const badges = trending && !pick.badges?.includes("trending") ? ["trending" as const, ...(pick.badges ?? [])] : pick.badges;
+  // Big batch 1120: a pick wears Trending (or "Trending on TikTok") only from its own flag. The old "first 3 of a guide"
+  // badge went with the featured order (owner 11-19 ~6:40 PM: every guide sorts by commission now).
+  const badges = pick.badges;
+  // A store's Christmas order-by day (src/content/giftGuideExtras1120.ts SHIP_DEADLINES), hidden after it passes.
+  const ship = deadlineChip(pick.store, louisianaToday(new Date()));
   return (
     <li data-gift-pick="">
       <GiftOut href={pick.href} className="gg-item">
@@ -75,9 +82,11 @@ export function PickRow({ pick, guide, trending = false }: { pick: CatalogPick; 
           <span className="gg-nm-name">{pick.name}</span>
           {pick.line && <small className="gg-nm-line">{pick.line}</small>}
           <small className="gg-nm-meta"><span>{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}</span><PickPrice pick={pick} /></small>
-          {badges && (
+          {(badges || pick.code || ship) && (
             <span className="gg-badges">
-              {badges.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
+              {badges?.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
+              {pick.code && <i className="gg-bdg gg-bdg-code" data-gift-code-chip="">{G.codeChip(pick.code)}</i>}
+              {ship && <i className="gg-bdg gg-bdg-ship" data-gift-ship-chip="">{ship}</i>}
             </span>
           )}
         </span>
@@ -103,14 +112,33 @@ export function PickRow({ pick, guide, trending = false }: { pick: CatalogPick; 
  * audit 11-18 #3). A list with no sections is one untitled run; a pick with none joins the run before it.
  */
 const sectionsOf = (picks: CatalogPick[]) => {
-  const runs: { title?: string; picks: { start: number; rows: CatalogPick[] } }[] = [];
+  const runs: { title?: string; id?: string; picks: { start: number; rows: CatalogPick[] } }[] = [];
   picks.forEach((p, i) => {
     const last = runs[runs.length - 1];
     if (last && (!p.section || p.section === last.title)) last.picks.rows.push(p);
-    else runs.push({ title: p.section, picks: { start: i + 1, rows: [p] } });
+    else runs.push({ title: p.section, id: p.sectionId, picks: { start: i + 1, rows: [p] } });
   });
   return runs;
 };
+
+/** A merged guide's sections (1120), in order: [id, title, the pick count up to and including it]. */
+export const sectionNav = (picks: CatalogPick[]) => {
+  const out: { id: string; title: string; end: number }[] = [];
+  picks.forEach((p, i) => {
+    if (!p.sectionId || !p.section) return;
+    const last = out[out.length - 1];
+    if (last && last.id === p.sectionId) last.end = i + 1;
+    else out.push({ id: p.sectionId, title: p.section, end: i + 1 });
+  });
+  return out;
+};
+
+/** The budget filter's choices (owner-approved 11-19 9:05 PM): picks whose band is at most this. */
+export const BUDGETS = [25, 50, 100] as const;
+/** The picks a budget keeps: a known band at most the budget (Amazon picks carry none, Associates rule). */
+export const withinBudget = (picks: CatalogPick[], budget: number | null) => (budget ? picks.filter((p) => p.band !== undefined && p.band <= budget) : picks);
+/** The filter shows on a guide holding at least this many priced picks. */
+const BUDGET_MIN_PICKS = 3;
 
 /** Rows a list draws at first, and each "Show more" adds (design audit 11-18 #3: 827 rows, 9,600 DOM nodes at once). */
 export const PICKS_PAGE = 50;
@@ -120,9 +148,6 @@ export const PICKS_PAGE = 50;
  * featured order (the order the import writes: trending picks first). Not on a store page, whose list is the store's
  * catalogue ranked by photo and gift score rather than a featured order. `position` is 1-based.
  */
-const TRENDING_TOP = 3;
-const trendingAt = (guide: CatalogGuide, position: number) => position <= TRENDING_TOP && !guide.slug.startsWith("store-");
-
 /** "Show more" with this many or fewer left draws them all instead. */
 const SHOW_ALL_UNDER = 6;
 /** Deals & codes sit after this many picks (design spec 11-18 H5: never above pick #1, after the first 10). */
@@ -130,28 +155,66 @@ export const DEALS_AFTER_PICKS = 10;
 
 function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNode }) {
   const [shown, setShown] = useState(PICKS_PAGE);
-  if (!picksReady(guide.slug)) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
+  const [budget, setBudget] = useState<number | null>(null);
+  const ready = picksReady(guide.slug);
+  // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
+  const nav = ready ? sectionNav(guide.picks) : [];
+  const jump = (id: string) => {
+    const s = nav.find((x) => x.id === id);
+    if (!s) return;
+    setBudget(null);
+    setShown((n) => Math.max(n, s.end));
+    requestAnimationFrame(() => document.getElementById(`gg-sec-${id}`)?.scrollIntoView({ block: "start" }));
+  };
+  const navKey = nav.map((x) => x.id).join(" ");
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+    if (id && navKey.split(" ").includes(id)) jump(id);
+    // Once per guide, when its list is in (the hash is read only on arrival).
+     
+  }, [navKey]);
+  if (!ready) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];
+  const banded = guide.picks.filter((p) => p.band !== undefined).length;
+  const picks = withinBudget(guide.picks, budget);
   // Six or fewer left: draw them all, no "Show more (1 more)" (design audit r2 #16).
-  const upTo = guide.picks.length - shown <= SHOW_ALL_UNDER ? guide.picks.length : shown;
-  const left = guide.picks.length - upTo;
-  const runs = (from: number, to: number) => sectionsOf(guide.picks.slice(0, to)).flatMap((r) => {
+  const upTo = picks.length - shown <= SHOW_ALL_UNDER ? picks.length : shown;
+  const left = picks.length - upTo;
+  const runs = (from: number, to: number) => sectionsOf(picks.slice(0, to)).flatMap((r) => {
     const rows = r.picks.rows.filter((_, k) => r.picks.start + k > from);
     // A section cut by the deals keeps its heading only above its first part.
-    return rows.length ? [{ title: r.picks.start > from ? r.title : undefined, picks: { start: r.picks.start + (r.picks.rows.length - rows.length), rows } }] : [];
+    const head = r.picks.start > from;
+    return rows.length ? [{ title: head ? r.title : undefined, id: head ? r.id : undefined, picks: { start: r.picks.start + (r.picks.rows.length - rows.length), rows } }] : [];
   });
-  const draw = (from: number, to: number) => runs(from, to).map(({ title, picks }, i) => (
-        <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""}>
+  const draw = (from: number, to: number) => runs(from, to).map(({ title, id, picks: run }, i) => (
+        <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}>
           {title && <h3 className="gg-sec-title">{title}</h3>}
-          <ol className="gg-list" data-gift-list="" style={picks.start > 1 ? { counterReset: `gg ${picks.start - 1}` } : undefined}>
-            {picks.rows.map((p, k) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} trending={trendingAt(guide, picks.start + k)} />)}
+          <ol className="gg-list" data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
+            {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
           </ol>
         </section>
       ));
   return (
     <>
-      {after ? <>{draw(0, Math.min(DEALS_AFTER_PICKS, upTo))}{after}{draw(Math.min(DEALS_AFTER_PICKS, upTo), upTo)}</> : draw(0, upTo)}
-      <PricesAsOf picks={guide.picks.slice(0, upTo)} />
+      {nav.length > 1 && (
+        <nav aria-label={G.sectionNavLabel} className="gg-secnav" data-gift-section-nav="">
+          {nav.map((s) => (
+            <a key={s.id} href={`/gift-guides/${guide.slug}#${s.id}`} className="gg-chip" data-gift-section-link={s.id} onClick={(e) => { e.preventDefault(); window.history.replaceState(window.history.state, "", `#${s.id}`); jump(s.id); }}>{s.title}</a>
+          ))}
+        </nav>
+      )}
+      {banded >= BUDGET_MIN_PICKS && (
+        <div role="group" aria-label={G.budgetLabel} className="gg-budget" data-gift-budget="">
+          {[null, ...BUDGETS].map((b) => (
+            <ToggleChip key={b ?? "all"} pressed={budget === b} data-gift-budget-choice={b ?? "all"} onClick={() => { setBudget(b); setShown(PICKS_PAGE); }}>
+              {b ? G.budgetUnder(b) : G.budgetAll}
+            </ToggleChip>
+          ))}
+        </div>
+      )}
+      {budget !== null && <p className="gg-price-note" data-gift-budget-note="">{picks.length ? G.budgetNote : G.budgetNone}</p>}
+      {after && budget === null ? <>{draw(0, Math.min(DEALS_AFTER_PICKS, upTo))}{after}{draw(Math.min(DEALS_AFTER_PICKS, upTo), upTo)}</> : draw(0, upTo)}
+      <PricesAsOf picks={picks.slice(0, upTo)} />
       {left > 0 && (
         <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
           {G.showMorePicks(left)}
@@ -257,6 +320,8 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
       {/* Holistic review 11-18 H1: Niece, Nephew and Cousins open their kids age guides by age. */}
       <AgeChips slug={guide.slug} />
+      {/* Big batch 1120: Shop Small Louisiana opens with the way to the Small Business Saturday page. */}
+      {guide.slug === SHOP_SMALL_GUIDE && <SmallBizLink />}
       {/* Holistic review 11-18 L3: how many gifts the guide holds, once its list is in. */}
       {picksReady(guide.slug) && guide.picks.length > 0 && (
         <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>

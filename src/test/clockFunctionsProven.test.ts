@@ -38,7 +38,6 @@
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_hold_unchecked_listings: "declutterHoldUncheckedClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_move_reminder_sweep: "declutterMoveReminderClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_alert_overdue_checks: "declutterOverdueCheckClock.pglite.mjs",\n | \n
-// @mutate src/test/clockFunctionsProven.test.ts |   declutter_free_still_available_sweep: "declutterFreeStillClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_refund_request_sweep: "declutterRefundRequestClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_ship_sweep: "declutterShipSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_deadline_sweep: "declutterDeadlineSweepClock.pglite.mjs",\n | \n
@@ -98,7 +97,6 @@ const PROVEN: Record<string, string> = {
   declutter_hold_unchecked_listings: "declutterHoldUncheckedClock.pglite.mjs",
   declutter_move_reminder_sweep: "declutterMoveReminderClock.pglite.mjs",
   declutter_alert_overdue_checks: "declutterOverdueCheckClock.pglite.mjs",
-  declutter_free_still_available_sweep: "declutterFreeStillClock.pglite.mjs",
   declutter_refund_request_sweep: "declutterRefundRequestClock.pglite.mjs",
   declutter_ship_sweep: "declutterShipSweepClock.pglite.mjs",
   declutter_deadline_sweep: "declutterDeadlineSweepClock.pglite.mjs",

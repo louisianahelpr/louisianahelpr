@@ -1,6 +1,6 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
-import { isPosterIdRefusal, openPosterIdCheckFor } from "@/lib/posterIdAtOffer";
+import { isPosterIdRefusal, openPosterIdCheckFor, posterIdAtOfferCopy } from "@/lib/posterIdAtOffer";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -828,6 +828,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           // Q1586(c): the server's under-18 refusal (also 42501) in its own words.
           : isUnder18Refusal(error)
             ? UNDER_18_POST_COPY
+          // 20261120205350: an unverified poster's direct offer (also 42501), in English or Spanish (jp.idAtOffer).
+          : isPosterIdRefusal(error)
+            ? posterIdAtOfferCopy()
           : isPolicyRefusal
             ? "We couldn't post this job from your account. Refresh the page and try again."
             // Q270: never the raw text. A dropped connection gets connection

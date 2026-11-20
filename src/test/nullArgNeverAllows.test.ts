@@ -10,7 +10,7 @@
 // @mutate scripts/ci/null-arg-validators.sql | \nROLLBACK;\n | \nCOMMIT;\n
 // @mutate .github/workflows/db-smoke.yml | -At -f scripts/ci/null-arg-validators.sql) | -At -f scripts/ci/null-uid-trust.sql)
 // @mutate .github/workflows/db-deploy.yml |       - "scripts/ci/null-arg-validators.sql"\n |
-// @mutate src/test/pglite/nullArgNeverAllows.pglite.mjs |   "poster_id_cleared", "user_may_see_job_address", |   "poster_id_cleared",
+// @mutate src/test/pglite/nullArgNeverAllows.pglite.mjs |   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes", |   "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
 // @mutate src/test/pglite/nullArgNeverAllows.pglite.mjs |   parent_job_id uuid,\n  -- job_announceable_to (20261104084501, Q2408) reads p_job.date_window_end (a window job closes on its last day).\n  date_window_end date, |   parent_job_id uuid,
 // @mutate supabase/migrations/20261112060000_declutter_order_talk_photos.sql | IF v_uid IS NULL OR p_name IS NULL OR p_write IS NULL | IF v_uid IS NULL OR p_name IS NULL
 import { describe, expect, it } from "vitest";

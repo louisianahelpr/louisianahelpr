@@ -7,7 +7,6 @@
  * and whose `userMessage` is its sentence (quoteErrorMessage shows it).
  * Every RPC refuses while the 'quotes' switch is off for the caller.
  */
-import { openPosterIdCheckFor } from "@/lib/posterIdAtOffer";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -53,8 +52,15 @@ export const MAX_QUOTE_DOLLARS = 1000;
 function quoteRpc<T>(result: { data: T; error: { message: string } | null; status?: number }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
   // Booking an agreed quote offers its job to the quoter: an unverified poster is refused
-  // (identity_required_to_offer, 20261120205350) and the one ID sheet opens.
-  void openPosterIdCheckFor(result.error);
+  // (identity_required_to_offer, 20261120205350) and the one ID sheet opens. Loaded only on that refusal: a static
+  // import put posterIdAtOffer's chunk on /declutter's critical path (quotes/api is reachable from it).
+  if (/identity_required_to_offer/.test(result.error.message ?? "")) {
+    void loadModule(() => import("@/lib/posterIdAtOffer")).then(
+      (m) => m?.openPosterIdCheckFor(result.error),
+      // The refusal's words still reach the member (thrown below); a failed load only skips opening the sheet.
+      () => undefined,
+    );
+  }
   try {
     unwrap(result);
   } catch (thrown) {

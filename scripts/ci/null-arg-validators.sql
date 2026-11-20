@@ -89,7 +89,6 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('identity_is_verified',          'allow',    'the ID gate verdict: Stripe Identity only (20261021081258)'),
   ('identity_check_exempt',         'deny',     'TRUE = an enrolled test account skips the Stripe Identity gates; a NULL user is COALESCEd to FALSE, never exempt (20261021081258)'),
   ('is_identity_verified',          'allow',    'rentals identity gate: the user''s identity_is_verified verdict looked up by id (20261019051407)'),
-  ('poster_id_cleared',             'allow',    'owner 2026-11-20: a Helpr sees the job address only once the poster is verified, an admin or exempt; NULL is FALSE (20261120205350)'),
   ('is_party_to_job',               'allow',    'user is a party to the job'),
   ('is_party_to_job_folder',        'allow',    'caller is a party to the job owning this storage folder'),
   ('is_crew_member_of_job_folder',  'allow',    'caller is on the crew of the job owning this storage folder (Q407)'),
@@ -324,8 +323,6 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('identity_is_verified',          NULL, ARRAY['''verified''', 'false'], ARRAY[1,2]),
   -- D's profile carries idv_status = 'verified' (profiles fixture step), so the non-NULL call is TRUE.
   ('is_identity_verified',          NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1]),
-  -- D is verified (the same fixture), so poster_id_cleared(D) is TRUE.
-  ('poster_id_cleared',             NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1]),
   -- D's profile holds the current Terms version (profiles fixture step), so the non-NULL call is TRUE.
   ('terms_accepted_is_current',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1]),
   ('is_party_to_job',               NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),

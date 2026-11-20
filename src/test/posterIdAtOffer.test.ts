@@ -7,18 +7,25 @@
  *   2. The offer: enforce_poster_identity_before_offer raises identity_required_to_offer only for the ACTING poster,
  *      on the three tables every offer path writes (jobs helper_id / offered_to_helper_id, group_job_helpers,
  *      series_date_offers); never a server write, a Helpr, an admin or an exempt account.
- *   3. The address: user_may_see_job_address asks poster_id_cleared on every branch but the poster's own.
+ *   3. The address (owner 2026-11-20): the street address only once the Helpr ACCEPTED (helper_confirmed_at on the job
+ *      or the crew seat; the offer gate made the poster verified to send it). Every server path that handed an
+ *      offered Helpr the row is closed: user_may_see_job_address, the "Users can view their own jobs" policy, the
+ *      dropped "Targeted helper can view direct offer" policy, and can_read_job_access_notes. The offered Helpr reads
+ *      the masked job (get_my_pending_direct_offers / get_jobs_for_my_applications), including on the job page.
  *   4. The app: every client call that can meet that refusal answers it through openPosterIdCheckFor (exact list),
  *      with words in English and Spanish.
  *
- * Behaviour (red/green, 3x replay): src/test/pglite/posterIdAtOffer.pglite.mjs (26 PASS; NEW_MIGRATION=skip: 11 of 11
- * RED checks fail).
+ * Behaviour (red/green, 3x replay): src/test/pglite/posterIdAtOffer.pglite.mjs (30 PASS, every SELECT policy applied;
+ * NEW_MIGRATION=skip: 13 of 13 RED checks fail).
  *
  * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql | DROP FUNCTION IF EXISTS public.enforce_identity_before_post();\n |
  * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql |   IF NOT v_offering OR v_poster IS NULL OR v_uid IS DISTINCT FROM v_poster THEN |   IF NOT v_offering OR v_poster IS NULL THEN
  * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql |   BEFORE INSERT OR UPDATE OF helper_id, offered_to_helper_id ON public.jobs |   BEFORE INSERT ON public.jobs
  * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql |   BEFORE INSERT ON public.series_date_offers |   BEFORE UPDATE ON public.series_date_offers
- * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql |       WHERE g.job_id = _job_id AND g.helper_id = _user_id\n        AND (j.customer_id IS NULL OR public.poster_id_cleared(j.customer_id)) |       WHERE g.job_id = _job_id AND g.helper_id = _user_id
+ * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql |       WHERE g.job_id = _job_id AND g.helper_id = _user_id AND g.helper_confirmed_at IS NOT NULL | WHERE g.job_id = _job_id AND g.helper_id = _user_id
+ * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql |     OR ((SELECT auth.uid()) = helper_id AND helper_confirmed_at IS NOT NULL) |     OR ((SELECT auth.uid()) = helper_id)
+ * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql | DROP POLICY IF EXISTS "Targeted helper can view direct offer" ON public.jobs;\n |
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts |   const offered = (offers ?? []).find((r) => r.id === id); |   const offered = undefined as Record<string, unknown> \| undefined;
  * @mutate src/components/jobs/InstantBookPanel.tsx |       if (isPosterIdRefusal(e)) void openPosterIdCheckFor(e);\n |
  * @mutate src/pages/post-job/PostJob.tsx |       {form.step === "entry" ? ( |       {needsIdentityCheck(null) ? <span>Verify your ID to post</span> : form.step === "entry" ? (
  */
@@ -82,14 +89,26 @@ describe("the poster's ID is asked at the offer, never at the post (owner 2026-1
     expect(body("quote_insert_job")).toMatch(/INSERT INTO public\.jobs \([^)]*offered_to_helper_id/);
   });
 
-  it("3. the address: the poster's ID on every branch but the poster's own", () => {
+  it("3. the address: only once the Helpr accepted, on every path that hands over the row", () => {
     const fn = body("user_may_see_job_address");
-    expect((fn.match(/\(j\.customer_id IS NULL OR public\.poster_id_cleared\(j\.customer_id\)\)/g) ?? []).length).toBe(3);
-    expect(fn).toMatch(/j\.customer_id = _user_id OR \( \(j\.customer_id IS NULL OR public\.poster_id_cleared\(j\.customer_id\)\) AND \( j\.helper_id = _user_id/);
-    const cleared = body("poster_id_cleared");
-    expect(cleared).toContain("SELECT p_poster IS NOT NULL AND COALESCE( public.is_identity_verified(p_poster)");
-    expect(MIG).toContain("REVOKE ALL ON FUNCTION public.poster_id_cleared(uuid) FROM PUBLIC, anon, authenticated;");
+    expect(fn).toContain("j.customer_id = _user_id OR (j.helper_id = _user_id AND j.helper_confirmed_at IS NOT NULL)");
+    expect(fn).toContain("WHERE g.job_id = _job_id AND g.helper_id = _user_id AND g.helper_confirmed_at IS NOT NULL");
+    expect(fn).not.toMatch(/offered_to_helper_id|public\.applications/);
+    expect(MIG).toContain('CREATE POLICY "Users can view their own jobs" ON public.jobs FOR SELECT TO authenticated USING ( (SELECT auth.uid()) = customer_id OR ((SELECT auth.uid()) = helper_id AND helper_confirmed_at IS NOT NULL) );');
+    expect(MIG).toContain('DROP POLICY IF EXISTS "Targeted helper can view direct offer" ON public.jobs;');
+    // No later migration brings an offeree policy back.
+    expect(MIG.indexOf('DROP POLICY IF EXISTS "Targeted helper can view direct offer"')).toBeGreaterThan(-1);
+    const notes = body("can_read_job_access_notes");
+    expect(notes).toContain("(j.helper_id = auth.uid() AND j.helper_confirmed_at IS NOT NULL)");
+    expect(notes).toContain("g.helper_id = auth.uid() AND g.helper_confirmed_at IS NOT NULL");
     expect(MIG).toContain("REVOKE ALL ON FUNCTION public.user_may_see_job_address(uuid, uuid) FROM PUBLIC, anon;");
+    // The masked reads the offered Helpr uses unmask only through user_may_see_job_address.
+    for (const rpc of ["get_my_pending_direct_offers", "get_jobs_for_my_applications"]) {
+      expect(body(rpc)).toContain("CASE WHEN e.ok THEN j.location ELSE public.mask_job_location(j.location) END");
+      expect(body(rpc)).toContain("SELECT public.user_may_see_job_address(j.id, v_uid) AS ok");
+    }
+    // The job page reads the masked offer for a pending direct offer.
+    expect(src("src/pages/jobs/jobPage/useJobPage.ts")).toMatch(/rpc\("get_my_pending_direct_offers"\)\.eq\("id", id\)\)[\s\S]{0,200}const offered = \(offers \?\? \[\]\)\.find\(\(r\) => r\.id === id\);/);
   });
 
   it("4. the app answers the refusal at every offer call site (exact), in English and Spanish", () => {

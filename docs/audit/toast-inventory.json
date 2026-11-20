@@ -16308,7 +16308,7 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "leakRejection ? leakRejection // Q2291: the server's Louisiana-only address rule, in its own words. : /job_address_not_louisiana/.test((error as { message?: string } | null)?.message ?? \"\") ? (lifecycleErrorMessage(error) ?? \"Helpr is in Louisiana only for now. Use a Louisiana address.\") // Q1586(c): the server's under-18 refusal (also 42501) in its own words. : isUnder18Refusal(error) ? UNDER_18_POST_COPY : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+        "text": "leakRejection ? leakRejection // Q2291: the server's Louisiana-only address rule, in its own words. : /job_address_not_louisiana/.test((error as { message?: string } | null)?.message ?? \"\") ? (lifecycleErrorMessage(error) ?? \"Helpr is in Louisiana only for now. Use a Louisiana address.\") // Q1586(c): the server's under-18 refusal (also 42501) in its own words. : isUnder18Refusal(error) ? UNDER_18_POST_COPY // 20261120205350: an unverified poster's direct offer (also 42501), in English or Spanish (jp.idAtOffer). : isPosterIdRefusal(error) ? posterIdAtOfferCopy() : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
         "branches": [
           {
             "form": "dynamic",
@@ -16316,7 +16316,7 @@
           },
           {
             "form": "dynamic",
-            "text": "/job_address_not_louisiana/.test((error as { message?: string } | null)?.message ?? \"\") ? (lifecycleErrorMessage(error) ?? \"Helpr is in Louisiana only for now. Use a Louisiana address.\") // Q1586(c): the server's under-18 refusal (also 42501) in its own words. : isUnder18Refusal(error) ? UNDER_18_POST_COPY : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+            "text": "/job_address_not_louisiana/.test((error as { message?: string } | null)?.message ?? \"\") ? (lifecycleErrorMessage(error) ?? \"Helpr is in Louisiana only for now. Use a Louisiana address.\") // Q1586(c): the server's under-18 refusal (also 42501) in its own words. : isUnder18Refusal(error) ? UNDER_18_POST_COPY // 20261120205350: an unverified poster's direct offer (also 42501), in English or Spanish (jp.idAtOffer). : isPosterIdRefusal(error) ? posterIdAtOfferCopy() : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
             "branches": [
               {
                 "form": "dynamic",
@@ -16324,7 +16324,7 @@
               },
               {
                 "form": "dynamic",
-                "text": "isUnder18Refusal(error) ? UNDER_18_POST_COPY : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+                "text": "isUnder18Refusal(error) ? UNDER_18_POST_COPY // 20261120205350: an unverified poster's direct offer (also 42501), in English or Spanish (jp.idAtOffer). : isPosterIdRefusal(error) ? posterIdAtOfferCopy() : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
                 "branches": [
                   {
                     "form": "dynamic",
@@ -16332,23 +16332,52 @@
                   },
                   {
                     "form": "dynamic",
-                    "text": "isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+                    "text": "isPosterIdRefusal(error) ? posterIdAtOfferCopy() : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
                     "branches": [
                       {
-                        "form": "literal",
-                        "text": "We couldn't post this job from your account. Refresh the page and try again."
-                      },
-                      {
                         "form": "dynamic",
-                        "text": "isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+                        "text": "posterIdAtOfferCopy()",
+                        "from": "src/lib/posterIdAtOffer.ts",
                         "branches": [
                           {
                             "form": "dynamic",
-                            "text": "CONNECTION_TROUBLE_COPY"
+                            "text": "wordInLang(\"jp.idAtOffer\", POSTER_ID_AT_OFFER_EN)",
+                            "from": "src/lib/i18n/inLang.ts",
+                            "branches": [
+                              {
+                                "form": "dynamic",
+                                "text": "english"
+                              },
+                              {
+                                "form": "dynamic",
+                                "text": "w === key ? english : w",
+                                "branches": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "form": "dynamic",
+                        "text": "isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+                        "branches": [
+                          {
+                            "form": "literal",
+                            "text": "We couldn't post this job from your account. Refresh the page and try again."
                           },
                           {
                             "form": "dynamic",
-                            "text": "userFacingError(error, \"Couldn't post your job just yet — give it another try?\")"
+                            "text": "isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+                            "branches": [
+                              {
+                                "form": "dynamic",
+                                "text": "CONNECTION_TROUBLE_COPY"
+                              },
+                              {
+                                "form": "dynamic",
+                                "text": "userFacingError(error, \"Couldn't post your job just yet — give it another try?\")"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -16364,7 +16393,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 862,
+      "line": 865,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16378,7 +16407,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 884,
+      "line": 887,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16392,7 +16421,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 917,
+      "line": 920,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -16402,7 +16431,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 942,
+      "line": 945,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16416,7 +16445,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 1127,
+      "line": 1130,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -16436,7 +16465,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 1195,
+      "line": 1198,
       "kind": "toast.error",
       "title": {
         "form": "literal",

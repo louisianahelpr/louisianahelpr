@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for 20261120205350_poster_id_at_offer_not_post (owner 2026-11-20: the poster's ID check moves from
- * posting to sending an offer; the Helpr sees the address only once the poster is verified).
+ * posting to sending an offer; a Helpr gets the street address only once the poster is verified AND the Helpr
+ * accepted, while an offered Helpr still reads the masked job to answer it).
  *
  *   node src/test/pglite/posterIdAtOffer.pglite.mjs                     # ALL PASS (the migration 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/posterIdAtOffer.pglite.mjs  # RED: every [RED] check fails
  *
  * Base, read verbatim from the migrations (the definitions in force before this one): enforce_identity_before_post
  * + trg_jobs_identity_before_post (20261021081258), identity_is_verified (20261021081258), is_identity_verified
- * (20261019051407), is_server_context (20260915101102), has_role (20261012184600) and user_may_see_job_address
- * (20261012184600). Stubbed, and said so: tables cut to the columns read; auth.uid()/auth.role() from settings;
+ * (20261019051407), is_server_context (20260915101102), has_role (20261012184600), user_may_see_job_address
+ * (20261012184600), can_read_job_access_notes (20261006204113), get_my_pending_direct_offers and
+ * get_jobs_for_my_applications' masking (20261105102419), mask_job_location (20261031000945), and the four jobs SELECT
+ * policies exactly as pg_policies shows them on prod (read 2026-11-20). Stubbed, and said so: job_payment_is_listed
+ * is true; tables cut to the columns read; auth.uid()/auth.role() from settings;
  * identity_check_exempt is the shape it has while the identity_check switch is ON for the member (an enrolled seed
  * test account only) -- feature_enabled_for_user is not under test. Writes run as the real authenticated role, so the
  * triggers judge them exactly as they judge the hire RPCs' writes (the RPCs are definers, auth.uid() stays the caller).
@@ -62,8 +66,11 @@ CREATE TABLE public.user_roles (user_id uuid, role public.app_role);
 CREATE TABLE public.test_accounts (user_id uuid);
 CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, idv_status text, stripe_identity_verified boolean NOT NULL DEFAULT false, is_seed boolean DEFAULT false);
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, helper_id uuid, offered_to_helper_id uuid,
-  direct_offer_status text, direct_offer_expires_at timestamptz, status text NOT NULL DEFAULT 'open', location text DEFAULT '1 Main St, Delcambre, LA 70528');
-CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
+  direct_offer_status text, direct_offer_expires_at timestamptz, status text NOT NULL DEFAULT 'open',
+  location text DEFAULT '1 Main St, Delcambre, LA 70528', latitude numeric DEFAULT 29.9480123, longitude numeric DEFAULT -91.9880456,
+  title text DEFAULT 'Move a couch', budget numeric DEFAULT 80, helper_confirmed_at timestamptz, recurring_helper_id uuid,
+  payment_status text DEFAULT 'escrow', created_at timestamptz DEFAULT now());
+CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid, helper_confirmed_at timestamptz);
 CREATE TABLE public.series_date_offers (parent_job_id uuid, helper_id uuid);
 CREATE TABLE public.applications (job_id uuid, helper_id uuid, status text);
 GRANT USAGE ON SCHEMA public, auth TO authenticated;
@@ -76,6 +83,8 @@ INSERT INTO public.profiles (user_id, idv_status, is_seed) VALUES
   ('${SEED}', NULL, true), ('${ADMIN}', NULL, false);
 INSERT INTO public.test_accounts VALUES ('${SEED}');
 INSERT INTO public.user_roles VALUES ('${ADMIN}', 'admin');
+CREATE FUNCTION public.job_payment_is_listed(text) RETURNS boolean LANGUAGE sql IMMUTABLE AS 'SELECT true';
+ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 `);
 const base = [
   fnFrom("20260915101102_null_uid_is_not_server.sql", "is_server_context"),
@@ -85,6 +94,16 @@ const base = [
   fnFrom("20261021081258_stripe_identity_before_first_accept_post_and_start.sql", "enforce_identity_before_post"),
   `CREATE TRIGGER trg_jobs_identity_before_post BEFORE INSERT ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.enforce_identity_before_post();`,
   fnFrom("20261012184600_scope_policy_helpers_to_caller.sql", "user_may_see_job_address"),
+  fnFrom("20261006204113_job_materials_and_access_notes.sql", "can_read_job_access_notes"),
+  fnFrom("20261031000945_guests_get_no_poster_id_or_street.sql", "mask_job_location"),
+  fnFrom("20261105102419_applicant_jobs_hide_private_columns.sql", "get_my_pending_direct_offers"),
+  // The four SELECT policies on prod (pg_policies, read-only, 2026-11-20).
+  `CREATE POLICY "Admins can view all jobs" ON public.jobs FOR SELECT TO authenticated USING (public.has_role((SELECT auth.uid()), 'admin'::public.app_role));`,
+  `CREATE POLICY "Selected helpers can view their job" ON public.jobs FOR SELECT TO authenticated USING (public.user_may_see_job_address(id, (SELECT auth.uid())));`,
+  `CREATE POLICY "Targeted helper can view direct offer" ON public.jobs FOR SELECT TO authenticated USING ((offered_to_helper_id IS NOT NULL) AND (offered_to_helper_id = (SELECT auth.uid())) AND (direct_offer_status = 'pending') AND (status = 'open') AND (helper_id IS NULL));`,
+  `CREATE POLICY "Users can view their own jobs" ON public.jobs FOR SELECT TO authenticated USING (((SELECT auth.uid()) = customer_id) OR ((SELECT auth.uid()) = helper_id));`,
+  `CREATE POLICY "writes" ON public.jobs FOR ALL TO authenticated USING (true) WITH CHECK (true);`.replace("FOR ALL", "FOR INSERT").replace("USING (true) ", ""),
+  `CREATE POLICY "updates" ON public.jobs FOR UPDATE TO authenticated USING (true) WITH CHECK (true);`,
 ];
 for (const s of base) await db.exec(s);
 if (!skip) {
@@ -159,37 +178,62 @@ try {
   }
   check(e === null, "a server write (no auth.uid, no member role) is not judged", false, e ?? "");
 
-  // 5. The address: hidden from the Helpr until the poster is verified; the poster always sees their own.
-  const j6 = await job(POSTER, { helper_id: HELPR, status: "accepted" });
-  const j7 = await job(POSTER, { offered_to_helper_id: HELPR2, direct_offer_status: "pending" });
-  const j8 = await job(POSTER);
-  await q(`INSERT INTO public.group_job_helpers VALUES ('${j8}', '${HELPR2}')`);
-  await q(`INSERT INTO public.applications VALUES ('${j8}', '${HELPR}', 'accepted')`);
-  check(!(await seesAddress(j6, HELPR)), "unverified poster: the hired Helpr does not see the address", true);
-  check(!(await seesAddress(j7, HELPR2)), "unverified poster: the direct-offer Helpr does not see the address", true);
-  check(!(await seesAddress(j8, HELPR2)), "unverified poster: a crew member does not see the address", true);
-  check(!(await seesAddress(j8, HELPR)), "unverified poster: an accepted applicant does not see the address", true);
-  check(await seesAddress(j6, POSTER), "the poster sees their own address", false);
+  // 5. The address: the street address and exact point only once the poster is verified AND the Helpr accepted.
+  //    Read the way a client reads it: SELECT on jobs as the member (every SELECT policy applies), and the masked RPC.
+  const rowsAs = async (uid, sql) => {
+    await db.exec(`BEGIN; SET LOCAL ROLE authenticated; SELECT set_config('test.uid', '${uid}', true); SELECT set_config('test.role', 'authenticated', true);`);
+    try {
+      return (await db.query(sql)).rows;
+    } finally {
+      await db.exec("COMMIT");
+    }
+  };
+  const fullAddress = async (job, uid) => (await rowsAs(uid, `SELECT location FROM public.jobs WHERE id = '${job}'`)).some((r) => r.location === "1 Main St, Delcambre, LA 70528");
   await q(`UPDATE public.profiles SET idv_status = 'verified' WHERE user_id = '${POSTER}'`);
-  check(await seesAddress(j6, HELPR), "verified poster: the hired Helpr sees the address", false);
-  check(await seesAddress(j8, HELPR2), "verified poster: a crew member sees the address", false);
+  // A solo hire the verified poster offered (accept_application's write), not yet accepted by the Helpr.
+  const j6 = await job(POSTER, { helper_id: HELPR, status: "accepted" });
+  check(!(await fullAddress(j6, HELPR)), "offered, not accepted: the hired-to-be Helpr gets no street address from jobs", true);
+  check(!(await seesAddress(j6, HELPR)), "offered, not accepted: user_may_see_job_address is false", true);
+  check(await fullAddress(j6, POSTER), "the poster always reads their own address", false);
+  // Accepting (complete_job_accept's helper_confirmed_at): the address arrives.
+  await q(`UPDATE public.jobs SET helper_confirmed_at = now() WHERE id = '${j6}'`);
+  check(await fullAddress(j6, HELPR), "accepted, verified poster: the Helpr reads the street address", false);
+  // A later reset of the poster's ID never hides the job a Helpr is booked on.
+  await q(`UPDATE public.profiles SET idv_status = NULL WHERE user_id = '${POSTER}'`);
+  check(await fullAddress(j6, HELPR), "booked Helpr keeps the job (and address) after the poster's ID is reset", false);
+  await q(`UPDATE public.profiles SET idv_status = 'verified' WHERE user_id = '${POSTER}'`);
+
+  // A pending direct offer: no row from jobs, but the masked offer card still has what the Helpr needs to answer.
+  const j7 = await job(POSTER, { offered_to_helper_id: HELPR2, direct_offer_status: "pending" });
+  check((await rowsAs(HELPR2, `SELECT id FROM public.jobs WHERE id = '${j7}'`)).length === 0, "pending direct offer: the offeree reads no jobs row (no address)", true);
+  const card = (await rowsAs(HELPR2, `SELECT id, title, budget, location, latitude FROM public.get_my_pending_direct_offers()`)).find((r) => r.id === j7);
+  check(!!card && card.title === "Move a couch" && Number(card.budget) === 80 && card.location !== "1 Main St, Delcambre, LA 70528" && /Delcambre/.test(card.location ?? "") && Number(card.latitude) === 29.95,
+    "pending direct offer: the offer card reads title, price and the masked area (town, 2-dp point)", false, JSON.stringify(card));
+
+  // A crew seat: masked until the member confirms; access notes likewise.
+  const j8 = await job(POSTER, { status: "open" });
+  await q(`INSERT INTO public.group_job_helpers VALUES ('${j8}', '${HELPR2}', NULL)`);
+  await q(`INSERT INTO public.applications VALUES ('${j8}', '${HELPR}', 'accepted')`);
+  check(!(await seesAddress(j8, HELPR2)), "crew seat offered, not confirmed: no address", true);
+  check(!(await seesAddress(j8, HELPR)), "an application the poster accepted (an offer) reveals no address", true);
+  const notesBefore = (await rowsAs(HELPR, `SELECT public.can_read_job_access_notes('${j6}') AS ok`))[0].ok;
+  check(notesBefore === true, "access notes: the accepted Helpr reads them", false, String(notesBefore));
+  const j11 = await job(POSTER, { helper_id: HELPR2, status: "accepted" });
+  const notesOffered = (await rowsAs(HELPR2, `SELECT public.can_read_job_access_notes('${j11}') AS ok`))[0].ok;
+  check(notesOffered === false, "access notes: an offered, not-accepted Helpr does not read them", true, String(notesOffered));
+  await q(`UPDATE public.group_job_helpers SET helper_confirmed_at = now() WHERE job_id = '${j8}'`);
+  check(await seesAddress(j8, HELPR2), "crew member who confirmed: the address", false);
+
+  // A pending applicant never sees it (rule kept); an unverified poster cannot send the offer at all (2. above).
   const j9 = await job(VERIFIED_POSTER);
   await q(`INSERT INTO public.applications VALUES ('${j9}', '${HELPR2}', 'pending')`);
-  check(!(await seesAddress(j9, HELPR2)), "verified poster: a pending applicant still does not see it (rule kept)", false);
-  const j10 = await job(null, { helper_id: HELPR, status: "accepted" });
-  check(await seesAddress(j10, HELPR), "an ownerless job (deleted poster) keeps the existing rule", false);
-
-  // Q140: a NULL never says yes.
-  if (!skip) {
-    const n = (await q(`SELECT public.poster_id_cleared(NULL) AS v`))[0].v;
-    check(n === false, "poster_id_cleared(NULL) is exactly FALSE", false, String(n));
-  }
+  check(!(await seesAddress(j9, HELPR2)), "a pending applicant does not see it (rule kept)", false);
 
   // 6. Grants.
-  const acl = await q(`SELECT proname, coalesce(proacl::text, '') a FROM pg_proc WHERE proname IN ('poster_id_cleared', 'enforce_poster_identity_before_offer', 'user_may_see_job_address', 'enforce_identity_before_post')`);
+  const acl = await q(`SELECT proname, coalesce(proacl::text, '') a FROM pg_proc WHERE proname IN ('enforce_poster_identity_before_offer', 'user_may_see_job_address', 'enforce_identity_before_post', 'can_read_job_access_notes')`);
   const by = Object.fromEntries(acl.map((r) => [r.proname, r.a]));
   check(!("enforce_identity_before_post" in by), "enforce_identity_before_post is dropped", true, JSON.stringify(by));
-  check(/service_role=X/.test(by.poster_id_cleared ?? "") && !/authenticated=|anon=/.test(by.poster_id_cleared ?? ""), "poster_id_cleared: service_role only", false, by.poster_id_cleared ?? "missing");
+  check(/authenticated=X/.test(by.can_read_job_access_notes ?? "") && !/anon=/.test(by.can_read_job_access_notes ?? ""), "can_read_job_access_notes: authenticated, never anon", false, by.can_read_job_access_notes ?? "missing");
   check(!/authenticated=|anon=/.test(by.enforce_poster_identity_before_offer ?? "x") && (by.enforce_poster_identity_before_offer ?? null) !== null, "the trigger function is not client-callable", false, by.enforce_poster_identity_before_offer ?? "missing");
   check(/authenticated=X/.test(by.user_may_see_job_address ?? "") && !/anon=/.test(by.user_may_see_job_address ?? ""), "user_may_see_job_address: authenticated, never anon", false, by.user_may_see_job_address ?? "missing");
 } catch (err) {

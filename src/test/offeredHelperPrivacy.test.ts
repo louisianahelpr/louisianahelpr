@@ -274,7 +274,6 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     // Q327: declines a pending offer on a banned poster's cancelled job or to a
     // banned account; returns only job ids, actions and counts, never the offeree.
     "function:settle_one_off_jobs_for_banned_account": "no-return",
-    "function:user_may_see_job_address": "no-return",
     // Owner 2026-11-20 (20261120205350): the poster's ID at the offer; reads NEW.offered_to_helper_id only to judge, returns the trigger row.
     "function:enforce_poster_identity_before_offer": "no-return",
     // 20261030150630: reads the offeree only to skip a job with a pending direct offer; the poster's notice and email carry title and applicant count; returns a count.

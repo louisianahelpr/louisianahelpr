@@ -42120,14 +42120,6 @@
     },
     {
      "cmd": "SELECT",
-     "name": "Targeted helper can view direct offer",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "SELECT",
      "name": "Users can view their own jobs",
      "permissive": "PERMISSIVE",
      "roles": [

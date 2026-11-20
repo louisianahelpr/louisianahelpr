@@ -154,6 +154,15 @@ export async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party
     // row: an applicant of a listing that expired reads "expired before anyone was hired", never "cancelled".
     return { job: toRow({ ...safe, helper_id: applied.helper_id ?? null, helper_confirmed_at: applied.helper_confirmed_at ?? null, cancelled_by: applied.cancelled_by ?? null, cancellation_reason: applied.cancellation_reason ?? null, location: null }), party: false };
   }
+  // A Helpr with a PENDING direct offer (owner 2026-11-20, 20261120205350): jobs no longer hands them the row (the street
+  // address waits until they accept), so the page reads the masked offer, as the Working card does: the town, never the
+  // street. direct_offer_status stays 'pending' so the page offers Accept / Decline (useOfferedToMe).
+  const offers = unwrap(await supabase.rpc("get_my_pending_direct_offers").eq("id", id)) as Record<string, unknown>[] | null;
+  const offered = (offers ?? []).find((r) => r.id === id);
+  if (offered) {
+    const safe = Object.fromEntries(BASE_COLUMNS.split(",").map((c) => c.trim()).filter((c) => c !== "location").map((c) => [c, offered[c]]));
+    return { job: toRow({ ...safe, direct_offer_status: "pending", helper_id: null, helper_confirmed_at: null, location: typeof offered.location === "string" ? offered.location : null }), party: false };
+  }
   return null;
 }
 

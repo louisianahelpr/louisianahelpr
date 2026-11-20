@@ -70,7 +70,8 @@ describe("the guide lane covers content, guide-only scripts and guide-only tests
     const code = blankComments(read("src/lib/giftGuideShareImages.mjs")).replace(/\s+/g, " ").trim();
     const stmts = code.split(";").map((s) => s.trim()).filter(Boolean);
     expect(stmts.length).toBeGreaterThan(1);
-    for (const s of stmts) expect(s).toMatch(/^export const [A-Z_]+ = new Set\(\[(\s*"[a-z0-9-]+"\s*,?)*\s*\]\)$/);
+    // Whitespace is collapsed to single spaces above, so the list reads unambiguously (no backtracking, CodeQL js/redos).
+    for (const s of stmts) expect(s).toMatch(/^export const [A-Z_]+ = new Set\(\[ ?(?:"[a-z0-9-]+"(?:, ?"[a-z0-9-]+")*,? ?)?\]\)$/);
   });
 
   it("no lane script is imported by shipped code (src outside tests, api/) or by the build chain", () => {
@@ -87,7 +88,7 @@ describe("the guide lane covers content, guide-only scripts and guide-only tests
       const src = blankComments(read(f));
       for (const s of laneScripts) {
         const stem = s.replace(/^scripts\//, "").replace(/(\.d)?\.mts$|\.mjs$/, "");
-        if (new RegExp(`(?:from|import\\()\\s*["'][^"']*scripts/${stem.replace(/[.-]/g, "\\$&")}(?:\\.mjs)?["']`).test(src)) offenders.push(`${f} -> ${s}`);
+        if (new RegExp(`(?:from|import\\()\\s*["'][^"']*scripts/${stem.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}(?:\\.mjs)?["']`).test(src)) offenders.push(`${f} -> ${s}`);
       }
     }
     expect(offenders).toEqual([]);

@@ -63,7 +63,7 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 }));
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSantaReveal from "@/pages/info/giftGuides/fun/SecretSantaReveal";
-import { GiftCountdown, giftOfTheDayPath } from "@/pages/info/giftGuides/fun/GiftCountdown";
+import { GiftCountdown, GiftTools, giftOfTheDayPath } from "@/pages/info/giftGuides/fun/GiftCountdown";
 import { giftListNow, resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { planActions, resetPlanStoreForTests, setPlanViewer, useAccountSync, usePlan } from "@/pages/info/giftGuides/fun/plannerStore";
@@ -304,12 +304,17 @@ describe("Christmas countdown and Gift of the Day", () => {
     expect(giveawayTieInOn(la("2026-11-30"), true)).toBe(false);
     expect(giveawayTieInOn(la("2026-12-26"), true)).toBe(false);
   });
-  it("the landing card shows the days, the gift, and the three tools; no 25 Days link while the flag is off", () => {
+  it("the landing's slim line shows the days and the gift; no 25 Days link while the flag is off; the tools are one row of four", () => {
     const { container } = render(<MemoryRouter><GiftCountdown now={la("2026-12-10")} /></MemoryRouter>);
     expect(container.querySelector("[data-gift-countdown-days]")?.getAttribute("data-gift-countdown-days")).toBe("15");
     expect(container.querySelector("[data-gift-of-the-day]")).not.toBeNull();
-    expect([...container.querySelectorAll("[data-gift-fun-tool]")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner"]);
+    // Owner 11-20 12:30 PM: ONE slim line (no card, no thumbnail, no tip box), the tools in their own row.
+    expect(container.querySelector("[data-gift-of-the-day] img, .gg-hint, [data-gift-fun-tool]")).toBeNull();
     expect(container.querySelector("[data-gift-giveaway-on]")).toBeNull();
+    act(() => cleanup());
+    const tools = render(<MemoryRouter><GiftTools /></MemoryRouter>).container;
+    expect([...tools.querySelectorAll("[data-gift-fun-tool]")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner", "/gift-guides/printables"]);
+    expect(tools.querySelector("style")?.textContent).toMatch(/\.gg-fun-tools\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
     act(() => cleanup());
     const after = render(<MemoryRouter><GiftCountdown now={la("2026-12-27")} /></MemoryRouter>);
     expect(after.container.querySelector("[data-gift-countdown-days]")).toBeNull();

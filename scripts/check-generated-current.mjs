@@ -262,6 +262,14 @@ export const EVIDENCE = [
     checkedBy: "src/test/giftGuideDeals1119.test.tsx (ready deals only, sort, 25 cap, no price, affiliate hosts, auto-hide, feature window, retitle)",
   },
   {
+    id: "gift-guide-sponsor-logos",
+    script: "scripts/gift-guide-sponsor-logos.mjs",
+    outputs: ["src/content/giftGuideSponsorLogos.json"],
+    refresh: "node scripts/gift-guide-sponsor-logos.mjs (reads the lineup in src/content/sponsorPage.ts and the lead's ~/Desktop/25 Days Logos; writes public/gift-guides/sponsors/*.webp; not in CI)",
+    refreshedBy: "by the committer after the lineup or a logo changes, and after scripts/gift-guide-picks.mjs (the guide spots come from its chunks)",
+    checkedBy: "src/test/giftGuideTrain1120b.test.ts (every lineup sponsor listed once, logo files exist, no giveaway day, links internal or https)",
+  },
+  {
     id: "gift-guide-small-biz",
     script: "scripts/gift-guide-small-biz.mjs",
     outputs: ["src/content/giftGuideSmallBiz.json"],

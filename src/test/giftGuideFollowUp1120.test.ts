@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
-import { GUIDE_MERGES, MERGED_INTO, STORE_PAGES_KEPT } from "@/content/giftGuideMerges.mjs";
+import { GUIDE_MERGES, MERGED_INTO, STORE_PAGES_HELD, STORE_PAGES_KEPT } from "@/content/giftGuideMerges.mjs";
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { GUIDES, newSlugFor } from "@/content/giftGuideCatalog";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
@@ -99,12 +99,16 @@ describe("gift guides follow-up 1120", () => {
   });
 
   it("the 26 store pages of the owner's final list, each 10-15 picks; one Weber griddle site-wide", () => {
-    expect([...STORE_PAGES_KEPT].sort()).toEqual(["store-amazon", "store-apple", "store-at-home", "store-bass-pro-shops", "store-bath-and-body-works", "store-baublebar", "store-best-buy",
+    // Train 1120b: TJ Maxx and JCPenney are held (folded) until refilled; the owner's list is still these 26.
+    expect([...STORE_PAGES_KEPT, ...STORE_PAGES_HELD].sort()).toEqual(["store-amazon", "store-apple", "store-at-home", "store-bass-pro-shops", "store-bath-and-body-works", "store-baublebar", "store-best-buy",
       "store-carhartt", "store-coach", "store-crocs", "store-dicks-sporting-goods", "store-dillards", "store-hoka", "store-jcpenney", "store-lululemon", "store-nike", "store-old-navy",
       "store-sams-club", "store-sephora", "store-stanley", "store-target", "store-tj-maxx-marshalls", "store-tractor-supply", "store-ulta-beauty", "store-walmart", "store-yeti"]);
+    // Train 1120b (2026-11-20): TJ Maxx's hotlink-blocked photos and JCPenney's house-brand picks are out; both pages
+    // wait for a refill. EXACT (src/test/giftGuideTrain1120b.test.ts holds the same two).
+    const SHORT: Record<string, number> = {};
     for (const s of STORE_PAGES_KEPT) {
       const n = CHUNKS.get(s)?.length ?? 0;
-      expect(n, s).toBeGreaterThanOrEqual(10);
+      expect(n, s).toBeGreaterThanOrEqual(SHORT[s] ?? 10);
       expect(n, s).toBeLessThanOrEqual(15);
     }
     const griddles = [...CHUNKS.values()].flat().filter((p) => /\bweber\b/i.test(`${p.brand ?? ""} ${p.name}`) && /\bgriddle\b/i.test(p.name));

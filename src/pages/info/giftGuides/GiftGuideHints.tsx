@@ -9,32 +9,10 @@ import { MY_LIST_SLUG } from "./giftList";
 
 /**
  * The gift guides' how-to hints that are more than one line (owner 2026-11-20: "add hints or things so they know how to
- * use everything"): the landing's three-step strip, and a heart's note ("Saved to your wish list" once ever; "Your list
- * is full" on a full list). Both are dismissible and never cover content: the strip is inline, the note a one-line
- * pill at the bottom edge that hides itself after a few seconds.
+ * use everything"): a heart's note ("Saved to your wish list" once ever; "Your list is full" on a full list). It is
+ * dismissible and never covers content: a one-line pill at the bottom edge that hides itself after a few seconds. The
+ * landing's three-step "How to use" strip is gone (owner 11-20 12:30 PM: the landing was "very busy").
  */
-
-/** The landing's "How to use the gift guides": three numbered steps, closed for good with ×. */
-export function HowToStrip() {
-  const [showing, dismiss] = useHint("how-to");
-  if (!showing) return null;
-  return (
-    <aside className="gg-howto" aria-labelledby="gift-howto-title" data-gift-hint="how-to">
-      <div className="gg-howto-head">
-        <h2 id="gift-howto-title" className="gg-howto-title">{HINTS.howTitle}</h2>
-        <RoundIconButton size="sm" className="gg-hint-x" onClick={dismiss} aria-label="Got it, hide these tips" data-gift-hint-close="how-to">
-          <span aria-hidden="true">×</span>
-        </RoundIconButton>
-      </div>
-      <ol className="gg-howto-steps" data-gift-howto-steps="">
-        {HINTS.steps.map((s, i) => (
-          // UX audit L1: the numbers are drawn, not left to list-style (which the strip's flex row dropped).
-          <li key={s}><b className="gg-howto-n" aria-hidden="true">{i + 1}</b><span>{s}</span></li>
-        ))}
-      </ol>
-    </aside>
-  );
-}
 
 // The note a heart tap shows: the first tap that SAVED something (once ever: "Saved to your wish list"), or a tap on a
 // full list (every time: "Your list is full", UX audit M2). A tap that unsaves shows nothing.

@@ -16,7 +16,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { BANNED_LINKS, bannedLink, homepageLink, nonUsUrl } from "../../scripts/giftGuideRules.mjs";
-import { LOUISIANA_SHOPS, SPONSOR_SITES } from "@/content/giftGuides";
+import { LOUISIANA_SHOPS, NATIONAL_SPONSOR_SITES, SPONSOR_SITES } from "@/content/giftGuides";
 
 type Pick = { name: string; href: string };
 type Deal = { title: string; href: string; items?: { name: string; href: string }[] };
@@ -25,7 +25,7 @@ const chunk = (slug: string): { picks: Pick[]; deals?: Deal[] } => JSON.parse(re
 const slugs = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
 /** The 25 Days sponsors guide lists each sponsor's giveaway as the sponsor gave it (exempt, like the holistic rules). */
 const SPONSORS_GUIDE = "25-days-sponsors";
-const HOMEPAGE_OK = new Set<string>([...LOUISIANA_SHOPS, ...SPONSOR_SITES]);
+const HOMEPAGE_OK = new Set<string>([...LOUISIANA_SHOPS, ...SPONSOR_SITES, ...NATIONAL_SPONSOR_SITES]);
 
 describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepage deals)", () => {
   it("the blocklist holds every audited link, by reason", () => {
@@ -80,7 +80,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
       }
     }
     expect(picks).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,850)
-    expect(deals).toBeGreaterThan(50); // 1120: the deal sections of the 30 kept store pages
+    expect(deals).toBeGreaterThan(30); // 1120: the deal sections of the kept store pages; train 1120b dropped 42 Walmart house-brand and marketplace rows (33 measured 2026-11-20)
   });
 
   it("the Selfridges store page is gone with its cover and share image (every pin opened the UK site)", () => {

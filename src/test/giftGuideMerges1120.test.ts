@@ -18,7 +18,7 @@
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { beforeAll, describe, expect, it } from "vitest";
-import { GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, SECTION_CAP, SECTION_MAX, SECTION_MIN, STORE_PAGES_KEPT, isFoldedStore } from "@/content/giftGuideMerges.mjs";
+import { GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, SECTION_CAP, SECTION_MAX, SECTION_MIN, STORE_PAGES_HELD, STORE_PAGES_KEPT, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { GUIDES, guideBySlug, newSlugFor } from "@/content/giftGuideCatalog";
@@ -60,8 +60,9 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       for (const s of m.sections) expect(index.has(s), s).toBe(true);
     }
     for (const p of NEW_PARENTS) expect(GUIDE_MERGES.some((m) => m.parent === p), p).toBe(true);
-    // Owner pop-up 2026-11-20 ~2:45 AM (FINAL STORE LIST): 26 store pages.
-    expect(STORE_PAGES_KEPT.length).toBe(26);
+    // Owner pop-up 2026-11-20 ~2:45 AM (FINAL STORE LIST): 26 store pages; train 1120b holds TJ Maxx and JCPenney until refilled.
+    expect(STORE_PAGES_KEPT.length + STORE_PAGES_HELD.length).toBe(26);
+    expect(STORE_PAGES_HELD.every((s) => isFoldedStore(s))).toBe(true);
   });
 
   it("every old slug opens <parent>#<section> in the page and answers a 301 there; a folded store page 301s to the landing", () => {

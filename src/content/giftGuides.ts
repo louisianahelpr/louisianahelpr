@@ -87,7 +87,13 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
  */
 // Follow-up 1120 (owner 11-20 ~12:40 AM): every confirmed Louisiana sponsor on Shop Small Louisiana links its website,
 // Facebook or Instagram (src/content/giftGuideSmallBiz.json); City Sightseeing New Orleans on Louisiana by Region.
-export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com", "basicbee.co", "www.facebook.com", "www.zydecochopchop.com", "www.beaversabundance.com", "www.faulkcalls.com", "davidrabalaisfilm.com", "www.softlifecollective.org", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.botanicalnailandskinstudio.com", "www.crabtrapfunctionalfitness.com", "streamsideparks.com", "www.lepetittheatre.com", "www.creolequeen.com", "www.theallwayslounge.net", "brittcreatesstudio.com", "jessicalanhamphoto.com", "www.instagram.com", "rrwedco.com", "suzimarquesphotography.com", "citysightseeingneworleans.com"] as const;
+export const SPONSOR_SITES = ["thestrandtheatre.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com", "basicbee.co", "www.facebook.com", "www.zydecochopchop.com", "www.beaversabundance.com", "www.faulkcalls.com", "davidrabalaisfilm.com", "www.softlifecollective.org", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.botanicalnailandskinstudio.com", "www.crabtrapfunctionalfitness.com", "streamsideparks.com", "www.lepetittheatre.com", "www.creolequeen.com", "www.theallwayslounge.net", "brittcreatesstudio.com", "jessicalanhamphoto.com", "www.instagram.com", "rrwedco.com", "suzimarquesphotography.com", "citysightseeingneworleans.com"] as const;
+/**
+ * The national 25 Days sponsors' own shops (train 1120b, owner 11-20 ~8:35 AM: each gets one best-fit guide spot with
+ * the sponsor badge, 0% allowed). Kept apart from SPONSOR_SITES, which are Louisiana businesses: a Louisiana host's
+ * pick stays in the Louisiana section, a national sponsor's does not.
+ */
+export const NATIONAL_SPONSOR_SITES = ["homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "mindtheskinlabs.com", "idrawellness.com", "arey.com", "bostonmints.com", "www.hilma.co", "saranoni.com", "skyandsol.co", "criquetshirts.com", "www.aosulife.com", "catlady.com", "www.demingdelights.com", "21collectiveco.com"] as const;
 
 /** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
 export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop", "21 Collective"];
@@ -175,6 +181,8 @@ export interface DiscountCode {
 export const discountCodes: DiscountCode[] = [
   { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", starts: "2026-11-29", expires: "2026-12-06" },
   { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28" },
+  // Train 1120c (lead 11-20 11:31 AM, CJ): XTRATUF's Black Friday code, 25% off sitewide, free shipping on $99+.
+  { rank: 1, store: "XTRATUF", code: "XT25", offer: "25% off sitewide (Black Friday); free shipping on $99+", dates: "Nov 20 – 29", starts: "2026-11-20", expires: "2026-11-29" },
   { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+" },
   { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions" },
   { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide" },
@@ -216,6 +224,8 @@ export const giftGuides = {
   amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",
   allGuidesLabel: "All guides",
   sidebarLabel: "Gift guides",
+  // The tidier sidebar (owner 11-20 12:30 PM): the heading over the guide groups, under the tools.
+  sideGuidesHead: "Guides",
   seeAllLabel: "See all",
   shopLabel: "Shop",
   /** Every item's visible Shop pill (holistic review 11-18 H4): "Shop at Amazon", or plain "Shop" with no store name. */
@@ -250,6 +260,14 @@ export const giftGuides = {
   pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
   /** The landing's photo-card strip of the picks the most guides list, after the first guide rows (owner 11-18 PM). */
   topTitle: "Top 10 This Week",
+  /** The landing's sponsor logo row (train 1120b, owner 11-20 ~8:40 AM; GiftGuideSponsorRow.tsx). No giveaway days. */
+  sponsorRow: {
+    title: "Our 25 Days sponsors",
+    intro: "Thank you to the businesses giving away gifts in our 25 Days of Louisiana Giveaways.",
+    allHref: "/gift-guides/25-days-sponsors",
+    left: "Scroll sponsors left",
+    right: "Scroll sponsors right",
+  },
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
   giveaways: {
     title: "25 Days of Louisiana Giveaways",

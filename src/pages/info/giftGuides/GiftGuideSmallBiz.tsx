@@ -75,7 +75,7 @@ function SmallBizCard({ b }: { b: SmallBiz }) {
           <span className="gg-sb-links">
             <Button asChild variant="outline" size="sm" className="gg-sb-visit">
               <Out href={b.href}>
-                {W.visit(b.name)}<span className="sr-only"> ({G.newTab})</span>
+                {W.visit}<span className="sr-only"> {b.name} ({G.newTab})</span>
               </Out>
             </Button>
             {b.website && b.href !== b.website && <Out href={b.website} className="gg-link">{W.website}</Out>}

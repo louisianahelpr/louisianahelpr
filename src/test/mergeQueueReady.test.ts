@@ -117,7 +117,9 @@ describe("merge queue: nothing takes the push path by accident", () => {
     const jobs = wf("vitest.yml").jobs;
     expect(jobs["coverage-shard"].if).toContain("github.event_name != 'merge_group'");
     expect(jobs.coverage.if).toContain("github.event_name != 'merge_group'");
-    expect(jobs["vitest-shard"].if).toBeUndefined();
+    // Its only `if` is the guide fast lane's, which a queue run never satisfies
+    // (scope answers only on pull_request), so the shards run on every queue entry.
+    expect(jobs["vitest-shard"].if).toBe("${{ !cancelled() && needs.scope.outputs.guide_only != 'true' }}");
     expect(jobs.vitest.if).toBe("${{ always() }}");
   });
 

@@ -57,6 +57,30 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Guide fast lane (owner, 2026-11-20): a PR that changes only the guide lane
+  # (scripts/ci/guide-only.mjs GUIDE_CONTENT: gift-guide content, guide-only
+  # scripts and tests) skips the Vitest and Coverage shards and runs the
+  # "Guide fast lane" job below instead. Any other PR, a push, the merge queue,
+  # or a scope job that fails runs everything (the shards' `if` reads
+  # != 'true', so an empty answer runs them). Guard: src/test/guideFastLane.test.ts.
+  scope:
+    name: Guide-only PR?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      guide_only: ${{ steps.guide.outputs.guide_only }}
+    steps:
+      - name: Checkout
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Guide-only PR?
+        id: guide
+        if: github.event_name == 'pull_request'
+        run: |
+          node scripts/ci/guide-only.mjs > guide.json
+          node -p 'const j=require("./guide.json"); j.guideOnly ? `guide-only PR: ${j.files.length} test file(s) read the changed files` : `${j.changed} changed file(s): the whole suite runs`'
+
   # 2026-10-04 (owner: "how can we get stuff to get on main faster"): the suite
   # runs in SIX parallel shards (was four; owner 2026-10-05 "how can we make this go
   # faster": the four took 2-5 min each, so six bring the slowest near 3 min), and the
@@ -65,6 +89,8 @@ jobs:
   # skipped fails the check: it never reads as green.
   vitest-shard:
     name: Vitest shard ${{ matrix.shard }}/6
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.guide_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -138,19 +164,76 @@ jobs:
           set -euo pipefail
           node -p 'require("./scope.json").files.join("\n")' | xargs npx vitest run --reporter=default
 
+  # Typecheck, the production build (so a generator change that breaks the
+  # generated data or the prerender is caught), every test that reads the
+  # changed files (the picker follows imports two levels deep and always adds
+  # the giftGuide*, goLinks* and giftWish* suites), and the sitemap drift check.
+  # Lint, the inventories and the asset-weight check still run in test.yml's
+  # required "Lint, type-check, build, test" job, which this lane never skips.
+  guide-fast-lane:
+    name: Guide fast lane
+    needs: scope
+    if: ${{ needs.scope.outputs.guide_only == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      # Re-picks on this job's own checkout and fails closed if the PR is no
+      # longer guide-only (the scope answer is never trusted blindly).
+      - name: Pick the tests that read the changed files
+        run: |
+          set -euo pipefail
+          node scripts/ci/guide-only.mjs > guide.json
+          test "$(node -p 'require("./guide.json").guideOnly')" = "true"
+          node -p 'require("./guide.json").files.join("\n")'
+
+      - name: TypeScript type check
+        run: npx tsc -b --noEmit
+
+      - name: Production build
+        run: npm run build
+
+      - name: Sitemap drift
+        run: node scripts/generate-sitemap.mjs --check
+
+      - name: Run the tests that read the changed files
+        # No --passWithNoTests: an empty pick fails (the picker always adds the guide suites).
+        run: |
+          set -euo pipefail
+          node -p 'require("./guide.json").files.join("\n")' | xargs npx vitest run --reporter=default
+
   vitest:
     name: Vitest unit tests
-    needs: vitest-shard
+    needs: [scope, vitest-shard, guide-fast-lane]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Every shard passed
+      # A guide-only PR passes only when the fast lane passed; every other run
+      # only when every shard passed. Failed, cancelled or skipped never reads green.
+      - name: Every shard passed (or, guide-only, the fast lane passed)
         env:
+          GUIDE_ONLY: ${{ needs.scope.outputs.guide_only }}
           SHARDS: ${{ needs.vitest-shard.result }}
+          LANE: ${{ needs.guide-fast-lane.result }}
         run: |
-          echo "shards: $SHARDS"
-          test "$SHARDS" = "success"
+          echo "guide_only: $GUIDE_ONLY shards: $SHARDS fast lane: $LANE"
+          if [ "$GUIDE_ONLY" = "true" ]; then
+            test "$LANE" = "success"
+          else
+            test "$SHARDS" = "success"
+          fi
 
   coverage-shard:
     # Q184 (owner, 2026-09-27): a line-coverage floor for src/lib + src/hooks.
@@ -174,8 +257,10 @@ jobs:
     name: Coverage shard ${{ matrix.shard }}/4
     # Not in the merge queue: the floor is not a required check, and the PR before
     # it and the push after it both run it. Four shards at about 15 min each would
-    # be the largest part of every queue entry.
-    if: ${{ github.event_name != 'merge_group' }}
+    # be the largest part of every queue entry. Not on a guide-only PR either:
+    # the guide lane is outside src/lib and src/hooks code, the floor's scope.
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'merge_group' && needs.scope.outputs.guide_only != 'true' }}
     runs-on: ubuntu-latest
     # 30: a quarter of a ~58-minute run plus install, with headroom.
     timeout-minutes: 30
@@ -251,7 +336,7 @@ jobs:
     # The check name stays "Coverage floor" (scripts/land-queue.mjs gates on
     # it). It merges the four coverage shards' blobs and floors the whole suite.
     name: Coverage floor
-    needs: coverage-shard
+    needs: [scope, coverage-shard]
     if: ${{ always() && github.event_name != 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -287,19 +372,26 @@ jobs:
 
       # A coverage shard that failed, was cancelled or was skipped fails the
       # floor: its coverage is missing, so a merged figure would be partial.
+      # A guide-only PR ran no coverage shards, so it passes here and every
+      # later step skips (guide_only gates them like docs_only).
       - name: Every coverage shard finished
         env:
           COV_SHARDS: ${{ needs.coverage-shard.result }}
+          GUIDE_ONLY: ${{ needs.scope.outputs.guide_only }}
         run: |
-          echo "coverage shards: $COV_SHARDS"
-          test "$COV_SHARDS" = "success"
+          echo "coverage shards: $COV_SHARDS guide_only: $GUIDE_ONLY"
+          if [ "$GUIDE_ONLY" = "true" ]; then
+            test "$COV_SHARDS" = "skipped"
+          else
+            test "$COV_SHARDS" = "success"
+          fi
 
       - name: Install dependencies
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.docs_only != 'true' && needs.scope.outputs.guide_only != 'true' }}
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Download blobs
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.docs_only != 'true' && needs.scope.outputs.guide_only != 'true' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: coverage-blob-*
@@ -307,13 +399,13 @@ jobs:
           path: coverage-blobs
 
       - name: All four blobs arrived
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.docs_only != 'true' && needs.scope.outputs.guide_only != 'true' }}
         run: |
           ls -l coverage-blobs
           test "$(ls coverage-blobs/blob-*-4.json | wc -l)" -eq 4
 
       - name: Merge shard coverage
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.docs_only != 'true' && needs.scope.outputs.guide_only != 'true' }}
         id: vitest_cov
         # The merge replays the shards' results, so a failed test makes it exit
         # non-zero; the coverage summary is still written and the floor reads it.
@@ -321,7 +413,7 @@ jobs:
         run: npx vitest --merge-reports=coverage-blobs --reporter=dot --coverage
 
       - name: Coverage floor (Q184)
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.docs_only != 'true' && needs.scope.outputs.guide_only != 'true' }}
         env:
           # Read back so a failed test run shows in this job's log; the tests'
           # pass/fail verdict belongs to the Vitest job above.

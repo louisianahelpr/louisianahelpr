@@ -66,6 +66,15 @@ jobs:
 
       # Every later step runs in full unless this is a pull_request, so the queue
       # needs no answer from this step and cannot go red on its git diff.
+      # Guide fast lane (owner, 2026-11-20): a PR that changes only the guide
+      # lane (scripts/ci/guide-only.mjs) skips the Playwright work; vitest.yml's
+      # "Guide fast lane" job checks it instead. Fails closed: an error or any
+      # other event answers false and everything runs. Guard: guideFastLane.test.ts.
+      - name: Guide-only PR?
+        id: guide
+        if: github.event_name == 'pull_request'
+        run: node scripts/ci/guide-only.mjs > /dev/null
+
       - name: Detect UI-relevant changes
         id: filter
         if: github.event_name != 'merge_group'
@@ -92,14 +101,14 @@ jobs:
               - ".github/workflows/e2e-happy-path.yml"
 
       - name: Setup Node
-        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        if: github.event_name != 'pull_request' || (steps.filter.outputs.ui == 'true' && steps.guide.outputs.guide_only != 'true')
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
-        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        if: github.event_name != 'pull_request' || (steps.filter.outputs.ui == 'true' && steps.guide.outputs.guide_only != 'true')
         # See test.yml — use `install` not `ci` to tolerate lockfile drift.
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
@@ -112,11 +121,11 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
 
       - name: Install Playwright Chromium browser
-        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        if: github.event_name != 'pull_request' || (steps.filter.outputs.ui == 'true' && steps.guide.outputs.guide_only != 'true')
         run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Run happy-path smoke tests
-        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
+        if: github.event_name != 'pull_request' || (steps.filter.outputs.ui == 'true' && steps.guide.outputs.guide_only != 'true')
         # PLAYWRIGHT_WEB_SERVER=1 turns on the auto-start of
         # `npm run build && npx vite preview` (see playwright.config.ts).
         env:

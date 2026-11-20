@@ -54,8 +54,10 @@ name: Nightly reds nobody read
 # open/close lifecycle stays entirely with nightly-issue-sync.
 
 on:
-  push:
-    branches: [main]
+  # HOURLY, NOT PER PUSH (owner, 2026-11-20: a gift-guide PR waited ~5 hours
+  # behind ~15 queued background jobs). It reads only the issues list, so the
+  # hour's run turns red as the next push's run used to (the daily 12:40 slot
+  # is one of the hourly ones).
   # No pull_request trigger (owner, 2026-10-01): ~10 open PRs x ~13 workflows
   # queued 147 runs behind GitHub's ~20-job cap. Runs on push to main instead.
   # Guarded by src/test/prRunBudget.test.ts.
@@ -64,7 +66,7 @@ on:
     # 12:40 UTC — inside the 03:00-13:00 band the prod crons share, but this
     # job touches neither prod nor the network beyond the GitHub API, so it
     # does not take the prod-load concurrency group.
-    - cron: "40 12 * * *"
+    - cron: "40 * * * *"
 
 permissions:
   contents: read

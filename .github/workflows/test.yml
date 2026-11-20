@@ -158,7 +158,8 @@ jobs:
         # diffed against the committed copy, so a commit that adds a route, a
         # button, a guard or a finding without regenerating its inventory goes
         # red HERE. Docs-only pushes (paths-ignored above) are covered by
-        # staleness-watch.yml's push trigger. (OPEN.md Q36, 2026-09-23.)
+        # staleness-watch.yml's hourly main batch (was its push trigger until
+        # 2026-11-20). (OPEN.md Q36, 2026-09-23.)
         #
         # Exit 3 is DRIFT only (every problem is a stale committed output).
         # Aggregate counts (vacuity guards, burn-down, queue score) merge

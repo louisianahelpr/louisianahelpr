@@ -65,11 +65,12 @@
  * every landing that regenerated them touched the same lines and conflicted with
  * every other landing. Now land.sh and the PR check pass --skip-post-merge:
  * branches never regenerate them and are never blamed for them, and
- * staleness-watch.yml regenerates main after each push and lands it as
+ * staleness-watch.yml regenerates main (hourly main batch) and lands it as
  * bot/refresh/inventories. Main's own check (push, nightly) stays strict.
  *
- * Run per push by test.yml and staleness-watch.yml (push trigger, so a
- * docs-only commit is covered too), nightly by staleness-watch.yml, and by
+ * Run per push by test.yml, at most hourly on main HEAD by staleness-watch.yml's
+ * main batch (2026-11-20; it was a push trigger, so a docs-only commit is
+ * covered too), nightly by staleness-watch.yml, and by
  * `npm run gate`.
  */
 import { execFileSync, spawnSync } from "node:child_process";
@@ -311,7 +312,8 @@ export const HISTORICAL = {
  */
 export const WRITES_NOT_COMMITTED = {
   "scripts/gift-guide-shopmy-cdn.mjs": "the checked ShopMy S3 -> static.shopmy.us photo map, _shopmy-cdn-photos.json in the lead's picks folder (~/Desktop/Gift-guide-picks, outside the repo); scripts/gift-guide-picks.mjs reads it; never a repo file",
-  "scripts/ci/previous-refresh-pr-red.mjs": "Q2395: red=/message= lines to $GITHUB_OUTPUT in scoreboard.yml's land job (a step output, never a repo file)",
+  "scripts/ci/guide-only.mjs": "guide fast lane (2026-11-20): guide_only=true|false to $GITHUB_OUTPUT in vitest.yml / e2e-happy-path.yml / mobile-viewports.yml (a step output, never a repo file)",
+  "scripts/ci/previous-refresh-pr-red.mjs":"Q2395: red=/message= lines to $GITHUB_OUTPUT in scoreboard.yml's land job (a step output, never a repo file)",
   "scripts/e2e/declutterPayoutProof.mjs": "the proof run's state JSON (--state, $RUNNER_TEMP in declutter-payout-proof.yml, uploaded as the run's artifact) and its $GITHUB_STEP_SUMMARY table; never a repo file",
   "scripts/rotate-review-demo-password.mjs": "Q1790: a 0600 backup of the new App Review demo password to ~/.lh-backups/review-demo-password-<date>.txt (outside the repo); never a repo file",
   "scripts/lib/freshCheckout.mjs": "an LH_STALE_CHECKOUT_OK override appends one line to ~/.lh-hygiene/stale-checkout-runs.log (or LH_HYGIENE_DIR), outside the repo, an audit trail of overrides; never a repo file",

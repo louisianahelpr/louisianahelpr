@@ -1,5 +1,5 @@
 // @mutate .github/workflows/ui-sweep.yml |   workflow_dispatch:\n    inputs:\n      batch: |   push:\n    branches: [main]\n  workflow_dispatch:\n    inputs:\n      batch:
-// @mutate scripts/ci/main-batch.mjs |   { file: "ui-sweep.yml", paths: UI_PATHS },\n |\n
+// @mutate scripts/ci/main-batch.mjs |   { file: "ui-sweep.yml", paths: UI_PATHS, debounceMs: HOURLY_MS },\n |\n
 // @mutate .github/workflows/main-batch.yml |     - cron: "*/20 * * * *" |     - cron: "0 5 * * *"
 /**
  * GitHub runs ~20 jobs at once for this account. On 2026-10-01 the queue held
@@ -18,21 +18,25 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { TARGETS, DEBOUNCE_MS } from "../../scripts/ci/main-batch.mjs";
+import { TARGETS, DEBOUNCE_MS, HOURLY_MS } from "../../scripts/ci/main-batch.mjs";
 
 const read = (f: string) => readFileSync(path.resolve(__dirname, "../..", ".github/workflows", f), "utf8");
 const onBlock = (src: string) => src.match(/^on:\n(?:(?:\s.*)?\n)*/m)?.[0] ?? "";
 
 describe("PR run budget", () => {
+  // 2026-11-20 (owner: a gift-guide PR waited ~5 hours behind ~15 queued
+  // background jobs): nightly-red-age runs hourly, not per push or per PR.
   for (const f of ["nightly-red-age.yml"]) {
-    it(`${f} does not run per PR, and still runs on push to main`, () => {
+    it(`${f} runs neither per PR nor per push, but every hour`, () => {
       const on = onBlock(read(f));
       expect(on).not.toMatch(/^\s{2}pull_request(?:_target)?:/m);
-      expect(on).toMatch(/^\s{2}push:\s*\n\s+branches: \[main\]/m);
+      expect(on).not.toMatch(/^\s{2}push:/m);
+      expect(on).toMatch(/^\s{4}- cron: "\d{1,2} \* \* \* \*"$/m);
     });
   }
 
-  const BATCHED = ["e2e-real-backend.yml", "ui-sweep.yml"];
+  // staleness-watch.yml joined on 2026-11-20 (it was per push).
+  const BATCHED = ["e2e-real-backend.yml", "ui-sweep.yml", "staleness-watch.yml"];
   it("BATCHED names more than one workflow (both heavy, non-required checks)", () => {
     expect(BATCHED.length).toBeGreaterThan(1);
   });
@@ -51,11 +55,13 @@ describe("PR run budget", () => {
     });
   }
 
-  it("the dispatcher reaches main HEAD within ~20 min: push + every-20-min cron, one batch per <= 20 min", () => {
+  it("the dispatcher checks main HEAD every 20 min; each background target runs at most hourly (2026-11-20)", () => {
     const on = onBlock(read("main-batch.yml"));
     expect(on).toMatch(/^\s{2}push:\s*\n\s+branches: \[main\]/m);
     expect(on).toMatch(/^\s{4}- cron: "\*\/20 \* \* \* \*"$/m);
     expect(DEBOUNCE_MS).toBeLessThanOrEqual(20 * 60 * 1000);
+    expect(HOURLY_MS).toBe(60 * 60 * 1000);
+    for (const t of TARGETS) expect(t.debounceMs, t.file).toBe(HOURLY_MS);
     expect(read("main-batch.yml")).toMatch(/^\s+run: node scripts\/ci\/main-batch\.mjs$/m);
     expect(TARGETS.map((t) => t.file).sort()).toEqual([...BATCHED].sort());
   });

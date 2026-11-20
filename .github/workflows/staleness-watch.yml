@@ -1,4 +1,5 @@
 name: Staleness watch
+run-name: ${{ inputs.batch && format('{0} (main batch {1})', github.workflow, github.sha) || github.workflow }}
 
 # Nothing the monitoring relies on may be out of date (owner, 2026-09-23).
 #
@@ -29,12 +30,21 @@ name: Staleness watch
 #    fails for any other reason (exit 1: a crash, a registry gap), opens no
 #    refresh PR and stays red for its pusher. The nightly stays strict.
 
+# HOURLY, NOT PER PUSH (owner, 2026-11-20: a gift-guide PR waited ~5 hours
+# behind ~15 queued background jobs). The per-push run is now a main batch:
+# main-batch.yml dispatches it with `batch: true` for main HEAD at most once an
+# hour, and only when HEAD moved (scripts/ci/main-batch.mjs TARGETS). A batch
+# run does exactly what the push run did (generated-current; land on drift),
+# and main-red-watch.yml reports a red one like it reported a red push.
 on:
-  push:
-    branches: [main]
   schedule:
     - cron: "20 11 * * *"   # 06:20 Central, before the owner's morning
   workflow_dispatch:
+    inputs:
+      batch:
+        description: "Main batch (set by main-batch.yml): the old per-push run (generated-current, land on drift)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -42,8 +52,10 @@ permissions:
   actions: read
 
 concurrency:
-  group: staleness-watch-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  # A newer batch replaces a running one, as a newer push did; the nightly and a
+  # manual run (which land a refresh PR) are never cancelled.
+  group: staleness-watch-${{ inputs.batch && 'batch' || github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ inputs.batch == true }}
 
 jobs:
   generated-current:
@@ -66,13 +78,13 @@ jobs:
         # Exit 3 = drift only. On push it passes and hands `drift=true` to the
         # land job, which lands the regeneration now; nightly it stays red.
         env:
-          EVENT: ${{ github.event_name }}
+          BATCH: ${{ inputs.batch == true }}
         run: |
           set +e
           npm run -s check:generated
           rc=$?
           set -e
-          if [ "$rc" -eq 3 ] && [ "$EVENT" = "push" ]; then
+          if [ "$rc" -eq 3 ] && [ "$BATCH" = "true" ]; then
             echo "drift=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Committed inventories drifted on main; the land job regenerates them as bot/refresh/inventories."
             exit 0
@@ -84,7 +96,7 @@ jobs:
 
   staleness:
     name: Nothing stale
-    if: github.event_name != 'push'
+    if: ${{ inputs.batch != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -133,7 +145,7 @@ jobs:
   land:
     name: Land regenerated inventories (Q57 refresh PR)
     needs: [generated-current]
-    if: needs.generated-current.result != 'cancelled' && (github.event_name != 'push' || needs.generated-current.outputs.drift == 'true')
+    if: needs.generated-current.result != 'cancelled' && (inputs.batch != true || needs.generated-current.outputs.drift == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The ONLY write grant in this workflow (Q57): push the bot branch, open or
@@ -169,7 +181,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [generated-current, staleness, land]
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.batch != true)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

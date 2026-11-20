@@ -48,6 +48,6 @@ describe("11-20 #11: a card's photo wears one tag", () => {
     expect(tagsOn({ porch_ok: false }, null)).toEqual(["Trades OK"]);
     expect(tagsOn({ accepts_trades: false }, null)).toEqual([]);
     expect(tagsOn({ porch_ok: false, accepts_trades: false }, null)).toEqual([]);
-    expect(photoTagOf({ porch_ok: false, accepts_trades: false }, null, false)).toBeNull();
+    expect(photoTagOf({ accepts_trades: false }, null, false)).toBeNull();
   });
 });

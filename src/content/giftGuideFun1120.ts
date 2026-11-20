@@ -307,7 +307,7 @@ export const FUN_WORDS = {
   gotdShop: "Shop",
   gotdShare: "Share",
   gotdShareLabel: "Share the Gift of the Day",
-  gotdShareText: (name: string) => `Today's Gift of the Day: ${name}. More gift ideas from Louisiana Helpr:`,
+  gotdShareText: (name: string) => `Gift of the Day from Louisiana Helpr: ${name}`,
   gotdCopied: "Link copied",
   giveawayOn: "25 Days of Louisiana Giveaways is on",
   // Secret Santa

@@ -84,7 +84,7 @@ function Person({ p }: { p: PlanPerson }) {
         <ul className="gg-fun-list mt-2" aria-label={`${W.plannerIdeas} (${p.name})`}>
           {p.ideas.map((i) => (
             <li key={i.id} className={i.bought ? "gg-plan-idea bought" : "gg-plan-idea"} data-plan-idea={i.id}>
-              <label className="gg-plan-check">
+              <label className="gg-plan-check h-11 w-11">
                 <Checkbox checked={i.bought} aria-label={`${W.plannerBought}: ${i.name}`} onCheckedChange={(v) => A.setIdea(p.id, i.id, { bought: v === true })} data-plan-bought={i.id} />
               </label>
               <span className="gg-plan-iname">{i.href ? <a href={i.href} target="_blank" rel="sponsored noopener" className="gg-link min-h-0">{i.name}</a> : i.name}</span>

@@ -41,7 +41,7 @@ function readCopy(): DeviceCopy {
 }
 
 /** Whether this copy may be shown to (and merged into) this viewer: a signed-out draft, or the viewer's own. */
-export const copyBelongsTo = (ownerId: string | null, who: string | null) => ownerId === null || ownerId === who;
+const copyBelongsTo = (ownerId: string | null, who: string | null) => ownerId === null || ownerId === who;
 
 /** The plan the viewer may see: nothing until sign-in state is known, nothing that belongs to someone else. */
 function read(): GiftPlan {

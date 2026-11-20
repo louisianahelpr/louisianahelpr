@@ -145,7 +145,7 @@ BEGIN
         WHERE e.created_at > now() - interval '1 hour' AND e.tags->>'kind' = 'secret-santa-surge'
           AND coalesce(e.tags ->> 'origin', '') <> 'client') THEN
     INSERT INTO public.error_logs (severity, message, tags, context)
-    VALUES ('warning', format('Secret Santa: %s groups drawn in the last hour', v_hour_total),
+    VALUES ('warning', format('%s Secret Santa groups drawn in the last hour', v_hour_total),
             jsonb_build_object('source', 'secret-santa', 'kind', 'secret-santa-surge'),
             jsonb_build_object('hour_total', v_hour_total));
   END IF;
@@ -327,7 +327,7 @@ $fn$;
 REVOKE ALL ON FUNCTION public.secret_santa_expire() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.secret_santa_expire() TO service_role;
 
--- Hourly at :23. Hourly, not daily: the Q30 catch-up policy covers daily/weekly jobs, and a missed hour is simply
+-- Hourly at :13. Hourly, not daily: the Q30 catch-up policy covers daily/weekly jobs, and a missed hour is simply
 -- done by the next one.
 DO $do$
 BEGIN
@@ -341,7 +341,7 @@ BEGIN
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('secret-santa-expire', '23 * * * *',
+    PERFORM cron.schedule('secret-santa-expire', '13 * * * *',
       $c$SELECT public.cron_record_work('secret-santa-expire', to_jsonb(public.secret_santa_expire()));$c$);
   END IF;
 END

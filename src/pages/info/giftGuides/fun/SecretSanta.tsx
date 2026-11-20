@@ -136,7 +136,7 @@ export default function SecretSanta() {
             <label htmlFor="santa-budget">{W.santaBudget}</label>
             <Input id="santa-budget" inputMode="decimal" placeholder="$25" value={budget} onChange={(e) => setBudget(e.target.value)} data-santa-budget="" />
             <label htmlFor="santa-day">{W.santaDate}</label>
-            <Input id="santa-day" type="date" min={louisianaYmd(new Date())} max={louisianaYmd(new Date(Date.now() + SANTA_DAY_MAX_DAYS * 86400000))} value={day} onChange={(e) => setDay(e.target.value)} data-santa-day="" />
+            <Input id="santa-day" type="date" className="min-w-0" min={louisianaYmd(new Date())} max={louisianaYmd(new Date(Date.now() + SANTA_DAY_MAX_DAYS * 86400000))} value={day} onChange={(e) => setDay(e.target.value)} data-santa-day="" />
           </div>
           <div className="gg-fun-card">
             <p className="m-0 text-sm font-semibold">{W.santaAvoidTitle}</p>

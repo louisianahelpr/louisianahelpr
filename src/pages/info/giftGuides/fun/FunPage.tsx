@@ -38,7 +38,7 @@ const FUN_CSS = `
 .gg-fun label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--gg-ink)}
 .gg-fun-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
 .gg-fun-list>li{min-width:0}
-.gg-fun-err{color:hsl(var(--destructive));font-size:13px;font-weight:600;margin:8px 0 0}
+.gg-fun-err{color:hsl(var(--destructive-ink));font-size:13px;font-weight:600;margin:8px 0 0}
 .gg-fun-note{color:var(--gg-muted);font-size:12px;margin:10px 0 0}
 .gg-fun-x{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border:0;background:transparent;border-radius:999px;color:var(--gg-muted);cursor:pointer;font-size:20px}
 .gg-fun-big{font-size:28px;font-weight:800;margin:6px 0;color:var(--gg-olive);overflow-wrap:anywhere}
@@ -66,7 +66,6 @@ const FUN_CSS = `
 .gg-plan-money .over{color:#b26862;font-weight:700}
 .gg-plan-idea{display:flex;gap:6px;align-items:center}
 .gg-plan-check{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;cursor:pointer}
-.gg-plan-check>button{width:22px;height:22px}
 .gg-plan-idea .gg-plan-iname{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere}
 .gg-plan-idea.bought .gg-plan-iname{text-decoration:line-through;color:var(--gg-muted)}
 .gg-plan-price{width:90px;flex:none}

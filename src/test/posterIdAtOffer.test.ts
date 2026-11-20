@@ -29,6 +29,8 @@
  * @mutate src/components/jobs/InstantBookPanel.tsx |       if (isPosterIdRefusal(e)) void openPosterIdCheckFor(e);\n |
  * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql |              CASE WHEN j.helper_confirmed_at IS NOT NULL THEN j.location ELSE public.mask_job_location(j.location) END AS location, |              j.location,
  * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql |              CASE WHEN g.helper_confirmed_at IS NOT NULL THEN j.location ELSE public.mask_job_location(j.location) END, |              j.location,
+ * @mutate supabase/migrations/20261120221545_browse_and_detail_change_address_after_accept.sql |         mask_job_location(location) AS location, |         CASE WHEN offered_to_helper_id = auth.uid() THEN location ELSE mask_job_location(location) END AS location,
+ * @mutate supabase/migrations/20261120221545_browse_and_detail_change_address_after_accept.sql |                                 WHERE j.id = r.job_id AND j.helper_id = auth.uid() AND j.helper_confirmed_at IS NOT NULL) |                                 WHERE j.id = r.job_id AND j.helper_id = auth.uid())
  * @mutate src/pages/post-job/PostJob.tsx |       {form.step === "entry" ? ( |       {needsIdentityCheck(null) ? <span>Verify your ID to post</span> : form.step === "entry" ? (
  */
 import { describe, expect, it } from "vitest";
@@ -36,7 +38,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
-import { trackedFiles } from "./helpers/trackedFiles";
+import { readdirSync, trackedFiles } from "./helpers/trackedFiles";
 import { enJobPoster } from "@/lib/i18n/enJobPoster";
 import { esJobPoster } from "@/lib/i18n/esJobPoster";
 
@@ -137,6 +139,29 @@ describe("the poster's ID is asked at the offer, never at the post (owner 2026-1
     expect(sweep).toContain("CASE WHEN j.helper_confirmed_at IS NOT NULL THEN j.location ELSE public.mask_job_location(j.location) END AS location");
     expect(sweep).toContain("CASE WHEN g.helper_confirmed_at IS NOT NULL THEN j.location ELSE public.mask_job_location(j.location) END");
     expect(sweep).not.toMatch(/SELECT j\.id AS job_id, j\.helper_id AS user_id, j\.title, j\.location/);
+  });
+
+  it("3c. the browse view, detail changes and the series Helpr hand no unaccepted Helpr the address", () => {
+    // Behaviour: src/test/pglite/browseDetailChangeAddressAfterAccept.pglite.mjs.
+    // open_jobs_browse lists only jobs nobody has accepted: its location is the town for everyone, the offeree included.
+    const files = readdirSync(MIG_DIR).filter((f) => f.endsWith(".sql")).sort();
+    let view = "";
+    for (const f of files) {
+      const sql = flat(readFileSync(join(MIG_DIR, f), "utf8"));
+      const at = sql.lastIndexOf("CREATE OR REPLACE VIEW public.open_jobs_browse");
+      if (at >= 0) view = sql.slice(at, sql.indexOf(" FROM jobs ", at));
+    }
+    expect(view.length).toBeGreaterThan(1000);
+    expect(view).toContain("mask_job_location(location) AS location,");
+    expect(view).not.toMatch(/THEN location\b/);
+    // job_detail_change_requests (old/new location, new point): a Helpr reads it only once they accepted.
+    const dc = body("can_read_job_detail_change");
+    expect(dc).toContain("j.helper_id = auth.uid() AND j.helper_confirmed_at IS NOT NULL");
+    expect(dc).toContain("g.helper_id = auth.uid() AND g.helper_confirmed_at IS NOT NULL");
+    // can_read_job_access_notes' recurring_helper_id branch: that column is stamped only from an accepted hire.
+    const stamp = body("stamp_recurring_series_helper");
+    expect(stamp).toContain("AND NEW.helper_confirmed_at IS NOT NULL");
+    expect(stamp).toContain("NEW.recurring_helper_id := NEW.helper_id;");
   });
 
   it("4. the app answers the refusal at every offer call site (exact), in English and Spanish", () => {

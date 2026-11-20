@@ -26,7 +26,7 @@
  * src/test/pglite/jobAccessNotes.pglite.mjs. Live: the
  * scripts/check-job-access-notes-live.mjs read of prod's catalog.
  *
- * @mutate supabase/migrations/20261114234033_guests_read_masked_job_text.sql |     date_window_end\n   FROM jobs |     date_window_end,\n    (SELECT n.notes FROM public.job_access_notes n WHERE n.job_id = jobs.id) AS access_notes\n   FROM jobs
+ * @mutate supabase/migrations/20261120221545_browse_and_detail_change_address_after_accept.sql |     date_window_end\n   FROM jobs |     date_window_end,\n    (SELECT n.notes FROM public.job_access_notes n WHERE n.job_id = jobs.id) AS access_notes\n   FROM jobs
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | CREATE POLICY "Poster and booked Helprs read access notes" ON public.job_access_notes\n  FOR SELECT TO authenticated | CREATE POLICY "Poster and booked Helprs read access notes" ON public.job_access_notes\n  FOR SELECT TO anon, authenticated
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |          OR public.can_read_job_access_notes(job_id)); |          OR true);
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO authenticated; | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO anon, authenticated;

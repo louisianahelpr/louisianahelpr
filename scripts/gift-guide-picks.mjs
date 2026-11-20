@@ -2661,7 +2661,9 @@ export const SORT_CTX = {};
 export const SORT_BRAND_MAX = 2;
 /** Lists with their own order (memberships first, wrap and cards only, Mail Carrier's checked $20 picks): annotated and capped, never re-sorted or added to. */
 export const SORT_FIXED = new Set(["subscriptions", "gift-cards", "gift-wrap-and-cards", "mail-carrier-and-delivery-drivers"]);
-export const SORT_KEEP = [{ guide: "mom", href: "https://go.shopmy.us/p-104050308" }, { guide: "boyfriend-or-husband", href: "https://go.shopmy.us/p-107825142" }];
+export const SORT_KEEP = [{ guide: "mom", href: "https://go.shopmy.us/p-104050308" }, { guide: "boyfriend-or-husband", href: "https://go.shopmy.us/p-107825142" },
+  // Follow-up 1120 (owner 11-20 ~12:50 AM, "It's ok there's 6 over 500"): the Ooni Koda 16 stays on Home Cook.
+  { guide: "home-cook", href: "https://go.shopmy.us/p-107927750" }];
 export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei: 0, excluded: 0, ownerPicks: 0 };
 {
   for (const slug of Object.keys(pageList)) {
@@ -3062,6 +3064,10 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     // The owner's three keeps (11-19): the Dyson Airwrap on Mom, the lululemon boxers on Husband, the CREAMi in the Top 10.
     // Big batch 1120: each owner swap's new item (_owner-swaps-1119.md) is a keep on its guide too (her decision, item by item).
     const swapKeep = new Set();
+    // Follow-up 1120 (lead 11-20): every pick the owner added herself (_owner-picks.json, her ShopMy "Gift Guide Inbox")
+    // is exempt from the sort's caps on the guides she named for it (a merged guide with no list: its first old guide).
+    const ownGuide1120 = (g) => (GUIDE_SLUGS.has(g) && isGuide(g) ? g : [...BASE_MERGES, ...GUIDE_MERGES].find((m) => m.parent === g)?.sections.find((x) => GUIDE_SLUGS.has(x) && isGuide(x)) ?? null);
+    const ownerOn = (slug, p) => Boolean(p.ownerPick && (ownerGuides.get(p.href) ?? []).some((g) => ownGuide1120(g) === slug));
     const keepOn = (slug, p) => SORT_KEEP.some((k) => k.guide === slug && k.href === p.href) || swapKeep.has(`${slug}|${p.href}`) || (p.swappedFrom !== undefined && swapKeep.has(`${slug}|${p.swappedFrom}`));
     // Gate for a pick on a guide it did not come from: every page rule, the judgment cuts, US prices only up to PRICE_MAX.
     const gate = (slug, p) => {
@@ -3101,7 +3107,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     }
     // Every other guide a held row's source names for it (placement files, owner picks, fills) is a candidate too.
     for (const [href, slugs] of Object.entries(BRAND_PLACEMENT)) if (Array.isArray(slugs) && pool.has(href)) for (const s of slugs) if (GUIDE_SLUGS.has(s) && isGuide(s)) pool.get(href).guides.add(s);
-    for (const [href, slugs] of ownerGuides) if (pool.has(href)) for (const s of slugs) if (GUIDE_SLUGS.has(s) && isGuide(s)) pool.get(href).guides.add(s);
+    for (const [href, slugs] of ownerGuides) if (pool.has(href)) for (const s of slugs.map(ownGuide1120).filter(Boolean)) pool.get(href).guides.add(s);
     // 2. The brand-link rows no guide holds yet (owner: "Import ALL brand links"), to their placement-file guides.
     for (const f of ["_brand-links-1119-a.json", "_brand-links-1119-b.json"]) {
       for (const r of rowsOf(readJson(f))) {
@@ -3164,15 +3170,20 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     // the owner's Southern picks (_southern-picks-1119.json), the swaps' new items (_owner-swaps-1119.md ADD rows,
     // placed on their guide like an editor's add) and the rest of the joined Creator Connections campaigns
     // (_cc-placements-1120.json). Same gates as every fill; a row the owner found on TikTok wears "Trending on TikTok".
-    for (const r of importRows1120(readJson, rowsOf, dir)) {
-      const href = r.affiliate_href || r.href;
-      const e = addRow(r, href, guidesOf(r), r._source, `big1120 ${r._file}`);
+    // Follow-up 1120: a row with no photo takes the one read for it (_image-fill-1120.json: the brand's own product image
+    // or Amazon's image by ASIN; lead 11-20: BedJet, Polaroid), and a forced row already in the pool is still forced.
+    const IMAGE_FILL_1120 = (() => { try { return readJson("_image-fill-1120.json") ?? {}; } catch { return {}; } })();
+    for (const r0 of importRows1120(readJson, rowsOf, dir)) {
+      const href = r0.affiliate_href || r0.href;
+      const r = r0.image || !IMAGE_FILL_1120[href] ? r0 : { ...r0, image: IMAGE_FILL_1120[href] };
+      const had1120 = pool.get(href);
+      const e = addRow(r, href, guidesOf(r), r._source, `big1120 ${r._file}`) ?? (r._forced && had1120 ? (guidesOf(r).forEach((g) => had1120.guides.add(g)), had1120) : null);
       if (!e) continue;
       if (r._forced) {
         // Her own swap (owner 11-19 PM): an owner pick, exempt from the page rules like her other picks.
         e.p = { ...e.p, ownerPick: true };
-        e.forced = new Set(e.guides);
-        for (const s of e.guides) swapKeep.add(`${s}|${href}`);
+        e.forced = new Set(guidesOf(r).length ? guidesOf(r) : e.guides);
+        for (const s of e.forced) swapKeep.add(`${s}|${href}`);
       }
       // A small shop the owner asked for by name (OWNER_SHOPS_1120) is placed on its guide like an editor's add.
       if (r._ownerShop) e.forced = new Set([...(e.forced ?? []), ...e.guides]);
@@ -3303,7 +3314,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       for (const e of cands.filter((x) => keepOn(slug, x.p) && !x.on.has(slug))) take(slug, e, list);
       // A joined Creator Connections pick (lead 11-19: every joined campaign on a guide) and an editor's add claim their
       // slot before the commission order fills the rest (still one type and brand cap; the page sorts them in after).
-      for (const e of cands.filter((x) => !keepOn(slug, x.p) && (x.campaign || x.forced?.has(slug)))) if (canTake(slug, e, list)) take(slug, e, list);
+      for (const e of cands.filter((x) => !keepOn(slug, x.p) && (x.campaign || x.forced?.has(slug) || ownerOn(slug, x.p)))) if (canTake(slug, e, list)) take(slug, e, list);
       const ranked = cands.filter((x) => !keepOn(slug, x.p) && !x.on.has(slug)).map((e) => ({ e, commission: e.p.commission, _pop: e.pop, _at: e.at ?? 999 })).sort(byCommission);
       for (const { e } of ranked) {
         if (list.length >= GUIDE_CAP) break;
@@ -3425,7 +3436,9 @@ export const SECTION_ANCHORS = {};
   const fill = (rows, ownSlug) => {
     const out = rows.filter(ownerShop).filter((p, i, all) => all.findIndex((x) => x.href === p.href) === i).slice(0, SECTION_CAP);
     // SORT_FIXED rows keep their own order and lead; the rest by commission.
-    const ranked = rows.map((p, i) => ({ p, i })).sort((x, y) => Number(SORT_FIXED.has(y.p.from)) - Number(SORT_FIXED.has(x.p.from)) || (SORT_FIXED.has(x.p.from) && SORT_FIXED.has(y.p.from) ? x.i - y.i : byCommission({ ...x.p, _at: x.i }, { ...y.p, _at: y.i })));
+    // Follow-up 1120 (lead 11-20): the owner's own picks claim their places first; the owner's firm rules still hold
+    // (one place per item and color, two of a gift type, two LSU items, one lash item), then the rest by commission.
+    const ranked = rows.map((p, i) => ({ p, i })).sort((x, y) => Number(SORT_FIXED.has(y.p.from)) - Number(SORT_FIXED.has(x.p.from)) || Number(Boolean(y.p.ownerPick)) - Number(Boolean(x.p.ownerPick)) || (SORT_FIXED.has(x.p.from) && SORT_FIXED.has(y.p.from) ? x.i - y.i : byCommission({ ...x.p, _at: x.i }, { ...y.p, _at: y.i })));
     for (const { p } of ranked) {
       if (out.length >= SECTION_CAP) break;
       if (out.some((x) => x.href === p.href || variantKey(x) === variantKey(p))) continue;

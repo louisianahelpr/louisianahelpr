@@ -1231,7 +1231,8 @@ export const drugstoreOff = (slug, p) => !slug.startsWith("store-") && !/\bgift 
  */
 export const masonOff = (slug, p) => ["By person", "By budget"].includes(GUIDE_GROUPS.get(slug)) && /^mason new york$/i.test(String(p.brand ?? "").trim());
 export const redoneOff = (slug, p) => !slug.startsWith("store-") && /^re\/?done$/i.test(String(p.brand ?? "").trim()) && /\b(tee|t-shirt|shirt)\b/i.test(String(p.name ?? ""));
-export const LASH = /\b(lash(es)?|eyelash(es)?)\b/i;
+// Follow-up 1120: an eyelash-safe sleep mask (the owner's DROWSY pick) is a sleep mask, not a lash item.
+export const LASH = /\b(lash(es)?|eyelash(es)?)\b(?!.*\bsleep mask\b)/i;
 export const lashOff = (slug, p) => !slug.startsWith("store-") && /holiday glam styles/i.test(String(p.name ?? "")) && /true beauty lashes/i.test(String(p.brand ?? ""));
 
 /** Owner 11-19 ("remove the black vera bradley, add in BÉIS or other popular ones"): the Air Birdie Weekender goes. */

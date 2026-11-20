@@ -22,7 +22,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { offerSwap, tradeableListings } from "@/lib/declutter/trades";
 import { focusSheetItself } from "./focusSheetItself";
 import { myItemsQuery } from "./myItemsQuery";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_START_PATH } from "@/lib/declutter/sellChooser";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { useMyTrades } from "./useMyTrades";
 import "@/lib/i18n/enDeclPanels";
@@ -95,7 +95,7 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
           {mine.isError && <p role="alert" className="mt-3 text-sm text-destructive-ink">{declutterErrorMessage(mine.error)}</p>}
           {mine.isSuccess && choices.length === 0 && (
             <p className="mt-3 text-ds-14" data-offer-trade-empty="">
-              {t("dp.noListings")} <Link to={SELL_CHOOSER_PATH} className="font-semibold underline underline-offset-2">{t("dp.listAnItem")}</Link> {t("dp.first")}
+              {t("dp.noListings")} <Link to={SELL_START_PATH} className="font-semibold underline underline-offset-2">{t("dp.listAnItem")}</Link> {t("dp.first")}
             </p>
           )}
           {choices.length > 0 && (

@@ -522,7 +522,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     // Owner 11-02 (1.0.4): one line, the same shape as Jobs' ("New jobs show up here as people post them.").
     expect(screen.getByText("New items show up here as people list them.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Post what you're looking for" })).toHaveAttribute("href", "/declutter?tab=wanted");
-    expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
+    expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell");
     empty.unmount();
     // A list: the link closes the end card under the cards.
     state.live = [{ ...ITEM, id: "i40", seller_id: "s9", title: "Brass floor lamp" }];

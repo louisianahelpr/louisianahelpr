@@ -56,7 +56,7 @@ import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, DeclutterChi
 import { releaseDeclutterShellForCards } from "./declutterShell";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
 import { guestSaveHref } from "@/lib/declutter/guestSave";
-import { SELL_CHOOSER_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
+import { SELL_START_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
 import { readGuestPreview } from "@/lib/declutter/guestBootPrefetch";
 import { useFirstRowPhotosSettled } from "./firstRowPhotoGate";
@@ -169,8 +169,8 @@ function NothingForSaleActions({ guest }: { guest: boolean }) {
       <HideSectionCreateFab active={!guest} />
       <EmptyStateActions
         primary={guest
-          ? { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` }
-          : { label: t("decl.sellSomething"), to: SELL_CHOOSER_PATH }}
+          ? { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_START_PATH)}` }
+          : { label: t("decl.sellSomething"), to: SELL_START_PATH }}
         secondary={wanted ? { label: t("decl.postWanted"), to: "/declutter?tab=wanted" } : null}
         secondaryIcon={Search}
       />

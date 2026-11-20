@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { safeStorage } from "@/lib/safeStorage";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_START_PATH } from "@/lib/declutter/sellChooser";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListRow } from "@/components/ui/ListRow";
@@ -131,7 +131,7 @@ export function GetStartedGuide({ userId, fresh, declutterOpen, hasPhoto, alerts
   const go: Record<GuideStepKey, () => void> = {
     apply: () => navigate("/jobs"),
     post: gate.gate("post", () => navigate("/post-job")),
-    list: () => navigate(SELL_CHOOSER_PATH),
+    list: () => navigate(SELL_START_PATH),
     save: () => navigate("/declutter"),
     photo: () => navigate("/profile?tab=profile"),
     alerts: () => navigate("/profile?tab=notifications"),

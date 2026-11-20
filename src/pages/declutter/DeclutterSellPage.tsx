@@ -14,7 +14,8 @@ const BunchFlow = lazy(() => import("@/components/declutter/DeclutterBunchView")
  * /declutter/sell: the 404 unless the hidden 'declutter' switch is on (DeclutterGate).
  * ?mode=bunch is "Sell a bunch": many items from many photos at once, same gate. ?mode=moving is the same flow with
  * the moving sale's date on top.
- * ?mode=choose is "What do you want to sell?" (owner 2026-10-30), where every Sell button goes; any other deep link
+ * ?mode=choose is "What do you want to sell?" (owner 2026-10-30), now reached from "More ways to sell" on the one
+ * screen: every Sell button opens one item straight away (SELL_START_PATH, ease batch 11-20); any other deep link
  * (?mode=bunch, ?mode=moving, ?item=, ?answer=, ?free=1, or none) opens its flow straight away.
  */
 export default function DeclutterSellPage() {
@@ -29,12 +30,10 @@ export default function DeclutterSellPage() {
             <BunchFlow moving={params.get("mode") === "moving"} />
           </Suspense>
         </SellerSetupGate>
-      ) : params.get("item") ? (
-        <SellFlow />
       ) : (
-        <SellerSetupGate>
-          <SellFlow />
-        </SellerSetupGate>
+        // One item, Give it away, ?answer= and a saved draft (?item=): no setup screen first (ease batch, owner-approved
+        // 11-20). A new listing asks a missing address inline and shows its starting pickup times (FirstSalePickup).
+        <SellFlow />
       )}
     </DeclutterGate>
   );

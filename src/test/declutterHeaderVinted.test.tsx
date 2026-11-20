@@ -59,7 +59,7 @@ import { setNotificationUser, setUnreadTotal, __resetNotificationStore } from "@
 import { stores, notifyUnreadWatchers } from "@/components/mobileNav/navUnreadStore";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_START_PATH } from "@/lib/declutter/sellChooser";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 
 const code = (rel: string) => blankComments(readFileSync(resolve(__dirname, "../..", rel), "utf8"));
@@ -171,14 +171,14 @@ describe("the Search Declutter bar", () => {
 });
 
 describe("Sell: the floating + Sell pill", () => {
-  it("phone: one pill over the page, above the bottom bar on the shared clearance; it opens the sell chooser", () => {
+  it("phone: one pill over the page, above the bottom bar on the shared clearance; it opens one item straight away (ease batch 11-20)", () => {
     render(<MemoryRouter><Routes><Route path="*" element={<><SectionCreateFab section="declutter" text="Sell" /><Where /></>} /></Routes></MemoryRouter>);
     const sell = screen.getByRole("button", { name: "Sell an item" });
     expect(sell.textContent).toBe("Sell");
     expect(sell.parentElement).toBe(document.body);
     expect(sell.className.split(" ")).toEqual(expect.arrayContaining(["fixed", "bottom-safe-nav", "right-4"]));
     fireEvent.click(sell);
-    expect(screen.getByTestId("where").textContent).toBe(SELL_CHOOSER_PATH);
+    expect(screen.getByTestId("where").textContent).toBe(SELL_START_PATH);
   });
 
   it("desktop website: no pill (the bar keeps '+ Sell an item')", () => {

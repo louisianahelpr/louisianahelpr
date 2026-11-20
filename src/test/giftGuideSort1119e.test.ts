@@ -19,7 +19,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync } from "./helpers/trackedFiles";
 import { GUIDE_CAP, TYPE_MAX, buildRateData, byCommission, commissionOf, pickType, typeMax } from "../../scripts/giftGuideSort.mjs";
 
-type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string; sectionId?: string; from?: string };
+type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string; sectionId?: string; from?: string; ownerPick?: boolean };
 const DIR = "src/content/giftGuidePicks";
 const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
 /** Lists with their own order (scripts/gift-guide-picks.mjs SORT_FIXED) keep it; the sponsors guide is a sponsor list. */
@@ -79,7 +79,10 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
       for (const p of list.filter((x) => !FIXED.has(x.from ?? ""))) n.set(p.type ?? "other", (n.get(p.type ?? "other") ?? 0) + 1);
       // A section's cap of a type is its old guides' (Artists may hold more art supplies; 1120 section groups).
       const cap = (t: string) => Math.max(typeMax(slug, t), ...list.filter((p) => (p.type ?? "other") === t).map((p) => typeMax(p.from ?? slug, t)));
-      for (const [t, c] of n) if (c > cap(t)) bad.push(`${slug}: ${c} x ${t}`);
+      // Follow-up 1120 (lead 11-20: "her picks beat our rules except her own firm rules"): the owner's own picks are not
+      // held to the type cap, and ours give way to them (ours never push a type past its cap).
+      const mine = (t: string) => list.filter((p) => !FIXED.has(p.from ?? "") && p.ownerPick && (p.type ?? "other") === t).length;
+      for (const [t, c] of n) if (c - mine(t) > Math.max(0, cap(t) - mine(t))) bad.push(`${slug}: ${c} x ${t}`);
     }
     expect(bad).toEqual([]);
   });

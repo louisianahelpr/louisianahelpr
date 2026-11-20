@@ -199,6 +199,8 @@ export const sponsorPage = {
    * the tracker's calendar (170 giveaways from 104 brands as of 2026-11-19 7:15 PM). Check drift with `node scripts/check-25days-lineup.mjs`,
    * regenerate with `--print` (manual; never in CI).
    * Business names, prizes and Facebook Page links ONLY: never a contact person's name, email or phone (this page and repo are public).
+   * Owner 2026-11-19: three sponsors show by their own name (David Rabalais; Tevin Lewis, District 2 Alderman, unlinked;
+   * Haylie Rudisill · Custom wreath sashes). The allowlist is PUBLIC_NAMES in scripts/check-25days-lineup.mjs.
    */
   lineup: {
     title: "This year's sponsors",
@@ -272,7 +274,7 @@ export const sponsorPage = {
       "Saranoni": "https://www.facebook.com/saranoniblanket",
       "SRI Labs": "https://www.facebook.com/SRIBeautyLabs",
       "Suzi Marques Photography": "https://www.facebook.com/suzimarquesphotography",
-      "The Fois": "https://www.facebook.com/davidrabalaisfilm/",
+      "David Rabalais": "https://www.facebook.com/davidrabalaisfilm/",
       "The Humble Home Decor & Candles": "https://www.facebook.com/profile.php?id=61591928826991",
       "The Sculpt Society": "https://www.facebook.com/sculptsociety",
       "The Soft Life Collective": "https://www.facebook.com/profile.php?id=61594580516352",
@@ -310,7 +312,7 @@ export const sponsorPage = {
           { brand: "Boston Mints", prize: "One lip gloss each day" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "World Ballet Company: The Nutcracker", prize: "Pair of Nutcracker tickets, Strand Theatre Shreveport, Dec 8" },
-          { brand: "The Fois", prize: "The Fois t-shirt (winner size) + koozie" },
+          { brand: "David Rabalais", prize: "The Fois t-shirt (winner size) + koozie" },
           { brand: "Cher Bebe Embroidery", prize: "Tea towel of choice" },
           { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
         ],
@@ -318,7 +320,7 @@ export const sponsorPage = {
       {
         day: 3,
         partners: [
-          { brand: "District 2 Alderman", prize: "$25 Shucks gift card" },
+          { brand: "Tevin Lewis, District 2 Alderman", prize: "$25 Shucks gift card" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Crabtrap Functional Fitness", prize: "Free month membership" },
           { brand: "RoseMae Eimear Creations", prize: "Soap bar or bath soak (winner picks)" },
@@ -381,7 +383,7 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Written on the River", prize: "Mug or tile with her Louisiana design" },
           { brand: "Timeless Skin Care", prize: "Skincare package" },
-          { brand: "The Fois", prize: "Toy Magnalite pot" },
+          { brand: "David Rabalais", prize: "Toy Magnalite pot" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
           { brand: "Candle Bloom Confections", prize: "Candle flower bouquet" },
           { brand: "Active Beauty", prize: "Active Beauty product" },
@@ -392,7 +394,7 @@ export const sponsorPage = {
         partners: [
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Let's Create LLC", prize: "Permanent jewelry stainless steel bracelet" },
-          { brand: "The Fois", prize: "Roux spoon + Roundhouse Ya Maw Maw seasoning" },
+          { brand: "David Rabalais", prize: "Roux spoon + Roundhouse Ya Maw Maw seasoning" },
           { brand: "Botanical Nail and Skin Studio", prize: "$50 gift card toward any service" },
           { brand: "City Sightseeing New Orleans", prize: "Two 3-Day Hop-On Hop-Off Passes + Guided Walking Tours of the Garden District and French Quarter" },
           { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
@@ -476,7 +478,7 @@ export const sponsorPage = {
           { brand: "SRI Labs", prize: "KeeWee shampoo" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "3 Redneck Tenors", prize: "Pair of tickets, Feb 26 2027, Strand Theatre Shreveport" },
-          { brand: "Custom wreath sashes", prize: "Santa wreath sash" },
+          { brand: "Haylie Rudisill · Custom wreath sashes", prize: "Santa wreath sash" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
           { brand: "Phyllis Guy Dance Center", prize: "One month of kids' dance classes (1 class a week; winner picks ballet, tap, jazz, hip hop, modern or musical theatre)" },
         ],

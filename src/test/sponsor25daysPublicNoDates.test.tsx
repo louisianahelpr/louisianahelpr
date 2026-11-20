@@ -4,12 +4,13 @@
  *    public; the lineup is an undated list and lineup.days stays internal data (sign-up tile counts only);
  *  - "don't say exactly what the plan is": no public copy spells out how to enter (share/tag/like steps, one entry
  *    per day);
- *  - removed or declined sponsors never show, and the lineup carries business names only, never a person's name.
+ *  - removed or declined sponsors never show, and the lineup carries business names only, never a person's name,
+ *    except the three sponsors the owner chose to show by name (2026-11-19, NAMED_SPONSORS).
  *
  * @mutate src/components/sponsor/Sections.tsx |             {p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)} |             <span className="lh25-lineup-date">Dec {lineupCount(1)}</span>{p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)}
  * @mutate src/content/sponsorPage.ts | a Louisiana favorite. Entry details coming soon on our Facebook page. | a Louisiana favorite. To enter: share this post and tag 2 friends.
  * @mutate src/content/sponsorPage.ts |         body: "Follow the steps in the official entry post on the Louisiana Helpr Facebook page. Automated or bulk entries are void.", |         body: "Like the post. Limit one entry per person per day.",
- * @mutate src/content/sponsorPage.ts |           { brand: "The Fois", prize: "Toy Magnalite pot" }, |           { brand: "David Rabalais (The Fois)", prize: "Toy Magnalite pot" },
+ * @mutate src/content/sponsorPage.ts |           { brand: "David Rabalais", prize: "Toy Magnalite pot" }, |           { brand: "Mary Kay · Crystal Fakier", prize: "Toy Magnalite pot" },
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -29,8 +30,10 @@ function allStrings(v: unknown, out: string[] = []): string[] {
 
 const ENTRY_STEPS = /share this post|tag (2|two) friends|tag 2\b|one entry per (day|person per day)|like and follow|to enter:/i;
 const REMOVED = ["Peigneur", "Victoria Nicole", "GlassWorks", "Minky", "Alice Lane", "Floral Cottage", "Blackstone"];
-/** People behind sponsor businesses (the tracker's contact names that once reached the page). */
-const PEOPLE = ["David Rabalais", "Tevin Lewis", "Haylie Rudisill", "Holli", "Crystal Fakier", "Lexi"];
+/** People behind sponsor businesses (the tracker's contact names that once reached the page, or could). */
+const PEOPLE = ["Holli", "Crystal Fakier", "Brandi", "Lexi"];
+/** Owner 2026-11-19: the only sponsors shown by a person's name (exact card names; scripts/check-25days-lineup.mjs PUBLIC_NAMES). */
+const NAMED_SPONSORS = ["David Rabalais", "Tevin Lewis, District 2 Alderman", "Haylie Rudisill · Custom wreath sashes"];
 
 describe("25 Days public pages: no sponsor day, no entry steps, no removed sponsor, no person's name", () => {
   it("the lineup shows no date or weekday for any sponsor", () => {
@@ -75,6 +78,11 @@ describe("25 Days public pages: no sponsor day, no entry steps, no removed spons
     const text = JSON.stringify(sponsorPage.lineup);
     expect(REMOVED.filter((n) => text.includes(n))).toEqual([]);
     expect(PEOPLE.filter((n) => text.includes(n))).toEqual([]);
+    // The three owner-named sponsors show exactly as chosen; Tevin's name is not linked (no confirmed official Page).
+    const brands = new Set(sponsorPage.lineup.days.flatMap((d) => d.partners.map((p) => p.brand)));
+    expect(NAMED_SPONSORS.filter((n) => !brands.has(n))).toEqual([]);
+    expect(Object.keys(sponsorPage.lineup.links)).not.toContain("Tevin Lewis, District 2 Alderman");
+    for (const b of brands) expect(b, b).not.toMatch(/Rabalais \(|Rudisill \(|^District 2 Alderman$|^The Fois$|^Custom wreath sashes$/);
   });
 });
 

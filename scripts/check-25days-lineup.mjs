@@ -41,13 +41,15 @@ const NOTE_PARENS = [
   /\s*\([^)]*sign-up form\)/gi,
 ];
 /**
- * Owner 2026-11-19 ("no personal names in the public lineup, business names only"): a tracker name that is a person
- * shows as its business or what it gives.
+ * Owner 2026-11-19: the public lineup shows business names, except these three sponsors, who show by their own name
+ * as the owner chose ("David Rabalais"; "Tevin Lewis, District 2 Alderman"; Haylie has no business name on file, so
+ * "Haylie Rudisill · Custom wreath sashes"). Any other person's name stays out (PERSON_PARENS, TRAILING_NOTE).
+ * The same list is the guard's allowlist (src/test/sponsor25daysPublicNoDates.test.tsx, NAMED_SPONSORS).
  */
 const PUBLIC_NAMES = new Map([
-  ["David Rabalais (The Fois)", "The Fois"],
-  ["Tevin Lewis, District 2 Alderman", "District 2 Alderman"],
-  ["Haylie Rudisill (custom wreath sashes)", "Custom wreath sashes"],
+  ["David Rabalais (The Fois)", "David Rabalais"],
+  ["Tevin Lewis, District 2 Alderman", "Tevin Lewis, District 2 Alderman"],
+  ["Haylie Rudisill (custom wreath sashes)", "Haylie Rudisill · Custom wreath sashes"],
 ]);
 /** Brand-name parentheticals that are a person (the sponsor's contact), keyed by tracker key. */
 const PERSON_PARENS = [/\s*\(Holli M\. Landry\)/g, /\s*\(Brandi\)/g];

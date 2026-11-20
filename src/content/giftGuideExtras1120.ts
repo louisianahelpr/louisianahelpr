@@ -1,6 +1,6 @@
 /**
  * The gift guides' big batch 1120 extras (owner approved 11-19 ~9:10 PM, FOLLOWUP-OWNER-1119.md item 83):
- *   (a) the GIFT FINDER: three taps (who, budget, vibe) give the six best picks from the guides, with a share link
+ *   (a) the GIFT FINDER: three taps (who, budget, vibe) give the best picks (exact, then close matches) from the guides, with a share link
  *       (the answers ride in the URL) and no sign-in;
  *   (b) SHIPPING DEADLINES: a store's Christmas order-by day from its own published holiday shipping page, a small chip
  *       on its cards until that day passes (hidden after, by the day in Louisiana);
@@ -41,8 +41,8 @@ export const FINDER_VIBES: { id: FinderVibe; label: string; words: RegExp }[] = 
   { id: "louisiana", label: "Louisiana", words: /\b(louisiana|lsu|saints|new orleans|nola|cajun|creole|acadiana|crawfish|beignet|mardi gras|fleur de lis|bayou|geaux)\b/i },
   { id: "outdoorsy", label: "Outdoorsy", words: /\b(yeti|cooler|fishing|fish|hunting|hunt|camp|camping|hiking|costa|huk|simms|aftco|columbia|boots?|rain|kayak|boat|grill|solo stove|duck|deer|outdoor)\b/i },
 ];
-/** How many picks the finder shows. */
-export const FINDER_COUNT = 6;
+/** How many picks the finder shows (owner 11-20: always a list, 6 to 12): the exact matches, then close ones up to this. */
+export const FINDER_COUNT = 9;
 
 /** A pick is the vibe: its badges (TikTok/trending, Louisiana) or its words. */
 const isVibe = (p: CatalogPick, vibe: FinderVibe) => {
@@ -63,22 +63,86 @@ export const finderPool = (who: FinderWho, picksOf: (slug: string) => CatalogPic
   return out;
 };
 
+/** A budget guide section's ceiling: its anchor ("under-25", "100-and-up") or its heading ("Under $25", "$100 & Up"). */
+const SECTION_BANDS: Record<string, 25 | 50 | 100 | 500> = { "under-25": 25, "under-50": 50, "under-100": 100, "100-and-up": 500 };
+const sectionBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
+  if (p.sectionId && SECTION_BANDS[p.sectionId]) return SECTION_BANDS[p.sectionId];
+  const m = /^under \$(\d+)$/i.exec(p.section?.trim() ?? "");
+  if (m) return Number(m[1]) <= 25 ? 25 : Number(m[1]) <= 50 ? 50 : Number(m[1]) <= 100 ? 100 : 500;
+  return /^\$100 (&|and) up$/i.test(p.section?.trim() ?? "") ? 500 : undefined;
+};
 /**
- * The finder's six: the vibe's picks within the budget first, then the rest within the budget (so a narrow vibe still
- * gives six), each link once. A budget keeps only picks with a known band at most the budget (Amazon picks carry no
- * band: Amazon allows no price outside its own site, so they show only with "Any budget").
+ * What a pick costs, as a band ($25, $50, $100; 500 = over $100): its own band, else its checked price, else the
+ * budget section it sits in ("Under $25"). Amazon picks carry no band or price (Amazon allows no price outside its
+ * own site), so a budget section is the only way one joins a budget; the band is only used to sort, never shown.
  */
-export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: FinderVibe): CatalogPick[] => {
-  const fits = (p: CatalogPick) => budget === 0 || (p.band !== undefined && p.band <= budget);
+export const pickBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
+  if (p.band !== undefined) return p.band;
+  if (p.price !== undefined && p.store !== "amazon") return p.price <= 25 ? 25 : p.price <= 50 ? 50 : p.price <= 100 ? 100 : 500;
+  return sectionBand(p);
+};
+
+/** The guides whose sections are budgets ("Under $25", "Under $100"): the finder borrows from them when a person's own guide runs short. */
+export const FINDER_BUDGET_GUIDES = ["gifts-by-budget", "splurge"];
+
+/** Toys and kids' things: a grown-up's finder never borrows them; a kid's borrows only them. */
+const KID_THING = /\b(play-?doh|rainbow loom|loomi|melissa (&|and) doug|squish\w*|lincoln logs|barbie|dolls?|plush|play ?sets?|toys?|paint sticks|dive buddies|ms\.? rachel|lego|stacker|kids?'?)\b/i;
+/** The guides' men's/women's rules (scripts/giftGuideRules.mjs mensItem, WORK_BOOT_OFF), for picks borrowed from a budget guide. */
+const MENS = /\b(men'?s|mens|for men|boys'?)\b|^huk$/i;
+const WOMENS = /\b(women'?s|womens|ladies|girls'?|lip|gloss|balm|makeup|mascara|blush|nail|mani|earrings|huggies|hoops?|bobby pins|hair|scrunchies?|bows?|eye patches|eye mask|perfume|parfum|tote|racerback|bandana|welly|emi jay|kitsch|summer fridays|tower 28|olive (&|and) june|sol de janeiro|laneige|bareminerals|benefit|kate spade|spartina|gorjana|baublebar|bath (&|and) body works)\b/i;
+const WORK_BOOT = /\b(work boots?|chore (boots?|classic)|steel toe|muckster|wetland boot)\b|^muck boot$/i;
+/** Whether a budget-guide pick may be borrowed for this person. */
+const borrowFits = (who: FinderWho, p: CatalogPick) => {
+  const text = `${p.name} ${p.brand ?? ""}`;
+  if (who === "kids") return KID_THING.test(text);
+  if (KID_THING.test(text)) return false;
+  if (who === "her" || who === "mom") return !MENS.test(p.name) && !MENS.test(p.brand ?? "") && !WORK_BOOT.test(p.name);
+  if (who === "him" || who === "dad") return !WOMENS.test(text);
+  return true;
+};
+
+/** The finder's answer: the picks that fit all three, then the closest ones (shown under "Close matches"). */
+interface FinderResult { exact: CatalogPick[]; close: CatalogPick[] }
+
+/**
+ * The finder's picks (owner 11-20: "always show a list from those 3 picks"; never "nothing fits"). In order, each link once:
+ *   1. exact: this person's picks within the budget and the vibe;
+ *   then, as close matches, until FINDER_COUNT:
+ *   2. this person's picks within the budget, any vibe;
+ *   3. this person's vibe picks one budget up;
+ *   4. the budget guides' picks within the budget that suit this person (men's/women's, kids), vibe first;
+ *   5. this person's vibe picks with no known price, then any of their picks with no known price;
+ *   6. anything else of theirs (so the list is empty only when their guide is).
+ * Each tier keeps the guide's own order (owner picks and commission, high to low). "Any budget" fits every pick.
+ */
+export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: FinderVibe, borrow: CatalogPick[] = [], who?: FinderWho): FinderResult => {
+  const fits = (p: CatalogPick) => { const b = pickBand(p); return budget === 0 || (b !== undefined && b <= budget); };
+  const up = budget === 25 ? 50 : budget === 50 ? 100 : budget === 100 ? 500 : 0;
+  const nextUp = (p: CatalogPick) => up !== 0 && pickBand(p) === up;
+  const unknown = (p: CatalogPick) => pickBand(p) === undefined;
+  const vibed = (p: CatalogPick) => isVibe(p, vibe);
+  const lent = budget === 0 || !who ? [] : borrow.filter((p) => fits(p) && borrowFits(who, p));
   const seen = new Set<string>();
-  const out: CatalogPick[] = [];
-  for (const p of [...pool.filter((x) => fits(x) && isVibe(x, vibe)), ...pool.filter(fits)]) {
-    if (out.length >= FINDER_COUNT) break;
-    if (seen.has(p.href)) continue;
-    seen.add(p.href);
-    out.push(p);
-  }
-  return out;
+  const take = (list: CatalogPick[], into: CatalogPick[], cap: number) => {
+    for (const p of list) {
+      if (into.length >= cap) return;
+      if (seen.has(p.href)) continue;
+      seen.add(p.href);
+      into.push(p);
+    }
+  };
+  const exact: CatalogPick[] = [];
+  take(pool.filter((p) => fits(p) && vibed(p)), exact, FINDER_COUNT);
+  const close: CatalogPick[] = [];
+  const room = FINDER_COUNT - exact.length;
+  for (const tier of [
+    pool.filter(fits),
+    pool.filter((p) => vibed(p) && nextUp(p)),
+    lent.filter(vibed), lent,
+    pool.filter((p) => vibed(p) && unknown(p)), pool.filter(unknown),
+    pool,
+  ]) take(tier, close, room);
+  return { exact, close };
 };
 
 /** The answers in a share link's query ("?who=her&budget=50&vibe=cozy"), each checked against its options. */
@@ -139,8 +203,8 @@ export const EXTRAS_WORDS = {
   finderShare: "Copy link to these picks",
   finderCopied: "Link copied",
   finderAgain: "Start over",
-  finderNone: "Nothing fits all three yet. Try another budget or vibe.",
-  finderAmazonNote: "Amazon picks show with Any budget (Amazon doesn't let us list prices).",
+  finderClose: "Close matches",
+  finderNone: "No picks for them yet. Try someone else.",
   giveawayBanner: "25 Days of Louisiana Giveaways: a new Louisiana prize every day, Dec 1 to 25. See how to enter",
   declutterTieIn: "Sell what you don't use to pay for gifts, on Declutter",
 };

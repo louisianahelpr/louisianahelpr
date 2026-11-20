@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
+import { PLAN_MAX_IDEAS } from "@/content/giftGuideFun1120";
 import { planActions, readPlanForSanta } from "./plannerStore";
 
 /**
@@ -67,30 +68,35 @@ export const resetSantaIdeasForTests = () => {
 };
 
 /**
+ * Put a card in the gift planner as an idea for `name` (that person's entry, made if missing, with `budget` when one is
+ * given). The planner must know who is looking (useAccountSync) before this is called. A checked price goes with the
+ * idea (the planner adds up spending); never an Amazon price. False when the planner is full.
+ */
+export function saveIdeaToPlanner(name: string, budget: number | null, card: CatalogPick & { guide?: string }): boolean {
+  const want = name.trim().toLowerCase();
+  let person = readPlanForSanta().people.find((p) => p.name.trim().toLowerCase() === want);
+  if (!person) {
+    const id = planActions.addPerson(name);
+    if (id && budget) planActions.setBudget(id, budget);
+    person = id ? readPlanForSanta().people.find((p) => p.id === id) : undefined;
+  }
+  if (!person) return false;
+  if (person.ideas.some((i) => i.href === card.href)) return true;
+  if (person.ideas.length >= PLAN_MAX_IDEAS) return false;
+  const price = card.price !== undefined && card.store !== "amazon" ? card.price : undefined;
+  planActions.addIdea(person.id, { name: card.name, href: card.href, ...(card.guide ? { guide: card.guide } : {}), ...(price !== undefined ? { price } : {}) });
+  return true;
+}
+
+/**
  * Save a card as a gift idea for the match. `toPlanner` (signed in and the planner loaded from the account): into the
  * planner, under the match's name; otherwise onto this device with the Secret Santa. Never the wish list. Returns
  * where it went, or "full".
  */
 export function saveSantaIdea(santa: SantaFor, card: CatalogPick & { guide?: string }, toPlanner: boolean): "planner" | "device" | "full" {
   const idea: SantaIdea = { name: card.name, href: card.href, ...(card.guide ? { guide: card.guide } : {}) };
-  if (toPlanner) {
-    const want = santa.match.trim().toLowerCase();
-    let person = readPlanForSanta().people.find((p) => p.name.trim().toLowerCase() === want);
-    if (!person) {
-      const id = planActions.addPerson(santa.match);
-      if (id && santa.budget) planActions.setBudget(id, santa.budget);
-      person = id ? readPlanForSanta().people.find((p) => p.id === id) : undefined;
-    }
-    if (person) {
-      if (!person.ideas.some((i) => i.href === idea.href)) {
-        // A checked price goes with it (the planner adds up spending); never an Amazon price.
-        const price = card.price !== undefined && card.store !== "amazon" ? card.price : undefined;
-        planActions.addIdea(person.id, { name: idea.name, href: idea.href, ...(idea.guide ? { guide: idea.guide } : {}), ...(price !== undefined ? { price } : {}) });
-      }
-      return "planner";
-    }
-    // The planner is full (50 people): keep the idea on this device instead.
-  }
+  // The planner full (50 people, or 30 ideas for the match): keep the idea on this device instead.
+  if (toPlanner && saveIdeaToPlanner(santa.match, santa.budget, card)) return "planner";
   const cur = read();
   const mine = cur[santa.code] ?? { match: santa.match, ideas: [] };
   if (mine.ideas.some((i) => i.href === idea.href)) return "device";

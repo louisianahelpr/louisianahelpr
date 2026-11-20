@@ -21,7 +21,7 @@ const sectionBand = (p: CatalogPick): Band | undefined => {
 const knownPrice = (p: CatalogPick) => (p.price !== undefined && p.store !== "amazon" ? p.price : undefined);
 
 /** The pick's band ($25, $50, $100; 500 = over $100): its own band, else its checked price, else its budget section. */
-export const pickBand = (p: CatalogPick): Band | undefined => p.band ?? (knownPrice(p) !== undefined ? toBand(knownPrice(p)!) : sectionBand(p));
+const pickBand = (p: CatalogPick): Band | undefined => p.band ?? (knownPrice(p) !== undefined ? toBand(knownPrice(p)!) : sectionBand(p));
 
 /**
  * The most the pick may cost: its checked price, else its band's ceiling ("under $25" = at most 25). Undefined = not

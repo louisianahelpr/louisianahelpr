@@ -10,7 +10,9 @@
  * @mutate src/content/giftPickBand.ts |   return c !== undefined && c <= budget; |   return true;
  * @mutate src/content/giftGuideFun1120.ts |     .sort((a, b) => (pickCeiling(b.p) ?? 0) - (pickCeiling(a.p) ?? 0) \|\| a.i - b.i); |     ;
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |     if (keep && santa) { |     if (false) {
- * @mutate src/pages/info/giftGuides/fun/santaIdeas.ts |   if (toPlanner) { |   if (false) {
+ * @mutate src/pages/info/giftGuides/fun/santaIdeas.ts |   if (toPlanner && saveIdeaToPlanner(santa.match, santa.budget, card)) return "planner"; |
+ * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |     } else if (keep && forName) { |     } else if (false) {
+ * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |   const plannerReady = isReady && (!user || sync !== "device"); |   const plannerReady = isReady;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
@@ -141,6 +143,38 @@ describe("saving for your Secret Santa match never goes on your wish list", () =
     expect(ben?.budget).toBe(25);
     expect(ben?.ideas.map((i) => i.href)).toEqual([href]);
     expect(santaIdeasOnDevice("abcdef0123")).toEqual([]);
+  });
+
+  it("the plain swipe page: for Mom, Save is \"Save for Mom\" into the planner (signed out: this device's), never the wish list", async () => {
+    const { container } = render(<MemoryRouter><SwipeGifts /></MemoryRouter>);
+    fireEvent.click(container.querySelector('[data-swipe-who="mom"]')!);
+    fireEvent.click(container.querySelector('[data-swipe-budget="0"]')!);
+    fireEvent.click(container.querySelector("[data-swipe-start]")!);
+    await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });
+    const save = container.querySelector("[data-swipe-save]")!;
+    expect(save.textContent).toBe("Save for Mom");
+    const href = container.querySelector("[data-swipe-card]")!.getAttribute("data-swipe-card")!;
+    fireEvent.click(save);
+    expect(giftListNow().picks).toEqual([]);
+    expect(readPlanForSanta().people.find((p) => p.name === "Mom")?.ideas.map((i) => i.href)).toEqual([href]);
+  });
+
+  it("the plain swipe page, signed in: Save waits for the account's planner, then files under the person", async () => {
+    auth.user = { id: "u1" };
+    let answer: (v: null) => void = () => {};
+    loadAccountPlan.mockReturnValue(new Promise((r) => { answer = r; }));
+    const { container } = render(<MemoryRouter><SwipeGifts /></MemoryRouter>);
+    fireEvent.click(container.querySelector('[data-swipe-who="dad"]')!);
+    fireEvent.click(container.querySelector('[data-swipe-budget="0"]')!);
+    fireEvent.click(container.querySelector("[data-swipe-start]")!);
+    await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });
+    expect((container.querySelector("[data-swipe-save]") as HTMLButtonElement).disabled).toBe(true);
+    answer(null);
+    await waitFor(() => expect((container.querySelector("[data-swipe-save]") as HTMLButtonElement).disabled).toBe(false));
+    const href = container.querySelector("[data-swipe-card]")!.getAttribute("data-swipe-card")!;
+    fireEvent.click(container.querySelector("[data-swipe-save]")!);
+    expect(giftListNow().picks).toEqual([]);
+    expect(readPlanForSanta().people.find((p) => p.name === "Dad")?.ideas.map((i) => i.href)).toEqual([href]);
   });
 
   it("the reveal's Find a gift opens the swipe page for the match, with the budget, and no token in the URL", async () => {

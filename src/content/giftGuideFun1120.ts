@@ -133,21 +133,26 @@ export const SANTA_TOKEN = /^[a-f0-9]{64}$/;
 // ---------------------------------------------------------------------------------------------------------------
 // (2) Swipe to find gifts
 
-export type SwipeWho = "mom" | "dad" | "her" | "him" | "teen" | "kids" | "friends" | "coworkers" | "louisiana";
+export type SwipeWho = "me" | "mom" | "dad" | "her" | "him" | "teen" | "kids" | "friends" | "coworkers" | "louisiana";
 export type SwipeBudget = 25 | 50 | 100 | 0;
 
-/** Who: the label and the guides (and sections) the cards come from (the finder's own lists where they exist). */
+/**
+ * Who: the label and the guides (and sections) the cards come from (the finder's own lists where they exist), and
+ * `forName`, the gift planner entry a saved card goes to (owner 11-20: saving for someone else never goes on MY wish
+ * list; only "Me" saves to the wish list).
+ */
 const finderGuides = (id: string) => FINDER_WHO.find((w) => w.id === id)?.guides ?? [];
-export const SWIPE_WHO: { id: SwipeWho; label: string; guides: { slug: string; sections?: string[] }[] }[] = [
-  { id: "mom", label: "Mom", guides: finderGuides("mom") },
-  { id: "dad", label: "Dad", guides: finderGuides("dad") },
-  { id: "her", label: "Her", guides: finderGuides("her") },
-  { id: "him", label: "Him", guides: finderGuides("him") },
-  { id: "teen", label: "Teen", guides: finderGuides("teen") },
-  { id: "kids", label: "Kids", guides: finderGuides("kids") },
-  { id: "friends", label: "Friends", guides: finderGuides("friend") },
-  { id: "coworkers", label: "Coworkers", guides: finderGuides("coworker") },
-  { id: "louisiana", label: "Louisiana", guides: [{ slug: "louisiana-made" }, { slug: "shop-small-louisiana" }, { slug: "louisiana-food-gifts" }] },
+export const SWIPE_WHO: { id: SwipeWho; label: string; guides: { slug: string; sections?: string[] }[]; forName?: string }[] = [
+  { id: "me", label: "Me", guides: [...finderGuides("her"), ...finderGuides("him")] },
+  { id: "mom", label: "Mom", guides: finderGuides("mom"), forName: "Mom" },
+  { id: "dad", label: "Dad", guides: finderGuides("dad"), forName: "Dad" },
+  { id: "her", label: "Her", guides: finderGuides("her"), forName: "Her" },
+  { id: "him", label: "Him", guides: finderGuides("him"), forName: "Him" },
+  { id: "teen", label: "Teen", guides: finderGuides("teen"), forName: "Teen" },
+  { id: "kids", label: "Kids", guides: finderGuides("kids"), forName: "Kids" },
+  { id: "friends", label: "Friends", guides: finderGuides("friend"), forName: "Friends" },
+  { id: "coworkers", label: "Coworkers", guides: finderGuides("coworker"), forName: "Coworkers" },
+  { id: "louisiana", label: "Louisiana", guides: [{ slug: "louisiana-made" }, { slug: "shop-small-louisiana" }, { slug: "louisiana-food-gifts" }], forName: "Louisiana gifts" },
 ];
 export const SWIPE_BUDGETS: { id: SwipeBudget; label: string }[] = [
   { id: 25, label: "Under $25" }, { id: 50, label: "Under $50" }, { id: 100, label: "Under $100" }, { id: 0, label: "Any budget" },
@@ -411,10 +416,7 @@ export const FUN_WORDS = {
   // Swipe for a Secret Santa match (owner 11-20: saving for your match never goes on your own wish list)
   santaFinding: (match: string) => `Finding a gift for ${match}`,
   santaWithin: (budget: number) => `Only gifts at or under $${budget}.`,
-  santaSaveFor: (match: string) => `Save for ${match}`,
-  santaSaveForLabel: (name: string, match: string) => `Save ${name} as a gift idea for ${match}`,
   santaSavedTitle: (n: number, match: string) => (n === 1 ? `You saved 1 idea for ${match}` : `You saved ${n} ideas for ${match}`),
-  santaSavedWhere: "Saved to your gift planner.",
   santaSavedDevice: "Saved on this device, with your Secret Santa link.",
   santaBack: "Back to your Secret Santa",
   // Swipe
@@ -425,6 +427,10 @@ export const FUN_WORDS = {
   swipeSave: "Save",
   swipeSkip: "Skip",
   swipeSaveLabel: (name: string) => `Save ${name} to your wish list`,
+  swipeSaveFor: (who: string) => `Save for ${who}`,
+  swipeSaveForLabel: (name: string, who: string) => `Save ${name} as a gift idea for ${who}`,
+  swipeSavedFor: (n: number, who: string) => (n === 1 ? `You saved 1 idea for ${who}` : `You saved ${n} ideas for ${who}`),
+  swipeSavedPlanner: "Saved to your gift planner.",
   swipeSkipLabel: (name: string) => `Skip ${name}`,
   swipeDetails: "Details",
   swipeShop: "Shop",

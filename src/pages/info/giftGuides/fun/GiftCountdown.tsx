@@ -56,7 +56,7 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
                 <Button asChild variant="outline" size="sm" className="gg-chip">
                   <GiftOut href={gift.href}>{W.gotdShop}<span className="sr-only"> {gift.name} (opens in a new tab)</span></GiftOut>
                 </Button>
-                <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => void share()} data-gift-gotd-share="">{msg ?? W.gotdShare}</Button>
+                <Button type="button" variant="link" size="inline" className="gg-link" aria-label={W.gotdShareLabel} onClick={() => void share()} data-gift-gotd-share="">{msg ?? W.gotdShare}</Button>
               </span>
             </div>
           </div>

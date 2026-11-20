@@ -345,6 +345,8 @@ $do$;
 -- gift_planner_plans block before RETURN (by user_id), keeping the 60 s statement_timeout in its header (20261115014233;
 -- src/test/exportMyDataKeepsItsTimeout.test.ts). The Secret Santa tables hold no account id (token-keyed groups,
 -- typed first names), so they have nothing to export for a member.
+-- Q408: the old no-argument door stays dropped.
+DROP FUNCTION IF EXISTS public.export_my_data();
 CREATE OR REPLACE FUNCTION public.export_my_data(p_user_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql

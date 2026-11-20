@@ -71,8 +71,9 @@ export const planActions = {
     const cur = read();
     write({ ...cur, people: cur.people.filter((p) => p.id !== id) });
   },
+  // The new idea goes through cleanPlan's own rules too (an href only when it is https://).
   addIdea: (personId: string, idea: Omit<PlanIdea, "id" | "bought">) => mapPerson(personId, (p) =>
-    p.ideas.length >= PLAN_MAX_IDEAS ? p : { ...p, ideas: [...p.ideas, { ...idea, name: idea.name.slice(0, 120), id: newId(), bought: false }] }),
+    p.ideas.length >= PLAN_MAX_IDEAS ? p : cleanPlan({ people: [{ ...p, ideas: [...p.ideas, { ...idea, id: newId(), bought: false }] }] }).people[0] ?? p),
   setIdea: (personId: string, ideaId: string, patch: Partial<Omit<PlanIdea, "id">>) => mapPerson(personId, (p) => ({
     ...p, ideas: p.ideas.map((i) => {
       if (i.id !== ideaId) return i;

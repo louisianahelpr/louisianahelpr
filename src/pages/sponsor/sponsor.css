@@ -237,6 +237,12 @@ a.lh25-lineup-brand { text-decoration: underline; text-decoration-color: var(--g
   .lh25-lineup-day.lh25-lineup-later { display: none; }
 }
 
+/* /25days (owner 11-19): the entrant points and the one line for businesses (Sections.tsx EntrantInfo, BusinessAsk). */
+.lh25-entrant-points { list-style: none; padding: 0; margin: 0 auto 18px; max-width: 520px; display: grid; gap: 10px; font-size: 17px; color: var(--ink); }
+.lh25-entrant-points li { display: flex; gap: 10px; align-items: baseline; }
+.lh25-business-ask { margin: 40px auto 8px; font-size: 16px; color: var(--muted); }
+.lh25-business-ask a { color: var(--ox); font-weight: 700; }
+
 /* Testimonials */
 .lh25-quote blockquote { margin: 0 0 12px; font-size: 17px; font-style: italic; color: var(--ink); }
 .lh25-quote figcaption { color: var(--ox); font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; }

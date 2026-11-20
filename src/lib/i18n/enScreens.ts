@@ -87,6 +87,16 @@ export const enScreens = {
   "login.mfaCheckFailed": "Couldn't verify your security settings — try again?",
   "login.tooManyAttempts": "Too many attempts \u2014 try again in {minutes} min.",
   "login.mfaWrongCode": "That code didn't match. Check your app and try again.",
+  // Signup-confusion 11-19: the failed-login words (same for an unknown email and a wrong password, so they never say
+  // which one), the way across to sign-up, and the switch at the top of both cards (AuthModeTabs).
+  "login.noMatch": "That email and password don't match an account.",
+  "login.newToHelpr": "New to Louisiana Helpr?",
+  "login.createAccountCta": "Create an account \u2192",
+  "authTabs.label": "Log in or create an account",
+  "authTabs.login": "Log in",
+  "authTabs.signup": "Create account",
+  "forgot.noAccount": "No account yet?",
+  "forgot.createOne": "Create one",
 
   // Forgot password (F029, owner UI audit 11-09: the page has the English / Español switch too)
   "forgot.title": "Reset your password",

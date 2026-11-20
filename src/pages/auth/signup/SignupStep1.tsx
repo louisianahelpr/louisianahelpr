@@ -8,7 +8,7 @@
 // the single source of truth for form styling.
 
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { HelprMark } from "@/components/HelprMark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ import { ArrowBigUp, Eye, EyeOff, Check, X } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { OrRule } from "@/components/auth/OrRule";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
+import { AuthModeTabs } from "@/components/auth/AuthModeTabs";
+import { safeInternalRedirect } from "@/lib/authRedirects";
 import {
   pendingEmailTypo,
   PASSWORD_MIN_LENGTH,
@@ -87,6 +89,9 @@ export function SignupStep1({
   subtitle,
   captchaSlot,
 }: SignupStep1Props) {
+  // Signup-confusion 11-19: the switch's Log in side keeps a pending, same-site ?redirect=.
+  const pendingRedirect = safeInternalRedirect(useSearchParams()[0].get("redirect"));
+  const loginHref = pendingRedirect ? `/login?redirect=${encodeURIComponent(pendingRedirect)}` : "/login";
   // The Continue button stays visually active even before the policies box is
   // checked — a disabled grey button is a dead end the user can't learn from.
   // Tapping it while unchecked shakes + highlights the agreement box instead,
@@ -208,6 +213,8 @@ export function SignupStep1({
           {/* The H mark used everywhere else (owner 2026-10-20: never in a circle). */}
           <HelprMark to="/" size="lg" emblemOnly />
         </div>
+        {/* Signup-confusion 11-19: which form this is, before anything else (AuthModeTabs). */}
+        <div className="w-full mb-3"><AuthModeTabs active="signup" loginHref={loginHref} email={email} /></div>
         <h1 className="text-page-title text-foreground">{t("signup.title")}</h1>
         <p className="text-ds-14 text-muted-foreground">{subtitle ?? t("signup.subtitle")}</p>
       </div>

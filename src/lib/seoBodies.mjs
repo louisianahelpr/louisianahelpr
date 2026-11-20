@@ -193,7 +193,7 @@ export function twentyFiveDaysEventLd() {
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
     location: { "@type": "VirtualLocation", url: `${SEO_SITE_ORIGIN}/25days` },
-    image: [`${SEO_SITE_ORIGIN}/og-25days.png`],
+    image: [`${SEO_SITE_ORIGIN}/og-25days-enter.png`],
     isAccessibleForFree: true,
     organizer: { "@type": "Organization", name: "Louisiana Helpr", url: SEO_SITE_ORIGIN },
   };
@@ -237,8 +237,8 @@ const INFO_PAGES = {
     name: TWENTY_FIVE_DAYS.name,
     h1: "25 Days of Louisiana Giveaways: December 1–25, 2026",
     intro:
-      "Every day from December 1 to December 25, 2026, Louisiana Helpr gives away a gift from a Louisiana business. It is free to enter. Louisiana businesses can join as a partner and put their brand in front of Louisiana families this holiday season.",
-    links: [["/gift-guides", "Holiday gift guides"], ["/declutter", "Declutter"], ["/browse", "Local jobs"]],
+      "Every day from December 1 to December 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors on Louisiana Helpr. It is free to enter, open to Louisiana residents 18 and older, and one entry covers all 25 days. Entry details are on the Louisiana Helpr Facebook page.",
+    links: [["/25days/rules", "Official giveaway rules"], ["/sponsor", "Become a sponsor"], ["/gift-guides", "Holiday gift guides"], ["/declutter", "Declutter"]],
   },
 };
 

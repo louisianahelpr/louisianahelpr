@@ -75,6 +75,16 @@ export function recognizedAuthError(raw: string | undefined | null): string | nu
   return null;
 }
 
+/**
+ * Signup-confusion 11-19: GoTrue's "these credentials match no account" refusal (code `invalid_credentials`, message
+ * "Invalid login credentials"). It is the SAME answer for an unknown email and a wrong password, so Login can offer
+ * Create account beside it without revealing whether the address is registered.
+ */
+export function isInvalidCredentials(err: { code?: string; message?: string } | null | undefined): boolean {
+  if (!err) return false;
+  return err.code === "invalid_credentials" || (err.message ?? "").toLowerCase().includes("invalid login credentials");
+}
+
 export function friendlyAuthError(raw: string | undefined | null): string {
   return recognizedAuthError(raw) ?? "Couldn't sign you in — give it another try?";
 }

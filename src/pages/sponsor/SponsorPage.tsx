@@ -1,7 +1,11 @@
 /**
- * /sponsor (also /25days): the 25 Days of Louisiana Giveaways sponsor page
- * (owner spec 2026-11-09). Public: a brand opens it from a pitch email, often
- * with ?ref=<their code>, signed out.
+ * /sponsor: the 25 Days of Louisiana Giveaways sponsor page (owner spec
+ * 2026-11-09). Public: a brand opens it from a pitch email, often with
+ * ?ref=<their code>, signed out.
+ * /25days (owner 2026-11-19): the page for PEOPLE ENTERING, mostly from
+ * Facebook on a phone: the entry button, how winning works, the undated
+ * sponsor list and one line linking businesses to /sponsor. No brand pitch,
+ * no sign-up form, no sign-up deadline.
  *
  * Hidden behind the `sponsor_25days` switch: sponsor_public_state() answers
  * on=false (and every sponsor RPC and the sign-up function refuse) unless an
@@ -23,8 +27,8 @@ import { normalizeRef } from "../../../supabase/functions/_shared/sponsorSignup"
 import { ClaimSection } from "@/components/sponsor/ClaimSection";
 import { PlaidTrim } from "@/components/sponsor/Decor";
 import {
-  About, BrandGets, Faq, FinalCta, Footer, Founder, Hero, HowItWorks, Lineup, PlaceholderPreview, PreviewCard, Reach,
-  SponsorWall, Testimonials, TrustStrip, WhatWeAsk,
+  About, BrandGets, BusinessAsk, EntrantHero, EntrantInfo, Faq, FinalCta, Footer, Founder, Hero, HowItWorks, Lineup,
+  PlaceholderPreview, PreviewCard, Reach, SponsorWall, Testimonials, TrustStrip, WhatWeAsk,
 } from "@/components/sponsor/Sections";
 import "./sponsor.css";
 import { Button } from "@/components/ui/button";
@@ -138,12 +142,31 @@ export default function SponsorPage() {
     return <Suspense fallback={null}><NotFound /></Suspense>;
   }
   const state = stateQ.data;
+  if (pathname === "/25days") {
+    return (
+      <>
+        <Head25days />
+        <div className="lh25 min-h-screen bg-premium-page">
+          <SponsorChrome />
+          <EntrantHero enterUrl={enterUrl} />
+          <div className="lh25-main">
+            <EntrantInfo />
+            <Lineup />
+            <SponsorWall wall={state.wall} logoUrl={(id) => backend.logoUrl(id)} />
+            <BusinessAsk />
+          </div>
+          <Footer />
+          <PlaidTrim />
+        </div>
+      </>
+    );
+  }
   return (
     <PlaceholderPreview.Provider value={preview}>
-      {pathname === "/25days" ? <Head25days /> : <HeadSponsor />}
+      <HeadSponsor />
       <div className="lh25 min-h-screen bg-premium-page">
         <SponsorChrome />
-        <Hero greetingBrand={state.greetingBrand} enterUrl={pathname === "/25days" ? enterUrl : undefined} />
+        <Hero greetingBrand={state.greetingBrand} />
         <TrustStrip />
         <div className="lh25-main">
           <About />

@@ -207,6 +207,14 @@ export const es: Record<MsgKey, string> = {
   "login.mfaCheckFailed": "No pudimos verificar su configuración de seguridad. ¿Lo intenta de nuevo?",
   "login.tooManyAttempts": "Demasiados intentos. Inténtelo de nuevo en {minutes} min.",
   "login.mfaWrongCode": "Ese código no coincide. Revise su app e inténtelo de nuevo.",
+  "login.noMatch": "Ese correo y esa contraseña no coinciden con ninguna cuenta.",
+  "login.newToHelpr": "¿Es nuevo en Louisiana Helpr?",
+  "login.createAccountCta": "Crear una cuenta \u2192",
+  "authTabs.label": "Iniciar sesión o crear una cuenta",
+  "authTabs.login": "Iniciar sesión",
+  "authTabs.signup": "Crear cuenta",
+  "forgot.noAccount": "¿Aún no tiene cuenta?",
+  "forgot.createOne": "Cree una",
 
   // Olvidé mi contraseña (F029)
   "forgot.title": "Restablezca su contraseña",

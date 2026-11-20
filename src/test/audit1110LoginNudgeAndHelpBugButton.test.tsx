@@ -63,8 +63,11 @@ describe("F259g: the wrong-password nudge is a full-width button that offers the
     expect(nudge!.className).toContain("basis-full");
     expect(nudge!.className).toContain("min-h-11");
     expect(nudge!.className).toContain("border");
-    // One nudge, not two "Forgot password?" links in the error.
-    expect(alert.querySelectorAll("a").length).toBe(1);
+    // One nudge, not two "Forgot password?" links in the error. Signup-confusion 11-19: the only other link is the
+    // Create an account button above it (signupConfusion1119.test.tsx).
+    expect(alert.querySelectorAll('a[href="/forgot-password"]').length).toBe(1);
+    expect(alert.querySelectorAll("a").length).toBe(2);
+    expect(alert.querySelector("a[data-login-no-match-signup]")).not.toBeNull();
     expect(alert.textContent).not.toMatch(/Forgot password\?/);
   });
 

@@ -201,6 +201,14 @@ const ForgotPassword = () => {
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {t("forgot.spamHint")}
             </p>
+            {/* Signup-confusion 11-19: the neutral line above never says whether the address has an account, so the
+                way to make one sits right under it, carrying the typed address (router state, never the URL). */}
+            <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-forgot-no-account="">
+              {t("forgot.noAccount")}{" "}
+              <Link to="/signup" state={{ email: email.trim() }} className="font-bold inline-flex items-center min-h-11 px-1 underline underline-offset-2" style={{ color: "hsl(var(--bark))" }} data-forgot-create-account="">
+                {t("forgot.createOne")}
+              </Link>
+            </p>
             {/* F260a (audit 11-10): a person whose reset email never comes had no way on but waiting. */}
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-forgot-support="">
               {t("forgot.stillNothing")}{" "}

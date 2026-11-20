@@ -33,7 +33,26 @@ const NOTE_PARENS = [
   /\s*\(conditional\)/gi,
   /\s*\(picked [^)]*\)/gi,
   /\s*\([^)]*\basked\)/gi, // e.g. ("a bundle or two"; contents asked)
+  // Owner 2026-11-19 (public list is undated, one card per brand): "(2 of 4, split from same sponsor)" and
+  // "(1 of 4; Ripley's is in Duson, LA)" are planning notes, as is any note with a time stamp or "not given".
+  /\s*\(\d+ of \d+[^)]*\)/gi,
+  /\s*\([^)]*\b\d{1,2}:\d{2}\s*[AP]M[^)]*\)/gi,
+  /\s*\([^)]*\bnot given\)/gi,
+  /\s*\([^)]*sign-up form\)/gi,
 ];
+/**
+ * Owner 2026-11-19: the public lineup shows business names, except these three sponsors, who show by their own name
+ * as the owner chose ("David Rabalais"; "Tevin Lewis, District 2 Alderman"; Haylie has no business name on file, so
+ * "Haylie Rudisill · Custom wreath sashes"). Any other person's name stays out (PERSON_PARENS, TRAILING_NOTE).
+ * The same list is the guard's allowlist (src/test/sponsor25daysPublicNoDates.test.tsx, NAMED_SPONSORS).
+ */
+const PUBLIC_NAMES = new Map([
+  ["David Rabalais (The Fois)", "David Rabalais"],
+  ["Tevin Lewis, District 2 Alderman", "Tevin Lewis, District 2 Alderman"],
+  ["Haylie Rudisill (custom wreath sashes)", "Haylie Rudisill · Custom wreath sashes"],
+  // Not a person: the street name "St. Claude" trips src/test/noClaudeInMemberCopy.test.ts, and the city is enough.
+  ["AllWays Lounge & Cabaret (New Orleans, St. Claude Ave)", "AllWays Lounge & Cabaret (New Orleans)"],
+]);
 /** Brand-name parentheticals that are a person (the sponsor's contact), keyed by tracker key. */
 const PERSON_PARENS = [/\s*\(Holli M\. Landry\)/g, /\s*\(Brandi\)/g];
 /**
@@ -46,6 +65,7 @@ const PER_DAY_PRIZE = /^Dec \d+:/;
 
 function publicBrand(n) {
   let s = n.replace(TRAILING_NOTE, "");
+  if (PUBLIC_NAMES.has(s.trim())) return PUBLIC_NAMES.get(s.trim());
   for (const re of [...PERSON_PARENS, ...NOTE_PARENS]) s = s.replace(re, "");
   return s.trim();
 }

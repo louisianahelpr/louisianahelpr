@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { clearSignupDraft, useSignupDraftField } from "./signup/useSignupDraftField";
+import { clearSignupDraft, useSignupDraftField, useSignupEmailField } from "./signup/useSignupDraftField";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,7 +79,7 @@ const Signup = () => {
   const [firstName, setFirstName] = useSignupDraftField("firstName"); // F259c: kept over a reload
   const [lastName, setLastName] = useSignupDraftField("lastName");
   const fullName = joinName(firstName, lastName);
-  const [email, setEmail] = useSignupDraftField("email");
+  const [email, setEmail] = useSignupEmailField(); // signup-confusion 11-19: also fills an email Log in carried over
   const [password, setPassword] = useState("");
   const [location, setLocation] = useState("");
   // ZIP is optional (owner 2026-10-26); a typed one must be 5 digits. It resolves

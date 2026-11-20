@@ -493,7 +493,7 @@ function HomeDashboardScreen() {
                 was held with the blocks below Next up until the activity read answered (8.1 s for an 831-job poster)
                 although its own read had answered at 5.5 s. It is drawn as soon as the handle is known; only the
                 blocks that wait on the activity read are held. Guard: src/test/homeYourPageNotHeld.test.ts. */}
-            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />}
+            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" line />}
             {holdBelowNextUp && <HeldBlocksSkeleton side />}
             {!holdBelowNextUp && <>
             <HomeMoneyTiles money={money} placement="side" />

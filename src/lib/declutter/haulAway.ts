@@ -17,6 +17,7 @@ import type { DeliverySize } from "@/lib/declutter/api";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { isWriteRejected, unwrapMutation } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /** Job photos Post a Job accepts (useJobMediaUpload's cap). */
 const JOB_PHOTO_MAX = 5;
@@ -36,6 +37,7 @@ export { fetchMyDonations, oneDonationPartner } from "./donate";
 export {
   haulJobToDelete,
   isPostable,
+  offeredHaulAwayRows,
   oneTripGroup,
   parseHaulAwayParam,
   type HaulAwayRow,
@@ -152,6 +154,17 @@ export async function fetchHaulAwayState(itemIds?: string[]): Promise<HaulAwayRo
     (e) => rpcErrorMessage("declutter_haul_away_state", e),
   );
   return (rows ?? []) as HaulAwayRow[];
+}
+
+/**
+ * The seller's listings with "If it doesn't sell, offer me a haul-away" on (owner 2026-11-20; migration
+ * 20261120152652). Empty before that migration reaches prod (PGRST202): nothing is offered unasked.
+ */
+export async function fetchHaulAwayOptIns(): Promise<Set<string>> {
+  const r = await supabase.rpc("declutter_haul_away_opt_ins");
+  if (isMissingRpcNamed(r.error, "declutter_haul_away_opt_ins")) return new Set();
+  const ids = withWords(r, (e) => rpcErrorMessage("declutter_haul_away_opt_ins", e));
+  return new Set((ids ?? []) as string[]);
 }
 
 /** Point the items at the job just posted and take them off sale. Throws the refusal. */

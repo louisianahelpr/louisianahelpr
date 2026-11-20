@@ -5286,7 +5286,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 187,
+      "line": 188,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5340,7 +5340,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 190,
+      "line": 191,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5350,7 +5350,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5360,7 +5360,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 210,
+      "line": 211,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5387,7 +5387,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 213,
+      "line": 214,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5540,7 +5540,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 96,
+      "line": 97,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5550,7 +5550,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 100,
+      "line": 101,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6352,36 +6352,6 @@
       "renders": true
     },
     {
-      "file": "src/components/declutter/DeclutterStillAvailable.tsx",
-      "line": 36,
-      "kind": "toast",
-      "title": {
-        "form": "dynamic",
-        "text": "gone ? \"Thanks. It's off Declutter now.\" : \"Thanks. We'll check again in 2 weeks.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Thanks. It's off Declutter now."
-          },
-          {
-            "form": "literal",
-            "text": "Thanks. We'll check again in 2 weeks."
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterStillAvailable.tsx",
-      "line": 40,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/declutter/DeclutterTradeOffers.tsx",
       "line": 87,
       "kind": "toast",
@@ -7148,6 +7118,70 @@
             "text": "declutterErrorMessage(err)"
           }
         ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/HaulAwayOptInRow.tsx",
+      "line": 26,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "on ? t(\"lp.haulOptToastOn\") : t(\"lp.haulOptToastOff\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "t(\"lp.haulOptToastOn\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "t(\"lp.haulOptToastOff\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/HaulAwayOptInRow.tsx",
+      "line": 31,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },

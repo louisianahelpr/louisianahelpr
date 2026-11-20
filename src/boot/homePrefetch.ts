@@ -47,6 +47,26 @@ export function homePosterFirstJobUrl(supabaseUrl: string, userId: string): stri
   return u.toString();
 }
 
+/** localStorage key for the member's own handle (startHomePrefetch). Public data, keyed to the user id it belongs to. */
+export const OWN_HANDLE_KEY = "lh-home-own-handle";
+
+function readOwnHandle(userId: string): string | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(OWN_HANDLE_KEY) ?? "null") as { u?: unknown; h?: unknown } | null;
+    return v && v.u === userId && typeof v.h === "string" && v.h ? v.h : null;
+  } catch {
+    return null; // storage blocked or a bad value: the handle comes off the profile row, as before
+  }
+}
+
+function rememberOwnHandle(userId: string, handle: string): void {
+  try {
+    localStorage.setItem(OWN_HANDLE_KEY, JSON.stringify({ u: userId, h: handle }));
+  } catch {
+    /* storage blocked or full: the next visit reads the handle off the profile row, as before */
+  }
+}
+
 /** A head-only count read's total, as supabase-js reads it off Content-Range; null when there is none. */
 function countOf(r: Response): number | null {
   if (!r.ok) return null;
@@ -97,17 +117,29 @@ export function startHomePrefetch(pathname: string): void {
   const profile = rows(mine.profile).catch(() => null);
   const me = Promise.all([profile, rows(mine.admin).catch(() => null)])
     .then(([p, admin]) => (p && admin ? { profile: p, admin } : null));
+  const pageFor = async (handle: string) => {
+    const r = await fetch(`${rest}rpc/public_profile_by_handle`, {
+      method: "POST",
+      headers: { ...auth, Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ p_handle: handle }),
+    });
+    // A refused or failed read hands nothing over (the card's own read decides); a 200 "null" is a real "no page".
+    return r.ok ? { handle, data: (await r.json()) as unknown } : null;
+  };
+  // Home speed (owner 11-20): the page read waited a whole round trip for the profile row only to learn the handle
+  // (lab, Slow 4G: profiles 1.5-2.9 s, then the page 2.9-3.6 s, just before /home's largest paint). The member's own
+  // handle from their last visit is kept on this device, keyed to their user id, so a returning member's page read
+  // goes out beside the profile read. Same public read, same session; it is handed over only when the profile row
+  // confirms the handle, and a changed handle reads again for the new one.
+  const remembered = readOwnHandle(session.userId);
+  const early = remembered ? pageFor(remembered).catch(() => null) : null;
   const page = profile
     .then(async (p) => {
       const handle = p && p.length === 1 ? p[0].handle : null;
       if (typeof handle !== "string" || !handle) return null;
-      const r = await fetch(`${rest}rpc/public_profile_by_handle`, {
-        method: "POST",
-        headers: { ...auth, Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({ p_handle: handle }),
-      });
-      // A refused or failed read hands nothing over (the card's own read decides); a 200 "null" is a real "no page".
-      return r.ok ? { handle, data: (await r.json()) as unknown } : null;
+      rememberOwnHandle(session.userId, handle);
+      if (early && handle === remembered) return (await early) ?? pageFor(handle);
+      return pageFor(handle);
     })
     // A failed prefetch is not an error: the card reads for itself.
     .catch(() => null);

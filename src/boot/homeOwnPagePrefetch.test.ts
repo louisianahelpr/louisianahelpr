@@ -8,7 +8,10 @@
  * @mutate src/boot/homePrefetch.ts |   w[JOBS_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, me }; |
  * @mutate src/boot/homePrefetch.ts |   w[HOME_PAGE_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, page }; |
  * @mutate src/boot/homePrefetch.ts |       const handle = p && p.length === 1 ? p[0].handle : null; |       const handle = p && p.length >= 1 ? p[0].handle : null;
- * @mutate src/boot/homePrefetch.ts |       return r.ok ? { handle, data: (await r.json()) as unknown } : null; |       return { handle, data: r.ok ? ((await r.json()) as unknown) : null };
+ * @mutate src/boot/homePrefetch.ts |     return r.ok ? { handle, data: (await r.json()) as unknown } : null; |     return { handle, data: r.ok ? ((await r.json()) as unknown) : null };
+ * @mutate src/boot/homePrefetch.ts |   const early = remembered ? pageFor(remembered).catch(() => null) : null; |   const early = null as Promise<unknown> \| null;
+ * @mutate src/boot/homePrefetch.ts |      if (early && handle === remembered) return (await early) ?? pageFor(handle); |      if (early) return (await early) ?? pageFor(handle);
+ * @mutate src/boot/homePrefetch.ts |    return v && v.u === userId && typeof v.h === "string" && v.h ? v.h : null; |    return v && typeof v.h === "string" && v.h ? v.h : null;
  * @mutate src/pages/home/homeDashboard/homePrefetchTake.ts |   w[PAGE_KEY] = undefined; |
  * @mutate src/pages/home/homeDashboard/homePrefetchTake.ts |   if (!s \|\| s.userId !== userId \|\| now - s.at > HOME_PREFETCH_MAX_AGE_MS) return null; |   if (!s) return null;
  * @mutate src/pages/home/homeDashboard/homePrefetchTake.ts |   return a && a.handle === handle && "data" in a ? { data: a.data } : null; |   return a && "data" in a ? { data: a.data } : null;
@@ -29,8 +32,9 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-import { HOME_PAGE_PREFETCH_KEY, startHomePrefetch } from "./homePrefetch";
+import { HOME_PAGE_PREFETCH_KEY, OWN_HANDLE_KEY, startHomePrefetch } from "./homePrefetch";
 import { JOBS_PREFETCH_KEY } from "./jobsPrefetch";
+import { OWN_HANDLE_KEY as SHARED_OWN_HANDLE_KEY, clearGreetingName } from "@/lib/homeGreetingShell.mjs";
 import { HOME_PREFETCH_MAX_AGE_MS, takeHomeOwnPagePrefetch } from "@/pages/home/homeDashboard/homePrefetchTake";
 import { takeJobsMePrefetch } from "@/hooks/jobsPrefetchTake";
 import { fetchPublicProfile } from "@/lib/profileLink/api";
@@ -122,6 +126,50 @@ describe("cold /home asks the profile and its own page from the entry (Q2705)", 
     ];
     expect(cases.length).toBeGreaterThan(6);
     for (const [why, run] of cases) expect(await run(), why).toBeNull();
+  });
+
+  // Home speed (owner 11-20): a returning member's page read no longer waits for the profile row to learn the handle.
+  it("a returning member's remembered handle sends the page read beside the profile read, once", async () => {
+    signIn();
+    stubFetch(answering());
+    startHomePrefetch("/home");
+    expect(await takeHomeOwnPagePrefetch(UID, "pat")).toEqual({ data: PAGE });
+    expect(JSON.parse(localStorage.getItem(OWN_HANDLE_KEY) ?? "null")).toEqual({ u: UID, h: "pat" });
+    stubFetch(answering());
+    startHomePrefetch("/home");
+    const now = calls.map((c) => c.url);
+    expect(now.filter((u) => u.endsWith("rpc/public_profile_by_handle")), "sent in the same tick as the profile read").toHaveLength(1);
+    expect(await takeHomeOwnPagePrefetch(UID, "pat")).toEqual({ data: PAGE });
+    expect(calls.filter((c) => c.url.endsWith("rpc/public_profile_by_handle")), "and not asked twice").toHaveLength(1);
+  });
+
+  it("the remembered handle is one account's: cleared on sign-out, kept only for the same account on a sign-in", () => {
+    expect(SHARED_OWN_HANDLE_KEY, "the entry's copy of the key matches the sign-out path's").toBe(OWN_HANDLE_KEY);
+    localStorage.setItem(OWN_HANDLE_KEY, JSON.stringify({ u: UID, h: "pat" }));
+    clearGreetingName(UID);
+    expect(localStorage.getItem(OWN_HANDLE_KEY)).not.toBeNull();
+    clearGreetingName("someone-else");
+    expect(localStorage.getItem(OWN_HANDLE_KEY)).toBeNull();
+    localStorage.setItem(OWN_HANDLE_KEY, JSON.stringify({ u: UID, h: "pat" }));
+    clearGreetingName();
+    expect(localStorage.getItem(OWN_HANDLE_KEY)).toBeNull();
+  });
+
+  it("a remembered handle of another member is never used, and a changed handle reads for the new one", async () => {
+    signIn();
+    localStorage.setItem(OWN_HANDLE_KEY, JSON.stringify({ u: "someone-else", h: "pat" }));
+    stubFetch(answering());
+    startHomePrefetch("/home");
+    expect(calls.filter((c) => c.url.endsWith("rpc/public_profile_by_handle")), "nothing before the profile row").toHaveLength(0);
+    expect(await takeHomeOwnPagePrefetch(UID, "pat")).toEqual({ data: PAGE });
+
+    localStorage.setItem(OWN_HANDLE_KEY, JSON.stringify({ u: UID, h: "old-name" }));
+    stubFetch(answering());
+    startHomePrefetch("/home");
+    expect(await takeHomeOwnPagePrefetch(UID, "pat")).toEqual({ data: PAGE });
+    const bodies = calls.filter((c) => c.url.endsWith("rpc/public_profile_by_handle")).map((c) => JSON.parse(String(c.init?.body)));
+    expect(bodies).toEqual([{ p_handle: "old-name" }, { p_handle: "pat" }]);
+    expect(JSON.parse(localStorage.getItem(OWN_HANDLE_KEY) ?? "null")).toEqual({ u: UID, h: "pat" });
   });
 
   it("the card's read uses a given answer and asks the server nothing; without one it asks", async () => {

@@ -48,7 +48,7 @@ export function ConversationRowMenu({
           {t("msg.archive")}
         </DropdownMenuItem>
         {onDeleteForMe && (
-          <DropdownMenuItem onClick={() => onDeleteForMe(convo)} className="text-destructive focus:text-destructive">
+          <DropdownMenuItem onClick={() => onDeleteForMe(convo)} className="text-destructive-ink focus:text-destructive-ink">
             <Trash2 className="w-4 h-4 mr-2" aria-hidden />
             {t("msg.deleteForMe")}
           </DropdownMenuItem>

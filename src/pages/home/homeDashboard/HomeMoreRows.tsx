@@ -43,13 +43,13 @@ export function RecentMessagesRows({ user }: { user: User | null | undefined }) 
             leading={
               <span aria-hidden className={LEAD}>
                 {c.otherUserAvatarUrl
-                  ? <img src={c.otherUserAvatarUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                  ? <img loading="lazy" decoding="async" src={c.otherUserAvatarUrl} alt="" className="h-full w-full object-cover" />
                   : <MessageCircle className="w-5 h-5 text-primary" />}
               </span>
             }
             title={<span className={c.unread > 0 ? "font-bold" : undefined}>{c.otherUserName}</span>}
             meta={c.lastMessage || c.jobTitle}
-            right={c.unread > 0 ? <span data-home-message-unread="" aria-label={t("home.more.unread")} className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" /> : undefined}
+            right={c.unread > 0 ? <span data-home-message-unread="" role="img" aria-label={t("home.more.unread")} className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" /> : undefined}
             onClick={() => navigate(conversationLink(c))}
             last={i === rows.length - 1}
           />

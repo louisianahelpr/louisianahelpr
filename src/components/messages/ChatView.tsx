@@ -39,9 +39,10 @@ import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
  * The reading column for the safety banner and the message scroller, NOT the composer's (VN-25, owner 09-14). Owner
  * 11-01 (B107, ~1900px: "narrow column, big empty sides") made it the pane's whole width from lg; owner-approved polish
  * 2026-11-20 caps it at 720px, centred in its pane, so a wide desktop pane reads as bubbles rather than two far-apart
- * edges (the composer dock still spans the pane). Phone unchanged (780px, centred).
+ * edges (the composer dock still spans the pane). Unprefixed, so it is a reading measure rather than a desktop page
+ * measure (onePageColumn); a phone is narrower than 720px, so nothing changes there.
  */
-const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto lg:max-w-[720px]";
+const CHAT_READING_COLUMN = "w-full max-w-[720px] mx-auto";
 
 /**
  * ChatView — the active-conversation surface of the Messages page: the chat
@@ -306,12 +307,12 @@ export function ChatView({
           // only the composer dock is uncapped: the column itself fills the
           // pane (and the dock still bleeds to the pane edges via
           // `--chat-gutter`, ChatPaneShell), while the message scroller below
-          // keeps the 780px centred reading column via CHAT_READING_COLUMN
+          // keeps the 720px centred reading column via CHAT_READING_COLUMN
           // (the safety banner does not: it spans the column, see below).
           // The pane (embedded) or the standalone
           // page container can be far wider than a comfortable reading
           // column, and bubbles spread across it read as sparse/oversized.
-          // Phone is unaffected — nothing there is ever wider than 780.
+          // Phone is unaffected — nothing there is ever wider than 720.
           className="flex flex-col flex-1 min-h-0 w-full transition-[padding] duration-150"
           // Only pad for the keyboard here. The sticky composer already adds
           // its own safe-area-inset-bottom — padding it on the wrapper too

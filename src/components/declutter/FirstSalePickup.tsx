@@ -97,7 +97,7 @@ export function FirstSalePickup({ s, needs, problem }: { s: SellFlow; needs: Set
   if (!anyNeeded(needs)) return null;
   return (
     <section className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-sell-row="pickup" data-first-sale="" aria-labelledby="first-sale-head">
-      <h2 id="first-sale-head" className="text-ds-15 font-semibold text-foreground">{tr("sf.fs.head")}</h2>
+      <h2 id="first-sale-head" className="text-base font-semibold text-foreground">{tr("sf.fs.head")}</h2>
       {needs.pickup && (
         <div className="space-y-2" data-first-sale-address="">
           <label htmlFor="first-sale-address" className="block text-ds-14 font-semibold text-foreground">{tr("sf.fs.address")}</label>

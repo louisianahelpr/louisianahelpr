@@ -210,6 +210,6 @@ describe("the chat header", () => {
 
   it("from the other side, they posted the job", () => {
     draw(convo({ viewerIsPoster: false }));
-    expect(screen.getByText("Job poster · Fix a leaking kitchen faucet")).toBeInTheDocument();
+    expect(screen.getByText("Posted this job · Fix a leaking kitchen faucet")).toBeInTheDocument();
   });
 });

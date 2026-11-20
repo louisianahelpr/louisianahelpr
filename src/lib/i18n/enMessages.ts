@@ -109,7 +109,7 @@ export const enMessages = {
   "msg.pickBody": "It opens here, next to your inbox.",
   "msg.introLine": "Conversation with {name} · started {date}",
   "msg.role.helpr": "Helpr",
-  "msg.role.poster": "Job poster",
+  "msg.role.poster": "Posted this job",
   "msg.openJob": "View job",
   "msg.openJobAria": "Open the job: {title}",
   "msg.youPrefix": "You:",

@@ -97,8 +97,15 @@ export function FirstHeartHint() {
   };
   return createPortal(
     <div className="gg-toast" role="status" data-gift-hint={current === "full" ? "list-full" : "first-heart"}>
-      <span className="gg-toast-text">{current === "full" ? WISH.listFull : HINTS.firstHeart}</span>
-      <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-toast-link" onClick={close} data-gift-hint-see-list="">{HINTS.seeList} ›</Link>
+      {/* Verify audit H1: at 320 the full words wrapped to 2 lines; a narrow screen gets the short ones (one line). */}
+      <span className="gg-toast-text">
+        <span className="gg-toast-long">{current === "full" ? WISH.listFull : HINTS.firstHeart}</span>
+        <span className="gg-toast-short" aria-hidden="true">{current === "full" ? WISH.listFullShort : HINTS.firstHeartShort}</span>
+      </span>
+      <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-toast-link" onClick={close} data-gift-hint-see-list="">
+        <span className="gg-toast-long">{HINTS.seeList} ›</span>
+        <span className="gg-toast-short" aria-hidden="true">{HINTS.seeListShort} ›</span>
+      </Link>
       <button type="button" className="gg-hint-x" onClick={close} aria-label="Hide this tip" data-gift-hint-close="first-heart">
         <span aria-hidden="true">×</span>
       </button>

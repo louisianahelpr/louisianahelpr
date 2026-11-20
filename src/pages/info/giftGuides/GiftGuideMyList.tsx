@@ -13,6 +13,8 @@ import { GiftOut } from "./GiftOut";
 import { GiftWishShare } from "./GiftWishShare";
 import { listName, listRefs, pickId, removeFromWishList, setListName, useGiftList } from "./giftList";
 import { useWishItems, type WishItem } from "./wishListItems";
+import { useSyncProblem } from "./wishListSync";
+import { giftNameProblem } from "@/lib/giftNameClean";
 
 /**
  * /gift-guides/my-list (owner 2026-11-18 "My list"; 2026-11-20 "My Wish List": "add something that they can add to
@@ -83,6 +85,15 @@ export function GiftGuideMyList() {
   // UX audit M3: after Remove, focus moves to the next row's Remove (or the previous one, or the list's heading) and
   // the removal is read out.
   const [announce, setAnnounce] = useState("");
+  // The name as typed: kept on the list only while it has no link or phone number (verify audit L), so the list, the
+  // account's copy and any share always hold the last good name.
+  const [typed, setTyped] = useState<string | null>(null);
+  const nameBad = typed !== null && giftNameProblem(typed) !== null;
+  const syncProblem = useSyncProblem();
+  const onName = (v: string) => {
+    setTyped(v);
+    if (!giftNameProblem(v)) setListName(v);
+  };
   const focusAfter = useRef<number | null>(null);
   const listRef = useRef<HTMLOListElement>(null);
   useEffect(() => {
@@ -108,8 +119,10 @@ export function GiftGuideMyList() {
       {!empty && (
         <label className="gg-wish-name" data-gift-wish-name="">
           <span className="gg-finder-q">{WISH.nameLabel}</span>
-          <Input value={list.name} onChange={(e) => setListName(e.target.value)} placeholder={WISH.namePlaceholder} aria-describedby="gift-wish-name-help" data-gift-wish-name-input="" />
-          <small id="gift-wish-name-help" className="gg-price-note">{WISH.nameHelp}</small>
+          <Input value={typed ?? list.name} onChange={(e) => onName(e.target.value)} placeholder={WISH.namePlaceholder} aria-describedby="gift-wish-name-help" aria-invalid={nameBad || undefined} data-gift-wish-name-input="" />
+          {nameBad
+            ? <small id="gift-wish-name-help" className="gg-price-note" role="alert" data-gift-wish-name-problem="">{WISH.nameProblem}</small>
+            : <small id="gift-wish-name-help" className="gg-price-note">{WISH.nameHelp}</small>}
         </label>
       )}
       {empty && (
@@ -121,7 +134,9 @@ export function GiftGuideMyList() {
       {list.picks.length > 0 && (
         <>
           <GiftWishShare name={listName(list)} refs={listRefs(list)} save={saveWishList} signedIn={!!user} />
-          <p className="gg-price-note" data-gift-wish-where="">{user ? WISH.syncedNote : WISH.deviceNote}</p>
+          {user && syncProblem
+            ? <p className="gg-price-note" role="alert" data-gift-wish-sync-problem="">{syncProblem}</p>
+            : <p className="gg-price-note" data-gift-wish-where="">{user ? WISH.syncedNote : WISH.deviceNote}</p>}
           <div className="gg-rowhead"><h3>{WISH.giftsTitle(items.length)}</h3></div>
           {loading && items.length === 0 ? (
             <p className="gg-soon" role="status">{WISH.loading}</p>

@@ -18,6 +18,12 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <Heart saved={saved} label={WISH.saveLabel(name)} | {null}<Heart saved={false} label={WISH.saveLabel(name)}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     removeFromWishList(it.id); |     void it;
  * @mutate src/pages/info/GiftGuides.tsx |   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />; |   if (false) return null;
+ * @mutate src/pages/info/giftGuides/giftWishStyles.ts | .gg-toast .gg-toast-long{display:none}.gg-toast .gg-toast-short{display:inline} | .gg-toast-x{}
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     if (!giftNameProblem(v)) setListName(v); |     setListName(v);
+ * @mutate src/pages/info/giftGuides/wishListSync.ts |       if (!l.synced && l.picks.length === 0 && !l.name.trim()) return; |       void 0;
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {user && syncProblem | {false && syncProblem
+ * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx | border-radius:14px;background:hsl(var(--card));color:var(--gg-ink)} | border-radius:14px;background:#fff}
+ * @mutate src/lib/giftNameClean.ts | \|\b[a-z0-9-]+\.[a-z]{2,}\b)/i | )/i
  * @mutate src/pages/info/giftGuides/giftList.tsx |   const cur = mine.owner !== null && mine.owner !== uid ? EMPTY : mine; |   const cur = mine;
  * @mutate src/pages/info/giftGuides/giftList.tsx | const kept = remoteItems.filter((r) => !removedHere.has(r.i)).map(fromRemote); | const kept = remoteItems.map(fromRemote);
  * @mutate src/pages/info/giftGuides/giftList.tsx | .filter((r): r is WishRef => r !== null).slice(0, MAX_LIST_ITEMS); | .filter((r): r is WishRef => r !== null);
@@ -63,6 +69,7 @@ import { GiftGuideSharedList } from "@/pages/info/giftGuides/GiftGuideSharedList
 import { addToWishList, cleanListName, clearWishList, giftListNow, itemId, listRefs, markSynced, reconcileWithAccount, removeFromWishList, resetGiftListForTests, setListName, togglePick } from "@/pages/info/giftGuides/giftList";
 import { GIFT_WISH_RPC_ERROR_COPY } from "@/lib/giftWishListApi";
 import { GIFT_WISH_CSS } from "@/pages/info/giftGuides/giftWishStyles";
+import { giftNameProblem } from "@/lib/giftNameClean";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { resetFirstHeartForTests } from "@/pages/info/giftGuides/GiftGuideHints";
 import { bizItemId, dealItemId, dealName } from "@/pages/info/giftGuides/wishListItems";
@@ -475,6 +482,60 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     const view = renderAt(`/gift-guides/${g().slug}`);
     fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
     expect(track).toHaveBeenCalledWith("gift_wish_heart", { result: "added" });
+  });
+
+  it("verify H1: on a narrow screen (320) the note uses its short words, one line", () => {
+    // jsdom has no layout: the rule that applies at 320 is asserted, and both word sets are in the note.
+    expect(GIFT_WISH_CSS).toMatch(/@media \(max-width:400px\)\{[^}]*\}?.*\.gg-toast \.gg-toast-long\{display:none\}\.gg-toast \.gg-toast-short\{display:inline\}/);
+    expect(GIFT_WISH_CSS).toMatch(/\.gg-toast-text,\.gg-toast-link\{white-space:nowrap\}/);
+    const view = renderAt(`/gift-guides/${g().slug}`);
+    fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
+    const note = document.body.querySelector("[data-gift-hint='first-heart']")!;
+    expect(note.querySelector(".gg-toast-short")?.textContent).toBe(HINTS.firstHeartShort);
+    expect(note.querySelector(".gg-toast-link .gg-toast-short")?.textContent).toContain(HINTS.seeListShort);
+    expect((HINTS.firstHeartShort + HINTS.seeListShort).length).toBeLessThan(20);
+  });
+
+  it("verify L: a name with a link (even a bare domain) or a phone number is flagged and never kept", () => {
+    for (const bad of ["Win at evil.com", "see www.x.org", "evil.co/x", "Call 337-555-1234"]) expect(giftNameProblem(bad), bad).not.toBeNull();
+    for (const ok of ["Mom's Christmas List 2026", "St. Mary's list. Thanks!", "Lexi's list"]) expect(giftNameProblem(ok), ok).toBeNull();
+    addToWishList(pick(0));
+    setListName("Mom's list");
+    const view = renderAt("/gift-guides/my-list");
+    const input = view.container.querySelector<HTMLInputElement>("[data-gift-wish-name-input]")!;
+    fireEvent.change(input, { target: { value: "Win at evil.com" } });
+    expect(view.container.querySelector("[data-gift-wish-name-problem]")?.textContent).toBe(WISH.nameProblem);
+    expect(giftListNow().name).toBe("Mom's list");
+    fireEvent.change(input, { target: { value: "Mom's big list" } });
+    expect(view.container.querySelector("[data-gift-wish-name-problem]")).toBeNull();
+    expect(giftListNow().name).toBe("Mom's big list");
+  });
+
+  it("verify L: a signed-in member who only opens a guide saves no empty list; a refused save is shown, not 'Saved'", async () => {
+    auth.user = { id: "acct-z" };
+    getMyWishList.mockResolvedValue(null);
+    renderAt("/gift-guides");
+    await waitFor(() => expect(getMyWishList).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(saveWishList).not.toHaveBeenCalled();
+    cleanup();
+    saveWishList.mockRejectedValueOnce(Object.assign(new Error("invalid_name"), { copy: GIFT_WISH_RPC_ERROR_COPY.gift_wish_list_save.invalid_name }));
+    addToWishList(pick(0));
+    const view = renderAt("/gift-guides/my-list");
+    await waitFor(() => expect(view.container.querySelector("[data-gift-wish-sync-problem]")?.textContent).toBe(GIFT_WISH_RPC_ERROR_COPY.gift_wish_list_save.invalid_name));
+    expect(view.container.querySelector("[data-gift-wish-where]")).toBeNull();
+  });
+
+  it("verify M: deal and Small Biz cards use the theme's card colour (readable in dark mode)", async () => {
+    const sb = renderAt("/gift-guides/small-business-saturday");
+    await waitFor(() => expect(sb.container.querySelector("[data-gift-sb]")).not.toBeNull());
+    const css = [...sb.container.querySelectorAll("style")].map((s) => s.textContent).join("");
+    expect(css).toMatch(/\.gg-sb\{[^}]*background:hsl\(var\(--card\)\);color:var\(--gg-ink\)/);
+    expect(css).not.toMatch(/\.gg-sb\{[^}]*background:#fff/);
+    cleanup();
+    const dl = renderAt(`/gift-guides/${DEALS_SLUG}`);
+    const css2 = [...dl.container.querySelectorAll("style")].map((s) => s.textContent).join("");
+    expect(css2).toMatch(/\.gg-deal\{[^}]*background:hsl\(var\(--card\)\)/);
   });
 
   it("L3: the share text is a sentence, never the list name twice", () => {

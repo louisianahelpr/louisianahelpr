@@ -38,7 +38,8 @@ const MUTANTS = {
   globalCountsAll: ["WHERE snapshot AND hit_at > now() - interval '1 hour') >= 2000", "WHERE hit_at > now() - interval '1 hour') >= 2000"],
   globalForAccounts: ["  IF v_uid IS NULL AND (SELECT count(*) FROM public.gift_wish_list_hits WHERE snapshot", "  IF (SELECT count(*) FROM public.gift_wish_list_hits WHERE snapshot"],
   noStrip: ["v_name := btrim(regexp_replace(COALESCE(p_name, ''), '[[:cntrl:]\\u00ad\\u061c\\u180e\\u200b-\\u200f\\u202a-\\u202e\\u2060-\\u2069\\ufeff]', '', 'g'));", "v_name := btrim(COALESCE(p_name, ''));"],
-  urlNameOk: ["     OR v_name ~* '(https?:|www\\.|\\.[a-z]{2,}/)'\n", ""],
+  urlNameOk: ["     OR v_name ~* '(https?:|www\\.|\\.[a-z]{2,}/|\\m[a-z0-9-]+\\.[a-z]{2,}\\M)'\n", ""],
+  bareDomainOk: ["|\\m[a-z0-9-]+\\.[a-z]{2,}\\M)'", ")'"],
   phoneNameOk: ["     OR regexp_replace(v_name, '[\\s().+-]', '', 'g') ~ '[0-9]{7,}' THEN", "     THEN"],
   pruneAccounts: ["WHERE w.user_id IS NULL AND w.created_at < now() - interval '90 days';", "WHERE w.created_at < now() - interval '90 days';"],
   pruneFresh: ["w.created_at < now() - interval '90 days';", "w.created_at < now();"],
@@ -161,10 +162,11 @@ await db.exec(`DELETE FROM public.gift_wish_list_hits`);
 await as(null, "8.8.8.1");
 const bidi = await save("Mom\u202e\u200b's list\u0007", [A]);
 check((await get(bidi.code ?? ""))?.name === "Mom's list", `invisible and direction-changing characters are stripped (#4) (${JSON.stringify(await get(bidi.code ?? ""))})`);
-for (const bad of ["Claim your gift card evil.co/x", "https://x.example", "see www.example.com", "Call 337 555 1234", "3375551234"]) {
+for (const bad of ["Claim your gift card evil.co/x", "https://x.example", "see www.example.com", "Win at evil.com", "Call 337 555 1234", "3375551234"]) {
   check(/invalid_name/.test((await save(bad, [A])).err ?? ""), `name refused: ${bad} (#4)`);
 }
 check(!!(await save("Mom's Christmas List 2026", [A])).code, "an ordinary name with a year saves (#4)");
+check(!!(await save("St. Mary's list. Thanks!", [A])).code, "a name with ordinary dots and spaces saves (#4)");
 
 // #5: the daily prune and "Make a new link".
 await db.exec(`DELETE FROM public.gift_wish_list_hits`);

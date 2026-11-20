@@ -36,6 +36,10 @@ export const WISH = {
   newLinkDone: "New link made. The old link no longer works.",
   /** The 101st heart (UX audit M2). */
   listFull: "Your list is full (100). Remove one to add more.",
+  /** The same, on a narrow screen (verify audit H1: one line at 320). */
+  listFullShort: "List full (100)",
+  /** Under the name field while it holds a link or phone number (it is not kept until it doesn't). */
+  nameProblem: "Please use a name without a link or phone number.",
   /** Read out after Remove (UX audit M3). */
   removed: (name: string) => `Removed ${name}`,
   /** Gifts a list names that the guides no longer carry (UX audit M7). */
@@ -60,6 +64,8 @@ export const HINTS = {
   howTitle: "How to use the gift guides",
   steps: ["Pick a guide or take the quiz.", "Tap ♥ to save a gift to your wish list.", "Share your list, or tap Shop to buy."] as const,
   firstHeart: "Saved to your wish list.",
+  firstHeartShort: "Saved ♥",
+  seeListShort: "View list",
   seeList: "See my list",
   quiz: "Answer 3 quick questions and we'll pick 6 gifts for you.",
   budget: "Tap a price to see gifts in your budget.",

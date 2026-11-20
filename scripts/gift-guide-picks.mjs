@@ -28,6 +28,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
+import { BRAND_CODES, budgetBand, importRows1120, swapCuts } from "./giftGuideBig1120.mjs";
+import { GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, SECTION_CAP, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
 import { GUIDE_CAP, buildRateData, byCommission, ccTwin, commissionOf, guideRanks, itemPopularity, pickType, sectionGuides, typeMax, CROWD_TYPES, KNOWN_BRAND, THIN_TARGET } from "./giftGuideSort.mjs";
 import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3, INSULATED, TUMBLER_MAX, fillerGuide, FILLER_OK, R4_OFF, kidsToyOff } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
@@ -413,7 +415,7 @@ function toPick(p, where) {
   const name = tidied && modelYearName(tidied);
   if (!name) return hidden.push(`${where}: "${p.name}" is a page title, store name or promo, not a product`), null;
   if (store) stores.get(store).hosts.add(host);
-  const flags = Object.fromEntries(["trending", "shipsFast", "localPickup"].filter((k) => p[k] === true).map((k) => [k, true]));
+  const flags = Object.fromEntries(["trending", "tiktok", "shipsFast", "localPickup"].filter((k) => p[k] === true).map((k) => [k, true]));
   // No Amazon-hosted product photo is hotlinked (Associates rules: Amazon images only through SiteStripe or its API);
   // those picks get the store tile on the page. AMAZON_CDN_PHOTOS lets the SiteStripe-tagged ones through.
   const amazonHosted = typeof p.image === "string" && p.image.startsWith("https://") && AMAZON_IMAGE_HOST.test(new URL(p.image).hostname);
@@ -441,9 +443,15 @@ function toPick(p, where) {
   // A brand field naming the store (Macy's, Target, Tractor Supply) takes the maker the name opens with (fit audit r4).
   const brand = fixedBrand(name) || retailerBrand(name, BRAND_CASE[compact(p.brand ?? "")] ?? BRAND_NAME[compact(p.brand ?? "")] ?? (p.brand || brandFromName(name)));
   const louisianaFit = p.louisianaFit && ![p.brand, p.store, p.retailer].some((x) => typeof x === "string" && NOT_LOUISIANA_BUSINESS.test(x.trim()));
+  // Big batch 1120: the budget filter's band (never shown as a price; none on an Amazon pick, Associates rule), a
+  // pre-order flag and a brand's discount code (21 Collective, COLLECTIVE10).
+  const amazonPick = AMAZON.has(host) || AMAZON.has(plainHost) || store === "store-amazon";
+  const band = amazonPick ? undefined : priced ? budgetBand(priced.price) : budgetBand(p.raw_price ?? (typeof p.price === "number" || typeof p.price === "string" ? p.price : undefined));
+  const code = BRAND_CODES[brand]?.code;
   return {
     name, brand, line: stockLine(p.line) ? "" : (p.line ?? ""), href,
     ...(image ? { image } : {}), ...(priced ?? {}), ...(store ? { store } : {}), ...(louisianaFit ? { louisianaFit: true } : {}), ...flags,
+    ...(band ? { band } : {}), ...(p.preorder === true ? { preorder: true } : {}), ...(code ? { code } : {}),
   };
 }
 
@@ -871,6 +879,13 @@ export const dedupeKey = (name) => String(name ?? "").toLowerCase()
   // "Thin Blue Line" and "Thin Red Line" flags are two products (police, fire): a color before "line" stays.
   .replace(new RegExp(`\\b(${COLOR_WORDS})\\b(?! line\\b)`, "g"), " ")
   .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+/** The color words a pick's name names, in name order ("Stanley Quencher, Rose Quartz" -> "rose"); "" when none. */
+export const pickColor = (p) => [...String(p.name ?? "").toLowerCase().matchAll(new RegExp(`\\b(${COLOR_WORDS})\\b`, "g"))].map((m) => m[1]).join(" ");
+/** An LSU item (owner 11-19: at most LSU_MAX in one guide section). */
+export const LSU_ITEM = /\bLSU\b|\bLouisiana State\b|\bTigers?\b.*\bLSU\b/i;
+export const LSU_MAX = 2;
+/** The merged guides made new in 1120: no picks of their own, only their sections (src/content/giftGuideMerges.mjs). */
+export const NEW_MERGE_PARENTS = new Set(NEW_PARENTS);
 /**
  * FEATURED ORDER (owner 11-18 PM: "This can't possibly be the top gifts you're recommending"): _featured-order.json,
  * { "<slug>": [pick names or { name, from }, up to 25], "top-10": [{ guide, name }] }, from bestseller research over existing picks only.
@@ -2898,7 +2913,12 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
       let v;
       try { v = readJson(f); } catch { continue; /* mid-write: read on the next run */ }
-      for (const r of rowsOf(v)) if (r && r.commission_pct !== undefined && (typeof r.href === "string" || typeof r.affiliate_href === "string")) rowsWithRate.push(r);
+      for (const r of rowsOf(v)) {
+        if (!r || !(typeof r.href === "string" || typeof r.affiliate_href === "string")) continue;
+        if (r.commission_pct !== undefined) rowsWithRate.push(r);
+        // The 1120 import files (_thin-fill, _southern-picks) write the link's rate as `commission` (a number, in %).
+        else if (typeof r.commission === "number" && /^_(thin-fill|southern-picks)-/.test(f)) rowsWithRate.push({ ...r, commission_pct: r.commission });
+      }
     }
     const rateData = buildRateData({
       shopmyTsv: existsSync(join(dir, "_shopmy-mylinks-1119.tsv")) ? readFileSync(join(dir, "_shopmy-mylinks-1119.tsv"), "utf8") : "",
@@ -2906,7 +2926,8 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     });
     const ccProducts = campaigns.flatMap((c) => (Array.isArray(c?.products) ? c.products : []));
     const rate = (p) => commissionOf(p, rateData, today).pct;
-    const isGuide = (slug) => !slug.startsWith("store-") && slug !== SPONSORS_GUIDE && !NOT_A_LIST.has(slug);
+    // A merged guide made new in 1120 (Pet Lovers, Fitness Lovers ...) holds only its sections: it takes no picks itself.
+    const isGuide = (slug) => !slug.startsWith("store-") && slug !== SPONSORS_GUIDE && !NOT_A_LIST.has(slug) && !NEW_MERGE_PARENTS.has(slug);
     const register = (store, href) => {
       storeList[store] ??= { name: stores.get(store)?.name ?? store, hosts: [] };
       const host = new URL(href).hostname;
@@ -2929,6 +2950,8 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
         judged.set(g, set);
       }
     }
+    // The owner's swaps (_owner-swaps-1119.md swap_out): each old item leaves its guide; its new item is forced in (1120).
+    for (const r of swapCuts(dir)) judged.set(r.guide, new Set([...(judged.get(r.guide) ?? []), `n:${compact(r.item)}`]));
     const judgedOut = (slug, p) => [judged.get(slug), judged.get("*")].some((s) => s && (s.has(`h:${p.href}`) || s.has(`n:${compact(p.name)}`)));
     sortCounts.judged = 0;
     // The owner's three keeps (11-19): the Dyson Airwrap on Mom, the lululemon boxers on Husband, the CREAMi in the Top 10.
@@ -2959,7 +2982,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
         if (!isAmazonUrl(p.href)) {
           const twin = ccTwin(p, ccProducts, rateData, today, current ?? 0);
           if (twin) {
-            const { price: _pr, priceAt: _pa, ...rest } = p;
+            const { price: _pr, priceAt: _pa, band: _b, ...rest } = p;
             p = { ...rest, href: twin.x.url, store: "store-amazon", swappedFrom: p.href, ...(current !== null ? { swappedFromPct: current } : {}), campaignEnds: twin.c.ends };
             sortCounts.swapped += 1;
           }
@@ -2997,7 +3020,8 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       if (pool.has(href) || !fillImgOk(r.image, href) || !slugsOf.length) return null;
       const amazonPhoto = new URL(r.image).hostname === "m.media-amazon.com";
       const p = toPick({ name: r.name, brand: r.brand, line: r.line ?? (source === "creator connections" ? r.why ?? "" : ""), href, ...(/^https:\/\/go\.shopmy\.us\//.test(href) || !isAmazonUrl(href) && /^https:\/\/(mavely|walmrt|www\.anrdoezrs|www\.kqzyfj|www\.jdoqocy|www\.dpbolvw|www\.awin1|click\.linksynergy)/.test(href) ? { affiliate_href: href, href: r.product_url ?? href } : {}),
-        image: r.image, ...(amazonPhoto ? { image_source: "amazon-sitestripe" } : {}), retailer: r.retailer, store: r.store }, where);
+        image: r.image, ...(amazonPhoto ? { image_source: "amazon-sitestripe" } : {}), retailer: r.retailer, store: r.store,
+        ...(r.trending === true ? { trending: true } : {}), ...(r.tiktok === true ? { tiktok: true } : {}), ...(r.preorder === true ? { preorder: true } : {}), ...(r.raw_price !== undefined ? { raw_price: r.raw_price } : {}) }, where);
       if (!p || !p.image || excludedRow(p)) return null;
       // A national guide's line never names Louisiana (LA_LINE); the row's store page knows its link host.
       const pick = { ...p, line: p.line && LA_LINE.test(p.line) ? "" : p.line };
@@ -3027,6 +3051,32 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
         addRow(r, href, guidesOf(r), "fill", `sort1119e ${f}`);
       }
     }
+    // BIG BATCH 1120 (owner 11-19 ~10 PM: "batch everything in 1 big batch"): the thin-guide fill (_thin-fill-1119.json),
+    // the owner's Southern picks (_southern-picks-1119.json), the swaps' new items (_owner-swaps-1119.md ADD rows,
+    // placed on their guide like an editor's add) and the rest of the joined Creator Connections campaigns
+    // (_cc-placements-1120.json). Same gates as every fill; a row the owner found on TikTok wears "Trending on TikTok".
+    for (const r of importRows1120(readJson, rowsOf, dir)) {
+      const href = r.affiliate_href || r.href;
+      const e = addRow(r, href, guidesOf(r), r._source, `big1120 ${r._file}`);
+      if (!e) continue;
+      if (r._forced) e.forced = new Set(e.guides);
+      if (r.asin && rateData.cc.has(r.asin)) e.campaign = String(r.campaign_id ?? rateData.cc.get(r.asin)?.id ?? "");
+    }
+    // 3b. Every candidate (brand links, fills, the 1120 imports) of a product in a live, joined Creator Connections campaign
+    // takes the campaign ASIN when it pays CC_SWAP_MARGIN more (owner 11-19 PM: "I added Kiehl's stuff on ShopMy but I
+    // think their commission is better on Amazon now"; same for the other 33% beauty campaigns), as step 1 does for the
+    // guides' own picks. The old link stays (swappedFrom -> fallback_href, switch_on the day after the campaign ends).
+    for (const [href, e] of [...pool]) {
+      if (isAmazonUrl(e.p.href) || e.p.swappedFrom) continue;
+      const current = rate(e.p);
+      const twin = ccTwin(e.p, ccProducts, rateData, today, current ?? 0);
+      if (!twin || pool.has(twin.x.url)) continue;
+      const { price: _pr, priceAt: _pa, band: _b, ...rest } = e.p;
+      e.p = { ...rest, href: twin.x.url, store: "store-amazon", swappedFrom: e.p.href, ...(current !== null ? { swappedFromPct: current } : {}), campaignEnds: twin.c.ends };
+      pool.delete(href);
+      pool.set(twin.x.url, e);
+      sortCounts.swapped += 1;
+    }
     // 4. Popularity placement (owner 11-19 ~6:45 PM), the commission sort (~6:40 PM) and the 25 cap (~6:50 PM).
     const popularity = (() => { try { return JSON.parse(readFileSync(new URL("./gift-guide-popularity.json", import.meta.url), "utf8")); } catch { return {}; } })();
     const slugs = Object.keys(pageList).filter(isGuide);
@@ -3042,6 +3092,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     const usedImage = new Set();
     const usedName = new Set();
     const productOn = new Map();
+    const productColors = new Map();
     const placed = new Map(order.map((s) => [s, []]));
     const canTake = (slug, e, list) => {
       const p = e.p;
@@ -3051,6 +3102,12 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       if (LASH.test(p.name) || VERA_BRADLEY.test(String(p.brand ?? "").trim())) return false;
       const k = productK(p);
       if ((productOn.get(k)?.size ?? 0) >= DUP_GUIDE_MAX || productOn.get(k)?.has(slug)) return false;
+      // ONE PLACE PER ITEM AND COLOR (owner 11-19 8:30 PM): a product already on another guide comes back only in a color
+      // its name names and no other guide's row of it has (an unnamed color counts as the same one).
+      const color = pickColor(p);
+      if (productOn.has(k) && (!color || [...(productColors.get(k) ?? [])].some((c) => !c || c === color))) return false;
+      // LSU at most LSU_MAX per guide section (owner 11-19: Game Day and Baton Rouge kept the best two).
+      if (LSU_ITEM.test(`${p.name} ${p.brand ?? ""}`) && list.filter((x) => LSU_ITEM.test(`${x.name} ${x.brand ?? ""}`)).length >= LSU_MAX) return false;
       if (list.filter((x) => x.type === p.type).length >= typeMax(slug, p.type)) return false;
       // One row per product on a guide (variantKey: the same brand and name start), and the fit r4 kind caps (one
       // stethoscope, one toothbrush ...).
@@ -3070,6 +3127,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       if (e.p.image) usedImage.add(e.p.image);
       const k = productK(e.p);
       productOn.set(k, new Set([...(productOn.get(k) ?? []), slug]));
+      productColors.set(k, new Set([...(productColors.get(k) ?? []), pickColor(e.p)]));
       e.on.add(slug);
     };
     const eligible = (slug, e) => e.guides.has(slug) && !jdSports(e.p) && (e.was?.includes(slug) ? !judgedOut(slug, e.p) && !excludedRow(e.p) : e.forced?.has(slug) ? !holisticWhy(slug, e.p) : gate(slug, e.p));
@@ -3173,6 +3231,49 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
   console.log(`gift-guide-picks: ready 1119c: ${readyCounts.storeAdds} guide picks added to their store page; dedupe ${dedupeCounts.dropped} rows dropped, ${dedupeCounts.slotted} kept rows slotted; out ${JSON.stringify(readyCounts.out)}; ${readyCounts.communityCoffee} Community Coffee moved; ${readyCounts.capped} past the ${DUP_GUIDE_MAX}-guide cap; ${readyCounts.kidsAsks} kids-ask rows placed (${readyCounts.kidsAsksHeld} held: no affiliate link); ${readyCounts.ownerNoPhoto} owner picks held for a photo; taste replacements ${readyCounts.replaced} placed (${readyCounts.replaceSkipped} skipped); fit audit ${readyCounts.fitAudit} rows, ${readyCounts.fitMoved} moved (${readyCounts.fitMoveSkipped} moves skipped)`);
   console.log(`gift-guide-picks: follow-up ${followUpCounts.rules} rule removals, ${followUpCounts.dropped.length} store pages dropped, ${followUpCounts.merged} merged, ${followUpCounts.capped} capped, ${followUpCounts.rei} REI hiking out, ${followUpCounts.excluded} owner excludes, ${followUpCounts.ownerPicks} owner picks placed`);
 }
+/**
+ * GUIDE MERGES 1120 (owner pop-ups 11-19 ~8:20-9:05 PM; src/content/giftGuideMerges.mjs): each merged guide's chunk is
+ * its own picks (as "Top picks"), then each old guide as a section (its title, `sectionId` = its old slug, at most
+ * SECTION_CAP picks), one row per link on the page. The old guides write no chunk (their links 301 to parent#section).
+ * Store pages not kept (STORE_PAGES_KEPT) write none either; their items stay in the guides.
+ */
+export const mergeCounts = { merged: 0, sections: 0, foldedStores: 0, swappedKept: 0 };
+{
+  const entryRaw = (slug) => indexSrc.match(new RegExp(`\\{[^{}]*slug: "${slug}"[^{}]*\\}`))?.[0] ?? "";
+  const sectionTitle = (slug) => {
+    const raw = entryRaw(slug);
+    const title = raw.match(/title: "([^"]*)"/)?.[1] ?? slug;
+    const age = raw.match(/age: "([^"]*)"/)?.[1];
+    return age ? `${title} (${age})` : title;
+  };
+  for (const m of GUIDE_MERGES) {
+    const sections = m.sections.map((s) => ({ s, picks: (pageList[s] ?? []).slice(0, SECTION_CAP) })).filter((x) => x.picks.length);
+    const own = NEW_MERGE_PARENTS.has(m.parent) ? [] : (pageList[m.parent] ?? []).slice(0, SECTION_CAP);
+    const seen = new Set();
+    const once = (p) => (seen.has(p.href) ? false : (seen.add(p.href), true));
+    const tag = (p, title, id) => ({ ...p, section: title, sectionId: id });
+    pageList[m.parent] = sections.length
+      ? [...own.filter(once).map((p) => tag(p, "Top picks", "top-picks")), ...sections.flatMap((x) => x.picks.filter(once).map((p) => tag(p, sectionTitle(x.s), x.s)))]
+      : own;
+    for (const s of m.sections) delete pageList[s];
+    mergeCounts.merged += 1;
+    mergeCounts.sections += sections.length;
+  }
+  for (const slug of new Set([...Object.keys(pageList), ...Object.keys(deals)])) {
+    if (!isFoldedStore(slug)) continue;
+    delete pageList[slug];
+    delete deals[slug];
+    mergeCounts.foldedStores += 1;
+  }
+  // A Creator Connections swap keeps its old link to switch back to the day after the campaign ends (owner 11-19 PM,
+  // Kiehl's: "their commission is better on Amazon now"; after the end Amazon drops to ~3% and ShopMy wins again).
+  const dayAfter = (d) => new Date(Date.parse(`${d}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
+  for (const slug of Object.keys(pageList)) {
+    pageList[slug] = pageList[slug].map((p) => (p.swappedFrom && p.campaignEnds && /^\d{4}-\d{2}-\d{2}$/.test(p.campaignEnds)
+      ? (mergeCounts.swappedKept += 1, { ...p, fallback_href: p.swappedFrom, switch_on: dayAfter(p.campaignEnds) }) : p));
+  }
+  console.log(`gift-guide-picks: merges 1120: ${mergeCounts.merged} merged guides, ${mergeCounts.sections} sections, ${mergeCounts.foldedStores} store pages folded, ${mergeCounts.swappedKept} campaign swaps with a fallback link`);
+}
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();
@@ -3182,7 +3283,7 @@ for (const slug of chunkSlugs) {
 writeFileSync(
   out,
   `/** GENERATED by scripts/gift-guide-picks.mjs from ~/Desktop/Gift-guide-picks (re-run it after any change there). Do not edit. */\n` +
-    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string }\n` +
+    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string; fallback_href?: string; switch_on?: string; sectionId?: string; band?: 25 | 50 | 100 | 500; preorder?: true; code?: string; tiktok?: true }\n` +
     `export interface StoreDeal { title: string; href: string; ends?: string; items?: { name: string; href: string }[] }\n` +
     `export interface Sale { store: string; slug: string; offer: string; ends: string; href: string }\n` +
     `/** One guide's chunk (src/content/giftGuidePicks/<slug>.json): its final picks and, on a store page, its deal sections. */\n` +
@@ -3194,6 +3295,8 @@ writeFileSync(
     `/** The guides with a researched chunk: their list (and deals) come only from it. */\n` +    `/** How many picks each chunk holds (the By store row lists a store page from 4 picks; lead 2026-11-18). */\n` +
     `export const CHUNK_PICK_COUNTS: Record<string, number> = ${JSON.stringify(Object.fromEntries(chunkSlugs.map((x) => [x, pageList[x]?.length ?? 0])))};\n` +
     `export const CHUNK_SLUGS: readonly string[] = ${JSON.stringify(chunkSlugs)};\n` +
+    `/** How many picks each merged guide's section holds (1120: old slug -> count), so a link to an empty section is never drawn. */\n` +
+    `export const SECTION_PICK_COUNTS: Record<string, number> = ${JSON.stringify(Object.fromEntries(Object.values(pageList).flat().filter((p) => p.sectionId && p.sectionId !== "top-picks").reduce((m, p) => m.set(p.sectionId, (m.get(p.sectionId) ?? 0) + 1), new Map())))};\n` +
     `/** Codes the researched deals name (the sidebar's Discount codes, after the owner's; each hidden after its end date). */\n` +
     `export const DEAL_CODES: { rank: number; store: string; code: string; offer: string; expires?: string }[] = ${JSON.stringify(dealCodes)};\n` +
     `/** The landing's "Top 10 most-loved" row: the picks the most guides list, photos first. */\n` +

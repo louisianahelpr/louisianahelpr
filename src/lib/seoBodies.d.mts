@@ -13,6 +13,7 @@ export interface SeoGuide {
 export interface SeoData {
   guides: Record<string, SeoGuide>;
   /** Old or folded guide slug -> its guide now (301). */
+  /** Old slug -> its guide now ("mom"), its section in a merged guide ("healthcare#rns", 1120) or "" (the landing page). */
   moved: Record<string, string>;
   groups: [label: string, guides: [slug: string, name: string][]][];
 }

@@ -234,7 +234,7 @@ export const giftGuides = {
   /** A ShopMy collection link opens a page of many products, not this one (design audit r2 #3/#9): the row says so. */
   collectionOnShopMy: "Collection on ShopMy",
   /** The pick badges (owner 2026-11-18). Never a price. */
-  badges: { trending: "Trending", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
+  badges: { trending: "Trending", tiktok: "Trending on TikTok", preorder: "Pre-order", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
   /** A non-Amazon pick's checked price beside Shop (owner 11-18), rounded to the dollar: "~$24". Never on Amazon. */
   priceApprox: (dollars: number) => `~$${dollars}`,
@@ -292,6 +292,16 @@ export const giftGuides = {
   loadingPicks: "Loading picks…",
   /** Under a long list (design audit 11-18 #3: store-amazon drew 827 rows at once): the next 50. */
   showMorePicks: (left: number) => `Show more (${left} more)`,
+  /** A merged guide's section links under its banner (1120): one per section, "Jump to" read by screen readers. */
+  sectionNavLabel: "Jump to a section",
+  /** A brand's discount code on its cards (1120: 21 Collective). */
+  codeChip: (code: string) => `Code ${code}`,
+  /** The budget filter inside every guide (owner-approved 11-19 9:05 PM). Amazon shows no prices, so its items leave a budget view. */
+  budgetLabel: "Budget",
+  budgetAll: "Any price",
+  budgetUnder: (n: number) => `Under $${n}`,
+  budgetNote: "Amazon items aren't sorted by price here (Amazon doesn't let us list its prices).",
+  budgetNone: "Nothing in this budget yet. Try a higher one.",
   sections: [
     {
       id: "for-her",

@@ -3,19 +3,25 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { KID_AGE_BANDS, KID_AGE_HUBS, guideBySlug } from "@/content/giftGuideCatalog";
+import { SECTION_PICK_COUNTS } from "@/content/giftGuidePicks";
 
 /**
  * The kids age guides, two taps from the landing (holistic review 11-18 H1: the 12 age guides were reachable only through
  * search or the BY AGE row on Girls and Boys, so "a gift for my 4-year-old niece" failed). Each age guide that holds
  * picks is a 44px chip; one that holds nothing is left out (never a dead link).
  */
-const ageGuide = (hub: string, tail: string) => {
-  const g = guideBySlug(`${hub}-${tail}`);
-  return g && !g.empty ? g : null;
+/**
+ * An age's link (1120: the 15 age guides are sections of Girls, Boys and Gender-Neutral now): the hub's page at that
+ * section, "/gift-guides/girls#girls-toddlers", when the section holds picks; else null (never a dead link).
+ */
+const ageLink = (hub: string, tail: string) => {
+  const g = guideBySlug(hub);
+  const id = `${hub}-${tail}`;
+  return g && !g.empty && (SECTION_PICK_COUNTS[id] ?? 0) > 0 ? { slug: id, to: `/gift-guides/${hub}#${id}` } : null;
 };
 
-/** The ages a row shows: babies to big kids (teens have their own tiles in the For kids row). */
-const BANDS = KID_AGE_BANDS.filter((b) => b.tail !== "teens");
+/** The ages a row shows: babies to teens (the teen tiles left the For kids row with the 1120 merge). */
+const BANDS = KID_AGE_BANDS;
 const ages = (b: (typeof KID_AGE_BANDS)[number]) => b.ages;
 
 /**
@@ -32,7 +38,7 @@ export function KidsByAge() {
   useEffect(() => {
     if (hash === `#${KIDS_BY_AGE_ID}`) ref.current?.scrollIntoView({ block: "start" });
   }, [hash]);
-  const rows = BANDS.map((b) => ({ b, hubs: KID_AGE_HUBS.flatMap((h) => (ageGuide(h, b.tail) ? [{ h, g: ageGuide(h, b.tail)! }] : [])) })).filter((r) => r.hubs.length > 0);
+  const rows = BANDS.map((b) => ({ b, hubs: KID_AGE_HUBS.flatMap((h) => (ageLink(h, b.tail) ? [{ h, g: ageLink(h, b.tail)! }] : [])) })).filter((r) => r.hubs.length > 0);
   if (rows.length === 0) return null;
   return (
     <div ref={ref} id={KIDS_BY_AGE_ID} className="gg-ages" aria-labelledby="gift-ages" data-gift-ages="" role="group">
@@ -44,7 +50,7 @@ export function KidsByAge() {
             <span className="gg-chips">
               {hubs.map(({ h, g }) => (
                 <Button key={h} asChild variant="outline" size="sm" className="gg-chip">
-                  <Link to={`/gift-guides/${g.slug}`} data-gift-age-link={g.slug}>
+                  <Link to={g.to} data-gift-age-link={g.slug}>
                     {G.ageHubLabels[h]}<span className="sr-only">, {b.label.toLowerCase()} {ages(b)}</span>
                   </Link>
                 </Button>
@@ -57,15 +63,15 @@ export function KidsByAge() {
   );
 }
 
-/** Which kids hub a guide's BY AGE chips open: Niece -> girls, Nephew -> boys, Cousins -> gender-neutral. */
-const AGE_CHIPS_FOR: Record<string, (typeof KID_AGE_HUBS)[number]> = { niece: "girls", nephew: "boys", cousins: "gender-neutral" };
+/** Which kids hub a guide's BY AGE chips open (1120: Niece & Nephew is one guide; its chips open the gender-neutral ages). */
+const AGE_CHIPS_FOR: Record<string, (typeof KID_AGE_HUBS)[number]> = { "niece-and-nephew": "gender-neutral" };
 
-/** BY AGE chips at the top of the Niece, Nephew and Cousins pages: that hub's age guides, babies to teens. */
+/** BY AGE chips at the top of the Niece & Nephew page: that hub's age sections, babies to teens. */
 export function AgeChips({ slug }: { slug: string }) {
   const hub = AGE_CHIPS_FOR[slug];
   if (!hub) return null;
   const chips = KID_AGE_BANDS.flatMap((b) => {
-    const g = ageGuide(hub, b.tail);
+    const g = ageLink(hub, b.tail);
     return g ? [{ b, g }] : [];
   });
   if (chips.length === 0) return null;
@@ -75,7 +81,7 @@ export function AgeChips({ slug }: { slug: string }) {
       <span className="gg-chips">
         {chips.map(({ b, g }) => (
           <Button key={b.tail} asChild variant="outline" size="sm" className="gg-chip">
-            <Link to={`/gift-guides/${g.slug}`} data-gift-age-link={g.slug}>
+            <Link to={g.to} data-gift-age-link={g.slug}>
               {b.label} {ages(b)}
             </Link>
           </Button>

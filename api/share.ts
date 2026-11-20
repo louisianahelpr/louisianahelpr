@@ -1147,7 +1147,8 @@ function seoFor(url: URL): SeoOutcome {
       const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: g.name, path: `/gift-guides/${slug}` }]);
       return { kind: "page", body: giftGuideBody(slug, g), jsonLd: g.picks.length ? [crumbs, giftGuideItemListLd(slug, g)] : [crumbs] };
     }
-    if (slug && hasOwn(d.moved, slug) && /^[a-z0-9-]+$/.test(d.moved[slug])) return { kind: "moved", location: `${SITE_ORIGIN}/gift-guides/${d.moved[slug]}` };
+    // 1120: a merged guide's old slug 301s to its section ("healthcare#rns"); a folded store page to the landing page ("").
+    if (slug && hasOwn(d.moved, slug) && /^([a-z0-9-]+(#[a-z0-9-]+)?)?$/.test(d.moved[slug])) return { kind: "moved", location: d.moved[slug] ? `${SITE_ORIGIN}/gift-guides/${d.moved[slug]}` : `${SITE_ORIGIN}/gift-guides` };
     return { kind: "notfound", body: notFoundBody("gift-guide") };
   }
   if (id.startsWith("hire/")) {

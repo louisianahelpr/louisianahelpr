@@ -1,5 +1,5 @@
 /**
- * VERIFY 11-20 (~/.lh-shots/declutter-top5-1120/VERIFY.md, the live check of #4792):
+ * VERIFY 2026-11-20 (~/.lh-shots/declutter-top5-1120/VERIFY.md, the live check of #4792):
  *   #8 PARTLY: at 375/390 the Away sheet's "Pause my shop" stacked on top of "Not now" (en + es), and so did the Spanish
  *      End-sale sheet ("Terminar oferta"): the shared footer stacks once a label is wider than half the card. Every new
  *      #4779 sheet is a `pair` ConfirmSheet: two halves side by side at every width, a long label wraps inside its half.

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { topPicks } from "@/content/giftGuideCatalog";
+import { loadSearchItems, newSlugFor, topPicks, type SearchItem } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDE_FLAGS } from "@/content/giftGuideExtras1120";
 import { FUN_WORDS as W, christmasCountdown, giftOfTheDay, giveawayTieInOn } from "@/content/giftGuideFun1120";
 import { PickPrice } from "@/components/giftGuides/PickPrice";
@@ -12,8 +12,19 @@ import { GiftOut } from "../GiftOut";
 import { Hint } from "../GiftHint";
 import { track } from "@/lib/analytics";
 
-/** The card's anchor: a shared Gift of the Day opens the landing at the card. */
+/** The card's anchor on the landing (the share's fallback when the pick names no guide). */
 const GOTD_ID = "gift-of-the-day";
+
+/**
+ * Where a shared Gift of the Day opens (verify audit M7): the first guide that lists the pick (the gift search index,
+ * name -> guide), at its section when that guide was merged into another (newSlugFor: "healthcare#rns"); else, and
+ * until the index is in, the landing at the card.
+ */
+export function giftOfTheDayPath(name: string, items: readonly SearchItem[] | null): string {
+  const slug = items?.find(([n]) => n === name)?.[1];
+  const to = slug ? newSlugFor(slug) : null;
+  return to ? `/gift-guides/${to}` : `/gift-guides#${GOTD_ID}`;
+}
 
 /**
  * On the /gift-guides landing (owner 2026-11-20): the Christmas countdown (Louisiana days), the Gift of the Day (one of
@@ -26,9 +37,21 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
   const c = christmasCountdown(now);
   const gift = giftOfTheDay(topPicks(), now);
   const [msg, setMsg] = useState<string | null>(null);
+  // The gift search index (about 40 KB gzipped) names each pick's guide: fetched once the page has settled, never on
+  // its critical path, so the share can open the pick's guide.
+  const [items, setItems] = useState<SearchItem[] | null>(null);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      loadSearchItems().then(setItems, (e: unknown) => {
+        // The share falls back to the landing's card; nothing else needs the index here.
+        console.warn("gift of the day: search index failed", e);
+      });
+    }, 2500);
+    return () => window.clearTimeout(t);
+  }, []);
   const share = async () => {
     if (!gift) return;
-    const out = await shareNative({ title: W.gotdTitle, text: W.gotdShareText(gift.name), url: `${getPublicOrigin()}/gift-guides#${GOTD_ID}`, suppressCopyConfirmation: true });
+    const out = await shareNative({ title: W.gotdTitle, text: W.gotdShareText(gift.name), url: `${getPublicOrigin()}${giftOfTheDayPath(gift.name, items)}`, suppressCopyConfirmation: true });
     setMsg(out === "copied" ? W.gotdCopied : null);
     if (out === "shared" || out === "copied") track("gift_of_the_day_shared", { how: out });
   };

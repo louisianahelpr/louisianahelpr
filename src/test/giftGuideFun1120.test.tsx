@@ -24,6 +24,8 @@
  * @mutate src/lib/giftPlannerDevice.ts |   resets.forEach((fn) => fn()); |   void resets;
  * @mutate src/content/giftGuideFun1120.ts |   for (const p of [...pool.filter(fits), ...pool.filter(unknown)]) { |   for (const p of pool.filter(fits)) {
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto} | .gg-plan-budget{flex:none}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | display:grid;grid-template-columns:minmax(0,1fr);gap:8px} | display:grid;gap:8px}
+ * @mutate src/pages/info/giftGuides/fun/GiftCountdown.tsx |   return to ? `/gift-guides/${to}` : `/gift-guides#${GOTD_ID}`; |   return `/gift-guides#${GOTD_ID}`;
  * @mutate supabase/migrations/20261120062334_gift_guide_secret_santa_planner.sql |      AND me.token_hash = encode(sha256(convert_to(p_token, 'UTF8')), 'hex')\n     AND g.expires_at > now()\n$fn$; |      AND g.expires_at > now()\n$fn$;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -34,7 +36,7 @@ import { join } from "node:path";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
-import { guideBySlug, loadAllGuidePicks, topPicks } from "@/content/giftGuideCatalog";
+import { guideBySlug, loadAllGuidePicks, loadSearchItems, topPicks } from "@/content/giftGuideCatalog";
 import {
   SWIPE_BUDGETS, SWIPE_PER_STORE, SWIPE_ROUND, SWIPE_WHO, duplicateName, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giftOfTheDay, giveawayTieInOn, parseDollars,
   SANTA_PATH, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan,
@@ -59,7 +61,7 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 }));
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSantaReveal from "@/pages/info/giftGuides/fun/SecretSantaReveal";
-import { GiftCountdown } from "@/pages/info/giftGuides/fun/GiftCountdown";
+import { GiftCountdown, giftOfTheDayPath } from "@/pages/info/giftGuides/fun/GiftCountdown";
 import { giftListNow, resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { planActions, resetPlanStoreForTests, setPlanViewer, useAccountSync, usePlan } from "@/pages/info/giftGuides/fun/plannerStore";
@@ -413,5 +415,29 @@ describe("UX audit of #4791", () => {
   });
   it("L3: a duplicate name is named in the spelling typed first", () => {
     expect(duplicateName(["Ann", "ben", "Ben"])).toBe("ben");
+  });
+});
+
+describe("verify audit of #4791", () => {
+  it("H1 and the pair row: the fun lists' grid column may shrink to the card (no implicit auto column)", () => {
+    const css = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/FunPage.tsx"), "utf8");
+    expect(css).toMatch(/\.gg-fun-list\{[^}]*display:grid;grid-template-columns:minmax\(0,1fr\)/);
+    expect(css).toContain(".gg-fun-list>li{min-width:0}");
+  });
+  it("M7: a shared Gift of the Day opens the pick's own guide", async () => {
+    const items = await loadSearchItems();
+    const top = topPicks();
+    expect(top.length).toBeGreaterThan(3);
+    const paths = top.map((p) => giftOfTheDayPath(p.name, items));
+    const toGuides = paths.filter((x) => x.startsWith("/gift-guides/"));
+    expect(toGuides.length).toBeGreaterThan(top.length / 2);
+    for (const x of toGuides) expect(guideBySlug(x.replace("/gift-guides/", "").split("#")[0]), x).toBeDefined();
+    // Until the index is in, and for a pick no guide lists: the landing at the card.
+    expect(giftOfTheDayPath(top[0].name, null)).toBe("/gift-guides#gift-of-the-day");
+    expect(giftOfTheDayPath("No such gift", items)).toBe("/gift-guides#gift-of-the-day");
+  });
+  it("a refusal clears as soon as the form changes", () => {
+    const src = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/SecretSanta.tsx"), "utf8");
+    expect(src).toContain("onChange={() => setError(null)}");
   });
 });

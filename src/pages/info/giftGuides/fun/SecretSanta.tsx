@@ -101,7 +101,7 @@ export default function SecretSanta() {
           </Button>
         </section>
       ) : (
-        <form onSubmit={(e) => void submit(e)} noValidate data-santa-form="">
+        <form onSubmit={(e) => void submit(e)} onChange={() => setError(null)} noValidate data-santa-form="">
           <p className="gg-fun-lead">{W.santaLead}</p>
           <Hint id="fun-santa">{W.hintSanta}</Hint>
           <div className="gg-fun-card">

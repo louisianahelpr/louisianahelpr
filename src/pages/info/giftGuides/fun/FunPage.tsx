@@ -33,7 +33,8 @@ const FUN_CSS = `
 .gg-fun-row>input,.gg-fun-row>select{flex:1;min-width:0}
 .gg-fun input,.gg-fun select{min-height:44px;font:500 15px Montserrat,sans-serif;padding:8px 12px;border:1px solid hsl(var(--input));border-radius:10px;background:hsl(var(--background));color:var(--gg-ink);min-width:0}
 .gg-fun label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--gg-ink)}
-.gg-fun-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.gg-fun-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.gg-fun-list>li{min-width:0}
 .gg-fun-err{color:hsl(var(--destructive));font-size:13px;font-weight:600;margin:8px 0 0}
 .gg-fun-note{color:var(--gg-muted);font-size:12px;margin:10px 0 0}
 .gg-fun-x{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border:0;background:transparent;border-radius:999px;color:var(--gg-muted);cursor:pointer;font-size:20px}

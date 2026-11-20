@@ -3,7 +3,7 @@
  * in sessionStorage (useSignupDraftField, src/lib/signupDraft.ts) and put back after a reload; the password never is.
  * The draft goes when the account is created, when the page unmounts, and on sign-out.
  *
- * @mutate src/pages/auth/Signup.tsx |   const [email, setEmail] = useSignupDraftField("email"); |   const [email, setEmail] = useState("");
+ * @mutate src/pages/auth/signup/useSignupDraftField.ts |   const [email, setEmail] = useSignupDraftField("email"); |   const [email, setEmail] = useState("");
  * @mutate src/pages/auth/Signup.tsx |   const [firstName, setFirstName] = useSignupDraftField("firstName"); // F259c: kept over a reload |   const [firstName, setFirstName] = useState("");
  * @mutate src/lib/signupDraft.ts |     if (value) window.sessionStorage.setItem(signupDraftStorageKey(key), value); |     if (value) void value;
  * @mutate src/pages/auth/signup/useSignupDraftField.ts |   const [value, setValue] = useState(() => readSignupDraft(key)); |   const [value, setValue] = useState("");
@@ -46,7 +46,9 @@ describe("F259c: the sign-up draft survives a reload", () => {
     const s = code("pages/auth/Signup.tsx");
     expect(s).toContain('const [firstName, setFirstName] = useSignupDraftField("firstName");');
     expect(s).toContain('const [lastName, setLastName] = useSignupDraftField("lastName");');
-    expect(s).toContain('const [email, setEmail] = useSignupDraftField("email");');
+    // Signup-confusion 11-19: the email field is useSignupEmailField(), the same draft field plus Log in's carried email.
+    expect(s).toContain("const [email, setEmail] = useSignupEmailField();");
+    expect(code("pages/auth/signup/useSignupDraftField.ts")).toContain('const [email, setEmail] = useSignupDraftField("email");');
     expect(s).toContain('const [password, setPassword] = useState("");');
     expect(s).not.toMatch(/useSignupDraftField\("password"/);
     expect(s).toMatch(/if \(!userId\) throw new Error\("Account creation failed"\);\s*clearSignupDraft\(\);/);

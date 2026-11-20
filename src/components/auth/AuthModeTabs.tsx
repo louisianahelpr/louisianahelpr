@@ -15,6 +15,12 @@ import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
  * `signupHref`/`loginHref` keep the pending redirect; `email` rides in router state (never the URL) so a typed
  * address carries across. Guard: src/test/signupConfusion1119.test.tsx.
  */
+// Literal class strings (not built by a function) so e2e/happy-path/gradInkSites.ts can rebuild the selected side's
+// classes and gradInkContrast.spec.ts can measure its ink on the gradient.
+const TAB = "flex-1 inline-flex items-center justify-center min-h-11 rounded-full px-3 text-ds-14 font-sans font-bold transition-colors";
+const TAB_ON = "btn-grad-primary !text-[hsl(var(--parchment))]";
+const TAB_OFF = "hover:bg-[hsl(var(--bark)/0.08)]";
+
 export function AuthModeTabs({
   active,
   signupHref = "/signup",
@@ -28,10 +34,6 @@ export function AuthModeTabs({
 }) {
   const { t } = useLanguage();
   const state = email && email.trim() ? { email: email.trim() } : undefined;
-  const side = (on: boolean) =>
-    `flex-1 inline-flex items-center justify-center min-h-11 rounded-full px-3 text-ds-14 font-sans font-bold transition-colors ${
-      on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "hover:bg-[hsl(var(--bark)/0.08)]"
-    }`;
   return (
     <nav
       aria-label={t("authTabs.label")}
@@ -43,7 +45,7 @@ export function AuthModeTabs({
         to={loginHref}
         state={state}
         aria-current={active === "login" ? "page" : undefined}
-        className={side(active === "login")}
+        className={`${TAB} ${active === "login" ? TAB_ON : TAB_OFF}`}
         style={active === "login" ? undefined : { color: "hsl(var(--ink-deep) / 0.78)" }}
         data-auth-tab="login"
       >
@@ -53,7 +55,7 @@ export function AuthModeTabs({
         to={signupHref}
         state={state}
         aria-current={active === "signup" ? "page" : undefined}
-        className={side(active === "signup")}
+        className={`${TAB} ${active === "signup" ? TAB_ON : TAB_OFF}`}
         style={active === "signup" ? undefined : { color: "hsl(var(--ink-deep) / 0.78)" }}
         data-auth-tab="signup"
       >

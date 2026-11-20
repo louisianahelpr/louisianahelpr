@@ -1,3 +1,4 @@
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useSyncExternalStore, type ReactNode } from "react";
 
 /**
@@ -58,9 +59,9 @@ export function Hint({ id, children, show = true, className = "" }: { id: string
   return (
     <p role="note" className={`gg-hint ${className}`} data-gift-hint={id}>
       <span className="gg-hint-text">{children}</span>
-      <button type="button" className="gg-hint-x" onClick={dismiss} aria-label="Got it, hide this tip" data-gift-hint-close={id}>
+      <RoundIconButton size="sm" className="gg-hint-x" onClick={dismiss} aria-label="Got it, hide this tip" data-gift-hint-close={id}>
         <span aria-hidden="true">×</span>
-      </button>
+      </RoundIconButton>
     </p>
   );
 }

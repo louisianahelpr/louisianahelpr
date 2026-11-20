@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 import { track } from "@/lib/analytics";
 import { WISH, HINTS } from "@/content/giftWishList";
@@ -98,7 +99,7 @@ export function GiftWishShare({ name, refs, save, signedIn = false }: { name: st
           {native && (
             <Button type="button" className="btn-grad-primary gg-wish-share-btn" onClick={sheet} data-gift-wish-native="">{WISH.sendWith}</Button>
           )}
-          <input className="gg-wish-link" readOnly value={url} aria-label={WISH.copyLink} onFocus={(e) => e.currentTarget.select()} data-gift-wish-link="" />
+          <Input className="gg-wish-link" readOnly value={url} aria-label={WISH.copyLink} onFocus={(e) => e.currentTarget.select()} data-gift-wish-link="" />
           <span className="gg-chips">
             <Button type="button" variant="outline" size="sm" className="gg-chip" onClick={copy} data-gift-wish-copy="">{copied ? WISH.copied : WISH.copyLink}</Button>
             <Button asChild variant="outline" size="sm" className="gg-chip">

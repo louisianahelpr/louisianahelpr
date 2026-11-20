@@ -1,3 +1,4 @@
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -21,9 +22,9 @@ export function HowToStrip() {
     <aside className="gg-howto" aria-labelledby="gift-howto-title" data-gift-hint="how-to">
       <div className="gg-howto-head">
         <h2 id="gift-howto-title" className="gg-howto-title">{HINTS.howTitle}</h2>
-        <button type="button" className="gg-hint-x" onClick={dismiss} aria-label="Got it, hide these tips" data-gift-hint-close="how-to">
+        <RoundIconButton size="sm" className="gg-hint-x" onClick={dismiss} aria-label="Got it, hide these tips" data-gift-hint-close="how-to">
           <span aria-hidden="true">×</span>
-        </button>
+        </RoundIconButton>
       </div>
       <ol className="gg-howto-steps" data-gift-howto-steps="">
         {HINTS.steps.map((s, i) => (
@@ -106,9 +107,9 @@ export function FirstHeartHint() {
         <span className="gg-toast-long">{HINTS.seeList} ›</span>
         <span className="gg-toast-short" aria-hidden="true">{HINTS.seeListShort} ›</span>
       </Link>
-      <button type="button" className="gg-hint-x" onClick={close} aria-label="Hide this tip" data-gift-hint-close="first-heart">
+      <RoundIconButton size="sm" className="gg-hint-x" onClick={close} aria-label="Hide this tip" data-gift-hint-close="first-heart">
         <span aria-hidden="true">×</span>
-      </button>
+      </RoundIconButton>
     </div>,
     document.body,
   );

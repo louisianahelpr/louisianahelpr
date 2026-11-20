@@ -11,14 +11,15 @@
 // @mutate src/components/declutter/DeclutterMilesFrom.tsx | ) : offerAsk(ask) ? ( | ) : false ? (
 // @mutate src/components/declutter/DeclutterMilesFrom.tsx | variant="link" size="sm" className="shrink-0 px-1 text-ds-13 font-semibold" | variant="outline" size="sm" className="rounded-full"
 // @mutate src/components/declutter/DeclutterBrowseBar.tsx |   return !fromDevice && (!ask.asked \|\| ask.canAskAgain); |   return !ask.asked \|\| ask.canAskAgain;
-// @mutate src/components/declutter/DeclutterBrowseView.tsx | {desktop && itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />} | {null}
+// @mutate src/components/declutter/DeclutterBrowseView.tsx | {itemsPhase !== "offline-empty" && <DeclutterLocationButton ask={ask} />} | {null}
+// @mutate src/components/declutter/DeclutterMilesFrom.tsx | {ask.asked ? t("decl.loc.tryAgain") : t("decl.loc.use")} | {t("decl.loc.use")}
 // @mutate src/components/declutter/DeclutterFreeView.tsx | <DeclutterMilesFrom ask={{ origin, askDevice, asked, asking, canAskAgain, deviceNote, zip }} /> | {null}
 // @mutate src/components/declutter/useDeclutterOrigin.ts | canAskAgain, deviceNote, zip }; | canAskAgain, deviceNote, zip: null };
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { blankComments } from "@/test/helpers/blankNonCode";
-import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
+import { DeclutterDeviceNote, DeclutterLocationButton, DeclutterMilesFrom } from "./DeclutterMilesFrom";
 import type { OriginAsk } from "./DeclutterBrowseBar";
 import type { DeclutterOrigin } from "./useDeclutterOrigin";
 
@@ -81,9 +82,28 @@ describe("Declutter miles line (DA-10)", () => {
     const browse = blankComments(readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8"));
     const free = blankComments(readFileSync("src/components/declutter/DeclutterFreeView.tsx", "utf8"));
     const hook = blankComments(readFileSync("src/components/declutter/useDeclutterOrigin.ts", "utf8"));
-    const lines = [...(browse.match(/<DeclutterMilesFrom ask=\{ask\} \/>/g) ?? []), ...(free.match(/<DeclutterMilesFrom ask=\{\{[^}]*zip \}\} \/>/g) ?? [])];
+    // Owner 11-20 (site polish A4): Browse's is the compact button beside the search; Free keeps the line.
+    const lines = [...(browse.match(/<DeclutterLocationButton ask=\{ask\} \/>/g) ?? []),...(free.match(/<DeclutterMilesFrom ask=\{\{[^}]*zip \}\} \/>/g) ?? [])];
     expect(lines.length).toBeGreaterThan(1);
     expect(browse).toMatch(/const ask = \{[^}]*\bzip\b[^}]*\}/);
     expect(hook).toMatch(/canAskAgain, deviceNote, zip \};/);
+  });
+
+  it("site polish A4 (owner 11-20): the compact button beside desktop Browse's search follows the same rule", () => {
+    const a = ask({ origin: at("profile") });
+    const first = render(<DeclutterLocationButton ask={a} />);
+    const btn = screen.getByRole("button", { name: "Use my location" });
+    expect(btn.getAttribute("title")).toBe("Miles from your saved location");
+    fireEvent.click(btn);
+    expect(a.askDevice).toHaveBeenCalledTimes(1);
+    first.unmount();
+    const again = render(<DeclutterLocationButton ask={ask({ asked: true, canAskAgain: true })} />);
+    expect(screen.getByRole("button", { name: "Try my location again" })).toBeInTheDocument();
+    again.unmount();
+    const fixed = render(<DeclutterLocationButton ask={ask({ origin: at("device") })} />);
+    expect(fixed.container.innerHTML).toBe("");
+    fixed.unmount();
+    render(<DeclutterDeviceNote ask={ask({ deviceNote: "Location permission declined" })} />);
+    expect(screen.getByRole("status").textContent).toBe("Location permission declined");
   });
 });

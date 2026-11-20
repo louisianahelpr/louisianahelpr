@@ -1,6 +1,6 @@
 /**
  * CLASS GUARD: the ID check's timing (owner 2026-10-30, replaces the removal of 2026-10-23).
- * Once per person: a poster when posting, a Helpr when hired or at the first payout,
+ * Once per person: a poster when sending an offer (owner 11-20), a Helpr when hired or at the first payout,
  * and on Declutter a seller when listing, a buyer at the first purchase, a delivery Helpr
  * when taking a delivery. Never on Home, in a checklist or in Settings. No payout without
  * a verified ID: every function that sends a Helpr money asks, built from the source.
@@ -9,7 +9,7 @@
  * with NEW_MIGRATION=skip).
  *
  * @mutate supabase/functions/release-payout/index.ts | const idHold = await checkIdentityHold(supabaseAdmin, job.helper_id); | const idHold = { kind: "clear" as const };
- * @mutate supabase/functions/declutter-money/index.ts | const idHold = await checkIdentityHold(admin, payeeId); | const idHold = { kind: "clear" as const };
+ * @mutate supabase/functions/declutter-money/index.ts | const idHold = kind === "shop" ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId); | const idHold = { kind: "clear" as const };
  * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |      AND NOT public.identity_check_exempt(p_user_id)\n     AND NOT COALESCE((SELECT public.identity_is_verified |      AND public.feature_enabled_for_user('payout_after_hire', p_user_id) AND NOT public.identity_check_exempt(p_user_id)\n     AND NOT COALESCE((SELECT public.identity_is_verified
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | { key: "skills", label: skills | { key: "id", label: "Verify your ID", done: false, go: () => openIdentityCheck("general") },\n    { key: "skills", label: skills
  * @mutate supabase/functions/void-cancelled-payments/index.ts | \|\| noFeeRecorded ? 0 : computeCancellationFee(job); | ? 0 : computeCancellationFee(job);
@@ -86,8 +86,8 @@ describe("the ID check's timing", () => {
     expect(code("src/components/profile/SettingsTab.tsx")).toMatch(/\["verified", "checking", "with_team"\]\.includes\(identityView\(profile\.idv_status\)\)/);
   });
 
-  it("posting and heading out stay gated", () => {
-    expect(newestFunction("enforce_identity_before_post").body).toMatch(/identity_required_to_post/);
+  it("sending an offer and heading out stay gated (posting moved to the offer, 20261120205350)", () => {
+    expect(newestFunction("enforce_poster_identity_before_offer").body).toMatch(/identity_required_to_offer/);
     expect(newestFunction("enforce_identity_before_start").body).toMatch(/identity_required_to_start/);
   });
 

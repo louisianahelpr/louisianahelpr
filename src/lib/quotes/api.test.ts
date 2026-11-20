@@ -181,10 +181,10 @@ describe("asking for quotes", () => {
     expect((await thrown(createQuoteRequest(req))).message).toBe("no_request_id");
   });
 
-  it("a missing ID check opens the one ID sheet for posting, and still throws", async () => {
-    h.queue.push({ error: { message: "identity_required_to_post" } });
+  it("an unverified poster's offer (identity_required_to_offer, 20261120205350) opens the one ID sheet, and still throws", async () => {
+    h.queue.push({ error: { message: "identity_required_to_offer" } });
     await thrown(createQuoteRequest(req));
-    expect(h.idSheet).toEqual(["post"]);
+    await vi.waitFor(() => expect(h.idSheet).toEqual(["post"]));
   });
 
   it("any other refusal does not open the ID sheet", async () => {

@@ -100,8 +100,9 @@ export function ApplyBody({
   // (and its "Set up payouts" link) gives way to the paused notice.
   const setupPaused = usePayoutSetupPaused();
   const payoutSetupPausedHere = setupPaused && awardBlockReason === "helper_payout_setup_incomplete";
+  // Payout setup only: the apply step never asks for the ID (owner 11-20; asked when hired).
   const applyBlockNotice =
-    awardBlockReason && awardBlockReason !== "helper_unknown" && !payoutSetupPausedHere
+    awardBlockReason === "helper_payout_setup_incomplete" && !payoutSetupPausedHere
       ? helperApplyBlockNotice(awardBlockReason)
       : null;
   const jobId = confirmApplyJob?.id ?? null;

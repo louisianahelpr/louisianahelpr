@@ -66,7 +66,8 @@ describe("the public top bar: Jobs | Declutter | Log in · Join free on every pa
   });
   it("no page's bar says Get started or How it works, and the landing's bar is the same bar", () => {
     expect(PAGES.length).toBeGreaterThan(3);
-    const bars = PAGES.map(({ path, landing }) => JSON.stringify(barLinks(path, landing)));
+    // Owner 11-20 (site polish A1): every page but the landing also has "Home" (/), from md up; the rest is the same bar.
+    const bars = PAGES.map(({ path, landing }) => JSON.stringify(barLinks(path, landing).filter(([name, href]) => !(name === "Home" && href === "/"))));
     for (const b of bars) expect(b).not.toMatch(/Get started|How it works/);
     expect(new Set(bars).size).toBe(1);
   });

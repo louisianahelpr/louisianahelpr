@@ -6,7 +6,9 @@
  *
  * @mutate src/components/declutter/DeclutterItemCard.tsx |   if (mine) return "mine"; |   if (false) return "mine";
  * @mutate src/components/declutter/DeclutterItemCard.tsx |   if (tag) return "rule"; |   if (false) return "rule";
- * @mutate src/components/declutter/DeclutterItemCard.tsx |             {photoTag === "porch" && <PhotoTag data-card-porch=""> |             {item.porch_ok && <PhotoTag data-card-porch="">
+ * Owner 11-20 (site polish A2): porch pickup is the default way, so it wears no tag at all; the order is Yours, the
+ * rule tag, trades.
+ * @mutate src/components/declutter/DeclutterItemCard.tsx |   return item.accepts_trades === true ? "trades" : null; |   return item.accepts_trades === true ? "trades" : (item as { porch_ok?: boolean }).porch_ok ? "trades" : null;
  * @mutate src/components/declutter/DeclutterItemCard.tsx |             {photoTag === "trades" && <PhotoTag data-card-trades=""> |             {item.accepts_trades === true && <PhotoTag data-card-trades="">
  */
 import { describe, expect, it } from "vitest";
@@ -38,13 +40,14 @@ describe("11-20 #11: a card's photo wears one tag", () => {
     for (const [extra, tag, mine] of cases) expect(tagsOn(extra, tag, mine).length, JSON.stringify([extra, tag, mine])).toBeLessThanOrEqual(1);
   });
 
-  it("the order: Yours, then the rule tag, then porch pickup, then trades", () => {
+  it("the order: Yours, then the rule tag, then trades; porch pickup (the default) never wears one", () => {
     expect(tagsOn({}, "demand", true)).toEqual(["Yours"]);
     expect(tagsOn({}, "demand")).toEqual(["In demand"]);
     expect(tagsOn({}, "delivery")).toEqual(["Helpr delivery"]);
-    expect(tagsOn({}, null)).toEqual(["Porch pickup"]);
+    expect(tagsOn({}, null)).toEqual(["Trades OK"]);
     expect(tagsOn({ porch_ok: false }, null)).toEqual(["Trades OK"]);
+    expect(tagsOn({ accepts_trades: false }, null)).toEqual([]);
     expect(tagsOn({ porch_ok: false, accepts_trades: false }, null)).toEqual([]);
-    expect(photoTagOf({ porch_ok: false, accepts_trades: false }, null, false)).toBeNull();
+    expect(photoTagOf({ accepts_trades: false }, null, false)).toBeNull();
   });
 });

@@ -34,4 +34,5 @@ export const esJobPoster: Record<keyof typeof enJobPoster, string> = {
   "jp.arriveYes": "Sí, ya llegó",
   "jp.arriveNo": "Todavía no",
   "jp.noApplicantsBody": "Nadie se ha postulado todavía. Comparta el enlace o promuévalo para llegar a más Helprs.",
+  "jp.idAtOffer": "Verifique su identidad con Stripe antes de enviar una oferta. Toma unos 2 minutos, una sola vez. Luego envíela de nuevo.",
 };

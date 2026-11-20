@@ -353,8 +353,9 @@ describe("Declutter location ask", () => {
     live.items = [card("i1", "Oak rocking chair"), card("i2", "Brass floor lamp", { delivery_size: "large" }), card("i3", "Cast iron skillet")];
     const browse = at("/declutter", <DeclutterPage />);
     const first = (await screen.findByText("Oak rocking chair")).closest("a")!;
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | className="block truncate text-ds-13 font-semibold leading-snug" title={item.title} | className="block line-clamp-2 text-ds-13 font-semibold leading-snug" title={item.title}
-    expect(first.querySelector("[data-card-title]")!.className).toMatch(/\btruncate\b/);
+    // Owner 11-20 (site polish A5): two lines, then an ellipsis.
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | className="line-clamp-2 break-words text-ds-13 font-semibold leading-snug" title={item.title} | className="block truncate text-ds-13 font-semibold leading-snug" title={item.title}
+    expect(first.querySelector("[data-card-title]")!.className).toMatch(/\bline-clamp-2\b/);
     // Owner 11-09 (reverses pick 2 of 11-08): the LIST price is the bold one, in ink; "incl. fee" small and grey under it.
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-base-price="" className={`text-ds-16 ${PRICE_PAID}`}> | <span data-card-base-price="" className={`text-ds-11 ${PRICE_BASE}`}>
     const list = first.querySelector("[data-card-price] [data-card-base-price]")!;
@@ -380,9 +381,8 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-away className="shrink-0 whitespace-nowrap"> | <span data-card-away className="truncate">
     expect(first.querySelector("[data-card-condition]")!.className).toMatch(/\btruncate\b/);
     expect(first.querySelector("[data-card-place]")!.className).not.toMatch(/\btruncate\b/);
-    // Porch pickup is a tag on the photo (owner pick 4), not a text line. 11-20 #11: the photo wears one tag and a deal
-    // comes first, so it is read on the card with no rule tag (the first card's drop tag depends on the clock).
-    expect(screen.getByText("Cast iron skillet").closest("a")!.querySelector("[data-photo-tags] [data-card-porch]")?.textContent).toBe("Porch pickup");
+    // Owner 11-20 (site polish A2): porch pickup is the default way, so a porch card wears no tag for it.
+    expect(screen.getByText("Cast iron skillet").closest("a")!.querySelector("[data-card-porch]")).toBeNull();
     // Stars are for people, never an item card (spec v2 §3).
     for (const a of screen.getAllByText(/Oak rocking chair|Brass floor lamp|Cast iron skillet/).map((e) => e.closest("a")!)) {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
@@ -413,7 +413,7 @@ describe("Declutter location ask", () => {
     at("/declutter", <DeclutterPage />);
     await screen.findByText("Oak rocking chair");
     // ONE search on Browse: "Search Declutter" with its filters, never Explore's "Search all sections" above it.
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx | globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}> | globalSearch search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs} homeLink={member ? undefined : <SectionHomeLink />}> | globalSearch search={head.search} mine={head.mine} fab={fab} tabs={head.tabs} homeLink={member ? undefined : <SectionHomeLink />}>
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     expect(screen.getAllByRole("searchbox", { name: "Search Declutter" })).toHaveLength(1);
     // The chip row: All, then the categories on the list (never one with nothing for sale), each one tap.
@@ -576,19 +576,20 @@ describe("Declutter location ask", () => {
     }
   });
 
-  it("DA-16: how you get it (the porch tag) shows at every width; owner 11-14: the condition · distance line shows from lg only", async () => {
+  it("DA-16: a different way to get it (the trades tag) shows at every width; owner 11-14: the condition · distance line shows from lg only", async () => {
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-place="" className="hidden min-w-0 text-ds-11 text-muted-foreground lg:flex" | <span data-card-place="" className="hidden min-w-0 text-ds-11 text-muted-foreground"
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | {photoTag === "porch" && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>} | {null}
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | {photoTag === "trades" && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>} | {null}
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
       id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
-      price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, porch_ok: true,
+      price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, porch_ok: true, accepts_trades: true,
     } as never;
     const r = render(<MemoryRouter><ItemCard item={item} miles={5} approximate={false} /></MemoryRouter>);
     const how = r.container.querySelector("[data-card-place]")!;
-    const porch = r.container.querySelector("[data-card-porch]")!;
+    const porch = r.container.querySelector("[data-card-trades]")!;
+    expect(r.container.querySelector("[data-card-porch]")).toBeNull();
     expect(how.textContent).toBe("Lightly used · 5 mi");
-    expect(porch.textContent).toBe("Porch pickup");
+    expect(porch.textContent).toBe("Trades OK");
     for (const el of [porch, porch.closest("[data-photo-tags]")!]) expect(el.className).not.toMatch(/(^|\s)(hidden|lg:|sm:|md:)/);
     // Owner 11-14 (Depop/Vinted item 8): two text lines on a phone, so the meta line is hidden below lg and shown from it.
     expect(how.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "lg:flex"]));

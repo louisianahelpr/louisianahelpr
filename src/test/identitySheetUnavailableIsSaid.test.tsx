@@ -16,7 +16,7 @@
  * @mutate src/lib/identityCheck.ts |   if (waiting \|\| opts.entryLink) toast.error(IDENTITY_SHEET_UNAVAILABLE); |   if (opts.entryLink) toast.error(IDENTITY_SHEET_UNAVAILABLE);
  * @mutate src/lib/identityCheck.ts |   if (waiting \|\| opts.entryLink) toast.error(IDENTITY_SHEET_UNAVAILABLE); |   if (waiting) toast.error(IDENTITY_SHEET_UNAVAILABLE);
  * @mutate src/components/identity/IdentityCheckMount.tsx | "IdentityCheckHost", () => markIdentitySheetUnavailable({ | "IdentityCheckHost", () => void ({
- * @mutate src/components/profile/SettingsTab.tsx | onClick={() => openIdentityCheckOrSay("general")} /> | onClick={() => void openIdentityCheck("general")} />
+ * @mutate src/components/AwardGateDialog.tsx |     openIdentityCheckOrSay("accept"); |     void openIdentityCheck("accept");
  */
 import React, { Suspense } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -148,7 +148,6 @@ describe("the ID-check sheet that cannot load is said, never a dead press", () =
     // sheet itself, or for the after-confirm offer (no press waits on it). Exact both ways.
     const BARE_OK: Record<string, string> = {
       "src/lib/crewLifecycle.ts": "throws CrewActionError with the refusal's words right after (x2)",
-      "src/lib/quotes/api.ts": "unwrap() throws the refusal's words right after",
       "src/lib/declutter/api.ts": "its callers throw the refusal code right after (errors.ts has the words)",
       "src/lib/helprTasks/api.ts": "returns rpcErrorMessage for the refusal right after",
       "src/components/identity/IdentityCheckSheet.tsx": "the sheet itself: it is loaded",

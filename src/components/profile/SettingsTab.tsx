@@ -4,7 +4,7 @@ import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ChevronRight, Download, Loader2 } from "lucide-react";
+import { Check, ChevronRight, Download, Loader2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { Switch } from "@/components/ui/switch";
@@ -19,7 +19,7 @@ import { useDataExport } from "@/hooks/useDataExport";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { identityView, openIdentityCheckOrSay, type IdentityView } from "@/lib/identityCheck";
+import { identityView, type IdentityView } from "@/lib/identityCheck";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
@@ -262,10 +262,12 @@ export function SettingsTab({
         {/* Board 120: the row shows what is true now (your email and how you
             sign in) instead of a list of what is inside; each part only when known. */}
         <Row testId="security" label={TAB_TITLES.security} subLines={accountLines(user?.email, user?.identities)} sub="Email, password, sign-in" onClick={() => onSelectTab("security")} />
-        {/* Stripe Identity: the row says where a check stands, only once there is one to report.
-            Settings never asks an unverified member (owner 2026-10-30). A test account has no check. */}
+        {/* Stripe Identity: the row says where a check stands, only once there is one to report. READ-ONLY: Settings
+            never starts or reopens the ID check (owner 2026-10-30, repeated 11-20: the check is asked only when posting
+            a job, when hired or at the first payout). A test account has no check.
+            Guard: src/test/noProactiveIdEntryPoints.test.ts. */}
         {idOn && profile && profile.is_seed !== true && ["verified", "checking", "with_team"].includes(identityView(profile.idv_status)) && (
-          <Row testId="id" label="ID" sub={ID_ROW_SUB[identityView(profile.idv_status)]} onClick={() => openIdentityCheckOrSay("general")} />
+          <Row testId="id" label="ID" sub={ID_ROW_SUB[identityView(profile.idv_status)]} right={identityView(profile.idv_status) === "verified" ? <Check className="w-4 h-4 shrink-0 text-primary" aria-hidden /> : undefined} />
         )}
         <Row testId="warnings" label={TAB_TITLES.warnings} sub="Your account standing" onClick={() => onSelectTab("warnings")} />
         {onRequestDelete && <Row testId="delete-account" label="Delete account" sub="Permanent" danger onClick={onRequestDelete} />}

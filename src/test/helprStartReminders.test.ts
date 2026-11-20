@@ -16,20 +16,20 @@
  * - the titles match the registry rows that give each its own switch;
  * - service_role only, on the cron, and in the generated types.
  *
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND NOT t.owes_dayof THEN 'two_hours' END), | THEN 'two_hours' END),
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND t.start_time >= time '10:00' THEN 'morning_of' END), | THEN 'morning_of' END),
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND NOT t.left_already THEN 'head_out' END) | THEN 'head_out' END)
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | ELSIF v_kind = 'morning_of' AND rec.two_hours_near THEN | ELSIF v_kind = 'morning_of' AND false THEN
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | SELECT COALESCE((SELECT p.remind_two_hours FROM | SELECT COALESCE((SELECT p.remind_morning_of FROM
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | SELECT COALESCE((SELECT p.remind_starting_soon FROM | SELECT COALESCE((SELECT p.remind_head_out FROM
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | ((v_now >= t.starts_at - interval '135 minutes' | ((v_now >= t.starts_at - interval '120 minutes'
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND s2.kind = 'two_hours' AND NOT s2.merged)) | AND s2.kind = 'two_hours' AND false))
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND j.is_group_job IS NOT TRUE AND j.parent_job_id IS NULL | AND j.is_group_job IS NOT TRUE
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | ON CONFLICT (job_id, user_id, kind) DO NOTHING; | ;
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | v_message := CASE WHEN rec.owes_dayof | v_message := CASE WHEN false
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | (CASE WHEN v_now >= t.starts_at - make_interval(mins => t.lead_minutes) | (CASE WHEN v_now >= t.starts_at - interval '30 minutes'
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | IF v_kind = 'head_out' AND rec.lead_minutes BETWEEN 30 AND 35 THEN | IF v_kind = 'head_out' AND rec.lead_minutes <= 35 THEN
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND e.minutes <= 120), 30) AS lead_minutes | ), 30) AS lead_minutes
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | AND NOT t.owes_dayof THEN 'two_hours' END), | THEN 'two_hours' END),
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | AND t.start_time >= time '10:00' THEN 'morning_of' END), | THEN 'morning_of' END),
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | AND NOT t.left_already THEN 'head_out' END) | THEN 'head_out' END)
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | ELSIF v_kind = 'morning_of' AND rec.two_hours_near THEN | ELSIF v_kind = 'morning_of' AND false THEN
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | SELECT COALESCE((SELECT p.remind_two_hours FROM | SELECT COALESCE((SELECT p.remind_morning_of FROM
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | SELECT COALESCE((SELECT p.remind_starting_soon FROM | SELECT COALESCE((SELECT p.remind_head_out FROM
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | ((v_now >= t.starts_at - interval '135 minutes' | ((v_now >= t.starts_at - interval '120 minutes'
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | AND s2.kind = 'two_hours' AND NOT s2.merged)) | AND s2.kind = 'two_hours' AND false))
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | AND j.is_group_job IS NOT TRUE AND j.parent_job_id IS NULL | AND j.is_group_job IS NOT TRUE
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | ON CONFLICT (job_id, user_id, kind) DO NOTHING; | ;
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | v_message := CASE WHEN rec.owes_dayof | v_message := CASE WHEN false
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | (CASE WHEN v_now >= t.starts_at - make_interval(mins => t.lead_minutes) | (CASE WHEN v_now >= t.starts_at - interval '30 minutes'
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | IF v_kind = 'head_out' AND rec.lead_minutes BETWEEN 30 AND 35 THEN | IF v_kind = 'head_out' AND rec.lead_minutes <= 35 THEN
+ * @mutate supabase/migrations/20261120220306_start_reminder_address_after_accept.sql | AND e.minutes <= 120), 30) AS lead_minutes | ), 30) AS lead_minutes
  * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql |      AND NOT EXISTS (SELECT 1 FROM public.declutter_route_health rh WHERE rh.miss_until > COALESCE(p_now, now()))\n |
  * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE, | user_id uuid NOT NULL,
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | p_title IN ('Your job starts in 2 hours', 'Time to head out') THEN 'starting_soon' | p_title IN ('Your job starts in 2 hours') THEN 'starting_soon'

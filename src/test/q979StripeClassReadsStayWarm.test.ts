@@ -38,6 +38,8 @@ describe("Q979: Stripe-class reads stay warm and are read once", () => {
       const n = (src(f).match(/rpc\(\s*["']get_my_pending_direct_offers["']/g) ?? []).length;
       return n ? [`${f.replace(/^.*?src\//, "src/")}:${n}`] : [];
     });
-    expect(calls.sort()).toEqual(["src/hooks/useActivityData.ts:1", "src/pages/jobs/jobPage/useJobPage.ts:1"]);
+    // useJobPage: the offered-to-me flag, and (owner 11-20, 20261120205350) the page's own masked row for a pending direct
+    // offer, which jobs no longer hands the offeree. Both are one job (.eq("id")).
+    expect(calls.sort()).toEqual(["src/hooks/useActivityData.ts:1", "src/pages/jobs/jobPage/useJobPage.ts:2"]);
   });
 });

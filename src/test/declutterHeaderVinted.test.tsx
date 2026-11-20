@@ -33,7 +33,7 @@
  * @mutate src/components/sections/SectionSearchBar.tsx |         onClick={() => navigate(home, { state: FOCUS_SEARCH_STATE })} |         onClick={() => navigate("/search")}
  * @mutate src/components/sections/SectionScreen.tsx | ${fab ? "pb-20" : "pb-6"} | pb-6
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} | <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search}
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |         {desktop && itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />} |         {itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />}
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |         {desktop && itemsPhase !== "offline-empty" && <DeclutterDeviceNote ask={ask} />} |         {itemsPhase !== "offline-empty" && <DeclutterDeviceNote ask={ask} />}
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -194,5 +194,10 @@ describe("Sell: the floating + Sell pill", () => {
     expect(calls.length).toBeGreaterThan(2);
     for (const [f, call] of calls) expect(call, f).toMatch(/\bsearch=\{/);
     for (const f of screens.slice(0, 2)) expect(code(f), f).toMatch(/<SectionScreen\b[^>]*\bmine=\{head\.mine\}/);
+    // On a phone the grid starts right under the chips: the location button (owner 11-20, beside desktop's search)
+    // and its device note are desktop only; the phone's live in the filter sheet.
+    const browse = code("src/components/declutter/DeclutterBrowseView.tsx");
+    expect(browse).toContain('{desktop && itemsPhase !== "offline-empty" && <DeclutterDeviceNote ask={ask} />}');
+    expect(browse.match(/<DeclutterLocationButton\b/g)).toHaveLength(1);
   });
 });

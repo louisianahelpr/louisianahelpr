@@ -13,6 +13,9 @@
     },
     "api/og-profile.ts": {
       "includeFiles": "{api/_og/**,node_modules/@resvg/resvg-wasm/index_bg.wasm}"
+    },
+    "api/og-item.ts": {
+      "includeFiles": "{api/_og/Montserrat-400-latin.woff,node_modules/@resvg/resvg-wasm/index_bg.wasm}"
     }
   },
   "redirects": [

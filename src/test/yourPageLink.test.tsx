@@ -10,14 +10,15 @@
  *
  * @mutate src/components/profile/ProfileLanding.tsx | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} knownHandle={profile?.handle} /> | {null}
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       <YourPageLink slim /> |       <YourPageLink forSale={1} />
- * @mutate src/components/profile/YourPageLink.tsx |   if (slim) { |   if (slim && forSale < 0) {
+ * @mutate src/components/profile/YourPageLink.tsx |   if (slim \|\| line) { |   if ((slim \|\| line) && forSale < 0) {
+ * @mutate src/components/profile/YourPageLink.tsx |         {line && <span>{t("yp.lineLead")}</span>} | {null}
  * @mutate src/components/profile/YourPageLink.tsx | if (await copyToClipboard(profileLinkUrl(handle))) | if (await copyToClipboard(handle))
  * @mutate src/components/profile/YourPageLink.tsx |   if (forSale > 0) { |   if (forSale < 0) {
  * @mutate src/components/declutter/DeclutterShareCard.tsx | data-listing-share="" onClick={() => shareListing(item)} | data-listing-share="" onClick={() => undefined}
  * @mutate src/components/profile/YourPageLink.tsx |     enabled: !knownHandle, |     enabled: true,
  * @mutate src/components/profile/YourPageLink.tsx |   if (publicPage === null) { |   if (publicPage === undefined && false) {
  * @mutate src/components/profile/YourPageLink.tsx |   queryFn: () => fetchPublicProfile(handle), |   queryFn: async () => fetchPublicProfile(handle).catch(() => null),
- * @mutate src/pages/home/HomeDashboard.tsx | {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />} | {null}
+ * @mutate src/pages/home/HomeDashboard.tsx | {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" line />} | {null}
  * @mutate src/pages/home/HomeDashboard.tsx | <HomeMoneyTiles money={money} placement="side" /> | {null}
  * @mutate supabase/migrations/20261104142602_profile_handle_at_signup.sql |   BEFORE INSERT ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert(); |   BEFORE UPDATE OF bio ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert();
  */
@@ -115,7 +116,7 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     expect(screen.getByRole("link", { name: "louisianahelpr.com/u/eli-b" })).toBeTruthy();
     expect(rpc).not.toHaveBeenCalledWith("rpc_ensure_my_handle");
     const home = code("src/pages/home/HomeDashboard.tsx");
-    expect(home).toContain("{profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className=\"mb-2\" />}");
+    expect(home).toContain("{profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className=\"mb-2\" line />}");
   });
 
   it("Home puts the card at the TOP of the right column, above the money tiles and sections (owner 11-10)", () => {
@@ -201,6 +202,27 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     await waitFor(() => expect(container.querySelector("[data-your-page-slim]")).not.toBeNull());
     expect(container.querySelector("section")).toBeNull();
     expect(container.querySelector("[data-your-page-slim]")?.textContent).toBe("Your public profile· Copy· Share");
+    fireEvent.click(screen.getByRole("button", { name: "Copy your public profile link" }));
+    await waitFor(() => expect(copy).toHaveBeenCalledWith("https://www.louisianahelpr.com/u/eli-b"));
+    fireEvent.click(screen.getByRole("button", { name: "Share profile" }));
+    await waitFor(() => expect(share).toHaveBeenCalled());
+  });
+
+  it("owner polish 11-20: Home's card is ONE compact line naming the address, 'Your profile: <link> · Copy · Share'", async () => {
+    rpc.mockResolvedValue({ data: { handle: "eli-b" }, error: null });
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <YourPageLink knownHandle="eli-b" name="Eli" line />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const line = container.querySelector("[data-your-page-line]") as HTMLElement;
+    expect(line).not.toBeNull();
+    expect(line.tagName).toBe("P");
+    expect(container.querySelector("section")).toBeNull();
+    expect(line.textContent).toBe("Your profile:louisianahelpr.com/u/eli-b· Copy· Share");
+    expect(line.querySelector("a")?.getAttribute("href")).toBe("/u/eli-b");
     fireEvent.click(screen.getByRole("button", { name: "Copy your public profile link" }));
     await waitFor(() => expect(copy).toHaveBeenCalledWith("https://www.louisianahelpr.com/u/eli-b"));
     fireEvent.click(screen.getByRole("button", { name: "Share profile" }));

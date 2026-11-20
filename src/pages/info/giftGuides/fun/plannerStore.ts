@@ -79,6 +79,8 @@ const subscribe = (l: () => void) => {
 };
 
 export const usePlan = (): GiftPlan => useSyncExternalStore(subscribe, read, () => EMPTY_PLAN);
+/** The plan as the viewer may see it now, outside React (a Secret Santa idea saved from the swipe page). */
+export const readPlanForSanta = (): GiftPlan => read();
 
 /** Set who is looking (the page calls it from the auth state). */
 export function setPlanViewer(who: string | null | undefined) {

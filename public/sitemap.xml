@@ -193,6 +193,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/printables</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/shop-small-louisiana</loc>
     <lastmod>2026-11-20</lastmod>
     <changefreq>weekly</changefreq>

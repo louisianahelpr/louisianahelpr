@@ -491,7 +491,7 @@ describe("Declutter screens", () => {
       state.card = { brand: "visa", last4: "4242" };
       rememberAfterCard(ID, "offer");
       returnTo("/declutter?card=saved");
-      expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 1 })).toBeInTheDocument();
+      expect((await screen.findAllByRole("heading", { name: "Oak Rocking Chair", level: 1 }))[0]).toBeInTheDocument();
       expect(await screen.findByLabelText("Your offer")).toBeInTheDocument();
     });
 

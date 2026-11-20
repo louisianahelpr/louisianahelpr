@@ -137,7 +137,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchDropStates: async (ids: string[]) => new Map(ids.filter((id) => dropStates[id]).map((id) => [id, dropStates[id]])),
   fetchWatching: async () => new Set(),
   fetchItem: async () => ({
-    id: "i1", seller_id: "u2", status: "live", title: "Oak rocking chair", description: "Solid oak.",
+    id: "i1", seller_id: "u2", status: "live", title: "Oak Rocking Chair", description: "Solid oak.",
     category: "furniture", condition_stars: 4, delivery_size: "large", price_cents: 4000, current_price_cents: 4000,
     area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: null,
   }),
@@ -324,7 +324,7 @@ describe("Declutter location ask", () => {
 
     // The Browse card says the same.
     live.items = [{
-      id: "i1", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      id: "i1", seller_id: "u2", status: "live", title: "Oak Rocking Chair", category: "furniture", condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
     }];
     const browse = at("/declutter", <DeclutterPage />);
@@ -350,10 +350,10 @@ describe("Declutter location ask", () => {
     // i1 is on the nightly drop plan and was dropped at the last run, so its next chance is the coming run.
     const lastRunDay = new Date(Date.now() - 86_400_000).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
     dropStates.i1 = { sale_mode: "offers", last_price_drop_on: lastRunDay };
-    live.items = [card("i1", "Oak rocking chair"), card("i2", "Brass floor lamp", { delivery_size: "large" }), card("i3", "Cast iron skillet")];
+    live.items = [card("i1", "Oak Rocking Chair"), card("i2", "Brass Floor Lamp", { delivery_size: "large" }), card("i3", "Cast Iron Skillet")];
     const browse = at("/declutter", <DeclutterPage />);
-    const first = (await screen.findByText("Oak rocking chair")).closest("a")!;
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | className="block truncate text-ds-13 font-semibold leading-snug" title={item.title} | className="block line-clamp-2 text-ds-13 font-semibold leading-snug" title={item.title}
+    const first = (await screen.findByText("Oak Rocking Chair")).closest("a")!;
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | className="block truncate text-ds-13 font-semibold leading-snug" title={displayTitle(item.title)} | className="block line-clamp-2 text-ds-13 font-semibold leading-snug" title={displayTitle(item.title)}
     expect(first.querySelector("[data-card-title]")!.className).toMatch(/\btruncate\b/);
     // Owner 11-09 (reverses pick 2 of 11-08): the LIST price is the bold one, in ink; "incl. fee" small and grey under it.
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-base-price="" className={`text-ds-16 ${PRICE_PAID}`}> | <span data-card-base-price="" className={`text-ds-11 ${PRICE_BASE}`}>
@@ -382,18 +382,18 @@ describe("Declutter location ask", () => {
     expect(first.querySelector("[data-card-place]")!.className).not.toMatch(/\btruncate\b/);
     // Porch pickup is a tag on the photo (owner pick 4), not a text line. 11-20 #11: the photo wears one tag and a deal
     // comes first, so it is read on the card with no rule tag (the first card's drop tag depends on the clock).
-    expect(screen.getByText("Cast iron skillet").closest("a")!.querySelector("[data-photo-tags] [data-card-porch]")?.textContent).toBe("Porch pickup");
+    expect(screen.getByText("Cast Iron Skillet").closest("a")!.querySelector("[data-photo-tags] [data-card-porch]")?.textContent).toBe("Porch pickup");
     // Stars are for people, never an item card (spec v2 §3).
-    for (const a of screen.getAllByText(/Oak rocking chair|Brass floor lamp|Cast iron skillet/).map((e) => e.closest("a")!)) {
+    for (const a of screen.getAllByText(/Oak Rocking Chair|Brass Floor Lamp|Cast Iron Skillet/).map((e) => e.closest("a")!)) {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
     }
     // The tag comes from the real rules: the drop plan, or a big item's Helpr delivery; else none.
     // @mutate src/components/declutter/DeclutterBrowseView.tsx | tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : saveCounts.data?.inDemand?.has(item.id) ? "demand" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
     const tagOf = (t: string) => screen.getByText(t).closest("a")!.querySelector("[data-card-tag]")?.getAttribute("data-card-tag") ?? null;
     // Whether the next chance is tonight depends on the clock (the rule itself: browseFilters.test.ts).
-    expect(tagOf("Oak rocking chair")).toBe(dropOutlook(live.items[0] as never, dropStates.i1).tonight ? "drop" : null);
-    expect(tagOf("Brass floor lamp")).toBe("delivery");
-    expect(tagOf("Cast iron skillet")).toBeNull();
+    expect(tagOf("Oak Rocking Chair")).toBe(dropOutlook(live.items[0] as never, dropStates.i1).tonight ? "drop" : null);
+    expect(tagOf("Brass Floor Lamp")).toBe("delivery");
+    expect(tagOf("Cast Iron Skillet")).toBeNull();
     // Drop wording is never a promise: the stop is private.
     expect(screen.queryByText(/^Drops tonight$/)).toBeNull();
     browse.unmount();
@@ -409,9 +409,9 @@ describe("Declutter location ask", () => {
       id, seller_id: "u2", status: "live", title, category, condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
     });
-    live.items = [item("i1", "Oak rocking chair", "furniture"), item("i2", "Stand mixer", "kitchen")];
+    live.items = [item("i1", "Oak Rocking Chair", "furniture"), item("i2", "Stand Mixer", "kitchen")];
     at("/declutter", <DeclutterPage />);
-    await screen.findByText("Oak rocking chair");
+    await screen.findByText("Oak Rocking Chair");
     // ONE search on Browse: "Search Declutter" with its filters, never Explore's "Search all sections" above it.
     // @mutate src/components/declutter/DeclutterBrowseView.tsx | globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}> | globalSearch search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
@@ -421,11 +421,11 @@ describe("Declutter location ask", () => {
     expect(within(chipRow).getAllByRole("button").map((b) => b.textContent)).toEqual(["All", "Furniture", "Kitchen"]);
     expect(within(chipRow).getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(within(chipRow).getByRole("button", { name: "Kitchen" }));
-    expect(screen.queryByText("Oak rocking chair")).toBeNull();
-    expect(screen.getByText("Stand mixer")).toBeInTheDocument();
+    expect(screen.queryByText("Oak Rocking Chair")).toBeNull();
+    expect(screen.getByText("Stand Mixer")).toBeInTheDocument();
     expect(within(chipRow).getByRole("button", { name: "Kitchen" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(within(chipRow).getByRole("button", { name: "Kitchen" }));
-    expect(screen.getByText("Oak rocking chair")).toBeInTheDocument();
+    expect(screen.getByText("Oak Rocking Chair")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     const sheet = await screen.findByRole("dialog");
     // M10 (iOS audit 11-16): Category waits behind the sheet's one "More filters" row.
@@ -437,15 +437,15 @@ describe("Declutter location ask", () => {
     expect(Object.keys(CATEGORY_LABEL).filter((k) => within(sheet).queryByRole("button", { name: CATEGORY_LABEL[k] })).length).toBeGreaterThan(10);
     fireEvent.click(kitchen);
     expect(kitchen).toHaveAttribute("aria-pressed", "true");
-    expect(screen.queryByText("Oak rocking chair")).toBeNull();
-    expect(screen.getByText("Stand mixer")).toBeInTheDocument();
+    expect(screen.queryByText("Oak Rocking Chair")).toBeNull();
+    expect(screen.getByText("Stand Mixer")).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Toys and games" }));
     expect(screen.getByText("Nothing in Toys and games right now.")).toBeInTheDocument();
     const toys = within(sheet).getByRole("button", { name: "Toys and games" });
     fireEvent.click(toys);
     expect(toys).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByText("Oak rocking chair")).toBeInTheDocument();
-    expect(screen.getByText("Stand mixer")).toBeInTheDocument();
+    expect(screen.getByText("Oak Rocking Chair")).toBeInTheDocument();
+    expect(screen.getByText("Stand Mixer")).toBeInTheDocument();
     live.items = [];
   });
 
@@ -456,7 +456,7 @@ describe("Declutter location ask", () => {
       id, seller_id: "u2", status: "live", title, category: "furniture", condition_stars: 4, delivery_size: "small",
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
     });
-    live.items = [item("i1", "Oak rocking chair"), item("i2", "Brass lamp")];
+    live.items = [item("i1", "Oak Rocking Chair"), item("i2", "Brass Lamp")];
   };
 
   it("desktop website: Browse's count beside the tab, and search, Filters and the map toggle at the END of the tabs row; no search row, no Filters column; list | map", async () => {
@@ -468,7 +468,7 @@ describe("Declutter location ask", () => {
     twoItems();
     try {
       const { container } = at("/declutter", <DeclutterPage />);
-      await screen.findByText("Oak rocking chair");
+      await screen.findByText("Oak Rocking Chair");
       const tabs = screen.getByRole("tablist", { name: "Declutter view" }).parentElement as HTMLElement;
       // The count rides beside "Browse" (SectionTabs browseCount), as Jobs' does.
       expect(within(tabs).getByTestId("browse-count").textContent).toBe("2");
@@ -514,7 +514,7 @@ describe("Declutter location ask", () => {
     pins.reads = 0;
     try {
       const { container } = at("/declutter", <DeclutterPage />);
-      await screen.findByText("Oak rocking chair");
+      await screen.findByText("Oak Rocking Chair");
       expect(screen.queryByTestId("declutter-browse-bar")).toBeNull();
       // F153 (owner UI audit 11-09): the section tabs are back on a phone, one sideways row under the search bar,
       // above the chips (they were only in My Declutter since 11-08). The gear stays in My Declutter.
@@ -529,14 +529,14 @@ describe("Declutter location ask", () => {
       expect(chips).not.toBeNull();
       expect(bar.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(tabs.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(chips.compareDocumentPosition(screen.getByText("Oak rocking chair")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(chips.compareDocumentPosition(screen.getByText("Oak Rocking Chair")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       // Typing filters the feed.
       fireEvent.change(within(bar).getByRole("searchbox", { name: "Search Declutter" }), { target: { value: "lamp" } });
-      expect(await screen.findByText("Brass lamp")).toBeInTheDocument();
+      expect(await screen.findByText("Brass Lamp")).toBeInTheDocument();
       // The filter applies on the change (the chair was on screen above), so its absence is checked at once, not waited for (waitForEmptyIsVacuous).
-      expect(screen.queryByText("Oak rocking chair")).toBeNull();
+      expect(screen.queryByText("Oak Rocking Chair")).toBeNull();
       fireEvent.click(within(bar).getByRole("button", { name: "Clear search" }));
-      expect(await screen.findByText("Oak rocking chair")).toBeInTheDocument();
+      expect(await screen.findByText("Oak Rocking Chair")).toBeInTheDocument();
       expect(container.querySelector("[data-feed-strip]")).toBeNull();
       expect(container.querySelector("[data-filter-column]")).toBeNull();
       // The list first; no map and no pin read until the member asks for the map.
@@ -547,13 +547,13 @@ describe("Declutter location ask", () => {
       fireEvent.click(within(within(sheet).getByRole("radiogroup", { name: "Feed view" })).getByRole("radio", { name: /Map/ }));
       await screen.findByRole("region", { name: "Map of items for sale" });
       expect(pins.reads).toBeGreaterThan(0);
-      expect(screen.queryByText("Oak rocking chair")).toBeNull();
+      expect(screen.queryByText("Oak Rocking Chair")).toBeNull();
       // NIGHT-BUYINGrealma-1: the choice is kept, so a reload opens the map again.
       expect(localStorage.getItem("helpr.declutterPhoneView")).toBe("map");
       // DA-13: the way back is on the map's own screen.
       // @mutate src/components/declutter/DeclutterBrowseView.tsx |  data-map-back="" onClick={() => setPhoneView("list")}> |  data-map-back="">
       fireEvent.click(screen.getByRole("button", { name: "Show list" }));
-      expect(await screen.findByText("Oak rocking chair")).toBeInTheDocument();
+      expect(await screen.findByText("Oak Rocking Chair")).toBeInTheDocument();
       expect(container.querySelector("[data-declutter-map]")).toBeNull();
       expect(localStorage.getItem("helpr.declutterPhoneView")).toBe("list");
     } finally {
@@ -581,7 +581,7 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterItemCard.tsx | {photoTag === "porch" && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>} | {null}
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
-      id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      id: "i9", seller_id: "u2", status: "live", title: "Oak Rocking Chair", category: "furniture", condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, porch_ok: true,
     } as never;
     const r = render(<MemoryRouter><ItemCard item={item} miles={5} approximate={false} /></MemoryRouter>);
@@ -600,7 +600,7 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />\n |
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
-      id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      id: "i9", seller_id: "u2", status: "live", title: "Oak Rocking Chair", category: "furniture", condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15,
     } as never;
     const r = render(<MemoryRouter><ItemCard item={item} photoPath="u2/declutter/i9/a.png" miles={null} approximate={false} /></MemoryRouter>);
@@ -620,7 +620,7 @@ describe("Declutter location ask", () => {
   it("#45 (deep audit 2026-10-28): a long condition gives way, the distance always shows whole", async () => {
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
-      id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      id: "i9", seller_id: "u2", status: "live", title: "Oak Rocking Chair", category: "furniture", condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
     } as never;
     const r = render(<MemoryRouter><ItemCard item={item} miles={3.2} approximate={false} /></MemoryRouter>);
@@ -645,12 +645,12 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |                   toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }), |                   toggle: () => undefined,
     // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save) { |   if (true) {
     live.items = [{
-      id: "i1", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      id: "i1", seller_id: "u2", status: "live", title: "Oak Rocking Chair", category: "furniture", condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
     }];
     watchCalls.length = 0;
     at("/declutter", <DeclutterPage />);
-    const heart = await screen.findByRole("button", { name: "Save Oak rocking chair" });
+    const heart = await screen.findByRole("button", { name: "Save Oak Rocking Chair" });
     expect(heart).toHaveAttribute("aria-pressed", "false");
     expect(heart.closest("a")).toBeNull();
     fireEvent.click(heart);
@@ -660,7 +660,7 @@ describe("Declutter location ask", () => {
 
   it("an item page never asks for location", async () => {
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
-    expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 1 })).toBeInTheDocument();
+    expect((await screen.findAllByRole("heading", { name: "Oak Rocking Chair", level: 1 }))[0]).toBeInTheDocument();
     expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(getCurrentPosition).not.toHaveBeenCalled();
   });

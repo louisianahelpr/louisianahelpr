@@ -6,6 +6,9 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { DEALS_SLUG, DEALS_WORDS as W, dealSections, dealsFeatured, dealsTitle, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 import { loadModule } from "@/lib/loadModule";
+import { HINTS, WISH } from "@/content/giftWishList";
+import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
+import { heartTapped } from "./GiftGuideHints";
 
 /**
  * /gift-guides/black-friday-cyber-monday (owner 2026-11-19): the deals guide. Deals first, one section per category
@@ -51,6 +54,10 @@ const loadDeals = () => loadModule(() => import("@/content/giftGuideDeals.json")
 function DealCard({ deal }: { deal: Deal }) {
   const [copied, setCopied] = useState(false);
   const [photoOk, setPhotoOk] = useState(true);
+  // My Wish List (owner 2026-11-20): a deal card hearts like any gift; its ref is the deals page and its link's id.
+  const id = itemId(deal.href);
+  const saved = isSaved(useGiftList(), id);
+  const name = deal.item ? `${deal.brand}: ${deal.item}` : `${deal.brand}: ${deal.deal}`;
   const copy = (code: string) => {
     void navigator.clipboard?.writeText(code).then(
       () => setCopied(true),
@@ -68,6 +75,7 @@ function DealCard({ deal }: { deal: Deal }) {
         )}
         <span className="sr-only">{W.shop(deal.brand)} ({G.newTab})</span>
       </GiftOut>
+      <Heart saved={saved} label={WISH.saveLabel(name)} onToggle={() => heartTapped(togglePick({ href: deal.href, name, guide: DEALS_SLUG, id }))} className="gg-heart-deal" />
       <p className="gg-deal-brand">{deal.brand}</p>
       <p className="gg-deal-text" data-gift-deal-text="">{deal.deal}</p>
       {deal.code && (
@@ -116,6 +124,8 @@ export function GiftGuideDeals({ now }: { now?: Date }) {
       <style>{DEALS_CSS}</style>
       <p className="gg-deals-intro">{W.intro}</p>
       <p className="gg-deals-ad" data-gift-deals-ad="">{W.disclosure}</p>
+      {/* Owner 2026-11-20 hints: the deals page's helper line. */}
+      <p className="gg-deals-ad" data-gift-deals-help="">{HINTS.deals}</p>
       {deals === null ? (
         <p className="gg-deal-meta" role="status">{W.loading}</p>
       ) : sections.length === 0 ? (

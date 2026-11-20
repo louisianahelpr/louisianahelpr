@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { SHOP_SMALL_GUIDE, SMALL_BIZ_SLUG, SMALL_BIZ_WORDS as W, smallBizDay, smallBizFeatured, smallBizSections, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { loadModule } from "@/lib/loadModule";
+import { WISH } from "@/content/giftWishList";
+import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
+import { heartTapped } from "./GiftGuideHints";
 
 /**
  * /gift-guides/small-business-saturday (owner 2026-11-19 ~7:05 PM: "Yes do small business with our small business
@@ -53,8 +56,12 @@ function Out({ href, className, children, label }: { href: string; className?: s
 
 function SmallBizCard({ b }: { b: SmallBiz }) {
   const [logoOk, setLogoOk] = useState(true);
+  // My Wish List (owner 2026-11-20): a business hearts by its slug (its Visit link can move between site and Facebook).
+  const id = itemId(`biz:${b.slug}`);
+  const saved = isSaved(useGiftList(), id);
   return (
     <li className="gg-sb" data-gift-sb={b.slug}>
+      {b.href && <Heart saved={saved} label={WISH.saveLabel(b.name)} onToggle={() => heartTapped(togglePick({ href: b.href!, name: b.name, guide: SMALL_BIZ_SLUG, id }))} className="gg-heart-sb" />}
       <span className="gg-sb-logo">
         {b.logo && logoOk ? <img src={b.logo} alt="" width={72} height={72} loading="lazy" decoding="async" onError={() => setLogoOk(false)} /> : <b aria-hidden="true">{b.name}</b>}
       </span>

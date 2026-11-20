@@ -19,6 +19,8 @@ export interface WishRef { g: string; i: string }
 interface GiftList { guides: string[]; picks: SavedPick[]; name: string }
 
 const KEY = "lh-gift-list";
+/** My Wish List's page: /gift-guides/my-list. */
+export const MY_LIST_SLUG = "my-list";
 /** The list's name until the visitor gives it one (no field is ever required). */
 export const DEFAULT_LIST_NAME = "My Wish List";
 /** The most gifts one list holds (the server's own cap, gift_wish_list_save). */

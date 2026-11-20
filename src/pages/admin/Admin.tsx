@@ -9,6 +9,7 @@ import { lazy } from "react";
 import { AdminFrame } from "./AdminFrame";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHome } from "@/components/admin/dashboard/DashboardHome";
+import { AppSignInsCard } from "@/components/admin/dashboard/AppSignInsCard";
 import { attentionLine, homeStanding } from "@/components/admin/dashboard/homeStanding";
 import { useSeriousOpenAlertCount } from "@/components/admin/adminHealth/useOpenAlerts";
 import type { Stats, DateRange } from "@/components/admin/dashboard/types";
@@ -561,7 +562,10 @@ const Admin = () => {
             seriousAlerts: seriousAlertCount,
             dataError: homeDataError,
           })}
-        />
+        >
+          {/* Who signs in on the iPhone / Android app (owner 2026-11-20, 20261120150247). */}
+          <AppSignInsCard />
+        </DashboardHome>
       );
     }
   };

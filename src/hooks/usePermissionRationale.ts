@@ -101,6 +101,8 @@ interface State {
   resolve: ((granted: boolean) => void) | null;
   /** Called once, when the dialog has actually rendered this rationale (Q2003). */
   onShown?: (() => void) | null;
+  /** Owner 11-20 (ease batch): the ask in context ("Want a ping when someone applies?"); null = the kind's own words. */
+  words?: { title: string; body: string } | null;
 }
 
 let externalState: State = { open: false, kind: null, resolve: null };
@@ -256,9 +258,9 @@ export function usePermissionRationale() {
 export function explainPermission(
   kind: PermissionKind,
   run: () => Promise<void> | void,
-  opts?: { onShown?: () => void },
+  opts?: { onShown?: () => void; words?: { title: string; body: string } },
 ): Promise<boolean> {
-  return explainThenRun(kind, run, opts?.onShown);
+  return explainThenRun(kind, run, opts?.onShown, opts?.words);
 }
 
 /**
@@ -278,12 +280,13 @@ export function __markRationaleShown(): void {
 }
 
 /** Open the explainer; on a yes, record it and run the OS call. */
-function explainThenRun(kind: PermissionKind, runNativeCall: () => Promise<void> | void, onShown?: () => void): Promise<boolean> {
+function explainThenRun(kind: PermissionKind, runNativeCall: () => Promise<void> | void, onShown?: () => void, words?: { title: string; body: string }): Promise<boolean> {
   return new Promise((resolve) => {
     setState({
       open: true,
       kind,
       onShown: onShown ?? null,
+      words: words ?? null,
       resolve: async (confirmed: boolean) => {
         if (!confirmed) {
           resolve(false);
@@ -318,7 +321,9 @@ export function usePermissionRationaleState() {
   }, []);
   // sync
   if (state !== externalState) setLocal(externalState);
-  return { state, subscribe, copy: state.kind ? COPY[state.kind] : null, setState };
+  // Owner 11-20: an ask in context keeps the kind's icon and button, with its own question and line.
+  const copy = state.kind ? (state.words ? { ...COPY[state.kind], ...state.words } : COPY[state.kind]) : null;
+  return { state, subscribe, copy, setState };
 }
 
 export const __resolveRationale = (granted: boolean) => {

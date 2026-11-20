@@ -36,6 +36,8 @@ import { esSuggest } from "./esSuggest";
 import { esItemPage } from "./esItemPage";
 import { esJobCats } from "./esJobCats";
 import { esGuest } from "./esGuest";
+import { esVerify } from "./esVerify";
+import { esPushAsk } from "./esPushAsk";
 import { esAccount } from "./esAccount";
 import { esJobSteps } from "./esJobSteps";
 import { esJobPoster } from "./esJobPoster";
@@ -89,6 +91,8 @@ export const es: Record<MsgKey, string> = {
   ...esItemPage,
   ...esJobCats,
   ...esGuest,
+  ...esVerify,
+  ...esPushAsk,
   ...esAccount,
   ...esJobSteps,
   ...esJobPoster,

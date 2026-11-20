@@ -44,6 +44,8 @@ import { useCityZipMismatch } from "./signup/useCityZipMismatch";
 import { getLang, useLanguage } from "@/lib/i18n/language";
 import { joinName } from "@/lib/splitName";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { clearPendingSignup, readPendingSignup, rememberPendingSignup } from "@/lib/pendingSignup";
+import { PendingSignupCard } from "@/components/auth/PendingSignupCard";
 
 const Signup = () => {
   const { t } = useLanguage();
@@ -55,6 +57,9 @@ const Signup = () => {
   const [searchParams] = useSearchParams();
   useSignupEntry(searchParams, navigate); // ?job= / ?redirect= / ?ref= kept, signed-in bounce, funnel start
   // Dev-only: `?step=2` seeds the step for inspection; production always starts at step 1.
+  // Owner 11-20 (ease batch, item 6): a sign-up on this device still waiting on its email. Every account action sends
+  // a signed-out visitor here, so this is the one place that says "Check your email to finish" (PendingSignupCard).
+  const [pendingSignup, setPendingSignup] = useState(() => readPendingSignup());
   const [step, setStep] = useState(() => {
     if (!import.meta.env.DEV) return 1;
     const n = Number(new URLSearchParams(window.location.search).get("step"));
@@ -358,6 +363,7 @@ const Signup = () => {
         toast[finished || resumed ? "info" : "error"](finished ? SIGNUP_ALREADY_FINISHED_COPY : resumed ? SIGNUP_RESUMED_OLD_ACCOUNT_COPY :
           `${userFacingError(completionErr, t("signup.finishFailed"))} ${t("signup.accountCreatedConfirm")}`,
         );
+        rememberPendingSignup(email); // owner 11-20: /signup says "Check your email to finish" until it is verified
         navigate("/signup-pending", { state: { email } });
         return;
       }
@@ -416,6 +422,7 @@ const Signup = () => {
         ...ppoTrackingProps(),
       });
       hapticSuccess();
+      rememberPendingSignup(email); // owner 11-20: /signup says "Check your email to finish" until it is verified
       navigate("/signup-pending", { state: { email } });
     } catch (err: unknown) {
       hapticError();
@@ -550,8 +557,13 @@ const Signup = () => {
           </>
         )}
 
+        {/* Owner 11-20: a sign-up here already waits on its email. Its final step is the email, not a second form. */}
+        {step === 1 && pendingSignup && (
+          <PendingSignupCard email={pendingSignup.email} onUseDifferent={() => { clearPendingSignup(); setPendingSignup(null); }} />
+        )}
+
         {/* Step 1: Account credentials + agreements */}
-        {step === 1 && (
+        {step === 1 && !pendingSignup && (
           <SignupStep1
             firstName={firstName}
             setFirstName={setFirstName}

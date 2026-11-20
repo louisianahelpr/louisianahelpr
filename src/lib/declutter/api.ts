@@ -1082,7 +1082,7 @@ export async function setPickupWindows(windows: PickupWindow[]): Promise<number>
 export async function publishItem(itemId: string): Promise<"pending_review" | "live"> {
   const status = rpcData(await supabase.rpc("declutter_publish_item", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_publish_item", e)) as "pending_review" | "live";
   // PUSH-REACH: a listing that went up is when a seller wants to hear from buyers; the website's push ask.
-  offerPushAfterAction();
+  offerPushAfterAction("listed"); // owner 11-20: "Want a ping when someone makes an offer?"
   return status;
 }
 

@@ -146,6 +146,7 @@ rpc_exempt(fn, why) AS (
   ('sponsor_admin_save_testimonial', 'admin-only (has_role admin first in the body); 25 Days sponsor admin'),
   ('sponsor_admin_set_status', 'admin-only (has_role admin first in the body); 25 Days sponsor admin'),
   ('sponsor_admin_set_wall', 'admin-only (has_role admin first in the body); 25 Days sponsor admin'),
+  ('sbs_admin_review', 'admin-only (has_role admin first in the body); Small Business Saturday Featured local review (20261120152039)'),
   ('rpc_ensure_my_handle', 'profile link (20261101034834): writes profiles UPDATE (handle), refused for a banned caller by enforce_banned_profile_text_lock (handle is not on its allowed list; auth.uid() is still the caller inside DEFINER; proven in src/test/pglite/profileHandleBanned.pglite.mjs)'),
   ('rpc_set_my_handle', 'profile link (20261101034834): writes profiles UPDATE (handle, handle_changed_at), refused for a banned caller by enforce_banned_profile_text_lock (proven in src/test/pglite/profileHandleBanned.pglite.mjs)'),
   ('accept_group_application', 'writes group_job_helpers, applications, jobs: all ban-gated'),

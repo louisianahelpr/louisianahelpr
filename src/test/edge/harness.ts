@@ -214,6 +214,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/sponsorSignup.ts";`,
   );
 
+  // Small Business Saturday "Featured local" (owner 2026-11-20): `_shared/sbsSubmission.ts` has ZERO imports (the one
+  // validator the page and the sbs-featured function share), so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/sbsSubmission\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/sbsSubmission.ts";`,
+  );
+
   // "First L." (Q2292): `_shared/memberDisplayName.ts` has ZERO imports, so
   // point at the REAL module and the name rule stays under test.
   out = out.replace(

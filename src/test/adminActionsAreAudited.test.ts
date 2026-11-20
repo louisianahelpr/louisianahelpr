@@ -235,6 +235,7 @@ const EDGE_EXEMPT: Readonly<Record<string, string>> = {
   "health-check": "Read-only: reports env/config health to an admin; changes nothing.",
   "create-notification":
     "Admin is one of several PERMISSION paths (self / job party / admin) for writing one notification row, which is itself the record; no admin tool calls it for a moderation action.",
+  "sbs-featured": "Read-only for an admin: the admin path only SERVES a pending listing's logo so it can be reviewed; the approve/reject decision is audited in sbs_admin_review.",
   "send-account-status-email":
     "Sends the email that FOLLOWS an account-status change; the change itself (ban, warning, verify) is audited where the admin makes it.",
 };

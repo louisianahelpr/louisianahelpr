@@ -162,6 +162,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/rentals/LandlordIdReview.tsx": { bucket: "user-documents" }, // ownership proof + landlord ID photo (owner 2026-10-19)
   "src/components/rentals/MaintenanceRequestForm.tsx": { bucket: "user-documents" }, // request photos
   "src/components/sponsor/ClaimSection.tsx": { bucket: "sponsor-logos" }, // 25 Days: a brand's logo (sponsor-25days stores it)
+  "src/pages/info/giftGuides/SmallBizSubmitForm.tsx": { bucket: "sbs-logos" }, // Small Business Saturday: a business's logo (sbs-featured stores it)
   "src/pages/admin/sponsors/AdminSponsorsPage.tsx": { bucket: "sponsor-logos" }, // 25 Days: the founder photo (sponsor-25days stores it)
   "src/components/admin/marketing/MarketingComposerDialog.tsx": {
     bucket: "marketing-media",

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { GiftGuideTile } from "./GiftGuideTile";
 import { PickThumb } from "./GiftGuideView";
 import { GiftOut } from "./GiftOut";
 import { GiftWishShare } from "./GiftWishShare";
-import { listName, listRefs, pickId, removeFromWishList, setListName, useGiftList } from "./giftList";
+import { Heart, listName, listRefs, pickId, putBackInWishList, removeFromWishList, setListName, useGiftList, type SavedPick } from "./giftList";
 import { useWishItems, type WishItem } from "./wishListItems";
 import { useSyncProblem } from "./wishListSync";
 import { giftNameProblem } from "@/lib/giftNameClean";
@@ -19,7 +20,9 @@ import { giftNameProblem } from "@/lib/giftNameClean";
 /**
  * /gift-guides/my-list (owner 2026-11-18 "My list"; 2026-11-20 "My Wish List": "add something that they can add to
  * their list and send their list to someone"): the list's name (editable, never required), the saved guides as tiles,
- * then every saved gift as a row (photo, name, where it is sold, Shop with our link, Remove) and "Share my list".
+ * then every saved gift as a row (photo, name, where it is sold, Shop with our link) and "Share my list". Each saved gift
+ * wears a filled heart in its top-right corner (owner 11-20, replacing the Remove buttons): a tap takes it off the list,
+ * the heart goes to an outline and the row stays for this visit (a second tap saves it again), with "Removed · Undo".
  * Empty: one line saying how to fill it. A saved gift the guides no longer carry is left out (never a dead row).
  */
 
@@ -42,11 +45,11 @@ function PlainOut({ href, className, children }: { href: string; className?: str
   return <a href={href} target="_blank" rel="noopener noreferrer" className={className} data-gift-sb-out="">{children}</a>;
 }
 
-/** One gift on a wish list: photo, name, where, Shop (our link) and, on the owner's own list, Remove. */
-export function WishRow({ item, onRemove }: { item: WishItem; onRemove?: () => void }) {
+/** One gift on a wish list: photo, name, where, Shop (our link) and, on the owner's own list, the heart. */
+export function WishRow({ item, heart }: { item: WishItem; heart?: { saved: boolean; onToggle: () => void } }) {
   const Out = item.out === "plain" ? PlainOut : GiftOut;
   return (
-    <li className="gg-wish-row" data-gift-wish-item={item.id}>
+    <li className={heart ? "gg-wish-row gg-wish-mine" : "gg-wish-row"} data-gift-wish-item={item.id} {...(heart && !heart.saved ? { "data-gift-wish-removed": "" } : {})}>
       <Out href={item.href} className="gg-item">
         <WishThumb item={item} />
         <span className="gg-nm">
@@ -64,12 +67,11 @@ export function WishRow({ item, onRemove }: { item: WishItem; onRemove?: () => v
             <span className="sr-only">: {item.name} ({G.newTab})</span>
           </Out>
         </Button>}
-        {onRemove && (
-          <Button type="button" variant="ghost" size="sm" className="gg-wish-remove" onClick={onRemove} aria-label={WISH.removeLabel(item.name)} data-gift-wish-remove={item.id}>
-            {WISH.remove}
-          </Button>
-        )}
       </span>
+      {heart && (
+        <Heart saved={heart.saved} label={heart.saved ? WISH.removeLabel(item.name) : WISH.saveLabel(item.name)} onToggle={heart.onToggle} className="gg-heart-pick gg-heart-wish"
+          data={{ "data-gift-wish-remove": item.id }} />
+      )}
     </li>
   );
 }
@@ -82,9 +84,16 @@ export function GiftGuideMyList() {
   const { items, loading, missing, missingIds } = useWishItems(refs);
   const guides = list.guides.map((s) => guideBySlug(s)).filter((g) => g !== undefined);
   const empty = guides.length === 0 && list.picks.length === 0;
-  // UX audit M3: after Remove, focus moves to the next row's Remove (or the previous one, or the list's heading) and
-  // the removal is read out.
+  // A removal is read out (UX audit M3); the row stays (its heart now an outline), so focus stays on the heart.
   const [announce, setAnnounce] = useState("");
+  // Gifts taken off this visit: still shown where they were, outlined, until a tap (or Undo) saves them again.
+  const [gone, setGone] = useState<{ item: WishItem; pick: SavedPick; index: number }[]>([]);
+  const [toast, setToast] = useState<{ item: WishItem; pick: SavedPick; index: number } | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 6000);
+    return () => window.clearTimeout(t);
+  }, [toast]);
   // The name as typed: kept on the list only while it has no link or phone number (verify audit L), so the list, the
   // account's copy and any share always hold the last good name.
   const [typed, setTyped] = useState<string | null>(null);
@@ -94,21 +103,26 @@ export function GiftGuideMyList() {
     setTyped(v);
     if (!giftNameProblem(v)) setListName(v);
   };
-  const focusAfter = useRef<number | null>(null);
   const listRef = useRef<HTMLOListElement>(null);
-  useEffect(() => {
-    if (focusAfter.current === null) return;
-    const at = focusAfter.current;
-    focusAfter.current = null;
-    const buttons = listRef.current?.querySelectorAll<HTMLButtonElement>("[data-gift-wish-remove]") ?? [];
-    const next = buttons[Math.min(at, buttons.length - 1)];
-    (next ?? document.getElementById("gift-my-list"))?.focus();
-  }, [items.length]);
-  const remove = (it: WishItem, index: number) => {
-    focusAfter.current = index;
+  const remove = (it: WishItem) => {
+    const index = list.picks.findIndex((p) => pickId(p) === it.id);
+    const pick = list.picks[index];
+    if (!pick) return;
+    const g = { item: it, pick, index };
+    setGone((xs) => [...xs.filter((x) => x.item.id !== it.id), g]);
+    setToast(g);
     setAnnounce(WISH.removed(it.name));
     removeFromWishList(it.id);
   };
+  const saveAgain = (g: { item: WishItem; pick: SavedPick; index: number }) => {
+    if (!putBackInWishList(g.pick, g.index)) return;
+    setGone((xs) => xs.filter((x) => x.item.id !== g.item.id));
+    setToast((t) => (t?.item.id === g.item.id ? null : t));
+    setAnnounce("");
+  };
+  // The saved gifts, with this visit's removed ones back in their places (outlined).
+  const shown: { item: WishItem; saved: boolean }[] = items.filter((it) => !gone.some((g) => g.item.id === it.id)).map((item) => ({ item, saved: true }));
+  for (const g of [...gone].sort((a, b) => a.index - b.index)) shown.splice(Math.min(g.index, shown.length), 0, { item: g.item, saved: false });
   return (
     <section aria-labelledby="gift-my-list" data-gift-my-list="">
       <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>
@@ -132,7 +146,7 @@ export function GiftGuideMyList() {
           <Link to="/gift-guides" className="gg-link">{WISH.emptyCta} ›</Link>
         </div>
       )}
-      {list.picks.length > 0 && (
+      {(list.picks.length > 0 || gone.length > 0) && (
         <>
           <GiftWishShare name={listName(list)} refs={listRefs(list)} save={saveWishList} signedIn={!!user} />
           {user && syncProblem
@@ -143,7 +157,10 @@ export function GiftGuideMyList() {
             <p className="gg-soon" role="status">{WISH.loading}</p>
           ) : (
             <ol ref={listRef} className="gg-list gg-wish-list" data-gift-list="">
-              {items.map((it, i) => <WishRow key={it.id} item={it} onRemove={() => remove(it, i)} />)}
+              {shown.map(({ item: it, saved }) => {
+                const g = gone.find((x) => x.item.id === it.id);
+                return <WishRow key={it.id} item={it} heart={{ saved, onToggle: () => (saved ? remove(it) : g && saveAgain(g)) }} />;
+              })}
             </ol>
           )}
           {missing > 0 && (
@@ -153,6 +170,13 @@ export function GiftGuideMyList() {
             </p>
           )}
         </>
+      )}
+      {toast && createPortal(
+        <div className="gg-toast" role="status" data-gift-wish-toast="">
+          <span className="gg-toast-text">{WISH.removedToast}</span>
+          <button type="button" className="gg-toast-link gg-toast-undo" onClick={() => saveAgain(toast)} aria-label={WISH.undoLabel(toast.item.name)} data-gift-wish-undo="">{WISH.undo}</button>
+        </div>,
+        document.body,
       )}
       {guides.length > 0 && (
         <>

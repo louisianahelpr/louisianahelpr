@@ -14,7 +14,8 @@
  * @mutate src/pages/info/giftGuides/GiftHint.tsx |     window.localStorage.setItem(PREFIX + id, "1"); |     void id;
  * @mutate src/pages/info/giftGuides/GiftHint.tsx |   dismissedNow.add(id); |   void dismissedNow;
  * @mutate src/pages/info/giftGuides/wishListItems.ts | const pickItemId = (p: { href: string }) => itemId(p.href); | const pickItemId = (p: { href: string }) => itemId(`${p.href}#`);
- * @mutate src/pages/info/giftGuides/GiftGuideSharedList.tsx | <WishRow key={it.id} item={it} /> | <WishRow key={it.id} item={it} onRemove={() => undefined} />
+ * @mutate src/pages/info/giftGuides/GiftGuideSharedList.tsx | <WishRow key={it.id} item={it} /> | <WishRow key={it.id} item={it} heart={{ saved: true, onToggle: () => undefined }} />
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     if (!putBackInWishList(g.pick, g.index)) return; |     return;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <Heart saved={saved} label={WISH.saveLabel(name)} | {null}<Heart saved={false} label={WISH.saveLabel(name)}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     removeFromWishList(it.id); |     void it;
  * @mutate src/pages/info/GiftGuides.tsx |   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />; |   if (false) return null;
@@ -212,7 +213,7 @@ describe("My Wish List page", () => {
     expect(view.container.querySelector("[data-gift-wish-share-btn]")).toBeNull();
   });
 
-  it("the name is editable and optional, Remove takes a gift off, and Shop is our link", () => {
+  it("the name is editable and optional, the heart takes a gift off (Undo puts it back), and Shop is our link", () => {
     const g = pickedGuides[0];
     addToWishList({ href: g.picks[0].href, name: g.picks[0].name, guide: g.slug });
     addToWishList({ href: g.picks[1].href, name: g.picks[1].name, guide: g.slug });
@@ -226,9 +227,33 @@ describe("My Wish List page", () => {
     const rows = view.container.querySelectorAll("[data-gift-wish-item]");
     expect(rows.length).toBe(2);
     expect(rows[0].querySelector("[data-gift-shop]")?.closest("a")?.getAttribute("href")).toBe(`https://${g.picks[0].href.replace(/^https:\/\//, "")}`);
-    fireEvent.click(rows[0].querySelector<HTMLButtonElement>("[data-gift-wish-remove]")!);
-    expect(view.container.querySelectorAll("[data-gift-wish-item]").length).toBe(1);
+    // Owner 11-20: no "Remove" text buttons; a filled heart in the card's top-right corner.
+    expect(view.container.textContent).not.toMatch(/\bRemove\b/);
+    const heart = rows[0].querySelector<HTMLButtonElement>("[data-gift-wish-remove]")!;
+    expect(heart.hasAttribute("data-gift-heart")).toBe(true);
+    expect(heart.classList.contains("gg-heart-pick")).toBe(true);
+    expect(heart.getAttribute("aria-pressed")).toBe("true");
+    expect(heart.getAttribute("aria-label")).toBe(WISH.removeLabel(g.picks[0].name));
+    fireEvent.click(heart);
+    expect(giftListNow().picks.map((p) => p.href)).toEqual([g.picks[1].href]);
+    // The row stays this visit, its heart an outline that saves it again; a toast offers Undo.
+    const after = view.container.querySelectorAll("[data-gift-wish-item]");
+    expect(after.length).toBe(2);
+    expect(after[0].hasAttribute("data-gift-wish-removed")).toBe(true);
+    const outline = after[0].querySelector<HTMLButtonElement>("[data-gift-wish-remove]")!;
+    expect(outline.getAttribute("aria-pressed")).toBe("false");
+    expect(outline.getAttribute("aria-label")).toBe(WISH.saveLabel(g.picks[0].name));
+    const toast = document.body.querySelector("[data-gift-wish-toast]")!;
+    expect(toast.textContent).toContain(WISH.removedToast);
+    fireEvent.click(toast.querySelector<HTMLButtonElement>("[data-gift-wish-undo]")!);
+    expect(giftListNow().picks.map((p) => p.href)).toEqual([g.picks[0].href, g.picks[1].href]);
+    expect(document.body.querySelector("[data-gift-wish-toast]")).toBeNull();
+    expect(view.container.querySelector("[data-gift-wish-removed]")).toBeNull();
+    // A second tap on an outlined heart saves it again too.
+    fireEvent.click(view.container.querySelectorAll<HTMLButtonElement>("[data-gift-wish-remove]")[1]);
     expect(giftListNow().picks.length).toBe(1);
+    fireEvent.click(view.container.querySelectorAll<HTMLButtonElement>("[data-gift-wish-remove]")[1]);
+    expect(giftListNow().picks.map((p) => p.href)).toEqual([g.picks[0].href, g.picks[1].href]);
   });
 
   it("Share sends only the name and refs, and shows a link with only the code (copy, text)", async () => {
@@ -419,12 +444,14 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     expect(document.body.querySelector("[data-gift-hint='list-full']")?.textContent).toContain(WISH.listFull);
   });
 
-  it("M3: Remove moves focus to the next row's Remove and reads the removal out", () => {
+  it("M3: the heart stays in place (so focus does) and the removal is read out", () => {
     addToWishList(pick(0));
     addToWishList(pick(1));
     const view = renderAt("/gift-guides/my-list");
-    fireEvent.click(view.container.querySelectorAll<HTMLButtonElement>("[data-gift-wish-remove]")[0]);
-    expect(document.activeElement?.getAttribute("data-gift-wish-remove")).toBe(id(1));
+    const first = view.container.querySelectorAll<HTMLButtonElement>("[data-gift-wish-remove]")[0];
+    first.focus();
+    fireEvent.click(first);
+    expect(document.activeElement?.getAttribute("data-gift-wish-remove")).toBe(id(0));
     expect(view.container.querySelector("[data-gift-wish-announce]")?.textContent).toBe(WISH.removed(g().picks[0].name));
   });
 

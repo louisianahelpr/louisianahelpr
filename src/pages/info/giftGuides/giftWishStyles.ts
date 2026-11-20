@@ -23,7 +23,10 @@ export const GIFT_WISH_CSS = `
 .gg-wish-list>li.gg-wish-row{grid-template-columns:minmax(0,1fr)}
 .gg-wish-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-4px 0 12px 62px}
 .gg-wish-actions .gg-shop-btn{margin:0}
-.gg-wish-remove{min-height:44px;color:var(--gg-muted)}
+.gg-wish-mine{position:relative}
+.gg-wish-mine .gg-heart-wish{position:absolute;top:6px;right:6px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+@media (max-width:767px){.gg-wish-mine>.gg-item{padding-right:52px}}
+.gg-toast-undo{border:0;background:transparent;min-height:44px;padding:0 14px;font:inherit;font-weight:700;cursor:pointer}
 .gg-wish-own{display:inline-block;margin:18px 0 4px}
 .gg-deal{position:relative}
 .gg-deal .gg-heart-deal,.gg-sb .gg-heart-sb{position:absolute;top:6px;right:6px;background:hsl(var(--card));box-shadow:0 1px 4px rgba(0,0,0,.15)}

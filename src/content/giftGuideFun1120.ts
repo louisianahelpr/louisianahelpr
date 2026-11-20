@@ -9,6 +9,7 @@
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { FINDER_WHO } from "@/content/giftGuideExtras1120";
 import { cleanGiftName } from "@/lib/giftNameClean";
+import { fitsBudget, pickCeiling } from "@/content/giftPickBand";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Shared: today in Louisiana
@@ -192,6 +193,48 @@ export function swipeRound<T extends CatalogPick>(pool: T[], budget: SwipeBudget
   return mixed;
 }
 
+/** Toys and kids' things: a grown-up's round never borrows them; a kid's borrows only them. */
+const KID_THING = /\b(play-?doh|rainbow loom|loomi|melissa (&|and) doug|squish\w*|lincoln logs|barbie|dolls?|plush|play ?sets?|toys?|paint sticks|dive buddies|ms\.? rachel|lego|stacker|kids?'?)\b/i;
+/** The guides' men's/women's rules (scripts/giftGuideRules.mjs mensItem, WORK_BOOT_OFF), for picks borrowed from a budget guide. */
+const MENS = /\b(men'?s|mens|for men|boys'?|work boots?|steel toe|muckster)\b|^huk$/i;
+const WOMENS = /\b(women'?s|womens|ladies|girls'?|lip|gloss|balm|makeup|mascara|blush|nail|mani|earrings|huggies|hoops?|bobby pins|hair|scrunchies?|bows?|eye patches|eye mask|perfume|parfum|tote|racerback|bandana|welly|emi jay|kitsch|summer fridays|tower 28|olive (&|and) june|sol de janeiro|laneige|bareminerals|benefit|kate spade|spartina|gorjana|baublebar|bath (&|and) body works)\b/i;
+/** Whether a budget-guide pick suits this "who" (men's/women's, kids). */
+export const borrowFits = (who: SwipeWho, p: CatalogPick) => {
+  const text = `${p.name} ${p.brand ?? ""}`;
+  if (who === "kids") return KID_THING.test(text);
+  if (KID_THING.test(text)) return false;
+  if (who === "mom" || who === "her") return !MENS.test(p.name) && !MENS.test(p.brand ?? "");
+  if (who === "dad" || who === "him") return !WOMENS.test(text);
+  return true;
+};
+
+/**
+ * A Secret Santa round (owner 11-20: "$25 budget and the gift ideas shown were all expensive gifts"): only picks KNOWN
+ * to cost at most the group's budget (a checked price, a price band, or a budget section such as "Under $25"; never a
+ * pick with no price), the ones closest to the budget first, then a little under, then the rest under. The person's
+ * own guides lead each price step; the budget guides' picks that suit them (`borrow`) fill in. Each link once, at most
+ * 5 per store, none already seen. A group with no budget (null or 0) gets the ordinary round.
+ */
+export function santaRound<T extends CatalogPick>(pool: T[], borrow: T[], budget: number | null, seen: ReadonlySet<string>, rand: () => number = Math.random): T[] {
+  if (!budget || budget <= 0) return swipeRound(pool, 0, seen, rand);
+  const ranked = [...pool.map((p, i) => ({ p, i })), ...borrow.map((p, i) => ({ p, i: pool.length + i }))]
+    .filter(({ p }) => fitsBudget(p, budget))
+    .sort((a, b) => (pickCeiling(b.p) ?? 0) - (pickCeiling(a.p) ?? 0) || a.i - b.i);
+  const perStore = new Map<string, number>();
+  const used = new Set<string>();
+  const out: T[] = [];
+  for (const { p } of ranked) {
+    if (out.length >= SWIPE_ROUND) break;
+    if (!p.href || !p.name || seen.has(p.href) || used.has(p.href)) continue;
+    const n = perStore.get(p.store) ?? 0;
+    if (n >= SWIPE_PER_STORE) continue;
+    perStore.set(p.store, n + 1);
+    used.add(p.href);
+    out.push(p);
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // (3) Gift planner
 
@@ -363,6 +406,17 @@ export const FUN_WORDS = {
   revealLoading: "Opening your match...",
   revealRetry: "Try again",
   revealFindGifts: "Find a gift for them",
+  revealIdeasTitle: (match: string) => `Gift ideas for ${match}`,
+  revealIdeasPlanner: "See them in your gift planner",
+  // Swipe for a Secret Santa match (owner 11-20: saving for your match never goes on your own wish list)
+  santaFinding: (match: string) => `Finding a gift for ${match}`,
+  santaWithin: (budget: number) => `Only gifts at or under $${budget}.`,
+  santaSaveFor: (match: string) => `Save for ${match}`,
+  santaSaveForLabel: (name: string, match: string) => `Save ${name} as a gift idea for ${match}`,
+  santaSavedTitle: (n: number, match: string) => (n === 1 ? `You saved 1 idea for ${match}` : `You saved ${n} ideas for ${match}`),
+  santaSavedWhere: "Saved to your gift planner.",
+  santaSavedDevice: "Saved on this device, with your Secret Santa link.",
+  santaBack: "Back to your Secret Santa",
   // Swipe
   swipeTitle: "Swipe to find gifts",
   swipeWho: "Who's it for?",

@@ -964,8 +964,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       { source: "/gift-guides/:slug", destination: "/api/share?_og=page&_id=gift-guides/:slug" },
       { source: "/gift-guides", destination: "/index.html" },
       { source: "/gift-guides/:slug", destination: "/index.html" },
-      // A shared wish list (owner 2026-11-20): the SPA, before the not-found catch-all (noindex header in vercel.json).
-      { source: "/gift-guides/list/:code", destination: "/index.html" },
+      // A shared wish list (owner 2026-11-20): its own noindex link card (api/share metaForWishList), before the not-found catch-all.
+      { source: "/gift-guides/list/:code", destination: "/api/share?_og=wishlist&_id=:code" },
     ]);
   });
 

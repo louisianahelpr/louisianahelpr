@@ -20,6 +20,7 @@ import { PROFILE_RPC_ERROR_COPY } from "@/lib/declutter/profileErrors";
 import { PROFILE_LINK_RPC_ERROR_COPY } from "@/lib/profileLink/errorCopy";
 import { HIRE_ME_RPC_ERROR_COPY } from "@/lib/hireMe";
 import { HOME_TALK_RPC_ERROR_COPY } from "@/lib/rentals/talkRpcErrorCopy";
+import { GIFT_WISH_RPC_ERROR_COPY } from "@/lib/giftWishListApi";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -91,14 +92,6 @@ const UNREACHABLE: Allowlist = {
   declutter_my_setup_fee: { not_authenticated: { reason: "read only with a signed-in user; a failed read shows no fee figure, never words" } },
   // Sponsor giveaway page view counter (20261109162829, 2026-11-09): the page calls it only after sponsor_public_state said on=true for the
   // same visitor, it shows nothing, and a failure is dropped (src/pages/sponsor/SponsorPage.tsx): no words to show.
-  // Gift guides wish list (20261120062130): GiftWishShare shows its own two lines (WISH.shareRateLimited for rate_limited,
-  // WISH.shareFailed for anything else); the client never sends a bad ref, an empty guest list or a long name.
-  gift_wish_list_save: {
-    rate_limited: { reason: "GiftWishShare maps it to WISH.shareRateLimited (src/content/giftWishList.ts); the sync drops it and keeps the list on the device" },
-    invalid_items: { reason: "the client sends only refs it built (listRefs: guide slug + itemId), each shape the server accepts; a refusal shows WISH.shareFailed" },
-    invalid_name: { reason: "the name field caps at MAX_LIST_NAME (60), the server's own limit; a refusal shows WISH.shareFailed" },
-    empty_list: { reason: "the Share button is disabled while the list holds no gift; a refusal shows WISH.shareFailed" },
-  },
   sponsor_log_visit: { feature_disabled: { reason: "a page-view counter with no screen; called only after the page read on=true, and a refusal is dropped silently" } },
   // Digital downloads (20261108185110): shop_complete_handover refuses a download's buyer finish and an early auto finish.
   // A download never has a Helpr delivery (shops_request_digital_order writes none), so no Helpr task reaches them.
@@ -482,7 +475,9 @@ const HIRE_ME = HIRE_ME_RPC_ERROR_COPY as CopyTable;
 const TRADE = TRADE_RPC_ERROR_COPY as CopyTable;
 // Homes messages (Q2209), likewise (src/lib/rentals/talkRpcErrorCopy.ts, 20261106182837).
 const HOME_TALK = HOME_TALK_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME, ...TRADE, ...HOME_TALK };
+// The gift guides wish list (src/lib/giftWishListApi.ts, 20261120062130): the Share button and Make a new link show these.
+const GIFT_WISH = GIFT_WISH_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME, ...TRADE, ...HOME_TALK, ...GIFT_WISH };
 /** An RPC that checks the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 /**
@@ -597,7 +592,7 @@ describe("every code a client-called RPC raises has copy at its call site", () =
 
   it("no copy or allowlist entry names a code the RPC does not raise, or an RPC no client calls", () => {
     const stale: string[] = [];
-    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["DONATE_RPC_ERROR_COPY", DONATE], ["BUNDLE_RPC_ERROR_COPY", BUNDLE], ["PROFILE_RPC_ERROR_COPY", PROFILE], ["PROFILE_LINK_RPC_ERROR_COPY", PROFILE_LINK], ["HIRE_ME_RPC_ERROR_COPY", HIRE_ME], ["TRADE_RPC_ERROR_COPY", TRADE], ["UNREACHABLE", UNREACHABLE]] as const) {
+    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["DONATE_RPC_ERROR_COPY", DONATE], ["BUNDLE_RPC_ERROR_COPY", BUNDLE], ["PROFILE_RPC_ERROR_COPY", PROFILE], ["PROFILE_LINK_RPC_ERROR_COPY", PROFILE_LINK], ["HIRE_ME_RPC_ERROR_COPY", HIRE_ME], ["TRADE_RPC_ERROR_COPY", TRADE], ["GIFT_WISH_RPC_ERROR_COPY", GIFT_WISH], ["UNREACHABLE", UNREACHABLE]] as const) {
       for (const [rpc, codes] of Object.entries(entries)) {
         if (!calls.has(rpc)) stale.push(`${table}.${rpc}: no client calls this RPC`);
         for (const code of Object.keys(codes)) {

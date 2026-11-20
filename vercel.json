@@ -578,7 +578,7 @@
     },
     {
       "source": "/gift-guides/list/:code",
-      "destination": "/index.html"
+      "destination": "/api/share?_og=wishlist&_id=:code"
     },
     {
       "source": "/go/:slug",

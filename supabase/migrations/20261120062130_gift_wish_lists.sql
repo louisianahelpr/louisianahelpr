@@ -1,30 +1,37 @@
 -- Gift guides: My Wish List + Share (owner 2026-11-20: "add something that they can add to their list and send their
 -- list to someone").
 --
--- public.gift_wish_lists: one row per shared or synced list. It holds the list's NAME (what the visitor typed, e.g.
--- "Lexi's Christmas List", default 'My Wish List') and its ITEMS as refs only: [{"g": <guide slug>, "i": <item id>}].
+-- public.gift_wish_lists: one row per shared or synced list. It holds the list's NAME (the visitor's own words, e.g.
+-- "Mom's Christmas List", default 'My Wish List') and its ITEMS as refs only: [{"g": <guide slug>, "i": <item id>}].
 -- No email, no address, no product data; the page finds each gift in its guide by the ref.
 --   * Signed out: "Share my list" saves a SNAPSHOT (user_id NULL) and returns its code: /gift-guides/list/<code>.
+--     Snapshots are never changed after they are made; gift_wish_list_prune deletes those older than 90 days (daily).
 --   * Signed in: the account has ONE row (user_id UNIQUE); every save updates it and keeps its code, so the shared link
---     follows the list. ON DELETE CASCADE: deleting the account deletes its list.
---   * is_seed: true when a test account saved it (is_test_member), so test lists are told apart from real ones.
+--     follows the list; gift_wish_list_new_link() gives the row a new code (the old link stops working).
+--     ON DELETE CASCADE: deleting the account deletes its list.
+--   * is_seed: true when a test account saved it (is_test_member), when the browser says it is a test browser
+--     (p_test: src/lib/automatedBrowser.ts automationReason(), the same rule analytics use), or when the request comes
+--     from a local dev origin (http://localhost, as tag_automated_analytics_event reads it).
 --
--- Access is through three server functions only (RLS on, no policy, no table privilege for anon/authenticated):
---   gift_wish_list_save(p_name, p_items) -> code   anon + authenticated. Validates every item ref, at most 100 items,
---                                                  a name of 1..60 characters. Rate limited: signed out, 10 saves per
---                                                  address per 10 minutes; signed in, 60 per account per 10 minutes;
---                                                  2000 an hour overall. The address is the LAST x-forwarded-for entry
---                                                  (as sponsor_log_visit); only an md5 of it with the date is kept, in
---                                                  gift_wish_list_hits, for a day.
+-- Access is through server functions only (RLS on, no policy, no table privilege for anon/authenticated):
+--   gift_wish_list_save(p_name, p_items, p_test) -> code   anon + authenticated. Validates every item ref, at most 100
+--        items. The name: invisible and direction-changing characters are stripped, then 1..60 characters, and never a
+--        link (http://, www., a domain with a path) or a run of 7+ digits (a phone number), since it shows on our page.
+--        Rate limited: signed out, 10 saves per address per 10 minutes and 2000 snapshots an hour overall (only
+--        snapshots add rows, so only they count toward the overall cap); signed in, 60 saves per account per 10
+--        minutes (a save only updates the account's one row). The address is the LAST x-forwarded-for entry (as
+--        sponsor_log_visit); only an md5 of it with the date is kept, in gift_wish_list_hits, for a day.
 --   gift_wish_list_get(p_code) -> {name, items, updated_at} | null   anon + authenticated (anyone with the link).
 --   gift_wish_list_mine() -> {code, name, items} | null              authenticated: the caller's own list.
+--   gift_wish_list_new_link() -> code | null                         authenticated: a new code for the caller's row.
+--   gift_wish_list_prune() -> jsonb                                  service_role: the daily snapshot cleanup (cron).
 -- No feature switch: the gift guides are public and signed out by design, and this is part of them (owner rule: ship on
--- for everyone).
--- MONEY: none. REPLAY-SAFE: CREATE TABLE/INDEX IF NOT EXISTS, CREATE OR REPLACE, REVOKE/GRANT.
+-- for everyone). Security review 2026-11-20 (findings 1-8) applied.
+-- MONEY: none. REPLAY-SAFE: CREATE TABLE/INDEX IF NOT EXISTS, CREATE OR REPLACE, REVOKE/GRANT, cron.schedule by name.
 -- Proof: src/test/pglite/giftWishLists.pglite.mjs (applied 3x).
 
 CREATE TABLE IF NOT EXISTS public.gift_wish_lists (
-  code text PRIMARY KEY CHECK (code ~ '^[a-z0-9]{10}$'),
+  code text PRIMARY KEY CHECK (code ~ '^[a-z0-9]{12}$'),
   name text NOT NULL DEFAULT 'My Wish List' CHECK (length(btrim(name)) BETWEEN 1 AND 60),
   items jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(items) = 'array' AND jsonb_array_length(items) <= 100),
   user_id uuid UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -33,14 +40,18 @@ CREATE TABLE IF NOT EXISTS public.gift_wish_lists (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE public.gift_wish_lists IS
-  'Gift guides wish lists (owner 2026-11-20): a shared snapshot (user_id NULL) or an account''s synced list. Name + item refs (guide slug, item id) only. Read/written only via gift_wish_list_save/get/mine.';
+  'Gift guides wish lists (owner 2026-11-20): a shared snapshot (user_id NULL, pruned after 90 days) or an account''s synced list. Name + item refs (guide slug, item id) only. Read/written only via the gift_wish_list_* functions.';
 ALTER TABLE public.gift_wish_lists ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.gift_wish_lists FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.gift_wish_lists TO service_role;
+-- The daily prune's read: old snapshots only.
+CREATE INDEX IF NOT EXISTS gift_wish_lists_snapshot_created ON public.gift_wish_lists (created_at) WHERE user_id IS NULL;
 
 CREATE TABLE IF NOT EXISTS public.gift_wish_list_hits (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   bucket text NOT NULL,
+  -- True for a signed-out snapshot (the only saves the overall hourly cap counts).
+  snapshot boolean NOT NULL DEFAULT false,
   hit_at timestamptz NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE public.gift_wish_list_hits IS
@@ -60,7 +71,19 @@ BEGIN
 END
 $do$;
 
-CREATE OR REPLACE FUNCTION public.gift_wish_list_save(p_name text, p_items jsonb)
+-- A new list code: 12 characters from a CSPRNG UUID (16^12).
+CREATE OR REPLACE FUNCTION public.gift_wish_list_new_code()
+RETURNS text
+LANGUAGE sql
+VOLATILE
+SET search_path TO 'public'
+AS $fn$
+  SELECT substr(replace(gen_random_uuid()::text, '-', ''), 1, 12)
+$fn$;
+REVOKE ALL ON FUNCTION public.gift_wish_list_new_code() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.gift_wish_list_new_code() TO service_role;
+
+CREATE OR REPLACE FUNCTION public.gift_wish_list_save(p_name text, p_items jsonb, p_test boolean DEFAULT false)
 RETURNS text
 LANGUAGE plpgsql
 VOLATILE
@@ -69,12 +92,14 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
 DECLARE
   v_uid uuid := (SELECT auth.uid());
-  v_name text := COALESCE(NULLIF(btrim(p_name), ''), 'My Wish List');
+  v_name text;
   v_items jsonb;
   v_headers jsonb;
   v_addr text;
+  v_origin text;
   v_bucket text;
   v_code text;
+  v_seed boolean;
   v_try int := 0;
   -- Saves allowed per address (signed out) or per account (signed in) in 10 minutes.
   v_limit int;
@@ -94,7 +119,12 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'invalid_items' USING ERRCODE = '22023';
   END IF;
-  IF length(v_name) > 60 THEN
+  -- The name shows on our page: control, zero-width and direction-changing characters are stripped first.
+  v_name := btrim(regexp_replace(COALESCE(p_name, ''), '[[:cntrl:]\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]', '', 'g'));
+  v_name := COALESCE(NULLIF(v_name, ''), 'My Wish List');
+  IF length(v_name) > 60
+     OR v_name ~* '(https?:|www\.|\.[a-z]{2,}/)'
+     OR regexp_replace(v_name, '[\s().+-]', '', 'g') ~ '[0-9]{7,}' THEN
     RAISE EXCEPTION 'invalid_name' USING ERRCODE = '22023';
   END IF;
   -- Each item id once (the first one wins), in the list's order.
@@ -117,39 +147,46 @@ BEGIN
     v_headers := NULL;
   END;
   v_addr := nullif(btrim(reverse(split_part(reverse(COALESCE(v_headers->>'x-forwarded-for', '')), ',', 1))), '');
+  v_origin := lower(COALESCE(v_headers->>'origin', ''));
   v_bucket := md5('gift-wish:' || COALESCE('u:' || v_uid::text, 'a:' || v_addr, 'no-address') || ':' || current_date::text);
   DELETE FROM public.gift_wish_list_hits WHERE hit_at < now() - interval '1 day';
   v_limit := CASE WHEN v_uid IS NULL THEN 10 ELSE 60 END;
-  IF (SELECT count(*) FROM public.gift_wish_list_hits WHERE bucket = v_bucket AND hit_at > now() - interval '10 minutes') >= v_limit
-     OR (SELECT count(*) FROM public.gift_wish_list_hits WHERE hit_at > now() - interval '1 hour') >= 2000 THEN
+  IF (SELECT count(*) FROM public.gift_wish_list_hits WHERE bucket = v_bucket AND hit_at > now() - interval '10 minutes') >= v_limit THEN
     RAISE EXCEPTION 'rate_limited' USING ERRCODE = 'P0001';
   END IF;
-  INSERT INTO public.gift_wish_list_hits (bucket) VALUES (v_bucket);
+  -- The overall cap counts snapshots only (a signed-in save adds no row).
+  IF v_uid IS NULL AND (SELECT count(*) FROM public.gift_wish_list_hits WHERE snapshot AND hit_at > now() - interval '1 hour') >= 2000 THEN
+    RAISE EXCEPTION 'rate_limited' USING ERRCODE = 'P0001';
+  END IF;
+  INSERT INTO public.gift_wish_list_hits (bucket, snapshot) VALUES (v_bucket, v_uid IS NULL);
 
+  v_seed := COALESCE(p_test, false)
+            OR v_origin ~ '^http://(localhost|127\.0\.0\.1|\[::1\])(:[0-9]+)?$'
+            OR (v_uid IS NOT NULL AND public.is_test_member(v_uid));
   LOOP
     v_try := v_try + 1;
-    v_code := substr(replace(gen_random_uuid()::text, '-', ''), 1, 10);
+    v_code := public.gift_wish_list_new_code();
     BEGIN
       IF v_uid IS NOT NULL THEN
         INSERT INTO public.gift_wish_lists AS w (code, name, items, user_id, is_seed)
-        VALUES (v_code, v_name, v_items, v_uid, public.is_test_member(v_uid))
+        VALUES (v_code, v_name, v_items, v_uid, v_seed)
         ON CONFLICT (user_id) DO UPDATE
-          SET name = EXCLUDED.name, items = EXCLUDED.items, is_seed = EXCLUDED.is_seed, updated_at = now()
+          SET name = EXCLUDED.name, items = EXCLUDED.items, is_seed = w.is_seed OR EXCLUDED.is_seed, updated_at = now()
         RETURNING w.code INTO v_code;
       ELSE
         INSERT INTO public.gift_wish_lists (code, name, items, user_id, is_seed)
-        VALUES (v_code, v_name, v_items, NULL, false);
+        VALUES (v_code, v_name, v_items, NULL, v_seed);
       END IF;
       RETURN v_code;
     EXCEPTION WHEN unique_violation THEN
-      -- A code collision (1 in 16^10): try another code, a few times.
+      -- A code collision (1 in 16^12): try another code, a few times.
       IF v_try >= 5 THEN RAISE; END IF;
     END;
   END LOOP;
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.gift_wish_list_save(text, jsonb) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.gift_wish_list_save(text, jsonb) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.gift_wish_list_save(text, jsonb, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.gift_wish_list_save(text, jsonb, boolean) TO anon, authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.gift_wish_list_get(p_code text)
 RETURNS jsonb
@@ -179,6 +216,76 @@ AS $fn$
 $fn$;
 REVOKE ALL ON FUNCTION public.gift_wish_list_mine() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.gift_wish_list_mine() TO authenticated, service_role;
+
+-- "Make a new link": the caller's own row gets a new code, so a link sent before stops working. NULL with no row.
+CREATE OR REPLACE FUNCTION public.gift_wish_list_new_link()
+RETURNS text
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_code text;
+  v_try int := 0;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  LOOP
+    v_try := v_try + 1;
+    BEGIN
+      UPDATE public.gift_wish_lists w SET code = public.gift_wish_list_new_code(), updated_at = now()
+       WHERE w.user_id = v_uid
+      RETURNING w.code INTO v_code;
+      RETURN v_code;
+    EXCEPTION WHEN unique_violation THEN
+      IF v_try >= 5 THEN RAISE; END IF;
+    END;
+  END LOOP;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.gift_wish_list_new_link() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.gift_wish_list_new_link() TO authenticated, service_role;
+
+-- The daily cleanup: signed-out snapshots older than 90 days (a snapshot never changes after it is made, so its age is
+-- its last use as a list). Accounts' lists are kept until the account is deleted.
+CREATE OR REPLACE FUNCTION public.gift_wish_list_prune()
+RETURNS jsonb
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_n int;
+BEGIN
+  DELETE FROM public.gift_wish_lists w WHERE w.user_id IS NULL AND w.created_at < now() - interval '90 days';
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  RETURN jsonb_build_object('pruned', v_n);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.gift_wish_list_prune() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.gift_wish_list_prune() TO service_role;
+
+DO $do$
+BEGIN
+  IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
+    INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
+    VALUES ('gift-wish-list-prune', interval '2 days',
+            'Gift guides wish lists: daily, deletes signed-out share snapshots older than 90 days.',
+            'exempt',
+            'Most days no snapshot is 90 days old; a run that deletes nothing is the healthy state.')
+    ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,
+      work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    PERFORM cron.schedule('gift-wish-list-prune', '23 9 * * *',
+      $c$SELECT public.cron_record_work('gift-wish-list-prune', public.gift_wish_list_prune());$c$);
+  END IF;
+END
+$do$;
 
 -- Download My Data covers the wish list: export_my_data(uuid) RESTATED FROM THE NEWEST CREATE
 -- (20261112081700_shops_export_rest.sql) verbatim, plus one gift_wish_lists block before RETURN (by user_id), and

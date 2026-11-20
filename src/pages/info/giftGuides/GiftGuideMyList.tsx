@@ -120,9 +120,10 @@ export function GiftGuideMyList() {
         <label className="gg-wish-name" data-gift-wish-name="">
           <span className="gg-finder-q">{WISH.nameLabel}</span>
           <Input value={typed ?? list.name} onChange={(e) => onName(e.target.value)} placeholder={WISH.namePlaceholder} aria-describedby="gift-wish-name-help" aria-invalid={nameBad || undefined} data-gift-wish-name-input="" />
-          {nameBad
-            ? <small id="gift-wish-name-help" className="gg-price-note" role="alert" data-gift-wish-name-problem="">{WISH.nameProblem}</small>
-            : <small id="gift-wish-name-help" className="gg-price-note">{WISH.nameHelp}</small>}
+          {/* One help line (one id): the hint, or why the name is not kept. */}
+          <small id="gift-wish-name-help" className="gg-price-note" role={nameBad ? "alert" : undefined} {...(nameBad ? { "data-gift-wish-name-problem": "" } : {})}>
+            {nameBad ? WISH.nameProblem : WISH.nameHelp}
+          </small>
         </label>
       )}
       {empty && (

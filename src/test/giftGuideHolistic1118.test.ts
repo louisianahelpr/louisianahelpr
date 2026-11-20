@@ -21,8 +21,8 @@ const CHUNKS: Record<string, Pick[]> = sectionChunks<Pick>();
 
 describe("gift guides holistic fit (11-18)", () => {
   it("reads every chunk", () => {
-    // Big batch 2026-11-20: ~65 guides split into ~250 sections, and the 30 kept store pages.
-    expect(Object.keys(CHUNKS).length).toBeGreaterThan(250);
+    // Follow-up 1120: ~30 guides split into their old guides' sections, and 26 store pages (~250, measured 2026-11-20).
+    expect(Object.keys(CHUNKS).length).toBeGreaterThan(200);
   });
 
   it("Fish Lover holds pet-fish gifts, never angling gear", () => {

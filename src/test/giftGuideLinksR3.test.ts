@@ -61,7 +61,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
   });
 
   it("no page shows a banned, non-US or homepage-only link (picks, deals, deal items)", () => {
-    expect(slugs.length).toBeGreaterThan(90); // 1120: ~65 guides + 30 store pages
+    expect(slugs.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
     let picks = 0;
     let deals = 0;
     for (const slug of slugs) {
@@ -79,7 +79,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
         for (const i of d.items ?? []) expect(bannedLink(i.href), `${slug}: deal item ${i.name}`).toBe("");
       }
     }
-    expect(picks).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
+    expect(picks).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,850)
     expect(deals).toBeGreaterThan(50); // 1120: the deal sections of the 30 kept store pages
   });
 

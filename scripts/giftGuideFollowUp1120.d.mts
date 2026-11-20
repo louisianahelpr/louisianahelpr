@@ -4,6 +4,7 @@ type Pick = { name?: string; brand?: string; href?: string; commission?: number 
 export const GIFT_CARD: RegExp;
 export const MEMBERSHIP: RegExp;
 export const AUDIT_FILES_1120: string[];
+export const FRANCHISE_SPONSORS_1120: { name: string; brand: string; region: string; href: string; image?: string; line: string; fromSponsorsGuide?: boolean }[];
 export const SPONSOR_SECTIONS_1120: { id: string; title: string; categories: string[] }[];
 export function readAudits1120(readJson: (file: string) => unknown): Finding[];
 export function storeCopyOf(problem: string): string;

@@ -129,7 +129,7 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(modelYearName("BaBylissPRO Nano Titanium 2000-Watt Blow Dryer")).toBe("BaBylissPRO Nano Titanium 2000-Watt Blow Dryer");
     for (const old of ["Yoto Mini (2024 Edition) + Disney Pixar Bundle", "YOTO Player (3rd Gen.) + Starter", "First Aid For the USMLE Step 1 2020", "Southern Living 2025 Annual Recipes"]) expect(modelYearName(old), old).toBe("");
     const names = slugs.flatMap((s) => chunk(s).map((p) => p.name));
-    expect(names.length).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
+    expect(names.length).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,750 rows)
     expect(names.filter((n) => namesModelYear(n))).toEqual([]);
   });
 
@@ -147,8 +147,10 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(foodOff("mail-carrier-and-delivery-drivers", { name: "Nabisco Snacks Variety Pack", price: 12 })).toBe(false);
     expect(FOOD_GUIDES).toContain(TREATS_GUIDE);
     expect(offenders(foodOff)).toEqual([]);
-    // 1530 train: the 1119d taste pass cut the seafood-boil mix, leaving 1 (measured); the guide is never empty.
-    expect(chunk(TREATS_GUIDE).length).toBeGreaterThan(0);
+    // Follow-up 1120: the 0% food shops left (owner 11-20), so Treats & Food Gifts holds none of its own now; its section of
+    // Louisiana Food Gifts (Sweets, Bakeries & Treats, with the Goldbelly bakeries) is never empty.
+    const foodGifts = JSON.parse(readFileSync("src/content/giftGuidePicks/louisiana-food-gifts.json", "utf8")).picks as { sectionId?: string }[];
+    expect(foodGifts.filter((p) => p.sectionId === "sweets-and-treats").length).toBeGreaterThan(7);
     // Food subscriptions: at most 2 on Treats & Food Gifts, 1 on Subscriptions, none anywhere else.
     expect(isFoodSub({ name: "Monthly Fruit Delivery", brand: "Harry & David" })).toBe(true);
     expect(offenders(foodSubOff)).toEqual([]);

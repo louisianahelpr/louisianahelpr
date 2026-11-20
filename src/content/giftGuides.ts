@@ -58,7 +58,8 @@ export interface GiftSection {
 // Big batch 1120 (lead, from the owner): the small nurse and RT shops she asked for by name before the "only where we
 // earn" rule (21 Collective, a 25 Days sponsor with code COLLECTIVE10; Seven2seven; Monochromatic Finds badge reels;
 // Vix Socks), shown on their own sites at 0% and sorted by commission like every pick (so they sit lower).
-export const BRAND_SITES = ["21collectiveco.com", "seven2seven.co", "monochromaticfinds.com", "vixsocks.com"] as const;
+// Follow-up 1120 (owner: no 0% pick but a sponsor's): the owner-named nurse shops were swapped for earning picks.
+export const BRAND_SITES = [] as const;
 
 /**
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
@@ -70,7 +71,9 @@ export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.n
  * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:
  * each link a product page from the shop's own list, HTTP 200 when opened). Exact hosts, never a wildcard.
  */
-export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "www.fleurtygirl.com", "www.nolacouture.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.dirtycoast.com", "www.leahspralines.com", "www.frenchtruckcoffee.com", "www.camelliabrand.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
+// Follow-up 1120 (owner 11-20 ~12:05 AM): a 0% Louisiana shop shows only when it is a 25 Days sponsor, so the
+// non-sponsor shops' hosts left with their picks (Dirty Coast, Fleurty Girl, NOLA Couture, Aunt Sally's, KREWE ...).
+export const LOUISIANA_SHOPS = ["crew-dog.com", "dupuys.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
 
 /**
  * Brands made in Louisiana: only these get the "Louisiana-made" badge (a pick marked louisianaFit that is not one of
@@ -82,7 +85,9 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
  * The 25 Days of Giveaways sponsors' own sites (lead 2026-11-18, ~/Desktop/Gift-guide-picks/25-days-sponsors.json):
  * the sponsors guide links each sponsor's gift. Exact hosts, never a wildcard.
  */
-export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com"] as const;
+// Follow-up 1120 (owner 11-20 ~12:40 AM): every confirmed Louisiana sponsor on Shop Small Louisiana links its website,
+// Facebook or Instagram (src/content/giftGuideSmallBiz.json); City Sightseeing New Orleans on Louisiana by Region.
+export const SPONSOR_SITES = ["thestrandtheatre.com", "homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "www.hotworx.net", "www.rrweddingco.com", "www.marykay.com", "basicbee.co", "www.facebook.com", "www.zydecochopchop.com", "www.beaversabundance.com", "www.faulkcalls.com", "davidrabalaisfilm.com", "www.softlifecollective.org", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.botanicalnailandskinstudio.com", "www.crabtrapfunctionalfitness.com", "streamsideparks.com", "www.lepetittheatre.com", "www.creolequeen.com", "www.theallwayslounge.net", "brittcreatesstudio.com", "jessicalanhamphoto.com", "www.instagram.com", "rrwedco.com", "suzimarquesphotography.com", "citysightseeingneworleans.com"] as const;
 
 /** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
 export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop", "21 Collective"];

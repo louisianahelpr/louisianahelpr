@@ -120,7 +120,8 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     for (const p of sponsors) expect(p.badges, p.name).toContain("sponsor");
     const fitNotMade = all.filter((p) => p.louisianaFit && !LOUISIANA_MADE_BRANDS.includes(p.brand));
     expect(fitNotMade.some((p) => p.brand === "YETI")).toBe(true);
-    expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(35); // 1120: 30 store pages
+    // Follow-up 1120: the 0% Louisiana shops left (owner 11-20 ~12:05 AM); 10 Louisiana-made picks measured 2026-11-20.
+    expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(7);
     expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
     // 15 measured 11-18 night: the 6 Zydeco Chop Chop rows left (their link opened the shop page, not a product; review H3).
     expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(5); // one guide per product (owner 11-19)
@@ -181,8 +182,8 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     expect(searchGuides("   ")).toEqual([]);
     expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"].filter((s) => guideBySlug(s) && !guideBySlug(s)!.empty)));
     // By group: "by budget" finds every guide in that row, even ones whose title lacks the word (Gift Cards, Subscriptions).
-    // 1120: Gift Cards and Subscriptions are sections of Easy & Last-Minute Gifts.
-    const holding = ["easy-and-last-minute", "stocking-stuffers"].filter((x) => guideBySlug(x) && !guideBySlug(x)?.empty);
+    // Follow-up 1120: Gift Cards, Subscriptions and Stocking Stuffers are sections of Gifts by Budget.
+    const holding = ["gifts-by-budget", "splurge"].filter((x) => guideBySlug(x) && !guideBySlug(x)?.empty);
     expect(holding.length).toBeGreaterThan(0);
     expect(searchGuides("by budget").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
     // The Experiences row is gone (owner 11-18 PM): searching for it finds none of its old guides.
@@ -205,8 +206,8 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     expect(row.querySelector("label svg")).not.toBeNull();
     fireEvent.change(input, { target: { value: "gift cards" } });
     const found = [...row.querySelectorAll("a[data-gift-found]")].map((a) => a.getAttribute("data-gift-found"));
-    // 1120: "gift cards" finds Easy & Last-Minute Gifts, whose Gift Cards section holds them.
-    expect(found).toContain("easy-and-last-minute");
+    // Follow-up 1120: "gift cards" finds Gifts by Budget, which holds the old Gift Cards guide (its 301 lands there).
+    expect(found).toContain("gifts-by-budget");
     fireEvent.change(input, { target: { value: "xyzzy" } });
     expect(row.textContent).toContain("No guides match");
     fireEvent.change(input, { target: { value: "" } });

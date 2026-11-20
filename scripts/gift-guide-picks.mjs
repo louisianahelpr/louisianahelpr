@@ -29,7 +29,7 @@ import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
-import { SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
+import { FRANCHISE_SPONSORS_1120, SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
 import { BASE_MERGES, GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, NO_LIST_SECTIONS, STORE_PAGES_KEPT, SECTION_CAP, SECTION_GROUPS, SECTION_MAX, SECTION_MIN, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
 import { GUIDE_CAP, buildRateData, byCommission, ccTwin, commissionOf, guideRanks, itemPopularity, pickType, sectionGuides, typeMax, CROWD_TYPES, KNOWN_BRAND, THIN_TARGET } from "./giftGuideSort.mjs";
 import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3, INSULATED, TUMBLER_MAX, fillerGuide, FILLER_OK, R4_OFF, kidsToyOff } from "./giftGuideRules.mjs";
@@ -3179,7 +3179,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     // FOLLOW-UP 1120: the 0% swaps' earning adds, the earning Louisiana picks and the Louisiana Goldbelly links, each
     // placed on its guide like an editor's add (a guide named by its big-batch parent takes its first old guide).
     const LA_FOOD_FALLBACK = ["louisiana-sweets-and-bakeries", "louisiana-kitchen", TREATS_GUIDE];
-    const LA_ITEM_FALLBACK = ["louisiana-made", "louisiana-boutiques", "louisiana-small-businesses"];
+    const LA_ITEM_FALLBACK = ["louisiana-made", "louisiana-pantry", "louisiana-boutiques", "louisiana-small-businesses"];
     const placeOn = (guide, section) => {
       const s0 = AUDIT_1120.oldSlug(guide, section) ?? guide;
       if (GUIDE_SLUGS.has(s0) && isGuide(s0)) return s0;
@@ -3192,16 +3192,19 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       const href = a.row.affiliate_href || a.row.href;
       if (!slug || typeof href !== "string") continue;
       const had = pool.get(href);
-      const e = addRow({ ...a.row, line: a.row.line ?? a.row.why ?? "" }, href, [slug], "follow-up 1120", "followup1120") ?? (had ? (had.guides.add(slug), had) : null);
+      const e = addRow({ ...a.row, line: a.row.line ?? a.row.why ?? "" }, href, [slug], "follow-up 1120", "followup1120") ?? had ?? null;
       if (process.env.GIFT_FU_DEBUG) console.error(`FUADD ${slug} ${a.row.name} -> ${e ? "pool" : "held"}`);
       if (!e) continue;
       // Placed where every page rule allows it (a food gift on a food guide, a Louisiana item in the Louisiana section):
       // its own guide, else the Louisiana sweets, kitchen or treats guide for food, else Louisiana-Made / Boutiques.
       const tries = [slug, ...(foodOff(slug, e.p) ? LA_FOOD_FALLBACK : []), ...(!LOUISIANA_GUIDES.has(slug) && isLouisianaItem(e.p, LA_HOSTS) ? LA_ITEM_FALLBACK : [])];
-      const on = tries.find((x) => GUIDE_SLUGS.has(x) && isGuide(x) && gate(x, e.p));
+      // Community Coffee stays off Louisiana-Made (ready pass 1119c: it moved to the coffee and pantry guides).
+      const on = tries.find((x) => GUIDE_SLUGS.has(x) && isGuide(x) && gate(x, e.p) && !(x === "louisiana-made" && /community coffee/i.test(`${e.p.name} ${e.p.brand ?? ""}`)));
       if (!on) continue;
       e.guides.add(on);
       e.forced = new Set([...(e.forced ?? []), on]);
+      // The earning Louisiana picks are Louisiana businesses (KREWE, Community Coffee, Aunt Sally's on Goldbelly ...).
+      if (a.file) e.p = { ...e.p, louisianaFit: true };
       sortCounts.followUpAdds += 1;
     }
     // 3a. The fit audits' moves (AUDIT_1120): the item goes to its new guide, placed there like an editor's add.
@@ -3552,7 +3555,8 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
   for (const g of groups) {
     for (const b of g.rows.slice(0, SECTION_CAP)) {
       const name = String(b.name).replace(/\s*\([^)]*\)\s*$/, "");
-      if (!b.href || !/^https:\/\//.test(b.href)) { NAME_ONLY.push({ guide: SHOP_SMALL, brand: name }); followUpCounts1120.namedOnly += 1; continue; }
+      // No link, or no logo (owner 11-19: no row without a real photo), is named only (NAME_ONLY_SPONSORS).
+      if (!b.href || !/^https:\/\//.test(b.href) || !b.logo) { NAME_ONLY.push({ guide: SHOP_SMALL, brand: name }); followUpCounts1120.namedOnly += 1; continue; }
       if (seen.has(b.href)) continue;
       seen.add(b.href);
       add.push({ name, brand: name, line: String(b.description ?? ""), href: b.href, ...(b.logo ? { image: `https://www.louisianahelpr.com${b.logo}` } : {}),
@@ -3561,6 +3565,25 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
     }
   }
   pageList[SHOP_SMALL] = [...own, ...add];
+  // The franchise sponsors in their region on Louisiana by Region (FRANCHISE_SPONSORS_1120), its section when it has some.
+  {
+    const REGION = "louisiana-by-region";
+    const sponsorsGuide = pageList[SPONSORS_GUIDE] ?? [];
+    const region = pageList[REGION] ?? [];
+    for (const f of FRANCHISE_SPONSORS_1120) {
+      const image = f.image ?? sponsorsGuide.find((p) => p.href === f.href)?.image;
+      if (!image || region.some((p) => p.href === f.href)) continue;
+      const at = region.find((p) => p.sectionId && (SECTION_ANCHORS[f.region] === p.sectionId));
+      region.push({ name: f.name, brand: f.brand, line: f.line, href: f.href, image, store: "sponsor", sponsor: true, louisianaFit: true,
+        ...(at ? { section: at.section, sectionId: at.sectionId } : {}) });
+      followUpCounts1120.sponsors += 1;
+    }
+    // Each section stays one run (a sponsor joins its region's run).
+    if (region.some((p) => p.sectionId)) {
+      const order = [...new Set(region.map((p) => p.sectionId))];
+      pageList[REGION] = order.flatMap((id) => region.filter((p) => p.sectionId === id));
+    } else pageList[REGION] = region;
+  }
 
   const kept = (p) => [...OWNER_KEEP, ...SORT_KEEP].some((k) => k.href === p.href);
   const excludes = (readJson("_owner-excludes.json") ?? []).map((x) => String(x?.match ?? "").toLowerCase()).filter(Boolean);
@@ -3568,7 +3591,8 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
     // The sponsors guide lists each sponsor as they gave it (a sponsor's gift card included).
     if (slug === SPONSORS_GUIDE) continue;
     pageList[slug] = pageList[slug].filter((p) => {
-      const w = (p.from === "subscriptions" ? "" : followUpOut(p, { sponsor: isSponsorPick, kept })) || (blockedBrand(p) ? "blocked" : "") || (excludes.some((m) => `${p.name} ${p.brand ?? ""}`.toLowerCase().includes(m)) ? "excluded" : "");
+      const w = (p.from === "subscriptions" ? "" : followUpOut(p, { sponsor: isSponsorPick, kept })) || (blockedBrand(p) ? "blocked" : "") || (excludes.some((m) => `${p.name} ${p.brand ?? ""}`.toLowerCase().includes(m)) ? "excluded" : "")
+        || (p.from === "louisiana-made" && /community coffee/i.test(`${p.name} ${p.brand ?? ""}`) ? "community coffee off louisiana-made" : "");
       if (w) followUpCounts1120.out[w] = (followUpCounts1120.out[w] ?? 0) + 1;
       return !w;
     });
@@ -3585,7 +3609,8 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
     for (const r of Array.isArray(fill) ? fill : []) {
       const slug = String(r?.store_slug ?? "");
       if (!STORE_PAGES_KEPT.includes(slug) || typeof r.href !== "string" || !/^https:\/\//.test(r.href) || typeof r.name !== "string") continue;
-      if (typeof r.image !== "string" || !/^https:\/\//.test(r.image) || brokenImage(r.image) || blockedBrand(r)) continue;
+      // A Louisiana item (LSU slides on Nike) stays in the Louisiana section (owner rule 11-18 PM).
+      if (typeof r.image !== "string" || !/^https:\/\//.test(r.image) || brokenImage(r.image) || blockedBrand(r) || isLouisianaItem(r, LA_HOSTS)) continue;
       let host;
       try { host = new URL(r.href).hostname; } catch { continue; }
       if (!AFFILIATE.has(host) && !PLAIN_OK.has(host)) continue;
@@ -3593,7 +3618,7 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
       if (!storeList[slug].hosts.includes(host)) storeList[slug].hosts = [...storeList[slug].hosts, host].sort();
       const list = pageList[slug] ?? [];
       if (list.some((p) => p.href === r.href || compact(p.name) === compact(r.name))) continue;
-      pageList[slug] = [...list, { name: brandFirst(tidyName(r.name), r.brand), brand: String(r.brand ?? ""), line: String(r.why ?? ""), href: r.href, image: r.image, store: slug, commission: pct(r.commission), ...(r.type ? { type: String(r.type) } : {}) }];
+      pageList[slug] = [...list, { name: brandFirst(tidyName(r.name), r.brand), brand: String(r.brand ?? ""), line: /\$\s?\d/.test(String(r.why ?? "")) ? "" : String(r.why ?? ""), href: r.href, image: r.image, store: slug, commission: pct(r.commission), ...(r.type ? { type: String(r.type) } : {}) }];
       followUpCounts1120.storeFill += 1;
     }
     for (const slug of STORE_PAGES_KEPT) {

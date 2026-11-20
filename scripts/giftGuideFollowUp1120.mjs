@@ -93,12 +93,9 @@ export function auditActions1120(rows, oldSlug) {
   const out = { cuts: [], storeCuts: new Set(), moves: [], renames: new Map(), counts: { cut: 0, storeCut: 0, move: 0, rename: 0, skipped: 0 } };
   for (const r of rows) {
     const copy = storeCopyOf(r.problem);
-    if (copy && r.href) {
-      // The owner rule: the same item and photo in only ONE place; the store page's copy goes.
-      out.storeCuts.add(`${copy}|${r.href}`);
-      out.counts.storeCut += 1;
-      continue;
-    }
+    // "Store pages also pull people-guide items by design (not dupes)" (audit p2 notes, FOLLOWUP-OWNER-1119.md): a guide
+    // item that is also on its store page stays in both places (the store page keeps its 10-15).
+    if (copy) { out.counts.skipped += 1; continue; }
     // Owner 11-20 ~12:50 AM ("It's ok there's 6 over 500"): the QA's over-$500 removals are not made (the one-griddle rule
     // keeps one Weber griddle in the import).
     if (/\$500/.test(r.problem) && ["remove", "cut"].includes(r.fix)) { out.counts.skipped += 1; continue; }
@@ -181,6 +178,19 @@ export function louisianaAdds1120(readJson) {
 export const SPONSOR_SECTIONS_1120 = [
   { id: "sponsors-shops-and-makers", title: "25 Days Sponsors: Shops & Makers", categories: ["Food & Sweets", "Home & Decor", "Art & Gifts", "Fashion & Accessories"] },
   { id: "sponsors-experiences-and-services", title: "25 Days Sponsors: Kids, Experiences & Services", categories: ["Kids", "Beauty & Wellness", "Experiences & Tours", "Services"] },
+];
+
+/**
+ * The Louisiana-located franchise sponsors (lead by recommendation 11-20, on the owner's "make sure our Louisiana sponsors
+ * are in that group"): not on Shop Small (independent businesses only), but on Louisiana by Region in their region, with
+ * the sponsor badge. City Sightseeing New Orleans: its site and photo read 11-20. HOTWORX (Baton Rouge, Denham Springs):
+ * the sponsors guide's own link and photo. The Mary Kay consultant has no photo yet (no row without a photo).
+ */
+export const FRANCHISE_SPONSORS_1120 = [
+  { name: "City Sightseeing New Orleans Hop-On Hop-Off Tour", brand: "City Sightseeing New Orleans", region: "new-orleans", href: "https://citysightseeingneworleans.com/",
+    image: "https://citysightseeingneworleans.com/wp-content/uploads/2023/10/CS-NewOrleans-Social-Graphic-for-Website-1200X630.jpg", line: "Hop-on hop-off bus tours around New Orleans, a day out to give." },
+  { name: "HOTWORX 1 Month Membership", brand: "HOTWORX", region: "baton-rouge", href: "https://www.hotworx.net/", fromSponsorsGuide: true,
+    line: "Infrared sauna workouts at the Baton Rouge and Denham Springs studios." },
 ];
 
 /**

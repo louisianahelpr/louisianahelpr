@@ -124,8 +124,8 @@ describe("gift guides: item fit r4 (fit + links audits, 11-19)", () => {
 
   it("the links audit's fixes hold on the store pages too", () => {
     const stores = slugs.filter((s) => s.startsWith("store-"));
-    // Big batch 2026-11-20: the 30 kept store pages (src/content/giftGuideMerges.mjs STORE_PAGES_KEPT).
-    expect(stores.length).toBeGreaterThan(25);
+    // Follow-up 1120 (owner 11-20 ~2:45 AM, FINAL STORE LIST): 26 kept store pages, 25+ with picks measured 2026-11-20.
+    expect(stores.length).toBeGreaterThan(20);
     const banned = ["https://go.shopmy.us/p-104112945", "https://go.shopmy.us/p-104209798", "https://mavely.app.link/rUbFIqQTa8b",
       "https://mavely.app.link/7qwASmTTa8b", "https://mavely.app.link/EmDfi5TTa8b", "https://mavely.app.link/67wI8mUTa8b"];
     const hits = stores.flatMap((s) => pageOf(s).filter((p) => banned.includes(p.href)).map((p) => `${s}: ${p.name}`));

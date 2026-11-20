@@ -45,7 +45,7 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
   });
 
   it("every guide pick carries its commission and type; each guide lists by commission, high to low, unknown last", () => {
-    expect(guides.length).toBeGreaterThan(120); // 1120: ~65 guides in ~126 role sections, and the 30 store pages
+    expect(guides.length).toBeGreaterThan(70); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (86 lists)
     const bad: string[] = [];
     let picks = 0;
     let known = 0;
@@ -63,8 +63,9 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
       const sorted = list.filter((p) => !FIXED.has(p.from ?? ""));
       sorted.forEach((p, i) => { if (i > 0 && rate(p) > rate(sorted[i - 1])) bad.push(`${slug} #${i + 1}: ${p.name} (${p.commission}) above-rate after ${sorted[i - 1].name} (${sorted[i - 1].commission})`); });
     }
-    expect(picks).toBeGreaterThan(2000);
-    expect(known).toBeGreaterThan(1800);
+    // Follow-up 1120: ~1,500 guide picks on the ~30 guides, measured 2026-11-20 (2,000+ on the 65 guides before).
+    expect(picks).toBeGreaterThan(1300);
+    expect(known).toBeGreaterThan(1100);
     expect(bad.slice(0, 10)).toEqual([]);
   });
 

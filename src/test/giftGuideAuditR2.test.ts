@@ -68,7 +68,7 @@ describe("design audit r2: names are products", () => {
     expect(productName("2027 Dreambook + Planner", ["Erin Condren"], "erincondren")).toBe("2027 Dreambook + Planner");
   });
   it("no generated pick (outside Louisiana shops and sponsors) is a page title, a promo, or just its brand", () => {
-    expect(all.length).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
+    expect(all.length).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,750 rows)
     const bad = all.filter(({ p }) => !local(p) && !p.sponsor && (/\s\|\s?|\s?\|\s/.test(p.name) || PROMO_NAME.test(p.name) || (p.brand && p.brand.toLowerCase() === p.name.toLowerCase())));
     expect(bad.map(({ slug, p }) => `${slug}: ${p.name}`).slice(0, 10)).toEqual([]);
   });
@@ -90,11 +90,12 @@ describe("design audit r2: what each guide holds", () => {
       if (!KNIFE_OK_GUIDES.includes(slug)) expect(/\bkni(fe|ves)\b/i.test(p.name), `${slug}: ${p.name}`).toBe(false);
       if (EXPERIENCE_GUIDES.includes(slug) || slug === "gift-cards") expect(fitsGuide(slug, p), `${slug}: ${p.name}`).toBe(true);
     }
-    expect(CHUNKS["gift-cards"]?.length ?? 0).toBeGreaterThan(0);
+    // Follow-up 1120 (owner 11-20 ~12:20 AM: "REMOVE ALL 0% gift cards"): the Gift Cards list holds none.
+    expect(CHUNKS["gift-cards"]?.length ?? 0).toBe(0);
   });
   it("Muck Boot and XTRATUF keep their picks but carry no Shop Louisiana flag", () => {
     const boots = all.filter(({ p }) => [p.brand, p.store].some((x) => x && NOT_LOUISIANA_BUSINESS.test(x.replace(/^store-/, "").replace(/-/g, " "))));
-    expect(boots.length).toBeGreaterThan(20);
+    expect(boots.length).toBeGreaterThan(14); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (18)
     expect(boots.filter(({ p }) => p.louisianaFit).map(({ slug, p }) => `${slug}: ${p.name}`)).toEqual([]);
   });
 });
@@ -145,9 +146,9 @@ describe("design audit r2: sales and search", () => {
   it("#11 'lsu', 'saints', 'boots' and 'nurse' find their guides; a title match ranks first", () => {
     const slugs = (q: string) => searchGuides(q).map((g) => g.slug);
     expect(Object.keys(SEARCH_KEYWORDS).length).toBeGreaterThan(5);
-    // 1120: Purple & Gold Lover is a section of Game Day; its LSU words find Game Day.
-    expect(slugs("lsu")).toContain("game-day");
-    expect(slugs("saints")).toContain("game-day");
+    // Follow-up 1120: Game Day (with Purple & Gold Lover) is a section of Louisiana Celebrations; its LSU words find it.
+    expect(slugs("lsu")).toContain("louisiana-celebrations");
+    expect(slugs("saints")).toContain("louisiana-celebrations");
     // 1120: the Muck Boot store page folded into the guides; Tractor Supply carries the boots now.
     expect(slugs("boots")).toContain("store-tractor-supply");
     // One guide per product (owner 11-19): a nurse guide under 6 picks is hidden; whatever nurse guide shows matches.
@@ -203,8 +204,8 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
       const twice = keys.filter((k, i) => keys.indexOf(k) !== i);
       expect(twice, `${slug}: repeated product`).toEqual([]);
     }
-    // Big batch 2026-11-20: ~65 guides with their sections and 30 store pages (~280 lists).
-    expect(pages).toBeGreaterThan(250);
+    // Follow-up 1120: ~30 guides with their sections and 26 store pages (~250 lists, measured 2026-11-20).
+    expect(pages).toBeGreaterThan(200);
     // Variants are one product; the Thin Blue and Thin Red Line flags are two.
     expect(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 15pc.")).toBe(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 30pc."));
     expect(key("Thin Blue Line US Flag, 3x5")).not.toBe(key("Thin Red Line US Flag, 3x5"));
@@ -229,7 +230,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(brokenImage("https://res.cloudinary.com/mavely/image/upload/v1/Sonos_logo_c655260285.jpg")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/1033/0751/files/LinkSharing-SEO-Thumbnail_1.jpg?v=1")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/0001/files/carhartt-iconic-beanie.jpg")).toBe(false);
-    expect(pages.length).toBeGreaterThan(250);
+    expect(pages.length).toBeGreaterThan(200); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
     for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) if (p.image) expect(brokenImage(p.image), `${f}: ${p.name}`).toBe(false);
   });
   it("drops picks named after a web page, and the wrong-guide picks (curling iron in Him, dumbbell stand in Home Cook)", () => {
@@ -245,11 +246,12 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
   it("renames page-title rows to the plain product (Atlas \"Corporate\" gifts, the SharkNinja category rows) and keeps the face mask out of Dad and Home Cook", () => {
     // @mutate scripts/gift-guide-picks.mjs |   const rawName = RENAMED[p.href] ?? RENAMED[p.affiliate_href] ?? ( |   const rawName = (
     const all = pages.flatMap((f) => pageOf(f.replace(/\.json$/, "")).map((p) => p.name));
-    expect(all.length).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
+    expect(all.length).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,750 rows)
     for (const bad of [/Email Gift.*Corporate/, /Crispier Cooking/, /Skincare Routine Tools/]) expect(all.some((n) => bad.test(n)), String(bad)).toBe(false);
     // ("Ninja Air Fryer" left every guide with the 11-19 removal lists; its rename still holds wherever it shows.)
     expect(all.filter((n) => /^Ninja Air Fryer/.test(n)).every((n) => n === "Ninja Air Fryer")).toBe(true);
-    expect(all).toContain("12-Month Coffee Club Gift Subscription");
+    // Follow-up 1120 (QA: brand-first names): the Atlas Coffee Club subscription names its maker first.
+    expect(all).toContain("Atlas Coffee Club 12-Month Coffee Club Gift Subscription");
     // @mutate scripts/giftGuideRules.mjs |   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false; |   if (false) return false;
     expect(fitsGuide("home-cook", { name: "Shark Beauty LED Face Mask" })).toBe(false);
     expect(fitsGuide("her", { name: "Shark Beauty LED Face Mask" })).toBe(true);
@@ -264,14 +266,15 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
       rows += 1;
       if (!allowed.has(p.name) && f !== "25-days-sponsors.json") expect(p.image, `${f}: ${p.name}`).toBeTruthy();
     }
-    expect(rows).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
+    expect(rows).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,750 rows)
   });
   // Owner 11-19 retired the 25-pick floor: fit beats count ("she'd rather a guide have 18 great items than 25 with
   // filler", 2026-11-19). A guide keeps at least one pick; the ones under 12 are logged for research (giftGuideBelong1119).
   it("every guide still holds picks after \"no photo, no row\", and Gift cards and Subscriptions hold every fitting pick", () => {
     // @mutate scripts/gift-guide-picks.mjs |       if (!p.image \|\| !fits(p) \|\| !fitsGuide(slug, p) \|\| louisianaBlocked(slug, p)) continue; |       continue;
     // Gift cards and Subscriptions hold every fitting photo'd pick in the data (back-filled from every page).
-    expect(pageOf("gift-cards").length).toBeGreaterThan(5); // one guide per product (owner 11-19)
+    // Follow-up 1120 (owner 11-20 ~12:20 AM: "REMOVE ALL 0% gift cards"): none left; memberships stay (they pay a bounty).
+    expect(pageOf("gift-cards").length).toBe(0);
     // (Dupuy's Gift Certificate is a Louisiana business: the Louisiana rule keeps it in the Louisiana section.)
     expect(pageOf("gift-cards").some((p) => /Dupuy/.test(p.name))).toBe(false);
     expect(pageOf("subscriptions").length).toBeGreaterThan(2); // 1120: the fit audit cut the photo-less memberships
@@ -292,7 +295,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
       const b = p.brand.normalize("NFD").toLowerCase().replace(/[^a-z0-9]+/g, "");
       (rowsByImage.get(p.image) ?? rowsByImage.set(p.image, []).get(p.image)!).push({ b, href: p.href });
     }
-    expect(rows).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
+    expect(rows).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,750 rows)
     const shared = (h: string) => h.startsWith("https://shopmy.us/collections/");
     const mixed = [...rowsByImage].filter(([, rs]) => rs.some((x) => rs.some((y) => !x.b.includes(y.b) && !y.b.includes(x.b) && (x.href !== y.href || shared(x.href)))));
     expect(mixed.map(([i, rs]) => `${i} ${[...new Set(rs.map((r) => r.b))].join("/")}`)).toEqual([]);
@@ -321,7 +324,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
         expect(isLouisianaItem(p, hosts), `${slug}: ${p.name} (${p.brand})`).toBe(false);
       }
     }
-    expect(checked).toBeGreaterThan(2000); // 1120: 30 store pages and the fit audits
+    expect(checked).toBeGreaterThan(1200); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,400)
   });
   it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]

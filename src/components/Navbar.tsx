@@ -150,6 +150,18 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             nav on a phone) already carries them. */}
         {!user && (
           <div className={tight ? "flex items-center gap-0 min-[480px]:gap-1 sm:gap-3" : "flex items-center gap-0 min-[375px]:gap-0.5 min-[400px]:gap-1 sm:gap-3"}>
+            {/* Owner 11-20 (site polish A1): a "Home" link off the landing, from md up (the phone bar is full at 320;
+                there the logo and the page's own "← Home" link go home). */}
+            {location.pathname !== "/" && (
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+              >
+                <Link to="/" data-testid="nav-home">{navWord("nav.home", "Home")}</Link>
+              </Button>
+            )}
             <Button
               asChild
               variant="ghost"

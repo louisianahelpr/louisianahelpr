@@ -128,6 +128,12 @@ describe("BUY-16: guests browse Declutter", () => {
     show(<DeclutterHome />);
     expect(await screen.findByText("Thing 1")).toBeInTheDocument();
     expect(document.querySelector('[data-guest-join="browse"]')).toBeNull();
+    // Owner 11-20 (site polish A3): Browse alone is no tab row of one; the row says "2 items" plainly, with the
+    // search, the compact "Use my location" and Filters at its end.
+    // @mutate src/components/declutter/DeclutterGuestHome.tsx | {browse.count === undefined ? null : browse.count === 1 ? t("decl.results.one") : t("decl.results.many", { n: browse.count })} | {null}
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getByTestId("browse-count-only").textContent).toBe("2 items");
+    expect(screen.getByRole("button", { name: "Use my location" })).toBeInTheDocument();
     // Desktop draws the map beside the list for a member; a guest still gets no map and no pins read.
     expect(screen.queryByRole("button", { name: /the map/ })).toBeNull();
     expect(screen.queryByText("THE MAP")).toBeNull();

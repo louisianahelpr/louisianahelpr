@@ -11,6 +11,8 @@
 import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { offerAsk, type OriginAsk } from "./DeclutterBrowseBar";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclBrowse";
 
 /** Where the miles on the cards are counted from, in a few words (or why there are none). */
 function milesFromWords(ask: OriginAsk): string {
@@ -45,4 +47,28 @@ export function DeclutterMilesFrom({ ask }: { ask: OriginAsk }) {
       {ask.deviceNote && <p className="w-full text-ds-13 text-muted-foreground" role="status">{ask.deviceNote}</p>}
     </div>
   );
+}
+
+/**
+ * Owner 11-20 (site polish A4): on desktop Browse, "Use my location" is a compact button beside the search box instead
+ * of a full row above the cards. Same rule as the line (offerAsk): gone while asking and once the device gave a fix.
+ * Where the miles come from rides in its title, and a device note (denied, timed out) shows above the cards
+ * (DeclutterDeviceNote). Guard: src/components/declutter/declutterMilesFrom.test.tsx.
+ */
+export function DeclutterLocationButton({ ask }: { ask: OriginAsk }) {
+  const { t } = useLanguage();
+  if (ask.origin.status === "pending") return null;
+  if (ask.asking) return <p data-location-finding="" className="shrink-0 px-2 text-ds-13 text-muted-foreground" role="status">{t("decl.loc.finding")}</p>;
+  if (!offerAsk(ask)) return null;
+  return (
+    <Button type="button" variant="outline" size="sm" data-location-button="" className="h-11 shrink-0 gap-1.5 rounded-full px-3 text-ds-13" title={milesFromWords(ask)} onClick={ask.askDevice}>
+      <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+      {ask.asked ? t("decl.loc.tryAgain") : t("decl.loc.use")}
+    </Button>
+  );
+}
+
+/** The device's note after "Use my location" (denied, timed out), as a quiet status line; nothing without one. */
+export function DeclutterDeviceNote({ ask }: { ask: OriginAsk }) {
+  return ask.deviceNote ? <p data-device-note="" className="text-ds-13 text-muted-foreground" role="status">{ask.deviceNote}</p> : null;
 }

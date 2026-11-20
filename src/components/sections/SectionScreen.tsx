@@ -10,6 +10,9 @@ import { ExploreSearchEntry } from "./ExploreSearchEntry";
 import { ScrollAwayScope, ScrollAwaySpacer } from "./ScrollAwayScope";
 import type { SectionAdd, SectionKey } from "./sectionsConfig";
 import type { SectionMineMenu } from "./sectionMine";
+import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * A section's screen frame (owner, 2026-10-19): the shared top bar over a scrolling column. Same fixed-shell
@@ -37,8 +40,14 @@ export function SectionScreen({
   fab,
   showAdd = true,
   add,
+  homeLink = false,
   children,
 }: {
+  /**
+   * Owner 11-20 (site polish A1): a small "← Home" link above the section's heading. Drawn only in a guest's public
+   * frame (a member's rail and bottom nav already carry Home). Declutter's guest Browse passes it.
+   */
+  homeLink?: boolean;
   /** A section screen (not Home): draws the Explore header (chips row, tabs, search) above the scroll column. */
   section?: SectionKey;
   /** Omit on Home: the logo shows instead. */
@@ -86,11 +95,18 @@ export function SectionScreen({
   // (useGuestPublicFrame). The section's header (its bar, tabs and search) heads the page body, and the list follows
   // it in the same flow; a member keeps the steady header over AppShell's scroll column, as below.
   const guestFrame = useGuestPublicFrame();
+  const { t } = useLanguage();
   const header = (
       <>
         {section && (
           // py/gap = JobsSection's header stack (section-shell-alignment): the bar, 4px, the tabs, 4px, the search.
           <div data-explore-header="" className="explore-header page-measure w-full shrink-0 flex flex-col gap-1">
+            {homeLink && guestFrame && (
+              <Link to="/" data-section-home-link="" className="inline-flex min-h-11 w-fit items-center gap-1 text-ds-13 font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm -mb-2">
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+                {t("nav.home")}
+              </Link>
+            )}
             <AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} add={add} />
             {tabs}
             {globalSearch && <ExploreSearchEntry />}

@@ -40,8 +40,8 @@ describe("Declutter card under Bigger text (F359r)", () => {
     expect(c).toMatch(/white-space:\s*normal/);
     expect(c).toMatch(/text-overflow:\s*clip/);
   });
-  it("default text is unchanged: one line each, truncated (owner pick 4)", () => {
-    expect(card).toMatch(/data-card-title className="block truncate/);
+  it("default text: the title takes two lines (owner 11-20, site polish A5), the condition one line, truncated", () => {
+    expect(card).toMatch(/data-card-title className="line-clamp-2 /);
     expect(card).toMatch(/data-card-condition=\{item\.condition_stars\} title=\{condition\} className="min-w-0 truncate"/);
   });
 });

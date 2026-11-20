@@ -92,6 +92,10 @@ export const enDeclBrowse = {
   "decl.sort.price_high": "Highest price",
   "decl.results.one": "1 item",
   "decl.results.many": "{n} items",
+  // Owner 11-20 (site polish A4): the compact location button beside desktop Browse's search.
+  "decl.loc.use": "Use my location",
+  "decl.loc.tryAgain": "Try my location again",
+  "decl.loc.finding": "Finding you…",
   "decl.group.Home": "Home",
   "decl.group.Outdoors": "Outdoors",
   "decl.group.Family": "Family",

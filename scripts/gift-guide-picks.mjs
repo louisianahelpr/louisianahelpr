@@ -3574,7 +3574,9 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
     const region = pageList[REGION] ?? [];
     for (const f of FRANCHISE_SPONSORS_1120) {
       const image = f.image ?? sponsorsGuide.find((p) => p.href === f.href)?.image;
-      if (!image || region.some((p) => p.href === f.href)) continue;
+      // No photo (no row without one): the sponsor is named on the page instead (NAME_ONLY_SPONSORS).
+      if (!image) { NAME_ONLY.push({ guide: REGION, brand: f.brand }); followUpCounts1120.namedOnly += 1; continue; }
+      if (region.some((p) => p.href === f.href)) continue;
       const at = region.find((p) => p.sectionId && (SECTION_ANCHORS[f.region] === p.sectionId));
       const row = { name: f.name, brand: f.brand, line: f.line, href: f.href, image, store: "sponsor", sponsor: true, louisianaFit: true, commission: 0, type: "sponsor", from: SPONSORS_GUIDE,
         ...(at ? { section: at.section, sectionId: at.sectionId } : {}) };

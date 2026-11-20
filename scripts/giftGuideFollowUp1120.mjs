@@ -191,6 +191,8 @@ export const FRANCHISE_SPONSORS_1120 = [
     image: "https://citysightseeingneworleans.com/wp-content/uploads/2023/10/CS-NewOrleans-Social-Graphic-for-Website-1200X630.jpg", line: "Hop-on hop-off bus tours around New Orleans, a day out to give." },
   { name: "HOTWORX 1 Month Membership", brand: "HOTWORX", region: "baton-rouge", href: "https://www.hotworx.net/", fromSponsorsGuide: true,
     line: "Infrared sauna workouts at the Baton Rouge and Denham Springs studios." },
+  // No photo yet: named only on the page (lead 11-20: "add it name-only rather than holding it").
+  { name: "Mary Kay Gift Set", brand: "Mary Kay", region: "acadiana", href: "https://www.marykay.com/", line: "Mary Kay skincare and beauty gift sets from a local consultant." },
 ];
 
 /**

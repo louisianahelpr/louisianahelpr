@@ -14,7 +14,7 @@
  * @mutate src/lib/giftGuidePageMeta.mjs |   if (gift) { |   if (false) {
  * @mutate api/share.ts |     ...("robots" in page && typeof page.robots === "string" ? { robots: page.robots } : {}), |
  * @mutate src/content/giftGuideCatalog.ts |     const keyword = q !== "" && (SEARCH_KEYWORDS[g.slug] ?? "").split(" ").includes(q); |     const keyword = false;
- * @mutate src/content/giftGuideCatalog.ts |   nurses: ["healthcare"] }; |   };
+ * @mutate src/content/giftGuideCatalog.ts |   nurses: ["healthcare"], |   "nurses-gone": ["healthcare"],
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | to: `/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}` | to: "/gift-guides?group=for-kids"
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

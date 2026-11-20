@@ -222,6 +222,7 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
 
 /** Constant-regex hits that are not exemption lists for a guard, with why. */
 const OUT_OF_SCOPE: Record<string, string> = {
+  "scripts/gift-guide-picks.mjs::POOL_SKIP": "not an exemption: a block list of two pool rows the lead removed for good (the Kendra Scott Elisa, the Benefit brow pencil); it removes picks, it excuses no offender",
   "e2e/happy-path/error-state-sweep.spec.ts::EXEMPT_TABLES": "sweep scope config: tables never failed so the authed surface still renders; excuses no offender",
   "scripts/audit/press-every-control.mjs::DOCUMENTED_SKIPS": "vocabulary of skip dispositions the press script itself emits, not a list of offending controls",
   "scripts/audit/press-every-control.mjs::GATE_SKIPS": "derived at runtime from the SKIP_* exports of pressProdSafety.mjs (the gate's own reasons), not a list of offending controls",

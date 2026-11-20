@@ -100,6 +100,7 @@ export const NOT_STORAGE_COLUMNS = {
   "profiles.share_job_photos": "the member's boolean opt-out from showing their job photos (20261021001940, Terms 'Photos from jobs'); a switch, not a file reference",
   "analytics_events.url": "the page URL an event fired on",
   "error_logs.url": "the page URL an error happened on",
+  "sponsor_settings.entry_url": "25 Days (20261119200128): the https link of the giveaway entry post on Facebook (CHECK entry_url ~ '^https://'), not an object in our storage",
   "marketing_content.external_url": "the published post's URL on Instagram/Facebook",
   "messages.attachment_duration": "voice-note length in seconds",
   "messages.attachment_mime": "the attachment's content type",

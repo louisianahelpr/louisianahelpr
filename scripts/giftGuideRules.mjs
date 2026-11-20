@@ -90,7 +90,9 @@ export const SITE_ICON = /favicon|apple-touch-icon|bookmark-icon|default-meta-im
 // (store-photos check 11-18 PM, re-tried with a browser user agent and our site as referer): their photos are dropped.
 export const HOTLINK_BLOCKED = /^https:\/\/(www\.sephora\.com|www\.rei\.com|www\.kitchenaid\.com\/is\/image|images\.containerstore\.com)\//i;
 /** Brands a feed spells in the wrong case (design audit r2 #8). */
-export const BRAND_CASE = { rei: "REI", ugg: "UGG", laneige: "LANEIGE", xtratuf: "XTRATUF" };
+export const BRAND_CASE = { rei: "REI", ugg: "UGG", laneige: "LANEIGE", xtratuf: "XTRATUF",
+  // Store audit C (11-19): squashed store slugs shown as the brand.
+  thenorthface: "The North Face", southerntide: "Southern Tide", lillypulitzer: "Lilly Pulitzer", jcrew: "J.Crew", underarmour: "Under Armour", clinique: "Clinique", cliniqueonline: "Clinique" };
 /**
  * "Shop Louisiana" (the louisianaFit flag) is for Louisiana businesses; Muck Boot and XTRATUF are loved here but are
  * not Louisiana businesses (lead decision 11-18, design audit r2 #18): they keep their place in the guides, no badge.
@@ -127,7 +129,7 @@ export const fitsGuide = (slug, p) => {
   if (slug.startsWith("store-")) return true;
   if (PET_ONLY[slug] && !PET_ONLY[slug](p)) return false;
   if (WRONG_GUIDE[slug]?.test(p.name)) return false;
-  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p) || masonOff(slug, p) || redoneOff(slug, p) || lashOff(slug, p) || veraBradleyOff(slug, p) || hikingOff(slug, p) || cheapSockOff(slug, p) || barwareOff(slug, p) || fashionSneakerOff(slug, p) || farmRioOff(slug, p) || legoOff(slug, p) || grandSunglassesOff(slug, p) || frameOff(slug, p) || foodSubOff(slug, p) || iceCreamOff(slug, p) || crockPotOff(slug, p) || blankOrPastelOff(slug, p) || photoProductOff(slug, p) || puzzleOff(slug, p) || groceryCandyOff(slug, p) || jdDrinkwareOff(slug, p)) return false;
+  if (decorOff(slug, p) || foodOff(slug, p) || personalGiftOff(slug, p) || magazineOff(slug, p) || sperryOff(slug, p) || lifeIsGoodOff(slug, p) || outdoorDecorOff(slug, p) || resaleOrUkShop(p) || kidsCrocsOff(slug, p) || kidsToyOff(slug, p) || characterCollab(p) || drugstoreOff(slug, p) || masonOff(slug, p) || redoneOff(slug, p) || lashOff(slug, p) || veraBradleyOff(slug, p) || hikingOff(slug, p) || cheapSockOff(slug, p) || barwareOff(slug, p) || fashionSneakerOff(slug, p) || farmRioOff(slug, p) || legoOff(slug, p) || grandSunglassesOff(slug, p) || frameOff(slug, p) || foodSubOff(slug, p) || iceCreamOff(slug, p) || crockPotOff(slug, p) || blankOrPastelOff(slug, p) || photoProductOff(slug, p) || puzzleOff(slug, p) || groceryCandyOff(slug, p) || jdDrinkwareOff(slug, p) || followUpOff(slug, p)) return false;
   // A beauty mask is no gift for the kitchen or a trade (its source listed every SharkNinja guide).
   if (/\bface mask\b/i.test(p.name) && FACE_MASK_OFF.includes(slug)) return false;
   if (/\bkni(fe|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false;
@@ -624,7 +626,7 @@ export const utilityCare = (p) => {
 export const BEAUTY_ITEM = /\b(lip (sleeping )?mask|lip (oil|gloss|serum|tint|butter|glaze|balm|treatment|liner|stain|plumper|shimmer)s?|lipsticks?|mascara|bronzer|eyeshadow|eye ?liner|concealer|undereye|corrector|makeup|perfume|eau de (parfum|toilette)|body mist|fragrance mist|perfume mist|serums?|moisturi[sz]er|eye cream|face cream|skin cream|night cream|lotion\+|cleanser|exfoliat\w*|face scrub|sleeping mask|bum bum|body butter|body cream|hand (cream|balm)|hair oil|hair milk|dew drops|nail polish|bath bombs?|skin ?care)\b/i;
 export const BEAUTY_BRAND = /\b(laneige|sol de janeiro|cheirosa|glow recipe|mario badescu|clinique|tatcha|summer fridays|glossier|rare beauty|charlotte tilbury|e\.l\.f\.|maybelline|tarte|mac cosmetics|fenty|drunk elephant|bubble skincare|kiehl'?s)\b/i;
 export const beautyItem = (p) => BEAUTY_ITEM.test(p.name ?? "") || HAIR_BEAUTY.test(p.name ?? "") || BEAUTY_BRAND.test(`${p.name ?? ""} ${p.brand ?? ""}`);
-export const BEAUTY_GUIDES = ["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma", "best-friend", "girls-teens", "stocking-stuffers", "self-care-lover"];
+export const BEAUTY_GUIDES = ["her", "mom", "wife", "girlfriend", "sister", "aunt", "grandma", "best-friend", "girls-teens", "stocking-stuffers", "self-care-lover", "advent-calendars"];
 export const BEAUTY_BUDGET = /^(under-\d+|100-and-up)$/;
 export const BEAUTY_CAREER = /^(nail-techs|estheticians|cosmetologists|hairstylists|hair-stylists|makeup-artists|salon-owners)$/;
 export const beautyGuide = (slug) => slug.startsWith("store-") || BEAUTY_GUIDES.includes(slug) || BEAUTY_BUDGET.test(slug) || BEAUTY_CAREER.test(slug);
@@ -1090,13 +1092,20 @@ export const beautyPreference = (p, slug) => {
  * A brand field that names the store, not the maker (fit audit r4: Macy's Le Creuset kettle, Target's BISSELL vacuum,
  * Tractor Supply's Hape grill): the maker the name opens with, else no brand (never "On Macy's").
  */
-export const RETAILER_BRAND = /^(macy'?s|target|target\.com|tractor supply|walmart|walmart\.com)$/i;
+// Store audit C (11-19): Zappos, REI, Nordstrom Rack, Dermstore, QVC, Amazon and "Walmart Affiliate Program" also showed as the brand.
+export const RETAILER_BRAND = /^(macy'?s|target|target\.com|tractor supply|walmart|walmart\.com|walmart affiliate program|zappos|zappos\.com|rei|rei co-?op|nordstrom rack|dermstore|qvc|amazon|amazon\.com)$/i;
 export const MAKER_PREFIXES = ["Bayou Classic", "BISSELL", "Camellia", "Cook With Color", "Cutting Edge", "Hape", "Hotel Collection", "Huntworth",
-  "Lancôme", "Le Creuset", "Michael Kors", "Nespresso", "NEXPURE", "Nexpure", "Tabasco", "Tony Chachere's", "VAVSEA", "YETI", "Zatarain's", "Zatarains"];
+  "Lancôme", "Le Creuset", "Michael Kors", "Nespresso", "NEXPURE", "Nexpure", "Tabasco", "Tony Chachere's", "VAVSEA", "YETI", "Zatarain's", "Zatarains",
+  // Store audit C (11-19): the makers Zappos, REI, Nordstrom Rack, Dermstore, QVC and Amazon listings open with.
+  "UGG", "HOKA", "Birkenstock", "Crocs", "On", "The North Face", "Dr. Martens", "Barefoot Dreams", "kate spade new york", "Kate Spade", "Steve Madden", "adidas",
+  "Sam Edelman", "Nike", "TATCHA", "Tatcha", "Kiehl's", "Dr.Jart+", "First Aid Beauty", "Patagonia", "Vuori", "Stanley", "Leatherman", "Garmin", "JBL", "Shokz", "Rumpl",
+  "Columbia", "Owala", "Hydro Flask", "Sorel", "Teva", "Chaco", "Keen", "Brooks", "New Balance", "Sol de Janeiro", "LANEIGE", "Clinique", "Lancôme", "Slip", "Apple"];
 export const retailerBrand = (name, brand) => {
   const b = String(brand ?? "").trim();
   if (!RETAILER_BRAND.test(b)) return brand;
   const n = String(name ?? "");
+  // Amazon's own devices and memberships keep Amazon as their brand.
+  if (/^amazon/i.test(b) && /\b(kindle|echo|fire tv|alexa|audible|prime|amazon)\b/i.test(n)) return brand;
   if (n.toLowerCase().startsWith(b.toLowerCase().replace(/\.com$/, ""))) return brand;
   const maker = MAKER_PREFIXES.find((m) => n.startsWith(`${m} `));
   return maker === "Zatarains" ? "Zatarain's" : maker ?? "";
@@ -1266,7 +1275,7 @@ export const farmRioOff = (slug, p) => (!slug.startsWith("store-") && /^farm rio
 /** Owner 11-19 ("no grandma wants legos"): no LEGO, Botanicals and adult sets included, on the grandparent guides. */
 // Broadened 11-19 ("remove any legos for adults"): LEGO only on the kids, age, niece, nephew and teens guides.
 export const LEGO_OK = (slug) => GUIDE_GROUPS.get(slug) === "For kids" || ["kids", "niece", "nephew", "cousins"].includes(slug) || /teens$/.test(slug);
-export const legoOff = (slug, p) => !slug.startsWith("store-") && !LEGO_OK(slug) && /\blego\b/i.test(`${p.name} ${p.brand ?? ""}`);
+export const legoOff = (slug, p) => !slug.startsWith("store-") && slug !== "advent-calendars" && !LEGO_OK(slug) && /\blego\b/i.test(`${p.name} ${p.brand ?? ""}`);
 /** Owner 11-19 ("remove from grandpa", Ray-Ban aviators with yellow lenses): no sunglasses on the grandparent guides. */
 export const grandSunglassesOff = (slug, p) => ["grandma", "grandpa", "grandparents", "new-grandparent"].includes(slug) && /\b(sunglasses|aviators?|wayfarers?|ray-?ban)\b/i.test(`${p.name} ${p.brand ?? ""}`);
 /** Owner 11-19 ("remove digital photo from grandpa"): a digital photo frame shows only on Grandma or Grandparents. */
@@ -1287,7 +1296,10 @@ export const foodSubOff = (slug, p) => !slug.startsWith("store-") && !(slug in F
 export const SHIPPED_ICE_CREAM = /\b(ice cream|gelato)\b[^,]*\b(pints?|gift|box|sampler|collection|pack|delivery|club)\b|\bpints?\b[^,]*\bice cream\b|^(ecreamery|jeni'?s( splendid ice creams)?|salt (&|and) straw|mcconnell'?s( fine ice creams)?|van leeuwen)$/i;
 export const iceCreamOff = (slug, p) => !slug.startsWith("store-") && !/\b(maker|machine|creami|scoop|bowl)\b/i.test(String(p.name ?? ""))
   && (SHIPPED_ICE_CREAM.test(String(p.name ?? "")) || SHIPPED_ICE_CREAM.test(String(p.brand ?? "").trim()));
-export const crockPotOff = (slug, p) => !slug.startsWith("store-") && /\bcrock-?pot\b/i.test(`${p.name} ${p.brand ?? ""}`) && !/\b(smart|wi-?fi|app)\b/i.test(String(p.name ?? ""));
+// Owner 11-19 (clarified): only a BASIC slow cooker is off; an upgraded multi-cooker (Ninja PossibleCooker, Instant Pot Pro /
+// Duo Crisp, Our Place Dream Cooker, Crock-Pot Express) is welcome where it fits.
+export const crockPotOff = (slug, p) => !slug.startsWith("store-") && /\b(crock-?pot|slow ?cooker)\b/i.test(`${p.name} ${p.brand ?? ""}`)
+  && !/\b(smart|wi-?fi|app|express|multi-?(cooker|use)|pressure|possible ?cooker|duo crisp|pro|dream cooker)\b/i.test(String(p.name ?? ""));
 /**
  * Owner 11-19 screenshots: photos that showed as blank boxes on the live men's guides (Southern Tide's Skipjack Polo
  * ShopMy pin, Stanley's 12 oz camp mug PNG; both answer 200 to curl, cause not yet confirmed) leave the people guides,
@@ -1318,7 +1330,80 @@ export const puzzleOff = (slug, p) => !slug.startsWith("store-") && JIGSAW.test(
  *  guide, the Treats guide included. */
 export const GROCERY_CANDY = /\b(jelly beans?|gummies|gummy|candy (bag|canes?|tube|bar)s?|chocolate bars?|m&m'?s|skittles|starburst|sweetarts|reese'?s|hershey'?s|kit ?kat|twix|snickers|peppermint bark squares|candy)\b/i;
 export const groceryCandyOff = (slug, p) => !slug.startsWith("store-") && GROCERY_CANDY.test(`${p.name} ${p.brand ?? ""}`)
-  && (typeof p.price !== "number" || p.price < 15) && !/\b(gift (box|set|tin)|assortment|collection box)\b/i.test(String(p.name ?? "")) || (!slug.startsWith("store-") && /^jelly belly$/i.test(String(p.brand ?? "").trim()) && /\b8 ?oz\b/i.test(String(p.name ?? "")));
+  && (typeof p.price !== "number" || p.price < 15) && !/\b(gift (box|set|tin)|assortment|collection box|candy land|board game|game)\b/i.test(String(p.name ?? "")) || (!slug.startsWith("store-") && /^jelly belly$/i.test(String(p.brand ?? "").trim()) && /\b8 ?oz\b/i.test(String(p.name ?? "")));
 /** Owner 11-19 ("lots of more popular cups to replace this one"): no JD Sports drinkware listing on any guide. */
 export const jdDrinkwareOff = (slug, p) => !slug.startsWith("store-") && /^jd sports$/i.test(String(p.retailer ?? p.store ?? "").trim().replace(/^store-/, "").replace(/-/g, " "))
   && /\b(tumblers?|quencher|bottles?|mugs?|cups?|flowstate)\b/i.test(String(p.name ?? ""));
+
+/**
+ * OWNER FOLLOW-UP 11-19 (FOLLOWUP-OWNER-1119.md, after #4768's freeze).
+ * Men's guides: no pink or pastel on ANY item type (owner: pale mint Crocs and a pink YETI Roadie on Brother, a pink
+ * Southern Tide polo), read from the name and the photo's file name.
+ */
+export const MEN_PASTEL = /\b(mint|pink|blush|rose quartz|lavender|lilac|peach|pastel|seafoam|baby blue|petal|orchid|sea pink|bubblegum|cotton candy|marshmallow|candy coated)\b/i;
+export const MEN_COLOR_GUIDES = [...MEN_FAMILY_GUIDES, "nephew", "boys-teens", "brother-in-law", "new-dad"];
+export const menPastelOff = (slug, p) => MEN_COLOR_GUIDES.includes(slug) && MEN_PASTEL.test(`${p.name} ${String(p.image ?? "").replace(/[-_]/g, " ")}`);
+/** Baby items (soothers, loveys, rattles, teethers, baby blankets, swaddles) only on baby, new-parent and baby-age guides (owner: a Jellycat Bunny Soother on a friend guide). */
+export const BABY_ITEM = /\b(soothers?|loveys?|rattles?|teethers?|teething|baby blankets?|swaddles?|pacifiers?|onesies?|crib|bassinet|burp cloths?|bibs?|baby (bodysuit|sleeper|monitor|carrier|bottle)s?)\b/i;
+export const BABY_OK = (slug) => /bab(y|ies)|^new-(mom|dad|grandparent)$|^mom-to-be$|^new-parents$|^grandparents$/.test(slug);
+export const babyOff = (slug, p) => !slug.startsWith("store-") && !BABY_OK(slug) && BABY_ITEM.test(String(p.name ?? ""));
+/** Named owner removals (11:16 AM): Kendra Scott Elisa in pink from Bloomingdale's, the Nike AF1 '07 Suede, the pink Southern Tide Skipjack polo. */
+export const OWNER_REMOVED = (p) => {
+  const t = `${p.name} ${p.brand ?? ""} ${p.href ?? ""} ${p.affiliate_href ?? ""} ${p.image ?? ""} ${p.retailer ?? ""} ${p.store ?? ""}`;
+  return (/\belisa\b/i.test(p.name) && /kendra/i.test(t) && /bloomingdale|pink/i.test(t))
+    || /\bair force 1\b[^,]*\bsuede\b/i.test(p.name)
+    || (/\bskipjack\b/i.test(p.name) && /pink/i.test(t));
+};
+/**
+ * Old electronics (owner: "no electronics should not be the most up to date version"): the previous generations the
+ * store audit C and the lead named (AirPods Pro 2, JBL Flip 5 / 6 and Charge 5, Garmin Instinct 2, Forerunner 265,
+ * Logitech G733) leave every page, store pages included.
+ */
+export const OLD_ELECTRONICS = /\bairpods pro 2\b|\bairpods pro \(2nd gen|\bjbl (flip [56]|charge 5)\b|\binstinct 2(x|s)?\b|\bforerunner 265\b|\bg733\b/i;
+/** Recognizable brands only (owner: "a lot of other better options"): Amazon and Walmart trinkets with no real maker leave the people guides. */
+export const GENERIC_TRINKET = /\b(message card|jewelry (dish|tray)|ring dish|trinket (dish|tray)|love knot|friendship (bracelets?|candle|gift)|hi-?lo throw|photo album|\d+ pockets|miss your face|gag gift|funny gift|novelty|spa (gift )?basket|gift basket|self[- ]care (gift )?(box|basket|package|kit)|warm hug|cocoa[^,]*mug|mug[^,]*cocoa|jar candle)\b/i;
+export const GENERIC_BRAND = /^(amazon|walmart|walmart affiliate program|generic|unbranded|unknown)?$/i;
+export const offBrandOff = (slug, p) => {
+  if (slug.startsWith("store-") || ["gift-cards", "subscriptions"].includes(slug) || !["By person", "For kids", "By budget"].includes(GUIDE_GROUPS.get(slug))) return false;
+  // Gift cards, memberships and books name their maker in the title (Amazon's feed leaves their brand empty).
+  if (/\b(e-?gift|gift ?card|membership|subscription|audible|kindle unlimited|prime)\b/i.test(String(p.name ?? ""))) return false;
+  const url = `${p.href ?? ""} ${p.affiliate_href ?? ""}`;
+  if (!/amazon\.com|amzn\.to|walmart\.com|walmrt\.us/i.test(url)) return false;
+  return GENERIC_TRINKET.test(String(p.name ?? "")) || (GENERIC_BRAND.test(String(p.brand ?? "").trim()) && !brandFromName(p.name));
+};
+export const followUpOff = (slug, p) => OWNER_REMOVED(p) || OLD_ELECTRONICS.test(String(p.name ?? "")) || menPastelOff(slug, p) || babyOff(slug, p) || offBrandOff(slug, p);
+/**
+ * READY PASS 1119c (owner 11-19, "not ready for people to see"; FOLLOWUP-OWNER-1119.md).
+ * Non-gift categories (owner 1:08 PM): rentals, ad platforms, CBD, specialty sauces, smoke and CO2 alarms, TV / DVR /
+ * streaming services, wigs, limos, business phones, job search, home warranties, flights and travel booking, VPNs,
+ * insurance, software, loans and hosting. Gifts only: read from the name and brand, on every page, store pages too.
+ * Sauces leave every guide but the Louisiana and food ones (a Louisiana hot sauce set is a Louisiana pantry gift).
+ */
+export const NON_GIFT_SERVICE = /\b(rentals?|rent a (car|rv|boat)|car hire|ad platform|advertising|cbd|hemp (oil|gumm\w*|extract)|delta[- ]?8|thc|smoke (alarm|detector)s?|(co2?|carbon monoxide) (alarm|detector)s?|dvr|tivo|directv|sling tv|fubo|streaming (service|plan)|cable tv|wigs?|lace front|limo(usine)?s?( service)?|business phone|voip|phone system|job (search|board)s?|resume (writing|builder)|home warrant(y|ies)|protection plan|airfare|flights? (to|deal|booking)s?|travel booking|hotel booking|\w*vpn|antivirus|insurance|software|license key|loans?|credit repair|web hosting|domain name|website builder)\b/i;
+export const SAUCE = /\b(sauces?|simmer sauce|curry paste|chutney)\b/i;
+export const SAUCE_OK = (slug) => slug.startsWith("store-") || /^louisiana-|^crawfish-|^(coffee-and-beignets|new-orleans|mardi-gras|game-day|acadiana|baton-rouge|north-louisiana|purple-and-gold-lover)$/.test(slug)
+  || FOOD_GUIDES.includes(slug);
+export const nonGiftService = (slug, p) => NON_GIFT_SERVICE.test(`${p.name} ${p.brand ?? ""}`) || (!SAUCE_OK(slug) && SAUCE.test(String(p.name ?? "")) && !/\b(pan|pot|maker|warmer|dispenser|bottle|brush)\b/i.test(String(p.name ?? "")));
+/** No gift pick over $500 on any page (owner 11-19: "like 500 is the max"). */
+export const PRICE_MAX = 500;
+/** A product shows in at most 2 non-store guides (owner 1:25 PM: "no more than 2 duplicates"), owner picks included. */
+export const DUP_GUIDE_MAX = 2;
+/**
+ * ShopMy's old S3 photo hosts (403 to every request since 11-18) and the CDN that serves the same key now (lead 11-19,
+ * 1530 train; curl 11-19: all 1,114 old URLs in the picks folder answer 200 at the new host). shopmyCdnUrl returns the
+ * new URL, or null for anything else. Only URLs checked by scripts/gift-guide-shopmy-cdn.mjs are swapped.
+ */
+export const SHOPMY_S3 = /https:\/\/production-shopmyshelf-(uploads|pins)\.s3[.-]us-east-2\.amazonaws\.com\//;
+export const shopmyCdnUrl = (u) => {
+  const m = typeof u === "string" ? u.match(new RegExp(`^${SHOPMY_S3.source}([^?#\\s"]+)$`)) : null;
+  return m ? `https://static.shopmy.us/${m[1]}/${m[2]}` : null;
+};
+/**
+ * Kids' toys stay off the adult hobby guides (owner 2026-11-19: "The horse lover guide has a toy horse on it. Remove
+ * it."): Breyer-type figurines, plush and stuffed animals, toy horses and playsets on the Hobbies guides and Horse Lover
+ * (a pet toy for the animal itself, like a horse's Jolly Ball or a dog's plush, is not a kids' toy).
+ */
+export const KIDS_TOY = /\b(breyer|schleich|plush(ie)?s?|stuffed (animals?|horses?|toys?)|stuff(y|ies)|squishmallows?|toy (horses?|ponies|pony)|rocking horse|hobby horse|playsets?|play set|my little pony)\b/i;
+export const ADULT_HOBBY_GUIDES = ["horse-lover"];
+export const kidsToyOff = (slug, p) => (GUIDE_GROUPS.get(slug) === "Hobbies" || ADULT_HOBBY_GUIDES.includes(slug))
+  && KIDS_TOY.test(`${p.name} ${p.brand ?? ""}`) && !/\b(dogs?|cats?|pets?|for horses|horse toy)\b/i.test(String(p.name ?? ""));

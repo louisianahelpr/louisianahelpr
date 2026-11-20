@@ -37,6 +37,7 @@ const ACCOUNTANT_AS_A_CAREER: Record<string, string> = {
   "src/content/giftGuidePicks.ts": "generated from the gift-guide picks: the Accountants career guide's slug and picks",
   "src/content/giftGuideCoverSlugs.ts": "generated: the gift guides with a cover file, by slug: the Accountants career guide's \"accountants\"",
   "src/lib/giftGuideShareImages.mjs": "the gift guides with a share image, by slug: the Accountants career guide's \"accountants\"",
+  "src/content/giftGuideSeo.mjs": "generated: the indexed gift guides' names, \"Gifts for Accountants\" (shown again from 1 pick, owner 11-19)",
 };
 
 const files = trackedFiles("src").filter((f) => /\.(tsx?|mjs)$/.test(f) && !/\.(test|spec)\.|^src\/test\//.test(f));

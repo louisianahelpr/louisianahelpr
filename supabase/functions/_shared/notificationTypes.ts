@@ -92,6 +92,8 @@ export const NOTIFICATION_TYPE_MAP: Record<string, { prefCol: string; category: 
   shops_updates:         { prefCol: 'email_shops_updates',         category: 'shops_updates' },
   // New from shops you follow (20261112070000): written by a DB trigger; its email switch defaults OFF.
   shops_following:       { prefCol: 'email_shops_following',       category: 'shops_following' },
+  // 25 Days of Louisiana Giveaways reminders (20261119200128): written by a DB cron; its email switch defaults OFF.
+  giveaway_reminders:    { prefCol: 'email_giveaway_reminders',    category: 'giveaway_reminders' },
   // Admin bell activity (20261112061000): bell only; its email switch defaults OFF.
   admin_activity:        { prefCol: 'email_admin_activity',        category: 'admin_activity' },
 }

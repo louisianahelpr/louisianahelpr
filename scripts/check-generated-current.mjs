@@ -291,6 +291,7 @@ export const HISTORICAL = {
  * reason. A script that starts writing a committed file must move out of here.
  */
 export const WRITES_NOT_COMMITTED = {
+  "scripts/gift-guide-shopmy-cdn.mjs": "the checked ShopMy S3 -> static.shopmy.us photo map, _shopmy-cdn-photos.json in the lead's picks folder (~/Desktop/Gift-guide-picks, outside the repo); scripts/gift-guide-picks.mjs reads it; never a repo file",
   "scripts/ci/previous-refresh-pr-red.mjs": "Q2395: red=/message= lines to $GITHUB_OUTPUT in scoreboard.yml's land job (a step output, never a repo file)",
   "scripts/e2e/declutterPayoutProof.mjs": "the proof run's state JSON (--state, $RUNNER_TEMP in declutter-payout-proof.yml, uploaded as the run's artifact) and its $GITHUB_STEP_SUMMARY table; never a repo file",
   "scripts/rotate-review-demo-password.mjs": "Q1790: a 0600 backup of the new App Review demo password to ~/.lh-backups/review-demo-password-<date>.txt (outside the repo); never a repo file",

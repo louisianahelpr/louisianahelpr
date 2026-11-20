@@ -54,7 +54,8 @@ export interface GiftSection {
  * DiecastModelsWholesale.com). Plain site links for now; the lead swaps in the CJ tracking links later. Each image is
  * one the brand's own home page shows.
  */
-export const BRAND_SITES = ["www.zchocolat.com", "www.diecastmodelswholesale.com"] as const;
+// 1530 train (lead 11-19): zChocolat left the For Her row and DiecastModelsWholesale is blocked; no link uses either host.
+export const BRAND_SITES = [] as const;
 
 /**
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
@@ -66,7 +67,7 @@ export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.n
  * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:
  * each link a product page from the shop's own list, HTTP 200 when opened). Exact hosts, never a wildcard.
  */
-export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "www.fleurtygirl.com", "www.nolacouture.com", "www.redstickspice.com", "www.communitycoffee.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.cajunpowersauce.com", "shop.tabasco.com", "www.dirtycoast.com", "www.leahspralines.com", "www.frenchtruckcoffee.com", "www.camelliabrand.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
+export const LOUISIANA_SHOPS = ["dirtycoast.com", "fleurtygirl.com", "www.fleurtygirl.com", "www.nolacouture.com", "www.communitycoffee.com", "auntsallys.com", "www.krewe.com", "leahspralines.com", "southernmarsh.com", "gambinos.com", "crew-dog.com", "www.cajunpowersauce.com", "shop.tabasco.com", "www.dirtycoast.com", "www.leahspralines.com", "www.frenchtruckcoffee.com", "www.camelliabrand.com", "randazzokingcake.com", "southerncandymakers.com", "redstickspice.com", "dupuys.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
 
 /**
  * Brands made in Louisiana: only these get the "Louisiana-made" badge (a pick marked louisianaFit that is not one of
@@ -168,11 +169,9 @@ export const discountCodes: DiscountCode[] = [
   { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28" },
   { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+" },
   { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions" },
-  { rank: 4, store: "Free Country", code: "WINTER50", offer: "Up to 50% off pet jackets" },
   { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide" },
   // Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
   { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off your first order; stacks with sales, one use per person" },
-  { rank: 9, store: "Magic Story", code: "B2G1F", offer: "Buy 2 personalized books, get 1 free", dates: "Nov 20 – 30", starts: "2026-11-20", expires: "2026-11-30" },
   { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off" },
   { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off" },
   { rank: 12, store: "Bon Wellness", code: "LEXI20", offer: "20% off" },
@@ -317,12 +316,7 @@ export const giftGuides = {
           image: "https://static.shopmy.us/pins/zoom-104050519-1794418254578-.jpg",
           href: MOM,
         },
-        {
-          name: "zChocolat French chocolates",
-          line: "French chocolate gift boxes, for the chocolate lover.",
-          image: "https://www.zchocolat.com/img/menu/featured-assortments.jpg",
-          href: "https://www.zchocolat.com/",
-        },
+        // Lead 11-19 (1530 train): the zChocolat box is off the For Her row.
       ],
     },
     {
@@ -347,12 +341,7 @@ export const giftGuides = {
           image: "https://static.shopmy.us/uploads/pretty-prod-1765315393509",
           href: DAD,
         },
-        {
-          name: "DiecastModelsWholesale.com model cars",
-          line: "Diecast model cars, for collectors.",
-          image: "https://cdn11.bigcommerce.com/s-4df9uz5/images/stencil/500x659/carousel/22/shop_all__28122.jpg",
-          href: "https://www.diecastmodelswholesale.com/",
-        },
+        // Lead 11-19 (1530 train): the diecast store is off the For Him row (DiecastModelsWholesale is on the blocklist).
       ],
     },
     {

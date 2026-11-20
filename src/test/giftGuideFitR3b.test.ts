@@ -25,7 +25,8 @@ import {
 
 type Pick = { name: string; brand?: string; href: string };
 const DIR = "src/content/giftGuidePicks";
-const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
+// The owner's own picks (ownerPick, _owner-picks.json) are exempt from every rule (owner 11-19).
+const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? (JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks as (Pick & { ownerPick?: true })[]).filter((p) => !p.ownerPick) : []);
 const slugs = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
 const guides = slugs.filter((s) => !s.startsWith("store-") && s !== "25-days-sponsors");
 const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -101,7 +102,7 @@ describe("gift guides: item fit r3b (fit audit + lead's calls, 11-19)", () => {
     expect(puppy.filter((p) => !PUPPY_ITEM.test(p.name)).map((p) => p.name)).toEqual([]);
     expect(puppy.filter((p) => OWNER_MERCH.test(p.name)).length).toBeLessThanOrEqual(1);
     const mail = pageOf("mail-carrier-and-delivery-drivers");
-    expect(mail.length).toBeGreaterThan(5); // one guide per product + removal lists (owner 11-19)
+    expect(mail.length).toBeGreaterThan(4); // one guide per product + removal lists (owner 11-19); 5 after the 1119d / fit-audit cuts of marketplace brands
     expect(mail.filter((p) => !String(p.brand ?? "").trim()).map((p) => p.name)).toEqual([]);
   });
 });

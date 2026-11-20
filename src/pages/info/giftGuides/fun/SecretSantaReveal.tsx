@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FUN_WORDS as W, SANTA_PATH } from "@/content/giftGuideFun1120";
 import { revealSecretSanta, setSecretSantaWishList, type SantaReveal } from "@/lib/giftGuideFunApi";
@@ -8,6 +8,9 @@ import { listName, listRefs, useGiftList } from "../giftList";
 import { FunBody, funHeader } from "./FunPage";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { track } from "@/lib/analytics";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useSantaIdeas, type SantaFor } from "./santaIdeas";
+import { GiftOut } from "../GiftOut";
 
 /**
  * /gift-guides/secret-santa/<code>/<token> (owner 2026-11-20): one person's private reveal. It shows ONLY their match,
@@ -26,6 +29,9 @@ export default function SecretSantaReveal() {
   const [sharing, setSharing] = useState(false);
   const list = useGiftList();
   const refs = listRefs(list);
+  const { pathname } = useLocation();
+  const { user } = useAuthReady();
+  const ideas = useSantaIdeas(code);
 
   const load = useCallback(() => {
     setState({ kind: "loading" });
@@ -91,10 +97,21 @@ export default function SecretSantaReveal() {
                 <p className="gg-fun-note w-full" data-reveal-no-list="">{W.revealNoList(state.r.match)}</p>
               )}
               <Button asChild variant="outline" className="h-auto max-w-full whitespace-normal text-center">
-                <Link to="/gift-guides/swipe" data-reveal-find="">{W.revealFindGifts}</Link>
+                <Link to="/gift-guides/swipe" state={{ santa: { code, match: state.r.match, budget: state.r.budget, back: pathname } satisfies SantaFor }} data-reveal-find="">{W.revealFindGifts}</Link>
               </Button>
             </div>
           </div>
+          {(ideas.length > 0 || user) && (
+            <div className="gg-fun-card" data-reveal-ideas="">
+              <p className="m-0 font-semibold">{W.revealIdeasTitle(state.r.match)}</p>
+              {ideas.length > 0 && (
+                <ul className="gg-fun-list mt-2">
+                  {ideas.map((i) => <li key={i.href} className="text-sm"><GiftOut href={i.href} className="gg-link">{i.name}<span className="sr-only"> (opens in a new tab)</span></GiftOut></li>)}
+                </ul>
+              )}
+              {user && <Link to="/gift-guides/planner" className="gg-link mt-2 inline-block text-sm" data-reveal-ideas-planner="">{W.revealIdeasPlanner} ›</Link>}
+            </div>
+          )}
           <div className="gg-fun-card">
             <p className="m-0 font-semibold">{W.revealMyList}</p>
             <p className="gg-fun-note mt-1">{W.revealMyListHelp}</p>

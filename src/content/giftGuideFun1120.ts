@@ -9,6 +9,7 @@
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { FINDER_WHO } from "@/content/giftGuideExtras1120";
 import { cleanGiftName } from "@/lib/giftNameClean";
+import { fitsBudget, pickCeiling } from "@/content/giftPickBand";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Shared: today in Louisiana
@@ -132,21 +133,26 @@ export const SANTA_TOKEN = /^[a-f0-9]{64}$/;
 // ---------------------------------------------------------------------------------------------------------------
 // (2) Swipe to find gifts
 
-export type SwipeWho = "mom" | "dad" | "her" | "him" | "teen" | "kids" | "friends" | "coworkers" | "louisiana";
+export type SwipeWho = "me" | "mom" | "dad" | "her" | "him" | "teen" | "kids" | "friends" | "coworkers" | "louisiana";
 export type SwipeBudget = 25 | 50 | 100 | 0;
 
-/** Who: the label and the guides (and sections) the cards come from (the finder's own lists where they exist). */
+/**
+ * Who: the label and the guides (and sections) the cards come from (the finder's own lists where they exist), and
+ * `forName`, the gift planner entry a saved card goes to (owner 11-20: saving for someone else never goes on MY wish
+ * list; only "Me" saves to the wish list).
+ */
 const finderGuides = (id: string) => FINDER_WHO.find((w) => w.id === id)?.guides ?? [];
-export const SWIPE_WHO: { id: SwipeWho; label: string; guides: { slug: string; sections?: string[] }[] }[] = [
-  { id: "mom", label: "Mom", guides: finderGuides("mom") },
-  { id: "dad", label: "Dad", guides: finderGuides("dad") },
-  { id: "her", label: "Her", guides: finderGuides("her") },
-  { id: "him", label: "Him", guides: finderGuides("him") },
-  { id: "teen", label: "Teen", guides: finderGuides("teen") },
-  { id: "kids", label: "Kids", guides: finderGuides("kids") },
-  { id: "friends", label: "Friends", guides: finderGuides("friend") },
-  { id: "coworkers", label: "Coworkers", guides: finderGuides("coworker") },
-  { id: "louisiana", label: "Louisiana", guides: [{ slug: "louisiana-made" }, { slug: "shop-small-louisiana" }, { slug: "louisiana-food-gifts" }] },
+export const SWIPE_WHO: { id: SwipeWho; label: string; guides: { slug: string; sections?: string[] }[]; forName?: string }[] = [
+  { id: "me", label: "Me", guides: [...finderGuides("her"), ...finderGuides("him")] },
+  { id: "mom", label: "Mom", guides: finderGuides("mom"), forName: "Mom" },
+  { id: "dad", label: "Dad", guides: finderGuides("dad"), forName: "Dad" },
+  { id: "her", label: "Her", guides: finderGuides("her"), forName: "Her" },
+  { id: "him", label: "Him", guides: finderGuides("him"), forName: "Him" },
+  { id: "teen", label: "Teen", guides: finderGuides("teen"), forName: "Teen" },
+  { id: "kids", label: "Kids", guides: finderGuides("kids"), forName: "Kids" },
+  { id: "friends", label: "Friends", guides: finderGuides("friend"), forName: "Friends" },
+  { id: "coworkers", label: "Coworkers", guides: finderGuides("coworker"), forName: "Coworkers" },
+  { id: "louisiana", label: "Louisiana", guides: [{ slug: "louisiana-made" }, { slug: "shop-small-louisiana" }, { slug: "louisiana-food-gifts" }], forName: "Louisiana gifts" },
 ];
 export const SWIPE_BUDGETS: { id: SwipeBudget; label: string }[] = [
   { id: 25, label: "Under $25" }, { id: 50, label: "Under $50" }, { id: 100, label: "Under $100" }, { id: 0, label: "Any budget" },
@@ -190,6 +196,48 @@ export function swipeRound<T extends CatalogPick>(pool: T[], budget: SwipeBudget
   const mixed: T[] = [];
   for (let i = 0; i < out.length; i += 4) mixed.push(...shuffled(out.slice(i, i + 4), rand));
   return mixed;
+}
+
+/** Toys and kids' things: a grown-up's round never borrows them; a kid's borrows only them. */
+const KID_THING = /\b(play-?doh|rainbow loom|loomi|melissa (&|and) doug|squish\w*|lincoln logs|barbie|dolls?|plush|play ?sets?|toys?|paint sticks|dive buddies|ms\.? rachel|lego|stacker|kids?'?)\b/i;
+/** The guides' men's/women's rules (scripts/giftGuideRules.mjs mensItem, WORK_BOOT_OFF), for picks borrowed from a budget guide. */
+const MENS = /\b(men'?s|mens|for men|boys'?|work boots?|steel toe|muckster)\b|^huk$/i;
+const WOMENS = /\b(women'?s|womens|ladies|girls'?|lip|gloss|balm|makeup|mascara|blush|nail|mani|earrings|huggies|hoops?|bobby pins|hair|scrunchies?|bows?|eye patches|eye mask|perfume|parfum|tote|racerback|bandana|welly|emi jay|kitsch|summer fridays|tower 28|olive (&|and) june|sol de janeiro|laneige|bareminerals|benefit|kate spade|spartina|gorjana|baublebar|bath (&|and) body works)\b/i;
+/** Whether a budget-guide pick suits this "who" (men's/women's, kids). */
+export const borrowFits = (who: SwipeWho, p: CatalogPick) => {
+  const text = `${p.name} ${p.brand ?? ""}`;
+  if (who === "kids") return KID_THING.test(text);
+  if (KID_THING.test(text)) return false;
+  if (who === "mom" || who === "her") return !MENS.test(p.name) && !MENS.test(p.brand ?? "");
+  if (who === "dad" || who === "him") return !WOMENS.test(text);
+  return true;
+};
+
+/**
+ * A Secret Santa round (owner 11-20: "$25 budget and the gift ideas shown were all expensive gifts"): only picks KNOWN
+ * to cost at most the group's budget (a checked price, a price band, or a budget section such as "Under $25"; never a
+ * pick with no price), the ones closest to the budget first, then a little under, then the rest under. The person's
+ * own guides lead each price step; the budget guides' picks that suit them (`borrow`) fill in. Each link once, at most
+ * 5 per store, none already seen. A group with no budget (null or 0) gets the ordinary round.
+ */
+export function santaRound<T extends CatalogPick>(pool: T[], borrow: T[], budget: number | null, seen: ReadonlySet<string>, rand: () => number = Math.random): T[] {
+  if (!budget || budget <= 0) return swipeRound(pool, 0, seen, rand);
+  const ranked = [...pool.map((p, i) => ({ p, i })), ...borrow.map((p, i) => ({ p, i: pool.length + i }))]
+    .filter(({ p }) => fitsBudget(p, budget))
+    .sort((a, b) => (pickCeiling(b.p) ?? 0) - (pickCeiling(a.p) ?? 0) || a.i - b.i);
+  const perStore = new Map<string, number>();
+  const used = new Set<string>();
+  const out: T[] = [];
+  for (const { p } of ranked) {
+    if (out.length >= SWIPE_ROUND) break;
+    if (!p.href || !p.name || seen.has(p.href) || used.has(p.href)) continue;
+    const n = perStore.get(p.store) ?? 0;
+    if (n >= SWIPE_PER_STORE) continue;
+    perStore.set(p.store, n + 1);
+    used.add(p.href);
+    out.push(p);
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -363,6 +411,14 @@ export const FUN_WORDS = {
   revealLoading: "Opening your match...",
   revealRetry: "Try again",
   revealFindGifts: "Find a gift for them",
+  revealIdeasTitle: (match: string) => `Gift ideas for ${match}`,
+  revealIdeasPlanner: "See them in your gift planner",
+  // Swipe for a Secret Santa match (owner 11-20: saving for your match never goes on your own wish list)
+  santaFinding: (match: string) => `Finding a gift for ${match}`,
+  santaWithin: (budget: number) => `Only gifts at or under $${budget}.`,
+  santaSavedTitle: (n: number, match: string) => (n === 1 ? `You saved 1 idea for ${match}` : `You saved ${n} ideas for ${match}`),
+  santaSavedDevice: "Saved on this device, with your Secret Santa link.",
+  santaBack: "Back to your Secret Santa",
   // Swipe
   swipeTitle: "Swipe to find gifts",
   swipeWho: "Who's it for?",
@@ -371,6 +427,10 @@ export const FUN_WORDS = {
   swipeSave: "Save",
   swipeSkip: "Skip",
   swipeSaveLabel: (name: string) => `Save ${name} to your wish list`,
+  swipeSaveFor: (who: string) => `Save for ${who}`,
+  swipeSaveForLabel: (name: string, who: string) => `Save ${name} as a gift idea for ${who}`,
+  swipeSavedFor: (n: number, who: string) => (n === 1 ? `You saved 1 idea for ${who}` : `You saved ${n} ideas for ${who}`),
+  swipeSavedPlanner: "Saved to your gift planner.",
   swipeSkipLabel: (name: string) => `Skip ${name}`,
   swipeDetails: "Details",
   swipeShop: "Shop",

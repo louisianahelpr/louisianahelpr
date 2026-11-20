@@ -45,8 +45,10 @@ create function public.declutter_my_block_partners() returns uuid[] language sql
 create table public.profiles(user_id uuid primary key, is_seed boolean not null default false);
 create table public.test_accounts(user_id uuid primary key);
 create table public.declutter_items(id uuid primary key, seller_id uuid not null references auth.users(id), status text not null,
-  price_cents integer not null, current_price_cents integer not null, seller_hidden boolean not null default false, is_seed boolean not null default false, updated_at timestamptz not null default now());
-create table public.declutter_item_private(item_id uuid primary key references public.declutter_items(id), floor_price_cents integer);
+  price_cents integer not null, current_price_cents integer not null, seller_hidden boolean not null default false, is_seed boolean not null default false, updated_at timestamptz not null default now(),
+  sale_mode text not null default 'offers', drop_pct smallint not null default 0, live_at timestamptz default now() - interval '1 day', last_price_drop_on date, price_dropped_at timestamptz, title text not null default 'x');
+create function public.declutter_auto_free_due() returns integer language sql as $$ select 0 $$;
+create table public.declutter_item_private(item_id uuid primary key references public.declutter_items(id), floor_price_cents integer, drop_stop_cents integer);
 create table public.declutter_offers(id uuid primary key default gen_random_uuid(), item_id uuid not null, buyer_id uuid not null, created_at timestamptz not null default now());
 create table public.declutter_item_views(id bigserial primary key, item_id uuid not null, viewer_id uuid, device_id text, created_at timestamptz not null default now());
 `);
@@ -115,6 +117,30 @@ ok((await call(S, `select public.declutter_end_shop_sale()`)).err?.includes("sal
 r = await call(S, `select public.declutter_start_shop_sale(10, now() + interval '1 day', now() + interval '2 days') id`);
 ok((await call(S, `select public.declutter_end_shop_sale() s`)).v?.s === "cancelled", "a scheduled sale can be cancelled");
 ok((await db.query(`select count(*)::int c from public.cron_defects`)).rows[0].c === 0, "no sweep step logged a defect");
+
+// Lead 11-19: the nightly drop never stacks on a sale, and the end puts back the EXACT price (odd cents included).
+await db.exec(`
+insert into public.declutter_items (id, seller_id, status, price_cents, current_price_cents, drop_pct) values
+  ('${it(7)}', '${S}', 'live', 1999, 1999, 5),     -- drops on, odd cents
+  ('${it(8)}', '${S2}', 'live', 3000, 3000, 5);    -- drops on, no sale: drops tonight
+insert into public.declutter_item_private (item_id, floor_price_cents) values ('${it(7)}', 500), ('${it(8)}', 500);
+update public.declutter_items set last_price_drop_on = null;
+`);
+r = await call(S, `select public.declutter_start_shop_sale(15, now(), now() + interval '3 days') id`);
+ok(!!r.v?.id && await price(7) === 1699, `15% off $19.99 is $16.99, to the cent (${await price(7)})`);
+await db.query(`select public.declutter_price_drop_sweep()`);
+ok(await price(7) === 1699, "the nightly drop skips a listing in a running sale (no 5% on top of the sale price)");
+ok(await price(8) === 2800, `a listing outside any sale still drops as before ($30 -> $28) (${await price(8)})`);
+await db.exec(`update public.declutter_items set last_price_drop_on = null`);
+ok((await call(S, `select public.declutter_end_shop_sale() s`)).v?.s === "ended" && await price(7) === 1999, `the end puts back exactly $19.99 (${await price(7)})`);
+await db.query(`select public.declutter_price_drop_sweep()`);
+ok(await price(7) === 1800, `after the sale the nightly drop goes on from the restored price ($19.99 -> $18) (${await price(7)})`);
+// A floor the "Answer offers for me" rule uses: the sale price is never below it, so an automatic answer never goes lower.
+await db.exec(`update public.declutter_item_private set floor_price_cents = 1750 where item_id = '${it(7)}'; update public.declutter_items set current_price_cents = 1999 where id = '${it(7)}'`);
+r = await call(S, `select public.declutter_start_shop_sale(30, now(), now() + interval '1 day') id`);
+ok(await price(7) === 1750, `30% off stops at the seller's lowest price ($17.50), the floor offers answer at (${await price(7)})`);
+await call(S, `select public.declutter_end_shop_sale()`);
+ok(await price(7) === 1999, "and comes back to $19.99");
 
 for (const [fn, sig, members] of [["declutter_start_shop_sale", "integer, timestamp with time zone, timestamp with time zone", true], ["declutter_end_shop_sale", "", true], ["declutter_shop_sale_sweep", "", false], ["declutter_shop_sale_apply", "uuid", false], ["declutter_shop_sale_restore", "uuid", false]]) {
   const a = (await db.query(`select proacl::text a from pg_proc where proname = '${fn}'`)).rows[0]?.a ?? "";

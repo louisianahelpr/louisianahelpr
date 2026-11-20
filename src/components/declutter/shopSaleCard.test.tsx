@@ -8,6 +8,7 @@
  * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |     v_cents := greatest(100, COALESCE(r.floor_price_cents, 100), |     v_cents := greatest(100,
  * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |     IF r.status IN ('live', 'paused') AND r.current_price_cents = r.sale_cents THEN |     IF r.status IN ('live', 'paused') THEN
  * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |          SET current_price_cents = least(r.before_cents, r.price_cents), updated_at = now() |          SET current_price_cents = r.before_cents, updated_at = now()
+ * @mutate supabase/migrations/20261120014036_declutter_shop_sale.sql |                         JOIN public.declutter_shop_sales s ON s.id = x.sale_id AND s.status = 'on'\n                        WHERE x.item_id = i.id AND x.restored_at IS NULL) |                         JOIN public.declutter_shop_sales s ON s.id = x.sale_id AND s.status = 'never'\n                        WHERE x.item_id = i.id AND x.restored_at IS NULL)
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -41,6 +42,10 @@ describe("Declutter top 5 #4: shop-wide sale", () => {
     expect(restore).toContain("IF r.status = 'reserved' AND r.current_price_cents = r.sale_cents THEN CONTINUE;");
     expect(restore).toContain("IF r.status IN ('live', 'paused') AND r.current_price_cents = r.sale_cents THEN");
     expect(restore).toContain("SET current_price_cents = least(r.before_cents, r.price_cents)");
+    // Lead 11-19: the nightly drop never stacks on a running sale, so the end can put back the exact price.
+    const drops = newestFunction("declutter_price_drop_sweep");
+    expect(drops.file).toContain("20261120014036");
+    expect(flat(drops.body)).toContain("AND NOT EXISTS (SELECT 1 FROM public.declutter_shop_sale_items x JOIN public.declutter_shop_sales s ON s.id = x.sale_id AND s.status = 'on' WHERE x.item_id = i.id AND x.restored_at IS NULL)");
     const start = flat(newestFunction("declutter_start_shop_sale").body);
     expect(start).toContain("IF p_ends_at IS NULL OR p_ends_at <= v_start OR p_ends_at > v_start + interval '14 days' OR v_start > now() + interval '14 days' THEN");
   });

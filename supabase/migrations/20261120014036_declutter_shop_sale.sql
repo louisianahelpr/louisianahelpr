@@ -25,6 +25,11 @@
 -- the Q137 seed rule), as any price cut does. No feature switch (owner: ship on for everyone).
 -- REPLAY-SAFE: CREATE TABLE / INDEX IF NOT EXISTS, DROP POLICY IF EXISTS, CREATE OR REPLACE, DROP FUNCTION IF EXISTS
 -- before the changed-signature restatement, cron.schedule by name (replaces), ON CONFLICT.
+--   declutter_price_drop_sweep  RESTATED verbatim from 20261030154745 plus ONE condition: the nightly drop skips a listing
+--                               that is in a running shop sale. Without it the drop would stack on the sale price (20%
+--                               off, then 5% of that each night) and the end could no longer put back the exact price
+--                               (a dropped price is no longer the sale price, so it would read as the seller's change).
+--                               Drops resume the night after the sale ends, from the restored price.
 -- Proof: src/test/pglite/declutterShopSale.pglite.mjs (applied 3x; NEW_MIGRATION=skip red).
 
 -- ---------------------------------------------------------------------------
@@ -412,3 +417,54 @@ BEGIN
   END IF;
 END
 $do$;
+
+-- ---------------------------------------------------------------------------
+-- 8. The nightly price drop pauses during a shop sale. Restated VERBATIM from 20261030154745_declutter_drop_stop_whole_dollar.sql
+--    (the newest definition); the one change is marked CHANGED 20261120014036. Grants restated as there.
+CREATE OR REPLACE FUNCTION public.declutter_price_drop_sweep()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+  v_today date := (now() AT TIME ZONE 'America/Chicago')::date;
+  v_n integer := 0;
+  r record;
+BEGIN
+  -- Q2430: day 12, the seller's "make it free" (one last chance before the 14-day haul-away).
+  v_n := v_n + public.declutter_auto_free_due();
+  FOR r IN
+    UPDATE public.declutter_items i
+       -- Never below the stop point, which is always above the floor (B42).
+       -- 2026-10-28: the seller's own step (drop_pct), not a fixed 5%, and down to a WHOLE dollar
+       -- ($38 at 5% is $36, never $36.10). DA-17: the stop counts up to a whole dollar too ($21.37 lands at $22).
+       SET current_price_cents = greatest(p.floor_price_cents, (ceil(COALESCE(p.drop_stop_cents, p.floor_price_cents) / 100.0) * 100)::integer,
+                                          (floor(i.current_price_cents * (100 - i.drop_pct) / 10000.0) * 100)::integer),
+           last_price_drop_on = v_today,
+           price_dropped_at = now(),
+           updated_at = now()
+      FROM public.declutter_item_private p
+     WHERE p.item_id = i.id
+       AND i.status = 'live'
+       AND i.sale_mode = 'offers'
+       AND i.drop_pct > 0
+       AND i.live_at IS NOT NULL AND i.live_at <= now() - interval '12 hours'
+       AND i.current_price_cents > greatest(p.floor_price_cents, (ceil(COALESCE(p.drop_stop_cents, p.floor_price_cents) / 100.0) * 100)::integer)
+       AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today)
+       -- CHANGED 20261120014036 (Declutter top 5 #4): never on top of a running shop sale; the sale puts back the exact price.
+       AND NOT EXISTS (SELECT 1 FROM public.declutter_shop_sale_items x
+                         JOIN public.declutter_shop_sales s ON s.id = x.sale_id AND s.status = 'on'
+                        WHERE x.item_id = i.id AND x.restored_at IS NULL)
+    RETURNING i.id, i.title, i.current_price_cents, i.is_seed
+  LOOP
+    -- Q2429: the watchers' "price dropped" notice is sent by trg_declutter_items_price_drop_alert
+    -- (every path that lowers a price, rate-limited), no longer from here.
+    v_n := v_n + 1;
+  END LOOP;
+  RETURN v_n;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.declutter_price_drop_sweep() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_price_drop_sweep() TO service_role;

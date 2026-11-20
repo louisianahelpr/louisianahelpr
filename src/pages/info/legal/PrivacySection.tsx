@@ -81,7 +81,7 @@ export const PrivacyContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Location data:</strong> Address and GPS coordinates for matching and proximity verification.</p>
-            <p><strong className="text-foreground">Usage data:</strong> Device information, IP address, browser type, and platform interaction data.</p>
+            <p><strong className="text-foreground">Usage data:</strong> Device information, IP address, browser type, and platform interaction data. If you use our iPhone or Android app, we also keep the date you first and last signed in on it, which app you used, and its version number. You can see this in Download My Data, and it is deleted with your account.</p>
           </>
         }
       />

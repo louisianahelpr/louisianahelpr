@@ -157,6 +157,9 @@ const haul = vi.hoisted(() => ({ rows: [] as unknown[], deleted: [] as string[],
 vi.mock("@/lib/declutter/haulAway", () => ({
   fetchHaulAwayState: async () => haul.rows,
   oneTripGroup: () => [],
+  // Owner 2026-11-20: the opt-in read and filter (haul-away only when the seller asked); every row kept here.
+  fetchHaulAwayOptIns: async () => new Set<string>(),
+  offeredHaulAwayRows: <T,>(rows: T[]) => rows,
   haulJobToDelete: (row: { job_id: string | null }) => row.job_id,
   deleteNeverPaidHaulJob: async (id: string) => { haul.deleted.push(id); return true; },
   cancelHaulAway: async (id: string) => { haul.cancelled.push(id); return "live"; },

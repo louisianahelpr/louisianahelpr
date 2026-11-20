@@ -10,6 +10,7 @@ import { PriorityAlert } from "./PriorityAlert";
 import { TaxReserveCard } from "./TaxReserveCard";
 import { DateRangeBar } from "./DateRangeBar";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import type { ReactNode } from "react";
 
 interface DashboardHomeProps {
   stats: DashboardStats;
@@ -37,12 +38,14 @@ interface DashboardHomeProps {
   alertsPending?: boolean;
   /** What needs attention, named (attentionLine); shown in place of the generic line when standing is "attention". */
   attention?: string | null;
+  /** Cards that read their own data, shown last (Admin.tsx passes the App sign-ins card, owner 2026-11-20). */
+  children?: ReactNode;
 }
 
 export const DashboardHome = ({
   stats, statsLoading, onNavigate,
   dateRange, setDateRange, customDays, setCustomDays,
-  rangeLabel, prevLabel, dataError, standing, seriousAlerts, alertsPending = false, attention = null,
+  rangeLabel, prevLabel, dataError, standing, seriousAlerts, alertsPending = false, attention = null, children,
 }: DashboardHomeProps) => {
   // Design audit r2 #47: "There are items needing attention today." named nothing; the line names what is waiting.
   const standingLine = standing === "attention" && attention ? attention : HOME_STANDING_LINE[standing];
@@ -286,6 +289,7 @@ export const DashboardHome = ({
         statsLoading={statsLoading}
         feesUnknown={feesUnknown}
       />
+      {children}
     </AdminViewShell>
   );
 };

@@ -1,0 +1,468 @@
+{
+ "about": "Gift guides train 1120c (lead 44, 2026-11-20): the owner's adds, the joined Creator Connections campaigns that held no spot (one product each, best-fit section), the XTRATUF XT25 code, the $500 price cap and the store refills. Applied after train 1120b by scripts/gift-guide-picks.mjs through scripts/giftGuideTrain1120c.mjs. Rule shapes as in gift-guide-train-1120b.json.",
+ "waitingOnLinks": "Owner adds held until she decides how links are made (lead 11-20 ~1:45 PM): Kérastase Elixir Ultime, Braun Silk-expert Pro 5 IPL, HydroJug croc Traveler, Ugly Stik GX2, Shimano Stradic/Sedona, Lew's baitcast combo, Abu Garcia baitcast combo, St. Croix rod, Plano tackle bag, Bubba electric fillet knife, magnetic gun cleaning mat, Coach glasses case.",
+ "cuts": [
+  {
+   "guide": "splurge",
+   "match": "SharkNinja Shark CryoGlow LED Face Mask",
+   "exact": true,
+   "why": "the same CryoGlow (Blue Frost) moves to its Creator Connections link (23% vs 8%); the ShopMy link is its fallback after Dec 17"
+  }
+ ],
+ "skippedCampaigns": "HEYDUDE (Amazon Exclusive Wally: the same Wally slip-on is already on Grandparents), plus the joined fit campaigns with no product title or non-Amazon photo found (AVEDA, Barefoot Dreams, BaubleBar, Bliss, Bumble and bumble, Clinique, Colleen Rothschild, Dr.Jart+, Julep, KIKO Milano, Logitech, smashbox, Summer Fridays, Too Faced; Solly Baby placed with its one titled ASIN).",
+ "adds": [
+  {
+   "guide": "gifts-by-budget",
+   "section": "Stocking Stuffers",
+   "why": "lead 11-20: Creator Connections 'Badger Balm 25% Off BFCM: Sunscreen & Balm' (20% + base), ends 2026-12-16",
+   "row": {
+    "name": "Badger Classic Organic Lip Balm, 4 Pack",
+    "brand": "Badger",
+    "line": "Unscented organic lip balm, four tins for every pocket.",
+    "href": "https://www.amazon.com/dp/B07MX4N7BH?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/51T2hjxhi0L.jpg",
+    "store": "store-amazon",
+    "commission": 23,
+    "type": "lip",
+    "campaignEnds": "2026-12-16"
+   }
+  },
+  {
+   "guide": "home-and-kitchen",
+   "section": "Home Cooks & Hosts",
+   "why": "lead 11-20: Creator Connections 'Dreamfarm Fladle fold-flat ladle (30% OFF)' (10% + base), ends 2027-11-14",
+   "row": {
+    "name": "Dreamfarm Fladle Fold-Flat Silicone Ladle, Black",
+    "brand": "Dreamfarm",
+    "line": "A ladle that folds flat in the drawer and scrapes the pot clean.",
+    "href": "https://www.amazon.com/dp/B0F89MR6M4?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/41c8BB-WjRL.jpg",
+    "store": "store-amazon",
+    "commission": 13,
+    "type": "kitchen-tool",
+    "campaignEnds": "2027-11-14"
+   }
+  },
+  {
+   "guide": "gifts-by-budget",
+   "section": "Stocking Stuffers",
+   "why": "lead 11-20: Creator Connections 'Dreamfarm Lestrain sit-up straining spoon (50% OFF)' (10% + base), ends 2027-11-14",
+   "row": {
+    "name": "Dreamfarm Lestrain Sit-Up Slotted Spoon, Red",
+    "brand": "Dreamfarm",
+    "line": "A slotted spoon that stands up off the counter and strains as it scoops.",
+    "href": "https://www.amazon.com/dp/B09H6KNCZY?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/418+yQNsZdL.jpg",
+    "store": "store-amazon",
+    "commission": 13,
+    "type": "kitchen-tool",
+    "campaignEnds": "2027-11-14"
+   }
+  },
+  {
+   "guide": "home-and-kitchen",
+   "section": "Grill Masters & Wine Lovers",
+   "why": "lead 11-20: Creator Connections 'Dreamfarm Oileroo Lite oil sprayer (50% OFF)' (10% + base), ends 2027-11-14",
+   "row": {
+    "name": "Dreamfarm Oileroo Lite Oil Sprayer, Black",
+    "brand": "Dreamfarm",
+    "line": "Sprays, pours or doses oil without clogging, for the grill or the skillet.",
+    "href": "https://www.amazon.com/dp/B09H6J4MNJ?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/41b8V202rFL.jpg",
+    "store": "store-amazon",
+    "commission": 13,
+    "type": "kitchen-tool",
+    "campaignEnds": "2027-11-14"
+   }
+  },
+  {
+   "guide": "gifts-by-budget",
+   "section": "Under $25",
+   "why": "lead 11-20: Creator Connections 'Bioderma- 15% Commission' (15% + base), ends 2027-01-01",
+   "row": {
+    "name": "Bioderma Atoderm Shower Oil",
+    "brand": "Bioderma",
+    "line": "The French pharmacy cleansing oil for dry skin, face and body.",
+    "href": "https://www.amazon.com/dp/B0CY3QBYQR?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/418-XTIZ7IL.jpg",
+    "store": "store-amazon",
+    "commission": 18,
+    "type": "bath",
+    "campaignEnds": "2027-01-01"
+   }
+  },
+  {
+   "guide": "her",
+   "section": "Girlfriend",
+   "why": "lead 11-20: Creator Connections 'Bobbi Brown - 30% Commission - T12 Holiday Deals 2026' (30% + base), ends 2027-01-01",
+   "row": {
+    "name": "Bobbi Brown Bronzing Powder",
+    "brand": "Bobbi Brown",
+    "line": "Bobbi Brown's matte bronzer for a natural, sun-warmed look.",
+    "href": "https://www.amazon.com/dp/B0D28YVFZN?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/31edDTrB62L.jpg",
+    "store": "store-amazon",
+    "commission": 33,
+    "type": "makeup",
+    "campaignEnds": "2027-01-01"
+   }
+  },
+  {
+   "guide": "home-and-kitchen",
+   "section": "Cozy & Self-Care",
+   "why": "lead 11-20: Creator Connections 'Borghese BFCM Fango Mud & Italian Skincare' (20% + base), ends 2026-12-15",
+   "row": {
+    "name": "Borghese Fango Active Mud Mask, Travel Size",
+    "brand": "Borghese",
+    "line": "The Italian spa mud mask for face and body, in a travel tube.",
+    "href": "https://www.amazon.com/dp/B0DZK6L3KT?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/21qGUBdUfZL.jpg",
+    "store": "store-amazon",
+    "commission": 23,
+    "type": "skincare",
+    "campaignEnds": "2026-12-15"
+   }
+  },
+  {
+   "guide": "kids",
+   "section": "Teens (ages 13+)",
+   "why": "lead 11-20: Creator Connections 'COSRX Official 20% Commission BFCM 2026' (20% + base), ends 2026-12-20",
+   "row": {
+    "name": "COSRX Peptide Collagen Hydrogel Eye Patches, 60 Count",
+    "brand": "COSRX",
+    "line": "K-beauty under-eye patches teens trade on TikTok.",
+    "href": "https://www.amazon.com/dp/B0DLKCCPYZ?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/41RAzwRSwcL.jpg",
+    "store": "store-amazon",
+    "commission": 23,
+    "type": "skincare",
+    "campaignEnds": "2026-12-20"
+   }
+  },
+  {
+   "guide": "splurge",
+   "section": "$100 & Up",
+   "why": "lead 11-20: Creator Connections 'Dermalogica Holiday Gift Sets 20% Commission' (20% + base), ends 2027-01-01",
+   "row": {
+    "name": "Dermalogica Expert Cleanse and Glow Set",
+    "brand": "Dermalogica",
+    "line": "Three full-size Dermalogica favorites for a cleaner, brighter routine.",
+    "href": "https://www.amazon.com/dp/B0HHFX8XX3?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/41DDv2dkIXL.jpg",
+    "store": "store-amazon",
+    "commission": 23,
+    "type": "skincare",
+    "campaignEnds": "2027-01-01"
+   }
+  },
+  {
+   "guide": "friends-and-coworkers",
+   "section": "Secret Santa & White Elephant",
+   "why": "lead 11-20: Creator Connections 'DHC BFCM Japanese Skincare Deals & Holiday Gifts' (25% + base), ends 2026-12-15",
+   "row": {
+    "name": "DHC Lip Cream, 3 Pack",
+    "brand": "DHC",
+    "line": "Japan's cult lip balm, three sticks in one pack.",
+    "href": "https://www.amazon.com/dp/B00IM4ZIWG?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/41+TDXUlOYL.jpg",
+    "store": "store-amazon",
+    "commission": 28,
+    "type": "lip",
+    "campaignEnds": "2026-12-15"
+   }
+  },
+  {
+   "guide": "mom",
+   "section": "Mother-in-Law",
+   "why": "lead 11-20: Creator Connections 'ELEMIS BFCM 30% Off Best Sellers 30% CPA' (30% + base), ends 2026-12-12",
+   "row": {
+    "name": "ELEMIS Herbal Lavender Repair Mask",
+    "brand": "ELEMIS",
+    "line": "A soothing lavender clay mask from the British spa brand.",
+    "href": "https://www.amazon.com/dp/B00175S7T8?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/21RzH6iDq3L.jpg",
+    "store": "store-amazon",
+    "commission": 33,
+    "type": "skincare",
+    "campaignEnds": "2026-12-12"
+   }
+  },
+  {
+   "guide": "her",
+   "section": "Wife",
+   "why": "lead 11-20: Creator Connections 'Estée Lauder - 30% Commission - T12 Holiday 2026' (30% + base), ends 2027-01-01",
+   "row": {
+    "name": "Estée Lauder Bronze Goddess Eau de Parfum",
+    "brand": "Estée Lauder",
+    "line": "Coconut, tiare flower and amber: a beach day in a bottle.",
+    "href": "https://www.amazon.com/dp/B0FTHQLZJN?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/31XOLP6qptL.jpg",
+    "store": "store-amazon",
+    "commission": 33,
+    "type": "fragrance",
+    "campaignEnds": "2027-01-01"
+   }
+  },
+  {
+   "guide": "her",
+   "section": "Top picks",
+   "why": "lead 11-20: Creator Connections 'Shark FacialPro Glow Holiday Deals' (20% + base), ends 2026-12-17",
+   "row": {
+    "name": "Shark FacialPro Glow + DePuffi 2-in-1 Facial, Pink",
+    "brand": "Shark",
+    "line": "An at-home facial: hydro-powered cleanse, then a cold depuff.",
+    "href": "https://www.amazon.com/dp/B0H4RTZZ2S?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/31D8sBrFVSL.jpg",
+    "store": "store-amazon",
+    "commission": 23,
+    "type": "beauty-device",
+    "campaignEnds": "2026-12-17"
+   }
+  },
+  {
+   "guide": "mom",
+   "section": "Top picks",
+   "why": "lead 11-20: Creator Connections 'KIEHL'S TURKEY 12 UP TO 50% OFF 30% COMMISSION' (30% + base), ends 2026-12-17",
+   "row": {
+    "name": "Kiehl's Creme de Corps Body Lotion",
+    "brand": "Kiehl's",
+    "line": "Kiehl's cocoa butter body lotion, rich without feeling greasy.",
+    "href": "https://www.amazon.com/dp/B000S97LX2?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/31TlRrOyaNL.jpg",
+    "store": "store-amazon",
+    "commission": 33,
+    "type": "skincare",
+    "campaignEnds": "2026-12-17"
+   }
+  },
+  {
+   "guide": "him",
+   "section": "Top picks",
+   "why": "lead 11-20: Creator Connections 'Lab Series - 30% Commission - T12 Holiday 2026' (30% + base), ends 2027-01-01",
+   "row": {
+    "name": "Lab Series Daily Rescue Energizing Face Lotion",
+    "brand": "Lab Series",
+    "line": "A no-fuss men's moisturizer that wakes up tired skin.",
+    "href": "https://www.amazon.com/dp/B0D31PFFJD?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/21pOudUMe8L.jpg",
+    "store": "store-amazon",
+    "commission": 33,
+    "type": "skincare",
+    "campaignEnds": "2027-01-01"
+   }
+  },
+  {
+   "guide": "home-and-kitchen",
+   "section": "Home Cooks & Hosts",
+   "why": "lead 11-20: Creator Connections 'Ninja 10-in-1 French Door Air Fryer Oven' (20% + base), ends 2026-12-23",
+   "row": {
+    "name": "Ninja French Door Premier Air Fry Oven, Stainless",
+    "brand": "Ninja",
+    "line": "A 10-in-1 countertop oven with French doors and a big air fryer.",
+    "href": "https://www.amazon.com/dp/B0FM5KF34G?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/517E9WMSJ7L.jpg",
+    "store": "store-amazon",
+    "commission": 23,
+    "type": "appliance",
+    "campaignEnds": "2026-12-23"
+   }
+  },
+  {
+   "guide": "life-moments",
+   "section": "New Home",
+   "why": "lead 11-20: Creator Connections 'Ninja EverSear Cookware Launch' (15% + base), ends 2026-12-07",
+   "row": {
+    "name": "Ninja EverSear 3-Piece Stainless Nonstick Fry Pan Set",
+    "brand": "Ninja",
+    "line": "Tri-ply stainless pans with a nonstick surface, in 8, 10 and 12 inch.",
+    "href": "https://www.amazon.com/dp/B0HFSPZXLM?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/312MfVhNHwL.jpg",
+    "store": "store-amazon",
+    "commission": 18,
+    "type": "cookware",
+    "campaignEnds": "2026-12-07"
+   }
+  },
+  {
+   "guide": "family",
+   "section": "Couples & Stay-at-Home Parents",
+   "why": "lead 11-20: Creator Connections 'Ninja Creami and Creami Scoop & Swirl' (15% + base), ends 2026-12-23",
+   "row": {
+    "name": "Ninja CREAMi Scoop & Swirl Ice Cream and Soft Serve Maker",
+    "brand": "Ninja",
+    "line": "Ice cream, gelato and soft serve at home, with a swirl handle.",
+    "href": "https://www.amazon.com/dp/B0DSJW8SFG?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/41D4oY9Zp-L.jpg",
+    "store": "store-amazon",
+    "commission": 18,
+    "type": "appliance",
+    "campaignEnds": "2026-12-23"
+   }
+  },
+  {
+   "guide": "gifts-by-budget",
+   "section": "Under $25",
+   "why": "lead 11-20: Creator Connections 'Hero Cosmetics November Campaign 15%' (15% + base), ends 2026-12-20",
+   "row": {
+    "name": "Hero Cosmetics Mighty Patch Original, 72 Count",
+    "brand": "Hero Cosmetics",
+    "line": "The #1 pimple patch, a big pack that lasts.",
+    "href": "https://www.amazon.com/dp/B07B4KQVK6?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/31qSKV4fJeL.jpg",
+    "store": "store-amazon",
+    "commission": 18,
+    "type": "skincare",
+    "campaignEnds": "2026-12-20"
+   }
+  },
+  {
+   "guide": "life-moments",
+   "section": "Baby",
+   "why": "lead 11-20: Creator Connections 'Solly Baby BFCM Baby Wrap & Carrier' (10% + base), ends 2026-12-16",
+   "row": {
+    "name": "Solly Baby Soft Buckle Carrier, Almondine Chequer",
+    "brand": "Solly Baby",
+    "line": "A soft, structured carrier from the brand moms love for its wraps.",
+    "href": "https://www.amazon.com/dp/B0GC1BMJDD?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/41ydvDfPqKL.jpg",
+    "store": "store-amazon",
+    "commission": 13,
+    "type": "baby-gear",
+    "campaignEnds": "2026-12-16"
+   }
+  },
+  {
+   "guide": "fitness",
+   "section": "Gym Lover",
+   "why": "lead 11-20: Creator Connections 'Under Armour NEW Rival Fleece' (10% + base), ends 2026-11-23",
+   "row": {
+    "name": "Under Armour Women's Rival Fleece Hoodie",
+    "brand": "Under Armour",
+    "line": "UA's soft fleece hoodie for the gym, the bleachers and the couch.",
+    "href": "https://www.amazon.com/dp/B0FXNVN6LT?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/311Ef8w4ZqL.jpg",
+    "store": "store-amazon",
+    "commission": 13,
+    "type": "apparel",
+    "campaignEnds": "2026-11-23"
+   }
+  },
+  {
+   "guide": "dad",
+   "section": "Father-in-Law",
+   "why": "lead 11-20: Creator Connections 'WORX 10% Commission Turkey 12' (10% + base), ends 2027-01-01",
+   "row": {
+    "name": "WORX Trivac 3-in-1 Leaf Blower, Vacuum and Mulcher",
+    "brand": "WORX",
+    "line": "Blows, vacuums and mulches leaves; a yard-work favorite.",
+    "href": "https://www.amazon.com/dp/B07PGX4SXW?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/31DwmUvpfQL.jpg",
+    "store": "store-amazon",
+    "commission": 13,
+    "type": "tools",
+    "campaignEnds": "2027-01-01"
+   }
+  },
+  {
+   "guide": "splurge",
+   "section": "$100 & Up",
+   "why": "lead 11-20: Creator Connections 'Shark CryoGlow Holiday Deal' (20% + base), ends 2026-12-17; title + photo from sharkninja.com",
+   "row": {
+    "name": "Shark CryoGlow LED Face Mask, Blue Frost",
+    "brand": "Shark",
+    "line": "Red, blue and infrared LED light with a cooling under-eye mode.",
+    "href": "https://www.amazon.com/dp/B0DSGJCS47?tag=louisianahelpr-20",
+    "image": "https://assets.sharkninja.com/image/upload/f_auto/q_auto/SharkNinja-NA/FW312_01.jpg",
+    "store": "store-amazon",
+    "commission": 23,
+    "type": "beauty-device",
+    "campaignEnds": "2026-12-17",
+    "swappedFrom": "https://go.shopmy.us/p-107867518",
+    "swappedFromPct": 8,
+    "fallback_href": "https://go.shopmy.us/p-107867518",
+    "switch_on": "2026-12-18"
+   }
+  },
+  {
+   "guide": "car-lover",
+   "section": null,
+   "why": "1120b notes: Car Lover needs car gear; Creator Connections 'INNOVA 5610 OBD2 Scan Tool BFCM Deal' (18% + base), ends 2026-12-10; photo innova.com",
+   "row": {
+    "name": "Innova 5610 Bidirectional OBD2 Scanner",
+    "brand": "Innova",
+    "line": "Reads and clears check-engine codes, with live data and repair fixes on the phone app.",
+    "href": "https://www.amazon.com/dp/B07Z481NJM?tag=louisianahelpr-20",
+    "image": "https://cdn.shopify.com/s/files/1/0266/1302/2766/files/5610_01_1.jpg?v=1760469925",
+    "store": "store-amazon",
+    "commission": 21,
+    "type": "car-gear",
+    "campaignEnds": "2026-12-10"
+   }
+  },
+  {
+   "guide": "dad",
+   "section": "Top picks",
+   "why": "owner 11-20 FB ideas: Rhino USA ratchet tie-downs (Dad with a boat or truck); lead: its Creator Connections link (campaign not joined yet: base rate until she joins); photo rhinousainc.com",
+   "row": {
+    "name": "Rhino USA Retractable Ratchet Straps",
+    "brand": "Rhino USA",
+    "line": "Self-retracting tie-downs for the boat, the truck bed and the trailer: no tangled straps.",
+    "href": "https://www.amazon.com/dp/B0BTFXS37N?tag=louisianahelpr-20",
+    "image": "https://cdn.shopify.com/s/files/1/1757/3567/files/RETRACTABLE-1X10-4PK.MAIN_1.jpg?v=1738861254",
+    "store": "store-amazon",
+    "commission": 4,
+    "type": "truck-gear"
+   }
+  },
+  {
+   "guide": "mom",
+   "section": "Top picks",
+   "why": "owner 11-20 FB ideas: Foton Pearled Candle sand (Mom, TikTok-popular); lead: its Creator Connections link (campaign not joined yet: base rate until she joins); photo fotoncandle.com",
+   "row": {
+    "name": "Foton Pearled Candle, 18 oz",
+    "brand": "Foton",
+    "line": "The viral pearled candle sand: pour it in any bowl, add a wick, and refill forever.",
+    "href": "https://www.amazon.com/dp/B0CV4GKVF9?tag=louisianahelpr-20",
+    "image": "https://cdn.shopify.com/s/files/1/0568/9776/5573/files/18oz_Unscented_Colored_with_Swatch_-_White.png?v=1773085230",
+    "store": "store-amazon",
+    "commission": 4,
+    "type": "candle",
+    "trending": true,
+    "tiktok": true
+   }
+  }
+ ],
+ "sectionCap": 25,
+ "brandCodes": [
+  {
+   "brand": "XTRATUF",
+   "code": "XT25",
+   "ends": "2026-11-29",
+   "why": "lead 11-20 11:31 AM: XTRATUF (CJ) 25% off sitewide, code XT25, Nov 20-29"
+  }
+ ],
+ "priceCap": {
+  "max": 500,
+  "keep": [
+   "Dyson Airwrap"
+  ],
+  "why": "owner 11-20 brief: drop any item over $500 (the Dyson Airwrap on Mom is her named keep)"
+ },
+ "dealsPage": {
+  "why": "lead 11-20 11:31 AM: XTRATUF Black Friday code XT25",
+  "add": [
+   {
+    "brand": "XTRATUF",
+    "category": "Outdoors",
+    "deal": "Black Friday: 25% off sitewide with code XT25; free shipping on $99+",
+    "code": "XT25",
+    "href": "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmab602",
+    "image": "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMAB602.jpg?v=1755048646",
+    "item": "XTRATUF Men's Ankle Deck Boot",
+    "starts": "2026-11-20",
+    "ends": "2026-11-29",
+    "status": "live"
+   }
+  ]
+ }
+}

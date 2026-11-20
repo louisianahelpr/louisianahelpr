@@ -85,7 +85,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuidesBand, GIFT_GUIDES_PATH } from "@/components/landing/GiftGuidesBand";
-import { giftGuides, AFFILIATE_HOSTS, BRAND_SITES, LOUISIANA_SHOPS, SPONSOR_SITES, SHOPMY_COLLECTIONS, activeCodes, codesByStore, discountCodes } from "@/content/giftGuides";
+import { giftGuides, AFFILIATE_HOSTS, BRAND_SITES, LOUISIANA_SHOPS, SPONSOR_SITES, NATIONAL_SPONSOR_SITES, SHOPMY_COLLECTIONS, activeCodes, codesByStore, discountCodes } from "@/content/giftGuides";
 import { DiscountCodes, SalesList, liveSales } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
@@ -132,7 +132,7 @@ const AMAZON_STATEMENT = "As an Amazon Associate, Louisiana Helpr earns from qua
 const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
 // @two-way src/test/giftGuidesPage.test.tsx:stale allowed host
 const LA_HOSTS = new Set([...LOUISIANA_SHOPS, ...SPONSOR_SITES]);
-const ALLOWED_HOSTS = ["shopmy.us", "www.pinterest.com", "www.amazon.com", "amazon.com", "amzn.to", ...AFFILIATE_HOSTS, ...BRAND_SITES, ...LOUISIANA_SHOPS, ...SPONSOR_SITES];
+const ALLOWED_HOSTS = ["shopmy.us", "www.pinterest.com", "www.amazon.com", "amazon.com", "amzn.to", ...AFFILIATE_HOSTS, ...BRAND_SITES, ...LOUISIANA_SHOPS, ...SPONSOR_SITES, ...NATIONAL_SPONSOR_SITES];
 const isAmazon = (href: string) => ["www.amazon.com", "amazon.com", "amzn.to"].includes(new URL(href).hostname);
 
 const picks = GUIDES.flatMap((g) => g.picks);
@@ -382,13 +382,15 @@ describe("gift guides: the landing opens to the guides", () => {
     // "More guides", and nothing (no Top 10) above the first row.
     expect(container.querySelector("[data-gift-start], button[data-gift-more], .gg-rows-folded")).toBeNull();
     expect(GIFT_GUIDES_CSS).not.toMatch(/gg-rows-folded|gg-more-btn/);
-    // Holistic review 11-18 M9: the one thing above the first row is the quick-pick chip row (under the search), after
-    // the first-visit "How to use the gift guides" strip (owner 2026-11-20 hints; dismissible, gone once closed).
+    // Owner 11-20 12:30 PM landing plan: above the first row, in order, the big "Find a gift in 3 taps" finder, the
+    // countdown + Gift of the Day as one slim line, and the one quick-filter chip row; no how-to box, no tip boxes.
     const mainKids = [...container.querySelector(".gg-main")!.children];
-    expect(mainKids[0].matches("[data-gift-hint='how-to']")).toBe(true);
-    expect(mainKids[1].matches("[data-gift-quick-picks]")).toBe(true);
-    expect(mainKids[2].matches("[data-gift-rows]")).toBe(true);
-    mainKids.splice(0, 2);
+    expect(mainKids[0].matches("[data-gift-finder]")).toBe(true);
+    expect(mainKids[1].matches("[data-gift-countdown]")).toBe(true);
+    expect(mainKids[2].matches("[data-gift-quick-picks]")).toBe(true);
+    expect(mainKids[3].matches("[data-gift-rows]")).toBe(true);
+    expect(container.querySelector("[data-gift-hint]")).toBeNull();
+    mainKids.splice(0, 3);
     expect(mainKids[0].querySelector("[data-gift-row]")?.getAttribute("data-gift-row")).toBe(ROWS[0].row);
     // Design audit 11-18 (High): on a phone the menu sat 2,000–3,100 px above the picks; holistic review 11-18 M9: it
     // then sat at the bottom of the phone page, a second copy of the rows. Phones have no sidebar (the rows, the chips
@@ -654,7 +656,10 @@ describe("gift guides: the landing opens to the guides", () => {
     const write = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText: write } });
     // Ranked by Louisiana popularity; a store with two codes is one box with both.
-    expect(codesByStore(discountCodes).map((x) => x.store).slice(0, 5)).toEqual(["Muck Boot", "Durango Boots", "Magnifique", "Bruno Marc", "Everyday Dose"]);
+    expect(codesByStore(discountCodes).map((x) => x.store).slice(0, 5)).toEqual(["Muck Boot", "XTRATUF", "Durango Boots", "Magnifique", "Bruno Marc"]);
+    // XTRATUF XT25 (train 1120c) runs Nov 20 through Nov 29.
+    expect(activeCodes(discountCodes, "2026-11-29").map((c) => c.code)).toContain("XT25");
+    expect(activeCodes(discountCodes, "2026-11-30").map((c) => c.code)).not.toContain("XT25");
     const both = render(<MemoryRouter><DiscountCodes codes={discountCodes} /></MemoryRouter>).container;
     expect(both.querySelectorAll('[data-gift-code-store="Muck Boot"]').length).toBe(1);
     expect([...both.querySelectorAll('[data-gift-code-store="Muck Boot"] [data-gift-code]')].map((x) => x.getAttribute("data-gift-code"))).toEqual(["CYBER", "TAKE25"]);
@@ -1301,7 +1306,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"
     let brandSite = 0;
     for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image && !p.image.startsWith("https://m.media-amazon.com/")) brandSite += 1;
-    expect(brandSite).toBeGreaterThan(15); // one guide per product (owner 11-19); 22 after the Amazon page kept its 15 best (1530 train)
+    expect(brandSite).toBeGreaterThan(10); // one guide per product (owner 11-19); 22 after the Amazon page kept its 15 best (1530 train); 12 after the train 1120b re-audit cuts
     // Floor re-measured 2026-11-18 after design audit r2 dropped page titles, store names and promos (4,397 photos).
     expect(photos).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,850)
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed

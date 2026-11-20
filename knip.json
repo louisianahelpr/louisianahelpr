@@ -51,6 +51,8 @@
     "jq",
     "psql",
     "openssl",
-    "sips"
+    "sips",
+    "qlmanage",
+    "cwebp"
   ]
 }

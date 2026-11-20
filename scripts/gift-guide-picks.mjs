@@ -27,6 +27,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
+import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
+import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
 import { FRANCHISE_SPONSORS_1120, SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
@@ -49,7 +51,9 @@ for (const m of indexSrc.matchAll(/group: "([^"]+)"[^}]*?slug: "([^"]+)"/g)) GUI
 const listed = (name) => [...(content.match(new RegExp(`export const ${name} = \\[([^\\]]*)\\]`))?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 const AMAZON = new Set(["www.amazon.com", "amazon.com", "amzn.to"]);
 const LOUISIANA = new Set(listed("LOUISIANA_SHOPS"));
-const SPONSORS = new Set(listed("SPONSOR_SITES"));
+const SPONSORS = new Set([...listed("SPONSOR_SITES"), ...listed("NATIONAL_SPONSOR_SITES")]);
+/** The Louisiana sponsors' hosts only (a national sponsor's shop is no Louisiana item; train 1120b). */
+const LA_SPONSORS = new Set(listed("SPONSOR_SITES"));
 /**
  * The 25 Days sponsors by name (follow-up 1120: their 0% picks stay, owner 11-20 ~12:05 AM): SPONSOR_BRANDS and every
  * confirmed Louisiana sponsor on the Small Business Saturday page (src/content/giftGuideSmallBiz.json).
@@ -1006,7 +1010,7 @@ for (const [slug, c] of Object.entries(CURATION)) {
 }
 /** The Louisiana section's guides (giftGuideIndex.ts group "Louisiana"): the only guides that hold Louisiana items. */
 const LOUISIANA_GUIDES = new Set([...indexSrc.matchAll(/group: "Louisiana"[^}]*?slug: "([^"]+)"/g)].map((m) => m[1]));
-const LA_HOSTS = new Set([...LOUISIANA, ...SPONSORS]);
+const LA_HOSTS = new Set([...LOUISIANA, ...LA_SPONSORS]);
 /** Store pages that are themselves a Louisiana brand's keep their own items. */
 const LOUISIANA_STORE_PAGES = new Set(["store-community-coffee", "store-rebeccaillustrated"]);
 const auditGone = (slug, p) => !MOVED_TO_LOUISIANA.includes(slug) && !slug.startsWith("store-")
@@ -3811,6 +3815,59 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
   console.log(`gift-guide-picks: follow-up 1120: ${followUpCounts1120.sponsors} sponsors on ${SHOP_SMALL} (${followUpCounts1120.namedOnly} named only), out ${JSON.stringify(followUpCounts1120.out)}, ${followUpCounts1120.griddles} extra Weber griddles out, ${followUpCounts1120.renamed} audit renames, ${followUpCounts1120.brandFirst} names brand first, ${sortCounts.followUpAdds ?? 0} earning adds placed in the pool, audits ${JSON.stringify(AUDIT_1120.followUp)}`);
 }
 /**
+ * PRICE BACKFILL (train 1120c, owner 11-20 12:32 PM: "the guides also need to show prices"): several import paths (the
+ * brand links, the Creator Connections / fill rows, the big batch rows) drop a row's file price, because a research
+ * price is never shown unchecked. A price ~/Desktop/Link-library checked (price_currency, price_checked_at,
+ * price_source on ANY row of ANY picks file with the same link) is a checked price: every shown non-Amazon pick without
+ * one takes it here, under the same verifiedPrice rules (fresh, USD, never Amazon).
+ */
+{
+  const checked = new Map();
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+    let v;
+    try { v = readJson(f); } catch { continue; /* mid-write: read on the next run */ }
+    const walk = (o) => {
+      if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+      if (!o || typeof o !== "object") return;
+      if (o.price_checked_at && o.price_source) for (const k of ["href", "affiliate_href"]) if (typeof o[k] === "string" && !checked.has(o[k])) checked.set(o[k], o);
+      for (const x of Object.values(o)) if (x && typeof x === "object") walk(x);
+    };
+    walk(v);
+  }
+  let filled = 0;
+  for (const slug of Object.keys(pageList)) {
+    pageList[slug] = pageList[slug].map((p) => {
+      if (p.price != null || !checked.has(p.href)) return p;
+      let host = "";
+      try { host = new URL(p.href).hostname; } catch { return p; /* no URL: no price */ }
+      const priced = verifiedPrice(checked.get(p.href), [host], p.store);
+      if (!priced) return p;
+      filled += 1;
+      return { ...p, ...priced, ...(p.band ? {} : { band: budgetBand(priced.price) }) };
+    });
+  }
+  console.log(`gift-guide-picks: price backfill ${filled} picks from ${checked.size} checked rows`);
+}
+/**
+ * TRAIN 1120b (lead 44, 2026-11-20): the re-audit's fixes, the national 25 Days sponsors' one spot each, the Walmart
+ * deals box cleanup and the Georgia Boot sale, applied last to the finished pages (scripts/giftGuideTrain1120b.mjs,
+ * rules in scripts/gift-guide-train-1120b.json). A rule that finds nothing is printed, never dropped silently.
+ */
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-train-1120b.json", import.meta.url), "utf8"));
+  const t = applyTrain1120b(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT] });
+  console.log(`gift-guide-picks: train 1120b ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+}
+/**
+ * TRAIN 1120c (lead 44, 2026-11-20): the owner's adds, the unplaced Creator Connections campaigns, the XTRATUF XT25
+ * code, the $500 cap and the store refills (scripts/giftGuideTrain1120c.mjs, rules in scripts/gift-guide-train-1120c.json).
+ */
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-train-1120c.json", import.meta.url), "utf8"));
+  const t = applyTrain1120c(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT] });
+  console.log(`gift-guide-picks: train 1120c ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+}
+/**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days
  * (scripts/gift-guide-go-clicks.json, measured from prod analytics), then effective commission x item popularity, among
  * the picks the guides show now, with a product photo, one per brand. The owner's keep, the Ninja CREAMi, stays in it.
@@ -3857,7 +3914,7 @@ for (const slug of chunkSlugs) {
 writeFileSync(
   out,
   `/** GENERATED by scripts/gift-guide-picks.mjs from ~/Desktop/Gift-guide-picks (re-run it after any change there). Do not edit. */\n` +
-    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string; fallback_href?: string; switch_on?: string; sectionId?: string; from?: string; band?: 25 | 50 | 100 | 500; preorder?: true; code?: string; tiktok?: true }\n` +
+    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string; fallback_href?: string; switch_on?: string; sectionId?: string; from?: string; band?: 25 | 50 | 100 | 500; preorder?: true; code?: string; codeEnds?: string; tiktok?: true }\n` +
     `export interface StoreDeal { title: string; href: string; ends?: string; items?: { name: string; href: string }[] }\n` +
     `export interface Sale { store: string; slug: string; offer: string; ends: string; href: string }\n` +
     `/** One guide's chunk (src/content/giftGuidePicks/<slug>.json): its final picks and, on a store page, its deal sections. */\n` +

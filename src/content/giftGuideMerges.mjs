@@ -305,7 +305,7 @@ export const SECTION_GROUPS = {
 
 /**
  * THE STORE PAGES (owner pop-up 2026-11-20 ~2:45 AM, FINAL STORE LIST = "Use the data list", superseding the 11-19
- * ~9:00 PM list and the 11-20 ~1:45 AM drop/add): 26 pages, each 10-15 of that store's best-paying, most popular items
+ * ~9:00 PM list and the 11-20 ~1:45 AM drop/add): 26 pages (24 shown while STORE_PAGES_HELD wait for a refill), each 10-15 of that store's best-paying, most popular items
  * (~/Desktop/Gift-guide-picks/_store-fill-1120.json). Every other store page is folded: its items stay in the guides,
  * its old link 301s to the gift guides landing page (Anthropologie, Free People, Wayfair, Crate & Barrel, REI,
  * Nordstrom, Nordstrom Rack, Macy's, AE, Abercrombie, Kendra Scott among them). No page for Academy, Kohl's, Costco,
@@ -314,9 +314,16 @@ export const SECTION_GROUPS = {
 export const STORE_PAGES_KEPT = [
   "store-walmart", "store-amazon", "store-target", "store-best-buy", "store-ulta-beauty", "store-sephora", "store-bath-and-body-works",
   "store-lululemon", "store-stanley", "store-yeti", "store-carhartt", "store-baublebar", "store-crocs", "store-hoka", "store-apple",
-  "store-coach", "store-nike", "store-at-home", "store-old-navy", "store-sams-club", "store-jcpenney", "store-tj-maxx-marshalls",
+  "store-coach", "store-nike", "store-at-home", "store-old-navy", "store-sams-club",
   "store-dicks-sporting-goods", "store-dillards", "store-tractor-supply", "store-bass-pro-shops",
 ];
+/**
+ * Held for a refill (train 1120b, lead 44 2026-11-20: "store pages need 10-15 picks; hide them until refilled"): TJ Maxx
+ * (its product photos are hotlink-blocked, 4 picks left) and JCPenney (its house-brand picks are out, 7 left). Folded
+ * like the dropped pages (old link 301s to the gift guides landing) until each has 10+ picks with working photos; then
+ * move it back into STORE_PAGES_KEPT.
+ */
+export const STORE_PAGES_HELD = ["store-tj-maxx-marshalls", "store-jcpenney"];
 
 /** The merged guides with no list of their own, only their sections (each listed in giftGuideIndex.ts). */
 export const NEW_PARENTS = ["gifts-by-color", "louisiana-food-gifts", "louisiana-by-region", "pets", "splurge", "shop-small-louisiana",

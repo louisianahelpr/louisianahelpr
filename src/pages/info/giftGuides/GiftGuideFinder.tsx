@@ -7,8 +7,6 @@ import {
   type FinderBudget, type FinderVibe, type FinderWho,
 } from "@/content/giftGuideExtras1120";
 import { PickRow } from "./GiftGuideView";
-import { Hint } from "./GiftHint";
-import { HINTS } from "@/content/giftWishList";
 
 /**
  * The gift finder on the landing (owner approved 11-19 ~9:10 PM): three taps (who, budget, vibe) and always a list
@@ -65,8 +63,9 @@ export function GiftFinder() {
   };
   return (
     <section id={FINDER_ID} aria-labelledby="gift-finder-title" className="gg-finder" data-gift-finder="">
-      <div className="gg-rowhead"><h2 id="gift-finder-title">{W.finderTitle}</h2></div>
-      {!a.who && <Hint id="quiz">{HINTS.quiz}</Hint>}
+      {/* Owner 11-20 12:30 PM landing plan: the finder is the big "Find a gift in 3 taps" call to action at the top. */}
+      <h2 id="gift-finder-title" className="gg-finder-title">{W.finderTitle}</h2>
+      {!a.who && <p className="gg-finder-lead">{W.finderLead}</p>}
       <Choices label={W.finderWho} options={FINDER_WHO.map((x) => ({ id: x.id, label: x.label }))} value={a.who} onPick={(v) => set({ who: v })} attr="who" />
       {a.who && <Choices label={W.finderBudget} options={FINDER_BUDGETS} value={a.budget} onPick={(v) => set({ budget: v })} attr="budget" />}
       {a.who && a.budget !== undefined && <Choices label={W.finderVibe} options={FINDER_VIBES.map((x) => ({ id: x.id, label: x.label }))} value={a.vibe} onPick={(v) => set({ vibe: v })} attr="vibe" />}

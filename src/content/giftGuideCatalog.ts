@@ -7,7 +7,7 @@
  * Every pick carries a `store`, read from its link's host (storeOf), and each "Shop by store" guide is every pick on
  * that store. Guard: src/test/giftGuidesPage.test.tsx.
  */
-import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
+import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, NATIONAL_SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
@@ -39,7 +39,7 @@ const FIXED_STORES: Record<FixedStore, { name: string; hosts: readonly string[] 
   // The Louisiana shops' own sites (each pick names its brand, so "On <brand>" is shown, not this name).
   louisiana: { name: "a Louisiana shop", hosts: LOUISIANA_SHOPS },
   // The 25 Days sponsors' own sites (each pick names its brand, shown as "On <brand>").
-  sponsor: { name: "a 25 Days sponsor", hosts: SPONSOR_SITES },
+  sponsor: { name: "a 25 Days sponsor", hosts: [...SPONSOR_SITES, ...NATIONAL_SPONSOR_SITES] },
 };
 
 /** Every store: the fixed ones, then each researched store page (its name and the hosts its picks' links use). */
@@ -85,6 +85,8 @@ export interface CatalogPick {
   preorder?: true;
   /** The brand's discount code shown on the card (1120: 21 Collective, COLLECTIVE10). */
   code?: string;
+  /** The code's last day (YYYY-MM-DD, Louisiana; 1120c: XTRATUF XT25 ends Nov 29): the chip hides after it. */
+  codeEnds?: string;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -242,7 +244,7 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   const store = researchedStore(p);
   const badges = withShopLouisiana(badgesFor(p.brand, p), store);
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
-    ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.code ? { code: p.code } : {}),
+    ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.code ? { code: p.code, ...(p.codeEnds ? { codeEnds: p.codeEnds } : {}) } : {}),
     // Never an Amazon price (Associates rule), whatever the generated file holds.
     ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) };
 };

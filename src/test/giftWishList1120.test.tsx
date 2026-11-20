@@ -156,8 +156,9 @@ describe("hearts persist and one heart covers the gift everywhere", () => {
       expect(giftListNow().picks).toEqual([]);
       expect(addToWishList({ href: "https://www.amazon.com/dp/X?tag=louisianahelpr-20", name: "x", guide: "her" })).toBe(true);
       expect(giftListNow().picks.length).toBe(1);
+      // Blocked storage never breaks the landing (it still draws its rows).
       const view = renderAt("/gift-guides");
-      expect(view.container.querySelector("[data-gift-hint='how-to']")).not.toBeNull();
+      expect(view.container.querySelector("[data-gift-rows]")).not.toBeNull();
     } finally {
       get.mockRestore();
       set.mockRestore();
@@ -314,37 +315,13 @@ describe("a shared list renders for a guest", () => {
 });
 
 describe("how-to hints dismiss and stay dismissed", () => {
-  it("the landing's three steps close with × and stay closed after a reload", () => {
+  // Owner 11-20 12:30 PM ("very busy and not well organized"): the landing has no how-to box and no tip boxes.
+  it("the landing carries no how-to strip and no tip box", () => {
     const view = renderAt("/gift-guides");
-    const strip = view.container.querySelector("[data-gift-hint='how-to']")!;
-    expect([...strip.querySelectorAll("li > span")].map((l) => l.textContent)).toEqual([...HINTS.steps]);
-    fireEvent.click(strip.querySelector<HTMLButtonElement>("[data-gift-hint-close='how-to']")!);
-    expect(view.container.querySelector("[data-gift-hint='how-to']")).toBeNull();
-    cleanup();
-    resetHintsForTests(); // this visit's memory gone: only storage remembers
-    expect(renderAt("/gift-guides").container.querySelector("[data-gift-hint='how-to']")).toBeNull();
+    expect(view.container.querySelector("[data-gift-hint='how-to'], [data-gift-hint='quiz'], [data-gift-hint='fun-gotd'], .gg-hint")).toBeNull();
   });
 
-  it("a dismissal holds for the visit even when storage refuses the write", () => {
-    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked"); });
-    try {
-      const view = renderAt("/gift-guides");
-      fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-hint-close='how-to']")!);
-      expect(view.container.querySelector("[data-gift-hint='how-to']")).toBeNull();
-      cleanup();
-      expect(renderAt("/gift-guides").container.querySelector("[data-gift-hint='how-to']")).toBeNull();
-    } finally {
-      set.mockRestore();
-    }
-  });
-
-  it("the quiz, budget and share hints show once and close", () => {
-    const view = renderAt("/gift-guides");
-    const quiz = view.container.querySelector("[data-gift-hint='quiz']");
-    expect(quiz?.textContent).toContain(HINTS.quiz);
-    fireEvent.click(quiz!.querySelector("button")!);
-    expect(view.container.querySelector("[data-gift-hint='quiz']")).toBeNull();
-    cleanup();
+  it("the budget and share hints show once and close", () => {
     const banded = pickedGuides.find((g) => g.picks.filter((p) => p.band !== undefined).length >= 3)!;
     const guide = renderAt(`/gift-guides/${banded.slug}`);
     expect(guide.container.querySelector("[data-gift-hint='budget']")?.textContent).toContain(HINTS.budget);
@@ -352,7 +329,6 @@ describe("how-to hints dismiss and stay dismissed", () => {
     addToWishList({ href: pickedGuides[0].picks[0].href, name: "n", guide: pickedGuides[0].slug });
     const mine = renderAt("/gift-guides/my-list");
     expect(mine.container.querySelector("[data-gift-hint='share']")?.textContent).toContain(HINTS.share);
-    expect(window.localStorage.getItem("lh-gg-hint-quiz")).toBe("1");
   });
 
   it("the first heart that saves shows 'Saved to your wish list' once, with the way to the list", () => {
@@ -497,12 +473,10 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     }
   });
 
-  it("H1 + L1 + L8: the heart's note stays one tidy line, the steps are numbered, hearts follow the theme", () => {
+  it("H1 + L1 + L8: the heart's note stays one tidy line, hearts follow the theme", () => {
     expect(GIFT_WISH_CSS).toMatch(/\.gg-toast-text\{flex:1 1 auto;min-width:0/);
     expect(GIFT_WISH_CSS).toMatch(/\.gg-toast\{[^}]*width:max-content;max-width:min\(calc\(100vw - 32px\),30rem\)/);
     expect(GIFT_WISH_CSS).not.toMatch(/gg-heart-sb\{[^}]*background:#fff/);
-    const view = renderAt("/gift-guides");
-    expect([...view.container.querySelectorAll("[data-gift-howto-steps] .gg-howto-n")].map((n) => n.textContent)).toEqual(["1", "2", "3"]);
   });
 
   it("L7: a heart tap is counted (gift_wish_heart)", () => {

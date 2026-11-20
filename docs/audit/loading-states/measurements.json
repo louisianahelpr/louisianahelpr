@@ -28555,6 +28555,58 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/gift-guides/secret-santa/test/test",
+      "persona": "anon",
+      "base": "http://127.0.0.1:5394",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/gift-guides/secret-santa/test/test",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/gift-guides/draw-names",
+      "persona": "anon",
+      "base": "http://127.0.0.1:5394",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/gift-guides/draw-names",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/gift-guides/swipe",
+      "persona": "anon",
+      "base": "http://127.0.0.1:5394",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/gift-guides/swipe",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/gift-guides/planner",
+      "persona": "anon",
+      "base": "http://127.0.0.1:5394",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/gift-guides/planner",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -28598,6 +28650,17 @@
       "base": "http://127.0.0.1:5393",
       "surfaces": [
         "anon /gift-guides/list/test"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-11-20T13:09:58.856Z",
+      "base": "http://127.0.0.1:5394",
+      "surfaces": [
+        "anon /gift-guides/secret-santa/test/test",
+        "anon /gift-guides/draw-names",
+        "anon /gift-guides/swipe",
+        "anon /gift-guides/planner"
       ],
       "replaced": []
     }

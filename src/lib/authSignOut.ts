@@ -4,6 +4,7 @@ import { clearGreetingName } from "@/lib/homeGreetingShell.mjs";
 import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
 import { clearSavedBunch, clearSavedSellOne } from "@/lib/declutter/bunchSaved";
+import { clearPlannerDevice } from "@/lib/giftPlannerDevice";
 import { clearPendingSetupLink } from "@/lib/declutter/setupLinkPending";
 import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { markIntentionalSignOut } from "@/lib/unexpectedSignOut";
@@ -299,6 +300,9 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   void resetOnlineHandoffModule()
     .then((m) => m?.resetOnlineHandoff())
     .catch(() => { /* its chunk would not load, so this run never held a handoff */ });
+  // The gift planner kept on this device (people's names, budgets, what was bought): never the next person's
+  // (security review of #4791). Synchronous, cannot throw.
+  clearPlannerDevice();
   // In-memory first: synchronous, so it is done before anything can hang.
   try {
     queryClient.clear();

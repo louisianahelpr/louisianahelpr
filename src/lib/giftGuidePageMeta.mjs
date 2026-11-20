@@ -5,7 +5,7 @@
  * the gift guides page (GiftGuides.tsx) and api/share.ts import this module. Types: giftGuidePageMeta.d.mts.
  */
 
-import { SITE_ORIGIN, NOINDEX_ROBOTS, publicPageMetaFor } from "./publicPageMeta.mjs";
+import { SITE_ORIGIN, NOINDEX_ROBOTS, PUBLIC_PAGE_META, publicPageMetaFor } from "./publicPageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
 import { DEALS_SLUG, dealsTitle, louisianaDay } from "../content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG, smallBizDay, smallBizTitle } from "../content/giftGuideSmallBiz.mjs";
@@ -82,6 +82,8 @@ export function publicOrGiftGuidePageMetaFor(pathname, tabParam) {
   if (gift && Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, gift)) return giftGuidePageMeta(gift);
   if (gift === DEALS_SLUG) return dealsPageMeta(new Date());
   if (gift === SMALL_BIZ_SLUG) return smallBizPageMeta(new Date());
+  // The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are public pages of their own.
+  if (gift && Object.prototype.hasOwnProperty.call(PUBLIC_PAGE_META, path)) return PUBLIC_PAGE_META[path];
   // Any other /gift-guides/<slug> (a store page the link audits emptied, a hub, a mistyped slug) is noindex before JS
   // (gg-r3 UX audit #12: the emptied store pages answered "index, follow" with the generic card).
   if (gift) {

@@ -72,6 +72,12 @@ const OWNERS = {
   "/gift-guides/:slug": ["lh-copy-content", "lh-compliance-store"],
   // A shared wish list (owner 2026-11-20): the same lanes as the guides it lists.
   "/gift-guides/list/:code": ["lh-copy-content", "lh-compliance-store"],
+  // The fun features (owner 2026-11-20): the Secret Santa drawer and its private reveal links, swipe, the planner; the
+  // same lanes as the guides (copy, and the store rules the affiliate links and the reveal's privacy answer to).
+  "/gift-guides/draw-names": ["lh-copy-content", "lh-compliance-store"],
+  "/gift-guides/secret-santa/:code/:token": ["lh-copy-content", "lh-compliance-store"],
+  "/gift-guides/swipe": ["lh-copy-content", "lh-compliance-store"],
+  "/gift-guides/planner": ["lh-copy-content", "lh-compliance-store"],
   "/terms/full": ["lh-compliance-store"],
   "/privacy/full": ["lh-compliance-store"],
   // /gift-card (a redirect onto this tab) was deleted with Q194, 2026-09-23.

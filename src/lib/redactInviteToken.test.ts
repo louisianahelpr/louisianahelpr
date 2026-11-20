@@ -1,5 +1,6 @@
 /**
- * @mutate src/lib/redactInviteToken.ts |   return (typeof value === "string" ? value.replace(INVITE, "$1[redacted]") : value) as T; |   return value;
+ * @mutate src/lib/redactInviteToken.ts |   return (typeof value === "string" ? value.replace(INVITE, "$1[redacted]").replace(SANTA, "$1[redacted]") : value) as T; |   return value;
+ * @mutate src/lib/redactInviteToken.ts | .replace(SANTA, "$1[redacted]") : value) as T; | : value) as T;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -18,6 +19,20 @@ describe("invite tokens never reach analytics or error reports", () => {
     // The signed-out redirect carries it URL-encoded.
     expect(redactInviteToken(`/login?redirect=%2Frentals%2Finvite%2F${TOKEN}`)).toBe("/login?redirect=%2Frentals%2Finvite%2F[redacted]");
     expect(redactInviteProps({ $current_url: `x/rentals/invite/${TOKEN}`, n: 1 })).toEqual({ $current_url: "x/rentals/invite/[redacted]", n: 1 });
+  });
+  it("redacts a Secret Santa reveal token (security review of #4791), literal or URL-encoded, and keeps the group code", () => {
+    const tok = "0123456789abcdef".repeat(4);
+    expect(redactInviteToken(`https://www.louisianahelpr.com/gift-guides/secret-santa/abcdef0123/${tok}`)).toBe(
+      "https://www.louisianahelpr.com/gift-guides/secret-santa/abcdef0123/[redacted]",
+    );
+    expect(redactInviteToken(`/gift-guides/secret-santa/abcdef0123/${tok}?utm=x`)).toBe("/gift-guides/secret-santa/abcdef0123/[redacted]?utm=x");
+    expect(redactInviteToken(`/login?redirect=%2Fgift-guides%2Fsecret-santa%2Fabcdef0123%2F${tok}`)).toBe("/login?redirect=%2Fgift-guides%2Fsecret-santa%2Fabcdef0123%2F[redacted]");
+    expect(redactInviteProps({ $current_url: `x/gift-guides/secret-santa/abcdef0123/${tok}`, $pathname: `/gift-guides/secret-santa/abcdef0123/${tok}` })).toEqual({
+      $current_url: "x/gift-guides/secret-santa/abcdef0123/[redacted]", $pathname: "/gift-guides/secret-santa/abcdef0123/[redacted]",
+    });
+    // The gift guide of that name and the drawer are untouched.
+    expect(redactInviteToken("/gift-guides/secret-santa")).toBe("/gift-guides/secret-santa");
+    expect(redactInviteToken("/gift-guides/draw-names")).toBe("/gift-guides/draw-names");
   });
   it("PostHog and Sentry are both wired to it", () => {
     expect(readFileSync("src/lib/posthog.ts", "utf8")).toMatch(/sanitize_properties:\s*\(props\)\s*=>\s*redactInviteProps\(props\)/);

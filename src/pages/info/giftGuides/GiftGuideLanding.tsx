@@ -13,6 +13,7 @@ import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
 import { DealsFeature } from "./GiftGuideDeals";
 import { SmallBizFeature } from "./GiftGuideSmallBiz";
 import { GatedBanners, GiftFinder } from "./GiftGuideFinder";
+import { GiftCountdown } from "./fun/GiftCountdown";
 import { HowToStrip } from "./GiftGuideHints";
 
 /**
@@ -187,6 +188,9 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
         {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}
       </div>
       {!group && <TopStrip />}
+      {/* Fun features (owner 2026-11-20): the Christmas countdown, the Gift of the Day and the three fun tools, after the
+          first row and the Top 10 (only the quick picks sit above the first row, holistic review 11-18 M9). */}
+      {!group && <GiftCountdown />}
       {/* Big batch 1120: the gift finder (who, budget, vibe), its answers in the URL; after the first row and the Top
           10, so nothing but the quick picks sits above the first row (holistic review 11-18 M9). */}
       {!group && <GiftFinder />}

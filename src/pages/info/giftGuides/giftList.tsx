@@ -124,6 +124,17 @@ export function addToWishList(pick: SavedPick): boolean {
   return true;
 }
 
+/** Undo a removal (the wish list page's "Removed · Undo"): the gift goes back where it was. False when the list is full. */
+export function putBackInWishList(pick: SavedPick, index: number): boolean {
+  const cur = read();
+  const id = pickId(pick);
+  if (isSaved(cur, id)) return true;
+  if (cur.picks.length >= MAX_LIST_ITEMS) return false;
+  const at = Math.max(0, Math.min(index, cur.picks.length));
+  write({ ...cur, picks: [...cur.picks.slice(0, at), { ...pick, id }, ...cur.picks.slice(at)] });
+  return true;
+}
+
 /** Take a gift off the wish list by its id. */
 export const removeFromWishList = (id: string) => {
   const cur = read();
@@ -211,14 +222,14 @@ export const resetGiftListForTests = () => {
  * A heart (owner 2026-11-18): a real button with aria-pressed, never inside the link it sits on, so tapping it saves
  * and does not open the guide or the shop.
  */
-export function Heart({ saved, label, onToggle, className }: { saved: boolean; label: string; onToggle: () => void; className: string }) {
+export function Heart({ saved, label, onToggle, className, data }: { saved: boolean; label: string; onToggle: () => void; className: string; data?: Record<`data-${string}`, string> }) {
   const click = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onToggle();
   };
   return (
-    <RoundIconButton className={`gg-heart ${className}`} aria-pressed={saved} aria-label={label} onClick={click} data-gift-heart="">
+    <RoundIconButton className={`gg-heart ${className}`} aria-pressed={saved} aria-label={label} onClick={click} data-gift-heart="" {...data}>
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
         <path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.7 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.5 0 5.8 3.4 4.5 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" fill={saved ? "#b26862" : "none"} stroke="#b26862" strokeWidth={ICON_STROKE_PX} strokeLinejoin="round" />
       </svg>

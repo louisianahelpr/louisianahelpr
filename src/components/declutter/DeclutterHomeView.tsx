@@ -12,6 +12,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { SaverOfferLine, useSaverOfferData } from "./SaverOffer";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -113,6 +114,8 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
   const dropsTonight = useMyDropsTonight(mine.data ?? [], myDrops.data);
+  // Declutter top 5 #1 (owner 11-19): "N people saved this. Send them an offer" under each live priced row.
+  const saverOffers = useSaverOfferData(userId, mine.data);
   // The Free change (Q2487): each live free listing shows its open asks as "Requests (n)"; read only when there is one.
   // Builder 187: only once someone has asked; a "Requests (0)" button opened a list with nobody in it.
   const anyFreeLive = (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0);
@@ -342,6 +345,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
             </div>
             {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} />}
             <PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />
+            <SaverOfferLine item={item} saves={saverOffers.saves?.get(item.id) ?? 0} lastSend={saverOffers.sends?.get(item.id)} />
           </li>
           );
         })}

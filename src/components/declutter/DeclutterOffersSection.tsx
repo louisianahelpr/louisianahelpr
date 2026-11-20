@@ -29,6 +29,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import "@/lib/i18n/enDeclOffers";
+import "@/lib/i18n/enDeclTop5";
+import { isSaverOffer } from "@/lib/declutter/sellerTools";
 import { t as tr, useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 
@@ -183,6 +185,8 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
   const underFloor = o.my_side === "seller" && myTurn && o.floor_price_cents !== null && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents;
   // D4-3: a seller's answer to the buyer's Wanted post (stored as a seller counter) is a reply, never "their counter".
   const wantedReply = o.from_wanted === true && o.my_side === "buyer";
+  // Declutter top 5 #1 (owner 11-19): the seller's offer to the people who saved the item is its own, never "their counter".
+  const saverOffer = isSaverOffer(o);
   // What accepting really sells for: least(offer, price now) (live declutter_respond_offer -> declutter_take_item).
   const takeCents = Math.min(o.amount_cents, o.current_price_cents);
   // Audit 1030 DB-4: the counter's plain total is said for a way the seller offers (the item page's read and key).
@@ -195,6 +199,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
           {wantedReply && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-wanted-reply="">{t("dof.wantedReply")}</p>}
+          {saverOffer && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-saver-offer-card="">{t("dt5.so.cardWhy")}</p>}
           {/* Audit 1110 F408: an offer title wraps to two lines instead of an ellipsis at 375 / Bigger text. */}
           <Link to={`/declutter/item/${o.item_id}`} className="line-clamp-2 break-words block text-ds-15 font-semibold leading-snug" title={o.item_title}>{o.item_title}</Link>
           {/* Audit 1110 F356 (owner 11-11): the seller sees who made the offer, first name + last initial only. */}
@@ -205,7 +210,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           {/* Spec v2 §1.1: amounts wear the money ink. */}
           <p className="text-ds-20 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(o.amount_cents)}</p>
           <p className="text-ds-12 text-muted-foreground">
-            {o.awaiting === o.my_side ? (o.my_side === "seller" ? t("dof.theirOffer") : wantedReply ? t("dof.theirPrice") : t("dof.theirCounter")) : o.my_side === "buyer" ? t("dof.yourOffer") : t("dof.yourPrice")}
+            {o.awaiting === o.my_side ? (o.my_side === "seller" ? t("dof.theirOffer") : wantedReply ? t("dof.theirPrice") : saverOffer ? t("dt5.so.cardTag") : t("dof.theirCounter")) : o.my_side === "buyer" ? t("dof.yourOffer") : t("dof.yourPrice")}
           </p>
         </div>
       </div>

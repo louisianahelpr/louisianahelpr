@@ -2819,6 +2819,7 @@ export type Database = {
           is_seed: boolean
           item_id: string
           respond_by: string
+          saver_offer_id: string | null
           seller_id: string
           status: string
           updated_at: string
@@ -2836,6 +2837,7 @@ export type Database = {
           is_seed?: boolean
           item_id: string
           respond_by: string
+          saver_offer_id?: string | null
           seller_id: string
           status?: string
           updated_at?: string
@@ -2853,6 +2855,7 @@ export type Database = {
           is_seed?: boolean
           item_id?: string
           respond_by?: string
+          saver_offer_id?: string | null
           seller_id?: string
           status?: string
           updated_at?: string
@@ -3104,6 +3107,47 @@ export type Database = {
           retained_at?: string
         }
         Relationships: []
+      }
+      declutter_saver_offer_sends: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          item_id: string
+          percent_off: number | null
+          price_cents: number
+          sent_count: number
+          seller_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          item_id: string
+          percent_off?: number | null
+          price_cents: number
+          sent_count: number
+          seller_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          item_id?: string
+          percent_off?: number | null
+          price_cents?: number
+          sent_count?: number
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_saver_offer_sends_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       declutter_talk_reminder_sends: {
         Row: {
@@ -16870,6 +16914,10 @@ export type Database = {
       declutter_refund_gift_split: {
         Args: { p_order_id: string; p_refund_cents: number }
         Returns: number
+      }
+      declutter_send_saver_offer: {
+        Args: { p_amount_cents: number; p_item_id: string; p_percent_off: number }
+        Returns: Json
       }
       poster_finish_job_refusal: { Args: { p_job_id: string; p_now?: string; p_user_id: string }; Returns: string }
       redeem_gift_card_for_declutter_order: {

@@ -7,8 +7,8 @@
  * @mutate src/components/postjob/JobCategoryGroups.tsx | {t(`postJob.group.${g.id}` as MsgKey)}</span> | {g.label}</span>
  * @mutate src/lib/jobCategoryGroups.ts | const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" }; | const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = {};
  * @mutate src/components/postjob/JobCategoryGroups.tsx | placeholder={t("postJob.searchPlaceholder")} | placeholder="e.g. wash my driveway"
- * @mutate src/components/postjob/PostJobStepHeader.tsx |           {t("postJob.stepOf", { step, count: POST_JOB_STEP_COUNT })}\n |           {step} of {POST_JOB_STEP_COUNT}\n
- * @mutate src/components/postjob/PostJobStepRail.tsx |           const label = t(`postJob.rail.${key}` as MsgKey); |           const label = POST_JOB_SCREENS[i].rail;
+ * @mutate src/components/postjob/PostJobStepHeader.tsx |           {ready ? t("postJob.readyShort") : t("postJob.stepOf", { step, count: POST_JOB_STEP_COUNT })}\n |           {ready ? t("postJob.readyShort") : `${step} of ${POST_JOB_STEP_COUNT}`}\n
+ * @mutate src/components/postjob/PostJobStepRail.tsx |           const label = t(`postJob.rail.${stepKey}` as MsgKey); |           const label = stepKey;
  * @mutate src/pages/post-job/FormStep.tsx |   return t(`postJob.kindQ.${id}` as MsgKey); |   return `What kind of ${id} job?`;
  * @mutate src/pages/post-job/FormStep.tsx | question={t("postJob.detailsQ")} helper={t("postJob.detailsH")} | question="Tell us about it" helper="A few words and a photo help Helprs say yes."
  * @mutate src/pages/post-job/EntryChoice.tsx | <nav aria-label={t("postJob.otherWays")} | <nav aria-label="Other ways to start"
@@ -22,7 +22,7 @@ import { enPostJob } from "@/lib/i18n/enPostJob";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { PostJobStepRail } from "@/components/postjob/PostJobStepRail";
-import { POST_JOB_SCREENS } from "@/components/postjob/postJobScreens";
+import { POST_JOB_SCREEN_COUNT, POST_JOB_STEPS } from "@/components/postjob/postJobScreens";
 import { GROUP_EXAMPLES_MAX, JOB_CATEGORY_GROUPS, groupTileLabel } from "@/lib/jobCategoryGroups";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -56,7 +56,7 @@ describe("Post a job in Spanish", () => {
 
     it("the step bar and the step header", () => {
       render(<PostJobStepHeader screen="details" question="q" helper="h" />);
-      expect(screen.getByText(es["postJob.stepOf"].replace("{step}", "3").replace("{count}", String(POST_JOB_SCREENS.length)))).toBeTruthy();
+      expect(screen.getByText(es["postJob.stepOf"].replace("{step}", "1").replace("{count}", String(POST_JOB_SCREEN_COUNT)))).toBeTruthy();
       expect(screen.getByRole("progressbar").getAttribute("aria-label")).toBe(es["postJob.progress"]);
     });
 
@@ -64,8 +64,8 @@ describe("Post a job in Spanish", () => {
       render(<PostJobStepRail screen="price" />);
       const rail = screen.getByRole("navigation");
       expect(rail.getAttribute("aria-label")).toBe(es["postJob.steps"]);
-      for (const { key } of POST_JOB_SCREENS) expect(rail.textContent).toContain(es[`postJob.rail.${key}` as keyof typeof es]);
-      expect(rail.textContent).not.toContain("Details");
+      for (const { key } of POST_JOB_STEPS) expect(rail.textContent).toContain(es[`postJob.rail.${key}` as keyof typeof es]);
+      expect(rail.textContent).not.toContain("Budget");
     });
 
     it("the Spanish tile examples fit the tile as the English must (GROUP_EXAMPLES_MAX)", () => {
@@ -83,10 +83,10 @@ describe("Post a job in Spanish", () => {
       }
     });
 
-    it("the rail words are POST_JOB_SCREENS' and the questions are unchanged", () => {
-      for (const s of POST_JOB_SCREENS) expect(enPostJob[`postJob.rail.${s.key}` as keyof typeof enPostJob]).toBe(s.rail);
+    it("the rail words are the owner's four (11-20) and the questions are unchanged", () => {
+      expect(POST_JOB_STEPS.map((s) => enPostJob[`postJob.rail.${s.key}` as keyof typeof enPostJob])).toEqual(["What you need", "When", "Budget", "Post"]);
       render(<PostJobStepHeader screen="details" question="q" helper="h" />);
-      expect(screen.getByText(`3 of ${POST_JOB_SCREENS.length}`)).toBeTruthy();
+      expect(screen.getByText(`1 of ${POST_JOB_SCREEN_COUNT}`)).toBeTruthy();
       expect(enPostJob["postJob.groupsQ"]).toBe("What do you need done?");
       expect(enPostJob["postJob.kindQ.yard"]).toBe("What kind of yard job?");
       expect(enPostJob["postJob.kindQ.pets"]).toBe("What kind of pets job?");

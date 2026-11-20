@@ -67,14 +67,24 @@ const hasPerformedJobAction = (): boolean =>
 export const JOB_ACTION_EVENT = "helpr:job-action";
 
 /**
+ * Owner 11-20 (ease batch, item 3): the ask says what it is for, right after the action ("Want a ping when someone
+ * applies?" after a post, "...when you're hired?" after applying, "...when someone makes an offer?" after listing,
+ * "...when they reply?" after a message). The action names itself in the event's detail; src/lib/pushAskWords.ts has
+ * the words. No context: the sheet's general words.
+ */
+function jobActionEvent(context?: string): Event {
+  return new CustomEvent(JOB_ACTION_EVENT, { detail: { context: context ?? null } });
+}
+
+/**
  * PUSH-REACH (measured 11-01 on prod: 2 web subscriptions, 0 native tokens; since web push shipped 10-30 the
  * only asks were after a job post or an application, ~7 signed-in actions in all, while 137 messages were sent):
  * a sent message is where a member most wants to hear the reply, so it offers the website's push ask too. Only the
  * ask's event: it does not mark the first job action (the Activity nudges key on that).
  */
-export const offerPushAfterAction = (): void => {
+export const offerPushAfterAction = (context?: string): void => {
   if (typeof window === "undefined") return;
-  const ask = new Event(JOB_ACTION_EVENT);
+  const ask = jobActionEvent(context);
   window.dispatchEvent(ask);
 };
 
@@ -94,17 +104,17 @@ export const offerPushAskAfterPostReturn = (now: number = Date.now()): boolean =
   if (!at) return false;
   safeStorage.removeItem(ASK_AFTER_POST_KEY);
   if (!Number.isFinite(at) || now - at > ASK_AFTER_POST_MAX_AGE_MS || now < at) return false;
-  window.dispatchEvent(new Event(JOB_ACTION_EVENT));
+  window.dispatchEvent(jobActionEvent("posted"));
   return true;
 };
 
-export const recordJobActionForPermissionPrompt = (opts?: { askOnReturn?: boolean }): void => {
+export const recordJobActionForPermissionPrompt = (opts?: { askOnReturn?: boolean; context?: string }): void => {
   // Before the first-action early return: the web push ask keeps its own
   // 14-day cooldown and wants every job action (src/hooks/useWebPush.ts).
   // A post leaves the page at once, so its ask waits for the return (above).
   if (opts?.askOnReturn) safeStorage.setItem(ASK_AFTER_POST_KEY, String(Date.now()));
   else if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event(JOB_ACTION_EVENT));
+    window.dispatchEvent(jobActionEvent(opts?.context));
   }
   if (hasPerformedJobAction()) return;
   markJobActionPerformed();

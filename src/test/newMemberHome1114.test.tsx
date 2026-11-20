@@ -10,7 +10,7 @@
  * @mutate src/components/firstRun/FirstRun.tsx |     { target: "home", text: "Home shows what needs you, and what's new near you" }, |     { target: "home", text: "Dashboard shows what needs you" },
  * @mutate src/components/firstRun/FirstRun.tsx |   const declutterFirst = sells && (sell \|\| deal) && !earn && !hire; |   const declutterFirst = false;
  * @mutate src/components/firstRun/FirstRun.tsx |   return { left: centred, width: w, top: rect.top + rect.height + 16 }; |   return { left: rect.right + 16, top: rect.top, width: 320 };
- * @mutate src/components/firstRun/FirstRun.tsx |             if (userId) saveFirstRunPicks(userId, picks); |             void saveFirstRunPicks;
+ * @mutate src/components/firstRun/FirstRun.tsx |           if (userId) saveFirstRunPicks(userId, [o.id]); |           void saveFirstRunPicks;
  * @mutate src/components/mobileNav/TabButton.tsx |     data-dock-tab={dockPath} | data-dock-x={dockPath}
  * @mutate src/pages/home/homeDashboard/GetStartedGuide.tsx |   apply: (f) => f.applied, |   apply: () => false,
  * @mutate src/pages/home/homeDashboard/GetStartedGuide.tsx |   if (steps.every((s) => s.done)) return null; |   void steps;
@@ -133,9 +133,9 @@ describe("3. the first-run tour points at today's chrome (owner 11-14)", () => {
     expect(rail.left).toBe(252);
   });
 
-  it("the picks are kept for Home's guide when the picker continues (never in the admin preview)", () => {
+  it("the pick is kept for Home's guide when it is tapped (never in the admin preview)", () => {
     const fr = src("src/components/firstRun/FirstRun.tsx");
-    expect(fr).toContain("if (userId) saveFirstRunPicks(userId, picks);");
+    expect(fr).toContain("if (userId) saveFirstRunPicks(userId, [o.id]);");
     expect(src("src/components/firstRun/FirstRunHost.tsx")).toContain("userId={userId}");
     saveFirstRunPicks("u1", ["sell", "earn"]);
     expect(readFirstRunPicks("u1")).toEqual(["earn", "sell"]);

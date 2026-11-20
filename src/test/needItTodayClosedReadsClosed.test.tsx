@@ -14,7 +14,7 @@
  * @mutate src/components/postjob/LogisticsSection.tsx |   const isToday = !isRecurring && dateNeeded === today && !todayClosed; |   const isToday = !isRecurring && dateNeeded === today;
  * @mutate src/components/postjob/LogisticsSection.tsx |                     ? "cursor-not-allowed border border-dashed border-border bg-transparent text-muted-foreground" |                     ? "border border-border bg-card text-foreground"
  * @mutate src/components/postjob/LogisticsSection.tsx |           {holdsClosedToday ? TODAY_CLOSED_COPY : undefined} |           {undefined}
- * @mutate src/pages/post-job/FormStep.tsx |     else submitLabel = t("postJob.pickLater"); |     else submitLabel = "That start time has passed";
+ * @mutate src/pages/post-job/FormStep.tsx |     else logisticsBlock = t("postJob.pickLater"); |     else logisticsBlock = "That start time has passed";
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -152,7 +152,7 @@ describe("F19: once today is closed, step 6 says so everywhere", () => {
   it("the submit label asks for a later start; it no longer claims the time has passed", () => {
     const src = blankComments(readFileSync(join(__dirname, "../pages/post-job/FormStep.tsx"), "utf8"));
     // A3-3 part 2 (Post a job in Spanish): the label is a t("postJob.…") key, read through the English dictionary.
-    expect(src).toContain('else submitLabel = t("postJob.pickLater");');
+    expect(src).toContain('else logisticsBlock = t("postJob.pickLater");'); // owner 11-20: When's own label, read by the last step too
     expect(enPostJob["postJob.pickLater"]).toBe("Pick a later start to continue");
     expect(src).not.toContain("That start time has passed");
     expect(Object.values(enPostJob)).not.toContain("That start time has passed");

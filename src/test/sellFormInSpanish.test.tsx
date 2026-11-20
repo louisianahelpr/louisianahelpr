@@ -19,7 +19,7 @@
  * @mutate src/components/declutter/sellForm.ts | if (step === 3) return code && problemRow(code) === "price" ? formProblemWords(code) : null; | if (step === 3) return code && /price/i.test(formProblemWords(code)) ? formProblemWords(code) : null;
  * @mutate src/components/declutter/useSellFlowState.ts |   const postStage = postStepOf(postStepAt?.key ?? null); |   const postStage = postStepOf(null);
  * @mutate src/components/declutter/SellOneScreen.tsx | step: s.postStage | step: "photos" as const
- * @mutate src/components/declutter/SellOneScreen.tsx | const at: Where = problemRow(code); | const at: Where = /name/i.test(formProblemWords(code)) ? "title" : /price\|lowest\|drops/i.test(formProblemWords(code)) ? "price" : "settings";
+ * @mutate src/components/declutter/SellOneScreen.tsx | const row = problemRow(code); | const row = /name/i.test(formProblemWords(code)) ? "title" : /price\|lowest\|drops/i.test(formProblemWords(code)) ? "price" : "settings";
  * @mutate src/components/declutter/SellOneScreen.tsx | out.push({ message: tr("sf.tickBox"), at: "tax" }); | out.push({ message: "Tick the box about this item before you list it.", at: "tax" });
  * @mutate src/components/declutter/useSellFlowState.ts | toast.error(tr("sf.t.maxPhotos")); | toast.error("A listing can have up to 12 photos.");
  * @mutate src/components/declutter/useSellFlowState.ts | toast(tr("sf.t.sentAt", { price: formatPrice(out.cents) })); | toast(`Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept.`);
@@ -194,7 +194,7 @@ describe("the sell form's problems follow the member's language and mark their r
 
   it("SellOneScreen marks the row from the code, not by reading the words", () => {
     const text = blankComments(readFileSync("src/components/declutter/SellOneScreen.tsx", "utf8"));
-    expect(text).toContain("const at: Where = problemRow(code);");
+    expect(text).toContain("const row = problemRow(code);");
     expect(text).not.toMatch(/\/name\/i\.test|\/price\|/);
   });
 });

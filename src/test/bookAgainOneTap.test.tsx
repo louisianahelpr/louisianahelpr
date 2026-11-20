@@ -5,13 +5,13 @@
  *
  * The four layers this proves, each able to fail on its own:
  *   1. the link: rebook=<job> (the copy) + offerTo=<helper> (the direct offer) + bookAgain=1;
- *   2. Post a job reads that link and opens at When and where (page 4), once the copy's category lands;
+ *   2. Post a job reads that link and opens at When and where (page 3 since owner 11-20 put When before Budget), once the copy's category lands;
  *   3. the finished job's card (Posts, Completed step) draws the chip and it navigates to that link;
  *   4. the Job done screen draws the link (the ONE "again" button, audit 11-01 JA-53), plus the heart that saves the Helpr.
  *
  * @mutate src/lib/bookAgain.ts |   const q = new URLSearchParams({ rebook: jobId, offerTo: helperId, [BOOK_AGAIN_PARAM]: "1" }); |   const q = new URLSearchParams({ offerTo: helperId, [BOOK_AGAIN_PARAM]: "1" });
  * @mutate src/lib/bookAgain.ts |   return !!(searchParams.get(BOOK_AGAIN_PARAM) && searchParams.get("rebook") && searchParams.get("offerTo")); |   return !!searchParams.get("rebook");
- * @mutate src/pages/post-job/FormStep.tsx |     goOn: () => setPage?.(4), |     goOn: () => setPage?.(2),
+ * @mutate src/pages/post-job/FormStep.tsx |     goOn: () => setPage?.(3), |     goOn: () => setPage?.(2),
  * @mutate src/pages/post-job/usePostJobForm.ts |     prefillOpensWhen: prefillOpensWhen(searchParams), |     prefillOpensWhen: false,
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |         job.helper_id && !crew ? ( |         job.helper_id && crew ? (
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |       ]}\n      dialogs={ |         job.helper_id ? <JobActionChip key="again2" icon={RotateCcw} label="Hire again" onClick={() => {}} /> : null,\n      ]}\n      dialogs={
@@ -116,7 +116,7 @@ describe("Book <Helpr> again (Q2471 #3)", () => {
   it("Post a job reads the link and FormStep opens page 4 (When and where) through the same once-only, gated hook", () => {
     expect(code("src/pages/post-job/usePostJobForm.ts")).toContain("prefillOpensWhen: prefillOpensWhen(searchParams),");
     expect(code("src/pages/post-job/FormStep.tsx")).toMatch(
-      /usePrefillOpensDetails\(\{\s*deepLink: !!form\.prefillOpensWhen,\s*category: form\.category,\s*onFirstPage: page === 1,\s*blocked: atOpenJobLimit \|\| underAge,\s*goOn: \(\) => setPage\?\.\(4\),?\s*\}\)/,
+      /usePrefillOpensDetails\(\{\s*deepLink: !!form\.prefillOpensWhen,\s*category: form\.category,\s*onFirstPage: page === 1,\s*blocked: atOpenJobLimit \|\| underAge,\s*goOn: \(\) => setPage\?\.\(3\),?\s*\}\)/,
     );
   });
 

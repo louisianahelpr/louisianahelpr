@@ -9,7 +9,7 @@ import { useSectionIsListed, useSectionIsOn, useSectionIsPreview } from "@/compo
 import { sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
-import { SELL_CHOOSER_PATH, SELL_FREE_PATH, WANTED_POST_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_START_PATH, SELL_FREE_PATH, WANTED_POST_PATH } from "@/lib/declutter/sellChooser";
 import { hapticLight } from "@/lib/haptics";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
@@ -62,7 +62,7 @@ function useCreateRows(open: boolean) {
   const actions: Record<SectionKey, CreateAction[]> = {
     jobs: [{ label: t("cs.postJob"), path: "/post-job", gated: true }],
     declutter: [
-      { label: t("cs.sellItem"), path: SELL_CHOOSER_PATH },
+      { label: t("cs.sellItem"), path: SELL_START_PATH },
       { label: t("cs.giveFree"), path: SELL_FREE_PATH },
       { label: t("cs.postWanted"), path: WANTED_POST_PATH },
     ],

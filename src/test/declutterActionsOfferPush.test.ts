@@ -4,7 +4,7 @@
  * ask once they SUCCEED (offerPushAfterAction; the ask keeps its own 14-day cooldown and never opens over a dialog).
  * A refused call offers nothing.
  *
- * @mutate src/lib/declutter/api.ts |   // PUSH-REACH: a listing that went up is when a seller wants to hear from buyers; the website's push ask.\n  offerPushAfterAction(); |
+ * @mutate src/lib/declutter/api.ts |   // listing (owner 11-20: "Want a ping when someone makes an offer?").\n  offerPushAfterAction("listed"); |
  * @mutate src/lib/declutter/api.ts |   // PUSH-REACH: the seller's answer is what the buyer waits for; the website's push ask.\n  offerPushAfterAction(); |
  * @mutate src/lib/declutter/api.ts |   // PUSH-REACH: pickup and the seller's messages follow a buy; the website's push ask.\n  offerPushAfterAction(); |
  */

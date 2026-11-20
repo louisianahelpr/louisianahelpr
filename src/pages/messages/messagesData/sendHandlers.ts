@@ -388,7 +388,7 @@ export function createSendHandlers({
     // that only recovered a row an earlier attempt already wrote.
     if (!alreadyLanded) track("message_sent", { job_id: optimistic.job_id });
     // PUSH-REACH: the website's push ask (14-day cooldown, never over a dialog) after a sent message.
-    if (!alreadyLanded) offerPushAfterAction();
+    if (!alreadyLanded) offerPushAfterAction("message"); // owner 11-20: "Want a ping when they reply?"
 
     // Reconcile: swap the optimistic bubble for the confirmed server row.
     // If the realtime echo raced ahead and already appended the real row,

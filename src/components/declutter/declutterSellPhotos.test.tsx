@@ -90,6 +90,8 @@ vi.mock("@/components/AppPage", () => ({
   ),
 }));
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
+// A first sale's address box (FirstSalePickup): no address list in jsdom, so the box is a plain field.
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 // No earlier listing: the form starts blank (the last-setup prefill has its own test, declutterSellLastSetup).
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 // No remembered listing choices saved (owner 2026-10-30): the app's defaults; the save at Post goes nowhere.
@@ -101,7 +103,8 @@ vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null
 vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async () => null,
   fetchMyItemPrivate: async () => null,
-  fetchMyPickupWindows: async () => [],
+  // Times saved (the seller set up before): a first sale with none is sellOneQuickList.test.tsx.
+  fetchMyPickupWindows: async () => [{ weekday: 6, starts_local: "09:00:00", ends_local: "12:00:00" }],
   fetchPhotos: async () => upload.onDraft,
   fetchHasAgreedSales: async () => false,
   photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
@@ -213,7 +216,7 @@ describe("photo-first selling, one screen", () => {
 
   // Owner 2026-10-29: a new listing is ONE screen. No step walk ("Continue", "1 of 5"); the summary rows and one Post.
   // @mutate src/components/declutter/DeclutterSellView.tsx |   if (!itemId) return <SellOneScreen />; |   void SellOneScreen;
-  // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : tr("sf.postIt")} |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : "Continue"}
+  // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : tr("sf.postIt")} |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : "Continue"}
   // @mutate src/components/declutter/SellSummaryCard.tsx |           <Row {...row("size")} title={t("sell.size")} value="" empty> | <Row {...row("size")} title={t("sell.size")} value="" empty field="title">
   it("a NEW listing is one screen: photos, the summary rows, the tax box and Post it; no step walk, and no settings on it (owner 2026-10-30)", async () => {
     open();
@@ -841,7 +844,7 @@ describe("photo-first selling, one screen", () => {
     expect(calls).toEqual([]);
   });
 
-  it("settings missing somehow: Post says so beside them", async () => {
+  it("no saved address: Post says so in the screen's own Pickup box (ease batch 11-20; was the settings row)", async () => {
     savedRow.places = [];
     open();
     await screen.findByRole("heading", { name: "Show it off" });
@@ -849,7 +852,7 @@ describe("photo-first selling, one screen", () => {
     await screen.findByText("We wrote your listing. Check it before you post");
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    expect(screen.getByRole("alert").closest('[data-sell-row="settings"]')).not.toBeNull();
+    expect(screen.getByRole("alert").closest('[data-sell-row="pickup"]')).not.toBeNull();
     expect(calls).toEqual([]);
   });
 

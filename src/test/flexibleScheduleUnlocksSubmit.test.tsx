@@ -73,7 +73,7 @@ const FORM_STEP_SRC = readFileSync(join(REPO, "src/pages/post-job/FormStep.tsx")
  * names a field the poster still has to fill.
  */
 // A3-3 part 2 (Post a job in Spanish): the labels are t("postJob.…") keys, read through the English dictionary.
-const ALL_CTA_LABELS = [...FORM_STEP_SRC.matchAll(/submitLabel = (?:"([^"]+)"|t\("([^"]+)"\))/g)].map((m) => m[1] ?? (enPostJob as Record<string, string>)[m[2]]);
+const ALL_CTA_LABELS = [...FORM_STEP_SRC.matchAll(/(?:submitLabel|logisticsBlock) = (?:"([^"]+)"|t\("([^"]+)"\))/g)].map((m) => m[1] ?? (enPostJob as Record<string, string>)[m[2]]);
 // "Review" is Get quotes' ready state (A2-C32: it opens Review, then "Ask for quotes"), not a refusal.
 const BLOCKING_CTA_LABELS = ALL_CTA_LABELS.filter((l) => l !== "Review, then pay" && l !== "Review");
 
@@ -120,11 +120,15 @@ function renderFormWith({
   startTime,
   isFlexibleSchedule,
   forceLogisticsIncomplete = false,
+  formPage = 4,
 }: {
   startTime: string;
   isFlexibleSchedule: boolean;
   /** Reaches FormStep's label ladder directly — see the test that uses it. */
   forceLogisticsIncomplete?: boolean;
+  /** Owner 11-20: When and where (page 3) comes before Budget (page 4, the submitting screen); a schedule still
+   *  missing is refused by When's own Continue. */
+  formPage?: number;
 }) {
   const { result } = renderHook(() => useJobDerived({ ...FILLED, startTime, isFlexibleSchedule }));
   const derived = forceLogisticsIncomplete
@@ -156,8 +160,8 @@ function renderFormWith({
     offerToHelperId: null, offerToHelperName: null, clearOffer: noop,
     offerResponseHours: 24, setOfferResponseHours: noop,
     openJobCount: 0,
-    // Screen 4 of 5 (When and where): the screen whose button submits.
-    formPage: 4, setFormPage: noop,
+    // Budget (page 4, owner 11-20): the screen whose button submits; page 3 is When and where.
+    formPage, setFormPage: noop,
     handleReview: (e: { preventDefault: () => void }) => e.preventDefault(),
   } as unknown as ReturnType<typeof usePostJobForm>;
 
@@ -220,13 +224,14 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
       startTime: "",
       isFlexibleSchedule: true,
       forceLogisticsIncomplete: true,
+      formPage: 3,
     });
     expect(cta).toBeDisabled();
     expect(cta.textContent).not.toContain("Pick a start time to continue");
   });
 
   it("still BLOCKS the CTA with no start time and Flexible unticked", () => {
-    const { cta, derived } = renderFormWith({ startTime: "", isFlexibleSchedule: false });
+    const { cta, derived } = renderFormWith({ startTime: "", isFlexibleSchedule: false, formPage: 3 });
 
     expect(derived.logisticsComplete).toBe(false);
     expect(cta).toBeDisabled();

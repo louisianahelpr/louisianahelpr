@@ -41,9 +41,9 @@ describe("A2-L13: Review keeps the desktop step rail and the post preview", () =
     render(<CheckoutStepView form={makeForm()} />);
     const rail = screen.getByRole("navigation", { name: "Post a job steps" });
     const current = rail.querySelector('[aria-current="step"]');
-    expect(current?.textContent).toMatch(/Review/);
+    expect(current?.textContent).toMatch(/Post/); // owner 11-20: the rail reads What you need, When, Budget, Post
     // Vacuity floor: the rail lists every screen, not only Review.
-    expect(within(rail).getAllByText(/./).length).toBeGreaterThan(5);
+    expect(within(rail).getAllByRole("listitem").length).toBe(4); // four steps: What you need, When, Budget, Post
   });
 
   it("shows the How your post will look card with the job's title and price", () => {

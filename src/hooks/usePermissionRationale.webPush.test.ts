@@ -7,7 +7,7 @@
  *    confirmed before), because the ask after a job action IS the moment to explain;
  *    the browser prompt is raised only from the sheet's own button (a tap).
  *
- * @mutate src/hooks/usePermissionRationale.ts |   return explainThenRun(kind, run, opts?.onShown); |   return Promise.resolve(run()).then(() => true);
+ * @mutate src/hooks/usePermissionRationale.ts |   return explainThenRun(kind, run, opts?.onShown, opts?.words); |   return Promise.resolve(run()).then(() => true);
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 

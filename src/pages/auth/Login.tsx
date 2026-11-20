@@ -1,4 +1,5 @@
 import { LoginForgotNudge } from "./loginForgotNudge";
+import { clearPendingSignup } from "@/lib/pendingSignup";
 import { useEffect, useRef, useState } from "react";
 import { loginNotice, loginNoticeInLang, takeOneShotFlag } from "./loginNotice";
 import { hadSessionOnThisBrowser } from "@/lib/hadSession";
@@ -279,6 +280,7 @@ const Login = () => {
     // job card tapped while logged out, else the home dashboard. See
     // lib/jobIntent. Shared with the MFA path below, which is why the target
     // lives in storage rather than in this closure.
+    clearPendingSignup(); // owner 11-20: signed in, so no sign-up on this device is waiting on its email
     navigate(postAuthDestination(postLoginDest), { replace: true });
   };
 

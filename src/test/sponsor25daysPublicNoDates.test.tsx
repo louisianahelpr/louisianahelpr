@@ -87,6 +87,7 @@ describe("25 Days public pages: no sponsor day, no entry steps, no removed spons
  * @mutate src/content/sponsorPage.ts | One win per person across the whole giveaway: once you win a prize, you are not eligible to win another. | Winners may win more than once.
  * @mutate src/content/sponsorPage.ts | A winner must claim the prize within 48 hours of notification | A winner must claim the prize within 7 days of notification
  * @mutate src/content/sponsorPage.ts |     approved: true, |     approved: false,
+ * @mutate src/content/sponsorPage.ts | run by Louisiana Helpr, Delcambre, Louisiana. | run by Louisiana Helpr, 314 Lynn Street, Delcambre, Louisiana.
  */
 describe("/25days is the page for people entering; the official rules are final", () => {
   const ROOT = path.resolve(__dirname, "../..");
@@ -127,7 +128,7 @@ describe("/25days is the page for people entering; the official rules are final"
     expect(all).not.toMatch(/\[[^\]]*\]/);
     for (const must of [
       "NO PURCHASE NECESSARY",
-      "run by Louisiana Helpr",
+      "run by Louisiana Helpr, Delcambre, Louisiana.",
       "legal residents of Louisiana who are 18 years of age or older",
       "One entry covers all 25 days",
       "One win per person",
@@ -139,6 +140,8 @@ describe("/25days is the page for people entering; the official rules are final"
       "as described in the official giveaway post on the Louisiana Helpr Facebook page",
     ]) expect(all, must).toContain(must);
     expect(all).not.toMatch(ENTRY_STEPS);
+    // Privacy (lead 2026-11-19): no street address in the public rules.
+    expect(all).not.toMatch(/Lynn St|\b\d{3,5} [A-Z][a-z]+ (St|Street|Ave|Avenue|Rd|Road)\b|\b70528\b/);
     // The rules page links back to the entrant page, not the brand page.
     const page = fs.readFileSync(path.join(ROOT, "src/pages/sponsor/SponsorRulesPage.tsx"), "utf8");
     expect(page).toContain('<Link className="lh25-back" to="/25days">');

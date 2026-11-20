@@ -710,7 +710,8 @@ export const sponsorPage = {
       },
       {
         heading: "Sponsor",
-        body: "The giveaway is run by Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528. Prizes are provided by the participating businesses.",
+        // Lead 2026-11-19 (privacy): the organizer is named by town only; never a street address in the rules.
+        body: "The giveaway is run by Louisiana Helpr, Delcambre, Louisiana. Prizes are provided by the participating businesses.",
       },
       {
         heading: "Who can enter",

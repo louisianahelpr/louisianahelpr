@@ -20726,7 +20726,7 @@ export type Database = {
         Returns: {
           high_dollars: number
           low_dollars: number
-          sample_count: number | null
+          sample_band: string | null
           scope: string
         }[]
       }

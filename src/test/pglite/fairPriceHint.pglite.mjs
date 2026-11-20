@@ -9,6 +9,9 @@
  * typical (needs 5); 5 near jobs from 3 posters give 'near' (middle half, whole dollars); 5 near jobs from 2 posters stay
  * thin; far jobs only count statewide ('state'); seed, test-account and seed-profile posters, crew jobs, cancelled,
  * never-paid, old and other-category jobs never count; a guest (anon) only ever gets 'typical' even with real data;
+ * location privacy (review 2026-11-20): a real range says only sample_band '5+', never the count, and the point is
+ * snapped to a 0.1-degree grid, so every point in one cell gets the same answer and a job just outside 25 miles of
+ * the cell centre is not near even when it is inside 25 miles of the caller's exact point;
  * an unknown category returns no row; anon and authenticated can EXECUTE, PUBLIC cannot; fair_price_typical is not
  * client-callable; get_price_guidance and the switch row are gone.
  */
@@ -60,7 +63,7 @@ const job = (budget, extra = {}) => {
 };
 
 let r = await ask();
-check("no data: typical yard range $40-$80, no count", r.scope === "typical" && r.low_dollars === 40 && r.high_dollars === 80 && r.sample_count === null, r);
+check("no data: typical yard range $40-$80, no count", r.scope === "typical" && r.low_dollars === 40 && r.high_dollars === 80 && r.sample_band === null, r);
 
 // Noise that must never count.
 await job(1000, { is_seed: true });
@@ -75,17 +78,31 @@ await job(1000, { category: "cleaning", customer_id: U(80) }); // real, but in a
 
 for (const b of [50, 60, 70, 80]) await job(b);
 r = await ask();
-check("4 real near jobs: still typical (needs 5)", r.scope === "typical" && r.sample_count === null, r);
+check("4 real near jobs: still typical (needs 5)", r.scope === "typical" && r.sample_band === null, r);
 await job(90);
 r = await ask();
 // 50,60,70,80,90: p25 = 60, p75 = 80; the noise never counted.
-check("5 real near jobs from 3 posters: near $60-$80", r.scope === "near" && r.sample_count === 5 && r.low_dollars === 60 && r.high_dollars === 80, r);
+check("5 real near jobs from 3 posters: near $60-$80", r.scope === "near" && r.sample_band === "5+" && r.low_dollars === 60 && r.high_dollars === 80, r);
 r = await ask(ME, "yard_work", FAR);
-check("from 120 miles away: the same jobs are statewide", r.scope === "state" && r.sample_count === 5, r);
+check("from 120 miles away: the same jobs are statewide", r.scope === "state" && r.sample_band === "5+", r);
 r = await ask(ME, "yard_work", null);
 check("no location: statewide", r.scope === "state", r);
+// Ten more real jobs (15 in all): the band is still only "5+", never the count.
+for (let i = 0; i < 10; i++) await job(70);
+r = await ask();
+check("15 near jobs: sample_band \"5+\", no exact count anywhere", r.scope === "near" && r.sample_band === "5+" && !("sample_count" in r), r);
+// Every point in the same 0.1-degree cell gets the same answer (30.22/-92.02 and 30.24/-92.04 both snap to 30.2/-92.0).
+const a1 = await ask(ME, "yard_work", [30.22, -92.02]), a2 = await ask(ME, "yard_work", [30.24, -92.04]);
+check("one grid cell, one answer", JSON.stringify(a1) === JSON.stringify(a2), { a1, a2 });
+// The search is centred on the cell, not the exact point: from 30.65/-92.0 (snaps to 30.7) the HERE jobs (30.22) are
+// ~33 miles from the cell centre, so statewide; unsnapped at 30.58 (snaps to 30.6, ~26 miles) also statewide, while
+// 30.54 (snaps to 30.5, ~19.4 miles) is near.
+r = await ask(ME, "yard_work", [30.54, -92.02]);
+check("30.54 snaps to 30.5: within 25 miles of the cell centre, near", r.scope === "near", r);
+r = await ask(ME, "yard_work", [30.56, -92.02]);
+check("30.56 snaps to 30.6 (~26 miles from the jobs): statewide, though the exact point is ~23.9 miles away", r.scope === "state", r);
 r = await ask(null);
-check("guest (anon): typical only, even with real data", r.scope === "typical" && r.sample_count === null && r.low_dollars === 40, r);
+check("guest (anon): typical only, even with real data", r.scope === "typical" && r.sample_band === null && r.low_dollars === 40, r);
 
 // Five cleaning jobs from TWO posters: thin.
 for (let i = 0; i < 5; i++) await job(100 + i * 10, { category: "cleaning", customer_id: U(80 + (i % 2)) });

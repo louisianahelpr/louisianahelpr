@@ -10,8 +10,11 @@
 --   'state'   the same, statewide, when the near sample is too thin;
 --   'typical' otherwise: a fixed starting range per category (below), worded on the screen as typical, never as
 --             "jobs on Helpr" (truth rule: a real number is real, a typical one says so).
--- A real sample needs 5 jobs and 3 posters, so no single job's or poster's price can be read back from it, and the
--- count is never returned for a thin sample.
+-- A real sample needs 5 jobs and 3 posters, so no single job's or poster's price can be read back from it.
+-- Location privacy (lh-authz-rls review, 2026-11-20): the point is snapped server-side to a 0.1-degree grid (about 7 by
+-- 6 miles here) before the near search, so moving the point by less than a cell changes nothing, and the sample size
+-- is never returned exactly: a real range says only sample_band '5+' (NULL for 'typical'). Probing many points cannot
+-- count jobs in and out of the circle to find one job's place or price.
 --
 -- Real means: not is_seed; neither the poster nor the Helpr is a test account (public.test_accounts) or an is_seed
 -- profile; not a crew job (its budget is the whole crew's); priced (budget > 0); posted and not refused or abandoned:
@@ -47,7 +50,7 @@ REVOKE ALL ON FUNCTION public.fair_price_typical(text) FROM PUBLIC, anon, authen
 GRANT EXECUTE ON FUNCTION public.fair_price_typical(text) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.get_fair_price_hint(p_category text, p_lat double precision DEFAULT NULL, p_lng double precision DEFAULT NULL)
-RETURNS TABLE(scope text, sample_count integer, low_dollars integer, high_dollars integer)
+RETURNS TABLE(scope text, sample_band text, low_dollars integer, high_dollars integer)
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
@@ -60,6 +63,9 @@ DECLARE
   v_high numeric;
   v_near boolean := p_lat IS NOT NULL AND p_lng IS NOT NULL
     AND p_lat BETWEEN -90 AND 90 AND p_lng BETWEEN -180 AND 180;
+  -- The 0.1-degree grid point the near search is centred on (never the caller's exact point).
+  v_lat double precision := round(p_lat::numeric, 1)::double precision;
+  v_lng double precision := round(p_lng::numeric, 1)::double precision;
 BEGIN
   IF p_category IS NULL OR length(p_category) > 40 THEN
     RETURN;
@@ -87,16 +93,16 @@ BEGIN
          AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id IN (j.customer_id, j.helper_id) AND coalesce(p.is_seed, false))
          AND (i = 2 OR (
                j.latitude IS NOT NULL AND j.longitude IS NOT NULL
-               AND sqrt(power((j.latitude - p_lat) * 69.0, 2) + power((j.longitude - p_lng) * 69.0 * cos(radians(p_lat)), 2)) <= 25
+               AND sqrt(power((j.latitude - v_lat) * 69.0, 2) + power((j.longitude - v_lng) * 69.0 * cos(radians(v_lat)), 2)) <= 25
              ));
       IF v_n >= 5 AND v_posters >= 3 AND v_high >= v_low THEN
-        RETURN QUERY SELECT CASE WHEN i = 1 THEN 'near' ELSE 'state' END, v_n, round(v_low)::integer, round(v_high)::integer;
+        RETURN QUERY SELECT CASE WHEN i = 1 THEN 'near' ELSE 'state' END, '5+'::text, round(v_low)::integer, round(v_high)::integer;
         RETURN;
       END IF;
     END LOOP;
   END IF;
 
-  RETURN QUERY SELECT 'typical'::text, NULL::integer, t.low_dollars, t.high_dollars FROM public.fair_price_typical(p_category) t;
+  RETURN QUERY SELECT 'typical'::text, NULL::text, t.low_dollars, t.high_dollars FROM public.fair_price_typical(p_category) t;
 END;
 $fn$;
 

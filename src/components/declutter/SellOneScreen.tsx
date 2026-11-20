@@ -30,17 +30,24 @@ import { useSellFlowState, type SellFlow } from "./useSellFlowState";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { BuyerPreviewCard } from "./BuyerPreviewCard";
 import { DEFAULT_DROP_PCT } from "@/lib/declutter/priceDrop";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { savedSellWork } from "@/lib/declutter/bunchSaved";
+import { SELL_BUNCH_PATH, SELL_CHOOSER_PATH, SELL_MOVE_PATH } from "@/lib/declutter/sellChooser";
+import { FirstSalePickup, firstSaleProblem, useFirstSale, type FirstSale } from "./FirstSalePickup";
+import { anyNeeded } from "@/lib/declutter/sellerSetupSave";
 import "@/lib/i18n/enSellForm";
 import { t as tr, useLanguage } from "@/lib/i18n/language";
 
-type Where = "photos" | SummaryField | "settings" | "tax";
+type Where = "photos" | SummaryField | "settings" | "pickup" | "tax";
 
 /**
  * The first thing that blocks Post, top to bottom, and the row it belongs to. While the AI is writing, the title and
  * price it is about to fill are not problems yet (audit posting 1030 #7: tapping Post then said "Give the item a name").
  */
 
-function postProblems(s: SellFlow): { message: string; at: Where }[] {
+function postProblems(s: SellFlow, first: FirstSale): { message: string; at: Where }[] {
   const out: { message: string; at: Where }[] = [];
   if (s.photoTotal < DECLUTTER_MIN_PHOTOS) out.push({ message: DECLUTTER_MIN_PHOTOS === 1 ? tr("sf.addPhotoOne") : tr("sf.addPhotos", { n: DECLUTTER_MIN_PHOTOS }), at: "photos" });
   const writing = s.ai.state.status === "busy";
@@ -48,11 +55,14 @@ function postProblems(s: SellFlow): { message: string; at: Where }[] {
   let probe = writing ? { ...s.form, title: s.form.title.trim() || "Being written", price: s.form.price || "100", floor: s.form.floor || "1" } : s.form;
   for (let code = formProblemCode(probe); code; code = formProblemCode(probe)) {
     // The row keys off the code, never the words (F260q: Spanish words would all land on Settings).
-    const at: Where = problemRow(code);
+    // A first sale asks the address in its own Pickup box (FirstSalePickup), so the address and city are marked there.
+    const row = problemRow(code);
+    const at: Where = row === "settings" && first.needs?.pickup ? "pickup" : row;
     out.push({ message: formProblemWords(code), at });
-    if (at === "settings") break;
+    if (at === "settings" || at === "pickup") break;
     probe = at === "title" ? { ...probe, title: "Answered" } : { ...probe, price: "100", floor: "1", dropPct: DEFAULT_DROP_PCT };
   }
+  if (first.timesProblem) out.push({ message: first.timesProblem, at: "pickup" });
   if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push({ message: tr("sf.chooseWay"), at: "settings" });
   // Nobody buys a give-away (audit 1110 F340): that form names the person picking it up.
   if (!writing && !s.sizeKnown) out.push({ message: tr(s.form.free ? "sf.sizeProblemFree" : "sf.sizeProblem"), at: "size" });
@@ -83,6 +93,12 @@ export function SellOneScreen() {
 
 function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   const s = useSellFlowState(null);
+  // Ease batch (owner-approved 11-20): a first sale's address and times are asked here, not on a screen before this one.
+  const first = useFirstSale(s);
+  const [settingUp, setSettingUp] = useState(false);
+  const [setupNote, setSetupNote] = useState<string | null>(null);
+  // Sell buttons open this screen straight away now; kept Sell a bunch work is offered from here (LEAD-BUNCH-DRAFT-KEEP).
+  const kept = useQuery({ queryKey: ["declutter", "saved-sell-work", s.user?.id], queryFn: () => savedSellWork(s.user!.id), enabled: !!s.user?.id, staleTime: 0 });
   useLanguage(); // re-render in the member's language when it changes or loads (F260q)
   const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, savedWays, windows, autoFreeWanted } = s;
   // LEAD-POST-PLACES (owner 2026-10-31): with saved places, each shows with its own days and hours, not one area.
@@ -91,7 +107,8 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   const [tried, setTried] = useState(false);
   // Post was tapped while the AI was still writing: it posts by itself when that finishes, unless something is missing.
   const [postWhenWritten, setPostWhenWritten] = useState(false);
-  const writing = ai.state.status === "busy";
+  // Also while the first-sale reads are out (FirstSalePickup): a saved setup is never overwritten by a guess.
+  const writing = ai.state.status === "busy" || !first.settled;
   const postNow = useRef<() => void>(() => {});
   useEffect(() => {
     if (!postWhenWritten || writing) return;
@@ -114,14 +131,22 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
     );
   }
 
-  const problems = postProblems(s);
+  if (first.failed) {
+    return (
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?tab=selling">
+        <ErrorState variant="inline" title={tr("sf.fs.loadFailed")} body={tr("sf.fs.loadFailedBody")} onRetry={first.reload} />
+      </AppPage>
+    );
+  }
+
+  const problems = postProblems(s, first);
   const bad = problems[0] ?? null;
   /** The words for what blocks Post, shown in the row they belong to once Post was tapped. */
   const problemAt = (at: Where): ReactNode => {
     const here = tried ? problems.find((p) => p.at === at) : null;
     return here ? <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-problem" data-problem-at={at}>{here.message}</p> : null;
   };
-  const post = () => {
+  const post = async () => {
     if (bad) {
       setTried(true);
       if (bad.at === "title" || bad.at === "price" || bad.at === "size") setOpen(bad.at);
@@ -133,9 +158,24 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
       setPostWhenWritten(true);
       return;
     }
+    // A first sale: its address, times and settings are saved first (the setup screen's saveSellerSetup), then it posts.
+    if (first.needs && anyNeeded(first.needs)) {
+      setSettingUp(true);
+      setSetupNote(null);
+      try {
+        await first.save();
+      } catch (err) {
+        // Said in the Pickup box (the exact-spot note there already says "I'm at this address" for an inexact one).
+        setSetupNote(firstSaleProblem(err));
+        requestAnimationFrame(() => document.querySelector('[data-sell-row="pickup"]')?.scrollIntoView?.({ block: "center" }));
+        return;
+      } finally {
+        setSettingUp(false);
+      }
+    }
     void s.onPublish();
   };
-  postNow.current = post;
+  postNow.current = () => void post();
 
   return (
     // Audit 11-10 F341: a giveaway keeps its title on a phone too, so the first heading there is not just "Show it off".
@@ -183,6 +223,14 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
           {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}
           {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />}
           {problemAt("photos")}
+          {/* Every Sell button opens this screen now (ease batch 11-20); the other ways stay one tap away. */}
+          {s.photoTotal === 0 && !s.keptWork.restored && (
+            <Button asChild variant="link" size="wrapSm" className="justify-start px-0 text-left font-semibold text-[hsl(var(--sage-ink))]">
+              {kept.data?.bunch
+                ? <Link to={kept.data.moving ? SELL_MOVE_PATH : SELL_BUNCH_PATH} data-sell-continue-bunch="">{tr("sf.continueBunch")}</Link>
+                : <Link to={SELL_CHOOSER_PATH} data-sell-more-ways="">{tr("sf.moreWays")}</Link>}
+            </Button>
+          )}
         </section>
 
         <SellSummaryCard
@@ -205,6 +253,11 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             />
           )}
         />
+
+        {first.needs && (
+          <FirstSalePickup s={s} needs={first.needs}
+            problem={<>{problemAt("pickup")}{setupNote && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-first-sale-problem="">{setupNote}</p>}</>} />
+        )}
 
         <div className="space-y-2" data-sell-row="tax"><SellTaxBox s={s} />{problemAt("tax")}</div>
 
@@ -235,8 +288,8 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
         {/* Owner 2026-11-01: while it goes up, a clear in-progress view (Uploading photos -> Checking -> Live), not only a
             greyed button; the done view after is unchanged. */}
         {s.publishing && <SellProgress title={tr("sf.posting")} rows={[{ name: form.title.trim() || tr("sf.yourItem"), step: s.postStage }]} note={s.postStep ? `${s.postStep}. ${tr("sf.keepOpen")}` : tr("sf.keepOpen")} />}
-        <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving || postWhenWritten} onClick={post}>
-          {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : tr("sf.postIt")}
+        <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving || postWhenWritten || settingUp} onClick={() => void post()}>
+          {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : tr("sf.postIt")}
         </Button>
         <p role="status" className="sr-only" data-post-step="">{s.publishing ? s.postStep : ""}</p>
         {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale); never on a give-away,

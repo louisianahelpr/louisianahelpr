@@ -27,6 +27,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
+import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
 import { FRANCHISE_SPONSORS_1120, SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
@@ -3809,6 +3810,16 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
     });
   }
   console.log(`gift-guide-picks: follow-up 1120: ${followUpCounts1120.sponsors} sponsors on ${SHOP_SMALL} (${followUpCounts1120.namedOnly} named only), out ${JSON.stringify(followUpCounts1120.out)}, ${followUpCounts1120.griddles} extra Weber griddles out, ${followUpCounts1120.renamed} audit renames, ${followUpCounts1120.brandFirst} names brand first, ${sortCounts.followUpAdds ?? 0} earning adds placed in the pool, audits ${JSON.stringify(AUDIT_1120.followUp)}`);
+}
+/**
+ * TRAIN 1120b (lead 44, 2026-11-20): the re-audit's fixes, the national 25 Days sponsors' one spot each, the Walmart
+ * deals box cleanup and the Georgia Boot sale, applied last to the finished pages (scripts/giftGuideTrain1120b.mjs,
+ * rules in scripts/gift-guide-train-1120b.json). A rule that finds nothing is printed, never dropped silently.
+ */
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-train-1120b.json", import.meta.url), "utf8"));
+  const t = applyTrain1120b(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales });
+  console.log(`gift-guide-picks: train 1120b ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days

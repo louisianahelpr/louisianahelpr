@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 29 |
 | Overlay surfaces | **instance** | 248 |
 | — of which hand-rolled, no dialog primitive | instance | 13 (across 10 files) |
-| Toast messages | **call site** | 1246 (across 360 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1259 (across 364 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 58 |
-| Multi-step flows — probable | flow | 34 |
+| Multi-step flows — probable | flow | 35 |
 | Back/next navigation only | flow | 71 |
 | Forms (submittable) | form | 138 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 191 |
 | Email templates | **exported template** | 26 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **877** |
-| **Copy surfaces** (strings a person may read) | mixed | **1304** |
-| **Total auditable surface** | mixed | **2181** |
+| **Navigable surfaces** (places a person can stand) | mixed | **878** |
+| **Copy surfaces** (strings a person may read) | mixed | **1317** |
+| **Total auditable surface** | mixed | **2195** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -529,6 +529,7 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/admin/AdminReferrals.tsx` | union-state |
 | `src/components/admin/settings/DeclutterProblemsCard.tsx` | union-state |
 | `src/components/admin/userDetail/JobsTab.tsx` | union-state |
+| `src/components/declutter/BulkActions.tsx` | union-state |
 | `src/components/declutter/DeclutterBrowseView.tsx` | union-state |
 | `src/components/declutter/DeclutterQuestions.tsx` | union-state |
 | `src/components/declutter/DeclutterRefundRequest.tsx` | union-state |

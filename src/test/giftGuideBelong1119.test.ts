@@ -12,13 +12,11 @@
  * @mutate scripts/giftGuideRules.mjs |   return LA_LINE.test(out) ? "" : out; |   return line;
  */
 import { existsSync, readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { E_GIFT, FILLER_OK, INSULATED, LA_LINE, NOWHERE, TUMBLER_MAX, belongsWhy, fillerGuide, neutralLine, tumblerGuide, wrapItem } from "../../scripts/giftGuideRules.mjs";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; line?: string; href: string; price?: number; image?: string };
-const DIR = "src/content/giftGuidePicks";
 // Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
 const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
 const indexSrc = readFileSync("src/content/giftGuideIndex.ts", "utf8");

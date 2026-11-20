@@ -10,15 +10,12 @@
  * @mutate scripts/gift-guide-picks.mjs |   for (const p of mine) rest.splice(newApprovalSlot(rest, isTrending, isAmazonPick), 0, p); |   for (const p of mine) rest.splice(0, 0, p);
  * @mutate scripts/gift-guide-picks.mjs |   p = withLinkUpgrade(withSoldoutSwap(p)); |   p = withSoldoutSwap(p);
  */
-import { existsSync, readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { NEW_APPROVAL_KEEP_TOP, approvalLine, newApprovalSlot } from "../../scripts/giftGuideRules.mjs";
 import { isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; line?: string; href: string; store?: string };
-const DIR = "src/content/giftGuidePicks";
 // Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
 const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
 const slugs = Object.keys(sectionChunks());

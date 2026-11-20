@@ -16,7 +16,6 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { readdirSync } from "./helpers/trackedFiles";
 import { GUIDE_GROUPS, KIDS_TOY, SHOPMY_S3, kidsToyOff, shopmyCdnUrl } from "../../scripts/giftGuideRules.mjs";
 import { MERGED_GUIDES, guideBySlug } from "@/content/giftGuideCatalog";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";

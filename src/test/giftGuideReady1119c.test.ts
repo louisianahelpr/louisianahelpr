@@ -10,15 +10,12 @@
  * @mutate scripts/giftGuideRules.mjs | export const DUP_GUIDE_MAX = 2; | export const DUP_GUIDE_MAX = 9;
  * @mutate scripts/giftGuideRules.mjs | export const PRICE_MAX = 500; | export const PRICE_MAX = 5000;
  */
-import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { readdirSync } from "./helpers/trackedFiles";
 import { DUP_GUIDE_MAX, NON_GIFT_SERVICE, PRICE_MAX, nonGiftService } from "../../scripts/giftGuideRules.mjs";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; href: string; affiliate_href?: string; image?: string; price?: number; ownerPick?: true; retailer?: string; store?: string };
-const DIR = "src/content/giftGuidePicks";
 // Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
 const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
 const slugs = Object.keys(sectionChunks()).filter((s: string) => s !== "25-days-sponsors");

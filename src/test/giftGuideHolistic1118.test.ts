@@ -11,14 +11,10 @@
  * @mutate scripts/gift-guide-picks.mjs |     if (INSTAX_OFF.includes(slug) && instaxItem(p)) return "instax"; |
  * @mutate scripts/giftGuideRules.mjs | export const NO_SHOW_FORMAT = /\.(avif\|heif\|heic)(\?\|$)\|[?&](fmt\|format)=avif\b/i; | export const NO_SHOW_FORMAT = /^$/;
  */
-import { readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ANGLING, NEW_MOM_CARE, NOT_A_GIFT_ITEM, WOMEN_GUIDES, brokenImage, collectionLink, fitsGuide, INSTAX_OFF, instaxItem, mensItem, nonUsUrl, placeholderName } from "../../scripts/giftGuideRules.mjs";
-import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
+import { sectionChunks } from "./helpers/giftGuideSections";
 
-const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; href: string; image?: string };
 // Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
 const CHUNKS: Record<string, Pick[]> = sectionChunks<Pick>();

@@ -10,7 +10,7 @@
  * @mutate src/components/giftGuides/PickPrice.tsx | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt) \|\| isAmazonPick(pick)) return false; | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt)) return false;
  * @mutate src/components/giftGuides/PickPrice.tsx |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         <PickPrice pick={pick} /> |         {null}
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={guide.picks.slice(0, upTo)} /> |       {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={picks.slice(0, upTo)} /> |       {null}
  * @mutate src/content/giftGuideCatalog.ts |     ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) }; |     }; void store;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

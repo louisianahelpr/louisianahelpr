@@ -15,12 +15,11 @@
  * @mutate scripts/giftGuideRules.mjs |   if (EXPERIENCE_GUIDES.includes(slug)) return EXPERIENCE.test(p.name) && !NOT_A_GIFT.test(p.name); |
  * @mutate scripts/giftGuideRules.mjs |   if (/\bkni(fe\|ves)\b/i.test(p.name) && !KNIFE_OK_GUIDES.includes(slug)) return false; |
  * @mutate scripts/giftGuideRules.mjs | export const brokenImage = (u) => /liquid(%20\|\s\|\+)error/i.test(u) \|\| /[<>{}]/.test(u) \|\| | export const brokenImage = (u) => /[<>{}]/.test(u) \|\|
- * @mutate src/content/giftGuideCatalog.ts |  ${SEARCH_KEYWORDS[g.slug] ?? ""}`); | `);
+ * @mutate src/content/giftGuideCatalog.ts |  ${SEARCH_KEYWORDS[g.slug] ?? ""} ${sectionWords(g.slug)}`); | `);
  * @mutate src/content/giftGuideCatalog.ts | .sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j) | .sort(([, i], [, j]) => i - j)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? | {false ? G.collectionOnShopMy : storeLabel(pick) ?
  */
 import { readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
@@ -29,7 +28,6 @@ import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME,
 import { LOUISIANA_SHOPS, SPONSOR_SITES } from "@/content/giftGuides";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
-const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 type Pick = { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; sponsor?: true };
 // Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
 const CHUNKS: Record<string, Pick[]> = sectionChunks<Pick>();
@@ -223,7 +221,7 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
 });
 describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
   // Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
-  const pageOf = (slug: string): { name: string; image?: string; href: string }[] => sectionPageOf(slug);
+  const pageOf = (slug: string): { name: string; image?: string; href: string }[] => sectionPageOf<{ name: string; image?: string; href: string }>(slug);
   const pages = Object.keys(sectionChunks()).map((s) => `${s}.json`);
   it("drops the audited wrong thumbnails and any logo/banner/icon image", () => {
     // @mutate scripts/giftGuideRules.mjs |   \|\| (LOGO_IMAGE.test(u.split("?")[0]) && !LOGO_PRODUCT.test(u)) \|\| WRONG_IMAGES.has(u.split("?")[0]); |   ;

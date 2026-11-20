@@ -15,10 +15,11 @@ const DIR = "src/content/giftGuidePicks";
 type WithSection = { sectionId?: string };
 
 /** One chunk's picks split into lists: [listSlug, picks][] (its own slug for picks with no section or "top-picks"). */
-export function splitChunk<T extends WithSection>(slug: string, picks: T[]): [string, T[]][] {
+function splitChunk<T>(slug: string, picks: T[]): [string, T[]][] {
   const by = new Map<string, T[]>();
   for (const p of picks) {
-    const k = p.sectionId && p.sectionId !== "top-picks" ? p.sectionId : slug;
+    const id = (p as WithSection).sectionId;
+    const k = id && id !== "top-picks" ? id : slug;
     by.set(k, [...(by.get(k) ?? []), p]);
   }
   if (!by.has(slug) && by.size === 0) by.set(slug, []);
@@ -28,7 +29,7 @@ export function splitChunk<T extends WithSection>(slug: string, picks: T[]): [st
 const cache = new Map<string, Record<string, unknown[]>>();
 
 /** Every list, keyed by its (old) guide slug: the chunks read once, each merged chunk split into its sections. */
-export function sectionChunks<T extends WithSection>(root = process.cwd()): Record<string, T[]> {
+export function sectionChunks<T>(root = process.cwd()): Record<string, T[]> {
   if (!cache.has(root)) {
     const dir = join(root, DIR);
     const out: Record<string, unknown[]> = {};
@@ -43,14 +44,14 @@ export function sectionChunks<T extends WithSection>(root = process.cwd()): Reco
 }
 
 /** One (old) guide's list: its section of the merged guide, or its own chunk; [] when it has none. */
-export function sectionPageOf<T extends WithSection>(slug: string, root = process.cwd()): T[] {
+export function sectionPageOf<T>(slug: string, root = process.cwd()): T[] {
   const into = MERGED_INTO[slug];
   if (into) {
     const file = join(root, DIR, `${into.parent}.json`);
-    return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")).picks as T[]).filter((p) => p.sectionId === slug) : [];
+    return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")).picks as (T & WithSection)[]).filter((p) => p.sectionId === slug) : [];
   }
   const file = join(root, DIR, `${slug}.json`);
   if (!existsSync(file)) return [];
-  const picks = JSON.parse(readFileSync(file, "utf8")).picks as T[];
+  const picks = JSON.parse(readFileSync(file, "utf8")).picks as (T & WithSection)[];
   return picks.some((p) => p.sectionId) ? picks.filter((p) => !p.sectionId || p.sectionId === "top-picks") : picks;
 }

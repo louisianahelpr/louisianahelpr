@@ -11,15 +11,12 @@
  * @mutate scripts/giftGuideRules.mjs | export const MEN_COLOR_GUIDES = [...MEN_FAMILY_GUIDES, "nephew", "boys-teens", "brother-in-law", "new-dad"]; | export const MEN_COLOR_GUIDES = [];
  * @mutate src/content/giftGuideCatalog.ts | export const GUIDE_MIN_PICKS = 1; | export const GUIDE_MIN_PICKS = 6;
  */
-import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { readdirSync } from "./helpers/trackedFiles";
 import { BABY_OK, BABY_ITEM, MEN_COLOR_GUIDES, MEN_PASTEL, OLD_ELECTRONICS, OWNER_REMOVED } from "../../scripts/giftGuideRules.mjs";
 import { GUIDE_MIN_PICKS, guideBySlug } from "@/content/giftGuideCatalog";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; ownerPick?: true; retailer?: string; store?: string };
-const DIR = "src/content/giftGuidePicks";
 // Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
 const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
 const slugs = Object.keys(sectionChunks());

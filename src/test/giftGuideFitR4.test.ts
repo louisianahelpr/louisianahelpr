@@ -22,8 +22,7 @@
  * @mutate scripts/gift-guide-picks.mjs |       if (!r && caps.some(([k, max]) => (typed.get(k) ?? 0) >= max)) r = "r4: type cap"; |       if (false) r = "r4: type cap";
  * @mutate scripts/gift-guide-picks.mjs |       if (!beautyItem(p) \|\| beautyKeep.get(beautyKey(p))?.has(slug)) return true; |       return true;
  */
-import { existsSync, readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   BANNED_LINKS, BEAUTY_GUIDE_MAX, NORTH_LA, NURSE_GUIDES, NURSE_LABEL, R4_OFF, STETHOSCOPE, STETHOSCOPE_GUIDES, beautyItem, brandKey,

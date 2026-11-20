@@ -50,7 +50,7 @@ const FINAL: Record<number, string[]> = {
   8: ["RYSE", "Written on the River", "Timeless Skin Care", "David Rabalais", "Tays Sweet Shop", "Candle Bloom Confections", "Active Beauty"],
   9: ["RYSE", "Let's Create LLC", "David Rabalais", "Botanical Nail and Skin Studio", "City Sightseeing New Orleans", "Suzi Marques Photography"],
   10: ["GentleStyle Brush (CLM Creations)", "RYSE", "Handmade By Hayli", "Bake & Brush", "Criquet Shirts", "Everyday Dose", "Suzi Marques Photography"],
-  11: ["Boston Mints", "RYSE", "IDRA Wellness", "aosu", "Beaver's Abundance", "AllWays Lounge & Cabaret (New Orleans, St. Claude Ave)", "Ripley's Crawfish", "Suzi Marques Photography"],
+  11: ["Boston Mints", "RYSE", "IDRA Wellness", "aosu", "Beaver's Abundance", "AllWays Lounge & Cabaret (New Orleans)", "Ripley's Crawfish", "Suzi Marques Photography"],
   12: ["Oyu Botanica", "RYSE", "Summar T. Photography", "RoseMae Eimear Creations", "Rip Van Winkle Gardens", "Tays Sweet Shop", "Wicks NOLA Candle Company", "Suzi Marques Photography"],
   13: ["SRI Labs", "RYSE", "Hello Darlin'", "Kee's Pretty Little Things", "The Crab Man Plus", "Manta Sleep"],
   14: ["The Sculpt Society", "Crew Dog", "Aeva Beauty", "The Humble Home Decor & Candles", "Deming Delights", "Everyday Dose", "God's Country RV Resort"],

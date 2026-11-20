@@ -50,6 +50,8 @@ const PUBLIC_NAMES = new Map([
   ["David Rabalais (The Fois)", "David Rabalais"],
   ["Tevin Lewis, District 2 Alderman", "Tevin Lewis, District 2 Alderman"],
   ["Haylie Rudisill (custom wreath sashes)", "Haylie Rudisill · Custom wreath sashes"],
+  // Not a person: the street name "St. Claude" trips src/test/noClaudeInMemberCopy.test.ts, and the city is enough.
+  ["AllWays Lounge & Cabaret (New Orleans, St. Claude Ave)", "AllWays Lounge & Cabaret (New Orleans)"],
 ]);
 /** Brand-name parentheticals that are a person (the sponsor's contact), keyed by tracker key. */
 const PERSON_PARENS = [/\s*\(Holli M\. Landry\)/g, /\s*\(Brandi\)/g];

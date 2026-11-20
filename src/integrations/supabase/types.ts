@@ -18626,7 +18626,6 @@ export type Database = {
       }
       declutter_stop_my_seller_delivery: { Args: never; Returns: number }
       declutter_withdraw_free_request: { Args: { p_request_id: string }; Returns: undefined }
-      declutter_free_claim_gate: { Args: { p_member: string }; Returns: undefined }
       declutter_free_requests_for_item: {
         Args: { p_item_id: string }
         Returns: {

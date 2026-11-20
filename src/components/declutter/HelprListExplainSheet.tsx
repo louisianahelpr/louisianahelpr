@@ -1,7 +1,7 @@
 /**
  * Posting audit 10-30 #1: before the job form, what hiring a Helpr to help you list really means. Nothing here is a
  * new promise: it is an ordinary Helpr job, the Helpr writes the listings for the seller to approve (sellForMe.ts),
- * the seller keeps the sale (src/lib/declutter/money.ts), the setup fee is BunchFeeGate's, and haul-away is in the Terms.
+ * the seller keeps the sale (src/lib/declutter/money.ts), and haul-away is in the Terms.
  * Both ways in use this one sheet: the sell chooser and "Sell it for me" on the One item page (#21).
  * Guard: src/components/declutter/declutterSellChooser.test.tsx.
  */
@@ -9,8 +9,6 @@ import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { sellForMePostJobPath } from "@/lib/declutter/sellForMe";
-import { formatPrice } from "@/lib/declutter/distance";
-import { ONBOARDING_FEE_CENTS } from "@/lib/moneyLimits";
 import { focusSheetItself } from "./focusSheetItself";
 
 export const HELPR_LIST_ROWS: readonly { title: string; line: string }[] = [
@@ -19,7 +17,7 @@ export const HELPR_LIST_ROWS: readonly { title: string; line: string }[] = [
   // seller approves each before it goes on sale (SELL_FOR_ME_NO_ACCOUNT_LINE says the same in the job). No login is shared.
   { title: "What you do", line: "Be there, and approve each listing before it goes on sale. The Helpr writes them in the app for you; they never need your password." },
   { title: "What you pay", line: "You set a price for the Helpr's time, like any job, and see the total before you pay. The Helpr gets that price, not a share of your sales." },
-  { title: "Who keeps the sale money", line: `You keep the whole price of what sells. Your first paid listing has a one-time ${formatPrice(ONBOARDING_FEE_CENTS)} setup fee, unless you already paid it for Jobs.` },
+  { title: "Who keeps the sale money", line: "You keep the whole price of what sells." },
   { title: "What doesn't sell", line: "It stays yours. You can lower the price, give it away free or book a haul-away." },
 ];
 

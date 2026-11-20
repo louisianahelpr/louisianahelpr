@@ -25,13 +25,12 @@ function bunchTimeLine(count: number): string {
   return t("lp.b.takes", { time });
 }
 
-export function BunchListStep({ step, items, pricedDraftsOffered, readyCount, heldForFee, savedSetup, savedWindows, savedWays, windows, setWindows, choices, ways, setWays, sellerDeliveryOpen, attested, setAttested, problem, blocked, listing, photoProgress, listingProgress = null, runNames = [], onList }: {
+export function BunchListStep({ step, items, pricedDraftsOffered, readyCount, savedSetup, savedWindows, savedWays, windows, setWindows, choices, ways, setWays, sellerDeliveryOpen, attested, setAttested, problem, blocked, listing, photoProgress, listingProgress = null, runNames = [], onList }: {
   step: number;
   items: BunchItem[];
   /** The one tick also covers the saved drafts, so a priced one on offer means the four statements, even if every item here is free. */
   pricedDraftsOffered: boolean;
   readyCount: number;
-  heldForFee: number;
   savedSetup: ReturnType<typeof useSavedPickup>;
   savedWindows: UseQueryResult<unknown[]>;
   savedWays: SellerHandover[];
@@ -91,7 +90,6 @@ export function BunchListStep({ step, items, pricedDraftsOffered, readyCount, he
           <h3 className="pt-2 text-sm font-semibold">{t("lp.b.confirmHead")}</h3>
           <p className="text-xs text-muted-foreground">{t("lp.b.taxNote")}</p>
           <TaxStatementsCheck id="bunch-tax" checked={attested} onChange={setAttested} free={items.every((it) => it.free) && !pricedDraftsOffered} />
-          {heldForFee > 0 && <p className="text-sm" data-bunch-fee-held="">{t(heldForFee === 1 ? "lp.b.held1" : "lp.b.heldN", { n: heldForFee })}</p>}
           {problem && <p className="text-sm text-destructive-ink" role="alert" data-bunch-problem-list="">{problem}</p>}
           {/* Owner 2026-11-01: each item's progress while the run works (Uploading photos -> Checking -> Live). */}
           {listing && listingProgress && (

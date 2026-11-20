@@ -36,8 +36,8 @@ describe("Declutter bundle request (Q2268)", () => {
   });
 
   it("the buyer's checks run on every asked item (card, blocks, own item, seed rules, still live)", () => {
-    // Review 11-04 (blocker): the first-purchase ID check runs at the ask, as the buyer.
-    expect(body("declutter_request_bundle")).toMatch(/PERFORM\s+public\.declutter_identity_gate\(v_uid,\s*'identity_required_to_buy'\)/i);
+    // Owner 2026-11-20: no first-purchase ID check at the ask any more (review 11-04 had added one).
+    expect(body("declutter_request_bundle")).not.toMatch(/declutter_identity_gate/i);
     expect(body("declutter_request_bundle")).toMatch(/FOREACH\s+v_item_id\s+IN\s+ARRAY\s+v_ids\s+LOOP\s+SELECT\s+\*\s+INTO\s+v_item\s+FROM\s+public\.declutter_lock_buyable_item\(v_item_id,\s*v_uid\)/i);
   });
 

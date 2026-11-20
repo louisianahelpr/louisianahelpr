@@ -22,13 +22,12 @@ export function useOnboardingFeeCents(): number | null {
 }
 
 /** The query key every reader of the setup fee shares (one cache entry, one request). */
-export const ONBOARDING_FEE_QUERY_KEY = ["platform-settings", "onboarding-fee-cents"] as const;
+const ONBOARDING_FEE_QUERY_KEY = ["platform-settings", "onboarding-fee-cents"] as const;
 
 /**
- * The read itself, for a caller that loads this module lazily (useSellerSetupFee keeps it off the Declutter Selling
- * route's critical path, Q178) and runs it under {@link ONBOARDING_FEE_QUERY_KEY}.
+ * The read itself, run under {@link ONBOARDING_FEE_QUERY_KEY}.
  */
-export async function fetchOnboardingFeeCents(): Promise<number | null> {
+async function fetchOnboardingFeeCents(): Promise<number | null> {
   const res = await supabase.rpc("get_public_platform_settings");
   // Reported here (Q753: every payout preview reads this number) AND
   // THROWN through unwrap() (lh-money-escrow review of the Home money tiles, 2026-10-20):

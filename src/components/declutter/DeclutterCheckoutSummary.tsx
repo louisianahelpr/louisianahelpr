@@ -2,7 +2,7 @@
  * The checkout's price summary (owner 11-07, item 2 of the Vinted-inspired buyer money changes): every line the
  * buyer pays for, each with a small info tip, then the Total. Lines: the item(s), a bundle discount, the service fee
  * (owner 11-07 ~5:10 PM: Declutter shows its fee like Vinted, named "Service fee", replacing the 10-25 no-fee-words
- * rule for Declutter only), how they get it (pickup is Free), a one-time setup fee, and sales tax. Every figure comes
+ * rule for Declutter only), how they get it (pickup is Free), and sales tax. Every figure comes
  * from PayForSeller, which computes the total exactly as declutter_start_checkout and declutter-checkout charge it;
  * the service fee is the total less every other line, so the lines always add up to the Total.
  *
@@ -38,7 +38,6 @@ export const SUMMARY_TIPS = {
   delivery: "A local Helpr picks it up and brings it to you. The price is set by road miles and size. If no Helpr takes it within 48 hours, what you paid for delivery comes back.",
   sellerDelivery: "The seller brings it to you at the time you picked.",
   ship: "The postage for the carrier you picked.",
-  setupFee: "Charged once per account, on your first purchase.",
   tax: "No sales tax is charged on Declutter items.",
   gift: "Your gift card pays first. Anything left on it stays yours.",
 } as const;
@@ -75,7 +74,7 @@ function Line({ label, tip, value, data }: { label: string; tip: string; value: 
 const PICKUP_WAYS: Handover[] = ["porch", "pickup_home", "meetup"];
 
 export function CheckoutPriceSummary({
-  itemCount, itemsCents, discountCents, way, wayCents, serviceFeeCents, setupFeeCents, setupFeeKnown, taxCents, payCents, gift = null,
+  itemCount, itemsCents, discountCents, way, wayCents, serviceFeeCents, taxCents, payCents, gift = null,
 }: {
   itemCount: number;
   itemsCents: number;
@@ -85,8 +84,6 @@ export function CheckoutPriceSummary({
   /** What that way costs: 0 for a pickup or a free seller delivery, null while a delivery or postage is not priced yet. */
   wayCents: number | null;
   serviceFeeCents: number;
-  setupFeeCents: number;
-  setupFeeKnown: boolean;
   taxCents: number;
   payCents: number;
   /**
@@ -110,7 +107,6 @@ export function CheckoutPriceSummary({
         <Line data="way" label={pickup ? t("dbuy.sum.pickup") : way === "delivery" ? t("dbuy.sum.helprDelivery") : way === "ship" ? t("dbuy.sum.shipping") : t("dbuy.sum.sellerDelivery")} tip={wayTip}
           value={wayCents === 0 || pickup ? <span className="font-bold text-primary" data-summary-free="">{t("dbuy.sum.free")}</span> : exact(wayCents as number)} />
       )}
-      {setupFeeCents > 0 && <Line data="setup-fee" label={t("dbuy.sum.setupFee")} tip={tipWords("setupFee")} value={exact(setupFeeCents)} />}
       <Line data="tax" label={t("dbuy.sum.tax")} tip={tipWords("tax")} value={exact(taxCents)} />
       <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2.5" data-summary-line="total">
         <dt className="text-ds-16 font-bold text-foreground">{t("dbuy.sum.total")}</dt>
@@ -118,7 +114,6 @@ export function CheckoutPriceSummary({
           {formatPrice(payCents)}
           {/* Delivery chosen but not priced yet: the total is not complete, so say so (money review #4). */}
           {unpriced && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">{way === "ship" ? t("dbuy.sum.plusShipping") : t("dbuy.sum.plusDelivery")}</span>}
-          {!setupFeeKnown && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground" data-setup-fee-pending="">{t("dbuy.sum.plusSetup")}</span>}
         </dd>
       </div>
       {gift && gift.fromGiftCents > 0 && (

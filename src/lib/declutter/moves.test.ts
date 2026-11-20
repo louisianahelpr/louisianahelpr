@@ -240,23 +240,19 @@ describe("server calls", () => {
 });
 
 describe("publishMany", () => {
-  // lh-silent-failure review of the Q2352 rebase #3: the setup fee is an account refusal; nothing not started yet is tried.
-  // @mutate src/lib/declutter/moves.ts |           if (setupFeeRefusal(error)) accountRefusal = { error }; |           void setupFeeRefusal;
-  it("stops at the first setup_fee_required_to_list: no item after it is tried, and no photo check is spent", async () => {
-    h.api.publishItem.mockRejectedValue(new Error("setup_fee_required_to_list"));
-    const checks: string[] = [];
-    h.api.requestAiCheck.mockImplementation(async (id: string) => void checks.push(id));
-    const progress: string[] = [];
+  // Owner 2026-11-20: no setup fee refusal any more, so one item's refusal never stops the rest (Q2352 rebase #3 did).
+  it("a refused item does not stop the others: each is tried and named", async () => {
+    h.api.publishItem.mockImplementation(async (id: string) => {
+      if (id === "a") throw new Error("photos_required");
+      return "live";
+    });
     let now = 0;
     let after: Promise<void> = Promise.resolve();
-    const out = await publishMany(["a", "b", "c", "d", "e"], (d, t) => progress.push(`${d}/${t}`), async (ms) => void (now += ms), () => now, (p) => { after = p; });
+    const out = await publishMany(["a", "b", "c", "d"], () => undefined, async (ms) => void (now += ms), () => now, (p) => { after = p; });
     await after;
-    // The first three start together (PUBLISH_AT_ONCE); the two after them are never tried.
-    expect(h.api.publishItem).toHaveBeenCalledTimes(PUBLISH_AT_ONCE);
-    expect(checks).toEqual([]);
-    expect(out.map((o) => o.id)).toEqual(["a", "b", "c", "d", "e"]);
-    expect(out.every((o) => "error" in o)).toBe(true);
-    expect(progress[progress.length - 1]).toBe("5/5");
+    expect(h.api.publishItem).toHaveBeenCalledTimes(4);
+    expect("error" in out[0]).toBe(true);
+    expect(out.slice(1).every((o) => "status" in o)).toBe(true);
   });
 
   // LEAD-BUNCH-34-SLOW (owner 10-31, "very slow to list them after you click post"): a few at once, and Post never

@@ -18,7 +18,8 @@ describe("Help's account answer follows the identity_check switch", () => {
   it("on: the ID check is named", () => {
     setIdentityCheckOn(true);
     // Owner 2026-10-30 (ID check details): once per person, at the moments it is asked (B49, ported 10-31).
-    expect(answer()).toMatch(/We ask for your ID once: when you post a job, when you're hired, or before your first payout/);
-    expect(answer()).toMatch(/claim a free item or take a delivery\.$/);
+    // Owner 2026-11-20: Declutter (buying, selling, free items) never asks for it.
+    expect(answer()).toMatch(/We ask for your ID once: when you post a job, when you're hired, before your first payout, or when you take a delivery\./);
+    expect(answer()).toMatch(/Buying, selling and free items on Declutter never ask for it\.$/);
   });
 });

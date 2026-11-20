@@ -73,7 +73,6 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, explain: () => {}, gatedProps: () => ({}) }) }));
 vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => null }));
 vi.mock("@/components/declutter/DeclutterPriceHint", () => ({ default: () => null }));
-vi.mock("@/components/declutter/BunchFeeGate", () => ({ BunchFeeGate: () => null, useSetupFeeDueCents: () => null }));
 vi.mock("@/components/declutter/useBunchSaved", () => ({
   useBunchSaved: () => ({ note: null, restoredCount: 0, dismissRestored: () => {}, applyStep: () => {}, clearSaved: () => {} }),
 }));

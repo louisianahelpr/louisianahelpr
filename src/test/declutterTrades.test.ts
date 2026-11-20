@@ -38,8 +38,8 @@ describe("Declutter trades (slice 1, server)", () => {
     expect(FNS.filter((f) => defs.has(f)).length).toBeGreaterThan(6);
   });
 
-  it("an offer needs the buyer's ID check, the seller's switch on, and the buyer's own live listing", () => {
-    expect(body("declutter_offer_swap")).toMatch(/PERFORM\s+public\.declutter_identity_gate\(v_uid,\s*'identity_required_to_buy'\)/i);
+  it("an offer needs the seller's switch on and the buyer's own live listing (owner 2026-11-20: no ID check)", () => {
+    expect(body("declutter_offer_swap")).not.toMatch(/declutter_identity_gate/i);
     expect(body("declutter_offer_swap")).toMatch(/PERFORM\s+public\.require_feature\('declutter'\)/i);
     const ok = body("declutter_swap_items_ok");
     expect(ok).toMatch(/IF\s+NOT\s+v_want\.accepts_trades\s+THEN/i);

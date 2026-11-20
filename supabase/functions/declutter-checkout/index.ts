@@ -401,19 +401,12 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       }
       bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0);
     }
-    // Q2403: the one-time setup fee the order froze is no longer the one checkout charges now (the account paid it
-    // on another order meanwhile, or owes it again), so declutter_start_checkout replaces the order. Close the page
-    // FIRST, as for a changed time, spot or bundle: a payment on it is then the old order, never a superseded one the
-    // webhook refunds as the buyer's own restart (buyer_restarted_checkout keeps the card fee). Same function as the RPC.
-    let feeChanged = false;
-    if (page.status === "open") {
-      const { data: due, error: dueErr } = await admin.rpc("declutter_setup_fee_due_cents", { p_user: user.id });
-      if (dueErr) {
-        console.error(`[declutter-checkout] setup fee read failed: ${dueErr.message}`);
-        return json({ error: TRY_AGAIN }, 503);
-      }
-      feeChanged = Number(due ?? 0) !== Number(open.setup_fee_cents ?? 0);
-    }
+    // Q2403: the one-time setup fee the order froze is no longer the one checkout charges now, so
+    // declutter_start_checkout replaces the order. Close the page FIRST, as for a changed time, spot or bundle: a payment
+    // on it is then the old order, never a superseded one the webhook refunds as the buyer's own restart
+    // (buyer_restarted_checkout keeps the card fee). Owner 2026-11-20: a Declutter checkout never carries the fee
+    // (declutter_start_checkout freezes 0), so only an open order made before that, with a fee, is replaced.
+    const feeChanged = page.status === "open" && Number(open.setup_fee_cents ?? 0) !== 0;
     if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged || feeChanged || quoteChanged || deliveryChanged)) {
       // Owner 2026-10-28: a way the seller did not tick must not cost the buyer their open page either
       // (declutter_start_checkout refuses it: handover_not_offered; the RPC stays the protection).

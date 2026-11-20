@@ -28,9 +28,6 @@ import { ListingThumb } from "./ListingThumb";
 import { firstPhotos } from "./DeclutterItemCard";
 import { wayAllowed } from "@/lib/declutter/handovers";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
-import { firstPickSteps } from "@/lib/declutter/freePickSteps";
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { DeclutterNotice } from "./declutterUi";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
@@ -73,19 +70,16 @@ function freeWaysOffered(porchOk: boolean, ways: Handover[] | null): FreeHandove
  * DA-5 (Declutter audit 2026-10-30): the ask line named "their home or from their porch" whatever the giver ticked.
  * It now names only the ways this item offers (undefined = still loading: no way named yet).
  */
-function freeAskLine(offered: FreeHandover[] | undefined, oneTimeCheckAhead = false): string {
+function freeAskLine(offered: FreeHandover[] | undefined): string {
   const how = offered === undefined ? ""
     : offered.length === 2 ? tr("free.howBoth")
     : offered[0] === "porch" ? tr("free.howPorch")
     : offered[0] === "pickup_home" ? tr("free.howHome")
     : tr("free.howAgree");
-  // Asking is free (owner 2026-10-30). "Nothing is charged" would overpromise to a member whose first pick carries the one-time ID check.
   // Owner 11-01 (Mockup 3): the asker picks the pickup time when they ask, and the giver's pick books it
-  // (declutter_pick_free_request, 20261101181129). That booking happens only for a member already verified: a
-  // first-timer the giver picks gets the item held instead, does the one-time ID check, then chooses the time, so
-  // "that time is already set" was false for them (11-07 free-claim trace).
-  const ifYou = oneTimeCheckAhead ? `${firstPickSteps()}${how}` : tr("free.ifSet", { how });
-  return tr("free.rulesLine", { lead: oneTimeCheckAhead ? tr("free.askingFree") : tr("free.freeNothing"), ifYou });
+  // (declutter_pick_free_request). Owner 2026-11-20: no ID check and no setup fee for a free claimer, so the pick
+  // books that time for everyone and nothing is charged.
+  return tr("free.rulesLine", { lead: tr("free.freeNothing"), ifYou: tr("free.ifSet", { how }) });
 }
 
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
@@ -95,10 +89,8 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   // older behaviour (null: every free way), as there.
   const ticks = useQuery({ queryKey: ["declutter", "item-handovers", item.id], queryFn: () => fetchItemHandovers(item.id) });
   const offered = ticks.isLoading ? undefined : freeWaysOffered(item.porch_ok !== false, Array.isArray(ticks.data) ? (ticks.data as Handover[]) : null);
-  const { user, profile } = useCurrentUser();
+  const { user } = useCurrentUser();
   const { underAge } = useAgeGate();
-  const idCheckOn = useIdentityCheckOnStore();
-  const oneTimeCheckAhead = idCheckOn && profile?.onboarding_fee_paid === false;
   // Deep audit #3: a free item the member was picked for says so, with the way to choose a pickup.
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: item.status === "reserved" });
   const myHold = myHoldOn(cart.data, item.id);
@@ -157,7 +149,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
         )}
         {changing && (
           <Suspense fallback={null}>
-            <FreeAskSheet item={item} giverFirstName={giverFirstName ?? t("free.theGiver")} open={changing} onClose={() => setChanging(false)} oneTimeCheckAhead={oneTimeCheckAhead} change />
+            <FreeAskSheet item={item} giverFirstName={giverFirstName ?? t("free.theGiver")} open={changing} onClose={() => setChanging(false)} change />
           </Suspense>
         )}
         {/* The shared next-step line (owner 11-01 12:02 PM): nothing is the asker's to do; it waits on the giver. */}
@@ -183,7 +175,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
         </Button>
       </StickyActionBar>
       <p className="text-xs text-muted-foreground" data-free-ask-note="">
-        {oneTimeCheckAhead ? t("free.askingFree") : t("free.freeNothing")} {t("free.pickWhenAsk")}{" "}
+        {t("free.freeNothing")} {t("free.pickWhenAsk")}{" "}
         {/* A text link inside the sentence (B106: as a <Button> it kept the global 44px button box, so the note's two
             lines sat 30px apart). InlineTextButton (the shared text link) gives it the 44px tap area as an overlay on a touch screen instead. */}
         <InlineTextButton className="text-xs font-semibold text-foreground underline underline-offset-2" onClick={() => setRules(true)} data-free-how="">
@@ -192,14 +184,14 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       </p>
       {asking && (
         <Suspense fallback={null}>
-          <FreeAskSheet item={item} giverFirstName={giverFirstName ?? t("free.theGiver")} open={asking} onClose={() => setAsking(false)} oneTimeCheckAhead={oneTimeCheckAhead} />
+          <FreeAskSheet item={item} giverFirstName={giverFirstName ?? t("free.theGiver")} open={asking} onClose={() => setAsking(false)} />
         </Suspense>
       )}
       {/* The long rules sit behind the link (owner mockup 11-01). */}
       <Sheet open={rules} onOpenChange={setRules}>
         <SheetContent side="bottom" className="bg-premium-page max-h-[90dvh] overflow-y-auto" data-free-rules="">
           <SheetHero title={t("free.howTitle")} />
-          <p className="mt-2 text-ds-14 text-foreground">{freeAskLine(offered, oneTimeCheckAhead)}</p>
+          <p className="mt-2 text-ds-14 text-foreground">{freeAskLine(offered)}</p>
         </SheetContent>
       </Sheet>
     </section>
@@ -355,7 +347,6 @@ const TRADE_HANDOVER: Record<FreeHandover, { title: MsgKey; words: MsgKey }> = {
 const TRADE_CHECKOUT_LINE: MsgKey = "free.tradeLine";
 
 const FREE_CHECKOUT_LINE: MsgKey = "free.checkoutLine";
-const FREE_CHECKOUT_FIRST_LINE: MsgKey = "free.checkoutFirstLine";
 
 /**
  * The cart for a seller whose waiting items are ALL free: no payment page and no fee. The buyer picks
@@ -372,10 +363,6 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone, 
 }) {
   const qc = useQueryClient();
   const { t } = useLanguage();
-  // Same reading as the ask line: a first-timer's Confirm is one tap from the one-time fee, so "nothing is charged" would be false.
-  const { profile } = useCurrentUser();
-  const idCheckOn = useIdentityCheckOnStore();
-  const oneTimeCheckAhead = idCheckOn && profile?.onboarding_fee_paid === false;
   // An item made free on day 12 whose giver ticked only other ways offers nothing here: no fallback to the giver's
   // door (Q2462); NoWayWorks below opens the chat with them.
   const offered = freeWaysOffered(porchOk, ways);
@@ -397,8 +384,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone, 
       onDone();
     },
     onError: (err) => {
-      // A first-timer the giver picked: its own screen answers (FreeClaimFirstTime, the ID sheet), so no message as well.
-      if (!freeClaimGateRefusal(err)) toast.error(declutterErrorMessage(err));
+      toast.error(declutterErrorMessage(err));
       // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
       if (atPlace) void porchPlaces.reread(err);
     },
@@ -425,7 +411,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone, 
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0 || !placeReady} onClick={() => confirm.mutate()}>
         {confirm.isPending ? t("free.confirming") : t("free.confirmPick")}
       </Button>
-      <p className="text-xs text-muted-foreground">{t(trade ? TRADE_CHECKOUT_LINE : oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE)}</p>
+      <p className="text-xs text-muted-foreground">{t(trade ? TRADE_CHECKOUT_LINE : FREE_CHECKOUT_LINE)}</p>
     </div>
   );
 }

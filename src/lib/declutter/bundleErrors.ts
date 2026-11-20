@@ -64,10 +64,6 @@ export const BUNDLE_RPC_ERROR_COPY = {
     sale_mode_unavailable: DC.sale_mode_unavailable,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
-    // The first-purchase ID check (review 11-04); rpcData opens the one ID sheet for it.
-    identity_required_to_buy: DC.identity_required_to_buy,
-    // The gate's other branch; never taken here (the ask passes 'identity_required_to_buy'), read for completeness.
-    identity_required_to_list: DC.identity_required_to_list,
     item_not_available: DC.item_not_available,
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,

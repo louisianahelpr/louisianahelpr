@@ -84,3 +84,19 @@ export function oneTripGroup(rows: HaulAwayRow[]): HaulAwayRow[] {
 export function haulJobToDelete(row: Pick<HaulAwayRow, "job_id" | "job_hold">): string | null {
   return row.job_id && row.job_hold === "job_open" ? row.job_id : null;
 }
+
+/**
+ * A haul-away the seller already booked or linked (hauled, booked, paying, unpaid): its status shows whatever the
+ * seller chose for the listing.
+ */
+const LINKED_STATES: ReadonlySet<HaulAwayState> = new Set<HaulAwayState>(["hauled", "booked", "paying", "unpaid"]);
+
+/**
+ * Owner 2026-11-20: haul-away is offered only for a listing whose seller turned on "If it doesn't sell, offer me a
+ * haul-away" (off by default; migration 20261120152652). My listings keeps the rows of opted-in listings, plus any
+ * haul-away already booked or linked (its status shows regardless). Everything else (eligible, too soon) is dropped,
+ * so neither the card, the line nor the "not selling yet" tip offers a haul-away nobody asked for.
+ */
+export function offeredHaulAwayRows(rows: HaulAwayRow[], optedIn: ReadonlySet<string>): HaulAwayRow[] {
+  return rows.filter((r) => LINKED_STATES.has(r.state) || optedIn.has(r.item_id));
+}

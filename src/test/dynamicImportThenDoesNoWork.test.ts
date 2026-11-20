@@ -158,6 +158,7 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
       "src/pages/auth/signup/useCityZipMismatch.ts": 1, // an advisory hint
       "src/hooks/useWebPush.ts": 1, // boot-bytes 11-15: the permission explainer not loaded = no ask this time; the cooldown is stamped only once the sheet shows (markAskShown), so the next visit asks
       "src/hooks/useNotifyWhenWorkLands.ts": 1, // Q2705 pass 3 (/jobs first screen): the job-match preference is already saved; only the OS push ask is skipped while the stale-chunk reload runs, and the next tap asks (same as useWebPush)
+      "src/lib/appSignIns.ts": 1, // app sign-ins (11-20): a best-effort record; an empty client module skips this one, and the next launch or resume records it again
       "src/lib/cppRouting.ts": 1, // boot-bytes 11-15: PPO attribution from a PPO link, best-effort like recordPpoAttribution's own storage write; loadModule's reload takes over
     };
     const counts: Record<string, number> = {};

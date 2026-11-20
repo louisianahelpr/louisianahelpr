@@ -6,7 +6,7 @@ import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
-import { Heart, togglePick, useGiftList } from "./giftList";
+import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { Button } from "@/components/ui/button";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
@@ -65,7 +65,7 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
 }
 
 export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
-  const saved = useGiftList().picks.some((p) => p.href === pick.href && p.name === pick.name);
+  const saved = isSaved(useGiftList(), itemId(pick.href));
   // Big batch 1120: a pick wears Trending (or "Trending on TikTok") only from its own flag. The old "first 3 of a guide"
   // badge went with the featured order (owner 11-19 ~6:40 PM: every guide sorts by commission now).
   const badges = pick.badges;

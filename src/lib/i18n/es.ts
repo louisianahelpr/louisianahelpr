@@ -32,6 +32,7 @@ import { esTracker } from "./esTracker";
 import { esPorchPlaces } from "./esPorchPlaces";
 import { esSellingNow } from "./esSellingNow";
 import { esYourPage } from "./esYourPage";
+import { esHomeMore } from "./esHomeMore";
 import { esSuggest } from "./esSuggest";
 import { esItemPage } from "./esItemPage";
 import { esJobCats } from "./esJobCats";
@@ -85,6 +86,7 @@ export const es: Record<MsgKey, string> = {
   ...esPorchPlaces,
   ...esSellingNow,
   ...esYourPage,
+  ...esHomeMore,
   ...esSuggest,
   ...esItemPage,
   ...esJobCats,

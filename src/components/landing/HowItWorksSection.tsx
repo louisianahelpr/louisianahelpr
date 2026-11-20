@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Camera, Handshake, MapPin, PackageCheck, PenLine, ShieldCheck, Tag, Users, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowRight, Camera, Coins, Handshake, MapPin, PackageCheck, PenLine, ShieldCheck, UserCheck, Wallet, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { goSignedInOr } from "./goSignedInOr";
@@ -113,10 +113,11 @@ const SIDE_ACTION: Record<Side, { label: string; key: string; signedOut: string;
 };
 
 /** Owner 11-20 (site polish B3): a small accent icon on each step card, one per step of each side. */
+// Icons the Declutter first screen does not draw, so / never fetches icons-guest-shared (critical-path budget, Q178).
 const STEP_ICONS: Record<Side, LucideIcon[]> = {
-  hire: [PenLine, Users, ShieldCheck],
+  hire: [PenLine, UserCheck, ShieldCheck],
   work: [MapPin, Handshake, Wallet],
-  sell: [Camera, Tag, PackageCheck],
+  sell: [Camera, Coins, PackageCheck],
 };
 
 const HowItWorksSection = () => {

@@ -11,7 +11,7 @@
  * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => navigate(c.to)}\n                      last={last} |                       onClick={() => navigate(c.to)}\n                      right={<span className="text-ds-15 font-bold shrink-0">$1</span>}\n                      last={last}
  * @mutate src/pages/home/HomeDashboard.tsx | <span data-testid="next-up-section" | <span data-testid="next-up-section" hidden
  * @mutate src/pages/home/HomeDashboard.tsx | const NEXT_UP_LIST_MAX = 3; | const NEXT_UP_LIST_MAX = 8;
- * @mutate src/pages/home/HomeDashboard.tsx | variant={i === 0 ? "primary" : "outline"} | variant="primary"
+ * @mutate src/pages/home/homeDashboard/homeFirstExtras.tsx | variant={i === 0 ? "primary" : "outline"} | variant="primary"
  * @mutate src/pages/home/HomeDashboard.tsx | xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] | xl:flex
  * @mutate src/pages/home/HomeDashboard.tsx |               if (isWebDesktop) { |               if (false) {
  */
@@ -22,6 +22,8 @@ import { blankComments } from "./helpers/blankNonCode";
 import { COMING_UP_ROLE } from "@/pages/home/homeDashboard/comingUp";
 
 const src = blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"));
+// Owner polish 11-20: the Needs you short list lives in its own chunk (homeFirstExtras.tsx, /home critical-path budget).
+const extrasSrc = blankComments(readFileSync(resolve(__dirname, "../pages/home/homeDashboard/homeFirstExtras.tsx"), "utf8"));
 
 describe("Home matches board 7", () => {
   it("is not vacuous", () => {
@@ -64,7 +66,8 @@ describe("Home matches board 7", () => {
     expect(cap).toBeLessThanOrEqual(5); // short: See all lists the rest
     expect(src).toContain("const listed = todoCount > 1 ? summary.todos.slice(0, NEXT_UP_LIST_MAX) : [];");
     // Home keeps ONE primary action: the most urgent row's; the others are outline.
-    expect(src).toContain('variant={i === 0 ? "primary" : "outline"}');
+    expect(extrasSrc).toContain('variant={i === 0 ? "primary" : "outline"}');
+    expect(src).toContain("<extras.NeedsYouList todos={listed}");
     expect(src).toContain('t("home.needsYouN", { n: todoCount })');
   });
 

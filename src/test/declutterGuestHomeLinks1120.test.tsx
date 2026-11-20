@@ -5,12 +5,12 @@
  *  - a "Home" link in the signed-out top bar from md up on every public page but the landing itself (the phone bar
  *    is full at 320: src/test/navGiftGuidesOnPhone1118.test.tsx measures it).
  *
- * @mutate src/components/sections/SectionScreen.tsx |             {homeLink && guestFrame && ( |             {false && (
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | tabs={head.tabs} homeLink={!member}> | tabs={head.tabs}>
+ * @mutate src/components/sections/SectionScreen.tsx |             {guestFrame && homeLink} |             {homeLink}
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | homeLink={member ? undefined : <SectionHomeLink />}> | homeLink={undefined}>
  * @mutate src/components/Navbar.tsx |             {location.pathname !== "/" && ( |             {false && (
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import type { ReactNode } from "react";
@@ -24,26 +24,28 @@ vi.mock("@/components/sections/AppTopBar", () => ({ AppTopBar: ({ title }: { tit
 vi.mock("@/components/sections/ExploreSearchEntry", () => ({ ExploreSearchEntry: () => null }));
 
 const { SectionScreen } = await import("@/components/sections/SectionScreen");
+const { SectionHomeLink } = await import("@/components/sections/SectionHomeLink");
 const { default: Navbar } = await import("@/components/Navbar");
 
 afterEach(() => { cleanup(); frame.guest = true; });
 
 const screenAt = (homeLink: boolean) => render(
   <MemoryRouter initialEntries={["/declutter"]}>
-    <SectionScreen section="declutter" title="Declutter" homeLink={homeLink}><p>cards</p></SectionScreen>
+    <SectionScreen section="declutter" title="Declutter" homeLink={homeLink ? <SectionHomeLink /> : undefined}><p>cards</p></SectionScreen>
   </MemoryRouter>,
 );
 
 describe("site polish A1: a way home from Declutter Browse", () => {
-  it("a guest sees '← Home' above the Declutter heading, linking to /", () => {
+  it("a guest sees '← Home' above the Declutter heading, linking to /", async () => {
     screenAt(true);
-    const home = screen.getByRole("link", { name: "Home" });
+    const home = await screen.findByRole("link", { name: "Home" });
     expect(home).toHaveAttribute("href", "/");
     expect(home.compareDocumentPosition(screen.getByRole("heading", { name: "Declutter" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("not without the prop, and never in a member's app shell", () => {
-    screenAt(false);
+  it("not without the prop, and never in a member's app shell", async () => {
+    const r = screenAt(false);
+    await waitFor(() => expect(r.container.querySelector("[data-frame=\"public\"]")).not.toBeNull());
     expect(screen.queryByRole("link", { name: "Home" })).toBeNull();
     cleanup();
     frame.guest = false;
@@ -53,7 +55,7 @@ describe("site polish A1: a way home from Declutter Browse", () => {
 
   it("Browse passes it for a guest only", () => {
     const browse = blankComments(readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8"));
-    expect(browse).toContain("homeLink={!member}");
+    expect(browse).toContain("homeLink={member ? undefined : <SectionHomeLink />}");
   });
 
   it("the signed-out top bar has Home (from md up) off the landing, and none on the landing", () => {

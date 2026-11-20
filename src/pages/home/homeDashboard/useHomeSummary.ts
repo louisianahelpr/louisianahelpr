@@ -26,7 +26,7 @@ import "@/lib/i18n/enHome";
 import { useLanguage } from "@/lib/i18n/language";
 import { wordInLang } from "@/lib/i18n/inLang";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
-import { deriveHomeActive } from "./homeActive";
+import type { HomeActiveSource } from "./homeActive";
 
 const DAY = 86_400_000;
 /** Board 7 and board 11 both show four Coming up rows. */
@@ -190,7 +190,7 @@ export function useHomeSummary(user: SupaUser | null) {
       // "Nothing else booked", never "Nothing booked yet" under that very job.
       hasBookedJob: hasBookedJob(pj, aa),
       // Owner polish 11-20: "Your active listings and jobs" (HomeMoreRows), from the reads above; no request of its own.
-      active: deriveHomeActive(pj, posted.pendingApplicantCounts ?? {}, declutterOn ? items : []),
+      activeFrom: { postedJobs: pj, pendingApplicantCounts: posted.pendingApplicantCounts ?? {}, items: declutterOn ? items : [] } as HomeActiveSource,
       // A3-82 (audit 11-01): a member who sells or buys on Declutter is not new to the app: never the Jobs checklist.
       usesDeclutter: items.length > 0 || (cart.data ?? []).length > 0,
       // F259p (whole-app audit 11-10, measured B3g 11-12): until the Declutter reads answer, usesDeclutter is not known.

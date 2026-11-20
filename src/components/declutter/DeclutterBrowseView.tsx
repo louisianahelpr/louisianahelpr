@@ -43,6 +43,7 @@ import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/Fil
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterDeviceNote, DeclutterLocationButton } from "./DeclutterMilesFrom";
+import { SectionHomeLink } from "@/components/sections/SectionHomeLink";
 import { DeclutterActiveFilters } from "./DeclutterActiveFilters";
 import { declutterFilterSections, sortChoices } from "./DeclutterFilterPanel";
 import { DeclutterResultsBar, DeclutterResultsHead } from "./DeclutterResultsBar";
@@ -582,7 +583,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
 
   const head = chrome(header);
   return (
-    <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs} homeLink={!member}>
+    <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs} homeLink={member ? undefined : <SectionHomeLink />}>
       <div ref={fill.ref} className="contents" />
       {top}
       {body}

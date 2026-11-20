@@ -16,8 +16,10 @@ import { GroupRow, GroupSection } from "@/components/sections/StatusBoxes";
 import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
 import { conversationLink } from "@/lib/teamThread";
 import { formatPrice } from "@/lib/declutter/formatPrice";
-import type { HomeActiveItem } from "./homeActive";
+import { useMemo } from "react";
+import { deriveHomeActive, type HomeActiveItem, type HomeActiveSource } from "./homeActive";
 import "@/lib/i18n/enHome";
+import "@/lib/i18n/enHomeMore";
 import "@/lib/i18n/enNewMember";
 import { useLanguage } from "@/lib/i18n/language";
 
@@ -92,7 +94,10 @@ export function ActiveRows({ active }: { active: readonly HomeActiveItem[] }) {
 }
 
 /** Both blocks, under Coming up (HomeDashboard lazy-loads this as one chunk). */
-export default function HomeMoreRows({ user, active = [] }: { user: User | null | undefined; active: readonly HomeActiveItem[] }) {
+// The list is derived HERE, in this lazy chunk, from the reads useHomeSummary hands over (`activeFrom`), so the
+// derivation never rides Home's first load (/home's critical-path budget, 11-20).
+export default function HomeMoreRows({ user, from }: { user: User | null | undefined; from?: HomeActiveSource }) {
+  const active = useMemo(() => (from ? deriveHomeActive(from.postedJobs, from.pendingApplicantCounts, from.items) : []), [from]);
   return (
     <div data-home-more="" className="flex flex-col gap-section empty:hidden">
       <RecentMessagesRows user={user} />

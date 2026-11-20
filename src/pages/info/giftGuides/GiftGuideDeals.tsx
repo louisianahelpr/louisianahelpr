@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { DEALS_SLUG, DEALS_WORDS as W, dealSections, dealsFeatured, dealsTitle, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
+import { loadModule } from "@/lib/loadModule";
 
 /**
  * /gift-guides/black-friday-cyber-monday (owner 2026-11-19): the deals guide. Deals first, one section per category
@@ -42,6 +43,10 @@ const DEALS_CSS = `
 /** The guide's cover (public/gift-guides/deals/, drawn by scripts/gift-guide-deals-cover.py). */
 export const DEALS_COVER = "/gift-guides/deals/black-friday-cyber-monday.webp";
 
+/** The deals file, loaded alone (the read runs after it, outside Vite's preload wrapper: dynamicImportThenDoesNoWork). */
+// loadModule: a prevented preload (a recovery reload in flight) gives null, and the page keeps "Loading deals…".
+const loadDeals = () => loadModule(() => import("@/content/giftGuideDeals.json"));
+
 /** One deal's card. */
 function DealCard({ deal }: { deal: Deal }) {
   const [copied, setCopied] = useState(false);
@@ -57,7 +62,7 @@ function DealCard({ deal }: { deal: Deal }) {
     <li className="gg-deal" data-gift-deal={deal.brand}>
       <GiftOut href={deal.href} className="gg-deal-photo">
         {deal.image && photoOk ? (
-          <img src={deal.image} alt={deal.item ?? ""} loading="lazy" decoding="async" width={200} height={200} referrerPolicy="no-referrer-when-downgrade" onError={() => setPhotoOk(false)} />
+          <img loading="lazy" decoding="async" src={deal.image} alt={deal.item ?? ""} width={200} height={200} referrerPolicy="no-referrer-when-downgrade" onError={() => setPhotoOk(false)} />
         ) : (
           <b aria-hidden="true">{deal.brand}</b>
         )}
@@ -95,8 +100,8 @@ export function GiftGuideDeals({ now }: { now?: Date }) {
   const [deals, setDeals] = useState<Deal[] | null>(null);
   useEffect(() => {
     let live = true;
-    void import("@/content/giftGuideDeals.json").then(
-      (m) => live && setDeals(m.default as Deal[]),
+    void loadDeals().then(
+      (m) => live && m && setDeals(m.default as Deal[]),
       // The chunk failed to load (offline, a stale deploy): the page says the deals are gone rather than spin.
       () => live && setDeals([]),
     );

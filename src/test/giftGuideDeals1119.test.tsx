@@ -80,11 +80,11 @@ describe("deals guide: the data", () => {
       const u = new URL(d.href);
       expect(u.protocol, d.brand).toBe("https:");
       expect(hosts.has(u.hostname), `${d.brand} ${u.hostname}`).toBe(true);
-      if (u.hostname.endsWith("amazon.com")) {
+      if (u.hostname === "www.amazon.com") {
         expect(u.searchParams.get("tag"), d.brand).toBe("louisianahelpr-20");
         expect(d.store).toBe("Amazon");
       }
-      if (d.image) expect(d.image, d.brand).not.toMatch(/\.s3\.[a-z0-9-]+\.amazonaws\.com\//);
+      if (d.image) expect(new URL(d.image).hostname, d.brand).not.toMatch(/^[a-z0-9-]+\.s3\.[a-z0-9-]+\.amazonaws\.com$/);
     }
   });
 

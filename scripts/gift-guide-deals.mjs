@@ -69,9 +69,11 @@ export function loadSources(dir = DIR) {
  * (_shopmy-cdn-photos.json, the map scripts/gift-guide-picks.mjs uses); an unchecked S3 photo is dropped (the card
  * draws the brand tile instead).
  */
+/** A ShopMy S3 bucket host ("production-shopmyshelf-uploads.s3.us-east-2.amazonaws.com"), matched whole. */
+const S3_HOST = /^[a-z0-9-]+\.s3\.[a-z0-9-]+\.amazonaws\.com$/;
 export function photoOf(image, cdn = {}) {
   if (!image) return undefined;
-  if (!/\.s3\.[a-z0-9-]+\.amazonaws\.com\//.test(image)) return image;
+  if (!S3_HOST.test(host(image))) return image;
   return Object.prototype.hasOwnProperty.call(cdn, image) ? cdn[image] : undefined;
 }
 

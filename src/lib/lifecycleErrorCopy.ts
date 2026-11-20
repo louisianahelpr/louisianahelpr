@@ -1976,6 +1976,28 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     sale_not_found: DC.sale_not_found,
   },
+  // Declutter top 5 #5 (20261120015456): bulk discount and away mode.
+  declutter_bulk_discount: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_input: "Pick between 5% and 50% off, for 1 to 100 listings.",
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  declutter_go_away: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    invalid_away_date: DC.invalid_away_date,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
+  declutter_come_back: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    not_away: DC.not_away,
+  },
   // Declutter top 5 #2 (20261120012050): the Selling home's read, members only.
   declutter_selling_home: {
     not_authenticated: DC.not_authenticated,

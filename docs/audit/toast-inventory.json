@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1252,
-    "files": 362,
-    "rendering": 1173,
+    "calls": 1259,
+    "files": 364,
+    "rendering": 1180,
     "suppressedByPolicy": 79,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
-      "toast": 250,
-      "toast.error": 843,
+      "toast": 253,
+      "toast.error": 847,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 85,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 468,
       "template": 100,
-      "dynamic": 738,
+      "dynamic": 745,
       "jsx": 0
     }
   },
@@ -4613,6 +4613,137 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/AwayMode.tsx",
+      "line": 30,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"dt5.away.returned\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/AwayMode.tsx",
+      "line": 31,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/AwayMode.tsx",
+      "line": 57,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"dt5.away.paused\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/AwayMode.tsx",
+      "line": 58,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/BulkActions.tsx",
+      "line": 68,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "failed > 0 ? `${t(\"dt5.bulk.doneN\", { n: done, total })} ${t(\"dt5.bulk.someFailed\", { n: failed })}` : t(\"dt5.bulk.doneN\", { n: done, total })",
+        "branches": [
+          {
+            "form": "template",
+            "text": "${t(\"dt5.bulk.doneN\", { n: done, total })} ${t(\"dt5.bulk.someFailed\", { n: failed })}"
+          },
+          {
+            "form": "dynamic",
+            "text": "t(\"dt5.bulk.doneN\", { n: done, total })",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/BulkActions.tsx",
+      "line": 80,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/BulkActions.tsx",
+      "line": 85,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterBookingPanel.tsx",
       "line": 27,
       "kind": "toast",
@@ -5155,7 +5286,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 184,
+      "line": 188,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5209,7 +5340,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 187,
+      "line": 191,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5219,7 +5350,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 192,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5229,7 +5360,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 207,
+      "line": 211,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5256,7 +5387,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 210,
+      "line": 214,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

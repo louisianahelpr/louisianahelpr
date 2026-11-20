@@ -3149,6 +3149,31 @@ export type Database = {
           },
         ]
       }
+      declutter_seller_away: {
+        Row: {
+          back_on: string
+          paused_item_ids: string[]
+          seller_id: string
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          back_on: string
+          paused_item_ids?: string[]
+          seller_id: string
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          back_on?: string
+          paused_item_ids?: string[]
+          seller_id?: string
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+        ]
+      }
       declutter_shop_sale_items: {
         Row: {
           before_cents: number
@@ -16976,7 +17001,13 @@ export type Database = {
       }
     }
     Functions: {
+      declutter_bulk_discount: {
+        Args: { p_item_ids: string[]; p_percent_off: number }
+        Returns: number
+      }
+      declutter_come_back: { Args: never; Returns: number }
       declutter_end_shop_sale: { Args: never; Returns: string }
+      declutter_go_away: { Args: { p_back_on: string }; Returns: number }
       declutter_item_demand: {
         Args: { p_item_ids: string[] }
         Returns: {
@@ -17003,6 +17034,7 @@ export type Database = {
         Args: { p_order_id: string; p_refund_cents: number }
         Returns: number
       }
+      declutter_seller_away_until: { Args: { p_seller_id: string }; Returns: string }
       declutter_selling_home: { Args: never; Returns: Json }
       declutter_send_saver_offer: {
         Args: { p_amount_cents: number; p_item_id: string; p_percent_off: number }

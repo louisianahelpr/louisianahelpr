@@ -155,6 +155,57 @@ export async function endShopSale(): Promise<string> {
   return res.data as string;
 }
 
+/**
+ * #5 Bulk actions (20261120015456): Discount is one call; Pause, Put back on sale and Mark sold are the one-listing
+ * RPCs, run once per ticked listing by the screen. Returns how many prices changed.
+ */
+export const BULK_PERCENTS = [10, 15, 20, 25] as const;
+
+export async function bulkDiscount(itemIds: string[], percent: number): Promise<number> {
+  const res = await supabase.rpc("declutter_bulk_discount", { p_item_ids: itemIds, p_percent_off: percent });
+  if (res.error) throw Object.assign(new Error(res.error.message), { userMessage: rpcErrorMessage("declutter_bulk_discount", res.error) ?? declutterErrorMessage(res.error) });
+  return res.data as number;
+}
+
+/** #5 Away mode (20261120015456): the seller's own away row, or null. */
+export async function fetchMyAway(sellerId: string): Promise<{ back_on: string } | null> {
+  const res = await supabase.from("declutter_seller_away").select("back_on").eq("seller_id", sellerId).maybeSingle();
+  if (res.error && /declutter_seller_away/.test(res.error.message ?? "")) return null;
+  return (unwrap(res) ?? null) as { back_on: string } | null;
+}
+
+/** The public page's "Away until": a Louisiana date (YYYY-MM-DD), or null when the seller is not away (or not deployed). */
+export async function fetchSellerAwayUntil(sellerId: string): Promise<string | null> {
+  const res = await supabase.rpc("declutter_seller_away_until", { p_seller_id: sellerId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_seller_away_until")) return null;
+  return (unwrap(res) ?? null) as string | null;
+}
+
+/** `backOn` is a calendar date (YYYY-MM-DD), the day the listings come back. */
+export async function goAway(backOn: string): Promise<number> {
+  const res = await supabase.rpc("declutter_go_away", { p_back_on: backOn });
+  if (res.error) throw Object.assign(new Error(res.error.message), { userMessage: rpcErrorMessage("declutter_go_away", res.error) ?? declutterErrorMessage(res.error) });
+  return res.data as number;
+}
+
+export async function comeBack(): Promise<number> {
+  const res = await supabase.rpc("declutter_come_back");
+  if (res.error) throw Object.assign(new Error(res.error.message), { userMessage: rpcErrorMessage("declutter_come_back", res.error) ?? declutterErrorMessage(res.error) });
+  return res.data as number;
+}
+
+/** A calendar date `days` from today, as YYYY-MM-DD in local time. */
+export function dateInDays(days: number, from = new Date()): string {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** "Mon, Nov 30" for a YYYY-MM-DD date, read as that calendar day (never shifted by time zone). */
+export function calendarDayWords(ymd: string, lang: "en" | "es" = "en"): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(lang === "es" ? "es-US" : "en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
 /** 11:59 PM local time `days` days after `from` (0 = tonight): a sale "through Sunday" runs to Sunday night. */
 export function saleEndOfDay(from: Date, days: number): Date {
   const d = new Date(from);

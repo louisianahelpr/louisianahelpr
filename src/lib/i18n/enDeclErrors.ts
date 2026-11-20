@@ -75,6 +75,8 @@ export const enDeclErrors = {
   "de.invalid_sale_dates": "A sale starts within 2 weeks and runs up to 2 weeks. Check the dates.",
   "de.sale_already_set": "You already have a sale set. End it first.",
   "de.sale_not_found": "There is no sale to end.",
+  "de.invalid_away_date": "Pick a day from tomorrow to 90 days out.",
+  "de.not_away": "Your shop is already open.",
   "de.invalid_action": "That can't be done to this offer.",
   "de.offer_not_found": "That offer isn't available.",
   "de.offer_not_open": "This offer is already closed.",

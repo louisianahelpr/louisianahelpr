@@ -73,6 +73,8 @@ export const esDeclErrors: Record<keyof typeof enDeclErrors, string> = {
   "de.invalid_sale_dates": "Una oferta empieza dentro de 2 semanas y dura hasta 2 semanas. Revise las fechas.",
   "de.sale_already_set": "Ya tiene una oferta programada. Termínela primero.",
   "de.sale_not_found": "No hay ninguna oferta para terminar.",
+  "de.invalid_away_date": "Elija un día entre mañana y 90 días.",
+  "de.not_away": "Su tienda ya está abierta.",
   "de.invalid_action": "Eso no se puede hacer con esta oferta.",
   "de.offer_not_found": "Esa oferta no está disponible.",
   "de.offer_not_open": "Esta oferta ya está cerrada.",

@@ -91,6 +91,8 @@ function tableRows(table: string, s: DeclutterPreviewSample): unknown[] | undefi
     case "declutter_seller_defaults": return [];
     // Declutter top 5 #4: no sample seller has a shop sale set.
     case "declutter_shop_sales": return [];
+    // Declutter top 5 #5: no sample seller is away.
+    case "declutter_seller_away": return [];
     // Declutter top 5 #1 (owner 11-19): no sample seller has sent an offer to savers yet.
     case "declutter_saver_offer_sends": return [];
     default: return undefined;

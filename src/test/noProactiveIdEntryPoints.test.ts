@@ -3,7 +3,7 @@
  * after real members opened Stripe Identity 1-10 minutes after sign-up from /home and /complete-profile with no job
  * posted or offered, as late as 11-03 and 11-06).
  *
- * The ID check is asked ONLY at a required moment: a poster when posting a job, a Helpr when hired / heading out /
+ * The ID check is asked ONLY at a required moment: a poster when sending an offer, a Helpr when hired / heading out /
  * at the first payout, a delivery Helpr when taking a delivery. Never at sign-up, on Home, on /complete-profile, in
  * Settings or the profile, on the apply step, or from any "Verify your ID" button a member can press early.
  *
@@ -45,10 +45,9 @@ const REQUIRED_MOMENTS: Readonly<Record<string, string>> = {
   "src/components/identity/IdentityCheckSheet.tsx": "the sheet: the only caller of stripe-idv-start",
   "src/components/identity/IdentityCheckMount.tsx": "the host beside the routes: loads the sheet only once it is opened",
   "src/components/identity/IdentityPromptCard.tsx": "the card's button; drawn only by HelperTrackerPanel (a hired Helpr)",
-  // Poster, when posting a job (or booking a quote, which posts it).
-  "src/pages/post-job/PostJob.tsx": "poster: posting a job",
-  "src/pages/post-job/useJobSubmit.ts": "poster: the post's server refusal (identity_required_to_post)",
-  "src/lib/quotes/api.ts": "poster: booking a quote posts the job (identity_required_to_post)",
+  // Poster, when SENDING AN OFFER (owner 2026-11-20; never when posting): the one opener every offer path calls
+  // (useJobSubmit's direct offer, quotes, useOfferHandlers, InstantBookPanel, seriesDates) on identity_required_to_offer.
+  "src/lib/posterIdAtOffer.ts": "poster: the server's refusal of an unverified poster's offer (20261120205350)",
   // Helpr, when hired / heading out / at the first payout.
   "src/components/AwardGateDialog.tsx": "Helpr: the accept/hire gate",
   "src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx": "Helpr: the hired job's tracker card",

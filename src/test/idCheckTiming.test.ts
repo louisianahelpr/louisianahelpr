@@ -1,6 +1,6 @@
 /**
  * CLASS GUARD: the ID check's timing (owner 2026-10-30, replaces the removal of 2026-10-23).
- * Once per person: a poster when posting, a Helpr when hired or at the first payout,
+ * Once per person: a poster when sending an offer (owner 11-20), a Helpr when hired or at the first payout,
  * and on Declutter a seller when listing, a buyer at the first purchase, a delivery Helpr
  * when taking a delivery. Never on Home, in a checklist or in Settings. No payout without
  * a verified ID: every function that sends a Helpr money asks, built from the source.
@@ -86,8 +86,8 @@ describe("the ID check's timing", () => {
     expect(code("src/components/profile/SettingsTab.tsx")).toMatch(/\["verified", "checking", "with_team"\]\.includes\(identityView\(profile\.idv_status\)\)/);
   });
 
-  it("posting and heading out stay gated", () => {
-    expect(newestFunction("enforce_identity_before_post").body).toMatch(/identity_required_to_post/);
+  it("sending an offer and heading out stay gated (posting moved to the offer, 20261120205350)", () => {
+    expect(newestFunction("enforce_poster_identity_before_offer").body).toMatch(/identity_required_to_offer/);
     expect(newestFunction("enforce_identity_before_start").body).toMatch(/identity_required_to_start/);
   });
 

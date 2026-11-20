@@ -202,6 +202,12 @@ jobs:
         run: npx tsc -b --noEmit
 
       - name: Production build
+        # The publishable Vite vars, as test.yml's build has them (require-build-env refuses a bundle without them).
+        # Publishable/anon values only; they ship in the client bundle by design.
+        env:
+          VITE_SUPABASE_PROJECT_ID: "fncmgoasalhdgfwzhsqa"
+          VITE_SUPABASE_URL: "https://fncmgoasalhdgfwzhsqa.supabase.co"
+          VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP"
         run: npm run build
 
       - name: Sitemap drift

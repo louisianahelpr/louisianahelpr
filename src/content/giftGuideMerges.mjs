@@ -15,7 +15,9 @@
 export const SECTION_CAP = 25;
 
 /** @type {{ parent: string; sections: string[] }[]} */
-export const GUIDE_MERGES = [
+/** The 11-19 merges (the big batch, #4785) that the follow-up merges below build on. */
+/** @type {{ parent: string; sections: string[] }[]} */
+export const BASE_MERGES = [
   // 1 Healthcare Workers: every nursing, medical, dental, therapy, pharmacy, lab, radiology, caregiver and hospital guide.
   { parent: "healthcare", sections: ["rns", "lpns", "cnas", "nurse-practitioners", "nursing-students", "crnas", "landd-nurses", "er-nurses", "icu-nurses", "nicu-nurses", "or-nurses", "pediatric-nurses", "travel-nurses", "home-health-nurses", "doctors", "physician-assistants", "surgeons", "med-students", "medical-assistants", "respiratory-therapists", "lab-techs-phlebotomists", "radiology-techs", "pharmacists", "pharmacy-techs", "physical-therapists", "occupational-therapists", "speech-therapists", "dentists", "dental-hygienists", "dental-assistants", "caregivers", "nursing-home-staff", "hospital-front-desk", "healthcare-workers", "vets-and-vet-techs"] },
   // 2 Military & Veterans.
@@ -38,12 +40,12 @@ export const GUIDE_MERGES = [
   { parent: "louisiana-food-gifts", sections: ["louisiana-pantry", "louisiana-kitchen", "louisiana-sweets-and-bakeries", "treats-and-food-gifts"] },
   { parent: "louisiana-by-region", sections: ["new-orleans", "baton-rouge", "acadiana", "north-louisiana"] },
   { parent: "crawfish-season", sections: ["crawfish-boil-host"] },
-  // 10 In-laws as sections of Mom, Dad, Brother and Sister (Sister also takes Big Sisters, item 20); Pets (New Puppy stays).
+  // 10 In-laws as sections of Mom, Dad, Brother and Sister (Sister also takes Big Sisters, item 20); Pets (New Puppy joins Dogs, follow-up 1120: 6 picks).
   { parent: "mom", sections: ["mother-in-law"] },
   { parent: "dad", sections: ["father-in-law"] },
   { parent: "brother", sections: ["brother-in-law"] },
   { parent: "sister", sections: ["big-sisters", "sister-in-law"] },
-  { parent: "pets", sections: ["dog-lover", "cat-person", "new-kitten", "horse-lover", "fish-lover", "bird-lover"] },
+  { parent: "pets", sections: ["dog-lover", "new-puppy", "cat-person", "new-kitten", "horse-lover", "fish-lover", "bird-lover"] },
   // 11 Office & Professional.
   { parent: "office-and-professional", sections: ["accountants", "lawyers", "engineers", "real-estate-agents", "small-business-owners", "social-workers"] },
   // 12 New Baby & Parents.
@@ -92,6 +94,38 @@ export const GUIDE_MERGES = [
   { parent: "easy-and-last-minute", sections: ["gift-cards", "subscriptions", "advent-calendars"] },
 ];
 
+/** An 11-19 merged guide with every guide folded into it (BASE_MERGES), for the follow-up merges below. */
+const withSections = (slug) => [slug, ...(BASE_MERGES.find((m) => m.parent === slug)?.sections ?? [])];
+/**
+ * FOLLOW-UP 1120 (owner pop-ups 11-19 ~11:45 PM "65 -> ~56", ~11:58 PM "DEEPER MERGES", 11-20 ~1:10 AM "FINAL MERGES";
+ * FOLLOWUP-OWNER-1119.md): each new parent and the old guides it takes in whole (each with its own 11-19 sections).
+ * Healthcare, Mom, Dad, Grandparents, Her, Him, Pets, Splurge and the Louisiana, color and store guides stay.
+ */
+const FOLLOW_UP_1120 = {
+  family: ["brother", "sister", "aunt", "uncle", "niece-and-nephew", "couples", "stay-at-home-parents"],
+  "friends-and-coworkers": ["friends", "work-gifts", "secret-santa"],
+  heroes: ["first-responders", "military"],
+  "work-life": ["educators", "office-and-professional", "service-industry", "oilfield-and-trades", "farmers"],
+  "outdoors-and-travel": ["hunters", "fishermen", "golfer", "lake-and-beach", "outdoors", "traveler", "gardener"],
+  "home-and-kitchen": ["home-cook", "wine-lover", "cozy-and-self-care"],
+  "creative-and-entertainment": ["creative-and-hobby", "book-lover", "entertainment"],
+  // Easy & Last-Minute joins too (follow-up 1120: with every 0% gift card out it held 6 advent calendars, under the 8 floor).
+  "gifts-by-budget": ["stocking-stuffers", "under-25", "under-50", "easy-and-last-minute"],
+  "louisiana-celebrations": ["mardi-gras", "game-day", "tailgater", "crawfish-season"],
+  "life-moments": ["new-baby-and-parents", "graduate", "new-homeowner", "get-well-soon", "thinking-of-you", "big-moments"],
+  kids: ["girls", "boys", "gender-neutral"],
+};
+const FOLDED_1120 = new Set(Object.values(FOLLOW_UP_1120).flat());
+/**
+ * THE GUIDE MERGES as shipped: every 11-19 merge whose parent stays, then each follow-up parent with its old guides
+ * (and their sections) as its sections, in that order.
+ */
+/** @type {{ parent: string; sections: string[] }[]} */
+export const GUIDE_MERGES = [
+  ...BASE_MERGES.filter((m) => !FOLDED_1120.has(m.parent)),
+  ...Object.entries(FOLLOW_UP_1120).map(([parent, olds]) => ({ parent, sections: olds.flatMap(withSections) })),
+];
+
 /**
  * SECTION GROUPS (owner pop-up 2026-11-20, after the merges: "Fold thin sections", "Max 6 sections per guide", "By
  * role, not job title"). A merged guide's old guides are grouped by role into its sections; `own` names the section
@@ -118,50 +152,6 @@ export const SECTION_GROUPS = {
     // Owner 11-19: the Fabletics scrubs in a different color in each section (navy, onyx, green).
     pins: [{ name: /^Fabletics .*Scrub.*Navy/i, group: "nurses" }, { name: /^Fabletics .*Scrub.*Onyx/i, group: "doctors-and-providers" }, { name: /^Fabletics .*Scrub.*Green/i, group: "support-staff" }],
   },
-  military: {
-    groups: [
-      { id: "army-and-national-guard", title: "Army & National Guard", from: ["army", "national-guard"] },
-      { id: "navy-coast-guard-and-air-force", title: "Navy, Coast Guard & Air Force", from: ["navy", "coast-guard", "air-force"] },
-      { id: "marines-and-veterans", title: "Marines & Veterans", from: ["marines", "veterans"] },
-    ],
-  },
-  "first-responders": {
-    own: "police-and-deputies",
-    groups: [
-      { id: "firefighters", title: "Firefighters", from: ["firefighters"] },
-      { id: "police-and-deputies", title: "Police & Deputies", from: ["police-officers", "sheriffs-deputies"] },
-      { id: "paramedics-and-dispatchers", title: "Paramedics & Dispatchers", from: ["paramedics-and-emts", "911-dispatchers"] },
-    ],
-  },
-  educators: {
-    own: "teachers",
-    groups: [
-      { id: "teachers", title: "Teachers", from: ["teachers", "elementary-teachers", "high-school-teachers", "preschool-teachers", "paraprofessionals"] },
-      { id: "professors-and-staff", title: "Professors, Principals & Staff", from: ["professors", "principals-and-school-staff", "bus-drivers"] },
-      { id: "coaches", title: "Coaches", from: ["coaches"] },
-    ],
-  },
-  "oilfield-and-trades": {
-    own: "oilfield-and-offshore",
-    groups: [
-      { id: "oilfield-and-offshore", title: "Oilfield & Offshore", from: ["oilfield-workers", "offshore-workers", "pipeline-workers", "refinery-and-plant-workers"] },
-      { id: "electrical-and-hvac", title: "Electrical & HVAC", from: ["electricians", "linemen", "hvac-techs"] },
-      { id: "plumbing-and-pipes", title: "Plumbing & Pipes", from: ["plumbers", "pipefitters"] },
-      { id: "building-and-machining", title: "Building, Welding & Machining", from: ["construction-workers", "welders", "machinists", "crane-operators", "heavy-equipment-operators"] },
-      { id: "mechanics-and-drivers", title: "Mechanics & Drivers", from: ["mechanics", "truck-drivers"] },
-      { id: "on-the-water", title: "On the Water", from: ["boat-captains-and-deckhands", "commercial-fishermen-and-shrimpers"] },
-    ],
-  },
-  "service-industry": {
-    own: "restaurants-and-bars",
-    groups: [
-      { id: "restaurants-and-bars", title: "Restaurants & Bars", from: ["restaurant-servers", "bartenders", "baristas", "cooks-and-kitchen-staff"] },
-      { id: "retail-and-customer-service", title: "Retail & Customer Service", from: ["cashiers", "retail-workers", "customer-service-reps"] },
-      { id: "hotels-and-housekeeping", title: "Hotels & Housekeeping", from: ["hotel-staff", "housekeepers"] },
-      { id: "hair-and-nails", title: "Hair & Nails", from: ["hairstylists", "nail-techs"] },
-      { id: "delivery-and-travel", title: "Delivery & Travel", from: ["mail-carrier-and-delivery-drivers", "delivery-drivers", "flight-attendants"] },
-    ],
-  },
   "gifts-by-color": {
     groups: [
       { id: "red-and-pink", title: "Red & Pink", from: ["red-lover", "pink-lover"] },
@@ -170,14 +160,6 @@ export const SECTION_GROUPS = {
       { id: "green", title: "Green", from: ["green-lover"] },
       { id: "yellow", title: "Yellow", from: ["yellow-lover"] },
       { id: "black-and-neutral", title: "Black & Neutral", from: ["black-lover", "neutral-lover"] },
-    ],
-  },
-  "home-cook": {
-    groups: [
-      { id: "baker", title: "Bakers", from: ["baker"] },
-      { id: "grill-master", title: "Grill Masters", from: ["grill-master"] },
-      { id: "chefs-and-entertainers", title: "Chefs & Entertainers", from: ["chefs", "entertainer"] },
-      { id: "hostess", title: "Hostesses", from: ["hostess"] },
     ],
   },
   "louisiana-food-gifts": {
@@ -198,48 +180,10 @@ export const SECTION_GROUPS = {
       { id: "boutiques-shops-and-artists", title: "Boutiques, Shops & Artists", from: ["louisiana-boutiques", "louisiana-small-businesses", "louisiana-artists"] },
     ],
   },
-  "under-25": {
-    groups: [
-      { id: "under-10", title: "Under $10", from: ["under-5", "under-10"] },
-      { id: "under-20", title: "Under $20", from: ["under-15", "under-20"] },
-    ],
-  },
-  "under-50": { groups: [{ id: "under-40", title: "Under $40", from: ["under-30", "under-40"] }] },
   splurge: {
     groups: [
       { id: "under-100", title: "Under $100", from: ["under-75", "under-100"] },
       { id: "100-and-up", title: "$100 & Up", from: ["100-and-up"] },
-    ],
-  },
-  "new-baby-and-parents": {
-    groups: [
-      { id: "mom-to-be", title: "Mom-to-Be", from: ["mom-to-be"] },
-      { id: "new-mom", title: "New Mom", from: ["new-mom"] },
-      { id: "new-dad-and-grandparents", title: "New Dad & Grandparents", from: ["new-dad", "new-grandparent"] },
-    ],
-  },
-  "new-homeowner": { groups: [{ id: "first-apartment-and-neighbors", title: "First Apartment & Neighbors", from: ["first-apartment", "neighbor"] }] },
-  sister: { groups: [{ id: "big-sisters-and-sisters-in-law", title: "Big Sisters & Sisters-in-Law", from: ["big-sisters", "sister-in-law"] }] },
-  couples: { groups: [{ id: "engaged-and-newlyweds", title: "Engaged & Newlyweds", from: ["newly-engaged", "newlyweds"] }] },
-  "office-and-professional": {
-    groups: [
-      { id: "accountants", title: "Accountants", from: ["accountants"] },
-      { id: "lawyers", title: "Lawyers", from: ["lawyers"] },
-      { id: "engineers", title: "Engineers", from: ["engineers"] },
-      { id: "real-estate-agents", title: "Real Estate Agents", from: ["real-estate-agents"] },
-      { id: "small-business-and-social-work", title: "Small Business & Social Work", from: ["small-business-owners", "social-workers"] },
-    ],
-  },
-  "creative-and-hobby": {
-    groups: [
-      { id: "artists", title: "Artists", from: ["artist"] },
-      { id: "crafters-diyers-and-photographers", title: "Crafters, DIYers & Photographers", from: ["crafter", "diyer", "photographer"] },
-    ],
-  },
-  entertainment: {
-    groups: [
-      { id: "gamers", title: "Gamers", from: ["gamer"] },
-      { id: "movies-and-music", title: "Movies & Music", from: ["movie-buff", "music-lover"] },
     ],
   },
   "easy-and-last-minute": {
@@ -248,35 +192,142 @@ export const SECTION_GROUPS = {
       { id: "subscriptions-and-advent-calendars", title: "Subscriptions & Advent Calendars", from: ["subscriptions", "advent-calendars"] },
     ],
   },
-  outdoors: { groups: [{ id: "campers-and-mountain-lovers", title: "Campers & Mountain Lovers", from: ["camper", "mountain-lover"] }] },
-  "big-moments": { groups: [{ id: "retirees-and-new-jobs", title: "Retirees & New Jobs", from: ["retiree", "new-job"] }] },
   pets: {
     groups: [
-      { id: "dogs", title: "Dog Lovers", from: ["dog-lover"] },
+      { id: "dogs", title: "Dog Lovers", from: ["dog-lover", "new-puppy"] },
       { id: "cats", title: "Cat Lovers", from: ["cat-person", "new-kitten"] },
       { id: "horses", title: "Horse Lovers", from: ["horse-lover"] },
       { id: "fish-and-birds", title: "Fish & Birds", from: ["fish-lover", "bird-lover"] },
     ],
   },
+  // FOLLOW-UP 1120 (owner pop-ups 11-19 11:58 PM "DEEPER MERGES" + 11-20 1:10 AM "FINAL MERGES"): the ~30 guides' sections.
+  family: {
+    groups: [
+      { id: "siblings", title: "Siblings", from: ["brother", "brother-in-law", "sister", "big-sisters", "sister-in-law"] },
+      { id: "aunt-and-uncle", title: "Aunt & Uncle", from: ["aunt", "cousins", "uncle"] },
+      { id: "niece-and-nephew", title: "Niece & Nephew", from: ["niece-and-nephew", "niece", "nephew"] },
+      { id: "couples", title: "Couples", from: ["couples", "newly-engaged", "newlyweds"] },
+      { id: "stay-at-home-parents", title: "Stay-at-Home Parents", from: ["stay-at-home-parents"] },
+    ],
+  },
+  "friends-and-coworkers": {
+    groups: [
+      { id: "friends", title: "Friends", from: ["friends", "best-friend"] },
+      { id: "coworkers-and-boss", title: "Coworkers & Boss", from: ["work-gifts", "coworkers", "boss"] },
+      { id: "secret-santa", title: "Secret Santa & White Elephant", from: ["secret-santa", "white-elephant"] },
+    ],
+  },
+  heroes: {
+    groups: [
+      { id: "firefighters", title: "Firefighters", from: ["firefighters"] },
+      { id: "police-and-deputies", title: "Police & Deputies", from: ["first-responders", "police-officers", "sheriffs-deputies"] },
+      { id: "paramedics-and-dispatchers", title: "Paramedics & Dispatchers", from: ["paramedics-and-emts", "911-dispatchers"] },
+      { id: "army-and-national-guard", title: "Army & National Guard", from: ["military", "army", "national-guard"] },
+      { id: "navy-coast-guard-and-air-force", title: "Navy, Coast Guard & Air Force", from: ["navy", "coast-guard", "air-force"] },
+      { id: "marines-and-veterans", title: "Marines & Veterans", from: ["marines", "veterans"] },
+    ],
+  },
+  "work-life": {
+    groups: [
+      { id: "teachers-and-school", title: "Teachers & School", from: ["educators", "teachers", "elementary-teachers", "high-school-teachers", "preschool-teachers", "paraprofessionals", "professors", "principals-and-school-staff", "coaches", "bus-drivers"] },
+      { id: "office-and-professional", title: "Office & Professional", from: ["office-and-professional", "accountants", "lawyers", "engineers", "real-estate-agents", "small-business-owners", "social-workers"] },
+      { id: "service-industry", title: "Service Industry", from: ["service-industry", "restaurant-servers", "bartenders", "baristas", "cooks-and-kitchen-staff", "cashiers", "retail-workers", "customer-service-reps", "hotel-staff", "housekeepers", "hairstylists", "nail-techs", "mail-carrier-and-delivery-drivers", "delivery-drivers", "flight-attendants"] },
+      { id: "trades", title: "Trades", from: ["electricians", "linemen", "hvac-techs", "plumbers", "pipefitters", "construction-workers", "welders", "machinists", "crane-operators", "heavy-equipment-operators", "mechanics", "truck-drivers"] },
+      { id: "oilfield-and-offshore", title: "Oilfield & Offshore", from: ["oilfield-and-trades", "oilfield-workers", "offshore-workers", "pipeline-workers", "refinery-and-plant-workers", "boat-captains-and-deckhands", "commercial-fishermen-and-shrimpers"] },
+      { id: "farmers", title: "Farmers & Ranchers", from: ["farmers"] },
+    ],
+  },
+  "outdoors-and-travel": {
+    groups: [
+      { id: "hunting", title: "Hunters", from: ["hunters"] },
+      { id: "fishing", title: "Fishermen", from: ["fishermen"] },
+      { id: "golf", title: "Golfers", from: ["golfer"] },
+      { id: "lake-and-beach", title: "Lake & Beach", from: ["lake-and-beach", "beach-lover", "boater", "kayaker"] },
+      { id: "travel-and-camping", title: "Travel & Camping", from: ["outdoors", "traveler", "camper", "mountain-lover"] },
+      { id: "gardening", title: "Gardeners & Plant Lovers", from: ["gardener", "plant-lover"] },
+    ],
+  },
+  "home-and-kitchen": {
+    groups: [
+      { id: "home-cooks-and-hosts", title: "Home Cooks & Hosts", from: ["home-cook", "chefs", "entertainer", "hostess"] },
+      { id: "bakers", title: "Bakers", from: ["baker"] },
+      { id: "grill-masters", title: "Grill Masters", from: ["grill-master"] },
+      { id: "wine-lovers", title: "Wine Lovers", from: ["wine-lover"] },
+      { id: "cozy-and-self-care", title: "Cozy & Self-Care", from: ["cozy-and-self-care", "self-care-lover", "homebody"] },
+    ],
+  },
+  "creative-and-entertainment": {
+    groups: [
+      { id: "artists-and-crafters", title: "Artists & Crafters", from: ["creative-and-hobby", "artist", "crafter"] },
+      { id: "diy-and-photography", title: "DIY & Photography", from: ["diyer", "photographer"] },
+      { id: "book-lovers", title: "Book Lovers", from: ["book-lover"] },
+      { id: "gamers", title: "Gamers", from: ["entertainment", "gamer"] },
+      { id: "movies-and-music", title: "Movies & Music", from: ["movie-buff", "music-lover"] },
+    ],
+  },
+  "gifts-by-budget": {
+    groups: [
+      { id: "stocking-stuffers", title: "Stocking Stuffers", from: ["stocking-stuffers"] },
+      { id: "under-25", title: "Under $25", from: ["under-25", "under-5", "under-10", "under-15", "under-20"] },
+      { id: "under-50", title: "Under $50", from: ["under-50", "under-30", "under-40"] },
+      { id: "memberships-and-advent-calendars", title: "Memberships & Advent Calendars", from: ["easy-and-last-minute", "gift-cards", "subscriptions", "advent-calendars"] },
+    ],
+  },
+  "louisiana-celebrations": {
+    groups: [
+      { id: "mardi-gras", title: "Mardi Gras", from: ["mardi-gras"] },
+      { id: "game-day", title: "Game Day & Tailgating", from: ["game-day", "purple-and-gold-lover", "tailgater"] },
+      { id: "crawfish-season", title: "Crawfish Season", from: ["crawfish-season", "crawfish-boil-host"] },
+    ],
+  },
+  "life-moments": {
+    groups: [
+      { id: "baby", title: "Baby", from: ["new-baby-and-parents", "mom-to-be", "new-mom", "new-dad", "new-grandparent"] },
+      { id: "graduation", title: "Graduation", from: ["graduate", "college-student"] },
+      { id: "new-home", title: "New Home", from: ["new-homeowner", "first-apartment", "neighbor"] },
+      { id: "get-well", title: "Get Well", from: ["get-well-soon", "hospital-stay", "thinking-of-you"] },
+      { id: "milestones", title: "Milestones", from: ["big-moments", "retiree", "new-job"] },
+    ],
+  },
+  // One Kids guide by age (owner 11-20 1:10 AM): each age mixes girls, boys and any; a pick's `from` keeps which.
+  kids: {
+    own: "top-picks",
+    groups: [
+      { id: "top-picks", title: "Top picks", from: ["girls", "boys", "gender-neutral"] },
+      { id: "babies", title: "Babies (ages 0–1)", from: ["girls-babies", "boys-babies", "gender-neutral-babies"] },
+      { id: "toddlers", title: "Toddlers (ages 1–3)", from: ["girls-toddlers", "boys-toddlers", "gender-neutral-toddlers"] },
+      { id: "little-kids", title: "Little Kids (ages 4–7)", from: ["girls-little-kids", "boys-little-kids", "gender-neutral-little-kids"] },
+      { id: "big-kids", title: "Big Kids (ages 8–12)", from: ["girls-big-kids", "boys-big-kids", "gender-neutral-big-kids"] },
+      { id: "teens", title: "Teens (ages 13+)", from: ["girls-teens", "boys-teens", "gender-neutral-teens"] },
+    ],
+  },
 };
 
 /**
- * 26 Store pages (owner ~9:00 PM): the most popular ones stay, ranked by pageviews and how well shoppers know the store
- * (the owner's named list, where a page exists, then the largest well-known pages up to 30). Every other store page is
- * folded: its items stay in the guides, its old link 301s to the gift guides landing page.
+ * THE STORE PAGES (owner pop-up 2026-11-20 ~2:45 AM, FINAL STORE LIST = "Use the data list", superseding the 11-19
+ * ~9:00 PM list and the 11-20 ~1:45 AM drop/add): 26 pages, each 10-15 of that store's best-paying, most popular items
+ * (~/Desktop/Gift-guide-picks/_store-fill-1120.json). Every other store page is folded: its items stay in the guides,
+ * its old link 301s to the gift guides landing page (Anthropologie, Free People, Wayfair, Crate & Barrel, REI,
+ * Nordstrom, Nordstrom Rack, Macy's, AE, Abercrombie, Kendra Scott among them). No page for Academy, Kohl's, Costco,
+ * Lowe's or Hobby Lobby (~0%).
  */
 export const STORE_PAGES_KEPT = [
-  "store-amazon", "store-target", "store-walmart", "store-sephora", "store-ulta-beauty", "store-lululemon", "store-nordstrom",
-  "store-kendra-scott", "store-yeti", "store-stanley", "store-apple", "store-best-buy", "store-bath-and-body-works",
-  "store-anthropologie", "store-free-people", "store-coach", "store-baublebar", "store-crocs", "store-hoka", "store-carhartt",
-  "store-bass-pro-shops", "store-dillards", "store-abercrombie-and-fitch", "store-ae",
-  "store-tractor-supply", "store-rei", "store-wayfair", "store-macys", "store-nordstrom-rack", "store-crate-and-barrel",
+  "store-walmart", "store-amazon", "store-target", "store-best-buy", "store-ulta-beauty", "store-sephora", "store-bath-and-body-works",
+  "store-lululemon", "store-stanley", "store-yeti", "store-carhartt", "store-baublebar", "store-crocs", "store-hoka", "store-apple",
+  "store-coach", "store-nike", "store-at-home", "store-old-navy", "store-sams-club", "store-jcpenney", "store-tj-maxx-marshalls",
+  "store-dicks-sporting-goods", "store-dillards", "store-tractor-supply", "store-bass-pro-shops",
 ];
 
-/** The merged guides made new here: no list of their own, only their sections (each listed in giftGuideIndex.ts). */
-export const NEW_PARENTS = ["gifts-by-color", "louisiana-food-gifts", "louisiana-by-region", "pets", "office-and-professional", "new-baby-and-parents",
-  "lake-and-beach", "creative-and-hobby", "entertainment", "fitness", "outdoors", "cozy-and-self-care", "big-moments", "niece-and-nephew", "work-gifts",
-  "splurge", "shop-small-louisiana", "easy-and-last-minute"];
+/** The merged guides with no list of their own, only their sections (each listed in giftGuideIndex.ts). */
+export const NEW_PARENTS = ["gifts-by-color", "louisiana-food-gifts", "louisiana-by-region", "pets", "splurge", "shop-small-louisiana",
+  "fitness", "family", "friends-and-coworkers", "heroes", "work-life", "outdoors-and-travel", "home-and-kitchen",
+  "creative-and-entertainment", "gifts-by-budget", "louisiana-celebrations", "life-moments"];
+/**
+ * The big batch's merged guides that had no list of their own and are sections now (follow-up 1120): they still take no
+ * picks themselves in the sort (their sections' old guides do), as before the follow-up merges.
+ */
+export const NO_LIST_SECTIONS = ["easy-and-last-minute", "office-and-professional", "new-baby-and-parents", "lake-and-beach", "creative-and-hobby", "entertainment", "outdoors",
+  "cozy-and-self-care", "big-moments", "niece-and-nephew", "work-gifts"];
 
 /** Old guide slug -> { parent, index } (index: its place among the parent's sections). */
 export const MERGED_INTO = Object.fromEntries(GUIDE_MERGES.flatMap((m) => m.sections.map((s, index) => [s, { parent: m.parent, index }])));

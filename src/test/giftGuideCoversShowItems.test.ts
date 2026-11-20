@@ -34,15 +34,11 @@ const FEW_PHOTOS = "fewer than 4 clean product-only photos";
  * of the 59 store pages here now show products. These seven could not get four photos of products the store sells:
  * the site refuses automated requests or shoots on coloured, grey or model backdrops.
  */
-const BIG_1120 = "under 4 clean product photos after the big batch 1120 (guide merges, 30 store pages, one place per item and color), measured 2026-11-20 by the cover script's TEXT ONLY line: the rest are lifestyle, on-model or not on white";
 // Big batch 1120: rebuilt from the cover script's TEXT ONLY line after the merges (every entry a guide the page shows;
 // the store pages under STORE_ROW_MIN_PICKS are thin and not shown, so not listed).
+// Follow-up 1120 (~30 guides, the owner's 26 store pages): rebuilt from the cover script's TEXT ONLY line, 2026-11-20.
 const TEXT_ONLY: Record<string, string> = {
-  "book-lover": BIG_1120,
-  "thinking-of-you": BIG_1120,
-  "new-puppy": BIG_1120,
-  "store-free-people": `${FEW_PHOTOS}: site and image server answer 403; its photos are grey-backdrop or on-model`,
-  "store-kendra-scott": BIG_1120,
+  "store-hoka": `${FEW_PHOTOS}: 3 of its 10 picks cut out cleanly (the rest are on-foot or coloured-backdrop shots), measured 2026-11-20`,
 };
 const PIXEL_PALE: Record<string, string> = {};
 
@@ -75,8 +71,8 @@ function plainGingham(): Buffer {
 
 describe("gift guide covers show their products", () => {
   it("reads every shown guide's cover", () => {
-    expect(shown.length).toBeGreaterThan(70); // 1120: ~65 guides + the kept store pages
-    expect(checked.length).toBeGreaterThan(55);
+    expect(shown.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages (54 covers drawn, 2026-11-20)
+    expect(checked.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (53)
     for (const s of shown) expect(existsSync(`${COVER_DIR}/${s}.webp`), s).toBe(true);
   });
 

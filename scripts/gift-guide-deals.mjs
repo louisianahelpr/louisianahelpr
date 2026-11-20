@@ -12,6 +12,11 @@
  * for that ASIN (_amazon-cc-campaigns-1119.json), else NETWORK_RATES (CJ/Rakuten, ~/Desktop/Affiliate-rates-by-brand-1118.md),
  * else the brand's best brand-links rate, else 0. Rates stay in this script: the shipped JSON carries only the order.
  * Not in CI (it reads the lead's folder): registered in scripts/check-generated-current.mjs (gift-guide-deals).
+ * FOLLOW-UP 1120 (FOLLOWUP-OWNER-1119.md, owner 11-20): _bfcm-deals-1120.json adds its new deals and the 1119 deals it
+ * fixed (skipped_fixed) to their sections: a row needing a link or holding no photo (its own, or one read from its
+ * product page into _image-fill-1120.json) stays out; its `remove_from_page` brands (Kendra Scott) and the weak featured
+ * picks the owner dropped (Ariat breech, Academy wrist weights, GreenPan; Oura is not on our link) stay out; a section
+ * this page has no heading for (Retailer events, Pets) is not added. No Cyber Monday section: no store has dated one.
  * Guard: src/test/giftGuideDeals1119.test.tsx.
  *
  *   node scripts/gift-guide-deals.mjs            write the file and print what was skipped
@@ -21,6 +26,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { DEAL_CATEGORIES, DEALS_PER_SECTION, louisianaDay } from "../src/content/giftGuideDeals.mjs";
+import { blockedBrand } from "./giftGuideBlocklist.mjs";
 
 const REPO = resolve(import.meta.dirname, "..");
 const OUT = join(REPO, "src/content/giftGuideDeals.json");
@@ -35,7 +41,9 @@ const NETWORK_RATES = { Magnifique: 10, Tushbaby: 7, "Durango Boots": 6, "Muck B
  * code and offer as the Discount codes list in src/content/giftGuides.ts).
  */
 const OVERRIDES = { "Camp Snap": { deal: "7% off with our code LEXILOMBAS7", code: "LEXILOMBAS7" } };
-const tidy = (text) => text.replace(/\bowner code\b/gi, (m) => (m[0] === "O" ? "Our code" : "our code"));
+const tidy = (text) => text.replace(/\bowner code\b/gi, (m) => (m[0] === "O" ? "Our code" : "our code"))
+  // Follow-up 1120: Society6's "owner-exclusive" code is simply exclusive to our link.
+  .replace(/\bowner[- ]exclusive\b/gi, (m) => (m[0] === "O" ? "Exclusive" : "exclusive"));
 
 const pct = (v) => {
   const n = Number(String(v ?? "").replace(/[^0-9.]/g, ""));
@@ -61,7 +69,28 @@ export function loadSources(dir = DIR) {
   }
   const campaigns = existsSync(join(dir, "_amazon-cc-campaigns-1119.json")) ? read("_amazon-cc-campaigns-1119.json") : [];
   const cdn = existsSync(join(dir, "_shopmy-cdn-photos.json")) ? read("_shopmy-cdn-photos.json") : {};
-  return { deals: read("_bfcm-deals-1119.json"), brandLinks, campaigns: Array.isArray(campaigns) ? campaigns : (campaigns.campaigns ?? []), cdn };
+  const deals = read("_bfcm-deals-1119.json");
+  const more = existsSync(join(dir, "_bfcm-deals-1120.json")) ? read("_bfcm-deals-1120.json") : null;
+  const fills = existsSync(join(dir, "_image-fill-1120.json")) ? read("_image-fill-1120.json") : {};
+  return { deals: more ? withDeals1120(deals, more, fills) : deals, brandLinks, campaigns: Array.isArray(campaigns) ? campaigns : (campaigns.campaigns ?? []), cdn };
+}
+
+/** The weak featured picks the owner dropped (11-20) and the brand not on our link (Oura). */
+export const DROP_1120 = ["Ariat", "Academy Sports + Outdoors", "GreenPan", "Oura"];
+/** The deals with the follow-up file's rows added to their sections (see the header); a fixed row replaces its old row (2026-11-20). */
+export function withDeals1120(deals, more, fills = {}) {
+  const gone = new Set([...(more.remove_from_page ?? []).map((r) => r.brand), ...DROP_1120]);
+  const categories = Object.fromEntries(Object.entries(deals.categories).map(([c, list]) => [c, list.filter((r) => !gone.has(r.brand))]));
+  for (const r0 of [...(more.skipped_fixed ?? []), ...(more.new_deals ?? [])]) {
+    // A blocked brand (giftGuideBlocklist.mjs: Kendra Scott, Lovesac ...) never reaches the page.
+    if (!r0 || gone.has(r0.brand) || blockedBrand({ brand: r0.brand, name: r0.featured_item, href: r0.href }) || !DEAL_CATEGORIES.includes(r0.category) || r0.needs_link || !r0.href) continue;
+    const image = r0.image || fills[r0.href];
+    if (!image) continue;
+    const r = { ...r0, image };
+    const list = categories[r.category] ?? [];
+    categories[r.category] = [...list.filter((x) => x.brand !== r.brand), r];
+  }
+  return { ...deals, categories };
 }
 
 /**
@@ -79,6 +108,8 @@ export function photoOf(image, cdn = {}) {
 
 /** Our commission (%) on a deal's link; see the header for the order of sources. */
 export function commissionOf(d, { brandLinks, campaigns }) {
+  // A follow-up row carries its own checked rate (read 2026-11-20).
+  if (d["commission %"] != null && pct(d["commission %"]) > 0) return pct(d["commission %"]);
   const all = Object.values(brandLinks).flat();
   const exact = all.find((p) => p.href === d.href && p.commission_pct);
   if (exact) return pct(exact.commission_pct);

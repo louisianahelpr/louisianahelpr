@@ -507,11 +507,11 @@ export const GUIDES: CatalogGuide[] = ROWS.flatMap((r) => [
 ]);
 
 /**
- * The guides a group's row and menu list, in order (owner 2026-11-18, "covers in two taps"): top-level guides, with
- * the Kids hub replaced by its own children (Girls, Boys, Gender-Neutral); each of those opens its five age guides.
- * A guide that holds nothing is not listed.
+ * The guides a group's row and menu list, in order (owner 2026-11-18, "covers in two taps"): top-level guides only.
+ * Follow-up 1120 (owner 11-20 ~1:10 AM): Kids is ONE guide by age (Girls, Boys and Gender-Neutral are its sections), so
+ * it is listed itself. A guide that holds nothing is not listed.
  */
-export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === row && (g.parent ? g.parent === KIDS_HUB : g.slug !== KIDS_HUB));
+export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === row && !g.parent);
 
 
 /**
@@ -620,7 +620,8 @@ export const searchIntent = (words: string[]): { slugs: string[]; used: Set<stri
     if (g && !g.empty && !slugs.includes(s)) slugs.push(s);
   };
   // A budget: "$25", "under 25", "25 dollars" -> the nearest Under $X guide at or above it.
-  const budgets = [...new Set(GUIDES.flatMap((g) => /^under-(\d+)$/.exec(g.slug)?.[1] ?? []).map(Number))].sort((a, b) => a - b);
+  // Follow-up 1120: the Under $X guides are sections of Gifts by Budget (and Splurge) now; add() opens their guide.
+  const budgets = [...new Set(OWNER_INDEX.flatMap((g) => /^under-(\d+)$/.exec(g.slug)?.[1] ?? []).map(Number))].sort((a, b) => a - b);
   const budgetSlugs: string[] = [];
   words.forEach((w, i) => {
     const n = /^\$?(\d+)$/.exec(w)?.[1];

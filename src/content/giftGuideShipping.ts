@@ -37,8 +37,8 @@ export function shippingLine(now: Date): string | null {
 export const LAST_MINUTE = {
   title: "Last-minute gifts",
   note: "Arrives by Christmas",
-  // 1120: Gift Cards and Subscriptions are sections of Easy & Last-Minute Gifts.
-  slugs: ["easy-and-last-minute", "e-gifts"],
+  // Follow-up 1120: the memberships and advent calendars (every 0% gift card out, owner 11-20) are a section of Gifts by Budget.
+  slugs: ["gifts-by-budget", "e-gifts"],
 } as const;
 
 /** Whether the "Last-minute gifts" section shows at `now` (Dec 15–25, America/Chicago). */

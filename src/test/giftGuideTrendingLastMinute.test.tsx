@@ -119,7 +119,8 @@ describe("gift guides: Last-minute gifts, Dec 15-25 in Louisiana", () => {
     expect(sec).not.toBeNull();
     expect(sec.querySelector("h2")?.textContent).toBe("Last-minute gifts");
     const tiles = [...sec.querySelectorAll("[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
-    expect(tiles).toEqual(expect.arrayContaining(["easy-and-last-minute"]));
+    // Follow-up 1120: the memberships and advent calendars (every 0% gift card out) are a section of Gifts by Budget.
+    expect(tiles).toEqual(expect.arrayContaining(["gifts-by-budget"]));
     for (const t of sec.querySelectorAll("[data-gift-tile]")) expect(t.getAttribute("href")).toBe(`/gift-guides/${t.getAttribute("data-gift-tile")}`);
     expect(sec.querySelector("[data-gift-last-minute-note]")?.textContent).toBe(`Arrives by Christmas: ${SHIP_LINES.late}`);
     // Above every guide row.

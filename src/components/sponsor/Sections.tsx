@@ -100,8 +100,8 @@ function HeadlineMain({ text }: { text: string }) {
   );
 }
 
-/** enterUrl: the shoppers' "How to enter" link, given on /25days only (the brand-facing /sponsor has no such button). */
-export function Hero({ greetingBrand, enterUrl }: { greetingBrand: string | null; enterUrl?: string }) {
+/** The brand-facing hero (/sponsor). /25days has its own, EntrantHero. */
+export function Hero({ greetingBrand }: { greetingBrand: string | null }) {
   return (
     <header className="lh25-hero">
       <div className="lh25-hero-inner">
@@ -119,13 +119,65 @@ export function Hero({ greetingBrand, enterUrl }: { greetingBrand: string | null
         <div className="lh25-hero-ctas">
           <Button type="button" variant="ghost" className="lh25-btn lh25-btn-primary" onClick={() => scrollToId("claim")}>{C.hero.primaryCta}</Button>
           <Button type="button" variant="ghost" className="lh25-btn lh25-btn-outline" onClick={() => scrollToId("how")}>{C.hero.secondaryCta}</Button>
-          {/* Owner 11-19: where people enter the giveaways (sponsor_settings.entry_url, else the Facebook Page). */}
-          {enterUrl ? <a className="lh25-btn lh25-btn-outline" href={enterUrl} target="_blank" rel="noopener noreferrer" data-testid="giveaway-enter">{C.hero.enterCta}</a> : null}
         </div>
         <Countdown />
         <p className="lh25-deadline">{C.hero.deadline}</p>
       </div>
     </header>
+  );
+}
+
+/* ── A2) /25days: THE PAGE FOR PEOPLE ENTERING ─────────────────────────── */
+
+/**
+ * Owner 2026-11-19: /25days is for people entering (most arrive from Facebook, on a phone). Its button opens the entry
+ * post (enterUrl: sponsor_settings.entry_url, else the Facebook Page) and never says HOW to enter.
+ */
+export function EntrantHero({ enterUrl }: { enterUrl: string }) {
+  const E = C.entrant;
+  return (
+    <header className="lh25-hero">
+      <div className="lh25-hero-inner">
+        <img className="lh25-logo" src="/helpr-logo-transparent-192.png" width={84} height={84} alt="Louisiana Helpr" />
+        <h1 className="lh25-h1">
+          <span className="lh25-h1-lead">{E.headlineLead}</span>
+          <StarRule className="lh25-h1-rule" />
+          <HeadlineMain text={C.hero.headline} />
+        </h1>
+        <p className="lh25-eyebrow">{C.hero.eyebrow}</p>
+        <p className="lh25-subhead">{E.subhead}</p>
+        <div className="lh25-hero-ctas">
+          <a className="lh25-btn lh25-btn-primary" href={enterUrl} target="_blank" rel="noopener noreferrer" data-testid="giveaway-enter">{E.enterCta}</a>
+          <Button type="button" variant="ghost" className="lh25-btn lh25-btn-outline" onClick={() => scrollToId("lineup")}>{E.sponsorsCta}</Button>
+        </div>
+        <Countdown />
+      </div>
+    </header>
+  );
+}
+
+/** Who can enter and how winning works, in five short lines, with the rules link. No entry steps. */
+export function EntrantInfo() {
+  const E = C.entrant;
+  return (
+    <section className="lh25-section" aria-labelledby="lh25-entrant">
+      <SectionTitle><span id="lh25-entrant">{E.title}</span></SectionTitle>
+      <ul className="lh25-entrant-points" data-testid="entrant-points">
+        {E.points.map((p) => (
+          <li key={p}><Sparkle size={11} /> {p}</li>
+        ))}
+      </ul>
+      <p className="lh25-center"><Link className="lh25-card-link" to={C.links.rules}>{E.rulesLink}</Link></p>
+    </section>
+  );
+}
+
+/** The one line for businesses on /25days: the pitch and sign-up form are on /sponsor. */
+export function BusinessAsk() {
+  return (
+    <p className="lh25-business-ask lh25-center" data-testid="business-ask">
+      {C.entrant.businessAsk} <Link to="/sponsor">{C.entrant.businessLink}</Link>
+    </p>
   );
 }
 

@@ -33,7 +33,22 @@ const NOTE_PARENS = [
   /\s*\(conditional\)/gi,
   /\s*\(picked [^)]*\)/gi,
   /\s*\([^)]*\basked\)/gi, // e.g. ("a bundle or two"; contents asked)
+  // Owner 2026-11-19 (public list is undated, one card per brand): "(2 of 4, split from same sponsor)" and
+  // "(1 of 4; Ripley's is in Duson, LA)" are planning notes, as is any note with a time stamp or "not given".
+  /\s*\(\d+ of \d+[^)]*\)/gi,
+  /\s*\([^)]*\b\d{1,2}:\d{2}\s*[AP]M[^)]*\)/gi,
+  /\s*\([^)]*\bnot given\)/gi,
+  /\s*\([^)]*sign-up form\)/gi,
 ];
+/**
+ * Owner 2026-11-19 ("no personal names in the public lineup, business names only"): a tracker name that is a person
+ * shows as its business or what it gives.
+ */
+const PUBLIC_NAMES = new Map([
+  ["David Rabalais (The Fois)", "The Fois"],
+  ["Tevin Lewis, District 2 Alderman", "District 2 Alderman"],
+  ["Haylie Rudisill (custom wreath sashes)", "Custom wreath sashes"],
+]);
 /** Brand-name parentheticals that are a person (the sponsor's contact), keyed by tracker key. */
 const PERSON_PARENS = [/\s*\(Holli M\. Landry\)/g, /\s*\(Brandi\)/g];
 /**
@@ -46,6 +61,7 @@ const PER_DAY_PRIZE = /^Dec \d+:/;
 
 function publicBrand(n) {
   let s = n.replace(TRAILING_NOTE, "");
+  if (PUBLIC_NAMES.has(s.trim())) return PUBLIC_NAMES.get(s.trim());
   for (const re of [...PERSON_PARENS, ...NOTE_PARENS]) s = s.replace(re, "");
   return s.trim();
 }

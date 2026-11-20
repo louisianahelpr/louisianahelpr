@@ -12,10 +12,13 @@
  * @mutate src/content/sponsorPage.ts |           { brand: "The Fois", prize: "Toy Magnalite pot" }, |           { brand: "David Rabalais (The Fois)", prize: "Toy Magnalite pot" },
  */
 import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
-import { About, BrandGets, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk } from "@/components/sponsor/Sections";
+import { About, BrandGets, BusinessAsk, EntrantHero, EntrantInfo, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk } from "@/components/sponsor/Sections";
+import { blankComments } from "./helpers/blankNonCode";
 
 function allStrings(v: unknown, out: string[] = []): string[] {
   if (typeof v === "string") out.push(v);
@@ -72,5 +75,72 @@ describe("25 Days public pages: no sponsor day, no entry steps, no removed spons
     const text = JSON.stringify(sponsorPage.lineup);
     expect(REMOVED.filter((n) => text.includes(n))).toEqual([]);
     expect(PEOPLE.filter((n) => text.includes(n))).toEqual([]);
+  });
+});
+
+/**
+ * Owner 2026-11-19: "Show the full sponsor list on the website. You can keep the page but most people will see it from
+ * Facebook traffic." /25days is for people entering; the brand pitch, sign-up form and sign-up deadline are /sponsor's.
+ * Official rules: "Legal name: Louisiana Helpr"; "They can win once".
+ *
+ * @mutate src/pages/sponsor/SponsorPage.tsx |             <BusinessAsk />\n |             <BusinessAsk />\n            <ClaimSection state={state} greetingBrand={null} refCode={refCode} onSubmit={(p, logo) => backend.submit(p, logo)} />\n
+ * @mutate src/content/sponsorPage.ts | One win per person across the whole giveaway: once you win a prize, you are not eligible to win another. | Winners may win more than once.
+ * @mutate src/content/sponsorPage.ts | A winner must claim the prize within 48 hours of notification | A winner must claim the prize within 7 days of notification
+ * @mutate src/content/sponsorPage.ts |     approved: true, |     approved: false,
+ */
+describe("/25days is the page for people entering; the official rules are final", () => {
+  const ROOT = path.resolve(__dirname, "../..");
+
+  it("the /25days branch renders only entrant sections: no brand pitch, sign-up form or deadline", () => {
+    const src = blankComments(fs.readFileSync(path.join(ROOT, "src/pages/sponsor/SponsorPage.tsx"), "utf8"));
+    const start = src.indexOf('if (pathname === "/25days") {');
+    expect(start).toBeGreaterThan(0);
+    const block = src.slice(start, src.indexOf("\n  }\n", start));
+    for (const want of ["<EntrantHero enterUrl={enterUrl} />", "<EntrantInfo />", "<Lineup />", "<BusinessAsk />", "<Head25days />"]) expect(block, want).toContain(want);
+    for (const brandOnly of ["<ClaimSection", "<Hero ", "<BrandGets", "<HowItWorks", "<WhatWeAsk", "<PreviewCard", "<Reach", "<Faq", "<FinalCta", "<TrustStrip"]) {
+      expect(block, brandOnly).not.toContain(brandOnly);
+    }
+    const { container } = render(
+      <MemoryRouter>
+        <EntrantHero enterUrl="https://www.facebook.com/louisianahelpr" />
+        <EntrantInfo />
+        <Lineup />
+        <BusinessAsk />
+      </MemoryRouter>,
+    );
+    const text = container.textContent ?? "";
+    expect(text.length).toBeGreaterThan(1000);
+    expect(text).not.toMatch(/sign up by|nov(ember)? 22/i);
+    expect(text).not.toMatch(ENTRY_STEPS);
+    expect(text).toContain("Each person can win once.");
+    expect(container.querySelector("[data-testid='business-ask'] a")?.getAttribute("href")).toBe("/sponsor");
+    expect(container.querySelector("[data-testid='giveaway-enter']")?.getAttribute("href")).toBe("https://www.facebook.com/louisianahelpr");
+    // The full sponsor list (owner 2026-11-19): every brand on the tracker's calendar, once.
+    expect(container.querySelectorAll("[data-testid='lineup-partner']").length).toBeGreaterThan(100);
+  });
+
+  it("the official rules: Louisiana Helpr, Louisiana 18+, one entry for all 25 days, one win per person, 48 hours, no placeholder", () => {
+    const R = sponsorPage.rules;
+    expect(R.approved).toBe(true);
+    expect(R.sections.length).toBeGreaterThan(8);
+    const all = R.sections.map((s) => `${s.heading}\n${s.body}`).join("\n");
+    expect(all).not.toMatch(/\[[^\]]*\]/);
+    for (const must of [
+      "NO PURCHASE NECESSARY",
+      "run by Louisiana Helpr",
+      "legal residents of Louisiana who are 18 years of age or older",
+      "One entry covers all 25 days",
+      "One win per person",
+      "within 48 hours",
+      "a new winner is drawn",
+      "Prizes are provided by the participating businesses",
+      "in no way sponsored, endorsed or administered by, or associated with, Facebook or Meta",
+      "Void where prohibited",
+      "as described in the official giveaway post on the Louisiana Helpr Facebook page",
+    ]) expect(all, must).toContain(must);
+    expect(all).not.toMatch(ENTRY_STEPS);
+    // The rules page links back to the entrant page, not the brand page.
+    const page = fs.readFileSync(path.join(ROOT, "src/pages/sponsor/SponsorRulesPage.tsx"), "utf8");
+    expect(page).toContain('<Link className="lh25-back" to="/25days">');
   });
 });

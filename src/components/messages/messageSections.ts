@@ -61,11 +61,13 @@ export function mainInboxEmptyBody(declutterOn: boolean): string {
 }
 
 /** The chips: All, Unread, then the sections (in Customize order). */
-export type InboxFilter = "all" | "unread" | SectionKey;
+export type InboxFilter = "all" | "unread" | "archived" | SectionKey;
 
 /** `?section=` read against the chips; All when absent or unknown. */
 export function coerceInboxFilter(raw: string | null, sections: readonly SectionKey[]): InboxFilter {
   if (raw === "unread") return "unread";
+  // Archived (owner-approved polish 2026-11-20): the archive view as a chip, always offered.
+  if (raw === "archived") return "archived";
   if (raw && (sections as readonly string[]).includes(raw)) return raw as SectionKey;
   return "all";
 }
@@ -74,6 +76,8 @@ export function coerceInboxFilter(raw: string | null, sections: readonly Section
 export function threadsForFilter(list: readonly Conversation[], filter: InboxFilter): Conversation[] {
   if (filter === "all") return [...list];
   if (filter === "unread") return list.filter((c) => c.unread > 0);
+  // The Archived chip reads the archive itself (ConversationList's archived view), never the live inbox.
+  if (filter === "archived") return [];
   return threadsForSection(list, filter);
 }
 

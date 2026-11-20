@@ -69,7 +69,7 @@ describe("S2-016: shop chats in Messages", () => {
     const { result } = renderHook(() => useMessageSections([], []), { wrapper: wrap("/messages") });
     await waitFor(() => expect(result.current.inboxLead).not.toBeNull());
     render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
-    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["All", "Unread · 1", "Jobs", "Shops"]);
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["All", "Unread · 1", "Jobs", "Shops", "Archived"]);
   });
 
   it("Unread lists only unread shop chats; with none, nothing is added", async () => {

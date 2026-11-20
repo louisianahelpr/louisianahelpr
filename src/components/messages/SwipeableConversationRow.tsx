@@ -12,6 +12,9 @@ interface SwipeableConversationRowProps {
   isPinned: boolean;
   /** Fires when the user completes a left-swipe past the threshold. */
   onArchive: () => void;
+  /** Given: a left swipe parks the row open over Archive and Delete for me (owner-approved polish 2026-11-20),
+   *  and this fires on the Delete tap. Omitted: a left swipe archives at once, as before. */
+  onDeleteForMe?: () => void;
   /** Fires when the user completes a right-swipe past the threshold.
    *  Omitted = the row cannot be pinned (a deleted-account thread, Q335):
    *  no pin trail, and the row only drags left. */
@@ -33,7 +36,8 @@ interface SwipeableConversationRowProps {
  * DOM node (`slot`, `display: contents`) that React never recreates, and the
  * host that currently stands in for the surface adopts that node by its ref.
  *
- * Left swipe past threshold → archive (calls `onArchive`).
+ * Left swipe past threshold → archive (calls `onArchive`), or, with `onDeleteForMe`, parks the row open over
+ * Archive and Delete for me.
  * Right swipe past threshold → toggle pin (calls `onTogglePin`).
  */
 const swipeLayer = createLazyModule(
@@ -53,10 +57,12 @@ function SwipeableConversationRowBase({
   children,
   isPinned,
   onArchive,
+  onDeleteForMe,
   onTogglePin,
 }: SwipeableConversationRowProps) {
   const Layer = swipeLayer.use();
   const [dragging, setDragging] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   useEffect(scheduleSwipeLayer, []);
   const [slot] = useState(() => {
     const el = document.createElement("div");
@@ -78,7 +84,9 @@ function SwipeableConversationRowBase({
           surfaceRef={adoptSlot}
           isPinned={isPinned}
           onArchive={onArchive}
+          onDeleteForMe={onDeleteForMe}
           onTogglePin={onTogglePin}
+          onRevealChange={setRevealed}
           onDragStart={() => setDragging(true)}
           onDragEnd={() => setDragging(false)}
         />
@@ -89,7 +97,7 @@ function SwipeableConversationRowBase({
           row's layout effects measure. Block taps mid-drag so a swipe never
           accidentally opens the conversation. */}
       {createPortal(
-        <div style={{ pointerEvents: dragging ? "none" : "auto" }}>{children}</div>,
+        <div style={{ pointerEvents: dragging || revealed ? "none" : "auto" }}>{children}</div>,
         slot,
       )}
     </div>

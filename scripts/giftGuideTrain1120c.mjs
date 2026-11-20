@@ -26,6 +26,26 @@ export function applyTrain1120c(pageList, deals, spec, ctx) {
     if (!n) say(`brandCode: ${c.brand}`);
     t.counts.codes += n;
   }
+  // A section still holds at most spec.sectionCap picks (owner 11-19: "25 max per SECTION"): the adds push a full one
+  // over, so its lowest-paying other picks leave (sections read best-paying first; sponsors and this train's adds stay).
+  t.counts.sectionCapOut = 0;
+  if (spec.sectionCap) {
+    const added = new Set((spec.adds ?? []).map((a) => a.row?.href));
+    for (const slug of Object.keys(pageList)) {
+      if (slug.startsWith("store-") || slug === ctx.sponsorsGuide) continue;
+      const bySection = new Map();
+      for (const p of pageList[slug]) bySection.set(p.section ?? "", [...(bySection.get(p.section ?? "") ?? []), p]);
+      const out = new Set();
+      for (const list of bySection.values()) {
+        const over = list.length - spec.sectionCap;
+        if (over <= 0) continue;
+        const cuttable = list.filter((p) => !p.sponsor && !added.has(p.href));
+        for (const p of cuttable.slice(-over)) out.add(p);
+      }
+      pageList[slug] = pageList[slug].filter((p) => !out.has(p));
+      t.counts.sectionCapOut += out.size;
+    }
+  }
   t.counts.overCap = 0;
   const cap = spec.priceCap;
   if (cap) {

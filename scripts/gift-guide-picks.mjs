@@ -3815,6 +3815,40 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
   console.log(`gift-guide-picks: follow-up 1120: ${followUpCounts1120.sponsors} sponsors on ${SHOP_SMALL} (${followUpCounts1120.namedOnly} named only), out ${JSON.stringify(followUpCounts1120.out)}, ${followUpCounts1120.griddles} extra Weber griddles out, ${followUpCounts1120.renamed} audit renames, ${followUpCounts1120.brandFirst} names brand first, ${sortCounts.followUpAdds ?? 0} earning adds placed in the pool, audits ${JSON.stringify(AUDIT_1120.followUp)}`);
 }
 /**
+ * PRICE BACKFILL (train 1120c, owner 11-20 12:32 PM: "the guides also need to show prices"): several import paths (the
+ * brand links, the Creator Connections / fill rows, the big batch rows) drop a row's file price, because a research
+ * price is never shown unchecked. A price ~/Desktop/Link-library checked (price_currency, price_checked_at,
+ * price_source on ANY row of ANY picks file with the same link) is a checked price: every shown non-Amazon pick without
+ * one takes it here, under the same verifiedPrice rules (fresh, USD, never Amazon).
+ */
+{
+  const checked = new Map();
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+    let v;
+    try { v = readJson(f); } catch { continue; /* mid-write: read on the next run */ }
+    const walk = (o) => {
+      if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+      if (!o || typeof o !== "object") return;
+      if (o.price_checked_at && o.price_source) for (const k of ["href", "affiliate_href"]) if (typeof o[k] === "string" && !checked.has(o[k])) checked.set(o[k], o);
+      for (const x of Object.values(o)) if (x && typeof x === "object") walk(x);
+    };
+    walk(v);
+  }
+  let filled = 0;
+  for (const slug of Object.keys(pageList)) {
+    pageList[slug] = pageList[slug].map((p) => {
+      if (p.price != null || !checked.has(p.href)) return p;
+      let host = "";
+      try { host = new URL(p.href).hostname; } catch { return p; /* no URL: no price */ }
+      const priced = verifiedPrice(checked.get(p.href), [host], p.store);
+      if (!priced) return p;
+      filled += 1;
+      return { ...p, ...priced, ...(p.band ? {} : { band: budgetBand(priced.price) }) };
+    });
+  }
+  console.log(`gift-guide-picks: price backfill ${filled} picks from ${checked.size} checked rows`);
+}
+/**
  * TRAIN 1120b (lead 44, 2026-11-20): the re-audit's fixes, the national 25 Days sponsors' one spot each, the Walmart
  * deals box cleanup and the Georgia Boot sale, applied last to the finished pages (scripts/giftGuideTrain1120b.mjs,
  * rules in scripts/gift-guide-train-1120b.json). A rule that finds nothing is printed, never dropped silently.

@@ -1,6 +1,15 @@
 {
  "about": "Gift guides train 1120c (lead 44, 2026-11-20): the owner's adds, the joined Creator Connections campaigns that held no spot (one product each, best-fit section), the XTRATUF XT25 code, the $500 price cap and the store refills. Applied after train 1120b by scripts/gift-guide-picks.mjs through scripts/giftGuideTrain1120c.mjs. Rule shapes as in gift-guide-train-1120b.json.",
  "waitingOnLinks": "Owner adds held until she decides how links are made (lead 11-20 ~1:45 PM): Kérastase Elixir Ultime, Braun Silk-expert Pro 5 IPL, HydroJug croc Traveler, Ugly Stik GX2, Shimano Stradic/Sedona, Lew's baitcast combo, Abu Garcia baitcast combo, St. Croix rod, Plano tackle bag, Bubba electric fillet knife, magnetic gun cleaning mat, Coach glasses case.",
+ "cuts": [
+  {
+   "guide": "splurge",
+   "match": "SharkNinja Shark CryoGlow LED Face Mask",
+   "exact": true,
+   "why": "the same CryoGlow (Blue Frost) moves to its Creator Connections link (23% vs 8%); the ShopMy link is its fallback after Dec 17"
+  }
+ ],
+ "skippedCampaigns": "HEYDUDE (Amazon Exclusive Wally: the same Wally slip-on is already on Grandparents), plus the joined fit campaigns with no product title or non-Amazon photo found (AVEDA, Barefoot Dreams, BaubleBar, Bliss, Bumble and bumble, Clinique, Colleen Rothschild, Dr.Jart+, Julep, KIKO Milano, Logitech, smashbox, Summer Fridays, Too Faced; Solly Baby placed with its one titled ASIN).",
  "adds": [
   {
    "guide": "gifts-by-budget",
@@ -211,22 +220,6 @@
    }
   },
   {
-   "guide": "him",
-   "section": "Boyfriend or Husband",
-   "why": "lead 11-20: Creator Connections 'HEYDUDE T12 BFCM Amazon Exclusives' (10% + base), ends 2026-12-07",
-   "row": {
-    "name": "HEYDUDE Men's Wally Slip-On Loafer",
-    "brand": "HEYDUDE",
-    "line": "The easy slip-on Louisiana men live in, from the porch to the boat.",
-    "href": "https://www.amazon.com/dp/B0GC7MXQ7X?tag=louisianahelpr-20",
-    "image": "https://m.media-amazon.com/images/I/41mZtDWuXtL.jpg",
-    "store": "store-amazon",
-    "commission": 13,
-    "type": "shoes",
-    "campaignEnds": "2026-12-07"
-   }
-  },
-  {
    "guide": "mom",
    "section": "Top picks",
    "why": "lead 11-20: Creator Connections 'KIEHL'S TURKEY 12 UP TO 50% OFF 30% COMMISSION' (30% + base), ends 2026-12-17",
@@ -375,15 +368,35 @@
    "section": "$100 & Up",
    "why": "lead 11-20: Creator Connections 'Shark CryoGlow Holiday Deal' (20% + base), ends 2026-12-17; title + photo from sharkninja.com",
    "row": {
-    "name": "Shark CryoGlow LED Face Mask, Lilac Chill",
+    "name": "Shark CryoGlow LED Face Mask, Blue Frost",
     "brand": "Shark",
     "line": "Red, blue and infrared LED light with a cooling under-eye mode.",
-    "href": "https://www.amazon.com/dp/B0DYG4Q6PL?tag=louisianahelpr-20",
-    "image": "https://assets.sharkninja.com/image/upload/f_auto/q_auto/SharkNinja-NA/FW312PL_01.jpg",
+    "href": "https://www.amazon.com/dp/B0DSGJCS47?tag=louisianahelpr-20",
+    "image": "https://assets.sharkninja.com/image/upload/f_auto/q_auto/SharkNinja-NA/FW312_01.jpg",
     "store": "store-amazon",
     "commission": 23,
     "type": "beauty-device",
-    "campaignEnds": "2026-12-17"
+    "campaignEnds": "2026-12-17",
+    "swappedFrom": "https://go.shopmy.us/p-107867518",
+    "swappedFromPct": 8,
+    "fallback_href": "https://go.shopmy.us/p-107867518",
+    "switch_on": "2026-12-18"
+   }
+  },
+  {
+   "guide": "car-lover",
+   "section": null,
+   "why": "1120b notes: Car Lover needs car gear; Creator Connections 'INNOVA 5610 OBD2 Scan Tool BFCM Deal' (18% + base), ends 2026-12-10; photo innova.com",
+   "row": {
+    "name": "Innova 5610 Bidirectional OBD2 Scanner",
+    "brand": "Innova",
+    "line": "Reads and clears check-engine codes, with live data and repair fixes on the phone app.",
+    "href": "https://www.amazon.com/dp/B07Z481NJM?tag=louisianahelpr-20",
+    "image": "https://cdn.shopify.com/s/files/1/0266/1302/2766/files/5610_01_1.jpg?v=1760469925",
+    "store": "store-amazon",
+    "commission": 21,
+    "type": "car-gear",
+    "campaignEnds": "2026-12-10"
    }
   },
   {
@@ -419,6 +432,7 @@
    }
   }
  ],
+ "sectionCap": 25,
  "brandCodes": [
   {
    "brand": "XTRATUF",

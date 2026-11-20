@@ -59,7 +59,7 @@ describe("Ended on Buying: every kind of ended order says what happened (A2-4)",
   });
 
   it("the section is headed \"Ended\", not \"Ended before paying\"", () => {
-    const src = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
+    const src = blankComments(readFileSync("src/components/declutter/DeclutterBuyingViews.tsx", "utf8"));
     expect(src).toContain('<SectionHeading title={t("decl.mv.ended")} />');
     expect(src).not.toContain("Ended before paying");
     expect(readFileSync("src/lib/i18n/enDeclutter.ts", "utf8")).toContain('"decl.mv.ended": "Ended",');

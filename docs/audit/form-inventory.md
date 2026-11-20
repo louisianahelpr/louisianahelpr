@@ -100,6 +100,15 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterFilterPanel.tsx` | input×1 | text |  |  |
+| `src/components/declutter/DeclutterFoldedTime.tsx` | input×1, date/calendar×1 | datetime-local |  |  |
+| `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
+| `src/components/declutter/DeclutterNoShowAnswer.tsx` | textarea×1 |  | 1000 |  |
+| `src/components/declutter/DeclutterOffersSection.tsx` | input×1 | text |  |  |
+| `src/components/declutter/DeclutterProblemSides.tsx` | textarea×1 |  | 1000 |  |
+| `src/components/declutter/DeclutterRefundRequest.tsx` | input×1, textarea×1 | text | 1000 |  |
+| `src/components/declutter/DeclutterRefundReturn.tsx` | input×2, date/calendar×1 | datetime-local, text | 300 |  |
+| `src/components/declutter/DeclutterRefundSellerSide.tsx` | textarea×1 |  | 1000 |  |
+| `src/components/declutter/DeclutterReviewForm.tsx` | textarea×1 |  | 1000 | Quick tags · Shown on their profile |
 
 ## /admin/preview/declutter, /declutter/item/:id
 
@@ -197,15 +206,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterFoldedTime.tsx` | input×1, date/calendar×1 | datetime-local |  |  |
-| `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
-| `src/components/declutter/DeclutterNoShowAnswer.tsx` | textarea×1 |  | 1000 |  |
-| `src/components/declutter/DeclutterOffersSection.tsx` | input×1 | text |  |  |
-| `src/components/declutter/DeclutterProblemSides.tsx` | textarea×1 |  | 1000 |  |
-| `src/components/declutter/DeclutterRefundRequest.tsx` | input×1, textarea×1 | text | 1000 |  |
-| `src/components/declutter/DeclutterRefundReturn.tsx` | input×2, date/calendar×1 | datetime-local, text | 300 |  |
-| `src/components/declutter/DeclutterRefundSellerSide.tsx` | textarea×1 |  | 1000 |  |
-| `src/components/declutter/DeclutterReviewForm.tsx` | textarea×1 |  | 1000 | Quick tags · Shown on their profile |
 | `src/components/declutter/ShipToMe.tsx` | input×3 | text | 10 |  |
 
 ## /declutter/item/:id

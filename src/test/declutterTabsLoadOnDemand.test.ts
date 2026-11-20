@@ -13,8 +13,9 @@
  * @mutate src/pages/declutter/DeclutterPage.tsx | import { lazy, Suspense, useEffect } from "react"; | import { lazy, Suspense, useEffect } from "react"; import { HandoverTalkFromLink as _T } from "@/components/declutter/DeclutterHandoverTalk";
  * @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | import { SectionHeading } from "./DeclutterTabHeads"; | import { SectionHeading } from "./DeclutterTabParts";
  * @mutate src/components/declutter/DeclutterTabHeads.tsx | import { DeclutterNotice } from "./declutterUi"; | import { DeclutterNotice } from "./declutterUi"; import "./DeclutterOffersSection";
- * @mutate src/components/declutter/DeclutterMineLazy.tsx |     if (mineAsked) return warm(); |     if (mineAsked) return;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   useWarmMineViews(view === "buying" \|\| view === "selling"); |   useWarmMineViews(false);
+ * @mutate src/components/declutter/DeclutterMineLazy.tsx |     if (mineAsked) warm(mineAsked === "buying" ? loadBuyingViews : loadMineViews); |     if (mineAsked) void 0;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   useWarmMineViews(view === "buying" \|\| view === "selling" ? view : null); |   useWarmMineViews(null);
+ * @mutate src/components/declutter/DeclutterMineLazy.tsx |       warm(loadBuyingViews);\n | \n
  */
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -28,6 +29,7 @@ const SRC = resolve(ROOT, "src");
 const ORDER_SET = [
   "components/declutter/DeclutterTradeViews.tsx",
   "components/declutter/DeclutterMineViews.tsx",
+  "components/declutter/DeclutterBuyingViews.tsx",
   "components/declutter/DeclutterTabParts.tsx",
   "components/declutter/DeclutterHandoverViews.tsx",
   "components/declutter/DeclutterHandoverTalk.tsx",
@@ -107,13 +109,15 @@ describe("/declutter's first screen loads the order views on demand", () => {
     const home = blankComments(readFileSync(resolve(SRC, "components/declutter/DeclutterHomeView.tsx"), "utf8"));
     // The lazy pair stays; once warmed the loaded module is drawn directly (declutterMineLazy.test.tsx proves no bones).
     expect(lazyMod).toContain('const loadMineViews = () => loadModule(() => import("./DeclutterMineViews")).then((m) => (m ? (loaded = m) : null));');
-    expect(lazyMod).toContain("const LazyBuying = lazy(() => loadMineViews().then((m) => (m ? { default: m.BuyingDash } : untilReload())));");
+    expect(lazyMod).toContain('const loadBuyingViews = () => loadModule(() => import("./DeclutterBuyingViews")).then((m) => (m ? (loadedBuying = m) : null));');
+    expect(lazyMod).toContain("const LazyBuying = lazy(() => loadBuyingViews().then((m) => (m ? { default: m.BuyingDash } : untilReload())));");
     expect(lazyMod).toContain("const LazySelling = lazy(() => loadMineViews().then((m) => (m ? { default: m.SellingDash } : untilReload())));");
     expect(home).toContain("<Suspense fallback={<DeclutterTabBones />}><SellingDash");
-    // Asked for: at once. Any other tab: once the page has settled (never on Browse's critical path).
-    expect(lazyMod).toContain("if (mineAsked) return warm();");
-    expect(lazyMod).toContain("return whenPageSettled(warm);");
-    expect(home).toContain('useWarmMineViews(view === "buying" || view === "selling");');
+    // Asked for: that tab at once. Both tabs once the page has settled (never on Browse's critical path, and Buying
+    // never on Selling's first screen: Q178, 11-20).
+    expect(lazyMod).toContain('if (mineAsked) warm(mineAsked === "buying" ? loadBuyingViews : loadMineViews);');
+    expect(lazyMod).toMatch(/return whenPageSettled\(\(\) => \{\s*warm\(loadBuyingViews\);\s*warm\(loadMineViews\);\s*\}\);/);
+    expect(home).toContain('useWarmMineViews(view === "buying" || view === "selling" ? view : null);');
     const page = blankComments(readFileSync(resolve(SRC, "pages/declutter/DeclutterPage.tsx"), "utf8"));
     expect(page).toContain('{params.get("talk") && <Suspense fallback={null}><HandoverTalkFromLink /></Suspense>}');
     expect(page).toContain("agreedSales={<Suspense fallback={<DeclutterHomeSkeleton />}><FinishSalesView /></Suspense>}");

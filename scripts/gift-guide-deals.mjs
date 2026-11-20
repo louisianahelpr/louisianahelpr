@@ -195,8 +195,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const { order, skipped } = built;
   // Train 1120b (scripts/gift-guide-train-1120b.json, dealsPage): the re-audit's featured-item fixes and Georgia Boot.
   const train = applyDealsPage1120b(built.deals, JSON.parse(readFileSync(join(REPO, "scripts/gift-guide-train-1120b.json"), "utf8")).dealsPage);
-  const deals = train.deals;
+  // Train 1120c (scripts/gift-guide-train-1120c.json, dealsPage): XTRATUF XT25.
+  const train2 = applyDealsPage1120b(train.deals, JSON.parse(readFileSync(join(REPO, "scripts/gift-guide-train-1120c.json"), "utf8")).dealsPage);
+  const deals = train2.deals;
   if (train.missing.length) console.log(`Train 1120b NOT FOUND: ${train.missing.join(" | ")}`);
+  if (train2.missing.length) console.log(`Train 1120c NOT FOUND: ${train2.missing.join(" | ")}`);
   for (const [c, b, r] of order) console.log(`${c.padEnd(15)} ${String(r).padStart(5)}%  ${b}`);
   console.log(`\n${deals.length} deals (as of ${today}).`);
   console.log(`No affiliate link yet (${skipped.noLink.length}): ${skipped.noLink.join(", ")}`);

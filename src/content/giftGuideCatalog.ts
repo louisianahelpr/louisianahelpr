@@ -85,6 +85,8 @@ export interface CatalogPick {
   preorder?: true;
   /** The brand's discount code shown on the card (1120: 21 Collective, COLLECTIVE10). */
   code?: string;
+  /** The code's last day (YYYY-MM-DD, Louisiana; 1120c: XTRATUF XT25 ends Nov 29): the chip hides after it. */
+  codeEnds?: string;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -242,7 +244,7 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   const store = researchedStore(p);
   const badges = withShopLouisiana(badgesFor(p.brand, p), store);
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
-    ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.code ? { code: p.code } : {}),
+    ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.code ? { code: p.code, ...(p.codeEnds ? { codeEnds: p.codeEnds } : {}) } : {}),
     // Never an Amazon price (Associates rule), whatever the generated file holds.
     ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) };
 };

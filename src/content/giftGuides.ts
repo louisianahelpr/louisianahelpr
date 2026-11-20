@@ -181,6 +181,8 @@ export interface DiscountCode {
 export const discountCodes: DiscountCode[] = [
   { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", starts: "2026-11-29", expires: "2026-12-06" },
   { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28" },
+  // Train 1120c (lead 11-20 11:31 AM, CJ): XTRATUF's Black Friday code, 25% off sitewide, free shipping on $99+.
+  { rank: 1, store: "XTRATUF", code: "XT25", offer: "25% off sitewide (Black Friday); free shipping on $99+", dates: "Nov 20 – 29", starts: "2026-11-20", expires: "2026-11-29" },
   { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+" },
   { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions" },
   { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide" },

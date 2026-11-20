@@ -19,7 +19,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync } from "./helpers/trackedFiles";
 import { GUIDE_CAP, TYPE_MAX, buildRateData, byCommission, commissionOf, pickType, typeMax } from "../../scripts/giftGuideSort.mjs";
 
-type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string; sectionId?: string };
+type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string; sectionId?: string; from?: string };
 const DIR = "src/content/giftGuidePicks";
 const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
 /** Lists with their own order (scripts/gift-guide-picks.mjs SORT_FIXED) keep it; the sponsors guide is a sponsor list. */
@@ -45,7 +45,7 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
   });
 
   it("every guide pick carries its commission and type; each guide lists by commission, high to low, unknown last", () => {
-    expect(guides.length).toBeGreaterThan(200);
+    expect(guides.length).toBeGreaterThan(120); // 1120: ~65 guides in ~126 role sections, and the 30 store pages
     const bad: string[] = [];
     let picks = 0;
     let known = 0;
@@ -59,7 +59,9 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
       }
       if (FIXED.has(slug)) continue;
       const rate = (p: Pick) => (typeof p.commission === "number" ? p.commission : -1);
-      list.forEach((p, i) => { if (i > 0 && rate(p) > rate(list[i - 1])) bad.push(`${slug} #${i + 1}: ${p.name} (${p.commission}) above-rate after ${list[i - 1].name} (${list[i - 1].commission})`); });
+      // A list with its own order (FIXED) that joined a section keeps it, leading; the rest are by commission.
+      const sorted = list.filter((p) => !FIXED.has(p.from ?? ""));
+      sorted.forEach((p, i) => { if (i > 0 && rate(p) > rate(sorted[i - 1])) bad.push(`${slug} #${i + 1}: ${p.name} (${p.commission}) above-rate after ${sorted[i - 1].name} (${sorted[i - 1].commission})`); });
     }
     expect(picks).toBeGreaterThan(2000);
     expect(known).toBeGreaterThan(1800);
@@ -73,8 +75,10 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
       if (list.length > GUIDE_CAP) bad.push(`${slug}: ${list.length} picks`);
       if (FIXED.has(slug)) continue;
       const n = new Map<string, number>();
-      for (const p of list) n.set(p.type ?? "other", (n.get(p.type ?? "other") ?? 0) + 1);
-      for (const [t, c] of n) if (c > typeMax(slug, t)) bad.push(`${slug}: ${c} x ${t}`);
+      for (const p of list.filter((x) => !FIXED.has(x.from ?? ""))) n.set(p.type ?? "other", (n.get(p.type ?? "other") ?? 0) + 1);
+      // A section's cap of a type is its old guides' (Artists may hold more art supplies; 1120 section groups).
+      const cap = (t: string) => Math.max(typeMax(slug, t), ...list.filter((p) => (p.type ?? "other") === t).map((p) => typeMax(p.from ?? slug, t)));
+      for (const [t, c] of n) if (c > cap(t)) bad.push(`${slug}: ${c} x ${t}`);
     }
     expect(bad).toEqual([]);
   });

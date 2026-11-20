@@ -37,7 +37,7 @@ describe("gift guides: owner follow-ups 11-19", () => {
   it("the named removals and old electronics show on no page, store pages included", () => {
     let n = 0;
     const bad = slugs.flatMap((s: string) => pageOf(s).filter((p) => { n += 1; return !p.ownerPick && (OWNER_REMOVED(p) || OLD_ELECTRONICS.test(p.name)); }).map((p) => `${s}: ${p.name}`));
-    expect(n).toBeGreaterThan(3000);
+    expect(n).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
     expect(bad).toEqual([]);
   });
 

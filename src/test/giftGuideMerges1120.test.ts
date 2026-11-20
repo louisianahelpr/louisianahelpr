@@ -11,21 +11,22 @@
  *   - a Creator Connections swap keeps its old link to switch back to the day after the campaign ends.
  *
  * @mutate src/content/giftGuideMerges.mjs | export const SECTION_CAP = 25; | export const SECTION_CAP = 30;
- * @mutate src/content/giftGuideCatalog.ts |   if (into) return GUIDES.some((g) => g.slug === into.parent) ? `${into.parent}#${to}` : null; |   if (into) return null;
+ * @mutate src/content/giftGuideCatalog.ts |   if (into) return GUIDES.some((g) => g.slug === into.parent) ? (SECTION_ANCHORS[to] ? `${into.parent}#${SECTION_ANCHORS[to]}` : into.parent) : null; |   if (into) return null;
  * @mutate api/share.ts | /^([a-z0-9-]+(#[a-z0-9-]+)?)?$/.test(d.moved[slug]) | /^[a-z0-9-]+$/.test(d.moved[slug])
  * @mutate scripts/giftGuideBig1120.mjs |       if (kept.some((k) => sameProduct(k, r) && | if (false && kept.some((k) => sameProduct(k, r) &&
  */
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { beforeAll, describe, expect, it } from "vitest";
-import { GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, SECTION_CAP, STORE_PAGES_KEPT, isFoldedStore } from "@/content/giftGuideMerges.mjs";
+import { GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, SECTION_CAP, SECTION_MAX, SECTION_MIN, STORE_PAGES_KEPT, isFoldedStore } from "@/content/giftGuideMerges.mjs";
+import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { GUIDES, guideBySlug, newSlugFor } from "@/content/giftGuideCatalog";
 import { buildSeoData } from "@/prerender/seoData";
 import { blankComments } from "./helpers/blankNonCode";
 import { importRows1120, parseSwaps, productKey1120 } from "../../scripts/giftGuideBig1120.mjs";
 
-type Pick = { name: string; brand?: string; href: string; image?: string; section?: string; sectionId?: string; swappedFrom?: string; campaignEnds?: string; fallback_href?: string; switch_on?: string };
+type Pick = { name: string; brand?: string; href: string; image?: string; section?: string; sectionId?: string; from?: string; swappedFrom?: string; campaignEnds?: string; fallback_href?: string; switch_on?: string };
 const DIR = "src/content/giftGuidePicks";
 // Read once: ~95 chunks.
 const CHUNKS = new Map<string, Pick[]>(readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => [f.slice(0, -5), JSON.parse(readFileSync(`${DIR}/${f}`, "utf8")).picks as Pick[]]));
@@ -65,8 +66,11 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       const { parent } = MERGED_INTO[s];
       expect(guideBySlug(s), `${s} keeps a page`).toBeUndefined();
       expect(guideBySlug(parent), parent).toBeTruthy();
-      expect(newSlugFor(s), s).toBe(`${parent}#${s}`);
-      expect(moved[s], `route map: ${s}`).toBe(`${parent}#${s}`);
+      // The section groups (owner 11-20) name the section the old guide's picks joined.
+      const want = SECTION_ANCHORS[s] ? `${parent}#${SECTION_ANCHORS[s]}` : parent;
+      expect(newSlugFor(s), s).toBe(want);
+      expect(moved[s], `route map: ${s}`).toBe(want);
+      if (SECTION_ANCHORS[s]) expect((CHUNKS.get(parent) ?? []).some((p) => p.sectionId === SECTION_ANCHORS[s]), `${s} -> an empty section`).toBe(true);
       expect(CHUNKS.has(s), `${s} still writes a chunk`).toBe(false);
     }
     const folded = GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug);
@@ -84,18 +88,20 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     expect([...CHUNKS.keys()].filter((s) => s.startsWith("store-")).sort()).toEqual([...STORE_PAGES_KEPT].filter((s) => CHUNKS.has(s)).sort());
   });
 
-  it("a merged guide lists its sections in the table's order, each at most SECTION_CAP, LSU at most 2", () => {
+  it("a merged guide holds at most SECTION_MAX sections of SECTION_MIN to SECTION_CAP picks, by role; LSU at most 2", () => {
     let sections = 0;
     const bad: string[] = [];
     for (const m of GUIDE_MERGES) {
       const list = CHUNKS.get(m.parent) ?? [];
+      if (!list.some((p) => p.sectionId)) continue; // folded to one plain list
       const ids = list.map((p) => p.sectionId ?? "");
       const order = [...new Set(ids)];
-      const known = ["top-picks", ...m.sections];
-      for (const id of order) if (!known.includes(id)) bad.push(`${m.parent}: unknown section "${id}"`);
-      // In order, each section in one run.
-      expect(order, m.parent).toEqual(known.filter((k) => order.includes(k)));
+      // Every section is one an old guide points to (or the guide's own Top picks), each in one run.
+      const known = new Set(["top-picks", ...m.sections.map((s) => SECTION_ANCHORS[s])]);
+      for (const id of order) if (!known.has(id)) bad.push(`${m.parent}: unknown section "${id}"`);
       expect(order.length, m.parent).toBe(ids.filter((x, i) => i === 0 || ids[i - 1] !== x).length);
+      expect(order.length, m.parent).toBeLessThanOrEqual(SECTION_MAX);
+      for (const id of order) if (list.filter((p) => p.sectionId === id).length < SECTION_MIN) bad.push(`${m.parent}#${id}: under ${SECTION_MIN}`);
       for (const id of order) {
         const run = list.filter((p) => p.sectionId === id);
         sections += 1;
@@ -105,7 +111,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       }
     }
     for (const [slug, list] of guideChunks) if (!GUIDE_MERGES.some((m) => m.parent === slug) && list.length > SECTION_CAP) bad.push(`${slug}: ${list.length} picks`);
-    expect(sections).toBeGreaterThan(150);
+    expect(sections).toBeGreaterThan(80);
     expect(bad).toEqual([]);
   });
 
@@ -188,7 +194,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       ["self-care-lover", "Dr Teal's Epsom Salt Magnesium Soak", "VOESH Pedi Moments Pedicure Kit"], ["traveler", "Toiletry Bag for Men, Water-Resistant Dopp Kit", "Weezie Large Toiletry Bag"],
       ["mom", "UGREEN Bluetooth Tracker for Apple Find My", "Mom Rules Needlepoint Pillow"], ["girls-babies", "Baby Bath Time Essentials Gift Set", "Monogram Mary Complete Baby Bundle"],
     ];
-    const on = (slug: string) => (MERGED_INTO[slug] ? (CHUNKS.get(MERGED_INTO[slug].parent) ?? []).filter((p) => p.sectionId === slug) : (CHUNKS.get(slug) ?? []).filter((p) => !p.sectionId || p.sectionId === "top-picks"));
+    const on = (slug: string) => (MERGED_INTO[slug] ? (CHUNKS.get(MERGED_INTO[slug].parent) ?? []).filter((p) => p.from === slug) : (CHUNKS.get(slug) ?? []).filter((p) => !p.from || p.from === slug));
     const fold = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
     for (const [guide, remove, add] of SWAPS_1119) {
       expect(on(guide).some((p) => fold(p.name).startsWith(fold(add).slice(0, 16))), `${guide}: ${add}`).toBe(true);

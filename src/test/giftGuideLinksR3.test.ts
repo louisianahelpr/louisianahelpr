@@ -79,7 +79,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
         for (const i of d.items ?? []) expect(bannedLink(i.href), `${slug}: deal item ${i.name}`).toBe("");
       }
     }
-    expect(picks).toBeGreaterThan(3000); // one guide per product (owner 11-19): the guides are smaller
+    expect(picks).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
     expect(deals).toBeGreaterThan(50); // 1120: the deal sections of the 30 kept store pages
   });
 

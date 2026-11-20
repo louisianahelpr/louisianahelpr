@@ -120,7 +120,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     for (const p of sponsors) expect(p.badges, p.name).toContain("sponsor");
     const fitNotMade = all.filter((p) => p.louisianaFit && !LOUISIANA_MADE_BRANDS.includes(p.brand));
     expect(fitNotMade.some((p) => p.brand === "YETI")).toBe(true);
-    expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(50);
+    expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(35); // 1120: 30 store pages
     expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
     // 15 measured 11-18 night: the 6 Zydeco Chop Chop rows left (their link opened the shop page, not a product; review H3).
     expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(5); // one guide per product (owner 11-19)

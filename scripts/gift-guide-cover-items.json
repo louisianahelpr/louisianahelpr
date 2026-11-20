@@ -11,8 +11,8 @@
     "key": "estéelauder:serum"
    },
    {
-    "name": "Dermalogica Expert Protect + Renew Gift Set",
-    "key": "dermalogica:gift"
+    "name": "L'Occitane Lavender Hand Cream Trio",
+    "key": "loccitane:handcream"
    },
    {
     "name": "Mom Rules Needlepoint Pillow",
@@ -81,14 +81,18 @@
     "key": "freepeople:bag"
    },
    {
-    "name": "Lancôme Génifique Serum Gift Set",
-    "key": "lancôme:gift"
+    "name": "UGG Lowmel Sneaker (women's)",
+    "key": "ugg:shoe"
    }
   ]
  },
  "him": {
   "section": "By person",
   "items": [
+   {
+    "name": "LEATHERMAN Skeletool CX 7-in-1 Multi-Tool",
+    "key": "leatherman:tool"
+   },
    {
     "name": "PlayStation DualSense Wireless Controller",
     "key": "playstation:controller"
@@ -108,10 +112,6 @@
    {
     "name": "Southern Tide Schooner Quarter Zip",
     "key": "southerntide:zip"
-   },
-   {
-    "name": "HEYDUDE Paul Pro Classic",
-    "key": "heydude:classic"
    }
   ]
  },
@@ -123,24 +123,24 @@
     "key": "birdfy:camera"
    },
    {
-    "name": "UGG Classic Slipper",
-    "key": "ugg:shoe"
+    "name": "Dagne Dover Large Dakota Backpack",
+    "key": "dagnedover:backpack"
    },
    {
-    "name": "Theragun Mini, Strawberry Splash",
-    "key": "theragun:massager"
+    "name": "Rambler 20 oz Tumbler",
+    "key": "yeti:drink"
+   },
+   {
+    "name": "Bellroy Lite Sling 7L",
+    "key": "bellroy:sling"
+   },
+   {
+    "name": "Apple Watch SE 3 GPS + Cellular 40mm Smartwatch",
+    "key": "apple:smartwatch"
    },
    {
     "name": "Amazon Echo Show 8",
     "key": "echo:show"
-   },
-   {
-    "name": "ELEMIS Pro-Collagen Marine Cream",
-    "key": "elemis:cream"
-   },
-   {
-    "name": "Rothy's Max Square Mary Jane",
-    "key": "rothys:jane"
    }
   ]
  },
@@ -156,20 +156,20 @@
     "key": "tarte:gloss"
    },
    {
-    "name": "Aesop Resurrection Aromatique Hand Wash",
-    "key": "aesop:wash"
-   },
-   {
     "name": "BAGGU Nylon Bowler Bag (Leopard)",
     "key": "baggu:leopard"
    },
    {
-    "name": "Rifle Paper Co. 2027 Hardcover Planner with Pen",
-    "key": "riflepaperco:pen"
+    "name": "lululemon High-Rise Running Short 3\"",
+    "key": "lululemon:short"
    },
    {
     "name": "Madewell Camren Mini Bag",
     "key": "madewell:bag"
+   },
+   {
+    "name": "Sam Edelman Kyana Bit Loafer",
+    "key": "samedelman:shoe"
    }
   ]
  },
@@ -179,10 +179,6 @@
    {
     "name": "Weber Precision 3-Piece Barbecue Tool Set",
     "key": "weber:tool"
-   },
-   {
-    "name": "lululemon Men's Zeroed In Linerless Short 7\"",
-    "key": "lululemon:short"
    },
    {
     "name": "The North Face Men's 1996 Retro Nuptse Vest",
@@ -199,6 +195,10 @@
    {
     "name": "YETI Hopper M20 Backpack Cooler",
     "key": "yeti:cooler"
+   },
+   {
+    "name": "Ranger 2.0 Fire Pit",
+    "key": "solostove:pit"
    }
   ]
  },
@@ -222,12 +222,12 @@
     "key": "baublebar:bracelet"
    },
    {
-    "name": "Saie Slip Tint Tinted Moisturizer",
-    "key": "saie:moisturizer"
+    "name": "Benefit Dandelion Baby Pink Blush",
+    "key": "benefitcosmetics:blush"
    },
    {
-    "name": "Favorite Daughter Classic Logo Baseball Cap, Navy",
-    "key": "favoritedaughter:hat"
+    "name": "Saie Slip Tint Tinted Moisturizer",
+    "key": "saie:moisturizer"
    }
   ]
  },
@@ -243,10 +243,6 @@
     "key": "twelvesouth:stand"
    },
    {
-    "name": "Smathers & Branson American Flag Needlepoint Bottle Opener",
-    "key": "smathersbranson:opener"
-   },
-   {
     "name": "Waterford Martini & Cocktail Glasses",
     "key": "waterford:glasses"
    },
@@ -257,6 +253,10 @@
    {
     "name": "Expert Ballpoint Pen",
     "key": "waterman:pen"
+   },
+   {
+    "name": "Stanley Quencher H2.0 FlowState Tumbler 40 oz",
+    "key": "stanley:drink"
    }
   ]
  },
@@ -284,8 +284,8 @@
     "key": "ninja:machine"
    },
    {
-    "name": "Solo Stove Mesa Tabletop Fire Pit",
-    "key": "solostove:pit"
+    "name": "Brooklinen Luxe Sateen Duvet Cover",
+    "key": "brooklinen:cover"
    }
   ]
  },
@@ -363,8 +363,8 @@
     "key": "victoriassecret:bag"
    },
    {
-    "name": "Spikeball 3 Ball Original Roundnet Set",
-    "key": "spikeball:roundnet"
+    "name": "Columbia Women's Benton Springs Full-Zip Fleece, Blue",
+    "key": "columbia:blue"
    }
   ]
  },
@@ -446,8 +446,8 @@
     "key": "minecraft:plush"
    },
    {
-    "name": "John Deere Minitrac Ride-On Toy",
-    "key": "johndeere:toy"
+    "name": "John Deere Light and Sound Tractor",
+    "key": "johndeere:tractor"
    },
    {
     "name": "Stack & Count Stacking Cups",
@@ -508,8 +508,8 @@
     "key": "heatholders:gloves"
    },
    {
-    "name": "Cra-Z-Slimy Butter Pals Scented Butter Slime, 2.5 oz",
-    "key": "crazslimy:slime"
+    "name": "BARK Flingray Tug Toy",
+    "key": "bark:toy"
    }
   ]
  },
@@ -558,16 +558,16 @@
     "key": "lodge:dutchoven"
    },
    {
-    "name": "Go 4 Ultra-Portable Bluetooth Speaker",
-    "key": "jbl:speaker"
-   },
-   {
     "name": "Coach Cargo Logo Canvas Tote",
     "key": "coach:tote"
    },
    {
-    "name": "Barista Express Espresso Machine",
-    "key": "breville:machine"
+    "name": "YETI Tundra Haul Wheeled Cooler",
+    "key": "yeti:cooler"
+   },
+   {
+    "name": "Shark CryoGlow LED Face Mask",
+    "key": "sharkninja:mask"
    }
   ]
  },
@@ -629,16 +629,16 @@
     "key": "kiehls:calendar"
    },
    {
-    "name": "Revolution Beauty Advent Calendar 2026",
-    "key": "revolutionbeauty:calendar"
-   },
-   {
     "name": "LANEIGE 12 Days Advent Calendar",
     "key": "laneige:calendar"
    },
    {
     "name": "Squishmallows Micromallows Holiday Advent Calendar",
     "key": "squishmallow:plush"
+   },
+   {
+    "name": "Playmobil Advent Calendar: Trip to the Christmas Market",
+    "key": "playmobil:market"
    }
   ]
  },
@@ -667,20 +667,28 @@
   "section": "Louisiana",
   "items": [
    {
-    "name": "Smathers & Branson LSU Hat, Black",
-    "key": "smathersbranson:hat"
+    "name": "Smathers & Branson LSU Needlepoint Toiletry Bag, Purple",
+    "key": "smathersbranson:purple"
    },
    {
-    "name": "Pelican Ornament",
-    "key": "dirtycoast:ornament"
+    "name": "Louisiana Crawfish Hat",
+    "key": "dirtycoast:hat"
    },
    {
     "name": "St. Louis Venezia 18K Sunglasses",
     "key": "krewe:sunglasses"
    },
    {
+    "name": "LSU Claw Heritage Embroidered Hoodie",
+    "key": "crewdog:hoodie"
+   },
+   {
     "name": "Southern Marsh Backroads Louisiana Tee",
     "key": "southernmarsh:tee"
+   },
+   {
+    "name": "Fleurty Girl Mardi Gras Confetti Snuggle Socks",
+    "key": "fleurtygirl:sock"
    }
   ]
  },
@@ -692,12 +700,12 @@
     "key": "carhartt:hat"
    },
    {
-    "name": "Could Be Leaner King Cake Tee",
-    "key": "fleurtygirl:tee"
-   },
-   {
     "name": "Slice of Life Louisiana Engraved Map Cutting Board",
     "key": "totallybamboo:board"
+   },
+   {
+    "name": "Louisiana Tech Bulldogs Pennant",
+    "key": "louisianatech:pennant"
    },
    {
     "name": "Red Stick Spice Panola Gourmet Hot Honey",
@@ -759,6 +767,10 @@
   "section": "Louisiana",
   "items": [
    {
+    "name": "Bayou Classic 10 qt Cast Iron Chicken Fryer with Lid",
+    "key": "bayouclassic:lid"
+   },
+   {
     "name": "Jambalaya Rice Mix",
     "key": "zatarains:mix"
    },
@@ -767,20 +779,16 @@
     "key": "tonychacheres:marinade"
    },
    {
-    "name": "Seasoned Seafood Breading Mix, 10 oz",
-    "key": "louisianafishfry:mix"
+    "name": "Cajun Seasoning",
+    "key": "slapyamama:seasoning"
+   },
+   {
+    "name": "Tabasco Jalapeno Pepper Jelly",
+    "key": "tabasco:jelly"
    },
    {
     "name": "Old Fashioned Dark Roux, 16 oz (2 Pack)",
     "key": "savoies:roux"
-   },
-   {
-    "name": "Bayou Classic 10 qt Cast Iron Chicken Fryer with Lid",
-    "key": "bayouclassic:lid"
-   },
-   {
-    "name": "Pecan Praline K-Cup Pods, 32 ct",
-    "key": "communitycoffee:drink"
    }
   ]
  },
@@ -790,10 +798,6 @@
    {
     "name": "Grand Boil Crawfish Race Print",
     "key": "dirtycoast:print"
-   },
-   {
-    "name": "Bayou Classic KAB4 Banjo Outdoor Cooker",
-    "key": "bayouclassic:cooker"
    },
    {
     "name": "YETI Rambler 16 oz Colster Tall Can Cooler",
@@ -808,6 +812,10 @@
     "key": "blackstone:griddle"
    },
    {
+    "name": "Bayou Classic KAB4 Banjo Outdoor Cooker",
+    "key": "bayouclassic:cooker"
+   },
+   {
     "name": "Louisiana Crawfish, Shrimp & Crab Boil",
     "key": "louisianafishfry:boil"
    }
@@ -817,16 +825,16 @@
   "section": "Hobbies",
   "items": [
    {
-    "name": "BaubleBar Striped Alpha Custom Name Tote",
-    "key": "baublebar:tote"
-   },
-   {
-    "name": "Bodum Gooseneck Electric Kettle, Stainless",
-    "key": "bodum:stainless"
+    "name": "Smathers & Branson Redfish Needlepoint Key Fob",
+    "key": "smathersbranson:fob"
    },
    {
     "name": "AeroPress XL Coffee Press",
     "key": "aeropress:press"
+   },
+   {
+    "name": "Fellow Ode Brew Grinder Gen 2, Matte Black",
+    "key": "fellow:black"
    },
    {
     "name": "K-Pods Commander's Palace Coffee & Chicory",
@@ -867,14 +875,6 @@
   "section": "Hobbies",
   "items": [
    {
-    "name": "Kiehl's Rare Earth Clay Mask",
-    "key": "kiehls:mask"
-   },
-   {
-    "name": "DHC Deep Cleansing Oil",
-    "key": "dhc:oil"
-   },
-   {
     "name": "Shark FacialPro Glow + DePuffi 2-in-1 Facial",
     "key": "shark:facial"
    },
@@ -883,12 +883,20 @@
     "key": "dermalogica:glow"
    },
    {
+    "name": "L'Occitane Shea Butter Hand Cream Trio",
+    "key": "loccitane:handcream"
+   },
+   {
     "name": "MAC Lustreglass Sheer-Shine Lipstick",
     "key": "maccosmetics:lipstick"
    },
    {
-    "name": "Bioderma Atoderm Ultra Cream Duo",
-    "key": "bioderma:duo"
+    "name": "Slip Back to Basics Skinny Scrunchies",
+    "key": "slip:scrunchies"
+   },
+   {
+    "name": "SKIMS Cozy Knit Pant",
+    "key": "skims:pant"
    }
   ]
  },
@@ -996,6 +1004,10 @@
   "section": "Hobbies",
   "items": [
    {
+    "name": "Ray-Ban Clubmaster Sunglasses",
+    "key": "rayban:sunglasses"
+   },
+   {
     "name": "Paravel Packing Cubes (Set of 4)",
     "key": "paravel:cubes"
    },
@@ -1014,10 +1026,6 @@
    {
     "name": "Royce New York Monogrammed Leather Watch Roll",
     "key": "roycenewyork:roll"
-   },
-   {
-    "name": "Bellroy Tech Kit",
-    "key": "bellroy:kit"
    }
   ]
  },
@@ -1041,16 +1049,16 @@
     "key": "underarmour:duffle"
    },
    {
-    "name": "On Womens Cloud 6",
-    "key": "on:cloud"
-   },
-   {
-    "name": "Pegasus Running Shoes",
-    "key": "nike:shoe"
-   },
-   {
     "name": "lululemon Shake It Out High-Rise Running Short 2.5\"",
     "key": "lululemon:short"
+   },
+   {
+    "name": "OOFOS OOahh Recovery Slide",
+    "key": "oofos:slide"
+   },
+   {
+    "name": "Therabody WaveSolo Vibrating Roller",
+    "key": "therabody:roller"
    }
   ]
  },
@@ -1124,12 +1132,12 @@
     "key": "hunter:booties"
    },
    {
-    "name": "Costa Farms Snake Plant",
-    "key": "costafarms:plant"
+    "name": "DEWALT Cordless Pruning Chainsaw Kit",
+    "key": "dewalt:kit"
    },
    {
-    "name": "Click & Grow Smart Garden",
-    "key": "clickgrow:garden"
+    "name": "Costa Farms Snake Plant",
+    "key": "costafarms:plant"
    }
   ]
  },
@@ -1153,12 +1161,12 @@
     "key": "thermacellrepellents:repeller"
    },
    {
-    "name": "YETI Trailhead Collapsible Camp Chair",
-    "key": "yeti:chair"
+    "name": "Patagonia Retro Pile Jacket - Women's",
+    "key": "patagonia:women"
    },
    {
-    "name": "Coleman Classic Propane Camp Stove",
-    "key": "coleman:stove"
+    "name": "YETI Trailhead Collapsible Camp Chair",
+    "key": "yeti:chair"
    }
   ]
  },
@@ -1168,10 +1176,6 @@
    {
     "name": "Winsor & Newton Cotman Watercolor Paint Set",
     "key": "winsornewton:paint"
-   },
-   {
-    "name": "Prismacolor Premier Colored Pencils",
-    "key": "prismacolor:pencils"
    },
    {
     "name": "Copic Ciao",
@@ -1188,6 +1192,10 @@
    {
     "name": "Speedball Deluxe Block Printing Kit",
     "key": "speedball:kit"
+   },
+   {
+    "name": "Peak Design Capture Camera Clip",
+    "key": "peakdesign:clip"
    }
   ]
  },
@@ -1195,16 +1203,16 @@
   "section": "Hobbies",
   "items": [
    {
-    "name": "Smathers & Branson Beer Cans Needlepoint Bottle Opener",
+    "name": "Smathers & Branson American Flag Needlepoint Bottle Opener",
     "key": "smathersbranson:opener"
    },
    {
-    "name": "Mini Forbidden Fig Candle",
-    "key": "voluspa:candle"
+    "name": "UGG Classic Slipper",
+    "key": "ugg:shoe"
    },
    {
-    "name": "Madewell x Donni (Re)sourced Cashmere-Merino Pullover",
-    "key": "madewell:pullover"
+    "name": "Theragun Mini, Strawberry Splash",
+    "key": "theragun:massager"
    },
    {
     "name": "Anker Zolo Magnetic Power Bank (10K, 30W, Built-in USB-C Cable)",
@@ -1218,10 +1226,6 @@
    {
     "name": "Stanley All Day Julienne Midi Cooler",
     "key": "stanley:cooler"
-   },
-   {
-    "name": "Ray-Ban Clubmaster Sunglasses",
-    "key": "rayban:sunglasses"
    },
    {
     "name": "Corkcicle Sierra Leakproof Cruiser",
@@ -1238,6 +1242,10 @@
    {
     "name": "Spartina 449 Beach Towel",
     "key": "spartina449:towel"
+   },
+   {
+    "name": "SUNNYLiFE Luxe Floating Chair",
+    "key": "sunnylife:chair"
    }
   ]
  },
@@ -1245,28 +1253,28 @@
   "section": "By career",
   "items": [
    {
-    "name": "Smathers & Branson John Deere Needlepoint Key Fob",
-    "key": "smathersbranson:fob"
-   },
-   {
     "name": "Kitsch Rhinestone Cloud Claw Clip, Camel",
     "key": "kitsch:camel"
    },
    {
-    "name": "Professional Clog",
-    "key": "dansko:shoe"
+    "name": "Paravel Aviator Carry-On Plus",
+    "key": "paravel:plus"
    },
    {
     "name": "Nike Everyday Plus Cushioned Crew Socks, 6-Pack",
     "key": "nike:sock"
    },
    {
-    "name": "Bombas Women's 12 Days of Bombas Gift Box",
-    "key": "bombas:box"
+    "name": "Dansko Platform Pro Slip On",
+    "key": "dansko:slip"
    },
    {
-    "name": "Classic III Stethoscope, Black",
-    "key": "3mlittmann:black"
+    "name": "BÉIS Large Check-In Roller",
+    "key": "béis:roller"
+   },
+   {
+    "name": "Bombas Women's 12 Days of Bombas Gift Box",
+    "key": "bombas:box"
    }
   ]
  },
@@ -1278,24 +1286,24 @@
     "key": "kleintools:flashlight"
    },
    {
+    "name": "Smathers & Branson Offshore Fishing Needlepoint Card Wallet",
+    "key": "smathersbranson:wallet"
+   },
+   {
+    "name": "HEYDUDE Wally Stretch",
+    "key": "heydude:stretch"
+   },
+   {
+    "name": "YETI Daytrip 9L Lunch Box",
+    "key": "yeti:box"
+   },
+   {
+    "name": "Costa Del Mar Fantail PRO Sunglasses",
+    "key": "costadelmar:sunglasses"
+   },
+   {
     "name": "Milwaukee Packout Organizer",
     "key": "milwaukee:organizer"
-   },
-   {
-    "name": "Igloo Lunch Cooler",
-    "key": "igloo:cooler"
-   },
-   {
-    "name": "Veto Pro Pac Tech Pac Tool Backpack",
-    "key": "veto:backpack"
-   },
-   {
-    "name": "Malco S3R 3-Inch Offset Hand Seamer with Redline Handles",
-    "key": "malco:handles"
-   },
-   {
-    "name": "Oakley Flak 2.0 XL Prizm Black Polarized Sunglasses",
-    "key": "oakley:sunglasses"
    }
   ]
  },
@@ -1307,8 +1315,12 @@
     "key": "loccitane:handcream"
    },
    {
-    "name": "Bombas Women's Ankle Socks 4-Pack",
-    "key": "bombas:sock"
+    "name": "Riedel Vinum Martini Glass",
+    "key": "riedel:glass"
+   },
+   {
+    "name": "Bodum Gooseneck Electric Kettle, Stainless",
+    "key": "bodum:stainless"
    },
    {
     "name": "Corkcicle x KitchenAid Coffee Mug",
@@ -1319,12 +1331,8 @@
     "key": "mercer:knife"
    },
    {
-    "name": "Microplane Premium Classic Series Zester 18/8",
-    "key": "microplane:zester"
-   },
-   {
-    "name": "ThermoWorks Thermapen ONE",
-    "key": "thermapen:one"
+    "name": "Bombas Women's Ankle Socks 4-Pack",
+    "key": "bombas:sock"
    }
   ]
  },
@@ -1332,16 +1340,20 @@
   "section": "By career",
   "items": [
    {
-    "name": "Blue Sky 2026-2027 Weekly & Monthly Academic Planner",
-    "key": "blue:planner"
-   },
-   {
     "name": "Corkcicle x Rifle Paper Co. Cold Cup",
     "key": "corkcicle:drink"
    },
    {
+    "name": "Rothy's Almond Slingback Flat",
+    "key": "rothys:flat"
+   },
+   {
     "name": "Madewell Signature Woven Tote Bag",
     "key": "madewell:bag"
+   },
+   {
+    "name": "Blue Sky 2026-2027 Weekly & Monthly Academic Planner",
+    "key": "blue:planner"
    },
    {
     "name": "Keurig K-Mini Single Serve Coffee Maker",
@@ -1350,10 +1362,6 @@
    {
     "name": "Bentgo Glass Lunch Box",
     "key": "bentgo:box"
-   },
-   {
-    "name": "Paper Mate InkJoy Gel Pens",
-    "key": "papermate:pens"
    }
   ]
  },
@@ -1361,16 +1369,12 @@
   "section": "By career",
   "items": [
    {
-    "name": "Streamlight Stylus Pro USB Rechargeable Penlight",
-    "key": "streamlight:penlight"
-   },
-   {
-    "name": "Fenix PD35 v3.0 Rechargeable Tactical Flashlight",
-    "key": "fenix:flashlight"
-   },
-   {
     "name": "Backdraft Coffee",
     "key": "firedepartmentcoffee:coffee"
+   },
+   {
+    "name": "Streamlight Stylus Pro USB Rechargeable Penlight",
+    "key": "streamlight:penlight"
    },
    {
     "name": "Garmin Instinct 3 Smartwatch",
@@ -1379,6 +1383,10 @@
    {
     "name": "5.11 Tactical Rush 12 2.0 Tactical Backpack 24L Molle Laptop",
     "key": "511:laptop"
+   },
+   {
+    "name": "Fenix PD35 v3.0 Rechargeable Tactical Flashlight",
+    "key": "fenix:flashlight"
    },
    {
     "name": "Gerber Suspension NXT 15-in-1 Multitool Pliers",
@@ -1390,8 +1398,12 @@
   "section": "By career",
   "items": [
    {
-    "name": "Bellroy Tokyo Work Bag",
-    "key": "bellroy:bag"
+    "name": "Huk Clinch Polarized Sunglasses",
+    "key": "huk:sunglasses"
+   },
+   {
+    "name": "CALPAK Terra Hanging Toiletry Bag, Plum",
+    "key": "calpak:plum"
    },
    {
     "name": "1773 Premium Handcrafted Mug (Right-Handed)",
@@ -1402,16 +1414,12 @@
     "key": "rothco:scarf"
    },
    {
-    "name": "LEATHERMAN Skeletool CX 7-in-1 Multi-Tool",
-    "key": "leatherman:tool"
+    "name": "Oakley Si Ballistic Sunglasses",
+    "key": "oakley:sunglasses"
    },
    {
-    "name": "BLACK DIAMOND Spot 400 Headlamp",
-    "key": "blackdiamond:headlamp"
-   },
-   {
-    "name": "Ray-Ban Justin Classic Sunglasses",
-    "key": "rayban:sunglasses"
+    "name": "Carhartt Force Midweight Socks",
+    "key": "carhartt:sock"
    }
   ]
  },
@@ -1440,28 +1448,28 @@
   "section": "By career",
   "items": [
    {
+    "name": "Dagne Dover Landon Carryall, Large",
+    "key": "dagnedover:large"
+   },
+   {
+    "name": "Longchamp Le Pliage Leather Key Ring",
+    "key": "longchamp:ring"
+   },
+   {
     "name": "LAMY Studio Fountain Pen",
     "key": "lamy:pen"
    },
    {
-    "name": "Apple Watch SE 3 GPS + Cellular 40mm Smartwatch",
-    "key": "apple:smartwatch"
-   },
-   {
-    "name": "BenQ ScreenBar Monitor Light",
-    "key": "benq:light"
-   },
-   {
-    "name": "Dagne Dover Landon Carryall, Large",
-    "key": "dagnedover:large"
+    "name": "Anker Wireless Charger",
+    "key": "anker:charger"
    },
    {
     "name": "Bellroy Note Sleeve Slim Leather Wallet",
     "key": "bellroy:wallet"
    },
    {
-    "name": "iFixit Mako Driver Kit",
-    "key": "ifixit:kit"
+    "name": "BenQ ScreenBar Monitor Light",
+    "key": "benq:light"
    }
   ]
  },
@@ -1477,12 +1485,12 @@
     "key": "smathersbranson:cooler"
    },
    {
-    "name": "Old World Christmas Old Farm Tractor Glass Ornament for Tree",
-    "key": "old:tree"
-   },
-   {
     "name": "YETI Roadie 32 Wheeled Cooler",
     "key": "yeti:cooler"
+   },
+   {
+    "name": "Old World Christmas Old Farm Tractor Glass Ornament for Tree",
+    "key": "old:tree"
    }
   ]
  },
@@ -1506,12 +1514,12 @@
     "key": "victoriassecret:gift"
    },
    {
-    "name": "Mud Pie Christmas Tree Chenille Socks",
-    "key": "mudpie:sock"
+    "name": "Printworks Shut the Box Classic Board Game",
+    "key": "printworks:game"
    },
    {
-    "name": "Huk Clinch Polarized Sunglasses",
-    "key": "huk:sunglasses"
+    "name": "Mud Pie Christmas Tree Chenille Socks",
+    "key": "mudpie:sock"
    }
   ]
  },
@@ -1639,16 +1647,16 @@
     "key": "bearaby:napper"
    },
    {
+    "name": "Slip Silk Jet Setter Travel Pillow",
+    "key": "slip:pillow"
+   },
+   {
     "name": "Barefoot Dreams CozyChic Socks",
     "key": "barefootdreams:sock"
    },
    {
-    "name": "Brooklinen Turkish Cotton Short Robe",
-    "key": "brooklinen:robe"
-   },
-   {
-    "name": "Slip Silk Jet Setter Travel Pillow",
-    "key": "slip:pillow"
+    "name": "Dearfoams Grafton Shearling Clog Slipper",
+    "key": "dearfoams:shoe"
    }
   ]
  },
@@ -1668,10 +1676,6 @@
     "key": "ruffwear:harness"
    },
    {
-    "name": "Chuckit! Flying Squirrel",
-    "key": "chuckit:squirrel"
-   },
-   {
     "name": "PetLibro Granary Smart Camera Feeder",
     "key": "petlibro:feeder"
    },
@@ -1682,6 +1686,10 @@
    {
     "name": "KONG Classic Dog Toy + Easy Treat Peanut Butter",
     "key": "kongcompany:butter"
+   },
+   {
+    "name": "Orvis ComfortFill-Eco Couch Dog Bed",
+    "key": "orvis:bed"
    }
   ]
  },
@@ -1697,14 +1705,6 @@
     "key": "smeg:tsf"
    },
    {
-    "name": "Marshall Pill",
-    "key": "marshall:pill"
-   },
-   {
-    "name": "5.5 qt Enameled Cast Iron Dutch Oven, Red",
-    "key": "lodge:dutchoven"
-   },
-   {
     "name": "Juliska Berry Thread Chambray Blue Ceramic Mug",
     "key": "kathykuohome:drink"
    },
@@ -1715,6 +1715,14 @@
    {
     "name": "JBL Grip Portable Bluetooth Speaker Blue",
     "key": "jbl:speaker"
+   },
+   {
+    "name": "Herschel Retreat Backpack",
+    "key": "herschel:backpack"
+   },
+   {
+    "name": "Ninja Ceramic Pro 5-Piece Cookware Set, Bone & Champagne",
+    "key": "ninja:champagne"
    }
   ]
  },
@@ -1800,8 +1808,8 @@
     "key": "squishmallow:plush"
    },
    {
-    "name": "Playmobil Advent Calendar: Trip to the Christmas Market",
-    "key": "playmobil:market"
+    "name": "12oz Kids' Stainless Steel Straw Tumbler",
+    "key": "owala:drink"
    }
   ]
  },
@@ -1900,10 +1908,6 @@
     "key": "belkin:dock"
    },
    {
-    "name": "Star Wars SMART Play: Yoda’s Hut and Jedi Training 75422 Building Set",
-    "key": "lego:building"
-   },
-   {
     "name": "Retro Mechanical Keyboard",
     "key": "8bitdo:keyboard"
    },
@@ -1918,6 +1922,10 @@
    {
     "name": "G502 HERO SE Wired Optical Gaming Mouse with RGB Lighting",
     "key": "logitech:lighting"
+   },
+   {
+    "name": "Kodak PIXPRO C1 Compact Digital Camera",
+    "key": "kodak:camera"
    }
   ]
  },
@@ -2053,30 +2061,22 @@
     "key": "philipshue:ambiance"
    },
    {
-    "name": "Griddler Grill & Panini Press",
-    "key": "cuisinart:griddle"
-   },
-   {
     "name": "Vertuo Next Espresso Machine By De'longhi",
     "key": "nespresso:longhi"
    },
    {
-    "name": "Instant Pot 3-Qt Multi-Use Pressure Cooker",
-    "key": "instantpot:cooker"
+    "name": "Vitamix Vx1 Blender",
+    "key": "vitamix:blender"
+   },
+   {
+    "name": "Vortex Plus 10 Qt Air Fryer Oven",
+    "key": "instantpot:oven"
    }
   ]
  },
  "store-anthropologie": {
   "section": "By store",
   "items": [
-   {
-    "name": "Ruggable Welcome Trellis Washable Doormat",
-    "key": "ruggable:doormat"
-   },
-   {
-    "name": "Capri Blue Volcano Room Spray",
-    "key": "capriblue:spray"
-   },
    {
     "name": "Paddywax Santa Boot Match Holder",
     "key": "paddywax:boot"
@@ -2086,12 +2086,20 @@
     "key": "paddywax:candle"
    },
    {
-    "name": "Rothy's Max Square Mary Jane",
-    "key": "rothys:jane"
+    "name": "Rothy's Almond Loafer",
+    "key": "rothys:shoe"
    },
    {
-    "name": "Capri Blue Volcano Hand Lotion",
-    "key": "capriblue:handcream"
+    "name": "UGG Tasman Socks 3-Pack",
+    "key": "ugg:sock"
+   },
+   {
+    "name": "Papier x Anthropologie Wooden Dominoes",
+    "key": "papier:dominoes"
+   },
+   {
+    "name": "Rothy's Almond Slingback Flat",
+    "key": "rothys:flat"
    }
   ]
  },
@@ -2115,16 +2123,16 @@
     "key": "ourplace:cream"
    },
    {
-    "name": "Microplane Spice Grinder",
-    "key": "microplane:grinder"
-   },
-   {
     "name": "Chemex Ottomatic 2.0 Pour-Over Coffee Maker",
     "key": "chemex:maker"
    },
    {
     "name": "Solo Stove Mesa Tabletop Fire Pit in Water",
     "key": "solostove:water"
+   },
+   {
+    "name": "Solo Stove Mesa Tabletop Fire Pit",
+    "key": "solostove:pit"
    }
   ]
  },
@@ -2173,16 +2181,16 @@
     "key": "leatherman:tool"
    },
    {
-    "name": "OpenRun Pro Headphones",
-    "key": "shokz:headphones"
-   },
-   {
     "name": "Instinct 3 Amoled",
     "key": "garmin:amoled"
    },
    {
     "name": "Ripple Rechargeable Hand Warmers 4-Pack",
     "key": "ignik:warmer"
+   },
+   {
+    "name": "Original Puffy Blanket",
+    "key": "rumpl:blanket"
    }
   ]
  },
@@ -2256,10 +2264,6 @@
     "key": "baublebar:baublebar disney stitch pisa bracelet"
    },
    {
-    "name": "BaubleBar Striped Alpha Custom Name Tote",
-    "key": "baublebar:baublebar striped alpha custom name tote"
-   },
-   {
     "name": "BaubleBar Enamel Pisa Custom Bracelet",
     "key": "baublebar:baublebar enamel pisa custom bracelet"
    },
@@ -2274,6 +2278,10 @@
    {
     "name": "Peanuts Snoopy North Pole Earrings",
     "key": "item:peanuts snoopy north pole earrings"
+   },
+   {
+    "name": "Marissa Cubic Zirconia Cuff Bracelet",
+    "key": "item:marissa cubic zirconia cuff bracelet"
    }
   ]
  },

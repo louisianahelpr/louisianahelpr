@@ -1,7 +1,7 @@
 // The gift guides' lists as a shopper reads them, for the guides' content tests (big batch 1120).
 //
-// Since the 1120 merges (src/content/giftGuideMerges.mjs) a merged guide's chunk holds its old guides as sections
-// (`sectionId` = the old slug; "top-picks" = the merged guide's own picks). Every per-guide rule the content tests
+// Since the 1120 merges (src/content/giftGuideMerges.mjs) a merged guide's chunk holds its old guides in role sections,
+// each pick naming its old guide in `from` (the merged guide's own picks name the guide itself). Every per-guide rule the content tests
 // check (who a gift is for, its kind, the Louisiana section, the 25 cap) belongs to the section's own old guide, so
 // these helpers hand each section back under its old slug, and a merged guide's own picks under its own slug.
 // A chunk without sections (a store page, an unmerged guide) is itself.
@@ -12,14 +12,13 @@ import { MERGED_INTO } from "../../content/giftGuideMerges.mjs";
 
 const DIR = "src/content/giftGuidePicks";
 
-type WithSection = { sectionId?: string };
+type WithSection = { sectionId?: string; from?: string };
 
 /** One chunk's picks split into lists: [listSlug, picks][] (its own slug for picks with no section or "top-picks"). */
 function splitChunk<T>(slug: string, picks: T[]): [string, T[]][] {
   const by = new Map<string, T[]>();
   for (const p of picks) {
-    const id = (p as WithSection).sectionId;
-    const k = id && id !== "top-picks" ? id : slug;
+    const k = (p as WithSection).from ?? slug;
     by.set(k, [...(by.get(k) ?? []), p]);
   }
   if (!by.has(slug) && by.size === 0) by.set(slug, []);
@@ -48,10 +47,10 @@ export function sectionPageOf<T>(slug: string, root = process.cwd()): T[] {
   const into = MERGED_INTO[slug];
   if (into) {
     const file = join(root, DIR, `${into.parent}.json`);
-    return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")).picks as (T & WithSection)[]).filter((p) => p.sectionId === slug) : [];
+    return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")).picks as (T & WithSection)[]).filter((p) => p.from === slug) : [];
   }
   const file = join(root, DIR, `${slug}.json`);
   if (!existsSync(file)) return [];
   const picks = JSON.parse(readFileSync(file, "utf8")).picks as (T & WithSection)[];
-  return picks.some((p) => p.sectionId) ? picks.filter((p) => !p.sectionId || p.sectionId === "top-picks") : picks;
+  return picks.filter((p) => !p.from || p.from === slug);
 }

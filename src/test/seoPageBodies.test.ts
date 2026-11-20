@@ -209,9 +209,15 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
 
   it("every guide and hire URL in it is one the function serves 200 and indexable; /25days is in it", async () => {
-    const guides = locs.filter((p) => p.startsWith("/gift-guides/"));
+    // The two own pages (the deals guide, Small Business Saturday) answer 200 with their own body: checked by fetching.
+    const own = ["/gift-guides/black-friday-cyber-monday", "/gift-guides/small-business-saturday"];
+    const guides = locs.filter((p) => p.startsWith("/gift-guides/") && !own.includes(p));
     expect(guides.length).toBeGreaterThan(80); // 1120: ~65 merged guides + 30 store pages
     for (const p of guides) expect(data.guides[p.slice("/gift-guides/".length)]?.indexed, p).toBe(true);
+    for (const p of own) {
+      expect(locs, p).toContain(p);
+      expect((await fetchPage(p.slice(1))).status, p).toBe(200);
+    }
     for (const p of locs.filter((x) => x.startsWith("/hire/")).slice(0, 5)) expect((await fetchPage(p.slice(1))).status, p).toBe(200);
     expect(locs).toContain("/25days");
     expect(locs).not.toContain("/sponsor");

@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { AgeChips } from "./GiftGuideAges";
+import { SmallBizLink } from "./GiftGuideSmallBiz";
+import { SHOP_SMALL_GUIDE } from "@/content/giftGuideSmallBiz.mjs";
+import { deadlineChip, louisianaToday } from "@/content/giftGuideExtras1120";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -66,6 +69,8 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
   // Big batch 1120: a pick wears Trending (or "Trending on TikTok") only from its own flag. The old "first 3 of a guide"
   // badge went with the featured order (owner 11-19 ~6:40 PM: every guide sorts by commission now).
   const badges = pick.badges;
+  // A store's Christmas order-by day (src/content/giftGuideExtras1120.ts SHIP_DEADLINES), hidden after it passes.
+  const ship = deadlineChip(pick.store, louisianaToday(new Date()));
   return (
     <li data-gift-pick="">
       <GiftOut href={pick.href} className="gg-item">
@@ -76,10 +81,11 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
           <span className="gg-nm-name">{pick.name}</span>
           {pick.line && <small className="gg-nm-line">{pick.line}</small>}
           <small className="gg-nm-meta"><span>{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}</span><PickPrice pick={pick} /></small>
-          {(badges || pick.code) && (
+          {(badges || pick.code || ship) && (
             <span className="gg-badges">
               {badges?.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
               {pick.code && <i className="gg-bdg gg-bdg-code" data-gift-code-chip="">{G.codeChip(pick.code)}</i>}
+              {ship && <i className="gg-bdg gg-bdg-ship" data-gift-ship-chip="">{ship}</i>}
             </span>
           )}
         </span>
@@ -313,6 +319,8 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
       {/* Holistic review 11-18 H1: Niece, Nephew and Cousins open their kids age guides by age. */}
       <AgeChips slug={guide.slug} />
+      {/* Big batch 1120: Shop Small Louisiana opens with the way to the Small Business Saturday page. */}
+      {guide.slug === SHOP_SMALL_GUIDE && <SmallBizLink />}
       {/* Holistic review 11-18 L3: how many gifts the guide holds, once its list is in. */}
       {picksReady(guide.slug) && guide.picks.length > 0 && (
         <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>

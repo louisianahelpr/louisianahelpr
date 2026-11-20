@@ -29,7 +29,7 @@ import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
-import { GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, SECTION_CAP, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
+import { GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, SECTION_CAP, SECTION_GROUPS, SECTION_MAX, SECTION_MIN, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
 import { GUIDE_CAP, buildRateData, byCommission, ccTwin, commissionOf, guideRanks, itemPopularity, pickType, sectionGuides, typeMax, CROWD_TYPES, KNOWN_BRAND, THIN_TARGET } from "./giftGuideSort.mjs";
 import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3, INSULATED, TUMBLER_MAX, fillerGuide, FILLER_OK, R4_OFF, kidsToyOff } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
@@ -886,6 +886,62 @@ export const LSU_ITEM = /\bLSU\b|\bLouisiana State\b|\bTigers?\b.*\bLSU\b/i;
 export const LSU_MAX = 2;
 /** The merged guides made new in 1120: no picks of their own, only their sections (src/content/giftGuideMerges.mjs). */
 export const NEW_MERGE_PARENTS = new Set(NEW_PARENTS);
+/** An old guide's section title on its merged guide: its index title, with its age band ("Toddlers (ages 1–3)"). */
+const oldSectionTitle = (slug) => {
+  const raw = indexSrc.match(new RegExp(`\\{[^{}]*slug: "${slug}"[^{}]*\\}`))?.[0] ?? "";
+  const title = raw.match(/title: "([^"]*)"/)?.[1] ?? slug;
+  const age = raw.match(/age: "([^"]*)"/)?.[1];
+  return age ? `${title} (${age})` : title;
+};
+/**
+ * THE FIT AUDITS of the merged guides (lead 11-20: ~/Desktop/Gift-guide-picks/_fit-audit-big-am.json and -nz.json,
+ * read on e2aa9b4f75; each row { guide, section, item_name, href, action: cut | move, move_to_guide, move_to_section }).
+ * A row's guide and section name its old guide (the section titles of that build, or a section group's title); a cut
+ * is a judgment cut there, so the sort fills its place from the unused pool with the next strong fit; a move is a cut
+ * there and a forced place on its new guide. A store page's cut leaves that page. The owner's protected picks (her
+ * keeps and swaps, the Fabletics scrubs) are never cut.
+ */
+export const AUDIT_1120 = (() => {
+  const norm = (x) => String(x ?? "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+  const titleSlug = new Map();
+  for (const m of GUIDE_MERGES) {
+    for (const sl of m.sections) titleSlug.set(`${m.parent}|${norm(oldSectionTitle(sl))}`, sl);
+    for (const g of SECTION_GROUPS[m.parent]?.groups ?? []) titleSlug.set(`${m.parent}|${norm(g.title)}`, g.from[0]);
+    titleSlug.set(`${m.parent}|toppicks`, m.parent);
+  }
+  const oldSlug = (guide, section) => {
+    if (!guide) return null;
+    if (MERGED_INTO[guide] || !section) return guide;
+    return titleSlug.get(`${guide}|${norm(section)}`) ?? guide;
+  };
+  const out = { cuts: new Map(), storeCuts: new Set(), storeMoves: new Map(), moves: [], rows: 0, skipped: [] };
+  for (const f of ["_fit-audit-big-am.json", "_fit-audit-big-nz.json"]) {
+    let rows = [];
+    try { rows = readJson(f) ?? []; } catch { continue; /* mid-write: read on the next run */ }
+    for (const r of Array.isArray(rows) ? rows : []) {
+      if (!r || typeof r.href !== "string" || !["cut", "move"].includes(r.action)) continue;
+      out.rows += 1;
+      if (/^Fabletics .*Scrub/i.test(String(r.item_name ?? ""))) { out.skipped.push(`protected: ${r.item_name}`); continue; }
+      const from = oldSlug(r.guide, r.section);
+      if (!from) continue;
+      if (from.startsWith("store-")) {
+        out.storeCuts.add(`${from}|${r.href}`);
+        if (r.action === "move" && typeof r.move_to_guide === "string" && r.move_to_guide.startsWith("store-")) out.storeMoves.set(`${from}|${r.href}`, r.move_to_guide);
+        continue;
+      }
+      // A cut is off the whole merged guide (every one of its sections), not only the section it was seen in.
+      const parent = MERGED_INTO[from]?.parent ?? from;
+      const family = [parent, ...(GUIDE_MERGES.find((m) => m.parent === parent)?.sections ?? [])];
+      for (const sl of family) out.cuts.set(sl, new Set([...(out.cuts.get(sl) ?? []), `h:${r.href}`]));
+      if (r.action === "move") {
+        const to = oldSlug(r.move_to_guide || r.guide, r.move_to_section);
+        // A move within the same merged guide keeps the item there: its new section is not cut.
+        if (to && to !== from) { out.moves.push({ href: r.href, from, to }); out.cuts.get(to)?.delete(`h:${r.href}`); }
+      }
+    }
+  }
+  return out;
+})();
 /**
  * FEATURED ORDER (owner 11-18 PM: "This can't possibly be the top gifts you're recommending"): _featured-order.json,
  * { "<slug>": [pick names or { name, from }, up to 25], "top-10": [{ guide, name }] }, from bestseller research over existing picks only.
@@ -2952,6 +3008,10 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     }
     // The owner's swaps (_owner-swaps-1119.md swap_out): each old item leaves its guide; its new item is forced in (1120).
     for (const r of swapCuts(dir)) judged.set(r.guide, new Set([...(judged.get(r.guide) ?? []), `n:${compact(r.item)}`]));
+    // The fit audits of the merged guides (AUDIT_1120): each cut leaves its old guide; the sort fills the place.
+    // The owner's own keeps (OWNER_KEEP, SORT_KEEP: the Dyson, the Sam's Club membership, the lululemon boxers) stay.
+    const protectedHref = new Set([...OWNER_KEEP, ...SORT_KEEP].map((k) => `h:${k.href}`));
+    for (const [slug, set] of AUDIT_1120.cuts) judged.set(slug, new Set([...(judged.get(slug) ?? []), ...[...set].filter((h) => !protectedHref.has(h))]));
     for (const r of CUTS_1120) judged.set(r.guide, new Set([...(judged.get(r.guide) ?? []), `n:${compact(r.item)}`, ...(r.href ? [`h:${r.href}`] : [])]));
     const judgedOut = (slug, p) => [judged.get(slug), judged.get("*")].some((s) => s && (s.has(`h:${p.href}`) || s.has(`n:${compact(p.name)}`)));
     sortCounts.judged = 0;
@@ -3070,6 +3130,14 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       }
       if (r.asin && rateData.cc.has(r.asin)) e.campaign = String(r.campaign_id ?? rateData.cc.get(r.asin)?.id ?? "");
     }
+    // 3a. The fit audits' moves (AUDIT_1120): the item goes to its new guide, placed there like an editor's add.
+    for (const mv of AUDIT_1120.moves) {
+      const e = pool.get(mv.href) ?? [...pool.values()].find((x) => x.p.swappedFrom === mv.href);
+      if (!e || !GUIDE_SLUGS.has(mv.to) || !isGuide(mv.to)) continue;
+      e.guides.add(mv.to);
+      e.forced = new Set([...(e.forced ?? []), mv.to]);
+      sortCounts.auditMoves = (sortCounts.auditMoves ?? 0) + 1;
+    }
     // 3b. Every candidate (brand links, fills, the 1120 imports) of a product in a live, joined Creator Connections campaign
     // takes the campaign ASIN when it pays CC_SWAP_MARGIN more (owner 11-19 PM: "I added Kiehl's stuff on ShopMy but I
     // think their commission is better on Amazon now"; same for the other 33% beauty campaigns), as step 1 does for the
@@ -3139,7 +3207,8 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       productColors.set(k, new Set([...(productColors.get(k) ?? []), pickColor(e.p)]));
       e.on.add(slug);
     };
-    const eligible = (slug, e) => e.guides.has(slug) && !jdSports(e.p) && (e.was?.includes(slug) ? !judgedOut(slug, e.p) && !excludedRow(e.p) : e.forced?.has(slug) ? !holisticWhy(slug, e.p) : gate(slug, e.p));
+    // A forced row (an editor's add, a fit-audit move) still leaves a guide a later judgment cut names (1120 fit audits).
+    const eligible = (slug, e) => e.guides.has(slug) && !jdSports(e.p) && (e.was?.includes(slug) ? !judgedOut(slug, e.p) && !excludedRow(e.p) : e.forced?.has(slug) ? !holisticWhy(slug, e.p) && !judgedOut(slug, e.p) : gate(slug, e.p));
     // The keeps claim their guide first (1120): the owner's newest call wins the one place an item may show (her swap put
     // the Weezie toiletry bag on Traveler, so Sister, earlier in the order, no longer takes the same bag).
     for (const slug of order) for (const e of pool.values()) if (keepOn(slug, e.p) && !e.on.has(slug) && !SORT_FIXED.has(slug)) take(slug, e, placed.get(slug));
@@ -3250,6 +3319,8 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
  * Store pages not kept (STORE_PAGES_KEPT) write none either; their items stay in the guides.
  */
 export const mergeCounts = { merged: 0, sections: 0, foldedStores: 0, swappedKept: 0 };
+/** Old guide slug -> its section's id on the merged guide (written to giftGuidePicks.ts; the redirects read it). */
+export const SECTION_ANCHORS = {};
 {
   const entryRaw = (slug) => indexSrc.match(new RegExp(`\\{[^{}]*slug: "${slug}"[^{}]*\\}`))?.[0] ?? "";
   const sectionTitle = (slug) => {
@@ -3258,19 +3329,104 @@ export const mergeCounts = { merged: 0, sections: 0, foldedStores: 0, swappedKep
     const age = raw.match(/age: "([^"]*)"/)?.[1];
     return age ? `${title} (${age})` : title;
   };
+  // SECTION GROUPS (owner pop-up 11-20: "Fold thin sections", "Max 6 sections per guide", "By role, not job title";
+  // src/content/giftGuideMerges.mjs SECTION_GROUPS): the old guides join their role's section; each section is re-ranked
+  // by commission (the 1119e order) under the same caps as a guide (SECTION_CAP picks, TYPE_MAX of a gift type, 2 of a
+  // brand, one row per product); a section under SECTION_MIN folds into its closest sibling, and the two smallest
+  // neighbours join while a guide has more than SECTION_MAX. Each pick keeps its old guide in `from` (never shown).
+  const joinTitles = (parts) => (parts.length <= 1 ? parts.join("") : `${parts.slice(0, -1).join(", ")} & ${parts[parts.length - 1]}`);
+  const fill = (rows, ownSlug) => {
+    const out = [];
+    // SORT_FIXED rows keep their own order and lead; the rest by commission.
+    const ranked = rows.map((p, i) => ({ p, i })).sort((x, y) => Number(SORT_FIXED.has(y.p.from)) - Number(SORT_FIXED.has(x.p.from)) || (SORT_FIXED.has(x.p.from) && SORT_FIXED.has(y.p.from) ? x.i - y.i : byCommission({ ...x.p, _at: x.i }, { ...y.p, _at: y.i })));
+    for (const { p } of ranked) {
+      if (out.length >= SECTION_CAP) break;
+      if (out.some((x) => x.href === p.href || variantKey(x) === variantKey(p))) continue;
+      // A list with its own order (memberships, gift cards, wrap, Mail Carrier: SORT_FIXED) keeps every row it had.
+      if (SORT_FIXED.has(p.from)) { out.push(p); continue; }
+      const type = p.type ?? "other";
+      if (out.filter((x) => (x.type ?? "other") === type).length >= typeMax(p.from ?? ownSlug, type)) continue;
+      const b = brandKey(p.brand ?? "");
+      const brandMax = LOUISIANA_GUIDES.has(p.from ?? ownSlug) ? BRAND_CAP : SORT_BRAND_MAX;
+      if (b && !/affiliate|program|walmart|amazon|target|shopmy/i.test(p.brand ?? "") && out.filter((x) => brandKey(x.brand ?? "") === b).length >= brandMax) continue;
+      if (LSU_ITEM.test(`${p.name} ${p.brand ?? ""}`) && out.filter((x) => LSU_ITEM.test(`${x.name} ${x.brand ?? ""}`)).length >= LSU_MAX) continue;
+      out.push(p);
+    }
+    return out;
+  };
   for (const m of GUIDE_MERGES) {
-    const sections = m.sections.map((s) => ({ s, picks: (pageList[s] ?? []).slice(0, SECTION_CAP) })).filter((x) => x.picks.length);
-    const own = NEW_MERGE_PARENTS.has(m.parent) ? [] : (pageList[m.parent] ?? []).slice(0, SECTION_CAP);
+    const spec = SECTION_GROUPS[m.parent];
+    const own = NEW_MERGE_PARENTS.has(m.parent) ? [] : (pageList[m.parent] ?? []).map((p) => ({ ...p, from: m.parent }));
+    const listOf = (slug) => (pageList[slug] ?? []).map((p) => ({ ...p, from: slug }));
+    // The starting groups: the table's, else one per old guide; the guide's own picks lead as "Top picks" unless the
+    // table names their section.
+    let groups = spec
+      ? spec.groups.map((g) => ({ id: g.id, parts: [g.title], from: [...g.from], rows: g.from.flatMap(listOf) }))
+      : m.sections.map((sl) => ({ id: sl, parts: [sectionTitle(sl)], from: [sl], rows: listOf(sl) }));
+    const ownGroup = spec?.own && groups.find((g) => g.id === spec.own);
+    if (ownGroup) ownGroup.rows = [...own, ...ownGroup.rows];
+    else if (own.length) groups = [{ id: "top-picks", parts: ["Top picks"], from: [m.parent], rows: own }, ...groups];
+    // Pinned products move to their section before the caps run.
+    for (const pin of spec?.pins ?? []) {
+      const to = groups.find((g) => g.id === pin.group);
+      if (!to) continue;
+      for (const g of groups) if (g !== to) { const moved = g.rows.filter((p) => pin.name.test(p.name)); g.rows = g.rows.filter((p) => !pin.name.test(p.name)); to.rows.push(...moved.map((p) => ({ ...p, pinned: true }))); }
+    }
+    const capped = () => groups.forEach((g) => { g.picks = fill(g.rows, g.from[0]); });
+    capped();
+    groups = groups.filter((g) => g.picks.length);
+    // Fold a thin section into its closest sibling (the next; the last one into the one before), then cap the count.
+    const join = (i, j) => {
+      const [x, y] = i < j ? [groups[i], groups[j]] : [groups[j], groups[i]];
+      const keep = groups[j];
+      // A thin "Top picks" joins its neighbour under the neighbour's name (and id).
+      const parts = [...x.parts, ...y.parts].filter((t, k, all) => t !== "Top picks" || all.length === 1);
+      const id = keep.id === "top-picks" ? (x === keep ? y.id : x.id) : keep.id;
+      const merged = { id, parts, from: [...x.from, ...y.from], rows: [...x.rows, ...y.rows] };
+      merged.picks = fill(merged.rows, merged.from[0]);
+      groups.splice(Math.max(i, j), 1);
+      groups.splice(Math.min(i, j), 1, merged);
+    };
+    for (let guard = 0; guard < 50 && groups.length > 1; guard++) {
+      const i = groups.findIndex((g) => g.picks.length < SECTION_MIN);
+      if (i === -1) break;
+      join(i, i + 1 < groups.length ? i + 1 : i - 1);
+    }
+    while (groups.length > SECTION_MAX) {
+      let best = 0;
+      for (let i = 1; i < groups.length - 1; i++) if (groups[i].picks.length + groups[i + 1].picks.length < groups[best].picks.length + groups[best + 1].picks.length) best = i;
+      join(best + 1, best);
+    }
+    // One page, one row per link (a section's caps never see the others').
     const seen = new Set();
-    const once = (p) => (seen.has(p.href) ? false : (seen.add(p.href), true));
-    const tag = (p, title, id) => ({ ...p, section: title, sectionId: id });
-    pageList[m.parent] = sections.length
-      ? [...own.filter(once).map((p) => tag(p, "Top picks", "top-picks")), ...sections.flatMap((x) => x.picks.filter(once).map((p) => tag(p, sectionTitle(x.s), x.s)))]
-      : own;
-    for (const s of m.sections) delete pageList[s];
+    const tag = (p, g) => {
+      const { pinned: _p, ...rest } = p;
+      return { ...rest, section: joinTitles(g.parts), sectionId: g.id };
+    };
+    const final = groups.map((g) => ({ ...g, picks: g.picks.filter((p) => (seen.has(p.href) ? false : (seen.add(p.href), true))) }));
+    // One section left is a plain list (no heading); otherwise every pick names its section.
+    pageList[m.parent] = final.length > 1 ? final.flatMap((g) => g.picks.map((p) => tag(p, g))) : (final[0]?.picks ?? []).map(({ pinned: _p, ...p }) => p);
+    // An old slug opens its section (none when the guide folded to one plain list: it opens the guide's top).
+    if (final.length > 1) {
+      for (const g of final) for (const sl of g.from) if (sl !== m.parent) SECTION_ANCHORS[sl] = g.id;
+      for (const sl of m.sections) if (!SECTION_ANCHORS[sl]) SECTION_ANCHORS[sl] = final[0].id;
+    }
+    for (const sl of m.sections) delete pageList[sl];
     mergeCounts.merged += 1;
-    mergeCounts.sections += sections.length;
+    mergeCounts.sections += final.length;
   }
+  // The fit audits' store-page cuts and moves (AUDIT_1120): another store's item, a repeat or filler leaves the page; a
+  // move (YETI items on REI and Tractor Supply) joins its own store's page while that page has room (STORE_CAP).
+  const storeMoved = [];
+  for (const slug of Object.keys(pageList)) {
+    if (!slug.startsWith("store-")) continue;
+    for (const p of pageList[slug]) {
+      const to = AUDIT_1120.storeMoves.get(`${slug}|${p.href}`);
+      if (to) storeMoved.push({ to, p });
+    }
+    pageList[slug] = pageList[slug].filter((p) => !AUDIT_1120.storeCuts.has(`${slug}|${p.href}`));
+  }
+  for (const { to, p } of storeMoved) if (pageList[to] && pageList[to].length < STORE_CAP && !pageList[to].some((x) => x.href === p.href || compact(x.name) === compact(p.name))) pageList[to].push({ ...p, store: to });
   for (const slug of new Set([...Object.keys(pageList), ...Object.keys(deals)])) {
     if (!isFoldedStore(slug)) continue;
     delete pageList[slug];
@@ -3284,6 +3440,7 @@ export const mergeCounts = { merged: 0, sections: 0, foldedStores: 0, swappedKep
     pageList[slug] = pageList[slug].map((p) => (p.swappedFrom && p.campaignEnds && /^\d{4}-\d{2}-\d{2}$/.test(p.campaignEnds)
       ? (mergeCounts.swappedKept += 1, { ...p, fallback_href: p.swappedFrom, switch_on: dayAfter(p.campaignEnds) }) : p));
   }
+  console.log(`gift-guide-picks: fit audits 1120: ${AUDIT_1120.rows} rows, ${[...AUDIT_1120.cuts.values()].reduce((n, x) => n + x.size, 0)} guide cuts, ${AUDIT_1120.storeCuts.size} store-page cuts, ${sortCounts.auditMoves ?? 0} moves placed of ${AUDIT_1120.moves.length}, skipped ${AUDIT_1120.skipped.length}`);
   console.log(`gift-guide-picks: merges 1120: ${mergeCounts.merged} merged guides, ${mergeCounts.sections} sections, ${mergeCounts.foldedStores} store pages folded, ${mergeCounts.swappedKept} campaign swaps with a fallback link`);
 }
 /**
@@ -3332,7 +3489,7 @@ for (const slug of chunkSlugs) {
 writeFileSync(
   out,
   `/** GENERATED by scripts/gift-guide-picks.mjs from ~/Desktop/Gift-guide-picks (re-run it after any change there). Do not edit. */\n` +
-    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string; fallback_href?: string; switch_on?: string; sectionId?: string; band?: 25 | 50 | 100 | 500; preorder?: true; code?: string; tiktok?: true }\n` +
+    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string; fallback_href?: string; switch_on?: string; sectionId?: string; from?: string; band?: 25 | 50 | 100 | 500; preorder?: true; code?: string; tiktok?: true }\n` +
     `export interface StoreDeal { title: string; href: string; ends?: string; items?: { name: string; href: string }[] }\n` +
     `export interface Sale { store: string; slug: string; offer: string; ends: string; href: string }\n` +
     `/** One guide's chunk (src/content/giftGuidePicks/<slug>.json): its final picks and, on a store page, its deal sections. */\n` +
@@ -3344,6 +3501,8 @@ writeFileSync(
     `/** The guides with a researched chunk: their list (and deals) come only from it. */\n` +    `/** How many picks each chunk holds (the By store row lists a store page from 4 picks; lead 2026-11-18). */\n` +
     `export const CHUNK_PICK_COUNTS: Record<string, number> = ${JSON.stringify(Object.fromEntries(chunkSlugs.map((x) => [x, pageList[x]?.length ?? 0])))};\n` +
     `export const CHUNK_SLUGS: readonly string[] = ${JSON.stringify(chunkSlugs)};\n` +
+    `/** Old guide slug -> its section's id on its merged guide (1120 section groups; the redirects and age links read it). */\n` +
+    `export const SECTION_ANCHORS: Record<string, string> = ${JSON.stringify(SECTION_ANCHORS)};\n` +
     `/** How many picks each merged guide's section holds (1120: old slug -> count), so a link to an empty section is never drawn. */\n` +
     `export const SECTION_PICK_COUNTS: Record<string, number> = ${JSON.stringify(Object.fromEntries(Object.values(pageList).flat().filter((p) => p.sectionId && p.sectionId !== "top-picks").reduce((m, p) => m.set(p.sectionId, (m.get(p.sectionId) ?? 0) + 1), new Map())))};\n` +
     `/** Codes the researched deals name (the sidebar's Discount codes, after the owner's; each hidden after its end date). */\n` +

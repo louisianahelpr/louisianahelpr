@@ -46,6 +46,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/black-friday-cyber-monday</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/book-lover</loc>
     <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
@@ -117,6 +122,7 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/entertainment</loc>
+    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -128,7 +134,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/first-responders</loc>
-    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -348,6 +353,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/small-business-saturday</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/splurge</loc>
     <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
@@ -404,7 +414,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-crate-and-barrel</loc>
-    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -446,7 +455,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/store-rei</loc>
-    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -532,7 +540,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/wine-lover</loc>
-    <lastmod>2026-11-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

@@ -129,7 +129,7 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(modelYearName("BaBylissPRO Nano Titanium 2000-Watt Blow Dryer")).toBe("BaBylissPRO Nano Titanium 2000-Watt Blow Dryer");
     for (const old of ["Yoto Mini (2024 Edition) + Disney Pixar Bundle", "YOTO Player (3rd Gen.) + Starter", "First Aid For the USMLE Step 1 2020", "Southern Living 2025 Annual Recipes"]) expect(modelYearName(old), old).toBe("");
     const names = slugs.flatMap((s) => chunk(s).map((p) => p.name));
-    expect(names.length).toBeGreaterThan(3000);
+    expect(names.length).toBeGreaterThan(2400); // 1120: merges, 30 store pages and the two fit audits (~2,600 rows)
     expect(names.filter((n) => namesModelYear(n))).toEqual([]);
   });
 

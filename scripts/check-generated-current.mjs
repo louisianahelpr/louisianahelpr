@@ -261,6 +261,14 @@ export const EVIDENCE = [
     checkedBy: "src/test/giftGuideDeals1119.test.tsx (ready deals only, sort, 25 cap, no price, affiliate hosts, auto-hide, feature window, retitle)",
   },
   {
+    id: "gift-guide-small-biz",
+    script: "scripts/gift-guide-small-biz.mjs",
+    outputs: ["src/content/giftGuideSmallBiz.json"],
+    refresh: "node scripts/gift-guide-small-biz.mjs (reads the lead's checked sponsors, ~/Desktop/Gift-guide-picks/_small-biz-saturday-1119.json and small-biz-logos/; not in CI)",
+    refreshedBy: "by the committer when the lead hands over new or changed small-business sponsors (content, not a count)",
+    checkedBy: "src/test/giftGuideSmallBiz1120.test.tsx (no giveaway day or wording, no price, every link https, categories in order, feature window, retitle)",
+  },
+  {
     id: "go-links",
     script: "scripts/go-links.mjs",
     outputs: ["src/content/goLinks.json", "src/content/goLinks.mjs"],

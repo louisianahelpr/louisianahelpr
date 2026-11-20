@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { KID_AGE_BANDS, KID_AGE_HUBS, guideBySlug } from "@/content/giftGuideCatalog";
-import { SECTION_PICK_COUNTS } from "@/content/giftGuidePicks";
+import { SECTION_ANCHORS, SECTION_PICK_COUNTS } from "@/content/giftGuidePicks";
 
 /**
  * The kids age guides, two taps from the landing (holistic review 11-18 H1: the 12 age guides were reachable only through
@@ -16,8 +16,8 @@ import { SECTION_PICK_COUNTS } from "@/content/giftGuidePicks";
  */
 const ageLink = (hub: string, tail: string) => {
   const g = guideBySlug(hub);
-  const id = `${hub}-${tail}`;
-  return g && !g.empty && (SECTION_PICK_COUNTS[id] ?? 0) > 0 ? { slug: id, to: `/gift-guides/${hub}#${id}` } : null;
+  const id = SECTION_ANCHORS[`${hub}-${tail}`];
+  return g && !g.empty && id && (SECTION_PICK_COUNTS[id] ?? 0) > 0 ? { slug: id, to: `/gift-guides/${hub}#${id}` } : null;
 };
 
 /** The ages a row shows: babies to teens (the teen tiles left the For kids row with the 1120 merge). */

@@ -11,7 +11,7 @@ import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS,
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
-import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
+import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, SECTION_ANCHORS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 
 /**
@@ -410,9 +410,10 @@ const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(s
 export const newSlugFor = (slug: string): string | null => {
   const s = OLD_SLUGS[slug] ?? slug;
   const to = MERGED_GUIDES[s]?.[0] ?? s;
-  // 1120: a guide merged into another opens the parent at its section ("healthcare#rns").
+  // 1120: a guide merged into another opens the parent at its section ("healthcare#nurses"; the section groups name
+  // the section, SECTION_ANCHORS), or at the top when its picks folded into a guide with one list.
   const into = MERGED_INTO[to];
-  if (into) return GUIDES.some((g) => g.slug === into.parent) ? `${into.parent}#${to}` : null;
+  if (into) return GUIDES.some((g) => g.slug === into.parent) ? (SECTION_ANCHORS[to] ? `${into.parent}#${SECTION_ANCHORS[to]}` : into.parent) : null;
   return GUIDES.some((g) => g.slug === to) ? to : null;
 };
 /** Every old slug the merges (1120) and the folded store pages retire: each answers a 301 (api/share.ts). */

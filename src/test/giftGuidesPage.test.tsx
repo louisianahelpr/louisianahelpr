@@ -24,7 +24,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |           <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
+ * @mutate src/pages/info/GiftGuides.tsx | {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details key={row} open={row === active?.row} | <details key={row} open
@@ -99,6 +99,10 @@ import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { TEEN_TILES } from "@/pages/info/giftGuides/GiftGuideLanding";
 import { GUIDE_MERGES, MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { newSlugFor } from "@/content/giftGuideCatalog";
+import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
+import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
+import { SMALL_BIZ_SLUG } from "@/content/giftGuideSmallBiz.mjs";
+const OWN_PAGES = [DEALS_SLUG, SMALL_BIZ_SLUG];
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
@@ -280,8 +284,8 @@ describe("gift guides: the content inventory", () => {
     expect(GUIDE_INDEX.some((g) => g.group === "Experiences")).toBe(false);
     // 1120: Gift Cards and Subscriptions are sections of Easy & Last-Minute Gifts, in By budget.
     expect(guideBySlug("easy-and-last-minute")?.row).toBe("by-budget");
-    expect(newSlugFor("gift-cards")).toBe("easy-and-last-minute#gift-cards");
-    expect(newSlugFor("subscriptions")).toBe("easy-and-last-minute#subscriptions");
+    expect(newSlugFor("gift-cards")).toBe(`easy-and-last-minute#${SECTION_ANCHORS["gift-cards"]}`);
+    expect(newSlugFor("subscriptions")).toBe(`easy-and-last-minute#${SECTION_ANCHORS.subscriptions}`);
     // Lead 11-18 PM (analytics: visits to store-hide-me-vpn, store-wondershare, store-rvshare): no VPN, software,
     // PC-cleaner, game, airline/travel-booking, car/RV-rental or ticket-resale store page, and the brands are blocked.
     // @mutate scripts/giftGuideBlocklist.mjs | "Wondershare", "Roxio", | "Roxio",
@@ -567,11 +571,12 @@ describe("gift guides: the landing opens to the guides", () => {
       expect(roles.length, hub).toBeGreaterThan(4);
       // No role tiles any more: the roles are the guide's sections, in the merge table's order.
       expect(childrenOf(g), hub).toEqual([]);
+      // 1120 section groups (owner: "by role, not job title"): every section is one its roles point to.
       const ids = [...new Set(g.picks.map((p) => p.sectionId).filter((x) => x && x !== "top-picks"))];
-      expect(ids, hub).toEqual(roles.filter((r) => ids.includes(r)));
-      expect(ids.length, hub).toBeGreaterThan(3);
+      for (const id of ids) expect(roles.map((r) => SECTION_ANCHORS[r]), `${hub}#${id}`).toContain(id);
+      expect(ids.length, hub).toBeGreaterThan(2);
     }
-    expect(newSlugFor("teachers")).toBe("educators#teachers");
+    expect(newSlugFor("teachers")).toBe(`educators#${SECTION_ANCHORS.teachers}`);
     const row = renderAt("/gift-guides").container.querySelector('[data-gift-row="by-career"]')!;
     const tiles = [...row.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
     expect(tiles).toContain("healthcare");
@@ -710,7 +715,7 @@ describe("gift guides: the landing opens to the guides", () => {
   it("Female and Male Nurses fold into RNs, which is a section of Healthcare Workers (1120): their old links open it", () => {
     for (const gone of Object.keys(MERGED_GUIDES)) expect(guideBySlug(gone), gone).toBeUndefined();
     const g = guideBySlug("healthcare")!;
-    const rns = g.picks.filter((p) => p.sectionId === "rns");
+    const rns = g.picks.filter((p) => p.sectionId === SECTION_ANCHORS.rns);
     expect(rns.length).toBeGreaterThan(3);
     // Once each on the whole page: by link, and by name for a ShopMy collection link that several products share.
     expect(new Set(g.picks.map((p) => `${p.href} ${p.name}`)).size).toBe(g.picks.length);
@@ -898,7 +903,9 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const sitemap = readFileSync("public/sitemap.xml", "utf8");
     const listed = [...sitemap.matchAll(/<loc>https:\/\/www\.louisianahelpr\.com(\/gift-guides[^<]*)<\/loc>/g)].map((m) => m[1]);
     expect(listed).toContain("/gift-guides");
-    const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", ""));
+    // The two own pages (the deals guide, Small Business Saturday) are in the sitemap too, but are no catalog guide.
+    const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", "")).filter((s) => !OWN_PAGES.includes(s));
+    expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.map((s) => `/gift-guides/${s}`)));
     expect(guides.length).toBeGreaterThan(80); // big batch 1120: ~65 merged guides + 30 store pages
     // Every listed guide opens, holds picks, and is no thin store page.
     for (const s of guides) {
@@ -913,7 +920,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(PUBLIC_PAGE_META["/gift-guides"].canonical).toBe("https://www.louisianahelpr.com/gift-guides");
     expect(Object.keys(NOINDEX_PAGE_META)).not.toContain("/gift-guides");
     // The deals guide (owner 2026-11-19) has its own head (src/test/giftGuideDeals1119.test.tsx).
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(deals ? giftGuidePageMeta(DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);');
+    // ... and so does the Small Business Saturday page (1120).
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain('usePageMeta(deals ? giftGuidePageMeta(smallBiz ? SMALL_BIZ_SLUG : DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);');
     expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);");
     const mom = giftGuidePageMeta("mom");
     expect(mom.title).toBe("Gifts for Mom — Helpr");

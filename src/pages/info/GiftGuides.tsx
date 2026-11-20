@@ -16,6 +16,8 @@ import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
 import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "@/content/giftGuideDeals.mjs";
+import { GiftGuideSmallBiz } from "./giftGuides/GiftGuideSmallBiz";
+import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS, smallBizDay, smallBizTitle } from "@/content/giftGuideSmallBiz.mjs";
 
 /**
  * /gift-guides and /gift-guides/<slug> (owner 2026-11-16, public 2026-11-18; rebuilt 2026-11-18 to the owner's final
@@ -39,12 +41,15 @@ export default function GiftGuides() {
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
   // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is its own page, not a catalog list of picks.
-  const deals = slug === DEALS_SLUG;
-  const dealsName = dealsTitle(louisianaDay(new Date()));
+  // The Small Business Saturday page (owner 2026-11-19, big batch 1120) is its own page too. `deals` covers both own
+  // pages wherever the page only asks "is this a catalog guide?".
+  const smallBiz = slug === SMALL_BIZ_SLUG;
+  const deals = slug === DEALS_SLUG || smallBiz;
+  const dealsName = smallBiz ? smallBizTitle(smallBizDay(new Date())) : dealsTitle(louisianaDay(new Date()));
   // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
   // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion);
-  usePageMeta(deals ? giftGuidePageMeta(DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);
+  usePageMeta(deals ? giftGuidePageMeta(smallBiz ? SMALL_BIZ_SLUG : DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"]);
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
   // Visual check 11-18: at 375 the long pill squeezed "Gift guides" into "Gift / guid / es"; phones get the short words.
@@ -94,8 +99,13 @@ export default function GiftGuides() {
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
         {deals ? (
-          <GiftGuidesWords lead={DEALS_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="red"
-            tools={<GiftGuideTools path={`/gift-guides/${DEALS_SLUG}`} title={dealsName} image={DEALS_COVER} />} />
+          smallBiz ? (
+            <GiftGuidesWords lead={SMALL_BIZ_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="green"
+              tools={<GiftGuideTools path={`/gift-guides/${SMALL_BIZ_SLUG}`} title={dealsName} />} />
+          ) : (
+            <GiftGuidesWords lead={DEALS_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="red"
+              tools={<GiftGuideTools path={`/gift-guides/${DEALS_SLUG}`} title={dealsName} image={DEALS_COVER} />} />
+          )
         ) : guide ? (
           <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint}
             tools={<GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
@@ -105,7 +115,7 @@ export default function GiftGuides() {
         <div className="gg-layout">
           <GiftGuidesSidebar active={guide} myList={myList} />
           <div className="gg-main">
-            {deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
+            {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>
         </div>
       </div>

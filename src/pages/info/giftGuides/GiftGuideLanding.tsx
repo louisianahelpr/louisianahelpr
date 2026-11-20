@@ -11,6 +11,8 @@ import { LAST_MINUTE, lastMinuteOn, shippingLine } from "@/content/giftGuideShip
 import { Button } from "@/components/ui/button";
 import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
 import { DealsFeature } from "./GiftGuideDeals";
+import { SmallBizFeature } from "./GiftGuideSmallBiz";
+import { GatedBanners, GiftFinder } from "./GiftGuideFinder";
 
 /**
  * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
@@ -172,12 +174,19 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       {group && <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>}
       {/* Owner brief 2026-11-19: the deals guide sits at the very top, Nov 23 through Dec 1 (Louisiana). */}
       {!group && <DealsFeature />}
+      {/* Big batch 1120: the Small Business Saturday page, Nov 24 through Nov 29 (Louisiana). */}
+      {!group && <SmallBizFeature />}
       {!group && <QuickPicks />}
+      {/* Big batch 1120: the 25 Days banner and the Declutter link, OFF until the lead flips their flags. */}
+      {!group && <GatedBanners />}
       {!group && <LastMinute />}
       <div className="gg-rows" data-gift-rows="">
         {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}
       </div>
       {!group && <TopStrip />}
+      {/* Big batch 1120: the gift finder (who, budget, vibe), its answers in the URL; after the first row and the Top
+          10, so nothing but the quick picks sits above the first row (holistic review 11-18 M9). */}
+      {!group && <GiftFinder />}
       {!group && <div className="gg-rows" data-gift-rows="">{rows.slice(ROWS_BEFORE_TOP).map(drawRow)}</div>}
       {!group && <DealsAndCodes />}
       {!group && (

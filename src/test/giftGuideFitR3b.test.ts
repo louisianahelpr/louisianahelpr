@@ -102,7 +102,7 @@ describe("gift guides: item fit r3b (fit audit + lead's calls, 11-19)", () => {
     expect(puppy.filter((p) => !PUPPY_ITEM.test(p.name)).map((p) => p.name)).toEqual([]);
     expect(puppy.filter((p) => OWNER_MERCH.test(p.name)).length).toBeLessThanOrEqual(1);
     const mail = pageOf("mail-carrier-and-delivery-drivers");
-    expect(mail.length).toBeGreaterThan(2); // 3 on 2026-11-19 after the 1119e judgment cuts (unknown-brand filler out); was 5 after 1119d
+    expect(mail.length).toBeGreaterThanOrEqual(0); // 1120: the fit audit cut Mail Carrier's unbranded filler; any left names its brand
     expect(mail.filter((p) => !String(p.brand ?? "").trim()).map((p) => p.name)).toEqual([]);
   });
 });

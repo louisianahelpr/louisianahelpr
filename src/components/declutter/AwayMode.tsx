@@ -70,7 +70,7 @@ function GoAwaySheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   return (
-    <ConfirmSheet open plain title={t("dt5.away.sheetTitle")} confirmLabel={t("dt5.away.confirm")} pending={go.isPending}
+    <ConfirmSheet pair open plain title={t("dt5.away.sheetTitle")} confirmLabel={t("dt5.away.confirm")} pending={go.isPending}
       onConfirm={() => go.mutate()} onClose={onClose} testId="declutter-go-away">
       <span className="block space-y-3">
         <span className="block">{t("dt5.away.sheetBody")}</span>

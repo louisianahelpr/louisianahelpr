@@ -41,6 +41,8 @@ function readRpc(name: string, body: Record<string, unknown>, s: DeclutterPrevie
     case "declutter_my_offers": return s.offers;
     case "declutter_my_paid_cents": return s.paidCents;
     case "declutter_haul_away_state": return s.haulAway;
+    // Owner 2026-11-20: a sample haul-away row stands for a listing whose seller asked for one.
+    case "declutter_haul_away_opt_ins": return s.haulAway.map((r) => r.item_id);
     case "declutter_my_donations": return s.donations;
     // Manager mode (owner 11-01): no sample order has a manager, so no grants.
     case "declutter_my_manager_grants": return [];

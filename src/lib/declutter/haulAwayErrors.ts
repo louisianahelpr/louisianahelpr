@@ -78,6 +78,11 @@ export const HAUL_AWAY_RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  // Owner 2026-11-20 (20261120152652): the seller's opted-in listings, read by My listings with the state above.
+  declutter_haul_away_opt_ins: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type HaulAwayRpc = keyof typeof HAUL_AWAY_RPC_ERROR_COPY;

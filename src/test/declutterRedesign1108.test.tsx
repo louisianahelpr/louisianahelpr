@@ -7,7 +7,7 @@
  * - Category chips: no icons on the row (M4, 11-16: no "Free" chip; the Free tab is the way in).
  * - StickyActionBar: the buttons render ONCE (inline on a wide screen), never a second copy.
  *
- * @mutate src/components/declutter/DeclutterItemCard.tsx | {item.accepts_trades === true && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>} | {null}
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | {photoTag === "trades" && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>} | {null}
  * @mutate src/components/declutter/DeclutterCategoryChips.tsx |       {chips.map((k) => ( |       <FilterChip pressed={free} onClick={() => onFree?.(!free)} size="tall" className="shrink-0" data-category-chip="free">Free</FilterChip>\n      {chips.map((k) => (
  */
 import { describe, expect, it, vi } from "vitest";
@@ -25,12 +25,16 @@ const item = (extra: Record<string, unknown> = {}) => ({
 
 describe("owner picks 11-08: Declutter redesign", () => {
   it("a card that takes trades wears a 'Trades OK' photo tag in the same style as 'Porch pickup'; one that doesn't, none", () => {
-    const on = render(<MemoryRouter><ItemCard item={item({ accepts_trades: true })} miles={2} approximate={false} /></MemoryRouter>);
+    // Post-merge check 11-20 #11: the photo wears ONE tag, so the trades card has no porch pickup and the porch card is
+    // a second render; the two tags still share the one style.
+    const on = render(<MemoryRouter><ItemCard item={item({ accepts_trades: true, porch_ok: false })} miles={2} approximate={false} /></MemoryRouter>);
     const trades = on.container.querySelector("[data-photo-tags] [data-card-trades]")!;
-    const porch = on.container.querySelector("[data-photo-tags] [data-card-porch]")!;
+    const porchCard = render(<MemoryRouter><ItemCard item={item()} miles={2} approximate={false} /></MemoryRouter>);
+    const porch = porchCard.container.querySelector("[data-photo-tags] [data-card-porch]")!;
     expect(trades.textContent).toBe("Trades OK");
     expect(trades.className).toBe(porch.className);
     on.unmount();
+    porchCard.unmount();
     const off = render(<MemoryRouter><ItemCard item={item()} miles={2} approximate={false} /></MemoryRouter>);
     expect(off.container.querySelector("[data-card-trades]")).toBeNull();
     off.unmount();

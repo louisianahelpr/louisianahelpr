@@ -3,8 +3,12 @@
  * the list offers % off, Pause, Put back on sale and Mark sold for all of them. % off is one server call
  * (declutter_bulk_discount: never below each listing's lowest price); the other three are the one-listing actions run
  * once per ticked listing, each with its own checks and notices, and the toast says how many went through.
+ *
+ * Post-merge check 11-20 (~/.lh-shots/declutter-top5-1120): the tick sits in the row beside the photo (BulkPick takes the
+ * row's link as its child), Pause asks first like % off and Mark sold, and the floating "+ Sell" steps aside while the
+ * bar is up (it covered the bar's right end).
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { DeclutterItem } from "@/lib/declutter/api";
@@ -14,6 +18,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { SectionHeading } from "./DeclutterTabHeads";
 import "@/lib/i18n/enDeclTop5";
@@ -30,13 +35,22 @@ export function useBulkSelect() {
   return { selecting, start: () => setSelecting(true), stop, picked, toggle };
 }
 
-export function BulkPick({ item, picked, onToggle }: { item: DeclutterItem; picked: boolean; onToggle: () => void }) {
-  if (!bulkPickable(item)) return null;
+/**
+ * The row's link with, while selecting, its tick at the left of the photo on the same line (11-20 #3: it sat on a row
+ * of its own above the card). Not selecting, or a listing that can't be ticked: the link alone, as before.
+ */
+export function BulkPick({ item, selecting, picked, onToggle, children }: { item: DeclutterItem; selecting: boolean; picked: boolean; onToggle: () => void; children: ReactNode }) {
+  if (!selecting || !bulkPickable(item)) return <>{children}</>;
   return (
-    // The shared Checkbox; the 44px label row around it is the tap target (checkboxesAreEighteenPx).
-    <label className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center" data-bulk-pick={item.id}>
-      <Checkbox checked={picked} onCheckedChange={onToggle} aria-label={t("dt5.bulk.pick", { title: item.title })} />
-    </label>
+    <div className="-ml-3 flex min-w-0 flex-1 items-center" data-bulk-row={item.id}>
+      {/* The shared Checkbox; the 44px label around it is the tap target (checkboxesAreEighteenPx). A firmer edge than
+          the default so the empty box reads on the dark card (11-20 #3). */}
+      <label className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center" data-bulk-pick={item.id}>
+        <Checkbox checked={picked} onCheckedChange={onToggle} aria-label={t("dt5.bulk.pick", { title: item.title })}
+          className="border-[hsl(var(--foreground)/0.55)]" />
+      </label>
+      {children}
+    </div>
   );
 }
 
@@ -75,7 +89,7 @@ export async function runEach(ids: string[], act: (id: string) => Promise<unknow
 
 export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; picked: Set<string>; onDone: () => void }) {
   const qc = useQueryClient();
-  const [asking, setAsking] = useState<"discount" | "sold" | null>(null);
+  const [asking, setAsking] = useState<"discount" | "sold" | "pause" | null>(null);
   const [pct, setPct] = useState<number>(15);
   const chosen = items.filter((i) => picked.has(i.id) && bulkPickable(i));
   const live = chosen.filter((i) => i.status === "live").map((i) => i.id);
@@ -103,15 +117,16 @@ export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; pic
   const busy = each.isPending || discount.isPending;
   if (chosen.length === 0) return null;
   return (
-    <div className="sticky bottom-2 z-10 space-y-2 rounded-[20px] border border-border bg-card p-3 shadow-sm" role="group" aria-label={t("dt5.bulk.countN", { n: chosen.length })} data-bulk-bar="">
+    <div className="sticky bottom-2 z-10 space-y-2 rounded-[20px] border border-border bg-card p-3 shadow-sm" role="group" aria-label={chosen.length === 1 ? t("dt5.bulk.count1") : t("dt5.bulk.countN", { n: chosen.length })} data-bulk-bar="">
+      <HideSectionCreateFab />
       <p className="text-ds-13 font-semibold">{chosen.length === 1 ? t("dt5.bulk.count1") : t("dt5.bulk.countN", { n: chosen.length })}</p>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setAsking("discount")} data-bulk-action="discount">{t("dt5.bulk.discount")}</Button>
-        {live.length > 0 && <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => each.mutate("pause")} data-bulk-action="pause">{t("dt5.bulk.pause")}</Button>}
+        {live.length > 0 && <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setAsking("pause")} data-bulk-action="pause">{t("dt5.bulk.pause")}</Button>}
         {paused.length > 0 && <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => each.mutate("resume")} data-bulk-action="resume">{t("dt5.bulk.resume")}</Button>}
         <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setAsking("sold")} data-bulk-action="sold">{t("dt5.bulk.sold")}</Button>
       </div>
-      <ConfirmSheet open={asking === "discount"} plain title={t("dt5.bulk.discountTitle", { n: chosen.length })} confirmLabel={t("dt5.bulk.discountConfirm")}
+      <ConfirmSheet open={asking === "discount"} plain title={chosen.length === 1 ? t("dt5.bulk.discountTitle1") : t("dt5.bulk.discountTitle", { n: chosen.length })} confirmLabel={t("dt5.bulk.discountConfirm")}
         pending={discount.isPending} onConfirm={() => discount.mutate()} onClose={() => setAsking(null)} testId="declutter-bulk-discount">
         <span className="block space-y-3">
           <span className="block">{t("dt5.bulk.discountBody")}</span>
@@ -120,9 +135,13 @@ export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; pic
           </span>
         </span>
       </ConfirmSheet>
-      <ConfirmSheet open={asking === "sold"} destructive title={t("dt5.bulk.soldTitle", { n: chosen.length })} confirmLabel={t("dt5.bulk.sold")}
+      <ConfirmSheet open={asking === "sold"} destructive title={chosen.length === 1 ? t("dt5.bulk.soldTitle1") : t("dt5.bulk.soldTitle", { n: chosen.length })} confirmLabel={t("dt5.bulk.sold")}
         pending={each.isPending} onConfirm={() => each.mutate("sold")} onClose={() => setAsking(null)} testId="declutter-bulk-sold">
         {t("dt5.bulk.soldBody")}
+      </ConfirmSheet>
+      <ConfirmSheet open={asking === "pause"} plain title={live.length === 1 ? t("dt5.bulk.pauseTitle1") : t("dt5.bulk.pauseTitle", { n: live.length })}
+        confirmLabel={t("dt5.bulk.pause")} pending={each.isPending} onConfirm={() => each.mutate("pause")} onClose={() => setAsking(null)} testId="declutter-bulk-pause">
+        {t("dt5.bulk.pauseBody")}
       </ConfirmSheet>
     </div>
   );

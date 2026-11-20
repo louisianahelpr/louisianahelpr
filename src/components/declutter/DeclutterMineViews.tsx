@@ -61,7 +61,8 @@ import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffe
 import { FreeAsksToPick, useFreeAsksToPick } from "./FreeAsksToPick";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMyTrades } from "./useMyTrades";
-import { SellingHome } from "./SellingHome";
+import { SellingTodo, SellingWeek } from "./SellingHome";
+import { useSalesToHandOver } from "./useSalesToHandOver";
 import { ShopSaleCard } from "./ShopSaleCard";
 import { AwayCard } from "./AwayMode";
 import "@/lib/i18n/enDeclutter";
@@ -198,6 +199,9 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const freeAsks = useFreeAsksToPick(userId, (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0));
   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks + freeAsks.length;
   const waitingLabel = useWaitingChipLabel();
+  // 11-20 #6: the to-do, the chip and the Sold heading say ONE number of sales to hand over (on-hold sales left out).
+  const handOver = useSalesToHandOver();
+  const hasListings = (mine.data?.length ?? 0) > 0;
   // AUD31-4: a sale to hand over is the seller's next move, so on the whole tab it comes before the offers, the
   // listings and their empty cards (at 375 it sat at the very bottom, behind the floating +).
   // Area 06 M1 (11-18): so do a refund request or report waiting on the seller and a Helpr delivery still to hand to its
@@ -210,13 +214,11 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   </>;
   return (
     <div className="space-y-6">
-      {/* Declutter top 5 #2 (owner 11-19): the Selling home, the to-do list and the week's numbers, on the whole tab only
-          and only for a seller with listings (a first-time seller sees the empty card below, not empty numbers). */}
-      {only === null && (mine.data?.length ?? 0) > 0 && <SellingHome todo={todo} userId={userId} onPick={(g) => toggle(g)} />}
-      {/* Declutter top 5 #4: the shop-wide sale, while something is for sale or a sale is set. */}
-      {only === null && pricedLive && <ShopSaleCard userId={userId} />}
-      {/* Declutter top 5 #5: away mode, for a seller with listings (and always while away, to come back). */}
-      {only === null && (mine.data?.length ?? 0) > 0 && <AwayCard userId={userId} />}
+      {/* Declutter top 5 #2 (owner 11-19): the Selling home's to-dos, on the whole tab only and only for a seller with
+          listings (a first-time seller sees the empty card below, not empty numbers). Post-merge check 11-20 #5: only the
+          to-dos sit up here; the week's numbers, Shop sale and Away mode are below the lists, so a sale to hand over is
+          on the first screen. */}
+      {only === null && hasListings && <SellingTodo todo={todo} handOver={handOver} userId={userId} onPick={(g) => toggle(g)} />}
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
           selected filter beside the pressed one; the header's "Sell an item" button is the section's one add action. */}
       <StatusChips
@@ -229,7 +231,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
           { key: "listings", label: t("decl.mv.listings"), count: listed },
           { key: "waiting", label: waitingLabel, count: todo?.salesAwaitingPayment ?? 0 },
           // F128 (UI audit 11-09): "Hand over" was unclear; these are the sales still to hand to the buyer.
-          { key: "sold", label: t("decl.mv.pickups"), count: todo?.salesOpen ?? 0, hot: true },
+          { key: "sold", label: t("decl.mv.pickups"), count: handOver ?? todo?.salesOpen ?? 0, hot: true },
           // Only while there is one (owner 2026-10-28: chips only for lists that hold something).
           ...(history > 0 ? [{ key: "taken" as const, label: t("decl.mv.history"), count: history }] : []),
         ]}
@@ -247,6 +249,17 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
       {!soldFirst && sold}
       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />}
+      {/* Declutter top 5 (owner 11-19), after the work that waits on the seller (11-20 #5): the week's numbers (#2), the
+          shop-wide sale while something is for sale or a sale is set (#4), and away mode (#5). */}
+      {only === null && hasListings && (
+        <div className="space-y-3" data-shop-tools="">
+          <SellingWeek />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {pricedLive && <ShopSaleCard userId={userId} />}
+            <AwayCard userId={userId} />
+          </div>
+        </div>
+      )}
       {/* Owner 11-08: the one-time "Turn on trades for all your listings?" card, until answered (on the account).
           Audit 11-10 F399: after the to-dos and the lists, so the work that waits on the seller comes first. */}
       {only === null && <DeclutterTradesPrompt userId={userId} />}

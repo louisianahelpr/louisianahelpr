@@ -380,8 +380,9 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-away className="shrink-0 whitespace-nowrap"> | <span data-card-away className="truncate">
     expect(first.querySelector("[data-card-condition]")!.className).toMatch(/\btruncate\b/);
     expect(first.querySelector("[data-card-place]")!.className).not.toMatch(/\btruncate\b/);
-    // Porch pickup is a tag on the photo (owner pick 4), not a text line.
-    expect(first.querySelector("[data-photo-tags] [data-card-porch]")?.textContent).toBe("Porch pickup");
+    // Porch pickup is a tag on the photo (owner pick 4), not a text line. 11-20 #11: the photo wears one tag and a deal
+    // comes first, so it is read on the card with no rule tag (the first card's drop tag depends on the clock).
+    expect(screen.getByText("Cast iron skillet").closest("a")!.querySelector("[data-photo-tags] [data-card-porch]")?.textContent).toBe("Porch pickup");
     // Stars are for people, never an item card (spec v2 §3).
     for (const a of screen.getAllByText(/Oak rocking chair|Brass floor lamp|Cast iron skillet/).map((e) => e.closest("a")!)) {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
@@ -577,7 +578,7 @@ describe("Declutter location ask", () => {
 
   it("DA-16: how you get it (the porch tag) shows at every width; owner 11-14: the condition · distance line shows from lg only", async () => {
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-place="" className="hidden min-w-0 text-ds-11 text-muted-foreground lg:flex" | <span data-card-place="" className="hidden min-w-0 text-ds-11 text-muted-foreground"
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | {item.porch_ok && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>} | {null}
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | {photoTag === "porch" && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>} | {null}
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
       id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,

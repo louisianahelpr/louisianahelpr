@@ -10,6 +10,12 @@
  * jsdom cannot lay out a wrap or measure a shift, so the footer is pinned by its classes and the shifts by what is on
  * screen at each stage of the reads (bones, never the rows that would then move or drop).
  *
+ *   Measured (dev server, prod data for poster-e2e, writes aborted; ~/.lh-shots/declutter-selling-shift-1120): the rest
+ *      of the 0.12-0.13 was the first paid card drawing with no booking and growing 277 -> 568px when it came, moving its
+ *      door tips 31px down. PaidOrdersSection now draws a card-height box per card until bookings, payouts and the open
+ *      problems answer. Selling CLS at 375/390: 0.118/0.136 -> 0.0003 (away off), 0.277/0.292 -> 0.0003 (away on).
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const cardsWait = waitingOnReads \|\| !problemsAnswered; |   const cardsWait = false as boolean;
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!cardsWait && shown.map((o) => ( |       {shown.map((o) => (
  * @mutate src/components/declutter/AwayMode.tsx | <ConfirmSheet pair open plain title={t("dt5.away.sheetTitle")} | <ConfirmSheet open plain title={t("dt5.away.sheetTitle")}
  * @mutate src/components/declutter/ShopSaleCard.tsx | <ConfirmSheet pair open={ending} | <ConfirmSheet open={ending}
  * @mutate src/components/declutter/DeclutterConfirmSheet.tsx |   "grid grid-cols-2 [&>button]:!min-w-0 | "[&>button]:!min-w-0
@@ -153,6 +159,14 @@ describe("VERIFY 11-20: Selling's new sheets and first paint", () => {
     const bones = dash.indexOf("if (mine.isPending || !topSettled) return <DeclutterTabBones />;");
     expect(bones).toBeGreaterThan(-1);
     expect(bones).toBeLessThan(dash.indexOf("<SellingTodo"));
+  });
+
+  it("Medium (load shift): a paid card never draws before its booking, payout and problem reads (bones until then)", () => {
+    const s = code("src/components/declutter/DeclutterHandoverViews.tsx");
+    expect(s).toContain("const cardsWait = waitingOnReads || !problemsAnswered;");
+    expect(s).toContain('{cardsWait && shown.slice(0, 4).map((o) => <div key={o.orderId} className="h-64 rounded-[20px] border border-border bg-card" data-paid-order-bones="" aria-hidden />)}');
+    expect(s).toContain("{!cardsWait && shown.map((o) => (");
+    expect(s.match(/<OrderCard\b/g)?.length).toBe(1);
   });
 
   it("low: the to-do card is the lists' reading column (max-w-3xl), and the bulk bar is the elevated surface", () => {

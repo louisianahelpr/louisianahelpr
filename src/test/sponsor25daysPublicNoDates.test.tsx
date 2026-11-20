@@ -9,7 +9,7 @@
  *
  * @mutate src/components/sponsor/Sections.tsx |             {p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)} |             <span className="lh25-lineup-date">Dec {lineupCount(1)}</span>{p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)}
  * @mutate src/content/sponsorPage.ts | a Louisiana favorite. Entry details coming soon on our Facebook page. | a Louisiana favorite. To enter: share this post and tag 2 friends.
- * @mutate src/content/sponsorPage.ts |         body: "Follow the steps in the official entry post on the Louisiana Helpr Facebook page. Automated or bulk entries are void.", |         body: "Like the post. Limit one entry per person per day.",
+ * @mutate src/content/sponsorPage.ts |         body: "Enter as described in the official giveaway post on the Louisiana Helpr Facebook page. Automated or bulk entries are void.", |         body: "Like the post. Limit one entry per person per day.",
  * @mutate src/content/sponsorPage.ts |           { brand: "David Rabalais", prize: "Toy Magnalite pot" }, |           { brand: "Mary Kay · Crystal Fakier", prize: "Toy Magnalite pot" },
  */
 import { describe, expect, it } from "vitest";

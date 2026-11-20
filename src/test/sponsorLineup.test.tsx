@@ -10,7 +10,7 @@
 // @mutate src/components/sponsor/ClaimSection.tsx |   return Math.max(state.dayCounts[day] ?? 0, lineupCount(day)); |   return state.dayCounts[day] ?? 0;
 // @mutate src/content/sponsorPage.ts | Brands share days, and every partner is featured and tagged on our socials. | More than one brand can share a day, and every sponsor gets their own spotlight post.
 // @mutate src/components/sponsor/ClaimSection.tsx | {C.claim.daysNote} | {null}
-// @mutate src/pages/sponsor/SponsorPage.tsx |           <Lineup /> |           {null}
+// @mutate src/pages/sponsor/SponsorPage.tsx | <HowItWorks />\n          <Lineup /> | <HowItWorks />\n          {null}
 /**
  * 25 Days of Louisiana Giveaways: the final lineup (owner 2026-11-16, "update the page ... you'll need to
  * change like each person will have their own day"; Dec 14 gained The Sculpt Society the same day; 2026-11-15, "We can't really do their own day anymore,

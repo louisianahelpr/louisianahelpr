@@ -14,9 +14,13 @@ import { postedJobIsLive } from "@/components/job-card/activityFilters";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
-const NOW = new Date("2026-11-14T18:00:00Z");
+// The real clock, not a fixed day: postedActivityBucket's "today is live" rule reads todayMs() (src/lib/jobDate.ts), which
+// takes no clock argument, so the fixed NOW of 2026-11-14 put the job day (NOW + 6) on the real today from 2026-11-20 and
+// the job bucketed Needs you (CI #4779 shard 3, 2026-11-20). Every date here is relative to the same NOW.
+const NOW = new Date();
+const inHours = (h: number) => new Date(NOW.getTime() + h * 3600_000).toISOString();
 const open = (over: Record<string, unknown> = {}) => ({
-  status: "open", payment_status: "escrow", date_needed: jobLocalDateISO(6, NOW), start_time: "09:00:00", expires_at: "2026-11-21T00:00:00Z", helper_id: null, ...over,
+  status: "open", payment_status: "escrow", date_needed: jobLocalDateISO(6, NOW), start_time: "09:00:00", expires_at: inHours(7 * 24), helper_id: null, ...over,
 });
 
 describe("F260a: the You tab's Posted tile counts every live post", () => {
@@ -27,7 +31,7 @@ describe("F260a: the You tab's Posted tile counts every live post", () => {
   });
 
   it("an expired listing, a cancelled or finished job stay out, applicants or not", () => {
-    expect(postedJobIsLive(open({ expires_at: "2026-11-14T12:00:00Z" }), 1, NOW)).toBe(false);
+    expect(postedJobIsLive(open({ expires_at: inHours(-6) }), 1, NOW)).toBe(false);
     expect(postedJobIsLive(open({ status: "cancelled" }), 1, NOW)).toBe(false);
     expect(postedJobIsLive(open({ status: "completed" }), 0, NOW)).toBe(false);
   });

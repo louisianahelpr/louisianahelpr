@@ -59,6 +59,7 @@ import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
 import { recordItemView } from "@/lib/declutter/itemViews";
 import { ItemViewsCount } from "./ItemViewsCount";
+import { DemandLine } from "./DemandLine";
 import { oneItemTotalDollars, PriceInclFee } from "./PriceInclFee";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
@@ -330,6 +331,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
               {/* Owner 11-07 (Vinted review): how fresh the listing is; in this grey meta line since design audit 11-17 #17. */}
               {forSale && listedAgo(it.live_at) && <span data-item-listed="">{`${it.area_label || away ? " · " : ""}${listedAgo(it.live_at)}`}</span>}
             </p>
+            {/* Declutter top 5 #3 (owner 11-19): "3 offers this week · 8 people saved this", real counts past a threshold. */}
+            {forSale && <DemandLine itemId={it.id} />}
             {/* Owner 11-11 (F229): a buyer-protection line under a paid price, naming only what the app does: payment in
                 the app, porch pickup where this listing offers it, and 24 hours after the handover to report a problem. */}
             {it.current_price_cents > 0 && !isSeller && (

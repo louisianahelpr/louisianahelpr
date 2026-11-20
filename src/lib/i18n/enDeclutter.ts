@@ -20,6 +20,8 @@ export const enDeclutter = {
   "decl.card.drop": "May drop tonight",
   "decl.card.delivery": "Helpr delivery",
   "decl.card.new": "New",
+  // Declutter top 5 #3 (owner 11-19, 20261120012729): 2+ different buyers made offers this week.
+  "decl.card.demand": "In demand",
   "decl.card.newTitle": "New since you last looked at this search",
   "decl.card.wasPrice": "Price dropped, was ",
   "decl.card.bundle": "Bundle deal",

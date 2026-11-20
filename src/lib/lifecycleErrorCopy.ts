@@ -1697,6 +1697,8 @@ export const RPC_ERROR_COPY = {
   // can refuse with its own codes; managerMode.ts falls back to that RPC's words.
   declutter_manage: {
     account_restricted: DC.account_restricted,
+    // Review 11-19 #3 (20261120015456): a manager lowering a price during the seller's running shop sale.
+    sale_running: DC.sale_running,
     act_as_seller_failed: "That didn't go through, and nothing was changed. Try again.",
     act_as_seller_not_restored: "That didn't go through, and nothing was changed. Try again.",
     area_looks_like_address: DC.area_looks_like_address,
@@ -1944,8 +1946,70 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     under_18: DC.under_18,
   },
+  // Declutter top 5 #1 (owner 11-19, 20261120010630): the seller's offer to the people who saved a listing.
+  declutter_send_saver_offer: {
+    account_restricted: DC.account_restricted,
+    below_your_lowest: DC.below_your_lowest,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_input: "Pick 10, 15 or 20% off, then send.",
+    invalid_offer_amount: "This price is too low to take anything off.",
+    item_not_available: "Only a listing that is for sale now can send an offer.",
+    item_not_found: DC.item_not_found,
+    no_savers: DC.no_savers,
+    not_authenticated: DC.not_authenticated,
+    offer_too_low: "Offers must be at least half the price. Pick a smaller discount.",
+    saver_offer_rate_limited: DC.saver_offer_rate_limited,
+    under_18: DC.under_18,
+  },
+  // Declutter top 5 #4 (20261120014036): the shop-wide sale's two buttons.
+  declutter_start_shop_sale: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_input: "Pick between 5% and 50% off.",
+    shop_sale_dates: DC.shop_sale_dates,
+    not_authenticated: DC.not_authenticated,
+    sale_already_set: DC.sale_already_set,
+    under_18: DC.under_18,
+  },
+  declutter_end_shop_sale: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    sale_not_found: DC.sale_not_found,
+  },
+  // Declutter top 5 #5 (20261120015456): bulk discount and away mode.
+  declutter_bulk_discount: {
+    account_restricted: DC.account_restricted,
+    sale_running: DC.sale_running,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_input: "Pick between 5% and 50% off, for 1 to 100 listings.",
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  declutter_go_away: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    invalid_away_date: DC.invalid_away_date,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
+  declutter_come_back: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    not_away: DC.not_away,
+  },
+  // Declutter top 5 #2 (20261120012050): the Selling home's read, members only.
+  declutter_selling_home: {
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_set_listing_price: {
     account_restricted: DC.account_restricted,
+    sale_running: DC.sale_running,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
     invalid_floor_price: DC.invalid_floor_price,

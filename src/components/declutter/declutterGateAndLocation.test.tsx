@@ -113,6 +113,8 @@ vi.mock("@/lib/declutter/trades", async (orig) => ({
   fetchAcceptsTrades: async () => false,
 }));
 vi.mock("@/lib/declutter/saveCounts", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/saveCounts")>()), fetchSaveCounts: async () => new Map<string, number>() }));
+// Declutter top 5 #3: the item page's "in demand" line reads nothing here.
+vi.mock("@/lib/declutter/demand", async (orig) => ({ ...(await orig<object>()), fetchItemDemand: async () => null }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchHasAgreedSales: async () => false,
   // The Buying / Selling badges (DeclutterHome reads them with the tab row).
@@ -385,7 +387,7 @@ describe("Declutter location ask", () => {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
     }
     // The tag comes from the real rules: the drop plan, or a big item's Helpr delivery; else none.
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx | tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : saveCounts.data?.inDemand?.has(item.id) ? "demand" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
     const tagOf = (t: string) => screen.getByText(t).closest("a")!.querySelector("[data-card-tag]")?.getAttribute("data-card-tag") ?? null;
     // Whether the next chance is tonight depends on the clock (the rule itself: browseFilters.test.ts).
     expect(tagOf("Oak rocking chair")).toBe(dropOutlook(live.items[0] as never, dropStates.i1).tonight ? "drop" : null);

@@ -95,6 +95,12 @@ const MAP_KEY = "helpr.declutterMapVisible";
 // NIGHT-BUYINGrealma-1: the phone's List or Map choice is kept too (it was plain state, so a reload went back to List).
 const PHONE_VIEW_KEY = "helpr.declutterPhoneView";
 
+/** The hearts' numbers and, from the same read, which cards are "In demand" (Declutter top 5 #3, owner 11-19). */
+async function readSaves(ids: string[], mine: Set<string>) {
+  const inDemand = new Set<string>();
+  return { counts: await fetchSaveCounts(ids, inDemand), mine, inDemand };
+}
+
 /** The next DISTANCE_CHOICES step above `miles`; null = "Any distance". */
 function widerMiles(miles: number): number | null {
   return DISTANCE_CHOICES.find((m): m is number => m !== null && m > miles) ?? null;
@@ -364,7 +370,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   const saveCounts = useQuery({
     queryKey: ["declutter", "save-counts", others.map((i) => i.id).join(",")],
     // The viewer's own saves at read time, so a heart tap moves the number at once (shownSaves) without a new read.
-    queryFn: async () => ({ counts: await fetchSaveCounts(others.map((i) => i.id)), mine: new Set(watching.data ?? []) }),
+    // Top 5 #3 (owner 11-19): the same read fills `inDemand` (2+ buyers' offers this week) for the cards' tag.
+    queryFn: () => readSaves(others.map((i) => i.id), new Set(watching.data ?? [])),
     enabled: cardsPainted && others.length > 0,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
@@ -532,7 +539,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
                 <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate}
                   firstRow={index < declutterFirstRowCount(desktop && !mapVisible, window.innerWidth)}
                   aboveFold={index < declutterAboveFoldCount(desktop && !mapVisible, window.innerWidth, window.innerHeight)}
-                  tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
+                  tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : saveCounts.data?.inDemand?.has(item.id) ? "demand" : item.delivery_size !== "small" ? "delivery" : null}
                   bundle={item.seller_id !== userId && (bundles.data?.has(item.seller_id) ?? false)}
                   mine={!!userId && item.seller_id === userId}
                   saves={savesOf(item.id)}

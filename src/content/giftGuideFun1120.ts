@@ -298,6 +298,8 @@ export const FUN_WORDS = {
     { to: "/gift-guides/swipe", title: "Swipe to find gifts", body: "Swipe right to save, left to skip." },
     { to: "/gift-guides/draw-names", title: "Secret Santa drawer", body: "Draw names and text each person their match." },
     { to: "/gift-guides/planner", title: "Gift planner", body: "Who's left, what you bought, and your budget." },
+    // Owner 11-20 12:30 PM landing plan: the fourth tool card (the printables page, #4811).
+    { to: "/gift-guides/printables", title: "Free printables", body: "Gift tags with names, coloring pages and more." },
   ],
   // Countdown + Gift of the Day
   daysLeft: (d: number) => (d === 1 ? "day until Christmas" : "days until Christmas"),
@@ -421,5 +423,4 @@ export const FUN_WORDS = {
   hintSwipe: "Tip: drag a card right to save it, left to skip. Or use the buttons.",
   hintSanta: "Tip: we never ask for emails or phone numbers. You send each link yourself.",
   hintPlanner: "Tip: tap Bought when you get a gift, and we'll add up what you've spent.",
-  hintGotd: "Tip: a new Gift of the Day every day.",
 };

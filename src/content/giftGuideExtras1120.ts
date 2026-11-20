@@ -132,6 +132,8 @@ export const declutterTieInOn = (flags: { on: boolean } = GIFT_GUIDE_FLAGS.declu
 
 export const EXTRAS_WORDS = {
   finderTitle: "Find a gift in 3 taps",
+  // Owner 11-20 12:30 PM landing plan: the big call to action's one line under its title.
+  finderLead: "Pick who it's for, your budget and their vibe. We'll show 6 gifts.",
   finderWho: "Who's it for?",
   finderBudget: "Your budget",
   finderVibe: "Their vibe",

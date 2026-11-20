@@ -61,13 +61,10 @@ export const WISH = {
 
 /** The how-to hints (dismissible, shown once). */
 export const HINTS = {
-  howTitle: "How to use the gift guides",
-  steps: ["Pick a guide or take the quiz.", "Tap ♥ to save a gift to your wish list.", "Share your list, or tap Shop to buy."] as const,
   firstHeart: "Saved to your wish list.",
   firstHeartShort: "Saved ♥",
   seeListShort: "View list",
   seeList: "See my list",
-  quiz: "Answer 3 quick questions and we'll pick 6 gifts for you.",
   budget: "Tap a price to see gifts in your budget.",
   share: "Send your list by text, Messenger or a link. They don't need to sign in.",
   deals: "Deals hide when they expire. Codes copy with a tap.",

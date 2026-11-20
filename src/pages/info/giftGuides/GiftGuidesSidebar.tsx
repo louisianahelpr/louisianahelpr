@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ROWS, STORES, guideBySlug, guidesIn, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { GiftOut } from "./GiftOut";
+import { FUN_WORDS } from "@/content/giftGuideFun1120";
 
 /**
  * Every guide by group (owner's final design 2026-11-18): a 220px sticky menu beside the page on desktop, after it on
@@ -24,9 +25,18 @@ export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogG
       <ul>
         <li><Link to="/gift-guides" {...current(null)} data-gift-side="">{G.allGuidesLabel}</Link></li>
       </ul>
+      {/* Owner 11-20 12:30 PM ("tidier desktop sidebar"): the tools first, then the guide groups, each group's guide
+          count drawn beside its name (a CSS counter of the data attribute, so the name stays the summary's only text). */}
+      <p className="gg-side-h">{FUN_WORDS.toolsTitle}</p>
+      <ul data-gift-side-tools="">
+        {FUN_WORDS.tools.map((t) => (
+          <li key={t.to}><Link to={t.to} data-gift-side-tool={t.to}>{t.title}</Link></li>
+        ))}
+      </ul>
+      <p className="gg-side-h">{G.sideGuidesHead}</p>
       {ROWS.map(({ row, label, tint }) => (
         <details key={row} open={row === active?.row} data-gift-group={row}>
-          <summary><i className={`gg-dot gg-${tint}`} aria-hidden="true" />{label}</summary>
+          <summary><i className={`gg-dot gg-${tint}`} aria-hidden="true" />{label}<span className="gg-side-n" data-n={guidesIn(row).length} aria-hidden="true" /></summary>
           <ul>
             {guidesIn(row).map((g) => (
               <li key={g.slug}>

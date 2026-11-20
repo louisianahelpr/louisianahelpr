@@ -13,8 +13,7 @@ import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
 import { DealsFeature } from "./GiftGuideDeals";
 import { SmallBizFeature } from "./GiftGuideSmallBiz";
 import { GatedBanners, GiftFinder } from "./GiftGuideFinder";
-import { GiftCountdown } from "./fun/GiftCountdown";
-import { HowToStrip } from "./GiftGuideHints";
+import { GiftCountdown, GiftTools } from "./fun/GiftCountdown";
 import { SponsorRow } from "./GiftGuideSponsorRow";
 
 /**
@@ -49,6 +48,8 @@ const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
 const ROWS_BEFORE_TOP = 1;
 /** The first row's covers that load at once (holistic review 11-18 M10); the rest stay lazy. */
 const PRIORITY_COVERS = 4;
+/** A landing group with this many guides or fewer sits beside its small neighbours (owner 11-20 12:30 PM plan). */
+const SMALL_GROUP = 3;
 
 /**
  * The quick-pick chips under the search (holistic review 11-18 M9): the shopper tasks the review timed (a budget,
@@ -173,6 +174,17 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       </section>
     );
   };
+  // Owner 11-20 12:30 PM ("very busy and not well organized"): the other guides are GROUPED. A group of SMALL_GROUP
+  // guides or fewer sits beside its small neighbours (For kids + By budget, By career + Life moments + Pets + Colors)
+  // instead of each taking a whole row; a bigger group keeps its own sideways row. ROWS order is kept.
+  const clusters: (typeof ROWS)[number][][] = [];
+  let lastSmall = false;
+  for (const r of rows.slice(ROWS_BEFORE_TOP)) {
+    const small = rowTiles(r.row).length <= SMALL_GROUP;
+    if (small && lastSmall) clusters[clusters.length - 1].push(r);
+    else clusters.push([r]);
+    lastSmall = small;
+  }
   return (
     <>
       {group && <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>}
@@ -180,7 +192,12 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       {!group && <DealsFeature />}
       {/* Big batch 1120: the Small Business Saturday page, Nov 24 through Nov 29 (Louisiana). */}
       {!group && <SmallBizFeature />}
-      {!group && <HowToStrip />}
+      {/* Owner 11-20 12:30 PM landing plan, in her order: the big "Find a gift in 3 taps" call to action (the gift
+          finder: who, budget, vibe; its answers in the URL), the countdown + Gift of the Day as ONE slim line, ONE
+          quick-filter chip row, Shop by person, the Top 10, ONE row of four tool cards, the grouped other guides, Deals &
+          codes, then the 25 Days sponsors' logo row near the bottom. No how-to box and no tip boxes. */}
+      {!group && <GiftFinder />}
+      {!group && <GiftCountdown />}
       {!group && <QuickPicks />}
       {/* Big batch 1120: the 25 Days banner and the Declutter link, OFF until the lead flips their flags. */}
       {!group && <GatedBanners />}
@@ -188,17 +205,16 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
       <div className="gg-rows" data-gift-rows="">
         {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}
       </div>
-      {/* Train 1120b (owner 11-20 ~8:40 AM, mockup): the 25 Days sponsors' logo row, after the first row, before the Top 10. */}
-      {!group && <SponsorRow />}
       {!group && <TopStrip />}
-      {/* Fun features (owner 2026-11-20): the Christmas countdown, the Gift of the Day and the three fun tools, after the
-          first row and the Top 10 (only the quick picks sit above the first row, holistic review 11-18 M9). */}
-      {!group && <GiftCountdown />}
-      {/* Big batch 1120: the gift finder (who, budget, vibe), its answers in the URL; after the first row and the Top
-          10, so nothing but the quick picks sits above the first row (holistic review 11-18 M9). */}
-      {!group && <GiftFinder />}
-      {!group && <div className="gg-rows" data-gift-rows="">{rows.slice(ROWS_BEFORE_TOP).map(drawRow)}</div>}
+      {!group && <GiftTools />}
+      {!group && (
+        <div className="gg-rows" data-gift-rows="">
+          {clusters.map((c) => (c.length > 1 ? <div key={c[0].row} className="gg-groups" data-gift-groups="">{c.map(drawRow)}</div> : drawRow(c[0])))}
+        </div>
+      )}
       {!group && <DealsAndCodes />}
+      {/* Train 1120b (owner 11-20 ~8:40 AM): the 25 Days sponsors' logo row; near the bottom since the 12:30 PM plan. */}
+      {!group && <SponsorRow />}
       {!group && (
         // Owner 2026-11-18: the 25 Days card. App.tsx has no shopper giveaway page (/25days is the sponsors' page), so
         // it links to the Facebook page the giveaways run on.

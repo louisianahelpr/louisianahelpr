@@ -222,6 +222,8 @@ export const giftGuides = {
   amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",
   allGuidesLabel: "All guides",
   sidebarLabel: "Gift guides",
+  // The tidier sidebar (owner 11-20 12:30 PM): the heading over the guide groups, under the tools.
+  sideGuidesHead: "Guides",
   seeAllLabel: "See all",
   shopLabel: "Shop",
   /** Every item's visible Shop pill (holistic review 11-18 H4): "Shop at Amazon", or plain "Shop" with no store name. */

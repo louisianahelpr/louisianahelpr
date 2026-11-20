@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-20T21:44:27.283Z",
-  "guards": 4306,
-  "registered": 4306,
+  "generated": "2026-11-20T22:42:47.752Z",
+  "guards": 4308,
+  "registered": 4308,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",

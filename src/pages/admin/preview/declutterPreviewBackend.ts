@@ -46,6 +46,15 @@ function readRpc(name: string, body: Record<string, unknown>, s: DeclutterPrevie
     case "declutter_my_manager_grants": return [];
     // Item views (owner request 11-05): the sample listings have no views yet, so Selling draws no "N views".
     case "declutter_my_item_view_counts": return [];
+    // Declutter top 5 #1: the sample listings have no saves yet, so Selling draws no "N people saved this".
+    case "declutter_item_save_counts": return [];
+    case "declutter_item_demand": return [];
+    // Declutter top 5 #2: the Selling home with nothing in the two weeks (the samples carry no dated history), so it
+    // draws only the to-dos the sample's own offers and sales give it.
+    case "declutter_selling_home": {
+      const week = { sales: 0, earnings_cents: 0, views: 0, saves: 0 };
+      return { week, last_week: week, todo: { to_relist: 0, price_drops: 0, savers_to_offer: 0 }, live_count: s.items.filter((i) => (i as { status?: string }).status === "live").length, live_value_cents: 0 };
+    }
     // Refund to-dos (F363, owner 11-11: the Buying Needs you group reads the Home To-do rows, refunds included): none in the samples.
     case "declutter_my_refund_todos": return [];
     // The setup fee (declutter_my_setup_fee, 20261111212343): the sample sellers owe none, so no card names a sale for it.
@@ -80,6 +89,12 @@ function tableRows(table: string, s: DeclutterPreviewSample): unknown[] | undefi
     case "gift_cards": return [];
     // Owner 11-08 trades card: no sample seller has saved listing defaults (or answered the card), so the app's defaults.
     case "declutter_seller_defaults": return [];
+    // Declutter top 5 #4: no sample seller has a shop sale set.
+    case "declutter_shop_sales": return [];
+    // Declutter top 5 #5: no sample seller is away.
+    case "declutter_seller_away": return [];
+    // Declutter top 5 #1 (owner 11-19): no sample seller has sent an offer to savers yet.
+    case "declutter_saver_offer_sends": return [];
     default: return undefined;
   }
 }

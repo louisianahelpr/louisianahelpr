@@ -173,6 +173,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   helpr_task_cant_finish: "alerts", // 20261031231150 (BUY-36): a test task's or member's report reaches no admin; the report itself still works
   helpr_task_seller_return_answer: "alerts", // 20261031231150 (BUY-36): a test seller's "it didn't come back" reaches no admin; the problem still opens
   declutter_price_nudge_sweep: "alerts", // 20261030141656: a test listing or seller never gets the nudge
+  declutter_item_demand: "hides", // 20261120012729 (Declutter top 5 #3): a test listing shows no demand to a member while test data is hidden, and test accounts' offers and views are never counted; display only
+  declutter_send_saver_offer: "hides", // 20261120010630 (Declutter top 5 #1): a test listing's or test seller's offer reaches only test savers; no money moves here
   identity_notify_posters_before_start: "alerts", // 20261031221530 (B49 051341 rebuilt): a seed job or a test poster or Helpr never gets the ID notice
   declutter_refund_cancels_setup_jobs: "alerts",
   declutter_refund_gave_up_check: "alerts",

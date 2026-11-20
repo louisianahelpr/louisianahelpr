@@ -32,6 +32,11 @@ const LOGOS = join(REPO, "public/gift-guides/small-biz");
 
 /** Logo use declined (FOLLOWUP item 64): the card shows the name only. */
 const NO_LOGO = new Set(["sprinkle-in-time-too"]);
+/**
+ * Words the page says differently: the AllWays Lounge's street ("St. Claude Ave.") reads as the Marigny, since no
+ * member-facing text may say "Claude" (src/test/noClaudeInMemberCopy.test.ts).
+ */
+const REWORD = [[/\bon St\. Claude Ave(nue|\.)?/g, "in the Marigny"], [/\bSt\. Claude\b/g, "Marigny"]];
 /** Signed up after the file was made (owner's inbox 11-19 PM, 9:01 and 9:26 PM). */
 const ADDED = [
   {
@@ -46,21 +51,43 @@ const ADDED = [
   },
 ];
 
-/** One pass of the clean-up below. */
-const cleanOnce = (s) => s
-  .replace(/\s*\([^)]*(giveaway|winner|prize|\$|confirm|verified|tracker)[^)]*\)/gi, "")
-  .replace(/[^.;]*\b(giveaway|winner|prize)\b[^.;]*[.;]?/gi, "")
-  .replace(/\s*(from|starting at|only)?\s*\$\s?\d[\d,.]*(\s*(and|-|to)\s*up)?/gi, "")
-  .replace(/\s{2,}/g, " ").replace(/\s+([.,;:])/g, "$1").replace(/^[\s,;:-]+|[\s,;:-]+$/g, "").trim();
+/** Words a shopper must not read on this page (FOLLOWUP item 64: never a giveaway day or prize). */
+const HIDDEN_WORDS = /\b(giveaway|winner|prize)\b/i;
+/** An aside the lead's research left in the text (a price, a check note, a giveaway pairing). */
+const NOTE_WORDS = /giveaway|winner|prize|\$|confirm|verified|tracker/i;
+/** Only letters, numbers, spaces and plain punctuation reach the page (an allowlist: no markup can survive). */
+const ALLOWED = /[^\p{L}\p{N}\s.,'’&!?()\-–—:;/#+%$]/gu;
+
 /**
- * Text a shopper may read: no giveaway words, no price, no day, tidy spaces. Repeated until nothing changes, so a
- * removal that joins two pieces into a new match is removed too (CodeQL: incomplete multi-character sanitization).
+ * Text a shopper may read: kept to ALLOWED characters, then every "(...)" aside that holds a price or a research note
+ * is dropped, every sentence naming a giveaway is dropped, and any "$" price left is dropped; spaces tidied. A scan,
+ * not a pattern strip, so nothing can re-form after a removal.
  */
 export const cleanText = (s) => {
-  let prev;
-  let out = String(s ?? "");
-  for (let i = 0; i < 20 && out !== prev; i++) { prev = out; out = cleanOnce(out); }
-  return out;
+  const text = String(s ?? "").replace(ALLOWED, " ");
+  // Asides: one scan over the parentheses.
+  let out = "";
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "(") {
+      const close = text.indexOf(")", i);
+      if (close !== -1 && NOTE_WORDS.test(text.slice(i + 1, close))) {
+        i = close;
+        continue;
+      }
+    }
+    out += text[i];
+  }
+  // Sentences naming a giveaway; then each word holding a "$" (a price), with a "from"/"only"/"at" just before it.
+  const sentences = out.split(/(?<=[.;])\s+/).filter((x) => !HIDDEN_WORDS.test(x));
+  const kept = [];
+  for (const w of sentences.join(" ").split(/\s+/)) {
+    if (w.includes("$")) {
+      if (kept.length && /^(from|only|at)$/i.test(kept[kept.length - 1])) kept.pop();
+      continue;
+    }
+    kept.push(w);
+  }
+  return kept.join(" ").replace(/\s+([.,;:])/g, "$1").replace(/^[\s,;:-]+|[\s,;:-]+$/g, "").trim();
 };
 
 const https = (u) => (typeof u === "string" && /^https:\/\//.test(u) ? u : undefined);
@@ -94,7 +121,7 @@ for (const b of rows) {
   }
   cards.push({
     slug: b.slug, name: b.name, town: cleanText(b.town), category: b.category,
-    description: cleanText(b.description), gift: cleanText(b.best_gift),
+    description: REWORD.reduce((t, [re, to]) => t.replace(re, to), cleanText(b.description)), gift: REWORD.reduce((t, [re, to]) => t.replace(re, to), cleanText(b.best_gift)),
     ...(website || facebook || instagram ? { href: website ?? facebook ?? instagram } : {}),
     ...(website ? { website } : {}), ...(facebook ? { facebook } : {}), ...(instagram ? { instagram } : {}),
     ...(logo ? { logo } : {}), ships: shipsOf(b.shipping),

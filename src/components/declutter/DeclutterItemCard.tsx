@@ -56,10 +56,10 @@ function savesWord(n: number | null | undefined): string | null {
  * or "New" (BUY-53: opened from a saved search, it went live after the member
  * last looked, the same rule as the search's "N new" count).
  */
-export type CardTag = "drop" | "delivery" | "new";
+export type CardTag = "drop" | "delivery" | "new" | "demand";
 
 // F260q (owner 11-11): the card's words come from the dictionary (enDeclutter.ts / esDeclutter.ts).
-const TAG_WORDS: Record<CardTag, MsgKey> = { drop: "decl.card.drop", delivery: "decl.card.delivery", new: "decl.card.new" };
+const TAG_WORDS: Record<CardTag, MsgKey> = { drop: "decl.card.drop", delivery: "decl.card.delivery", new: "decl.card.new", demand: "decl.card.demand" };
 
 /** The first row's photo is usually the page's largest paint: it does not wait for the browser's lazy-load check. */
 const FIRST_ROW_PHOTO: Record<string, string> = { loading: "eager", fetchpriority: "high" };

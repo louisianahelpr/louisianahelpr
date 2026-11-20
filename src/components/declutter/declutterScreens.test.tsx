@@ -150,6 +150,8 @@ vi.mock("@/lib/declutter/trades", async (orig) => ({
   fetchMyTrades: async () => [],
 }));
 vi.mock("@/lib/declutter/sellerBadges", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/sellerBadges")>()), fetchOnTimeHandovers: async () => null, fetchActiveBand: async () => null }));
+// Declutter top 5 #3: the item page's "in demand" line reads nothing here.
+vi.mock("@/lib/declutter/demand", async (orig) => ({ ...(await orig<object>()), fetchItemDemand: async () => null }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMapPins: async () => new Map(),

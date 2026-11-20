@@ -7,7 +7,7 @@
  * @mutate src/lib/savedSearches.ts |     if (since) p.set("new", since); |     if (since) p.delete("new");
  * @mutate src/lib/declutter/browseFilters.ts |   return !!item.live_at && Date.parse(item.live_at) > since; |   return !!item.live_at && Date.parse(item.live_at) < since;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook | tag={false ? "new" : outlook
- * @mutate src/components/declutter/DeclutterItemCard.tsx | new: "decl.card.new" }; | new: "decl.card.delivery" };
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | new: "decl.card.new", demand: "decl.card.demand" }; | new: "decl.card.delivery", demand: "decl.card.demand" };
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";

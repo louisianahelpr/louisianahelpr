@@ -56,7 +56,7 @@ function SmallBizCard({ b }: { b: SmallBiz }) {
   return (
     <li className="gg-sb" data-gift-sb={b.slug}>
       <span className="gg-sb-logo">
-        {b.logo && logoOk ? <img src={b.logo} alt="" width={72} height={72} loading="lazy" decoding="async" onError={() => setLogoOk(false)} /> : <b aria-hidden="true">{b.name}</b>}
+        {b.logo && logoOk ? <img loading="lazy" decoding="async" src={b.logo} alt="" width={72} height={72} onError={() => setLogoOk(false)} /> : <b aria-hidden="true">{b.name}</b>}
       </span>
       <span className="gg-sb-body">
         <p className="gg-sb-name">{b.name}</p>

@@ -507,6 +507,28 @@ export function isArchived(
 
 
 /**
+ * A cleared thread's unread messages TO this member are marked read, the same
+ * `messages.update({ read: true })` the chat view sends on open (RLS lets a
+ * receiver flip only `read` on their own rows). Without it the iPhone app badge
+ * (send-push-notification counts unread rows server-side) kept counting
+ * messages the member had deleted for themselves. Zero rows is legitimate (no
+ * unread); an error is reported and the clear itself stands.
+ */
+async function markClearedRead(userId: string, jobId: string, otherUserId: string | null, upTo: string): Promise<void> {
+  const base = supabase
+    .from("messages")
+    .update({ read: true })
+    .eq("receiver_id", userId)
+    .eq("job_id", jobId)
+    .eq("read", false)
+    .lte("created_at", upTo);
+  // Q335: a deleted account's rows have sender_id NULL; `.eq(col, null)` would match nothing.
+  const scoped = otherUserId === null ? base.is("sender_id", null).not("is_system", "is", true) : base.eq("sender_id", otherUserId);
+  const { error } = await scoped.select("id");
+  if (error) report(error, { severity: "warning", tags: { source: "archivedConversations.markClearedRead" } });
+}
+
+/**
  * "Delete for me": take a conversation off THIS member's list. Nothing is
  * deleted on the server: the member's own thread_archives row gets
  * cleared_before = now (and archived_at = now, so it hides at once). Every
@@ -541,7 +563,10 @@ export async function deleteConversationForMe(
     { user_id: userId, job_id: jobId, other_user_id: otherUserId, archived_at: now, cleared_before: now },
     { onConflict: "user_id,job_id,other_user_id" },
   );
-  if (!error) return true;
+  if (!error) {
+    await markClearedRead(userId, jobId, otherUserId, now);
+    return true;
+  }
   const rollArchive = { ...getArchiveMap(userId) };
   if (prevArchive) rollArchive[key] = prevArchive;
   else delete rollArchive[key];

@@ -25,6 +25,7 @@
  * @mutate src/content/giftGuideFun1120.ts |   for (const p of [...pool.filter(fits), ...pool.filter(unknown)]) { |   for (const p of pool.filter(fits)) {
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto} | .gg-plan-budget{flex:none}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | display:grid;grid-template-columns:minmax(0,1fr);gap:8px} | display:grid;gap:8px}
+ * @mutate src/pages/info/giftGuides/fun/SecretSanta.tsx |  onChange={() => setError(null)} | 
  * @mutate src/pages/info/giftGuides/fun/GiftCountdown.tsx |   return to ? `/gift-guides/${to}` : `/gift-guides#${GOTD_ID}`; |   return `/gift-guides#${GOTD_ID}`;
  * @mutate supabase/migrations/20261120062334_gift_guide_secret_santa_planner.sql |      AND me.token_hash = encode(sha256(convert_to(p_token, 'UTF8')), 'hex')\n     AND g.expires_at > now()\n$fn$; |      AND g.expires_at > now()\n$fn$;
  */

@@ -62,11 +62,11 @@ describe("first run (board 53) and the short tour", () => {
     for (const [picks, open, text] of CASES) expect(tourSteps(picks, open).find((s) => s.target === "create")?.text, picks.join("+")).toBe(text);
   });
 
-  it("picks only reorder Home: putFirst puts them first and keeps the rest in order", () => {
+  it("the pick puts its section first on Home (putFirst keeps the rest in order), then goes straight to its action", () => {
     const prefs = read("components/sections/useSectionPrefs.ts");
     expect(prefs).toContain("order: [...first, ...prefs.order.filter((k) => !first.includes(k))]");
     const src = read("components/firstRun/FirstRun.tsx");
-    expect(src).toContain("putFirst(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));");
+    expect(src).toMatch(/putFirst\(\[o\.section\]\);[\s\S]*?onDone\(\);\s*navigate\(o\.to\);/);
     expect(src).not.toMatch(/setHidden|--burnt-sienna|--accent|--money/);
   });
 

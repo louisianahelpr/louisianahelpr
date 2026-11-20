@@ -2,7 +2,7 @@
  * Branded short links (owner 11-18: "Yes, build go links. All of our links should be this way."):
  * https://www.louisianahelpr.com/go/<slug> answers a 302 to one affiliate link from the committed map
  * (src/content/goLinks.json, mirrored to src/content/goLinks.mjs for the server), so a shared link shows our
- * domain instead of go.shopmy.us, mavely.app.link or awin1.com. Read by api/go.ts and scripts/go-links.mjs.
+ * domain instead of go.shopmy.us or mavely.app.link. Read by api/go.ts and scripts/go-links.mjs.
  *
  * AMAZON NEVER GOES THROUGH /go/. The Amazon Associates Operating Agreement does not allow an Associate link
  * to be cloaked behind a redirect on your own domain, so amazon.com / amzn.to / any Amazon host is refused here,
@@ -21,7 +21,6 @@ export const GO_LINK_HOSTS = Object.freeze([
   "www.kqzyfj.com",
   "www.jdoqocy.com",
   "www.dpbolvw.net",
-  "www.awin1.com",
   "click.linksynergy.com",
   "go.shopmy.us",
   // Sam's Club Creator membership links (gift guides, owner 11-19).

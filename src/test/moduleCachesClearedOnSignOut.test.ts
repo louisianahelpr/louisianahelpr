@@ -80,6 +80,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/identityCheck.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the one Identity sheet's open/closed state (IdentityCheckHost); the state is a reason string, nothing about the account" },
   "src/components/mobileNav/useSectionTabs.ts:shownComingSoon": { kind: "not-user-data", why: "toast ids of the 'X is coming soon' notices shown (one per switched-off section label), dismissed and cleared on the next route change; section names, nothing about the account" },
   "src/lib/archivedConversations.ts:cache": { kind: "keyed-by-user-id" },
+  "src/lib/clearedConversations.ts:clearCache": { kind: "keyed-by-user-id" },
   "src/lib/userBlocks.ts:blockReads": { kind: "keyed-by-user-id" },
   "src/lib/userRealtimeBus.ts:buses": { kind: "keyed-by-user-id" },
   "src/hooks/useCurrentUser.ts:orphanedProfileReads": { kind: "keyed-by-user-id" },

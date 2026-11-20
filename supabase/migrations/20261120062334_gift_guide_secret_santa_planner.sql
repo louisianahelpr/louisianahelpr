@@ -1,7 +1,7 @@
 -- Gift guides, fun features (owner approved 2026-11-20 in a pop-up): the Secret Santa drawer and the gift planner's
 -- account copy.
 --
--- 1. SECRET SANTA (/gift-guides/secret-santa). An organizer types first names (3 to 30), optionally a budget, an
+-- 1. SECRET SANTA (/gift-guides/draw-names). An organizer types first names (3 to 30), optionally a budget, an
 --    exchange day and "can't draw" pairs (spouses). The BROWSER draws the matches (src/lib/giftGuides/secretSanta.ts,
 --    a backtracking draw, so a group that has a valid draw always gets one); secret_santa_create CHECKS the draw here
 --    (each person gives to exactly one other person, nobody draws themselves, no "can't draw" pair is matched either
@@ -13,9 +13,16 @@
 --    (no other pair, no list of names) is ever returned. secret_santa_set_wish_list lets a person attach their own
 --    wish list code (made by gift_wish_list_save, 20261120062130) through their own token.
 --    No email, phone or account is collected; names never appear in a URL (only the random code and token do).
---    Rate limit: 10 groups per network address per hour and 300 per hour overall (secret_santa_hits keeps only an
---    md5 of the address and the day, pruned after a day). Groups delete themselves after Jan 15 (expires_at, the
---    secret-santa-expire job hourly). A group made by a signed-in test or seed account is is_seed.
+--    Rate limit (security review of #4791, items 3 and 5): 10 groups per network address in any rolling hour; an
+--    IPv6 address counts by its /64 (one host holds a whole /64). secret_santa_hits keeps only an md5 of the address,
+--    pruned after a day. There is no low global refusal (a few abusers could switch it off for every family): past
+--    1000 groups in an hour one error_logs warning is written per hour, and only past 20000 in an hour (a storage
+--    brake, far above any real season) is a new group refused.
+--    Names (item 4): invisible and direction-changing characters are stripped; a name that looks like a link, an
+--    email or a phone number (7+ digits) is refused; at most 30 characters. Budget at most $500.
+--    Groups delete themselves (item 7) at the later of Jan 15 and the exchange day + 30 days, never more than 90 days
+--    after the group was made (expires_at, the secret-santa-expire job hourly). A group made by a signed-in test or
+--    seed account is is_seed.
 -- 2. GIFT PLANNER (/gift-guides/planner): the planner lives on the device (localStorage); signed in, it is also kept
 --    on the account in public.gift_planner_plans (one jsonb row per member, read and written by the member only,
 --    through RLS). It holds what the member typed (people's first names, budgets, ideas, bought marks).
@@ -31,7 +38,7 @@
 -- ── 1. Secret Santa ────────────────────────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.secret_santa_groups (
   code text PRIMARY KEY CHECK (code ~ '^[a-f0-9]{10}$'),
-  budget integer CHECK (budget IS NULL OR budget BETWEEN 1 AND 10000),
+  budget integer CHECK (budget IS NULL OR budget BETWEEN 1 AND 500),
   exchange_on date,
   size smallint NOT NULL CHECK (size BETWEEN 3 AND 30),
   is_seed boolean NOT NULL DEFAULT false,
@@ -45,7 +52,10 @@ COMMENT ON TABLE public.secret_santa_groups IS
 CREATE TABLE IF NOT EXISTS public.secret_santa_people (
   group_code text NOT NULL REFERENCES public.secret_santa_groups(code) ON DELETE CASCADE,
   slot smallint NOT NULL CHECK (slot BETWEEN 0 AND 29),
-  name text NOT NULL CHECK (length(btrim(name)) BETWEEN 1 AND 40 AND name !~ '[[:cntrl:]]'),
+  name text NOT NULL CHECK (length(btrim(name)) BETWEEN 1 AND 30 AND name !~ '[[:cntrl:]]'
+    AND name !~ '[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]'
+    AND name !~* '(://|www\.|@|[a-z0-9-]+\.(com|net|org|ly|io|co|us|info|biz|me|app|link|xyz|gg|tv|site|online|shop)(\M|/))'
+    AND length(regexp_replace(name, '[^0-9]', '', 'g')) < 7),
   token_hash text NOT NULL UNIQUE CHECK (token_hash ~ '^[0-9a-f]{64}$'),
   gives_to smallint NOT NULL CHECK (gives_to BETWEEN 0 AND 29 AND gives_to <> slot),
   wish_list_code text CHECK (wish_list_code IS NULL OR wish_list_code ~ '^[a-z0-9]{10}$'),
@@ -98,6 +108,7 @@ DECLARE
   v_headers jsonb;
   v_addr text;
   v_bucket text;
+  v_hour_total integer;
   v_year integer;
   v_expires timestamptz;
   v_today date := (now() AT TIME ZONE 'America/Chicago')::date;
@@ -111,21 +122,43 @@ BEGIN
     v_headers := NULL;  -- no headers (a direct SQL call): the address bucket is 'no-address'
   END;
   v_addr := nullif(btrim(reverse(split_part(reverse(COALESCE(v_headers->>'x-forwarded-for', '')), ',', 1))), '');
-  v_bucket := md5('secret-santa:' || COALESCE(v_addr, 'no-address') || ':' || v_today::text);
+  -- An IPv6 address counts by its /64; anything that is not an address counts as written.
+  IF v_addr LIKE '%:%' THEN
+    BEGIN
+      v_addr := host(network(set_masklen(v_addr::inet, 64))) || '/64';
+    EXCEPTION WHEN others THEN
+      v_addr := v_addr;  -- not a valid address: its own bucket
+    END;
+  END IF;
+  -- The address alone (no date), so the hour is a rolling hour, never reset at midnight.
+  v_bucket := md5('secret-santa:' || COALESCE(v_addr, 'no-address'));
   DELETE FROM public.secret_santa_hits WHERE hit_at < now() - interval '1 day';
+  SELECT count(*) INTO v_hour_total FROM public.secret_santa_hits WHERE hit_at > now() - interval '1 hour';
   IF (SELECT count(*) FROM public.secret_santa_hits WHERE bucket = v_bucket AND hit_at > now() - interval '1 hour') >= 10
-     OR (SELECT count(*) FROM public.secret_santa_hits WHERE hit_at > now() - interval '1 hour') >= 300 THEN
+     OR v_hour_total >= 20000 THEN
     RAISE EXCEPTION 'rate_limited' USING ERRCODE = 'P0001';
+  END IF;
+  -- A surge: one warning per hour for the team, and the draw still goes ahead.
+  IF v_hour_total >= 1000 AND NOT EXISTS (
+       SELECT 1 FROM public.error_logs e
+        WHERE e.created_at > now() - interval '1 hour' AND e.tags->>'kind' = 'secret-santa-surge') THEN
+    INSERT INTO public.error_logs (severity, message, tags, context)
+    VALUES ('warning', format('Secret Santa: %s groups drawn in the last hour', v_hour_total),
+            jsonb_build_object('source', 'secret-santa', 'kind', 'secret-santa-surge'),
+            jsonb_build_object('hour_total', v_hour_total));
   END IF;
   INSERT INTO public.secret_santa_hits (bucket) VALUES (v_bucket);
 
-  -- The names: 3 to 30, each 1 to 40 characters once trimmed, no two the same (ignoring case).
+  -- The names: 3 to 30 people, each 1 to 30 characters once invisible and direction-changing characters are stripped
+  -- and the ends trimmed; never a link, an email or a phone number; no two the same (ignoring case).
   IF v_n < 3 OR v_n > 30 THEN
     RAISE EXCEPTION 'bad_group_size' USING ERRCODE = '22023';
   END IF;
   FOR i IN 1..v_n LOOP
-    v_name := btrim(COALESCE(p_names[i], ''));
-    IF length(v_name) < 1 OR length(v_name) > 40 OR v_name ~ '[[:cntrl:]]' THEN
+    v_name := btrim(regexp_replace(COALESCE(p_names[i], ''), '[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]', '', 'g'));
+    IF length(v_name) < 1 OR length(v_name) > 30 OR v_name ~ '[[:cntrl:]]'
+       OR v_name ~* '(://|www\.|@|[a-z0-9-]+\.(com|net|org|ly|io|co|us|info|biz|me|app|link|xyz|gg|tv|site|online|shop)(\M|/))'
+       OR length(regexp_replace(v_name, '[^0-9]', '', 'g')) >= 7 THEN
       RAISE EXCEPTION 'bad_name' USING ERRCODE = '22023';
     END IF;
     IF lower(v_name) = ANY (SELECT lower(x) FROM unnest(v_names) x) THEN
@@ -165,18 +198,24 @@ BEGIN
   END LOOP;
 
   -- Budget and day.
-  IF p_budget IS NOT NULL AND (p_budget < 1 OR p_budget > 10000) THEN
+  IF p_budget IS NOT NULL AND (p_budget < 1 OR p_budget > 500) THEN
     RAISE EXCEPTION 'bad_budget' USING ERRCODE = '22023';
   END IF;
-  -- Kept until after Jan 15 (Louisiana): the coming Jan 16 at midnight.
+  -- The exchange day: today or later, within the 90 days a group can live.
+  IF p_exchange_on IS NOT NULL AND (p_exchange_on < v_today OR p_exchange_on > v_today + 89) THEN
+    RAISE EXCEPTION 'bad_date' USING ERRCODE = '22023';
+  END IF;
+  -- Kept until the later of Jan 15 (the coming Jan 16 at midnight, Louisiana) and the exchange day + 30 days, but
+  -- never more than 90 days after it is made.
   v_year := extract(year FROM v_today)::integer;
   v_expires := make_timestamptz(v_year, 1, 16, 0, 0, 0, 'America/Chicago');
   IF v_expires <= now() THEN
     v_expires := make_timestamptz(v_year + 1, 1, 16, 0, 0, 0, 'America/Chicago');
   END IF;
-  IF p_exchange_on IS NOT NULL AND (p_exchange_on < v_today OR p_exchange_on >= (v_expires AT TIME ZONE 'America/Chicago')::date) THEN
-    RAISE EXCEPTION 'bad_date' USING ERRCODE = '22023';
+  IF p_exchange_on IS NOT NULL THEN
+    v_expires := greatest(v_expires, ((p_exchange_on + 31)::timestamp AT TIME ZONE 'America/Chicago'));
   END IF;
+  v_expires := least(v_expires, now() + interval '90 days');
 
   -- Store: a random code (retried on the rare clash) and a random 64-hex token per person (two v4 UUIDs, 244 random
   -- bits from the server's strong random source); only each token's SHA-256 is kept.

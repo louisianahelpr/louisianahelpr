@@ -1,40 +1,75 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { EMPTY_PLAN, PLAN_MAX_IDEAS, PLAN_MAX_PEOPLE, cleanPlan, type GiftPlan, type PlanIdea, type PlanPerson } from "@/content/giftGuideFun1120";
 import { loadAccountPlan, saveAccountPlan } from "@/lib/giftGuideFunApi";
+import { PLANNER_KEY, onPlannerCleared } from "@/lib/giftPlannerDevice";
 
 /**
  * The gift planner's store (owner 2026-11-20): kept on this device (localStorage "lh-gift-planner", every read and
  * write in try/catch: blocked storage means a planner that lasts the visit) and, signed in, on the account
- * (gift_planner_plans, own row by RLS). On sign-in the newer of the two wins (updatedAt); after that every change is
- * saved to the account a moment later. Private: nothing here is ever shared.
+ * (gift_planner_plans, own row by RLS). Private: nothing here is ever shared.
+ *
+ * Shared devices (security review of #4791, item 1): the device copy carries the id of the account it belongs to
+ * (`ownerId`; null = made signed out). A copy that belongs to another account is never shown and never uploaded: the
+ * next person sees an empty planner, and on sign-in only a signed-out draft or the same account's copy is merged (the
+ * newer of it and the account's wins). Sign-out removes the device copy altogether (clearPlannerDevice, called by
+ * src/lib/authSignOut.ts).
  */
-const KEY = "lh-gift-planner";
-let memory: GiftPlan = EMPTY_PLAN;
+interface DeviceCopy { ownerId: string | null; plan: GiftPlan }
+const NOBODY: DeviceCopy = { ownerId: null, plan: EMPTY_PLAN };
+let stored: DeviceCopy = NOBODY;
 let loaded = false;
+/** Who is looking: an account id, null when signed out, undefined until sign-in state is known. */
+let viewer: string | null | undefined;
 const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((l) => l());
 
-function read(): GiftPlan {
-  if (loaded) return memory;
+function readCopy(): DeviceCopy {
+  if (loaded) return stored;
   loaded = true;
   try {
-    const raw = window.localStorage.getItem(KEY);
-    memory = raw ? cleanPlan(JSON.parse(raw)) : EMPTY_PLAN;
+    const raw = window.localStorage.getItem(PLANNER_KEY);
+    const v = raw ? (JSON.parse(raw) as { ownerId?: unknown; plan?: unknown; people?: unknown }) : null;
+    if (!v || typeof v !== "object") stored = NOBODY;
+    // A copy saved before owner tags: no owner known, so it counts as a signed-out draft.
+    else if ("people" in v) stored = { ownerId: null, plan: cleanPlan(v) };
+    else stored = { ownerId: typeof v.ownerId === "string" ? v.ownerId : null, plan: cleanPlan(v.plan) };
   } catch {
     // Storage blocked or the saved value is not ours: an empty planner for this visit.
-    memory = EMPTY_PLAN;
+    stored = NOBODY;
   }
-  return memory;
+  return stored;
 }
 
-function write(next: GiftPlan, stamp = true) {
-  memory = stamp ? { ...next, updatedAt: Date.now() } : next;
+/** Whether this copy may be shown to (and merged into) this viewer: a signed-out draft, or the viewer's own. */
+export const copyBelongsTo = (ownerId: string | null, who: string | null) => ownerId === null || ownerId === who;
+
+/** The plan the viewer may see: nothing until sign-in state is known, nothing that belongs to someone else. */
+function read(): GiftPlan {
+  const c = readCopy();
+  if (viewer === undefined || !copyBelongsTo(c.ownerId, viewer)) return EMPTY_PLAN;
+  return c.plan;
+}
+
+function save(next: DeviceCopy) {
+  stored = next;
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(memory));
+    window.localStorage.setItem(PLANNER_KEY, JSON.stringify(next));
   } catch {
     // Storage blocked (private window, full): the planner still works for this visit, in memory.
   }
-  listeners.forEach((l) => l());
+  notify();
 }
+
+/** A change made by the viewer: stamped, and tagged as theirs. */
+function write(next: GiftPlan) {
+  save({ ownerId: viewer ?? null, plan: { ...next, updatedAt: Date.now() } });
+}
+
+onPlannerCleared(() => {
+  stored = NOBODY;
+  loaded = true;
+  notify();
+});
 
 const subscribe = (l: () => void) => {
   listeners.add(l);
@@ -45,6 +80,19 @@ const subscribe = (l: () => void) => {
 
 export const usePlan = (): GiftPlan => useSyncExternalStore(subscribe, read, () => EMPTY_PLAN);
 
+/** Set who is looking (the page calls it from the auth state). */
+export function setPlanViewer(who: string | null | undefined) {
+  if (viewer === who) return;
+  viewer = who;
+  notify();
+}
+
+/** For tests: forget the in-memory copy and the viewer. */
+export const resetPlanStoreForTests = () => {
+  stored = NOBODY;
+  loaded = false;
+  viewer = undefined;
+};
 
 /** A short random id for a person or an idea (only ever inside the planner). */
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -89,16 +137,21 @@ export const planActions = {
 export type SyncState = "device" | "account" | "error";
 
 /**
- * Signed in: load the account copy once (the newer of the two wins), then save each change after 800 ms. Returns
- * where the planner is saved, for the page's one-line note.
+ * Signed in: load the account copy once and merge it with the device copy (only a signed-out draft or this account's
+ * own: another account's copy is dropped, never uploaded), then save each change after 800 ms. Returns where the
+ * planner is saved, for the page's one-line note. `authReady` false keeps the planner hidden until the sign-in state
+ * is known.
  */
-export function useAccountSync(userId: string | null): SyncState {
+export function useAccountSync(userId: string | null, authReady: boolean): SyncState {
   const plan = usePlan();
   const [state, setState] = useState<SyncState>("device");
   const ready = useRef<string | null>(null);
   useEffect(() => {
+    setPlanViewer(authReady ? userId : undefined);
+  }, [userId, authReady]);
+  useEffect(() => {
     ready.current = null;
-    if (!userId) {
+    if (!authReady || !userId) {
       setState("device");
       return;
     }
@@ -106,18 +159,21 @@ export function useAccountSync(userId: string | null): SyncState {
     loadAccountPlan(userId).then(
       (remote) => {
         if (!live) return;
-        const local = read();
-        if (remote && remote.updatedAt > local.updatedAt) write(remote, false);
+        const c = readCopy();
+        // Another account's copy left on this device: never merged, never uploaded.
+        const local = copyBelongsTo(c.ownerId, userId) ? c.plan : EMPTY_PLAN;
+        const take = remote && remote.updatedAt > local.updatedAt ? remote : local;
+        save({ ownerId: userId, plan: take });
         ready.current = userId;
         setState("account");
-        // The device copy is newer (or the account has none): push it up.
-        if (!remote || remote.updatedAt < local.updatedAt) saveAccountPlan(userId, read()).catch((e: unknown) => {
+        // This account's device copy (or its signed-out draft) is newer, or the account has none yet: push it up.
+        if (take === local && local.people.length > 0 && (!remote || remote.updatedAt < local.updatedAt)) saveAccountPlan(userId, local).catch((e: unknown) => {
           console.warn("gift planner: first save failed", e);
           if (live) setState("error");
         });
       },
       (e: unknown) => {
-        // Could not read the account copy: keep the device copy and say it is saved on this device only.
+        // Could not read the account copy: keep the device copy (shown only if it is this account's) on the device.
         console.warn("gift planner: load failed", e);
         if (live) setState("error");
       },
@@ -125,7 +181,7 @@ export function useAccountSync(userId: string | null): SyncState {
     return () => {
       live = false;
     };
-  }, [userId]);
+  }, [userId, authReady]);
   useEffect(() => {
     if (!userId || ready.current !== userId) return;
     const t = window.setTimeout(() => {
@@ -141,4 +197,3 @@ export function useAccountSync(userId: string | null): SyncState {
   }, [plan, userId]);
   return state;
 }
-

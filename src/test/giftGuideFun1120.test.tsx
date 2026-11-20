@@ -17,6 +17,11 @@
  * @mutate src/content/giftGuideFun1120.ts |   if (md > "12-25") return { kind: "after" }; |   if (md > "12-26") return { kind: "after" };
  * @mutate src/content/giftGuideFun1120.ts |   return flagOn && md >= "12-01" && md <= "12-25"; |   return md >= "12-01" && md <= "12-25";
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |     if (keep && addToWishList( |     if (false && addToWishList(
+ * @mutate src/content/giftGuideFun1120.ts | export const cleanName = (n: string) => n.replace(INVISIBLE, "").trim(); | export const cleanName = (n: string) => n.trim();
+ * @mutate src/content/giftGuideFun1120.ts |   LINKISH.test(n) ? "link" : | false ? "link" :
+ * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |   if (viewer === undefined \|\| !copyBelongsTo(c.ownerId, viewer)) return EMPTY_PLAN; |   if (viewer === undefined) return EMPTY_PLAN;
+ * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |         const local = copyBelongsTo(c.ownerId, userId) ? c.plan : EMPTY_PLAN; |         const local = c.plan;
+ * @mutate src/lib/giftPlannerDevice.ts |   resets.forEach((fn) => fn()); |   void resets;
  * @mutate supabase/migrations/20261120062334_gift_guide_secret_santa_planner.sql |      AND me.token_hash = encode(sha256(convert_to(p_token, 'UTF8')), 'hex')\n     AND g.expires_at > now()\n$fn$; |      AND g.expires_at > now()\n$fn$;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +34,7 @@ import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { guideBySlug, topPicks } from "@/content/giftGuideCatalog";
 import {
   SWIPE_PER_STORE, SWIPE_ROUND, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giftOfTheDay, giveawayTieInOn, parseDollars,
-  SANTA_PATH, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan,
+  SANTA_PATH, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan,
 } from "@/content/giftGuideFun1120";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 
@@ -37,19 +42,24 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 const reveal = vi.fn();
+const loadAccountPlan = vi.fn();
+const saveAccountPlan = vi.fn();
 vi.mock("@/lib/giftGuideFunApi", () => ({
   revealSecretSanta: (...a: unknown[]) => reveal(...a),
   setSecretSantaWishList: vi.fn(),
   createSecretSanta: vi.fn(),
   SantaSaveError: class extends Error {},
-  loadAccountPlan: vi.fn(),
-  saveAccountPlan: vi.fn(),
+  loadAccountPlan: (...a: unknown[]) => loadAccountPlan(...a),
+  saveAccountPlan: (...a: unknown[]) => saveAccountPlan(...a),
 }));
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSantaReveal from "@/pages/info/giftGuides/fun/SecretSantaReveal";
 import { GiftCountdown } from "@/pages/info/giftGuides/fun/GiftCountdown";
 import { giftListNow, resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
+import { planActions, resetPlanStoreForTests, setPlanViewer, useAccountSync, usePlan } from "@/pages/info/giftGuides/fun/plannerStore";
+import { PLANNER_KEY, clearPlannerDevice } from "@/lib/giftPlannerDevice";
+import { renderHook } from "@testing-library/react";
 
 beforeEach(() => {
   try {
@@ -63,6 +73,9 @@ afterEach(() => {
   resetGiftListForTests();
   resetHintsForTests();
   reveal.mockReset();
+  resetPlanStoreForTests();
+  loadAccountPlan.mockReset();
+  saveAccountPlan.mockReset();
 });
 
 // Louisiana is UTC-6 in winter: noon there is 18:00Z.
@@ -279,5 +292,63 @@ describe("Christmas countdown and Gift of the Day", () => {
     const after = render(<MemoryRouter><GiftCountdown now={la("2026-12-27")} /></MemoryRouter>);
     expect(after.container.querySelector("[data-gift-countdown-days]")).toBeNull();
     expect(after.container.querySelector("[data-gift-of-the-day]")).not.toBeNull();
+  });
+});
+
+describe("security review of #4791", () => {
+  it("names: invisible and direction characters are stripped; links, emails and phone numbers are refused", () => {
+    expect(cleanName(`  Cal\u202E\u200B `)).toBe("Cal");
+    expect(cleanNames(["Ann", "\u200B", " Ben "])).toEqual(["Ann", "Ben"]);
+    expect(nameProblem("Ann")).toBeNull();
+    expect(nameProblem("Mary-Kate")).toBeNull();
+    expect(nameProblem("Claim your gift: bit.ly/x")).toBe("link");
+    expect(nameProblem("https://evil.example")).toBe("link");
+    expect(nameProblem("me@mail.com")).toBe("link");
+    expect(nameProblem("www.example")).toBe("link");
+    expect(nameProblem("Call 337-555-0100")).toBe("phone");
+    expect(nameProblem("x".repeat(31))).toBe("long");
+  });
+
+  it("the planner: another account's device copy is never shown, never uploaded, and sign-out clears it", async () => {
+    // A's planner, saved on this device while A was signed in.
+    window.localStorage.setItem(PLANNER_KEY, JSON.stringify({ ownerId: "user-a", plan: { updatedAt: Date.now(), people: [{ id: "p", name: "Mom", budget: 50, ideas: [] }] } }));
+    // Signed out: the next person sees nothing.
+    setPlanViewer(null);
+    const out = renderHook(() => usePlan());
+    expect(out.result.current.people).toEqual([]);
+    out.unmount();
+    // B signs in (B has no account copy yet): A's plan is neither shown nor uploaded into B's account.
+    resetPlanStoreForTests();
+    loadAccountPlan.mockResolvedValue(null);
+    saveAccountPlan.mockResolvedValue(undefined);
+    const b = renderHook(() => ({ plan: usePlan(), sync: useAccountSync("user-b", true) }));
+    await waitFor(() => expect(b.result.current.sync).toBe("account"));
+    expect(b.result.current.plan.people).toEqual([]);
+    await new Promise((r) => setTimeout(r, 900));
+    for (const call of saveAccountPlan.mock.calls) expect((call[1] as GiftPlan).people).toEqual([]);
+    expect(JSON.parse(window.localStorage.getItem(PLANNER_KEY)!).ownerId).toBe("user-b");
+    b.unmount();
+  });
+
+  it("the planner: a signed-out draft is kept and uploaded on sign-in; sign-out removes the device copy and the in-memory one", async () => {
+    setPlanViewer(null);
+    planActions.addPerson("Dad");
+    expect(JSON.parse(window.localStorage.getItem(PLANNER_KEY)!).ownerId).toBeNull();
+    loadAccountPlan.mockResolvedValue(null);
+    saveAccountPlan.mockResolvedValue(undefined);
+    const a = renderHook(() => ({ plan: usePlan(), sync: useAccountSync("user-a", true) }));
+    await waitFor(() => expect(saveAccountPlan).toHaveBeenCalled());
+    expect((saveAccountPlan.mock.calls[0][1] as GiftPlan).people.map((p) => p.name)).toEqual(["Dad"]);
+    expect(a.result.current.plan.people.map((p) => p.name)).toEqual(["Dad"]);
+    act(() => clearPlannerDevice());
+    expect(window.localStorage.getItem(PLANNER_KEY)).toBeNull();
+    expect(a.result.current.plan.people).toEqual([]);
+    a.unmount();
+  });
+
+  it("the drawer's done screen says not to open other people's links, and shows no match", () => {
+    const src = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/SecretSanta.tsx"), "utf8");
+    expect(src).toContain("{W.santaNoPeek}");
+    expect(src).not.toMatch(/givesTo\[|names\[givesTo/);
   });
 });

@@ -4,7 +4,8 @@ import { copyToClipboard, shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
 import {
-  FUN_WORDS as W, SANTA_MAX, SANTA_MIN, SANTA_NAME_MAX, SANTA_PATH, cleanNames, drawSecretSanta, duplicateName, louisianaYmd, parseDollars, revealPath,
+  FUN_WORDS as W, SANTA_BUDGET_MAX, SANTA_DAY_MAX_DAYS, SANTA_MAX, SANTA_MIN, SANTA_NAME_MAX, SANTA_PATH, cleanName, cleanNames, drawSecretSanta, duplicateName,
+  louisianaYmd, nameProblem, parseDollars, revealPath,
 } from "@/content/giftGuideFun1120";
 import { SantaSaveError, createSecretSanta } from "@/lib/giftGuideFunApi";
 import { Hint } from "../GiftHint";
@@ -28,7 +29,7 @@ export default function SecretSanta() {
   const [done, setDone] = useState<Done | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
 
-  const typed = names.map((n) => n.trim());
+  const typed = names.map(cleanName);
   const filled = typed.map((n, i) => ({ n, i })).filter((x) => x.n);
 
   const submit = async (e: FormEvent) => {
@@ -36,12 +37,14 @@ export default function SecretSanta() {
     setError(null);
     const clean = cleanNames(names);
     if (clean.length < SANTA_MIN) return setError(W.santaNeed(SANTA_MIN));
+    const bad = clean.find((n) => nameProblem(n));
+    if (bad) return setError(W.santaBadName(bad));
     const dup = duplicateName(clean);
     if (dup) return setError(W.santaDup(dup));
     let b: number | undefined;
     if (budget.trim()) {
       const v = parseDollars(budget);
-      if (v === undefined || v < 1 || v > 10000) return setError(W.plannerBadAmount);
+      if (v === undefined || v < 1 || v > SANTA_BUDGET_MAX) return setError(W.santaBudgetMax(SANTA_BUDGET_MAX));
       b = Math.round(v);
     }
     // The pairs point at the typed rows; map them onto the cleaned (blank-free) list.
@@ -78,6 +81,7 @@ export default function SecretSanta() {
         <section aria-labelledby="santa-done" data-santa-done="">
           <h2 id="santa-done">{W.santaDoneTitle}</h2>
           <p className="gg-fun-lead">{W.santaDoneLead}</p>
+          <p className="gg-fun-lead font-semibold" data-santa-no-peek="">{W.santaNoPeek}</p>
           <div className="gg-fun-card">
             {done.names.map((n, i) => (
               <div key={done.links[i]} className="gg-santa-link" data-santa-person={i}>
@@ -126,7 +130,7 @@ export default function SecretSanta() {
             <label htmlFor="santa-budget">{W.santaBudget}</label>
             <input id="santa-budget" inputMode="decimal" placeholder="$25" value={budget} onChange={(e) => setBudget(e.target.value)} data-santa-budget="" />
             <label htmlFor="santa-day">{W.santaDate}</label>
-            <input id="santa-day" type="date" min={louisianaYmd(new Date())} value={day} onChange={(e) => setDay(e.target.value)} data-santa-day="" />
+            <input id="santa-day" type="date" min={louisianaYmd(new Date())} max={louisianaYmd(new Date(Date.now() + SANTA_DAY_MAX_DAYS * 86400000))} value={day} onChange={(e) => setDay(e.target.value)} data-santa-day="" />
           </div>
           <div className="gg-fun-card">
             <p className="m-0 text-sm font-semibold">{W.santaAvoidTitle}</p>

@@ -117,8 +117,8 @@ function Person({ p }: { p: PlanPerson }) {
 
 export default function GiftPlanner() {
   const plan = usePlan();
-  const { user } = useAuthReady();
-  const sync = useAccountSync(user?.id ?? null);
+  const { user, isReady } = useAuthReady();
+  const sync = useAccountSync(user?.id ?? null, isReady);
   const [name, setName] = useState("");
   const total = planMoney(plan);
   const add = (e: FormEvent) => {

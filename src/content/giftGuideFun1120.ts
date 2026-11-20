@@ -24,7 +24,11 @@ const daysBetween = (from: string, to: string) => dayNumber(to) - dayNumber(from
 
 export const SANTA_MIN = 3;
 export const SANTA_MAX = 30;
-export const SANTA_NAME_MAX = 40;
+export const SANTA_NAME_MAX = 30;
+/** The largest budget a group may set (security review of #4791, item 4; the server checks it too). */
+export const SANTA_BUDGET_MAX = 500;
+/** The furthest exchange day: a group lives at most 90 days. */
+export const SANTA_DAY_MAX_DAYS = 89;
 
 /** A seeded random source (mulberry32), for tests; the page uses Math.random. */
 export const seededRandom = (seed: number) => () => {
@@ -88,7 +92,20 @@ export function drawIsValid(givesTo: number[], avoid: [number, number][] = []): 
 }
 
 /** The names as the organizer typed them, cleaned: trimmed, blanks dropped. */
-export const cleanNames = (names: string[]) => names.map((n) => n.trim().slice(0, SANTA_NAME_MAX)).filter(Boolean);
+/**
+ * Invisible and direction-changing characters (zero-width, bidi overrides and isolates, soft hyphen, BOM): stripped
+ * from every name, so nobody can hide or flip text on a reveal page (security review of #4791, item 4).
+ */
+const INVISIBLE = /[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g;
+/** A name that reads like a link or an email. */
+const LINKISH = /(:\/\/|www\.|@|[a-z0-9-]+\.(com|net|org|ly|io|co|us|info|biz|me|app|link|xyz|gg|tv|site|online|shop)(\b|\/))/i;
+/** One typed name, cleaned: invisible characters stripped, ends trimmed. */
+export const cleanName = (n: string) => n.replace(INVISIBLE, "").trim();
+/** Why a cleaned name is refused (the server refuses the same), or null. */
+export const nameProblem = (n: string): "link" | "phone" | "long" | null =>
+  LINKISH.test(n) ? "link" : n.replace(/[^0-9]/g, "").length >= 7 ? "phone" : n.length > SANTA_NAME_MAX ? "long" : null;
+/** The names as the organizer typed them, cleaned, blanks dropped. */
+export const cleanNames = (names: string[]) => names.map(cleanName).filter(Boolean);
 /** The first name typed twice (ignoring case), or null. */
 export const duplicateName = (names: string[]) => {
   const seen = new Set<string>();
@@ -312,7 +329,10 @@ export const FUN_WORDS = {
   santaFailed: "We couldn't save the draw. Check your connection and try again.",
   santaRateLimited: "That's a lot of draws in a row. Try again in a little while.",
   santaDoneTitle: "Names drawn!",
-  santaDoneLead: "Send each person their own link. Each link shows only that person's match, so don't open the others.",
+  santaDoneLead: "Send each person their own link. Each link shows only that person's match.",
+  santaNoPeek: "Don't open other people's links, or you'll spoil the surprise 🎁",
+  santaBadName: (name: string) => `"${name}" can't be used. Just a first name, please (no links or phone numbers).`,
+  santaBudgetMax: (max: number) => `Pick a budget from $1 to $${max}.`,
   santaSend: (name: string) => `Send to ${name}`,
   santaCopy: "Copy link",
   santaCopied: "Copied",

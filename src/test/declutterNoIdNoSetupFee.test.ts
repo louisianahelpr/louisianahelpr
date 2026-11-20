@@ -80,12 +80,13 @@ describe("Declutter asks for no ID check and no setup fee (owner 2026-11-20)", (
     expect(mine).not.toMatch(/setup_fee_from_payout/);
   });
 
-  it("(s4) declutter-money: no ID hold for a Declutter seller; a manager (Helpr-type role), a delivery Helpr and a shop still wait; no fee taken", () => {
+  it("(s4) declutter-money: no ID hold for a Declutter seller; a manager (Helpr-type role) and a delivery Helpr still wait; no fee taken", () => {
     const hold = fs.readFileSync(path.join(ROOT, "supabase/functions/_shared/payoutHold.ts"), "utf8");
     const fn = /export function declutterKindSkipsIdHold\(kind: string\): boolean \{\s*return ([^;]+);/.exec(hold)?.[1] ?? "";
     expect(fn).toBe('kind === "declutter"');
     const money = blankComments(fs.readFileSync(path.join(ROOT, "supabase/functions/declutter-money/index.ts"), "utf8"));
-    expect(money).toContain('const idHold = declutterKindSkipsIdHold(kind) ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId);');
+    // A Shops seller skips it too (owner 2026-11-20, 20261120203904; src/test/shopsNoIdCheck.test.ts).
+    expect(money).toContain('const idHold = declutterKindSkipsIdHold(kind) || kind === "shop" ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId);');
     expect(money.match(/checkIdentityHold\(/g)?.length).toBe(1);
     expect(money).not.toContain("declutter_payout_take_setup_fee");
     // The delivery Helpr's fee (kept) is still taken.

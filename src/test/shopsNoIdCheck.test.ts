@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261120203904_shops_no_id_check.sql | DROP FUNCTION IF EXISTS public.shop_identity_before_list();\n |
  * @mutate supabase/migrations/20261120203904_shops_no_id_check.sql | DROP TRIGGER IF EXISTS trg_shop_orders_identity_before_buy ON public.shop_orders;\n |
  * @mutate supabase/migrations/20261120203904_shops_no_id_check.sql |       -- CHANGED (owner 2026-11-20): no ID check for Shops, so | WHEN public.payout_waits_on_identity(o.seller_id) THEN 'Verify your ID in Settings'\n      -- CHANGED (owner 2026-11-20): no ID check for Shops, so
- * @mutate supabase/functions/declutter-money/index.ts | const idHold = kind === "shop" ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId); | const idHold = await checkIdentityHold(admin, payeeId);
+ * @mutate supabase/functions/declutter-money/index.ts | const idHold = declutterKindSkipsIdHold(kind) \|\| kind === "shop" ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId); | const idHold = declutterKindSkipsIdHold(kind) ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId);
  * @mutate src/lib/shops/items.ts | function rpcData<T>(result: { data: T; error: { message: string } \| null }, words: (e: unknown) => string \| null): T {\n  if (!result.error) return result.data; | function rpcData<T>(result: { data: T; error: { message: string } \| null }, words: (e: unknown) => string \| null): T {\n  if (!result.error) return result.data;\n  void import("@/lib/identityCheck").then((m) => m.openIdentityCheck("shop_list"));
  */
 import { describe, expect, it } from "vitest";
@@ -57,7 +57,7 @@ describe("Shops asks for no ID (owner 2026-11-20)", () => {
 
   it("declutter-money sends a shop payout without the ID hold, and keeps it for every other kind", () => {
     const m = src("supabase/functions/declutter-money/index.ts");
-    expect(m).toMatch(/const idHold = kind === "shop" \? \{ kind: "clear" as const \} : await checkIdentityHold\(admin, payeeId\);/);
+    expect(m).toMatch(/const idHold = declutterKindSkipsIdHold\(kind\) \|\| kind === "shop" \? \{ kind: "clear" as const \} : await checkIdentityHold\(admin, payeeId\);/);
   });
 
   it("the app never opens the ID sheet for Shops nor says the check is coming", () => {

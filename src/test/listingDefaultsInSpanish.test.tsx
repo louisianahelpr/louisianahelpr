@@ -34,7 +34,6 @@ import { SELLER_DEFAULTS } from "@/lib/declutter/sellerDefaults";
 
 vi.mock("@/components/declutter/SellPorchPlaces", async (orig) => ({ ...(await orig<object>()), SellPorchPlaces: () => null }));
 vi.mock("@/components/declutter/SellPorchDays", () => ({ SellPorchDays: () => null }));
-vi.mock("@/components/declutter/useSellerSetupFee", () => ({ useSellerSetupFee: () => ({ unknown: false, server: false, orderId: null, cents: 0 }) }));
 vi.mock("@/components/declutter/DeclutterOffersForAll", () => ({ OffersForAllListings: () => null }));
 vi.mock("@/components/declutter/BundleDiscountCard", () => ({ BundleDiscountCard: () => null, bundleRuleKey: () => ["b"], useBundleRule: () => ({ data: null }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
@@ -52,7 +51,7 @@ const { ListingDefaultsCard } = await import("@/components/declutter/DeclutterLi
 type StepProps = Parameters<typeof BunchListStep>[0];
 const choices = { choices: { keepUp: true, drops: false, dropPct: 10, floorPct: 50 }, set: vi.fn(), remember: vi.fn() } as unknown as StepProps["choices"];
 const stepProps = (): StepProps => ({
-  step: 3, items: [{ free: false }, { free: true }] as unknown as StepProps["items"], pricedDraftsOffered: false, readyCount: 2, heldForFee: 0,
+  step: 3, items: [{ free: false }, { free: true }] as unknown as StepProps["items"], pricedDraftsOffered: false, readyCount: 2,
   savedSetup: { hasSettings: false, pickup: null } as unknown as StepProps["savedSetup"],
   savedWindows: { isSuccess: true, isError: false } as unknown as StepProps["savedWindows"], savedWays: [],
   windows: [{ weekday: 6, starts: "09:00", ends: "12:00" }], setWindows: vi.fn(), choices, ways: ["porch"], setWays: vi.fn(),

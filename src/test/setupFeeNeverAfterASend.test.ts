@@ -5,7 +5,6 @@
  * 10-31, finding (2). Behaviour: src/test/pglite/sellerSetupFeeFromPayout.pglite.mjs and
  * helprSetupFeeFromPayout.pglite.mjs (FOLLOWUP=skip is red on the new cases).
  *
- * @mutate supabase/migrations/20261103130123_money_card_rent_seller_delivery_setup_fee_not_found_is_404.sql | OR p.attempts > 0 OR p.send_tried\n     OR EXISTS (SELECT 1 FROM public.payout_send_marks m WHERE m.payout_kind = 'declutter' AND m.payout_id = p.id) THEN | OR p.attempts > 0 THEN
  * @mutate supabase/migrations/20261103141808_q2390_invite_setup_fee_no_show_faqs_return_offer_not_found_is_404.sql | OR p.helpr_id IS NULL OR p.send_tried\n     OR EXISTS (SELECT 1 FROM public.payout_send_marks m WHERE m.payout_kind = 'helpr_task' AND m.payout_id = p.id) THEN | OR p.helpr_id IS NULL THEN
  * @mutate supabase/migrations/20261031225132_setup_fee_never_after_a_send.sql |     OR (TG_OP = 'UPDATE' AND (OLD.send_tried OR COALESCE(OLD.attempts, 0) > 0)); | ;
  */
@@ -16,10 +15,10 @@ import { newestFunction } from "./helpers/parityReaders";
 const body = (name: string) => blankSqlComments(newestFunction(name).body).replace(/\s+/g, " ");
 
 describe("the setup fee is never taken after a send was tried", () => {
-  it("the seller's take skips a row with send_tried or a send mark", () => {
+  it("the Declutter seller's take never takes it at all (owner 2026-11-20), so no row's amount ever changes", () => {
     const b = body("declutter_payout_take_setup_fee");
-    expect(b.length).toBeGreaterThan(200);
-    expect(b).toContain("OR p.attempts > 0 OR p.send_tried OR EXISTS (SELECT 1 FROM public.payout_send_marks m WHERE m.payout_kind = 'declutter' AND m.payout_id = p.id) THEN RETURN p.amount_cents;");
+    expect(b).not.toMatch(/UPDATE public\.(declutter_payouts|profiles)/);
+    expect(b).toMatch(/RETURN p\.amount_cents; END;/);
   });
 
   it("the delivery Helpr's take skips a row with send_tried or a send mark", () => {

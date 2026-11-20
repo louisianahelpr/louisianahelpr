@@ -149,7 +149,6 @@ describe("the ID-check sheet that cannot load is said, never a dead press", () =
     const BARE_OK: Record<string, string> = {
       "src/lib/crewLifecycle.ts": "throws CrewActionError with the refusal's words right after (x2)",
       "src/lib/quotes/api.ts": "unwrap() throws the refusal's words right after",
-      "src/lib/declutter/api.ts": "its callers throw the refusal code right after (errors.ts has the words)",
       "src/lib/helprTasks/api.ts": "returns rpcErrorMessage for the refusal right after",
       "src/components/identity/IdentityCheckSheet.tsx": "the sheet itself: it is loaded",
       "src/lib/identityCheck.ts": "offerIdentityCheckAfterConfirm: an offer after sign-up confirm, no press waits on it",

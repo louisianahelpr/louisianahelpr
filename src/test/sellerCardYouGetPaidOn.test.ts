@@ -18,20 +18,13 @@
  * not answered yet shows no figure; dates only.
  * @mutate src/components/declutter/declutterPayoutWords.ts | if (ctx.payoutReady === false) return | if (false) return
  * @mutate src/components/declutter/declutterPayoutWords.ts | const from = ctx.declinedAt && | const from = false &&
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | const feeUnknown = setupFee.unknown; | const feeUnknown = false;
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | holdUnknown={feeUnknown \|\| !problemsSettled \|\| | holdUnknown={feeUnknown \|\|
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | !((holdUnknown \|\| (refundRequests && !refund.isSuccess) \|\| lastProblem.isLoading) && | !((holdUnknown \|\| lastProblem.isLoading) &&
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | \|\| lastProblem.isLoading) && (payout.status | ) && (payout.status
  * @mutate src/lib/declutter/timeLeft.ts | return payoutDay(new Date(Date.parse(windowEnds) + PAYOUT_SEND_MARGIN_MS).toISOString()); | return payoutDay(windowEnds);
  * @mutate src/lib/declutter/payoutWords.ts | : ` after the ${formatPrice(refunded)} refund`; | : " after the buyer's refund";
- * @mutate src/components/declutter/declutterPayoutWords.ts | if (could.length === 1) | if (could.length >= 1)
- * @mutate src/components/declutter/declutterPayoutWords.ts | ...(could.length > 1 ? could : []) | ...([] as MyPayout[])
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | \|\| feeUnsure.has(o.orderId)} | }
- * @mutate src/components/declutter/declutterPayoutWords.ts | if (fee <= 0 \|\| payouts.some((p) => (p.setup_fee_cents ?? 0) > 0)) return out; | if (fee <= 0) return out;
- * @mutate src/components/declutter/declutterPayoutWords.ts | const amount = payout.amount_cents - ahead; | const amount = payout.amount_cents;
  * @mutate src/components/declutter/declutterPayoutWords.ts | const parts = addsUp ? payoutBreakdown(payout) : ""; | const parts = payoutBreakdown(payout);
  * @mutate src/components/declutter/declutterPayoutWords.ts | if (ctx.refundOpen) return | if (false) return
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady, | refundOpen: false, setupFeeAhead: 0, payoutReady,
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundOpen: refundIsOpen(refundStatus), payoutReady, | refundOpen: false, payoutReady,
  * F360b loose ends (lead 11-11): an agreed part refund holds the payout until the buyer's refund went through
  * (declutter_payouts_due: no refund_request_part refund pending/failed), then the sale is decided (declutter_sale_decided:
  * a request 'agreed') and final at once, so no "paid on" day 24 hours out.
@@ -41,14 +34,9 @@
  * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "held_for_review", "unknown"]) | new Set(["pending", "failed", "unknown"])
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, | refundAgreed: null,
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | t("dsl.deliveryParts", { items: formatPrice(itemsCents), delivery: formatPrice(deliveryCents) }) | t("dsl.deliveryParts", { items: formatPrice(itemsCents + deliveryCents), delivery: formatPrice(deliveryCents) })
- * Owner 11-11 ~3:25 PM: the fee comes out of the FIRST payout actually sent; every card shows it on that sale only. The
- * server names the sale (declutter_my_setup_fee, 20261111212343); the card takes the fee off only there, including the
- * pre-handover "You get".
- * @mutate src/components/declutter/declutterPayoutWords.ts | if (row && (row.status === "pending" \|\| row.status === "failed") && (row.setup_fee_cents ?? 0) === 0) out.set(orderId, fee); | out.set(orderId, fee);
- * @mutate src/components/declutter/declutterPayoutWords.ts | const cut = fee && fee.orderId === orderId ? | const cut = fee ?
- * @mutate src/components/declutter/declutterPayoutWords.ts | return cut > 0 && gross - cut >= 100 ? gross - cut : gross; | return gross - cut;
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | const feeAhead = setupFee.server ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId) | const feeAhead = false ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId)
- * @mutate src/components/declutter/DeclutterPorchHandover.tsx | preHandover && setupFee.server ? setupFee : null | null
+ * Owner 2026-11-20: no setup fee comes out of a Declutter payout any more (it came off one sale's figure from 11-11), so
+ * the card's "You get" is the payout row's own amount, and the pre-handover figure is items + delivery.
+ * @mutate src/components/declutter/declutterPayoutWords.ts |   return itemsCents + Math.max(0, deliveryCents); |   return itemsCents + Math.max(0, deliveryCents) - 200;
  * F360b loose end (lead 11-11): a problem Louisiana Helpr decided, or a handover an admin confirmed, makes the sale final
  * at once (declutter_sale_decided), so no "paid on" day 24 hours out.
  * @mutate src/components/declutter/declutterPayoutWords.ts |   if (ctx.saleDecided) return `${gets}. The sale is final, so we send it next.`; |
@@ -58,7 +46,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { payoutLine, preHandoverSellerCents, setupFeeAheadByOrder, setupFeeAheadFromServer, setupFeeUnsureOrders } from "@/components/declutter/declutterPayoutWords";
+import { payoutLine, preHandoverSellerCents } from "@/components/declutter/declutterPayoutWords";
 import type { MyPayout } from "@/lib/declutter/payoutReads";
 import { payoutDay, payoutDayAfterWindow } from "@/lib/declutter/timeLeft";
 import { blankComments } from "./helpers/blankNonCode";
@@ -87,25 +75,11 @@ describe("F360b: the seller card's one money line", () => {
     expect(payoutLine(row({ status: "succeeded", executed_at: "2026-11-10T18:31:00Z" }), false)).toBe(`You get $45, paid on ${payoutDay("2026-11-10T18:31:00Z")}.`);
   });
 
-  it("the one-time setup fee: the amount drops, the parts and the fee are never named", () => {
-    // Taken already: in debt_cents and out of amount_cents.
+  it("a setup fee a past payout already carries: the row's own amount, the parts and the fee never named", () => {
     expect(payoutLine(row({ setup_fee_cents: 200, debt_cents: 200, amount_cents: 4300 }), false, { handedOverAt: HANDED, now: NOW }))
       .toMatch(/^You get \$43, paid on /);
-    // Still to be taken at the send, from the only row that can take it.
-    const rows = [row(), row({ order_id: "o2", status: "succeeded", attempts: 1 })];
-    const ahead = setupFeeAheadByOrder(rows, 200);
-    expect([...ahead.entries()]).toEqual([["o1", 200]]);
-    expect(payoutLine(rows[0], false, { handedOverAt: HANDED, now: NOW, setupFeeAhead: ahead.get("o1") })).toMatch(/^You get \$43, paid on /);
-    // Two rows could take it: the client cannot tell which, so neither is lowered, and both show no figure.
-    expect(setupFeeAheadByOrder([row(), row({ order_id: "o2" })], 200).size).toBe(0);
-    expect([...setupFeeUnsureOrders([row(), row({ order_id: "o2" })], 200)].sort()).toEqual(["o1", "o2"]);
-    expect(setupFeeUnsureOrders(rows, 200).size).toBe(0);
-    // A try count not readable: unsure too.
-    expect([...setupFeeUnsureOrders([row({ attempts: undefined })], 200)]).toEqual(["o1"]);
-    // A row already carries the fee (taken at its send): no other row is lowered, even if the cached profile says unpaid.
-    expect(setupFeeAheadByOrder([row(), row({ order_id: "o2", status: "succeeded", setup_fee_cents: 200, attempts: 1 })], 200).size).toBe(0);
-    // Under $1 left: the SQL leaves the fee for a later sale.
-    expect(setupFeeAheadByOrder([row({ amount_cents: 250 })], 200).size).toBe(0);
+    // Owner 2026-11-20: an unsent row with no fee shows its whole amount.
+    expect(payoutLine(row(), false, { handedOverAt: HANDED, now: NOW })).toMatch(/^You get \$45, paid on /);
   });
 
   it("held by a refund request or a problem, it says so instead of a day; no fee words anywhere", () => {
@@ -156,40 +130,24 @@ describe("F360b: the seller card's one money line", () => {
     expect(payoutLine({ ...part, status: "succeeded", executed_at: HANDED }, false, { refundAgreed: "pending" })).toMatch(/, paid on /);
   });
 
-  it("the card passes the handover time, the refund state and the setup fee; the open sale uses the same parts", () => {
+  it("the card passes the handover time and the refund state; the open sale uses the same parts", () => {
     const views = code("src/components/declutter/DeclutterHandoverViews.tsx");
-    expect(views).toMatch(/payoutLine\(payout, !!problem, \{\s*handedOverAt: handoverRow\.data\?\.confirmed_at \?\? null, refundOpen: refundIsOpen\(refundStatus\), setupFeeAhead, payoutReady, setupPaused,\s*declinedAt: refundStatus === "declined" \? refund\.data\?\.request\?\.declined_at \?\? null : null,\s*refundAgreed: refundStatus === "agreed" \? refund\.data\?\.request\?\.refund_status \?\? "unknown" : null, saleDecided, \}\)/);
-    // A hold read not answered yet (fee inputs, open problems, the refund request): unsent rows show no line rather than
-    // a figure too high by the fee or a day the server will not keep (lh-money-escrow re-review 11-11).
-    expect(views).toContain("const feeUnknown = setupFee.unknown;");
-    expect(views).toContain("holdUnknown={feeUnknown || !problemsSettled || feeUnsure.has(o.orderId)}");
+    expect(views).toMatch(/payoutLine\(payout, !!problem, \{\s*handedOverAt: handoverRow\.data\?\.confirmed_at \?\? null, refundOpen: refundIsOpen\(refundStatus\), payoutReady, setupPaused,\s*declinedAt: refundStatus === "declined" \? refund\.data\?\.request\?\.declined_at \?\? null : null,\s*refundAgreed: refundStatus === "agreed" \? refund\.data\?\.request\?\.refund_status \?\? "unknown" : null, saleDecided, \}\)/);
+    // A hold read not answered yet (open problems, the refund request): unsent rows show no line rather than a day the
+    // server will not keep (lh-money-escrow re-review 11-11).
+    expect(views).toContain("holdUnknown={!problemsSettled}");
     expect(views).toMatch(/!\(\(holdUnknown \|\| \(refundRequests && !refund\.isSuccess\) \|\| lastProblem\.isLoading\) && \(payout\.status === "pending" \|\| payout\.status === "failed"\)\) && <p/);
-    expect(views).toMatch(/setupFeeAhead=\{feeAhead\.get\(o\.orderId\) \?\? 0\}/);
+    expect(views).not.toMatch(/setupFee/);
     // Area 06b H1: the parts' words live in enDeclSell (Spanish in esDeclSell); the card fills in the two amounts.
     expect(code("src/components/declutter/DeclutterPorchHandover.tsx")).toContain('t("dsl.deliveryParts", { items: formatPrice(itemsCents), delivery: formatPrice(deliveryCents) })');
     expect(code("src/lib/i18n/enDeclSell.ts")).toContain('"dsl.deliveryParts": " ({items} + {delivery} delivery)"');
   });
 
-  it("owner 11-11 ~3:25 PM: the fee shows only on the sale the server names, before and after the handover", () => {
-    const rows = [row(), row({ order_id: "o2" })];
-    // Two unsent rows: the server names o2, so only o2 loses it (the client alone could not tell, and hid both).
-    const ahead = setupFeeAheadFromServer(rows, 200, "o2");
-    expect([...ahead]).toEqual([["o2", 200]]);
-    expect(payoutLine(rows[1], false, { handedOverAt: HANDED, now: NOW, setupFeeAhead: ahead.get("o2") })).toMatch(/^You get \$43, paid on /);
-    expect(payoutLine(rows[0], false, { handedOverAt: HANDED, now: NOW, setupFeeAhead: ahead.get("o1") ?? 0 })).toMatch(/^You get \$45, paid on /);
-    // No sale named, no fee, or the named row already took it / was sent: nothing comes off any card.
-    expect(setupFeeAheadFromServer(rows, 200, null).size).toBe(0);
-    expect(setupFeeAheadFromServer(rows, 0, "o2").size).toBe(0);
-    expect(setupFeeAheadFromServer([row({ order_id: "o2", setup_fee_cents: 200, amount_cents: 4300 })], 200, "o2").size).toBe(0);
-    expect(setupFeeAheadFromServer([row({ order_id: "o2", status: "succeeded" })], 200, "o2").size).toBe(0);
-    // Before the handover (no payout row): "You get" less the fee only on the named sale, and only with $1 left.
-    expect(preHandoverSellerCents("o1", 4500, 500, { cents: 200, orderId: "o1" })).toBe(4800);
-    expect(preHandoverSellerCents("o1", 4500, 500, { cents: 200, orderId: "o2" })).toBe(5000);
-    expect(preHandoverSellerCents("o1", 4500, 0, null)).toBe(4500);
-    expect(preHandoverSellerCents("o1", 250, 0, { cents: 200, orderId: "o1" })).toBe(250);
-    // The card and the note use the server's answer.
-    expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain("const feeAhead = setupFee.server ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId)");
-    expect(code("src/components/declutter/DeclutterPorchHandover.tsx")).toContain("preHandoverSellerCents(orderId, itemsCents, deliveryCents, preHandover && setupFee.server ? setupFee : null)");
+  it("owner 11-20: before the handover the seller gets items + delivery, with no fee taken", () => {
+    expect(preHandoverSellerCents(4500, 500)).toBe(5000);
+    expect(preHandoverSellerCents(4500, 0)).toBe(4500);
+    expect(preHandoverSellerCents(250, -1)).toBe(250);
+    expect(code("src/components/declutter/DeclutterPorchHandover.tsx")).toContain("const sellerCents = preHandoverSellerCents(itemsCents, deliveryCents);");
   });
 
   it("lead 11-11: a decided problem or an admin-confirmed handover is final at once: sent next, no day 24 hours out", () => {

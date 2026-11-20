@@ -113,16 +113,14 @@ const CARD_POLL_MS = 1_500;
  */
 /**
  * Owner 11-01 (app-wide): side-by-side buttons are ONE line with short labels. So "Buy · $37.45", not "Buy now" over
- * "$37.45 total + any one-time setup fee" (four lines at 375); the setup-fee words were a small note under the
- * buttons. The figure is the checkout total (buyNowTotalCents = checkoutAmounts, the rule declutter_start_checkout
- * freezes), never the bare price (D6), PLUS the one-time account setup fee a first purchase carries (A1-B2: the
- * button said $32.20 while Stripe charged $34.20). Screen readers hear "Buy now · $37.45 total" (and the setup-fee words while they apply).
+ * "$37.45 total" (four lines at 375). The figure is the checkout total (buyNowTotalCents = checkoutAmounts, the rule
+ * declutter_start_checkout freezes), never the bare price (D6); owner 2026-11-20: no setup fee rides a Declutter
+ * purchase. Screen readers hear "Buy now · $37.45 total".
  */
 function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize }) {
   const { t } = useLanguage();
   // Owner pick 2 (11-08, one price story): the item's "$X incl. fee" right above is the price; the button says
-  // "Buy now" and names no second figure. The one-time setup fee is its own line in the checkout summary
-  // (DeclutterCheckoutSummary "One-time setup fee"), never folded into a button a first-time buyer compares to the card.
+  // "Buy now" and names no second figure.
   // Audit BUY-3 stays: on an item the seller offers only delivered (way "none"), the pickup price is a figure nobody can
   // pay, so the label names the least it costs delivered (the least a Helpr delivery can cost, one road mile).
   if (way !== "none") return <span className="whitespace-nowrap font-semibold" data-buy-label="">{t("decl.buy.now")}</span>;
@@ -135,7 +133,6 @@ function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDel
         priceCents={priceCents}
         addCents={deliveryPriceCents(1, [size])}
         suffix={<>{" "}<span className="sr-only">{t("decl.buy.delivered")}</span></>}
-        pendingClassName="sr-only"
       />
     </span>
   );

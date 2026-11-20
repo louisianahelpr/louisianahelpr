@@ -1,9 +1,8 @@
 /**
- * Sell a bunch: "List all my drafts" (audit finding 1). A seller whose items were saved as drafts (the setup fee was
- * due, a phone locked mid-run) had to open each one. This lists them together through publishMany, the same three calls
- * as one listing, after the same four confirmations; each refusal is named. While the setup fee is due only the free
- * drafts are offered (the server asks no fee at price 0); a priced one would be refused, and its refusal would stop the
- * rest (publishMany), so those wait. Drafts still on the Check-each-item list stay with that list (exclude). Each is named
+ * Sell a bunch: "List all my drafts" (audit finding 1). A seller whose items were saved as drafts (a phone locked
+ * mid-run) had to open each one. This lists them together through publishMany, the same three calls as one listing,
+ * after the same four confirmations; each refusal is named (owner 2026-11-20: no setup fee holds a priced draft back
+ * any more). Drafts still on the Check-each-item list stay with that list (exclude). Each is named
  * with a tick (audit 10-30, finding 14); one with no photos is linked, not listed: it would spend a photo check, then be refused.
  * The page has one set of statements: with items on the list they sit in its last step and count here too; only with no
  * list is the tick here.
@@ -21,15 +20,13 @@ import { TaxStatementsCheck } from "./declutterUi";
 import "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
 
-export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, attested, setAttested, listStepShown, onPricedOffered }: { userId: string; exclude: ReadonlySet<string>; busy: boolean; feeDue: boolean; onBusy: (on: boolean) => void; attested: boolean; setAttested: (on: boolean) => void; listStepShown: boolean; onPricedOffered: (on: boolean) => void }) {
+export function BunchDraftsSection({ userId, exclude, busy, onBusy, attested, setAttested, listStepShown, onPricedOffered }: { userId: string; exclude: ReadonlySet<string>; busy: boolean; onBusy: (on: boolean) => void; attested: boolean; setAttested: (on: boolean) => void; listStepShown: boolean; onPricedOffered: (on: boolean) => void }) {
   const qc = useQueryClient();
   const mine = useQuery(myItemsQuery(userId));
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [results, setResults] = useState<{ title: string; outcome: PublishOutcome }[] | null>(null);
-  const saved = (mine.data ?? []).filter((i) => i.status === "draft" && !exclude.has(i.id));
-  const drafts = feeDue ? saved.filter((i) => i.current_price_cents === 0) : saved;
-  const waiting = saved.length - drafts.length;
+  const drafts = (mine.data ?? []).filter((i) => i.status === "draft" && !exclude.has(i.id));
   // The one tick covers these too, so a priced draft on offer means the page shows the four statements.
   const anyPriced = drafts.some((d) => d.current_price_cents > 0);
   useEffect(() => onPricedOffered(anyPriced), [anyPriced, onPricedOffered]);
@@ -74,9 +71,8 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, atte
       {drafts.length > 0 && (
         <>
           <p className="text-xs text-muted-foreground">
-            {t(feeDue ? (drafts.length === 1 ? "lp.dr.haveFree1" : "lp.dr.haveFreeN") : drafts.length === 1 ? "lp.dr.have1" : "lp.dr.haveN", { n: drafts.length })}{" "}
+            {t(drafts.length === 1 ? "lp.dr.have1" : "lp.dr.haveN", { n: drafts.length })}{" "}
             {t("lp.dr.together")} {t(listStepShown ? "lp.dr.oneTickBelow" : "lp.dr.oneTick")}
-            {waiting > 0 && ` ${waiting === 1 ? t("lp.dr.waits1") : t("lp.dr.waitsN", { n: waiting })}`}
           </p>
           <ul className="space-y-1" data-bunch-drafts-list="">
             {drafts.map((d) => (
@@ -98,7 +94,7 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, atte
           {!listStepShown && <TaxStatementsCheck id="bunch-drafts-tax" checked={attested} onChange={setAttested} />}
           {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
           <Button type="button" className="rounded-full" disabled={busy || going.length === 0} onClick={() => void listAll()}>
-            {progress ? t("lp.dr.listing", { at: Math.min(progress.done + 1, progress.total), n: progress.total }) : going.length === drafts.length ? (feeDue ? t("lp.dr.listFree") : t("lp.dr.listAll")) : going.length === 1 ? t("lp.dr.list1") : t("lp.dr.listN", { n: going.length })}
+            {progress ? t("lp.dr.listing", { at: Math.min(progress.done + 1, progress.total), n: progress.total }) : going.length === drafts.length ? t("lp.dr.listAll") : going.length === 1 ? t("lp.dr.list1") : t("lp.dr.listN", { n: going.length })}
           </Button>
         </>
       )}

@@ -19,7 +19,6 @@ export const esFreeAsk: Record<keyof typeof enFreeAsk, string> = {
   "fask.noTimes": "{name} no tiene horarios de recogida libres la próxima semana, así que este artículo no se puede pedir por ahora.",
   "fask.dayAria": "Día de recogida",
   "fask.timeAria": "Hora de recogida el {day}",
-  "fask.noteFirst": "Pedirlo es gratis. {name} elige quién se lo lleva. Si es usted, {steps}.",
   "fask.noteLead": "Gratis, no se cobra nada. {name} elige quién se lo lleva. Si es usted, ",
   "fask.theTimeYouPick": "la hora que elija",
   "fask.noteTail": " ya queda fijada, y recibirá la dirección.",

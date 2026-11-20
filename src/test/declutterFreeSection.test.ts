@@ -60,7 +60,8 @@ describe("the Declutter Free section", () => {
     // Then LEAD-B49-REBUILD (20261031211922: the free-claim gate, restated from 20261031164337).
     // Then Q2390 p39 (20261103224955): verbatim with its not-found as PT404 only.
     // Then the trades fixes (20261108195151): trade lines skip the fee half and check out apart from priced lines.
-    expect(newestFunction("declutter_checkout_free").file).toContain("20261108195151_declutter_trades_fixes.sql");
+    // Then owner 2026-11-20 (20261120184430): no ID check and no setup fee for a free or trade checkout.
+    expect(newestFunction("declutter_checkout_free").file).toContain("20261120184430_declutter_no_id_no_setup_fee.sql");
     // declutter_complete_handover: restated by A3-8 (20261028210552) with only its notice lines naming the item
     // and #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql, the seller's link); the free branch's no-payout rule is asserted below.
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).
@@ -69,7 +70,8 @@ describe("the Declutter Free section", () => {
     // Then manager mode phase 2 (20261101230509: the manager's share comes off the seller's row; the free branch is untouched).
     // Part 3 F197/F193 (20261109224952) restated it from LIVE, wording only.
     // Then the seller ID check at the first payout (20261112065000, owner 11-12; the free branch is untouched).
-    expect(newestFunction("declutter_complete_handover").file).toContain("20261112065000_declutter_seller_id_at_first_payout.sql");
+    // Then owner 2026-11-20 (20261120184430): no ID and no setup-fee words in the seller's notice.
+    expect(newestFunction("declutter_complete_handover").file).toContain("20261120184430_declutter_no_id_no_setup_fee.sql");
     // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     // declutter_close_paid_order: LEAD-ADMIN-HELPR-FAULT (20261101000817) restated its effective body plus the
@@ -90,9 +92,7 @@ describe("the Declutter Free section", () => {
     // declutter_update_draft: Q2390 p38 (20261103224137) restated it verbatim with its not-found as PT404 only.
     expect(newestFunction("declutter_update_draft").file).toContain("20261103224137");
     expect(names.length).toBeGreaterThan(1);
-    // declutter_setup_fee_before_list: LEAD-B49-REBUILD (20261031214749) restated it from 20261027170717 with one early
-    // return while the ID check is on (the fee then comes out of the payout); the free rule is asserted below.
-    expect(newestFunction("declutter_setup_fee_before_list").file).toContain("20261031214749_seller_setup_fee_from_payout_restated.sql");
+    // declutter_setup_fee_before_list: dropped by 20261120184430 (owner 2026-11-20: no setup fee in Declutter).
     // declutter_create_item: LEAD-POST-SLOW (20261031160546) moved its body into declutter_create_item_with_id (the app
     // picks the id so photos upload before Post); the wrapper keeps its gates. The free rule moved with the body.
     expect(newestFunction("declutter_create_item").file).toContain("20261031160546_declutter_create_item_with_id.sql");
@@ -104,11 +104,8 @@ describe("the Declutter Free section", () => {
     expect(code("declutter_orders_fee_rule_f1")).toContain("NEW.fee_rule := CASE WHEN NEW.paid_with = 'free' THEN 'free'");
   });
 
-  it("listing a free item never charges the one-time setup fee; a paid listing still does (owner 2026-10-27)", () => {
-    const gate = code("declutter_setup_fee_before_list");
-    const freeAt = gate.indexOf("IF NEW.current_price_cents = 0 THEN RETURN NEW; END IF;");
-    expect(freeAt).toBeGreaterThan(0);
-    expect(freeAt).toBeLessThan(gate.indexOf("IF public.declutter_setup_fee_due_cents(auth.uid()) > 0 THEN RAISE EXCEPTION 'setup_fee_required_to_list'"));
+  it("listing never charges the one-time setup fee, free or paid (owner 2026-10-27, then 2026-11-20)", () => {
+    expect(() => code("declutter_setup_fee_before_list")).toThrow(/no live definition/);
   });
 
   it("free items are asked for (nothing charged), at most 3 at a time; the picked person gets the 48 hours; a free item is never bought", () => {

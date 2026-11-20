@@ -71,8 +71,9 @@ describe("Q2308: the Terms' Declutter section states the numbers the code enforc
     const sentences = text.split(/(?<=[.;:])\s+/).filter((s) => /\bfees?\b|card cost|charge/i.test(s));
     expect(sentences.length).toBeGreaterThan(2);
     expect(sentences.filter((s) => /\$\d|\d\s*%|\d\s*¢|\d+ cents/.test(s))).toEqual([]);
-    // The one fee a member may see stays, without a number here.
-    expect(section).toContain("The one-time account setup fee is charged once per account");
+    // Owner 2026-11-20: Declutter never charges the one-time setup fee, and says so.
+    expect(section).toContain("Buying, selling and free items on Declutter never ask for an ID check or the one-time account setup fee.");
+    expect(section).not.toContain("The one-time account setup fee is charged once per account");
   });
 
   it("the photo limits are the sell flow's", () => {

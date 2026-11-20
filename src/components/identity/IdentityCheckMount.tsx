@@ -22,7 +22,7 @@ function hasIdentityEntryParam(params: URLSearchParams): boolean {
 /**
  * What App.tsx mounts beside every signed-in page for the one Identity sheet
  * (B83, 11-01). The sheet's own code is ~172 KB gzip past boot (Stripe copy,
- * the shared sheet, FreeClaimFirstTime...), and it used to be fetched ~2.6 s
+ * the shared sheet...), and it used to be fetched ~2.6 s
  * into every /home on Slow 4G to draw nothing: the ID check is off until an
  * admin turns it on (owner 2026-10-30), and even when on the sheet is closed
  * almost always.

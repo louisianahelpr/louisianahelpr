@@ -191,8 +191,6 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_record_item_view: "hides", // 20261105163501 (owner request 11-05): a view of a test listing (is_seed) is never recorded
   declutter_seller_moving_sale: "hides",
   declutter_set_watch: "hides",
-  // Q2352 (20261026154738): an ENROLLED test account (is_seed AND test_accounts) lists without the setup fee
-  declutter_setup_fee_before_list: "money-gate",
   declutter_setup_job_fee_debt: "alerts",
   declutter_take_item: "hides",
   declutter_trade_rows_seed: "tags",

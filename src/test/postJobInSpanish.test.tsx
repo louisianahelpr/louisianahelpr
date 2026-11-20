@@ -7,7 +7,7 @@
  * @mutate src/components/postjob/JobCategoryGroups.tsx | {t(`postJob.group.${g.id}` as MsgKey)}</span> | {g.label}</span>
  * @mutate src/lib/jobCategoryGroups.ts | const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" }; | const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = {};
  * @mutate src/components/postjob/JobCategoryGroups.tsx | placeholder={t("postJob.searchPlaceholder")} | placeholder="e.g. wash my driveway"
- * @mutate src/components/postjob/PostJobStepHeader.tsx |           {t("postJob.stepOf", { step, count: POST_JOB_STEP_COUNT })}\n |           {step} of {POST_JOB_STEP_COUNT}\n
+ * @mutate src/components/postjob/PostJobStepHeader.tsx |           {ready ? t("postJob.readyShort") : t("postJob.stepOf", { step, count: POST_JOB_STEP_COUNT })}\n |           {ready ? t("postJob.readyShort") : `${step} of ${POST_JOB_STEP_COUNT}`}\n
  * @mutate src/components/postjob/PostJobStepRail.tsx |           const label = t(`postJob.rail.${stepKey}` as MsgKey); |           const label = stepKey;
  * @mutate src/pages/post-job/FormStep.tsx |   return t(`postJob.kindQ.${id}` as MsgKey); |   return `What kind of ${id} job?`;
  * @mutate src/pages/post-job/FormStep.tsx | question={t("postJob.detailsQ")} helper={t("postJob.detailsH")} | question="Tell us about it" helper="A few words and a photo help Helprs say yes."

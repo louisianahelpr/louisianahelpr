@@ -8,7 +8,7 @@
  *   says the post is kept -> after verification postAuthDestination spends it -> /post-job?resume=draft loads the
  *   draft once and opens Budget.
  *
- * @mutate src/pages/post-job/FormStep.tsx |           if (form.isGuest) { |           if (false) {
+ * @mutate src/pages/post-job/FormStep.tsx | if (form.isGuest) {\n            e.preventDefault(); | if (false) {\n            e.preventDefault();
  * @mutate src/lib/guestPostDraft.ts | export const GUEST_POST_RESUME_PATH = "/post-job?resume=draft"; | export const GUEST_POST_RESUME_PATH = "/post-job";
  * @mutate src/pages/post-job/usePostJobForm.ts |     setFormPage(loadDraftAndContinue() ? 4 : 1); |     setFormPage(1);
  * @mutate src/App.tsx | <ProtectedRoute fullProfile allowGuest><PostJob /></ProtectedRoute> | <ProtectedRoute fullProfile><PostJob /></ProtectedRoute>

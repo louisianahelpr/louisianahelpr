@@ -12,7 +12,7 @@
  *  - the old toast path is gone: pushPermissionNudge.ts has no toast and no
  *    usePushPermissionNudge, and nothing in src/ triggers it.
  *
- * @mutate src/hooks/useWebPush.ts |     if (isNativePlatform) await askNativeOnce(); |     if (false) await askNativeOnce();
+ * @mutate src/hooks/useWebPush.ts |     if (isNativePlatform) await askNativeOnce(context); |     if (false) await askNativeOnce(context);
  * @mutate src/hooks/useWebPush.ts |   if ((await readPushPermission()) !== "prompt") return; |
  * @mutate src/hooks/useWebPush.ts |     const granted = await requestPushPermission(); |     const granted = false;
  */
@@ -75,7 +75,7 @@ describe("the app asks with the sheet after a job action (Q2003)", () => {
     expect(explain).toHaveBeenCalledTimes(1);
   });
 
-  // @mutate src/hooks/useWebPush.ts |     { onShown: () => markAskShown("native") }, |     { onShown: () => {} }, markAskShown("native"),
+  // @mutate src/hooks/useWebPush.ts |     { onShown: () => markAskShown("native"), ...(words ? { words } : {}) }, |     { onShown: () => {}, ...(words ? { words } : {}) }, markAskShown("native"),
   it("native: a sheet that never rendered does not spend the cooldown (Q2003, lead 11-04)", async () => {
     explain.mockImplementation(async () => false); // dismissed before it ever rendered: onShown never ran
     await offerWebPushAfterJobAction();

@@ -21,7 +21,7 @@
  * @mutate src/components/sections/SectionScreen.tsx |             className="sticky z-30 -mx-5 | className="z-30 -mx-5
  * @mutate src/hooks/useAppShellViewport.ts | \|\| (framedGuest && isGuestPublicFrameRoute(pathname))) { | ) {
  * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/", "/shops/", "/book/", "/post-job"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search", "/jobs/", "/shops/", "/book/", "/post-job"] as const;
- * @mutate src/lib/guestPublicFrame.ts | "/jobs/", "/shops/", "/book/"] as const; | "/jobs/"] as const;
+ * @mutate src/lib/guestPublicFrame.ts | "/jobs/", "/shops/", "/book/", "/post-job"] as const; | "/jobs/", "/post-job"] as const;
  * @mutate src/lib/guestPublicFrame.ts | const NOT_GUEST_PAGES = ["/jobs/settings", "/shops/mine", "/shops/orders", "/shops/dashboard"]; | const NOT_GUEST_PAGES = ["/jobs/settings"];
  * @mutate src/lib/guestPublicFrame.ts |   !NOT_GUEST_PAGES.includes(pathname) && |
  * @mutate src/lib/guestPublicFrame.ts | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => (isReady ? !user : definitelyGuest()); | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => !user;

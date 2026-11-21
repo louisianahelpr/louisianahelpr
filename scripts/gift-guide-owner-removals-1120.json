@@ -523,6 +523,26 @@
    {
     "key": "yeti-tank-45-ice-bucket",
     "name": "yeti-tank-45-ice-bucket"
+   },
+   {
+    "key": "printfresh-eco-satin-robe",
+    "name": "printfresh-eco-satin-robe"
+   },
+   {
+    "key": "vevor-24-ft-inflatable-movie-screen",
+    "name": "vevor-24-ft-inflatable-movie-screen"
+   },
+   {
+    "key": "slip-back-to-basics-skinny-scrunchies",
+    "name": "slip-back-to-basics-skinny-scrunchies"
+   },
+   {
+    "key": "hilma-daily-pre-probiotic-herbs",
+    "name": "hilma-daily-pre-probiotic-herbs"
+   },
+   {
+    "key": "southern-tide-colorblock-lounge-pant",
+    "name": "southern-tide-colorblock-lounge-pant"
    }
   ],
   "kids": [
@@ -631,11 +651,768 @@
     "name": "Bits & Bows Lifeguard Hat Blue"
    }
   ],
+  "life-moments": [
+   {
+    "key": "haakaa-new-mom-breastfeeding-starter-pack",
+    "name": "haakaa-new-mom-breastfeeding-starter-pack"
+   },
+   {
+    "key": "furbish-studio-cool-mom-needlepoint-pillow",
+    "name": "furbish-studio-cool-mom-needlepoint-pillow"
+   },
+   {
+    "key": "bearaby-calmer-weighted-neck-wrap",
+    "name": "bearaby-calmer-weighted-neck-wrap"
+   },
+   {
+    "key": "babybj-rn-bouncer-bliss-pink",
+    "name": "babybj-rn-bouncer-bliss-pink"
+   },
+   {
+    "key": "ruggable-welcome-trellis-washable-doormat",
+    "name": "ruggable-welcome-trellis-washable-doormat"
+   },
+   {
+    "key": "rifle-paper-co-mulberry-farm-cotton-quilt",
+    "name": "rifle-paper-co-mulberry-farm-cotton-quilt"
+   },
+   {
+    "key": "ray-ban-meta-gen-3-wayfarer-ai-glasses",
+    "name": "ray-ban-meta-gen-3-wayfarer-ai-glasses"
+   },
+   {
+    "key": "paddywax-smoked-pistachio-cowboy-boot-candle",
+    "name": "paddywax-smoked-pistachio-cowboy-boot-candle"
+   },
+   {
+    "key": "kai-reed-diffuser",
+    "name": "kai-reed-diffuser"
+   },
+   {
+    "key": "jellycat-bartholomew-bear",
+    "name": "jellycat-bartholomew-bear"
+   },
+   {
+    "key": "tommy-bahama-islamorada-crochet-raffia-clutch",
+    "name": "tommy-bahama-islamorada-crochet-raffia-clutch"
+   },
+   {
+    "key": "j-crew-leather-passport-holder",
+    "name": "j-crew-leather-passport-holder"
+   },
+   {
+    "key": "tommy-bahama-two-palms-linen-raw-edge-jacket",
+    "name": "tommy-bahama-two-palms-linen-raw-edge-jacket"
+   }
+  ],
+  "louisiana-by-region": [
+   {
+    "key": "katie-kime-new-orleans-toile-ice-bucket-green",
+    "name": "katie-kime-new-orleans-toile-ice-bucket-green"
+   },
+   {
+    "key": "carhartt-x-47-new-orleans-saints-clean-up-cap",
+    "name": "carhartt-x-47-new-orleans-saints-clean-up-cap"
+   },
+   {
+    "key": "smathers-branson-lsu-needlepoint-hat",
+    "name": "smathers-branson-lsu-needlepoint-hat"
+   },
+   {
+    "key": "louisiana-tech-bulldogs-arch-over-pullover-hoodie",
+    "name": "louisiana-tech-bulldogs-arch-over-pullover-hoodie"
+   },
+   {
+    "key": "city-sightseeing-new-orleans-hop-on-hop-off-tour",
+    "name": "city-sightseeing-new-orleans-hop-on-hop-off-tour"
+   },
+   {
+    "key": "adidas-louisiana-ragin-cajuns-vault-script-long-sleeve-tee",
+    "name": "adidas-louisiana-ragin-cajuns-vault-script-long-sleeve-tee"
+   },
+   {
+    "key": "dupuy-s-gift-certificate",
+    "name": "dupuy-s-gift-certificate"
+   },
+   {
+    "key": "jean-paul-bourgeois-bayou-feasting-through-the-seasons-of-a-",
+    "name": "jean-paul-bourgeois-bayou-feasting-through-the-seasons-of-a-"
+   },
+   {
+    "key": "melissa-m-martin-mosquito-supper-club-cajun-recipes-from-a-d",
+    "name": "melissa-m-martin-mosquito-supper-club-cajun-recipes-from-a-d"
+   },
+   {
+    "key": "duck-commander-phil-robertson-pro-series-duck-call",
+    "name": "duck-commander-phil-robertson-pro-series-duck-call"
+   }
+  ],
+  "louisiana-celebrations": [
+   {
+    "key": "old-world-christmas-crawfish-glass-blown-ornament",
+    "name": "old-world-christmas-crawfish-glass-blown-ornament"
+   },
+   {
+    "key": "haydel-s-bakery-christmas-king-cake",
+    "name": "haydel-s-bakery-christmas-king-cake"
+   },
+   {
+    "key": "caluda-s-king-cake-traditional-mardi-gras-king-cake-kit",
+    "name": "caluda-s-king-cake-traditional-mardi-gras-king-cake-kit"
+   }
+  ],
+  "louisiana-food-gifts": [
+   {
+    "key": "chasing-the-gator-isaac-toups-and-the-new-cajun-cooking",
+    "name": "chasing-the-gator-isaac-toups-and-the-new-cajun-cooking"
+   },
+   {
+    "key": "commander-s-palace-holiday-dinner-for-4",
+    "name": "commander-s-palace-holiday-dinner-for-4"
+   },
+   {
+    "key": "mother-s-restaurant-family-favorites-po-boy-dinner-kit-for-4",
+    "name": "mother-s-restaurant-family-favorites-po-boy-dinner-kit-for-4"
+   },
+   {
+    "key": "dooky-chase-creole-jambalaya-3-qts",
+    "name": "dooky-chase-creole-jambalaya-3-qts"
+   },
+   {
+    "key": "dong-phuong-bakery-b-nh-m-sandwich-kit-choose-your-own-6-pac",
+    "name": "dong-phuong-bakery-b-nh-m-sandwich-kit-choose-your-own-6-pac"
+   },
+   {
+    "key": "lasyone-s-large-cajun-crawfish-pies",
+    "name": "lasyone-s-large-cajun-crawfish-pies"
+   },
+   {
+    "key": "bayou-classic-cast-iron-skillet-set",
+    "name": "bayou-classic-cast-iron-skillet-set"
+   },
+   {
+    "key": "ella-brennan-the-commander-s-palace-new-orleans-cookbook",
+    "name": "ella-brennan-the-commander-s-palace-new-orleans-cookbook"
+   },
+   {
+    "key": "tabasco-jalapeno-pepper-jelly",
+    "name": "tabasco-jalapeno-pepper-jelly"
+   },
+   {
+    "key": "haydel-s-bakery-traditional-king-cake-ships-nationwide",
+    "name": "haydel-s-bakery-traditional-king-cake-ships-nationwide"
+   },
+   {
+    "key": "aunt-sally-s-creamy-classic-pralines-box-of-12",
+    "name": "aunt-sally-s-creamy-classic-pralines-box-of-12"
+   },
+   {
+    "key": "gambino-s-bakery-half-half-doberge-cake",
+    "name": "gambino-s-bakery-half-half-doberge-cake"
+   },
+   {
+    "key": "sucr-signature-macarons-box-of-15",
+    "name": "sucr-signature-macarons-box-of-15"
+   },
+   {
+    "key": "hubig-s-pies-hand-pies-choose-your-own-12-pack",
+    "name": "hubig-s-pies-hand-pies-choose-your-own-12-pack"
+   },
+   {
+    "key": "angelo-brocato-large-cannoli-kit-biscotti-combo",
+    "name": "angelo-brocato-large-cannoli-kit-biscotti-combo"
+   }
+  ],
+  "outdoors-and-travel": [
+   {
+    "key": "southern-tide-coastal-breeze-performance-hoodie",
+    "name": "southern-tide-coastal-breeze-performance-hoodie"
+   },
+   {
+    "key": "southern-tide-intercoastal-performance-pant",
+    "name": "southern-tide-intercoastal-performance-pant"
+   },
+   {
+    "key": "tommy-bahama-palm-print-folding-golf-umbrella",
+    "name": "tommy-bahama-palm-print-folding-golf-umbrella"
+   },
+   {
+    "key": "rumpl-travel-puffy-blanket",
+    "name": "rumpl-travel-puffy-blanket"
+   },
+   {
+    "key": "yeti-roadie-60-wheeled-cooler",
+    "name": "yeti-roadie-60-wheeled-cooler"
+   }
+  ],
+  "pets": [
+   {
+    "key": "roller-rabbit-x-maxbone-monkey-mas-dog-pajamas",
+    "name": "roller-rabbit-x-maxbone-monkey-mas-dog-pajamas"
+   },
+   {
+    "key": "fable-orthopedic-pet-bed-cream",
+    "name": "fable-orthopedic-pet-bed-cream"
+   },
+   {
+    "key": "smathers-branson-duck-decoys-needlepoint-dog-collar",
+    "name": "smathers-branson-duck-decoys-needlepoint-dog-collar"
+   },
+   {
+    "key": "ruffwear-front-range-dog-harness",
+    "name": "ruffwear-front-range-dog-harness"
+   },
+   {
+    "key": "bark-grrradelli-puppermint-bark-dog-toy",
+    "name": "bark-grrradelli-puppermint-bark-dog-toy"
+   },
+   {
+    "key": "yeti-boomer-4-dog-bowl-limited-edition",
+    "name": "yeti-boomer-4-dog-bowl-limited-edition"
+   },
+   {
+    "key": "homerunpet-pet-friendly-space-heater",
+    "name": "homerunpet-pet-friendly-space-heater"
+   },
+   {
+    "key": "tushbaby-tushpuppy-hip-seat-pet-carrier",
+    "name": "tushbaby-tushpuppy-hip-seat-pet-carrier"
+   },
+   {
+    "key": "chewy-solid-wood-removable-bolster-cat-window-perch",
+    "name": "chewy-solid-wood-removable-bolster-cat-window-perch"
+   },
+   {
+    "key": "sleekez-horse-shedding-and-grooming-brush",
+    "name": "sleekez-horse-shedding-and-grooming-brush"
+   },
+   {
+    "key": "weaver-equine-7-piece-horse-grooming-kit-with-tote",
+    "name": "weaver-equine-7-piece-horse-grooming-kit-with-tote"
+   },
+   {
+    "key": "old-world-christmas-fish-glass-ornament",
+    "name": "old-world-christmas-fish-glass-ornament"
+   },
+   {
+    "key": "fluval-flex-9-gallon-aquarium-kit",
+    "name": "fluval-flex-9-gallon-aquarium-kit"
+   },
+   {
+    "key": "villeroy-boch-conure-coffee-mug",
+    "name": "villeroy-boch-conure-coffee-mug"
+   },
+   {
+    "key": "frisco-41-in-modern-cat-tree-condo-gray",
+    "name": "frisco-41-in-modern-cat-tree-condo-gray"
+   },
+   {
+    "key": "catlady-box-chasing-sunbeams-box",
+    "name": "catlady-box-chasing-sunbeams-box"
+   },
+   {
+    "key": "salty-cat-cat-treat-bundle",
+    "name": "salty-cat-cat-treat-bundle"
+   },
+   {
+    "key": "catstages-tower-of-tracks-interactive-cat-toy",
+    "name": "catstages-tower-of-tracks-interactive-cat-toy"
+   },
+   {
+    "key": "kong-refillables-catnip-toys-2-pack",
+    "name": "kong-refillables-catnip-toys-2-pack"
+   },
+   {
+    "key": "365-cats-page-a-day-calendar-2027",
+    "name": "365-cats-page-a-day-calendar-2027"
+   },
+   {
+    "key": "mackenzie-childs-courtly-bird-feeder",
+    "name": "mackenzie-childs-courtly-bird-feeder"
+   },
+   {
+    "key": "petlibro-dockstream-cordless-fountain",
+    "name": "petlibro-dockstream-cordless-fountain"
+   },
+   {
+    "key": "lickimat-cat-lick-mat-variety-2-pack",
+    "name": "lickimat-cat-lick-mat-variety-2-pack"
+   },
+   {
+    "key": "tractor-supply-sherpa-dog-jacket",
+    "name": "tractor-supply-sherpa-dog-jacket"
+   },
+   {
+    "key": "petlibro-granary-smart-camera-feeder",
+    "name": "petlibro-granary-smart-camera-feeder"
+   },
+   {
+    "key": "fi-series-3-smart-gps-dog-collar",
+    "name": "fi-series-3-smart-gps-dog-collar"
+   }
+  ],
+  "shop-small-louisiana": [
+   {
+    "key": "the-fois-christmas-sweater",
+    "name": "the-fois-christmas-sweater"
+   },
+   {
+    "key": "rip-van-winkle-gardens-house-tours",
+    "name": "rip-van-winkle-gardens-house-tours"
+   },
+   {
+    "key": "the-allways-lounge-cabaret-tote-bag",
+    "name": "the-allways-lounge-cabaret-tote-bag"
+   },
+   {
+    "key": "megan-benoit-s-closet-tiny-initial-necklace",
+    "name": "megan-benoit-s-closet-tiny-initial-necklace"
+   },
+   {
+    "key": "cajun-belle-studio-swamp-lotus-tea-print",
+    "name": "cajun-belle-studio-swamp-lotus-tea-print"
+   }
+  ],
   "teens": [
    {
     "key": "ugg-classic-ultra-mini-boot-chestnut",
     "name": "UGG Classic Ultra Mini Boot, Chestnut"
+   },
+   {
+    "key": "baublebar-college-logo-hair-claw-clip",
+    "name": "baublebar-college-logo-hair-claw-clip"
+   }
+  ],
+  "work-life": [
+   {
+    "key": "muck-women-s-chore-western-12-boot",
+    "name": "muck-women-s-chore-western-12-boot"
    }
   ]
- }
+ },
+ "everywhere": [
+  "365-cats-page-a-day-calendar-2027",
+  "5-11-tactical-a-t-6-boot",
+  "5-11-tactical-rush-24-backpack",
+  "831-stories-bookends",
+  "831-stories-only-one-bed-keychain",
+  "8bitdo-retro-mechanical-keyboard",
+  "adidas-louisiana-ragin-cajuns-vault-script-long-sleeve-tee",
+  "aeropress-clear-coffee-press",
+  "aeropress-xl-coffee-press",
+  "aeva-beauty-e-gift-card",
+  "aeva-beauty-gift-card",
+  "amazon-echo-show-8",
+  "ambient-weather-ws-2902-wi-fi-smart-weather-station",
+  "americanflat-folded-flag-display-case-mahogany",
+  "angel-dear-pointer-pups-and-duck-buddies-2-way-zipper-footie",
+  "angelo-brocato-large-cannoli-kit-biscotti-combo",
+  "anker-power-bank-20-000mah",
+  "anker-zolo-magnetic-power-bank-10k-30w-built-in-usb-c-cable",
+  "aosu-indoorcam-p1-pro",
+  "apple-airpods-4",
+  "apple-watch-se-3-gps-cellular-40mm-smartwatch",
+  "arey-the-system",
+  "at-home-50-count-shatterproof-ornaments",
+  "atlas-coffee-club-12-month-coffee-club-gift-subscription",
+  "audio-technica-at-lp60x-turntable",
+  "aunt-sally-s-creamy-classic-pralines-box-of-12",
+  "aura-aspen-digital-photo-frame",
+  "b-is-the-weekender",
+  "babybj-rn-bouncer-begin-brushed-woven-beige",
+  "babybj-rn-bouncer-bliss-pink",
+  "barefoot-dreams-cozychic-barefoot-in-the-wild-baby-blanket",
+  "bark-grrradelli-puppermint-bark-dog-toy",
+  "basic-bee-bitty-bit-of-honey-gift-set",
+  "bass-pro-shops-deer-trigger-mug",
+  "bath-body-works-3-wick-candle",
+  "bath-body-works-fresh-balsam-3-wick-candle",
+  "bath-body-works-the-perfect-christmas-3-wick-candle",
+  "baublebar-college-logo-hair-claw-clip",
+  "baublebar-mini-joyce-semi-precious-beaded-necklace-amethyst",
+  "bayou-classic-cast-iron-skillet-set",
+  "bearaby-calmer-weighted-neck-wrap",
+  "bearaby-cotton-napper-weighted-blanket",
+  "beats-powerbeats-pro-2",
+  "bedsure-bamboo-cooling-pillowcases-sage-green-queen-set-of-2",
+  "bellroy-note-sleeve-slim-leather-wallet",
+  "benq-screenbar-monitor-light",
+  "birdfy-smart-bird-feeder-with-camera",
+  "bits-bows-lifeguard-hat-blue",
+  "black-diamond-spot-400-headlamp",
+  "bodum-brazil-french-press-black",
+  "bodum-gooseneck-electric-kettle-stainless",
+  "bombas-everyday-compression-sock-2-pack-gift-box",
+  "bondi-boost-mini-volumising-shampoo",
+  "bonwellness-big-year-energy-wellness-kit",
+  "bose-quietcomfort-headphones",
+  "bose-soundlink-flex-speaker-2nd-gen",
+  "bostonmints-dot-rose-lip-gloss",
+  "brooklinen-mulberry-silk-eye-mask",
+  "brooklinen-mulberry-silk-pillowcase",
+  "brookstone-cordless-hot-and-cold-percussion-massager",
+  "buff-lightweight-merino-wool-neck-gaiter",
+  "caden-lane-birdie-babes-ruffle-zipper-footie",
+  "cafe-du-monde-coffee-and-chicory-6-cans",
+  "cajun-belle-studio-swamp-lotus-tea-print",
+  "calia-5mm-dry-grip-yoga-mat",
+  "calpak-terra-sling-bag-olive",
+  "caluda-s-king-cake-traditional-mardi-gras-king-cake-kit",
+  "camelbak-chute-mag-vacuum-insulated-stainless-steel-water-bo",
+  "caraway-large-ceramic-baking-pan",
+  "carhartt-classic-zippered-travel-kit-black",
+  "carhartt-x-47-new-orleans-saints-clean-up-cap",
+  "catlady-box-chasing-sunbeams-box",
+  "catstages-tower-of-tracks-interactive-cat-toy",
+  "cecil-lou-navy-red-plaid-smocked-dress",
+  "cecil-lou-peach-floral-smocked-bubble",
+  "cecil-lou-pink-heirloom-lace-dress",
+  "cecil-lou-smocked-strawberry-bow-heirloom-dress",
+  "cecil-lou-women-s-mahjong-shorty-pajama-set",
+  "cecil-lou-women-s-pink-christmas-candy-pajamas",
+  "chasing-the-gator-isaac-toups-and-the-new-cajun-cooking",
+  "chemex-coffeemaker",
+  "chemical-guys-foam-cannon",
+  "chewy-solid-wood-removable-bolster-cat-window-perch",
+  "city-sightseeing-new-orleans-hop-on-hop-off-tour",
+  "clm-creations-gentlestyle-brush",
+  "clove-forte-shoes-for-healthcare-workers",
+  "cmi-entertainment-at-the-strand-theatre-a-christmas-carol",
+  "coach-cargo-logo-canvas-tote",
+  "cocolillys-coco-leggings",
+  "commander-s-palace-holiday-dinner-for-4",
+  "community-coffee-breakfast-blend-40-oz",
+  "comrad-recycled-cotton-compression-socks",
+  "copic-ciao",
+  "corkcicle-go-cup-xl",
+  "corkcicle-pure-taste-mug",
+  "corkcicle-x-kitchenaid-coffee-mug",
+  "corkcicle-x-rifle-paper-co-cold-cup",
+  "crew-dog-lsu-claw-heritage-embroidered-hoodie",
+  "crew-dog-lsu-landscape-embroidered-crewneck",
+  "criquet-del-campo-performance-players-shirt-blue",
+  "crocs-classic-clogs",
+  "crocs-classic-work-clog",
+  "crocs-hello-kitty-jibbitz-shoe-charms-5-pack",
+  "crocs-on-the-clock-literide-work-slip-on",
+  "current-holiday-horses-christmas-jumbo-rolled-gift-wrap-23-i",
+  "dagne-dover-landon-carryall-large",
+  "dearfoams-cozy-comfort-women-s-moc-toe-clog-slippers",
+  "deming-delights-hand-poured-soy-candle",
+  "dewalt-20v-max-xr-brushless-impact-driver",
+  "dewalt-20v-professional-battery-booster-with-usb-power",
+  "dhc-lip-cream-3-pack",
+  "displaygifts-military-challenge-coin-display-case",
+  "dong-phuong-bakery-b-nh-m-sandwich-kit-choose-your-own-6-pac",
+  "dooky-chase-creole-jambalaya-3-qts",
+  "drowsy-eyelash-protecting-sleep-mask",
+  "duck-commander-phil-robertson-pro-series-duck-call",
+  "dupuy-s-abbeville",
+  "dupuy-s-gift-certificate",
+  "durango-boots-maverick-xp-waterproof-western-work-boot",
+  "durango-westward-women-s-rosewood-western-boot",
+  "eberjey-gisele-long-pj-set-ivory",
+  "ecoxgear-the-defender-speaker",
+  "eddie-bauer-reversible-plaid-heated-plush-throw",
+  "ella-brennan-the-commander-s-palace-new-orleans-cookbook",
+  "elyse-breanne-design-badge-reel",
+  "ember-mug-3-14-oz-smart-mug-lavender",
+  "exploding-kittens-throw-throw-burrito",
+  "faber-castell-polychromos-artists-color-pencils",
+  "fable-orthopedic-pet-bed-cream",
+  "felco-f2-pruning-shears",
+  "fenix-pd35-v3-0-rechargeable-tactical-flashlight",
+  "fi-series-3-smart-gps-dog-collar",
+  "fluke-1ac-ii-voltalert-voltage-tester",
+  "fluval-flex-9-gallon-aquarium-kit",
+  "frankie-s-on-the-park-squishy-mystery-dumpling",
+  "friend-of-mine-serial-hobbyist-needlepoint-pillow",
+  "frisco-41-in-modern-cat-tree-condo-gray",
+  "fujifilm-instax-mini-12-clay-white",
+  "furbish-studio-cool-mom-needlepoint-pillow",
+  "gambino-s-bakery-half-half-doberge-cake",
+  "garmin-instinct-3-tactical-solar-smartwatch",
+  "gentlestyle-brush",
+  "geometry-greetings-from-louisiana-tea-towel",
+  "golden-open-slow-drying-acrylics",
+  "graphic-image-desk-mat-in-italian-leather",
+  "green-toys-dump-truck",
+  "green-toys-my-first-stacker",
+  "grundens-brigg-44-parka",
+  "haakaa-new-mom-breastfeeding-starter-pack",
+  "hallmark-medium-christmas-gift-boxes-with-lids-12-shirt-boxe",
+  "harry-david-holiday-traditions-gift-basket",
+  "haven-haus-co-recipe-binder",
+  "haydel-s-bakery-christmas-king-cake",
+  "haydel-s-bakery-traditional-king-cake-ships-nationwide",
+  "herschel-supply-co-kaslo-tech-laptop-backpack-30l",
+  "hickory-farms-savory-snacks-gift-box",
+  "hilma-daily-pre-probiotic-herbs",
+  "hitster-music-party-card-game",
+  "hoka-arahi-9-sneakers",
+  "hoka-clifton-11-sneakers",
+  "hoka-mach-remastered-sneakers",
+  "homedics-shiatsu-foot-massager",
+  "homerunpet-pet-friendly-space-heater",
+  "hubig-s-pies-hand-pies-choose-your-own-12-pack",
+  "huk-performance-fishing-trucker-hat",
+  "hydro-flask-10-oz-wine-tumbler",
+  "hydro-flask-kids-straw-lid-water-bottle",
+  "hydro-flask-micro-hydro-200-ml-water-bottle",
+  "hyperx-alloy-core-rgb-gaming-keyboard",
+  "hyperx-solocast-usb-microphone",
+  "idra-wellness-body-lotion",
+  "ifixit-mako-driver-kit",
+  "innova-5610-bidirectional-obd2-scanner",
+  "ioka-gift-card",
+  "ioka-skin-science-gift-card",
+  "j-crew-leather-passport-holder",
+  "jean-paul-bourgeois-bayou-feasting-through-the-seasons-of-a-",
+  "jellycat-amuseables-cinnamon-bun-plush",
+  "jellycat-amuseables-croissant-bag-charm",
+  "jellycat-bartholomew-bear",
+  "jellycat-bartholomew-bear-bathrobe",
+  "jellycat-bashful-bunny",
+  "jojo-mommy-kane-revive-recovery-shoe-white-spring-speckle",
+  "juliska-berry-thread-chambray-mug",
+  "justin-wilson-s-homegrown-louisiana-cookin",
+  "k18-futureiq-and-molecular-repair-hair-mask",
+  "kai-reed-diffuser",
+  "kate-mcleod-daily-stone",
+  "kate-spade-badge-reel",
+  "kate-spade-card-case-lanyard",
+  "kate-spade-devin-saffiano-leather-zip-around-continental-wal",
+  "kate-spade-new-york-click-pen-set",
+  "kate-spade-new-york-large-spiral-notebook-scatter-dots",
+  "katie-kime-new-orleans-toile-ice-bucket-green",
+  "kiehl-s-creme-de-corps-whipped-body-butter",
+  "kindle-colorsoft",
+  "kindle-paperwhite",
+  "kitchenaid-fresh-prep-slicer-and-shredder-attachment",
+  "kitsch-satin-pillowcase-leopard",
+  "kitsch-ultra-petite-satin-scrunchies-6-pack",
+  "klein-tools-5139-canvas-zipper-tool-bag",
+  "kodak-pixpro-c1-compact-digital-camera",
+  "kong-refillables-catnip-toys-2-pack",
+  "lamy-studio-fountain-pen",
+  "lands-end-cashmere-lined-leather-touchscreen-gloves",
+  "lands-end-medium-embroidered-5-pocket-canvas-tote",
+  "lasyone-s-large-cajun-crawfish-pies",
+  "le-creuset-chambray-blue-cereal-bowls-set-of-4",
+  "le-creuset-classic-whistling-tea-kettle-1-7-qt-cerise",
+  "le-creuset-mugs-set-of-4",
+  "le-petit-th-tre-the-secret-garden",
+  "leatherman-raptor-rescue-6-in-1-trauma-shears",
+  "lickimat-cat-lick-mat-variety-2-pack",
+  "liou-perla-hoop-earrings",
+  "littmann-cardiology-iv-stethoscope-plum",
+  "lmnt-variety-pack",
+  "logitech-g502-hero-se-wired-optical-gaming-mouse-with-rgb-li",
+  "logitech-mx-keys-s-keyboard",
+  "longchamp-le-pliage-cosmetics-case",
+  "louisiana-tech-bulldogs-arch-over-pullover-hoodie",
+  "love-wellness-tired-mom-bundle",
+  "lululemon-always-in-motion-boxer-brief-5-3-pack",
+  "lululemon-groove-nulu-high-rise-flared-pant",
+  "lululemon-steady-state-oversized-funnel-full-zip",
+  "mac-retro-matte-lipstick",
+  "mackenzie-childs-courtly-bird-feeder",
+  "maileg-baby-mouse-in-carry-cot",
+  "maniere-crochet-collar-romper",
+  "material-the-reboard-cutting-boards-set-of-3",
+  "material-the-three-tool-set",
+  "mechanix-wear-fastfit-gloves",
+  "megan-benoit-s-closet-tiny-initial-necklace",
+  "melissa-doug-super-smile-dentist-play-set",
+  "melissa-m-martin-mosquito-supper-club-cajun-recipes-from-a-d",
+  "micro-kickboard-maxi-led-scooter",
+  "mignon-faget-small-iris-pendant-louisiana-collection",
+  "mind-the-skin-signal-pre-flare-patch",
+  "moleskine-reading-journal",
+  "mom-rules-needlepoint-pillow",
+  "monogram-mary-complete-baby-bundle",
+  "mother-s-restaurant-family-favorites-po-boy-dinner-kit-for-4",
+  "muck-arctic-sport-ii-tall-boot",
+  "muck-men-s-chore-cool-tall-boot",
+  "muck-women-s-chore-western-12-boot",
+  "muck-women-s-muckster-lite-eva-clog",
+  "mud-pie-christmas-tree-chenille-socks",
+  "multipet-lamb-chop-fisherman-dog-toy",
+  "mushie-stacking-cups",
+  "nebo-poppy-2-in-1-lantern-spotlight",
+  "nike-cortez-sneakers",
+  "nintendo-switch-2-pro-controller",
+  "oakley-gascan-sunglasses",
+  "oakley-si-ballistic-sunglasses",
+  "oil-center-festival-of-lights",
+  "old-navy-high-waisted-socomfy-wide-leg-sweatpants",
+  "old-navy-snug-crop-ribbed-t-shirt",
+  "old-world-christmas-crawfish-glass-blown-ornament",
+  "old-world-christmas-fish-glass-ornament",
+  "old-world-christmas-old-farm-tractor-glass-ornament-for-tree",
+  "oofos-ooahh-floral-recovery-platform-slide-sandals",
+  "oofos-ooriginal-sandal",
+  "owala-bunny-business-freesip-bottle-16-oz",
+  "owala-freesip-24-oz-sugar-high",
+  "oyu-botanica-winter-radiance-duo",
+  "paddywax-santa-s-favorite-gingerbread-candle",
+  "paddywax-smoked-pistachio-cowboy-boot-candle",
+  "paddywax-sweet-like-peppermint-candle",
+  "paper-source-holiday-wax-seal-kit",
+  "papier-x-anthropologie-wellness-guided-journal",
+  "papier-x-anthropologie-wooden-dominoes",
+  "papyrus-boxed-christmas-cards-with-envelopes-christmas-trees",
+  "parachute-turkish-cotton-stripe-slippers",
+  "paradise-horses-chicken-coop-playset",
+  "patagonia-men-s-nano-puff-vest",
+  "peak-design-capture-camera-clip",
+  "penguin-clothbound-classics",
+  "penny-linn-magnetic-ort-bowl-blue",
+  "penny-linn-pink-mini-heirloom-nutcracker-needlepoint-kit",
+  "petlibro-dockstream-cordless-fountain",
+  "petlibro-granary-smart-camera-feeder",
+  "playstation-dualsense-controller-ice-blue",
+  "playstation-dualsense-wireless-controller-for-ps5-pc-mac-mob",
+  "pok-mon-tcg-azure-legends-tin",
+  "pokemon-tcg-mega-evolution-chaos-rising-pok-mon-center-elite",
+  "polaroid-now-gen-3-instant-camera-film-bundle",
+  "printfresh-eco-satin-robe",
+  "printfresh-eco-satin-sweet-dreams-pajama-set",
+  "printfresh-tiger-queen-pajama-set",
+  "printfresh-x-furbish-merry-little-christmas-needlepoint-pill",
+  "printfresh-x-gilmore-girls-oversized-pouch-duo",
+  "printworks-shut-the-box-classic-board-game",
+  "privet-house-woodland-lodge-shield-gift-tags",
+  "ray-ban-meta-gen-3-wayfarer-ai-glasses",
+  "razer-seiren-v3-chroma-32-bit-dsp-microphone",
+  "realtree-men-s-insulated-hunting-parka-realtree-apx-camoufla",
+  "rebecca-illustrated-caf-du-monde-art-print",
+  "renpho-eyeris-1-eye-massager-with-heat",
+  "rifle-paper-co-christmas-delivery-gift-tags",
+  "rifle-paper-co-embroidered-journal-burgundy-rose",
+  "rifle-paper-co-mulberry-farm-cotton-quilt",
+  "rip-van-winkle-gardens-house-tours",
+  "rock-bottom-golf-gift-card",
+  "rod-campbell-dear-santa-a-lift-the-flap-book",
+  "roller-rabbit-kids-deck-the-halls-pajamas",
+  "roller-rabbit-kids-monkey-pima-cotton-pajamas",
+  "roller-rabbit-x-maxbone-monkey-mas-dog-pajamas",
+  "rothco-shemagh-tactical-desert-keffiyeh-scarf",
+  "rothy-s-almond-slingback-flat",
+  "royce-new-york-heart-shaped-leather-key-chain",
+  "royce-new-york-monogrammed-executive-journal-with-pen",
+  "ruffwear-front-range-dog-harness",
+  "ruggable-welcome-trellis-washable-doormat",
+  "rumpl-travel-puffy-blanket",
+  "ryse-fuel",
+  "saie-jet-set-kit",
+  "saie-saieglow-bestsellers-kit",
+  "salty-cat-cat-treat-bundle",
+  "saranoni-patterned-faux-fur-throw-blanket",
+  "sassy-stacks-of-circles-stacking-ring-toy",
+  "savoie-s-old-fashioned-dark-roux-and-light-roux-2-pack-bundl",
+  "shokz-openrun-pro-2-headphones",
+  "skullcandy-push-anc-active-noise-canceling-true-wireless-ear",
+  "sky-sol-tallow-magnesium-night-balm",
+  "sleekez-horse-shedding-and-grooming-brush",
+  "slip-back-to-basics-skinny-scrunchies",
+  "smathers-branson-duck-decoys-needlepoint-dog-collar",
+  "smathers-branson-lsu-needlepoint-hat",
+  "smeg-drip-filter-coffee-machine-cream",
+  "sony-wh-1000xm6-wireless-noise-canceling-headphones",
+  "southern-marsh-youth-regatta-stretch-chino",
+  "southern-tide-channel-marker-7-chino-short",
+  "southern-tide-coastal-breeze-performance-hoodie",
+  "southern-tide-colorblock-lounge-pant",
+  "southern-tide-ella-pleated-tennis-dress",
+  "southern-tide-intercoastal-performance-pant",
+  "southern-tide-levitt-lounge-pant",
+  "southern-tide-nance-embroidered-shorts",
+  "southern-tide-sabina-sweatshirt",
+  "southern-tide-sara-lounge-pullover",
+  "southern-tide-sullivan-five-pocket-pant",
+  "speedball-deluxe-block-printing-kit",
+  "sperry-men-s-authentic-original-boat-shoes",
+  "sri-labs-dryq-blow-dryer",
+  "sri-labs-dryq-blow-dryer-and-keewee-shampoo",
+  "stanley-all-day-slim-bottle-20-oz-lilac",
+  "stanley-everyday-can-cooler-cup-10-oz",
+  "stanley-iceflow-flip-straw-2-0-tumbler-20-oz",
+  "stanley-quencher-h2-0-flowstate-tumbler-30-oz-hibiscus",
+  "stanley-quencher-h2-0-flowstate-tumbler-40-oz",
+  "stanley-quencher-h2-0-tumbler-with-handle-and-straw-30-oz",
+  "stanley-quencher-luxe-h2-0-flowstate-tumbler-30-oz",
+  "stanley-quencher-protour-flip-straw-tumbler-30-oz-popsicle-p",
+  "stanley-the-caf-to-go-travel-mug-20-oz",
+  "stanley-the-everyday-slim-can-cooler-cup-10-oz",
+  "stanley-the-iceflow-flip-straw-tumbler-2-0-30-oz",
+  "stanley-the-reserve-wine-tumbler-11-oz",
+  "steelseries-arctis-nova-3p-wireless-for-playstation",
+  "steen-s-100-pure-cane-syrup-16fl-oz",
+  "streamlight-90540-survivor-175-lumen-right-angle-flashlight",
+  "sucr-signature-macarons-box-of-15",
+  "sunbeam-royal-luxe-heated-throw",
+  "sunnylife-carryall-beach-bag",
+  "sunnylife-underwater-camera",
+  "t3-silk-scrunchies-set-of-3",
+  "tabasco-jalapeno-pepper-jelly",
+  "terrain-dutch-field-mix-dried-bouquet",
+  "terrain-ruffled-marble-bowl",
+  "tervis-made-in-usa-double-walled-nfl-new-orleans-saints-insu",
+  "the-allways-lounge-cabaret-tote-bag",
+  "the-fois-christmas-sweater",
+  "the-greatest-beer-run-ever-a-wild-story-of-friendship",
+  "the-nutcracker-with-a-live-orchestra",
+  "the-proper-stitch-magnolia-needlepoint-canvas",
+  "the-proper-stitch-troop-project-bag-large-pink",
+  "the-sculpt-society-workout-membership",
+  "the-strand-theatre-3-redneck-tenors",
+  "therabody-sleep-mask-with-gentle-vibration",
+  "therabody-smartgoggles-2nd-gen-heated-eye-massager",
+  "therabody-theraface-depuffing-wand",
+  "timeless-skin-care-the-holiday-survival-bundle",
+  "tommy-bahama-islamorada-crochet-raffia-clutch",
+  "tommy-bahama-memory-foam-travel-pillow",
+  "tommy-bahama-palm-print-folding-golf-umbrella",
+  "tommy-bahama-two-palms-linen-raw-edge-jacket",
+  "top-flite-13-piece-complete-golf-set",
+  "tractor-supply-sherpa-dog-jacket",
+  "tushbaby-convertible-carrier",
+  "tushbaby-tushpuppy-hip-seat-pet-carrier",
+  "twelve-south-curve-nano-magnetic-phone-stand",
+  "twelve-south-hirise-3-deluxe-3-in-1-wireless-charger",
+  "ugg-classic-ultra-mini-boot-chestnut",
+  "ugg-scuffette-ii-slipper",
+  "ugg-tasman-ii-slipper",
+  "under-armour-rival-fleece-hoodie",
+  "under-armour-rival-fleece-joggers",
+  "vevor-24-ft-inflatable-movie-screen",
+  "vevor-glow-in-the-dark-fort-building-kit",
+  "villeroy-boch-conure-coffee-mug",
+  "voluspa-12-day-alpine-advent-calendar",
+  "voluspa-bergamot-rose-2-wick-tin-candle",
+  "voluspa-mini-forbidden-fig-decorative-tin-candle-4-oz-113-g",
+  "vuori-women-s-halo-essential-hoodie",
+  "vuori-women-s-relaxed-fit-performance-jogger",
+  "waterford-golden-teddy-ornament",
+  "waterford-lismore-crystal-whiskey-glasses",
+  "weathertech-cupfone-phone-mount",
+  "weaver-equine-7-piece-horse-grooming-kit-with-tote",
+  "weber-original-kettle-grill-22-in",
+  "written-on-the-river-cajun-seafood-seasonings-tea-towel",
+  "xbox-wireless-controller-series-x-s",
+  "xtratuf-men-s-ankle-deck-boot",
+  "xtratuf-unisex-beanie",
+  "yeti-12-cast-iron-skillet",
+  "yeti-boomer-4-dog-bowl-limited-edition",
+  "yeti-camino-50-carryall-tote",
+  "yeti-rambler-34-oz-french-press",
+  "yeti-rambler-wine-chiller",
+  "yeti-roadie-24-hard-cooler",
+  "yeti-roadie-60-wheeled-cooler",
+  "yeti-tank-45-ice-bucket",
+  "yoto-mini-4th-gen-sesame-street-bundle",
+  "zapp-s-new-orleans-voodoo-potato-chips-42-bags",
+  "zydeco-chop-chop-seasoning-10-oz-shaker"
+ ]
 }

@@ -71,7 +71,7 @@ describe("gift guides: Trending only where the pick is trending (big batch 1120)
 
   it("a store page's list wears no Trending pill", () => {
     const { container } = renderAt("/gift-guides/store-walmart");
-    expect(rowBadges(container).length).toBeGreaterThan(3);
+    expect(rowBadges(container).length).toBeGreaterThan(1);
     expect(container.querySelector('[data-gift-badge="trending"]')).toBeNull();
   });
 

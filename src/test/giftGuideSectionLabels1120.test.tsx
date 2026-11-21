@@ -31,7 +31,7 @@ describe("gift guides: section headings read as parts of one guide (owner 11-20)
 
   it("the jump chips sit after a visible label, so two chips never read as two titles", () => {
     const src = readFileSync("src/pages/info/giftGuides/GiftGuideView.tsx", "utf8");
-    expect(src).toContain('<span className="gg-secnav-label" aria-hidden="true">{G.sectionNavLabel}:</span>');
-    expect(src).toContain("{sectionLabel(guide, s.title, s.id)}</a>");
+    // Owner 11-20 night ("just remove the sections and make it one guide"): the page draws no jump chips at all.
+    expect(src).not.toMatch(/gg-secnav|data-gift-section-link/);
   });
 });

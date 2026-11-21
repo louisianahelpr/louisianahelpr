@@ -22,7 +22,11 @@ const walk = (v) => {
 if (existsSync(join(dir, "_page-data.json"))) walk(JSON.parse(readFileSync(join(dir, "_page-data.json"), "utf8")));
 const spec = existsSync(out) ? JSON.parse(readFileSync(out, "utf8")) : { removals: {} };
 let added = 0;
-for (const f of readdirSync(dir).filter((x) => x.endsWith(".json") && !x.startsWith("_")).sort()) {
+// "ok remove the ones i selected" (owner 11-20 ~10:20 PM): REMOVE-ALL-*.json lists keys that leave EVERY guide and store page.
+const everywhere = new Set(spec.everywhere ?? []);
+for (const f of readdirSync(dir).filter((x) => /^REMOVE-ALL.*\.json$/.test(x))) for (const key of JSON.parse(readFileSync(join(dir, f), "utf8")).keys ?? []) everywhere.add(key);
+spec.everywhere = [...everywhere].sort();
+for (const f of readdirSync(dir).filter((x) => x.endsWith(".json") && !x.startsWith("_") && !/^(REMOVE-ALL|decide-)/.test(x)).sort()) {
   const guide = f.replace(/\.json$/, "");
   if (SKIP.has(guide)) continue;
   const raw = JSON.parse(readFileSync(join(dir, f), "utf8"));
@@ -34,4 +38,4 @@ for (const f of readdirSync(dir).filter((x) => x.endsWith(".json") && !x.startsW
 for (const g of SKIP) delete spec.removals[g];
 spec.removals = Object.fromEntries(Object.entries(spec.removals).sort(([a], [b]) => a.localeCompare(b)));
 writeFileSync(out, `${JSON.stringify(spec, null, 1)}\n`);
-console.log(`owner removals: ${added} added; ${Object.entries(spec.removals).map(([g, r]) => `${g} ${r.length}`).join(", ")}`);
+console.log(`owner removals: ${added} added; everywhere ${spec.everywhere.length}; ${Object.entries(spec.removals).map(([g, r]) => `${g} ${r.length}`).join(", ")}`);

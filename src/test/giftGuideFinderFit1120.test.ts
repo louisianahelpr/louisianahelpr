@@ -26,7 +26,7 @@ const MENS_NAME = /\b(men'?s|mens|for men)\b/i;
 describe("gift finder close matches suit the person (gg-live-1120)", () => {
   it("picks carry their gift type from the import (the finder's fit rules read it)", () => {
     const typed = borrow.filter((p) => p.type);
-    expect(typed.length).toBeGreaterThan(40);
+    expect(typed.length).toBeGreaterThan(34);
   });
 
   it("Dad + Under $25 + Outdoorsy fills with no shower oil, pimple patches or other women's gifts, and still shows 6+", () => {

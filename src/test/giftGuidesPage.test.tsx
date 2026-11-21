@@ -130,7 +130,8 @@ const expandAll = (root: HTMLElement) => {
 };
 const DISCLOSURE = "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.";
 const AMAZON_STATEMENT = "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.";
-const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
+const PET_COLOR_COLLECTION = /\b(cat|dog|puppy|kitten|horse|fish|bird|pet|red|pink|purple|blue|green|yellow|black|neutral)s?\b/i;
+const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "By store"]; // owner 11-20 night: the pet and color guides are removed
 // @two-way src/test/giftGuidesPage.test.tsx:stale allowed host
 const LA_HOSTS = new Set([...LOUISIANA_SHOPS, ...SPONSOR_SITES]);
 const ALLOWED_HOSTS = ["shopmy.us", "www.pinterest.com", "www.amazon.com", "amazon.com", "amzn.to", ...AFFILIATE_HOSTS, ...BRAND_SITES, ...LOUISIANA_SHOPS, ...SPONSOR_SITES, ...NATIONAL_SPONSOR_SITES];
@@ -194,7 +195,7 @@ describe("gift guides: the shipping pill rides the page header's row (owner 11-1
 describe("gift guides: the content inventory", () => {
   it("every link is https on an allowed host; every pick's store is its link host; no prices", () => {
     expect(contentLinks.length).toBeGreaterThan(600);
-    expect(picks.length).toBeGreaterThan(600);
+    expect(picks.length).toBeGreaterThan(580);
     for (const href of contentLinks) {
       const u = new URL(href);
       expect(u.protocol, href).toBe("https:");
@@ -269,7 +270,7 @@ describe("gift guides: the content inventory", () => {
       if (g.picks.length < 15) for (const p of picks.filter((x) => x.store === store && !isLouisianaItem(x, LA_HOSTS))) expect(names.has(p.name) || hrefs.has(p.href) || [...variants].some((v) => v.includes(variant(p.name)) || variant(p.name).includes(v)), p.name).toBe(true);
     }
     expect(guidesIn("by-store")[0].slug).toBe("store-amazon");
-    expect(guidesIn("by-store")[1].slug).toBe("store-walmart");
+    // Walmart holds 2 picks after the owner's 10:20 PM removals (11-20), under a store page's minimum, so it is hidden for now.
     // The fixed stores, then every researched store page (store-<x>).
     expect(Object.keys(STORES).filter((k) => !k.startsWith("store-")).sort()).toEqual(["amazon", "diecast", "louisiana", "shopmy", "sponsor", "zchocolat"]);
   });
@@ -356,7 +357,7 @@ describe("gift guides: the content inventory", () => {
 
   it("the owner's guide list drives the order and the palettes; every listed guide with content is shown", () => {
     expect(ROWS.map((r) => r.label)).toEqual(ROW_LABELS);
-    expect(ROWS.map((r) => r.tint)).toEqual(["green", "red", "oat", "green", "red", "oat", "green", "red", "oat", "green"]);
+    expect(ROWS.map((r) => r.tint)).toEqual(["green", "red", "oat", "green", "red", "oat", "green", "green"]); // owner 11-20 night: the pet and color rows are gone
     // For Her + For Him (owner 11-20): the relationship pages (Mom, Wife ...) are filtered views, listed after the guides.
     const shown = GUIDES.filter((g) => !g.view && GUIDE_INDEX.some((x) => x.slug === g.slug)).map((g) => g.slug);
     expect(shown).toEqual(GUIDE_INDEX.filter((x) => shown.includes(x.slug)).map((x) => x.slug));
@@ -752,7 +753,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const g = guideBySlug("healthcare")!;
     // Owner standard 11-20: Healthcare's sections are by use now, so the old role links open the guide's top.
     expect(SECTION_ANCHORS.rns).toBeUndefined();
-    expect(g.picks.length).toBeGreaterThan(15);
+    expect(g.picks.length).toBeGreaterThan(13);
     // Once each on the whole page: by link, and by name for a ShopMy collection link that several products share.
     expect(new Set(g.picks.map((p) => `${p.href} ${p.name}`)).size).toBe(g.picks.length);
     renderAt("/gift-guides/female-nurses");
@@ -845,7 +846,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
     const linked = new Set(GUIDES.flatMap((g) => g.links.map((l) => l.href)));
     expect(SHOPMY_COLLECTIONS.length).toBeGreaterThan(40);
     // Workaholic (8988297) left the owner's list with the non-healthcare careers (REMOVED_GUIDES).
-    const kept = SHOPMY_COLLECTIONS.filter((c) => c.id !== 8988297);
+    const kept = SHOPMY_COLLECTIONS.filter((c) => c.id !== 8988297 && !PET_COLOR_COLLECTION.test(c.label)); // owner 11-20 night: the pet and color guides are removed
     for (const c of kept) expect(linked.has(`https://shopmy.us/collections/${c.id}`), c.label).toBe(true);
     // Each collection is its own guide's "full guide" link (not only reachable through another guide's links).
     const labelled = new Set(GUIDES.flatMap((g) => g.links.filter((l) => l.label === `${SHOPMY_COLLECTIONS.find((c) => l.href.endsWith(`/${c.id}`))?.label} on ShopMy`).map((l) => l.href)));
@@ -968,7 +969,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(mom.title).toBe("Gifts for Mom — Helpr");
     expect(mom.canonical).toBe("https://www.louisianahelpr.com/gift-guides/mom");
     expect(mom.robots).toBeUndefined();
-    expect(giftGuidePageMeta("store-walmart").title).toBe("Walmart gift guide — Helpr");
+    expect(giftGuidePageMeta("store-target").title).toBe("Target gift guide — Helpr");
     // A guide not in the sitemap (empty, a hub, a thin store page) is noindex under its own title.
     // (Follow-up 1120: every shown guide is in the sitemap now; a probe stands in when none is left out.)
     const unlisted = GUIDES.find((g) => !GIFT_GUIDE_SEO[g.slug]) ?? { slug: "probe-unlisted", title: "Probe" };
@@ -1064,7 +1065,7 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
       picks += 1;
       expect(blockedBrand(p as unknown as Record<string, unknown>), `${slug}: ${p.name}`).toBe(false);
     }
-    expect(picks).toBeGreaterThan(500);
+    expect(picks).toBeGreaterThan(450);
   });
 });
 
@@ -1123,7 +1124,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
   it("#12 / r3 #1 a store's deals come after ALL its picks: one compact Sales-style list, 6 rows, then See all deals (n), no duplicate links", () => {
     const g = guideBySlug("store-walmart")!;
     // Follow-up 1120 (owner: 10-15 per store page): 11 Walmart picks after the audits' store-page cuts, measured 2026-11-20.
-    expect(g.picks.length).toBeGreaterThan(8);
+    expect(g.picks.length).toBeGreaterThan(1);
     const { container } = renderAt("/gift-guides/store-walmart");
     expandAll(container);
     const deals = container.querySelector("[data-gift-deals]")!;
@@ -1294,7 +1295,7 @@ describe("gift guides: rows read in order (design audit 11-18 #8, #9)", () => {
     // Follow-up 1120: Gifts by Budget (Stocking Stuffers, Under $25, Under $50, memberships) leads the row.
     expect(budget).toEqual(["gifts-by-budget", "under-5", "under-10", "under-15", "under-20", "under-25", "under-30", "under-40", "under-50", "splurge", "under-75", "under-100", "100-and-up", "stocking-stuffers", "gift-wrap-and-cards", "gift-tags", "advent-calendars", "easy-and-last-minute", "gift-cards", "subscriptions"]);
     // The landing's By budget row: the guides that stay, in that order.
-    expect(guidesIn("by-budget").map((g) => g.slug)).toEqual(["gifts-by-budget", "splurge", "gift-wrap-and-cards"]);
+    expect(guidesIn("by-budget").map((g) => g.slug)).toEqual(["gifts-by-budget", "splurge"]); // owner 11-20 night: she tapped every Gift Wrap item off; it hides until refilled
     for (const hub of ["boys", "girls", "gender-neutral"]) {
       expect(GUIDE_INDEX.filter((g) => g.parent === hub).map((g) => g.slug.slice(hub.length + 1)), hub).toEqual(["babies", "toddlers", "little-kids", "big-kids", "teens"]);
       expect(GUIDE_INDEX.filter((g) => g.parent === hub).every((g) => /^ages \d+(–\d+|\+)$/.test(g.age ?? "")), hub).toBe(true);
@@ -1333,15 +1334,15 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // Owner 11-18 PM: photo-less Amazon picks show their CDN photo (measured below the floor = the switch is off).
     // Follow-up 1120: ~30 guides and 26 store pages hold ~390 Amazon CDN photos (measured 2026-11-20; 500+ on 65 guides).
     // Holiday audit B (11-20), measured: 291 after B's cuts (was 300+).
-    expect(amazonCdn).toBeGreaterThan(84); // owner standard 11-20 (Healthcare by use): 248 measured
+    expect(amazonCdn).toBeGreaterThan(38); // owner standard 11-20 (Healthcare by use): 248 measured
     // Brand-site photos (lead 11-18 PM): a photo-less Amazon pick takes the brand's own photo of the same product from
     // amazon-brand-images.json, its Amazon link kept (179 rows from 45 ASINs, measured 2026-11-18).
     // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"
     let brandSite = 0;
     for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image && !p.image.startsWith("https://m.media-amazon.com/")) brandSite += 1;
-    expect(brandSite).toBeGreaterThan(5); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (7); // one guide per product (owner 11-19); 22 after the Amazon page kept its 15 best (1530 train); 12 after the train 1120b re-audit cuts
+    expect(brandSite).toBeGreaterThan(4); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (7); // one guide per product (owner 11-19); 22 after the Amazon page kept its 15 best (1530 train); 12 after the train 1120b re-audit cuts
     // Floor re-measured 2026-11-18 after design audit r2 dropped page titles, store names and promos (4,397 photos).
-    expect(photos).toBeGreaterThan(900); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (965); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
+    expect(photos).toBeGreaterThan(450); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (965); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
     // collection, not the retailer) is on no store page.
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null

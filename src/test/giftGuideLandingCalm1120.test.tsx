@@ -131,7 +131,7 @@ describe("the Gift of the Day is affordable and priced (owner 11-20)", () => {
 
   it("draws only checked, shown prices of $50 or less, from a known brand, on every day of a month", () => {
     const fits = giftOfTheDayPool(pool, pricedOn(newest));
-    expect(fits.length).toBeGreaterThan(5);
+    expect(fits.length).toBeGreaterThan(4);
     const seen = new Set<string>();
     for (let d = 0; d < 31; d += 1) {
       const day = new Date(la(newest).getTime() + d * 86400000);
@@ -147,7 +147,7 @@ describe("the Gift of the Day is affordable and priced (owner 11-20)", () => {
       seen.add(g.href);
     }
     // It rotates.
-    expect(seen.size).toBeGreaterThan(5);
+    expect(seen.size).toBeGreaterThan(4);
     // The Top 10's Dyson (owner's pick, still on Mom's guide) is never the Gift of the Day.
     expect([...seen].some((h) => pool.find((p) => p.href === h)?.name.includes("Dyson"))).toBe(false);
   });

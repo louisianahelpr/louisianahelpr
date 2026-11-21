@@ -1489,8 +1489,8 @@ export const kidsToyOff = (slug, p) => (GUIDE_GROUPS.get(slug) === "Hobbies" || 
 /**
  * OWNER 11-20 9:55 PM: "we literally need just 1 crew dog in all guides, i've seen too much stuff of one brand".
  * - ONE_ITEM_BRANDS: a brand that shows exactly once on the whole site, on the named guide (its first item there).
- * - BRAND_MAX_1120E: every other brand shows at most twice on one guide. Her own picks and keeps take the two spots
- *   first, then the cheapest; a store's own page and the sponsors' prize page are not brand-capped.
+ * - BRAND_MAX_1120E: every other brand shows at most twice on one guide (her rule, 10:07 PM: "i said only 2 items
+ *   from 1 brand"). Her own picks and keeps take the two spots first, then the cheapest; a store's own page and the sponsors' prize page are not brand-capped.
  * Applied by the last pass of the import (scripts/giftGuideOwner1120e.mjs). Guard: src/test/giftGuideFlatAffordable1120.test.ts.
  */
 export const ONE_ITEM_BRANDS = { crewdog: "25-days-sponsors" };
@@ -1510,10 +1510,10 @@ export const brandCapCuts1120e = (slug, list, kept = () => false) => {
     if (ONE_ITEM_BRANDS[b]) { rows.forEach((r, n) => { if (ONE_ITEM_BRANDS[b] !== slug || n > 0) cuts.add(r.p); }); continue; }
     if (brandCapExempt1120e(slug) || rows.length <= BRAND_MAX_1120E) continue;
     const price = (p) => (typeof p.price === "number" ? p.price : Infinity);
-    // Her own picks and keeps never leave by this rule; the rest take what is left of the two spots, cheapest first.
-    const mine = rows.filter((r) => kept(r.p)).length;
-    const rest = rows.filter((r) => !kept(r.p)).sort((a, c) => price(a.p) - price(c.p) || a.i - c.i);
-    rest.slice(Math.max(0, BRAND_MAX_1120E - mine)).forEach((r) => cuts.add(r.p));
+    // Owner 11-20 10:07 PM: "i said only 2 items from 1 brand". A hard two: her own picks and keeps take the spots
+    // first, then the cheapest (a third pick of hers of one brand leaves too).
+    const order = [...rows].sort((a, c) => Number(kept(c.p)) - Number(kept(a.p)) || price(a.p) - price(c.p) || a.i - c.i);
+    order.slice(BRAND_MAX_1120E).forEach((r) => cuts.add(r.p));
   }
   return cuts;
 };
@@ -1524,6 +1524,10 @@ export const brandCapCuts1120e = (slug, list, kept = () => false) => {
  * them. A brand's own store page is its shelf and stays.
  */
 export const SPONSORS_GUIDE_1120E = "25-days-sponsors";
-export const sponsorBrands1120e = (sponsorPicks) => new Set((sponsorPicks ?? []).map((p) => brandOf1120e(p)).filter(Boolean));
+/** `names`: sponsors with no card on the sponsors page (the national lineup, e.g. Hilma), by brand name. */
+export const sponsorBrands1120e = (sponsorPicks, names = []) => new Set([
+  ...(sponsorPicks ?? []).map((p) => brandOf1120e(p)),
+  ...names.flatMap((n) => [n, ...String(n).replace(/\(.*?\)/g, "").split("/"), String(n).split(" ")[0].length > 4 ? String(n).split(" ")[0] : n]).map((n) => brandOf1120e({ brand: n.trim() })),
+].filter(Boolean));
 export const sponsorOff1120e = (slug, p, sponsorBrands, louisianaGuides) =>
   slug !== SPONSORS_GUIDE_1120E && !slug.startsWith("store-") && !louisianaGuides.has(slug) && sponsorBrands.has(brandOf1120e(p));

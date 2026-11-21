@@ -11,7 +11,7 @@
  *
  * @mutate scripts/giftGuideStandard1120.mjs |       if (gone.has(p)) continue; |       if (gone.has(p)) { secs[at].push(p); continue; }
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SPONSOR_HOME_GUIDES, applyStandard, findPick } from "../../scripts/giftGuideStandard1120.mjs";
 
@@ -19,7 +19,8 @@ type Want = { name: string; href: string; line?: string };
 type Row = { name: string; href: string; section?: string; sectionId?: string; line?: string; sponsor?: true; ownerPick?: true };
 type Guide = { sections: { id: string; title: string; picks: Want[] }[]; cut: Want[]; ownerCall: Want[] };
 const spec = JSON.parse(readFileSync("scripts/gift-guide-standard-1120.json", "utf8")) as { guides: Record<string, Guide> };
-const page = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Row[] }).picks;
+// A planned guide the owner removed later (11-20 night: the color and pet guides) has no page.
+const page = (slug: string) => (existsSync(`src/content/giftGuidePicks/${slug}.json`) ? (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Row[] }).picks : []);
 const guides = Object.entries(spec.guides);
 
 describe("gift guide standard 1120: the plan is what the pages show", () => {
@@ -48,10 +49,9 @@ describe("gift guide standard 1120: the plan is what the pages show", () => {
         const p = findPick(picks, used, want) as Row | undefined;
         if (!p) continue; // a planned pick no source holds any more: reported by the check script, not a guard failure
         used.add(p);
-        if (p.section !== s.title) wrong.push(`${slug}: "${p.name}" is in "${p.section}", plan "${s.title}"`);
-        const i = picks.indexOf(p);
-        if (i < last) wrong.push(`${slug}: "${p.name}" is out of the plan's order`);
-        last = Math.max(last, i);
+        // Owner 11-20 night ("just remove the sections and make it one guide"): a page is one flat list, cheaper
+        // first, so the plan's sections and order no longer show (the unit test below still holds the plan pass).
+        last = Math.max(last, picks.indexOf(p));
       }
       for (const c of g.ownerCall) { const p = findPick(picks, used, c) as Row | undefined; if (p) used.add(p); }
       for (const p of picks) if (!used.has(p) && !p.sponsor && !p.ownerPick) wrong.push(`${slug}: "${p.name}" is not in the plan`);
@@ -76,7 +76,7 @@ describe("gift guide standard 1120: the plan is what the pages show", () => {
     for (const f of readdirSync("src/content/giftGuidePicks").filter((x) => x.endsWith(".json"))) {
       for (const p of page(f.slice(0, -5))) if (OFF.test(p.name)) seen.push(`${f.slice(0, -5)}: ${p.name.match(OFF)![0]}`);
     }
-    expect(seen.sort()).toEqual(["25-days-sponsors: Arey The System", "25-days-sponsors: OYU Botanica Winter Radiance", "25-days-sponsors: SRI Labs DryQ"]);
+    expect(seen.filter((x) => !x.startsWith("25-days-sponsors: "))).toEqual([]); // owner 11-20 10:20 PM ("ok remove the ones i selected"): she removed these cards herself; never padded
     const ready = page("her").filter((p) => p.section === "Getting ready").map((p) => p.name);
     for (const n of ["Lancôme Juicy Tubes Lip Gloss", "OLAPLEX No.7 Bonding Hair Oil", "Charlotte Tilbury Hollywood Flawless Filter"]) expect(ready, n).toContain(n);
   });

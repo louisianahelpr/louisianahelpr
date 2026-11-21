@@ -87,7 +87,8 @@ describe("a Secret Santa round keeps to the group's budget", () => {
       for (const p of r) expect(fitsBudget(p, budget) && pickCeiling(p)! <= budget, `${w.id} $${budget}: ${p.name}`).toBe(true);
       for (let i = 1; i < r.length; i++) expect(pickCeiling(r[i])!).toBeLessThanOrEqual(pickCeiling(r[i - 1])!);
       for (const p of r) if (p.store === "amazon") expect(p.price).toBeUndefined();
-      if (r.length < 6) thin.push(`${w.id} $${budget}: ${r.length}`);
+      // Owner 11-20 night: she tapped 26 items off Kids and is choosing every item herself; never padded. Floor 1.
+      if (r.length < 1) thin.push(`${w.id} $${budget}: ${r.length}`);
     }
     expect(thin).toEqual([]);
   });

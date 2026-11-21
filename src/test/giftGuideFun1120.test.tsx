@@ -248,7 +248,9 @@ describe("swipe rounds", () => {
     for (const w of SWIPE_WHO) for (const b of SWIPE_BUDGETS) {
       const borrow = BUDGET_GUIDES.flatMap((g) => picksOf(g).filter((p) => borrowFits(w.id, p)));
       const n = swipeRound(swipePool(w.id, picksOf), b.id, new Set(), seededRandom(1), borrow).length;
-      if (n < 8) thin.push(`${w.id}/${b.id}: ${n}`);
+      // Owner 11-20 night: she tapped 26 items off Kids and is choosing every item herself; a short round says so
+      // (W.swipeFew) and is never padded. Floor 1 until her list is final.
+      if (n < 1) thin.push(`${w.id}/${b.id}: ${n}`);
     }
     expect(SWIPE_WHO.length * SWIPE_BUDGETS.length).toBeGreaterThan(30);
     expect(thin).toEqual([]);

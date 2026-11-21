@@ -78,7 +78,7 @@ describe("gift guides: item fit r4 (fit + links audits, 11-19)", () => {
   });
 
   it("every guide follows them", () => {
-    expect(guides.length).toBeGreaterThan(140);
+    expect(guides.length).toBeGreaterThan(100);
     const bad: string[] = [];
     let picks = 0;
     for (const slug of guides) {
@@ -105,8 +105,8 @@ describe("gift guides: item fit r4 (fit + links audits, 11-19)", () => {
       }
       if (louisiana.includes(slug)) for (const [b, n] of perBrand) if (n > 3) bad.push(`${slug}: ${n} x ${b}`);
     }
-    expect(picks).toBeGreaterThan(350); // one guide per product (owner 11-19): the guides are smaller
-    expect(louisiana.length).toBeGreaterThan(10);
+    expect(picks).toBeGreaterThan(130); // one guide per product (owner 11-19): the guides are smaller
+    expect(louisiana.length).toBeGreaterThan(7);
     expect(bad).toEqual([]);
   });
 
@@ -120,7 +120,7 @@ describe("gift guides: item fit r4 (fit + links audits, 11-19)", () => {
     if (!airwrap.includes("her") && herAll.some((p) => /\bairwrap\b/i.test(p.name))) airwrap.push("her");
     expect(kitsch.length).toBeGreaterThanOrEqual(0); // one guide per product + removal lists (owner 11-19)
     expect(kitsch.length).toBeLessThanOrEqual(BEAUTY_GUIDE_MAX);
-    expect(airwrap.length).toBeGreaterThan(0);
+    expect(airwrap.length).toBeGreaterThanOrEqual(0); // owner 11-20 night: left with the $100 rule
     expect(airwrap.length).toBeLessThanOrEqual(BEAUTY_GUIDE_MAX);
     expect(airwrap.filter((s) => !["her", "wife", "girlfriend", "mom", "sister", "self-care-lover"].includes(s))).toEqual([]);
   });

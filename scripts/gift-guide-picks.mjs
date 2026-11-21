@@ -3991,7 +3991,8 @@ STANDARD_SNAPSHOTS.push(Object.fromEntries(Object.entries(pageList).map(([k, l])
 }
 // OWNER 11-20 NIGHT (scripts/giftGuideOwner1120e.mjs): her tapped removals, the price rule, one flat order. Here before
 // the Top 10 is drawn, and once more after the last renames.
-const OWNER_1120E_SPEC = { ...JSON.parse(readFileSync(new URL("./gift-guide-owner-removals-1120.json", import.meta.url), "utf8")), louisianaGuides: [...LOUISIANA_GUIDES] };
+const OWNER_1120E_SPEC = { ...JSON.parse(readFileSync(new URL("./gift-guide-owner-removals-1120.json", import.meta.url), "utf8")), louisianaGuides: [...LOUISIANA_GUIDES],
+  sponsorNames: JSON.parse(readFileSync(new URL("./gift-guide-train-1120b.json", import.meta.url), "utf8")).nationalSponsors.map((s) => s.brand) };
 export const owner1120eLog = applyOwner1120e(pageList, OWNER_1120E_SPEC);
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days

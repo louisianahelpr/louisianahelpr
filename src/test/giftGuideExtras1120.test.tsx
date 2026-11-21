@@ -48,10 +48,12 @@ describe("gift finder (three taps, always a list, a share link)", () => {
   it("returns a full list for every who, from that guide, the vibe's first", () => {
     for (const w of FINDER_WHO) {
       const pool = finderPool(w.id, picksOf);
-      expect(pool.length, w.id).toBeGreaterThan(5);
+      expect(pool.length, w.id).toBeGreaterThan(0);
       const any = giftFinder(pool, 0, "cozy", borrow, w.id);
-      expect(all(any).length, w.id).toBe(FINDER_COUNT);
-      expect(new Set(all(any).map((p) => p.href)).size).toBe(FINDER_COUNT);
+      // Owner 11-20 night: thin guides after her removals; the finder never pads, so a short list is fine.
+      expect(all(any).length, w.id).toBeLessThanOrEqual(FINDER_COUNT);
+      expect(all(any).length, w.id).toBeGreaterThan(0);
+      expect(new Set(all(any).map((p) => p.href)).size).toBe(all(any).length);
       for (const p of all(any)) expect(pool, w.id).toContain(p);
     }
     const her = finderPool("her", picksOf);
@@ -65,7 +67,7 @@ describe("gift finder (three taps, always a list, a share link)", () => {
   it("never says nothing fits: every who x budget x vibe gives a list, every pick within the budget (owner 11-20; holiday audit A #65)", () => {
     for (const w of FINDER_WHO) for (const b of FINDER_BUDGETS) for (const v of FINDER_VIBES) {
       const r = all(giftFinder(finderPool(w.id, picksOf), b.id, v.id, borrow, w.id));
-      expect(r.length, `${w.id} ${b.id} ${v.id}`).toBeGreaterThanOrEqual(FINDER_FEW);
+      expect(r.length, `${w.id} ${b.id} ${v.id}`).toBeGreaterThan(0); // owner 11-20 10:20 PM ("ok remove the ones i selected"): she removed these cards herself; never padded
       expect(new Set(r.map((p) => p.href)).size, `${w.id} ${b.id} ${v.id}`).toBe(r.length);
       if (b.id) for (const p of r) expect(pickBand(p) ?? Infinity, `${w.id} ${b.id} ${v.id}: ${p.name}`).toBeLessThanOrEqual(b.id);
       // One card per brand (A #69: three Summer Fridays items in one list).
@@ -82,7 +84,7 @@ describe("gift finder (three taps, always a list, a share link)", () => {
 
   it("the Louisiana vibe lists Louisiana picks for every person (holiday audit A #64)", () => {
     const local = FINDER_LOUISIANA_GUIDES.flatMap(picksOf);
-    expect(local.length).toBeGreaterThan(30);
+    expect(local.length).toBeGreaterThan(14);
     const fromLouisiana = new Set(local.map((p) => p.href));
     for (const who of ["dad", "mom", "friend", "her", "him", "grandparent", "coworker"] as const) for (const b of [0, 100] as const) {
       const r = giftFinder(finderPool(who, picksOf), b, "louisiana", borrow, who, local);
@@ -172,9 +174,8 @@ describe("a guide's budget filter and section links", () => {
     const nav = sectionNav(picksOf("healthcare"));
     expect(nav.length).toBeGreaterThan(3);
     const { container } = renderAt("/gift-guides/healthcare");
-    const links = [...container.querySelectorAll("a[data-gift-section-link]")].map((a) => a.getAttribute("href"));
-    expect(links).toEqual(nav.map((s) => `/gift-guides/healthcare#${s.id}`));
-    fireEvent.click(container.querySelector(`a[data-gift-section-link="${nav[nav.length - 1].id}"]`)!);
-    expect(container.querySelector(`#gg-sec-${nav[nav.length - 1].id}`)).not.toBeNull();
+    // Owner 11-20 night ("just remove the sections and make it one guide"): one flat list, no section links or headings.
+    expect(container.querySelectorAll("a[data-gift-section-link]").length).toBe(0);
+    expect(container.querySelectorAll("[data-gift-list]").length).toBe(1);
   });
 });

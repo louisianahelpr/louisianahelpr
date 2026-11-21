@@ -1,8 +1,8 @@
 /**
  * OWNER, 11-20 NIGHT ("there are too many random sections", "gifts needs to be more affordable", "you're not spending
  * 100 dollars on a gift for a friend"). The last pass of the import, on the finished pages:
- *   1. her removals by tap (scripts/gift-guide-owner-removals-1120.json: per guide, the slug of each item's name), so a
- *      regenerate never brings one back;
+ *   1. her removals by tap (scripts/gift-guide-owner-removals-1120.json: per guide, the slug of each item's name, and
+ *      `everywhere`: the 10:20 PM list that leaves every guide and store page), so a regenerate never brings one back;
  *   2. her notes: Southern Tide off every men's guide, one cast iron pan on Him, sponsor items off Her where a better
  *      known brand holds the same kind of gift (Her keeps one bag: the YETI Camino, after her taps);
  *   3. the price rule: Friends & Coworkers holds nothing over $50, every other guide nothing over $100, except her own
@@ -74,12 +74,14 @@ export function applyOwner1120e(pageList, spec, log = { tapped: [], notes: [], p
   for (const gone of REMOVED_GUIDES_1120E) delete pageList[gone];
   const seen = new Set([...log.tapped, ...log.notes, ...log.price, ...(log.brand ?? []), ...(log.sponsor ?? [])].map((r) => `${r[0]}|${r[1]}`));
   const note = (bucket, slug, p, extra) => { const k = `${slug}|${p.name}`; if (!seen.has(k)) { seen.add(k); log[bucket].push(extra === undefined ? [slug, p.name] : [slug, p.name, extra]); } };
-  const sponsorBrands = sponsorBrands1120e(pageList[SPONSORS_GUIDE_1120E]);
+  const sponsorBrands = sponsorBrands1120e(pageList[SPONSORS_GUIDE_1120E], spec.sponsorNames ?? []);
   const louisiana = new Set(spec.louisianaGuides ?? []);
+  const everywhere = new Set(spec.everywhere ?? []);
   log.sponsor ??= [];
   for (const slug of Object.keys(pageList)) {
     const tapped = new Set((spec.removals?.[slug] ?? []).map((r) => r.key));
-    let list = pageList[slug].filter((p) => (tapped.has(ownerKey(p.name)) ? (note("tapped", slug, p), false) : true));
+    // "ok remove the ones i selected" (10:20 PM): `everywhere` keys leave every guide and store page, sponsors and Louisiana included.
+    let list = pageList[slug].filter((p) => (tapped.has(ownerKey(p.name)) || everywhere.has(ownerKey(p.name)) ? (note("tapped", slug, p), false) : true));
     if (MEN_GUIDES_1120E.has(slug)) list = list.filter((p) => (/southern tide/i.test(`${p.brand ?? ""} ${p.name}`) ? (note("notes", slug, p, "Southern Tide off men's guides"), false) : true));
     if (slug === "him") {
       const pans = list.filter((p) => CAST_IRON_PAN.test(p.name));

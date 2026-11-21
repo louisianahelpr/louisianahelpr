@@ -7,7 +7,7 @@
  *   - "remove the color guides", "remove the pet guides": no chunk, no index row, and the catalog lists them as removed
  *     (GiftGuides.tsx sends a removed slug to the hub);
  *   - "we literally need just 1 crew dog in all guides": one Crew Dog item on the whole site, at most two of any brand a
- *     guide (her picks aside);
+ *     guide ("i said only 2 items from 1 brand": a hard two, her picks first, then the cheapest);
  *   - "a lot of the sponsor stuff does not fit in the guides": a 25 Days sponsor's items show only on the sponsors page
  *     and the Louisiana guides;
  *   - Fabletics photos are never the `model=p` photo.
@@ -46,9 +46,20 @@ describe("gift guides: one flat, affordable list (owner 11-20 night)", () => {
     expect(back).toEqual([]);
   });
 
+  it("the items she removed everywhere (\"ok remove the ones i selected\", 10:20 PM) are on no guide and no store page", () => {
+    const everywhere = new Set((SPEC as unknown as { everywhere: string[] }).everywhere);
+    expect(everywhere.size).toBeGreaterThan(400);
+    const back = [...CHUNKS.entries()].flatMap(([slug, picks]) => picks.filter((p) => everywhere.has(ownerKey(p.name))).map((p) => `${slug}: ${p.name}`));
+    expect(back).toEqual([]);
+    const pageList: Record<string, Pick[]> = { "store-yeti": [{ name: "Gone Mug", href: "x" }, { name: "Kept Mug", href: "y" }], "25-days-sponsors": [{ name: "Gone Mug", href: "x" }] };
+    applyOwner1120e(pageList, { removals: {}, everywhere: ["gone-mug"] });
+    expect(pageList["store-yeti"].map((p) => p.name)).toEqual(["Kept Mug"]);
+    expect(pageList["25-days-sponsors"]).toEqual([]);
+  });
+
   it("Friends & Coworkers holds nothing over $50, her picks included", () => {
     const friends = CHUNKS.get(FRIENDS_GUIDE) ?? [];
-    expect(friends.length).toBeGreaterThan(3);
+    expect(friends.length).toBeGreaterThan(3); // 8 after her 10:20 PM removals; never padded
     expect(FRIENDS_MAX).toBe(50);
     expect(friends.filter((p) => typeof p.price === "number" && p.price > FRIENDS_MAX).map((p) => `${p.name} $${p.price}`)).toEqual([]);
     expect(overPrice(FRIENDS_GUIDE, { name: "x", price: 51, ownerPick: true })).toBe(true);
@@ -82,18 +93,24 @@ describe("gift guides: one flat, affordable list (owner 11-20 night)", () => {
 
   it("one Crew Dog item on the whole site, and at most two of a brand on a guide", () => {
     const crew = [...CHUNKS.entries()].flatMap(([slug, picks]) => picks.filter((p) => brandOf1120e(p) === "crewdog").map((p) => `${slug}: ${p.name}`));
-    expect(crew).toHaveLength(1);
-    expect(crew[0]).toMatch(/^25-days-sponsors: /);
+    // At most one, and only on the sponsors page (she removed that one too at 10:20 PM, so none shows today).
+    expect(crew.length).toBeLessThanOrEqual(1);
+    expect(crew.filter((c) => !/^25-days-sponsors: /.test(c))).toEqual([]);
     expect(BRAND_MAX_1120E).toBe(2);
     const cut = GUIDES.filter(([slug]) => !brandCapExempt1120e(slug)).flatMap(([slug, picks]) => [...brandCapCuts1120e(slug, picks, kept)].map((p) => `${slug}: ${(p as Pick).name}`));
     expect(cut).toEqual([]);
     const rows: Pick[] = [{ name: "A", brand: "YETI", href: "a", price: 40 }, { name: "B", brand: "Yeti", href: "b", price: 20 }, { name: "C", brand: "YETI", href: "c", price: 30 }, { name: "Crew Dog Tee", brand: "Crew Dog", href: "d" }];
     expect([...brandCapCuts1120e("him", rows)].map((p) => (p as Pick).name).sort()).toEqual(["A", "Crew Dog Tee"]);
     expect([...brandCapCuts1120e("him", rows, (p: Pick) => p.name === "A")].map((p) => (p as Pick).name).sort()).toEqual(["C", "Crew Dog Tee"]);
+    // "i said only 2 items from 1 brand" (10:07 PM): a hard two, so a third pick of hers leaves too (the dearest).
+    expect([...brandCapCuts1120e("him", rows, () => true)].map((p) => (p as Pick).name).sort()).toEqual(["A", "Crew Dog Tee"]);
+    const perBrand = GUIDES.filter(([slug]) => !brandCapExempt1120e(slug)).flatMap(([slug, picks]) => Object.entries(picks.reduce<Record<string, number>>((m, p) => { const b = brandOf1120e(p); if (b) m[b] = (m[b] ?? 0) + 1; return m; }, {})).filter(([, n]) => n > BRAND_MAX_1120E).map(([b, n]) => `${slug}: ${b} x${n}`));
+    expect(perBrand).toEqual([]);
   });
 
   it("25 Days sponsor items show only on the sponsors page and the Louisiana guides", () => {
-    const sponsors = sponsorBrands1120e(CHUNKS.get("25-days-sponsors"));
+    const sponsors = sponsorBrands1120e(CHUNKS.get("25-days-sponsors"), (JSON.parse(readFileSync("scripts/gift-guide-train-1120b.json", "utf8")) as { nationalSponsors: { brand: string }[] }).nationalSponsors.map((x) => x.brand));
+    expect(sponsors.has("hilma")).toBe(true);
     expect(sponsors.size).toBeGreaterThan(20);
     const louisiana = new Set<string>([...readFileSync("src/content/giftGuideIndex.ts", "utf8").matchAll(/group: "Louisiana"[^}]*?slug: "([^"]+)"/g)].map((m) => m[1]));
     for (const s of FINDER_LOUISIANA_GUIDES) expect(louisiana.has(s)).toBe(true);

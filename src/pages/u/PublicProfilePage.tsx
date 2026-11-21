@@ -196,8 +196,18 @@ function Pane({ hidden, children }: { hidden: string; children: React.ReactNode 
   return <div className={`empty:hidden ${hidden}`}>{children}</div>;
 }
 
+/** The server's stand-in name for a member with no public name (member_display_name's fallback), or no name at all. */
+function isUnnamedProfile(name: string | null | undefined): boolean {
+  const n = (name ?? "").trim();
+  return n === "" || /^a neighbor$/i.test(n);
+}
+
 function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null, guestShell = false }: { p: PublicProfile; signedIn: boolean; isMe: boolean; ctaReady: boolean; viewerId?: string | null; guestShell?: boolean }) {
-  const first = p.name.split(/\s+/)[0] || "this member";
+  // Audit 11-21 (P3): a member with no public name comes back as "A neighbor" (public_profile_by_handle's
+  // member_display_name fallback), and its first word made "Share A's profile" and "A hasn't posted anything yet".
+  const unnamed = isUnnamedProfile(p.name);
+  const first = unnamed ? "this member" : p.name.trim().split(/\s+/)[0];
+  const shareLabel = unnamed ? "Share this profile" : `Share ${first}'s profile`;
   const skills = skillChips(p.skills);
   const work = p.portfolio_urls ?? [];
   const listingTotal = Math.max(p.listing_count ?? 0, p.listings.length);
@@ -267,10 +277,10 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null, guestShell 
           {ctaReady && !isMe && (team ? <MessageSupportButton /> : <HireMeButton handle={p.handle} signedIn={signedIn} />)}
           {ctaReady && <div className={isMe ? "mt-4 max-lg:mt-0 max-lg:w-full" : "mt-2 max-lg:order-2 max-lg:mt-0"}>
             <Button type="button" size="phoneSm" variant={isMe ? "default" : "outline"} className={isMe ? "btn-grad-primary w-full rounded-full" : "w-full rounded-full max-lg:w-auto"}
-              aria-label={isMe ? undefined : `Share ${first}'s profile`}
-              onClick={() => void shareMyProfile(p.handle, isMe ? null : p.name)}>
+              aria-label={isMe ? undefined : shareLabel}
+              onClick={() => void shareMyProfile(p.handle, isMe || unnamed ? null : p.name)}>
               <Share2 className="mr-2 h-4 w-4" aria-hidden />
-              {isMe ? "Share my profile" : (<><span className="max-lg:hidden">{`Share ${first}'s profile`}</span><span className="lg:hidden">Share</span></>)}
+              {isMe ? "Share my profile" : (<><span className="max-lg:hidden">{shareLabel}</span><span className="lg:hidden">Share</span></>)}
             </Button>
           </div>}
         </div>
@@ -314,7 +324,7 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null, guestShell 
       {ctaReady && isMe && <Pane hidden={hide("work")}><MyJobPhotosPicker handle={p.handle} /></Pane>}
 
       {nothing && (
-        <p className="text-center text-ds-14 text-muted-foreground">{first} hasn&apos;t posted anything yet.</p>
+        <p className="text-center text-ds-14 text-muted-foreground">{unnamed ? "This member" : first} hasn&apos;t posted anything yet.</p>
       )}
 
       {/* Profile leftovers 11-05: "See the whole sale" lands here now; the same moving-sale banner /user draws. */}

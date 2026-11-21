@@ -357,7 +357,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // First job action recorded — gates the deferred notification
       // permission prompt (`useNotificationPermissionPrompt`). The
       // helper is idempotent, so this is safe even on the 100th apply.
-      recordJobActionForPermissionPrompt();
+      recordJobActionForPermissionPrompt({ context: "applied" }); // owner 11-20: "Want a ping when you're hired?"
       // Funnel: track first application separately for activation analysis.
       track(AhaEvent.JobApplied, { job_id: vars.jobId });
       // Confirm to the helper FIRST — the insert has landed, so the success

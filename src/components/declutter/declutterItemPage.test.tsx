@@ -127,6 +127,9 @@ vi.mock("@/components/AppPage", () => ({
   ),
 }));
 vi.mock("@/lib/nativeShare", () => ({ shareNative: async (c: unknown) => { shared.push(c); return "shared"; } }));
+// 2026-11-20 (train 1120f): the item page now tracks share taps (Declutter boost, listingShare.trackShareClick); CI caught
+// a batched analytics_events flush landing in a later test as a refused network call. Events are not under test here.
+vi.mock("@/lib/analytics", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/analytics")>()), track: vi.fn() }));
 vi.mock("@/lib/authRedirects", async () => ({
   ...(await vi.importActual<object>("@/lib/authRedirects")),
   getPublicOrigin: () => "https://www.louisianahelpr.com",

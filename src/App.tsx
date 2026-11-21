@@ -161,6 +161,12 @@ const SmsOptIn = lazyWithPreload(() => import("./pages/info/SmsOptIn"));
 const Fees = lazyWithPreload(() => import("./pages/info/Fees"));
 const Safety = lazyWithPreload(() => import("./pages/info/Safety"));
 const GiftGuides = lazyWithPreload(() => import("./pages/info/GiftGuides"));
+// Louisiana Holiday Hub (owner-approved 2026-11-20): four public pages, each its own chunk (the lights and events data
+// ship only in their own page's chunk). src/content/holidayHub/holidayHub.mjs.
+const HolidayHub = lazyWithPreload(() => import("./pages/info/holidays/HolidayHub"));
+const HolidayLights = lazyWithPreload(() => import("./pages/info/holidays/HolidayLights"));
+const HolidayEvents = lazyWithPreload(() => import("./pages/info/holidays/HolidayEvents"));
+const HolidayHire = lazyWithPreload(() => import("./pages/info/holidays/HolidayHire"));
 const SecretSanta = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SecretSanta"));
 const SecretSantaReveal = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SecretSantaReveal"));
 const SwipeGifts = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SwipeGifts"));
@@ -256,7 +262,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           /signup-pending on every protected route (Q180, Q193) — see ProtectedRoute. */}
       <Route path="/home" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><HomeDashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
-      <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile allowGuest><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />{/* Owner 11-20: a guest can start a post (src/lib/guestPostDraft.ts) */}
       <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><JobsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/explore" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowGuest><ExploreRedirect /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><PostsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
@@ -469,26 +475,14 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/gift-guides/printables" element={<RouteErrorBoundary>{routeEl(<PageTransition><Printables /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/list/:code" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />{/* 11-20: a shared wish list, no sign-in. */}
-      {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
-          /browse-jobs were removed along with their redirect stubs (2352466e).
-          Same as above: no redirect exists, and none is warranted on current
-          evidence. */}
-      {/* Helpr Wrapped — auth-gated at the route level so a logged-out
-          visitor never sees a flash of authed chrome (HelprWrapped's own
-          useEffect redirect used to fire only after the first paint). */}
-      {/* /benefits (BenefitsPage) was removed 2026-08-31 (owner): there were
-          no partner agreements behind it — every row was a plain link to a
-          public third-party site, so the screen made a promise the product
-          could not honour. Deleted outright rather than retitled. NO redirect,
-          for the same reason as the retired routes above: nothing outside the
-          app cites the URL (it is absent from sitemap.xml, robots.txt, the App
-          Store metadata, every email/push template and every legal page — it
-          was a ProtectedRoute reachable only from the Profile → Work group),
-          so it falls through to the `path="*"` NotFound below. If an external
-          citation ever appears, add a real <Route>, not a comment. */}
-      {/* Pet care — manage pet profiles and vet notes */}
-      {/* /evacuation was removed; its redirect to /pets went with it in
-          2352466e. The path now 404s. */}
+      {/* Louisiana Holiday Hub (owner-approved 2026-11-20): lights, events and holiday help; public and indexed. */}
+      <Route path="/holidays" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayHub /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/holidays/lights" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayLights /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/holidays/events" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayEvents /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/holidays/hire-a-helpr" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayHire /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Retired with no redirect, so they fall to NotFound below (no outside citation; add a real <Route> if one
+          appears): /parishes, /parish/:slug, /impact, /local-guide, /community, /browse-jobs and /evacuation
+          (2352466e); /benefits (BenefitsPage, owner 2026-08-31: no partner agreements behind it). */}
       <Route path="*" element={<RouteErrorBoundary>{routeEl(<NotFound />)}</RouteErrorBoundary>} />
     </Routes>
   );

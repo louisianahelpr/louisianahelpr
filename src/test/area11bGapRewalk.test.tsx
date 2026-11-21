@@ -40,29 +40,30 @@ describe("Area 11b gap re-walk", () => {
   });
 
   // @mutate src/components/firstRun/FirstRun.tsx | {t("firstRun.title")} | What brings you to Helpr?
-  // @mutate src/components/firstRun/FirstRun.tsx | {t(`firstRun.${o.id}.title`)} | {o.title}
+  // @mutate src/components/firstRun/FirstRun.tsx | title={t(`firstRun.${o.id}.title` as MsgKey)} | title={o.title}
   it("M1: the first-run picker reads its words through t(), with Spanish for each", () => {
     const src = code("src/components/firstRun/FirstRun.tsx");
     const keys = Object.keys(enNewMember).filter((k) => k.startsWith("firstRun."));
-    expect(keys.length).toBeGreaterThan(10);
+    expect(keys.length).toBeGreaterThan(8);
     for (const k of keys) {
       expect((esNewMember as Record<string, string>)[k], k).toBeTruthy();
       expect((esNewMember as Record<string, string>)[k], k).not.toBe((enNewMember as Record<string, string>)[k]);
     }
-    for (const k of ["firstRun.title", "firstRun.lede", "firstRun.note", "firstRun.continue", "firstRun.skip"]) expect(src).toContain(`t("${k}")`);
-    expect(src).toContain("t(`firstRun.${o.id}.title`)");
-    expect(src).toContain("t(`firstRun.${o.id}.sub`)");
+    // Owner 11-20: one tap per answer, so there is no Continue button (or its word) any more.
+    for (const k of ["firstRun.title", "firstRun.lede", "firstRun.note", "firstRun.skip"]) expect(src).toContain(`t("${k}")`);
+    expect(src).toContain("t(`firstRun.${o.id}.title` as MsgKey)");
+    expect(src).toContain("t(`firstRun.${o.id}.sub` as MsgKey)");
     expect(src).not.toMatch(/>\s*What brings you to Helpr\?\s*</);
     expect(src).not.toMatch(/>\s*Continue\s*</);
   });
 
-  // @mutate src/components/firstRun/FirstRun.tsx | className="shrink-0 w-[18px] h-[18px] rounded-[5px] flex items-center justify-center" | className="shrink-0 w-[18px] h-[18px] rounded-full flex items-center justify-center"
-  it("L1: 'Pick any' marks are square checkboxes, not radio circles", () => {
+  // Owner 11-20 (ease batch): "What brings you here?" is one tap per answer (shared ChoiceCard rows), so the first run
+  // draws no checkbox marks at all; "L1" (square checkboxes, not radio circles) has nothing left to hold.
+  // @mutate src/components/firstRun/FirstRun.tsx |                   <ChoiceCard | <button role="checkbox" aria-checked={false} /><ChoiceCard
+  it("L1 (retired 11-20): the first run's answers are one-tap cards, never checkboxes", () => {
     const src = code("src/components/firstRun/FirstRun.tsx");
-    const m = src.match(/data-first-run-check=""\s*className="([^"]*)"/);
-    expect(m).not.toBeNull();
-    expect(m![1]).not.toContain("rounded-full");
-    expect(m![1]).toMatch(/rounded-\[\d+px\]/);
+    expect(src).toContain("<ChoiceCard");
+    expect(src).not.toMatch(/role="checkbox"|data-first-run-check/);
   });
 
   // @mutate src/pages/admin/preview/previewParts.tsx | if (path === "/posts" && q.get("applicants")) return "the applicants for this job"; | if (path === "/posts" && q.get("applicants")) return h;

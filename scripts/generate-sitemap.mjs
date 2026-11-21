@@ -117,6 +117,11 @@ const WEIGHTS = {
   "/gift-guides": { changefreq: "daily", priority: "0.7" },
   // Public and indexed from 11-19 (owner decision by recommendation: the Dec 1–25 dates only).
   "/25days": { changefreq: "weekly", priority: "0.7" },
+  // Louisiana Holiday Hub (owner-approved 2026-11-20): the lists change through the season.
+  "/holidays": { changefreq: "weekly", priority: "0.7" },
+  "/holidays/lights": { changefreq: "weekly", priority: "0.7" },
+  "/holidays/events": { changefreq: "daily", priority: "0.7" },
+  "/holidays/hire-a-helpr": { changefreq: "monthly", priority: "0.6" },
 };
 const DEFAULT_WEIGHT = { changefreq: "monthly", priority: "0.5" };
 /** Every /gift-guides/<slug> page (picks change through the season). */

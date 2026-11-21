@@ -5,7 +5,7 @@
  * written-in word is left on those files is spanishScreensUseDictionary.test.ts.
  *
  * @mutate src/components/declutter/DeclutterItemCard.tsx |   const condition = CONDITION_LABEL[item.condition_stars] ? t(`decl.cond.${item.condition_stars}` as MsgKey) : null; |   const condition = CONDITION_LABEL[item.condition_stars] ?? null;
- * @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag> | <PhotoTag data-card-porch="">{"Porch pickup"}</PhotoTag>
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag> | <PhotoTag data-card-trades="">{"Trades OK"}</PhotoTag>
  * @mutate src/components/declutter/DeclutterCategoryChips.tsx |           {CATEGORY_LABEL[k] && t(`decl.cat.${k}` as MsgKey)} |           {CATEGORY_LABEL[k]}
  * @mutate src/components/declutter/DeclutterActiveFilters.tsx | label: t("decl.filter.drops"), | label: "Price drops",
  * @mutate src/components/sections/SectionSearchBar.tsx |   return { search: t("section.search"), noun: key ? t(key) : noun }; |   return { search: "Search", noun };
@@ -44,7 +44,7 @@ const enDeclutter = { ...enDeclutterOwn, ...enDeclBrowse, ...enSections };
 
 const item = {
   id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
-  price_cents: 0, current_price_cents: 0, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, porch_ok: true,
+  price_cents: 0, current_price_cents: 0, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, porch_ok: true, accepts_trades: true,
 } as never;
 const items = [
   { ...(item as object), id: "a", category: "furniture" }, { ...(item as object), id: "b", category: "tools" },
@@ -78,7 +78,8 @@ describe("F260q: Declutter Browse in Spanish", () => {
   it("English: unchanged words", () => {
     draw();
     expect(screen.getAllByText("Free").length).toBeGreaterThan(0);
-    expect(screen.getByText("Porch pickup")).toBeTruthy();
+    // Owner 11-20 (site polish A2): porch pickup is the default and wears no tag; the trades tag is the card's word.
+    expect(screen.getByText("Trades OK")).toBeTruthy();
     expect(screen.getByText("Lightly used")).toBeTruthy();
     expect(screen.getByText("Under 1 mi")).toBeTruthy();
     expect(screen.getByText("Furniture")).toBeTruthy();
@@ -91,7 +92,7 @@ describe("F260q: Declutter Browse in Spanish", () => {
     await act(async () => { await ensureLangLoaded(); });
     draw();
     expect(screen.getAllByText("Gratis").length).toBeGreaterThan(0); // the price (M4 11-16: no Free chip on the row)
-    expect(screen.getByText("En el porche")).toBeTruthy(); // design audit r2 #35: the short chip, not "Recoger en el porche" (truncated)
+    expect(screen.getByText("Acepta cambios")).toBeTruthy();
     expect(screen.getByText("Poco usado")).toBeTruthy();
     expect(screen.getByText("Menos de 1 mi")).toBeTruthy();
     expect(screen.getByText("Muebles")).toBeTruthy();
@@ -99,7 +100,7 @@ describe("F260q: Declutter Browse in Spanish", () => {
     expect(screen.getByText("Todo")).toBeTruthy();
     expect(screen.getByText("Bajadas de precio")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Buscar en Declutter" })).toBeTruthy();
-    expect(screen.queryByText("Porch pickup")).toBeNull();
+    expect(screen.queryByText("Trades OK")).toBeNull();
   });
 
   it("the My Declutter menu and the tabs carry their dictionary keys", () => {

@@ -114,8 +114,10 @@ describe("gift finder (three taps, always a list, a share link)", () => {
     expect(box.querySelector("[data-gift-finder-share]")).not.toBeNull();
   });
 
-  it("the steps appear one tap at a time", () => {
+  it("the steps appear one tap at a time (the finder opens from its folded card, owner 11-20 PM)", () => {
     const { container } = renderAt("/gift-guides");
+    expect(container.querySelector('[data-gift-finder-step="who"]')).toBeNull();
+    fireEvent.click(container.querySelector("[data-gift-finder-open]")!);
     expect(container.querySelector('[data-gift-finder-step="budget"]')).toBeNull();
     fireEvent.click(container.querySelector('[data-gift-finder-choice="who:mom"]')!);
     expect(container.querySelector('[data-gift-finder-step="budget"]')).not.toBeNull();

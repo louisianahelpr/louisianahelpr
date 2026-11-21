@@ -160,13 +160,13 @@ describe("area 02 #4: the Declutter to-dos speak Spanish", () => {
  * #6: the desktop Home has the search pill in its bar.
  * @mutate src/pages/home/HomeDashboard.tsx | <Link to="/search" data-testid="home-desktop-search" | <Link to="/home" data-testid="home-desktop-search"
  * #8: See all lists the other to-dos, not the one on the card again.
- * @mutate src/pages/home/HomeDashboard.tsx | {summary.todos.filter((_, i) => i !== at).map((td, i, arr) => ( | {summary.todos.map((td, i, arr) => (
+ * @mutate src/pages/home/HomeDashboard.tsx | {summary.todos.slice(listed.length).map((td, i, arr) => ( | {summary.todos.map((td, i, arr) => (
  * #11: a member whose posted jobs were all cancelled is not "Your first job posted"; the checklist sits on a card.
  * @mutate src/pages/home/homeDashboard/PosterFirstJobCard.tsx | posted: jobs.some((j) => !ENDED_UNDONE.has(j.status ?? "")), | posted: jobs.length > 0,
  * #15: the rail's Home row reads Home / Inicio, as the dock.
  * @mutate src/lib/i18n/enCore.ts |   "nav.home": "Home", |   "nav.home": "Dashboard",
  * #16: the rail's badge uses the shared 99+ cap.
- * @mutate src/components/DesktopSidebarNav.tsx |                       {formatUnreadBadge(count)}\n |                       {count > 9 ? "9+" : count}\n
+ * @mutate src/components/DesktopSidebarNav.tsx |                     {formatUnreadBadge(count)}\n |                     {count > 9 ? "9+" : count}\n
  * #20: the section chips are a two-column grid.
  * @mutate src/pages/home/HomeDashboard.tsx | <div data-section-chips="" className="grid grid-cols-2 gap-2"> | <div data-section-chips="" className="flex flex-wrap gap-2">
  * #23: the money tiles carry a chevron.
@@ -190,7 +190,7 @@ describe("area 02 Mediums and Lows", () => {
   it("#6 #8 #16 #20 #23: the source carries each fix", () => {
     const home = blankComments(readFileSync("src/pages/home/HomeDashboard.tsx", "utf8"));
     expect(home).toMatch(/<Link to="\/search" data-testid="home-desktop-search"/);
-    expect(home).toContain("{summary.todos.filter((_, i) => i !== at).map((td, i, arr) => (");
+    expect(home).toContain("{summary.todos.slice(listed.length).map((td, i, arr) => (");
     expect(home).toContain('<GroupSection title={t("home.todo")} count={rest}>');
     expect(home).toContain('<div data-section-chips="" className="grid grid-cols-2 gap-2">');
     const rail = blankComments(readFileSync("src/components/DesktopSidebarNav.tsx", "utf8"));

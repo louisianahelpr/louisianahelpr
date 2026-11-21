@@ -264,7 +264,8 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
 
   it("the filter row has one selected look: every filled pill is the pressed filter, and nothing else sits in the row", async () => {
     const { container } = at("/declutter?tab=selling");
-    await screen.findByRole("heading", { name: /^Your listings/ });
+    // 2026-11-20 (train 1120f CI): the first render of the file loads the Selling chunks cold; give it more than 1 s.
+    await screen.findByRole("heading", { name: /^Your listings/ }, { timeout: 5000 });
     const row = container.querySelector("[data-status-chips]") as HTMLElement;
     const buttons = Array.from(row.querySelectorAll("button"));
     expect(buttons.length).toBeGreaterThan(3);

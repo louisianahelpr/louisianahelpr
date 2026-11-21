@@ -196,7 +196,7 @@ export const sponsorPage = {
    * The final lineup (owner 2026-11-16: "each person will have their own day" is no longer true; some days have
    * two or three brands, each with its own winner). Source: the owner's 25 Days Sponsor Tracker (const S and D); owner 2026-11-17: every sponsor who said yes by
    * email or Facebook is listed on their tracker day. Owner 2026-11-18 (nothing stale anywhere): lineup.days is exactly
-   * the tracker's calendar (176 giveaways as of 2026-11-20 6:45 PM). Check drift with `node scripts/check-25days-lineup.mjs`,
+   * the tracker's calendar (176 giveaways as of 2026-11-20 6:45 PM; 175 after the owner dropped one Dec 5 sponsor on 2026-11-20). Check drift with `node scripts/check-25days-lineup.mjs`,
    * regenerate with `--print` (manual; never in CI).
    * Business names, prizes and Facebook Page links ONLY: never a contact person's name, email or phone (this page and repo are public).
    * Owner 2026-11-19: three sponsors show by their own name (David Rabalais; Tevin Lewis, District 2 Alderman, linked to his own page;
@@ -204,7 +204,7 @@ export const sponsorPage = {
    */
   lineup: {
     title: "This year's sponsors",
-    intro: "The Louisiana businesses and brands giving away prizes this December. Tap a name to visit their Facebook page.",
+    intro: "The Louisiana businesses and brands giving away prizes this December. Tap a name to visit their page.",
     // Owner 2026-11-17: shown under the intro and by the sign-up day picker (claim.daysNote), and in the FAQ.
     daysNote: "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.",
     /** Phone only: the list opens with its first few partners and this button. */
@@ -264,7 +264,6 @@ export const sponsorPage = {
       "Oyu Botanica": "https://www.facebook.com/OYUBotanica",
       "Paddlewheeler Creole Queen (New Orleans)": "https://www.facebook.com/PaddlewheelerCreoleQueen/",
       "Playtopia Lafayette": "https://www.facebook.com/playtopialafayette",
-      "R&R Wedding Co.": "https://www.facebook.com/profile.php?id=61589566719811",
       "Rip Van Winkle Gardens": "https://www.facebook.com/rvwgardens",
       "Ripley's Crawfish": "https://www.facebook.com/profile.php?id=61571086266228",
       "Rock Bottom Golf": "https://www.facebook.com/rockbottomgolf",
@@ -289,6 +288,32 @@ export const sponsorPage = {
       "World Ballet Company: The Nutcracker": "https://www.facebook.com/WorldBalletCompany",
       "Written on the River": "https://www.facebook.com/writtenontheriver",
       "Zydeco Chop Chop": "https://www.facebook.com/ZydecoChopChop",
+      // Holiday audit C4 (11-20): the names that had no link get the website they gave on the sign-up form
+      // (sponsor_signups.website), else the Facebook or Instagram page from the form or the tracker's h.fb / h.ig.
+      // Still none (no page found yet): Breads and Sweets by Babs, Bake & Brush, Summar T. Photography, Haylie
+      // Rudisill, Bayou Grace Outfitters, Bully Made 3D Prints & More, Barclell Photography, Mary Kay (the only page
+      // given carries the consultant's own name), Louisiana Helpr (us).
+      "Bashi": "https://www.drinkbashi.com/",
+      "Cajun Belle Studio": "https://www.instagram.com/cajunbellestudio/",
+      "Celebration Station (Baton Rouge)": "https://www.facebook.com/CelebrationStationBatonRougeLA/",
+      "Everyday Dose": "https://www.instagram.com/everydaydose/",
+      "FELCO North America": "https://america.felco.com/",
+      "Hair Fashion and Spa (Opelousas)": "https://www.facebook.com/profile.php?id=100090986499631",
+      "Handmade By Hayli": "https://www.handmadebyhayli.com/",
+      "Kate McLeod": "https://www.instagram.com/katemcleod/",
+      "Kee's Pretty Little Things": "https://www.instagram.com/keesprettylittlethings/",
+      "Krazy Bull Kreations": "https://www.instagram.com/krazybullkreations/",
+      "Mind the Skin Labs": "https://mindtheskinlabs.com/",
+      "Monarch Books (Baton Rouge)": "https://www.instagram.com/monarchbooksbr/",
+      "Olivia Grace Photography": "https://www.instagram.com/oliviagracephotography.24/",
+      "Phyllis Guy Dance Center": "https://www.facebook.com/danceatpgdc",
+      "Proof & Pour Wax Co.": "https://www.instagram.com/proofpourwaxco/",
+      "Rusty's Seasoning": "https://www.instagram.com/rustys_seasoning/",
+      "Sky & Sol": "https://www.instagram.com/skyandsolco/",
+      "Sprinkle in Time Too (Sulphur)": "https://www.facebook.com/profile.php?id=61575637593930",
+      "Tays Sweet Shop": "https://www.tayssweets.org/",
+      "The Crab Man Plus": "https://thecrabmanplus.com/",
+      "Ty's Boutique Shop": "https://tysboutiqueshop.bigcartel.com/",
     } as Record<string, string>,
     /**
      * INTERNAL ONLY (owner rule 2026-11-17: "don't tell sponsors their day until it's final"): the page never shows
@@ -329,7 +354,7 @@ export const sponsorPage = {
           { brand: "RoseMae Eimear Creations", prize: "Soap bar or bath soak (winner picks)" },
           { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
           { brand: "Forgiven Hearts", prize: "$25 gift certificate" },
-          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -349,7 +374,6 @@ export const sponsorPage = {
         partners: [
           { brand: "Oyu Botanica", prize: "Winter Radiance Duo stocking stuffer (one each day)" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
-          { brand: "R&R Wedding Co.", prize: "Day-of wedding coordination discount" },
           { brand: "Breads and Sweets by Babs", prize: "$25 gift certificate" },
           { brand: "Olivia Grace Photography", prize: "One-hour photo session, up to 2 outfits, 30+ edited images" },
           { brand: "Celebration Station (Baton Rouge)", prize: "Family Four Fun Pack: unlimited attractions for four people" },
@@ -377,7 +401,7 @@ export const sponsorPage = {
           { brand: "Rock Bottom Golf", prize: "$50 Rock Bottom Golf gift card" },
           { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
           { brand: "Mind the Skin Labs", prize: "1 pack Signal (pre-flare patch) + 1 pack Surge (active-flare patch)" },
-          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -400,7 +424,7 @@ export const sponsorPage = {
           { brand: "David Rabalais", prize: "Roux spoon + Roundhouse Ya Maw Maw seasoning" },
           { brand: "Botanical Nail and Skin Studio", prize: "$50 gift card toward any service" },
           { brand: "City Sightseeing New Orleans", prize: "Two 3-Day Hop-On Hop-Off Passes + Guided Walking Tours of the Garden District and French Quarter" },
-          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -412,7 +436,7 @@ export const sponsorPage = {
           { brand: "Bake & Brush", prize: "Bake & Brush gift card" },
           { brand: "Criquet Shirts", prize: "$150 Criquet gift certificate" },
           { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
-          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -425,7 +449,7 @@ export const sponsorPage = {
           { brand: "Beaver's Abundance", prize: "$50 gift card (plants only)" },
           { brand: "AllWays Lounge & Cabaret (New Orleans)", prize: "Gift certificate: 2 show tickets + 2 free cocktails" },
           { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
-          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {
@@ -438,7 +462,7 @@ export const sponsorPage = {
           { brand: "Rip Van Winkle Gardens", prize: "Gift certificate: 2 house tours" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
           { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
-          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
+          { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
         ],
       },
       {

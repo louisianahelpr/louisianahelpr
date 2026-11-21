@@ -31,7 +31,7 @@ export function bootIconFiles(root: string): Set<string>;
 export function itemIconFiles(root: string): Set<string>;
 export function guestIconFiles(root: string): Set<string>;
 export const DECLUTTER_FIRST_SCREEN_ROOTS: string[];
-export function guestIconSplit(root: string): { shared: Set<string>; own: Set<string>; declutter: Set<string> };
+export function guestIconSplit(root: string): { shared: Set<string>; own: Set<string>; landing: Set<string>; declutter: Set<string> };
 export function sellingIconFiles(root: string): Set<string>;
 export function buyingIconFiles(root: string): Set<string>;
 export function declutterTabSplit(root: string, split?: { declutterOnly?: Set<string> }): { browseFirst: Set<string>; buyingFirst: Set<string> };

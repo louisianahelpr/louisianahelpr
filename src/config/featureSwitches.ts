@@ -88,9 +88,6 @@ export const FEATURE_SWITCH_KEYS = [
   // Board 184, "Sent to N Helprs" (builder2f 2026-10-21): the new-job alerts already sent for the poster's
   // open job. Created 'testers' by 20261021020915; get_job_match_reach refuses without it (require_feature).
   "job_reach",
-  // Board 190, price guidance (builder2f 2026-10-21): what most real completed jobs in a category paid, shown
-  // only with 30+ jobs. Created 'testers' by 20261021054721; get_price_guidance refuses without it.
-  "price_guidance",
   // Declutter seller delivery (docs/specs/declutter-seller-delivery.md): the
   // seller delivers for a flat rate and the buyer picks a date and time.
   // Created OFF by 20261027153244; its settings, offer and checkout refuse

@@ -268,21 +268,6 @@ const DesktopSidebarRail = () => {
                     className="h-5 w-5"
                     fill={active ? "hsl(var(--bark) / 0.16)" : "none"}
                   />
-                  {count > 0 && (
-                    <span
-                      data-sidebar-badge
-                      // Design audit 11-17 #22: off the glyph, on the icon's top-right corner.
-                      className="absolute -top-2 -right-3 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold ring-2 ring-[hsl(var(--background))]"
-                      style={{
-                        // Count badges are --alert, never rust (spec v2 §1.1).
-                        background: "hsl(var(--alert))",
-                        color: "#fff",
-                      }}
-                    >
-                      {/* Design audit area 02 #16 (11-18): the header said 99+ while this said 9+; one cap, the shared one. */}
-                      {formatUnreadBadge(count)}
-                    </span>
-                  )}
                 </span>
                 <span
                   className="font-sans text-ds-15"
@@ -296,6 +281,22 @@ const DesktopSidebarRail = () => {
                   {/* A2-L17: a tester's open section says "Coming soon" too (olive), as the phone's chips do. */}
                   {preview && <PreviewPill variant="rail" />}
                 </span>
+                {count > 0 && (
+                  <span
+                    data-sidebar-badge
+                    // Owner polish 11-20: the count sits at the right end of the row, off the icon (design audit 11-17
+                    // #22 had put it on the icon's corner). Guard: src/test/desktopLeftSidebar.test.tsx.
+                    className="ml-auto flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full px-1.5 text-ds-12 font-bold"
+                    style={{
+                      // Count badges are --alert, never rust (spec v2 §1.1).
+                      background: "hsl(var(--alert))",
+                      color: "#fff",
+                    }}
+                  >
+                    {/* Design audit area 02 #16 (11-18): the header said 99+ while this said 9+; one cap, the shared one. */}
+                    {formatUnreadBadge(count)}
+                  </span>
+                )}
               </>);
               return soon ? (
                 <ListRow variant="flush" {...rowProps} onClick={() => sayComingSoon(label)} aria-disabled aria-label={tr("nav.comingSoon", { label: shown })}>

@@ -59,10 +59,10 @@ describe("A. Declutter cards on a phone (Depop/Vinted item 8)", () => {
     expect(heart.className.split(/\s+/)).toEqual(expect.arrayContaining(["h-11", "w-11", "absolute"]));
   });
 
-  it("two text lines below lg: the title (truncated) then the bold price with incl. fee beside it; the meta line from lg only", () => {
+  it("text below lg: the title (two lines at most, owner 11-20) then the bold price with incl. fee beside it; the meta line from lg only", () => {
     const { container } = card();
     const title = container.querySelector("[data-card-title]") as HTMLElement;
-    expect(title.className).toMatch(/\btruncate\b/);
+    expect(title.className).toMatch(/\bline-clamp-2\b/);
     const place = container.querySelector("[data-card-place]") as HTMLElement;
     expect(place.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "lg:flex"]));
     const price = container.querySelector("[data-card-price]") as HTMLElement;

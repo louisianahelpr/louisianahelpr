@@ -87,7 +87,7 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
  */
 // Follow-up 1120 (owner 11-20 ~12:40 AM): every confirmed Louisiana sponsor on Shop Small Louisiana links its website,
 // Facebook or Instagram (src/content/giftGuideSmallBiz.json); City Sightseeing New Orleans on Louisiana by Region.
-export const SPONSOR_SITES = ["thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "davidrabalaisfilm.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com"] as const;
+export const SPONSOR_SITES = ["thestrandtheatre.com", "www.hotworx.net", "www.marykay.com", "basicbee.co", "www.facebook.com", "www.zydecochopchop.com", "www.beaversabundance.com", "www.faulkcalls.com", "davidrabalaisfilm.com", "www.softlifecollective.org", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.botanicalnailandskinstudio.com", "www.crabtrapfunctionalfitness.com", "streamsideparks.com", "www.lepetittheatre.com", "www.creolequeen.com", "www.theallwayslounge.net", "brittcreatesstudio.com", "jessicalanhamphoto.com", "www.instagram.com", "suzimarquesphotography.com", "citysightseeingneworleans.com"] as const;
 /**
  * The national 25 Days sponsors' own shops (train 1120b, owner 11-20 ~8:35 AM: each gets one best-fit guide spot with
  * the sponsor badge, 0% allowed). Kept apart from SPONSOR_SITES, which are Louisiana businesses: a Louisiana host's
@@ -219,6 +219,23 @@ export const giftGuides = {
   pageTitle: "Gift guides",
   bandLead: "top-rated finds",
   title: "Holiday Gift Guides",
+  /** The landing's one short subline under its title (owner 11-20 PM); the shipping words follow it when in season. */
+  landingSub: "Top-rated finds for everyone on your list",
+  /**
+   * The landing's ONE set of ways in (owner 11-20 PM: "a tidy grid of nicely spaced cards, each with a good photo and
+   * title"): a card per main group, its photo the named guide's own cover, its short line below the title; then the
+   * smaller groups as a plain line of links. Every guide is one tap from its group's page.
+   */
+  browseTitle: "Browse the guides",
+  moreTitle: "More guides",
+  entries: [
+    { row: "by-person", title: "By person", sub: "Mom, Dad, Her & Him", cover: "her" },
+    { row: "for-kids", title: "For kids", sub: "Babies to teens", cover: "kids" },
+    { row: "by-budget", title: "By budget", sub: "Under $25, $50 & more", cover: "gifts-by-budget" },
+    { row: "louisiana", title: "Louisiana", sub: "Local food & shops", cover: "louisiana-food-gifts" },
+    { row: "by-store", title: "By store", sub: "Target, Walmart & more", cover: "store-target" },
+  ] as { row: string; title: string; sub: string; cover: string }[],
+  dealsEntry: { title: "Deals", sub: "Sales & codes" },
   disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
   /** Amazon Associates Operating Agreement: the exact statement every site with Amazon links must show. */
   amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",
@@ -269,6 +286,12 @@ export const giftGuides = {
     right: "Scroll sponsors right",
   },
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
+  // Louisiana Holiday Hub (owner-approved 2026-11-20): the landing's link to /holidays.
+  holidayHub: {
+    title: "Louisiana Holiday Hub",
+    body: "Christmas lights, parades and holiday events near you, and a Helpr when you need a hand.",
+    cta: "See the Holiday Hub",
+  },
   giveaways: {
     title: "25 Days of Louisiana Giveaways",
     body: "A new Louisiana giveaway every day, December 1 to 25. Follow us on Facebook so you don't miss one.",

@@ -1,6 +1,6 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
-import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
+import { isPosterIdRefusal, openPosterIdCheckFor, posterIdAtOfferCopy } from "@/lib/posterIdAtOffer";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -799,10 +799,10 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       }
     }
 
-    // Stripe Identity before a post (20261021081258): open the one ID sheet,
-    // not an error toast. Nothing was written; the form keeps every field.
-    // If the sheet cannot open (ID check off on this device), fall through to the error below.
-    if (error && identityRefusal(error) === "post" && openIdentityCheck("post")) {
+    // Posting needs no ID (owner 2026-11-20). A post that names a Helpr is a direct OFFER, and an unverified
+    // poster's offer is refused (identity_required_to_offer, 20261120205350): open the one ID sheet, not an error
+    // toast. Nothing was written; the form keeps every field. If the sheet cannot open, fall through to the error below.
+    if (error && isPosterIdRefusal(error) && (await openPosterIdCheckFor(error))) {
       setSaving(false);
       submittingRef.current = false;
       return;
@@ -828,6 +828,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           // Q1586(c): the server's under-18 refusal (also 42501) in its own words.
           : isUnder18Refusal(error)
             ? UNDER_18_POST_COPY
+          // 20261120205350: an unverified poster's direct offer (also 42501), in English or Spanish (jp.idAtOffer).
+          : isPosterIdRefusal(error)
+            ? posterIdAtOfferCopy()
           : isPolicyRefusal
             ? "We couldn't post this job from your account. Refresh the page and try again."
             // Q270: never the raw text. A dropped connection gets connection

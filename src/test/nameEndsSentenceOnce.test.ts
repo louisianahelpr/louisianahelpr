@@ -32,6 +32,7 @@ const NEVER_ENDS_IN_A_PERIOD: Record<string, string> = {
   "src/components/admin/adminJobs/RemoveJobDialog.tsx::{detailJob?.helper_id ? \" and assigned Helpr\" : \"\"}.": "two string literals, neither ends in a period",
   "src/components/declutter/DeclutterBundleRow.tsx::{b.firstName}.": "the seller's FIRST name only (formatName(...).split(\" \")[0]) or \"this seller\"",
   "src/components/refund/RefundRequestDialog.tsx::${first}.": "firstNameOf(): the first name only",
+  "src/content/giftGuideFun1120.ts::${name}.": "swipeSavedOne (2026-11-20): a gift's product name from the swipe deck, never a member's First L. name",
   "src/components/declutter/ManagerActForSeller.tsx::${g.seller_first_name}.": "declutter_manager_first_name(): the seller's first name only (manager mode, 20261101181005)",
   "src/components/declutter/ManagerPanel.tsx::${g.seller_first_name}.": "declutter_manager_first_name(): the seller's first name only (manager mode, 20261101181005)",
   "src/components/declutter/ManagerPanel.tsx::${name}.": "firstName(picked.full_name) or \"them\": a first name only",

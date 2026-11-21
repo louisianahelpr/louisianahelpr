@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
+import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, relatedGuides, subscribeGuidePicks, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
@@ -101,15 +102,14 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
       <Heart saved={saved} label={WISH.saveLabel(pick.name)} onToggle={() => heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) }))} className="gg-heart-pick" />
-      {/* Holistic review 11-18 H4 (High): the Shop word was hidden on every item, so nothing said "tap to buy". A visible
-          44px pill on every item, apart from the heart: "Shop at Amazon ›". */}
-      <Button asChild variant="outline" size="sm" className="gg-shop-btn">
-        <GiftOut href={pick.href}>
-          <span data-gift-shop="">{G.shopAt(isShopMyCollection(pick.href) ? "" : storeLabel(pick))}</span>
-          <span aria-hidden="true">&nbsp;›</span>
-          <span className="sr-only">: {pick.name} ({G.newTab})</span>
-        </GiftOut>
-      </Button>
+      {/* Holistic review 11-18 H4 (High): every item says "tap to buy", apart from the heart: "Shop at Amazon ›". Owner
+          11-20 ("take the circle of shop at, it's too busy looking"): a plain olive text link, no border or pill; its
+          padding keeps the 44px tap area (.gg-shop-btn in giftGuidesStyles.ts). */}
+      <GiftOut href={pick.href} className="gg-shop-btn">
+        <span data-gift-shop="">{G.shopAt(isShopMyCollection(pick.href) ? "" : storeLabel(pick))}</span>
+        <span aria-hidden="true">&nbsp;›</span>
+        <span className="sr-only">: {pick.name} ({G.newTab})</span>
+      </GiftOut>
     </li>
   );
 }
@@ -158,8 +158,24 @@ export const PICKS_PAGE = 50;
  */
 /** "Show more" with this many or fewer left draws them all instead. */
 const SHOW_ALL_UNDER = 6;
-/** Deals & codes sit after this many picks (design spec 11-18 H5: never above pick #1, after the first 10). */
-export const DEALS_AFTER_PICKS = 10;
+/**
+ * Deals & codes sit BELOW the whole pick list (owner 11-20: "codes and deals shouldn't randomly show in sections"; it
+ * was after pick 10, in the middle of a section). One place per guide, never between picks.
+ */
+export const DEALS_BELOW_LIST = true;
+
+/** The person guides (giftGuideIndex "By person"): a merged section of one reads "For your father-in-law". */
+const PERSON_SECTIONS = new Set(GUIDE_INDEX.filter((g) => g.group === "By person").map((g) => g.slug));
+/**
+ * A section's heading on a guide with more than one section (owner 11-20 on Dad, "Is the guide for dad or father in
+ * law?": "Top picks" and "Father-in-Law" read as two titles side by side). The first reads "Top picks for Dad", a
+ * merged person section "For your father-in-law", so each reads as a part of the one guide.
+ */
+export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, id?: string) => {
+  if (/^top picks$/i.test(title.trim())) return `Top picks for ${guide.title}`;
+  if (id && PERSON_SECTIONS.has(id)) return `For your ${title.toLowerCase()}`;
+  return title;
+};
 
 function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNode }) {
   const [shown, setShown] = useState(PICKS_PAGE);
@@ -199,7 +215,7 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
   });
   const draw = (from: number, to: number) => runs(from, to).map(({ title, id, picks: run }, i) => (
         <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}>
-          {title && <h3 className="gg-sec-title">{title}</h3>}
+          {title && <h3 className="gg-sec-title">{nav.length > 1 ? sectionLabel(guide, title, id) : title}</h3>}
           <ol className="gg-list" data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
             {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
           </ol>
@@ -209,8 +225,9 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
     <>
       {nav.length > 1 && (
         <nav aria-label={G.sectionNavLabel} className="gg-secnav" data-gift-section-nav="">
+          <span className="gg-secnav-label" aria-hidden="true">{G.sectionNavLabel}:</span>
           {nav.map((s) => (
-            <a key={s.id} href={`/gift-guides/${guide.slug}#${s.id}`} className="gg-chip" data-gift-section-link={s.id} onClick={(e) => { e.preventDefault(); window.history.replaceState(window.history.state, "", `#${s.id}`); jump(s.id); }}>{s.title}</a>
+            <a key={s.id} href={`/gift-guides/${guide.slug}#${s.id}`} className="gg-chip" data-gift-section-link={s.id} onClick={(e) => { e.preventDefault(); window.history.replaceState(window.history.state, "", `#${s.id}`); jump(s.id); }}>{sectionLabel(guide, s.title, s.id)}</a>
           ))}
         </nav>
       )}
@@ -225,13 +242,14 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
         </div>
       )}
       {budget !== null && <p className="gg-price-note" data-gift-budget-note="">{picks.length ? G.budgetNote : G.budgetNone}</p>}
-      {after && budget === null ? <>{draw(0, Math.min(DEALS_AFTER_PICKS, upTo))}{after}{draw(Math.min(DEALS_AFTER_PICKS, upTo), upTo)}</> : draw(0, upTo)}
+      {draw(0, upTo)}
       <PricesAsOf picks={picks.slice(0, upTo)} />
       {left > 0 && (
         <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
           {G.showMorePicks(left)}
         </Button>
       )}
+      {after && budget === null && DEALS_BELOW_LIST ? after : null}
       {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && (
         // Owner 2026-11-18: a guide with no picks yet opens a friendly note, never an empty list or a dead link.
         <div className="gg-soon" data-gift-coming-soon="">

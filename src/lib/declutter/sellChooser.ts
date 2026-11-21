@@ -7,11 +7,17 @@
  * (?mode=bunch, ?mode=moving, ?item=<draft>, ?answer=<wanted>, ?free=1) never shows it.
  */
 
-/** The chooser itself: where every "Sell" button goes. */
+/** The chooser itself: "More ways to sell" on the one screen, and the tablet row's "Other ways". */
 export const SELL_CHOOSER_PATH = "/declutter/sell?mode=choose";
 
 /** One item: today's one-screen Sell flow. */
 export const SELL_ONE_PATH = "/declutter/sell";
+
+/**
+ * Where every "Sell" button goes (ease batch, owner-approved 2026-11-20: 9 members opened Declutter in 30 days and 2
+ * listed). One item, straight away: photos, the AI's listing, Post. The chooser is one tap away on that screen.
+ */
+export const SELL_START_PATH = "/declutter/sell";
 
 /** A bunch of things: many listings from many photos at once. */
 export const SELL_BUNCH_PATH = "/declutter/sell?mode=bunch";

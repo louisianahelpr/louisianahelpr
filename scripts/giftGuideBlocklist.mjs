@@ -50,8 +50,10 @@ export const BLOCKED_BRANDS = ["SheVibe", "King Palm", "AnyListingSEO", "Loren",
   // Owner 2026-11-20 ~12:00 AM ("Remove Kendra Scott"): every guide, the store page, the deals and the Small Biz page.
   // Owner 11-20: no Labubu ("not popular in Louisiana"), Smiski, Sonny Angel or Lovesac ("don't add"), Fishwife ("remove").
   "Kendra Scott", "Labubu", "Smiski", "Sonny Angel", "Lovesac", "Fishwife",
-  // Owner 11-20 evening: no Vineyard Vines anywhere ("men here don't really wear it"); Lilly Pulitzer is blocked ("no one uses that here").
-  "Vineyard Vines", "Lilly Pulitzer"];
+  // Owner 11-20 ("Remove Lily Pulitzer, no one uses that here"): every guide, the store page too.
+  "Lilly Pulitzer", "Lily Pulitzer",
+  // Owner 11-20 ("men here don't really wear Vineyard Vines so remove it"): every guide, the store page too.
+  "Vineyard Vines"];
 /** Store brands matched on the brand field only (a whole-word match on names would catch other products). */
 export const WALMART_BRAND_ONLY = ["George",
   // 1119c: obscure network brands whose names are ordinary words ("Enable", "Autonomous"), matched on the brand only.

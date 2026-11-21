@@ -12,9 +12,9 @@
  * heading row wraps, so the toggle drops under the heading instead of running
  * off the edge. A tester confirms the pixels at 1440 and 375.
  *
- * @mutate src/components/landing/HowItWorksSection.tsx |               className="landing-card h-full min-w-0 flex flex-col p-6 lg:p-7" |               className="landing-card h-full flex flex-col p-6 lg:p-7"
+ * @mutate src/components/landing/HowItWorksSection.tsx |               className="landing-card h-full min-w-0 flex flex-col p-5 sm:p-6 lg:p-7" |               className="landing-card h-full flex flex-col p-5 sm:p-6 lg:p-7"
  * @mutate src/components/landing/HowItWorksSection.tsx |         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4"> |         <div className="flex items-center justify-between gap-x-6 gap-y-4">
- * @mutate src/components/landing/HowItWorksSection.tsx |         <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-3 sm:gap-4 lg:gap-5"> |         <div className="grid grid-cols-[repeat(3,1fr)] items-stretch gap-3 sm:gap-4 lg:gap-5">
+ * @mutate src/components/landing/HowItWorksSection.tsx |         <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-2.5 sm:gap-4 lg:gap-5"> |         <div className="grid grid-cols-[repeat(3,1fr)] items-stretch gap-2.5 sm:gap-4 lg:gap-5">
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";

@@ -18,8 +18,8 @@
  * "Buyers pick up, or you deliver. You choose." The gallery's marketing-blast sample (Desktop, not the repo) got the same words.
  * F492: drip day 1 ends "- Louisiana Helpr", the form days 14 and 30 already use; its button was already "Open Louisiana Helpr".
  * F493 (premise gone with F169): day 3 shares no bullet with day 1; F494 (gone with F168): day 7 has no "rebooked" /
- * "Helprs who"; F496: both day 1 and come-back 1 say "set your price" (the price step's rail label is "Price",
- * enPostJob.ts), neither says "budget". These three are guarded so the words do not drift back.
+ * "Helprs who"; F496: both day 1 and come-back 1 say "set your price" (the price step's own controls say "Set a price",
+ * enPostJob.ts; its rail label is "Budget" since the owner's 3-step flow, 11-20), neither says "budget". These three are guarded so the words do not drift back.
  * @mutate supabase/functions/_shared/email-templates/drip.tsx | Buyers pick up, or you deliver. You
       choose. | Buyers pick it up from your
       porch.
@@ -103,12 +103,17 @@ describe("email copy, whole-app audit 11-10", () => {
     // F494: no "rebooked", no "Helprs who"; the reader may not know either word yet.
     expect(day7).not.toMatch(/rebook|Helprs who/);
     expect(day7).toMatch(/four things that make every job and sale go smoothly/);
-    // F496: one word for the price field in both emails; the posting rail labels it "Price".
+    // F496: one word for the price field in both emails. The step's rail label became "Budget" in the owner's 3-step flow
+    // (11-20, What you need -> When -> Budget -> Post); the step's own controls still say price ("Set a price", "You set
+    // the price."), which is what the emails' "set your price" names.
     const comeBack = read("supabase/functions/_shared/comeBackEmail.ts");
     expect(day1).toContain("<Bold>Need a hand?</Bold> Describe the job and set your price.");
     expect(comeBack).toContain('["Need a hand?", "Describe the job and set your price. See who applied and chat before you hire."]');
     expect(day1).not.toMatch(/budget/i);
     expect(comeBack).not.toMatch(/budget/i);
-    expect(read("src/lib/i18n/enPostJob.ts")).toContain('"postJob.rail.price": "Price"');
+    const postJob = read("src/lib/i18n/enPostJob.ts");
+    expect(postJob).toContain('"postJob.rail.budget": "Budget"');
+    expect(postJob).toContain('"postJob.f.priceSet": "Set a price"');
+    expect(postJob).toContain('"postJob.hint.typicalSource": "A typical Louisiana range. You set the price."');
   });
 });

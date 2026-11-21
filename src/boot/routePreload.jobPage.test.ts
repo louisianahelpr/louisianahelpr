@@ -3,7 +3,7 @@
  * starts JobDetail, and for a member JobPage, from the ENTRY on the first network round (pathPageRoute.ts), instead of
  * after App.tsx ran (JobDetail) and JobDetail ran (JobPage). The job's own read starts as soon as JobPage runs.
  *
- * @mutate src/boot/routePreload.ts | \|jobs\/[0-9a-f-]{36})$/i; | )$/i;
+ * @mutate src/boot/routePreload.ts | \|jobs\/[0-9a-f-]{36}\|gift-guides | \|gift-guides
  * @mutate src/boot/pathPageRoute.ts |     import("@/pages/jobs/jobPage/JobPage").catch(() => { |     Promise.resolve().catch(() => {
  * @mutate src/boot/pathPageRoute.ts |   if (member) { |   if (true) {
  */

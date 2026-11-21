@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
 import type { MsgKey } from "@/lib/i18n/en";
-import { POST_JOB_SCREENS, screenNumber, type PostJobScreen } from "./postJobScreens";
+import { POST_JOB_STEPS, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 /**
  * Board 166's desktop columns, shared by every Post a Job screen that shows the rail (the form steps
@@ -26,9 +26,9 @@ export function PostJobStepRail({ screen, onPick, canPick }: { screen: PostJobSc
   return (
     <nav aria-label={t("postJob.steps")} className="hidden lg:block sticky top-6">
       <ol className="space-y-1">
-        {POST_JOB_SCREENS.map(({ key }, i) => {
-          // The rail word in the member's language (A3-3); POST_JOB_SCREENS.rail is its English.
-          const label = t(`postJob.rail.${key}` as MsgKey);
+        {POST_JOB_STEPS.map(({ key: stepKey, first: key }, i) => {
+          // The rail word in the member's language (A3-3); owner 11-20: What you need, When, Budget, Post.
+          const label = t(`postJob.rail.${stepKey}` as MsgKey);
           const n = i + 1;
           const current = n === step;
           const done = n < step;

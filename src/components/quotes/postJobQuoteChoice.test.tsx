@@ -85,7 +85,8 @@ function form(over: Record<string, unknown> = {}) {
 /** FormStep with a real page state, opened on screen 3 (the price screen); Review (CheckoutStepView) once
  *  handleReview opens it for a quote ask (the real handleReview does setStep("checkout")). */
 function Paged({ f }: { f: Record<string, unknown> }) {
-  const [formPage, setFormPage] = useState(3);
+  // 2026-11-20 (ease, owner): When and where is page 3 and Budget the last page (4), so the price screen opens on 4.
+  const [formPage, setFormPage] = useState(4);
   const [priceMode, setPriceMode] = useState("price");
   const [quoteWindowHours, setQuoteWindowHours] = useState<number>(DEFAULT_QUOTE_WINDOW); // as usePostJobForm seeds it
   const [quoteReview, setQuoteReview] = useState(false);
@@ -111,9 +112,10 @@ function show(f: never) {
   );
 }
 
-/** Screen 3 -> screen 4, where the job is sent (Review, then pay or Ask for quotes). */
+/** Since 2026-11-20 (ease, owner: Budget after When) the price screen IS the last page, where the job is sent
+ *  (Review, then pay or Review for quotes): nothing to press first. */
 function toScreen4() {
-  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  expect(document.querySelector('[data-form-page="4"]')).not.toBeNull();
 }
 
 beforeEach(() => {
@@ -126,7 +128,7 @@ describe("Post a job: Set a price or Get quotes", () => {
   it("heads the price screen (3 of 5), as pills, saying what happens next", () => {
     show(form());
     const group = screen.getByRole("radiogroup", { name: "How to price this job" });
-    expect(group.closest("[data-form-page]")?.getAttribute("data-form-page")).toBe("3");
+    expect(group.closest("[data-form-page]")?.getAttribute("data-form-page")).toBe("4");
     expect(screen.getByRole("heading", { name: "What will you pay?" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
     // Q2613 (Jobs audit 1102b row 27): when the card is charged is said once, in the step header, not again here.

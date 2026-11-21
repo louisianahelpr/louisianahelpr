@@ -22,7 +22,7 @@ const ROOT = resolve(__dirname, "../..");
 
 describe("Declutter and guest icon pins (Q2707/Q2708)", () => {
   const guest = guestIconFiles(ROOT);
-  const { shared, own, declutter } = guestIconSplit(ROOT);
+  const { shared, own, landing, declutter } = guestIconSplit(ROOT);
 
   it("splits the guest icons exactly in two, and the Declutter rest is not a guest icon", () => {
     // 39 on 2026-11-17: the owner's subtle landing (PR #4696) dropped the Heart and the landing's money/trust step icons.
@@ -31,7 +31,9 @@ describe("Declutter and guest icon pins (Q2707/Q2708)", () => {
     expect(own.size).toBeGreaterThan(5);
     expect(declutter.size).toBeGreaterThan(0);
     expect([...shared].filter((i) => own.has(i))).toEqual([]);
-    expect(new Set([...shared, ...own])).toEqual(guest);
+    // Train 1120f (2026-11-20): the landing-only icons are their own third pin (icons-landing).
+    expect([...landing].filter((i) => own.has(i) || shared.has(i))).toEqual([]);
+    expect(new Set([...shared, ...own, ...landing])).toEqual(guest);
     expect([...declutter].filter((i) => guest.has(i))).toEqual([]);
   });
 

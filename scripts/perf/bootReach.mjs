@@ -591,8 +591,8 @@ export function adminIconFiles(root) {
       }
     }
   }
-  const { own, shared, declutter } = guestIconSplit(root);
-  const taken = new Set([...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root), ...own, ...shared, ...declutter, ...sellingIconFiles(root), ...buyingIconFiles(root)]);
+  const { own, shared, landing, declutter } = guestIconSplit(root);
+  const taken = new Set([...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root), ...own, ...shared, ...landing, ...declutter, ...sellingIconFiles(root), ...buyingIconFiles(root)]);
   return new Set([...out].filter((i) => !taken.has(i)));
 }
 
@@ -693,7 +693,7 @@ function tabIconFiles(root, roots, alsoTaken) {
     }
   }
   const split = guestIconSplit(root);
-  const taken = new Set([...split.shared, ...split.own, ...split.declutter, ...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root), ...alsoTaken]);
+  const taken = new Set([...split.shared, ...split.own, ...split.landing, ...split.declutter, ...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root), ...alsoTaken]);
   return new Set([...drawn].filter((i) => !taken.has(i)));
 }
 
@@ -735,7 +735,25 @@ export function guestIconSplit(root) {
   // `icons-declutter`. Left to the entriesAware merge, its icons rode in two 77-icon chunks and /declutter fetched
   // ~220 icons to draw ~120 (465 -> 468 KB gz).
   const taken = new Set([...guest, ...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root)]);
-  return { shared, own: new Set([...guest].filter((i) => !shared.has(i))), declutter: new Set([...drawn].filter((i) => !taken.has(i))) };
+  const own = [...guest].filter((i) => !shared.has(i));
+  // `landing` (train 1120f, 2026-11-20): the guest icons only the landing (src/pages/info/Index.tsx) draws, pinned as
+  // `icons-landing`. In `icons-guest`, the landing's How it works step icons (site polish 11-20: Coins, Handshake,
+  // PackageCheck, PenLine, UserCheck, Wallet) put /login 249 KB and /signup 263 KB over their budgets (237 / 250 +5%).
+  const landingRoot = toPosix(path.join(root, "src/pages/info/Index.tsx"));
+  const nonLanding = new Set();
+  const others = [...publicRoots(root).filter((r) => toPosix(r) !== landingRoot), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))];
+  for (const f of staticReach(root, others)) {
+    if (!/\.(tsx?|mjs)$/.test(f)) continue;
+    const src = stripComments(fs.readFileSync(f, "utf8"));
+    for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
+      for (const n of x[1].split(",")) {
+        const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
+        if (fileOf.has(name)) nonLanding.add(fileOf.get(name));
+      }
+    }
+  }
+  const landing = new Set(own.filter((i) => !nonLanding.has(i)));
+  return { shared, own: new Set(own.filter((i) => !landing.has(i))), landing, declutter: new Set([...drawn].filter((i) => !taken.has(i))) };
 }
 
 /** The module whose import loads supabase-js (createClient at module scope) and its 30 KB gz chunk. */

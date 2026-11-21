@@ -6,7 +6,7 @@ import { ScreenHeaderRow, COMPACT_HEADER_ROW_MIN_HEIGHT } from "@/components/ui/
 import { PageTitleBar, useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
 import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { MESSAGES_LIST_PANE_PX, useMessagesTwoPane } from "@/pages/messages/useTwoPane";
+import { MESSAGES_LIST_PANE_CLASS, useMessagesTwoPane } from "@/pages/messages/useTwoPane";
 
 /**
  * The /messages route fallback (Q2705 B, lead 11-05 8:30 PM): what a cold open paints while the Messages chunk
@@ -143,7 +143,7 @@ const MessagesRouteSkeleton = () => {
       <Frame>
         <PageScaffold flushRight>
           <div className="flex-1 min-h-0 flex">
-            <div className="shrink-0 min-h-0 flex flex-col border-r border-border" style={{ width: MESSAGES_LIST_PANE_PX }}>
+            <div className={`shrink-0 min-h-0 flex flex-col border-r border-border ${MESSAGES_LIST_PANE_CLASS}`}>
               <div className="flex-1 min-h-0 flex flex-col px-4 pt-2">
                 <div className="relative flex-1 min-h-0 flex flex-col">
                   <PhoneHeaderBones />

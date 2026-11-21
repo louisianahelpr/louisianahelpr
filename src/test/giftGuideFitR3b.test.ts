@@ -8,7 +8,7 @@
  *   - a brand counts under all its spellings (brandKey) for the 3-a-guide cap;
  *   - New Puppy holds puppy, dog and new-pet-owner items only, with at most one "dog mom" item (r3 follow-up: a
  *     Stanley Quencher was on it);
- *   - no XTRATUF deck boot on Mom, Her or Wife, no empty gift baskets, and every Mail Carrier pick names its brand.
+ *   - no XTRATUF deck boot on Mom, Her or Wife but a women's one (owner 11-20 asked for XTRATUF women's boots there), no empty gift baskets, and every Mail Carrier pick names its brand.
  *
  * @mutate scripts/gift-guide-picks.mjs |     if (utilityCare(p) && slug !== "new-mom") return "utility personal care"; |     if (false) return "utility personal care";
  * @mutate scripts/gift-guide-picks.mjs |     if (beautyItem(p) && !beautyGuide(slug)) return "beauty outside its guides"; |     if (false) return "beauty outside its guides";
@@ -81,7 +81,7 @@ describe("gift guides: item fit r3b (fit audit + lead's calls, 11-19)", () => {
           const k = `${brandKey(p.brand ?? "")}|${b && n.startsWith(`${b} `) ? n.slice(b.length + 1) : n}`;
           (beautyOn.get(k) ?? beautyOn.set(k, new Set()).get(k)!).add(slug);
         }
-        if (["mom", "her", "wife"].includes(slug) && /xtratuf|deck boot/i.test(`${p.name} ${p.brand ?? ""}`)) bad.push(`${slug}: deck boot: ${p.name}`);
+        if (["mom", "her", "wife"].includes(slug) && /xtratuf|deck boot/i.test(`${p.name} ${p.brand ?? ""}`) && !/\bwomen's\b/i.test(p.name)) bad.push(`${slug}: deck boot: ${p.name}`);
         if (/\bgift baskets?\b.*\b\d+ ?(pack|pcs|count)\b/i.test(p.name)) bad.push(`${slug}: empty baskets: ${p.name}`);
         const b = brandKey(p.brand ?? "");
         if (b && !/affiliate|program|walmart|amazon|target|shopmy/i.test(p.brand ?? "")) perBrand.set(b, (perBrand.get(b) ?? 0) + 1);

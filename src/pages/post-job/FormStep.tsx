@@ -85,27 +85,36 @@ export function FormStep({ form }: FormStepProps) {
   // Contextual label — names the first unfinished *field* (not just the
   // section) so the poster knows exactly what's blocking the button.
   // Owner 2026-10-21 (friction 2): say what happens next; the charge happens on a secure page after review.
-  let submitLabel = t("postJob.reviewThenPay");
-  if (!form.detailsComplete) {
-    submitLabel = detailsBlock ?? submitLabel;
-  } else if (!form.logisticsComplete) {
+  // The first thing keeping When and where from complete, as a button label (null when complete). Owner 11-20 put
+  // When before Budget, so both its own Continue and the last screen's button read it.
+  let logisticsBlock: string | null = null;
+  if (!form.logisticsComplete) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
-      submitLabel = t("postJob.addAddress");
-    else if (!form.dateNeeded) submitLabel = t("postJob.pickDate");
+      logisticsBlock = t("postJob.addAddress");
+    else if (!form.dateNeeded) logisticsBlock = t("postJob.pickDate");
     // Only ask for a time when the poster has not said they don't have one.
     // Ticking "Flexible Schedule" IS the answer to this question, so keeping
     // the label here left the CTA demanding a field the form no longer wants.
-    else if (!form.startTime && !form.isFlexibleSchedule) submitLabel = t("postJob.pickStart");
+    else if (!form.startTime && !form.isFlexibleSchedule) logisticsBlock = t("postJob.pickStart");
     // The schedule is filled in but has already gone by. This branch is why
     // `scheduleInPast` is surfaced separately from `logisticsComplete`: the
     // button used to read "Review & pay · $72" in exactly this state and then
     // refuse the tap with a toast the poster could not see from down here.
-    else submitLabel = t("postJob.pickLater");
+    else logisticsBlock = t("postJob.pickLater");
+  }
+  let submitLabel = t("postJob.reviewThenPay");
+  if (!form.detailsComplete) {
+    submitLabel = detailsBlock ?? submitLabel;
+  } else if (logisticsBlock) {
+    submitLabel = logisticsBlock;
   } else if (askingQuotes) {
     // A2-C32 (lead option A): Get quotes has a Review too (7 of 7); "Ask for quotes" is on it.
     submitLabel = t("postJob.review");
   } else if (!form.budgetComplete) {
     submitLabel = t("postJob.setBudget");
+  } else if (form.isGuest) {
+    // Owner 11-20 (ease batch): a guest's post is ready; the draft stays on the device through sign-up.
+    submitLabel = t("postJob.signUpToPost");
   }
 
   // ONE QUESTION PER SCREEN (boards 23, 44, 3, 45, 46): What, Details, Price,
@@ -130,7 +139,7 @@ export function FormStep({ form }: FormStepProps) {
     category: form.category,
     onFirstPage: page === 1,
     blocked: atOpenJobLimit || underAge,
-    goOn: () => setPage?.(4),
+    goOn: () => setPage?.(3),
   });
   const rootRef = useRef<HTMLDivElement>(null);
   const [placeholdersRefused, setPlaceholdersRefused] = useState(false);
@@ -160,8 +169,9 @@ export function FormStep({ form }: FormStepProps) {
     pageReady = detailsBlock === null;
     pageLabel = placeholdersOnly ? t("postJob.continue") : detailsBlock ?? t("postJob.continue");
   } else if (page === 3) {
-    pageReady = askingQuotes || form.budgetComplete;
-    pageLabel = pageReady ? t("postJob.continue") : t("postJob.setBudget");
+    // Owner 11-20: When and where is step 2, before Budget; its Continue names what is still missing.
+    pageReady = form.logisticsComplete;
+    pageLabel = pageReady ? t("postJob.continue") : logisticsBlock ?? t("postJob.continue");
   }
   // The open-job cap and the age gate stop the flow at screen 1, as the
   // one-page form's button did (their notices sit above every screen).
@@ -177,18 +187,17 @@ export function FormStep({ form }: FormStepProps) {
     else if (placeholdersOnly && pagePressable) refusePlaceholders();
   };
   const lastPage = page >= 4;
-  // Screen 4 can make an EARLIER screen incomplete: turning on Repeats or
-  // Group switches "Get quotes" back to a set price, whose field is on screen
-  // 3. The button then takes the poster to that screen instead of sitting
-  // disabled over a field they cannot see.
+  // The last screen (Budget, owner 11-20) can find an EARLIER screen incomplete (a draft, a repost, a date that
+  // has since gone by). The button then takes the poster to that screen instead of sitting disabled over a field
+  // they cannot see.
   const backTo = !lastPage
     ? null
     : !form.category
       ? { page: 1, label: t("postJob.pickToContinue") }
       : detailsBlock
         ? { page: 2, label: detailsBlock }
-        : !askingQuotes && !form.budgetComplete
-          ? { page: 3, label: t("postJob.setBudget") }
+        : logisticsBlock
+          ? { page: 3, label: logisticsBlock }
           : null;
 
   // The action bar floats over the form only while its button does something.
@@ -263,6 +272,12 @@ export function FormStep({ form }: FormStepProps) {
             if (backTo.label === PLACEHOLDER_BLOCK) refusePlaceholders();
             return;
           }
+          // Owner 11-20: a guest signs up here; the post is kept on the device and finished after (guestPostDraft.ts).
+          if (form.isGuest) {
+            e.preventDefault();
+            if (!submitDisabled) form.finishAsGuest();
+            return;
+          }
           form.setQuoteReview(askingQuotes);
           if (!askingQuotes) return form.handleReview(e);
           if (submitDisabled) { e.preventDefault(); return; }
@@ -330,63 +345,16 @@ export function FormStep({ form }: FormStepProps) {
             requirePhotoProof={form.requirePhotoProof}
             setRequirePhotoProof={form.setRequirePhotoProof}
             scopeVideoUrl={form.scopeVideoPreviewUrl}
-            onVideoSelect={form.handleVideoSelect}
+            onVideoSelect={form.isGuest ? undefined : form.handleVideoSelect}
+            photosAfterSignup={form.isGuest}
             onClearVideo={form.clearVideo}
             placeholdersRefused={placeholdersRefused}
           />
         </div>
 
 
-        {/* PAGE 3: PRICE, screen 5 of 7 (board 3), or the quote window with "Get quotes" picked */}
+        {/* PAGE 3: WHEN AND WHERE, step 2 of 3 (board 45; owner 11-20: When comes before Budget) */}
         <div data-form-page="3" hidden={page !== 3} className="space-y-section">
-          <PostJobStepHeader screen="price" question={t("postJob.priceQ")} helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : form.cardHoldOn ? CARD_HOLD_COPY.postPromise : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
-          {quotesShape && quotes.settled && (
-            <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
-          )}
-        {askingQuotes ? (
-          <QuoteRequestSection stepNumber={3} windowHours={form.quoteWindowHours} onWindowChange={form.setQuoteWindowHours} />
-        ) : (
-        <div>
-          <BudgetSection
-            stepNumber={3}
-            budget={form.budget}
-            setBudget={form.setBudget}
-            isUrgent={form.isUrgent}
-            setIsUrgent={form.setIsUrgent}
-            urgentFee={form.urgentFee}
-            setUrgentFee={form.setUrgentFee}
-            customUrgentFee={form.customUrgentFee}
-            setCustomUrgentFee={form.setCustomUrgentFee}
-            budgetComplete={form.budgetComplete}
-            giftAmount={form.giftCreditAmount}
-          />
-          {/* POST-H2 (owner 10-31): a Have-a-Helpr-list-it job suggests a range from its item count; still editable. */}
-          {isSellForMeJob(form.category) && (
-            <div className="mt-4">
-              <SellForMePriceSuggestion description={form.description} budget={form.budgetNum} onUse={(d) => form.setBudget(String(d))} />
-            </div>
-          )}
-          {/* Board 190: what most real jobs in this category paid; nothing without 30+ real jobs. */}
-          {form.category && (
-            <div className="mt-4">
-              <PriceGuidanceCard category={form.category} budget={form.budgetNum} onUse={(d) => form.setBudget(String(d))} />
-            </div>
-          )}
-        </div>
-        )}
-          {!askingQuotes && (
-            // Below xl only: from xl the same card stays in the right column on every screen.
-            <div className="xl:hidden"><PostJobPreviewCard
-              title={form.title}
-              category={form.category}
-              photo={form.imagePreviews?.[0]}
-              budget={form.budgetNum}
-            /></div>
-          )}
-        </div>
-
-        {/* PAGE 4: WHEN AND WHERE, screen 6 of 7 (board 45) */}
-        <div data-form-page="4" hidden={page !== 4} className="space-y-section">
           <PostJobStepHeader screen="where" question={t("postJob.whereQ")} helper={t("postJob.whereH")} canPick={canPickStep} onPick={pickStep} />
           <LogisticsSection
             stepNumber={2}
@@ -435,6 +403,54 @@ export function FormStep({ form }: FormStepProps) {
             savedAddress={form.savedAddress}
             otherSavedAddresses={form.otherSavedAddresses}
           />
+        </div>
+
+        {/* PAGE 4: BUDGET, step 3 of 3 (board 3; owner 11-20 moved it after When), or the quote window with "Get quotes" picked */}
+        <div data-form-page="4" hidden={page !== 4} className="space-y-section">
+          <PostJobStepHeader screen="price" question={t("postJob.priceQ")} helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : form.cardHoldOn ? CARD_HOLD_COPY.postPromise : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
+          {quotesShape && quotes.settled && (
+            <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
+          )}
+        {askingQuotes ? (
+          <QuoteRequestSection stepNumber={3} windowHours={form.quoteWindowHours} onWindowChange={form.setQuoteWindowHours} />
+        ) : (
+        <div>
+          <BudgetSection
+            stepNumber={3}
+            budget={form.budget}
+            setBudget={form.setBudget}
+            isUrgent={form.isUrgent}
+            setIsUrgent={form.setIsUrgent}
+            urgentFee={form.urgentFee}
+            setUrgentFee={form.setUrgentFee}
+            customUrgentFee={form.customUrgentFee}
+            setCustomUrgentFee={form.setCustomUrgentFee}
+            budgetComplete={form.budgetComplete}
+            giftAmount={form.giftCreditAmount}
+          />
+          {/* POST-H2 (owner 10-31): a Have-a-Helpr-list-it job suggests a range from its item count; still editable. */}
+          {isSellForMeJob(form.category) && (
+            <div className="mt-4">
+              <SellForMePriceSuggestion description={form.description} budget={form.budgetNum} onUse={(d) => form.setBudget(String(d))} />
+            </div>
+          )}
+          {/* Owner 11-20: the fair price hint, near-you real jobs or a typical range (get_fair_price_hint). */}
+          {form.category && (
+            <div className="mt-4">
+              <PriceGuidanceCard category={form.category} budget={form.budgetNum} onUse={(d) => form.setBudget(String(d))} />
+            </div>
+          )}
+        </div>
+        )}
+          {!askingQuotes && (
+            // Below xl only: from xl the same card stays in the right column on every screen.
+            <div className="xl:hidden"><PostJobPreviewCard
+              title={form.title}
+              category={form.category}
+              photo={form.imagePreviews?.[0]}
+              budget={form.budgetNum}
+            /></div>
+          )}
         </div>
 
         {/* Submit — sits at the natural end of the form (not sticky) so it

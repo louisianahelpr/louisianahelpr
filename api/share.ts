@@ -86,10 +86,14 @@ import {
   twentyFiveDaysEventLd,
   type SeoData,
 } from "../src/lib/seoBodies.mjs";
+import { holidayHubBody, holidayHubLd } from "../src/lib/holidayHubSeo.mjs";
+import { louisianaToday } from "../src/content/holidayHub/holidayHub.mjs";
 import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/lib/ogProfileCard.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
 import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../src/lib/declutterFirstPhotos.mjs";
-import { shareCardPriceLabel } from "../src/lib/declutter/shareCardPrice.mjs";
+import { shareCardPriceAmount, shareCardPriceLabel } from "../src/lib/declutter/shareCardPrice.mjs";
+import { titleCase } from "../src/lib/declutter/titleCase.mjs";
+import { OG_ITEM_HEIGHT, OG_ITEM_WIDTH, ogItemImageUrl } from "../src/lib/ogItemCard.mjs";
 import { jobShareDescription } from "../src/lib/jobShareLine.mjs";
 import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "../src/lib/giftGuideShareImages.mjs";
 import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "../src/content/giftGuideDeals.mjs";
@@ -162,6 +166,11 @@ interface Meta {
    * card is the member's photo; a fallback logo beside it is what some scrapers pick instead.
    */
   singleImage?: boolean;
+  /**
+   * Owner 11-20 (site polish E): a Declutter item's price as Open Graph product tags (product:price:amount "85.00",
+   * product:price:currency "USD"), the seller's price. Added right before </head> (the shell has no such anchors).
+   */
+  productPrice?: { amount: string; currency: "USD" };
 }
 
 /* ------------------------------------------------------------------ *
@@ -265,6 +274,10 @@ function applyMeta(html: string, meta: Meta): string {
   if (meta.singleImage) {
     let seen = 0;
     out = out.replace(/[ \t]*<meta property="og:image" content="[^"]*"\s*\/?>\n?/g, (tag) => (seen++ === 0 ? tag : ""));
+  }
+  if (meta.productPrice) {
+    const tags = `<meta property="product:price:amount" content="${escapeAttr(meta.productPrice.amount)}" />\n<meta property="product:price:currency" content="${meta.productPrice.currency}" />`;
+    out = out.replace("</head>", () => `${tags}\n</head>`);
   }
   return out;
 }
@@ -570,19 +583,21 @@ const DECLUTTER_ITEM_ROBOTS = "noindex, follow";
 const DECLUTTER_ITEM_CDN_CACHE = "public, s-maxage=60, stale-while-revalidate=60";
 
 /**
- * The cover at exactly 1200x630 through shop-photo kind=declutter (by photo
- * ID, never by storage path: the path starts with the seller's user id, and
- * this URL sits in third-party preview caches for good). The function
- * re-checks the item is link-visible on every fetch.
+ * Owner 11-20 (site polish E): the cover drawn by api/og-item.ts, 1200x630, with the WHOLE photo inside the centre
+ * square, so it is safe at both 1:1 and 1.91:1 (shop-photo's cover crop cut a portrait photo to a thin band). By item
+ * and photo ID, never by storage path (the path starts with the seller's user id, and this URL sits in third-party
+ * preview caches for good); og-item re-reads the card and fetches the photo through shop-photo kind=declutter.
  */
-function itemImage(item: PublicItemCard, title: string): Meta["image"] | undefined {
+function itemImage(itemId: string, item: PublicItemCard, title: string): Meta["image"] | undefined {
   const id = item.photo_id;
-  if (typeof id !== "string" || !UUID_RE.test(id) || !SUPABASE_URL) return undefined;
+  if (typeof id !== "string" || !UUID_RE.test(id)) return undefined;
+  const url = ogItemImageUrl(SITE_ORIGIN, itemId, id);
+  if (!url) return undefined;
   return {
-    url: `${SUPABASE_URL}/functions/v1/shop-photo?id=${id}&kind=declutter&w=1200&og=1`,
-    type: "image/jpeg",
-    width: 1200,
-    height: 630,
+    url,
+    type: "image/png",
+    width: OG_ITEM_WIDTH,
+    height: OG_ITEM_HEIGHT,
     alt: clean(`${title} on Louisiana Helpr`, 120),
   };
 }
@@ -604,13 +619,16 @@ async function metaForDeclutterItem(id: string, url: string): Promise<Meta | nul
   if (lookup.state === "unknown") return null;
   if (lookup.state === "absent") return unavailableItemMeta(url);
   const item = lookup.item;
-  const title = clean(item.title, 80);
+  // Owner 11-20 (site polish E): the title in the item page's smart title case ("Vintage Duck Touch Lamp").
+  const title = clean(titleCase(item.title), 80);
   if (!title) return unavailableItemMeta(url);
-  // The buyer's price, as the site shows buyers ("$16.45 incl. fee"), never the seller's bare price (owner's UI audit
-  // 11-09, F076; owner 11-07: Declutter shows the fee). "Free" for $0.
+  // Owner 11-20 (site polish E, reverses 11-09 F076): the SELLER's price ("$85"), not the fee-inclusive total. "Free"
+  // for $0.
   const price = shareCardPriceLabel(item.price_cents);
+  const amount = shareCardPriceAmount(item.price_cents);
   const town = clean(item.area_label, 80);
   return {
+    productPrice: amount ? { amount, currency: "USD" } : undefined,
     title: `${title} — Helpr`,
     // Facebook shows og:title in bold on the card: the price rides on it so it is seen at a glance.
     ogTitle: clean(`${title} · ${price}`, 100),
@@ -618,7 +636,7 @@ async function metaForDeclutterItem(id: string, url: string): Promise<Meta | nul
     description: clean(`From a neighbor${town ? ` in ${town}` : ""} on Louisiana Helpr. Pick it up nearby.`, 200),
     url,
     robots: DECLUTTER_ITEM_ROBOTS,
-    image: itemImage(item, title),
+    image: itemImage(id, item, title),
     cdnCache: DECLUTTER_ITEM_CDN_CACHE,
   };
 }
@@ -1111,6 +1129,26 @@ function metaForWishList(code: string): Meta {
   };
 }
 
+/**
+ * A Secret Santa reveal link (/gift-guides/secret-santa/<code>/<token>, holiday audit C7, 11-20): it previewed as the
+ * marketplace homepage in iMessage, WhatsApp and Messenger, with an index,follow head and a homepage canonical. Its own
+ * card now: never a name (the server is not asked; the giver and match are only shown after the page opens), noindex,
+ * canonical to the link itself when the code and token have the right shape (else the drawer page).
+ */
+const SANTA_REVEAL_ID = /^([a-f0-9]{10})\/([a-f0-9]{64})$/;
+function metaForSantaReveal(id: string): Meta {
+  const m = SANTA_REVEAL_ID.exec(id);
+  return {
+    title: "Your Secret Santa match — Louisiana Helpr",
+    ogTitle: "Your Secret Santa match is ready 🎁",
+    description: "Tap to see who you're buying for. It's just for you, so don't forward it.",
+    url: m ? `${SITE_ORIGIN}/gift-guides/secret-santa/${m[1]}/${m[2]}` : `${SITE_ORIGIN}/gift-guides/draw-names`,
+    robots: "noindex, nofollow",
+    noindexHeader: true,
+    image: { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: "Louisiana Helpr holiday gift guides" },
+  };
+}
+
 /** My Wish List's page (owner 2026-11-20): an SPA page under /gift-guides/, noindex, never the unknown-guide 404 (UX audit H2). */
 const MY_LIST_SLUG = "my-list";
 
@@ -1187,6 +1225,14 @@ function seoFor(url: URL): SeoOutcome {
     const found = hire ? findTownPage(hire[1], hire[2]) : null;
     if (!found) return { kind: "notfound", body: notFoundBody("hire") };
     return { kind: "page", body: hireBody(found.service, found.town), jsonLd: [hireBreadcrumbLd(found.service, found.town)] };
+  }
+  // Louisiana Holiday Hub (owner-approved 2026-11-20): each page's list as plain HTML, an ItemList of the lights and an
+  // Event per event with a confirmed 2026 date (src/lib/holidayHubSeo.mjs). "Today" is Louisiana's, so an event that is
+  // over drops out of the body and the markup.
+  if (id === "holidays" || id.startsWith("holidays/")) {
+    const today = louisianaToday(new Date());
+    const hubBody = holidayHubBody(`/${id}`, today);
+    if (hubBody) return { kind: "page", body: hubBody, jsonLd: holidayHubLd(`/${id}`, today) ?? [] };
   }
   const path = `/${id}`;
   const body = infoPageBody(path);
@@ -1339,7 +1385,7 @@ const NOINDEX_CARDS: Record<string, { path: string; alt: string }> = {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book" | "matchmaker" | "profile" | "wishlist"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book" | "matchmaker" | "profile" | "wishlist" | "santa"; id: string } | null {
   const declared = url.searchParams.get("_og");
   if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop" || declared === "declutter" || declared === "book" || declared === "profile") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
@@ -1347,6 +1393,7 @@ function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "n
   if (declared === "signup") return { kind: "signup", id: "" };
   if (declared === "matchmaker") return { kind: "matchmaker", id: "" };
   if (declared === "wishlist") return { kind: "wishlist", id: url.searchParams.get("_id") ?? "" };
+  if (declared === "santa") return { kind: "santa", id: `${url.searchParams.get("_code") ?? ""}/${url.searchParams.get("_tok") ?? ""}` };
 
   const pathname = url.pathname.replace(/\/+$/, "") || "/";
   const jobMatch = pathname.match(/^\/jobs\/([^/]+)$/);
@@ -1393,6 +1440,10 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
 
   if (route.kind === "wishlist") {
     return metaForWishList(route.id);
+  }
+
+  if (route.kind === "santa") {
+    return metaForSantaReveal(route.id);
   }
 
   if (route.kind === "book") {

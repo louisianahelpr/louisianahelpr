@@ -13,7 +13,7 @@
  * @mutate src/lib/jobIntent.ts |   return m && ITEM_UUID.test(m[1]) ? m[1].toLowerCase() : null; |   return m ? m[1] : null;
  * @mutate src/lib/authRedirects.ts |   if (itemId) q.set("item", itemId); |
  * @mutate src/pages/auth/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(peekJobIntent(), peekSignupRedirectItem()), | emailRedirectTo: getSignupConfirmRedirect(peekJobIntent()),
- * @mutate src/pages/auth/SignupPending.tsx | onConfirmed={() => navigate(postAuthDestination("/home", confirmLinkJob(location.search), confirmLinkItem(location.search)), { replace: true })} | onConfirmed={() => navigate(postAuthDestination("/home", confirmLinkJob(location.search)), { replace: true })}
+ * @mutate src/pages/auth/SignupPending.tsx | onConfirmed={() => { clearPendingSignup(); navigate(postAuthDestination("/home", confirmLinkJob(location.search), confirmLinkItem(location.search)), { replace: true }); }} | onConfirmed={() => { clearPendingSignup(); navigate(postAuthDestination("/home", confirmLinkJob(location.search)), { replace: true }); }}
  */
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";

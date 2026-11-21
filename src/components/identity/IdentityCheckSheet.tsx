@@ -27,7 +27,7 @@ import {
 /** Why it is asked now: the first sentence of the start view, per entry point. */
 const LEAD: Record<IdentityCheckReason, string> = {
   start: "Before you head out on a job, Stripe checks a photo ID and a selfie.",
-  post: "Before you post a job, Stripe checks a photo ID and a selfie.",
+  post: "Before you send an offer, Stripe checks a photo ID and a selfie.",
   accept: "Before your first job is booked, Stripe checks a photo ID and a selfie.",
   shop_buy: "Before your first order from a shop, Stripe checks a photo ID and a selfie.",
   shop_list: "Before your first shop item goes live, Stripe checks a photo ID and a selfie.",

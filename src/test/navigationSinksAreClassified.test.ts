@@ -109,7 +109,7 @@ const CLASSIFIED: Record<string, string> = {
   "components/admin/AdminStagePreviews.tsx::p.href": "STAGE_PREVIEWS: a fixed list of in-app /admin/preview/... paths in the same file",
   "pages/info/giftGuides/fun/SwipeGifts.tsx::card.href": "GiftOut's prop (a swipe card is a guide pick, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/fun/SecretSantaReveal.tsx::i.href": "GiftOut's prop (a gift idea saved on this device for a Secret Santa match, from a swipe card = a guide pick); santaIdeasOnDevice keeps only https:// links on every read, and GiftOut forces the https:// scheme",
-  "pages/info/giftGuides/fun/GiftCountdown.tsx::gift.href": "GiftOut's prop (the Gift of the Day is one of the Top 10 picks, our content file); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/fun/GiftCountdown.tsx::gift.href": "GiftOut's prop (the Gift of the Day is a Gifts by Budget or Top 10 pick, our content files); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/fun/GiftPlanner.tsx::i.href": "a planner idea's link, copied from a wish-list gift; cleanPlan (src/content/giftGuideFun1120.ts) keeps an idea's href only when it starts with https://, on every read from storage or the account",
   "pages/info/giftGuides/GiftGuideView.tsx::pick.href": "GiftOut's prop (a guide's picks, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideLanding.tsx::pick.href": "GiftOut's prop (the Top 10 strip's picks, our content file); GiftOut forces the https:// scheme",
@@ -156,8 +156,10 @@ const CLASSIFIED: Record<string, string> = {
   "components/declutter/DeclutterRefundReturn.tsx::meetupMapUrl({ spot_lat: r.return_lat, spot_lng: r.return_lng, spot_name: r.return_address })": "meetupMapUrl(): a fixed https://maps.apple.com prefix + Number() coordinates + encodeURIComponent(return address) (returns, Q2486)",
   "pages/jobs/appliedJobCard/DirectionsButton.tsx::href": MAPS,
   "pages/jobs/jobPage/JobPage.tsx::mapsSearchUrl(job.location)": MAPS,
+  // Louisiana Holiday Hub (owner-approved 2026-11-20): "Open in Maps" on a public light display or event.
+  "pages/info/holidays/holidayParts.tsx::href": MAPS + " (holidayMapsQuery(item): the place's name and address from src/content/holidayHub)",
   // Declutter share-fb (Train D): window.open / openExternalUrl of the Facebook sharer for a listing.
-  "components/declutter/DeclutterShareCard.tsx::url": "facebookShareUrl(): a fixed https://www.facebook.com/sharer/sharer.php?u= prefix + encodeURIComponent(`${getPublicOrigin()}/declutter/item/${id}`)",
+  "components/declutter/DeclutterShareCard.tsx::facebookShareUrl(url)": "facebookShareUrl() (src/lib/declutter/listingShare.ts, Declutter boost 2026-11-20): a fixed https://www.facebook.com/sharer/sharer.php?u= prefix + encodeURIComponent(listingLink(id)), our own /declutter/item/<id> page",
   "components/declutter/DeclutterPickupDayCard.tsx::s.map": "meetupMapUrl() (fixed https://maps.apple.com prefix, Number() coordinates, encodeURIComponent(name)) or mapsSearchUrl() (src/lib/mapsLink.ts, encodeURIComponent(address))",
   "components/declutter/DeclutterPickupDayCard.tsx::route.href": "routeMapsUrl() (src/lib/declutter/route.ts): a fixed https://www.google.com/maps/dir/?api=1 prefix + encodeURIComponent(address) per stop",
   "components/declutter/DeliveryRoute.tsx::maps.href": "routeMapsUrl() (src/lib/declutter/route.ts): a fixed https://www.google.com/maps/dir/?api=1 prefix + encodeURIComponent(address) per stop",

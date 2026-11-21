@@ -4,6 +4,7 @@
  *   secret_santa_create(names, gives_to, avoid, budget, day) -> {code, tokens}   anyone (no account)
  *   secret_santa_reveal(code, token) -> one person's match, or null               anyone with that link
  *   secret_santa_set_wish_list(code, token, list) -> boolean                      anyone with that link
+ *   secret_santa_cancel(code, tokens) -> boolean (20261121011706)                 the organizer (every token)
  *   gift_planner_plans (table, own row by RLS)                                     signed in
  */
 import { loadModule } from "@/lib/loadModule";
@@ -77,6 +78,20 @@ export async function createSecretSanta(input: { names: string[]; givesTo: numbe
   const tokens = Array.isArray(d?.tokens) ? d.tokens.filter((t): t is string => typeof t === "string" && SANTA_TOKEN.test(t)) : [];
   if (typeof d?.code !== "string" || !SANTA_CODE.test(d.code) || tokens.length !== input.names.length) throw new SantaSaveError("failed", "bad answer");
   return { code: d.code, tokens };
+}
+
+/**
+ * Turn a draw off on the server before a redraw (holiday audit C2): only the full set of tokens deletes the group, so
+ * every link already sent stops working. True = deleted; false = nothing to delete (already cancelled or expired).
+ * Throws when the server could not be asked (then the draw is kept and the organizer is told).
+ */
+export async function cancelSecretSanta(code: string, tokens: string[]): Promise<boolean> {
+  if (!SANTA_CODE.test(code) || !tokens.every((t) => SANTA_TOKEN.test(t))) return false;
+  const sb = await client();
+  if (!sb) throw new Error("secret santa: client not loaded");
+  const { data, error } = await sb.rpc("secret_santa_cancel", { p_code: code, p_tokens: tokens });
+  if (error) throw new Error(`secret santa: ${error.message ?? "cancel failed"}`);
+  return data === true;
 }
 
 export interface SantaReveal { name: string; match: string; budget: number | null; exchangeOn: string | null; size: number; matchWishList: string | null; myWishList: string | null }

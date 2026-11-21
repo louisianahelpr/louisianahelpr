@@ -274,7 +274,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/info/giftGuides/fun/SecretSanta.tsx` | input×3, date/calendar×1 | text, date |  | santa-done · fun-santa · santa-budget · $25 · santa-day |
+| `src/pages/info/giftGuides/fun/SecretSanta.tsx` | input×3, date/calendar×1 | text, date |  | santa-done · santa-reset-q · fun-santa · santa-budget · santa-day |
 
 ## /gift-guides/planner
 
@@ -397,7 +397,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/postjob/detailsSection/TitleField.tsx` | input×1 | text |  | title · title-too-long · title-contact-leak |
 | `src/components/postjob/GroupJobCard.tsx` | input×1 | number |  | One fewer Helpr · Number of Helprs needed · One more Helpr |
 | `src/components/postjob/JobCategoryGroups.tsx` | input×1 | search |  | category-picker |
-| `src/components/postjob/LogisticsSection.tsx` | textarea×1 |  | 500 | job-type-label · when-label · flexible · week-window-note · need-it-today · need-it-today-note · date-label · date-closed-error |
+| `src/components/postjob/LogisticsSection.tsx` | textarea×1 |  | 500 | when-label · flexible · week-window-note · need-it-today · need-it-today-note · date-label · date-closed-error · date |
 | `src/components/postjob/MaterialsToggle.tsx` | textarea×1, checkbox/switch/radio×1 |  | 500 | include-materials · materials-note · e.g. 1 gallon of Sherwin-Williams  |
 | `src/components/postjob/SellForMeBlanks.tsx` | input×1 | text | 40 | About how many? · Suggested price |
 | `src/components/TimePickerWheel.tsx` | input×4, date/calendar×4 | time |  | time-pick-period |

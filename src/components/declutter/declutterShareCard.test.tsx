@@ -1,11 +1,11 @@
 /**
- * Board 192, after listing: "Copy link for local groups" and the link-card
+ * Board 192, after listing: "Copy link" (selling boost 11-20: in "Share your listing") and the link-card
  * preview, on board 80's What next sheet. Only a LIVE listing is shareable
  * (never paused or in review); the link is the item's public page; the card
  * shows the area, never an address.
  *
  * @mutate src/components/declutter/ListedWhatNext.tsx |   const shareable = live && it.status === "live"; |   const shareable = true;
- * @mutate src/components/declutter/DeclutterShareCard.tsx | const listingLink = (id: string) => `${getPublicOrigin()}/declutter/item/${id}`; | const listingLink = (id: string) => `${getPublicOrigin()}/declutter`;
+ * @mutate src/components/declutter/DeclutterShareCard.tsx | const listingLink = (id: string) => listingUrl(getPublicOrigin(), id); | const listingLink = (id: string) => `${getPublicOrigin()}/declutter`;
  * @mutate src/components/declutter/DeclutterShareCard.tsx | <p className="truncate text-ds-13 text-muted-foreground">{item.area_label} · on Louisiana Helpr</p> | <p className="truncate text-ds-13 text-muted-foreground">on Louisiana Helpr</p>
  * @mutate src/components/declutter/DeclutterShareCard.tsx |   if (await copyToClipboard(url)) { |   if (false) {
  */
@@ -63,7 +63,7 @@ describe("board 192: share after listing", () => {
     expect(card.textContent).toContain("Mid-century lamp · $40");
     expect(card.textContent).toContain("Delcambre · on Louisiana Helpr");
     expect(card.textContent).not.toContain("Example St");
-    fireEvent.click(within(screen.getByTestId("what-next-sheet")).getByRole("button", { name: "Copy link for local groups" }));
+    fireEvent.click(within(screen.getByTestId("what-next-sheet")).getByRole("button", { name: "Copy link" }));
     await waitFor(() => expect(copied).toEqual(["https://louisianahelpr.com/declutter/item/a"]));
     await waitFor(() => expect(vi.mocked(toast)).toHaveBeenCalledWith("Link copied. Paste it in your local groups."));
     expect(shared).toEqual([]);
@@ -73,7 +73,7 @@ describe("board 192: share after listing", () => {
     clipboardOk = false;
     items.a = LAMP;
     renderListed("a", "live");
-    fireEvent.click(await screen.findByRole("button", { name: "Copy link for local groups" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Copy link" }));
     await waitFor(() => expect(shared).toEqual([expect.objectContaining({ url: "https://louisianahelpr.com/declutter/item/a" })]));
   });
 
@@ -81,12 +81,12 @@ describe("board 192: share after listing", () => {
     items.r = { ...LAMP, id: "r", status: "pending_review" };
     const { unmount } = renderListed("r", "pending_review");
     expect(await screen.findByRole("heading", { name: "Sent for a review" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Copy link for local groups" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Copy link" })).toBeNull();
     unmount();
     items.p = { ...LAMP, id: "p", status: "paused" };
     renderListed("p", "live");
     expect(await screen.findByRole("heading", { name: "Your listing is live" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Copy link for local groups" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Copy link" })).toBeNull();
     expect(screen.queryByRole("group", { name: "Preview of the link" })).toBeNull();
   });
 });

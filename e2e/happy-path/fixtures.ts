@@ -142,8 +142,8 @@ export function buildFakeProfile(user: FakeUser) {
     // A real account has its terms version pinned at signup; without this the
     // re-consent gate (which fires on any stale version) covers every screen.
     terms_version_accepted: LATEST_TERMS_VERSION,
-    // Stripe Identity done, like the terms above: since 20261021081258 an
-    // unverified member meets "Verify your ID to post" before the post-job form.
+    // Stripe Identity done, like the terms above: an unverified poster is asked
+    // for it when sending an offer (20261120205350; posting needs none).
     // A spec about the Identity gate itself overrides this.
     idv_status: "verified",
     role: user.role,

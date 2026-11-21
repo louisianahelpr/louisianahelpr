@@ -1,7 +1,7 @@
 /**
- * Q2426: the seller's own live listing shares in one tap. "Share this item" hands the item's own link to the
- * share ladder (the phone's sheet, where Facebook and the groups are); "Post to Facebook" opens Facebook's
- * share page for that link in a new tab. The link is /declutter/item/<id>, whose card api/share.ts builds.
+ * Q2426: the seller's own live listing shares in one tap. Selling boost (owner 11-20): "Share to Facebook" hands the
+ * item's own link to the phone's share sheet (where Facebook and the groups are) on a touch screen, and opens
+ * Facebook's share page for that link in a new tab on a computer. The link is /declutter/item/<id>, whose card api/share.ts builds.
  *
  * @mutate src/components/declutter/DeclutterShareCard.tsx | itemPriceLabel(it.current_price_cents)} on Louisiana Helpr | itemPriceLabel(it.current_price_cents)}
  * Moved here 11-07 from declutterShareCard.test.ts (vacuity: that SQL/edge guard never renders the panel):
@@ -22,21 +22,30 @@ afterEach(() => {
 });
 
 describe("ShareListingRow", () => {
-  it("Share this item passes the item's own link and says Free for a $0 item", async () => {
-    const { ShareListingRow } = await import("./DeclutterShareCard");
-    render(<ShareListingRow item={ITEM} />);
-    fireEvent.click(screen.getByRole("button", { name: "Share this item" }));
-    expect(shareNative).toHaveBeenCalledTimes(1);
-    const arg = shareNative.mock.calls[0][0] as unknown as { url: string; text: string };
-    expect(arg.url).toMatch(new RegExp(`/declutter/item/${ITEM.id}$`));
-    expect(arg.text).toBe("Oak rocking chair · Free on Louisiana Helpr");
+  it("Share to Facebook on a phone hands the item's own link to the share sheet and says Free for a $0 item", async () => {
+    // Selling boost (owner 11-20): a touch screen with a share sheet takes the sheet (Facebook, Messenger, groups).
+    Object.defineProperty(navigator, "share", { configurable: true, writable: true, value: vi.fn() });
+    const mm = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: q === "(pointer: coarse)", media: q, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => false, onchange: null })) as typeof window.matchMedia;
+    try {
+      const { ShareListingRow } = await import("./DeclutterShareCard");
+      render(<ShareListingRow item={ITEM} />);
+      fireEvent.click(screen.getByRole("button", { name: "Share to Facebook" }));
+      expect(shareNative).toHaveBeenCalledTimes(1);
+      const arg = shareNative.mock.calls[0][0] as unknown as { url: string; text: string };
+      expect(arg.url).toMatch(new RegExp(`/declutter/item/${ITEM.id}$`));
+      expect(arg.text).toBe("Oak rocking chair · Free on Louisiana Helpr");
+    } finally {
+      window.matchMedia = mm;
+      Object.defineProperty(navigator, "share", { configurable: true, writable: true, value: undefined });
+    }
   });
 
-  it("Post to Facebook opens Facebook's share page for the item link in a new tab", async () => {
+  it("Share to Facebook on a computer opens Facebook's share page for the item link in a new tab", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue({} as Window);
     const { ShareListingRow } = await import("./DeclutterShareCard");
     render(<ShareListingRow item={ITEM} />);
-    fireEvent.click(screen.getByRole("button", { name: "Post to Facebook" }));
+    fireEvent.click(screen.getByRole("button", { name: "Share to Facebook" }));
     expect(open).toHaveBeenCalledTimes(1);
     const [url, target] = open.mock.calls[0];
     expect(String(url)).toMatch(/^https:\/\/www\.facebook\.com\/sharer\/sharer\.php\?u=/);
@@ -49,7 +58,7 @@ describe("ShareListingRow", () => {
     vi.spyOn(window, "open").mockReturnValue(null);
     const { ShareListingRow } = await import("./DeclutterShareCard");
     render(<ShareListingRow item={ITEM} />);
-    fireEvent.click(screen.getByRole("button", { name: "Post to Facebook" }));
+    fireEvent.click(screen.getByRole("button", { name: "Share to Facebook" }));
     expect(shareNative).toHaveBeenCalledTimes(1);
   });
 });
@@ -71,15 +80,16 @@ describe("the seller's own listing carries the share row (Q2426)", () => {
     );
   };
 
-  it("a live listing shows Share this item and Post to Facebook", async () => {
+  it("a live listing shows Share to Facebook, Copy link and the local-groups tip", async () => {
     await panel("live");
-    expect(screen.getByRole("button", { name: "Share this item" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Post to Facebook" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Share to Facebook" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy link" })).toBeTruthy();
+    expect(screen.getByText("Share to your local groups")).toBeTruthy();
   });
 
   it("a paused listing (buyers can't open it) shows no share row", async () => {
     await panel("paused");
     expect(screen.getByRole("button", { name: "Relist" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Share this item" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Share to Facebook" })).toBeNull();
   });
 });

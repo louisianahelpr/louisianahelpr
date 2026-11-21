@@ -3,7 +3,8 @@
  * at all"): the UI half of the review's findings.
  *  - H1: the kids age guides sit two taps from the landing (a "Kids by age" block in For kids: Babies 0–1 to Big kids
  *    8–12, each with Girls, Boys and Gender-neutral), and Niece, Nephew and Cousins carry BY AGE chips.
- *  - H4: every item has a visible "Shop at <store> ›" pill, a 44px shared Button, apart from the heart.
+ *  - H4: every item has a visible "Shop at <store> ›" link with a 44px tap area, apart from the heart (a plain text
+ *    link since the owner's 11-20 "too busy looking"; it was an outlined pill Button).
  *  - H5: search knows meaning (fishing, "4 year old niece", tween, cheap, christmas, under $25), drops filler words
  *    ("gift for mom" is Mom, not 18 Life moments guides), reads product names from a lazily loaded index kept current by
  *    scripts/gift-guide-search-index.mjs, and shows each guide's cover.
@@ -15,8 +16,8 @@
  * @mutate src/content/giftGuideCatalog.ts |   const words = meaningful.length ? meaningful : all; |   const words = all;
  * @mutate src/content/giftGuideCatalog.ts | (label.get(g.row) ?? []).includes(w)); | (label.get(g.row) ?? []).some((x) => x.includes(w)));
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |         {row === "for-kids" && !group && <KidsByAge />} |
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <Button asChild variant="outline" size="sm" className="gg-shop-btn"> |       <Button asChild variant="outline" size="inline" className="gg-shop-btn">
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |           {r.row === "for-kids" && <KidsByAge />} |
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px; | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;
  * @mutate src/pages/info/GiftGuides.tsx | hideBack={!guide && !deals && !myList && !shared && !group} | hideBack={false}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
  */
@@ -35,7 +36,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
-import { QUICK_PICKS } from "@/pages/info/giftGuides/GiftGuideLanding";
+import { giftGuides as GG } from "@/content/giftGuides";
 
 afterEach(cleanup);
 await loadAllGuidePicks();
@@ -131,8 +132,8 @@ describe("H5: search finds what shoppers type", () => {
 
 describe("H1: the kids age guides are two taps from the landing", () => {
   // Follow-up 1120 (owner 11-20 ~1:10 AM): ONE Kids guide by age; Kids by age opens each age section, teens included.
-  it("the For kids row carries Kids by age: five bands, each opening its section of Kids", () => {
-    const { container } = renderAt("/gift-guides");
+  it("the For kids group's page carries Kids by age: five bands, each opening its section of Kids", () => {
+    const { container } = renderAt("/gift-guides?group=for-kids");
     const row = container.querySelector("[data-gift-row='for-kids']")!;
     const ages = row.querySelector("[data-gift-ages]")!;
     expect(ages).not.toBeNull();
@@ -162,15 +163,17 @@ describe("H1: the kids age guides are two taps from the landing", () => {
   });
 });
 
-describe("H4: every item has a visible Shop pill", () => {
-  it("'Shop at <store> ›', a 44px shared Button (h-11), its own link apart from the heart, opening the same shop", () => {
+describe("H4: every item has a visible Shop link", () => {
+  // Owner 11-20 ("take the circle of shop at, it's too busy looking"): a plain text link now, not a Button pill; the
+  // 44px tap area is in its CSS (min-height:44px), guarded in giftGuideCalmCards1120.test.tsx.
+  it("'Shop at <store> ›', a 44px text link, its own link apart from the heart, opening the same shop", () => {
     const { container } = renderAt("/gift-guides/mom");
     const rows = [...container.querySelectorAll("[data-gift-list] > li")];
     expect(rows.length).toBeGreaterThan(10);
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-shop-btn\{[^}]*min-height:44px/);
     for (const li of rows) {
       const pill = li.querySelector("a.gg-shop-btn")!;
       expect(pill).not.toBeNull();
-      expect(pill.className.split(/\s+/)).toContain("h-11");
       expect(pill.querySelector("[data-gift-shop]")?.textContent).toMatch(/^Shop( at .+)?$/);
       expect(pill.textContent).toContain("›");
       expect(pill.getAttribute("href")).toBe(li.querySelector("a.gg-item")!.getAttribute("href"));
@@ -185,13 +188,12 @@ describe("H4: every item has a visible Shop pill", () => {
 });
 
 describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () => {
-  it("quick picks sit under the search, one tap each, every chip to a guide that holds picks or a group", () => {
+  it("one tap from the landing: its photo cards open By person, Kids, By budget, Louisiana, By store and Deals (no chip strip since owner 11-20 PM)", () => {
     const { container } = renderAt("/gift-guides");
-    const chips = [...container.querySelectorAll("[data-gift-quick-picks] a")];
-    expect(chips.map((a) => a.textContent)).toEqual(QUICK_PICKS.filter((c) => !c.slug || live(c.slug)).map((c) => c.label));
-    expect(chips.length).toBeGreaterThan(3); // one guide per product (owner 11-19)
-    for (const a of chips) expect(a.className.split(/\s+/)).toContain("h-11");
-    expect(chips.map((a) => a.getAttribute("href"))).toEqual(expect.arrayContaining([...(live("under-25") ? ["/gift-guides/under-25"] : []), "/gift-guides?group=for-kids#kids-by-age", "/gift-guides?group=louisiana"]));
+    expect(container.querySelector("[data-gift-quick-picks]")).toBeNull();
+    const cards = [...container.querySelectorAll("a[data-gift-entry]")];
+    expect(cards.map((a) => a.querySelector(".gg-entry-title")?.textContent)).toEqual([...GG.entries.map((e) => e.title), GG.dealsEntry.title]);
+    expect(cards.map((a) => a.getAttribute("href"))).toEqual(expect.arrayContaining(["/gift-guides?group=by-person", "/gift-guides/kids", "/gift-guides?group=louisiana"]));
   });
 
   it("the landing has no back arrow; a guide's goes to the landing", () => {
@@ -203,7 +205,7 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
   });
 
   it("a cover tile does not repeat its cover's name, and its heart sits after the cover, not on it", () => {
-    const { container } = renderAt("/gift-guides");
+    const { container } = renderAt("/gift-guides?group=by-person");
     const tiles = [...container.querySelectorAll("[data-gift-row='by-person'] li.gg-tile-li")];
     expect(tiles.length).toBeGreaterThanOrEqual(5); // For Her / For Him 1120: Mom, Dad ... are filters, not tiles
     for (const li of tiles) {

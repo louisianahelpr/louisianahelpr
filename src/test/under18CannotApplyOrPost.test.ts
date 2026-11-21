@@ -107,6 +107,9 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/pages/book/BookHelprPage.tsx": "the public /book page (B66): signed out its Post a job goes to sign-up first (no saved birthday, no gate yet); signed in it opens the gated /post-job form (FormStep)",
   "src/lib/hireMe.ts": "builds the profile Hire me target /post-job?offerTo= (B113); no button of its own (PublicProfilePage navigates to it after the handle read), and the /post-job form it opens is gated (FormStep)",
   "src/lib/bookAgain.ts": "builds the Book <Helpr> again link (Q2471 #3, a finished job's poster); no button of its own, and the /post-job form it opens is gated",
+  "src/lib/guestPostDraft.ts": "the guest post draft (owner 11-20, ease): GUEST_POST_RESUME_PATH is the sign-up redirect back to /post-job; no button of its own, and the form it reopens is gated (FormStep)",
+  "src/pages/info/holidays/HolidayHire.tsx": "the public Holiday Hub hire page (2026-11-20): signed out its Post a job / Post this job go to sign-up first (redirect back to the form); signed in they open the gated /post-job form (FormStep)",
+  "src/lib/guestPublicFrame.ts": "the list of routes a guest sees in the public frame (owner 11-20 adds /post-job); a route list, no button",
 };
 
 /** Call sites that only need the server's refusal in words (no button of their own). */

@@ -15,7 +15,7 @@
  * @mutate supabase/functions/_shared/email-templates/components.tsx |   <div style={{ margin: '20px 0 20px' }}> |   <div style={{ margin: '0 0 4px' }}>
  * @mutate supabase/functions/_shared/email-templates/components.tsx | width="80" height="69" className="e-logo" | width="80" height="auto" className="e-logo"
  * M10: the Recently deleted view's empty state never says "not deleted".
- * @mutate src/lib/i18n/enMessages.ts |   "msg.noneHidden": "Nothing here. Swipe a chat left to remove it from your inbox; you can restore it from here.", |   "msg.noneHidden": "Nothing hidden. Swipe a thread left to hide it — it stays here, not deleted.",
+ * @mutate src/lib/i18n/enMessages.ts |   "msg.noneHidden": "Nothing archived. Swipe a chat left and tap Archive to tuck it away here; you can restore it any time.", |   "msg.noneHidden": "Nothing hidden. Swipe a thread left to hide it — it stays here, not deleted.",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

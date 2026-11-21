@@ -106,7 +106,10 @@ const NOT_PROCESSORS = [
 // The gift guides' catalog (owner 2026-11-16..18, 25 Days sponsors and picks): every store, sponsor and image host in
 // these files is a link or a linked product photo, the same as the ShopMy/brand hosts above; no member data is sent.
 // A host that also appears in any other source file is still checked.
-const LINK_ONLY_FILES = /^src\/content\/giftGuide[A-Za-z]*\.ts$/;
+// Louisiana Holiday Hub (2026-11-20): the lights and events lists (src/content/holidayHub/*.mjs) name each venue's
+// public website as a plain link; the pages only link to them and send them nothing.
+// The 25 Days lineup (src/content/sponsorPage.ts lineup.links, holiday audit C 2026-11-20) links each sponsor's own site.
+const LINK_ONLY_FILES = /^src\/content\/(giftGuide[A-Za-z]*\.ts|holidayHub\/[A-Za-z]+\.mjs|sponsorPage\.ts)$/;
 const linkOnly = (h: string) => [...(hostFiles.get(h) ?? [])].every((f) => LINK_ONLY_FILES.test(f));
 const files = [...walk("src"), ...walk("supabase/functions")];
 const hosts = new Set<string>();

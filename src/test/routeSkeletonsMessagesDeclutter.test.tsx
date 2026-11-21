@@ -118,13 +118,13 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
     expect(getByTestId("messages-skeleton-chips")).toBeTruthy();
   });
 
-  it("two-pane desktop: a 360px list pane with the rows, the chat pane empty", () => {
+  it("two-pane desktop: the list pane (360px, 420px from 1300px, as the page's) with the rows, the chat pane empty", () => {
     layout.desktop = true;
     layout.wide = true;
     const { getByTestId } = draw(<MessagesRouteSkeleton />);
     const rows = getByTestId("messages-skeleton-rows");
-    const pane = rows.closest('[style*="width"]') as HTMLElement | null;
-    expect(pane?.style.width).toBe("360px");
+    const pane = rows.closest(".border-r") as HTMLElement | null;
+    expect(pane?.className.split(/\s+/)).toEqual(expect.arrayContaining(["w-[360px]", "min-[1300px]:w-[420px]"]));
     expect(rows.querySelectorAll('[data-testid="skeleton-line-1"]').length).toBe(6);
   });
 

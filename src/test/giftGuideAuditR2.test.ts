@@ -95,7 +95,7 @@ describe("design audit r2: what each guide holds", () => {
   });
   it("Muck Boot and XTRATUF keep their picks but carry no Shop Louisiana flag", () => {
     const boots = all.filter(({ p }) => [p.brand, p.store].some((x) => x && NOT_LOUISIANA_BUSINESS.test(x.replace(/^store-/, "").replace(/-/g, " "))));
-    expect(boots.length).toBeGreaterThan(14); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (18)
+    expect(boots.length).toBeGreaterThan(10); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 14; // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (18)
     expect(boots.filter(({ p }) => p.louisianaFit).map(({ slug, p }) => `${slug}: ${p.name}`)).toEqual([]);
   });
 });
@@ -325,7 +325,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
         expect(isLouisianaItem(p, hosts), `${slug}: ${p.name} (${p.brand})`).toBe(false);
       }
     }
-    expect(checked).toBeGreaterThan(1200); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,400)
+    expect(checked).toBeGreaterThan(1100); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 1,195; // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,400)
   });
   it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]

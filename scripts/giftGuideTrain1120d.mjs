@@ -223,6 +223,20 @@ export function applyTrain1120d(pageList, spec, ctx) {
     pageList[slug] = page(slug).filter((p) => !out.has(p));
   }
 
+  // A section's picks past its per-section type caps (scripts/giftGuideSort.mjs typeMax, the old guides' own caps; the
+  // owner's picks hold their places and ours give way to them).
+  const sectionTypeOut = (r) => {
+    const byType = new Map();
+    for (const p of r.picks) if (!fixed.has(p.from)) byType.set(p.type ?? "other", [...(byType.get(p.type ?? "other") ?? []), p]);
+    const out = new Set();
+    for (const [ty, list] of byType) {
+      const tmax = Math.max(typeMax(r.id, ty), ...list.map((p) => typeMax(p.from ?? r.id, ty)));
+      const mine = list.filter((p) => p.ownerPick).length;
+      for (const p of overCap(list.filter((x) => !x.ownerPick), Math.max(0, tmax - mine), keep)) out.add(p);
+    }
+    return out;
+  };
+
   // 5. Thin sections fold into a sibling.
   const min = spec.sectionMin ?? 10;
   const cap = spec.sectionCap ?? 25;
@@ -273,14 +287,7 @@ export function applyTrain1120d(pageList, spec, ctx) {
       // A joined section keeps the import's per-section type caps (scripts/giftGuideSort.mjs typeMax, the old guides'
       // own caps; the owner's picks hold their places and ours give way to them).
       if (r.parts) {
-        const byType = new Map();
-        for (const p of r.picks) if (!fixed.has(p.from)) byType.set(p.type ?? "other", [...(byType.get(p.type ?? "other") ?? []), p]);
-        const out = new Set();
-        for (const [ty, list] of byType) {
-          const tmax = Math.max(typeMax(r.id, ty), ...list.map((p) => typeMax(p.from ?? r.id, ty)));
-          const mine = list.filter((p) => p.ownerPick).length;
-          for (const p of overCap(list.filter((x) => !x.ownerPick), Math.max(0, tmax - mine), keep)) out.add(p);
-        }
+        const out = sectionTypeOut(r);
         counts.sectionCapOut += out.size;
         r.picks = r.picks.filter((p) => !out.has(p));
       }
@@ -307,7 +314,13 @@ export function applyTrain1120d(pageList, spec, ctx) {
   // 6. No section over the cap (sections no fold touched).
   for (const slug of guides()) {
     const out = new Set();
-    for (const r of runsOf(page(slug))) if (r.id) for (const p of overCap(r.picks, cap - r.picks.filter((x) => x.sponsor).length, keep)) out.add(p);
+    for (const r of runsOf(page(slug))) {
+      if (!r.id) continue;
+      // The retypes of step 1 can put a third of a type in a section no fold touched (Life Moments > Baby held 3
+      // "baby-gear" once the carrier and bouncers stopped reading as skincare): every section keeps its type caps.
+      if (!fixed.has(slug)) for (const p of sectionTypeOut(r)) out.add(p);
+      for (const p of overCap(r.picks.filter((x) => !out.has(x)), cap - r.picks.filter((x) => x.sponsor).length, keep)) out.add(p);
+    }
     counts.sectionCapOut += out.size;
     if (out.size) pageList[slug] = page(slug).filter((p) => !out.has(p));
   }

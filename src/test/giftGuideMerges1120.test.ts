@@ -138,7 +138,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       }
     }
     // Follow-up 1120: ~1,500 guide picks on the ~30 guides, measured 2026-11-20 (2,000+ on the 65 guides before).
-    expect(n).toBeGreaterThan(1300);
+    expect(n).toBeGreaterThan(1150); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 1,255
     expect(bad.slice(0, 10)).toEqual([]);
   });
 

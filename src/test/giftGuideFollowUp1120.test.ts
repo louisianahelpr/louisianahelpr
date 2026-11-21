@@ -71,7 +71,7 @@ describe("gift guides follow-up 1120", () => {
         if (p.commission === 0) bad.push(`${slug}: 0% ${p.name}`);
       }
     }
-    expect(n).toBeGreaterThan(1300);
+    expect(n).toBeGreaterThan(1150); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 1,255
     expect(bad).toEqual([]);
   });
 

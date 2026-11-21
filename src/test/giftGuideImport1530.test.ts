@@ -45,7 +45,7 @@ describe("gift guides: import train 1530", () => {
       if (p.ownerPick && (ownerGuides.get(p.href)?.includes(s) ?? true)) continue;
       for (const k of [`h:${p.href}`, ...(p.image ? [`i:${p.image}`] : [])]) byKey.set(k, new Set([...(byKey.get(k) ?? []), s]));
     }
-    expect(n).toBeGreaterThan(1350); // follow-up 1120: ~1,480 rows; train 1120b re-audit cuts and two held store pages: 1,380 measured 2026-11-20
+    expect(n).toBeGreaterThan(1100); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 1,221; // follow-up 1120: ~1,480 rows; train 1120b re-audit cuts and two held store pages: 1,380 measured 2026-11-20
     expect([...byKey].filter(([, v]) => v.size > 1).map(([k, v]) => `${k} on ${[...v].join(", ")}`)).toEqual([]);
   });
 

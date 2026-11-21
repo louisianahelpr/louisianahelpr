@@ -372,6 +372,7 @@ export const giftGuides = {
   priceSectionCount: (n: number) => ` (${n})`,
   /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
   sortLabel: "Sort by price",
+  sortTop: "Recommended",
   sortLowHigh: "Price: low to high",
   sortHighLow: "Price: high to low",
   sections: [

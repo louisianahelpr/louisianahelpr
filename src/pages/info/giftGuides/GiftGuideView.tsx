@@ -13,7 +13,8 @@ import { HINTS, WISH } from "@/content/giftWishList";
 import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
-import { sortByPrice, type PriceOrder } from "@/content/giftGuidePriceSort";
+import { sortByPrice } from "@/content/giftGuidePriceSort";
+import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { AgeChips } from "./GiftGuideAges";
 import { PeopleChips } from "./GiftGuidePeopleChips";
@@ -200,7 +201,7 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
   return title;
 };
 
-function GiftGuideList({ guide, order = "low" }: { guide: CatalogGuide; order?: PriceOrder }) {
+function GiftGuideList({ guide, order = "top" }: { guide: CatalogGuide; order?: GuideOrder }) {
   const [shown, setShown] = useState(PICKS_PAGE);
   const [budget, setBudget] = useState<number | null>(null);
   // Her, Him, Kids and their relationship views (owner 11-21): low to high is the list as imported. The order is chosen
@@ -233,7 +234,10 @@ function GiftGuideList({ guide, order = "low" }: { guide: CatalogGuide; order?: 
   const inBudget = withinBudget(guide.picks, budget);
   // Owner 2026-11-21 ("they all need to be sorted in sections by price"; supersedes "one flat list"): Her, Him, Kids
   // and their views list their picks in price sections (priceSections), low to high or reversed by the sort control.
-  const picks = sortable ? priceSections(sortByPrice(inBudget, order)) : inBudget;
+  // Lead 11-21 ("reorder by what earns"): on "Recommended" (the default) the sections run low to high and the most
+  // clicked picks lead their own section (src/content/giftGuideEarnOrder.ts); the price choices stay pure price.
+  const sectioned = sortable ? priceSections(sortByPrice(inBudget, order === "high" ? "high" : "low")) : inBudget;
+  const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
   const sectionCount = new Map<string, number>();
   if (sortable) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
   // Six or fewer left: draw them all, no "Show more (1 more)" (design audit r2 #16).
@@ -373,7 +377,7 @@ function StoreDeals({ guide }: { guide: CatalogGuide }) {
 /** The guide where the Hire-a-Helpr box sits at the TOP (owner 2026-11-18). */
 const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
 
-export function GiftGuideView({ guide, order = "low" }: { guide: CatalogGuide; order?: PriceOrder }) {
+export function GiftGuideView({ guide, order = "top" }: { guide: CatalogGuide; order?: GuideOrder }) {
   // PERF: the guide's picks are its own lazy chunk; re-render when it lands.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   useEffect(() => {

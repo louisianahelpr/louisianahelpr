@@ -270,6 +270,14 @@ export const EVIDENCE = [
     checkedBy: "src/test/giftGuideDeals1119.test.tsx (three day sections, 2 per brand, no price, affiliate hosts, Amazon tag, auto-hide, starts label, feature window, retitle)",
   },
   {
+    id: "gift-guide-earn-rank",
+    script: "scripts/gift-guide-earn-rank.mjs",
+    outputs: ["src/content/giftGuideEarnRank.json"],
+    refresh: "node scripts/gift-guide-earn-rank.mjs (prod analytics_events_real gift_out_click, last 14 days, read-only)",
+    refreshedBy: "by hand weekly (lead 11-21; no cron): the file carries its own generated day; an old file only means an older click order, never a wrong price",
+    checkedBy: "src/test/giftGuideEarnOrder1121.test.tsx (rank rules, query shape, clicked picks first inside their own price section)",
+  },
+  {
     id: "gift-guide-sponsor-logos",
     script: "scripts/gift-guide-sponsor-logos.mjs",
     outputs: ["src/content/giftGuideSponsorLogos.json"],

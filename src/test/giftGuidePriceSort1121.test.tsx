@@ -11,7 +11,11 @@
  * and "they all need to be sorted in sections by price": the rows sit in price sections (Under $25, $25 to $50, $50
  * to $75, $75 to $100, $100 and up; "Price coming soon" last), each a labelled section with its count, reversed for high to low.
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const picks = sortable ? priceSections(sortByPrice(inBudget, order)) : inBudget; | const picks = sortable ? sortByPrice(inBudget, order) : inBudget;
+ * Lead 11-21 (earn order): the menu's first choice is "Recommended", the default, which on an EMPTY click-rank map is
+ * exactly low to high. This file mocks the map empty so it stays a pure price guard; the click order itself is guarded
+ * by src/test/giftGuideEarnOrder1121.test.tsx.
+ *
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const sectioned = sortable ? priceSections(sortByPrice(inBudget, order === "high" ? "high" : "low")) : inBudget; | const sectioned = sortable ? sortByPrice(inBudget, order === "high" ? "high" : "low") : inBudget;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   return PRICE_SECTIONS.find((s) => dollars < s.max)!.id; |   return PRICE_SECTIONS.find((s) => dollars <= s.max)!.id;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />} |       {null}
  * @mutate src/content/giftGuidePriceSort.ts | return [...known, ...unknown]; | return [...unknown, ...known];
@@ -21,6 +25,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+
+vi.mock("@/content/giftGuideEarnRank.json", () => ({ default: { ranks: {} } }));
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -92,13 +98,13 @@ const checked = () => {
 };
 
 describe("the sort control on the page (owner 11-21)", () => {
-  it.each(["her", "him", "kids", "mom", "dad"])("/gift-guides/%s opens low to high and flips to high to low", async (slug) => {
+  it.each(["her", "him", "kids", "mom", "dad"])("/gift-guides/%s opens on Recommended (low to high with no clicks) and flips to high to low", async (slug) => {
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
     // No big two-button toggle above the list any more; the menu lives in the header's tool row.
     expect(screen.queryByRole("radiogroup", { name: G.sortLabel })).toBeNull();
     expect(container.querySelector("[data-gift-headrow] [data-gift-sort-button]")).not.toBeNull();
-    expect(checked()).toEqual([G.sortLowHigh]);
+    expect(checked()).toEqual([G.sortTop]);
     const base = slug === "mom" ? "her" : slug === "dad" ? "him" : slug;
     const expected = CHUNKS[base].filter((r) => base === slug || r.rels?.includes(slug)).map((r) => r.name);
     expect(expected.length, slug).toBeGreaterThan(5);
@@ -107,6 +113,7 @@ describe("the sort control on the page (owner 11-21)", () => {
     expect(checked()).toEqual([G.sortHighLow]);
     expect(shownNames(container)).toEqual([...expected].reverse());
     choose(G.sortLowHigh);
+    expect(checked()).toEqual([G.sortLowHigh]);
     expect(shownNames(container)).toEqual(expected);
   });
 

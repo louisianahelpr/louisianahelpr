@@ -19,7 +19,7 @@ import { SAVE_FOR_CSS, SaveForSomeone } from "./giftGuides/SaveForSomeone";
 import { WISH } from "@/content/giftWishList";
 import { MY_LIST_SLUG } from "./giftGuides/giftList";
 import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
-import type { PriceOrder } from "@/content/giftGuidePriceSort";
+import type { GuideOrder } from "@/content/giftGuideEarnOrder";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
@@ -73,9 +73,10 @@ export default function GiftGuides() {
   const guide = guideBySlug(slug) ?? null;
   // Sort by price (owner 11-21: "add the filter button up with the search icons"): the header's menu sets the order of
   // an owner-list guide (Her, Him, Kids and their views); a new guide starts low to high.
-  const [order, setOrder] = useState<{ slug: string; order: PriceOrder }>({ slug: "", order: "low" });
-  const sortOrder: PriceOrder = guide && order.slug === guide.slug ? order.order : "low";
-  const sort = guide && isOwnerList(guide.slug) ? { order: sortOrder, onChange: (o: PriceOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
+  // Lead 11-21 (earn order): a new guide starts on "Recommended" (clicked picks first in each price section).
+  const [order, setOrder] = useState<{ slug: string; order: GuideOrder }>({ slug: "", order: "top" });
+  const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "top";
+  const sort = guide && isOwnerList(guide.slug) ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
   // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is its own page, not a catalog list of picks.
   // The Small Business Saturday page (owner 2026-11-19, big batch 1120) is its own page too. `deals` covers both own
   // pages wherever the page only asks "is this a catalog guide?".

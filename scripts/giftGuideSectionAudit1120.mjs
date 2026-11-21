@@ -48,6 +48,11 @@ export const GONE_IN_GUIDE_1120 = {
   "store-nike": [[/^Nike Everyday Plus Cushioned Crew Socks/i, "second sock pack"]],
   "store-old-navy": [[/^Old Navy SoSoft Crew-Neck Cardigan/i, "second cardigan"]],
   "work-life": [[/^UGEARS Bike DIY Kit/i, "model kit in Office & Professional"], [/^CanaKit Raspberry Pi 5 Starter Kit/i, "hobby computer in Office & Professional"]],
+  // More than two of one product type in a section or store page: the extras go, the audit's keepers stay.
+  "friends-and-coworkers": [[/^Printworks Classic Poker Set/i, "4 games in Secret Santa, and about $80"], [/^Relatable What Do You Meme\? Core Game/i, "4 games in Secret Santa, adult content"]],
+  healthcare: [[/^Fabletics (Evolve 3-Pocket Scrub Top|High-Rise Wide Leg Scrub Pant), (Onyx|Green Mystique)/i, "the same scrub set in three sections; Navy stays in Nurses"]],
+  "store-bath-and-body-works": [[/^Bath & Body Works (Pink Suede|Snowflakes & Cashmere) 3-Wick Candle/i, "4 three-wick candles"]],
+  "store-yeti": [[/^YETI (Hopper Flip 12 Soft Cooler|Tundra 45 Hard Cooler|Roadie 24 Hard Cooler)/i, "5 coolers"]],
   "gifts-by-budget": [[/^HEYDUDE Wally Slipper/i, "$59.99 in Under $50"], [/Kate Spade Ch[eé]rie Eau de Parfum/i, "$95 and up in Under $50"]],
 };
 /** The card named a product the link and photo do not show: [old name test, real name, real brand?]. */

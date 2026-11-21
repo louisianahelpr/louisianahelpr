@@ -13,13 +13,12 @@
  */
 import { describe, expect, it } from "vitest";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_VIBES, FINDER_WHO, finderPool, giftFinder, nearDupKey, pickBand, type FinderWho } from "@/content/giftGuideExtras1120";
+import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_VIBES, finderPool, giftFinder, nearDupKey, type FinderWho } from "@/content/giftGuideExtras1120";
 
 await loadAllGuidePicks();
 const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
 const borrow = FINDER_BUDGET_GUIDES.flatMap(picksOf);
 const run = (who: FinderWho, budget: 0 | 25 | 50 | 100, vibe: (typeof FINDER_VIBES)[number]["id"]) => giftFinder(finderPool(who, picksOf), budget, vibe, borrow, who);
-const all = (r: { exact: CatalogPick[]; close: CatalogPick[] }) => [...r.exact, ...r.close];
 
 /** Women's gift types, and the name words, that never go to Him or Dad as a close match (unless the name says men's). */
 const WOMENS_TYPES = /^(skincare|makeup|lip|nails?|bath|body-care|hair-care|hair-tool|hair-accessory|fragrance mist|jewelry|lash)$/i;

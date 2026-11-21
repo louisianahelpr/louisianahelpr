@@ -28,7 +28,6 @@ import {
  * here have only lifestyle or model shots, photos the store's CDN refuses (L.L.Bean answers 403), or under four
  * products at all. Two-way: an entry whose cover gains products fails until it is removed.
  */
-const FEW_PHOTOS = "fewer than 4 clean product-only photos";
 /**
  * Re-measured 2026-11-19 after the r3 follow-up gathered store photos (scripts/gift-guide-store-cover-photos.json): 52
  * of the 59 store pages here now show products. These seven could not get four photos of products the store sells:

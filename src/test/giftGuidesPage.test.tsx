@@ -89,19 +89,18 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuidesBand, GIFT_GUIDES_PATH } from "@/components/landing/GiftGuidesBand";
-import { giftGuides, AFFILIATE_HOSTS, BRAND_SITES, LOUISIANA_SHOPS, SPONSOR_SITES, NATIONAL_SPONSOR_SITES, SHOPMY_COLLECTIONS, activeCodes, codesByStore, discountCodes } from "@/content/giftGuides";
-import { DiscountCodes, SalesList, liveSales } from "@/pages/info/giftGuides/GiftGuidesSidebar";
+import { giftGuides, AFFILIATE_HOSTS, BRAND_SITES, LOUISIANA_SHOPS, SPONSOR_SITES, NATIONAL_SPONSOR_SITES, SHOPMY_COLLECTIONS, discountCodes } from "@/content/giftGuides";
+import { SalesList, liveSales } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
-import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
-import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
-import { GiftGuideView, DEALS_BELOW_LIST, PICKS_PAGE, STORE_DEALS_FIRST, storeDealRows, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
+import { DEAL_CODES, type PickChunk } from "@/content/giftGuidePicks";
+import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, REMOVED_GUIDES, guidesIn, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { GiftGuideView, PICKS_PAGE, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
-import { isLouisianaItem } from "../../scripts/giftGuideRules.mjs";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { rowTiles } from "@/pages/info/giftGuides/GiftGuideLanding";
-import { GUIDE_MERGES, MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
+import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { RETIRED_SLUGS, newSlugFor } from "@/content/giftGuideCatalog";
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
@@ -136,7 +135,6 @@ const DISCLOSURE = "Some links are affiliate links. We may earn a small share of
 const AMAZON_STATEMENT = "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.";
 const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
 // @two-way src/test/giftGuidesPage.test.tsx:stale allowed host
-const LA_HOSTS = new Set([...LOUISIANA_SHOPS, ...SPONSOR_SITES]);
 const ALLOWED_HOSTS = ["shopmy.us", "www.pinterest.com", "www.amazon.com", "amazon.com", "amzn.to", ...AFFILIATE_HOSTS, ...BRAND_SITES, ...LOUISIANA_SHOPS, ...SPONSOR_SITES, ...NATIONAL_SPONSOR_SITES];
 const isAmazon = (href: string) => ["www.amazon.com", "amazon.com", "amzn.to"].includes(new URL(href).hostname);
 
@@ -682,16 +680,9 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(Object.keys(GIFT_GUIDE_SEO).sort()).toEqual(guides.sort());
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/undefined/);
     // A "gifts for the" / "gifts for a" guide reads as one phrase (batch 11-19: og:title was "Gifts for the: Coffee
-    // Lover: holiday gift guide 2026"). No name puts a colon after a dangling article.
-    // @mutate scripts/gift-guide-picks.mjs | : /^gifts for (the\|a)$/i.test(e.lead) ? `${cap(e.lead)} ${e.title}` | : /^gifts for (the\|a)$/i.test(e.lead) ? `${cap(e.lead)}: ${e.title}`
-    const forThe = ["coffee-lover", "traveler", "home-cook", "dog-lover", "gamer"].find((s) => GIFT_GUIDE_SEO[s])!;
-    const title = GUIDE_INDEX.find((g) => g.slug === forThe)!.title;
-    expect(GIFT_GUIDE_SEO[forThe]).toBe(`Gifts for the ${title}`);
-    expect(giftGuidePageMeta(forThe).ogTitle).toBe(`Gifts for the ${title}: holiday gift guide 2026`);
-    const forA = ["hospital-stay", "new-job"].find((s) => GIFT_GUIDE_SEO[s]);
-    if (forA) expect(GIFT_GUIDE_SEO[forA]).toBe(`Gifts for a ${GUIDE_INDEX.find((g) => g.slug === forA)!.title}`);
-    const theGuides = Object.values(GIFT_GUIDE_SEO).filter((n) => /^Gifts for (the|a) /.test(n));
-    expect(theGuides.length).toBeGreaterThan(2); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20: Gifts for the Family, the Coffee Lover, the Car Lover
+    // Lover: holiday gift guide 2026"). No name puts a colon after a dangling article. Owner 11-21: no live guide is a
+    // "Gifts for the ..." one (Coffee Lover, Family and the rest are retired), so only the rule over every name stays.
+    expect(Object.keys(GIFT_GUIDE_SEO).length).toBeGreaterThan(10);
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/\b(the|a|an):/i);
     // Q178 (CI 11-18: /declutter/item/:id 418 -> 423 KB gz): the guides' name table stays out of publicPageMeta.mjs,
     // which Login, Signup, Index and the Declutter item page load cold; only GiftGuides.tsx and api/share.ts read it.

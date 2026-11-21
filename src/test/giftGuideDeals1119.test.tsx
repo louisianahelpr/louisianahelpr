@@ -19,22 +19,18 @@
  * @mutate src/content/giftGuideDeals.mjs |   return today > RETITLE_AFTER ? DEALS_WORDS.laterTitle : DEALS_WORDS.title; |   return DEALS_WORDS.title;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const sections = deals ? dealSections(liveDeals(deals, today)) : []; |   const sections = deals ? dealSections(deals) : [];
  */
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 import { cleanup, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import {
   DEAL_CATEGORIES, DEALS_PER_SECTION, DEALS_SLUG, DEALS_WORDS, dealShows, dealsFeatured, dealsTitle, louisianaDay, type Deal,
 } from "@/content/giftGuideDeals.mjs";
-import { dealsPageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
+import { dealsPageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { buildDeals, type DealSources, type RawDeal } from "../../scripts/gift-guide-deals.mjs";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
-import GiftGuides from "@/pages/info/GiftGuides";
 import { DealsFeature, GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
 
 const deals = DEALS as Deal[];

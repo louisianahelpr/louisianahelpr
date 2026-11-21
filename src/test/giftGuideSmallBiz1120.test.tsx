@@ -17,8 +17,8 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { cleanup, render } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import ROWS from "@/content/giftGuideSmallBiz.json";
 import { SMALL_BIZ_CATEGORIES, SMALL_BIZ_SLUG, smallBizFeatured, smallBizSections, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
@@ -27,7 +27,6 @@ vi.mock("@/lib/sbsFeaturedApi", async (orig) => ({ ...(await orig<typeof import(
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
-import GiftGuides from "@/pages/info/GiftGuides";
 import { SmallBizFeature } from "@/pages/info/giftGuides/GiftGuideSmallBiz";
 
 afterEach(() => cleanup());

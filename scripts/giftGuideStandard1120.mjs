@@ -95,8 +95,8 @@ export function applyStandard(pageList, spec, ctx = {}) {
       if (gone.has(p)) continue;
       const sec = g.sections[at];
       // The plan wins: a pick it never listed leaves (reported), unless it is the owner's call, a sponsor or her own pick.
-      // A sponsor's pick the plan keeps on another guide lives there only (one place per item).
-      const elsewhere = !calls.has(p) && Object.entries(spec.guides).some(([k, o]) => k !== slug && o.sections.some((x) => x.picks.some((w) => w.href && w.href === p.href)));
+      // A sponsor's pick the plan keeps on another guide lives there only (one place per item; store pages do not count).
+      const elsewhere = !calls.has(p) && Object.entries(spec.guides).some(([k, o]) => k !== slug && !k.startsWith("store-") && o.sections.some((x) => x.picks.some((w) => (w.href && w.href === p.href) || fold(w.name) === fold(p.name))));
       if ((!calls.has(p) && !p.sponsor && !p.ownerPick) || elsewhere) { counts.extraOut++; extras.push(`${slug}: "${p.name}"`); continue; }
       secs[at].push({ ...p, section: sec.title, sectionId: sec.id });
       if (calls.has(p)) counts.ownerCall++;

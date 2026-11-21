@@ -207,7 +207,9 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     const SWAPS_1119: [string, string, string][] = [
       ["new-mom", "Silicone Breast Pump", "Haakaa New Mom Breastfeeding Starter Pack"], ["new-mom", "Pecan Pralines 8 Count Tin", "Love Wellness Tired Mom Bundle"],
       ["new-mom", "Christmas Blend Ground Coffee", "Kiehl's New Mom & Baby Bundle"], ["new-mom", "Blue Floral Block Print Baby Bib", "Furbish Studio Cool Mom Needlepoint Pillow"],
-      ["hostess", "100% Cotton Kitchen Towels, 6 Pack", "Geometry Greetings From Louisiana Tea Towel"], ["acadiana", "Louisiana State Safety Matches", "adidas Louisiana Ragin' Cajuns Vault Script Long Sleeve Tee"],
+      // Owner 11-20 9:12 PM: the Geometry "Greetings From Louisiana" tea towel left Home & Kitchen for Shop Small Louisiana
+      // (Louisiana brands live only in Louisiana guides), so the hostess swap is no longer read here; giftGuideStandard1120 pins it.
+      ["acadiana", "Louisiana State Safety Matches", "adidas Louisiana Ragin' Cajuns Vault Script Long Sleeve Tee"],
       ["game-day", "Ozark Trail Quad Folding Camp Chair with Cup Holder", "Stoney Clover Lane x '47 LSU Glitter Arch Oversized Crew"], ["girls-teens", "SWEETFULL Portable Neck Fan", "BaubleBar College Logo Hair Claw Clip"],
       ["self-care-lover", "Dr Teal's Epsom Salt Magnesium Soak", "VOESH Pedi Moments Pedicure Kit"], ["traveler", "Toiletry Bag for Men, Water-Resistant Dopp Kit", "Weezie Large Toiletry Bag"],
       ["mom", "UGREEN Bluetooth Tracker for Apple Find My", "Mom Rules Needlepoint Pillow"], ["girls-babies", "Baby Bath Time Essentials Gift Set", "Monogram Mary Complete Baby Bundle"],

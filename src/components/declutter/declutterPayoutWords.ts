@@ -7,9 +7,25 @@ import type { MyPayout } from "@/lib/declutter/handover";
 import { formatPrice } from "@/lib/declutter/distance";
 import { PAYOUT_TRIES, payoutBreakdown, payoutStatusWords } from "@/lib/declutter/payoutWords";
 import { checkWindowEnds, payoutDay, payoutDayAfterWindow } from "@/lib/declutter/timeLeft";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPayout";
 
-/** D2-2: a pending payout while a problem is open. */
-const PAYOUT_HELD = "It's held while Louisiana Helpr looks at the problem.";
+/** D2-2: a pending payout while a problem is open says dpo.heldProblem ("It's held while Louisiana Helpr looks at the problem."). */
+
+/** The two lines that wait on the seller's payout account. */
+const SETUP_LINES = ["dpo.onceSetup", "dpo.onceReady"] as const;
+
+/**
+ * Audit 11-20 night Low 6: does this payout line wait on payout setup? Asked by the "Set up payouts" link beside the
+ * line (FailedPayoutLink), which matched the English words. It reads the same dictionary templates the line is built
+ * from, in the language showing, so the line and its link never part.
+ */
+export function payoutLineWaitsOnSetup(line: string): boolean {
+  return SETUP_LINES.some((key) => {
+    const [before, after] = t(key, { gets: "\u0000" }).split("\u0000");
+    return after !== undefined && line.length > before.length + after.length && line.startsWith(before) && line.endsWith(after);
+  });
+}
 
 /** F360b: what the line knows besides the payout row. */
 export interface PayoutLineContext {
@@ -62,26 +78,27 @@ export function payoutLine(payout: MyPayout, problemOpen: boolean, ctx: PayoutLi
   const addsUp = (payout.setup_fee_cents ?? 0) === 0
     && payout.items_cents + (payout.delivery_cents ?? 0) - (payout.refunded_cents ?? 0) - payout.debt_cents === payout.amount_cents;
   const parts = addsUp ? payoutBreakdown(payout) : "";
-  const gets = `You get ${formatPrice(amount)}${parts}`;
+  const gets = t("dpo.gets", { amount: formatPrice(amount), parts });
   const paidOut = payout.status === "succeeded" || payout.status === "settled_by_hand";
-  if (paidOut) return payout.executed_at ? `${gets}, paid on ${payoutDay(payout.executed_at)}.` : `${gets}. ${payoutStatusWords(payout)}`;
-  if (problemOpen && payout.status === "pending") return `${gets}. ${PAYOUT_HELD}`;
+  if (paidOut) return payout.executed_at ? t("dpo.paidOn", { gets, day: payoutDay(payout.executed_at) }) : `${gets}. ${payoutStatusWords(payout)}`;
+  if (problemOpen && payout.status === "pending") return `${gets}. ${t("dpo.heldProblem")}`;
   if (payout.status !== "pending" || (payout.attempts ?? 0) >= PAYOUT_TRIES) return `${gets}. ${payoutStatusWords(payout)}`;
-  if (ctx.refundOpen) return `${gets}. It waits until the refund request is settled.`;
-  if (ctx.payoutReady === false) return ctx.setupPaused === false ? `${gets} once you set up payouts in Settings.` : `${gets} once your payout account is ready.`;
+  if (ctx.refundOpen) return `${gets}. ${t("dpo.waitsRefund")}`;
+  if (ctx.payoutReady === false) return t(ctx.setupPaused === false ? "dpo.onceSetup" : "dpo.onceReady", { gets });
   // declutter_payouts_due holds while the part refund is pending, failed or held for review (20261111211749; unknown:
   // not promised); succeeded and settled_by_hand do not hold it, so it goes in the next run.
   // Scope: this reads only the AGREED request's own refund. A refund of another reason held on the same payment also
   // holds the payout on the server, and this line would still say "send it next" (rare; no day is promised).
-  if (ctx.refundAgreed && REFUND_HOLDS.has(ctx.refundAgreed)) return `${gets}. It's on hold until the buyer's refund goes through.`;
-  if (ctx.refundAgreed) return `${gets}. The sale is final, so we send it next.`;
-  if (ctx.saleDecided) return `${gets}. The sale is final, so we send it next.`;
-  if (!ctx.handedOverAt) return `${gets}, paid 24 hours after the handover unless the buyer asks for a refund.`;
+  if (ctx.refundAgreed && REFUND_HOLDS.has(ctx.refundAgreed)) return `${gets}. ${t("dpo.refundHold")}`;
+  const final = `${gets}. ${t("dpo.final")}`;
+  if (ctx.refundAgreed) return final;
+  if (ctx.saleDecided) return final;
+  if (!ctx.handedOverAt) return t("dpo.after24", { gets });
   // declutter_sale_final: the later of the handover and a declined refund request, plus 24 hours.
   const from = ctx.declinedAt && Date.parse(ctx.declinedAt) > Date.parse(ctx.handedOverAt) ? ctx.declinedAt : ctx.handedOverAt;
   const ends = checkWindowEnds(from, ctx.now);
-  if (ends && ctx.declinedAt) return `${gets}, paid on ${payoutDayAfterWindow(ends)} unless the buyer asks Louisiana Helpr to look.`;
-  return ends ? `${gets}, paid on ${payoutDayAfterWindow(ends)} unless the buyer asks for a refund.` : `${gets}. The sale is final, so we send it next.`;
+  if (ends && ctx.declinedAt) return t("dpo.onUnlessLook", { gets, day: payoutDayAfterWindow(ends) });
+  return ends ? t("dpo.onUnlessRefund", { gets, day: payoutDayAfterWindow(ends) }) : final;
 }
 
 /**

@@ -10,7 +10,7 @@
  * @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx | <div key="stat-tiles" className="flex flex-col gap-1" data-job-deadline-line=""> | <div key="stat-tiles" className="grid grid-cols-2 auto-rows-fr gap-2" data-job-deadline-line="">
  * @mutate src/components/job-card/MineJobFace.tsx | <div className="order-1 min-w-0 md:order-none md:flex-1" data-mine-face-col=""> | <div className="order-1 min-w-0 md:order-none md:flex-1">
  * @mutate src/components/ui/Notice.tsx | "border-[hsl(var(--burnt-sienna)/0.3)] bg-[hsl(var(--burnt-sienna)/0.06)] text-foreground" | "border-amber-300 bg-amber-50 text-amber-950"
- * @mutate src/components/declutter/SellerPayoutPrompt.tsx | <Notice tone="warn" icon={AlertTriangle} title={`Set up payouts | <Notice tone="warn" title={`Set up payouts
+ * @mutate src/components/declutter/SellerPayoutPrompt.tsx | <Notice tone="warn" icon={AlertTriangle} title={t("dpo.promptTitle" | <Notice tone="warn" title={t("dpo.promptTitle"
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <StrikeCount userId={user.id} full={view === "selling"} /> | <StrikeCount userId={user.id} />
  * @mutate src/pages/jobs/JobsSection.tsx | const fab = desktop \|\| tab === "working" ? null | const fab = desktop ? null
  * @mutate src/components/declutter/SellOneScreen.tsx | <div className="w-full max-w-xl space-y-6" data-sell-one-screen=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
@@ -100,9 +100,9 @@ describe("design audit 11-17", () => {
 
   it("#3: the Declutter payout prompt wears the payout row's icon and trailing action", () => {
     const p = src("src/components/declutter/SellerPayoutPrompt.tsx");
-    expect(p).toMatch(/<Notice tone="warn" icon=\{AlertTriangle\} title=\{`Set up payouts/);
+    expect(p).toMatch(/<Notice tone="warn" icon=\{AlertTriangle\} title=\{t\("dpo\.promptTitle"/);
     expect(p).toContain('data-payout-prompt-action=""');
-    expect(p).not.toMatch(/className="underline font-semibold">Set up payouts/);
+    expect(p).not.toMatch(/className="underline font-semibold">(?:Set up payouts|\{t\("dpo\.setUp"\)\})/);
   });
 
   it("#5: the Working tab draws no Post a job pill", () => {

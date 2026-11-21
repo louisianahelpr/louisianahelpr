@@ -87,4 +87,23 @@ describe("audit 11-20 night quick Lows", () => {
     expect(readSource("src/components/declutter/SellerQuestionsToAnswer.tsx")).not.toContain('title="Questions to answer"');
     expect(readSource("src/lib/i18n/esDeclutter.ts")).toContain('"dsl.qa.title": "Preguntas por responder"');
   });
+  it("6 (payouts): the payout prompt, the payout line and its setup link read the dictionary", () => {
+    const prompt = readSource("src/components/declutter/SellerPayoutPrompt.tsx");
+    // The Sell and Move screens load neither Declutter dictionary: the prompt brings its own words.
+    expect(prompt).toContain('import "@/lib/i18n/enDeclPayout";');
+    expect(prompt).toContain('title={t("dpo.promptTitle", { amount: formatPrice(cents) })}');
+    expect(prompt).not.toMatch(/Set up payouts <|You sold \$\{|held safely/);
+    const link = readSource("src/components/declutter/FailedPayoutLink.tsx");
+    expect(link).toContain("payoutLineWaitsOnSetup(line)");
+    expect(link).not.toMatch(/once you set up payouts in Settings\||>Check your payouts<|>Set up payouts</);
+    const line = readSource("src/components/declutter/declutterPayoutWords.ts");
+    expect(line).not.toMatch(/`\$\{gets\}[,. ]+[A-Za-z]/);
+    expect(readSource("src/lib/declutter/payoutWords.ts")).not.toMatch(/"Nothing to pay out|you owed`|refund`/);
+    expect(readSource("src/lib/declutter/timeLeft.ts")).not.toContain('toLocaleDateString("en-US"');
+    const es = readSource("src/lib/i18n/esDeclPayout.ts");
+    expect(es).toContain('"dpo.setUp": "Configurar pagos"');
+    expect(es).toContain('"dpo.onceSetup": "{gets} cuando configure los pagos en Ajustes."');
+    expect(readSource("src/lib/i18n/es.ts")).toContain("...esDeclPayout,");
+    expect(readSource("src/lib/i18n/en.ts")).toContain("...enDeclPayout,");
+  });
 });

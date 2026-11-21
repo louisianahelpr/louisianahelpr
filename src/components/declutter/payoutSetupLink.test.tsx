@@ -1,7 +1,7 @@
 /**
  * Area 06 H2 (11-18): "You get $40 once you set up payouts in Settings." had no way to the payout settings.
  *
- * @mutate src/components/declutter/FailedPayoutLink.tsx |   if (paused \|\| !/(once you set up payouts in Settings\|once your payout account is ready)\.$/.test(line)) return null; |   return null;
+ * @mutate src/components/declutter/FailedPayoutLink.tsx |   if (paused \|\| !payoutLineWaitsOnSetup(line)) return null; |   return null;
  * @mutate src/components/declutter/FailedPayoutLink.tsx |   return <>{line}<PayoutSetupLink line={line} /></>; |   return <>{line}</>;
  */
 import { describe, expect, it, vi } from "vitest";

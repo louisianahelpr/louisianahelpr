@@ -11,7 +11,7 @@
  * src/test/pglite/guestsReadMaskedJobText.pglite.mjs runs the masks themselves.
  *
  * @mutate supabase/migrations/20261115073802_public_profile_hides_items_and_wanted_across_block.sql | 'title', CASE WHEN (SELECT auth.uid()) IS NULL THEN public.mask_guest_contact(j.title) ELSE j.title END, | 'title', j.title,
- * @mutate supabase/migrations/20261114234033_guests_read_masked_job_text.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN public.mask_guest_contact(materials_note) ELSE materials_note END AS materials_note, |     materials_note,
+ * @mutate supabase/migrations/20261120221545_browse_and_detail_change_address_after_accept.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN public.mask_guest_contact(materials_note) ELSE materials_note END AS materials_note, |     materials_note,
  * @mutate supabase/migrations/20261114234033_guests_read_masked_job_text.sql |           '[email hidden]', 'g'), |           '', 'g'),
  */
 import { readdirSync, readFileSync } from "node:fs";

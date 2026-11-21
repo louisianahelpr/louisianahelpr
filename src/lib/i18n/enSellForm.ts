@@ -18,7 +18,7 @@ export const enSellForm = {
   "sf.startFree": "Start a free listing",
   "sf.continueDraft": "Continue my draft",
   "sf.showItOff": "Show it off",
-  "sf.photosSubOne": "Add at least 1 photo, up to {max}. We write the listing from them.",
+  "sf.photosSubOne": "Add 1 to 3 photos (up to {max}). We write the listing from them.",
   "sf.photosSub": "Add at least {n} photos, up to {max}. We write the listing from them.",
   "sf.addPhotoOne": "Add at least 1 photo.",
   "sf.addPhotos": "Add at least {n} photos.",
@@ -145,6 +145,20 @@ export const enSellForm = {
   "sf.t.checking": "Listed. We're checking it first; answer their Wanted from Wanted near you once it's live.",
   "sf.t.freeNoWanted": "Listed for free. A free listing can't answer a Wanted; they can find it in Browse.",
   "sf.t.answerFailed": "Listed, but the answer wasn't sent: {why}",
+  // Ease batch (owner-approved 11-20): a first sale's pickup on the one screen (FirstSalePickup.tsx), and the way out to
+  // the other ways to sell.
+  "sf.fs.head": "Pickup",
+  "sf.fs.address": "Pickup address",
+  "sf.fs.times": "Buyers can come:",
+  "sf.fs.change": "Change",
+  "sf.fs.done": "Done",
+  "sf.fs.defaults": "We set the rest for you: porch pickup, the price lowers 5% each evening down to half your asking price, offers on, trades off. Change it any time in Declutter settings.",
+  "sf.fs.notFound": "We couldn't find that address. Check the street, city and ZIP.",
+  "sf.fs.saving": "Saving your pickup…",
+  "sf.fs.loadFailed": "We couldn't load your selling settings.",
+  "sf.fs.loadFailedBody": "Check your connection and try again.",
+  "sf.moreWays": "Several things, or giving it away? More ways to sell",
+  "sf.continueBunch": "Continue your Sell a bunch items",
 } as const;
 
 addEnglish(enSellForm);

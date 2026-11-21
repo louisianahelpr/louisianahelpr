@@ -223,7 +223,9 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
   useEffect(() => {
     if (!authReady) return;
     void Promise.resolve({ data: { user: authUser } }).then(({ data: { user } }) => {
-      if (!user) return;
+      // Owner 11-20 (ease batch): a guest can start a post before signing up. A guest has no open jobs, so the
+      // entry column (which waits on this count) paints instead of holding its skeleton.
+      if (!user) { setOpenJobCount(0); return; }
       supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
@@ -601,4 +603,9 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
       document.removeEventListener("visibilitychange", onHide);
     };
   }, [autoSave, flushDraft]);
+
+  // Owner 11-20 (ease batch): a guest's "Sign up to post" writes the draft to the device at once (the same two
+  // steps as the teardown above), so it is there when the guest comes back signed in.
+  const saveDraftNow = useCallback(() => { autoSave(); flushDraft(); }, [autoSave, flushDraft]);
+  return { saveDraftNow };
 }

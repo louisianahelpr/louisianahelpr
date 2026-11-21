@@ -14,7 +14,7 @@
  *      account arrives on /post-job, not on /home.
  *
  * @mutate src/components/landing/HowItWorksSection.tsx | export const POST_JOB_SIGNED_OUT = signupUrlFor(POST_JOB_PATH); | export const POST_JOB_SIGNED_OUT = "/signup";
- * @mutate src/components/landing/HowItWorksSection.tsx |   hire: { label: "Post a job", signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job" }, |   hire: { label: "Post a job", signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job-x" },
+ * @mutate src/components/landing/HowItWorksSection.tsx | signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job" }, | signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job-x" },
  * @mutate src/components/landing/HowItWorksSection.tsx |                 void goSignedInOr(navigate, action.signedIn, action.signedOut); |                 void goSignedInOr(navigate, "/home", action.signedOut);
  * @mutate src/components/landing/HowItWorksSection.tsx |               to={action.signedOut} |               to={action.signedIn}
  */
@@ -72,7 +72,7 @@ describe("signed-out home: Post a job", () => {
     const src = blankComments(readFileSync(join(process.cwd(), "src/components/landing/HowItWorksSection.tsx"), "utf8"));
     // D012/D020 (11-10): each side's one action comes from SIDE_ACTION; the I need help side's is Post a job.
     expect(src).toMatch(/goSignedInOr\(navigate, action\.signedIn, action\.signedOut\)/);
-    expect(src).toMatch(/hire: \{ label: "Post a job", signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH,/);
+    expect(src).toMatch(/hire: \{ label: "Post a job", key: "landing.postJob", signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH,/);
     expect(POST_JOB_PATH).toBe("/post-job");
   });
 

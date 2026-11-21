@@ -15,6 +15,7 @@ import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/queryKeys";
 import { ARCHIVE_CHANGED_EVENT, isArchived } from "@/lib/archivedConversations";
+import { CLEARED_CHANGED_EVENT, clearedBefore } from "@/lib/clearedConversations";
 import {
   deriveJobSystemEvents,
   deriveMoneyEvents,
@@ -49,9 +50,11 @@ const NO_CONVERSATIONS: Conversation[] = [];
 function threadRows(uid: string, convo: Pick<Conversation, "jobId" | "otherUserId">) {
   const base = supabase.from("messages").select("*");
   const teamUser = teamUserIdFromKey(convo.jobId);
-  return teamUser !== null
-    ? base.is("job_id", null).eq("team_thread_user_id", teamUser)
-    : base.eq("job_id", convo.jobId).or(threadPairFilter(uid, convo.otherUserId));
+  if (teamUser !== null) return base.is("job_id", null).eq("team_thread_user_id", teamUser);
+  const pair = base.eq("job_id", convo.jobId).or(threadPairFilter(uid, convo.otherUserId));
+  // "Delete for me" (20261120201223): only what came after the member cleared this thread.
+  const cleared = clearedBefore(uid, convo.jobId, convo.otherUserId);
+  return cleared ? pair.gt("created_at", cleared) : pair;
 }
 
 /** The notification link fragment that names this thread (for clearing it). */
@@ -228,6 +231,18 @@ export function useMessagesData({
     window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
     return () => window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
   }, []);
+
+  // "Delete for me" changes which messages a thread holds (its preview, its
+  // unread count, whether it exists at all), which only the loader's grouping
+  // applies (groupThreads). Refetch the inbox when the cleared set changes.
+  useEffect(() => {
+    if (!resolvedUserId) return;
+    const onClearedChanged = () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.messages.conversations(resolvedUserId) });
+    };
+    window.addEventListener(CLEARED_CHANGED_EVENT, onClearedChanged);
+    return () => window.removeEventListener(CLEARED_CHANGED_EVENT, onClearedChanged);
+  }, [queryClient, resolvedUserId]);
 
   // Drop locally-archived threads from the inbox. A thread auto-resurfaces
   // once a message newer than the archive moment arrives, so `isArchived`

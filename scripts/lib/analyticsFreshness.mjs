@@ -159,6 +159,10 @@ export const MISSING_MILESTONES = {
  * Held equal to the source both ways by the guard.
  */
 export const NOT_MONITORED = {
+  // Ease batch (owner 2026-11-20): first-run intent picker and the guest post-a-job sign-up hand-off. Funnel counts read
+  // by hand; the outcomes are the jobs a new member posts and the accounts created, which have their own key events.
+  first_run_intent: "usage count of the first-run picker's choice (post, work, sell, browse), read by hand; quiet days are normal",
+  post_job_guest_signup: "funnel count of a guest's draft job asking for sign-up and resuming after it, read by hand; the outcome is job_posted",
   // Gift guides wish list (owner 2026-11-20, UX audit L7): usage counts read by hand; the outcome is gift_wish_lists rows.
   // Gift guides fun features (owner 2026-11-20, UX audit L12): usage counts read by hand; quiet days are normal.
   secret_santa_drawn: "usage count of Secret Santa groups drawn (size, pairs), read by hand; the outcome is secret_santa_groups rows",

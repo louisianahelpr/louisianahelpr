@@ -14,7 +14,11 @@ import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { peekJobIntent, peekSignupRedirectItem, postAuthDestination } from "@/lib/jobIntent";
 import { report } from "@/lib/errorLogger";
+import { clearPendingSignup } from "@/lib/pendingSignup";
+import "@/lib/i18n/enVerify";
+import { useLanguage } from "@/lib/i18n/language";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { useAgeGate } from "@/hooks/useAgeGate";
 import { Button } from "@/components/ui/button";
 import { ConfirmLinkPanel } from "./signupPending/ConfirmLinkPanel";
 import { confirmLinkItem, confirmLinkJob, readConfirmLink } from "../../../supabase/functions/_shared/confirmLink";
@@ -47,6 +51,9 @@ const SignupPending = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const { t: tv } = useLanguage();
+  // Q1586(c): Start a post opens /post-job (a pending member with a saved birthday under 18 gets the line instead).
+  const { underAge: ageUnder, explain: explainAge, gatedProps: ageGatedProps } = useAgeGate();
   // The address arrives in router state (Signup does navigate(..., { state }))
   // which lives in the history entry and is LOST on reload — and "keep this
   // page open" makes reloading a very natural thing to do while waiting. Mirror
@@ -108,6 +115,8 @@ const SignupPending = () => {
         setPrefillEmail((cur) => (cur === sessionEmail ? cur : sessionEmail));
       }
       if (sessionUser?.email_confirmed_at) {
+        // Owner 11-20: the sign-up is verified, so /signup no longer says "Check your email to finish" (safeStorage never throws).
+        clearPendingSignup();
         try {
           sessionStorage.removeItem(PENDING_EMAIL_KEY);
         } catch {
@@ -213,6 +222,17 @@ const SignupPending = () => {
     setResendCooldown(RESEND_COOLDOWN_S);
   };
 
+  // Owner 11-20 (ease batch): /signup's "Check your email to finish" card (PendingSignupCard) comes here with
+  // `resend` set, so its "Send a new link" sends one (once per arrival; the security check runs as for a tap).
+  const resendAsked = (location.state as { resend?: boolean } | null)?.resend === true;
+  const resendOnArrival = useRef(false);
+  useEffect(() => {
+    if (!resendAsked || resendOnArrival.current || !prefillEmail) return;
+    resendOnArrival.current = true;
+    void handleResend();
+    // handleResend reads the latest state when it runs; this fires once per arrival.
+  }, [resendAsked, prefillEmail]);
+
   // Numbered rather than icon-only: the three cards are a SEQUENCE (verify →
   // sign-in → start), and three unrelated glyphs (envelope, arrow, sparkles)
   // didn't read as an order at a glance. The numeral replaces the icon in the
@@ -251,7 +271,7 @@ const SignupPending = () => {
             token={confirmLink.kind === "token" ? { tokenHash: confirmLink.tokenHash, type: confirmLink.type } : null}
             email={prefillEmail}
             setEmail={setPrefillEmail}
-            onConfirmed={() => navigate(postAuthDestination("/home", confirmLinkJob(location.search), confirmLinkItem(location.search)), { replace: true })}
+            onConfirmed={() => { clearPendingSignup(); navigate(postAuthDestination("/home", confirmLinkJob(location.search), confirmLinkItem(location.search)), { replace: true }); }}
             onResend={handleResend}
             resending={resending}
             resendCooldown={resendCooldown}
@@ -344,6 +364,15 @@ const SignupPending = () => {
             </div>
           </div>
         </div>
+
+        {/* Owner 11-20 (ease batch, item 6): nothing waits on the email but the final step. Browse, or start a post;
+            posting live, messaging and paying say "Check your email to finish" (PendingSignupCard on /signup). */}
+        <nav aria-label={tv("verify.whileWait")} className="border-t pt-4 space-y-2" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }} data-testid="pending-while-you-wait">
+          <p className="text-ds-13 font-sans font-semibold text-center" style={{ color: "hsl(var(--ink-deep))" }}>{tv("verify.whileWait")}</p>
+          <Button asChild variant="outline" className="w-full"><Link to="/browse">{tv("verify.browseJobs")}</Link></Button>
+          <Button asChild variant="outline" className="w-full"><Link to="/post-job" onClick={(e) => { if (ageUnder) { e.preventDefault(); explainAge("post"); } }} {...ageGatedProps("post")}>{tv("verify.startPost")}</Link></Button>
+          <Button asChild variant="outline" className="w-full"><Link to="/declutter">{tv("verify.browseDeclutter")}</Link></Button>
+        </nav>
 
         {/* The escape hatches (resend, start over, log in), stacked and
             centred: the card is /login's 384px column now, too narrow to

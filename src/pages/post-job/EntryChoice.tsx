@@ -448,9 +448,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           form.setEntryPanel("templates");
         })}
         {/* 3 — OFFER TO A SAVED HELPR */}
-        {entryLink("offer", START_ICON.offer, t("postJob.hireSaved"), () => form.setEntryPanel("offer"))}
+        {/* Owner 11-20: a guest starting a post has no saved Helprs and no AI builder (both read the account). */}
+        {!form.isGuest && entryLink("offer", START_ICON.offer, t("postJob.hireSaved"), () => form.setEntryPanel("offer"))}
         {/* 4 — AI JOB BUILDER */}
-        {entryLink("ai", START_ICON.ai, t("postJob.describeAi"), () => form.setEntryPanel("ai"))}
+        {!form.isGuest && entryLink("ai", START_ICON.ai, t("postJob.describeAi"), () => form.setEntryPanel("ai"))}
         {/* 6 — REPOST A RECENT TASK */}
         {hasRecent && entryLink("repost", START_ICON.repost, t("postJob.repost"), () => {
           track("post_job_entry_choice", { choice: "repost_open" });

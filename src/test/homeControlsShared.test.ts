@@ -6,7 +6,7 @@
  *     grey tint on hover (they had none).
  * The other three Home controls stay as they are (owner + lead: pager dots, Coming-up rows, checklist steps).
  *
- * @mutate src/pages/home/HomeDashboard.tsx | variant="link"\n                          size="sm"\n                          data-testid="next-up-see-all" | variant="ghost"\n                          size="sm"\n                          data-testid="next-up-see-all"
+ * @mutate src/pages/home/homeDashboard/homeFirstExtras.tsx | variant="link"\n          size="sm"\n          data-testid="next-up-see-all" | variant="ghost"\n          size="sm"\n          data-testid="next-up-see-all"
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | <ListRow key={j.id} title={j.title} | <button type="button" key={j.id} title={j.title}
  */
 import { describe, expect, it } from "vitest";
@@ -29,11 +29,12 @@ function elementWith(src: string, marker: string, tag: string): string {
 
 describe("Home's See all and Jobs near you rows use the shared controls (owner 11-06)", () => {
   it('"See all (n)" is the shared link Button', () => {
-    const src = read("pages/home/HomeDashboard.tsx");
+    // Owner polish 11-20: the Needs you list (and its See all) lives in homeFirstExtras.tsx (its own chunk).
+    const src = read("pages/home/homeDashboard/homeFirstExtras.tsx");
     const el = elementWith(src, 'data-testid="next-up-see-all"', "Button");
     expect(el).toMatch(/variant="link"/);
     expect(el).toMatch(/size="sm"/);
-    expect(el).toContain('t("home.seeAll", { n: todoCount })');
+    expect(el).toContain('t("home.seeAll", { n: total })');
     expect(src).toMatch(/import \{ Button \} from "@\/components\/ui\/button";/);
   });
 

@@ -137,7 +137,9 @@ export async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party
   if (own) return { job: toRow(own), party: true };
   const browse = unwrap<Record<string, unknown> | null>(
     // readJobsAheadOfDb: BASE_COLUMNS names helper_fee_percent, which the view gains in 20261025235701 (Q2400).
-    await readJobsAheadOfDb(`${BASE_COLUMNS}, expires_at`, (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id).maybeSingle<Record<string, unknown>>(), { browseView: true }),
+    // direct_offer_status (owner 11-20 review): the view admits a pending offeree, so the page must see "pending" here to
+    // offer Accept / Decline; the fallback below is not reached for a funded offer.
+    await readJobsAheadOfDb(`${BASE_COLUMNS}, expires_at, direct_offer_status`, (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id).maybeSingle<Record<string, unknown>>(), { browseView: true }),
   );
   if (browse && !(typeof browse.expires_at === "string" && new Date(browse.expires_at) <= new Date())) {
     return { job: toRow(browse), party: false };
@@ -153,6 +155,15 @@ export async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party
     // Q2595: the two columns that tell an expired listing from a cancelled one (isExpiredListing), already in the RPC's
     // row: an applicant of a listing that expired reads "expired before anyone was hired", never "cancelled".
     return { job: toRow({ ...safe, helper_id: applied.helper_id ?? null, helper_confirmed_at: applied.helper_confirmed_at ?? null, cancelled_by: applied.cancelled_by ?? null, cancellation_reason: applied.cancellation_reason ?? null, location: null }), party: false };
+  }
+  // A Helpr with a PENDING direct offer (owner 2026-11-20, 20261120205350): jobs no longer hands them the row (the street
+  // address waits until they accept), so the page reads the masked offer, as the Working card does: the town, never the
+  // street. direct_offer_status stays 'pending' so the page offers Accept / Decline (useOfferedToMe).
+  const offers = unwrap(await supabase.rpc("get_my_pending_direct_offers").eq("id", id)) as Record<string, unknown>[] | null;
+  const offered = (offers ?? []).find((r) => r.id === id);
+  if (offered) {
+    const safe = Object.fromEntries(BASE_COLUMNS.split(",").map((c) => c.trim()).filter((c) => c !== "location").map((c) => [c, offered[c]]));
+    return { job: toRow({ ...safe, direct_offer_status: "pending", helper_id: null, helper_confirmed_at: null, location: typeof offered.location === "string" ? offered.location : null }), party: false };
   }
   return null;
 }

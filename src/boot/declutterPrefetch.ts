@@ -35,7 +35,6 @@ export const FIRST_SCREEN_SWITCH_KEYS = [
   "jobs_poster_fee",
   "applicant_proof",
   "job_reach",
-  "price_guidance",
   "declutter_seller_delivery",
   "come_back_emails",
   "refund_requests",

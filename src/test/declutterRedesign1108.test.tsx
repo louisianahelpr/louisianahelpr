@@ -24,15 +24,14 @@ const item = (extra: Record<string, unknown> = {}) => ({
 }) as never;
 
 describe("owner picks 11-08: Declutter redesign", () => {
-  it("a card that takes trades wears a 'Trades OK' photo tag in the same style as 'Porch pickup'; one that doesn't, none", () => {
-    // Post-merge check 11-20 #11: the photo wears ONE tag, so the trades card has no porch pickup and the porch card is
-    // a second render; the two tags still share the one style.
-    const on = render(<MemoryRouter><ItemCard item={item({ accepts_trades: true, porch_ok: false })} miles={2} approximate={false} /></MemoryRouter>);
+  it("a card that takes trades wears a 'Trades OK' photo tag; one that doesn't, none", () => {
+    // Owner 11-20 (site polish A2): porch pickup is the default way and wears no tag, so a porch card that takes
+    // trades still shows "Trades OK", and a plain porch card shows nothing over its photo.
+    const on = render(<MemoryRouter><ItemCard item={item({ accepts_trades: true })} miles={2} approximate={false} /></MemoryRouter>);
     const trades = on.container.querySelector("[data-photo-tags] [data-card-trades]")!;
     const porchCard = render(<MemoryRouter><ItemCard item={item()} miles={2} approximate={false} /></MemoryRouter>);
-    const porch = porchCard.container.querySelector("[data-photo-tags] [data-card-porch]")!;
+    expect(porchCard.container.querySelector("[data-photo-tags]")).toBeNull();
     expect(trades.textContent).toBe("Trades OK");
-    expect(trades.className).toBe(porch.className);
     on.unmount();
     porchCard.unmount();
     const off = render(<MemoryRouter><ItemCard item={item()} miles={2} approximate={false} /></MemoryRouter>);

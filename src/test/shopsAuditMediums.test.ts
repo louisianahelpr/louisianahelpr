@@ -25,8 +25,7 @@
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |     WHEN p_type = 'new_offers' AND p_title IN ('Answer the new order', 'Order drops soon') THEN 'needs_you' |     WHEN false THEN 'needs_you'
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | n.type IN ('declutter_offers', 'declutter_refunds', 'new_offers') THEN | n.type IN ('declutter_offers', 'declutter_refunds') THEN
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | WHERE so.id = s.ref_id AND so.status = 'held' AND so.accept_by = s.deadline | WHERE so.id = s.ref_id AND so.accept_by = s.deadline
- * @mutate supabase/migrations/20261112093000_shops_setup_fee_notice_exact.sql |     v_setup_fee := COALESCE(public.declutter_setup_fee_from_payout_cents(o.seller_id), 0); |     v_setup_fee := 0;
- * @mutate supabase/migrations/20261112093000_shops_setup_fee_notice_exact.sql |       WHEN public.payout_waits_on_identity(o.seller_id) THEN |       WHEN false THEN
+ * @mutate supabase/migrations/20261120203904_shops_no_id_check.sql |     v_setup_fee := COALESCE(public.declutter_setup_fee_from_payout_cents(o.seller_id), 0); |     v_setup_fee := 0;
  * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql | (l.kind = 'service' OR COALESCE(l.at_buyer, false)) | (l.kind = 'service')
  * @mutate supabase/migrations/20261118060158_shops_refund_tax_on_taxed_base.sql | CASE WHEN o.policy IN ('full_shop_pays_fee', 'full_platform_absorbs') THEN o.setup_fee ELSE 0 END | o.setup_fee
  * @mutate supabase/migrations/20261118060158_shops_refund_tax_on_taxed_base.sql | CASE WHEN so.setup_fee_state = 'claimed' THEN so.setup_fee_cents ELSE 0 END | so.setup_fee_cents
@@ -96,11 +95,11 @@ describe("Shops audit 11-12 Mediums", () => {
     expect(claim).toContain("n.type IN ('declutter_offers', 'declutter_refunds', 'new_offers') THEN");
     expect(claim).toContain("WHEN 'shop_order' THEN EXISTS ( SELECT 1 FROM public.shop_orders so WHERE so.id = s.ref_id AND so.status = 'held' AND so.accept_by = s.deadline AND so.seller_id = s.user_id)");
   });
-  it("S011: the payout notice names what is really sent, and the ID wait", () => {
+  it("S011: the payout notice names what is really sent (no ID wait for Shops since 20261120203904)", () => {
     const b = body("shop_complete_handover");
     expect(b).toContain("v_setup_fee := COALESCE(public.declutter_setup_fee_from_payout_cents(o.seller_id), 0);");
     expect(b).toContain("IF v_setup_fee <= 0 OR v_send - v_setup_fee < 100");
-    expect(b).toContain("WHEN public.payout_waits_on_identity(o.seller_id) THEN format('Verify your ID in Settings to get your $%s.");
+    expect(b).not.toContain("payout_waits_on_identity");
     expect(b).not.toContain("format('$%s is on its way to your payout account ($%s card cost you owed was taken out).'");
   });
   it("S017: notices say done for a service and delivered for a delivery", () => {

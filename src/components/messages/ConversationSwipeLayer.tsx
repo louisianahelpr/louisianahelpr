@@ -1,11 +1,16 @@
-import type { ReactNode, Ref } from "react";
+import { useState, type ReactNode, type Ref } from "react";
 import { motion, useMotionValue, useTransform, animate, useReducedMotion, type PanInfo } from "framer-motion";
-import { Pin, PinOff, Archive } from "lucide-react";
+import { Pin, PinOff, Archive, Trash2 } from "lucide-react";
 import { hapticHeavy, hapticLight } from "@/lib/haptics";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
+import { Button } from "@/components/ui/button";
 
 // Pull distance at which an action fires. Past the threshold the row
 // snaps back; the action is committed without the row sticking open.
 const SWIPE_THRESHOLD = 90;
+/** How far a left swipe parks the row open over its Archive / Delete actions (two 84px buttons). */
+const SWIPE_REVEAL_PX = 168;
 
 /**
  * The swipe gesture of a SwipeableConversationRow: the archive and pin trails
@@ -14,25 +19,38 @@ const SWIPE_THRESHOLD = 90;
  * settled or on the first touch of a row, so /messages draws its first frame
  * without the framer chunk (Q1299; the same split as SwipeMotionLayer, Q1172).
  * SwipeableConversationRow.tsx explains how the row's content survives the swap.
+ *
+ * LEFT SWIPE REVEALS TWO ACTIONS (owner-approved polish 2026-11-20): with
+ * `onDeleteForMe` given, a left swipe past the threshold parks the row open
+ * over Archive and Delete for me, the iOS Mail shape; a tap on either runs it
+ * (each opens the page's confirm), a tap on the row or a swipe back closes it.
+ * Without `onDeleteForMe` the old one-gesture archive stays. Right swipe still
+ * toggles pin.
  */
 export default function ConversationSwipeLayer({
   surfaceRef,
   isPinned,
   onArchive,
+  onDeleteForMe,
   onTogglePin,
   onDragStart,
   onDragEnd,
+  onRevealChange,
 }: {
   /** Attaches the row content to the draggable surface. */
   surfaceRef: Ref<HTMLDivElement>;
   isPinned: boolean;
   onArchive: () => void;
+  onDeleteForMe?: () => void;
   onTogglePin?: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
+  /** True while the row is parked open over its actions (taps on the row content are blocked then). */
+  onRevealChange?: (open: boolean) => void;
 }): ReactNode {
   const reducedMotion = useReducedMotion();
   const x = useMotionValue(0);
+  const [revealed, setRevealed] = useState(false);
   // Archive trail (left swipe → negative x): sienna gradient
   const archiveOpacity = useTransform(x, [-160, -40, 0], [1, 0.55, 0]);
   const archiveScale = useTransform(x, [-160, -80, 0], [1.15, 0.85, 0.5]);
@@ -41,8 +59,30 @@ export default function ConversationSwipeLayer({
   const pinOpacity = useTransform(x, [0, 40, 160], [0, 0.55, 1]);
   const pinScale = useTransform(x, [0, 80, 160], [0.5, 0.85, 1.15]);
 
+  const snapTo = (to: number) => {
+    if (reducedMotion) x.set(to);
+    else animate(x, to, { type: "spring", stiffness: 500, damping: 35 });
+  };
+  const setOpen = (open: boolean) => {
+    setRevealed(open);
+    onRevealChange?.(open);
+    snapTo(open ? -SWIPE_REVEAL_PX : 0);
+  };
+
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     const offset = info.offset.x;
+    if (revealed) {
+      // Parked open: a swipe back (or a small nudge right) closes; anything else stays open.
+      setOpen(offset < SWIPE_THRESHOLD / 3 && offset <= 0);
+      onDragEnd();
+      return;
+    }
+    if (offset < -SWIPE_THRESHOLD && onDeleteForMe) {
+      hapticLight();
+      setOpen(true);
+      onDragEnd();
+      return;
+    }
     if (offset < -SWIPE_THRESHOLD) {
       hapticHeavy();
       onArchive();
@@ -53,13 +93,50 @@ export default function ConversationSwipeLayer({
     // Always snap back — the callbacks own any "row removed" / "row
     // moved to top" reflow. Snap before the next paint so the trail
     // doesn't linger after the row reaches its commit position.
-    if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "spring", stiffness: 500, damping: 35 }); }
+    snapTo(0);
     onDragEnd();
+  };
+
+  const run = (action: () => void) => {
+    hapticHeavy();
+    setOpen(false);
+    action();
   };
 
   return (
     <>
-      {/* Archive trail (revealed by a left swipe). */}
+      {onDeleteForMe ? (
+        /* The two actions a left swipe parks the row over. Real buttons, reachable only while the row is open. */
+        <motion.div
+          data-swipe-actions=""
+          className="absolute inset-y-0 right-0 flex items-stretch gap-1 p-1"
+          style={{ opacity: archiveOpacity, width: SWIPE_REVEAL_PX }}
+          aria-hidden={!revealed}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            tabIndex={revealed ? 0 : -1}
+            onClick={() => run(onArchive)}
+            className="h-full flex-1 flex-col gap-1 px-1 text-ds-11 font-sans text-foreground"
+            style={{ background: "hsl(var(--olivewood) / 0.14)" }}
+          >
+            <Archive className="w-5 h-5" aria-hidden />
+            {t("msg.archive")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            tabIndex={revealed ? 0 : -1}
+            onClick={() => run(onDeleteForMe)}
+            className="h-full flex-1 flex-col gap-1 px-1 text-ds-11 font-sans text-destructive-foreground bg-destructive"
+          >
+            <Trash2 className="w-5 h-5" aria-hidden />
+            {t("msg.deleteForMe")}
+          </Button>
+        </motion.div>
+      ) : (
+      /* Archive trail (revealed by a left swipe). */
       <motion.div
         className="absolute inset-y-0 right-0 flex items-center justify-end pr-5 rounded-2xl"
         style={{ opacity: archiveOpacity }}
@@ -80,10 +157,11 @@ export default function ConversationSwipeLayer({
             className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--foreground))" }}
           >
-            Archive
+            {t("msg.archive")}
           </span>
         </motion.div>
       </motion.div>
+      )}
 
       {/* Pin trail (revealed by a right swipe). */}
       {onTogglePin && (
@@ -127,6 +205,9 @@ export default function ConversationSwipeLayer({
           onDragStart();
         }}
         onDragEnd={handleDragEnd}
+        // Parked open: a tap on the row closes it rather than opening the thread
+        // (the row content's own taps are blocked by SwipeableConversationRow meanwhile).
+        onClick={revealed ? () => setOpen(false) : undefined}
         className="relative z-10"
       />
     </>

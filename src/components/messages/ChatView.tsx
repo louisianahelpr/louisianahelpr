@@ -31,15 +31,18 @@ import { ApplicationNoteCard } from "./chatView/ApplicationNoteCard";
 import { buildTimeline, resolveLastOwnMessageId } from "./chatView/chatViewHelpers";
 import { CHAT_RULES_DISMISSED_KEY, readBannerDismissed } from "./chatView/chatRulesBanner";
 import { DealCard } from "./chatView/DealCard";
+import { ChatIntroLine } from "./chatView/ChatIntroLine";
 import { Textarea } from "@/components/ui/textarea";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /**
  * The reading column for the safety banner and the message scroller, NOT the composer's (VN-25, owner 09-14). Owner
- * 11-01 (B107, ~1900px: "narrow column, big empty sides"): from lg it is the pane's whole width; the bubbles cap
- * themselves (MessageBubble: 65% of the pane, theirs left, mine right). Phone unchanged (780px, centred).
+ * 11-01 (B107, ~1900px: "narrow column, big empty sides") made it the pane's whole width from lg; owner-approved polish
+ * 2026-11-20 caps it at 720px, centred in its pane, so a wide desktop pane reads as bubbles rather than two far-apart
+ * edges (the composer dock still spans the pane). Unprefixed, so it is a reading measure rather than a desktop page
+ * measure (onePageColumn); a phone is narrower than 720px, so nothing changes there.
  */
-const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto lg:max-w-none";
+const CHAT_READING_COLUMN = "w-full max-w-[720px] mx-auto";
 
 /**
  * ChatView — the active-conversation surface of the Messages page: the chat
@@ -304,12 +307,12 @@ export function ChatView({
           // only the composer dock is uncapped: the column itself fills the
           // pane (and the dock still bleeds to the pane edges via
           // `--chat-gutter`, ChatPaneShell), while the message scroller below
-          // keeps the 780px centred reading column via CHAT_READING_COLUMN
+          // keeps the 720px centred reading column via CHAT_READING_COLUMN
           // (the safety banner does not: it spans the column, see below).
           // The pane (embedded) or the standalone
           // page container can be far wider than a comfortable reading
           // column, and bubbles spread across it read as sparse/oversized.
-          // Phone is unaffected — nothing there is ever wider than 780.
+          // Phone is unaffected — nothing there is ever wider than 720.
           className="flex flex-col flex-1 min-h-0 w-full transition-[padding] duration-150"
           // Only pad for the keyboard here. The sticky composer already adds
           // its own safe-area-inset-bottom — padding it on the wrapper too
@@ -380,18 +383,18 @@ export function ChatView({
               compiled, rendered, and did nothing. `overflow-x-clip` keeps the
               revealed time column from widening the page while the rows are
               translated left. */}
-          {/* `mt-auto` / `my-auto` anchor the timeline to the BOTTOM of the
-              scroller (or centre it while the thread is empty) instead of the
-              top. A three-message thread used to sit pinned under the header
-              with a ~400px void between the last bubble and the composer,
-              which is what made the dock read as a panel floating in dead
-              space. Auto margins collapse to 0 the moment the content is
-              taller than the scroller, so a real thread scrolls exactly as
-              before. */}
+          {/* TOP-ANCHORED, under the intro line (owner-approved polish 2026-11-20). From VN-25 until then a
+              short thread was bottom-anchored (`mt-auto`), which left a big blank band ABOVE a three-message
+              thread on a tall desktop pane; it now starts near the top, opened by "Conversation with … ·
+              started …". `my-auto` still centres an EMPTY thread's hello state. */}
           <div
             {...revealHandlers}
-            className={`overflow-x-clip ${timeline.length === 0 ? "my-auto" : "mt-auto"}`}
+            className={`overflow-x-clip ${timeline.length === 0 ? "my-auto" : ""}`}
           >
+          {/* The intro line, first in the thread once its first message is loaded (owner-approved polish 2026-11-20). */}
+          {!hasMoreMessages && !chatLoading && !chatLoadError && messages.length > 0 && (
+            <ChatIntroLine name={activeConvo.otherUserName} firstAt={messages[0].created_at} />
+          )}
           {/* The applicant's full note heads the thread and scrolls with it (owner, 2026-10-12). */}
           <ApplicationNoteCard activeConvo={activeConvo} />
           <ChatTimeline

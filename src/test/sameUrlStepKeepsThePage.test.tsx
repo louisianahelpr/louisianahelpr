@@ -72,10 +72,14 @@ import { KEEP_PAGE } from "@/lib/keepPage";
 import Signup from "@/pages/auth/Signup";
 import { useGuestJobSheet } from "@/pages/home/useGuestJobSheet";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { clearPendingSignup, readPendingSignup } from "@/lib/pendingSignup";
 
 afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
+  // Owner 11-20 (ease batch, item 6): a finished sign-up is remembered on the device, and /signup then shows "Check your
+  // email to finish" instead of step 1. Each case here starts as a fresh visitor.
+  clearPendingSignup();
   h.signUps.length = 0;
 });
 
@@ -124,6 +128,7 @@ describe("sign-up's step 2 keeps step 1's fields inside the real route wrapper",
     fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
     await waitFor(() => expect(h.signUps).toHaveLength(1), { timeout: 4000 });
     expect(h.signUps[0]).toEqual({ email: "remount.test@example.com", password: PASSWORD });
+    expect(readPendingSignup()?.email).toBe("remount.test@example.com");
   });
 
   it("Back restores step 1 with the password, Forward restores step 2, and a real navigation still starts fresh", async () => {

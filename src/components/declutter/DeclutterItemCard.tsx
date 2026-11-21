@@ -65,12 +65,12 @@ const TAG_WORDS: Record<CardTag, MsgKey> = { drop: "decl.card.drop", delivery: "
 /**
  * The ONE tag a card's photo wears (post-merge check 11-20 #11: "Yours", "Porch pickup", "Trades OK" and "In demand"
  * stacked over the photo). In order: your own listing; the card's one rule tag (new, may drop tonight, in demand, Helpr
- * delivery); porch pickup; trades. Guard: src/test/declutterCardOnePhotoTag.test.tsx.
+ * delivery); trades. Owner 11-20 (site polish A2): porch pickup is the default way, so it wears no tag; a tag says
+ * only what is different (Helpr delivery and the rest). Guard: src/test/declutterCardOnePhotoTag.test.tsx.
  */
-export function photoTagOf(item: Pick<DeclutterItem, "porch_ok" | "accepts_trades">, tag: CardTag | null | undefined, mine: boolean | undefined): "mine" | "rule" | "porch" | "trades" | null {
+export function photoTagOf(item: Pick<DeclutterItem, "accepts_trades">, tag: CardTag | null | undefined, mine: boolean | undefined): "mine" | "rule" | "trades" | null {
   if (mine) return "mine";
   if (tag) return "rule";
-  if (item.porch_ok) return "porch";
   return item.accepts_trades === true ? "trades" : null;
 }
 
@@ -166,7 +166,6 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
         {!noPhotoTags && photoTag && (
           <PhotoTagStack>
             {photoTag === "mine" && <PhotoTag data-card-mine="" tone="plain">{t("decl.card.yours")}</PhotoTag>}
-            {photoTag === "porch" && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>}
             {photoTag === "trades" && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>}
             {photoTag === "rule" && tag && (
               <PhotoTag data-card-tag={tag} tone={tag === "delivery" ? "plain" : "deal"} title={tag === "new" ? t("decl.card.newTitle") : t(TAG_WORDS[tag])}>
@@ -180,8 +179,8 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
           price (with "$X incl. fee" beside it, the 11-07 rule). "Condition · distance" shows from lg only (owner pick 4,
           11-08, still the desktop card). Porch pickup stays a photo tag at every width. */}
       <span className="block min-w-0 px-0.5 pt-2">
-        {/* Owner 11-20 #7: the title shows in smart title case (display only). */}
-        <span data-card-title className="block truncate text-ds-13 font-semibold leading-snug" title={displayTitle(item.title)}>{displayTitle(item.title)}</span>
+        {/* Owner 11-20 #7: the title shows in smart title case (display only). Site polish A5: two lines, then an ellipsis. */}
+        <span data-card-title className="line-clamp-2 break-words text-ds-13 font-semibold leading-snug" title={displayTitle(item.title)}>{displayTitle(item.title)}</span>
         {(condition || away) && (
           // "Like new · 16 mi" on ONE line. #45 (deep audit 2026-10-28): the distance always shows whole (it never
           // shrinks); the condition gives way first.

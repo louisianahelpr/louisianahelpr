@@ -1,8 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { HeaderSearchSlot } from "./headerSearchSlot";
 import AppShell from "@/components/AppShell";
-import { GuestPublicFrame } from "@/components/marketing/GuestPublicFrame";
+// Owner polish 11-20 (/home critical-path budget, Q178): the guest frame (PublicLayout, the public header and footer)
+// is only ever drawn for a signed-out visitor, so it loads on demand: every member screen built on SectionScreen
+// (Home first) no longer downloads the public header and footer it never shows.
+const GuestPublicFrame = lazy(() => import("@/components/marketing/GuestPublicFrame").then((m) => ({ default: m.GuestPublicFrame })));
 import { useGuestPublicFrame } from "@/hooks/useGuestPublicFrame";
 import { AppTopBar } from "./AppTopBar";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -37,8 +40,15 @@ export function SectionScreen({
   fab,
   showAdd = true,
   add,
+  homeLink,
   children,
 }: {
+  /**
+   * Owner 11-20 (site polish A1): a small "← Home" link above the section's heading (SectionHomeLink). Drawn only in
+   * a guest's public frame (a member's rail and bottom nav already carry Home). Declutter's guest Browse passes it.
+   * A node, not a flag, so its words and icon load with the page that draws it, never on /home (critical-path budget).
+   */
+  homeLink?: ReactNode;
   /** A section screen (not Home): draws the Explore header (chips row, tabs, search) above the scroll column. */
   section?: SectionKey;
   /** Omit on Home: the logo shows instead. */
@@ -91,6 +101,7 @@ export function SectionScreen({
         {section && (
           // py/gap = JobsSection's header stack (section-shell-alignment): the bar, 4px, the tabs, 4px, the search.
           <div data-explore-header="" className="explore-header page-measure w-full shrink-0 flex flex-col gap-1">
+            {guestFrame && homeLink}
             <AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} add={add} />
             {tabs}
             {globalSearch && <ExploreSearchEntry />}
@@ -110,6 +121,7 @@ export function SectionScreen({
   if (guestFrame) {
     return (
       <ScrollAwayScope>
+        <Suspense fallback={null}>
         <GuestPublicFrame>
           {/* The section's header stays put under the fixed public header while the window scrolls (owner 2026-10-30,
               e2e/a11y-prod/sectionTabsStayPut.spec.ts), on the page's own paper (bg-premium-page is fixed-attached,
@@ -123,6 +135,7 @@ export function SectionScreen({
           </div>
           <ScrollAwaySpacer />{content}
         </GuestPublicFrame>
+        </Suspense>
       </ScrollAwayScope>
     );
   }

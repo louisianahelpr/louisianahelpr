@@ -11,6 +11,7 @@ const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors"));
 import { awardBlockMessage, type AcceptMissing } from "@/lib/awardGate";
 import { isNotDeployedYet } from "@/lib/notDeployedYet";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { isPosterIdRefusal, openPosterIdCheckFor, posterIdAtOfferCopy } from "@/lib/posterIdAtOffer";
 
 /** A relation, column or RPC the database does not have yet: src/lib/notDeployedYet.ts. */
 export { isNotDeployedYet };
@@ -194,6 +195,13 @@ export async function giveUpSeriesDates(jobId: string, dates: string[]): Promise
 /** The poster offers the open dates to someone who applied. */
 export async function offerSeriesDates(jobId: string, helperId: string): Promise<{ openDates: number }> {
   const { data, error } = await supabase.rpc("offer_series_dates", { p_job_id: jobId, p_helper_id: helperId });
-  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("offer_series_dates", error) ?? null, isMissingRpcNamed(error, "offer_series_dates"));
+  if (error) {
+    // The poster's ID, asked at the offer (owner 2026-11-20, 20261120205350): open the one ID sheet, say why.
+    if (isPosterIdRefusal(error)) {
+      void openPosterIdCheckFor(error);
+      throw seriesRpcError(error, posterIdAtOfferCopy(), false);
+    }
+    throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("offer_series_dates", error) ?? null, isMissingRpcNamed(error, "offer_series_dates"));
+  }
   return { openDates: Number((data as { open_dates?: number } | null)?.open_dates ?? 0) };
 }

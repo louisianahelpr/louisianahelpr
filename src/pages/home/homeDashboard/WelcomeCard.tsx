@@ -16,7 +16,7 @@ import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import { ListRow } from "@/components/ui/ListRow";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { hapticMedium } from "@/lib/haptics";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_START_PATH } from "@/lib/declutter/sellChooser";
 import "@/lib/i18n/enNewMember";
 import { useLanguage } from "@/lib/i18n/language";
 
@@ -48,7 +48,7 @@ export function WelcomeCard({ sell }: { sell: boolean }) {
       <div className="grid grid-cols-2 gap-2">
         {tile("find", Search, t("home.wc.find"), t("home.wc.findMeta"), () => navigate("/jobs"))}
         {sell
-          ? tile("sell", Sofa, t("home.wc.sell"), t("home.wc.sellMeta"), () => navigate(SELL_CHOOSER_PATH))
+          ? tile("sell", Sofa, t("home.wc.sell"), t("home.wc.sellMeta"), () => navigate(SELL_START_PATH))
           : tile("post", Briefcase, t("home.wc.post"), t("home.wc.postMeta"), gate.gate("post", post))}
       </div>
       {sell && (

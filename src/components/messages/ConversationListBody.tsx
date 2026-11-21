@@ -23,6 +23,7 @@ import { OrderTalkLoadError, OrderTalkRow, type OrderTalkInbox } from "./Declutt
 import { inboxItemKey, mixInboxItems, visibleOrderTalks } from "./inboxItems";
 import { RestoreConversationButton } from "./RestoreConversationButton";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
+import { ConversationRowMenu } from "./ConversationRowMenu";
 import { HiddenUnreadBar } from "./HiddenUnreadBar";
 import { pinnedKey } from "@/lib/pinnedConversations";
 import type { Conversation } from "./types";
@@ -80,6 +81,7 @@ export interface ConversationListBodyProps {
   openConvo: (convo: Conversation) => void;
   toggleSelect: (c: Conversation) => void;
   handleArchive: (convo: Conversation) => void;
+  onDeleteForMe?: (convo: Conversation) => void; // "Delete for me" confirm: the desktop ⋯ menu and the phone swipe
   handleTogglePin: (convo: Conversation) => void;
   setShowAllConvos: Dispatch<SetStateAction<boolean>>;
   hasThreads: boolean;
@@ -132,6 +134,7 @@ export function ConversationListBody({
   openConvo,
   toggleSelect,
   handleArchive,
+  onDeleteForMe,
   handleTogglePin,
   setShowAllConvos,
   hasThreads,
@@ -464,7 +467,7 @@ export function ConversationListBody({
                       // selection. No-op on mobile (activeKey stays null).
                       const isActive = !!activeKey && activeKey === key;
                       const selected = selectedKeys.has(key);
-                      // Recently Deleted: Restore rides the row's `trailing` slot, in flow (Q1465).
+                      // Recently Deleted: Restore rides the row's `trailing` slot, in flow (Q1465). Desktop: the ⋯ menu there (phone: swipe).
                       const restore = isRecentlyDeletedView && userId ? <RestoreConversationButton convo={c} userId={userId} /> : undefined;
                       const row = (
                         <ConversationRow
@@ -476,7 +479,7 @@ export function ConversationListBody({
                           selected={selected}
                           onToggleSelect={() => toggleSelect(c)}
                           pinned={pinned}
-                          trailing={restore}
+                          trailing={restore ?? (isWebDesktop && !selectMode && !c.teamThread ? <ConversationRowMenu convo={c} onArchive={handleArchive} onDeleteForMe={onDeleteForMe} /> : undefined)}
                         />
                       );
                       // Swipe gestures (archive / pin) are inert in select mode, and meaningless in the Recently
@@ -490,6 +493,7 @@ export function ConversationListBody({
                         <SwipeableConversationRow
                           isPinned={pinned}
                           onArchive={() => handleArchive(c)}
+                          onDeleteForMe={onDeleteForMe ? () => onDeleteForMe(c) : undefined}
                           onTogglePin={c.otherUserId === null ? undefined : () => handleTogglePin(c)}
                         >
                           {row}

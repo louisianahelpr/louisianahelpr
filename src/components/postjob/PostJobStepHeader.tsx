@@ -1,6 +1,6 @@
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
-import { POST_JOB_SCREENS, POST_JOB_SCREEN_COUNT as POST_JOB_STEP_COUNT, screenNumber, type PostJobScreen } from "./postJobScreens";
+import { POST_JOB_STEPS, POST_JOB_SCREEN_COUNT as POST_JOB_STEP_COUNT, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 interface Props {
   /** Which screen this is; its number comes from POST_JOB_SCREENS (one source). */
@@ -20,7 +20,10 @@ interface Props {
  * progress bar with "n of 7", then the screen's question and one helper line.
  */
 export function PostJobStepHeader({ screen, question, helper, onPick, canPick }: Props) {
-  const step = screenNumber(screen);
+  // Owner 11-20: three steps; Review (the Post screen, step 4) shows the bar full with "Ready to post".
+  const rawStep = screenNumber(screen);
+  const ready = rawStep > POST_JOB_STEP_COUNT;
+  const step = Math.min(rawStep, POST_JOB_STEP_COUNT);
   // Post a job in Spanish (A3-3): re-renders when the language or its words arrive.
   const { t } = useLanguage();
   return (
@@ -33,16 +36,16 @@ export function PostJobStepHeader({ screen, question, helper, onPick, canPick }:
           aria-valuemin={1}
           aria-valuemax={POST_JOB_STEP_COUNT}
           aria-valuenow={step}
-          aria-valuetext={t("postJob.stepOfLong", { step, count: POST_JOB_STEP_COUNT })}
+          aria-valuetext={ready ? t("postJob.readyToPost") : t("postJob.stepOfLong", { step, count: POST_JOB_STEP_COUNT })}
           className="flex flex-1 gap-1.5"
         >
           {Array.from({ length: POST_JOB_STEP_COUNT }, (_, i) => {
             const seg = <span className={`block h-1 w-full rounded-full ${i < step ? "bg-primary" : "bg-border"}`} />;
-            const key = POST_JOB_SCREENS[i]?.key;
+            const key = POST_JOB_STEPS[i]?.first;
             // A step already passed is tappable on the phone too (owner 2026-10-25: "make the stepper
             // clickable to go back"), like the desktop rail. Back keeps what was typed. The button's 44px
             // height is the tap target; the visible segment stays the thin bar.
-            return i + 1 < step && key && onPick && (canPick?.(key) ?? true) ? (
+            return i + 1 < rawStep && key && onPick && (canPick?.(key) ?? true) ? (
               <button
                 key={i}
                 type="button"
@@ -62,7 +65,7 @@ export function PostJobStepHeader({ screen, question, helper, onPick, canPick }:
           })}
         </div>
         <span className="shrink-0 font-sans text-ds-13 font-semibold tabular-nums text-muted-foreground" aria-hidden>
-          {t("postJob.stepOf", { step, count: POST_JOB_STEP_COUNT })}
+          {ready ? t("postJob.readyShort") : t("postJob.stepOf", { step, count: POST_JOB_STEP_COUNT })}
         </span>
       </div>
       <div className="space-y-1.5">

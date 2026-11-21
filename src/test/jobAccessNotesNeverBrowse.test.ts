@@ -26,13 +26,14 @@
  * src/test/pglite/jobAccessNotes.pglite.mjs. Live: the
  * scripts/check-job-access-notes-live.mjs read of prod's catalog.
  *
- * @mutate supabase/migrations/20261114234033_guests_read_masked_job_text.sql |     date_window_end\n   FROM jobs |     date_window_end,\n    (SELECT n.notes FROM public.job_access_notes n WHERE n.job_id = jobs.id) AS access_notes\n   FROM jobs
+ * @mutate supabase/migrations/20261120221545_browse_and_detail_change_address_after_accept.sql |     date_window_end\n   FROM jobs |     date_window_end,\n    (SELECT n.notes FROM public.job_access_notes n WHERE n.job_id = jobs.id) AS access_notes\n   FROM jobs
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | CREATE POLICY "Poster and booked Helprs read access notes" ON public.job_access_notes\n  FOR SELECT TO authenticated | CREATE POLICY "Poster and booked Helprs read access notes" ON public.job_access_notes\n  FOR SELECT TO anon, authenticated
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |          OR public.can_read_job_access_notes(job_id)); |          OR true);
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO authenticated; | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO anon, authenticated;
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | ALTER TABLE public.job_access_notes ENABLE ROW LEVEL SECURITY; | SELECT 1;
- * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | OR j.recurring_helper_id = auth.uid()\n                     OR EXISTS (SELECT 1 FROM public.group_job_helpers g | OR j.recurring_helper_id = auth.uid()\n                     OR EXISTS (SELECT 1 FROM public.applications a WHERE a.job_id = _job_id AND a.helper_id = auth.uid())\n                     OR EXISTS (SELECT 1 FROM public.group_job_helpers g
- * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |             OR (j.status::text NOT IN ('completed', 'cancelled')\n                AND (j.helper_id | OR (true\n                AND (j.helper_id
+ * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql | OR j.recurring_helper_id = auth.uid()\n                     OR EXISTS (SELECT 1 FROM public.group_job_helpers g | OR j.recurring_helper_id = auth.uid()\n                     OR EXISTS (SELECT 1 FROM public.applications a WHERE a.job_id = _job_id AND a.helper_id = auth.uid())\n                     OR EXISTS (SELECT 1 FROM public.group_job_helpers g
+ * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql |             OR (j.status::text NOT IN ('completed', 'cancelled') |             OR (true
+ * @mutate supabase/migrations/20261120205350_poster_id_at_offer_not_post.sql |                 AND ((j.helper_id = auth.uid() AND j.helper_confirmed_at IS NOT NULL) |                 AND ((j.helper_id = auth.uid())
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |   USING (public.has_role((SELECT auth.uid()), 'admin'::public.app_role)); |   USING (true);
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |       CHECK (special_requirements IS NULL); |       CHECK (true);
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |   DELETE FROM public.job_access_notes n\n   WHERE n.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = p_user_id); |   PERFORM 1;
@@ -142,7 +143,9 @@ describe("Q1461: job_access_notes is the poster's and the booked Helpr's only", 
     }
     // Owner answer 1: the Helpr side ends with the job; the poster side does not.
     const flat = fn.replace(/\s+/g, " ");
-    expect(flat).toMatch(/j\.customer_id = auth\.uid\(\) OR \(j\.status::text NOT IN \('completed', 'cancelled'\) AND \(j\.helper_id = auth\.uid\(\)/);
+    expect(flat).toMatch(/j\.customer_id = auth\.uid\(\) OR \(j\.status::text NOT IN \('completed', 'cancelled'\) AND \(\(j\.helper_id = auth\.uid\(\) AND j\.helper_confirmed_at IS NOT NULL\)/);
+    // Owner 2026-11-20 (20261120205350): an offered Helpr (helper_id set, not yet accepted) or crew seat reads nothing.
+    expect(flat).toContain("g.helper_id = auth.uid() AND g.helper_confirmed_at IS NOT NULL");
     expect(flat.indexOf("g.helper_id = auth.uid()")).toBeGreaterThan(flat.indexOf("NOT IN ('completed', 'cancelled')"));
     // A pending direct offer or a mere application is not a booking.
     expect(fn).not.toMatch(/offered_to_helper_id|public\.applications/);

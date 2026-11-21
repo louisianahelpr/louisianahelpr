@@ -38,7 +38,7 @@ describe("desktop Inbox with no conversations (owner 11-17)", () => {
 
   it("conversations, none open: two panes, the right one resting on 'Pick a conversation'", () => {
     draw({ hasConversations: true, empty: false });
-    expect(screen.getByTestId("messages-list-pane").style.width).toBe("360px");
+    expect(screen.getByTestId("messages-list-pane").className.split(/\s+/)).toContain("w-[360px]");
     expect(screen.getByTestId("messages-chat-resting").textContent).toContain("Pick a conversation");
   });
 

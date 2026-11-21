@@ -256,7 +256,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           /signup-pending on every protected route (Q180, Q193) — see ProtectedRoute. */}
       <Route path="/home" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><HomeDashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
-      <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile allowGuest><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />{/* Owner 11-20: a guest can start a post (src/lib/guestPostDraft.ts) */}
       <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><JobsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/explore" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowGuest><ExploreRedirect /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><PostsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />

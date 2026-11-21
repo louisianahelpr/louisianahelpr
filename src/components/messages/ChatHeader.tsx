@@ -3,7 +3,8 @@ import { ListRow } from "@/components/ui/ListRow";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enScreens";
 import { useId } from "react";
-import { ChevronLeft, ChevronRight, Flag, MoreVertical, Ban, BellOff, Bell } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag, MoreVertical, Ban, BellOff, Bell, Briefcase } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -98,6 +99,10 @@ export function ChatHeader({
   const team = activeConvo.teamThread;
   const viewingTeam = !!team && !team.viewerIsStaff;
   const noProfile = otherDeleted || viewingTeam;
+  // WHO THEY ARE (owner-approved polish 2026-11-20): the other person's side of this job, then the job. Only what the
+  // thread knows for certain: you posted it (they are the Helpr talking to you about it) or you did not (they posted it).
+  const role = team ? null : activeConvo.viewerIsPoster ? t("msg.role.helpr") : t("msg.role.poster");
+  const subtitle = role ? `${role} · ${activeConvo.jobTitle}` : activeConvo.jobTitle;
 
   return (
     /* Standard messaging-app header, one row deep: back button, then the
@@ -197,7 +202,7 @@ export function ChatHeader({
               signals this whole block is a link to the profile. */}
           <span className="flex items-center gap-0.5 w-full min-w-0">
             <span
-              className="font-display font-bold leading-tight truncate min-w-0 text-ds-16"
+              className="font-display font-bold leading-tight truncate min-w-0 text-ds-16 lg:text-ds-18"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               title={activeConvo.otherUserName}
             >
@@ -254,15 +259,24 @@ export function ChatHeader({
             <span
               className="text-ds-11 truncate min-w-0 leading-tight font-sans"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              title={(dealPinned && personFacts ? personFacts : activeConvo.jobTitle) ?? undefined}
+              title={(dealPinned && personFacts ? personFacts : subtitle) ?? undefined}
             >
-              {dealPinned && personFacts ? personFacts : activeConvo.jobTitle}
+              {dealPinned && personFacts ? personFacts : subtitle}
             </span>
           </span>
         </span>
       </ListRow>
 
       <div className="flex items-center gap-0.5 shrink-0">
+      {/* The job this thread is about, one press away (owner-approved polish 2026-11-20). A Team thread has none. */}
+      {!team && (
+        <Button asChild variant="ghost" size="sm" className="shrink-0 gap-1 px-2 text-ds-13 text-[hsl(var(--bark))] max-lg:w-11 max-lg:px-0">
+          <Link to={`/jobs/${encodeURIComponent(activeConvo.jobId)}`} aria-label={t("msg.openJobAria", { title: activeConvo.jobTitle })} data-testid="chat-header-job-link">
+            <Briefcase className="w-4 h-4" aria-hidden />
+            <span className="max-lg:hidden">{t("msg.openJob")}</span>
+          </Link>
+        </Button>
+      )}
       {safetyJob && <SafetyShieldButton job={safetyJob} />}
       {/* The standalone Flag "report user" shortcut was removed — it
           duplicated "Report user" in the ⋮ menu below, one and the same

@@ -23,6 +23,7 @@ import type {
 } from "@/components/job-card/activityConstants";
 import type { OptimisticJobCache } from "./types";
 import type { PaymentHeldSide, PaymentHeldWho } from "../PaymentHeldDialog";
+import { isPosterIdRefusal, openPosterIdCheckFor, posterIdAtOfferCopy } from "@/lib/posterIdAtOffer";
 
 /**
  * Dependencies for the offer/acceptance-phase handlers, extracted verbatim
@@ -262,6 +263,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // 20260924042503, Q346), so the database refuses that write anyway.
       rollbackActivity(snapshot);
       hapticError();
+      // The POSTER's own ID, asked when they send the offer (owner 2026-11-20, 20261120205350): open the one ID sheet.
+      if (isPosterIdRefusal(error)) {
+        void openPosterIdCheckFor(error);
+        throw new Error(posterIdAtOfferCopy());
+      }
       // A payout-gate refusal of THIS applicant. A single job's Hire is only
       // an offer and is never refused for the Helpr's Stripe state: the gate
       // (payout setup and Stripe ID) is at the Helpr's accept (20261003193541,

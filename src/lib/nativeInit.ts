@@ -14,6 +14,10 @@ export const isNativePlatform =
   typeof window !== "undefined" &&
   (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() === true;
 
+/** The native iOS app (a genuine platform rule, not layout: Apple's pre-permission guideline 5.1.1(iv)). */
+export const isNativeIos =
+  isNativePlatform && (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() === "ios";
+
 // Tag <html> with the runtime platform so CSS can diverge a handful of
 // color tokens between the native iOS WebView (Display-P3 wide gamut,
 // where saturated accents pop harder and cool near-whites read warmer)

@@ -66,4 +66,10 @@ export interface ConversationListProps {
   orderTalks?: OrderTalkInbox | null;
   /** S2-016: the member's shop chats, above the threads under All / Unread (SectionEmpty's Lead shape); null = none. */
   inboxLead?: SectionEmpty["Lead"] | null;
+  /** The Archived chip is on (owner-approved polish 2026-11-20): the list shows the archive, with Restore. */
+  archivedView?: boolean;
+  /** Turn the Archived chip on or off (the menus' Archived entry and the view's back arrow use it). */
+  onArchivedViewChange?: (on: boolean) => void;
+  /** Opens the "Delete for me" confirm for one thread (the row's ⋯ menu and its swipe action). */
+  onDeleteForMe?: (convo: Conversation) => void;
 }

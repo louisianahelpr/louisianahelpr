@@ -47,11 +47,20 @@ beforeAll(() => {
 });
 afterEach(cleanup);
 
+/** Owner 11-20 (ease batch, item 1): Job type sits in When's folded "More options"; open it (a filled fold starts open). */
+function openMoreOptions() {
+  const fold = document.querySelector<HTMLElement>('[data-testid="post-job-more-options"]');
+  expect(fold, "When's More options fold").toBeTruthy();
+  if (!fold!.hasAttribute("data-open")) fireEvent.click(within(fold!).getByRole("button", { name: /More options/ }));
+  expect(fold!.hasAttribute("data-open")).toBe(true);
+}
+
 describe("Post a job, Group job: the split and what a short crew means (A3-60)", () => {
   it("names the smallest share without '~' and says the hired Helprs still come and the unfilled shares come back", () => {
     expect(GROUP_JOBS_ENABLED).toBe(true);
     render(<Host />);
     expect(document.querySelector("[data-crew-short]")).toBeNull();
+    openMoreOptions();
     const group = screen.getAllByRole("radio").find((r) => r.textContent === "Group");
     expect(group).toBeTruthy();
     fireEvent.click(group!);

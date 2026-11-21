@@ -14,6 +14,14 @@ export const TWO_PANE_MIN_WIDTH = 1140;
 export const TWO_PANE_CHROME_PX = 298;
 export const CHAT_PANE_FLOOR_PX = 480;
 export const MESSAGES_LIST_PANE_PX = 360;
+/**
+ * Owner-approved polish 2026-11-20: a wider list where there is room, so names truncate less. 420px from 1300px
+ * (chat there: 1300 - 298 - 420 = 582, over the 480 floor); 360px from the split (1140) up to that.
+ */
+export const MESSAGES_LIST_PANE_WIDE_PX = 420;
+export const MESSAGES_LIST_PANE_WIDE_FROM = 1300;
+/** The list pane's width classes (the pane and its loading skeleton share them, so nothing shifts). */
+export const MESSAGES_LIST_PANE_CLASS = "w-[360px] min-[1300px]:w-[420px]";
 const QUERY = `(min-width: ${TWO_PANE_MIN_WIDTH}px)`;
 
 function wide(): boolean {

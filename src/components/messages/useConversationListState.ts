@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { coerceInboxView, defaultInboxTab } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -14,6 +14,7 @@ import {
   isArchived as isConvoArchived,
   loadArchives,
 } from "@/lib/archivedConversations";
+import { isClearedMessage } from "@/lib/clearedConversations";
 import type { Conversation } from "./types";
 import { byLastAtDesc } from "./byLastAtDesc";
 import { serverNow } from "@/lib/messagingLockout";
@@ -29,7 +30,7 @@ export const CONVO_LIMIT = 50;
 type ConversationListStateArgs = Pick<
   ConversationListProps,
   "conversations" | "allConversations" | "loading" | "loadError" | "userId" | "loadConversations"
-  | "setDeleteConvoConfirm" | "onBatchArchive"
+  | "setDeleteConvoConfirm" | "onBatchArchive" | "archivedView" | "onArchivedViewChange"
 > &
   Required<Pick<ConversationListProps, "resetSelectionNonce">>;
 
@@ -42,7 +43,7 @@ type ConversationListStateArgs = Pick<
  */
 export function useConversationListState({
   conversations, allConversations, loading, loadError, userId, loadConversations, setDeleteConvoConfirm,
-  onBatchArchive, resetSelectionNonce,
+  onBatchArchive, resetSelectionNonce, archivedView = false, onArchivedViewChange,
 }: ConversationListStateArgs) {
   const navigate = useNavigate();
   /* Same gate Activity uses (Activity.tsx:410). On the desktop WEBSITE the
@@ -92,7 +93,16 @@ export function useConversationListState({
 
      `null` means "not chosen yet" so the effect below can seed it as soon as
      the first page of threads lands. */
-  const [inboxFilter, setInboxFilter] = useState<string | null>(null);
+  const [inboxFilter, setInboxFilterRaw] = useState<string | null>(null);
+  /* The Archived CHIP (owner-approved polish 2026-11-20) is the archive view now: it lives in the page's `?section=`
+     (useMessageSections), so "recentlyDeleted" is routed there and any other view turns the chip off. Without the
+     page wiring (tests, older callers) it stays local state, as before. */
+  const setInboxFilter: Dispatch<SetStateAction<string | null>> = (next) => {
+    const value = typeof next === "function" ? next(inboxFilter) : next;
+    if (onArchivedViewChange && value === "recentlyDeleted") { onArchivedViewChange(true); return; }
+    if (onArchivedViewChange && archivedView) onArchivedViewChange(false);
+    setInboxFilterRaw(value);
+  };
   /* ── WHERE THE FILTER STRIP SITS ───────────────────────────────────────
      On the desktop website `Active · All` rides inline in the header row. On
      a phone the header row has no room for it (measured on the production
@@ -116,7 +126,7 @@ export function useConversationListState({
      that no longer exists, highlighted-nothing and empty. Unknown coerces to
      the default (see coerceInboxView). `null` is preserved by the seeding
      effect below, which owns the "not chosen yet" distinction. */
-  const inboxTab = coerceInboxView(inboxFilter);
+  const inboxTab = archivedView ? "recentlyDeleted" : coerceInboxView(inboxFilter);
 
   /* THE PHONE FILTER STRIP STARTS FOLDED ON THE DEFAULT FILTER.
      Same behaviour as PostsHeader and JobsHeader (see the note at their
@@ -325,7 +335,8 @@ export function useConversationListState({
                   // directly rather than filtering the byTab source above.
                   if (!userId || !allConversations) return [];
                   return [...allConversations]
-                    .filter((c) => isConvoArchived(userId, c.jobId, c.otherUserId, c.lastAt))
+                    // A "delete for me" thread with nothing newer than the clear is gone, never Archived (not restorable).
+                    .filter((c) => isConvoArchived(userId, c.jobId, c.otherUserId, c.lastAt) && !isClearedMessage(userId, c.jobId, c.otherUserId, c.lastAt))
                     .sort(byLastAtDesc);
                 })()
               : /* ALL — the only tab the age rule trims, and only at rest. */
@@ -360,7 +371,7 @@ export function useConversationListState({
   useEffect(() => {
     if (inboxFilter !== null || conversations.length === 0) return;
     const unreadCount = conversations.reduce((n, c) => n + (c.unread > 0 ? 1 : 0), 0);
-    setInboxFilter(defaultInboxTab(unreadCount));
+    setInboxFilterRaw(defaultInboxTab(unreadCount));
   }, [conversations, inboxFilter]);
 
   // True when an active search filters every thread out — drives a tidy

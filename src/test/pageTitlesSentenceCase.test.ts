@@ -37,7 +37,9 @@ const ROOT = resolve(__dirname, "..", "..");
 // "Secret Santa" is the gift exchange's own name (the gift guides' drawer, owner 2026-11-20).
 // "Christmas" is the holiday's own name ("Free printable Christmas gift tags with names", owner 2026-11-20).
 // "Louisiana Holiday Hub" is the owner-approved name of the holiday pages, and Santa is a name (2026-11-20).
-const NAMES = [/Terms of Service/g, /Licensed & Insured/g, /25 Days of Louisiana Giveaways/g, /25 Days\b/g, /Secret Santa/g, /\bChristmas\b/g, /\bHoliday Hub\b/g, /\bSanta\b/g];
+// "Shop Small Louisiana" is the owner's name for the small business page ("then it stays as Shop Small Louisiana",
+// src/content/giftGuideSmallBiz.mjs; /shop-small 2026-11-21).
+const NAMES = [/Terms of Service/g, /Licensed & Insured/g, /25 Days of Louisiana Giveaways/g, /25 Days\b/g, /Secret Santa/g, /\bChristmas\b/g, /\bHoliday Hub\b/g, /\bSanta\b/g, /Shop Small Louisiana/g];
 
 function problems(title: string): string[] {
   let t = title;

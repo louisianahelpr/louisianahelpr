@@ -172,6 +172,7 @@ const SecretSantaReveal = lazyWithPreload(() => import("./pages/info/giftGuides/
 const SwipeGifts = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SwipeGifts"));
 const GiftPlanner = lazyWithPreload(() => import("./pages/info/giftGuides/fun/GiftPlanner"));
 const Printables = lazyWithPreload(() => import("./pages/info/giftGuides/printables/Printables"));
+const ShopSmall = lazyWithPreload(() => import("./pages/info/ShopSmall"));
 const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 /**
@@ -480,6 +481,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/holidays/lights" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayLights /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/holidays/events" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayEvents /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/holidays/hire-a-helpr" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayHire /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free (admin approves first); public, signed out. */}
+      <Route path="/shop-small" element={<RouteErrorBoundary>{routeEl(<PageTransition><ShopSmall /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Retired with no redirect, so they fall to NotFound below (no outside citation; add a real <Route> if one
           appears): /parishes, /parish/:slug, /impact, /local-guide, /community, /browse-jobs and /evacuation
           (2352466e); /benefits (BenefitsPage, owner 2026-08-31: no partner agreements behind it). */}

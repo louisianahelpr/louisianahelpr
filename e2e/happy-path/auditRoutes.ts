@@ -197,6 +197,8 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "holiday-lights", url: "/holidays/lights" },
   { name: "holiday-events", url: "/holidays/events" },
   { name: "holiday-hire", url: "/holidays/hire-a-helpr" },
+  // 2026-11-21: Shop Small Louisiana (free small business listings + sign-up form, no sign-in).
+  { name: "shop-small", url: "/shop-small" },
   // OPS-4 town + service pages (src/lib/townPages.mjs): one of the 40 stands in for the shared page.
   { name: "hire-town", url: "/hire/handyman/lafayette" },
   { name: "terms-full", url: "/terms/full" },

@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
 import { HOLIDAY_EVENTS_PATH, HOLIDAY_HIRE_PATH, HOLIDAY_LIGHTS_PATH, HOLIDAY_WORDS as W } from "@/content/holidayHub/holidayHub.mjs";
 import { HUB_COLUMN, HUB_HEADER_COLUMN, useHolidayPageView } from "./holidayParts";
 
@@ -41,6 +42,10 @@ export default function HolidayHub() {
         </ul>
         <p className="text-ds-14 text-muted-foreground">
           Shopping too? <Link to="/gift-guides" className="link-standard">See the holiday gift guides</Link>.
+        </p>
+        {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free on /shop-small. */}
+        <p className="text-ds-14 text-muted-foreground" data-holiday-shop-small="">
+          <Link to="/shop-small" className="link-standard">{SBS_WORDS.landingLink}</Link>
         </p>
       </div>
     </PublicHeaderPage>

@@ -4,7 +4,7 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
 import { GIFT_WISH_CSS } from "../giftWishStyles";
 
-type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables";
+type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables" | "/shop-small";
 
 /** The shared shell's props for a fun page: the gift guides' public header, back to /gift-guides, a wrapping title. */
 export const funHeader = (title: string) => ({ title, backTo: "/gift-guides", bottomPaddingClassName: "pb-12 md:pb-16", wrapTitle: true });

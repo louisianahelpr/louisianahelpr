@@ -6,6 +6,7 @@ import { listFeaturedLocal, sbsLogoUrl, type SbsListing } from "@/lib/sbsFeature
 import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { safeDocumentUrl } from "@/lib/storagePath";
+import { SB_CARD_CSS } from "./smallBizCardStyles";
 import { businessKey } from "../../../../supabase/functions/_shared/sbsSubmission";
 
 /**
@@ -123,8 +124,11 @@ function FeatureCta() {
   );
 }
 
-/** Under the sponsor sections: approved free listings (if any), then the sign-up card. */
-export function SmallBizLocal({ sponsors }: { sponsors: Array<{ name: string; links: Array<string | null | undefined> }> }) {
+/**
+ * Under the sponsor sections: approved free listings (if any), then the sign-up card. `heading` replaces the section's
+ * title and intro where no sponsor list sits above it (/shop-small, src/pages/info/ShopSmall.tsx).
+ */
+export function SmallBizLocal({ sponsors, heading }: { sponsors: Array<{ name: string; links: Array<string | null | undefined> }>; heading?: { title: string; intro: string } }) {
   const [rows, setRows] = useState<SbsListing[]>([]);
   useEffect(() => {
     let live = true;
@@ -140,11 +144,11 @@ export function SmallBizLocal({ sponsors }: { sponsors: Array<{ name: string; li
   const list = withoutSponsors(rows, sponsors);
   return (
     <>
-      <style>{SBS_CSS}</style>
+      <style>{SB_CARD_CSS}{SBS_CSS}</style>
       {list.length > 0 && (
         <section className="gg-sbs-local" aria-labelledby="gift-sbs-local" data-gift-sbs-section="">
-          <div className="gg-rowhead"><h2 id="gift-sbs-local">{W.sectionTitle}<span className="gg-rowcount">&nbsp;({list.length})</span></h2></div>
-          <p className="gg-sbs-local-intro">{W.sectionIntro}</p>
+          <div className="gg-rowhead"><h2 id="gift-sbs-local">{heading?.title ?? W.sectionTitle}<span className="gg-rowcount">&nbsp;({list.length})</span></h2></div>
+          <p className="gg-sbs-local-intro">{heading?.intro ?? W.sectionIntro}</p>
           <ul className="gg-sb-grid">{list.map((b) => <LocalCard key={b.id} b={b} />)}</ul>
         </section>
       )}

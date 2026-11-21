@@ -185,6 +185,14 @@ export const PUBLIC_PAGE_META = {
     ogTitle: "Louisiana Holiday Hub 2026 from Louisiana Helpr",
     ogDescription: "Christmas lights, parades and holiday events across Louisiana, and local help for the holidays.",
   },
+  // Shop Small Louisiana (owner 2026-11-21): free listings for Louisiana small businesses, and the sign-up form.
+  "/shop-small": {
+    title: "Shop Small Louisiana: local small businesses — Helpr",
+    description: "Louisiana small businesses, listed free for Small Business Saturday, Nov 28. Own one? Ask to be featured free, no sign-up.",
+    canonical: `${SITE_ORIGIN}/shop-small`,
+    ogTitle: "Shop Small Louisiana from Louisiana Helpr",
+    ogDescription: "Louisiana shops and makers, listed free. Own a small business? Get featured free.",
+  },
   "/holidays/lights": {
     title: "Christmas lights in Louisiana 2026: drive-throughs and displays — Helpr",
     description: "Where to see Christmas lights in Louisiana in 2026: drive-throughs, park light festivals and neighborhood displays from Lafayette to Shreveport, with dates, prices and maps.",

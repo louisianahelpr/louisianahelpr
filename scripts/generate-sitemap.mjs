@@ -124,6 +124,8 @@ const WEIGHTS = {
   "/holidays/lights": { changefreq: "weekly", priority: "0.7" },
   "/holidays/events": { changefreq: "daily", priority: "0.7" },
   "/holidays/hire-a-helpr": { changefreq: "monthly", priority: "0.6" },
+  // Shop Small Louisiana (owner 2026-11-21): free listings added as the owner approves them.
+  "/shop-small": { changefreq: "daily", priority: "0.6" },
 };
 const DEFAULT_WEIGHT = { changefreq: "monthly", priority: "0.5" };
 /** Every /gift-guides/<slug> page (picks change through the season). */

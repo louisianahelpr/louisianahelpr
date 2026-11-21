@@ -17,7 +17,7 @@ export const LEGAL_PAGE_META: Readonly<
   Record<LegalTab, { title: string; description: string; canonical: string }>
 >;
 export const LANDING_PAGE_META: PublicPageMeta;
-export const PUBLIC_PAGE_META: Readonly<Record<"/browse" | "/declutter" | "/gift-guides" | "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables" | "/fees" | "/help" | "/safety" | "/sms-opt-in" | "/support" | "/terms/full" | "/privacy/full" | "/25days" | "/holidays" | "/holidays/lights" | "/holidays/events" | "/holidays/hire-a-helpr", PublicPageMeta>>;
+export const PUBLIC_PAGE_META: Readonly<Record<"/browse" | "/declutter" | "/gift-guides" | "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables" | "/fees" | "/help" | "/safety" | "/sms-opt-in" | "/support" | "/terms/full" | "/privacy/full" | "/25days" | "/holidays" | "/holidays/lights" | "/holidays/events" | "/holidays/hire-a-helpr" | "/shop-small", PublicPageMeta>>;
 export function legalPageMeta(tab: LegalTab): PublicPageMeta;
 export type NoindexPath =
   | "/login"

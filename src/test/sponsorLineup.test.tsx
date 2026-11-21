@@ -44,7 +44,7 @@ const FINAL: Record<number, string[]> = {
   2: ["Boston Mints", "RYSE", "World Ballet Company: The Nutcracker", "David Rabalais", "Cher Bebe Embroidery", "Wicks NOLA Candle Company", "Ace Bungee Fitness"],
   3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Crabtrap Functional Fitness", "RoseMae Eimear Creations", "Everyday Dose", "Forgiven Hearts", "Suzi Marques Photography"],
   4: ["K18 Hair", "RYSE", "Megan Benoit's Closet", "Kate McLeod", "Britt Creates", "Tays Sweet Shop", "Jessica Lanham Photography"],
-  5: ["Oyu Botanica", "RYSE", "R&R Wedding Co.", "Breads and Sweets by Babs", "Olivia Grace Photography", "Celebration Station (Baton Rouge)", "Jessica Lanham Photography"],
+  5: ["Oyu Botanica", "RYSE", "Breads and Sweets by Babs", "Olivia Grace Photography", "Celebration Station (Baton Rouge)", "Jessica Lanham Photography"],
   6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery", "Rusty's Seasoning", "Faulk's Game Call Co.", "Paddlewheeler Creole Queen (New Orleans)", "Jessica Lanham Photography", "Hair Fashion and Spa (Opelousas)"],
   7: ["Whimsies from Within", "RYSE", "Rock Bottom Golf", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Suzi Marques Photography"],
   8: ["RYSE", "Written on the River", "Timeless Skin Care", "David Rabalais", "Tays Sweet Shop", "Candle Bloom Confections", "Active Beauty"],

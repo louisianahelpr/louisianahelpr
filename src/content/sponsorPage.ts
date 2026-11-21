@@ -264,7 +264,6 @@ export const sponsorPage = {
       "Oyu Botanica": "https://www.facebook.com/OYUBotanica",
       "Paddlewheeler Creole Queen (New Orleans)": "https://www.facebook.com/PaddlewheelerCreoleQueen/",
       "Playtopia Lafayette": "https://www.facebook.com/playtopialafayette",
-      "R&R Wedding Co.": "https://www.facebook.com/profile.php?id=61589566719811",
       "Rip Van Winkle Gardens": "https://www.facebook.com/rvwgardens",
       "Ripley's Crawfish": "https://www.facebook.com/profile.php?id=61571086266228",
       "Rock Bottom Golf": "https://www.facebook.com/rockbottomgolf",
@@ -349,7 +348,6 @@ export const sponsorPage = {
         partners: [
           { brand: "Oyu Botanica", prize: "Winter Radiance Duo stocking stuffer (one each day)" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
-          { brand: "R&R Wedding Co.", prize: "Day-of wedding coordination discount" },
           { brand: "Breads and Sweets by Babs", prize: "$25 gift certificate" },
           { brand: "Olivia Grace Photography", prize: "One-hour photo session, up to 2 outfits, 30+ edited images" },
           { brand: "Celebration Station (Baton Rouge)", prize: "Family Four Fun Pack: unlimited attractions for four people" },

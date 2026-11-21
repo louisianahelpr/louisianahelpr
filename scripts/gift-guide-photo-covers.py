@@ -571,9 +571,9 @@ def candidates(slug):
             rx = re.compile(COLOR_WORDS[slug], re.I)
             own = [q for q in own if rx.search(q.get("name") or "")] + [q for q in own if not rx.search(q.get("name") or "")]
     pins = COVER_PINS.get(slug, {}).get("items", [])
-    if pins:  # the owner's own cover picks first, in her order (the rest only if one of hers cannot be drawn)
+    if pins:  # exactly the owner's own cover picks, in her order (four of hers draw as four, two a side)
         first = [q for n in pins for q in own if q.get("name") == n][:len(pins)]
-        return first + [q for q in own if q not in first]
+        return first
     if slug.startswith("store-"):
         return own  # only what the store page lists (owner 11-20), never another guide's or a bestseller photo
     fit = FIT.get(slug) if isinstance(FIT.get(slug), dict) else None

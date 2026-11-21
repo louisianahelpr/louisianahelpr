@@ -5,7 +5,7 @@
  * script writes (scripts/gift-guide-cover-items.json) lists exactly those products in that order, and any stand-in photo
  * for an Amazon-linked pick is a transparent cutout from another store, never Amazon's.
  *
- * @mutate scripts/gift-guide-photo-covers.py |         return first + [q for q in own if q not in first] |         return [q for q in own if q not in first] + first
+ * @mutate scripts/gift-guide-photo-covers.py |         return first |         return own
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -20,9 +20,12 @@ const picksOf = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuid
 const isAmazonPick = (p: Pick) => p.store === "store-amazon" || /amazon\.com\//.test(p.href);
 
 describe("the owner's pinned cover picks (11-21)", () => {
-  it("pins her, with six products each", () => {
-    expect(Object.keys(pins)).toContain("her");
-    for (const [slug, p] of Object.entries(pins)) expect(p.items.length, slug).toBe(6);
+  it("pins her, him and kids, with four to six products each", () => {
+    for (const slug of ["her", "him", "kids"]) expect(Object.keys(pins)).toContain(slug);
+    for (const [slug, p] of Object.entries(pins)) {
+      expect(p.items.length, slug).toBeGreaterThanOrEqual(4);
+      expect(p.items.length, slug).toBeLessThanOrEqual(6);
+    }
   });
 
   it.each(Object.keys(pins))("%s: every pinned name is in the guide, and the cover shows exactly those, in order", (slug) => {

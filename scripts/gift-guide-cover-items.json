@@ -178,34 +178,24 @@
   "section": "For kids",
   "items": [
    {
-    "name": "Model U Horse Ride-On, Brown",
-    "key": "ponycycle:brown",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/model-u-horse-ride-on-aac217.webp"
+    "name": "Nex Playground",
+    "key": "nex:playground",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nex-playground-56f785.webp"
    },
    {
-    "name": "Hape Captain's Rocking Boat",
-    "key": "hape:boat",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hape-captains-rocking-boat-6e6b18.webp"
+    "name": "Segway Ninebot C2 Go Kids Scooter",
+    "key": "segway:scooter",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/segway-ninebot-c2-go-5a4f31.webp"
    },
    {
-    "name": "PlanToys Dancing Alligator Pull Toy",
-    "key": "plantoys:toy",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/plantoys-dancing-alligator-20c33e.webp"
+    "name": "Toniebox 2, Sky Blue",
+    "key": "tonies:blue",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/toniebox-2-sky-blue-playtime-puppy-8e3a2e.webp"
    },
    {
-    "name": "Freddo 3 Wheel Balance Bike",
-    "key": "freddo:bike",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/freddo-3-wheel-balance-bike-b29eb6.webp"
-   },
-   {
-    "name": "Mentari Puppy on Wheels",
-    "key": "mentari:wheels",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/mentari-puppy-on-wheels-90b238.webp"
-   },
-   {
-    "name": "Tender Leaf Toys Rocket Construction",
-    "key": "tenderleaftoys:construction",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tender-leaf-rocket-construction-f554d4.webp"
+    "name": "Nintendo Switch Lite",
+    "key": "nintendo:lite",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nintendo-switch-lite-turquoise-front-888c6e.webp"
    }
   ]
  },

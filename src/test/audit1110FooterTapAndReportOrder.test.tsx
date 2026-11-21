@@ -31,7 +31,7 @@ describe("F214: footer links are 44px tap areas on every pointer", () => {
       expect(classes, a.textContent!).not.toContain("[@media(pointer:coarse)]:min-h-11");
     }
     expect(SHELL_FOOTER_HTML).not.toContain("min-h-6 ");
-    expect(SHELL_FOOTER_HTML.match(/class="link-standard inline-flex items-center min-h-11 lg:\[@media\(pointer:fine\)\]:min-h-8"/g)?.length).toBe(10); // 8 + Fees and Safety (F255); the Holiday Gift Guides link is hidden until the next version (owner 2026-11-17)
+    expect(SHELL_FOOTER_HTML.match(/class="link-standard inline-flex items-center min-h-11 lg:\[@media\(pointer:fine\)\]:min-h-8"/g)?.length).toBe(11); // 8 + Fees and Safety (F255) + the Louisiana Holiday Hub (2026-11-20); the Holiday Gift Guides link is hidden until the next version (owner 2026-11-17)
   });
 });
 

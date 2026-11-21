@@ -1,5 +1,5 @@
 {
- "source": "APPLY-PLAN.json (gg-standard-wf, 2026-11-20)",
+ "source": "APPLY-PLAN.json (gg-standard-wf, 2026-11-20) + owner decisions 11-20 9:12 PM",
  "guides": {
   "car-lover": {
    "sections": [
@@ -99,11 +99,6 @@
        "line": "Keeps coffee hot on the porch or at the desk"
       },
       {
-       "name": "Community Coffee Dark Roast Signature Blend (40 oz)",
-       "href": "https://go.shopmy.us/p-107858348",
-       "line": "A big bag of the dark roast for the daily pot"
-      },
-      {
        "name": "Jellycat Amuseables Croissant Bag Charm",
        "href": "https://go.shopmy.us/p-107928463",
        "line": "Little croissant charm, a sweet add-on for the coffee-run friend"
@@ -115,6 +110,10 @@
     {
      "name": "Lululemon Scuba Cropped Funnel-Neck Half Zip Sweatshirt",
      "href": "https://go.shopmy.us/p-104053098"
+    },
+    {
+     "name": "Community Coffee Dark Roast Signature Blend (40 oz)",
+     "href": "https://go.shopmy.us/p-107858348"
     }
    ],
    "ownerCall": []
@@ -1942,21 +1941,6 @@
        "line": "Printed cotton pajamas she will wear all Christmas morning."
       },
       {
-       "name": "Printfresh Eco Satin Soho Pajama Set",
-       "href": "https://go.shopmy.us/p-107834467",
-       "line": "Satin pajamas that feel like a hotel stay at home."
-      },
-      {
-       "name": "Southern Tide Textured Knit Lounge Pant",
-       "href": "https://go.shopmy.us/p-107847111",
-       "line": "Soft knit lounge pants in pale blue for slow weekends."
-      },
-      {
-       "name": "Southern Tide Textured Knit Lounge Quarter Zip",
-       "href": "https://go.shopmy.us/p-107847148",
-       "line": "The matching quarter zip, in the same soft blue."
-      },
-      {
        "name": "Southern Tide Levitt Lounge Pant",
        "href": "https://go.shopmy.us/p-107847192",
        "line": "Navy lounge pants that pass for real pants on a coffee run."
@@ -1980,6 +1964,22 @@
        "name": "Friend of Mine Serial Hobbyist Needlepoint Pillow",
        "href": "https://go.shopmy.us/p-107811289",
        "line": "For the friend who picks up a new hobby every month."
+      },
+      {
+       "name": "Sol de Janeiro Cheirosa 62™ Candle",
+       "href": "https://go.shopmy.us/p-107581902"
+      },
+      {
+       "name": "Brooklinen Mulberry Silk Pillowcase",
+       "href": "https://go.shopmy.us/p-107887444"
+      },
+      {
+       "name": "Le Creuset Mugs Set Of 4",
+       "href": "https://go.shopmy.us/p-104210517"
+      },
+      {
+       "name": "Rifle Paper Co. Embroidered Journal, Burgundy Rose",
+       "href": "https://go.shopmy.us/p-108003088"
       }
      ]
     },
@@ -2036,11 +2036,6 @@
        "name": "Kitsch Holiday Advent Calendar",
        "href": "https://go.shopmy.us/p-107813665",
        "line": "A new hair accessory to open every day of December."
-      },
-      {
-       "name": "Olive & June Gel Mani System",
-       "href": "https://go.shopmy.us/p-107815151",
-       "line": "Salon gel nails at home, without the appointment."
       }
      ]
     },
@@ -2069,11 +2064,6 @@
        "line": "A smooth layering cami that works under everything."
       },
       {
-       "name": "lululemon Define Cropped Jacket Nulu",
-       "href": "https://go.shopmy.us/p-107825470",
-       "line": "The cropped Define jacket in a deep espresso brown."
-      },
-      {
        "name": "lululemon Define Jacket Luon",
        "href": "https://go.shopmy.us/p-107825479",
        "line": "The classic Define jacket, flattering on everyone."
@@ -2097,6 +2087,10 @@
        "name": "éliou Perla Hoop Earrings",
        "href": "https://go.shopmy.us/p-107814528",
        "line": "Gold hoops with a pearl drop she will wear for years."
+      },
+      {
+       "name": "Theo Grace Oval Monogram Signet Ring",
+       "href": "https://go.shopmy.us/p-108109339"
       }
      ]
     }
@@ -2179,10 +2173,6 @@
      "href": "https://go.shopmy.us/p-107894373"
     },
     {
-     "name": "Brooklinen Mulberry Silk Pillowcase",
-     "href": "https://go.shopmy.us/p-107887444"
-    },
-    {
      "name": "Dyson Airwrap Co-Anda 2x",
      "href": "https://go.shopmy.us/p-104050308"
     },
@@ -2199,32 +2189,16 @@
      "href": "https://go.shopmy.us/p-107863362"
     },
     {
-     "name": "Sol de Janeiro Cheirosa 62™ Candle",
-     "href": "https://go.shopmy.us/p-107581902"
-    },
-    {
      "name": "Rifle Paper Co. Kindle Paperwhite Case, Book Stack",
      "href": "https://go.shopmy.us/p-108003058"
-    },
-    {
-     "name": "Rifle Paper Co. Embroidered Journal, Burgundy Rose",
-     "href": "https://go.shopmy.us/p-108003088"
     },
     {
      "name": "Foton Pearled Candle, 18 oz",
      "href": "https://www.amazon.com/dp/B0CV4GKVF9?tag=louisianahelpr-20"
     },
     {
-     "name": "Le Creuset Mugs Set Of 4",
-     "href": "https://go.shopmy.us/p-104210517"
-    },
-    {
      "name": "Ember Mug 3 14 oz Smart Mug, Lavender",
      "href": "https://go.shopmy.us/p-107935900"
-    },
-    {
-     "name": "Theo Grace Oval Monogram Signet Ring",
-     "href": "https://go.shopmy.us/p-108109339"
     },
     {
      "name": "adidas Gazelle Shoes (women's)",
@@ -2301,6 +2275,26 @@
     {
      "name": "Bath & Body Works Pink Suede 3-Wick Candle",
      "href": "https://go.shopmy.us/p-107929726"
+    },
+    {
+     "name": "Printfresh Eco Satin Soho Pajama Set",
+     "href": "https://go.shopmy.us/p-107834467"
+    },
+    {
+     "name": "Southern Tide Textured Knit Lounge Pant",
+     "href": "https://go.shopmy.us/p-107847111"
+    },
+    {
+     "name": "Southern Tide Textured Knit Lounge Quarter Zip",
+     "href": "https://go.shopmy.us/p-107847148"
+    },
+    {
+     "name": "Olive & June Gel Mani System",
+     "href": "https://go.shopmy.us/p-107815151"
+    },
+    {
+     "name": "lululemon Define Cropped Jacket Nulu",
+     "href": "https://go.shopmy.us/p-107825470"
     }
    ],
    "ownerCall": []
@@ -2734,16 +2728,6 @@
      "title": "Everyday style",
      "picks": [
       {
-       "name": "Southern Marsh Marshlux Augusta Quarter-Zip",
-       "href": "https://go.shopmy.us/p-107816660",
-       "line": "A quarter zip that works at the office and at supper."
-      },
-      {
-       "name": "Southern Marsh FieldTec Bozeman Vest",
-       "href": "https://go.shopmy.us/p-107857907",
-       "line": "A fleece vest for cool mornings."
-      },
-      {
        "name": "Southern Tide Sullivan Five Pocket Pant",
        "href": "https://go.shopmy.us/p-107846953",
        "line": "Five-pocket pants that look sharp and feel like jeans."
@@ -2901,6 +2885,14 @@
     {
      "name": "Ray-Ban RB4167 Sunglasses",
      "href": "https://mavely.app.link/1qQf6Qnqb8b"
+    },
+    {
+     "name": "Southern Marsh Marshlux Augusta Quarter-Zip",
+     "href": "https://go.shopmy.us/p-107816660"
+    },
+    {
+     "name": "Southern Marsh FieldTec Bozeman Vest",
+     "href": "https://go.shopmy.us/p-107857907"
     }
    ],
    "ownerCall": []
@@ -2956,11 +2948,6 @@
        "name": "Weezie Holiday Kitchen Towel Trio",
        "href": "",
        "line": "Holiday kitchen towels she will put out the day they arrive."
-      },
-      {
-       "name": "Geometry Greetings From Louisiana Tea Towel",
-       "href": "",
-       "line": "A little Louisiana tea towel that tucks into any hostess gift."
       },
       {
        "name": "West & June Cashmere Candle",
@@ -3225,6 +3212,10 @@
     {
      "name": "Splendid Leopard Fuzzy Sweater PJ Set",
      "href": "Splendid Leopard Fuzzy Sweater PJ Set"
+    },
+    {
+     "name": "Geometry Greetings From Louisiana Tea Towel",
+     "href": ""
     }
    ],
    "ownerCall": []
@@ -3469,11 +3460,6 @@
        "line": "A custom name bracelet she picks the letters for."
       },
       {
-       "name": "Southern Marsh Youth Regatta Stretch Chino",
-       "href": "https://go.shopmy.us/p-107857942",
-       "line": "Stretch chinos a boy can wear to church and still play in."
-      },
-      {
        "name": "Roller Rabbit Kids Deck the Halls Pajamas",
        "href": "https://go.shopmy.us/p-107833516",
        "line": "Deck the Halls pajamas for Christmas Eve pictures."
@@ -3670,6 +3656,10 @@
     {
      "name": "Printworks The Happy Memo Game",
      "href": "https://go.shopmy.us/p-108019126"
+    },
+    {
+     "name": "Southern Marsh Youth Regatta Stretch Chino",
+     "href": "https://go.shopmy.us/p-107857942"
     }
    ],
    "ownerCall": []
@@ -5217,6 +5207,21 @@
        "name": "University Press of Mississippi Dictionary of Louisiana French",
        "href": "https://www.amazon.com/dp/1604734035?tag=louisianahelpr-20",
        "line": "For the one who still says cher and couillon"
+      },
+      {
+       "name": "Southern Marsh Marshlux Augusta Quarter-Zip",
+       "href": "https://go.shopmy.us/p-107816660",
+       "line": "A quarter zip that works at the office and at supper."
+      },
+      {
+       "name": "Southern Marsh FieldTec Bozeman Vest",
+       "href": "https://go.shopmy.us/p-107857907",
+       "line": "A fleece vest for cool mornings."
+      },
+      {
+       "name": "Southern Marsh Youth Regatta Stretch Chino",
+       "href": "https://go.shopmy.us/p-107857942",
+       "line": "Stretch chinos a boy can wear to church and still play in."
       }
      ]
     },
@@ -5273,6 +5278,11 @@
        "name": "Mystic Forests Nursery",
        "href": "https://www.facebook.com/profile.php?id=61561396051654",
        "line": "Rare trees from a Youngsville backyard nursery"
+      },
+      {
+       "name": "Geometry Greetings From Louisiana Tea Towel",
+       "href": "",
+       "line": "A little Louisiana tea towel that tucks into any hostess gift."
       }
      ]
     },

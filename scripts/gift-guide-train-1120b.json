@@ -812,12 +812,6 @@
     },
     {
       "guide": "kids",
-      "section": "Top picks",
-      "type": "toy",
-      "max": 2
-    },
-    {
-      "guide": "kids",
       "section": "Babies",
       "type": "baby",
       "max": 2

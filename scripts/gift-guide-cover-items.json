@@ -333,6 +333,11 @@
   "section": "Louisiana",
   "items": [
    {
+    "name": "Zydeco Chop Chop Seasoning, 10 oz Shaker",
+    "key": "zydecochopchop:shaker",
+    "image": "https://images.squarespace-cdn.com/content/v1/588b820a5016e10c5241303f/87cf543b-8541-4803-8a75-7974df3a4047/Zydeco-Chop-Chop-10oz-Shaker.jpg?format=1000w"
+   },
+   {
     "name": "The AllWays Lounge & Cabaret Tote Bag",
     "key": "theallwaysloungecabaret:bag",
     "image": "https://www.theallwayslounge.net/uploads/1/4/4/2/144283776/allways-tote-bags_orig.jpeg"
@@ -356,11 +361,6 @@
     "name": "Sky & Sol Tallow Magnesium Night Balm",
     "key": "skysol:balm",
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/sky-sol-tallow-magnesium-night-balm-b16ed7.webp"
-   },
-   {
-    "name": "LMNT Variety Pack",
-    "key": "lmnt:variety",
-    "image": "https://res.cloudinary.com/drinklmnt/image/upload/f_auto,q_auto/v1766170017/lmnt-new-variety-box-and-sticks_f0chvs.webp"
    }
   ]
  },
@@ -378,14 +378,14 @@
     "image": "https://cdn.shopify.com/s/files/1/0723/4584/6077/files/LSUClaw_WEMB_hoodie_HoodieCharcoal_center.png?v=1794512626"
    },
    {
+    "name": "Southern Marsh Youth Regatta Stretch Chino",
+    "key": "southernmarsh:chino",
+    "image": "https://static.shopmy.us/uploads/img-1759936062863"
+   },
+   {
     "name": "Basic Bee Bitty Bit of Honey Gift Set",
     "key": "basicbee:gift",
     "image": "https://images.squarespace-cdn.com/content/v1/6086a8c4e8b430296f102e5f/63df424a-8c5c-4740-8f35-548ea8aa9765/Basic+Bee+2025-9.png?format=1000w"
-   },
-   {
-    "name": "Zydeco Chop Chop Seasoning, 10 oz Shaker",
-    "key": "zydecochopchop:shaker",
-    "image": "https://images.squarespace-cdn.com/content/v1/588b820a5016e10c5241303f/87cf543b-8541-4803-8a75-7974df3a4047/Zydeco-Chop-Chop-10oz-Shaker.jpg?format=1000w"
    }
   ]
  },

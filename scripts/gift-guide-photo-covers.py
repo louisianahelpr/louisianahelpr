@@ -74,6 +74,9 @@ FAMILY = {
 }
 TINT = {"By person": "green", "By store": "green", "Life moments": "green", "Louisiana": "green",
         "By budget": "tan", "By career": "tan", "Colors": "tan", "For kids": "red", "Hobbies": "red", "Pets": "red"}
+# Owner 11-21 ("update the her him and kids guides to be red green or beige"): one family each, so the three
+# live guides never share a colour. Wins over the section tint above.
+SLUG_TINT = {"her": "red", "him": "green", "kids": "tan"}
 TIGHT = re.compile(r"airpods", re.I)
 # The cover audit's six per guide (11-18; "idk that a girl wants a grill toy"), then the fit audit's final_top25 for
 # that guide (owner 11-18: "Make sure all gifts are appropriate per section"). Only the guide's own picks are used
@@ -728,7 +731,7 @@ def draw(row, prods, out, share=None):
 def render(row, prods):
     """pin_covers.photo_cover / cover2_example.cover2 on a 1000 x 1000 square."""
     W = 1000
-    fam = TINT.get(row["group"], "green")
+    fam = SLUG_TINT.get(row["slug"]) or TINT.get(row["group"], "green")
     im = pc.gingham(W, W, fam, c=56, palettes=FAMILY)
     acc = ACCENT[fam] if POLISH else pc.INK
     d = ImageDraw.Draw(im)

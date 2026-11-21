@@ -8,20 +8,29 @@
  *
  * scripts/gift-guide-picks.mjs runs applyHimKids1121 LAST, next to applyHer1121, so no earlier pass can drop or reorder
  * these. Page rules are the same as For Her (scripts/giftGuideHer1121.mjs): ONE flat list, cheapest first, no sections,
- * no relationship chips, no codes or deals box (OWNER_LIST_GUIDES in src/content/giftGuidePeople.mjs). Every pick here
- * is an Amazon one, so none carries a price (Associates rule) and every photo is Amazon's own, never edited;
- * `sortPrice` is the price she saw, used only to order the list. Him picks keep their relationship tags (`rels`), so
- * /dad, /husband ... still build from this list.
+ * no relationship chips, no codes or deals box (OWNER_LIST_GUIDES in src/content/giftGuidePeople.mjs). An Amazon pick
+ * carries no price (Associates rule) and keeps Amazon's own photo, never edited; `sortPrice` is the price she saw, used
+ * only to order the list. COMMISSION SWITCHES 11-21 (owner: "if the items on the guides can we fund at another place
+ * for higher commison just change the link"; same item, same price, better-paying store): those few picks are ShopMy
+ * links instead, and like For Her's ShopMy picks they show their price checked 11-21 and a transparent cutout of the
+ * new store's own photo (scripts/giftGuideCutouts1120.mjs), never Amazon's. Him picks keep their relationship tags
+ * (`rels`), so /dad, /husband ... still build from this list.
  * Guard: src/test/giftGuideHimKids1121.test.ts.
  */
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { relsOf } from "./giftGuidePeople1120.mjs";
+import { cutoutPhoto } from "./giftGuideCutouts1120.mjs";
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
 const amz = (asin) => `https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`;
 const amzImg = (id) => `https://m.media-amazon.com/images/I/${id}._SL500_.jpg`;
+const shopmy = (pin) => `https://go.shopmy.us/${pin}`;
+/** The day the switched picks' ShopMy prices were checked (Louisiana day). */
+export const HIM_KIDS_PRICE_AT = "2026-11-21";
+/** Stores a switched pick goes to that the store list may not hold yet (key -> shown name). */
+export const HIM_KIDS_STORES = { "store-dillards": "Dillard's", "store-exclusive-beauty-club": "Exclusive Beauty Club" };
 /** One row per pick: [ASIN, price she saw, Amazon image id, name, brand, type, commission %, line]. */
 const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
 
@@ -61,11 +70,14 @@ export const HIM_1121 = [
   ["B0H6SC835C", 87.99, "314g+xOxGmL", "OLIGHT ArkPro Flashlight", "OLIGHT", "light", 3, "A slim, powerful flashlight for his pocket."],
   ["B0DGZ45WB2", 89.6, "31w-q2iXR+L", "Sperry Authentic Original Boat Shoe", "Sperry", "shoes", 4, "The classic leather boat shoe."],
   ["B08Q1RN656", 93.75, "41awlHUVBzL", "XTRATUF Ankle Deck Boot", "XTRATUF", "boots", 4, "Waterproof deck boots for the boat and the yard."],
-  ["B001DPHF4U", 99.95, "41sGIwYOwML", "LaCrosse Grange Rubber Boot", "LaCrosse", "boots", 4, "Tall rubber boots made for mud and marsh."],
-  ["B0FKCJNHWB", 189.99, "316iNnvixrL", "Theragun Prime Massage Gun", "Therabody", "massager", 1, "A massage gun for sore backs and shoulders."],
+  // COMMISSION SWITCH 11-21: was Amazon B001DPHF4U at 4%; the same OD green Grange 18", same $99.95, at Dillard's at 8%.
+  { name: "LaCrosse Grange Rubber Boot", brand: "LaCrosse", line: "Tall rubber boots made for mud and marsh.", href: shopmy("p-108736038"), image: "https://dimg.dillards.com/is/image/DillardsZoom/zoom/lacrosse-mens-grange-18-tall-waterproof-rubber-hunting-work-boots/00000000_zi_ac01ed80-ad36-4d40-8cca-066a3f05fcbd.jpg", store: "store-dillards", sortPrice: 99.95, price: 99.95, commission: 8, type: "boots" },
+  // COMMISSION SWITCH 11-21: was Amazon B0FKCJNHWB at 1%; the same Theragun Prime 6th Gen in black, same $189.99, at
+  // Exclusive Beauty Club at 16% (Therabody.com lists only the 5th gen).
+  { name: "Theragun Prime Massage Gun", brand: "Therabody", line: "A massage gun for sore backs and shoulders.", href: shopmy("p-108734364"), image: "https://cdn.shopify.com/s/files/1/2959/8080/files/therabody-theragun-prime-massage-gun-black.png", store: "store-exclusive-beauty-club", sortPrice: 189.99, price: 189.99, commission: 16, type: "massager" },
   ["B0FDYD1C2N", 200, "41tgypUHtjL", "YETI Roadie 15 Hard Cooler", "YETI", "cooler", 3, "A small hard cooler that rides behind the seat."],
   ["B0F2JHSGCJ", 237.5, "31f9tFHPW4L", "Turtlebox Ranger Speaker", "Turtlebox", "speaker", 3, "A loud, waterproof speaker built for the outdoors."],
-].map(row);
+].map((r) => (Array.isArray(r) ? row(r) : r));
 
 export const KIDS_1121 = [
   ["152350675X", 3.44, "51J30U2ygrL", "Paint by Sticker Kids: Christmas", "Workman", "book", 3, "Sticker-by-number Christmas pictures, no mess."],
@@ -110,10 +122,13 @@ export const KIDS_1121 = [
   ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 3, "The handheld Switch for games on the go."],
 ].map(row);
 
+const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
+
 const build = (rows, slug, g) =>
   rankByPrice(rows).map(({ row: r, priceRank }) => {
-    const { sortPrice: _sp, ...rest } = r;
-    const p = { ...rest, ownerPick: true, from: slug, priceRank };
+    const { sortPrice: _sp, price, ...rest } = r;
+    const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank };
+    if (!isAmazon(r)) Object.assign(p, { price, priceAt: HIM_KIDS_PRICE_AT });
     return { ...p, rels: g ? relsOf(g, p) : [] };
   });
 
@@ -126,12 +141,22 @@ export function kids1121Picks(rows = KIDS_1121) {
   return build(rows, KIDS_GUIDE, null);
 }
 
-/** Replace the Him and Kids pages with the owner's lists. Returns the counts for the build log. */
-export function applyHimKids1121(pageList) {
+/**
+ * Replace the Him and Kids pages with the owner's lists (and, given the store list, name any store a switched pick goes
+ * to that it lacks, with the pick's link host). Returns the counts for the build log.
+ */
+export function applyHimKids1121(pageList, storeList = null) {
   const out = {};
   for (const [slug, picks] of [[HIM_GUIDE, him1121Picks()], [KIDS_GUIDE, kids1121Picks()]]) {
     out[slug] = { before: (pageList[slug] ?? []).length, after: picks.length };
     pageList[slug] = picks;
+    if (!storeList) continue;
+    for (const p of picks) {
+      if (isAmazon(p)) continue;
+      const host = new URL(p.href).hostname;
+      storeList[p.store] ??= { name: HIM_KIDS_STORES[p.store] ?? p.store, hosts: [] };
+      if (!storeList[p.store].hosts.includes(host)) storeList[p.store].hosts = [...storeList[p.store].hosts, host].sort();
+    }
   }
   return out;
 }

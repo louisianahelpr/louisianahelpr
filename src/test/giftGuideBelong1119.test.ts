@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { E_GIFT, FILLER_OK, INSULATED, LA_LINE, NOWHERE, TUMBLER_MAX, belongsWhy, fillerGuide, neutralLine, tumblerGuide, wrapItem } from "../../scripts/giftGuideRules.mjs";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
+import { MERGED_INTO } from "@/content/giftGuideMerges.mjs";
 
 type Pick = { name: string; brand?: string; line?: string; href: string; price?: number; image?: string };
 // Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
@@ -79,7 +80,8 @@ describe("gift guides: items that belong (owner 11-19)", () => {
   });
 
   it("no national guide's line names Louisiana", () => {
-    const national = guides.filter((s) => groupOf.get(s) !== "Louisiana");
+    // An old slug that is now a section of a Louisiana guide (tailgater, in Louisiana Celebrations) is Louisiana.
+    const national = guides.filter((s) => groupOf.get(s) !== "Louisiana" && groupOf.get(MERGED_INTO[s]?.parent ?? s) !== "Louisiana");
     expect(national.length).toBeGreaterThan(100);
     for (const slug of national) for (const p of pageOf(slug)) expect(Boolean(p.line && LA_LINE.test(p.line)), `${slug}: ${p.name}: ${p.line}`).toBe(false);
   });

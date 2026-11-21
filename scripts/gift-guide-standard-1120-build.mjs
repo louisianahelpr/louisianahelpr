@@ -48,6 +48,12 @@ const OWNER_1120_NIGHT = {
     ["her", "Getting ready", /^Lanc.me Juicy Tubes Lip Gloss/i],
     ["her", "Getting ready", /^OLAPLEX No\.7 Bonding Hair Oil/i],
     ["her", "Getting ready", /^Charlotte Tilbury Hollywood Flawless Filter/i],
+    // Store pages hold 10 to 15 picks (owner 11-18): the plan's cuts from the same store come back to reach 10.
+    ["store-sephora", "Beauty from stocking to splurge", /^Mini Glossier You Perfume Wardrobe Gift Set/i],
+    ["store-nike", "Sneakers, fleece and the small stuff", /^Nike P-6000 Sneakers/i],
+    ["store-nike", "Sneakers, fleece and the small stuff", /^Nike V2K Run Sneakers/i],
+    // A Creator Connections add (lead 11-20, ends 2026-12-16) keeps its one spot.
+    ["gifts-by-budget", "Stocking stuffers under $20", /^Badger Classic Organic Lip Balm, 4 Pack/i],
   ],
   // [from guide, to guide, section title, name pattern]: a Louisiana-brand pick moves to a Louisiana guide
   move: [
@@ -74,6 +80,14 @@ for (const [slug, title, re] of OWNER_1120_NIGHT.back) {
   if (i < 0 || !section(slug, title)) { ownerLog.push(`take-back not in the plan's cuts: ${slug} ${re}`); continue; }
   const [c] = guides[slug].cut.splice(i, 1);
   section(slug, title).picks.push({ name: c.name, href: c.href });
+}
+// Owner 11-19: the Sam's Club membership leads the memberships (it sat beside Walmart+, which the plan cut).
+{
+  const m = section("gifts-by-budget", "Advent calendars and memberships")?.picks;
+  const sams = m?.findIndex((p) => /^Sam's Club Plus Membership/.test(p.name)) ?? -1;
+  const first = m?.findIndex((p) => /membership|subscription/i.test(p.name)) ?? -1;
+  if (sams > first && first >= 0) m.splice(first, 0, ...m.splice(sams, 1));
+  else if (sams < 0) ownerLog.push("Sam's Club Plus Membership is not in Advent calendars and memberships");
 }
 if (ownerLog.length) console.log(ownerLog.join("\n"));
 writeFileSync(new URL("./gift-guide-standard-1120.json", import.meta.url), `${JSON.stringify({ source: "APPLY-PLAN.json (gg-standard-wf, 2026-11-20) + owner decisions 11-20 9:12 PM", guides }, null, 1)}\n`);

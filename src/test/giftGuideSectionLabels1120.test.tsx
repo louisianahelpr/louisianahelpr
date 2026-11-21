@@ -19,11 +19,14 @@ describe("gift guides: section headings read as parts of one guide (owner 11-20)
   });
 
   it("every shipped person-guide page with two sections gets distinct, non-bare headings", () => {
-    const dad = (JSON.parse(readFileSync("src/content/giftGuidePicks/dad.json", "utf8")) as { picks: { section?: string; sectionId?: string }[] }).picks;
-    const heads = [...new Map(dad.map((p) => [p.sectionId, p.section])).entries()].map(([id, t]) => sectionLabel({ title: "Dad" }, String(t), id));
-    expect(heads.length).toBeGreaterThan(1);
-    expect(heads).toContain("Top picks for Dad");
-    expect(heads).not.toContain("Father-in-Law");
+    // For Her / For Him (owner 11-20 evening): Dad and Mom fold into For Him and For Her, sectioned by use.
+    for (const [slug, title] of [["him", "For Him"], ["her", "For Her"]] as const) {
+      const picks = (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: { section?: string; sectionId?: string }[] }).picks;
+      const heads = [...new Map(picks.map((p) => [p.sectionId, p.section])).entries()].map(([id, t]) => sectionLabel({ title }, String(t), id));
+      expect(heads.length, slug).toBeGreaterThan(1);
+      expect(new Set(heads).size, slug).toBe(heads.length);
+      for (const h of heads) expect(h, slug).not.toMatch(/^(Top picks|Father-in-Law|Mother-in-Law|undefined)$/);
+    }
   });
 
   it("the jump chips sit after a visible label, so two chips never read as two titles", () => {

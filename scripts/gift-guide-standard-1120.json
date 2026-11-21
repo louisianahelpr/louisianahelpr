@@ -1174,6 +1174,10 @@
        "name": "Hitster Music Party Card Game",
        "href": "https://walmrt.us/4iS26AI",
        "line": "Music guessing game for the whole table"
+      },
+      {
+       "name": "Badger Classic Organic Lip Balm, 4 Pack",
+       "href": "https://www.amazon.com/dp/B07MX4N7BH?tag=louisianahelpr-20"
       }
      ]
     },
@@ -1304,14 +1308,14 @@
        "line": "A tiny Squishmallow a day"
       },
       {
-       "name": "Atlas Coffee Club 12-Month Coffee Club Gift Subscription",
-       "href": "https://mavely.app.link/VnzgtZmUa8b",
-       "line": "A year of coffee from around the world"
-      },
-      {
        "name": "Sam's Club Plus Membership",
        "href": "https://samsclub.co/4j22GdY",
        "line": "A membership that pays for itself in groceries"
+      },
+      {
+       "name": "Atlas Coffee Club 12-Month Coffee Club Gift Subscription",
+       "href": "https://mavely.app.link/VnzgtZmUa8b",
+       "line": "A year of coffee from around the world"
       }
      ]
     }
@@ -1320,10 +1324,6 @@
     {
      "name": "Bobbi Brown Skin Corrector Stick",
      "href": "https://www.amazon.com/dp/B09X9N2KNB?tag=louisianahelpr-20"
-    },
-    {
-     "name": "Badger Classic Organic Lip Balm, 4 Pack",
-     "href": "https://www.amazon.com/dp/B07MX4N7BH?tag=louisianahelpr-20"
     },
     {
      "name": "Kiehl's Ultimate Skincare Discovery Gift Set",
@@ -6581,20 +6581,19 @@
        "name": "Nike Zoom Vomero 5",
        "href": "https://go.shopmy.us/p-107915555",
        "line": "Vomero 5, the sneaker of the moment"
+      },
+      {
+       "name": "Nike P-6000 Sneakers",
+       "href": "https://go.shopmy.us/p-107915597"
+      },
+      {
+       "name": "Nike V2K Run Sneakers",
+       "href": "https://go.shopmy.us/p-107915672"
       }
      ]
     }
    ],
-   "cut": [
-    {
-     "name": "Nike P-6000 Sneakers",
-     "href": "https://go.shopmy.us/p-107915597"
-    },
-    {
-     "name": "Nike V2K Run Sneakers",
-     "href": "https://go.shopmy.us/p-107915672"
-    }
-   ],
+   "cut": [],
    "ownerCall": []
   },
   "store-old-navy": {
@@ -6767,16 +6766,15 @@
        "name": "Sharkninja FlexStyle Air Styling and Drying System",
        "href": "https://go.shopmy.us/p-104123333",
        "line": "FlexStyle, the big hair gift"
+      },
+      {
+       "name": "Mini Glossier You Perfume Wardrobe Gift Set",
+       "href": "https://go.shopmy.us/p-104125223"
       }
      ]
     }
    ],
-   "cut": [
-    {
-     "name": "Mini Glossier You Perfume Wardrobe Gift Set",
-     "href": "https://go.shopmy.us/p-104125223"
-    }
-   ],
+   "cut": [],
    "ownerCall": []
   },
   "store-stanley": {

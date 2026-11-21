@@ -114,7 +114,9 @@ describe("gift guides follow-up 1120", () => {
       "store-sams-club", "store-sephora", "store-stanley", "store-target", "store-tj-maxx-marshalls", "store-tractor-supply", "store-ulta-beauty", "store-walmart", "store-yeti"]);
     // Train 1120b (2026-11-20): TJ Maxx's hotlink-blocked photos and JCPenney's house-brand picks are out; both pages
     // wait for a refill. EXACT (src/test/giftGuideTrain1120b.test.ts holds the same two).
-    const SHORT: Record<string, number> = {};
+    // 2026-11-20 night: BaubleBar holds 8 (two source picks are gone from its live catalog; a refill needs new items,
+    // which need the owner's approval). EXACT: the same exception as giftGuideTrain1120b.test.ts.
+    const SHORT: Record<string, number> = { "store-baublebar": 8 };
     for (const s of STORE_PAGES_KEPT) {
       const n = CHUNKS.get(s)?.length ?? 0;
       expect(n, s).toBeGreaterThanOrEqual(SHORT[s] ?? 10);

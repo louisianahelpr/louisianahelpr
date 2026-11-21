@@ -109,7 +109,10 @@ describe("gift guides train 1120b", () => {
     expect(everything).not.toMatch(/microtel|wingate/i);
     // 2026-11-20: TJ Maxx's photos are hotlink-blocked (6 out) and JCPenney's house-brand picks are out; both wait for
     // a refill. EXACT: a refill lowers or clears these.
-    const SHORT: Record<string, number> = {};
+    // 2026-11-20 night: BaubleBar holds 8. The standard's plan keeps 9 and its only cut from this store (Horseshoe
+    // Necklace) and one keep (Disney Stitch Pisa Bracelet) are not in BaubleBar's live catalog, so no pick from the
+    // source list can refill it; new items need the owner's approval. EXACT: a refill clears this.
+    const SHORT: Record<string, number> = { "store-baublebar": 8 };
     for (const s of STORE_PAGES_KEPT) {
       const n = picks(s).length;
       if (SHORT[s] !== undefined) expect(n, s).toBe(SHORT[s]);

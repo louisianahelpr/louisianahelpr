@@ -319,7 +319,7 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelector("[data-gift-words]")).toBeNull();
     // Lead 11-21 landing polish: each landing tile says "Her · 36 gifts" (the count of its list, no chunk loaded).
     const lines = [...container.querySelectorAll("[data-gift-live-guides] [data-gift-tile-name]")].map((n) => n.textContent);
-    expect(lines).toEqual(["Her · , 36 gifts", "Him · , 39 gifts", "Kids · , 40 gifts"]);
+    expect(lines).toEqual(["Her · , 36 gifts", "Him · , 47 gifts", "Kids · , 56 gifts"]);
     cleanup();
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
     // age guide keeps its age band). The tiles are on the groups' pages (owner 11-20 PM).

@@ -94,14 +94,10 @@ describe("a Secret Santa round keeps to the group's budget", () => {
     // round only has Her's priced store picks. Exact list, both ways: a round that fills up must come OFF this list
     // (re-measure after her ShopMy Him/Kids picks land); never add a new name to it.
     // Owner 2026-11-21 ~12:05 PM ("each item also needs a price"; she chose "Show Amazon prices anyway"): Her's and
-    // Him's Amazon picks carry their captured prices now, so me/mom/her fill every budget (off the list) and dad/him
-    // fill $100 and deal 5 at $25 and $50 (measured 2026-11-21). The retired whos and Kids (no swipe deck) stay at 0.
+    // Him's Amazon picks carry their captured prices now, so with her ShopMy saves for Him and Kids (train 1121c)
+    // me, mom, her, dad and him fill every budget (measured 2026-11-21). The retired whos and Kids (no swipe deck) stay 0.
     const none = ["teen", "kids", "friends", "coworkers", "grandparents", "louisiana"];
-    const KNOWN_THIN_1121 = [
-      "dad $25: 5", "him $25: 5", ...none.map((w) => `${w} $25: 0`),
-      "dad $50: 5", "him $50: 5", ...none.map((w) => `${w} $50: 0`),
-      ...none.map((w) => `${w} $100: 0`),
-    ];
+    const KNOWN_THIN_1121 = [25, 50, 100].flatMap((b) => none.map((w) => `${w} $${b}: 0`));
     expect(thin).toEqual(KNOWN_THIN_1121);
   });
 });

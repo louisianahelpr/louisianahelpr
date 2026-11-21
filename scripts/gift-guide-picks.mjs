@@ -3919,7 +3919,8 @@ const fillPrices = () => {
 // its adds and moves take their checked prices from one more fill.
 {
   const spec = JSON.parse(readFileSync(new URL("./gift-guide-people-1120.json", import.meta.url), "utf8"));
-  const t = applyPeople(pageList, spec);
+  const campaign = JSON.parse(readFileSync(new URL("./gift-guide-train-1120c.json", import.meta.url), "utf8"));
+  const t = applyPeople(pageList, spec, { keepHrefs: new Set((campaign.adds ?? []).map((a) => a.row?.href).filter(Boolean)) });
   fillPrices();
   console.log(`gift-guide-picks: people 1120 ${JSON.stringify({ her: t.counts.her, him: t.counts.him, moved: t.counts.moved, added: t.counts.added, cut: t.counts.cut.length, overflow: t.counts.overflow.length })}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
   if (process.env.GIFT_PEOPLE_VERBOSE) console.log(`  cut: ${t.counts.cut.join(" | ")}\n  overflow: ${t.counts.overflow.join(" | ")}`);

@@ -144,7 +144,7 @@ export function relsOf(g, p) {
  * Rebuilds pageList.her and pageList.him in place (the Mom and Dad pages and the Siblings section leave). Returns the
  * counts and every spec rule that found nothing (`missing`, printed by the import, never dropped silently).
  */
-export function applyPeople(pageList, spec = {}) {
+export function applyPeople(pageList, spec = {}, { keepHrefs = new Set() } = {}) {
   const counts = { her: {}, him: {}, cut: [], moved: 0, added: 0, overflow: [] };
   const missing = [];
   const storeRow = (href) => Object.entries(pageList).filter(([s]) => s.startsWith("store-")).flatMap(([, l]) => l).find((p) => p.href === href);
@@ -197,8 +197,9 @@ export function applyPeople(pageList, spec = {}) {
     // The owner's keeps (spec.keeps: the Dyson Airwrap in For Her, Mom filter) take their section first, past the type cap.
     const keeps = (spec.keeps ?? []).filter((k) => k.guide === g.slug);
     for (const k of keeps) if (!ranked.some((p) => fold(p.name).includes(fold(k.match)))) missing.push(`keep ${g.slug}: ${k.match}`);
-    // A 25 Days sponsor's one spot and a joined Creator Connections campaign keep their place too (train 1120b/c rules).
-    const keepOf = (p) => keeps.find((k) => fold(p.name).includes(fold(k.match))) ?? (p.sponsor === true || typeof p.campaignEnds === "string" ? { match: p.name } : undefined);
+    // A 25 Days sponsor's one spot and a joined Creator Connections campaign keep their place too (train 1120b/c rules);
+    // keepHrefs holds the campaign adds' links (train 1120c: each holds exactly one guide spot).
+    const keepOf = (p) => keeps.find((k) => fold(p.name).includes(fold(k.match))) ?? (p.sponsor === true || typeof p.campaignEnds === "string" || keepHrefs.has(p.href) ? { match: p.name } : undefined);
     for (const p of ranked.filter(keepOf)) bins.get(keepOf(p).section ?? interestOf(g.slug, p)).push({ ...p, keptRels: keepOf(p).rels });
     // His Classic Style leads with the brands Louisiana men wear (owner 11-20), each group by commission.
     if (g.slug === "him") ranked.sort((x, y) => Number(interestOf("him", y) === "classic-style" && LA_MEN_FIRST.test(String(y.brand ?? "").trim())) - Number(interestOf("him", x) === "classic-style" && LA_MEN_FIRST.test(String(x.brand ?? "").trim())));

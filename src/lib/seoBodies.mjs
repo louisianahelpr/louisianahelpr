@@ -102,8 +102,9 @@ export function giftGuideBody(slug, guide) {
 }
 
 /**
- * /gift-guides/black-friday-cyber-monday (owner 2026-11-19): the deals guide is no catalog guide (its deals load in the
- * page), so its body is the breadcrumb, its H1 (the day's name), its intro and the disclosure.
+ * A deals day, /gift-guides/black-friday, /small-business-saturday or /cyber-monday (owner 2026-11-19; one page per day
+ * owner 2026-11-21): no catalog guide (its cards load in the page), so its body is the breadcrumb, its H1 (the day's
+ * name), its intro and one more line (the disclosure, or the day line on Small Business Saturday).
  */
 export function dealsGuideBody(slug, name, intro, disclosure) {
   return page(

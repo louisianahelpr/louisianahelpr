@@ -96,8 +96,7 @@ import { titleCase } from "../src/lib/declutter/titleCase.mjs";
 import { OG_ITEM_HEIGHT, OG_ITEM_WIDTH, ogItemImageUrl } from "../src/lib/ogItemCard.mjs";
 import { jobShareDescription } from "../src/lib/jobShareLine.mjs";
 import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "../src/lib/giftGuideShareImages.mjs";
-import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "../src/content/giftGuideDeals.mjs";
-import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS, smallBizDay, smallBizTitle } from "../src/content/giftGuideSmallBiz.mjs";
+import { DEALS_SLUG, DEALS_WORDS, dealDay, eventPhase, louisianaDay, oldDealsTarget } from "../src/content/giftGuideDeals.mjs";
 import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 
 /**
@@ -1200,18 +1199,14 @@ function seoFor(url: URL): SeoOutcome {
     const slug = giftGuideSlug(id);
     // My Wish List: the page itself, with the noindex head publicOrGiftGuidePageMetaFor gives any unlisted guide slug.
     if (slug === MY_LIST_SLUG) return null;
-    // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is no catalog guide: its own body, never a 404.
-    // The Small Business Saturday page (owner 2026-11-19, big batch 1120): its own body, never a 404.
-    // Owner 11-21 ("launch the 3 guides remove the rest that are live"): while either is retired (not in
-    // src/content/giftGuideLive.mjs) its old link 301s to the landing page, as the page itself sends it there.
-    if ((slug === SMALL_BIZ_SLUG || slug === DEALS_SLUG) && !isLiveGuide(slug)) return { kind: "moved", location: `${SITE_ORIGIN}/gift-guides` };
-    if (slug === SMALL_BIZ_SLUG) {
-      const name = smallBizTitle(smallBizDay(new Date()));
-      return { kind: "page", body: dealsGuideBody(SMALL_BIZ_SLUG, name, SMALL_BIZ_WORDS.intro, SMALL_BIZ_WORDS.featuredLine), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${SMALL_BIZ_SLUG}` }])] };
-    }
-    if (slug === DEALS_SLUG) {
-      const name = dealsTitle(louisianaDay(new Date()));
-      return { kind: "page", body: dealsGuideBody(DEALS_SLUG, name, DEALS_WORDS.intro, DEALS_WORDS.disclosure), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${DEALS_SLUG}` }])] };
+    // The deals days (owner 2026-11-21: "like each day has its own section, no need to put them all in 1"): Black Friday,
+    // Small Business Saturday and Cyber Monday are each their own page, no catalog guide: their own body, never a 404.
+    // The old one-page address 301s to Black Friday (a #anchor never reaches the server; the page forwards one).
+    if (slug === DEALS_SLUG) return { kind: "moved", location: `${SITE_ORIGIN}/gift-guides/${oldDealsTarget("")}` };
+    const day = slug && isLiveGuide(slug) ? dealDay(slug) : null;
+    if (day) {
+      const line = day.kind === "deals" ? DEALS_WORDS.disclosure : day[eventPhase(day, louisianaDay(new Date()))];
+      return { kind: "page", body: dealsGuideBody(day.id, day.pageTitle, day.intro, line), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: day.pageTitle, path: `/gift-guides/${day.id}` }])] };
     }
     const d = seoData();
     if (!d) return null;
@@ -1313,8 +1308,9 @@ function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
   if (id === "gift-guides") return { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: name };
   const slug = /^gift-guides\/([a-z0-9-]+)$/.exec(id)?.[1];
   if (!slug) return undefined;
-  // The deals guide's own card (owner 2026-11-19), drawn by scripts/gift-guide-deals-cover.py.
-  if (slug === DEALS_SLUG) return { url: `${SITE_ORIGIN}/gift-guides/deals/${DEALS_SLUG}.jpg`, type: "image/jpeg", width: 600, height: 600, alt: name };
+  // The deals days' own card (owner 2026-11-19), drawn by scripts/gift-guide-deals-cover.py; Small Business Saturday
+  // takes the generic card.
+  if (dealDay(slug)?.kind === "deals") return { url: `${SITE_ORIGIN}/gift-guides/deals/${DEALS_SLUG}.jpg`, type: "image/jpeg", width: 600, height: 600, alt: name };
   // The free printables page's own 1200x630 card (owner 2026-11-20): three gift tags with names on the gingham.
   if (slug === "printables") return { url: `${SITE_ORIGIN}/printables/og-printables.jpg?v=1`, type: "image/jpeg", width: 1200, height: 630, alt: "Free printable Christmas gift tags with names from Louisiana Helpr" };
   // The share JPG first (600x600 JPEG, the format every link-preview crawler takes), then the WebP cover.

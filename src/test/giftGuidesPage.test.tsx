@@ -29,7 +29,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
+ * @mutate src/pages/info/GiftGuides.tsx | {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   { slug: "him", dot: "green" }, |   { slug: "him", dot: "red" },
@@ -69,7 +69,7 @@
  * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | <p className="gg-arch-foot">Louisiana Helpr</p> | <p className="gg-line">25 picks</p><p className="gg-arch-foot">Louisiana Helpr</p>
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | <h1 id={titleId}>{title}</h1>\n          </div> | <h1 id={titleId}>{title}</h1><p className="gg-arch-foot">Louisiana Helpr</p>\n          </div>
  * @mutate src/content/giftGuides.ts |   { rank: 1, store: "Muck Boot", code: "TAKE25", | { rank: 8, store: "Muck Boot US", code: "TAKE25",
  */
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -104,10 +104,9 @@ import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { RETIRED_SLUGS, newSlugFor } from "@/content/giftGuideCatalog";
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
-import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
-import { SMALL_BIZ_SLUG } from "@/content/giftGuideSmallBiz.mjs";
+import { DEAL_DAY_SLUGS, DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 // The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are own pages too: in the sitemap, no guide.
-const OWN_PAGES = [DEALS_SLUG, SMALL_BIZ_SLUG, "swipe", "planner", "draw-names", "printables"];
+const OWN_PAGES = [...DEAL_DAY_SLUGS, "swipe", "planner", "draw-names", "printables"];
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
@@ -343,12 +342,12 @@ describe("gift guides: the landing opens to the guides", () => {
     cleanup();
     const wordsOf = (path: string) => [...(renderAt(path).container.querySelector("[data-gift-words]")?.children ?? [])].map((c) => c.textContent);
     // A guide's header is its cover's look as a short banner (owner 11-18 PM): gingham in the guide's palette, a cream
-    // arch holding the lead, the title and the LOUISIANA HELPR line (real text, no image), the tool row right under it.
+    // arch holding the lead and the title (real text, no image; owner 11-21: "remove louisiana helpr from the [banner]").
     // @mutate src/pages/info/GiftGuides.tsx | titleId="gift-guide-title" tint={guide.tint} | titleId="gift-guide-title"
     // The tool row carries no text: an empty My list shows no "0" badge (pre-launch audit 11-18 PM).
     // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {n > 0 && <span className="gg-icon-count" |       {true && <span className="gg-icon-count"
     // Owner 11-21: the tool row moved up beside the shipping pill, so the banner holds only its arch.
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr"]);
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMom"]);
     cleanup();
     expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-headrow] [data-gift-quick]")?.textContent).toBe("");
     cleanup();
@@ -360,7 +359,7 @@ describe("gift guides: the landing opens to the guides", () => {
       expect(head.getAttribute("data-gift-banner"), slug).toBe(g.tint);
       expect(head.querySelector(".gg-banner")?.className, slug).toBe(`gg-banner gg-check gg-${g.tint}`);
       const arch = head.querySelector("[data-gift-arch]")!;
-      expect([...arch.children].map((x) => x.textContent), slug).toEqual([g.age ? `${g.lead}, ${g.age}` : g.lead, g.title, "Louisiana Helpr"]);
+      expect([...arch.children].map((x) => x.textContent), slug).toEqual([g.age ? `${g.lead}, ${g.age}` : g.lead, g.title]);
       // Live audit r3 #7: the guide's name is the page's ONE h1; the header's "Gift guides" is a plain line.
       expect(arch.querySelector("h1")?.id, slug).toBe("gift-guide-title");
       expect(c.querySelectorAll("h1").length, slug).toBe(1);
@@ -668,13 +667,11 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const sitemap = readFileSync("public/sitemap.xml", "utf8");
     const listed = [...sitemap.matchAll(/<loc>https:\/\/www\.louisianahelpr\.com(\/gift-guides[^<]*)<\/loc>/g)].map((m) => m[1]);
     expect(listed).toContain("/gift-guides");
-    // The own pages (the fun pages; the deals guide and Small Business Saturday while live) are in the sitemap too, but
-    // are no catalog guide. Owner 11-21: the Small Business Saturday page is retired (src/content/giftGuideLive.mjs);
-    // the deals page is live again (its three day sections hold Small Business Saturday).
+    // The own pages (the fun pages and the three deals days, owner 11-21: "each day has its own section") are in the
+    // sitemap too, but are no catalog guide. The old one-page deals address is a redirect, never listed.
     const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", "")).filter((s) => !OWN_PAGES.includes(s));
-    expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.filter((s) => s !== SMALL_BIZ_SLUG).map((s) => `/gift-guides/${s}`)));
-    expect(listed).toContain(`/gift-guides/${DEALS_SLUG}`);
-    expect(listed).not.toContain(`/gift-guides/${SMALL_BIZ_SLUG}`);
+    expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.map((s) => `/gift-guides/${s}`)));
+    expect(listed).not.toContain(`/gift-guides/${DEALS_SLUG}`);
     expect(guides.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship pages (14, 2026-11-21)
     // Every listed guide opens, holds picks, and is no thin store page.
     for (const s of guides) {
@@ -688,10 +685,9 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     for (const g of GUIDES.filter((x) => RESEARCHED_PICKS[x.slug] && !x.empty && !x.thin)) expect(guides, g.slug).toContain(g.slug);
     expect(PUBLIC_PAGE_META["/gift-guides"].canonical).toBe("https://www.louisianahelpr.com/gift-guides");
     expect(Object.keys(NOINDEX_PAGE_META)).not.toContain("/gift-guides");
-    // The deals guide (owner 2026-11-19) has its own head (src/test/giftGuideDeals1119.test.tsx).
-    // ... and so does the Small Business Saturday page (1120).
+    // Each deals day (owner 2026-11-21) has its own head (src/test/giftGuideDeals1119.test.tsx).
     // My Wish List and a shared list (owner 2026-11-20) are noindex (src/test/giftWishList1120.test.tsx).
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain(': deals ? giftGuidePageMeta(smallBiz ? SMALL_BIZ_SLUG : DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],');
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain(': deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],');
     expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);");
     const mom = giftGuidePageMeta("mom");
     expect(mom.title).toBe("Gifts for Mom — Helpr");

@@ -3,7 +3,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { GUIDES, ROWS, guidesIn, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
-import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
+import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
 import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
 import { FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
 import { GiftGuideTile } from "./GiftGuideTile";
@@ -31,8 +31,8 @@ import { GiftFinder } from "./GiftGuideFinder";
  * retired guides (src/content/giftGuideLive.mjs). Guard: src/test/giftGuideOnlyThree1121.test.tsx.
  */
 
-/** Live slugs that are pages, not guide tiles: the 25 Days sponsors page (a left-menu entry) and the deals page (its card). */
-const NOT_TILES = new Set(["25-days-sponsors", DEALS_SLUG]);
+/** Live slugs that are pages, not guide tiles: the 25 Days sponsors page (a left-menu entry) and the deals days (left-menu entries). */
+const NOT_TILES = new Set(["25-days-sponsors", ...DEAL_DAY_SLUGS]);
 
 /** The landing's tiles: the live guides in the owner's order (Her, Him, Kids), each that holds picks. */
 const liveGuideTiles = (): CatalogGuide[] =>

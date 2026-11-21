@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { giftGuides as G } from "@/content/giftGuides";
-import { DEALS_SLUG, DEALS_WORDS as W, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, shortDay, type Deal } from "@/content/giftGuideDeals.mjs";
+import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 import { loadModule } from "@/lib/loadModule";
 import { HINTS, WISH } from "@/content/giftWishList";
@@ -13,17 +13,19 @@ import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 
 /**
- * /gift-guides/black-friday-cyber-monday (owner 2026-11-19; owner 2026-11-21: "we still need to do the black friday
- * section, small business saturday, and cyber monday deals"): ONE page with three day sections, Black Friday (Nov 27),
- * Small Business Saturday (Nov 28) and Cyber Monday (Nov 30) (giftGuideDeals.mjs DEAL_EVENTS). Each section is its
- * heading, one line with its day (worded for before, on and after the day), then its cards. A section whose day has
- * passed moves below the ones still ahead and stays while its sales run (eventOrder); a deals section with nothing
- * left to show is left out. Deal cards: the brand, the sale in the brand's words, a CODE chip with a copy button when
+ * The deals days (owner 2026-11-19; owner 2026-11-21: "we still need to do the black friday section, small business
+ * saturday, and cyber monday deals"; later "remove small business stuff from black friday stuff. like each day has its
+ * own section, no need to put them all in 1"): each day is its own page, /gift-guides/black-friday (Nov 27),
+ * /gift-guides/small-business-saturday (Nov 28) and /gift-guides/cyber-monday (Nov 30) (giftGuideDeals.mjs
+ * DEAL_EVENTS), with no links between the days on the page. A day page is its intro, one line with its day (worded for
+ * before, on and after the day), the #ad line, its own "Deals & codes" box (collapsed; only the codes and sales that
+ * still work on that day, codesDay), then only its own cards. Deal cards: the brand, the sale in the brand's words, a CODE chip with a copy button when
  * there is a code, "Starts <day>" (announced, not started yet) or "Ends <day>", the photo and a Shop link with our
- * affiliate link. Never a price. The order inside a section is the generator's (our commission, high to low;
+ * affiliate link. Never a price. The order is the generator's (our commission, high to low;
  * scripts/gift-guide-deals.mjs). A deal past its end day is hidden at view time (dealShows). The Small Business
- * Saturday section is the confirmed Louisiana 25 Days sponsors (GiftGuideSmallBiz.tsx SmallBizGrid). Deals live on
- * this page only, never inside Her, Him or Kids (owner 11-21). The data files load only when this page opens.
+ * Saturday page is the confirmed Louisiana 25 Days sponsors only (GiftGuideSmallBiz.tsx SmallBizGrid), no codes box
+ * (none of the store codes is a sponsor's), and a link to /shop-small. Deals live on the day pages only, never inside
+ * Her, Him or Kids (owner 11-21). The data files load only when a day page opens.
  * Guard: src/test/giftGuideDeals1119.test.tsx.
  */
 
@@ -44,10 +46,10 @@ const DEALS_CSS = `
 .gg-deal-code code{font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:var(--gg-soft);color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal .gg-deal-shop{display:inline-flex;align-items:center;align-self:flex-start;min-height:44px;margin-top:auto;padding:0 4px 0 0;border:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-deal .gg-deal-shop:hover,.gg-deal .gg-deal-shop:focus-visible{text-decoration:underline}
-.gg-deals-jump{display:flex;flex-wrap:wrap;align-items:center;gap:0 16px;margin:2px 0 0}
-.gg-deals-jump span{font-size:12px;color:var(--gg-muted)}
 @media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:2;font-size:17px;line-height:1.1}}
-.gg-deals-day{margin:-4px 0 12px;font-size:14px;line-height:1.45;color:var(--gg-ink);max-width:46rem}
+.gg-deals-day{margin:0 0 6px;font-size:14px;line-height:1.45;color:var(--gg-ink);max-width:46rem}
+.gg-deals-list{margin-top:12px}
+.gg-deals-small{display:inline-block;margin:16px 0 4px}
 .gg-deals-feature{display:flex;align-items:center;gap:14px;margin:4px 0 14px;padding:12px;border-radius:14px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);text-decoration:none}
 .gg-deals-feature img{width:88px;height:88px;flex:none;border-radius:10px;object-fit:cover}
 .gg-deals-feature b{display:block;font-size:16px}
@@ -116,10 +118,13 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
   );
 }
 
-/** The deals page's body. `now` is for tests; the page passes nothing and reads the clock. */
-export function GiftGuideDeals({ now }: { now?: Date }) {
+/** One deals day's page. `now` is for tests; the page passes nothing and reads the clock. */
+export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   const [deals, setDeals] = useState<Deal[] | null>(null);
+  const kind = day.kind;
   useEffect(() => {
+    // The Small Business Saturday page has no deal cards: it never loads the deals file.
+    if (kind !== "deals") return;
     let live = true;
     void loadDeals().then(
       (m) => live && m && setDeals(m.default as Deal[]),
@@ -129,55 +134,39 @@ export function GiftGuideDeals({ now }: { now?: Date }) {
     return () => {
       live = false;
     };
-  }, []);
+  }, [kind]);
   const today = louisianaDay(now ?? new Date());
-  const shown = deals ? liveDeals(deals, today) : [];
-  // The day sections in page order; a deals section with nothing left to show is left out (the sponsors always stay).
-  const sections = eventOrder(today).filter((e) => e.kind === "small-biz" || dealsIn(shown, e.id).length > 0);
+  // Only this day's cards, and only the ones still on (dealShows).
+  const list = deals ? dealsIn(liveDeals(deals, today), day.id) : [];
   return (
-    <div data-gift-deals-page="">
+    <div data-gift-deals-page="" data-gift-deal-day-page={day.id} data-gift-deal-phase={eventPhase(day, today)}>
       <style>{DEALS_CSS}</style>
-      <p className="gg-deals-intro">{W.intro}</p>
-      <p className="gg-deals-ad" data-gift-deals-ad="">{W.disclosure}</p>
-      {/* Owner 2026-11-20 hints: the deals page's helper line. */}
-      <p className="gg-deals-ad" data-gift-deals-help="">{HINTS.deals}</p>
-      {/* Owner 11-21 ("i dont see the discount codes or sales"): the store codes and sales live on this page, open, and
-          nowhere else on the landing ("Codes and deals shouldn't randomly show in sections"). */}
-      <DealsAndCodes open />
-      {deals === null ? (
-        <p className="gg-deal-meta" role="status">{W.loading}</p>
-      ) : (
+      <p className="gg-deals-intro">{day.intro}</p>
+      <p className="gg-deals-day" data-gift-deal-day="">{day[eventPhase(day, today)]}</p>
+      {kind === "deals" ? (
         <>
-          <nav className="gg-deals-jump" aria-label={W.jumpLabel} data-gift-deals-jump="">
-            {sections.map((e) => (
-              <a key={e.id} href={`#${e.id}`} className="gg-link">
-                {/* Phones: the names only (the day line under each heading says the date), so the row stays short. */}
-                {e.title}<span className="hidden sm:inline">&nbsp;· {shortDay(e.day)}</span>
-              </a>
-            ))}
-          </nav>
-          {sections.map((e) => {
-            const list = e.kind === "deals" ? dealsIn(shown, e.id) : [];
-            return (
-              <section key={e.id} id={e.id} aria-labelledby={`${e.id}-title`} data-gift-deal-section={e.id} data-gift-deal-phase={eventPhase(e, today)} className="scroll-mt-24">
-                <div className="gg-rowhead">
-                  <h2 id={`${e.id}-title`}>{e.title}{e.kind === "deals" && <span className="gg-rowcount">&nbsp;({list.length})</span>}</h2>
-                </div>
-                <p className="gg-deals-day" data-gift-deal-day="">{e[eventPhase(e, today)]}</p>
-                {e.kind === "deals" ? (
-                  <ul className="gg-deal-grid">{list.map((d) => <DealCard key={`${d.brand} ${d.href}`} deal={d} today={today} />)}</ul>
-                ) : (
-                  <SmallBizGrid />
-                )}
-              </section>
-            );
-          })}
-          {sections.every((e) => e.kind === "small-biz") && (
+          <p className="gg-deals-ad" data-gift-deals-ad="">{W.disclosure}</p>
+          {/* Owner 2026-11-20 hints: the deals page's helper line. */}
+          <p className="gg-deals-ad" data-gift-deals-help="">{HINTS.deals}</p>
+          {/* Owner 11-21: "[Deals & codes box] should open collapsed"; each day only the codes and sales that still work on it. */}
+          <DealsAndCodes on={codesDay(day, today)} />
+          {deals === null ? (
+            <p className="gg-deal-meta" role="status">{W.loading}</p>
+          ) : list.length === 0 ? (
             <p className="gg-deals-intro" data-gift-deals-none="">
               {W.none} <Link to="/gift-guides" className="gg-link">{W.noneCta}</Link>
             </p>
+          ) : (
+            <ul className="gg-deal-grid gg-deals-list" aria-labelledby="gift-guide-title" data-gift-deal-list={day.id}>
+              {list.map((d) => <DealCard key={`${d.brand} ${d.href}`} deal={d} today={today} />)}
+            </ul>
           )}
         </>
+      ) : (
+        <div className="gg-deals-list">
+          <SmallBizGrid />
+          <Link to="/shop-small" className="gg-link gg-deals-small" data-gift-deals-shop-small="">{W.shopSmall} ›</Link>
+        </div>
       )}
     </div>
   );
@@ -185,7 +174,7 @@ export function GiftGuideDeals({ now }: { now?: Date }) {
 
 /**
  * The landing's featured slot (owner brief 2026-11-19): at the very top of /gift-guides from Nov 23 through Dec 1 in
- * Louisiana, then gone; after Dec 1 the guide itself is "Holiday Deals" (dealsTitle).
+ * Louisiana, then gone; it opens the next deals day still ahead (eventOrder), "Holiday Deals" after Dec 1 (dealsTitle).
  */
 export function DealsFeature({ now }: { now?: Date }) {
   const today = louisianaDay(now ?? new Date());
@@ -193,7 +182,7 @@ export function DealsFeature({ now }: { now?: Date }) {
   return (
     <>
       <style>{DEALS_CSS}</style>
-      <Link to={`/gift-guides/${DEALS_SLUG}`} className="gg-deals-feature" data-gift-deals-feature="">
+      <Link to={`/gift-guides/${eventOrder(today)[0].id}`} className="gg-deals-feature" data-gift-deals-feature="">
         <img src={DEALS_COVER} alt="" width={88} height={88} decoding="async" />
         <span>
           <b>{dealsTitle(today)}</b>

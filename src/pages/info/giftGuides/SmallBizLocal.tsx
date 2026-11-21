@@ -17,7 +17,7 @@ import { businessKey } from "../../../../supabase/functions/_shared/sbsSubmissio
  * Business Saturday page opens. Guard: src/test/sbsFeaturedLocal1120.test.tsx.
  */
 
-export const SBS_CSS = `
+const SBS_CSS = `
 .gg-sbs-local{margin-top:22px}
 .gg-sbs-local-intro{margin:4px 0 10px;font-size:13px;color:var(--gg-muted)}
 .gg-bdg-local{background:#e3eedf;color:#2f5a2a}
@@ -88,7 +88,7 @@ type FormModule = { SmallBizSubmitForm: ComponentType<{ onClose: () => void }> }
 // The form's chunk, alone in its loader (loads on tap only).
 const loadForm = () => loadModule(() => import("./SmallBizSubmitForm"));
 
-export const SBS_CTA_ID = "get-featured";
+const SBS_CTA_ID = "get-featured";
 
 /** The "Get your business featured" card, its form opening in place. */
 function FeatureCta() {

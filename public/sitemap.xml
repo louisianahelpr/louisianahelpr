@@ -39,7 +39,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/black-friday-cyber-monday</loc>
+    <loc>https://www.louisianahelpr.com/gift-guides/black-friday</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -50,6 +50,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/brother</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/cyber-monday</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -118,6 +123,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/sister</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/small-business-saturday</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

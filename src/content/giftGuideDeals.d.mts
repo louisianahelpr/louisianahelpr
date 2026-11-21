@@ -24,6 +24,11 @@ export interface DealEvent {
   /** YYYY-MM-DD (Louisiana). */
   day: string;
   title: string;
+  /** The day page's banner title ("Black Friday Deals"). */
+  pageTitle: string;
+  lead: string;
+  intro: string;
+  description: string;
   before: string;
   on: string;
   after: string;
@@ -33,12 +38,14 @@ export const FEATURE_FROM: string;
 export const FEATURE_TO: string;
 export const RETITLE_AFTER: string;
 export const DEAL_EVENTS: readonly DealEvent[];
+export const DEAL_DAY_SLUGS: readonly string[];
+export function dealDay(slug: string | undefined): DealEvent | null;
+export function oldDealsTarget(hash: string): string;
+export function codesDay(event: Pick<DealEvent, "day">, today: string): string;
 export const DEALS_PER_BRAND: number;
 export const DEALS_WORDS: {
   title: string;
   laterTitle: string;
-  lead: string;
-  intro: string;
   disclosure: string;
   featuredLine: string;
   featuredCta: string;
@@ -46,7 +53,7 @@ export const DEALS_WORDS: {
   codeLabel: string;
   endsOn: (ymd: string) => string;
   startsOn: (ymd: string) => string;
-  jumpLabel: string;
+  shopSmall: string;
   none: string;
   noneCta: string;
   loading: string;

@@ -123,6 +123,8 @@ const UNSWEPT_ROUTES: Record<string, string> = {
   "*": "The NotFound catch-all; the `not-found` catalog row is what renders it.",
   "/declutter/wanted/new": "F130 (UI audit 11-09): a <Navigate> to /declutter?tab=wanted&post=1, which the Declutter rows sweep; it paints nothing itself.",
   "/helpdesk": "F471/F415/F234 (audit 11-10): a <Navigate> to /help, which the `help` row sweeps; it paints nothing itself.",
+  "/holidays/lights": "2026-11-21 (Holiday Hub on one page): HolidayLegacyRedirect, a <Navigate> to /holidays?what=lights, which the `holidays` row sweeps; it paints nothing itself.",
+  "/holidays/events": "2026-11-21 (Holiday Hub on one page): HolidayLegacyRedirect, a <Navigate> to /holidays?what=events, which the `holidays` row sweeps; it paints nothing itself.",
   "/settings": "F415 (audit 11-10): a <Navigate> to /profile?tab=settings, which the Profile rows sweep; it paints nothing itself.",
   "/profile/security": "F455 (audit 11-10): a <Navigate> to /profile?tab=security, which the Profile rows sweep; it paints nothing itself.",
 };
@@ -323,7 +325,9 @@ describe("audit catalog matches the real route table", () => {
         if (el === null) return `${p} → could not read its element from App.tsx`;
         // The whole excuse is "it paints nothing". Anything that is not a
         // redirect renders a screen, and a screen has to be swept.
-        if (!/Navigate|ShortLinkRedirect/.test(el))
+        // A custom redirect component is named <Something>Redirect (ShortLinkRedirect, HolidayLegacyRedirect), the
+        // same rule scripts/generate-sitemap.mjs uses to keep redirect-only paths out of the sitemap.
+        if (!/Navigate|\b[A-Z]\w*Redirect\b/.test(el))
           return `${p} → excused as a redirect but its element is ${el.trim().slice(0, 60)}…; it renders a screen, so it needs a catalog row`;
         return null;
       })

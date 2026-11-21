@@ -194,8 +194,6 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "gift-secret-santa-reveal", url: "/gift-guides/secret-santa/aaaaaaaaaa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
   // 2026-11-20: the Louisiana Holiday Hub (public, no sign-in).
   { name: "holidays", url: "/holidays" },
-  { name: "holiday-lights", url: "/holidays/lights" },
-  { name: "holiday-events", url: "/holidays/events" },
   { name: "holiday-hire", url: "/holidays/hire-a-helpr" },
   // OPS-4 town + service pages (src/lib/townPages.mjs): one of the 40 stands in for the shared page.
   { name: "hire-town", url: "/hire/handyman/lafayette" },

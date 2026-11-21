@@ -29,17 +29,7 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/holidays</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/holidays/events</loc>
     <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/holidays/lights</loc>
-    <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>

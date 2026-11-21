@@ -15,7 +15,7 @@ import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { GiftGuideSharedList } from "./giftGuides/GiftGuideSharedList";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
-import { loadModule } from "@/lib/loadModule";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { WISH } from "@/content/giftWishList";
 import { MY_LIST_SLUG } from "./giftGuides/giftList";
@@ -71,10 +71,13 @@ function LazySaveForSomeone() {
   const [mod, setMod] = useState<SaveForModule | null>(null);
   useEffect(() => {
     let live = true;
-    void loadSaveFor().then(
-      (m) => { if (live && m) setMod(m); },
-      (e) => report(e as Error, { tags: { source: "GiftGuides.loadSaveFor" } }),
-    );
+    // An empty module (a stale-chunk reload on its way) waits on untilReload(); the hearts save to My Wish List meanwhile.
+    void loadSaveFor()
+      .then((m) => m ?? untilReload())
+      .then(
+        (m) => { if (live) setMod(m); },
+        (e) => report(e as Error, { tags: { source: "GiftGuides.loadSaveFor" } }),
+      );
     return () => {
       live = false;
     };

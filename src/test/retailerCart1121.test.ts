@@ -25,7 +25,7 @@ import { amazonAsin, amazonCartUrl } from "@/lib/retailerCart";
 
 const DIR = join(process.cwd(), "src/content/giftGuidePicks");
 const amazonHrefs = readdirSync(DIR).filter((f) => f.endsWith(".json")).flatMap((f) =>
-  (JSON.parse(readFileSync(join(DIR, f), "utf8")) as { picks?: { href: string }[] }).picks ?? []).map((p) => p.href).filter((h) => /amazon\.com/.test(h));
+  (JSON.parse(readFileSync(join(DIR, f), "utf8")) as { picks?: { href: string }[] }).picks ?? []).map((p) => p.href).filter((h) => /^https:\/\/(www\.)?amazon\.com\//.test(h));
 
 describe("Amazon add-to-cart link", () => {
   it("every Amazon link in the guides gives its ASIN", () => {

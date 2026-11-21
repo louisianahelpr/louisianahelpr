@@ -45,6 +45,6 @@ describe("guest /browse loads the job preview on open (Q2705)", () => {
     expect(page).toMatch(/useEffect\(\(\) => whenPageSettled\(\(\) => void loadGuestJobPreview\(\)/);
     expect(page).toMatch(/<Suspense fallback=\{null\}>\s*<GuestJobPreview job=\{detailJob\}/);
     // Log in still comes back to the job, from the dialog-free module.
-    expect(code("src/lib/jobIntent.ts")).toMatch(/export const guestLogInUrl = \(jobId: string\) => `\/login\?redirect=\$\{encodeURIComponent\(`\/jobs\/\$\{jobId\}`\)\}`;/);
+    expect(code("src/lib/jobIntent.ts")).toMatch(/export const guestLogInUrl = \(jobId: string\) => `\/login\?redirect=\$\{encodeURIComponent\(`\/jobs\/\$\{jobId\}`\)\}&reason=apply`;/);
   });
 });

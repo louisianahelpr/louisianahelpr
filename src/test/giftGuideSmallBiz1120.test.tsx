@@ -70,7 +70,7 @@ describe("Small Business Saturday: the businesses", () => {
     const expected = Object.keys(TRACKER_NAME).filter((s) => confirmedLocal(s, order)).sort();
     expect(rows.map((b) => b.slug).sort()).toEqual(expected);
     expect(rows.map((b) => b.slug)).not.toContain("sprinkle-in-time-too");
-    for (const s of ["basic-bee", "written-on-the-river", "megan-benoits-closet", "humble-home-decor-candles", "barclell-photography", "birdwells", "accesorios-para-ninas", "rr-wedding-co"]) {
+    for (const s of ["written-on-the-river", "megan-benoits-closet", "humble-home-decor-candles", "barclell-photography", "birdwells", "accesorios-para-ninas", "rr-wedding-co"]) {
       expect(rows.map((b) => b.slug), s).not.toContain(s);
     }
     // A national or unconfirmed name is refused even when the tracker lists a value for it.

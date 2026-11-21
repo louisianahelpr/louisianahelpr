@@ -98,6 +98,8 @@ export function GiftGuideSharedList({ code, read = getSharedList }: { code: stri
           {missing > 0 && <p className="gg-wish-missing" data-gift-wish-missing="">{WISH.missing(missing)}</p>}
         </>
       )}
+      {/* Owner 11-21: the affiliate disclosure, on every list someone shared. */}
+      {list && <p className="gg-price-note" data-gift-shared-supports="">{WISH.sharedSupports}</p>}
       <Link to="/gift-guides" className="gg-link gg-wish-own" data-gift-shared-own="">{WISH.sharedCta} ›</Link>
     </section>
   );

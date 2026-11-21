@@ -20,6 +20,7 @@ import { GuidePicksPicker, type GuidePick } from "./GuidePicksPicker";
 import { plannerPrice, shareListOf } from "../saveForPeople";
 import { ShareAllLists } from "../SaveForSomeone";
 import { AmazonCartForList } from "../AmazonCartButton";
+import { AnyStoreAdd } from "../AnyStoreAdd";
 import { GiftWishShare } from "../GiftWishShare";
 import { WISH } from "@/content/giftWishList";
 import { shareGiftLists } from "@/lib/giftWishListApi";
@@ -52,8 +53,6 @@ function MoneyBar({ p }: { p: PlanPerson }) {
 }
 
 function Person({ p }: { p: PlanPerson }) {
-  const [idea, setIdea] = useState("");
-  const [price, setPrice] = useState("");
   const [budgetText, setBudgetText] = useState(p.budget !== undefined ? String(p.budget) : "");
   const [err, setErr] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -65,16 +64,6 @@ function Person({ p }: { p: PlanPerson }) {
     if (added.has(g.href)) return;
     const price = plannerPrice(g);
     A.addIdea(p.id, { name: g.name, href: g.href, guide: g.guide, ...(price !== undefined ? { price } : {}), ...(g.image ? { image: g.image } : {}) });
-  };
-  const addIdea = (e: FormEvent) => {
-    e.preventDefault();
-    if (!idea.trim()) return;
-    const v = price.trim() ? parseDollars(price) : undefined;
-    if (price.trim() && v === undefined) return setErr(W.plannerBadAmount);
-    setErr(null);
-    A.addIdea(p.id, { name: idea.trim(), ...(v !== undefined ? { price: v } : {}) });
-    setIdea("");
-    setPrice("");
   };
   // UX audit M2: the budget saves as it is typed (when it is an amount); a typed non-amount says so at once.
   const typeBudget = (text: string) => {
@@ -133,12 +122,11 @@ function Person({ p }: { p: PlanPerson }) {
           ))}
         </ul>
       )}
-      <form className="gg-fun-row gg-plan-add mt-2" onSubmit={addIdea}>
-        <Input aria-label={`${W.plannerIdeaName} (${p.name})`} placeholder={W.plannerIdeaName} value={idea} maxLength={120} onChange={(e) => setIdea(e.target.value)} data-plan-idea-name={p.id} />
-        <Input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice} (${p.name})`} placeholder={W.plannerIdeaPrice} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} data-plan-idea-price={p.id} />
-        <Button type="submit" variant="outline" size="sm" data-plan-add-idea={p.id}>{W.plannerAddIdea}</Button>
+      {/* Owner 11-21 ("someone can just type in ideas ... and we find a link or closest match"): the one Gift idea box
+          takes a typed idea or a pasted link from any store; a price goes on the idea's own row once it is added. */}
+      <AnyStoreAdd person={p} extra={
         <Button type="button" variant="outline" size="sm" aria-haspopup="dialog" onClick={() => setFromGuides(true)} data-plan-from-guides={p.id}>{W.plannerFromGuides}</Button>
-      </form>
+      } />
       {/* Owner 11-21 (Amazon Buy Now): every Amazon gift on this list in one add-to-cart link. */}
       <AmazonCartForList person={p} />
       {/* Owner 11-21 ("share all lists"): this person's list as a link (names and gifts from our guides only). */}

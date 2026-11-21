@@ -421,10 +421,10 @@ describe("UX audit of #4791", () => {
   it("H1: the planner's budget and price boxes keep their width over the generic flex:1 rules, and the add row wraps at 320", () => {
     // (0,2,0) beats `.gg-plan-head input` (0,1,1) and `.gg-fun-row>input` (0,1,1).
     expect(css).toContain(".gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto}");
-    expect(css).toContain(".gg-plan-add{flex-wrap:wrap}");
-    expect(css).toContain("@media (max-width:379px){.gg-plan-add>input:first-child{flex:1 1 100%}}");
     expect(css).toMatch(/\.gg-fun input,\.gg-fun select\{[^}]*min-width:0/);
-    expect(readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/GiftPlanner.tsx"), "utf8")).toContain('className="gg-fun-row gg-plan-add mt-2"');
+    // Owner 11-21: the add row is now the one "type an idea or paste a link" box (AnyStoreAdd), whose row wraps.
+    expect(readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/GiftPlanner.tsx"), "utf8")).toContain("<AnyStoreAdd person={p} extra={");
+    expect(readFileSync(join(process.cwd(), "src/pages/info/giftGuides/AnyStoreAdd.tsx"), "utf8")).toContain(".gg-anystore-row{display:flex;flex-wrap:wrap;");
   });
   it("M3 and M5: a 44px Bought target; theme-token borders", () => {
     expect(css).toContain(".gg-plan-check{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px");

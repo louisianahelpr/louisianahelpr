@@ -3,7 +3,7 @@
  * of shared FilterChips, and one card per light display or event with its "Open in Maps" link. Words and rules live in
  * src/content/holidayHub/holidayHub.mjs. Guard: src/test/holidayHub.test.tsx.
  */
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
@@ -16,13 +16,16 @@ export const HUB_COLUMN = "mx-auto max-w-[1040px]";
 export const HUB_HEADER_COLUMN = "mx-auto max-w-[calc(1040px+2.5rem)] sm:max-w-[calc(1040px+4rem)] lg:max-w-[calc(1040px+6rem)]";
 
 /** One page_view per hub page opened (no personal data: the page's name only). */
-export function useHolidayPageView(page: "holidays" | "holidays_lights" | "holidays_events" | "holidays_hire") {
+export function useHolidayPageView(page: "holidays" | "holidays_hire") {
   useEffect(() => {
     track("page_view", { page });
   }, [page]);
 }
 
-/** A labelled row of shared filter chips, one pressed. Scrolls sideways on a phone, wraps from sm up. */
+/**
+ * A labelled row of shared filter chips, one pressed. Scrolls sideways on a phone, wraps from sm up. On a phone the row
+ * opens scrolled to its pressed chip, so a preset from the URL (?what=reveillon) is never hidden off the edge.
+ */
 export function HolidayFilterRow<T extends string>({ label, options, value, onChange, attr }: {
   label: string;
   options: readonly { value: T; label: string }[];
@@ -30,10 +33,19 @@ export function HolidayFilterRow<T extends string>({ label, options, value, onCh
   onChange: (v: T) => void;
   attr: `data-${string}`;
 }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = rowRef.current;
+    const chip = row?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!row || !chip || row.scrollWidth <= row.clientWidth) return;
+    const right = chip.offsetLeft + chip.offsetWidth;
+    if (chip.offsetLeft < row.scrollLeft || right > row.scrollLeft + row.clientWidth) row.scrollLeft = Math.max(0, chip.offsetLeft - 20);
+    // Mount only: a chip the person taps is already in view.
+  }, []);
   return (
     <div className="min-w-0">
       <p className="mb-1.5 text-ds-13 font-semibold text-muted-foreground" aria-hidden="true">{label}</p>
-      <div role="group" aria-label={label} className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+      <div ref={rowRef} role="group" aria-label={label} className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {options.map((o) => (
           <FilterChip key={o.value} pressed={value === o.value} onClick={() => onChange(o.value)} className="shrink-0" {...{ [attr]: o.value }}>
             {o.label}

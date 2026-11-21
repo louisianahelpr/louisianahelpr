@@ -1,18 +1,22 @@
 /**
- * Louisiana Holiday Hub (owner-approved 2026-11-20): /holidays, /holidays/lights, /holidays/events and
- * /holidays/hire-a-helpr. The words, regions, categories and the plain rules both sides of each page share: the React
- * pages, and api/share.ts's pre-JavaScript body and JSON-LD (src/lib/holidayHubSeo.mjs). Plain dependency-free ESM so
- * the serverless function imports it with no build step. The data itself is lights.mjs and events.mjs beside this file,
- * each imported only by its own page's lazy chunk. Types: holidayHub.d.mts. Guard: src/test/holidayHub.test.tsx.
+ * Louisiana Holiday Hub (owner-approved 2026-11-20; one page 2026-11-21): /holidays (Christmas lights and holiday
+ * events in one list, one set of filters, a slim "Hire a Helpr for the holidays" strip on top) and
+ * /holidays/hire-a-helpr. The old /holidays/lights and /holidays/events redirect to /holidays with the matching filter
+ * (owner 11-21: "put christmas lights and holiday events into 1"). The words, regions, categories and the plain rules
+ * both sides of each page share: the React pages, and api/share.ts's pre-JavaScript body and JSON-LD
+ * (src/lib/holidayHubSeo.mjs). Plain dependency-free ESM so the serverless function imports it with no build step. The
+ * data itself is lights.mjs and events.mjs beside this file, imported only by the /holidays page's lazy chunk.
+ * Types: holidayHub.d.mts. Guard: src/test/holidayHub.test.tsx.
  */
 
 export const HOLIDAY_HUB_PATH = "/holidays";
-export const HOLIDAY_LIGHTS_PATH = "/holidays/lights";
-export const HOLIDAY_EVENTS_PATH = "/holidays/events";
 export const HOLIDAY_HIRE_PATH = "/holidays/hire-a-helpr";
 
 /** Every page of the hub (routes, rewrites, sitemap and the meta table are checked against this list). */
-export const HOLIDAY_HUB_PATHS = [HOLIDAY_HUB_PATH, HOLIDAY_LIGHTS_PATH, HOLIDAY_EVENTS_PATH, HOLIDAY_HIRE_PATH];
+export const HOLIDAY_HUB_PATHS = [HOLIDAY_HUB_PATH, HOLIDAY_HIRE_PATH];
+
+/** The two retired list pages (2026-11-21), each now a redirect to /holidays with its filter preset. */
+const HOLIDAY_RETIRED_PAGES = { "/holidays/lights": "lights", "/holidays/events": "events" };
 
 /** The regions, in the order the lists show them (the research's region names, shortened). */
 export const HOLIDAY_REGIONS = [
@@ -39,6 +43,13 @@ export const HOLIDAY_EVENT_CATEGORIES = [
   { slug: "concert", label: "Concerts" },
   { slug: "festival", label: "Festivals" },
   { slug: "fun-run", label: "Fun runs" },
+];
+
+/** The "What" filter on /holidays: everything, the light displays, every event, or one kind of event. */
+export const HOLIDAY_WHAT = [
+  { slug: "lights", label: "Christmas lights" },
+  { slug: "events", label: "All events" },
+  ...HOLIDAY_EVENT_CATEGORIES,
 ];
 
 /** One event's kind, singular, for its card. */
@@ -130,7 +141,7 @@ export function holidayMapsQuery(item) {
   return `${item.name}, ${where}`;
 }
 
-/** The lights page's filters. `way`: "drive" (drive-through, drive by, or both) or "walk" (walk-through or both). */
+/** The lights' filters. `way`: "drive" (drive-through, drive by, or both) or "walk" (walk-through or both). */
 export function filterLights(items, { region = null, way = null, cost = null } = {}, today) {
   return items.filter((l) => {
     if (today && isOver(l, today)) return false;
@@ -142,36 +153,92 @@ export function filterLights(items, { region = null, way = null, cost = null } =
   });
 }
 
-/** The lights grouped by region, in HOLIDAY_REGIONS order: confirmed dates first, then TBA, each by name. */
-export function lightsByRegion(items) {
-  const byName = (a, b) => Number(a.tba) - Number(b.tba) || a.name.localeCompare(b.name);
-  return HOLIDAY_REGIONS.map((r) => ({ region: r, items: items.filter((l) => l.region === r.slug).sort(byName) })).filter((g) => g.items.length > 0);
-}
-
-/** The events page's filters. `weekend`: only events on this weekend's days (never a TBA one). */
-export function filterEvents(items, { region = null, category = null, weekend = false } = {}, today) {
+/** The events' filters. `weekend`: only events on this weekend's days (never a TBA one). */
+export function filterEvents(items, { region = null, category = null, cost = null, weekend = false } = {}, today) {
   const range = weekend && today ? weekendRange(today) : null;
   return items.filter((e) => {
     if (today && isOver(e, today)) return false;
     if (region && e.region !== region) return false;
     if (category && e.category !== category) return false;
+    if (cost && e.cost !== cost) return false;
     if (range && !runsBetween(e, range[0], range[1])) return false;
     return true;
   });
 }
 
+/** True for a light display (lights carry `format`), false for an event (events carry `category`). */
+export function isHolidayLight(item) {
+  return !("category" in item);
+}
+
 /**
- * The events as the page lists them: "Happening now" (started before today and still running), then one group per
- * start day from today on, then "Dates TBA". Each list by name. `day` is YYYY-MM-DD or null for the two others.
+ * The "What" choice a URL asks for: `what`, or the retired events page's `kind` (an old shared link may carry it). A
+ * known kind of event wins over the broad "events"; anything unknown is everything (null).
  */
-export function eventsByDay(items, today) {
+export function resolveHolidayWhat(what, kind) {
+  const known = (v) => Boolean(v) && HOLIDAY_WHAT.some((w) => w.slug === v);
+  const isKind = (v) => Boolean(v) && HOLIDAY_EVENT_CATEGORIES.some((c) => c.slug === v);
+  if (isKind(kind) && (!known(what) || what === "events")) return kind;
+  return known(what) ? what : null;
+}
+
+/**
+ * The /holidays list: the light displays and the events still running, narrowed by what (lights, events or one kind of
+ * event), region, cost (free or paid) and this weekend (Friday to Sunday; a TBA item never shows on a weekend).
+ */
+export function filterHolidayItems(lights, events, { what = null, region = null, cost = null, weekend = false } = {}, today) {
+  const showLights = !what || what === "lights";
+  const category = what && what !== "lights" && what !== "events" ? what : null;
+  const showEvents = what !== "lights";
+  const range = weekend && today ? weekendRange(today) : null;
+  const inWeekend = (i) => !range || runsBetween(i, range[0], range[1]);
+  return [
+    ...(showLights ? filterLights(lights, { region, cost }, today).filter(inWeekend) : []),
+    ...(showEvents ? filterEvents(events, { region, category, cost, weekend }, today) : []),
+  ];
+}
+
+/**
+ * Where a retired list page sends you: /holidays with its filter preset, keeping the filters /holidays still has
+ * (region, cost; when; the events page's kind becomes what). /holidays/lights -> /holidays?what=lights, /holidays/events
+ * -> /holidays?what=events. The lights page's "drive or walk" filter is gone, so `way` is dropped.
+ */
+export function holidayLegacyHref(path, search = "") {
+  const from = HOLIDAY_RETIRED_PAGES[path];
+  if (!from) return HOLIDAY_HUB_PATH;
+  const old = new URLSearchParams(search);
+  const next = new URLSearchParams();
+  next.set("what", from === "lights" ? "lights" : resolveHolidayWhat("events", old.get("kind")) ?? "events");
+  for (const key of from === "lights" ? ["region", "cost"] : ["when", "region"]) {
+    const v = old.get(key);
+    if (v) next.set(key, v);
+  }
+  return `${HOLIDAY_HUB_PATH}?${next.toString()}`;
+}
+
+/** "82 light displays and 128 events", "1 light display", "3 events" or "Nothing" for the list's count line. */
+export function holidayCountLabel(items) {
+  const lights = items.filter(isHolidayLight).length;
+  const events = items.length - lights;
+  const parts = [
+    ...(lights ? [`${lights} light ${lights === 1 ? "display" : "displays"}`] : []),
+    ...(events ? [`${events} ${events === 1 ? "event" : "events"}`] : []),
+  ];
+  return parts.length ? parts.join(" and ") : "Nothing";
+}
+
+/**
+ * The list as the page shows it: "Happening now" (started before today, or with no start, and still running), then one
+ * group per start day from today on, then "Dates TBA". Each list by name. `day` is YYYY-MM-DD or null for the two others.
+ */
+export function holidayItemsByDay(items, today) {
   const byName = (a, b) => a.name.localeCompare(b.name);
   const now = [];
   const days = new Map();
   const tba = [];
   for (const e of items) {
     if (e.tba || (!e.start && !e.end)) tba.push(e);
-    else if ((e.start ?? today) < today) now.push(e);
+    else if (!e.start || e.start < today) now.push(e);
     else {
       const day = e.start;
       days.set(day, [...(days.get(day) ?? []), e]);
@@ -206,15 +273,11 @@ export const HOLIDAY_HELP = [
 /** The hub's words (one place, read by the pages and the pre-JavaScript bodies alike). */
 export const HOLIDAY_WORDS = {
   hubTitle: "Louisiana Holiday Hub",
-  hubIntro: "Christmas lights, parades, markets and holiday events across Louisiana for the 2026 season, and a local Helpr when you need an extra pair of hands.",
-  lightsTitle: "Christmas lights in Louisiana",
-  lightsCard: "Drive-throughs, park festivals and neighborhood displays, by region.",
-  lightsIntro: "Drive-throughs, park light festivals and neighborhood displays across Louisiana for the 2026 season. Dates TBA means the 2026 dates are not announced yet; most house displays are lit most evenings in December.",
-  eventsTitle: "Holiday events in Louisiana",
-  eventsCard: "Parades, boat parades, markets, Santa, bonfires and Réveillon, by date.",
-  eventsIntro: "Christmas parades, boat parades, markets, Santa visits, tree lightings, bonfires on the levee and Réveillon dinners across Louisiana, by date. Check with the organizer before you go: weather can change plans.",
+  hubIntro: "Christmas lights, parades, markets and holiday events across Louisiana for the 2026 season, by date.",
+  stripTitle: "Hire a Helpr for the holidays",
+  stripLine: "Lights, decorating, cleaning and party setup.",
+  stripCta: "Get holiday help",
   hireTitle: "Holiday help from a local Helpr",
-  hireCard: "Lights hung, the house decorated and cleaned, the party set up and cleaned up.",
   hireIntro: "Hire a local Helpr for the holidays: hang the lights, decorate, clean before family comes, set up and clean up the party, wrap gifts, haul things away and get the yard ready for guests. Post the job and name your price.",
-  checkFirst: "Dates and times can change. Check with the organizer before you go.",
+  checkFirst: "Dates and times can change, so check with the organizer before you go. Dates TBA means the 2026 dates are not announced yet; most house displays are lit most evenings in December.",
 };

@@ -1,25 +1,34 @@
 /**
- * Louisiana Holiday Hub (owner-approved 2026-11-20): /holidays, /holidays/lights, /holidays/events and
- * /holidays/hire-a-helpr. Pins the routing on every layer (App.tsx lazy route, vercel.json's two rewrites, the sitemap,
- * the meta table, the document-scroll list, the footer and gift guides links, never the phone top nav), the data
- * (public fields only, the research's dates_tbc rule shown as "Dates TBA"), the filters (region, drive or walk, free or
- * paid; kind, region, this weekend), the pre-JS SEO (one H1 each, ItemList on lights, Event only for confirmed dates)
- * and the analytics (page_view, the Open in Maps click, no personal data).
+ * Louisiana Holiday Hub (owner-approved 2026-11-20; one page 2026-11-21): /holidays and /holidays/hire-a-helpr. Pins
+ * the routing on every layer (App.tsx lazy route, vercel.json's two rewrites, the sitemap, the meta table, the
+ * document-scroll list, the footer and gift guides links, never the phone top nav), the retired /holidays/lights and
+ * /holidays/events (a redirect in the app, each to /holidays with its filter preset; served the app shell only, out
+ * of the sitemap and the meta table), the data (public fields only, the research's dates_tbc rule shown as "Dates TBA"), the
+ * one list on /holidays (lights and events together, the slim hire strip on top, one filter set: what, when, region,
+ * cost; happening now first, then by date, TBA last), the pre-JS SEO (one H1 each, ItemList of the lights and an Event
+ * only for confirmed dates on /holidays) and the analytics (page_view, the Open in Maps click, no personal data).
  *
- * Red first (2026-11-20) against origin/main 4c37a03005: no route, no data, no page.
+ * Red first (2026-11-20) against origin/main 4c37a03005: no route, no data, no page. One-page red (2026-11-21) against
+ * origin/main de0b2274ad: /holidays held three cards and no list, and /holidays/lights and /holidays/events were pages.
  *
  * @mutate src/content/holidayHub/holidayHub.mjs |   return item.tba \|\| !item.dates ? DATES_TBA : item.dates; |   return item.dates ?? DATES_TBA;
  * @mutate src/content/holidayHub/holidayHub.mjs |     if (range && !runsBetween(e, range[0], range[1])) return false; |
  * @mutate src/content/holidayHub/holidayHub.mjs |     if (cost && l.cost !== cost) return false; |
+ * @mutate src/content/holidayHub/holidayHub.mjs |     if (cost && e.cost !== cost) return false; |
  * @mutate src/content/holidayHub/holidayHub.mjs |     if (way === "walk" && !["walk", "both"].includes(l.format)) return false; |
  * @mutate src/lib/holidayHubSeo.mjs |     .filter((e) => !e.tba && e.start) |     .filter((e) => Boolean(e))
  * @mutate src/App.tsx |       <Route path="/holidays/lights" element= |       <Route path="/holidays/lights-old" element=
+ * @mutate src/content/holidayHub/holidayHub.mjs |   const showLights = !what \|\| what === "lights"; |   const showLights = what === "lights";
+ * @mutate src/content/holidayHub/holidayHub.mjs |     else if (!e.start \|\| e.start < today) now.push(e); |     else if (e.start < today) now.push(e);
+ * @mutate src/content/holidayHub/holidayHub.mjs |     ...(showLights ? filterLights(lights, { region, cost }, today).filter(inWeekend) : []), |     ...(showLights ? filterLights(lights, { region, cost }, today) : []),
+ * @mutate src/content/holidayHub/holidayHub.mjs |   next.set("what", from === "lights" ? "lights" : |   next.set("what", from === "lights" ? "events" :
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |           <aside aria-label={W.stripTitle} data-holiday-hire-strip="" |           <aside aria-label={W.stripTitle} hidden data-holiday-hire-strip=""
  * @mutate src/components/Footer.tsx |               <Link to="/holidays" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
  * @mutate src/pages/info/holidays/holidayParts.tsx |         onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}> |         >
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
@@ -34,15 +43,15 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
-  DATES_TBA, HOLIDAY_HUB_PATHS, HOLIDAY_REGIONS, filterEvents, filterLights, holidayDateLabel, holidayMapsQuery, isOver,
-  louisianaToday, runsBetween, weekendRange, eventsByDay,
+  DATES_TBA, HOLIDAY_HUB_PATHS, HOLIDAY_REGIONS, filterEvents, filterHolidayItems, filterLights, holidayCountLabel, holidayDateLabel,
+  holidayItemsByDay, holidayLegacyHref, holidayMapsQuery, isHolidayLight, isOver, louisianaToday, resolveHolidayWhat, runsBetween,
+  weekendRange,
 } from "@/content/holidayHub/holidayHub.mjs";
 import { holidayEventsLd, holidayHubBody, holidayHubLd, holidayLightsItemListLd } from "@/lib/holidayHubSeo.mjs";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import HolidayHub from "@/pages/info/holidays/HolidayHub";
-import HolidayLights from "@/pages/info/holidays/HolidayLights";
-import HolidayEvents from "@/pages/info/holidays/HolidayEvents";
 import HolidayHire from "@/pages/info/holidays/HolidayHire";
+import HolidayLegacyRedirect from "@/pages/info/holidays/HolidayLegacyRedirect";
 
 const ROOT = resolve(__dirname, "../..");
 const read = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
@@ -146,7 +155,7 @@ describe("Holiday Hub filters", () => {
     // Over events drop out; TBA ones stay listed (under "Dates TBA").
     expect(all.some((e) => e.tba)).toBe(true);
     expect(all.every((e) => !isOver(e, today))).toBe(true);
-    const groups = eventsByDay(all, today);
+    const groups = holidayItemsByDay(all, today);
     expect(groups[groups.length - 1]?.key).toBe("tba");
     expect(groups.filter((g) => g.day).map((g) => g.day)).toEqual([...groups.filter((g) => g.day).map((g) => g.day)].sort());
   });
@@ -158,39 +167,109 @@ describe("Holiday Hub filters", () => {
   });
 });
 
-describe("Holiday Hub pages", () => {
+describe("/holidays: lights and events in one list", () => {
+  const today = "2026-11-20";
   const at = (path: string, el: React.ReactElement) => render(<MemoryRouter initialEntries={[path]}>{el}</MemoryRouter>);
+  const shownIds = (c: HTMLElement) => [...c.querySelectorAll("[data-holiday-item]")].map((el) => el.getAttribute("data-holiday-item")!);
+  const lightIds = new Set(HOLIDAY_LIGHTS.map((l) => l.id));
+  const eventIds = new Set(HOLIDAY_EVENTS.map((e) => e.id));
 
-  it("/holidays: three cards (lights, events, hire) and one page_view", () => {
+  it("the merge: every light and event still running, the what/when/region/cost filters, the count line", () => {
+    const all = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today);
+    const lights = filterLights(HOLIDAY_LIGHTS, {}, today);
+    const events = filterEvents(HOLIDAY_EVENTS, {}, today);
+    expect(all.length).toBe(lights.length + events.length);
+    expect(lights.length).toBeGreaterThan(50);
+    expect(events.length).toBeGreaterThan(100);
+    expect(holidayCountLabel(all)).toBe(`${lights.length} light displays and ${events.length} events`);
+    expect(holidayCountLabel([])).toBe("Nothing");
+    const onlyLights = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, { what: "lights" }, today);
+    expect(onlyLights.length).toBe(lights.length);
+    expect(onlyLights.every(isHolidayLight)).toBe(true);
+    expect(filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, { what: "events" }, today).length).toBe(events.length);
+    const parades = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, { what: "parade" }, today);
+    expect(parades.length).toBeGreaterThan(10);
+    expect(parades.every((i) => !isHolidayLight(i) && i.category === "parade")).toBe(true);
+    // This weekend: lights and events alike run on Fri-Sun; no TBA item ever shows.
+    const weekend = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, { weekend: true }, today);
+    expect(weekend.some(isHolidayLight)).toBe(true);
+    expect(weekend.some((i) => !isHolidayLight(i))).toBe(true);
+    expect(weekend.every((i) => !i.tba && runsBetween(i, "2026-11-20", "2026-11-22"))).toBe(true);
+    const free = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, { cost: "free", region: "acadiana" }, today);
+    expect(free.length).toBeGreaterThan(5);
+    expect(free.every((i) => i.cost === "free" && i.region === "acadiana")).toBe(true);
+  });
+
+  it("the order: happening now, then by start day, then Dates TBA (a light running with no start day is happening now)", () => {
+    const groups = holidayItemsByDay(filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today), today);
+    expect(groups[0]?.key).toBe("now");
+    expect(groups[groups.length - 1]?.key).toBe("tba");
+    const days = groups.filter((g) => g.day).map((g) => g.day!);
+    expect(days).toEqual([...days].sort());
+    expect(days.every((d) => d >= today)).toBe(true);
+    expect(groups.every((g) => g.key === "now" || g.key === "tba" || /^\d{4}-\d{2}-\d{2}$/.test(g.key))).toBe(true);
+    const noStart = { id: "x", name: "X", tba: false, start: null, end: "2026-12-31" };
+    expect(holidayItemsByDay([noStart], today).map((g) => g.key)).toEqual(["now"]);
+    const tba = groups[groups.length - 1]!.items;
+    expect(tba.some(isHolidayLight) && tba.some((i) => !isHolidayLight(i))).toBe(true);
+  });
+
+  it("renders the slim hire strip at the top, both lights and events, one page_view", () => {
     const { container } = at("/holidays", <HolidayHub />);
-    const cards = [...container.querySelectorAll("[data-holiday-card]")].map((a) => a.getAttribute("href"));
-    expect(cards).toEqual(["/holidays/lights", "/holidays/events", "/holidays/hire-a-helpr"]);
+    const strip = container.querySelector("[data-holiday-hire-strip]") as HTMLElement;
+    expect(strip).not.toBeNull();
+    expect(strip.hidden).toBe(false);
+    expect(strip.textContent).toContain("Hire a Helpr for the holidays");
+    expect(strip.querySelector("[data-holiday-hire-link]")!.getAttribute("href")).toBe("/holidays/hire-a-helpr");
+    // The strip comes before the filters and the list.
+    const filters = container.querySelector("[data-holiday-filters]")!;
+    expect(strip.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const ids = shownIds(container);
+    expect(ids.length).toBe(filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today).length);
+    expect(ids.filter((id) => lightIds.has(id)).length).toBeGreaterThan(50);
+    expect(ids.filter((id) => eventIds.has(id)).length).toBeGreaterThan(100);
+    const headings = [...container.querySelectorAll("h2")].map((h) => h.textContent ?? "");
+    expect(headings[0]).toMatch(/^Happening now/);
+    expect(headings[headings.length - 1]).toMatch(/^Dates TBA/);
+    expect(headings.some((h) => h.startsWith("Today, Friday, November 20"))).toBe(true);
+    expect(container.querySelector("[data-holiday-count]")!.textContent).toMatch(/^\d+ light displays and \d+ events$/);
     expect(track).toHaveBeenCalledWith("page_view", { page: "holidays" });
   });
 
-  it("/holidays/lights: a TBA display says Dates TBA; ?region=&cost= filter the list; a chip changes it", () => {
-    const { container } = at("/holidays/lights?region=baton-rouge&cost=free", <HolidayLights />);
-    const items = [...container.querySelectorAll("[data-holiday-item]")];
-    const expected = filterLights(HOLIDAY_LIGHTS, { region: "baton-rouge", cost: "free" }, "2026-11-20");
-    expect(items.length).toBe(expected.length);
-    expect(items.length).toBeGreaterThan(3);
-    for (const el of items) {
-      const l = HOLIDAY_LIGHTS.find((x) => x.id === el.getAttribute("data-holiday-item"))!;
-      expect(l.region).toBe("baton-rouge");
-      expect(l.cost).toBe("free");
-      expect(el.querySelector("[data-holiday-when]")!.textContent).toBe(l.tba ? "Dates TBA" : l.dates);
+  it("the What chips: Christmas lights narrows to lights, a kind of event to that kind; ?region=&cost= from the URL", () => {
+    const { container } = at("/holidays?region=baton-rouge&cost=free", <HolidayHub />);
+    const expected = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, { region: "baton-rouge", cost: "free" }, today);
+    expect(shownIds(container).sort()).toEqual(expected.map((i) => i.id).sort());
+    for (const el of container.querySelectorAll("[data-holiday-item]")) {
+      const i = [...HOLIDAY_LIGHTS, ...HOLIDAY_EVENTS].find((x) => x.id === el.getAttribute("data-holiday-item"))!;
+      expect(el.querySelector("[data-holiday-when]")!.textContent).toBe(i.tba ? "Dates TBA" : i.dates);
     }
-    expect(items.some((el) => el.querySelector("[data-holiday-when]")!.textContent === "Dates TBA")).toBe(true);
-    // "Paid" narrows to the paid ones.
-    fireEvent.click(container.querySelector('[data-holiday-cost="paid"]')!);
-    const paid = [...container.querySelectorAll("[data-holiday-item]")].map((el) => HOLIDAY_LIGHTS.find((x) => x.id === el.getAttribute("data-holiday-item"))!);
-    expect(paid.every((l) => l.cost === "paid" && l.region === "baton-rouge")).toBe(true);
-    expect(container.querySelector('[data-holiday-cost="paid"]')!.getAttribute("aria-pressed")).toBe("true");
-    expect(track).toHaveBeenCalledWith("page_view", { page: "holidays_lights" });
+    fireEvent.click(container.querySelector('[data-holiday-what="lights"]')!);
+    const lights = shownIds(container);
+    expect(lights.length).toBeGreaterThan(3);
+    expect(lights.every((id) => lightIds.has(id))).toBe(true);
+    expect(container.querySelector('[data-holiday-what="lights"]')!.getAttribute("aria-pressed")).toBe("true");
+    expect(container.querySelector('[data-holiday-cost="free"]')!.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(container.querySelector('[data-holiday-what="market"]')!);
+    const markets = shownIds(container).map((id) => HOLIDAY_EVENTS.find((e) => e.id === id)!);
+    expect(markets.every((e) => e?.category === "market" && e.region === "baton-rouge")).toBe(true);
+  });
+
+  it("This weekend lists only this weekend's lights and events; a filter set that matches nothing shows the empty state", () => {
+    const { container, unmount } = at("/holidays?when=weekend", <HolidayHub />);
+    const expected = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, { weekend: true }, today).map((i) => i.id).sort();
+    expect(shownIds(container).sort()).toEqual(expected);
+    expect(within(container).queryByText(/^Dates TBA/)).toBeNull();
+    unmount();
+    const none = at("/holidays?what=reveillon&region=natchitoches&cost=free&when=weekend", <HolidayHub />);
+    expect(none.container.querySelector("[data-holiday-empty]")).not.toBeNull();
+    expect(none.container.querySelector("[data-holiday-count]")!.textContent).toBe("");
+    fireEvent.click(within(none.container).getByRole("button", { name: "Clear filters" }));
+    expect(shownIds(none.container).length).toBe(filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today).length);
   });
 
   it("Open in Maps: a plain maps search with the name, and a click event with no personal data", () => {
-    const { container } = at("/holidays/lights?region=acadiana", <HolidayLights />);
+    const { container } = at("/holidays?what=lights&region=acadiana", <HolidayHub />);
     const link = container.querySelector("[data-holiday-maps]") as HTMLAnchorElement;
     const id = link.getAttribute("data-holiday-maps")!;
     const l = HOLIDAY_LIGHTS.find((x) => x.id === id)!;
@@ -201,22 +280,6 @@ describe("Holiday Hub pages", () => {
     fireEvent.click(link);
     expect(track).toHaveBeenCalledTimes(1);
     expect(track).toHaveBeenCalledWith("holiday_maps_click", { kind: "light", id, region: "acadiana" });
-  });
-
-  it("/holidays/events: This weekend lists only this weekend's events, grouped by day; TBA under Dates TBA", () => {
-    const { container, unmount } = at("/holidays/events", <HolidayEvents />);
-    const headings = [...container.querySelectorAll("h2")].map((h) => h.textContent ?? "");
-    expect(headings[headings.length - 1]).toMatch(/^Dates TBA/);
-    expect(headings.some((h) => h.startsWith("Today, Friday, November 20"))).toBe(true);
-    unmount();
-    const weekend = at("/holidays/events?when=weekend", <HolidayEvents />);
-    const ids = [...weekend.container.querySelectorAll("[data-holiday-item]")].map((el) => el.getAttribute("data-holiday-item"));
-    const expected = filterEvents(HOLIDAY_EVENTS, { weekend: true }, "2026-11-20").map((e) => e.id).sort();
-    expect([...ids].sort()).toEqual(expected);
-    expect(within(weekend.container).queryByText(/^Dates TBA/)).toBeNull();
-    // A kind chip narrows further.
-    fireEvent.click(weekend.container.querySelector('[data-holiday-kind="all"]')!);
-    expect(weekend.container.querySelector('[data-holiday-when-filter="weekend"]')!.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("/holidays/hire-a-helpr: Post a job and Find work, each holiday job opens Post a job filled in, and no ID prompt", () => {
@@ -230,19 +293,59 @@ describe("Holiday Hub pages", () => {
   });
 });
 
+describe("the retired /holidays/lights and /holidays/events", () => {
+  function Where() {
+    const { pathname, search } = useLocation();
+    return <p data-where="">{pathname + search}</p>;
+  }
+  const landOn = (path: string) => {
+    const { container, unmount } = render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/holidays/lights" element={<HolidayLegacyRedirect />} />
+          <Route path="/holidays/events" element={<HolidayLegacyRedirect />} />
+          <Route path="/holidays" element={<Where />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const where = container.querySelector("[data-where]")?.textContent;
+    unmount();
+    return where;
+  };
+
+  it("redirect to /holidays with the matching filter preset, keeping the filters /holidays still has", () => {
+    expect(landOn("/holidays/lights")).toBe("/holidays?what=lights");
+    expect(landOn("/holidays/events")).toBe("/holidays?what=events");
+    expect(landOn("/holidays/lights?region=acadiana&way=walk&cost=free")).toBe("/holidays?what=lights&region=acadiana&cost=free");
+    expect(landOn("/holidays/events?kind=parade&when=weekend&region=monroe")).toBe("/holidays?what=parade&when=weekend&region=monroe");
+    expect(landOn("/holidays/events?kind=nope")).toBe("/holidays?what=events");
+    expect(holidayLegacyHref("/holidays/nope")).toBe("/holidays");
+  });
+
+  it("a URL that still carries the old ?kind= lands on that kind", () => {
+    expect(resolveHolidayWhat("events", "parade")).toBe("parade");
+    expect(resolveHolidayWhat("lights", "parade")).toBe("lights");
+    expect(resolveHolidayWhat(null, "santa")).toBe("santa");
+    expect(resolveHolidayWhat("nope", null)).toBeNull();
+    const { container } = render(<MemoryRouter initialEntries={["/holidays?what=events&kind=santa"]}><HolidayHub /></MemoryRouter>);
+    expect(container.querySelector('[data-holiday-what="santa"]')!.getAttribute("aria-pressed")).toBe("true");
+    const ids = [...container.querySelectorAll("[data-holiday-item]")].map((el) => HOLIDAY_EVENTS.find((e) => e.id === el.getAttribute("data-holiday-item")));
+    expect(ids.length).toBeGreaterThan(0);
+    expect(ids.every((e) => e?.category === "santa")).toBe(true);
+  });
+});
+
 describe("Holiday Hub routing, on every layer", () => {
   const app = read("src/App.tsx");
   const vercel = JSON.parse(raw("vercel.json")) as { rewrites: { source: string; destination: string }[] };
   const sitemap = raw("public/sitemap.xml");
 
   it("has its inventory", () => {
-    expect(HOLIDAY_HUB_PATHS).toEqual(["/holidays", "/holidays/lights", "/holidays/events", "/holidays/hire-a-helpr"]);
+    expect(HOLIDAY_HUB_PATHS).toEqual(["/holidays", "/holidays/hire-a-helpr"]);
   });
 
   it.each([
     ["/holidays", "HolidayHub"],
-    ["/holidays/lights", "HolidayLights"],
-    ["/holidays/events", "HolidayEvents"],
     ["/holidays/hire-a-helpr", "HolidayHire"],
   ])("%s: a lazy route, both rewrites, in the sitemap, with its own head", (path, name) => {
     expect(app).toContain(`const ${name} = lazyWithPreload(() => import("./pages/info/holidays/${name}"));`);
@@ -254,6 +357,18 @@ describe("Holiday Hub routing, on every layer", () => {
     expect(meta.title).toMatch(/ — Helpr$/);
   });
 
+  it.each([
+    ["/holidays/lights", "/holidays?what=lights"],
+    ["/holidays/events", "/holidays?what=events"],
+  ])("%s: a redirect in the app (to %s), served the app shell, out of the sitemap and the meta table", (path, to) => {
+    expect(app).toContain(`<Route path="${path}" element={<RouteErrorBoundary>{routeEl(<HolidayLegacyRedirect />)}</RouteErrorBoundary>} />`);
+    expect(holidayLegacyHref(path)).toBe(to);
+    // Only the app shell: no pre-JS body of its own (publicSiteFilesValid forbids a vercel redirect over an app route).
+    expect(vercel.rewrites.filter((r) => r.source === path).map((r) => r.destination)).toEqual(["/index.html"]);
+    expect(sitemap).not.toContain(`<loc>https://www.louisianahelpr.com${path}</loc>`);
+    expect(Object.keys(PUBLIC_PAGE_META)).not.toContain(path);
+  });
+
   it("document scroll, linked from the footer and the gift guides landing, never the phone top nav", () => {
     expect(read("src/hooks/useAppShellViewport.ts")).toMatch(/^\s*"\/holidays",/m);
     expect(read("src/components/Footer.tsx")).toContain('<Link to="/holidays" className={FOOTER_LINK}>');
@@ -261,10 +376,10 @@ describe("Holiday Hub routing, on every layer", () => {
     expect(read("src/components/Navbar.tsx")).not.toContain("/holidays");
   });
 
-  it("each list's data loads only in its own page (the landing and the hire page import none)", () => {
-    expect(read("src/pages/info/holidays/HolidayLights.tsx")).toContain('from "@/content/holidayHub/lights.mjs"');
-    expect(read("src/pages/info/holidays/HolidayEvents.tsx")).toContain('from "@/content/holidayHub/events.mjs"');
-    for (const f of ["HolidayHub", "HolidayHire", "holidayParts"]) expect(read(`src/pages/info/holidays/${f}.tsx`)).not.toMatch(/holidayHub\/(lights|events)\.mjs/);
+  it("the lists' data loads only in /holidays's own chunk (the hire page, the redirect and the parts import none)", () => {
+    expect(read("src/pages/info/holidays/HolidayHub.tsx")).toContain('from "@/content/holidayHub/lights.mjs"');
+    expect(read("src/pages/info/holidays/HolidayHub.tsx")).toContain('from "@/content/holidayHub/events.mjs"');
+    for (const f of ["HolidayHire", "HolidayLegacyRedirect", "holidayParts"]) expect(read(`src/pages/info/holidays/${f}.tsx`)).not.toMatch(/holidayHub\/(lights|events)\.mjs/);
   });
 });
 
@@ -278,9 +393,13 @@ describe("Holiday Hub SEO before JavaScript", () => {
       expect(body, p).toContain('aria-label="Breadcrumb"');
     }
     expect(holidayHubBody("/holidays/nope", today)).toBeNull();
-    const lights = holidayHubBody("/holidays/lights", today)!;
-    for (const l of filterLights(HOLIDAY_LIGHTS, {}, today).slice(0, 10)) expect(lights).toContain(l.name.replace(/&/g, "&amp;").replace(/'/g, "&#39;"));
-    expect(lights).toContain("Dates TBA");
+    expect(holidayHubBody("/holidays/lights", today)).toBeNull();
+    const hub = holidayHubBody("/holidays", today)!;
+    const esc = (n: string) => n.replace(/&/g, "&amp;").replace(/'/g, "&#39;");
+    for (const l of filterLights(HOLIDAY_LIGHTS, {}, today).slice(0, 10)) expect(hub).toContain(esc(l.name));
+    for (const e of filterEvents(HOLIDAY_EVENTS, {}, today).slice(0, 10)) expect(hub).toContain(esc(e.name));
+    expect(hub).toContain("Dates TBA");
+    expect(hub).toContain('<a href="/holidays/hire-a-helpr">Hire a Helpr for the holidays</a>');
   });
 
   it("an ItemList of the lights still running, and an Event only for each confirmed, not-over event", () => {
@@ -293,6 +412,7 @@ describe("Holiday Hub SEO before JavaScript", () => {
     const tbaNames = new Set(HOLIDAY_EVENTS.filter((e) => e.tba).map((e) => e.name));
     expect(events.filter((e) => tbaNames.has(e.name) && !confirmed.some((c) => c.name === e.name))).toEqual([]);
     for (const e of events) expect(e.startDate).toMatch(/^2026-|^2027-/);
-    expect(holidayHubLd("/holidays/events", today)!.length).toBe(1 + events.length);
+    expect(holidayHubLd("/holidays", today)!.length).toBe(2 + events.length);
+    expect(holidayHubLd("/holidays/events", today)).toBeNull();
   });
 });

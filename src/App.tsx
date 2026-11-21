@@ -164,8 +164,7 @@ const GiftGuides = lazyWithPreload(() => import("./pages/info/GiftGuides"));
 // Louisiana Holiday Hub (owner-approved 2026-11-20): four public pages, each its own chunk (the lights and events data
 // ship only in their own page's chunk). src/content/holidayHub/holidayHub.mjs.
 const HolidayHub = lazyWithPreload(() => import("./pages/info/holidays/HolidayHub"));
-const HolidayLights = lazyWithPreload(() => import("./pages/info/holidays/HolidayLights"));
-const HolidayEvents = lazyWithPreload(() => import("./pages/info/holidays/HolidayEvents"));
+const HolidayLegacyRedirect = lazyWithPreload(() => import("./pages/info/holidays/HolidayLegacyRedirect"));
 const HolidayHire = lazyWithPreload(() => import("./pages/info/holidays/HolidayHire"));
 const SecretSanta = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SecretSanta"));
 const SecretSantaReveal = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SecretSantaReveal"));
@@ -475,10 +474,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/gift-guides/printables" element={<RouteErrorBoundary>{routeEl(<PageTransition><Printables /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/list/:code" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />{/* 11-20: a shared wish list, no sign-in. */}
-      {/* Louisiana Holiday Hub (owner-approved 2026-11-20): lights, events and holiday help; public and indexed. */}
+      {/* Louisiana Holiday Hub (owner-approved 2026-11-20): lights and events in one list (11-21) and holiday help; public
+          and indexed. The old list pages redirect to /holidays with their filter preset. */}
       <Route path="/holidays" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayHub /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/holidays/lights" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayLights /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/holidays/events" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayEvents /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/holidays/lights" element={<RouteErrorBoundary>{routeEl(<HolidayLegacyRedirect />)}</RouteErrorBoundary>} />
+      <Route path="/holidays/events" element={<RouteErrorBoundary>{routeEl(<HolidayLegacyRedirect />)}</RouteErrorBoundary>} />
       <Route path="/holidays/hire-a-helpr" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayHire /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Retired with no redirect, so they fall to NotFound below (no outside citation; add a real <Route> if one
           appears): /parishes, /parish/:slug, /impact, /local-guide, /community, /browse-jobs and /evacuation

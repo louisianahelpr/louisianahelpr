@@ -14,7 +14,7 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
 import { browseDestinationFor } from "@/lib/browseDestination";
 import { HIRE_STEPS } from "@/components/landing/hireSteps";
-import { HOLIDAY_EVENTS_PATH, HOLIDAY_HELP, HOLIDAY_HUB_PATH, HOLIDAY_LIGHTS_PATH, HOLIDAY_WORDS as W } from "@/content/holidayHub/holidayHub.mjs";
+import { HOLIDAY_HELP, HOLIDAY_HUB_PATH, HOLIDAY_WORDS as W } from "@/content/holidayHub/holidayHub.mjs";
 import { HUB_COLUMN, HUB_HEADER_COLUMN, useHolidayPageView } from "./holidayParts";
 
 /** Post a job, filled in when a holiday job was picked; a visitor signs up first and lands back on the form. */
@@ -72,8 +72,7 @@ export default function HolidayHire() {
           </ol>
         </section>
         <nav aria-label="More from the Holiday Hub" className="flex flex-wrap gap-x-6 gap-y-2 text-ds-15">
-          <Link to={HOLIDAY_LIGHTS_PATH} className="link-standard inline-flex min-h-11 items-center">Christmas lights</Link>
-          <Link to={HOLIDAY_EVENTS_PATH} className="link-standard inline-flex min-h-11 items-center">Holiday events</Link>
+          <Link to={HOLIDAY_HUB_PATH} className="link-standard inline-flex min-h-11 items-center">Christmas lights and holiday events</Link>
         </nav>
       </div>
     </PublicHeaderPage>

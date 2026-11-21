@@ -1,5 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
+import { ShoppingCart } from "lucide-react";
+import { amazonCartUrl } from "@/lib/retailerCart";
 import { giftGuides as G } from "@/content/giftGuides";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, relatedGuides, subscribeGuidePicks, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
@@ -82,6 +84,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
   const ship = deadlineChip(pick.store, today);
   // A dated brand code (1120c: XTRATUF XT25, Nov 20-29) shows through its last day only.
   const code = pick.code && (!pick.codeEnds || today <= pick.codeEnds) ? pick.code : undefined;
+  const cart = amazonCartUrl([pick.href]);
   return (
     <li data-gift-pick="">
       {/* Owner 2026-11-21: "remove the shop at button, when they click the title of the image it will go there to the
@@ -107,6 +110,15 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
       <Heart saved={saved} label={WISH.saveLabel(pick.name)} onToggle={() => heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) }))} className="gg-heart-pick" />
+      {/* Owner 2026-11-21 (Amazon Buy Now): an Amazon item gets a small cart icon under its price that puts it straight
+          in the shopper's Amazon cart, credited to our tag (src/lib/retailerCart.ts). Its own 44px link, outside the card
+          link, like the heart; nothing for other stores. */}
+      {cart && (
+        <GiftOut href={cart} className="gg-cart">
+          <ShoppingCart aria-hidden="true" />
+          <span className="sr-only" data-gift-cart="">{G.addToAmazonCart(pick.name)}</span>
+        </GiftOut>
+      )}
     </li>
   );
 }

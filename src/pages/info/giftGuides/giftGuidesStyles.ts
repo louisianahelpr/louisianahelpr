@@ -183,6 +183,13 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 }
 .gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}
 .gg-nm{flex:1;min-width:0;overflow-wrap:anywhere}
+/* Owner 11-21 (Amazon Buy Now): the small cart icon under an Amazon item's price, a 44px link of its own in the card's first
+   column, its icon lined up with the name and price (phone: past the 88px photo; tablet and desktop: the card's left edge). */
+.gg-cart{grid-column:1;justify-self:start;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-6px 0 6px 88px;border-radius:999px;color:var(--gg-olive)}
+.gg-cart svg{width:20px;height:20px}
+.gg-cart:hover{background:var(--gg-soft)}
+.gg-cart:focus-visible{outline:2px solid hsl(var(--bark));outline-offset:1px}
+@media (min-width:768px){.gg-list .gg-cart{margin:-6px 0 0 -12px}}
 .gg-nm small{display:block;font-size:12px;color:var(--gg-muted)}
 .gg-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
 .gg-bdg{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:#eef2e6;color:#3f5a1c}

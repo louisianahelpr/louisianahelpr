@@ -26,6 +26,7 @@ import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
+import { GiftGuidesPhoneNav } from "./giftGuides/GiftGuidesPhoneNav";
 import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
 import { DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
@@ -177,6 +178,8 @@ export default function GiftGuides() {
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
   // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
   const banner = Boolean(deals || guide);
+  // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
+  const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
   // The landing's arrow goes home; every other page's to the landing.
   const backTo = guide || deals || myList || shared || group ? "/gift-guides" : "/";
 
@@ -214,6 +217,9 @@ export default function GiftGuides() {
           {shipPill}
           {tools}
         </div>
+        {/* Owner 11-21 ("We need a way to organize this on the phones"): up to 767px a sticky chip row and a menu sheet
+            replace the sidebar (which a phone no longer draws at the page's foot). */}
+        <GiftGuidesPhoneNav active={guide} myList={myList || shared} page={sidePage} />
         {deals ? (
           <GiftGuidesWords lead={deals.lead} title={deals.pageTitle} titleId="gift-guide-title" tint={deals.kind === "small-biz" ? "green" : "red"} tools={null} />
         ) : guide ? (
@@ -224,7 +230,7 @@ export default function GiftGuides() {
         {landing && <hr className="gg-divider" data-gift-divider="" />}
         <div className="gg-layout">
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
-          <GiftGuidesSidebar active={guide} myList={myList || shared} page={deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined} />
+          <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />
           <div className="gg-main">
             {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>

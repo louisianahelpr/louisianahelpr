@@ -155,7 +155,8 @@ describe("design audit 11-17", () => {
     expect(rules).not.toMatch(/rounded-full border border-current/);
     const step1 = src("src/pages/auth/signup/SignupStep1.tsx");
     expect((step1.match(/className="tap-44 font-semibold underline text-primary"/g) ?? []).length).toBe(3);
-    expect(step1).toContain('<Link to="/login" className="tap-44 font-semibold');
+    // The bottom Log in link keeps the page the member came for (audit 2026-11-20 night, finding 26): loginHref, not a bare /login.
+    expect(step1).toContain('<Link to={loginHref} className="tap-44 font-semibold');
   });
 
   it("#31: Find a Helpr's Search button is the input's 48px; New is a chip, not an empty star", () => {

@@ -6,7 +6,8 @@
  *
  * @mutate scripts/giftGuideCutouts1120.mjs |   return file ? CUTOUT_BASE + file : image; |   return image;
  */
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CUTOUTS_1120, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";

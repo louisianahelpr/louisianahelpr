@@ -35,7 +35,6 @@ const ATTORNEY_IN_A_DEFINITION: Record<string, string> = {
 const ACCOUNTANT_AS_A_CAREER: Record<string, string> = {
   "src/content/giftGuideIndex.ts": "the gift guides' By career list: \"gifts for Accountants\"",
   "src/content/giftGuideMerges.mjs": "the gift guides' merge table: the Accountants guide is a section of Office & Professionals",
-  "src/content/giftGuidePicks.ts": "generated from the gift-guide picks: the Accountants career guide's slug and picks",
 };
 
 const files = trackedFiles("src").filter((f) => /\.(tsx?|mjs)$/.test(f) && !/\.(test|spec)\.|^src\/test\//.test(f));

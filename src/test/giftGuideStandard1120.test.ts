@@ -11,7 +11,8 @@
  *
  * @mutate scripts/giftGuideStandard1120.mjs |       if (gone.has(p)) continue; |       if (gone.has(p)) { secs[at].push(p); continue; }
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { auditFix1120 } from "../../scripts/giftGuideSectionAudit1120.mjs";
 import { SPONSOR_HOME_GUIDES, applyStandard, findPick } from "../../scripts/giftGuideStandard1120.mjs";

@@ -58,6 +58,11 @@ function page(crumbs, inner) {
   return `<main id="seo-page" data-seo-body="">${breadcrumbNav(crumbs)}${inner}</main>`;
 }
 
+/** The same wrapper for another module's page (the Holiday Hub, src/lib/holidayHubSeo.mjs). */
+export function seoPageBody(crumbs, inner) {
+  return page(crumbs, inner);
+}
+
 const HOME = { name: "Louisiana Helpr", path: "/" };
 const GUIDES = { name: "Holiday Gift Guides", path: "/gift-guides" };
 

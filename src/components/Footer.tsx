@@ -206,6 +206,13 @@ const Footer = (_props: { landing?: boolean } = {}) => {
               </Link>
             </li>
             <li>
+              {/* Louisiana Holiday Hub (owner-approved 2026-11-20): lights, events and holiday help. Footer only, not the
+                  phone top nav. */}
+              <Link to="/holidays" className={FOOTER_LINK}>
+                {w("footer.holidays", "Holiday Hub")}
+              </Link>
+            </li>
+            <li>
               <Link to="/help" className={FOOTER_LINK}>
                 {w("footer.help", "Help center")}
               </Link>

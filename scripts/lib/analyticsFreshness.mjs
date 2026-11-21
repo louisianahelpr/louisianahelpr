@@ -165,6 +165,10 @@ export const NOT_MONITORED = {
   post_job_guest_signup: "funnel count of a guest's draft job asking for sign-up and resuming after it, read by hand; the outcome is job_posted",
   // Gift guides wish list (owner 2026-11-20, UX audit L7): usage counts read by hand; the outcome is gift_wish_lists rows.
   // Gift guides fun features (owner 2026-11-20, UX audit L12): usage counts read by hand; quiet days are normal.
+  // Louisiana Holiday Hub (owner-approved 2026-11-20): usage counts read by hand; no personal data (page name, the
+  // public display or event id and its region).
+  page_view: "usage count of Holiday Hub page opens (props.page names the page), read by hand; a quiet day of zero is normal",
+  holiday_maps_click: "usage count of Holiday Hub 'Open in Maps' taps (kind, public item id, region), read by hand",
   secret_santa_drawn: "usage count of Secret Santa groups drawn (size, pairs), read by hand; the outcome is secret_santa_groups rows",
   secret_santa_reveal_opened: "usage count of Secret Santa reveal links opened, read by hand; a quiet day of zero is normal",
   gift_swipe_round_done: "usage count of finished swipe rounds (cards, saved), read by hand",

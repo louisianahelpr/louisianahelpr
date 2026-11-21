@@ -86,6 +86,8 @@ import {
   twentyFiveDaysEventLd,
   type SeoData,
 } from "../src/lib/seoBodies.mjs";
+import { holidayHubBody, holidayHubLd } from "../src/lib/holidayHubSeo.mjs";
+import { louisianaToday } from "../src/content/holidayHub/holidayHub.mjs";
 import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/lib/ogProfileCard.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
 import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../src/lib/declutterFirstPhotos.mjs";
@@ -1203,6 +1205,14 @@ function seoFor(url: URL): SeoOutcome {
     const found = hire ? findTownPage(hire[1], hire[2]) : null;
     if (!found) return { kind: "notfound", body: notFoundBody("hire") };
     return { kind: "page", body: hireBody(found.service, found.town), jsonLd: [hireBreadcrumbLd(found.service, found.town)] };
+  }
+  // Louisiana Holiday Hub (owner-approved 2026-11-20): each page's list as plain HTML, an ItemList of the lights and an
+  // Event per event with a confirmed 2026 date (src/lib/holidayHubSeo.mjs). "Today" is Louisiana's, so an event that is
+  // over drops out of the body and the markup.
+  if (id === "holidays" || id.startsWith("holidays/")) {
+    const today = louisianaToday(new Date());
+    const hubBody = holidayHubBody(`/${id}`, today);
+    if (hubBody) return { kind: "page", body: hubBody, jsonLd: holidayHubLd(`/${id}`, today) ?? [] };
   }
   const path = `/${id}`;
   const body = infoPageBody(path);

@@ -213,6 +213,16 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
         </div>
       )}
       {!group && <DealsAndCodes />}
+      {!group && (
+        // Louisiana Holiday Hub (owner-approved 2026-11-20): lights, events and holiday help, one tap from the guides.
+        <aside className="gg-helpr" aria-label={G.holidayHub.title} data-gift-holiday-hub="">
+          <div>
+            <b>{G.holidayHub.title}</b>
+            <span>{G.holidayHub.body}</span>
+          </div>
+          <Link to="/holidays" className="gg-helpr-btn" data-gift-holiday-hub-link="">{G.holidayHub.cta}</Link>
+        </aside>
+      )}
       {/* Train 1120b (owner 11-20 ~8:40 AM): the 25 Days sponsors' logo row; near the bottom since the 12:30 PM plan. */}
       {!group && <SponsorRow />}
       {!group && (

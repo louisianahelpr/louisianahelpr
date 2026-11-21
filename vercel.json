@@ -292,6 +292,22 @@
       "destination": "/api/share?_og=noindex&_id=25days/rules"
     },
     {
+      "source": "/holidays",
+      "destination": "/api/share?_og=page&_id=holidays"
+    },
+    {
+      "source": "/holidays/lights",
+      "destination": "/api/share?_og=page&_id=holidays/lights"
+    },
+    {
+      "source": "/holidays/events",
+      "destination": "/api/share?_og=page&_id=holidays/events"
+    },
+    {
+      "source": "/holidays/hire-a-helpr",
+      "destination": "/api/share?_og=page&_id=holidays/hire-a-helpr"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     },
@@ -393,6 +409,22 @@
     },
     {
       "source": "/25days/rules",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/holidays",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/holidays/lights",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/holidays/events",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/holidays/hire-a-helpr",
       "destination": "/index.html"
     },
     {

@@ -10,6 +10,7 @@ export const esPublic: Record<keyof typeof enPublic, string> = {
   "footer.help": "Centro de ayuda",
   "footer.fees": "Tarifas",
   "footer.safety": "Seguridad",
+  "footer.holidays": "Fiestas en Luisiana",
   "footer.contact": "Contáctenos",
   "footer.legal": "Legal",
   "footer.terms": "Términos",

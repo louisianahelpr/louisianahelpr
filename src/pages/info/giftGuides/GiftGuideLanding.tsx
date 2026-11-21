@@ -8,20 +8,22 @@ import { GiftOut } from "./GiftOut";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { sponsorPage } from "@/content/sponsorPage";
 import { LAST_MINUTE, lastMinuteOn, shippingLine } from "@/content/giftGuideShipping";
-import { Button } from "@/components/ui/button";
-import { KIDS_BY_AGE_ID, KidsByAge } from "./GiftGuideAges";
-import { DealsFeature } from "./GiftGuideDeals";
+import { KidsByAge } from "./GiftGuideAges";
+import { DEALS_COVER, DealsFeature } from "./GiftGuideDeals";
+import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 import { SmallBizFeature } from "./GiftGuideSmallBiz";
 import { GatedBanners, GiftFinder } from "./GiftGuideFinder";
 import { GiftCountdown, GiftTools } from "./fun/GiftCountdown";
 import { SponsorRow } from "./GiftGuideSponsorRow";
 
 /**
- * /gift-guides opens straight to the guides (owner redesign 11-18 PM: "the page the guide opens to on the phone view I
- * don't like it"; phone and desktop alike): one sideways-scrolling row of cover tiles per group (By person (n), For kids
- * (n), By budget (n), Louisiana (n)...), each with "See all" (/gift-guides?group=<row>: that group's guides as a
- * wrapped grid). Each tile opens /gift-guides/<slug>. "Our Top 10" is a short sideways strip of photo cards after the
- * first rows, then the rest of the rows, then the collapsed "Deals & codes" section.
+ * /gift-guides (owner 11-20 PM, from her phone: "The gift guide page is still a busy mess"): calm and organized, top to
+ * bottom: ONE title with a short subline (the shipping words in it), the search row, the gift finder folded into one
+ * "Find a gift in 3 taps" card, then ONE set of ways in, a tidy grid of photo cards (By person, For kids, By budget,
+ * Louisiana, By store, Deals) with the smaller groups as one plain line of links under it; then the Top 10, the Gift
+ * of the Day card, the tools, Deals & codes, the sponsors and the giveaways card. No chip strips and no sideways guide
+ * rows on the landing: a group's card opens its page (/gift-guides?group=<row>, every guide as a wrapped grid), or the
+ * guide itself when the group holds one. Guard: src/test/giftGuideLandingCalm1120.test.tsx.
  */
 /**
  * The three Teens guides, also tiles in the For kids row (live audit r3 #4: they sat only under the Girls, Boys and
@@ -34,7 +36,7 @@ export const TEEN_TILES: { slug: string; label: string }[] = [];
  * tiles carry a visible caption like the teen tiles (gg-r3 UX audit #10: only the teen tiles had one).
  */
 const hubCaption = (row: GuideRow, g: CatalogGuide) => (row === "for-kids" && G.ageHubLabels[g.slug] ? g.title : undefined);
-const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
+export const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
   ...guidesIn(row).map((g) => ({ g, label: hubCaption(row, g) })),
   ...(row === "for-kids"
     ? TEEN_TILES.flatMap(({ slug, label }) => {
@@ -44,44 +46,62 @@ const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => [
     : []),
 ];
 
-/** The rows above the Top 10 strip (holistic review 11-18 M9: Top 10 sat 5th; now right after By person). */
-const ROWS_BEFORE_TOP = 1;
-/** The first row's covers that load at once (holistic review 11-18 M10); the rest stay lazy. */
+/** The grid's covers that load at once (holistic review 11-18 M10: the first screen's covers); the rest stay lazy. */
 const PRIORITY_COVERS = 4;
-/** A landing group with this many guides or fewer sits beside its small neighbours (owner 11-20 12:30 PM plan). */
-const SMALL_GROUP = 3;
 
-/**
- * The quick-pick chips under the search (holistic review 11-18 M9): the shopper tasks the review timed (a budget,
- * stocking stuffers, a kid by age, him, her, Louisiana), one tap each. A chip whose guide holds nothing is left out.
- */
-export const QUICK_PICKS: { label: string; to: string; slug?: string }[] = [
-  // Follow-up 1120: Under $25, Under $50 and Stocking Stuffers are sections of Gifts by Budget.
-  { label: "Under $25", to: "/gift-guides/gifts-by-budget#under-25", slug: "gifts-by-budget" },
-  { label: "Under $50", to: "/gift-guides/gifts-by-budget#under-50", slug: "gifts-by-budget" },
-  { label: "Stocking stuffers", to: "/gift-guides/gifts-by-budget#stocking-stuffers", slug: "gifts-by-budget" },
-  // Big batch 1120 (owner-approved quick picks, in her order: Under $25, Under $50, Stocking Stuffers, Her, Him, Kids, Louisiana).
-  { label: "Her", to: "/gift-guides/her", slug: "her" },
-  { label: "Him", to: "/gift-guides/him", slug: "him" },
-  // gg-r3 UX audit #17: the chip opens the Kids by age block itself (KidsByAge scrolls to its anchor).
-  { label: "Kids", to: `/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}` },
-  { label: "Louisiana", to: "/gift-guides?group=louisiana" },
-];
+/** Where a group's way in goes: the guide itself when the group holds one, else the group's page. */
+export const groupHref = (row: GuideRow) => {
+  const tiles = rowTiles(row);
+  return tiles.length === 1 ? `/gift-guides/${tiles[0].g.slug}` : `/gift-guides?group=${row}`;
+};
 
-function QuickPicks() {
-  const chips = QUICK_PICKS.filter((c) => !c.slug || (guideBySlug(c.slug) && !guideBySlug(c.slug)!.empty));
+/** The landing's photo cards: G.entries whose group holds guides (its photo the named guide's cover), then Deals. */
+export function browseEntries(): { key: string; title: string; sub: string; to: string; cover: string | undefined }[] {
+  const groups = G.entries.flatMap((e) => {
+    const row = ROWS.find((r) => r.row === e.row)?.row;
+    if (!row || rowTiles(row).length === 0) return [];
+    const cover = guideBySlug(e.cover)?.cover ?? rowTiles(row).find((t) => t.g.cover)?.g.cover;
+    return [{ key: row, title: e.title, sub: e.sub, to: groupHref(row), cover }];
+  });
+  return [...groups, { key: "deals", title: G.dealsEntry.title, sub: G.dealsEntry.sub, to: `/gift-guides/${DEALS_SLUG}`, cover: DEALS_COVER }];
+}
+
+/** The groups with no card of their own (Hobbies, By career, Life moments, Pets, Colors...), as one plain line of links. */
+export const moreGroups = () => ROWS.filter((r) => !G.entries.some((e) => e.row === r.row) && rowTiles(r.row).length > 0);
+
+function BrowseGrid() {
+  const entries = browseEntries();
+  const more = moreGroups();
   return (
-    <nav className="gg-picks" aria-label={G.quickPicksLabel} data-gift-quick-picks="">
-      <ul className="gg-chips gg-picks-row">
-        {chips.map((c) => (
-          <li key={c.to}>
-            <Button asChild variant="outline" size="sm" className="gg-chip">
-              <Link to={c.to} data-gift-quick-pick={c.to}>{c.label}</Link>
-            </Button>
+    <section aria-labelledby="gift-browse" className="gg-browse" data-gift-browse="">
+      <h2 id="gift-browse" className="gg-browse-title">{G.browseTitle}</h2>
+      <ul className="gg-entries" data-gift-entries="">
+        {entries.map((e, i) => (
+          <li key={e.key}>
+            <Link to={e.to} className="gg-entry" data-gift-entry={e.key}>
+              {e.cover ? (
+                <img className="gg-entry-photo" src={e.cover} alt="" width={480} height={480} decoding="async"
+                  {...(i < PRIORITY_COVERS ? { loading: "eager" as const, fetchpriority: "high" } : { loading: "lazy" as const })} data-gift-cover="" />
+              ) : (
+                <span className="gg-entry-photo gg-check gg-green" aria-hidden="true" />
+              )}
+              <span className="gg-entry-title">{e.title}</span>
+              <span className="gg-entry-sub">{e.sub}</span>
+            </Link>
           </li>
         ))}
       </ul>
-    </nav>
+      {more.length > 0 && (
+        <nav aria-label={G.moreTitle} className="gg-more-groups" data-gift-more-groups="">
+          <span className="gg-more-groups-k">{G.moreTitle}</span>
+          <ul>
+            {more.map((r) => (
+              <li key={r.row}><Link to={groupHref(r.row)} className="gg-link" data-gift-more-group={r.row}>{r.label}</Link></li>
+            ))}
+          </ul>
+        </nav>
+      )}
+    </section>
   );
 }
 
@@ -149,83 +169,61 @@ function LastMinute() {
   );
 }
 
-export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
-  const rows = group ? ROWS.filter((r) => r.row === group) : ROWS;
-  const drawRow = ({ row, label, tint }: (typeof ROWS)[number]) => {
-    const headingId = `gift-row-${row}`;
-    // Owner 11-18 PM: each heading carries its guide count, "By person (24)": the guides this row (and See all) shows.
-    const list = rowTiles(row);
-    return (
-      <section key={row} aria-labelledby={headingId} data-gift-row={row}>
-        <div className="gg-rowhead">
-          <h2 id={headingId}><i className={`gg-dot gg-${tint}`} aria-hidden="true" />{label}<span className="gg-rowcount" data-gift-row-count="">&nbsp;({list.length})</span></h2>
-          {!group && (
-            <Link to={`/gift-guides?group=${row}`} className="gg-link" data-gift-see-all={row}>
-              {G.seeAllLabel} ›<span className="sr-only"> {label}</span>
-            </Link>
-          )}
-        </div>
-        {/* Holistic review 11-18 H1: the kids age guides, two taps from the landing. */}
-        {row === "for-kids" && group && <KidsByAge />}
-        <ul className={group ? "gg-wrap" : "gg-row"}>
-          {list.map(({ g, label }, i) => <GiftGuideTile key={g.slug} g={g} label={label} priority={!group && row === ROWS[0].row && i < PRIORITY_COVERS} />)}
-        </ul>
-        {row === "for-kids" && !group && <KidsByAge />}
-      </section>
-    );
-  };
-  // Owner 11-20 12:30 PM ("very busy and not well organized"): the other guides are GROUPED. A group of SMALL_GROUP
-  // guides or fewer sits beside its small neighbours (For kids + By budget, By career + Life moments + Pets + Colors)
-  // instead of each taking a whole row; a bigger group keeps its own sideways row. ROWS order is kept.
-  const clusters: (typeof ROWS)[number][][] = [];
-  let lastSmall = false;
-  for (const r of rows.slice(ROWS_BEFORE_TOP)) {
-    const small = rowTiles(r.row).length <= SMALL_GROUP;
-    if (small && lastSmall) clusters[clusters.length - 1].push(r);
-    else clusters.push([r]);
-    lastSmall = small;
-  }
+/** A group's page (/gift-guides?group=<row>, a card's "See all"): its guides as a wrapped grid, with a way back. */
+function GroupPage({ group }: { group: GuideRow }) {
+  const r = ROWS.find((x) => x.row === group)!;
+  const headingId = `gift-row-${r.row}`;
+  // Owner 11-18 PM: the heading carries its guide count, "By person (7)".
+  const list = rowTiles(r.row);
   return (
     <>
-      {group && <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>}
-      {/* Owner brief 2026-11-19: the deals guide sits at the very top, Nov 23 through Dec 1 (Louisiana). */}
-      {!group && <DealsFeature />}
-      {/* Big batch 1120: the Small Business Saturday page, Nov 24 through Nov 29 (Louisiana). */}
-      {!group && <SmallBizFeature />}
-      {/* Owner 11-20 12:30 PM landing plan, in her order: the big "Find a gift in 3 taps" call to action (the gift
-          finder: who, budget, vibe; its answers in the URL), the countdown + Gift of the Day as ONE slim line, ONE
-          quick-filter chip row, Shop by person, the Top 10, ONE row of four tool cards, the grouped other guides, Deals &
-          codes, then the 25 Days sponsors' logo row near the bottom. No how-to box and no tip boxes. */}
-      {!group && <GiftFinder />}
-      {!group && <GiftCountdown />}
-      {!group && <QuickPicks />}
-      {/* Big batch 1120: the 25 Days banner and the Declutter link, OFF until the lead flips their flags. */}
-      {!group && <GatedBanners />}
-      {!group && <LastMinute />}
+      <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>
       <div className="gg-rows" data-gift-rows="">
-        {(group ? rows : rows.slice(0, ROWS_BEFORE_TOP)).map(drawRow)}
-      </div>
-      {!group && <TopStrip />}
-      {!group && <GiftTools />}
-      {!group && (
-        <div className="gg-rows" data-gift-rows="">
-          {clusters.map((c) => (c.length > 1 ? <div key={c[0].row} className="gg-groups" data-gift-groups="">{c.map(drawRow)}</div> : drawRow(c[0])))}
-        </div>
-      )}
-      {!group && <DealsAndCodes />}
-      {/* Train 1120b (owner 11-20 ~8:40 AM): the 25 Days sponsors' logo row; near the bottom since the 12:30 PM plan. */}
-      {!group && <SponsorRow />}
-      {!group && (
-        // Owner 2026-11-18: the 25 Days card. App.tsx has no shopper giveaway page (/25days is the sponsors' page), so
-        // it links to the Facebook page the giveaways run on.
-        <aside className="gg-helpr" aria-label={G.giveaways.title} data-gift-giveaways="">
-          <div>
-            <b>{G.giveaways.title}</b>
-            <span>{G.giveaways.body}</span>
+        <section aria-labelledby={headingId} data-gift-row={r.row}>
+          <div className="gg-rowhead">
+            <h2 id={headingId}><i className={`gg-dot gg-${r.tint}`} aria-hidden="true" />{r.label}<span className="gg-rowcount" data-gift-row-count="">&nbsp;({list.length})</span></h2>
           </div>
-          <a href={sponsorPage.links.facebookPage} target="_blank" rel="noopener noreferrer" className="gg-helpr-btn" data-gift-social="">{G.giveaways.cta}</a>
-        </aside>
-      )}
+          {/* Holistic review 11-18 H1: the kids age guides, two taps from the landing. */}
+          {r.row === "for-kids" && <KidsByAge />}
+          <ul className="gg-wrap">
+            {list.map(({ g, label }) => <GiftGuideTile key={g.slug} g={g} label={label} />)}
+          </ul>
+        </section>
+      </div>
+    </>
+  );
+}
+
+export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
+  if (group) return <GroupPage group={group} />;
+  return (
+    <>
+      {/* Owner brief 2026-11-19: the deals guide sits at the very top, Nov 23 through Dec 1 (Louisiana). */}
+      <DealsFeature />
+      {/* Big batch 1120: the Small Business Saturday page, Nov 24 through Nov 29 (Louisiana). */}
+      <SmallBizFeature />
+      {/* Owner 11-20 PM: the finder is ONE compact card ("Find a gift in 3 taps ->"); its three steps open on a tap. */}
+      <GiftFinder />
+      {/* Big batch 1120: the 25 Days banner and the Declutter link, OFF until the lead flips their flags. */}
+      <GatedBanners />
+      <LastMinute />
+      <BrowseGrid />
+      <TopStrip />
+      {/* Owner 11-20 PM: the countdown + Gift of the Day, lower down, as one small card (an affordable, priced pick). */}
+      <GiftCountdown />
+      <GiftTools />
+      <DealsAndCodes />
+      {/* Train 1120b (owner 11-20 ~8:40 AM): the 25 Days sponsors' logo row, near the bottom. */}
+      <SponsorRow />
+      {/* Owner 2026-11-18: the 25 Days card. App.tsx has no shopper giveaway page (/25days is the sponsors' page), so
+          it links to the Facebook page the giveaways run on. */}
+      <aside className="gg-helpr" aria-label={G.giveaways.title} data-gift-giveaways="">
+        <div>
+          <b>{G.giveaways.title}</b>
+          <span>{G.giveaways.body}</span>
+        </div>
+        <a href={sponsorPage.links.facebookPage} target="_blank" rel="noopener noreferrer" className="gg-helpr-btn" data-gift-social="">{G.giveaways.cta}</a>
+      </aside>
     </>
   );
 }

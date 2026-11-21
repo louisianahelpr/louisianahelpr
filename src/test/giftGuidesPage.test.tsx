@@ -30,7 +30,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details key={row} open={row === active?.row} | <details key={row} open
  * @mutate src/content/giftGuideCatalog.ts |     ...(children?.length ? { children } : {}), | 
  * @mutate src/content/giftGuideCatalog.ts | g.row === row && !g.parent); | g.row === row && !g.parent && g.slug !== KIDS_HUB);
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | <Link to={`/gift-guides?group=${row}`} | <Link to="/gift-guides"
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | : `/gift-guides?group=${row}`; | : "/gift-guides";
  * @mutate src/content/giftGuideCatalog.ts | 8978491: "mom", | 8978491: "nowhere", 
  * @mutate src/content/giftGuideCatalog.ts | 9000047: "gardener", | 9000047: "no-guide", 
  * @mutate src/content/giftGuideCatalog.ts | "for-him": "him", | "for-him": "him-x",
@@ -50,7 +50,7 @@
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{display:none} | .gg-side{display:block}
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | /iPhone\|iPad\|iPod/.test(userAgent) ? "&" : "?" | "?"
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       {!group && <TopStrip />} |       {false && <TopStrip />}
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <TopStrip /> |       {false && <TopStrip />}
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.empty && g.row === row
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.thin && g.row === row
  * @mutate src/content/giftGuideCatalog.ts |     if (g.empty \|\| g.thin) return false; |     if (false) return false;
@@ -66,7 +66,7 @@
  * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <p className="gg-lead">{lead}</p>\n      <h1 id={titleId}>{title}</h1>\n |       <p className="gg-lead">{lead}</p>\n      <h1 id={titleId}>{title}</h1>\n      <p className="gg-line">25 picks</p>\n
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <h1 id={titleId}>{title}</h1>\n      {sub}\n |       <h1 id={titleId}>{title}</h1>\n      <p className="gg-line">25 picks</p>\n      {sub}\n
  * @mutate src/content/giftGuides.ts |   { rank: 1, store: "Muck Boot", code: "TAKE25", | { rank: 8, store: "Muck Boot US", code: "TAKE25",
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -78,8 +78,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   // The header's own row (back target, title, title actions) as PageHeader draws it, so a test can see what rides it.
-  PublicHeaderPage: ({ title, titleTag = "h1", backTo, titleActions, children }: { title: string; titleTag?: "h1" | "p"; backTo?: string; titleActions?: React.ReactNode; children: React.ReactNode }) => (
-    <main><div data-test-header-row="" data-back-to={backTo}>{titleTag === "p" ? <p data-test-title="">{title}</p> : <h1 data-test-title="">{title}</h1>}{titleActions}</div>{children}</main>
+  PublicHeaderPage: ({ title, titleTag = "h1", backTo, titleActions, hideHeader, children }: { title: string; titleTag?: "h1" | "p"; backTo?: string; titleActions?: React.ReactNode; hideHeader?: boolean; children: React.ReactNode }) => (
+    <main>{!hideHeader && <div data-test-header-row="" data-back-to={backTo}>{titleTag === "p" ? <p data-test-title="">{title}</p> : <h1 data-test-title="">{title}</h1>}{titleActions}</div>}{children}</main>
   ),
 }));
 
@@ -160,10 +160,15 @@ function renderAt(url: string) {
 describe("gift guides: the shipping pill rides the page header's row (owner 11-18 PM)", () => {
   // Owner: "the order by should be on the same line as gift guides but on the right, move the rest up". The pill is the
   // header's title action (same row as "← Gift guides"), never a row of its own above the hero.
-  // @mutate src/pages/info/GiftGuides.tsx |       titleActions={shipPill}> |       >{shipPill}
-  it("on the landing and on a guide, the pill sits in the header row beside the title, outside the page body", () => {
+  // @mutate src/pages/info/GiftGuides.tsx |       titleActions={landing ? undefined : shipPill} hideHeader={landing}> |       hideHeader={landing}>{shipPill}
+  it("on a guide, the pill sits in the header row beside the title, outside the page body; the landing has no header row, its shipping words in the title's subline", () => {
+    // Owner 11-20 PM ("still a busy mess"): the landing has ONE title; its shipping words ride the short subline.
+    const landing = renderAt("/gift-guides").container;
+    expect(landing.querySelector("[data-test-header-row]")).toBeNull();
+    expect(landing.querySelector("[data-gift-words] [data-gift-sub] [data-gift-ship]")).not.toBeNull();
+    cleanup();
     let checked = 0;
-    for (const url of ["/gift-guides", "/gift-guides/mom"]) {
+    for (const url of ["/gift-guides/mom", "/gift-guides/her"]) {
       const { container } = renderAt(url);
       const pill = container.querySelector("[data-gift-ship]");
       expect(pill, url).not.toBeNull();
@@ -365,46 +370,46 @@ describe("gift guides: the content inventory", () => {
 });
 
 describe("gift guides: the landing opens to the guides", () => {
-  it("shows one tile row per group, in order, each with See all; every top-level guide's tile links to /gift-guides/<slug>", () => {
+  it("opens calm (owner 11-20 PM): the finder card, ONE grid of ways in, then the Top 10; every group's page lists its guides as tiles to /gift-guides/<slug>", () => {
     const top = ROWS.flatMap((r) => [
       ...GUIDES.filter((g) => !g.empty && !g.thin && g.row === r.row && !g.parent),
       ...(r.row === "for-kids" ? TEEN_TILES.map((t) => guideBySlug(t.slug)!).filter((g) => g && !g.empty) : []),
     ]);
+    // Owner 11-20 PM ("The gift guide page is still a busy mess"): no sideways guide rows, no See all and no chip strip
+    // on the landing itself; one grid of photo cards is the way in (src/test/giftGuideLandingCalm1120.test.tsx).
+    // Every top-level guide is a tile on its group's page, in order (the card opens the guide when it is the only one).
+    const reached: string[] = [];
+    const labels: string[] = [];
+    for (const r of ROWS) {
+      const page = renderAt(`/gift-guides?group=${r.row}`).container;
+      reached.push(...[...page.querySelectorAll("[data-gift-rows] a[data-gift-tile]")].map((a) => a.getAttribute("href")!));
+      labels.push(page.querySelector("[data-gift-row] h2")?.textContent?.replace(/\u00a0\(\d+\)$/, "") ?? "");
+      cleanup();
+    }
+    expect(labels).toEqual(ROW_LABELS);
+    expect(reached.length).toBeGreaterThan(30);
+    expect(reached).toEqual(top.map((g) => `/gift-guides/${g.slug}`));
     const { container } = renderAt("/gift-guides");
-    const rows = [...container.querySelectorAll("[data-gift-row]")];
-    // The heading is the group's name, then its guide count (owner 11-18 PM; checked in the row-count test).
-    expect(rows.map((r) => r.querySelector("h2")?.textContent?.replace(/\u00a0\(\d+\)$/, ""))).toEqual(ROW_LABELS);
-    expect([...container.querySelectorAll("a[data-gift-see-all]")].map((a) => a.getAttribute("href"))).toEqual(ROWS.map((r) => `/gift-guides?group=${r.row}`));
-    const tiles = [...container.querySelectorAll("[data-gift-rows] a[data-gift-tile]")];
-    expect(tiles.length).toBeGreaterThan(30);
-    // Owner redesign 11-18 PM ("the page the guide opens to on the phone view I don't like it"): the landing opens
-    // straight to the rows of guide covers, By person first, on every width: no "Start here" row, nothing folded behind
-    // "More guides", and nothing (no Top 10) above the first row.
+    expect(container.querySelector("[data-gift-row], a[data-gift-see-all], [data-gift-quick-picks]")).toBeNull();
+    // Nothing folded behind a "Start here" row or a "More guides" button.
     expect(container.querySelector("[data-gift-start], button[data-gift-more], .gg-rows-folded")).toBeNull();
     expect(GIFT_GUIDES_CSS).not.toMatch(/gg-rows-folded|gg-more-btn/);
-    // Owner 11-20 12:30 PM landing plan: above the first row, in order, the big "Find a gift in 3 taps" finder, the
-    // countdown + Gift of the Day as one slim line, and the one quick-filter chip row; no how-to box, no tip boxes.
+    // In order: the folded "Find a gift in 3 taps" card, the grid, then the Top 10; no how-to box, no tip boxes.
     const mainKids = [...container.querySelector(".gg-main")!.children];
     expect(mainKids[0].matches("[data-gift-finder]")).toBe(true);
-    expect(mainKids[1].matches("[data-gift-countdown]")).toBe(true);
-    expect(mainKids[2].matches("[data-gift-quick-picks]")).toBe(true);
-    expect(mainKids[3].matches("[data-gift-rows]")).toBe(true);
+    expect(mainKids[1].matches("[data-gift-browse]")).toBe(true);
+    expect(mainKids[2].matches("[data-gift-top]")).toBe(true);
     expect(container.querySelector("[data-gift-hint]")).toBeNull();
-    mainKids.splice(0, 3);
-    expect(mainKids[0].querySelector("[data-gift-row]")?.getAttribute("data-gift-row")).toBe(ROWS[0].row);
+    // A group of several guides opens its page (the old row's See all).
+    expect(container.querySelector('a[data-gift-entry="by-person"]')?.getAttribute("href")).toBe("/gift-guides?group=by-person");
     // Design audit 11-18 (High): on a phone the menu sat 2,000–3,100 px above the picks; holistic review 11-18 M9: it
-    // then sat at the bottom of the phone page, a second copy of the rows. Phones have no sidebar (the rows, the chips
-    // and search reach every guide).
+    // then sat at the bottom of the phone page, a second copy of the rows. Phones have no sidebar (the grid, its group
+    // pages and search reach every guide).
     const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.lastIndexOf("@media (max-width:767px){"));
     expect(phone).toMatch(/\.gg-side\{display:none\}/);
     expect(phone).toMatch(/\.gg-main\{[^}]*order:1/);
-    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(top.map((g) => `/gift-guides/${g.slug}`));
-    // No guide's list on the landing; "Our Top 10" is a short sideways strip of photo cards right AFTER the first row
-    // (By person; holistic review 11-18 M9: it sat 5th), ten picks at most.
-    // @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | const ROWS_BEFORE_TOP = 1; | const ROWS_BEFORE_TOP = 4;
+    // No guide's list on the landing; "Our Top 10" is a short sideways strip of photo cards right after the grid.
     const topRow = container.querySelector("[data-gift-top]")!;
-    expect(rows[0].compareDocumentPosition(topRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(topRow.compareDocumentPosition(rows[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(topRow.querySelector("ul.gg-row")).not.toBeNull();
     expect(topRow.querySelector("ol")).toBeNull();
     for (const card of topRow.querySelectorAll("[data-gift-top-card]")) {
@@ -416,34 +421,41 @@ describe("gift guides: the landing opens to the guides", () => {
     const topRows = topRow.querySelectorAll("[data-gift-pick]");
     expect(topRows.length).toBeGreaterThan(0);
     expect(topRows.length).toBeLessThanOrEqual(10);
-    expect(container.querySelectorAll("[data-gift-pick]").length).toBe(topRows.length);
-    // Holistic review 11-18 M10: the first row's first four covers load at once; every other cover stays lazy.
-    const eager = [...container.querySelectorAll("img.gg-cover[data-gift-cover-priority]")];
-    expect(eager.length).toBe(4);
-    for (const img of eager) {
-      expect(img.closest("[data-gift-row]")?.getAttribute("data-gift-row")).toBe(ROWS[0].row);
-      expect([img.getAttribute("loading"), img.getAttribute("fetchpriority")]).toEqual(["eager", "high"]);
+    expect(container.querySelectorAll("[data-gift-top] [data-gift-pick]").length).toBe(topRows.length);
+    // Holistic review 11-18 M10: the grid's first four photos load at once; every other photo stays lazy, all 480 square.
+    // @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | const PRIORITY_COVERS = 4; | const PRIORITY_COVERS = 0;
+    const photos = [...container.querySelectorAll("[data-gift-entries] img")];
+    expect(photos.length).toBeGreaterThan(4);
+    expect(photos.slice(0, 4).map((img) => [img.getAttribute("loading"), img.getAttribute("fetchpriority")])).toEqual(Array(4).fill(["eager", "high"]));
+    for (const img of photos.slice(4)) expect(img.getAttribute("loading")).toBe("lazy");
+    for (const img of photos) expect([Number(img.getAttribute("width")), Number(img.getAttribute("height"))]).toEqual([480, 480]);
+    cleanup();
+    // On a group's page every cover stays lazy; a guide with no cover gets a plain gingham tile with its name only
+    // (owner 2026-11-18: no footer text).
+    for (const r of ROWS) {
+      const page = renderAt(`/gift-guides?group=${r.row}`).container;
+      for (const img of page.querySelectorAll("img.gg-cover")) expect([img.getAttribute("loading"), img.getAttribute("width")], r.row).toEqual(["lazy", "480"]);
+      for (const t of page.querySelectorAll("[data-gift-rows] [data-gift-textcover]")) expect(t.textContent).not.toMatch(/LOUISIANA HELPR/i);
+      cleanup();
     }
-    for (const img of container.querySelectorAll("img.gg-cover:not([data-gift-cover-priority])")) {
-      expect(img.getAttribute("loading")).toBe("lazy");
-      expect(Number(img.getAttribute("width"))).toBe(480);
-      expect(Number(img.getAttribute("height"))).toBe(480);
-    }
-    expect(container.querySelectorAll("[data-gift-rows] img.gg-cover").length).toBe(top.filter((g) => g.cover).length);
-    // A guide with no cover gets a plain gingham tile with its name only (owner 2026-11-18: no footer text).
-    const text = [...container.querySelectorAll("[data-gift-rows] [data-gift-textcover]")];
-    expect(text.length).toBe(top.filter((g) => !g.cover).length);
-    for (const t of text) expect(t.textContent).not.toMatch(/LOUISIANA HELPR/i);
   });
 
-  it("every header is compact: italic lead, title (the page's h1) and the slim tool row; no subtitle, no pick count anywhere", () => {
+  it("every header is compact: title (the page's h1) and the slim tool row (the landing's one short subline between); no pick count anywhere", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector(".gg-band")).toBeNull();
     const words = container.querySelector("[data-gift-words]");
-    expect([...(words?.children ?? [])].map((c) => c.tagName + (c.matches("[data-gift-quick]") ? "[tools]" : c.textContent))).toEqual(["Ptop-rated finds", "H1Holiday Gift Guides", "DIV[tools]"]);
+    // Owner 11-20 PM ("still a busy mess"): ONE title, no italic lead over it, one short subline under it.
+    expect([...(words?.children ?? [])].map((c) => c.tagName + (c.matches("[data-gift-quick]") ? "[tools]" : c.matches("[data-gift-sub]") ? "[sub]" : c.textContent))).toEqual(["H1Holiday Gift Guides", "P[sub]", "DIV[tools]"]);
+    expect(words!.querySelector("[data-gift-sub]")!.textContent).toMatch(new RegExp(`^${giftGuides.landingSub}`));
+    cleanup();
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
-    // age guide keeps its age band).
-    const tiles = [...container.querySelectorAll("a[data-gift-tile]")];
+    // age guide keeps its age band). The tiles are on the groups' pages (owner 11-20 PM).
+    const tiles = ROWS.flatMap((r) => {
+      const page = renderAt(`/gift-guides?group=${r.row}`).container;
+      const found = [...page.querySelectorAll("a[data-gift-tile]")].map((t) => t.cloneNode(true) as Element);
+      cleanup();
+      return found;
+    });
     // Follow-up 1120: ~30 guides and 26 store pages (50+ tiles measured 2026-11-20).
     expect(tiles.length).toBeGreaterThan(40);
     for (const t of tiles) {
@@ -453,7 +465,7 @@ describe("gift guides: the landing opens to the guides", () => {
       // The For kids row's Teens tiles are named apart ("Teen girls"; live audit r3 #4).
       expect(words, g.slug).toBe(`${TEEN_TILES.find((x) => x.slug === g.slug)?.label ?? g.title}${g.age ?? ""}`);
     }
-    expect(container.textContent).not.toMatch(/\d+ picks?\b|\d+ guides\b|Coming soon|On ShopMy/);
+    expect(renderAt("/gift-guides").container.textContent).not.toMatch(/\d+ picks?\b|\d+ guides\b|Coming soon|On ShopMy/);
     cleanup();
     const wordsOf = (path: string) => [...(renderAt(path).container.querySelector("[data-gift-words]")?.children ?? [])].map((c) => c.textContent);
     // A guide's header is its cover's look as a short banner (owner 11-18 PM): gingham in the guide's palette, a cream
@@ -550,8 +562,12 @@ describe("gift guides: the landing opens to the guides", () => {
   // Follow-up 1120 (owner 11-20 ~1:10 AM): ONE Kids guide by age; the row shows Kids and Kids by age links each age
   // section, teens included.
   // @mutate src/pages/info/giftGuides/GiftGuideAges.tsx |   const bands = KID_AGE_BANDS.flatMap((b) => { |   const bands = KID_AGE_BANDS.filter((b) => b.tail !== "teens").flatMap((b) => {
-  it("kids in two taps: the row shows Kids; Kids by age opens each age section, teens too; the menu Kids", () => {
-    const { container } = renderAt("/gift-guides");
+  it("kids in one tap: the landing's For kids card opens Kids; its group page shows Kids and Kids by age (each age section, teens too); the menu Kids", () => {
+    // Owner 11-20 PM: the landing's For kids card opens the one Kids guide (its sections are the ages).
+    const card = renderAt("/gift-guides").container.querySelector('a[data-gift-entry="for-kids"]');
+    expect(card?.getAttribute("href")).toBe("/gift-guides/kids");
+    cleanup();
+    const { container } = renderAt("/gift-guides?group=for-kids");
     const kidsRow = container.querySelector('[data-gift-row="for-kids"]')!;
     expect(TEEN_TILES).toEqual([]);
     expect([...kidsRow.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"))).toEqual(["kids"]);
@@ -583,7 +599,7 @@ describe("gift guides: the landing opens to the guides", () => {
       expect(ids.length, hub).toBeGreaterThan(2);
     }
     expect(newSlugFor("teachers")).toBe(`work-life#${SECTION_ANCHORS.teachers}`);
-    const row = renderAt("/gift-guides").container.querySelector('[data-gift-row="by-career"]')!;
+    const row = renderAt("/gift-guides?group=by-career").container.querySelector('[data-gift-row="by-career"]')!;
     const tiles = [...row.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
     expect(tiles).toContain("healthcare");
     expect(tiles).not.toContain("female-nurses");
@@ -631,9 +647,10 @@ describe("gift guides: the landing opens to the guides", () => {
     // Owner 11-18 PM ("discount code shouldn't open expanded"): it starts collapsed; opening shows every code.
     // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details id="gift-codes" className="gg-deals" data-gift-deals-codes=""> | <details open id="gift-codes" className="gg-deals" data-gift-deals-codes="">
     expect(side.open).toBe(false);
-    const rowsOnPage = page.querySelectorAll("[data-gift-row]");
-    expect(rowsOnPage.length).toBe(ROW_LABELS.length);
-    expect(rowsOnPage[rowsOnPage.length - 1].compareDocumentPosition(side) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // After the landing's guides grid (owner 11-20 PM: the grid replaced the rows).
+    const grid = page.querySelector("[data-gift-browse]")!;
+    expect(grid).not.toBeNull();
+    expect(grid.compareDocumentPosition(side) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // One box per store, several codes inside: Muck Boot holds CYBER and TAKE25 (Nov 20–28), in the owner's order.
     const moreCodes = side.querySelector("button[data-gift-all-codes]");
     if (moreCodes) fireEvent.click(moreCodes);
@@ -832,7 +849,7 @@ describe("gift guides: links and disclosures on every view", () => {
       const { container } = renderAt(url);
       expect(screen.getAllByText(DISCLOSURE).length, url).toBe(1);
       expect(screen.getAllByText(AMAZON_STATEMENT).length, url).toBe(1);
-      const last = container.querySelector("[data-gift-row]:last-of-type, [data-gift-guide]")!;
+      const last = container.querySelector("[data-gift-browse], [data-gift-row]:last-of-type, [data-gift-guide]")!;
       expect(last, url).toBeTruthy();
       for (const line of [screen.getByText(DISCLOSURE), screen.getByText(AMAZON_STATEMENT)]) {
         expect(last.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING, url).toBeTruthy();
@@ -1041,24 +1058,19 @@ describe("gift guides: each row heading carries its guide count (owner 11-18 PM)
   // Owner: "add the number in parentheses on the right of By Person". Computed: the tiles the row shows, the same
   // number its See all page shows.
   // @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | &nbsp;({list.length}) | &nbsp;(24)
-  it("every row's (n) equals its tiles, on the landing and on its See all page", () => {
-    const { container } = renderAt("/gift-guides");
-    const rows = [...container.querySelectorAll("section[data-gift-row]")];
-    expect(rows.length).toBeGreaterThan(5);
+  it("every group page's (n) equals its tiles", () => {
+    // Owner 11-20 PM: the rows live on each group's page now (the landing has one grid of ways in).
     const counts = new Map<string, number>();
-    for (const r of rows) {
+    for (const { row } of ROWS) {
+      const r = renderAt(`/gift-guides?group=${row}`).container.querySelector(`section[data-gift-row="${row}"]`)!;
       const n = r.querySelectorAll(":scope > ul > li a[data-gift-tile], :scope > ul a[data-gift-tile]").length;
       const shown = r.querySelector("h2 [data-gift-row-count]")?.textContent?.replace(/\u00a0/g, " ").trim();
-      expect(shown, r.getAttribute("data-gift-row")!).toBe(`(${n})`);
-      counts.set(r.getAttribute("data-gift-row")!, n);
-    }
-    expect(new Set(counts.values()).size).toBeGreaterThan(2);
-    cleanup();
-    for (const row of ["by-person", "by-store"]) {
-      const c = renderAt(`/gift-guides?group=${row}`).container;
-      expect(c.querySelector(`section[data-gift-row="${row}"] h2 [data-gift-row-count]`)?.textContent?.trim(), row).toBe(`(${counts.get(row)})`);
+      expect(shown, row).toBe(`(${n})`);
+      counts.set(row, n);
       cleanup();
     }
+    expect(counts.size).toBeGreaterThan(5);
+    expect(new Set(counts.values()).size).toBeGreaterThan(2);
   });
 });
 
@@ -1141,7 +1153,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
 
   // Owner redesign 11-18 PM ("share text search list codes is too much buttons right here"): ONE slim row under every
   // title, at every width: the search field, My list (an icon with its count) and Share (an icon). No pill buttons.
-  // @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <h1 id={titleId}>{title}</h1>\n      {tools} |       <h1 id={titleId}>{title}</h1>
+  // @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       {sub}\n      {tools} |       {sub}
   // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       <MyListIcon current={myList} />\n |       <a href="#codes">Codes</a>\n      <MyListIcon current={myList} />\n
   it("#15 / redesign: the tool row under the title is search, My list and Share, nothing else", () => {
     for (const url of ["/gift-guides", "/gift-guides/mom", "/gift-guides/store-walmart"]) {

@@ -41,6 +41,9 @@ interface PublicHeaderPageProps {
   phoneHidesTitle?: boolean;
   /** Forwarded to PageHeader: "p" when the page's body holds its own h1 (the gift guides' banner title). */
   titleTag?: "h1" | "p";
+  /** No header row at all: the page's body opens with its own h1 and has no back arrow or title-row actions (the
+   *  /gift-guides landing, owner 11-20: one title, not "Gift guides" over "Holiday Gift Guides"). */
+  hideHeader?: boolean;
   children: ReactNode;
 }
 
@@ -71,6 +74,7 @@ export function PublicHeaderPage({
   hideBack = false,
   phoneHidesTitle = false,
   titleTag = "h1",
+  hideHeader = false,
   children,
 }: PublicHeaderPageProps) {
   const header = (
@@ -91,7 +95,7 @@ export function PublicHeaderPage({
       {/* F017 (owner UI audit 11-09): the title and body sit in the same 78rem container as the bar (Navbar
           PUBLIC_CONTAINER), so the logo, the title and the content share a left edge on every public page. */}
       <div data-public-container="" className={PUBLIC_CONTAINER}>
-        {headerWrapperClassName ? <div className={headerWrapperClassName}>{header}</div> : header}
+        {hideHeader ? null : headerWrapperClassName ? <div className={headerWrapperClassName}>{header}</div> : header}
         <div className={`px-5 sm:px-8 lg:px-12 ${bottomPaddingClassName}`}>
           {children}
         </div>

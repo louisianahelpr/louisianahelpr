@@ -63,7 +63,7 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 }));
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSantaReveal from "@/pages/info/giftGuides/fun/SecretSantaReveal";
-import { GiftCountdown, GiftTools, giftOfTheDayPath } from "@/pages/info/giftGuides/fun/GiftCountdown";
+import { GOTD_SOURCE_GUIDE, GiftCountdown, GiftTools, giftOfTheDayPath } from "@/pages/info/giftGuides/fun/GiftCountdown";
 import { giftListNow, resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { planActions, resetPlanStoreForTests, setPlanViewer, useAccountSync, usePlan } from "@/pages/info/giftGuides/fun/plannerStore";
@@ -285,17 +285,21 @@ describe("Christmas countdown and Gift of the Day", () => {
     // 11 PM on Dec 24 in Louisiana is already Dec 25 in UTC: still Christmas Eve here.
     expect(christmasCountdown(new Date("2026-12-25T05:00:00Z"))).toEqual({ kind: "eve" });
   });
-  it("one curated pick per day, the same all day, a different one the next", () => {
-    const top = topPicks();
-    expect(top.length).toBeGreaterThan(3);
-    const a = giftOfTheDay(top, la("2026-12-01", 1));
-    expect(giftOfTheDay(top, la("2026-12-01", 22))).toBe(a);
-    expect(giftOfTheDay(top, la("2026-12-02"))).not.toBe(a);
-    expect(giftOfTheDay([], la("2026-12-02"))).toBeNull();
-    // No Amazon price ever (PickPrice's own rule).
+  it("one affordable pick per day, the same all day, a different one the next; never an Amazon pick", async () => {
+    // Owner 11-20: "The gift of the day shouldn't be expensive" (src/test/giftGuideLandingCalm1120.test.tsx).
+    await loadAllGuidePicks();
+    const pool = [...guideBySlug(GOTD_SOURCE_GUIDE)!.picks, ...topPicks()];
+    const newest = pool.map((p) => p.priceAt ?? "").sort().at(-1)!;
+    const priced = (p: CatalogPick) => showsPrice(p, newest);
+    expect(pool.length).toBeGreaterThan(3);
+    const a = giftOfTheDay(pool, la("2026-12-01", 1), priced);
+    expect(a).not.toBeNull();
+    expect(giftOfTheDay(pool, la("2026-12-01", 22), priced)).toBe(a);
+    expect(giftOfTheDay(pool, la("2026-12-02"), priced)).not.toBe(a);
+    expect(giftOfTheDay([], la("2026-12-02"), priced)).toBeNull();
     for (let d = 1; d <= 25; d++) {
-      const g = giftOfTheDay(top, la(`2026-12-${String(d).padStart(2, "0")}`))!;
-      if (g.store === "amazon" || g.store === "store-amazon") expect(showsPrice(g)).toBe(false);
+      const g = giftOfTheDay(pool, la(`2026-12-${String(d).padStart(2, "0")}`), priced)!;
+      expect(g.store === "amazon" || g.store === "store-amazon", g.name).toBe(false);
     }
   });
   it("the 25 Days link shows Dec 1-25 only, and only with its flag on", () => {
@@ -304,21 +308,25 @@ describe("Christmas countdown and Gift of the Day", () => {
     expect(giveawayTieInOn(la("2026-11-30"), true)).toBe(false);
     expect(giveawayTieInOn(la("2026-12-26"), true)).toBe(false);
   });
-  it("the landing's slim line shows the days and the gift; no 25 Days link while the flag is off; the tools are one row of four", () => {
-    const { container } = render(<MemoryRouter><GiftCountdown now={la("2026-12-10")} /></MemoryRouter>);
-    expect(container.querySelector("[data-gift-countdown-days]")?.getAttribute("data-gift-countdown-days")).toBe("15");
+  it("the landing's small card shows the days and the gift; no 25 Days link while the flag is off; the tools are one row of four", async () => {
+    await loadAllGuidePicks();
+    const newest = [...guideBySlug(GOTD_SOURCE_GUIDE)!.picks, ...topPicks()].map((p) => p.priceAt ?? "").sort().at(-1)!;
+    const { container } = render(<MemoryRouter><GiftCountdown now={la(newest)} /></MemoryRouter>);
+    const c = christmasCountdown(la(newest));
+    expect(container.querySelector("[data-gift-countdown-days]")?.getAttribute("data-gift-countdown-days")).toBe(String(c.kind === "days" ? c.days : c.kind));
     expect(container.querySelector("[data-gift-of-the-day]")).not.toBeNull();
-    // Owner 11-20 12:30 PM: ONE slim line (no card, no thumbnail, no tip box), the tools in their own row.
-    expect(container.querySelector("[data-gift-of-the-day] img, .gg-hint, [data-gift-fun-tool]")).toBeNull();
+    // Owner 11-20 PM: one small card (the gift's whole name, no tip box), the tools in their own row.
+    expect(container.querySelector(".gg-hint, [data-gift-fun-tool]")).toBeNull();
     expect(container.querySelector("[data-gift-giveaway-on]")).toBeNull();
     act(() => cleanup());
     const tools = render(<MemoryRouter><GiftTools /></MemoryRouter>).container;
     expect([...tools.querySelectorAll("[data-gift-fun-tool]")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner", "/gift-guides/printables"]);
     expect(tools.querySelector("style")?.textContent).toMatch(/\.gg-fun-tools\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
     act(() => cleanup());
-    const after = render(<MemoryRouter><GiftCountdown now={la("2026-12-27")} /></MemoryRouter>);
+    // After Christmas the countdown rests; with no freshly priced gift that day the card hides.
+    const after = render(<MemoryRouter><GiftCountdown now={la("2030-12-27")} /></MemoryRouter>);
     expect(after.container.querySelector("[data-gift-countdown-days]")).toBeNull();
-    expect(after.container.querySelector("[data-gift-of-the-day]")).not.toBeNull();
+    expect(after.container.querySelector("[data-gift-of-the-day]")).toBeNull();
   });
 });
 

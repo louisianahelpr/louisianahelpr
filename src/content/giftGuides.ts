@@ -219,6 +219,23 @@ export const giftGuides = {
   pageTitle: "Gift guides",
   bandLead: "top-rated finds",
   title: "Holiday Gift Guides",
+  /** The landing's one short subline under its title (owner 11-20 PM); the shipping words follow it when in season. */
+  landingSub: "Top-rated finds for everyone on your list",
+  /**
+   * The landing's ONE set of ways in (owner 11-20 PM: "a tidy grid of nicely spaced cards, each with a good photo and
+   * title"): a card per main group, its photo the named guide's own cover, its short line below the title; then the
+   * smaller groups as a plain line of links. Every guide is one tap from its group's page.
+   */
+  browseTitle: "Browse the guides",
+  moreTitle: "More guides",
+  entries: [
+    { row: "by-person", title: "By person", sub: "Mom, Dad, Her & Him", cover: "her" },
+    { row: "for-kids", title: "For kids", sub: "Babies to teens", cover: "kids" },
+    { row: "by-budget", title: "By budget", sub: "Under $25, $50 & more", cover: "gifts-by-budget" },
+    { row: "louisiana", title: "Louisiana", sub: "Local food & shops", cover: "louisiana-food-gifts" },
+    { row: "by-store", title: "By store", sub: "Target, Walmart & more", cover: "store-target" },
+  ] as { row: string; title: string; sub: string; cover: string }[],
+  dealsEntry: { title: "Deals", sub: "Sales & codes" },
   disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
   /** Amazon Associates Operating Agreement: the exact statement every site with Amazon links must show. */
   amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",

@@ -17,5 +17,9 @@ export function applyHolidayB1120(
     dealCodes?: { store: string; offer?: string }[];
     lineup?: string[];
     blockedBrand?: (row: { brand?: string; name?: string }) => unknown;
+    /** Guide merges (src/content/giftGuideMerges.mjs), the old-anchor map and the fixed-order guides: for the thin-section fold. */
+    merges?: { parent: string; sections: string[] }[];
+    anchors?: Record<string, string>;
+    sortFixed?: Set<string>;
   },
 ): { counts: Record<string, unknown>; missing: string[] };

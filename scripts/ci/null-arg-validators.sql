@@ -279,7 +279,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('instant_book_end_if_unhireable','action',   'instant book (20261101071621): service-only, ends a booking whose Helpr can no longer be hired before any capture (writes; TRUE = it ended one)'),
   ('instant_book_captured_not_hired','action',  'instant book (20261101074901): service-only, ends a booking captured with nobody hired and takes the refund claim (writes; TRUE = it marked one)'),
   ('instant_book_refund_finished',  'action',   'instant book (20261101074901): service-only, releases the instant-book refund claim once the refund is done (writes; TRUE = it released one)'),
-  ('secret_santa_set_wish_list',    'action',   'gift guides Secret Santa (20261120062334): anon + authenticated, attaches a wish list code to the one row its token hash opens (writes; TRUE = that row was updated; NULL code or token match nothing, so nothing is granted)');
+  ('secret_santa_set_wish_list',    'action',   'gift guides Secret Santa (20261120062334): anon + authenticated, attaches a wish list code to the one row its token hash opens (writes; TRUE = that row was updated; NULL code or token match nothing, so nothing is granted)'),
+  ('secret_santa_cancel',           'action',   'gift guides Secret Santa (20261121011706): anon + authenticated, deletes a group only when every person token is presented (writes; TRUE = the group was deleted; a NULL code or token list returns FALSE, proven in giftGuideSecretSanta.pglite.mjs)');
 
 -- Fixture ids (all 00000000-0000-4000-8140-*): A poster, B hired helper on a
 -- pro plan, D admin; J an open funded job (A posts, B hired, B applied);

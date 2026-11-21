@@ -8,6 +8,9 @@
  *     nothing, the stored hash is not the token, and an expired group opens nothing; the cleanup deletes it.
  *   - a test member's group is is_seed; a person attaches a wish list code through their own token only.
  *   - anon and authenticated cannot read the tables; the planner row is the member's own (RLS).
+ *   - secret_santa_cancel (20261121011706, holiday audit C2): only the full set of a group's tokens deletes it (one
+ *     person's link, a duplicate, a made-up token, another group's tokens, NULLs, an expired group: no); after a
+ *     cancel every old link opens nothing. CANCEL=skip -> RED; MUTANT=cancelOneToken|cancelExpired -> RED.
  *
  *   node src/test/pglite/giftGuideSecretSanta.pglite.mjs                    # ALL PASS (migration 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/giftGuideSecretSanta.pglite.mjs # RED
@@ -49,12 +52,23 @@ const MUTANTS = {
   setListAnyToken: ["     AND me.group_code = p_code\n     AND me.token_hash = encode(sha256(convert_to(p_token, 'UTF8')), 'hex')\n     AND g.expires_at > now();", "     AND me.group_code = p_code\n     AND g.expires_at > now();"],
   noExpire: ["  DELETE FROM public.secret_santa_groups WHERE expires_at <= now();", "  PERFORM 1;"],
 };
+// Holiday audit C2 (20261121011706): the organizer cancels a draw by presenting EVERY person's token.
+const CANCEL_FILE = readdirSync(MIG_DIR).find((f) => f.endsWith("_secret_santa_cancel.sql"));
+if (!CANCEL_FILE) throw new Error("cancel migration not found");
+const CANCEL_MUTANTS = {
+  cancelOneToken: ["  IF v_matched <> v_size THEN\n    RETURN false;\n  END IF;", "  IF v_matched < 1 THEN\n    RETURN false;\n  END IF;"],
+  cancelExpired: [" WHERE g.code = p_code AND g.expires_at > now() FOR UPDATE;", " WHERE g.code = p_code FOR UPDATE;"],
+};
 let mig = readFileSync(MIG_DIR + THIS, "utf8");
+let cancelMig = readFileSync(MIG_DIR + CANCEL_FILE, "utf8");
 const MUTANT = process.env.MUTANT ?? "";
 if (MUTANT) {
-  const m = MUTANTS[MUTANT];
-  if (!m || mig.split(m[0]).length !== 2) throw new Error(`mutant ${MUTANT} did not apply`);
-  mig = mig.replace(m[0], m[1]);
+  const inCancel = MUTANT in CANCEL_MUTANTS;
+  const m = inCancel ? CANCEL_MUTANTS[MUTANT] : MUTANTS[MUTANT];
+  const src = inCancel ? cancelMig : mig;
+  if (!m || src.split(m[0]).length !== 2) throw new Error(`mutant ${MUTANT} did not apply`);
+  if (inCancel) cancelMig = cancelMig.replace(m[0], m[1]);
+  else mig = mig.replace(m[0], m[1]);
 }
 
 let failures = 0;
@@ -81,6 +95,13 @@ await db.exec(`
 
 if (process.env.NEW_MIGRATION !== "skip") {
   for (let k = 0; k < 3; k++) await db.exec(mig);
+}
+// CANCEL=skip: RED for the cancel checks below.
+let cancelApplied = 0;
+if (process.env.CANCEL !== "skip") {
+  for (let k = 0; k < 3; k++) {
+    try { await db.exec(cancelMig); cancelApplied++; } catch (e) { console.log(`apply ${CANCEL_FILE} ${k + 1} failed: ${e.message}`); }
+  }
 }
 
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
@@ -211,6 +232,29 @@ try {
   const far = await expiresFor("(now() AT TIME ZONE 'America/Chicago')::date + 80");
   check(Math.abs(far - cap) < 120000, "an exchange day 80 days out: capped at 90 days after it was made");
   check(/bad_date/.test(await err(create("1,2,3,0", "'{}'::int[]", "NULL", "(now() AT TIME ZONE 'America/Chicago')::date + 95")) ?? ""), "refuses an exchange day past the 90 days");
+
+  // Cancel (holiday audit C2): only the organizer, who holds every token, can turn a draw off before a redraw.
+  check(cancelApplied === 3, `${CANCEL_FILE} applies 3 times (replay-safe)`);
+  await setAddr("10.0.0.80");
+  const c = (await q(create("1,2,3,0")))[0].r;
+  const cancel = async (code, toks) => (await q(`SELECT public.secret_santa_cancel($1, $2::text[]) AS r`, [code, toks]))[0].r;
+  check((await cancel(c.code, [c.tokens[0]])) === false, "one person's own link cannot cancel the draw");
+  check((await cancel(c.code, [c.tokens[0], c.tokens[1], c.tokens[2]])) === false, "three of four tokens cannot cancel the draw");
+  check((await cancel(c.code, [c.tokens[0], c.tokens[0], c.tokens[1], c.tokens[2]])) === false, "a token given twice does not count as two people");
+  check((await cancel(c.code, [c.tokens[0], c.tokens[1], c.tokens[2], "f".repeat(64)])) === false, "a made-up token cannot stand in for a person");
+  check((await cancel(other.code, c.tokens)) === false, "one group's tokens cannot cancel another group");
+  check((await cancel(c.code, null)) === false && (await cancel(null, c.tokens)) === false, "a NULL code or token list cancels nothing");
+  check((await rev(c.code, c.tokens[2]))?.match === "Dee", "after the refused cancels, every link still works");
+  const exp = (await q(create("1,2,3,0")))[0].r;
+  await db.exec(`UPDATE public.secret_santa_groups SET expires_at = now() - interval '1 minute' WHERE code = '${exp.code}'`);
+  check((await cancel(exp.code, exp.tokens)) === false, "an expired group is not cancelled (the cleanup removes it)");
+  await db.exec(`DELETE FROM public.secret_santa_groups WHERE code = '${exp.code}'`);
+  check((await cancel(c.code, c.tokens)) === true, "the organizer, holding every token, cancels the draw");
+  check((await rev(c.code, c.tokens[0])) === null && (await rev(c.code, c.tokens[3])) === null, "after a cancel, every old link opens nothing");
+  check((await q(`SELECT count(*)::int AS n FROM public.secret_santa_people WHERE group_code = $1`, [c.code]))[0].n === 0, "the cancelled group's people are deleted with it");
+  check((await cancel(c.code, c.tokens)) === false, "cancelling twice is a no-op");
+  const cacl = (await q(`SELECT coalesce(array_to_string(proacl, ','), '') AS a, prosecdef FROM pg_proc WHERE oid = 'public.secret_santa_cancel(text,text[])'::regprocedure`))[0];
+  check(/(^|,)anon=X/.test(cacl.a) && !/(^|,)=X/.test(cacl.a) && cacl.prosecdef === true, `secret_santa_cancel: anon may run it (signed-out drawer), PUBLIC may not (${cacl.a})`);
 
   // Expiry: a group past its day opens nothing, and the cleanup deletes it.
   await db.exec(`UPDATE public.secret_santa_groups SET expires_at = now() - interval '1 minute' WHERE code = '${g.code}'`);

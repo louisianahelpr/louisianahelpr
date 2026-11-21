@@ -162,6 +162,7 @@ export const NOT_MONITORED = {
   // Gift guides wish list (owner 2026-11-20, UX audit L7): usage counts read by hand; the outcome is gift_wish_lists rows.
   // Gift guides fun features (owner 2026-11-20, UX audit L12): usage counts read by hand; quiet days are normal.
   secret_santa_drawn: "usage count of Secret Santa groups drawn (size, pairs), read by hand; the outcome is secret_santa_groups rows",
+  secret_santa_redraw: "usage count of Secret Santa draws the organizer turned off to start over (holiday audit C2), read by hand",
   secret_santa_reveal_opened: "usage count of Secret Santa reveal links opened, read by hand; a quiet day of zero is normal",
   gift_swipe_round_done: "usage count of finished swipe rounds (cards, saved), read by hand",
   gift_planner_person_added: "usage count of people added to the gift planner, read by hand",

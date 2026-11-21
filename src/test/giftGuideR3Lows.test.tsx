@@ -9,13 +9,13 @@
  *  - #15: no guide shows the Kindle photo with the "INSURANCE AVAILABLE" badge, nor the lip-oil photo with price badges;
  *  - #17: the "Kids by age" chip opens the Kids by age block (its anchor), not just the For kids group.
  *
+ * Owner 11-21: only Her, Him and Kids are live (src/content/giftGuideLive.mjs): the Top 10 and Kids by age are off
+ * the landing (their tests are gone) and the old Nurses link opens the landing.
+ *
  * @mutate scripts/gift-guide-photo-covers.py |         if (len(lines) <= 2 and all( |         if (len(lines) <= 3 and all(
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | (row === "for-kids" && G.ageHubLabels[g.slug] ? g.title : undefined) | (undefined)
  * @mutate src/lib/giftGuidePageMeta.mjs |   if (gift) { |   if (false) {
  * @mutate api/share.ts |     ...("robots" in page && typeof page.robots === "string" ? { robots: page.robots } : {}), |
  * @mutate src/content/giftGuideCatalog.ts |     const keyword = q !== "" && (SEARCH_KEYWORDS[g.slug] ?? "").split(" ").includes(q); |     const keyword = false;
- * @mutate src/content/giftGuideCatalog.ts |   nurses: ["healthcare"], |   "nurses-gone": ["healthcare"],
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |           {r.row === "for-kids" && <KidsByAge />} |           {null}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -57,14 +57,8 @@ describe("gift guides r3 UX Lows", () => {
   it("#10: the For kids row shows the one Kids tile; Girls, Boys and Gender-neutral have no tiles of their own", () => {
     const { container } = renderAt("/gift-guides?group=for-kids");
     const row = container.querySelector("[data-gift-row='for-kids']")!;
-    expect([...row.querySelectorAll("[data-gift-tile]")].map((t) => t.getAttribute("data-gift-tile"))).toEqual(["kids", "teens"]); // Teens is its own guide (owner 11-20 evening)
+    expect([...row.querySelectorAll("[data-gift-tile]")].map((t) => t.getAttribute("data-gift-tile"))).toEqual(["kids"]); // owner 11-21: Teens is retired, Kids is the one live kids guide
     for (const slug of ["girls", "boys", "gender-neutral"]) expect(row.querySelector(`[data-gift-tile='${slug}']`), slug).toBeNull();
-  });
-
-  it("#11: a Top 10 card name drops a trailing spec list, and wraps to three lines", () => {
-    expect(topCardName("Anker Zolo Magnetic Power Bank (10K, 30W, Built-in USB-C Cable)")).toBe("Anker Zolo Magnetic Power Bank");
-    expect(topCardName("Rambler 20 oz Tumbler")).toBe("Rambler 20 oz Tumbler");
-    expect(readFileSync("src/pages/info/giftGuides/giftGuidesStyles.ts", "utf8")).toMatch(/\.gg-topcard-name\{[^}]*-webkit-line-clamp:3/);
   });
 
   it("#12: a guide slug search engines do not list is noindex before JS, and api/share.ts passes it on", () => {
@@ -74,15 +68,12 @@ describe("gift guides r3 UX Lows", () => {
     expect(readFileSync("api/share.ts", "utf8")).toContain('...("robots" in page && typeof page.robots === "string" ? { robots: page.robots } : {}),');
   });
 
-  it("#13: /gift-guides/nurses opens Healthcare, and \"nurse\" lists Healthcare first", () => {
-    expect(newSlugFor("nurses")).toBe("healthcare");
+  it("#13: /gift-guides/nurses opens the landing now that Healthcare is retired (owner 11-21), before JS too", () => {
+    expect(guideBySlug("healthcare")).toBeUndefined();
+    expect(newSlugFor("nurses")).toBeNull();
     const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { redirects: { source: string; destination: string }[] };
-    expect(vercel.redirects.find((r) => r.source === "/gift-guides/nurses")?.destination).toBe("/gift-guides/healthcare");
-    // (Healthcare hides while under 6 picks after one guide per product, owner 11-19.)
-    if (!guideBySlug("healthcare")?.empty) {
-      expect(searchGuides("nurse")[0]?.slug).toBe("healthcare");
-      expect(searchGuides("nurses")[0]?.slug).toBe("healthcare");
-    }
+    expect(vercel.redirects.find((r) => r.source === "/gift-guides/nurses")?.destination).toBe("/gift-guides");
+    expect(searchGuides("nurse").some((g) => g.slug === "healthcare")).toBe(false);
   });
 
   it("#15: no guide shows the badge photos", () => {
@@ -91,10 +82,5 @@ describe("gift guides r3 UX Lows", () => {
     expect(files.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
     const hits = files.filter((f) => /b9346480-e5d8-405a-be12-eedecc9dad24|a1cad1c0a8ae4be69efa19221195a9c4/.test(readFileSync(`${dir}/${f}`, "utf8")));
     expect(hits).toEqual([]);
-  });
-
-  it("#17: the For kids group's page opens with the Kids by age block (its old landing chip is gone, owner 11-20 PM)", () => {
-    const { container } = renderAt(`/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}`);
-    expect(container.querySelector(`#${KIDS_BY_AGE_ID}[data-gift-ages]`)).not.toBeNull();
   });
 });

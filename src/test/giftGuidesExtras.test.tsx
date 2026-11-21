@@ -16,12 +16,12 @@
  * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.shipsFast ? (["ships-fast"] as const) : []), |   ...(flags.trending ? (["ships-fast"] as const) : []),
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping" }) | t: "Gift wrap" })
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />} |       {false && <GiftGuideHelpr />}
  * @mutate src/content/giftGuideCatalog.ts | return rest.every((w) => hay.includes(w) \|\| | return rest.some((w) => hay.includes(w) \|\|
  * @mutate src/content/giftGuideCatalog.ts | hay.includes(w) \|\| (label.get(g.row) ?? []).includes(w)); | hay.includes(w));
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {query.trim() && ( |         {false && (
  * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick), | loaded.set(slug, { picks: [],
  */
+import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -50,7 +50,8 @@ const RESEARCHED_PICKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
 );
 /** Pages that list their static picks first and then their chunk's (the Amazon, zChocolat and Diecast store pages). */
 const APPENDED = ["store-amazon", "store-zchocolat", "store-diecast-models"];
-const OWN_LIST = Object.entries(RESEARCHED_PICKS).filter(([s]) => !APPENDED.includes(s));
+// Owner 11-21: only the live guides' chunks are loaded (src/content/giftGuideLive.mjs); a retired chunk stays on disk.
+const OWN_LIST = Object.entries(RESEARCHED_PICKS).filter(([s]) => !APPENDED.includes(s) && isLiveGuide(s));
 await loadAllGuidePicks();
 /** Opens every "Show more" under a long list (50 rows at first as of 2026-11-18, design audit #3), so a check sees every row. */
 const expandAll = (root: HTMLElement) => {
@@ -120,11 +121,9 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     for (const p of sponsors) expect(p.badges, p.name).toContain("sponsor");
     const fitNotMade = all.filter((p) => p.louisianaFit && !LOUISIANA_MADE_BRANDS.includes(p.brand));
     expect(fitNotMade.some((p) => p.brand === "YETI")).toBe(true);
-    // Follow-up 1120: the 0% Louisiana shops left (owner 11-20 ~12:05 AM); 10 Louisiana-made picks measured 2026-11-20.
-    expect(picks.filter(({ p }) => p.badges?.includes("louisiana-made")).length).toBeGreaterThan(6); // train 1120b: 7 after the re-audit cut duplicate Duck Commander calls and Louisiana items off national guides
+    // Owner 11-21: the Louisiana guides (where the Louisiana-made and Shop Louisiana picks sat) are retired; the live
+    // guides' picks still follow the badge rules above, row by row.
     expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
-    // 15 measured 11-18 night: the 6 Zydeco Chop Chop rows left (their link opened the shop page, not a product; review H3).
-    expect(picks.filter(({ p }) => p.badges?.includes("shop-louisiana")).length).toBeGreaterThan(5); // one guide per product (owner 11-19)
   });
   it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
     expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);
@@ -133,10 +132,10 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(container.querySelector('a[href*="hilma"]')).toBeNull();
   });
   it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {
-    // 1120: Louisiana-Made is a section of Shop Small Louisiana.
-    const { container } = renderAt("/gift-guides/shop-small-louisiana");
+    // Owner 11-21: Shop Small Louisiana is retired (src/content/giftGuideLive.mjs); the sponsors page carries badges too.
+    const { container } = renderAt("/gift-guides/25-days-sponsors");
     const badges = [...container.querySelectorAll("[data-gift-badge]")].map((b) => b.textContent);
-    expect(badges).toContain("Louisiana-made");
+    expect(badges).toContain("25 Days sponsor");
     // The only "$" on the list is a checked price beside Shop (src/test/giftGuidePrices.test.tsx), never in a name, line or badge.
     const list = container.querySelector("[data-gift-list]")!.cloneNode(true) as HTMLElement;
     list.querySelectorAll("[data-gift-price]").forEach((el) => el.remove());
@@ -144,7 +143,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     const out = [...container.querySelectorAll("[data-gift-list] a")];
     // Two links per pick, both to the shop: the row (photo and name) and its visible Shop pill (holistic review 11-18
     // H4); the count follows the data (_featured-order.json grows the list).
-    expect(out.length).toBe(2 * guideBySlug("shop-small-louisiana")!.picks.length);
+    expect(out.length).toBe(2 * guideBySlug("25-days-sponsors")!.picks.length);
     expect(out.length).toBeGreaterThan(10); // one guide per product (owner 11-19)
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");
   });
@@ -181,20 +180,16 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     expect(searchGuides("")).toEqual([]);
     expect(searchGuides("   ")).toEqual([]);
     expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"].filter((s) => guideBySlug(s) && !guideBySlug(s)!.empty)));
-    // By group: "by budget" finds every guide in that row, even ones whose title lacks the word (Gift Cards, Subscriptions).
-    // Follow-up 1120: Gift Cards, Subscriptions and Stocking Stuffers are sections of Gifts by Budget.
-    const holding = ["gifts-by-budget", "splurge"].filter((x) => guideBySlug(x) && !guideBySlug(x)?.empty);
-    expect(holding.length).toBeGreaterThan(0);
-    expect(searchGuides("by budget").map((g) => g.slug)).toEqual(expect.arrayContaining(holding));
-    // The Experiences row is gone (owner 11-18 PM): searching for it finds none of its old guides.
+    // By group: "by person" finds the guides in that row (owner 11-21: only Her and Him are live there).
+    expect(searchGuides("by person").map((g) => g.slug)).toEqual(expect.arrayContaining(["her", "him"]));
+    // The Experiences row is gone (owner 11-18 PM) and the store pages are retired (owner 11-21): none is found.
     expect(searchGuides("experiences").map((g) => g.slug)).not.toContain("spa-days");
-    expect(searchGuides("tractor supply").map((g) => g.slug)).toEqual(["store-tractor-supply"]);
+    expect(searchGuides("tractor supply")).toEqual([]);
     // Every word must match (one that matches nothing empties the list).
-    expect(searchGuides("tractor supply xyzzy").length).toBe(0);
+    expect(searchGuides("by person xyzzy").length).toBe(0);
     // Titles and groups only, never a pick's name (Cafe Du Monde's "Coffee and Chicory" is a pick, not a guide).
     expect(searchGuides("chicory").length).toBe(0);
     expect(searchGuides("xyzzy")).toEqual([]);
-    expect(searchGuides("dillards").length + searchGuides("dillard's").length).toBeGreaterThan(0);
   });
   it("the box sits in the slim row under the title (owner redesign 11-18 PM); typing lists the matches under it", () => {
     const { container } = renderAt("/gift-guides");
@@ -204,17 +199,18 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     expect(row.contains(input)).toBe(true);
     expect(container.querySelectorAll("input[data-gift-search]").length).toBe(1);
     expect(row.querySelector("label svg")).not.toBeNull();
-    fireEvent.change(input, { target: { value: "gift cards" } });
+    fireEvent.change(input, { target: { value: "kids" } });
     const found = [...row.querySelectorAll("a[data-gift-found]")].map((a) => a.getAttribute("data-gift-found"));
-    // Follow-up 1120: "gift cards" finds Gifts by Budget, which holds the old Gift Cards guide (its 301 lands there).
-    expect(found).toContain("gifts-by-budget");
+    // Owner 11-21: only Her, Him and Kids are live; "kids" finds Kids.
+    expect(found).toContain("kids");
     fireEvent.change(input, { target: { value: "xyzzy" } });
     expect(row.textContent).toContain("No guides match");
     fireEvent.change(input, { target: { value: "" } });
     expect(row.querySelector("[data-gift-search-results]")).toBeNull();
     // The menu is the guides alone.
     expect(container.querySelector("[data-gift-sidebar] input")).toBeNull();
-    expect(container.querySelectorAll("[data-gift-sidebar] details[data-gift-group]").length).toBeGreaterThan(5);
+    // Owner 11-21: only the groups holding a live guide (By person, For kids, Louisiana for the sponsors page).
+    expect(container.querySelectorAll("[data-gift-sidebar] details[data-gift-group]").length).toBeGreaterThan(1);
   });
 });
 
@@ -285,16 +281,12 @@ describe("gift guides: pick badges come from optional fields, never a price", ()
 });
 
 describe("gift guides: the Hire-a-Helpr box", () => {
-  it("sits at the bottom of every guide and at the TOP of Gift Wrap & Cards, with the exact words", () => {
+  it("sits at the bottom of every guide, with the exact words (Gift Wrap & Cards, where it sat on top, is retired: owner 11-21)", () => {
     const mom = renderAt("/gift-guides/mom").container;
     const box = mom.querySelector("[data-gift-helpr]")!;
     expect(box.textContent).toBe("No time to wrap?Hire a local Helpr to wrap your gifts, assemble toys or hang the Christmas lights.Post a job");
     const article = mom.querySelector("article[data-gift-guide]")!;
     expect(article.lastElementChild).toBe(box);
-    cleanup();
-    const wrap = renderAt("/gift-guides/gift-wrap-and-cards").container.querySelector("article[data-gift-guide]")!;
-    expect(wrap.firstElementChild?.hasAttribute("data-gift-helpr")).toBe(true);
-    expect(wrap.querySelectorAll("[data-gift-helpr]").length).toBe(1);
   });
   it("Post a job opens the existing pre-filled post flow: title Gift wrapping, an existing category, no new enum", () => {
     const { container } = renderAt("/gift-guides/mom");

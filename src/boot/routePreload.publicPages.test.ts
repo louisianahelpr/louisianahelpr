@@ -56,12 +56,13 @@ describe("the gift guides and the 25 Days page start on the first network round"
     ["/25days", "SponsorPage"],
   ])("a guest on %s starts %s, and only it", async (path, page) => {
     await open(path);
-    expect(loaded).toEqual([page]);
+    // 2026-11-20 (train 1120f CI): the first cold import in a loaded shard outlasted settle()'s five ticks; wait for it.
+    await vi.waitFor(() => expect(loaded).toEqual([page]), { timeout: 5000 });
   });
 
   it("a signed-in member on a guide starts it too", async () => {
     await open("/gift-guides/dad", true);
-    expect(loaded).toEqual(["GiftGuides"]);
+    await vi.waitFor(() => expect(loaded).toEqual(["GiftGuides"]), { timeout: 5000 });
   });
 
   it("the fun pages (their own chunks), deeper paths and look-alikes start neither", async () => {

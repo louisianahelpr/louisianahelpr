@@ -213,6 +213,8 @@ const itemIcons = itemIconFiles(process.cwd());
 // Admin's own icons (bootReach.mjs adminIconFiles): pinned so the entriesAware merge cannot regroup them onto /admin.
 const adminIcons = adminIconFiles(process.cwd());
 const { own: guestIcons, shared: guestSharedIcons, declutter: declutterIcons } = guestIconSplit(process.cwd());
+// Train 1120f (2026-11-20): the icons only the landing draws, their own pin (bootReach.mjs guestIconSplit `landing`).
+const { landing: landingIcons } = guestIconSplit(process.cwd());
 const sellingIcons = sellingIconFiles(process.cwd());
 const buyingIcons = buyingIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
@@ -939,6 +941,14 @@ export default defineConfig(({ mode, command }) => ({
             {
               name: "icons-guest",
               test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && guestIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 90.6,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // The icons only the landing draws (How it works steps): /login and /signup do not fetch them.
+            {
+              name: "icons-landing",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && landingIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
               priority: 90.6,
               minSize: 0,
               includeDependenciesRecursively: false

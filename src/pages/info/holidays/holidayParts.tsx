@@ -8,7 +8,7 @@ import { FilterChip } from "@/components/ui/FilterChip";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
 import { mapsSearchUrl } from "@/lib/mapsLink";
-import { safeDocumentUrl } from "@/lib/storagePath";
+import { openableDocumentUrl } from "@/lib/storagePath";
 import { DATES_TBA, holidayDateLabel, holidayMapsQuery, regionLabel, type HolidayItem } from "@/content/holidayHub/holidayHub.mjs";
 
 /** The hub's column (the lists sit two across from md up), and its header's: the column plus the shell's side padding. */
@@ -80,9 +80,9 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
       {item.note && <p className="mt-2 text-ds-14 text-muted-foreground">{item.note}</p>}
       <div className="mt-auto flex flex-wrap gap-2 pt-4">
         <OpenInMaps item={item} kind={kind} />
-        {safeDocumentUrl(item.url) && (
+        {openableDocumentUrl(item.url) && (
           <Button asChild variant="outline" size="sm" className="rounded-full">
-            <a href={safeDocumentUrl(item.url) ?? undefined} target="_blank" rel="noopener noreferrer" data-holiday-site={item.id}>
+            <a href={openableDocumentUrl(item.url) ?? undefined} target="_blank" rel="noopener noreferrer" data-holiday-site={item.id}>
               Website<span className="sr-only"> for {item.name} (opens in a new tab)</span>
             </a>
           </Button>

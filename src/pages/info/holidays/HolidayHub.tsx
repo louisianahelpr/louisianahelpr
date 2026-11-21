@@ -30,7 +30,7 @@ export default function HolidayHub() {
           {CARDS.map((c) => (
             <li key={c.to} className="min-w-0">
               <Link to={c.to} data-holiday-card={c.to}
-                className="group flex h-full min-h-11 flex-col rounded-[20px] border border-border border-t-[3px] bg-[hsl(var(--card))] p-5 text-foreground no-underline transition-colors hover:border-foreground/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="group flex h-full min-h-11 flex-col rounded-[20px] border border-border border-t-[3px] bg-[hsl(var(--card))] p-5 text-foreground no-underline transition-colors ctl-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{ borderTopColor: c.rule }}>
                 <h2 className="text-ds-20 font-semibold leading-snug">{c.title}</h2>
                 <p className="mt-1.5 text-ds-15 text-muted-foreground">{c.body}</p>

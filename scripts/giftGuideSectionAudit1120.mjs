@@ -44,6 +44,7 @@ export const GONE_IN_GUIDE_1120 = {
   "louisiana-food-gifts": [[/^Gambino's Bakery King Cake/i, "Mardi Gras cake in a Christmas sweets list, second king cake"]],
   "outdoors-and-travel": [[/^Huk Airweight Raglan Hoodie, Orange/i, "third Huk top in fishing"]],
   "shop-small-louisiana": [[/^Toups and Co Organics Merry & Bright Set/i, "not a Louisiana maker"], [/^Totally Bamboo Slice of Life Louisiana/i, "not Louisiana-made"], [/^Smathers & Branson LSU Needlepoint/i, "not a Louisiana shop"]],
+  "store-dillards": [[/^Ray-Ban Polarized Classic Wayfarer Sunglasses/i, "no checked price, second Ray-Ban on the page"]],
   "store-apple": [[/^Apple Watch SE 3 GPS \+ Cellular 40mm/i, "second SE 3 listing"]],
   "store-nike": [[/^Nike Everyday Plus Cushioned Crew Socks/i, "second sock pack"]],
   "store-old-navy": [[/^Old Navy SoSoft Crew-Neck Cardigan/i, "second cardigan"]],
@@ -55,7 +56,7 @@ export const GONE_IN_GUIDE_1120 = {
   "store-yeti": [[/^YETI (Hopper Flip 12 Soft Cooler|Tundra 45 Hard Cooler|Roadie 24 Hard Cooler)/i, "5 coolers"]],
   "gifts-by-budget": [[/^HEYDUDE Wally Slipper/i, "$59.99 in Under $50"], [/Kate Spade Ch[eé]rie Eau de Parfum/i, "$95 and up in Under $50"]],
 };
-/** The card named a product the link and photo do not show: [old name test, real name, real brand?]. */
+/** The card named a product the link and photo do not show: [old name test, real name, real brand?, real line?]. */
 export const RENAMED_1120 = [
   [/^Le Creuset Signature Dutch Oven, Nectar$/i, "Le Creuset Heritage Butter Dish, Nectar"],
   [/^Columbia Men's Fleece$/i, "The North Face Men's Glacier Fleece Jacket", "The North Face"],
@@ -63,6 +64,9 @@ export const RENAMED_1120 = [
   [/^Futura Laboratories X Crocs Classic Clog$/i, "Crocs Classic Lined Clog, Emerald"],
   [/^Kitsch Sage Green Pillow Cases Queen Set/i, "Bedsure Bamboo Cooling Pillowcases, Sage Green (Queen, Set of 2)", "Bedsure"],
   [/^Ninja Fireside360™ Outdoor Heater & Propane Fire Pit - Samsclub\.com$/i, "Ninja Fireside360 Outdoor Heater & Propane Fire Pit", "Ninja"],
+  [/^STANLEY Quencher H2\.0 Flow State Tumbler$/i, "Stanley Quencher H2.0 FlowState Tumbler, 40 oz", "Stanley", "40 oz insulated tumbler."],
+  [/^Nano Titanium Vented Straightening Iron - BaBylissPRO$/i, "BaBylissPRO Nano Titanium Vented Straightening Iron", "BaBylissPRO"],
+  [/^Coral Coast Fine Fragrance Body Mist - Saltair$/i, "Saltair Coral Coast Fine Fragrance Body Mist", "Saltair"],
 ];
 
 /** The pick as the audit leaves it: undefined when it goes, a renamed copy, or the pick itself. */
@@ -71,5 +75,5 @@ export function auditFix1120(slug, p) {
   if (GONE_1120.some(([re]) => re.test(name))) return undefined;
   if ((GONE_IN_GUIDE_1120[slug] ?? []).some(([re]) => re.test(name))) return undefined;
   const r = RENAMED_1120.find(([re]) => re.test(name));
-  return r ? { ...p, name: r[1], ...(r[2] ? { brand: r[2] } : {}) } : p;
+  return r ? { ...p, name: r[1], ...(r[2] ? { brand: r[2] } : {}), ...(r[3] ? { line: r[3] } : {}) } : p;
 }

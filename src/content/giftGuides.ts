@@ -364,7 +364,8 @@ export const giftGuides = {
   priceSection: {
     "under-25": "Under $25",
     "25-to-50": "$25 to $50",
-    "50-to-100": "$50 to $100",
+    "50-to-75": "$50 to $75",
+    "75-to-100": "$75 to $100",
     "100-and-up": "$100 and up",
     "price-soon": "Price coming soon",
   },

@@ -140,14 +140,15 @@ const sectionNav = (picks: CatalogPick[]) => {
 
 /**
  * The price sections of the owner-list guides (owner 2026-11-21: "they all need to be sorted in sections by price"):
- * Under $25, $25-$50, $50-$100, $100 and up, by the price the row SHOWS (rounded to the dollar, as "~$25" reads), and
+ * Under $25, $25-$50, $50-$75, $75-$100, $100 and up (owner 11-21: "sections that go by price 25 50 75 100+"), by the price the row SHOWS (rounded to the dollar, as "~$25" reads), and
  * a last "Price coming soon" for a pick with no shown price. The picks arrive already in price order (low to high or
  * reversed), so each section keeps that order and the sections follow it; an empty section never draws.
  */
 const PRICE_SECTIONS = [
   { id: "under-25", max: 25 },
   { id: "25-to-50", max: 50 },
-  { id: "50-to-100", max: 100 },
+  { id: "50-to-75", max: 75 },
+  { id: "75-to-100", max: 100 },
   { id: "100-and-up", max: Infinity },
 ] as const;
 const priceSectionOf = (p: CatalogPick): string => {

@@ -9,7 +9,7 @@
  * Owner 11-21 (later): "add the filter button up with the search icons": the sort is a 44px "Sort by price" icon in
  * the header's tool row that opens a menu (menuitemradio "Price: low to high", the default, and "Price: high to low");
  * and "they all need to be sorted in sections by price": the rows sit in price sections (Under $25, $25 to $50, $50
- * to $100, $100 and up; "Price coming soon" last), each a labelled section with its count, reversed for high to low.
+ * to $75, $75 to $100, $100 and up; "Price coming soon" last), each a labelled section with its count, reversed for high to low.
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const picks = sortable ? priceSections(sortByPrice(inBudget, order)) : inBudget; | const picks = sortable ? sortByPrice(inBudget, order) : inBudget;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   return PRICE_SECTIONS.find((s) => dollars < s.max)!.id; |   return PRICE_SECTIONS.find((s) => dollars <= s.max)!.id;
@@ -148,17 +148,18 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     labelled: sec.getAttribute("aria-labelledby") === sec.querySelector("h3")?.id,
     dollars: [...sec.querySelectorAll("[data-gift-price]")].map((p) => Number(p.textContent!.replace("~$", ""))),
   }));
-  it.each(["him", "kids", "her"])("/gift-guides/%s: Under $25, $25 to $50, $50 to $100, $100 and up, each labelled with its count; reversed high to low", async (slug) => {
+  it.each(["him", "kids", "her"])("/gift-guides/%s: Under $25, $25 to $50, $50 to $75, $75 to $100, $100 and up, each labelled with its count; reversed high to low", async (slug) => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
     fireEvent.click(container.querySelector("[data-gift-more-picks]") ?? document.body);
     const low = sections(container);
-    const order = ["Under $25", "$25 to $50", "$50 to $100", "$100 and up"];
+    // Owner 11-21: "Each guide should have sections that go by price 25 50 75 100+".
+    const order = ["Under $25", "$25 to $50", "$50 to $75", "$75 to $100", "$100 and up"];
     expect(low.length, slug).toBeGreaterThan(2);
     expect(low.map((x) => x.title), slug).toEqual(order.filter((t) => low.some((x) => x.title === t)));
-    const bounds: Record<string, [number, number]> = { "Under $25": [1, 24], "$25 to $50": [25, 49], "$50 to $100": [50, 99], "$100 and up": [100, 1e9] };
+    const bounds: Record<string, [number, number]> = { "Under $25": [1, 24], "$25 to $50": [25, 49], "$50 to $75": [50, 74], "$75 to $100": [75, 99], "$100 and up": [100, 1e9] };
     for (const x of low) {
       expect(x.labelled, x.title).toBe(true);
       expect(x.count, x.title).toBe(` (${x.dollars.length})`);
@@ -171,5 +172,12 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     expect(high.map((x) => x.title), slug).toEqual([...low.map((x) => x.title)].reverse());
     for (const x of high) expect(x.dollars, x.title).toEqual([...x.dollars].sort((a, b) => b - a));
     expect(high.reduce((n, x) => n + x.dollars.length, 0)).toBe(CHUNKS[slug].length);
+    // Counts per band, measured 2026-11-21 from the shown (rounded) prices: exact, so a moved boundary shows.
+    const COUNTS: Record<string, Record<string, number>> = {
+      him: { "Under $25": 15, "$25 to $50": 16, "$50 to $75": 5, "$75 to $100": 6, "$100 and up": 5 },
+      kids: { "Under $25": 21, "$25 to $50": 19, "$50 to $75": 5, "$75 to $100": 3, "$100 and up": 8 },
+      her: { "Under $25": 12, "$25 to $50": 13, "$50 to $75": 1, "$75 to $100": 1, "$100 and up": 9 },
+    };
+    expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });
 });

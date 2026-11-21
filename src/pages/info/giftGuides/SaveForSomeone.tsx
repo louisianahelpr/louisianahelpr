@@ -13,6 +13,7 @@ import { shareGiftLists } from "@/lib/giftWishListApi";
 import { planActions, useAccountSync, usePlan } from "./fun/plannerStore";
 import { PickThumb } from "./GiftGuideView";
 import { GiftWishShare } from "./GiftWishShare";
+import { AmazonCartForList } from "./AmazonCartButton";
 import { MY_LIST_SLUG, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { allTotals, closeSaveFor, listTotal, onPersonList, privateIdeas, shareListOf, togglePersonItem, useSaveForHost, useSaveForRequest, type SaveItem } from "./saveForPeople";
@@ -146,6 +147,7 @@ function PanelList({ p, ready }: { p: PlanPerson; ready: boolean }) {
           ))}
         </ul>
       )}
+      <AmazonCartForList person={p} />
       {share.items.length > 0 && (
         <GiftWishShare name={p.name} refs={share.items} label={WISH.shareThisList} message={WISH.shareListsMessage} hint={false} quiet save={() => shareGiftLists([share])} />
       )}

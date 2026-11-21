@@ -97,6 +97,8 @@ export const WISH = {
   /** A shared page holding several people's lists. */
   sharedListsLead: "Someone shared their gift lists with you",
   sharedListsTitle: "Gift lists",
+  // Amazon Buy Now (owner 2026-11-21): Amazon's add-to-cart form, credited to our tag (src/lib/retailerCart.ts).
+  amazonCartList: (name: string) => `Add ${name.trim().endsWith("s") ? `${name.trim()}'` : `${name.trim()}'s`} Amazon items to my cart`,
   sharedListTotal: (gifts: number, amount: string | null) => `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · about ${amount}` : ""}`,
 } as const;
 

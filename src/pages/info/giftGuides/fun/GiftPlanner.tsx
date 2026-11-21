@@ -19,6 +19,7 @@ import { GiftOut } from "../GiftOut";
 import { GuidePicksPicker, type GuidePick } from "./GuidePicksPicker";
 import { plannerPrice, shareListOf } from "../saveForPeople";
 import { ShareAllLists } from "../SaveForSomeone";
+import { AmazonCartForList } from "../AmazonCartButton";
 import { GiftWishShare } from "../GiftWishShare";
 import { WISH } from "@/content/giftWishList";
 import { shareGiftLists } from "@/lib/giftWishListApi";
@@ -138,6 +139,8 @@ function Person({ p }: { p: PlanPerson }) {
         <Button type="submit" variant="outline" size="sm" data-plan-add-idea={p.id}>{W.plannerAddIdea}</Button>
         <Button type="button" variant="outline" size="sm" aria-haspopup="dialog" onClick={() => setFromGuides(true)} data-plan-from-guides={p.id}>{W.plannerFromGuides}</Button>
       </form>
+      {/* Owner 11-21 (Amazon Buy Now): every Amazon gift on this list in one add-to-cart link. */}
+      <AmazonCartForList person={p} />
       {/* Owner 11-21 ("share all lists"): this person's list as a link (names and gifts from our guides only). */}
       {shareListOf(p).items.length > 0 && (
         <GiftWishShare name={p.name} refs={shareListOf(p).items} label={WISH.shareThisList} message={WISH.shareListsMessage} hint={false} quiet save={() => shareGiftLists([shareListOf(p)])} />

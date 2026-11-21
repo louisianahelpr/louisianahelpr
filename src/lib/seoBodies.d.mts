@@ -17,8 +17,8 @@ export interface SeoData {
   /** Old slug -> its guide now ("mom"), its section in a merged guide ("healthcare#rns", 1120) or "" (the landing page). */
   moved: Record<string, string>;
   groups: [label: string, guides: [slug: string, name: string][]][];
-  /** The deals page's cards: item name, shop link, last day ("" = no end). */
-  deals?: [item: string, href: string, ends: string][];
+  /** The deals days' cards: item name, shop link, last day ("" = no end), the day page's slug. */
+  deals?: [item: string, href: string, ends: string, event: string][];
 }
 export interface TownService { slug: string; label: string; pageLabel?: string; phrase: string; category: string }
 export interface Town { slug: string; name: string }
@@ -30,7 +30,7 @@ export function seoPageBody(crumbs: { name: string; path: string }[], inner: str
 export function giftGuideBody(slug: string, guide: SeoGuide): string;
 export function dealsGuideBody(slug: string, name: string, intro: string, disclosure: string): string;
 export function giftGuideItemListLd(slug: string, guide: SeoGuide, today: string): Record<string, unknown>;
-export function dealsItemListLd(name: string, deals: NonNullable<SeoData["deals"]>, today: string): Record<string, unknown> | null;
+export function dealsItemListLd(name: string, deals: NonNullable<SeoData["deals"]>, today: string, slug: string): Record<string, unknown> | null;
 export function giftGuidesLandingBody(groups: SeoData["groups"]): string;
 export function giftGuidesLandingLd(groups: SeoData["groups"]): Record<string, unknown>;
 export function hireBody(service: TownService, town: Town): string;

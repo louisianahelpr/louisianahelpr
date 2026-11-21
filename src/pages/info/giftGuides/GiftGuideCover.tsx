@@ -29,7 +29,7 @@ export function GiftGuideCover({ guide, priority = false }: { guide: CatalogGuid
  *
  * A guide's page (with `tint`) draws it as a short, wide banner in its cover's look (owner 2026-11-18 PM: "make the top
  * ... like the gifts for mom that kind of matches the cover photo"): the guide's gingham, a cream arch holding the
- * lead, the title and the LOUISIANA HELPR line, Share right under it. Real text and CSS only (no image); a
+ * lead and the title (owner 11-21: "remove louisiana helpr from the [banner]"), Share right under it. Real text and CSS only (no image); a
  * fixed height, so nothing below moves. Guard: src/test/giftGuidesPage.test.tsx.
  */
 export function GiftGuidesWords({ lead, title, titleId, tools, tint }: { lead: string; title: string; titleId: string; tools: ReactNode; tint?: CatalogGuide["tint"] }) {

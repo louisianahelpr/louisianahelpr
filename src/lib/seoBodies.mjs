@@ -15,7 +15,6 @@
 
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, townPagePath } from "./townPages.mjs";
 import { pickPriceShown, shownDollars } from "./pickPriceShown.mjs";
-import { DEALS_SLUG } from "../content/giftGuideDeals.mjs";
 
 export const SEO_SITE_ORIGIN = "https://www.louisianahelpr.com";
 
@@ -104,8 +103,9 @@ export function giftGuideBody(slug, guide) {
 }
 
 /**
- * /gift-guides/black-friday-cyber-monday (owner 2026-11-19): the deals guide is no catalog guide (its deals load in the
- * page), so its body is the breadcrumb, its H1 (the day's name), its intro and the disclosure.
+ * A deals day, /gift-guides/black-friday, /small-business-saturday or /cyber-monday (owner 2026-11-19; one page per day
+ * owner 2026-11-21): no catalog guide (its cards load in the page), so its body is the breadcrumb, its H1 (the day's
+ * name), its intro and one more line (the disclosure, or the day line on Small Business Saturday).
  */
 export function dealsGuideBody(slug, name, intro, disclosure) {
   return page(
@@ -156,15 +156,15 @@ export function giftGuideItemListLd(slug, guide, today) {
   };
 }
 
-/** ItemList JSON-LD for the deals page: each card showing on `today` (through its last day), name and shop link. */
-export function dealsItemListLd(name, deals, today) {
-  const live = (Array.isArray(deals) ? deals : []).filter(([item, href, ends]) => item && safeHref(href) && !(ends && ends < today));
+/** ItemList JSON-LD for one deals day page (`slug`): each of its cards showing on `today` (through its last day), name and shop link. */
+export function dealsItemListLd(name, deals, today, slug) {
+  const live = (Array.isArray(deals) ? deals : []).filter(([item, href, ends, event]) => event === slug && item && safeHref(href) && !(ends && ends < today));
   if (live.length === 0) return null;
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name,
-    url: `${SEO_SITE_ORIGIN}/gift-guides/${DEALS_SLUG}`,
+    url: `${SEO_SITE_ORIGIN}/gift-guides/${slug}`,
     numberOfItems: live.length,
     itemListElement: live.map(([item, href], i) => ({ "@type": "ListItem", position: i + 1, name: item, url: href })),
   };

@@ -25,10 +25,8 @@ import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
-import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "@/content/giftGuideDeals.mjs";
-import { GiftGuideSmallBiz } from "./giftGuides/GiftGuideSmallBiz";
+import { DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
-import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS, smallBizDay, smallBizTitle } from "@/content/giftGuideSmallBiz.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 
 /**
@@ -77,21 +75,16 @@ export default function GiftGuides() {
   const [order, setOrder] = useState<{ slug: string; order: GuideOrder }>({ slug: "", order: "top" });
   const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "top";
   const sort = guide && isOwnerList(guide.slug) ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
-  // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is its own page, not a catalog list of picks.
-  // The Small Business Saturday page (owner 2026-11-19, big batch 1120) is its own page too. `deals` covers both own
-  // pages wherever the page only asks "is this a catalog guide?".
-  // Owner 11-21: the Small Business Saturday page is retired with every guide but Her, Him and Kids
-  // (src/content/giftGuideLive.mjs) and its old link lands on /gift-guides; the deals page is live again, its three day
-  // sections holding Black Friday, Small Business Saturday and Cyber Monday.
-  const smallBiz = slug === SMALL_BIZ_SLUG && isLiveGuide(SMALL_BIZ_SLUG);
-  const deals = (slug === DEALS_SLUG && isLiveGuide(DEALS_SLUG)) || smallBiz;
-  const dealsName = smallBiz ? smallBizTitle(smallBizDay(new Date())) : dealsTitle(louisianaDay(new Date()));
+  // The deals days (owner 2026-11-21: "like each day has its own section, no need to put them all in 1"): Black Friday,
+  // Small Business Saturday and Cyber Monday are each their own page (src/content/giftGuideDeals.mjs DEAL_EVENTS), not
+  // a catalog list of picks. `deals` is the open day wherever the page only asks "is this a catalog guide?".
+  const deals = slug && isLiveGuide(slug) ? dealDay(slug) : null;
   // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
   // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion);
   usePageMeta(
     shared || myListPage ? { title: `${shared ? WISH.sharedLead : WISH.title} — Louisiana Helpr`, description: PUBLIC_PAGE_META["/gift-guides"].description, robots: "noindex" }
-    : deals ? giftGuidePageMeta(smallBiz ? SMALL_BIZ_SLUG : DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
+    : deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
   );
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
@@ -120,6 +113,8 @@ export default function GiftGuides() {
   // opens that relationship's page; a hash never reaches the server, so the page forwards it.
   const peopleTo = slug && hashSlug ? OLD_PEOPLE_ANCHORS[slug]?.[hashSlug] : undefined;
   if (peopleTo) return <Navigate to={`/gift-guides/${peopleTo}`} replace />;
+  // The old one-page deals address (owner 11-21: each day its own page) opens Black Friday, or the day its #anchor names.
+  if (slug === DEALS_SLUG) return <Navigate to={`/gift-guides/${oldDealsTarget(hash)}`} replace />;
   const moved = slug && !guide && !deals ? newSlugFor(slug) : null;
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
   if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;
@@ -136,8 +131,7 @@ export default function GiftGuides() {
   );
 
   // The search, My list heart and Share for this page (one set, on the row under the header).
-  const tools = smallBiz ? <GiftGuideTools path={`/gift-guides/${SMALL_BIZ_SLUG}`} title={dealsName} />
-    : deals ? <GiftGuideTools path={`/gift-guides/${DEALS_SLUG}`} title={dealsName} image={DEALS_COVER} />
+  const tools = deals ? <GiftGuideTools path={`/gift-guides/${deals.id}`} title={deals.pageTitle} image={deals.kind === "deals" ? DEALS_COVER : undefined} />
     : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} sort={sort} />
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
   // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
@@ -161,7 +155,7 @@ export default function GiftGuides() {
       {/* The first heart's one-time "Saved to your wish list" note (owner 2026-11-20 hints), on every gift guides page. */}
       <FirstHeartHint />
       {/* Owner 2026-11-21: a guide's hearts save for someone (the picker) and the My lists pill, on guide and deals pages. */}
-      {(guide || deals) && !smallBiz && <SaveForSomeone />}
+      {(guide || deals?.kind === "deals") && <SaveForSomeone />}
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="">
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}
@@ -180,11 +174,7 @@ export default function GiftGuides() {
           {tools}
         </div>
         {deals ? (
-          smallBiz ? (
-            <GiftGuidesWords lead={SMALL_BIZ_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="green" tools={null} />
-          ) : (
-            <GiftGuidesWords lead={DEALS_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="red" tools={null} />
-          )
+          <GiftGuidesWords lead={deals.lead} title={deals.pageTitle} titleId="gift-guide-title" tint={deals.kind === "small-biz" ? "green" : "red"} tools={null} />
         ) : guide ? (
           <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint} tools={null} />
         ) : null}
@@ -192,9 +182,9 @@ export default function GiftGuides() {
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
         <div className="gg-layout">
-          <GiftGuidesSidebar active={guide} myList={myList} page={deals && !smallBiz ? DEALS_SLUG : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined} />
+          <GiftGuidesSidebar active={guide} myList={myList} page={deals ? DEALS_SLUG : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined} />
           <div className="gg-main">
-            {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
+            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>
         </div>
       </div>

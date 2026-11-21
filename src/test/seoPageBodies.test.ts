@@ -218,19 +218,16 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
 
   it("every guide and hire URL in it is one the function serves 200 and indexable; /25days is in it", async () => {
-    // The two own pages (the deals guide, Small Business Saturday) answer 200 with their own body: checked by fetching.
+    // The deals days (owner 2026-11-21: one page each) answer 200 with their own body: checked by fetching.
     // The fun pages (owner 2026-11-20) are info pages under /gift-guides: 200 with their own body, no guide.
-    const own = ["/gift-guides/black-friday-cyber-monday", "/gift-guides/small-business-saturday", "/gift-guides/swipe", "/gift-guides/planner", "/gift-guides/draw-names", "/gift-guides/printables"];
+    const own = ["/gift-guides/black-friday", "/gift-guides/small-business-saturday", "/gift-guides/cyber-monday", "/gift-guides/swipe", "/gift-guides/planner", "/gift-guides/draw-names", "/gift-guides/printables"];
     const guides = locs.filter((p) => p.startsWith("/gift-guides/") && !own.includes(p));
     expect(guides.length).toBeGreaterThan(10); // owner 11-21: the 14 live pages (54 before, 2026-11-20)
     for (const p of guides) expect(data.guides[p.slice("/gift-guides/".length)]?.indexed, p).toBe(true);
-    // Owner 11-21: the Small Business Saturday page is retired (src/content/giftGuideLive.mjs): out of the sitemap, and
-    // its old link 301s to the landing. The deals page is live again (its middle section is Small Business Saturday).
-    for (const p of own.slice(1, 2)) {
-      expect(locs, p).not.toContain(p);
-      expect((await fetchPage(p.slice(1))).status, p).toBe(301);
-    }
-    for (const p of [own[0], ...own.slice(2)]) {
+    // The old one-page deals address is out of the sitemap and 301s to Black Friday (owner 11-21: each day its own page).
+    expect(locs).not.toContain("/gift-guides/black-friday-cyber-monday");
+    expect((await fetchPage("gift-guides/black-friday-cyber-monday")).status).toBe(301);
+    for (const p of own) {
       expect(locs, p).toContain(p);
       expect((await fetchPage(p.slice(1))).status, p).toBe(200);
     }

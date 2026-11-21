@@ -1,7 +1,7 @@
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { GUIDES, MERGED_GUIDES, OLD_SLUGS, RETIRED_SLUGS, ROWS, STORES, childrenOf, guidesIn, loadAllGuidePicks, newSlugFor, relatedGuides } from "@/content/giftGuideCatalog";
 import type { SeoData, SeoGuide } from "@/lib/seoBodies.mjs";
-import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
+import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import deals from "@/content/giftGuideDeals.json";
 
@@ -59,9 +59,10 @@ export async function buildSeoData(): Promise<SeoData> {
       .filter((g) => guides[g.slug]?.indexed)
       .map((g) => [g.slug, guides[g.slug].name] as [string, string]),
   ]).filter(([, list]) => list.length > 0) as SeoData["groups"];
-  // The deals page's cards (structured data 1121): name, shop link and last day; empty while the page is retired.
-  const dealList: SeoData["deals"] = isLiveGuide(DEALS_SLUG)
-    ? (deals as { item?: string; href?: string; ends?: string }[]).filter((d) => d.item && d.href).map((d) => [d.item as string, d.href as string, d.ends ?? ""])
-    : [];
+  // The deals days' cards (structured data 1121; one page per day, owner 11-21): name, shop link, last day and the
+  // day page they show on; a day page that is not live carries none.
+  const dealList: SeoData["deals"] = (deals as { item?: string; href?: string; ends?: string; event?: string }[])
+    .filter((d) => d.item && d.href && d.event && DEAL_DAY_SLUGS.includes(d.event) && isLiveGuide(d.event))
+    .map((d) => [d.item as string, d.href as string, d.ends ?? "", d.event as string]);
   return { guides, moved, groups, deals: dealList };
 }

@@ -7,7 +7,7 @@
  *
  * @mutate src/lib/seoBodies.mjs |       if (!pickPriceShown(x.price, x.priceAt, today)) return { "@type": "ListItem", position: i + 1, name, url: href }; |       if (!x.price) return { "@type": "ListItem", position: i + 1, name, url: href };
  * @mutate src/lib/seoBodies.mjs |           offers: { "@type": "Offer", price: shownDollars(x.price), priceCurrency: "USD", url: href }, |           offers: { "@type": "Offer", price: x.price, priceCurrency: "USD", url: href },
- * @mutate api/share.ts |       const list = dealsItemListLd(name, seoData()?.deals ?? [], today); |       const list = null;
+ * @mutate api/share.ts | const list = day.kind === "deals" ? dealsItemListLd(day.pageTitle, seoData()?.deals ?? [], today, day.id) : null; | const list = null;
  * @mutate src/prerender/seoData.ts |       const extra = { ...(p.image ? { image: p.image } : {}), ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}) }; |       const extra = {};
  * @mutate src/components/giftGuides/PickPrice.tsx | G.priceApprox(shownDollars(pick.price)) | G.priceApprox(Math.ceil(pick.price ?? 0))
  */
@@ -86,10 +86,11 @@ describe("the guide ItemList (unit)", () => {
     expect(els[2]).toEqual({ "@type": "ListItem", position: 3, name: "No price", url: "https://go.shopmy.us/p-2" });
   });
 
-  it("lists only the deals still showing today, as plain ListItems", () => {
-    const d = dealsItemListLd("Deals", [["A", "https://a.example/x", ""], ["B", "https://b.example/x", "2026-11-20"], ["C", "javascript:alert(1)", ""]], "2026-11-21");
+  it("lists only the day's deals still showing today, as plain ListItems", () => {
+    const d = dealsItemListLd("Deals", [["A", "https://a.example/x", "", "black-friday"], ["B", "https://b.example/x", "2026-11-20", "black-friday"], ["C", "javascript:alert(1)", "", "black-friday"], ["D", "https://d.example/x", "", "cyber-monday"]], "2026-11-21", "black-friday");
     expect(elements(d)).toEqual([{ "@type": "ListItem", position: 1, name: "A", url: "https://a.example/x" }]);
-    expect(dealsItemListLd("Deals", [], "2026-11-21")).toBeNull();
+    expect(d!.url).toBe("https://www.louisianahelpr.com/gift-guides/black-friday");
+    expect(dealsItemListLd("Deals", [], "2026-11-21", "black-friday")).toBeNull();
   });
 });
 
@@ -116,8 +117,8 @@ describe("api/share's raw HTML for the live guides", () => {
     expect(totalProducts).toBeGreaterThan(20);
   });
 
-  it("puts an ItemList of the showing deals on the deals page", async () => {
-    const list = await itemList("gift-guides/black-friday-cyber-monday");
+  it("puts an ItemList of the showing deals on each deals day page", async () => {
+    const list = await itemList("gift-guides/black-friday");
     expect(elements(list).length).toBeGreaterThan(5);
     expect(products(list)).toHaveLength(0);
   });

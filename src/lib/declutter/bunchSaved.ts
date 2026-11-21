@@ -12,6 +12,13 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 
 const MAX_AGE_MS = 7 * 24 * 3_600_000;
 
+/**
+ * Owner 11-21 (src/lib/guestSellDraft.ts): whose work a store holds while nobody is signed in. The member who opens the
+ * sell screen next on this device (after signing up or logging in) takes it over in `load`. Here, not in
+ * guestSellDraft.ts, so sign-out's import of this file pulls in nothing more.
+ */
+export const GUEST_SELLER = "guest";
+
 export interface SavedPhotos {
   userId: string;
   savedAt: number;
@@ -44,7 +51,9 @@ export function deviceStore<M extends SavedPhotos>(metaKey: string) {
     load: async (userId: string, now = Date.now()): Promise<{ saved: M; photos: BunchPhoto[] } | null> => {
       const saved = await get<M>(metaKey);
       if (!saved) return null;
-      if (saved.userId !== userId || now - saved.savedAt > MAX_AGE_MS) {
+      // A guest's listing is taken over by the member signing in (GUEST_SELLER); the next save writes their id.
+      const claimed = saved.userId === GUEST_SELLER;
+      if ((saved.userId !== userId && !claimed) || now - saved.savedAt > MAX_AGE_MS) {
         await clearNow();
         return null;
       }
@@ -97,7 +106,7 @@ export async function savedSellWork(
   /** The server's status of each id (fetchItemStatuses), loaded only when there are ids to ask about. */
   itemStatuses: (ids: string[]) => Promise<Map<string, string>> = (ids) => loadModule(() => import("@/lib/declutter/api")).then((m) => (m ? m.fetchItemStatuses(ids) : untilReload())),
 ): Promise<{ bunch: boolean; moving: boolean; one: boolean }> {
-  const mine = (s: SavedPhotos | undefined): boolean => !!s && s.userId === userId && now - s.savedAt <= MAX_AGE_MS;
+  const mine = (s: SavedPhotos | undefined): boolean => !!s && (s.userId === userId || s.userId === GUEST_SELLER) && now - s.savedAt <= MAX_AGE_MS;
   try {
     const [bunch, one] = await Promise.all([get<SavedBunch>("lh-bunch-v1"), get<SavedPhotos>(SELL_ONE_KEY)]);
     const kept = mine(bunch) && !(await allPosted(bunch!, itemStatuses));

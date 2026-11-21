@@ -161,7 +161,8 @@ describe("Q180: the email gate covers EVERY protected route", () => {
     // F071 (owner 11-09): guests may VIEW /explore and /search too; only their actions are gated.
     const GUEST_EXCEPTIONS = ["/explore: allowGuest", "/search: allowGuest", "/helprs: allowGuest", "/jobs/:id: allowGuest"];
     // Owner 11-20 (ease batch): a guest may START a job post (kept on the device, finished after sign-up).
-    const GUEST_AND_FULL_PROFILE = ["/post-job"];
+    // Owner 11-21 (src/lib/guestSellDraft.ts): a guest may fill the one-item Declutter listing the same way.
+    const GUEST_AND_FULL_PROFILE = ["/declutter/sell", "/post-job"];
     // Owner 11-14: fullProfile ADDS a gate (the full profile on a commitment route, src/lib/profileGateRoutes.ts); it
     // never lets anyone past one. Its routes are held equal to isCommitmentPath in src/test/deferredCompleteProfile.test.tsx.
     const FULL_PROFILE = ["/declutter/move", "/declutter/sell", "/messages", "/post-job", "/quotes/send/:id", "/rentals/listings/:id/edit", "/rentals/listings/new", "/shops/dashboard", "/shops/mine"];

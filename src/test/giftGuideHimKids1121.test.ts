@@ -4,14 +4,16 @@
  * 3 guides"). Each page is ONE flat list, cheapest first, with at most 2 of a brand and 2 of an item type, every pick an
  * Amazon link with her tag and no price on the site, except the commission switches (11-21, owner: "if the items on the
  * guides can we fund at another place for higher commison just change the link"): the same item at the same price at a
- * better-paying store, a ShopMy link that shows its checked price and a transparent cutout of that store's own photo.
+ * better-paying store, a ShopMy link that shows its checked price and a transparent cutout of that store's own photo;
+ * and her own ShopMy saves for men and kids (11-21: "i also added some man and kids stuff in shop my"; "the him and kids
+ * need gifts on their covers"), shown the same way.
  * @mutate scripts/giftGuideHimKids1121.mjs | pageList[slug] = picks; | void picks;
  * @mutate scripts/giftGuideHimKids1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank }; |     const p = { ...rest, image: r.image, ownerPick: true, from: slug, priceRank };
- * @mutate scripts/giftGuideHimKids1121.mjs |     if (!isAmazon(r)) Object.assign(p, { price, priceAt: HIM_KIDS_PRICE_AT }); |     void price;
+ * @mutate scripts/giftGuideHimKids1121.mjs |     const shown = isAmazon(r) ? r.sortPrice : price; |     const shown = isAmazon(r) ? r.sortPrice : undefined;
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { HIM_1121, KIDS_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { HIM_1121, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
@@ -25,13 +27,30 @@ const SWITCHED: Record<string, Record<string, string>> = {
   him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club" },
   kids: {},
 };
+/**
+ * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
+ * Kids-saved-shopmy-1121.md (pin -> the store it goes to), not from the module. The rest were left out by her rules:
+ * a third of one brand (Smathers & Branson, Melissa & Doug), a third of one item type, LSU, or out of stock on 11-21.
+ */
+const sm = (pins: string[], store: string) => Object.fromEntries(pins.map((p) => [`https://go.shopmy.us/p-${p}`, store]));
+const SAVES: Record<string, Record<string, string>> = {
+  him: {
+    ...sm(["108628349"], "store-smathers-and-branson"), ...sm(["108628518"], "store-duck-head"),
+    ...sm(["108626053", "108626008", "108626036", "108625988"], "store-grove"), ...sm(["108625882", "108625877"], "store-clinique"),
+  },
+  kids: {
+    ...sm(["108632461", "108632432", "108632392", "108632273", "108632257", "108632317", "108632251", "108632230", "108632184", "108632365", "108632379", "108632481", "108632592"], "store-maisonette"),
+    ...sm(["108632104"], "store-grove"), ...sm(["108632077", "108632046"], "store-wayfair"),
+  },
+};
+const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });
 const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
   ["him", [...HIM_1121], him1121Picks() as Pick[]],
   ["kids", [...KIDS_1121], kids1121Picks() as Pick[]],
-])("For %s is the owner's Amazon saves (11-21)", (slug, rows, built) => {
+])("For %s is the owner's Amazon and ShopMy saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
 
   it("the live page is exactly the module's list, in order", () => {
@@ -41,24 +60,31 @@ describe.each([
     expect(new Set(page.map((p) => p.href)).size).toBe(page.length);
   });
 
-  it("every pick is an Amazon link with her tag, Amazon's own photo and no price, except the commission switches", () => {
-    const switched = SWITCHED[slug];
+  // Owner 2026-11-21 ~12:05 PM: "each item also needs a price"; she chose "Show Amazon prices anyway" after the pop-up
+  // warning that Amazon allows prices only from its PA-API feed (Associates risk). An Amazon pick now shows EXACTLY the
+  // price captured from her saved list (its row's sortPrice), dated 11-21; this guard used to assert no Amazon price.
+  it("every pick is an Amazon link with her tag, Amazon's own photo and its captured price, except the switches and her ShopMy saves", () => {
+    const switched = notAmazon(slug);
     expect(page.filter((p) => switched[p.href]).length).toBe(Object.keys(switched).length);
+    const captured = new Map(rows.map((r) => [r.href, r.sortPrice]));
     for (const p of page) {
       expect(p.sortPrice).toBeUndefined();
       if (switched[p.href]) continue;
       expect(p.href).toMatch(/^https:\/\/www\.amazon\.com\/dp\/[A-Z0-9]{10}\?tag=louisianahelpr-20$/);
       expect(p.image).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
       expect(p.store).toBe("store-amazon");
-      expect(p.price).toBeUndefined();
+      expect(p.price, p.name).toBe(captured.get(p.href));
+      expect(p.price, p.name).toBeGreaterThan(0);
+      expect(p.priceAt, p.name).toBe("2026-11-21");
     }
   });
 
-  it("a switched pick shows its checked price and a transparent cutout of the new store's photo, never Amazon's", () => {
+  it("a switched pick or ShopMy save shows its checked price and a transparent cutout of the store's photo, never Amazon's", () => {
+    const shop = notAmazon(slug);
     // Both the generated page and what the module builds now (so a module change shows before the page is regenerated).
-    expect(page.filter((x) => SWITCHED[slug][x.href])).toEqual(built.filter((x) => SWITCHED[slug][x.href]));
-    for (const p of [...page, ...built].filter((x) => SWITCHED[slug][x.href])) {
-      expect(p.store, p.name).toBe(SWITCHED[slug][p.href]);
+    expect(page.filter((x) => shop[x.href])).toEqual(built.filter((x) => shop[x.href]));
+    for (const p of [...page, ...built].filter((x) => shop[x.href])) {
+      expect(p.store, p.name).toBe(shop[p.href]);
       expect(p.price, p.name).toBeGreaterThan(0);
       expect(p.priceAt, p.name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(p.image.startsWith(CUTOUT_BASE), `${p.name}: ${p.image}`).toBe(true);
@@ -81,6 +107,26 @@ describe.each([
 
   it("shows as one flat owner list (no chips, no codes box)", () => {
     expect(isOwnerList(slug)).toBe(true);
+  });
+});
+
+describe("her ShopMy saves for Him and Kids (11-21)", () => {
+  it("every kept save is on its page with the price checked 11-21, and its store has a shown name", () => {
+    for (const [slug, rows] of [["him", HIM_SHOPMY_1121], ["kids", KIDS_SHOPMY_1121]] as const) {
+      expect(new Set(rows.map((r) => r.href)), slug).toEqual(new Set(Object.keys(SAVES[slug])));
+      const page = chunk(slug);
+      for (const r of rows) {
+        const p = page.find((x) => x.href === r.href);
+        expect(p, r.name).toBeDefined();
+        expect(p?.price, r.name).toBe(r.price);
+        expect(p?.priceAt, r.name).toBe(HIM_KIDS_PRICE_AT);
+        expect(HIM_KIDS_STORES[r.store], r.store).toBeTruthy();
+        expect(r.brand.toLowerCase(), r.name).not.toMatch(/vineyard vines|lilly pulitzer/);
+        expect(r.name, r.name).not.toMatch(/\bLSU\b/);
+      }
+    }
+    expect(HIM_SHOPMY_1121.length).toBe(8);
+    expect(KIDS_SHOPMY_1121.length).toBe(16);
   });
 });
 

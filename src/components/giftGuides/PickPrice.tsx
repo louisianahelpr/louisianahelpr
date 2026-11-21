@@ -2,29 +2,20 @@ import { giftGuides as G } from "@/content/giftGuides";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 
 /**
- * Prices on gift-guide picks (owner 11-18): "~$24" beside Shop on a NON-Amazon pick with a price fill_prices.py
- * checked, and one "Prices as of Nov 18, may change" note per list. Amazon picks NEVER show a price (Associates rule:
- * no Amazon price outside its API), checked here by store and by link host even though the import already drops them.
+ * Prices on gift-guide picks (owner 11-18): "~$24" beside Shop on a pick with a checked price, and one "Prices as of
+ * Nov 18, may change" note per list. AMAZON TOO since owner 2026-11-21 ~12:05 PM ("each item also needs a price"):
+ * warned in a pop-up that Amazon allows prices only from its PA-API feed and that showing them risks the Associates
+ * account, she chose "Show Amazon prices anyway". An Amazon pick's price is the one captured from her own saved list.
  * A price older than PRICE_MAX_AGE_DAYS on the day the page opens is hidden, so a file nobody re-imported never shows
  * an old price. Guard: src/test/giftGuidePrices.test.tsx.
  */
 const PRICE_MAX_AGE_DAYS = 3;
-const AMAZON_HOST = /(^|\.)(amazon\.[a-z.]+|amzn\.to|a\.co)$/;
 const todayInLouisiana = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
 const dayNumber = (ymd: string) => Date.parse(`${ymd}T12:00:00Z`) / 86400000;
-const isAmazonPick = (pick: CatalogPick) => {
-  if (pick.store === "amazon" || pick.store === "store-amazon") return true;
-  try {
-    return AMAZON_HOST.test(new URL(pick.href).hostname);
-  } catch {
-    // An unparseable link is treated as Amazon: no price is shown on it.
-    return true;
-  }
-};
 
 /** Whether a pick shows its price today. */
 export const showsPrice = (pick: CatalogPick, today: string = todayInLouisiana()): boolean => {
-  if (!pick.price || !(pick.price > 0) || !pick.priceAt || !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt) || isAmazonPick(pick)) return false;
+  if (!pick.price || !(pick.price > 0) || !pick.priceAt || !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt)) return false;
   const age = dayNumber(today) - dayNumber(pick.priceAt);
   return age >= 0 && age <= PRICE_MAX_AGE_DAYS;
 };

@@ -12,7 +12,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | if (pick.image && !failed) { | if (pick.image) {
  * @mutate scripts/gift-guide-picks.mjs | if (!nameOnly(slug, p)) add(slug, p, file); | add(slug, p, file);
  * @mutate src/pages/info/giftGuides/giftList.tsx | aria-pressed={saved} | aria-pressed={false}
- * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | onToggle={() => toggleGuide(g.slug)} | onToggle={() => undefined}
+ * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         {g.age && <span className="gg-count">{g.age}</span>}<button type="button" data-gift-heart="" aria-label="Save" />
  * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.shipsFast ? (["ships-fast"] as const) : []), |   ...(flags.trending ? (["ships-fast"] as const) : []),
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping" }) | t: "Gift wrap" })
@@ -193,7 +193,8 @@ describe("gift guides: the search in the tool row filters guides by title and gr
   });
   it("the box sits in the slim row under the title (owner redesign 11-18 PM); typing lists the matches under it", () => {
     const { container } = renderAt("/gift-guides");
-    const row = container.querySelector("[data-gift-words] [data-gift-quick]")!;
+    // Owner 11-21: the tools sit on the row under the header, right of the shipping pill.
+    const row = container.querySelector("[data-gift-headrow] [data-gift-quick]")!;
     const input = screen.getByRole("searchbox", { name: "Search gift guides" });
     expect(input.getAttribute("placeholder")).toBe("Search guides");
     expect(row.contains(input)).toBe(true);
@@ -209,8 +210,9 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     expect(row.querySelector("[data-gift-search-results]")).toBeNull();
     // The menu is the guides alone.
     expect(container.querySelector("[data-gift-sidebar] input")).toBeNull();
-    // Owner 11-21: only the groups holding a live guide (By person, For kids, Louisiana for the sponsors page).
-    expect(container.querySelectorAll("[data-gift-sidebar] details[data-gift-group]").length).toBeGreaterThan(1);
+    // Owner 11-21 ("just do for her, him, kids with their color instead of the filter"): plain links, no groups.
+    expect(container.querySelectorAll("[data-gift-sidebar] details").length).toBe(0);
+    expect([...container.querySelectorAll("[data-gift-side-guides] a[data-gift-side]")].map((a) => a.getAttribute("data-gift-side"))).toEqual(["", "her", "him", "kids"]);
   });
 });
 
@@ -219,23 +221,29 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     window.localStorage.clear();
     resetGiftListForTests();
   });
-  it("a cover heart toggles aria-pressed, stays on the page, and counts on the tool row's My list icon", () => {
+  // Owner 2026-11-21: "they don't need an option to heart the whole guide". No guide tile carries a heart; the items do.
+  it("no guide tile has a heart (landing and a group's page); an item heart counts on the tool row's My list icon", () => {
     window.localStorage.clear();
     resetGiftListForTests();
-    const { container } = renderAt("/gift-guides?group=by-person");
-    const heart = screen.getAllByRole("button", { name: "Save Her to My Wish List" })[0];
-    expect(heart.getAttribute("aria-pressed")).toBe("false");
-    expect(heart.closest("a")).toBeNull();
+    for (const url of ["/gift-guides", "/gift-guides?group=by-person"]) {
+      const { container } = renderAt(url);
+      const tiles = container.querySelectorAll("li.gg-tile-li");
+      expect(tiles.length, url).toBeGreaterThan(1);
+      for (const t of tiles) expect(t.querySelector("[data-gift-heart], button"), url).toBeNull();
+      cleanup();
+    }
+    const { container } = renderAt("/gift-guides/him");
     const link = container.querySelector("[data-gift-my-list-link]")!;
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
     // No "0" badge on an empty list (pre-launch audit 11-18 PM).
     expect(link.textContent).toBe("");
+    const heart = container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!;
+    expect(heart.getAttribute("aria-pressed")).toBe("false");
+    expect(heart.closest("a")).toBeNull();
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
-    expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe("Holiday Gift Guides");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 1 saved");
     expect(link.textContent).toBe("1");
-    expect(JSON.parse(window.localStorage.getItem("lh-gift-list")!).guides).toEqual(["her"]);
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
@@ -259,8 +267,8 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    renderAt("/gift-guides?group=by-person");
-    const heart = screen.getAllByRole("button", { name: "Save Him to My Wish List" })[0];
+    const { container } = renderAt("/gift-guides/him");
+    const heart = container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!;
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     spy.mockRestore();

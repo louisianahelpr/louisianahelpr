@@ -31,6 +31,7 @@
  * @mutate src/content/holidayHub/holidayHub.mjs |     ...(now.length ? [{ key: "now", day: null, items: now.sort(closingSoonest) }] : []), |     ...(now.length ? [{ key: "now", day: null, items: now.sort(byName) }] : []),
  * @mutate src/content/holidayHub/holidayHub.mjs |     if (today && isOver(e, today)) return false; |
  * @mutate src/components/Footer.tsx |               <Link to="/holidays" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" data-gift-side-holiday-hub=""> |         <li><Link to="/help" data-gift-side-holiday-hub="">
  * @mutate src/pages/info/holidays/holidayParts.tsx |         onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}> |         >
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -433,10 +434,10 @@ describe("Holiday Hub routing, on every layer", () => {
     expect(Object.keys(PUBLIC_PAGE_META)).not.toContain(path);
   });
 
-  it("document scroll, linked from the footer and the gift guides landing, never the phone top nav", () => {
+  it("document scroll, linked from the footer and the gift guides left menu (owner 11-21: not the main column), never the phone top nav", () => {
     expect(read("src/hooks/useAppShellViewport.ts")).toMatch(/^\s*"\/holidays",/m);
     expect(read("src/components/Footer.tsx")).toContain('<Link to="/holidays" className={FOOTER_LINK}>');
-    expect(read("src/pages/info/giftGuides/GiftGuideLanding.tsx")).toContain('<Link to="/holidays" className="gg-helpr-btn"');
+    expect(read("src/pages/info/giftGuides/GiftGuidesSidebar.tsx")).toContain('<Link to="/holidays" data-gift-side-holiday-hub="">');
     expect(read("src/components/Navbar.tsx")).not.toContain("/holidays");
   });
 

@@ -3,7 +3,7 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { giftGuides as G, activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ROWS, STORES, guideBySlug, guidesIn, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { guideBySlug, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { GiftOut } from "./GiftOut";
 import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
@@ -11,31 +11,55 @@ import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
 import { EXTRAS_WORDS, FINDER_ANCHOR as FINDER_ID } from "@/content/giftGuideExtras1120";
 import { PRINTABLES_PATH, PRINTABLES_WORDS, shownPrintables } from "@/content/printables";
 
+/** The 25 Days sponsors page: an entry of its own in the menu's second block. */
+const SPONSORS_SLUG = "25-days-sponsors";
 /**
- * Every guide by group (owner's final design 2026-11-18): a 220px sticky menu beside the page on desktop, after it on
- * phones. Each group is a <details> that starts COLLAPSED; tapping its name opens it (+ / −). On a guide's page only
- * that guide's group starts open, and the open guide (or "All guides" on the landing) is aria-current, drawn
- * olive-soft. Each group carries a small square in its covers' palette. "For kids" lists Girls, Boys and
- * Gender-Neutral (owner 2026-11-18); their age guides open from those pages. Keyed on the open guide, so moving to
- * another guide resets which group is open.
+ * The three guides, each with a dot in its cover's colour (owner 11-21: "since it's just 3 guides now you don't really
+ * need to filter it, maybe just do for her, him, kids with their color"; then the covers swapped to Her beige, Him
+ * Christmas green, Kids Christmas red).
+ */
+const SIDE_GUIDES = [
+  { slug: "her", dot: "oat" },
+  { slug: "him", dot: "green" },
+  { slug: "kids", dot: "red" },
+] as const;
+
+/**
+ * The gift guides menu (owner 2026-11-21): a 220px sticky menu beside the page on desktop, after the page on a phone.
+ * First block: All guides and the three guides as plain links, each with its cover's colour dot (no group headers or
+ * +/− toggles). Second block, plain links: Black Friday deals, Small Business Saturday and Cyber Monday (the deals
+ * page's sections), Free printables, the Louisiana Holiday Hub and 25 Days sponsors (owner 11-21: "free printables,
+ * louisiana hub, sponsors go in the left panel ... and black friday deals, small business saturday and cyber monday";
+ * earlier "move the holiday hub into the left column and remove it from the main holiday screen"). Then the fun tools. The open page (a
+ * relationship view like /gift-guides/mom marks its guide, Her) is aria-current, drawn olive-soft.
  */
 export function GiftGuidesSidebar({ active, myList = false, page }: { active: CatalogGuide | null; myList?: boolean; page?: string }) {
-  const current = (slug: string | null) => (!myList && (page ?? active?.slug ?? null) === slug ? ({ "aria-current": "page" } as const) : {});
+  const open = page ?? active?.view?.of ?? active?.slug ?? null;
+  const current = (slug: string | null) => (!myList && open === slug ? ({ "aria-current": "page" } as const) : {});
+  const guides = SIDE_GUIDES.flatMap((x) => {
+    const g = guideBySlug(x.slug);
+    return g && !g.empty ? [{ ...x, title: g.title }] : [];
+  });
   return (
-    <nav key={page ?? active?.slug ?? ""} className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
-      {/* Owner redesign 11-18 PM: search and My list moved to the slim row under the title. Owner 11-21 ("i dont see the
-          discount codes or sales on the left section either"; "there will also need to be a free section for our tags
-          color book elf guides"): Deals & codes and Free printables are entries of their own, each opening its own page,
-          never mixed into a guide's list. */}
-      <ul>
+    <nav className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
+      <ul data-gift-side-guides="">
         <li><Link to="/gift-guides" {...current(null)} data-gift-side="">{G.allGuidesLabel}</Link></li>
-        <li><Link to={`/gift-guides/${DEALS_SLUG}`} {...current(DEALS_SLUG)} data-gift-side-deals="">{G.dealsAndCodesLabel}</Link></li>
-        {shownPrintables().length > 0 && <li><Link to={PRINTABLES_PATH} data-gift-side-printables="">{PRINTABLES_WORDS.tile.title}</Link></li>}
+        {guides.map((g) => (
+          <li key={g.slug}>
+            <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-side={g.slug}><i className={`gg-dot gg-${g.dot}`} aria-hidden="true" data-gift-side-dot={g.dot} />{g.title}</Link>
+          </li>
+        ))}
       </ul>
-      {/* Owner 11-20 12:30 PM ("tidier desktop sidebar"): the tools first, then the guide groups, each group's guide
-          count drawn beside its name (a CSS counter of the data attribute, so the name stays the summary's only text).
-          Owner 11-21 ("i also dont see the fun features anymore like the quiz"): the tools are back (FUN_TOOLS), the
-          menu's guide groups are still the live guides only (src/content/giftGuideLive.mjs). */}
+      <ul className="gg-side-more" data-gift-side-more="">
+        {/* The deals page's three day sections (owner 11-21: "black friday deals, small business saturday and cyber
+            monday"); the deals page marks Black Friday, its first section. */}
+        {G.sideDeals.map((d, i) => (
+          <li key={d.id}><Link to={`/gift-guides/${DEALS_SLUG}#${d.id}`} {...(i === 0 ? current(DEALS_SLUG) : {})} data-gift-side-deals={d.id}>{d.label}</Link></li>
+        ))}
+        {shownPrintables().length > 0 && <li><Link to={PRINTABLES_PATH} data-gift-side-printables="">{PRINTABLES_WORDS.tile.title}</Link></li>}
+        <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.holidayHub.title}</Link></li>
+        <li><Link to={`/gift-guides/${SPONSORS_SLUG}`} {...current(SPONSORS_SLUG)} data-gift-side-sponsors="">{G.sideSponsorsLabel}</Link></li>
+      </ul>
       <p className="gg-side-h">{FUN_WORDS.toolsTitle}</p>
       <ul data-gift-side-tools="">
         <li><Link to={`/gift-guides#${FINDER_ID}`} data-gift-side-tool="finder">{EXTRAS_WORDS.finderTitle}</Link></li>
@@ -43,19 +67,6 @@ export function GiftGuidesSidebar({ active, myList = false, page }: { active: Ca
           <li key={t.to}><Link to={t.to} data-gift-side-tool={t.to}>{t.title}</Link></li>
         ))}
       </ul>
-      <p className="gg-side-h">{G.sideGuidesHead}</p>
-      {ROWS.filter(({ row }) => guidesIn(row).length > 0).map(({ row, label, tint }) => (
-        <details key={row} open={row === active?.row} data-gift-group={row}>
-          <summary><i className={`gg-dot gg-${tint}`} aria-hidden="true" />{label}<span className="gg-side-n" data-n={guidesIn(row).length} aria-hidden="true" /></summary>
-          <ul>
-            {guidesIn(row).map((g) => (
-              <li key={g.slug}>
-                <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-side={g.slug}>{g.title}</Link>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ))}
     </nav>
   );
 }
@@ -152,17 +163,19 @@ export function SalesList({ sales, first = SALES_FIRST }: { sales: readonly Sale
 
 /**
  * "Deals & codes" (owner redesign 11-18 PM: "Codes should be a section with the other discount stuff right?"): ONE
- * section holding the discount codes and the store sales, after the landing's guide rows and after a guide's picks.
+ * section holding the discount codes and the store sales, on the deals page only (owner 11-21: "Codes and deals
+ * shouldn't randomly show in sections": no guide page carries it).
  * It starts COLLAPSED on every page and screen and never opens by itself (owner 11-18: "discount code shouldn't open
  * expanded"; no open state is remembered across pages). Hidden while it holds nothing. The one exception is the deals
  * page itself (owner 11-21: "i dont see the discount codes or sales"), whose purpose is the codes and sales: there it
  * starts open (`open`).
  */
-export function DealsAndCodes({ guide, open = false }: { guide?: CatalogGuide; open?: boolean } = {}) {
+export function DealsAndCodes({ open = false }: { open?: boolean } = {}) {
   const today = localToday();
   const allCodes = activeCodes([...discountCodes, ...DEAL_CODES], today);
   const allSales = liveSales(SALES, today);
-  const { codes, sales } = guide ? guideDeals(guide, allCodes, allSales) : { codes: allCodes, sales: allSales };
+  const codes = allCodes;
+  const sales = allSales;
   if (codes.length === 0 && sales.length === 0) return null;
   // Design spec 11-18 H5: a cream card; open, at most 8 rows show (codes first, then sales), each list with its See all.
   const stores = codesByStore(codes).length;
@@ -176,36 +189,3 @@ export function DealsAndCodes({ guide, open = false }: { guide?: CatalogGuide; o
   );
 }
 
-const normStore = (s: string) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
-/** Guides for women or girls, and for men or boys (their deals must not be the other's). */
-const WOMENS_GUIDES = /^(mom|wife|her|girlfriend|grandma|sister|mother-in-law|aunt|best-friend|niece|sister-in-law|big-sisters|mom-to-be|new-mom|girls(-.*)?)$/;
-const MENS_GUIDES = /^(dad|him|boyfriend-or-husband|grandpa|brother|father-in-law|uncle|nephew|brother-in-law|new-dad|boys(-.*)?)$/;
-const MENS_DEAL = /\bmen'?s\b|\bmens\b|\bfor (him|men|dad)\b|\bboys?'?\b/i;
-const WOMENS_DEAL = /\bwomen'?s\b|\bwomens\b|\bfor (her|women|mom)\b|\bladies\b|\bgirls?'?\b/i;
-const PET_DEAL = /\bpets?\b|\bdogs?\b|\bcats?\b|\bpuppy\b|\bkitten\b|\bpet\s*(food|supplies)\b/i;
-/** At most this many deals and codes on a guide's page, codes first (owner 11-19). */
-const GUIDE_DEALS_MAX = 6;
-/**
- * A guide's own deals and codes (owner 11-19: "deals and codes should not show in the womens section like this"): only
- * stores and brands with picks on that guide, never a men's or pet deal on a women's guide (or the reverse, or a pet
- * deal off the pet guides), at most GUIDE_DEALS_MAX, codes first by rank, then sales ending soonest. The full list stays
- * on the landing.
- */
-function guideDeals(guide: CatalogGuide, codes: DiscountCode[], sales: readonly Sale[]) {
-  const names = new Set<string>();
-  const slugs = new Set<string>();
-  for (const p of guide.picks) {
-    slugs.add(p.store);
-    const store = (STORES as Record<string, { name: string } | undefined>)[p.store]?.name;
-    if (store && p.store !== "amazon") names.add(normStore(store));
-    if (p.brand) names.add(normStore(p.brand));
-  }
-  const pets = guide.row === "pets";
-  const fits = (text: string) => !(WOMENS_GUIDES.test(guide.slug) && MENS_DEAL.test(text)) && !(MENS_GUIDES.test(guide.slug) && WOMENS_DEAL.test(text)) && (pets || !PET_DEAL.test(text));
-  const ownCodes = codes.filter((c) => names.has(normStore(c.store)) && fits(`${c.store} ${c.offer}`));
-  const codeRows = codesByStore(ownCodes).slice(0, GUIDE_DEALS_MAX);
-  const keptCodes = ownCodes.filter((c) => codeRows.some((r) => r.store === c.store));
-  const ownSales = [...sales].filter((x) => (slugs.has(x.slug) || names.has(normStore(x.store))) && fits(`${x.store} ${x.offer}`))
-    .sort((a, b) => a.ends.localeCompare(b.ends)).slice(0, Math.max(0, GUIDE_DEALS_MAX - codeRows.length));
-  return { codes: keptCodes, sales: ownSales };
-}

@@ -210,6 +210,17 @@ export const PRINTABLES: Printable[] = [
   },
   {
     kind: "download",
+    id: "thanksgiving-banner",
+    title: "Happy Thanksgiving banner",
+    blurb: "A 2-to-1 banner to print at Walgreens or any photo counter (a 12 x 24 in print fits it).",
+    // Owner 2026-11-21: "add this to the free printables, it's a banner they can print at walgreens" (her Canva design).
+    ready: true,
+    preview: "/printables/thanksgiving-banner/preview.webp",
+    files: [{ label: "Download the banner (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg" }],
+    guides: [],
+  },
+  {
+    kind: "download",
     id: "elf-kit",
     title: "Elf Adventure Kit",
     blurb: "A plan for what your elf does each day, with the supply list and the arrival letter.",
@@ -422,8 +433,6 @@ export const PRINTABLES_WORDS = {
   title: "Free holiday printables",
   lead: "Gift tags with names and more, made by Louisiana Helpr. Type the names, see them on the design, and print at home. Free, no sign-up, nothing saved.",
   tile: { title: "Free printables", body: "Gift tags with names and more, free to print." },
-  /** The gift guides landing's card (owner 11-21): the ready printables by name, so it never promises one still hidden. */
-  landingLine: (titles: string[]) => `${titles.join(", ")}. Free to print at home.`,
   guideLink: (title: string) => `Free printable: ${title}`,
   make: "Make yours",
   making: "Making",

@@ -6,6 +6,10 @@ import { PUBLIC_CONTAINER } from "@/lib/publicContainer";
 interface PublicHeaderPageProps {
   title: string;
   backTo?: string;
+  /** Forwarded to PageHeader: the arrow's own action (it then ignores history), e.g. always Home. */
+  onBack?: () => void;
+  /** Forwarded to PageHeader: the arrow's accessible name when it goes to one named place ("Go to Home"). */
+  backLabel?: string;
   /** Matches PageHeader's `width` — the ladder that lines the title up with
    *  the body column beneath it. Defaults to "public"
    *  (`px-5 sm:px-8 lg:px-12` over `.page-measure`), the ladder every
@@ -65,6 +69,8 @@ interface PublicHeaderPageProps {
 export function PublicHeaderPage({
   title,
   backTo = "/",
+  onBack,
+  backLabel,
   width = "public",
   bottomPaddingClassName,
   headerWrapperClassName,
@@ -81,6 +87,8 @@ export function PublicHeaderPage({
     <PageHeader
       title={title}
       backTo={backTo}
+      onBack={onBack}
+      backLabel={backLabel}
       hideBack={hideBack}
       phoneHidesTitle={phoneHidesTitle}
       titleTag={titleTag}

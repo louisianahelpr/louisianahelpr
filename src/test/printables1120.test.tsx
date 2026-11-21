@@ -136,12 +136,12 @@ describe("the config", () => {
   });
 
   it("only switched-on printables with their files show; the rest wait hidden", () => {
-    expect(shownPrintables().map((p) => p.id)).toEqual(["gift-tags", "coloring-book"]);
+    expect(shownPrintables().map((p) => p.id)).toEqual(["gift-tags", "coloring-book", "thanksgiving-banner"]);
     expect(isShown(overlays.find((p) => p.id === "santa-letter")!)).toBe(false);
     // Only the final tags' pictures ship: no leftover design in public/printables/tags.
     expect(readdirSync(join(ROOT, "public/printables/tags")).sort()).toEqual(FINAL_TAGS.flatMap((id) => [`${id}.jpg`, `${id}.webp`]).sort());
     // Owner 2026-11-21: the coloring book is live (Boys book); every other download still waits hidden.
-    for (const p of downloads) expect(isShown(p), p.id).toBe(p.id === "coloring-book");
+    for (const p of downloads) expect(isShown(p), p.id).toBe(["coloring-book", "thanksgiving-banner"].includes(p.id));
     for (const p of downloads.filter(isShown)) for (const f of p.files) expect(existsSync(join(ROOT, "public", f.href)), f.href).toBe(true);
     const hidden = downloads.find((d) => !isShown(d))!;
     expect(isShown({ ...hidden, ready: true })).toBe(true);
@@ -226,7 +226,7 @@ describe("the maker and the page", () => {
   it("the page shows the shown makers and no hidden card; the guides link only shown printables", () => {
     render(<MemoryRouter><Printables /></MemoryRouter>);
     const cards = [...document.querySelectorAll("[data-printable-card]")].map((c) => c.getAttribute("data-printable-card"));
-    expect(cards).toEqual(["gift-tags", "coloring-book"]);
+    expect(cards).toEqual(["gift-tags", "coloring-book", "thanksgiving-banner"]);
     act(() => cleanup());
     expect(printablesForGuide("gift-wrap-and-cards").map((p) => p.id)).toEqual(["gift-tags"]);
     expect(printablesForGuide("educators")).toEqual([]);

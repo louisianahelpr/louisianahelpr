@@ -67,8 +67,13 @@ beforeEach(() => {
   document.documentElement.classList.add("app-shell");
 });
 
-/** Guest-reachable routes that still wear AppShell or no public frame for a guest. Exact; empty since 11-15 (Q2784). */
-const NOT_YET_FRAMED: string[] = [];
+/**
+ * Guest-reachable routes that still wear AppShell or no public frame for a guest. Exact; empty 11-15 (Q2784) to 11-21.
+ * /declutter/sell: owner 11-21 (src/lib/guestSellDraft.ts) a guest fills the one-item screen before signing up, so it is
+ * guest-reachable now (ProtectedRoute allowGuest) but still draws AppShell for that guest; framing it like /post-job is
+ * an open follow-up, not done in train 1121c.
+ */
+const NOT_YET_FRAMED: string[] = ["/declutter/sell"];
 /** A route pattern with each :param filled, to ask the matchers. */
 const sample = (path: string) => path.replace(/:[A-Za-z]+/g, "x1");
 
@@ -91,7 +96,7 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
     for (const p of ["/declutter", "/declutter/item/:id", "/hire/:service/:town", "/helprs", "/search", "/jobs/:id", "/shops/:id", "/book/:userId"]) {
       expect(isGuestPublicFrameRoute(sample(p)), p).toBe(true);
     }
-    // A member-only page under /declutter stays off: the guest is sent to log in there.
+    // /declutter/sell is listed in NOT_YET_FRAMED above, so it stays off the frame until it is framed on purpose.
     expect(isGuestPublicFrameRoute("/declutter/sell")).toBe(false);
     expect(isGuestPublicFrameRoute("/declutter/item/")).toBe(false);
     expect(isGuestPublicFrameRoute("/jobs/settings")).toBe(false);

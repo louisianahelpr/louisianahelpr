@@ -44,14 +44,13 @@ import {
 // Owner 11-21 (later, "add all of the things ... launch the 3 guides"): Him and Kids are now her own Amazon saves only,
 // and an Amazon photo never goes on a cover, so both covers are the text-only arch until her ShopMy saves for Him and
 // Kids are added (non-Amazon photos). Two-way: each entry fails once its cover gains products.
-const TEXT_ONLY: Record<string, string> = {
-  him: "every pick is one of the owner's Amazon saves; Amazon photos never go on a cover",
-  kids: "every pick is one of the owner's Amazon saves; Amazon photos never go on a cover",
-};
+// Owner 11-21 ("the him and kids need gifts on their covers"): her ShopMy saves for Him (8) and Kids (16) are in, with
+// transparent cutouts, and both covers were redrawn with them (2026-11-21), so neither is text only any more.
+const TEXT_ONLY: Record<string, string> = {};
 const PIXEL_PALE: Record<string, string> = {};
 /** Measured 2026-11-21 after the retirement (owner 11-21: only Her, Him and Kids live). */
 const SHOWN_FLOOR = 3; // 4 shown: her, him, kids, 25-days-sponsors
-const CHECKED_FLOOR = 2; // her and the sponsors page; him and kids are text only (above)
+const CHECKED_FLOOR = 4; // measured 2026-11-21 after Him and Kids gained her ShopMy saves: her, him, kids, the sponsors page
 
 const manifest = readManifest();
 const covers = new Set(COVER_SLUGS);

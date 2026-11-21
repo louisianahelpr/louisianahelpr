@@ -92,14 +92,14 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
     <div className="relative min-w-0" data-chip-row-wrap="">
       {list}
       {more.left && (
-        <div data-chip-edge="left" className="pointer-events-none absolute inset-y-0 left-0 flex w-16 items-start bg-gradient-to-r from-background via-background/90 to-transparent pb-1">
+        <div data-chip-edge="left" className="pointer-events-none absolute inset-y-0 left-0 flex w-24 items-start bg-gradient-to-r from-background from-40% to-transparent pb-1">
           <RowNudgeButton aria-label={t("decl.earlierCategories")} onClick={() => nudge(-1)}>
             <ChevronLeft className="h-5 w-5" aria-hidden />
           </RowNudgeButton>
         </div>
       )}
       {more.right && (
-        <div data-chip-edge="right" className="pointer-events-none absolute inset-y-0 right-0 flex w-16 items-start justify-end bg-gradient-to-l from-background via-background/90 to-transparent pb-1">
+        <div data-chip-edge="right" className="pointer-events-none absolute inset-y-0 right-0 flex w-24 items-start justify-end bg-gradient-to-l from-background from-40% to-transparent pb-1">
           <RowNudgeButton aria-label={t("decl.moreCategories")} onClick={() => nudge(1)}>
             <ChevronRight className="h-5 w-5" aria-hidden />
           </RowNudgeButton>

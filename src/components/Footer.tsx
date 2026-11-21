@@ -140,7 +140,7 @@ const Footer = (_props: { landing?: boolean } = {}) => {
         {/* Brand — uses the shared HelprMark component so the mark
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
-        <div className="col-span-2 min-[620px]:col-span-4 space-y-3">
+        <div className="col-span-2 min-[620px]:col-span-3 space-y-3">
           {/* The H logo, never the "Helpr" wordmark (owner, 2026-10-20 08:30Z). */}
           <HelprMark to="/" size="md" emblemOnly />
           {/* Break after the first sentence so the tagline wraps predictably
@@ -155,8 +155,9 @@ const Footer = (_props: { landing?: boolean } = {}) => {
         </div>
 
         {/* Company */}
-        {/* Full row below 620px, its links in two columns (owner 2026-11-17). */}
-        <div className="col-span-2 min-[620px]:col-span-3">
+        {/* Full row below 620px, its links in two columns (owner 2026-11-17). From 620px it takes the brand's fourth
+            column (brand 3 / Explore 4 / Legal 2 / Follow 3) so its two columns fit "Holiday Hub" on one line. */}
+        <div className="col-span-2 min-[620px]:col-span-4">
           <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--muted-foreground))" }}
@@ -182,8 +183,10 @@ const Footer = (_props: { landing?: boolean } = {}) => {
               upgraded. Membership lives inside the app at
               /profile?tab=subscription (the standalone /subscription route
               was removed in 49f4f2f30). */}
-          {/* Two columns below 620px (owner 2026-11-17); one column, matching Legal and Follow, from 620px. */}
-          <ul data-footer-explore="" className="grid grid-cols-2 gap-x-4 min-[620px]:block min-[620px]:space-y-2 min-[620px]:[@media(pointer:coarse)]:space-y-0 lg:[@media(pointer:fine)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
+          {/* Two columns at every width (owner 2026-11-17 for phones; owner 11-21: "explore can be 2 rows so it doesn't
+              make the end so long"), 4 + 4, so the footer is about half as tall on desktop. The rows keep Legal's
+              rhythm: 8px between 44px rows with a fine pointer from 620px, none on touch, none at lg's 32px rows. */}
+          <ul data-footer-explore="" className="grid grid-cols-2 gap-x-3 whitespace-nowrap min-[620px]:[@media(pointer:fine)]:gap-y-2 lg:[@media(pointer:fine)]:gap-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
             <li>
               {/* Named, not bounced: a signed-in reader goes straight to the
                   authed feed and a visitor to the guest one. Same label either

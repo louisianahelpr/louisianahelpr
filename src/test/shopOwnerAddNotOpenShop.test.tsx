@@ -9,7 +9,7 @@
  * @mutate src/components/shops/ShopsHomeView.tsx | <SectionCreateFab section="shops" text={t("shb.openShop")} add={add} /> | <SectionCreateFab section="shops" text={t("shb.openShop")} />
  * @mutate src/components/sections/SectionCreateFab.tsx | const add = own ?? (section ? sectionByKey(section).add : null); | const add = section ? sectionByKey(section).add : null;
  * @mutate src/components/sections/AppTopBar.tsx | <SectionAddButton section={section} add={add} /> | <SectionAddButton section={section} />
- * @mutate src/components/sections/SectionScreen.tsx | showAdd={showAdd} add={add} /> | showAdd={showAdd} />
+ * @mutate src/components/sections/SectionScreen.tsx | showAdd={showAdd} add={add} backHome= | showAdd={showAdd} backHome=
  * @mutate src/components/shops/ShopsHomeView.tsx | fab={desktop \|\| !known ? undefined | fab={desktop ? undefined
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

@@ -91,29 +91,33 @@ describe("the sort control on the page (owner 11-21)", () => {
     expect(shownNames(container)).toEqual(expected);
   });
 
-  it("no Amazon row shows a price in either order, while the checked non-Amazon prices still show", async () => {
+  // Owner 2026-11-21 ~12:05 PM: "each item also needs a price" (she chose "Show Amazon prices anyway" after the warning
+  // that Amazon allows prices only from its PA-API feed); then "all items need a price, then their default can be sorted
+  // low price to high". This guard used to assert NO Amazon row showed a price; now every row shows one, Amazon too,
+  // and the default order (low to high) follows the shown prices.
+  it("every row shows its price in either order, Amazon rows too, and the default order is the shown prices low to high", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
+    const dollars = () => [...container.querySelectorAll<HTMLElement>("[data-gift-pick]")].map((li) => Number((li.querySelector("[data-gift-price]")?.textContent ?? "").replace("~$", "")));
+    // The default, before any tap, is low to high.
+    const first = dollars();
+    expect(first).toEqual([...first].sort((a, b) => a - b));
     for (const name of [G.sortLowHigh, G.sortHighLow]) {
       fireEvent.click(screen.getByRole("radio", { name }));
       const rows = [...container.querySelectorAll<HTMLElement>("[data-gift-pick]")];
       expect(rows.length).toBe(CHUNKS.her.length);
       let amazon = 0;
-      let priced = 0;
       for (const li of rows) {
         const href = li.querySelector<HTMLAnchorElement>("a[data-gift-out]")!.href;
-        const meta = li.querySelector(".gg-nm-meta")!.textContent ?? "";
-        if (isAmazon(href)) {
-          amazon += 1;
-          expect(li.querySelector("[data-gift-price]"), href).toBeNull();
-          expect(meta, href).toBe(G.onStore("Amazon"));
-          expect(li.textContent, href).not.toMatch(/\$/);
-        } else if (li.querySelector("[data-gift-price]")) priced += 1;
+        expect(li.querySelector("[data-gift-price]")?.textContent ?? "", href).toMatch(/^~\$\d+$/);
+        if (isAmazon(href)) amazon += 1;
       }
-      expect(amazon).toBeGreaterThan(15); // 22 Amazon rows on Her, 2026-11-21
-      expect(priced).toBeGreaterThan(10); // 14 checked ShopMy prices on Her, 2026-11-21
+      expect(amazon).toBeGreaterThan(15); // 20 Amazon rows on Her, 2026-11-21
+      const d = dollars();
+      expect(d).toEqual([...d].sort((a, b) => (name === G.sortLowHigh ? a - b : b - a)));
     }
+    vi.useRealTimers();
   });
 });

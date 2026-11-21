@@ -258,12 +258,12 @@ describe("swipe rounds", () => {
     // round finds nothing in them; only "any budget" deals for Dad and Him.
     // Commission switches 11-21 (4 Amazon picks moved to the same item at a better-paying ShopMy store, which shows a
     // price): rounds got fuller and me/100 now deals 8+ (measured 2026-11-21).
+    // Owner 2026-11-21 ~12:05 PM ("each item also needs a price"; she chose "Show Amazon prices anyway" after the
+    // Associates warning): every Her, Him and Kids pick now carries the price captured from her saved list, so budget
+    // rounds can use Him's and Her's Amazon picks too and got fuller: with her ShopMy saves for Him and Kids (train
+    // 1121c) every round deals 8+ but mom/25 and her/25 (measured 2026-11-21). Kids still has no swipe deck.
     // @two-way src/test/giftGuideFun1120.test.tsx:expect(thin).toEqual(KNOWN_THIN)
-    const KNOWN_THIN = [
-      "me/25: 1", "me/50: 5", "mom/25: 1", "mom/50: 5", "mom/100: 7",
-      "dad/25: 0", "dad/50: 0", "dad/100: 1", "dad/0: 7", "her/25: 1", "her/50: 5", "her/100: 7",
-      "him/25: 0", "him/50: 0", "him/100: 1", "him/0: 7", "kids/25: 0", "kids/50: 0", "kids/100: 0", "kids/0: 0",
-    ];
+    const KNOWN_THIN = ["mom/25: 6", "her/25: 6", "kids/25: 0", "kids/50: 0", "kids/100: 0", "kids/0: 0"];
     expect(thin).toEqual(KNOWN_THIN);
   });
 

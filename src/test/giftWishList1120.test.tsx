@@ -26,7 +26,6 @@
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     if (!giftNameProblem(v)) setListName(v); |     setListName(v);
  * @mutate src/pages/info/giftGuides/wishListSync.ts |       if (!l.synced && l.picks.length === 0 && !l.name.trim()) return; |       void 0;
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {user && syncProblem | {false && syncProblem
- * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx | border-radius:14px;background:hsl(var(--card));color:var(--gg-ink)} | border-radius:14px;background:#fff}
  * @mutate src/lib/giftNameClean.ts | \|\b[a-z0-9-]+\.[a-z]{2,}\b)/i | )/i
  * @mutate src/pages/info/giftGuides/giftList.tsx |   const cur = mine.owner !== null && mine.owner !== uid ? EMPTY : mine; |   const cur = mine;
  * @mutate src/pages/info/giftGuides/giftList.tsx | const kept = remoteItems.filter((r) => !removedHere.has(r.i)).map(fromRemote); | const kept = remoteItems.map(fromRemote);

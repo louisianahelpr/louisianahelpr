@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Camera, Coins, Handshake, MapPin, PackageCheck, PenLine, ShieldCheck, UserCheck, Wallet, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { signupUrlFor } from "@/lib/jobIntent";
 import { goSignedInOr } from "./goSignedInOr";
 import { HIRE_STEPS } from "./hireSteps";
 import { useLandingMode, type LandingMode } from "./landingMode";
@@ -84,17 +83,20 @@ type Reveal = "shown" | "waiting" | "revealed";
 
 /**
  * The "I need help" side's own action (lead, 2026-10-25: the signed-out home
- * had no way to post). A signed-out visitor goes to sign-up carrying /post-job
- * as the return path (jobIntent's redirect, which survives the email
- * confirmation round-trip); a signed-in one goes straight to /post-job. Not
+ * had no way to post). Owner 2026-11-21: "when they click post a job or sell
+ * something ... let them post and sell and before it will be submitted make
+ * them sign up". Signed out or in, it opens /post-job itself: a guest fills the
+ * post there and is asked to sign up at the end (src/lib/guestPostDraft.ts),
+ * coming back to it after the email is verified. Not
  * filled: the hero's Search and the close's account button stay the page's
  * two primaries (landingFrontDoor.test.tsx).
  */
 export const POST_JOB_PATH = "/post-job";
-export const POST_JOB_SIGNED_OUT = signupUrlFor(POST_JOB_PATH);
-/** Owner #7 (11-09): the Declutter side's Sell button, with the same sign-up-and-return rule. It opened the sell chooser (owner pick 5, 11-08); the ease batch (owner-approved 11-20) opens one item straight away, with the chooser one tap away there. */
+export const POST_JOB_SIGNED_OUT: string = "/post-job"; // the same page signed out (11-21); its own literal so knip sees no duplicate export
+/** Owner #7 (11-09): the Declutter side's Sell button, with the same rule as Post a job (11-21: the form itself, sign-up at Post). It opened the sell chooser (owner pick 5, 11-08); the ease batch (owner-approved 11-20) opens one item straight away, with the chooser one tap away there. */
 export const SELL_PATH = SELL_START_PATH;
-export const SELL_SIGNED_OUT = signupUrlFor(SELL_PATH);
+// Owner 11-21: a guest opens the sell form itself and fills it; sign-up is asked at Post (src/lib/guestSellDraft.ts).
+export const SELL_SIGNED_OUT = SELL_PATH;
 
 /** Owner's preview tweak 1 (11-10): in Declutter mode How it works opens on "Buy or sell"; in Jobs mode on "I need help". */
 function sideForMode(mode: LandingMode): Side {

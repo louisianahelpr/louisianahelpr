@@ -31,6 +31,15 @@ interface NavbarProps {
   landing?: boolean;
 }
 
+/**
+ * Owner 11-21: "no need to show home in the top nav bar when jobs, declutter and holiday gift guides are selected
+ * because they have a back button to the left of the title". The sections' own pages and sub-pages: the public job
+ * board (/browse, and /jobs/...), Declutter (/declutter/...) and the gift guides (/gift-guides/...). The H logo still
+ * links home everywhere. Guard: src/test/declutterGuestHomeLinks1120.test.tsx.
+ */
+const NAV_HOME_HIDDEN_ON = ["/browse", "/jobs", "/declutter", "/gift-guides"] as const;
+const navHomeHiddenOn = (path: string) => NAV_HOME_HIDDEN_ON.some((p) => path === p || path.startsWith(`${p}/`));
+
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = false }, ref) => {
   // F017: the landing no longer changes the bar's container (one on every public page, PUBLIC_CONTAINER). D021 (landing
   // design audit 11-10): on a phone the landing's bar keeps only the logo, Log in and Join free; its hero already has
@@ -151,8 +160,9 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
         {!user && (
           <div className={tight ? "flex items-center gap-0 min-[480px]:gap-1 sm:gap-3" : "flex items-center gap-0 min-[375px]:gap-0.5 min-[400px]:gap-1 sm:gap-3"}>
             {/* Owner 11-20 (site polish A1): a "Home" link off the landing, from md up (the phone bar is full at 320;
-                there the logo and the page's own "← Home" link go home). */}
-            {location.pathname !== "/" && (
+                there the logo goes home). Owner 11-21: not on the Jobs, Declutter or Holiday Gift Guides pages either,
+                whose own back arrow, left of the title, already goes home (NAV_HOME_HIDDEN_ON; route-based). */}
+            {location.pathname !== "/" && !navHomeHiddenOn(location.pathname) && (
               <Button
                 asChild
                 variant="ghost"

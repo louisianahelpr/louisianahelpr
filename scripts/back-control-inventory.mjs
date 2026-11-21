@@ -145,6 +145,8 @@ export function elementBody(src, start, tag, name) {
 /** Icons that mean "leave this surface". */
 const EXIT_GLYPH = /<(ArrowLeft|ChevronLeft|X)(?=[\s/>])/;
 const LABEL = /(?:aria-label|title)\s*=\s*"([^"]*)"/;
+/** A named override with a literal default (BackButton, owner 11-21): aria-label={label ?? "Go back"} reads as the default. */
+const DEFAULT_LABEL = /(?:aria-label|title)\s*=\s*\{\s*\w+\s*\?\?\s*"([^"]*)"\s*\}/;
 /** A label from the dictionary (F260q): aria-label={t("msg.qr.cancel")} reads as its English words. */
 const KEY_LABEL = /(?:aria-label|title)\s*=\s*\{\s*(?:t|tr)\(\s*"([\w.]+)"\s*\)\s*\}/;
 let englishWords = null;
@@ -158,7 +160,7 @@ function english(key) {
   }
   return englishWords.get(key) ?? "";
 }
-const labelOf = (tag) => LABEL.exec(tag)?.[1] ?? (KEY_LABEL.exec(tag) ? english(KEY_LABEL.exec(tag)[1]) : "");
+const labelOf = (tag) => LABEL.exec(tag)?.[1] ?? DEFAULT_LABEL.exec(tag)?.[1] ?? (KEY_LABEL.exec(tag) ? english(KEY_LABEL.exec(tag)[1]) : "");
 /** Only whole-surface exits. "Remove", "Clear", "Delete" are value edits. */
 const EXIT_LABEL = /^\s*(go\s+back|back|close|dismiss|cancel)\b/i;
 const GO_BACK_CALL = /navigate\(\s*-1\s*\)|history\.back\(\)|router\.back\(\)|\bonBack\b|\bonDismiss\b/;

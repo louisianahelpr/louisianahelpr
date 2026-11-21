@@ -3,6 +3,7 @@
  * link. It used to choose from `user` alone — and `user` is null for everyone
  * until the auth snapshot settles, so a signed-in reader whose session was still
  * restoring was told "Sign In to Download". The choice now waits for `isReady`.
+ * Owner 11-21: signed out, the card is not drawn at all ("only show it for signed in users").
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -38,18 +39,17 @@ describe("DataExportCard waits for auth before choosing its control", () => {
     expect(screen.getByRole("button", { name: "Download my data" })).toBeDisabled();
   });
 
-  it("signed out once ready: the Sign In link, returning straight to the in-app Legal tab card", () => {
+  it("signed out once ready: no card at all (owner 11-21), only the GDPR/CCPA line, which keeps the anchor", () => {
     auth.state = { user: null, isReady: true };
-    renderCard();
-    // L030 (landing audit 11-09): sentence case, as every button.
-    // @mutate src/pages/info/legal/DataExportCard.tsx |                 Sign in to download | Sign In to Download
-    // @mutate src/pages/info/legal/DataExportCard.tsx |             One file |             JSON file
-    const link = screen.getByRole("link", { name: "Sign in to download" });
-    expect(document.body.textContent).not.toMatch(/JSON/);
-    expect(link).toHaveAttribute(
-      "href",
-      `/login?redirect=${encodeURIComponent("/profile?tab=legal&doc=privacy#download-your-data")}`,
-    );
+    const { container } = renderCard();
+    // @mutate src/pages/info/legal/DataExportCard.tsx |   const signedOut = isReady && !userId; |   const signedOut = false;
+    // @mutate src/pages/info/legal/DataExportCard.tsx |       {!signedOut && <div | {true && <div
+    expect(screen.queryByRole("heading", { name: "Download your data" })).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(container.querySelector("[data-data-export-card]")).toBeNull();
+    expect(screen.getByText(/Under the EU GDPR and California CCPA/)).toBeInTheDocument();
+    expect(container.querySelector("#download-your-data")).not.toBeNull();
   });
 
   it("signed in once ready: the enabled export button", () => {
@@ -57,6 +57,10 @@ describe("DataExportCard waits for auth before choosing its control", () => {
     renderCard();
     expect(screen.getByRole("button", { name: "Download my data" })).toBeEnabled();
     expect(screen.queryByRole("link", { name: /sign in/i })).toBeNull();
+    // L030 (landing audit 11-09): plain words, never "JSON file".
+    // @mutate src/pages/info/legal/DataExportCard.tsx |             One file |             JSON file
+    expect(document.body.textContent).not.toMatch(/JSON/);
+    expect(screen.getByText("One file")).toBeInTheDocument();
   });
 });
 

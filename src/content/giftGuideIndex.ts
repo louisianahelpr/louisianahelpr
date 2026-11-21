@@ -9,7 +9,8 @@ export const GUIDE_INDEX: { group: string; tint: "green" | "oat" | "red"; slug: 
   { group: "By person", tint: "green", slug: "mom", title: "Mom", lead: "gifts for" },
   { group: "By person", tint: "green", slug: "dad", title: "Dad", lead: "gifts for" },
   { group: "By person", tint: "green", slug: "wife", title: "Wife", lead: "gifts for" },
-  { group: "By person", tint: "green", slug: "her", title: "Her", lead: "gifts for" },
+  // Owner 2026-11-21: "make her beige" (the cover is beige; the banner and menu dot follow this tint).
+  { group: "By person", tint: "oat", slug: "her", title: "Her", lead: "gifts for" },
   { group: "By person", tint: "green", slug: "him", title: "Him", lead: "gifts for" },
   { group: "By person", tint: "green", slug: "boyfriend-or-husband", title: "Boyfriend or Husband", lead: "gifts for" },
   { group: "By person", tint: "green", slug: "girlfriend", title: "Girlfriend", lead: "gifts for" },

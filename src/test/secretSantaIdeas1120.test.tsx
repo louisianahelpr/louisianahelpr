@@ -86,21 +86,18 @@ describe("a Secret Santa round keeps to the group's budget", () => {
       const r = santaRound(swipePool(w.id, picksOf), borrowAll.filter((p) => borrowFits(w.id, p)), budget, new Set());
       for (const p of r) expect(fitsBudget(p, budget) && pickCeiling(p)! <= budget, `${w.id} $${budget}: ${p.name}`).toBe(true);
       for (let i = 1; i < r.length; i++) expect(pickCeiling(r[i])!).toBeLessThanOrEqual(pickCeiling(r[i - 1])!);
-      for (const p of r) if (p.store === "amazon") expect(p.price).toBeUndefined();
+      // Owner 11-21: an Amazon pick in a round is one of her priced saves, and its ceiling is that price.
+      for (const p of r) if (p.store === "amazon") expect(pickCeiling(p), p.name).toBe(p.price);
       if (r.length < 6) thin.push(`${w.id} $${budget}: ${r.length}`);
     }
     // Owner 11-21 2:47 AM: only Her, Him and Kids are live, and Amazon picks never carry a site price, so a budget
     // round only has Her's priced store picks. Exact list, both ways: a round that fills up must come OFF this list
-    // (re-measure after her ShopMy Him/Kids picks land); never add a new name to it. The 11-21 commission switches
-    // (feat/guide-commission-1121) priced more Her picks (her $100 rounds now fill: off the list) and two Him picks
-    // ($99.95 and $189.99), so Him's $100 round holds one (measured 2026-11-21, CI run 44933210530).
-    const withHer = ["me", "mom", "her"];
-    const withHim = ["dad", "him"];
-    const herCount: Record<number, number> = { 25: 1, 50: 5 };
-    const himCount: Record<number, number> = { 25: 0, 50: 0, 100: 1 };
-    const KNOWN_THIN_1121 = [25, 50, 100].flatMap((b) =>
-      SWIPE_WHO.filter((w) => !(b === 100 && withHer.includes(w.id)))
-        .map((w) => `${w.id} $${b}: ${withHer.includes(w.id) ? herCount[b] : withHim.includes(w.id) ? himCount[b] : 0}`));
+    // (re-measure after her ShopMy Him/Kids picks land); never add a new name to it.
+    // Owner 2026-11-21 ~12:05 PM ("each item also needs a price"; she chose "Show Amazon prices anyway"): Her's and
+    // Him's Amazon picks carry their captured prices now, so with her ShopMy saves for Him and Kids (train 1121c)
+    // me, mom, her, dad and him fill every budget (measured 2026-11-21). The retired whos and Kids (no swipe deck) stay 0.
+    const none = ["teen", "kids", "friends", "coworkers", "grandparents", "louisiana"];
+    const KNOWN_THIN_1121 = [25, 50, 100].flatMap((b) => none.map((w) => `${w} $${b}: 0`));
     expect(thin).toEqual(KNOWN_THIN_1121);
   });
 });

@@ -27,12 +27,12 @@
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | rel="sponsored noopener" | rel="noopener"
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | target="_blank" rel= | rel=
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
- * @mutate src/pages/info/GiftGuides.tsx |           <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
+ * @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
  * @mutate src/pages/info/GiftGuides.tsx | {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details key={row} open={row === active?.row} | <details key={row} open
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   { slug: "him", dot: "green" }, |   { slug: "him", dot: "red" },
  * @mutate src/content/giftGuideCatalog.ts |     ...(children?.length ? { children } : {}), | 
  * @mutate src/content/giftGuideCatalog.ts | g.row === row && !g.parent && !g.view); | g.row === row && !g.parent && !g.view && g.slug !== KIDS_HUB);
  * @mutate src/content/giftGuideCatalog.ts | 8978491: "mom", | 8978491: "nowhere", 
@@ -52,7 +52,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | "gg w-full" | "gg page-column"
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{display:none} | .gg-side{display:block}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{order:2;position:static; | .gg-side{display:none;order:2;position:static;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | /iPhone\|iPad\|iPod/.test(userAgent) ? "&" : "?" | "?"
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.empty && g.row === row
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.thin && g.row === row
@@ -69,7 +69,7 @@
  * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       <h1 id={titleId}>{title}</h1>\n      {sub}\n |       <h1 id={titleId}>{title}</h1>\n      <p className="gg-line">25 picks</p>\n      {sub}\n
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | <p className="gg-arch-foot">Louisiana Helpr</p> | <p className="gg-line">25 picks</p><p className="gg-arch-foot">Louisiana Helpr</p>
  * @mutate src/content/giftGuides.ts |   { rank: 1, store: "Muck Boot", code: "TAKE25", | { rank: 8, store: "Muck Boot US", code: "TAKE25",
  */
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -160,36 +160,40 @@ function renderAt(url: string) {
   );
 }
 
-describe("gift guides: the shipping pill rides the page header's row (owner 11-18 PM)", () => {
-  // Owner: "the order by should be on the same line as gift guides but on the right, move the rest up". The pill is the
-  // header's title action (same row as "← Gift guides"), never a row of its own above the hero.
-  // @mutate src/pages/info/GiftGuides.tsx |       titleActions={landing ? undefined : shipPill} hideHeader={landing}> |       hideHeader={landing}>{shipPill}
-  it("on a guide, the pill sits in the header row beside the title, outside the page body; the landing has no header row, its shipping words in the title's subline", () => {
-    // Owner 11-20 PM ("still a busy mess"): the landing has ONE title; its shipping words ride the short subline.
-    const landing = renderAt("/gift-guides").container;
-    expect(landing.querySelector("[data-test-header-row]")).toBeNull();
-    expect(landing.querySelector("[data-gift-words] [data-gift-sub] [data-gift-ship]")).not.toBeNull();
-    cleanup();
+describe("gift guides: one header on every page (owner 11-21)", () => {
+  // Owner 2026-11-21 ("holiday gift guides needs the same set up as the other pages. title on left with back arrow on the
+  // left of the title"; then "add holiday to gift guides where it is by the back arrow. remove the repeated title below.
+  // then move the 3 icons to the right of order by dec 15 etc"): every gift guides page, the landing too, has the shared
+  // header row (back arrow + "Holiday gift guides"), then ONE row: the shipping pill, then search + heart + Share. The
+  // centered "top-rated finds / Holiday Gift Guides" block is gone.
+  // @mutate src/pages/info/GiftGuides.tsx | titleTag={banner ? "p" : "h1"} | titleTag="p"
+  // @mutate src/pages/info/GiftGuides.tsx | title={G.headerTitle} titleTag= | title={G.title} titleTag=
+  // @mutate src/pages/info/GiftGuides.tsx |           {shipPill}\n |           {null}\n
+  it("the header row reads 'Holiday gift guides' by a back arrow; the pill and the tools share the row under it; no second title", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     let checked = 0;
-    for (const url of ["/gift-guides/mom", "/gift-guides/her"]) {
+    for (const [url, tag, back] of [["/gift-guides", "H1", "/"], ["/gift-guides/her", "P", "/gift-guides"], ["/gift-guides/mom", "P", "/gift-guides"]] as const) {
       const { container } = renderAt(url);
-      const pill = container.querySelector("[data-gift-ship]");
-      expect(pill, url).not.toBeNull();
-      expect(pill!.closest("[data-gift-guides]"), url).toBeNull();
-      const row = pill!.closest("[data-test-header-row]");
+      const row = container.querySelector("[data-test-header-row]");
       expect(row, url).not.toBeNull();
-      // Live audit r3 #7: the header's "Gift guides" stays as drawn but is a plain line; the banner title is the h1.
-      // @mutate src/pages/info/GiftGuides.tsx | title={G.pageTitle} titleTag="p" | title={G.pageTitle}
-      expect(row!.querySelector("[data-test-title]")?.textContent, url).toBe(giftGuides.pageTitle);
-      expect(row!.querySelector("[data-test-title]")?.tagName, url).toBe("P");
+      expect(row!.getAttribute("data-back-to"), url).toBe(back);
+      expect(row!.querySelector("[data-test-title]")?.textContent, url).toBe("Holiday gift guides");
+      expect(row!.querySelector("[data-test-title]")?.tagName, url).toBe(tag);
+      const head = container.querySelector("[data-gift-headrow]");
+      expect(head, url).not.toBeNull();
+      // The pill on the left, then the tools (search, heart, Share), on one row inside the page.
+      const kids = [...head!.children];
+      expect(kids.map((k) => (k.matches("[data-gift-ship]") ? "ship" : k.matches("[data-gift-quick]") ? "tools" : k.tagName)), url).toEqual(["ship", "tools"]);
+      // No centered title block: the landing has none, a guide keeps only its cover banner (its own h1).
+      expect(container.querySelector("[data-gift-words]:not([data-gift-banner])"), url).toBeNull();
+      expect(container.textContent, url).not.toMatch(/top-rated finds/i);
+      expect(container.querySelectorAll("h1").length, url).toBe(1);
       checked += 1;
       cleanup();
     }
-    expect(checked).toBeGreaterThan(1);
-    // The landing has no row of its own above the hero any more.
-    expect(renderAt("/gift-guides").container.querySelector("[data-gift-guides] > .gg-top")).toBeNull();
-    cleanup();
-    expect(renderAt("/gift-guides/kids").container.querySelector("[data-gift-guides] > .gg-top")).toBeNull();
+    expect(checked).toBe(3);
+    vi.useRealTimers();
   });
 });
 
@@ -308,13 +312,14 @@ describe("gift guides: the content inventory", () => {
 
 describe("gift guides: the landing opens to the guides", () => {
 
-  it("every header is compact: title (the page's h1) and the slim tool row (the landing's one short subline between); no pick count anywhere", () => {
+  it("every header is compact: the header row and the one tool row; a landing tile's only count is its quiet gifts line", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector(".gg-band")).toBeNull();
-    const words = container.querySelector("[data-gift-words]");
-    // Owner 11-20 PM ("still a busy mess"): ONE title, no italic lead over it, one short subline under it.
-    expect([...(words?.children ?? [])].map((c) => c.tagName + (c.matches("[data-gift-quick]") ? "[tools]" : c.matches("[data-gift-sub]") ? "[sub]" : c.textContent))).toEqual(["H1Holiday Gift Guides", "P[sub]", "DIV[tools]"]);
-    expect(words!.querySelector("[data-gift-sub]")!.textContent).toMatch(new RegExp(`^${giftGuides.landingSub}`));
+    // Owner 11-21: no title block in the body; the header row is the page's h1 (checked above).
+    expect(container.querySelector("[data-gift-words]")).toBeNull();
+    // Lead 11-21 landing polish: each landing tile says "Her · 36 gifts" (the count of its list, no chunk loaded).
+    const lines = [...container.querySelectorAll("[data-gift-live-guides] [data-gift-tile-name]")].map((n) => n.textContent);
+    expect(lines).toEqual(["Her · , 36 gifts", "Him · , 47 gifts", "Kids · , 56 gifts"]);
     cleanup();
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
     // age guide keeps its age band). The tiles are on the groups' pages (owner 11-20 PM).
@@ -342,7 +347,10 @@ describe("gift guides: the landing opens to the guides", () => {
     // @mutate src/pages/info/GiftGuides.tsx | titleId="gift-guide-title" tint={guide.tint} | titleId="gift-guide-title"
     // The tool row carries no text: an empty My list shows no "0" badge (pre-launch audit 11-18 PM).
     // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {n > 0 && <span className="gg-icon-count" |       {true && <span className="gg-icon-count"
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr", ""]);
+    // Owner 11-21: the tool row moved up beside the shipping pill, so the banner holds only its arch.
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr"]);
+    cleanup();
+    expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-headrow] [data-gift-quick]")?.textContent).toBe("");
     cleanup();
     let banners = 0;
     for (const slug of ["mom", "kids", "her", "him"]) { // owner 11-21: the live guides (store and budget pages retired)
@@ -412,20 +420,26 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelector("a[data-gift-back]")?.getAttribute("href")).toBe("/gift-guides");
   });
 
-  it("the sidebar lists every group collapsed on the landing; on a guide only its group is open, the guide marked current", () => {
+  // Owner 11-21: "since it's just 3 guides now you don't really need to filter it, maybe just do for her, him, kids with
+  // their color instead of the filter there"; then the covers swapped to Her beige, Him Christmas green, Kids Christmas red.
+  it("the menu is three plain guide links with their cover's colour, no groups; the open guide (or its view's guide) is current; it shows on a phone too", () => {
     const { container } = renderAt("/gift-guides");
-    const groups = [...container.querySelectorAll("details[data-gift-group]")] as HTMLDetailsElement[];
-    // Owner 11-21: only the groups holding a live guide (By person, For kids, Louisiana for the sponsors page).
-    expect(groups.map((d) => d.querySelector("summary")?.textContent)).toEqual(ROWS.filter((r) => guidesIn(r.row).length > 0).map((r) => r.label));
-    expect(groups.length).toBeGreaterThan(1);
-    expect(groups.filter((d) => d.open)).toEqual([]);
+    expect(container.querySelectorAll("[data-gift-sidebar] details, [data-gift-sidebar] summary").length).toBe(0);
+    const guides = [...container.querySelectorAll("[data-gift-side-guides] a")];
+    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids"]);
+    expect(guides.slice(1).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red"]);
+    expect(guides.slice(1).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red"]);
     expect(container.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides");
     cleanup();
-    // Owner 11-21: Kids (For kids) stands in for the retired budget guides here.
-    const view = renderAt("/gift-guides/kids").container;
-    const open = ([...view.querySelectorAll("details[data-gift-group]")] as HTMLDetailsElement[]).filter((d) => d.open);
-    expect(open.map((d) => d.getAttribute("data-gift-group"))).toEqual(["for-kids"]);
-    expect([...view.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/kids"]);
+    for (const [url, cur] of [["/gift-guides/kids", "/gift-guides/kids"], ["/gift-guides/mom", "/gift-guides/her"], ["/gift-guides/dad", "/gift-guides/him"]]) {
+      const view = renderAt(url).container;
+      expect([...view.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href")), url).toEqual([cur]);
+      cleanup();
+    }
+    // On a phone the menu sits after the page instead of being hidden (the sponsors and the Holiday Hub live only there).
+    const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.indexOf("@media (max-width:767px){\n"));
+    expect(phone).toMatch(/\.gg-side\{order:2;position:static;/);
+    expect(phone).not.toMatch(/\.gg-side\{display:none/);
   });
 
   it("a store page with fewer than 6 picks is no By store tile, menu entry or search result, but its link still opens it", () => {
@@ -524,8 +538,18 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
 
   it("every guide's palette is one of the three cover palettes; covers are the owner's files, two-way", () => {
     for (const g of GUIDES) expect(["green", "oat", "red"], g.slug).toContain(g.tint);
-    expect(guideBySlug("mom")!.tint).toBe("green");
-    expect(guideBySlug("kids")!.tint).toBe("red");
+    // Owner 11-21: Her beige, Him Christmas green, Kids Christmas red (the covers); Mom is a view of Her, so beige.
+    // @mutate src/content/giftGuideIndex.ts |   { group: "By person", tint: "oat", slug: "her", title: "Her", lead: "gifts for" }, |   { group: "By person", tint: "green", slug: "her", title: "Her", lead: "gifts for" },
+    expect(["her", "him", "kids", "mom"].map((s) => guideBySlug(s)!.tint)).toEqual(["oat", "green", "red", "oat"]);
+    // The banner's gingham is the covers' own colours (scripts/gift-guide-photo-covers.py FAMILY), not a faded overlay.
+    const py = readFileSync("scripts/gift-guide-photo-covers.py", "utf8");
+    for (const [fam, css] of [["green", "gg-green"], ["red", "gg-red"]] as const) {
+      const m = new RegExp(`"${fam}": \\(\\((\\d+), (\\d+), (\\d+)\\), \\((\\d+), (\\d+), (\\d+)\\)`).exec(py)!;
+      expect(m, fam).not.toBeNull();
+      const rule = new RegExp(`\\.${css}\\{[^}]*`).exec(GIFT_GUIDES_CSS)![0];
+      expect(rule, fam).toContain(`--c-cross:rgb(${m[1]} ${m[2]} ${m[3]})`);
+      expect(rule, fam).toContain(`--c-band:rgb(${m[4]} ${m[5]} ${m[6]})`);
+    }
     expect(guideBySlug("her")!.cover).toBe("/gift-guides/covers/her.webp"); // Mom is a filter of Her (owner 11-20 evening) and shows Her's cover
     for (const g of GUIDES.filter((x) => x.cover)) expect(existsSync(`public${g.cover}`), g.cover).toBe(true);
     // Two-way: every cover file shipped is some guide's cover, or a retired guide's (owner 11-21: kept for its return,
@@ -594,8 +618,8 @@ describe("gift guides: links and disclosures on every view", () => {
         if (href.startsWith("/")) {
           // The one link out of the guides: the Hire-a-Helpr box's pre-filled Post a job (owner 2026-11-18).
           if (href === GIFT_WRAP_JOB_PATH) continue;
-          // The landing's Louisiana Holiday Hub card (owner-approved 2026-11-20), and only that card.
-          if (href === "/holidays" && a.hasAttribute("data-gift-holiday-hub-link")) continue;
+          // The menu's Louisiana Holiday Hub entry (owner 11-21: moved from the landing's card to the left panel), and only that.
+          if (href === "/holidays" && a.hasAttribute("data-gift-side-holiday-hub")) continue;
           // 1120: a merged guide's section link carries its anchor ("/gift-guides/girls#girls-babies").
           expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+(?:#[a-z0-9-]+)?|\?group=[a-z-]+(?:#[a-z-]+)?|\?list=mine|#[a-z0-9-]+)?$/);
           continue;
@@ -645,11 +669,12 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const listed = [...sitemap.matchAll(/<loc>https:\/\/www\.louisianahelpr\.com(\/gift-guides[^<]*)<\/loc>/g)].map((m) => m[1]);
     expect(listed).toContain("/gift-guides");
     // The own pages (the fun pages; the deals guide and Small Business Saturday while live) are in the sitemap too, but
-    // are no catalog guide. Owner 11-21: the Small Business Saturday page is retired (src/content/giftGuideLive.mjs); the
-    // deals page came back the same afternoon ("i dont see the discount codes or sales").
+    // are no catalog guide. Owner 11-21: the Small Business Saturday page is retired (src/content/giftGuideLive.mjs);
+    // the deals page is live again (its three day sections hold Small Business Saturday).
     const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", "")).filter((s) => !OWN_PAGES.includes(s));
     expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.filter((s) => s !== SMALL_BIZ_SLUG).map((s) => `/gift-guides/${s}`)));
-    expect(listed).not.toEqual(expect.arrayContaining([`/gift-guides/${SMALL_BIZ_SLUG}`]));
+    expect(listed).toContain(`/gift-guides/${DEALS_SLUG}`);
+    expect(listed).not.toContain(`/gift-guides/${SMALL_BIZ_SLUG}`);
     expect(guides.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship pages (14, 2026-11-21)
     // Every listed guide opens, holds picks, and is no thin store page.
     for (const s of guides) {
@@ -814,13 +839,15 @@ describe("gift guides: design audit round 2 UI fixes", () => {
 
   // Owner redesign 11-18 PM ("share text search list codes is too much buttons right here"): ONE slim row under every
   // title, at every width: the search field, My list (an icon with its count) and Share (an icon). No pill buttons.
-  // @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |       {sub}\n      {tools} |       {sub}
+  // @mutate src/pages/info/GiftGuides.tsx |           {tools}\n |           {null}\n
   // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       <MyListIcon current={myList} />\n |       <a href="#codes">Codes</a>\n      <MyListIcon current={myList} />\n
   it("#15 / redesign: the tool row under the title is search, My list and Share, nothing else", () => {
     for (const url of ["/gift-guides", "/gift-guides/mom", "/gift-guides/store-walmart"]) {
       const { container } = renderAt(url);
-      const head = container.querySelector("[data-gift-words]")!;
+      // Owner 11-21: the row under the header (pill + tools) holds the one tool row.
+      const head = container.querySelector("[data-gift-headrow]")!;
       const quick = head.querySelector("[data-gift-quick]")!;
+      expect(container.querySelectorAll("[data-gift-quick]").length, url).toBe(1);
       expect(quick, url).not.toBeNull();
       expect(quick.getAttribute("aria-label"), url).toBe("Gift guide tools");
       expect(quick.querySelector("input[type=search][aria-label='Search gift guides']"), url).not.toBeNull();

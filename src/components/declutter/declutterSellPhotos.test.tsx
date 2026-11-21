@@ -215,7 +215,7 @@ describe("photo-first selling, one screen", () => {
 
   // Owner 2026-10-29: a new listing is ONE screen. No step walk ("Continue", "1 of 5"); the summary rows and one Post.
   // @mutate src/components/declutter/DeclutterSellView.tsx |   if (!itemId) return <SellOneScreen />; |   void SellOneScreen;
-  // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : tr("sf.postIt")} |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : "Continue"}
+  // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : s.isGuest ? tr("sf.gu.cta") : tr("sf.postIt")} |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : s.isGuest ? tr("sf.gu.cta") : "Continue"}
   // @mutate src/components/declutter/SellSummaryCard.tsx |           <Row {...row("size")} title={t("sell.size")} value="" empty> | <Row {...row("size")} title={t("sell.size")} value="" empty field="title">
   it("a NEW listing is one screen: photos, the summary rows, the tax box and Post it; no step walk, and no settings on it (owner 2026-10-30)", async () => {
     open();
@@ -1015,7 +1015,7 @@ describe("photo-first selling, one screen", () => {
   // Owner 2026-10-28: "pick up at my door. remove that. they need the option to click which they will do, porch pick up,
   // they deliver, safe meeting spot. whatever other options we have".
   // @mutate src/components/declutter/useSellFlowState.ts |       await setHandovers(id, savedWays); |       void savedWays;
-  // @mutate src/components/declutter/SellOneScreen.tsx |   if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push( |   if (false) out.push(
+  // @mutate src/components/declutter/SellOneScreen.tsx |   if (member && s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push( |   if (false) out.push(
   // DC-4 (owner 2026-10-29): buyers can always choose Helpr delivery, so it is said plainly, never offered as a tick.
   // @mutate src/components/declutter/SellHandoverChoices.tsx | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => w !== "delivery"); | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]);
   // @mutate src/components/declutter/SellHandoverChoices.tsx |       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{t("lp.helprAlways")}</p>} |

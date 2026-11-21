@@ -260,8 +260,10 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   const badges = withShopLouisiana(badgesFor(p.brand, p), store);
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
     ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.type ? { type: p.type } : {}), ...(p.code ? { code: p.code, ...(p.codeEnds ? { codeEnds: p.codeEnds } : {}) } : {}),
-    // Never an Amazon price (Associates rule), whatever the generated file holds.
-    ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}), ...(p.rels ? { rels: p.rels } : {}),
+    // Amazon prices too (owner 2026-11-21 ~12:05 PM, "each item also needs a price"; warned that Amazon allows prices
+    // only from its PA-API feed and that showing them risks the Associates account, she chose "Show Amazon prices
+    // anyway"). Only her saved-list picks carry one: scripts/giftGuidePrice.mjs still writes no Amazon price elsewhere.
+    ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}), ...(p.rels ? { rels: p.rels } : {}),
     ...(typeof p.priceRank === "number" ? { priceRank: p.priceRank } : {}) };
 };
 /** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */

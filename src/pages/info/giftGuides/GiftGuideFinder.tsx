@@ -14,7 +14,7 @@ import { PickRow } from "./GiftGuideView";
  * live in the URL (/gift-guides?who=her&budget=50&vibe=cozy#gift-finder), so the link shares the same list; no sign-in.
  * Owner 11-21 ("i also dont see the fun features anymore like the quiz"): back on the landing after the launch took it
  * off, asking only about people with a live guide (Her, Him, Mom, Dad, Kids: src/content/giftGuideLive.mjs) and offering
- * only the budgets that person's picks can fill (Him and Kids are Amazon lists with no prices, so "Any budget").
+ * only the budgets that person's picks can fill (every Her, Him and Kids pick is priced since owner 2026-11-21).
  * Guard: src/test/giftGuideExtras1120.test.tsx.
  */
 const FINDER_ID = FINDER_ANCHOR;

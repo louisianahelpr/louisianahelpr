@@ -30,7 +30,12 @@ describe("gift guides train 1120c", () => {
     // 305 of ~1,395 before this train (owner 11-20); 777 of 1,390 after (measured 2026-11-20).
     expect(priced.length / nonAmazon.length).toBeGreaterThan(0.5);
     for (const p of priced) expect(p.priceAt, p.name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    for (const p of ALL.filter(isAmazon)) expect(p.price, p.name).toBeUndefined();
+    // Owner 2026-11-21 ~12:05 PM ("each item also needs a price"; she chose "Show Amazon prices anyway" after the
+    // Associates warning): an Amazon price only on her own saved picks (Her, Him, Kids), never on a researched one.
+    for (const [slug, c] of CHUNKS) for (const p of c.picks.filter(isAmazon)) {
+      if (["her", "him", "kids"].includes(slug)) expect(p.price, `${slug}: ${p.name}`).toBeGreaterThan(0);
+      else expect(p.price, `${slug}: ${p.name}`).toBeUndefined();
+    }
     expect(priced.filter((p) => (p.price ?? 0) > 500).map((p) => p.name).filter((n) => !/Dyson Airwrap/i.test(n))).toEqual([]);
   });
 
@@ -68,8 +73,10 @@ describe("gift guides train 1120c", () => {
     expect(xt.length).toBeGreaterThanOrEqual(1); // the owner's standard plan (11-20 evening) keeps 3 XTRATUF cards
     for (const p of xt) expect([p.code, p.codeEnds], p.name).toEqual(["XT25", "2026-11-29"]);
     expect(readFileSync("src/content/giftGuides.ts", "utf8")).toMatch(/store: "XTRATUF", code: "XT25"[^}]*expires: "2026-11-29"/);
+    // Owner 11-21: the deals page row was re-read on xtratuf.com (scripts/gift-guide-deals-1121.json): the code still
+    // shows, the site names no end day, so the row carries none (the guide chip keeps its own Nov 29).
     const deals = JSON.parse(readFileSync("src/content/giftGuideDeals.json", "utf8")) as { brand: string; code?: string; ends?: string }[];
-    expect(deals.find((d) => d.brand === "XTRATUF")).toMatchObject({ code: "XT25", ends: "2026-11-29" });
+    expect(deals.find((d) => d.brand === "XTRATUF")).toMatchObject({ code: "XT25", event: "black-friday" });
   });
 
   it("the owner adds waiting on links are listed and not placed", () => {

@@ -21,6 +21,8 @@ const LOGIN = read("src/pages/auth/Login.tsx");
 const SKELETON = read("src/components/LoginRouteSkeleton.tsx");
 const SHELL = read("src/components/auth/AuthShell.tsx");
 const MARK = read("src/components/HelprMark.tsx");
+// Owner 11-21: the card's H (with the back arrow beside it) is the shared AuthCardMarkRow, which Login draws.
+const CARD_HEAD = read("src/components/auth/AuthCardHead.tsx");
 const EN = read("src/lib/i18n/enScreens.ts");
 
 /** Every className="liquid-glass …" string in a file. */
@@ -55,7 +57,8 @@ describe("the /login skeleton draws Login's board 37 card (Q2249)", () => {
     expect(head).toBeTruthy();
     expect(SKELETON).toContain(`<div className="${head}">`);
 
-    const mark = /<HelprMark\b[^>]*size="(\w+)"[^>]*emblemOnly[^>]*\/>/.exec(LOGIN)?.[1];
+    expect(LOGIN).toContain("<AuthCardMarkRow />");
+    const mark = /<HelprMark\b[^>]*size="(\w+)"[^>]*emblemOnly[^>]*\/>/.exec(CARD_HEAD)?.[1];
     expect(mark, "Login's card head uses an emblem-only HelprMark").toBeTruthy();
     const h = new RegExp(`emblemSizeMap\\s*=\\s*\\{[^}]*\\b${mark}:\\s*"(h-\\d+)"`).exec(MARK)?.[1];
     expect(h).toBeTruthy();

@@ -40,15 +40,16 @@ export function SectionScreen({
   fab,
   showAdd = true,
   add,
-  homeLink,
+  homeBack = false,
   children,
 }: {
   /**
-   * Owner 11-20 (site polish A1): a small "← Home" link above the section's heading (SectionHomeLink). Drawn only in
-   * a guest's public frame (a member's rail and bottom nav already carry Home). Declutter's guest Browse passes it.
-   * A node, not a flag, so its words and icon load with the page that draws it, never on /home (critical-path budget).
+   * A way Home from a guest's public page (owner 11-20 site polish A1; owner 11-21: "move the back button to the left
+   * of declutter"): the shared back arrow on the title's own row, left of the title (AppTopBar `backHome`), always to
+   * Home. Drawn only in a guest's public frame (a member's rail and bottom nav already carry Home). Declutter's guest
+   * Browse passes it. BackButton already loads with AppTopBar (PageTitleBar draws it), so it costs /home nothing.
    */
-  homeLink?: ReactNode;
+  homeBack?: boolean;
   /** A section screen (not Home): draws the Explore header (chips row, tabs, search) above the scroll column. */
   section?: SectionKey;
   /** Omit on Home: the logo shows instead. */
@@ -101,8 +102,7 @@ export function SectionScreen({
         {section && (
           // py/gap = JobsSection's header stack (section-shell-alignment): the bar, 4px, the tabs, 4px, the search.
           <div data-explore-header="" className="explore-header page-measure w-full shrink-0 flex flex-col gap-1">
-            {guestFrame && homeLink}
-            <AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} add={add} />
+            <AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} add={add} backHome={guestFrame && homeBack} />
             {tabs}
             {globalSearch && <ExploreSearchEntry />}
           </div>

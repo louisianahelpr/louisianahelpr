@@ -32,7 +32,7 @@ export function GiftGuideCover({ guide, priority = false }: { guide: CatalogGuid
  * lead, the title and the LOUISIANA HELPR line, Share right under it. Real text and CSS only (no image); a
  * fixed height, so nothing below moves. Guard: src/test/giftGuidesPage.test.tsx.
  */
-export function GiftGuidesWords({ lead, title, titleId, tools, tint, sub }: { lead: string; title: string; titleId: string; tools: ReactNode; tint?: CatalogGuide["tint"]; sub?: ReactNode }) {
+export function GiftGuidesWords({ lead, title, titleId, tools, tint }: { lead: string; title: string; titleId: string; tools: ReactNode; tint?: CatalogGuide["tint"] }) {
   if (tint) {
     return (
       <header className="gg-words gg-banner-wrap" data-gift-words="" data-gift-banner={tint}>
@@ -48,11 +48,9 @@ export function GiftGuidesWords({ lead, title, titleId, tools, tint, sub }: { le
     );
   }
   return (
-    <header className={sub ? "gg-words gg-words-landing" : "gg-words"} data-gift-words="">
-      {/* The landing (owner 11-20 PM, "still a busy mess"): ONE title and a short subline, no italic lead above it. */}
+    <header className="gg-words" data-gift-words="">
       {lead && <p className="gg-lead">{lead}</p>}
       <h1 id={titleId}>{title}</h1>
-      {sub}
       {tools}
     </header>
   );

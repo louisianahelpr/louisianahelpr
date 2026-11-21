@@ -14,7 +14,7 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 78 |
+| Routes (non-redirect) | route | 79 |
 | Redirect-only routes | route | 5 |
 | `?tab=` variants | variant | 35 |
 | `?view=` variants | variant | 29 |
@@ -23,14 +23,14 @@ reports coverage against THIS file, not against the route list.
 | Toast messages | **call site** | 1261 (across 365 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 58 |
 | Multi-step flows — probable | flow | 38 |
-| Back/next navigation only | flow | 71 |
+| Back/next navigation only | flow | 73 |
 | Forms (submittable) | form | 143 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 192 |
 | Email templates | **exported template** | 26 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **897** |
+| **Navigable surfaces** (places a person can stand) | mixed | **900** |
 | **Copy surfaces** (strings a person may read) | mixed | **1319** |
-| **Total auditable surface** | mixed | **2216** |
+| **Total auditable surface** | mixed | **2219** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,7 +67,7 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 78 | 34 | agree |
+| Real routes | 79 | 34 | agree |
 | Redirect-only routes | 5 | 14 | agree |
 | Admin `?view=` | 29 | 24 | agree |
 | Overlay surfaces | 248 | 130 | agree within method (script counts every menu instance) |
@@ -158,6 +158,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/holidays/lights`
 - [ ] `/holidays/events`
 - [ ] `/holidays/hire-a-helpr`
+- [ ] `/shop-small`
 - [ ] `*`
 
 ## Redirect-only routes (verify they land correctly, incl. query preservation)
@@ -509,7 +510,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/auth/signup/signupHelpers.ts` | compare |
 | `src/pages/auth/Unsubscribe.tsx` | compare, nav-handler |
 | `src/pages/helprs/FindHelprs.tsx` | compare, nav-handler |
-| `src/pages/home/DashboardGuest.tsx` | compare |
+| `src/pages/home/DashboardGuest.tsx` | compare, nav-handler |
 | `src/pages/home/homeDashboard/PosterFirstJobCard.tsx` | step-array |
 | `src/pages/info/helpCenter/helpCenterContent.ts` | step-array |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
@@ -585,6 +586,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/declutter/DeliveryRouteMap.tsx` | nav-handler |
 | `src/components/firstRun/FirstRunHost.tsx` | nav-handler |
 | `src/components/header/PageTitleBar.tsx` | nav-handler |
+| `src/components/marketing/PublicHeaderPage.tsx` | nav-handler |
 | `src/components/messages/ChatHeader.tsx` | nav-handler |
 | `src/components/messages/ChatView.tsx` | nav-handler |
 | `src/components/PageHeader.tsx` | nav-handler |
@@ -612,6 +614,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/profile/WarningsTab.tsx` | nav-handler |
 | `src/components/ProfileRouteSkeleton.tsx` | nav-handler |
 | `src/components/rentals/RentalsHomeView.tsx` | nav-handler |
+| `src/components/sections/AppTopBar.tsx` | nav-handler |
 | `src/components/sections/SectionListBack.tsx` | nav-handler |
 | `src/components/series/JobSeriesCardControls.tsx` | nav-handler |
 | `src/components/series/SeriesDatesPanel.tsx` | nav-handler |

@@ -265,9 +265,9 @@ export const EVIDENCE = [
     id: "gift-guide-deals",
     script: "scripts/gift-guide-deals.mjs",
     outputs: ["src/content/giftGuideDeals.json"],
-    refresh: "node scripts/gift-guide-deals.mjs (reads the lead's checked deals, ~/Desktop/Gift-guide-picks/_bfcm-deals-1119.json; not in CI)",
-    refreshedBy: "by the committer when the lead hands over new or changed deals (content, not a count); the page hides ended deals itself",
-    checkedBy: "src/test/giftGuideDeals1119.test.tsx (ready deals only, sort, 25 cap, no price, affiliate hosts, auto-hide, feature window, retitle)",
+    refresh: "node scripts/gift-guide-deals.mjs (reads the checked deals in scripts/gift-guide-deals-1121.json and the photo cutouts list scripts/gift-guide-deals-cutouts.json, made by scripts/gift-guide-deals-cutouts.py)",
+    refreshedBy: "by the committer when a deal is re-checked, added or dropped (content, not a count); the page hides ended deals itself",
+    checkedBy: "src/test/giftGuideDeals1119.test.tsx (three day sections, 2 per brand, no price, affiliate hosts, Amazon tag, auto-hide, starts label, feature window, retitle)",
   },
   {
     id: "gift-guide-sponsor-logos",

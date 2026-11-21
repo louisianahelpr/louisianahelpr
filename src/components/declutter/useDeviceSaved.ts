@@ -49,9 +49,10 @@ export function useDeviceSaved<S, M extends SavedPhotos>({ store, userId, snapsh
     onDisk.current.clear();
   }), [enqueue, store]);
 
-  const flush = useCallback(() => {
-    if (!ready.current || !userId) return;
-    void enqueue(async () => {
+  /** Saves now; the promise settles once the write is done (a guest's sign-up waits for it, guestSellDraft.ts). */
+  const flush = useCallback((): Promise<void> => {
+    if (!ready.current || !userId) return Promise.resolve();
+    return enqueue(async () => {
       const p = planNow.current(latest.current);
       if (!p) {
         await store.clearNow();
@@ -112,13 +113,13 @@ export function useDeviceSaved<S, M extends SavedPhotos>({ store, userId, snapsh
     return () => clearTimeout(t);
   }, [...watch, flush]);
   // Leaving the screen saves what the delay had not reached yet.
-  useEffect(() => flush, [flush]);
+  useEffect(() => () => void flush(), [flush]);
   // LEAD-BUNCH-DRAFT-KEEP (owner 10-31): a full page load (shake-to-report sets window.location) or the app going to
   // the background runs no React cleanup and can stop the delay's timer, so the page going away saves at once.
   useEffect(() => {
-    const now = () => flush();
+    const now = () => void flush();
     const hidden = () => {
-      if (document.visibilityState === "hidden") flush();
+      if (document.visibilityState === "hidden") void flush();
     };
     window.addEventListener("pagehide", now);
     document.addEventListener("visibilitychange", hidden);

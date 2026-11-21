@@ -1,6 +1,6 @@
 /**
- * What a gift pick costs, for a budget (owner 11-20: a Secret Santa set to $25 showed "all expensive gifts"). Never
- * shown: Amazon allows no price outside its own site, so an Amazon pick's cost is only ever its budget section.
+ * What a gift pick costs, for a budget (owner 11-20: a Secret Santa set to $25 showed "all expensive gifts"): its checked
+ * price (an Amazon pick's captured one too, owner 11-21), else its band or budget section.
  * Guard: src/test/secretSantaIdeas1120.test.tsx.
  */
 import type { CatalogPick } from "@/content/giftGuideCatalog";
@@ -17,8 +17,8 @@ const sectionBand = (p: CatalogPick): Band | undefined => {
   return /^\$100 (&|and) up$/i.test(heading) ? 500 : undefined;
 };
 
-/** A checked price, never an Amazon one. */
-const knownPrice = (p: CatalogPick) => (p.price !== undefined && p.store !== "amazon" ? p.price : undefined);
+/** A checked price (Amazon ones too since owner 2026-11-21: "each item also needs a price"). */
+const knownPrice = (p: CatalogPick) => p.price;
 
 /** The pick's band ($25, $50, $100; 500 = over $100): its own band, else its checked price, else its budget section. */
 const pickBand = (p: CatalogPick): Band | undefined => p.band ?? (knownPrice(p) !== undefined ? toBand(knownPrice(p)!) : sectionBand(p));

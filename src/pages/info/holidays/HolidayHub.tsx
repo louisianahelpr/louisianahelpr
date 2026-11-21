@@ -24,6 +24,7 @@ import { FilterChip } from "@/components/ui/FilterChip";
 import { Button } from "@/components/ui/button";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
@@ -196,6 +197,10 @@ export default function HolidayHub() {
         <p className="text-ds-14 text-muted-foreground">{W.checkFirst}</p>
         <p className="text-ds-14 text-muted-foreground">
           Shopping too? <Link to="/gift-guides" className="link-standard">See the holiday gift guides</Link>.
+        </p>
+        {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free on /shop-small. */}
+        <p className="text-ds-14 text-muted-foreground" data-holiday-shop-small="">
+          <Link to="/shop-small" className="link-standard">{SBS_WORDS.landingLink}</Link>
         </p>
       </div>
     </PublicHeaderPage>

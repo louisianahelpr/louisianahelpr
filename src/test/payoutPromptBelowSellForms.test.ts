@@ -4,7 +4,7 @@
  * 0.169 on Sell one item, 0.131 on Sell a bunch, 0.258 on the moving sale (measured by the auditor). It stays on those
  * screens (owner 2026-10-27: set up at first sale) but sits under the form, where its arrival moves nothing above it.
  *
- * @mutate src/components/declutter/SellOneScreen.tsx |         {!form.free && <SellerPayoutPrompt />}\n      </div>\n    </AppPage> |       </div>\n    </AppPage>
+ * @mutate src/components/declutter/SellOneScreen.tsx |         {!form.free && !s.isGuest && <SellerPayoutPrompt />}\n      </div>\n    </AppPage> |       </div>\n    </AppPage>
  * @mutate src/components/declutter/DeclutterSellView.tsx |       {step === 1 && <SellerPayoutPrompt />}\n |
  */
 // @mutate src/components/declutter/DeclutterBunchView.tsx |       <SellerPayoutPrompt />{/* F342: last, so its late arrival moves nothing */}\n |

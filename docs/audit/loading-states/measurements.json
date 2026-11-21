@@ -28668,6 +28668,19 @@
       "status": "no-placeholder",
       "note": "NOT browser-measured (lander 4, train 1120f, 2026-11-20): a static Louisiana Holiday Hub page whose lists ship in its own chunk and which reads nothing from the server; the next full measure run replaces this row",
       "requests": 0
+    },
+    {
+      "url": "/shop-small",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4199",
+      "stage": {
+        "waves": 1,
+        "ended": "empty"
+      },
+      "finalUrl": "/shop-small",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (1 wave(s) of data released)",
+      "requests": 1
     }
   ],
   "merged": [
@@ -28730,6 +28743,14 @@
       "base": "http://127.0.0.1:5391",
       "surfaces": [
         "anon /gift-guides/printables"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-11-21T19:41:14.022Z",
+      "base": "http://127.0.0.1:4199",
+      "surfaces": [
+        "anon /shop-small"
       ],
       "replaced": []
     }

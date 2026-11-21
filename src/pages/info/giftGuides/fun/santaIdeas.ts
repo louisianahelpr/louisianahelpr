@@ -70,7 +70,7 @@ export const resetSantaIdeasForTests = () => {
 /**
  * Put a card in the gift planner as an idea for `name` (that person's entry, made if missing, with `budget` when one is
  * given). The planner must know who is looking (useAccountSync) before this is called. A checked price goes with the
- * idea (the planner adds up spending); never an Amazon price. False when the planner is full.
+ * idea (the planner adds up spending), an Amazon one too (owner 2026-11-21: "each item also needs a price"). False when the planner is full.
  */
 export function saveIdeaToPlanner(name: string, budget: number | null, card: CatalogPick & { guide?: string }): boolean {
   const want = name.trim().toLowerCase();
@@ -83,7 +83,7 @@ export function saveIdeaToPlanner(name: string, budget: number | null, card: Cat
   if (!person) return false;
   if (person.ideas.some((i) => i.href === card.href)) return true;
   if (person.ideas.length >= PLAN_MAX_IDEAS) return false;
-  const price = card.price !== undefined && card.store !== "amazon" ? card.price : undefined;
+  const price = card.price;
   planActions.addIdea(person.id, { name: card.name, href: card.href, ...(card.guide ? { guide: card.guide } : {}), ...(price !== undefined ? { price } : {}) });
   return true;
 }

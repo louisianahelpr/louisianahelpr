@@ -171,6 +171,7 @@ const SecretSantaReveal = lazyWithPreload(() => import("./pages/info/giftGuides/
 const SwipeGifts = lazyWithPreload(() => import("./pages/info/giftGuides/fun/SwipeGifts"));
 const GiftPlanner = lazyWithPreload(() => import("./pages/info/giftGuides/fun/GiftPlanner"));
 const Printables = lazyWithPreload(() => import("./pages/info/giftGuides/printables/Printables"));
+const ShopSmall = lazyWithPreload(() => import("./pages/info/ShopSmall"));
 const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 /**
@@ -279,7 +280,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/25days/rules" element={<RouteErrorBoundary>{routeEl(<SponsorRulesPage />)}</RouteErrorBoundary>} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile fallback={<MessagesRouteSkeleton />}><Messages /></ProtectedRoute>, <MessagesRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, <DeclutterRouteSkeleton />)}</RouteErrorBoundary>} />
-      <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile allowGuest><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />{/* Owner 11-21: a guest can fill a listing (src/lib/guestSellDraft.ts) */}
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />{/* F130: was a 404; = wantedAskHref("") */}
       {/* F471/F415/F234 + F455 (audit 11-10): names people type or old emails use were 404s. /helpdesk is the Help
@@ -480,6 +481,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/holidays/lights" element={<RouteErrorBoundary>{routeEl(<HolidayLegacyRedirect />)}</RouteErrorBoundary>} />
       <Route path="/holidays/events" element={<RouteErrorBoundary>{routeEl(<HolidayLegacyRedirect />)}</RouteErrorBoundary>} />
       <Route path="/holidays/hire-a-helpr" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayHire /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free (admin approves first); public, signed out. */}
+      <Route path="/shop-small" element={<RouteErrorBoundary>{routeEl(<PageTransition><ShopSmall /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Retired with no redirect, so they fall to NotFound below (no outside citation; add a real <Route> if one
           appears): /parishes, /parish/:slug, /impact, /local-guide, /community, /browse-jobs and /evacuation
           (2352466e); /benefits (BenefitsPage, owner 2026-08-31: no partner agreements behind it). */}

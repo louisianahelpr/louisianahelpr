@@ -17,12 +17,12 @@ export const GIFT_WISH_CSS = `
 .gg-wish-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-4px 0 12px 62px}
 .gg-wish-actions .gg-shop-btn{margin:0}
 .gg-wish-mine{position:relative}
-.gg-wish-mine .gg-heart-wish{position:absolute;top:6px;right:6px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.gg-wish-mine .gg-heart-wish{position:absolute;top:6px;right:6px}
 @media (max-width:767px){.gg-wish-mine>.gg-item{padding-right:52px}}
 .gg-toast .gg-toast-undo{border:0;background:transparent;min-height:44px;padding:0 14px;font:inherit;font-weight:700;cursor:pointer}
 .gg-wish-own{display:inline-block;margin:18px 0 4px}
 .gg-deal{position:relative}
-.gg-deal .gg-heart-deal,.gg-sb .gg-heart-sb{position:absolute;top:6px;right:6px;background:hsl(var(--card));box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.gg-deal .gg-heart-deal,.gg-sb .gg-heart-sb{position:absolute;top:6px;right:6px}
 .gg-sb{position:relative}
 .gg-toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;width:max-content;max-width:min(calc(100vw - 32px),30rem);box-sizing:border-box;padding:6px 6px 6px 16px;border-radius:999px;background:hsl(var(--ink-deep));color:hsl(var(--background));font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:auto}
 .gg-toast-text{flex:1 1 auto;min-width:0;line-height:1.3}

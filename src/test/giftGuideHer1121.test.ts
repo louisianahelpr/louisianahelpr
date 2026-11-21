@@ -7,7 +7,7 @@
  * no deals-and-codes box on For Her, and /mom, /wife ... still build from the same list.
  *
  * @mutate scripts/giftGuideHer1121.mjs |   return rankByPrice(rows).map(({ row: r, priceRank }) => { |   return rows.map((r) => ({ row: r, priceRank: null })).map(({ row: r, priceRank }) => {
- * @mutate scripts/giftGuideHer1121.mjs |     if (!isAmazon(r)) Object.assign(p, { price, priceAt: HER_PRICE_AT }); |     Object.assign(p, { price, priceAt: HER_PRICE_AT });
+ * @mutate scripts/giftGuideHer1121.mjs |     const shown = isAmazon(r) ? r.sortPrice : price; |     const shown = isAmazon(r) ? r.sortPrice + 1 : price;
  * @mutate scripts/giftGuideHer1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE, priceRank }; |     const p = { ...rest, image: r.image, ownerPick: true, from: HER_GUIDE, priceRank };
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {!isOwnerList(guide.slug) && <PeopleChips guide={guide} />} |       <PeopleChips guide={guide} />
  * @mutate src/content/giftGuidePeople.mjs | export const OWNER_LIST_GUIDES = ["her", "him", "kids"]; | export const OWNER_LIST_GUIDES = [];
@@ -28,7 +28,8 @@ const page = (JSON.parse(readFileSync(join(ROOT, "src", "content", "giftGuidePic
 const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0FPCH9S11", "B0HJVYHH35", "B0FKN7FGPY", "B0B1RWJ4QJ"];
 /** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). */
 const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08X8P91FX", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV"];
-const SHOPMY_PINS = ["p-108613972", "p-108613754", "p-108613500", "p-108613356", "p-108613192", "p-108612982", "p-108611500", "p-108610992", "p-108609900", "p-108607824", "p-107555566", "p-108605514", "p-108604684", "p-108604054"];
+// p-108755104 is her iHerb pin for the BIODANCE masks (11-21), replacing her Sephora UK pin p-108613754 that US shoppers cannot use.
+const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", "p-108613192", "p-108612982", "p-108611500", "p-108610992", "p-108609900", "p-108607824", "p-107555566", "p-108605514", "p-108604684", "p-108604054"];
 /**
  * Commission switches 11-21 (owner: "if the items on the guides can we fund at another place for higher commison just
  * change the link"; Desktop note Commission-switches-1121.md): the same item at the same price, moved from Amazon to a
@@ -67,14 +68,20 @@ describe("For Her = the owner's saves (11-21)", () => {
     expect(again).toEqual([...again].sort((a, b) => a - b));
   });
 
-  it("an Amazon pick never carries a price and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
+  // Owner 2026-11-21 ~12:05 PM: "each item also needs a price". Warned in a pop-up that Amazon allows prices only from
+  // its PA-API feed and that showing them risks the Associates account, she chose "Show Amazon prices anyway". So an
+  // Amazon pick now carries EXACTLY the price captured from her saved list (its sortPrice, Desktop notes 11-21), dated
+  // 11-21; before, this guard asserted the opposite (no Amazon price). Two-way: every pick priced, none invented.
+  it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(20);
     expect(shopmy.length).toBe(16);
+    const captured = new Map(HER_1121.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
-      expect(p.price, p.name).toBeUndefined();
-      expect(p.priceAt, p.name).toBeUndefined();
+      expect(p.price, p.name).toBe(captured.get(p.href));
+      expect(p.price, p.name).toBeGreaterThan(0);
+      expect(p.priceAt, p.name).toBe("2026-11-21");
       expect(p.image, p.name).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
     }
     for (const p of shopmy) {
@@ -101,7 +108,8 @@ describe("For Her = the owner's saves (11-21)", () => {
     expect(isOwnerList("dad")).toBe(true);
     const view = blankComments(readFileSync(join(ROOT, "src", "pages", "info", "giftGuides", "GiftGuideView.tsx"), "utf8"));
     expect(view).toContain("{!isOwnerList(guide.slug) && <PeopleChips guide={guide} />}");
-    expect(view).toMatch(/after=\{isOwnerList\(guide\.slug\) \? null : <DealsAndCodes/);
+    // Owner 11-21 ("Codes and deals shouldn't randomly show in sections"): no guide page carries the deals box at all.
+    expect(view).not.toMatch(/<DealsAndCodes/);
   });
 
   it("the generator sets For Her after the final sweep (so no rule can drop one of hers) and before writing the pages", () => {

@@ -3,8 +3,9 @@
  * sorted by price"). Each source row holds `sortPrice`, the price the owner saw. This orders the rows cheapest first
  * (ties keep their source order) and gives each one `priceRank`: its 1-based place in that order. A row with no usable
  * price (missing, not a number, 0 or less) goes after every priced row and gets `priceRank: null`; the page keeps such a
- * row last in BOTH orders (src/content/giftGuidePriceSort.ts). `priceRank` is a position, never a price, so an Amazon
- * pick carries no price on the page (Associates rule). Guard: src/test/giftGuidePriceSort1121.test.tsx.
+ * row last in BOTH orders (src/content/giftGuidePriceSort.ts). `priceRank` is a position; the shown price is the same
+ * sortPrice (Amazon too since owner 11-21: "each item also needs a price"), so the order follows the shown prices.
+ * Guard: src/test/giftGuidePriceSort1121.test.tsx.
  */
 
 /** Whether a row's sortPrice is a usable price. */

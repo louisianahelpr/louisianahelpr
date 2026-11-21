@@ -151,5 +151,13 @@ export const esSellForm: Record<keyof typeof enSellForm, string> = {
   "sf.fs.loadFailed": "No pudimos cargar sus ajustes de venta.",
   "sf.fs.loadFailedBody": "Revise su conexión e intente de nuevo.",
   "sf.moreWays": "¿Varias cosas, o lo va a regalar? Más formas de vender",
+  "sf.gu.cta": "Regístrese para publicar",
+  "sf.gu.head": "Cree su cuenta gratis para publicar",
+  "sf.gu.body": "Su anuncio quedó guardado en este dispositivo. Regístrese y verifique su correo, y le traeremos de vuelta para publicarlo.",
+  "sf.gu.create": "Crear cuenta gratis",
+  "sf.gu.logIn": "Ya tengo una cuenta",
+  "sf.gu.photosSub": "Agregue hasta {max} fotos. Se quedan en este dispositivo hasta que publique.",
+  "sf.gu.aiNote": "Por ahora, llene los detalles usted. Cuando tenga una cuenta, podemos escribirlos a partir de sus fotos.",
+  "sf.gu.back": "Aquí está su anuncio, listo para publicar.",
   "sf.continueBunch": "Siga con sus artículos de Vender varios",
 };

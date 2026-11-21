@@ -13,10 +13,14 @@ import { FunBody, funHeader } from "./FunPage";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { planActions as A, useAccountSync, usePlan } from "./plannerStore";
 import { PRINTABLES, PRINTABLES_PATH, isShown } from "@/content/printables";
+import { storeOf } from "@/content/giftGuideCatalog";
+import { PickThumb } from "../GiftGuideView";
+import { GiftOut } from "../GiftOut";
+import { GuidePicksPicker, pickPlannerPrice, type GuidePick } from "./GuidePicksPicker";
 
 /**
  * /gift-guides/planner (owner 2026-11-20): the people you're shopping for (a name only), a budget each, gift ideas
- * (typed, or from the wish list), Bought marks, and spent vs budget per person and in total. Saved on this device, and
+ * (typed, from the wish list, or from our guides: GuidePicksPicker, owner 11-21), Bought marks, and spent vs budget per person and in total. Saved on this device, and
  * on the account when signed in (plannerStore). Private: nothing here is shared. Guard: src/test/giftGuideFun1120.test.tsx.
  */
 const PATH = "/gift-guides/planner" as const;
@@ -47,7 +51,15 @@ function Person({ p }: { p: PlanPerson }) {
   const [budgetText, setBudgetText] = useState(p.budget !== undefined ? String(p.budget) : "");
   const [err, setErr] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  const [fromGuides, setFromGuides] = useState(false);
   const list = useGiftList();
+  const added = new Set(p.ideas.flatMap((i) => (i.href ? [i.href] : [])));
+  // Owner 11-21: a guide pick comes in with its name, the price its guide shows, its shop link and its photo.
+  const addPick = (g: GuidePick) => {
+    if (added.has(g.href)) return;
+    const price = pickPlannerPrice(g);
+    A.addIdea(p.id, { name: g.name, href: g.href, guide: g.guide, ...(price !== undefined ? { price } : {}), ...(g.image ? { image: g.image } : {}) });
+  };
   const addIdea = (e: FormEvent) => {
     e.preventDefault();
     if (!idea.trim()) return;
@@ -89,7 +101,17 @@ function Person({ p }: { p: PlanPerson }) {
               <label className="gg-plan-check h-11 w-11">
                 <Checkbox checked={i.bought} aria-label={`${W.plannerBought}: ${i.name}`} onCheckedChange={(v) => A.setIdea(p.id, i.id, { bought: v === true })} data-plan-bought={i.id} />
               </label>
-              <span className="gg-plan-iname">{i.href ? <a href={i.href} target="_blank" rel="sponsored noopener" className="gg-link min-h-0">{i.name}</a> : i.name}</span>
+              {i.image && <PickThumb pick={{ name: i.name, href: i.href ?? "", store: i.href ? storeOf(i.href) : "", image: i.image }} size={40} />}
+              <span className="gg-plan-iname">
+                <span className="gg-plan-iname-t">{i.name}</span>
+                {/* Owner 11-21: an idea with a shop link says "Shop", so Bought and Shop both work from the planner. */}
+                {i.href && (
+                  <GiftOut href={i.href} className="gg-link gg-plan-shop">
+                    <span data-plan-shop={i.id}>{W.plannerShop}</span><span aria-hidden="true">&nbsp;›</span>
+                    <span className="sr-only"> {i.name}, opens in a new tab</span>
+                  </GiftOut>
+                )}
+              </span>
               <Input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice}: ${i.name}`} inputMode="decimal" placeholder="$" defaultValue={i.price !== undefined ? String(i.price) : ""}
                 onBlur={(e) => {
                   const t = e.target.value.trim();
@@ -109,7 +131,9 @@ function Person({ p }: { p: PlanPerson }) {
         <Input aria-label={`${W.plannerIdeaName} (${p.name})`} placeholder={W.plannerIdeaName} value={idea} maxLength={120} onChange={(e) => setIdea(e.target.value)} data-plan-idea-name={p.id} />
         <Input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice} (${p.name})`} placeholder={W.plannerIdeaPrice} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} data-plan-idea-price={p.id} />
         <Button type="submit" variant="outline" size="sm" data-plan-add-idea={p.id}>{W.plannerAddIdea}</Button>
+        <Button type="button" variant="outline" size="sm" aria-haspopup="dialog" onClick={() => setFromGuides(true)} data-plan-from-guides={p.id}>{W.plannerFromGuides}</Button>
       </form>
+      <GuidePicksPicker open={fromGuides} onOpenChange={setFromGuides} personName={p.name} added={added} onPick={addPick} />
       {list.picks.length > 0 && (
         <Button type="button" variant="link" size="inline" className="gg-link" aria-expanded={picking} onClick={() => setPicking((v) => !v)} data-plan-from-list={p.id}>{W.plannerFromList}</Button>
       )}

@@ -246,12 +246,15 @@ export function santaRound<T extends CatalogPick>(pool: T[], borrow: T[], budget
 // ---------------------------------------------------------------------------------------------------------------
 // (3) Gift planner
 
-export interface PlanIdea { id: string; name: string; price?: number; bought: boolean; href?: string; guide?: string; item?: string }
+/** `image`: the guide pick's photo (owner 11-21, "let them add ideas from our guides"), https only, for the row's thumbnail. */
+export interface PlanIdea { id: string; name: string; price?: number; bought: boolean; href?: string; guide?: string; item?: string; image?: string }
 export interface PlanPerson { id: string; name: string; budget?: number; ideas: PlanIdea[] }
 export interface GiftPlan { people: PlanPerson[]; updatedAt: number }
 export const EMPTY_PLAN: GiftPlan = { people: [], updatedAt: 0 };
 export const PLAN_MAX_PEOPLE = 50;
 export const PLAN_MAX_IDEAS = 30;
+/** The longest photo link a planner idea keeps (the account row is capped at 64 KB). */
+const PLAN_IMAGE_MAX = 400;
 
 const money = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v * 100) / 100 : undefined);
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
@@ -269,7 +272,8 @@ export function cleanPlan(v: unknown): GiftPlan {
       const price = money(d.price);
       return [{ id: d.id, name: text(d.name, 120), bought: d.bought === true, ...(price !== undefined ? { price } : {}),
         ...(typeof d.href === "string" && /^https:\/\//.test(d.href) ? { href: d.href } : {}),
-        ...(typeof d.guide === "string" ? { guide: d.guide } : {}), ...(typeof d.item === "string" ? { item: d.item } : {}) }];
+        ...(typeof d.guide === "string" ? { guide: d.guide } : {}), ...(typeof d.item === "string" ? { item: d.item } : {}),
+        ...(typeof d.image === "string" && /^https:\/\//.test(d.image) && d.image.length <= PLAN_IMAGE_MAX ? { image: d.image } : {}) }];
     });
     const budget = money(q.budget);
     return [{ id: q.id, name: text(q.name, 40), ideas, ...(budget !== undefined ? { budget } : {}) }];
@@ -486,6 +490,18 @@ export const FUN_WORDS = {
   plannerEmpty: "Add the first person you're shopping for.",
   plannerFindGifts: "Find gift ideas",
   plannerBadAmount: "Type an amount like 25 or 25.50.",
+  // Owner 2026-11-21 ("let them add ideas from our guides"): the planner's picker of the live guides' picks.
+  plannerFromGuides: "From our guides",
+  plannerGuidesTitle: (name: string) => `Gift ideas for ${name || "them"}`,
+  plannerGuidesSearch: "Search gifts",
+  plannerGuidesAll: "All",
+  plannerGuidesAdd: (gift: string, name: string) => `Add ${gift} to ${name || "this person"}'s ideas`,
+  plannerGuidesAdded: "Added",
+  plannerGuidesNone: "No gifts match that. Try another word.",
+  plannerGuidesLoading: "Loading gifts...",
+  plannerGuidesFailed: "The gifts didn't load. Close this and try again.",
+  plannerGuidesDone: "Done",
+  plannerShop: "Shop",
   // One-time tips (the wish-list hints)
   hintSwipe: "Tip: drag a card right to save it, left to skip. Or use the buttons.",
   hintSanta: "Tip: we never ask for emails or phone numbers. You send each link yourself.",

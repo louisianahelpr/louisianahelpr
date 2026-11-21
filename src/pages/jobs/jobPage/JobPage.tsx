@@ -33,7 +33,9 @@ import { OnTheWayNow, showsNow } from "./OnTheWayNow";
 import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
 import { ReportJobControl } from "./ReportJobControl";
 import { useExpiredRepost } from "./ExpiredRepost";
-import { StickyActionBar, StickyActionSpacer } from "@/components/ui/StickyActionBar";
+import { StickyActionSpacer } from "@/components/ui/StickyActionBar";
+import { ViewerPrimaryBar, type ViewerPrimary } from "./ViewerPrimaryBar";
+import { useMemberCard } from "./useMemberCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { approveDeadlineMs, reviewTimeLeft } from "./reviewTimeLeft";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
@@ -45,7 +47,6 @@ import { jobPageViewerState } from "./viewerState";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { lazy, Suspense, useState } from "react";
-import { fetchSellerCard } from "@/lib/declutter/api";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { HIDE_WHEN_BLANK } from "./blankCard";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
@@ -117,8 +118,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const trackingStatus = tracking.data ?? null;
   // The poster's "First L." (the same card PostedBy draws, so the read is shared), for "Waiting on Lexi".
   const posterId = q.data?.job.customer_id ?? null;
-  const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
-  const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  const { card: posterCard, first: posterFirst } = useMemberCard(posterId, !isPoster);
   // The hired Helpr's first name, off the card the poster's Message button reads (posterPageActions), so the tracker
   // names who the page names: "Eli is working" (B49, 10-31). JA-49 (B107): a direct offer out names the OFFERED Helpr
   // (no helper_id yet; offered_to_helper_id is not selectable, so the poster reads get_job_offer_targets, as Messages does).
@@ -129,16 +129,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     enabled: !!offerPending,
   });
   const helperId = isPoster ? q.data?.job.helper_id ?? (offerPending ? offerTarget.data ?? null : null) : null;
-  const helperCard = useQuery({ queryKey: ["declutter", "seller-card", helperId], queryFn: () => fetchSellerCard(helperId!), enabled: !!helperId });
-  const helperFirst = (helperCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  const { card: helperCard, first: helperFirst } = useMemberCard(helperId);
   // Q2693: the Helpr who cancelled (their closed application), named as the page names people ("Eli cancelled ...").
   const cancelledHelprId = isPoster && q.data?.job.status === "open" ? applicants.data?.helprCancelled?.helperId ?? null : null;
-  const cancelledHelprCard = useQuery({ queryKey: ["declutter", "seller-card", cancelledHelprId], queryFn: () => fetchSellerCard(cancelledHelprId!), enabled: !!cancelledHelprId });
-  const cancelledHelprFirst = (cancelledHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  const cancelledHelprFirst = useMemberCard(cancelledHelprId).first;
   // Area 11 H3: a job cancelled after a no-show names who didn't show (report_helper_no_show clears helper_id).
   const noShowHelprId = isPoster && q.data?.job.status === "cancelled" && !q.data?.job.helper_id ? applicants.data?.noShowHelperId ?? null : null;
-  const noShowHelprCard = useQuery({ queryKey: ["declutter", "seller-card", noShowHelprId], queryFn: () => fetchSellerCard(noShowHelprId!), enabled: !!noShowHelprId });
-  const noShowHelprFirst = (noShowHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  const noShowHelprFirst = useMemberCard(noShowHelprId).first;
   // The poster's Instant Release (the card's own read, PostedJobActions): the work is approved for them, so no clock.
   const { profile: ownProfile } = useCurrentUser();
   const instantRelease = !!(ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
@@ -333,7 +330,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     <Button variant="primary" size="lg" className="w-full rounded-full text-ds-16" onClick={() => navigate(highlight)}>See the offer</Button>
   );
   // Everyone else's one button: Apply, View application, Open in working.
-  const primary = isPoster || hiredFace
+  const primary: ViewerPrimary | null = isPoster || hiredFace
     ? null
       // CMP-4: an instant booking is answered on its card below, never "See the offer" (or Apply after a decline).
     : instantUntil
@@ -555,20 +552,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {continueDay.sheet}{continueDay.missedSheet}{posterFinish.sheet}
             {isPoster && posterActions.panel}
             {hiredRow}
-            {primary && (
-              // The one button (Apply, View application, Open in Jobs, Browse jobs) in the same sticky bar (JP2).
-              <StickyActionBar label="Job actions" data-job-bar="viewer" spacer={false}>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="w-full rounded-full text-ds-16"
-                  onClick={primary.go}
-                  {...("gated" in primary ? primary.gated : {})}
-                >
-                  {primary.label}
-                </Button>
-              </StickyActionBar>
-            )}
+            {/* The one button (Apply, View application, Open in Jobs, Browse jobs) in the same sticky bar (JP2). */}
+            {primary && <ViewerPrimaryBar primary={primary} />}
             {!isPoster && !hiredFace && !instantUntil && viewer.action.kind === "see_offer" && (
               <Suspense fallback={seeOffer}>
                 <PageOfferPanel jobId={job.id} onChanged={refetchPage} fallback={seeOffer} />

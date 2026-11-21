@@ -62,6 +62,9 @@ describe("the job page's tracker line names the Helpr the page names", () => {
     const src = blankComments(readFileSync(resolve(import.meta.dirname, "JobPage.tsx"), "utf8"));
     const tracker = /<JobTracker\b[\s\S]*?\/>/.exec(src)?.[0] ?? "";
     expect(tracker).toContain("otherFirst={isPoster ? helperFirst ?? noShowHelprFirst : posterFirst}");
-    expect(src).toMatch(/const helperFirst = \(helperCard\.data\?\.name/);
+    // The first name comes off the seller card (useMemberCard, split out of JobPage for its 600-line cap).
+    expect(src).toMatch(/first: helperFirst \} = useMemberCard\(helperId\)/);
+    const hook = blankComments(readFileSync(resolve(import.meta.dirname, "useMemberCard.ts"), "utf8"));
+    expect(hook).toMatch(/const first = \(card\.data\?\.name \?\? ""\)\.trim\(\)\.split\(/);
   });
 });

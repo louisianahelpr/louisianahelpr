@@ -100,10 +100,9 @@ const BackButton = ({ to, className, onClick, label }: BackButtonProps) => {
     <button
       type="button"
       onClick={handleClick}
-      aria-label="Go back"
-      // A named destination ("Go to Home") replaces it; the literal default stays readable to the back-control
-      // inventory (scripts/back-control-inventory.mjs reads a literal aria-label).
-      {...(label ? { "aria-label": label } : {})}
+      // A named destination ("Go to Home") replaces the default; scripts/back-control-inventory.mjs reads the literal
+      // fallback (DEFAULT_LABEL).
+      aria-label={label ?? "Go back"}
       className={`${BACK_BUTTON_BOX_CLASS} ctl-exit flex items-center justify-center ctl-tint active:scale-[0.97] shrink-0 ${className ?? ""}`}
       style={{ color: "hsl(var(--olivewood))" }}
     >

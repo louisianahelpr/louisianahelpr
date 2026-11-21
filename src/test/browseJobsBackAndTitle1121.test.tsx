@@ -11,7 +11,7 @@
  * @mutate src/pages/home/DashboardGuest.tsx |     <PublicHeaderPage\n      title={tr("nav.jobs")} |     <PublicHeaderPage\n      title="Browse jobs"
  * @mutate src/components/marketing/PublicHeaderPage.tsx |       onBack={onBack}\n | \n
  * @mutate src/components/PageHeader.tsx | <BackButton onClick={onBack} to={backTo} label={backLabel} /> | <BackButton onClick={onBack} to={backTo} />
- * @mutate src/components/BackButton.tsx |       {...(label ? { "aria-label": label } : {})}\n | \n
+ * @mutate src/components/BackButton.tsx | aria-label={label ?? "Go back"} | aria-label="Go back"
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -32,7 +32,7 @@ afterEach(cleanup);
 const read = (p: string) => blankComments(readFileSync(p, "utf8"));
 const guest = read("src/pages/home/DashboardGuest.tsx");
 /** The web branch's PublicHeaderPage element, from its opening tag to its first `>` line. */
-const webHeader = /<PublicHeaderPage\n([\s\S]*?)\n    >/.exec(guest)?.[1] ?? "";
+const webHeader = /<PublicHeaderPage\n([\s\S]*?)\n {4}>/.exec(guest)?.[1] ?? "";
 
 describe("/browse: a back arrow left of the title, and the title is Jobs", () => {
   it("the web page passes the title Jobs, an always-Home back with its name, and no hideBack", () => {

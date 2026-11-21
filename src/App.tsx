@@ -411,7 +411,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           no-op there, and NativeLaunchRouter already owns that decision.
           DashboardGuest's own redirect stays as the floor under a stale or
           revoked token. */}
-      <Route path="/browse" element={<RouteErrorBoundary><MarketingRedirect fallback={<DashboardRouteSkeleton />}>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</MarketingRedirect></RouteErrorBoundary>} />
+      <Route path="/browse" element={<RouteErrorBoundary><MarketingRedirect to="/jobs" keepQuery fallback={<DashboardRouteSkeleton />}>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</MarketingRedirect></RouteErrorBoundary>} />
       {/* Same exception as /terms and /privacy above — a policy document, not
           marketing. No signed-in bounce. Real route, not a redirect, for the
           same reason (owner, 2026-09-11) — see the comment above /terms. */}

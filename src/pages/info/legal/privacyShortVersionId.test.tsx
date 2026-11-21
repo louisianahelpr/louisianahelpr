@@ -44,7 +44,8 @@ function collectLine(): string {
   return collect as string;
 }
 
-const RULE = /a photo ID, checked once per account: the first time you post a job, get hired or take a delivery, list an item, or buy one/;
+// Owner 2026-11-20: Declutter (list, buy) never asks for the ID check.
+const RULE = /a photo ID, checked once per account: the first time you post a job, get hired or take a delivery(?!, list)/;
 
 describe("Privacy short version: the ID line says the real rule for whoever reads it", () => {
   afterEach(() => {

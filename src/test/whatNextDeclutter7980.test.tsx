@@ -6,7 +6,7 @@
  * listing shows no drop step; a listing sent for review says so.
  *
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setSentCents(cents); |       toast.success("Offer sent. The seller has 48 hours to answer.");
- * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> | <Money cents={cents} />
+ * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} /> | <Money cents={cents} />
  * @mutate src/components/declutter/OfferSentWhatNext.tsx |         returnFocusTo.current.focus({ preventScroll: true }); |         void returnFocusTo;
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | cents={sentCents} returnFocusTo={panel} onClose | cents={sentCents} onClose
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <section ref={panel} tabIndex={-1} className | <section ref={panel} className
@@ -32,7 +32,7 @@ import { OfferSentWhatNext } from "@/components/declutter/OfferSentWhatNext";
 import { ListedWhatNext } from "@/components/declutter/ListedWhatNext";
 
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
-// BuyerTotal (2026-10-29): the pickup total adds the one-time setup fee still owed (useFirstPayoutFee).
+// Owner 2026-11-20: the pickup total never adds the one-time setup fee, even one still owed for Jobs (useFirstPayoutFee).
 const fee = { cents: 0, known: true };
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => fee.cents, useFirstPayoutFeeKnown: () => fee.known }));
 const items: Record<string, Record<string, unknown>> = {};
@@ -69,15 +69,14 @@ describe("board 79: after an offer", () => {
     expect(code("src/components/declutter/DeclutterOfferPanel.tsx")).toMatch(/setSentCents\(cents\);/);
   });
 
-  it("BuyerTotal: the pickup total includes a setup fee still owed, and says one may be added while unknown", () => {
+  it("owner 11-20: the pickup total never adds or names the setup fee, owed or not known", () => {
     fee.cents = 200;
-    const { unmount } = render(<OfferSentWhatNext cents={5000} onClose={() => {}} onBrowse={() => {}} />);
-    expect(within(screen.getByTestId("what-next-sheet")).getAllByRole("listitem")[2].textContent).toContain("check out: $55.20 for pickup");
-    unmount();
-    fee.cents = 0;
     fee.known = false;
     render(<OfferSentWhatNext cents={5000} onClose={() => {}} onBrowse={() => {}} />);
-    expect(within(screen.getByTestId("what-next-sheet")).getAllByRole("listitem")[2].textContent).toContain("check out: $53.20 + any one-time setup fee for pickup");
+    const step = within(screen.getByTestId("what-next-sheet")).getAllByRole("listitem")[2].textContent;
+    expect(step).toContain("check out: $53.20 for pickup");
+    expect(step).not.toMatch(/setup fee/);
+    fee.cents = 0;
     fee.known = true;
   });
 });

@@ -162,6 +162,10 @@ const SHARED = ["feature_disabled", "invalid_payout"];
 // 20261102011547 restates declutter_pick_free_request whole: its free_pick_time_unusable (LHFP1) is raised and caught
 // inside the function (it rolls back the confirmed-time try and the 48-hour path runs), so it never reaches a member.
 const SERVICE_ONLY = ["invalid_payment", "invalid_refund", "order_not_found", "free_pick_time_unusable"];
+// Owner 2026-11-20 (20261120184430): no Declutter path asks for an ID check or the setup fee any more, so these codes,
+// raised in the files above by definitions since replaced or dropped, never reach a member (declutterNoIdNoSetupFee
+// holds that no Declutter function raises them). Shops' own words for identity_required_to_buy / _list are in shops/errors.ts.
+const RETIRED = ["identity_required_to_buy", "identity_required_to_list", "identity_required_to_claim", "setup_fee_required_to_claim", "setup_fee_required_to_list"];
 
 function raisedCodes(): Set<string> {
   const out = new Set<string>(SHARED);
@@ -172,6 +176,7 @@ function raisedCodes(): Set<string> {
     for (const m of sql.matchAll(/RAISE\s+EXCEPTION\s+'([a-z_0-9]+)'/g)) out.add(m[1]);
   }
   for (const c of SERVICE_ONLY) out.delete(c);
+  for (const c of RETIRED) out.delete(c);
   return out;
 }
 

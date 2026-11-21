@@ -3,7 +3,7 @@
  * cutting off the product name on the box. From sm the whole photo shows on the frame's ground (object-contain); the
  * phone's square frame keeps the square crop it is served (object-cover).
  *
- * @mutate src/components/declutter/DeclutterGallery.tsx |                 className="h-full w-full object-cover sm:object-contain" |                 className="h-full w-full object-cover"
+ * @mutate src/components/declutter/DeclutterGallery.tsx |                 className="relative h-full w-full object-cover sm:object-contain sm:bg-transparent" |                 className="relative h-full w-full object-cover sm:bg-transparent"
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

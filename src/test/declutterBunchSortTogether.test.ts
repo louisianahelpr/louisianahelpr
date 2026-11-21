@@ -138,7 +138,7 @@ describe("what still can't be sorted stays together, with why", () => {
   it("a pile can't be listed, whatever it holds", () => {
     const pile = { ...notSortedPile(["a"], "why"), title: "Filled in", price: "20" };
     expect(bunchItemProblem(pile)).toMatch(/aren't sorted/);
-    expect(bunchListable([pile], false)).toEqual([]);
+    expect(bunchListable([pile])).toEqual([]);
   });
 
   it("addSorted keeps one pile, first, with every photo and the latest reason", () => {

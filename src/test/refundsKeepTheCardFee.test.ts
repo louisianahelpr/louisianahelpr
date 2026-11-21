@@ -661,7 +661,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Still $0, paid_with free, and still records no refund. Was 20261103224955 9c02ae4e05056074.
       // Lander l135: the two trade pickup notices pass declutter_pickups instead of payment (declutterNoticeKinds);
       // notice kind only, no refund logic changed. Was f158cbe68eca2a71.
-      declutter_checkout_free: "20261108195151_declutter_trades_fixes.sql 84964ac296fd37fc",
+      declutter_checkout_free: "20261120184430_declutter_no_id_no_setup_fee.sql 3470563c5eb772cf", // owner 2026-11-20: only the ID / fee gate call removed; records no refund
       // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
       // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale
@@ -756,7 +756,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // refusal added before any write (request_time_passed when the ask's own pickup time has passed); the free order,
       // its $0 amounts and card_fee_cents 0 are verbatim. Still records no refund and moves no money.
       // Q2390 p39 (20261103224955): restated with its not-found as PT404 only (ERRCODE only); no refund logic changed.
-      declutter_pick_free_request: "20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql 84adb239e4897d58",
+      declutter_pick_free_request: "20261120184430_declutter_no_id_no_setup_fee.sql ce86f279bfc09f76", // owner 2026-11-20: only the ID condition on booking the asked time removed
       // A3-112 (20261102033426, read by Builder 151): STABLE read of the CALLER's own orders (buyer_id = auth.uid(), at
       // most 200): sums what came back (succeeded declutter_refunds not settled by hand + live hand refunds + succeeded
       // delivery refunds) on the order's own payment. Writes nothing; decides no amount or fee.
@@ -862,9 +862,6 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       // Q2106 S2 (20261105032500, Builder 3 11-04, WIP: lead money review owed): restated verbatim, plus o.gift_cents in
       // the returned row. It still records no refund and reads no amount but the order's own gift share.
-      // Owner 11-11 ~3:25 PM (20261111212343, Builder 1): the caller's setup fee and the one sale that takes it; reads
-      // declutter_refunds' status only (the payout queue's own holds, to order the rows); records no refund, writes nothing.
-      declutter_my_setup_fee: "20261111212343_declutter_my_setup_fee.sql 577bcedd7a26df59",
       // Money review 11-11 (20261111211749, Builder 1, lh-money-escrow): restated verbatim plus one wait: a refund on the
       // order's own payment held for review (not delivery_damage) holds the payout. Reads declutter_refunds' status only.
       declutter_payouts_due: "20261111211749_declutter_payout_waits_for_held_refund.sql 4b5b891fd69f5c69",

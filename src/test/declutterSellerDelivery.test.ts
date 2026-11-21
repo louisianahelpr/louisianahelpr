@@ -29,11 +29,11 @@
  * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql | 'slot_minutes', 60, | 'slot_minutes', 30,
  * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql | 'hold_minutes', 35, | 'hold_minutes', 20,
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   SELECT round((greatest(COALESCE(p_items_cents, 0), 0) + greatest(COALESCE(p_delivery_cents, 0), 0)) * 0.05)::integer + 70; |   SELECT round(greatest(COALESCE(p_items_cents, 0), 0) * 0.05)::integer + 70;
- * @mutate supabase/migrations/20261112065000_declutter_seller_id_at_first_payout.sql |   VALUES (o.id, o.seller_id, o.items_cents, v_rate, v_share, v_debt, o.items_cents + v_rate - v_share - v_debt, |   VALUES (o.id, o.seller_id, o.items_cents, 0, v_share, v_debt, o.items_cents - v_share - v_debt,
+ * @mutate supabase/migrations/20261120184430_declutter_no_id_no_setup_fee.sql |   VALUES (o.id, o.seller_id, o.items_cents, v_rate, v_share, v_debt, o.items_cents + v_rate - v_share - v_debt, |   VALUES (o.id, o.seller_id, o.items_cents, 0, v_share, v_debt, o.items_cents - v_share - v_debt,
  * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql |     OR o.handover = 'seller_delivery' THEN |     THEN
  * @mutate supabase/migrations/20261117041858_seed_rows_skip_handover_and_dispute_sweeps.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at + interval '7 days' <= now() |      WHERE o2.status = 'paid' AND o2.handover <> 'delivery' AND o2.paid_at + interval '7 days' <= now()
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'seller_delivery') THEN | IF false THEN
- * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n | \n
+ * @mutate supabase/migrations/20261120184430_declutter_no_id_no_setup_fee.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n | \n
  * @mutate supabase/migrations/20261103130123_money_card_rent_seller_delivery_setup_fee_not_found_is_404.sql |     'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status = 'paid' THEN d.dropoff_address END, |     'dropoff_address', d.dropoff_address,
  * @mutate supabase/migrations/20261120150247_app_installs.sql |              WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)\n | \n
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer' |                            ) THEN 'paid_buyer'
@@ -52,7 +52,7 @@
  * @mutate src/lib/declutter/sellerDelivery.ts |   if (freeOverCents !== null && itemsCents >= freeOverCents) return 0; |   if (freeOverCents !== null && itemsCents > freeOverCents) return 0;
  * @mutate src/lib/declutter/sellerDelivery.ts |   if (rateCents <= 0) return "Free delivery"; |   if (rateCents <= 0) return "$0 delivery";
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (expectedRate !== null && Number(order.delivery_cents ?? 0) !== expectedRate) { |   if (false) {
- * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n    SELECT * INTO sd | SELECT * INTO sd
+ * @mutate supabase/migrations/20261120184430_declutter_no_id_no_setup_fee.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n    SELECT * INTO sd | SELECT * INTO sd
  * @mutate supabase/functions/declutter-checkout/index.ts |   const off = await requireFeature(admin, "declutter_seller_delivery", user, corsHeaders);\n  if (off) return off;\n  const declutterOff | const declutterOff
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |     changeHandoff: open && b.side === "buyer" | buyerCancel: open && b.side === "buyer",\n    changeHandoff: open && b.side === "buyer"
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     case "out_of_range": return typed ? "out_of_range" : "hidden"; |     case "out_of_range": return "out_of_range";

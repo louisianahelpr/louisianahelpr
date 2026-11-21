@@ -186,24 +186,14 @@ describe("declutter-money: seller payouts (B53)", () => {
     });
   });
 
-  // Owner 11-12 1:00 AM: the seller's ID check is asked before the first payout, not at listing
-  // (20261112065000). The run holds an unverified seller's payout (no transfer, no try used) and sends it on
-  // the first run after they verify.
-  it("owner 11-12: an unverified seller's payout is held with no transfer, and sent once they verify", async () => {
+  // Owner 2026-11-20: no ID check anywhere in Declutter (supersedes 11-12's "seller ID before the first payout").
+  // An unverified seller's payout goes on the first run; the ID question is not even asked for this kind.
+  // @mutate supabase/functions/declutter-money/index.ts |    const idHold = declutterKindSkipsIdHold(kind) ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId); |    const idHold = await checkIdentityHold(admin, payeeId);
+  it("owner 11-20: an unverified seller's payout is sent, and the ID hold is never asked", async () => {
     scenario.rpc.payout_waits_on_identity = true;
-    const held = await run({ payouts: [payoutRow()] });
-    expect(held.status).toBe(200);
-    expect(rpcs("payout_waits_on_identity").map((c) => c.args)).toContainEqual({ p_user_id: SELLER });
-    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
-    expect(held.body.payouts_sent ?? 0).toBe(0);
-    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
-    resetSupabaseMock();
-    scenario.reads.test_accounts = { rows: [] };
-    scenario.reads.ban_settlement_queue = { rows: [] };
-    scenario.reads.payout_holds = { rows: [] };
-    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }] };
-    scenario.rpc.payout_waits_on_identity = false;
     const paid = await run({ payouts: [payoutRow()] });
+    expect(paid.status).toBe(200);
+    expect(rpcs("payout_waits_on_identity")).toHaveLength(0);
     expect(paid.body.payouts_sent).toBe(1);
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
   });
@@ -220,46 +210,15 @@ describe("declutter-money: seller payouts (B53)", () => {
   // Deep audit #57: "Your payout is on its way", only once the transfer is recorded, with the amount sent and no fee words.
   // @mutate supabase/functions/declutter-money/index.ts |      await emailSeller(admin, p.seller_id, p.order_id, "payout_sent", p.amount_cents, |      if (false) await emailSeller(admin, p.seller_id, p.order_id, "payout_sent", p.amount_cents,
   // @mutate supabase/functions/_shared/declutterSellerEmail.ts |     subject: "Your payout is on its way", |     subject: "Payout update",
-  // Owner 2026-10-30: the seller's one-time setup fee comes out right before the send.
-  // @mutate supabase/functions/declutter-money/index.ts |             p.amount_cents = toSend; |             void toSend;
-  // @mutate supabase/functions/declutter-money/index.ts |               await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", `setup fee read failed: ${feeErr.message}`);\n              continue; |               void feeErr;
-  // @mutate supabase/functions/declutter-money/index.ts |         if (!maybeSent_declutter(p)) {\n          const { data: toSend | if (true) {\n          const { data: toSend
-  describe("the seller's one-time setup fee", () => {
-    it("sends the amount the take answers, and is asked before the send", async () => {
+  // Owner 2026-11-20: the seller's one-time setup fee no longer comes out of a Declutter payout: the queued amount goes
+  // and the old take is never called.
+  describe("no setup fee out of a Declutter payout", () => {
+    it("sends the queued amount and never asks declutter_payout_take_setup_fee", async () => {
       scenario.rpc.declutter_payout_take_setup_fee = 3650;
       const { body } = await run({ payouts: [payoutRow()] });
       expect(body.payouts_sent).toBe(1);
-      expect(rpcs("declutter_payout_take_setup_fee")[0]?.args).toEqual({ p_payout_id: PAYOUT });
-      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(3650);
-    });
-
-    it("no fee due: the queued amount goes", async () => {
-      scenario.rpc.declutter_payout_take_setup_fee = 3850;
-      await run({ payouts: [payoutRow()] });
-      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(3850);
-    });
-
-    it("an unreadable answer sends nothing this run and uses no try", async () => {
-      scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), declutter_payout_take_setup_fee: { message: "connection reset", code: "08006" } };
-      const { body } = await run({ payouts: [payoutRow()] });
-      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
-      expect(rpcs("declutter_payout_executed")).toHaveLength(0);
-      expect(body.payouts_sent).toBe(0);
-    });
-
-    it("a row with a try used is not asked: its Stripe key was sent with the stored amount", async () => {
-      scenario.rpc.declutter_payout_take_setup_fee = 3650;
-      await run({ payouts: [payoutRow({ attempts: 1 })] });
       expect(rpcs("declutter_payout_take_setup_fee")).toHaveLength(0);
       expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(3850);
-    });
-
-    it("a transfer Stripe already holds is recorded with no fee asked", async () => {
-      stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_old", destination: "acct_seller1", reversed: false, metadata: { kind: "declutter_payout", payout_id: PAYOUT } }] });
-      scenario.rpc.declutter_payout_take_setup_fee = 3650;
-      await run({ payouts: [payoutRow()] });
-      expect(rpcs("declutter_payout_take_setup_fee")).toHaveLength(0);
-      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
   });
 

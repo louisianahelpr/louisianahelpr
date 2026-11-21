@@ -26,6 +26,8 @@ interface ProfileTabHeaderProps {
   sticky?: boolean;
   /** See PageHeader's `wrapTitle`: a long title wraps instead of ending in "..." (on by default, NIGHT-SET-Declutterse-7). */
   wrapTitle?: boolean;
+  /** AppPage's `desktopHidesHeader` (owner 11-20): from lg the whole row (back + title) is not drawn; the page has its own. */
+  desktopHidden?: boolean;
 }
 
 /**
@@ -71,12 +73,12 @@ interface ProfileTabHeaderProps {
  * itself, because the alternative is loosening the shell test's exact-match
  * guard for every tab.
  */
-export function ProfileTabHeader({ title, onBack, backTo, rightSlot, phoneHidesTitle, hidesTitle, sticky, wrapTitle = true }: ProfileTabHeaderProps) {
+export function ProfileTabHeader({ title, onBack, backTo, rightSlot, phoneHidesTitle, hidesTitle, sticky, wrapTitle = true, desktopHidden }: ProfileTabHeaderProps) {
   // `sticky` pins this wrapper (its parent is the whole page body, so it can stick): the row's top padding slides
   // under the scroller's top edge and the 44px buttons sit at the top. -mx-3/px-3 reach the scroller's own padding,
   // so content scrolling under the row is covered edge to edge once index.css paints it (`.sticky-title-row`).
   return (
-    <div className={sticky ? "sticky-title-row sticky top-[calc(-1*var(--shell-gap))] z-40 -mx-3 px-3 -mb-[var(--section-gap)]" : "-mb-[var(--section-gap)]"}>
+    <div className={`${sticky ? "sticky-title-row sticky top-[calc(-1*var(--shell-gap))] z-40 -mx-3 px-3 -mb-[var(--section-gap)]" : "-mb-[var(--section-gap)]"}${desktopHidden ? " lg:hidden" : ""}`}>
       <PageHeader
         title={title}
         onBack={onBack}

@@ -1,6 +1,6 @@
 /**
  * Declutter item page and card words that were English for a Spanish reader (design audit r2 #35): "incl. fee",
- * "Listed 1 week ago", "About 1 mi away", the "Protected:" line, "Joined ...", and the seller badges. The drawing
+ * "Listed 1 week ago", "About 1 mi away", the "Protected:" line, "Member since ...", and the seller badges. The drawing
  * files read them through wordInLang (src/lib/i18n/inLang.ts), so the landing strip and Browse pay for no hook.
  * Spanish: esItemPage.ts.
  */
@@ -31,7 +31,12 @@ export const enItemPage = {
   "ip.badge.listsOften": "Lists often",
   "ip.badge.onTime": "On-time handovers",
   "ip.badge.active": "Active today",
-  "ip.joined": "Joined {date}",
+  // Owner 11-20 (item page polish #6): "Member since Mar 2025" on the seller card (member and guest).
+  "ip.memberSince": "Member since {date}",
+  // Owner 11-20 (item page polish #5): the one meta row under the condition chip.
+  "ip.buyerProtection": "Buyer protection",
+  "ip.porchPickup": "Porch pickup",
+  "ip.breadcrumb": "Where this item is in Declutter",
 } as const;
 
 addEnglish(enItemPage);

@@ -88,9 +88,6 @@ const UNREACHABLE: Allowlist = {
   // never shows a batch error; any refusal falls back to the per-order read, whose own code and copy stand.
   declutter_my_order_cards: Object.fromEntries(["feature_disabled", "item_not_found", "not_authenticated", "problem_not_found", "too_many_orders"]
     .map((code) => [code, { reason: "orderCards never shows a batch error: it asks the per-order read instead, whose own code and copy stand (and sends at most 200 ids a call)" }])),
-  // The seller's setup fee read (20261111212343, owner 11-11): useSellerSetupFee runs it only with a signed-in user
-  // (enabled: !!uid), and any failure leaves the fee "not known" so no figure shows (useSellerSetupFee): no words to show.
-  declutter_my_setup_fee: { not_authenticated: { reason: "read only with a signed-in user; a failed read shows no fee figure, never words" } },
   // Sponsor giveaway page view counter (20261109162829, 2026-11-09): the page calls it only after sponsor_public_state said on=true for the
   // same visitor, it shows nothing, and a failure is dropped (src/pages/sponsor/SponsorPage.tsx): no words to show.
   sponsor_log_visit: { feature_disabled: { reason: "a page-view counter with no screen; called only after the page read on=true, and a refusal is dropped silently" } },

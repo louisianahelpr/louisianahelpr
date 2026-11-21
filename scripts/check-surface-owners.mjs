@@ -78,6 +78,8 @@ const OWNERS = {
   "/gift-guides/secret-santa/:code/:token": ["lh-copy-content", "lh-compliance-store"],
   "/gift-guides/swipe": ["lh-copy-content", "lh-compliance-store"],
   "/gift-guides/planner": ["lh-copy-content", "lh-compliance-store"],
+  // Free printables (owner 2026-11-20): the same lanes as the guides.
+  "/gift-guides/printables": ["lh-copy-content", "lh-compliance-store"],
   "/terms/full": ["lh-compliance-store"],
   "/privacy/full": ["lh-compliance-store"],
   // /gift-card (a redirect onto this tab) was deleted with Q194, 2026-09-23.

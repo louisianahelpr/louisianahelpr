@@ -21,8 +21,6 @@ import { priceTooLowForDrops } from "./sellForm";
 import "@/lib/i18n/enListingParts";
 import type { SellFlow } from "./useSellFlowState";
 import { formatPrice } from "@/lib/declutter/distance";
-import { sellerGetsTodayCents } from "@/lib/declutter/sellerGetsToday";
-import { useSellerSetupFee } from "./useSellerSetupFee";
 import "@/lib/i18n/enSellForm";
 import { t } from "@/lib/i18n/language";
 
@@ -39,21 +37,14 @@ export function FieldLabel({ htmlFor, text, extra }: { htmlFor: string; text: st
 }
 
 /**
- * F328 (owner 11-11 ~2:10 PM): the sell form's one money line, "You get $Y", by the payout SQL's own rule
- * (sellerGetsTodayCents: the one-time setup fee comes out of a first payout while the ID check is on). No buyer-pays
- * figure and no fee words on the sell form.
+ * F328 (owner 11-11 ~2:10 PM): the sell form's one money line, "You get $Y". Owner 2026-11-20: no setup fee ever
+ * comes out of a Declutter payout, so the seller gets the price. No buyer-pays figure and no fee words on the sell form.
  */
 export function SellYouGet({ priceCents }: { priceCents: number }) {
-  const fee = useSellerSetupFee();
-  // lh-money-escrow reviews: an input still loading or failed is not "no fee"; no figure until it answers.
-  if (fee.unknown) return null;
-  // Owner 11-11 ~3:25 PM: the fee comes out of the first payout sent. When the server already names a sale that takes
-  // it (declutter_my_setup_fee), this new listing's sale does not.
-  const feeCents = fee.server && fee.orderId ? 0 : fee.cents;
   return (
     <p className="flex items-baseline justify-between text-ds-14 text-foreground" data-sell-keep="">
       {t("sf.youGet")}
-      <span className="font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(sellerGetsTodayCents(priceCents, feeCents))}</span>
+      <span className="font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(priceCents)}</span>
     </p>
   );
 }

@@ -47,7 +47,7 @@
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order; |   const ticked: Handover[] = wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| !!tradeFirst \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady \|\| !!split?.cardPartTooSmall} |         disabled={held \|\| opening \|\| !!tradeFirst \|\| offered.length === 0 \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady \|\| !!split?.cardPartTooSmall}
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |     : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents); |     : sdAmounts ? sdAmounts.totalCents : totalCents);
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} onBack= | porchOk={true} onBack=
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
@@ -99,10 +99,8 @@ const state = {
   serverDeliveryCents: null as number | null,
   /** Q1930: the delivery price each Pay carried (expected_delivery_cents). */
   payRates: [] as (number | null | undefined)[],
-  /** Q2352: the one-time account setup fee still owed (useFirstPayoutFeeCents), 0 once paid. */
+  /** Owner 2026-11-20: the setup fee a member still owes for Jobs, which a Declutter checkout never adds. */
   setupFeeCents: 0,
-  /** useFirstPayoutFeeKnown: false while the fee answer is not in (the total then says "+ any setup fee"). */
-  setupFeeKnown: true,
   /** declutter_seller_delivery (20261027153244), read on its own. */
   sellerDeliveryOn: false,
   sdOffer: null as unknown,
@@ -137,7 +135,7 @@ vi.mock("@/lib/declutter/aiReply", async (orig) => ({ ...(await orig<object>()),
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "declutter_seller_delivery" ? state.sellerDeliveryOn
   : key === "declutter_shipping" ? state.shipOn : state.deliveryOn) }));
-vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => true }));
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/sellerDelivery")>()),
   fetchSellerDeliveryOffer: async () => state.sdOffer,
@@ -289,7 +287,6 @@ describe("Declutter slice 3 screens", () => {
     state.underAge = false;
     state.responded = [];
     state.setupFeeCents = 0;
-    state.setupFeeKnown = true;
     state.shipOn = false;
     state.canShip = true;
     state.shipQuotes = [];
@@ -943,14 +940,10 @@ describe("Declutter slice 3 screens", () => {
     expect(sheet).not.toHaveTextContent(/above your price/);
   });
 
-  // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee is told it and has it in
-  // the Total, exactly as declutter-checkout charges it; an account that paid it sees neither.
-  // Audit 1a #6 (2026-10-29): "Item $12, setup fee $2, You pay $15.30" did not add up. Owner 11-07 (Vinted review):
-  // every line is shown, the service fee and the setup fee included, so the lines add up to the Total.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents);
-  // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |       {setupFeeCents > 0 && <Line data="setup-fee" |       {false && <Line data="setup-fee"
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |         serviceFeeCents={payCents - listedCents} |         serviceFeeCents={payCents - listedCents + setupFeeCents}
-  it("Q2352 + audit 1a #6 + owner 11-07: the first purchase's setup fee is its own line, and the lines add up to the Total", async () => {
+  // Owner 2026-11-20: a Declutter purchase never carries the one-time setup fee (Q2352's first-purchase $2 is removed),
+  // even for a member who still owes it for Jobs. Audit 1a #6 / owner 11-07: every line is shown and they add up.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents); |     : (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + 200);
+  it("owner 11-20: no setup fee line or amount for a member who owes it, and the lines add up to the Total", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
@@ -958,18 +951,17 @@ describe("Declutter slice 3 screens", () => {
     show(<CartView />);
     expect(await screen.findByText("One checkout for 2 items")).toBeInTheDocument();
     const bill = document.querySelector("[data-checkout-breakdown]")!;
-    expect(bill.textContent).toMatch(/Total\$10\.05/);
+    expect(bill.textContent).toMatch(/Total\$8\.05/);
     // BUY-34: a <dl> holds only its rows (axe definition-list); the notes sit beside it.
     expect(bill.querySelector("dl")?.querySelector("p")).toBeNull();
     expect(bill.querySelector("dl dd")).not.toBeNull();
     const rows = Array.from(bill.querySelectorAll("dt")).map((dt) => dt.textContent ?? "");
-    expect(rows).toEqual(["2 items", "Service fee", "Pickup", "One-time setup fee", "Sales tax", "Total"]);
+    expect(rows).toEqual(["2 items", "Service fee", "Pickup", "Sales tax", "Total"]);
     const cents = (k: string) => Math.round(Number((bill.querySelector(`[data-summary-line="${k}"] dd`)?.textContent ?? "").replace(/[^0-9.]/g, "") || "0") * 100);
-    expect(cents("setup-fee")).toBe(200);
     expect(cents("service-fee")).toBe(105);
-    expect(cents("items") + cents("service-fee") + cents("setup-fee") + cents("tax")).toBe(cents("total"));
-    expect(screen.getByRole("button", { name: "Pay $10.05" })).toBeInTheDocument();
-    expect(document.querySelector("[data-setup-fee-pending]")).toBeNull();
+    expect(cents("items") + cents("service-fee") + cents("tax")).toBe(cents("total"));
+    expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeInTheDocument();
+    expect(bill.textContent).not.toMatch(/setup fee/i);
     state.setupFeeCents = 0;
   });
 
@@ -1008,19 +1000,6 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(state.removed).toEqual(["l2"]));
     expect(window.confirm).not.toHaveBeenCalled();
-  });
-
-  // lh-money-escrow review of Q2352 #5: until the fee answer is in, the total never reads $2 low without saying so.
-  // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |           {!setupFeeKnown && <span | {false && <span
-  it("Q2352: while the setup fee answer is not in, the total says '+ any setup fee'", async () => {
-    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
-      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
-    state.cart = [line];
-    state.setupFeeKnown = false;
-    show(<CartView />);
-    expect(await screen.findByRole("heading", { name: "Checkout", level: 3 })).toBeInTheDocument();
-    expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/Total\$[0-9.]+\+ any setup fee/);
-    state.setupFeeKnown = true;
   });
 
   it("lead 2026-10-28: a reserved line says \"Reserved for you, not paid yet\" with the time left; the bundle hint only when the seller has one", async () => {
@@ -2029,7 +2008,6 @@ describe("Q2106 S5: paying with a gift card", () => {
     state.opened = [];
     state.sellerPlaces = [];
     state.setupFeeCents = 0;
-    state.setupFeeKnown = true;
     state.gifts = [];
     state.giftSent = [];
     state.giftRefusal = null;

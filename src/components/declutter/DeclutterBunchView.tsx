@@ -50,7 +50,6 @@ import { BunchPileCard } from "./DeclutterBunchPile";
 import { bunchIntro, BunchMovingDayHelp, BunchMovingSale } from "./DeclutterBunchMovingSale";
 import { BunchResults } from "./DeclutterBunchResults";
 import { BunchRow } from "./DeclutterBunchRow";
-import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
 import { BunchDraftsSection } from "./BunchDraftsSection";
 import { useBunchSaved } from "./useBunchSaved";
 import { samePickupWindows, useBunchChoices } from "./BunchChoices";
@@ -80,7 +79,6 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const qc = useQueryClient();
   const { underAge } = useAgeGate();
   const sellerDeliveryOpen = useFeature("declutter_seller_delivery");
-  const feeDue = useSetupFeeDueCents();
   const [listingDrafts, setListingDrafts] = useState(false);
 
   const [areaLabel, setAreaLabel] = useState("");
@@ -185,9 +183,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   // A3-69: a finished bunch (results shown, nothing left on the list) shows only its result until List more.
   const allListed = !!results && items.length === 0;
   const firstStep = whereFolded ? 1 : 2;
-  // While the setup fee is due only free items can go (the server asks no fee at price 0); priced ones stay on the list.
-  const ready = bunchListable(items, feeDue != null);
-  const heldForFee = feeDue != null ? bunchListable(items, false).length - ready.length : 0;
+  const ready = bunchListable(items);
   // F337 (audit 11-10): a pile of photos not sorted yet is not an item; "0 of 1 ready" with no item shown read as a contradiction.
   const sortedCount = items.filter((it) => !it.notSorted).length;
   const savedWays = ways.filter((w) => w !== "delivery" && (w !== "seller_delivery" || sellerDeliveryOpen));
@@ -467,8 +463,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       <p className="text-sm text-muted-foreground">{bunchIntro(moving)}</p>
       )}
       {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); focusBunchFilesNextPaint(); }} />}
-      {feeDue != null && <BunchFeeGate cents={feeDue} />}
-      <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} attested={attested} setAttested={setAttested} listStepShown={items.length > 0} onPricedOffered={setPricedDraftsOffered} />
+      <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} onBusy={setListingDrafts} attested={attested} setAttested={setAttested} listStepShown={items.length > 0} onPricedOffered={setPricedDraftsOffered} />
 
       {saved.note && <p className="text-sm text-foreground" role="alert" data-bunch-not-saved="">{saved.note}</p>}
       {saved.restoredCount > 0 && items.length > 0 && (
@@ -524,7 +519,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       {showMove && <BunchMovingDayHelp userId={user.id} date={moveDate} />}
 
       {items.length > 0 && (
-        <BunchSection id="bunch-check" title={sortedCount > 0 ? t("lp.bv.checkHeadN", { step: firstStep + 1, ready: ready.length + heldForFee, total: sortedCount }) : t("lp.bv.checkHead", { step: firstStep + 1 })}>
+        <BunchSection id="bunch-check" title={sortedCount > 0 ? t("lp.bv.checkHeadN", { step: firstStep + 1, ready: ready.length, total: sortedCount }) : t("lp.bv.checkHead", { step: firstStep + 1 })}>
           <p className="text-xs text-muted-foreground">
             {t("lp.bv.fixIt")}
           </p>
@@ -587,7 +582,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {items.length > 0 && (
         <BunchListStep
-          step={firstStep + 2} items={items} pricedDraftsOffered={pricedDraftsOffered} readyCount={ready.length} heldForFee={heldForFee} savedSetup={savedSetup} savedWindows={savedWindows} savedWays={savedWays} windows={windows} setWindows={setWindows}
+          step={firstStep + 2} items={items} pricedDraftsOffered={pricedDraftsOffered} readyCount={ready.length} savedSetup={savedSetup} savedWindows={savedWindows} savedWays={savedWays} windows={windows} setWindows={setWindows}
           choices={choices} ways={ways} setWays={setWays} sellerDeliveryOpen={sellerDeliveryOpen} attested={attested} setAttested={setAttested} problem={problem} blocked={blocked} listing={!!listing} photoProgress={photoProgress} listingProgress={listing} runNames={runNames.current} onList={() => void onListAll()}
         />
       )}

@@ -18,7 +18,6 @@ import { pickupDays, type SellerWindow } from "@/lib/declutter/pickupSlots";
 import { fetchItemPickupPlaces } from "@/lib/declutter/porchPlaces";
 import { Chip } from "./DeclutterFilterPanel";
 import { focusSheetItself } from "./focusSheetItself";
-import { firstPickSteps } from "@/lib/declutter/freePickSteps";
 import { getLang, t as tr, useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enFreeAsk";
 
@@ -43,15 +42,12 @@ function isToday(iso: string, nowMs = Date.now()): boolean {
   return day(new Date(iso)) === day(new Date(nowMs));
 }
 
-export default function FreeAskSheet({ item, giverFirstName, open, onClose, oneTimeCheckAhead = false, change = false }: {
+export default function FreeAskSheet({ item, giverFirstName, open, onClose, change = false }: {
   item: DeclutterItem; giverFirstName: string; open: boolean; onClose: () => void;
   /** Audit 11-10 F359c: the asker moves the time of their open ask. declutter_request_free_at on an item already asked
    *  for returns that same ask and sets its pickup_at (20261101174857; the 20261102011547 trigger re-arms the giver's
    *  reminder), so the same sheet and call serve. */
   change?: boolean;
-  /** 11-07: a member whose first pick carries the one-time ID check (FreeClaimPanel's reading): no "nothing is charged",
-   *  and their asked time is not booked at the pick (declutter_pick_free_request books it only for a verified member). */
-  oneTimeCheckAhead?: boolean;
 }) {
   const qc = useQueryClient();
   const { t } = useLanguage();
@@ -135,16 +131,10 @@ export default function FreeAskSheet({ item, giverFirstName, open, onClose, oneT
           )}
         </section>
         <p className="mt-4 rounded-xl px-3 py-2 text-ds-14 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-sheet-note="">
-          {/* Owner mockup 11-01: the pick books this time (declutter_pick_free_request, 20261101181129), for a verified
-              member only; a first-timer is told the steps they will really see (11-07 free-claim trace). */}
-          {oneTimeCheckAhead ? (
-            <>{t("fask.noteFirst", { name: giverFirstName, steps: firstPickSteps() })}</>
-          ) : (
-            <>
-              {t("fask.noteLead", { name: giverFirstName })}
-              {slot ? <strong>{askTimeLabel(slot)}</strong> : t("fask.theTimeYouPick")}{t("fask.noteTail")}
-            </>
-          )}
+          {/* Owner mockup 11-01: the pick books this time (declutter_pick_free_request); owner 2026-11-20: for everyone,
+              no ID check first. */}
+          {t("fask.noteLead", { name: giverFirstName })}
+          {slot ? <strong>{askTimeLabel(slot)}</strong> : t("fask.theTimeYouPick")}{t("fask.noteTail")}
         </p>
         <SheetFooter className="mt-4">
           <SheetPrimaryAction onClick={() => slot && ask.mutate(slot)} disabled={!slot || ask.isPending}>

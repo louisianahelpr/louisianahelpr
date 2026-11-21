@@ -5,14 +5,14 @@
  *     the server function answers only the token's own row (newest migration, read here; behaviour proven in
  *     src/test/pglite/giftGuideSecretSanta.pglite.mjs);
  *   - Swipe: a round is at most 20 cards within the budget, each link once, at most 5 per store, none already seen;
- *     Save puts the card on the wish list, Skip does not;
+ *     for Me, Save puts the card on the wish list, Skip does not (for anyone else: src/test/secretSantaIdeas1120.test.tsx);
  *   - Planner: spent vs budget per person and in total, over budget, typed amounts, junk dropped from storage;
  *   - Countdown + Gift of the Day: Louisiana days to Dec 25 (eve, the day, after it, from Jan 1), one curated pick per
  *     day, the 25 Days link only Dec 1-25 and only with its flag on.
  *
  * @mutate src/content/giftGuideFun1120.ts |       if (taken[r] \|\| blocked[giver].has(r)) continue; |       if (taken[r]) continue;
  * @mutate src/content/giftGuideFun1120.ts |       blocked[b].add(a); |       blocked[b].add(b);
- * @mutate src/content/giftGuideFun1120.ts |     if (!p.href \|\| !p.name \|\| seen.has(p.href) \|\| used.has(p.href)) continue; |     if (!p.href \|\| !p.name \|\| used.has(p.href)) continue;
+ * @mutate src/content/giftGuideFun1120.ts | ...pool.filter(unknown)]) {\n    if (out.length >= SWIPE_ROUND) break;\n    if (!p.href \|\| !p.name \|\| seen.has(p.href) \|\| used.has(p.href)) continue; | ...pool.filter(unknown)]) {\n    if (out.length >= SWIPE_ROUND) break;\n    if (!p.href \|\| !p.name \|\| used.has(p.href)) continue;
  * @mutate src/content/giftGuideFun1120.ts |   const spent = sum(p.ideas.filter((i) => i.bought)); |   const spent = sum(p.ideas);
  * @mutate src/content/giftGuideFun1120.ts |   if (md > "12-25") return { kind: "after" }; |   if (md > "12-26") return { kind: "after" };
  * @mutate src/content/giftGuideFun1120.ts |   return flagOn && md >= "12-01" && md <= "12-25"; |   return md >= "12-01" && md <= "12-25";
@@ -224,9 +224,9 @@ describe("swipe rounds", () => {
     expect(thin).toEqual([]);
   });
 
-  it("Save puts the card on the wish list; Skip does not", async () => {
+  it("for Me, Save puts the card on the wish list; Skip does not", async () => {
     const { container } = render(<MemoryRouter><SwipeGifts /></MemoryRouter>);
-    fireEvent.click(container.querySelector('[data-swipe-who="louisiana"]')!);
+    fireEvent.click(container.querySelector('[data-swipe-who="me"]')!);
     fireEvent.click(container.querySelector('[data-swipe-budget="0"]')!);
     fireEvent.click(container.querySelector("[data-swipe-start]")!);
     await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });

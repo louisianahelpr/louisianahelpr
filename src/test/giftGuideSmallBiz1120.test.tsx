@@ -18,6 +18,8 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import ROWS from "@/content/giftGuideSmallBiz.json";
 import { SMALL_BIZ_CATEGORIES, SMALL_BIZ_SLUG, smallBizFeatured, smallBizSections, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
+// The Featured local section (owner 11-20) reads the server; unit tests never reach Supabase.
+vi.mock("@/lib/sbsFeaturedApi", async (orig) => ({ ...(await orig<typeof import("@/lib/sbsFeaturedApi")>()), listFeaturedLocal: async () => [] }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));

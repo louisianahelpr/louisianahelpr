@@ -4,7 +4,7 @@
  *
  * @mutate src/components/declutter/BunchDraftsSection.tsx | className="text-base font-semibold">{t("lp.dr.head")}</h2> | className="text-base font-semibold">Your saved drafts</h2>
  * @mutate src/components/declutter/BunchDraftsSection.tsx | {t("lp.dr.together")} {t(listStepShown | List them together, or finish each one under Selling. {t(listStepShown
- * @mutate src/components/declutter/BunchDraftsSection.tsx | (feeDue ? t("lp.dr.listFree") : t("lp.dr.listAll")) | (feeDue ? t("lp.dr.listFree") : "List all my drafts")
+ * @mutate src/components/declutter/BunchDraftsSection.tsx | going.length === drafts.length ? t("lp.dr.listAll") : | going.length === drafts.length ? "List all my drafts" :
  * @mutate src/components/declutter/BunchDraftsSection.tsx | setProblem(listStepShown ? t("lp.dr.tickBelow") : t("lp.dr.tick")); | setProblem(listStepShown ? t("lp.dr.tickBelow") : "Tick the box under the four statements before you list your drafts.");
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -30,7 +30,7 @@ const show = () => {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <BunchDraftsSection userId="u1" exclude={new Set()} busy={false} feeDue={false} onBusy={() => {}} attested={false} setAttested={() => {}} listStepShown={false} onPricedOffered={() => {}} />
+        <BunchDraftsSection userId="u1" exclude={new Set()} busy={false} onBusy={() => {}} attested={false} setAttested={() => {}} listStepShown={false} onPricedOffered={() => {}} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -44,7 +44,7 @@ describe("Sell a bunch's saved drafts card follows the member's language (F260q)
 
   it("every word has its Spanish, and es.ts carries it", () => {
     const keys = (Object.keys(enListingParts) as (keyof typeof enListingParts)[]).filter((k) => k.startsWith("lp.dr."));
-    expect(keys.length).toBeGreaterThan(15);
+    expect(keys.length).toBeGreaterThan(13); // 14 since 11-20 (the setup-fee words left with the fee)
     for (const k of keys) {
       expect(es[k], k).toBe(esListingParts[k]);
       expect(esListingParts[k], `${k} still English`).not.toBe(enListingParts[k]);

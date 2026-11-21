@@ -5,7 +5,6 @@
  * the lines that proof exercises, plus the two restated bodies the proof cannot run in its small world
  * (declutter_deadline_sweep's free branch and declutter_my_cart's source).
  *
- * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   IF v_all_swap THEN\n    PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy');\n  ELSE | IF false THEN\n    PERFORM 1;\n  ELSE
  * @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql |           IF v_line.swap_id IS NOT NULL THEN\n            PERFORM public.declutter_end_swap(v_line.swap_id, NULL); |           IF false THEN\n            PERFORM 1;
  * @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql |           v_reopened := v_reopened + public.declutter_reopen_voided_offers(v_line.id);\n          -- CHANGED (trades #2) |           -- CHANGED (trades #2)
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     PERFORM public.declutter_end_swap(v_line.swap_id, v_uid);\n    RETURN public.declutter_active_strike_count(v_uid); |     RETURN public.declutter_give_strike(v_uid, 'seller', 'cancelled_after_offers', p_item_id, 'x', v_line.id);
@@ -39,10 +38,10 @@ const newestTrigger = (name: string): string => {
 };
 
 describe("Declutter trades fixes (audit 11-08)", () => {
-  it("#1 an all-trade free checkout keeps the ID check and skips the fee half; anything else meets the full gate", () => {
+  it("#1 (owner 2026-11-20) a free or trade checkout asks for no ID check and no setup fee", () => {
     const b = body("declutter_checkout_free");
-    expect(b).toMatch(/IF v_all_swap THEN\s+PERFORM public\.declutter_identity_gate\(v_uid, 'identity_required_to_buy'\);\s+ELSE\s+PERFORM public\.declutter_free_claim_gate\(v_uid\);/i);
-    expect(b).toMatch(/v_all_swap := NOT EXISTS \(SELECT 1 FROM public\.declutter_cart_items c WHERE c\.id = ANY \(v_lines\) AND c\.swap_id IS NULL\)/i);
+    expect(b).not.toMatch(/declutter_identity_gate|declutter_free_claim_gate|setup_fee_due/i);
+    expect(b).toMatch(/total_cents, setup_fee_cents, paid_with\)\s+VALUES \(v_uid, p_seller_id, p_handover, 0, 0, 0, 0, 0, 0, 'free'\)/i);
   });
 
   it("#2 accept marks both lines, and the cart read says 'swap' for them", () => {

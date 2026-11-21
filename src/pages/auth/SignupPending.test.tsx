@@ -318,7 +318,9 @@ describe("SignupPending", () => {
       expect(text).toMatch(/once per account/i);
       expect(text).toMatch(/post a job/);
       expect(text).toMatch(/get hired/);
-      expect(text).toContain("Once per account there's a quick ID check: when you post a job, get hired, or list, buy or claim on Declutter, or at your first payout.");
+      // Owner 2026-11-20: Declutter (list, buy, claim) never asks for the ID check.
+      expect(text).toContain("Once per account there's a quick ID check: when you post a job, get hired, or at your first payout.");
+      expect(text).not.toMatch(/Declutter/);
       expect(text).toMatch(/first payout/);
     });
   });

@@ -1144,39 +1144,33 @@ describe("declutter-checkout: pay", () => {
     expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
   });
 
-  // Q2403: the setup fee the open order froze is not the one checkout charges now: its page is closed FIRST, so a payment
-  // on it is the old order, never a superseded one refunded as the buyer's own restart.
-  // @mutate supabase/functions/declutter-checkout/index.ts |       feeChanged = Number(due ?? 0) !== Number(open.setup_fee_cents ?? 0); |       feeChanged = false; void due;
-  // @mutate supabase/functions/declutter-checkout/index.ts |         console.error(`[declutter-checkout] setup fee read failed: ${dueErr.message}`);\n        return json({ error: TRY_AGAIN }, 503); |         console.error(`[declutter-checkout] setup fee read failed: ${dueErr.message}`);
-  it("Q2403: the setup fee changed since the open order froze it: the open page is closed BEFORE the order is replaced", async () => {
+  // Q2403: an open order that froze a setup fee (made before owner 2026-11-20) is not what checkout charges now (0): its
+  // page is closed FIRST, so a payment on it is the old order, never a superseded one refunded as the buyer's own restart.
+  // @mutate supabase/functions/declutter-checkout/index.ts |     const feeChanged = page.status === "open" && Number(open.setup_fee_cents ?? 0) !== 0; |     const feeChanged = false;
+  it("Q2403: an open order that froze a setup fee: the open page is closed BEFORE the order is replaced", async () => {
     const fn = await load();
     scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_old", setup_fee_cents: 200 }] };
-    scenario.rpc.declutter_setup_fee_due_cents = 0;
     stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_old", "open", "https://x/old"));
     const steps: string[] = [];
     stripeMock.checkout.sessions.expire.mockImplementation(async () => { steps.push("expire"); return { status: "expired" }; });
     scenario.rpc.declutter_start_checkout = () => { steps.push("start"); return order({ superseded_session_id: "cs_live_old" }); };
     stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_new", url: "https://x/new", amount_total: 4600 });
     await fn.fetch(payReq(fn));
-    expect(rpcs("declutter_setup_fee_due_cents")[0]?.args).toEqual({ p_user: BUYER });
     expect(steps.slice(0, 2)).toEqual(["expire", "start"]);
   });
 
-  it("Q2403: the same setup fee leaves the open page alone, and a failed fee read says try again and touches nothing", async () => {
+  // Owner 2026-11-20 (money review of #4820): a returning first-time buyer (onboarding_fee_paid false) keeps their open
+  // page; the fee reader is never asked (it still says 200 for the delivery Helpr and Shops fees).
+  it("owner 11-20: an open order with no setup fee keeps its page, and the fee reader is never asked", async () => {
     const fn = await load();
-    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_open", setup_fee_cents: 200 }] };
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_open", setup_fee_cents: 0 }] };
     scenario.rpc.declutter_setup_fee_due_cents = 200;
     scenario.rpc.declutter_start_checkout = order({ checkout_session_id: "cs_live_open" });
     stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_open", "open", "https://x/open"));
     const body = await json(await fn.fetch(payReq(fn)));
     expect(body.url).toBe("https://x/open");
     expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
-    scenario.rpcErrors = { declutter_setup_fee_due_cents: { message: "boom", code: "XX000" } };
-    (scenario.rpcCalls ?? []).length = 0;
-    const res = await fn.fetch(payReq(fn));
-    expect(res.status).toBe(503);
-    expect(rpcs("declutter_start_checkout")).toHaveLength(0);
-    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(rpcs("declutter_setup_fee_due_cents")).toHaveLength(0);
   });
 
   it("Q2427: a page already PAID is answered paid before any bundle read (follow-up review note 5)", async () => {

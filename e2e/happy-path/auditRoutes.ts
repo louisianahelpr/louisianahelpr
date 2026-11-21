@@ -189,6 +189,8 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "gift-secret-santa", url: "/gift-guides/draw-names" },
   { name: "gift-swipe", url: "/gift-guides/swipe" },
   { name: "gift-planner", url: "/gift-guides/planner" },
+  // 2026-11-20: free printables (gift tags with names).
+  { name: "gift-printables", url: "/gift-guides/printables" },
   { name: "gift-secret-santa-reveal", url: "/gift-guides/secret-santa/aaaaaaaaaa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
   // OPS-4 town + service pages (src/lib/townPages.mjs): one of the 40 stands in for the shared page.
   { name: "hire-town", url: "/hire/handyman/lafayette" },

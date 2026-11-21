@@ -147,6 +147,18 @@ describe("declutter-money: the manager's share (manager mode phase 2b)", () => {
     }));
   });
 
+  // Owner 2026-11-20 (money review of #4820): a Declutter manager is a Helpr-type role and keeps the ID check; only the
+  // seller's own payout skips it.
+  // @mutate supabase/functions/_shared/payoutHold.ts |   return kind === "declutter"; |   return kind === "declutter" \|\| kind === "declutter_manager";
+  it("owner 11-20: an unverified manager's share waits on the ID check (no transfer, no try used)", async () => {
+    scenario.rpc.payout_waits_on_identity = true;
+    const { body } = await run({ managerPayouts: [managerRow()] });
+    expect(rpcs("payout_waits_on_identity").map((c) => c.args)).toContainEqual({ p_user_id: MANAGER });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(body.manager_payouts_sent ?? 0).toBe(0);
+    expect(rpcs("declutter_manager_payout_executed")).toHaveLength(0);
+  });
+
   it("a manager with no payout account yet waits (never paid to the seller), no try used", async () => {
     const { body } = await run({ managerPayouts: [managerRow({ stripe_account_id: null })] });
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();

@@ -31,7 +31,7 @@ export function OfferSentWhatNext({ cents, onClose, onBrowse, way = "pickup", re
       steps={cents === null ? [] : [
         { key: "offered", label: <>{t("osw.youOffered")} <Money cents={cents} /></>, detail: t("osw.48h"), state: "done" },
         { key: "answer", label: t("osw.answer"), detail: t("osw.letKnow"), state: "now" },
-        { key: "accepted", label: t("osw.ifAccepts"), detail: <>{t("osw.checkout")} <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> {forPhrase(way)}</>, state: "later" },
+        { key: "accepted", label: t("osw.ifAccepts"), detail: <>{t("osw.checkout")} <BuyerTotal priceCents={cents} className={MONEY} /> {forPhrase(way)}</>, state: "later" },
         { key: "pickup", label: t(way === "meetup" ? "osw.meet" : way === "none" ? "osw.delivered" : "osw.pickup"), detail: t("osw.thenPaid"), state: "later" },
       ]}
       primary={{ label: t("osw.gotIt"), acknowledge: true }}

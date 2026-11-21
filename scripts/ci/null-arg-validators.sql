@@ -335,7 +335,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('job_payment_is_funded',         NULL, ARRAY['''escrow'''], ARRAY[1]),
   ('job_payment_is_listed',         NULL, ARRAY['''held'''], ARRAY[1]),
   ('user_has_pending_application',  NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
-  ('user_may_see_job_address',      NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
+  -- A posts J, so A sees its address (20261120205350: hired Helpr B only after accepting, and the fixture's B never accepts).
+  ('user_may_see_job_address',      NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   -- A posts J, so A (the caller) is a party to it as a series (the poster branch).
   ('is_series_party',               '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   -- B has Declutter item I (seller A) in the cart (the 'declutter' fixture step), so the non-NULL call is TRUE.

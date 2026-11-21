@@ -92,7 +92,7 @@ type Reveal = "shown" | "waiting" | "revealed";
  * two primaries (landingFrontDoor.test.tsx).
  */
 export const POST_JOB_PATH = "/post-job";
-export const POST_JOB_SIGNED_OUT = POST_JOB_PATH;
+export const POST_JOB_SIGNED_OUT: string = "/post-job"; // the same page signed out (11-21); its own literal so knip sees no duplicate export
 /** Owner #7 (11-09): the Declutter side's Sell button, with the same rule as Post a job (11-21: the form itself, sign-up at Post). It opened the sell chooser (owner pick 5, 11-08); the ease batch (owner-approved 11-20) opens one item straight away, with the chooser one tap away there. */
 export const SELL_PATH = SELL_START_PATH;
 // Owner 11-21: a guest opens the sell form itself and fills it; sign-up is asked at Post (src/lib/guestSellDraft.ts).

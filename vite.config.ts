@@ -1231,7 +1231,7 @@ export default defineConfig(({ mode, command }) => ({
               test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]sponsorSignup\.ts$/,
               priority: 20,
               minSize: 0,
-              includeDependenciesRecursively: false,
+              includeDependenciesRecursively: false /* deps stay with their readers */,
             },
             // src/lib/declutter/delivery.ts.
             {
@@ -1239,7 +1239,7 @@ export default defineConfig(({ mode, command }) => ({
               test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]money\.ts$/,
               priority: 20,
               minSize: 0,
-              includeDependenciesRecursively: false,
+              includeDependenciesRecursively: false /* deps stay with their readers */,
             },
             // the post-job checkout and src/lib/cardHoldRead.ts.
             {
@@ -1247,7 +1247,7 @@ export default defineConfig(({ mode, command }) => ({
               test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]cardHoldCopy\.ts$/,
               priority: 20,
               minSize: 0,
-              includeDependenciesRecursively: false,
+              includeDependenciesRecursively: false /* deps stay with their readers */,
             },
             // the Declutter sell form and the address lookup.
             {
@@ -1255,7 +1255,7 @@ export default defineConfig(({ mode, command }) => ({
               test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]addressMatch\.ts$/,
               priority: 20,
               minSize: 0,
-              includeDependenciesRecursively: false,
+              includeDependenciesRecursively: false /* deps stay with their readers */,
             },
             // The parish tables and the location hook. Only the job lists, the
             // location hook and address checks read them, but several lazy

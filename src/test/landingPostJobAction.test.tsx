@@ -19,7 +19,7 @@
  *   3. the route lets a guest in (allowGuest), and the guest's sign-up at the
  *      end comes back to the draft (guestPostSignupUrl -> postAuthDestination).
  *
- * @mutate src/components/landing/HowItWorksSection.tsx | export const POST_JOB_SIGNED_OUT = POST_JOB_PATH; | export const POST_JOB_SIGNED_OUT = "/signup?redirect=%2Fpost-job";
+ * @mutate src/components/landing/HowItWorksSection.tsx | export const POST_JOB_SIGNED_OUT: string = "/post-job"; | export const POST_JOB_SIGNED_OUT: string = "/signup?redirect=%2Fpost-job";
  * @mutate src/components/landing/HowItWorksSection.tsx | signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job" }, | signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job-x" },
  * @mutate src/components/landing/HowItWorksSection.tsx |                 void goSignedInOr(navigate, action.signedIn, action.signedOut); |                 void goSignedInOr(navigate, "/home", action.signedOut);
  * @mutate src/components/landing/HowItWorksSection.tsx |               to={action.signedOut} |               to="/signup"

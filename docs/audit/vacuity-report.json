@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-21T18:45:45.864Z",
-  "guards": 4347,
-  "registered": 4343,
+  "generated": "2026-11-21T19:13:17.078Z",
+  "guards": 4351,
+  "registered": 4347,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
@@ -13,7 +13,9 @@
     "src/components/admin/adminTestMarkedRows.test.ts",
     "src/components/declutter/setupFeeNamesTheAmount.test.ts",
     "src/lib/disputeEvidencePhotos.test.ts",
+    "src/test/authCardBackArrow1121.test.tsx",
     "src/test/declutterGiftOnlyClose.test.ts",
+    "src/test/declutterGuestHomeLinks1120.test.tsx",
     "src/test/declutterOgItemCard.test.ts",
     "src/test/giftGuideBudgetCaps1120.test.ts",
     "src/test/giftGuideCoversMatchGuide.test.ts",

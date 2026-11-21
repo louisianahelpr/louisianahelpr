@@ -7,6 +7,7 @@ import {
   type FinderBudget, type FinderVibe, type FinderWho,
 } from "@/content/giftGuideExtras1120";
 import { PickRow } from "./GiftGuideView";
+import { PricesAsOf } from "@/components/giftGuides/PickPrice";
 
 /**
  * The gift finder on the landing (owner approved 11-19 ~9:10 PM): three taps (who, budget, vibe) and always a list
@@ -80,6 +81,8 @@ export function GiftFinder() {
             </>
           )}
           {!result.exact.length && !result.close.length && <p className="gg-price-note" data-gift-finder-none="">{W.finderNone}</p>}
+          {/* Holiday audit D M9 (11-20): the results' prices carry their "as of" day, as a guide's list does. */}
+          <PricesAsOf picks={[...result.exact, ...result.close]} />
           <span className="gg-chips">
             <Button type="button" variant="outline" size="sm" className="gg-chip" onClick={copy} data-gift-finder-share="">{copied ? W.finderCopied : W.finderShare}</Button>
             <Button asChild variant="link" size="inline" className="gg-link"><Link to={`/gift-guides#${FINDER_ID}`} data-gift-finder-again="">{W.finderAgain}</Link></Button>

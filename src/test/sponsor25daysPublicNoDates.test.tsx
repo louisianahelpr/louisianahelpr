@@ -9,7 +9,10 @@
  *
  * @mutate src/components/sponsor/Sections.tsx |             {p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)} |             <span className="lh25-lineup-date">Dec {lineupCount(1)}</span>{p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)}
  * @mutate src/content/sponsorPage.ts | a Louisiana favorite. Entry details coming soon on our Facebook page. | a Louisiana favorite. To enter: share this post and tag 2 friends.
- * @mutate src/content/sponsorPage.ts |         body: "Enter as described in the official giveaway post on the Louisiana Helpr Facebook page. Automated or bulk entries are void.", |         body: "Like the post. Limit one entry per person per day.",
+ * @mutate src/content/sponsorPage.ts |         body: "Enter as described in the official giveaway post on the Louisiana Helpr Facebook page. Limit one entry per person. Entries from more than one account or profile by the same person are void, and so are automated or bulk entries.", |         body: "Like the post. Limit one entry per person per day.",
+ * @mutate src/content/sponsorPage.ts | may only be claimed by a winner who is 21 years of age or older, who must show valid photo ID | may be claimed by any winner
+ * @mutate src/content/sponsorPage.ts | The odds of winning depend on the number of eligible entries received. | Everyone has a great chance.
+ * @mutate src/components/sponsor/Sections.tsx |       const prize = withAlcoholNote(prizeWithoutBrand(p.brand, p.prize)); |       const prize = prizeWithoutBrand(p.brand, p.prize);
  * @mutate src/content/sponsorPage.ts |           { brand: "David Rabalais", prize: "Toy Magnalite pot" }, |           { brand: "Mary Kay · Crystal Fakier", prize: "Toy Magnalite pot" },
  */
 import { describe, expect, it } from "vitest";
@@ -18,7 +21,7 @@ import path from "node:path";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
-import { About, BrandGets, BusinessAsk, EntrantHero, EntrantInfo, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk } from "@/components/sponsor/Sections";
+import { About, BrandGets, BusinessAsk, EntrantHero, EntrantInfo, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk, withAlcoholNote } from "@/components/sponsor/Sections";
 import { blankComments } from "./helpers/blankNonCode";
 
 function allStrings(v: unknown, out: string[] = []): string[] {
@@ -122,10 +125,21 @@ describe("/25days is the page for people entering; the official rules are final"
     expect(text).not.toMatch(/sign up by|nov(ember)? 22/i);
     expect(text).not.toMatch(ENTRY_STEPS);
     expect(text).toContain("Each person can win once.");
+    // Holiday audit D H1 (11-20): alcohol prizes are 21+ with ID, on the entrant page and on the prize line itself.
+    expect(text).toContain("Prizes with alcohol go to winners 21 and older, with ID.");
+    expect(text).toMatch(/2 free cocktails \(alcohol 21\+ with ID\)/);
     expect(container.querySelector("[data-testid='business-ask'] a")?.getAttribute("href")).toBe("/sponsor");
     expect(container.querySelector("[data-testid='giveaway-enter']")?.getAttribute("href")).toBe("https://www.facebook.com/louisianahelpr");
     // The full sponsor list (owner 2026-11-19): every brand on the tracker's calendar, once.
     expect(container.querySelectorAll("[data-testid='lineup-partner']").length).toBeGreaterThan(100);
+  });
+
+  it("an alcohol prize line says 21+ with ID; other prizes are untouched", () => {
+    expect(withAlcoholNote("Bottle of wine")).toBe("Bottle of wine (alcohol 21+ with ID)");
+    expect(withAlcoholNote("2 show tickets + 2 free cocktails")).toMatch(/\(alcohol 21\+ with ID\)$/);
+    expect(withAlcoholNote("Gin tasting for two")).toMatch(/21\+/);
+    for (const plain of ["Ginger body scrub", "Rummage box", "$50 gift card (plants only)"]) expect(withAlcoholNote(plain)).toBe(plain);
+    expect(withAlcoholNote("Bourbon flight (21+ with ID)")).toBe("Bourbon flight (21+ with ID)");
   });
 
   it("the official rules: Louisiana Helpr, Louisiana 18+, one entry for all 25 days, one win per person, 48 hours, no placeholder", () => {
@@ -146,6 +160,15 @@ describe("/25days is the page for people entering; the official rules are final"
       "in no way sponsored, endorsed or administered by, or associated with, Facebook or Meta",
       "Void where prohibited",
       "as described in the official giveaway post on the Louisiana Helpr Facebook page",
+      // Holiday audit D H1 + M3 (11-20): alcohol 21+ with ID, one entry per person, odds, prize values, winners list.
+      "may only be claimed by a winner who is 21 years of age or older, who must show valid photo ID",
+      "receives the part of the prize without the alcohol, or, if the prize cannot be split, an alternate winner is drawn",
+      "Limit one entry per person.",
+      "more than one account or profile by the same person are void",
+      "The odds of winning depend on the number of eligible entries received.",
+      "approximate retail value",
+      "A list of winners is available by emailing",
+      "never ask a winner for payment, card details or a fee",
     ]) expect(all, must).toContain(must);
     expect(all).not.toMatch(ENTRY_STEPS);
     // Privacy (lead 2026-11-19): no street address in the public rules.

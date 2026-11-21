@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { DEALS_SLUG, DEALS_WORDS as W, dealSections, dealsFeatured, dealsTitle, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
@@ -35,6 +34,7 @@ const DEALS_CSS = `
 .gg-deal-text{margin:0;font-size:13px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal-meta{margin:0;font-size:12px;color:var(--gg-muted)}
 .gg-deal-code{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.gg-deal-copy{padding:0 12px;font-size:12px;color:var(--gg-olive)}
 .gg-deal-code code{font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:var(--gg-soft);color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal .gg-deal-shop{margin-top:auto;width:100%;border-radius:999px;font-weight:700;color:var(--gg-olive);border-color:var(--gg-olive)}
 .gg-deals-feature{display:flex;align-items:center;gap:14px;margin:4px 0 14px;padding:12px;border-radius:14px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);text-decoration:none}
@@ -83,9 +83,9 @@ function DealCard({ deal }: { deal: Deal }) {
         <p className="gg-deal-meta gg-deal-code" data-gift-deal-code={deal.code}>
           <span>{W.codeLabel}</span>
           <code>{deal.code}</code>
-          <InlineTextButton className="no-underline" onClick={() => copy(deal.code!)} aria-label={`${G.copyCode} ${deal.code}`}>
+          <Button type="button" variant="ghost" size="sm" className="gg-deal-copy" onClick={() => copy(deal.code!)} data-gift-code-copy="" aria-label={`${G.copyCode} ${deal.code}`}>
             {copied ? G.copiedCode : G.copyCode}
-          </InlineTextButton>
+          </Button>
         </p>
       )}
       {(deal.ends || deal.store) && (

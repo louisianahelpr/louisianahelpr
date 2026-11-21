@@ -71,7 +71,7 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
           <span className="gg-today-k">{W.gotdTitle}:</span>
           <GiftOut href={gift.href} className="gg-today-name">{shortName(gift.name)}<span className="sr-only"> (opens in a new tab)</span></GiftOut>
           <PickPrice pick={gift} />
-          <Button type="button" variant="ghost" size="inline" className="gg-today-share" aria-label={W.gotdShareLabel} onClick={() => void share()} data-gift-gotd-share="">{msg ?? W.gotdShare}</Button>
+          <Button type="button" variant="ghost" size="sm" className="gg-today-share" aria-label={W.gotdShareLabel} onClick={() => void share()} data-gift-gotd-share="">{msg ?? W.gotdShare}</Button>
         </span>
       )}
       {giveawayTieInOn(now, GIFT_GUIDE_FLAGS.giveawayBanner.on) && (
@@ -109,7 +109,7 @@ const COUNTDOWN_CSS = `
 .gg-today-gift{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 220px}
 .gg-today-k{font-weight:700;white-space:nowrap}
 .gg-today-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gg-ink);text-decoration:underline;text-underline-offset:2px}
-.gg-today-share{flex:none;min-height:32px;margin-left:auto;padding:0 12px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font-size:12px;font-weight:600;color:var(--gg-ink)}
+.gg-today-share{flex:none;min-height:44px;margin-left:auto;padding:0 12px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font-size:12px;font-weight:600;color:var(--gg-ink)}
 `;
 const TOOLS_CSS = `
 .gg-fun-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;list-style:none;margin:0;padding:0}

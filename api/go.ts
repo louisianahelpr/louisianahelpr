@@ -7,7 +7,8 @@
  *   never send a visitor anywhere the map does not name (no open redirect).
  * - Only allowlisted affiliate hosts, never Amazon (src/lib/goLinks.mjs). An unknown slug or a refused target
  *   goes to the gift guides.
- * - Cache-Control public, max-age=300 (a repointed slug is live within 5 minutes); X-Robots-Tag noindex,
+ * - Cache-Control private, no-store (holiday audit D L1: a cached 302 skipped the click log for 5 minutes, and a
+ *   repointed slug is live at once); X-Robots-Tag noindex,
  *   nofollow (a redirect is no page to index, and affiliate links are never followed for ranking).
  * - Each hit inserts one analytics_events row (event go_link_click), the same anon insert path the signed-out
  *   app uses (src/lib/analytics.ts; policy anyone_can_insert_analytics, user_id null). It never blocks the
@@ -18,7 +19,7 @@
 import { GO_LINKS } from "../src/content/goLinks.mjs";
 import { GO_FALLBACK_URL, goTargetFor, isGoSlug } from "../src/lib/goLinks.mjs";
 
-export const GO_CACHE_CONTROL = "public, max-age=300";
+export const GO_CACHE_CONTROL = "private, no-store";
 export const GO_ROBOTS = "noindex, nofollow";
 /** Budget for the click insert when it has to be awaited (no waitUntil). */
 export const GO_LOG_TIMEOUT_MS = 300;

@@ -166,6 +166,7 @@ export const NOT_MONITORED = {
   gift_swipe_round_done: "usage count of finished swipe rounds (cards, saved), read by hand",
   gift_planner_person_added: "usage count of people added to the gift planner, read by hand",
   gift_of_the_day_shared: "usage count of Gift of the Day shares, read by hand",
+  gift_out_click: "outbound Shop clicks on the gift guides (host + path, no query), read by hand to rank the Top 10; a quiet day of zero is possible",
   gift_wish_heart: "usage count of gift guide hearts (added, removed, list full), read by hand; a quiet day of zero is normal",
   gift_wish_list_link: "usage count of share links made from My Wish List, read by hand; the outcome is the gift_wish_lists rows",
   gift_wish_list_share: "usage count of how a wish list link was sent (copy, text, Messenger, share sheet), read by hand",

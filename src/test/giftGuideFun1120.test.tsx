@@ -258,11 +258,13 @@ describe("swipe rounds", () => {
     // round finds nothing in them; only "any budget" deals for Dad and Him.
     // Commission switches 11-21 (4 Amazon picks moved to the same item at a better-paying ShopMy store, which shows a
     // price): rounds got fuller and me/100 now deals 8+ (measured 2026-11-21).
+    // Her ShopMy saves for Him (8) and Kids (16), 11-21, show a price: Dad and Him now deal 8+ under $100 and for any
+    // budget, me/50 deals 8+, and me/25 rises to 6 (measured 2026-11-21).
     // @two-way src/test/giftGuideFun1120.test.tsx:expect(thin).toEqual(KNOWN_THIN)
     const KNOWN_THIN = [
-      "me/25: 1", "me/50: 5", "mom/25: 1", "mom/50: 5", "mom/100: 7",
-      "dad/25: 0", "dad/50: 0", "dad/100: 1", "dad/0: 7", "her/25: 1", "her/50: 5", "her/100: 7",
-      "him/25: 0", "him/50: 0", "him/100: 1", "him/0: 7", "kids/25: 0", "kids/50: 0", "kids/100: 0", "kids/0: 0",
+      "me/25: 6", "mom/25: 1", "mom/50: 5", "mom/100: 7",
+      "dad/25: 5", "dad/50: 7", "her/25: 1", "her/50: 5", "her/100: 7",
+      "him/25: 5", "him/50: 7", "kids/25: 0", "kids/50: 0", "kids/100: 0", "kids/0: 0",
     ];
     expect(thin).toEqual(KNOWN_THIN);
   });

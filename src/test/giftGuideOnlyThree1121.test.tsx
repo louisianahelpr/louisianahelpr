@@ -189,8 +189,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     ]);
     expect([...container.querySelectorAll("[data-gift-side-tools] a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides#gift-finder", ...TOOLS]);
     // The free printables show only what is ready (the gift tags and, owner 11-21 "boys coloring pages are ready for
-    // site", the coloring book), never the elf kit.
-    expect(shownPrintables().map((p) => p.title)).toEqual(["Gift tags with names", "Christmas coloring book"]);
+    // site", the coloring book; owner 11-21 "add this to the free printables", the Thanksgiving banner), never the elf kit.
+    expect(shownPrintables().map((p) => p.title)).toEqual(["Gift tags with names", "Christmas coloring book", "Happy Thanksgiving banner"]);
     // Codes and sales live only on the deals page; the deleted Gift of the Day and the retired strips stay gone.
     expect(container.querySelector("[data-gift-top], [data-gift-countdown], [data-gift-of-the-day], [data-gift-deals-codes], [data-gift-codes], [data-gift-sales], [data-gift-entries], [data-gift-more-groups]")).toBeNull();
     // No link anywhere on the landing to a retired guide.

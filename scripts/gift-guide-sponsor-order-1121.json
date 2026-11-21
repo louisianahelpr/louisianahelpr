@@ -1,5 +1,5 @@
 {
- "_note": "Owner 2026-11-21: the 25 Days sponsor row shows only sponsors whose prize, value and delivery are all confirmed (notConfirmed are left out until they are), Louisiana sponsors first, then national, each by total gift value high to low. Values and statuses copied from the 25 Days Sponsor Tracker (prize table) 2026-11-21 11:20 AM; edit here when the tracker changes.",
+ "_note": "Owner 2026-11-21: the 25 Days sponsor row shows only sponsors whose prize, value and delivery are all confirmed (notConfirmed are left out until they are), Louisiana sponsors first, then national, each by total gift value high to low. Values and statuses copied from the 25 Days Sponsor Tracker (prize table) 2026-11-21 11:20 AM; edit here when the tracker changes. National = brands based outside Louisiana and touring shows (Small-Business-Saturday-1119.md research: Dolly's is MA, Crew Dog national).",
  "notConfirmed": [
   "Barclell Photography",
   "Bashi",
@@ -50,7 +50,12 @@
   "Texas Beard Company",
   "The Sculpt Society",
   "Timeless Skin Care",
-  "Tushbaby"
+  "Tushbaby",
+  "Dolly's Boutique",
+  "Crew Dog",
+  "Mary Kay",
+  "Grand Kyiv Ballet",
+  "World Ballet Company"
  ],
  "value": {
   "3 Redneck Tenors": 82,

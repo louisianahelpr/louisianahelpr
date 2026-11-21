@@ -37,8 +37,15 @@ const FEW_PHOTOS = "fewer than 4 clean product-only photos";
 // Big batch 1120: rebuilt from the cover script's TEXT ONLY line after the merges (every entry a guide the page shows;
 // the store pages under STORE_ROW_MIN_PICKS are thin and not shown, so not listed).
 // Follow-up 1120 (~30 guides, the owner's 26 store pages): rebuilt from the cover script's TEXT ONLY line, 2026-11-20.
+// Builder 3 1120b: covers now draw only non-Amazon picks that are still in the guide after the owner's removals, so more
+// guides fall under four usable photos. Rebuilt from the cover script's TEXT ONLY line, 2026-11-20 8:17 PM.
 const TEXT_ONLY: Record<string, string> = {
   "store-hoka": `${FEW_PHOTOS}: 3 of its 10 picks cut out cleanly (the rest are on-foot or coloured-backdrop shots), measured 2026-11-20`,
+  "store-baublebar": `${FEW_PHOTOS}: 1 of its 10 picks is on white (the rest are coloured-backdrop shots), measured 2026-11-20`,
+  "store-amazon": `${FEW_PHOTOS}: every pick is an Amazon photo, and Amazon photos never go on a cover`,
+  "gift-wrap-and-cards": `${FEW_PHOTOS}: 3 of its 7 non-Amazon picks are usable, measured 2026-11-20`,
+  "louisiana-by-region": `${FEW_PHOTOS}: 2 of its 8 non-Amazon picks are usable, measured 2026-11-20`,
+  "car-lover": `${FEW_PHOTOS}: 1 of its 2 non-Amazon picks is usable, measured 2026-11-20`,
 };
 const PIXEL_PALE: Record<string, string> = {};
 

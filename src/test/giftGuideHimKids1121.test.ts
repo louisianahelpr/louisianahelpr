@@ -8,7 +8,7 @@
  * and her own ShopMy saves for men and kids (11-21: "i also added some man and kids stuff in shop my"; "the him and kids
  * need gifts on their covers"), shown the same way.
  * @mutate scripts/giftGuideHimKids1121.mjs | pageList[slug] = picks; | void picks;
- * @mutate scripts/giftGuideHimKids1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug }; |     const p = { ...rest, image: r.image, ownerPick: true, from: slug };
+ * @mutate scripts/giftGuideHimKids1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank }; |     const p = { ...rest, image: r.image, ownerPick: true, from: slug, priceRank };
  * @mutate scripts/giftGuideHimKids1121.mjs |     if (!isAmazon(r)) Object.assign(p, { price, priceAt: HIM_KIDS_PRICE_AT }); |     void price;
  */
 import { existsSync, readFileSync } from "node:fs";

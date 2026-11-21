@@ -27,6 +27,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
+import { droppedPhoto, rightPhoto } from "./giftGuidePhotoFixes1120.mjs";
 import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
@@ -456,8 +457,10 @@ function toPick(p, where) {
   // The owner approved Amazon product images for these (11-18 PM): the CDN photo, on an Amazon link only (Associates).
   const amazonFound = Boolean(found) && AMAZON_IMAGE_HOST.test(new URL(found).hostname);
   const swap = ownImage ? BADGE_PHOTO_SWAPS.get(ownImage.split("?")[0]) : undefined;
-  const image = swap !== undefined ? (swap && AMAZON_CDN_PHOTOS && (AMAZON.has(host) || AMAZON.has(plainHost)) ? swap : undefined) : ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !isTiff(found)
+  // A photo of the wrong product (photo review 11-20) shows the right one, or nothing: scripts/giftGuidePhotoFixes1120.mjs.
+  const pickedImage = swap !== undefined ? (swap && AMAZON_CDN_PHOTOS && (AMAZON.has(host) || AMAZON.has(plainHost)) ? swap : undefined) : ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !isTiff(found)
     && (!amazonFound || (new URL(found).hostname === "m.media-amazon.com" && (AMAZON.has(host) || AMAZON.has(plainHost)))) ? found : undefined);
+  const image = droppedPhoto(p.image) ? undefined : rightPhoto(pickedImage);
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);
   // A brand field naming the store (Macy's, Target, Tractor Supply) takes the maker the name opens with (fit audit r4).
@@ -3946,6 +3949,11 @@ export const weeklyTop = (() => {
   }
   return out;
 })();
+// Photo review 11-20 (scripts/giftGuidePhotoFixes1120.mjs), last pass: picks that reach a page by a later path (train
+// adds, store fill) never pass createPick, so a wrong photo is swapped or its row dropped (no photo, no row) here too.
+for (const slug of Object.keys(pageList)) {
+  pageList[slug] = pageList[slug].filter((p) => !droppedPhoto(p.image)).map((p) => (p.image && rightPhoto(p.image) !== p.image ? { ...p, image: rightPhoto(p.image) } : p));
+}
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();

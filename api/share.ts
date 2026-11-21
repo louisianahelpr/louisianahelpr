@@ -1212,7 +1212,7 @@ function seoFor(url: URL): SeoOutcome {
     }
     if (slug === DEALS_SLUG) {
       const name = dealsTitle(louisianaDay(new Date()));
-      return { kind: "page", body: dealsGuideBody(DEALS_SLUG, name, DEALS_WORDS.intro, DEALS_WORDS.disclosure), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${DEALS_SLUG}` }])] };
+      return { kind: "page", body: dealsGuideBody(DEALS_SLUG, name, DEALS_WORDS.featuredLine, DEALS_WORDS.disclosure), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${DEALS_SLUG}` }])] };
     }
     const d = seoData();
     if (!d) return null;

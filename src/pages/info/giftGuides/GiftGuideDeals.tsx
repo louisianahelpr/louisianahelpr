@@ -5,7 +5,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { DEALS_SLUG, DEALS_WORDS as W, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, shortDay, type Deal } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 import { loadModule } from "@/lib/loadModule";
-import { HINTS, WISH } from "@/content/giftWishList";
+import { WISH } from "@/content/giftWishList";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { dealName } from "./wishListItems";
@@ -29,7 +29,6 @@ import { SmallBizGrid } from "./GiftGuideSmallBiz";
 
 const DEALS_CSS = `
 .gg-deals-intro{margin:10px 0 4px;font-size:15px;line-height:1.5;color:var(--gg-ink);max-width:46rem}
-.gg-deals-ad{margin:0 0 6px;font-size:12px;color:var(--gg-muted)}
 .gg-deal-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (min-width:640px){.gg-deal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (min-width:1100px){.gg-deal-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -137,10 +136,7 @@ export function GiftGuideDeals({ now }: { now?: Date }) {
   return (
     <div data-gift-deals-page="">
       <style>{DEALS_CSS}</style>
-      <p className="gg-deals-intro">{W.intro}</p>
-      <p className="gg-deals-ad" data-gift-deals-ad="">{W.disclosure}</p>
-      {/* Owner 2026-11-20 hints: the deals page's helper line. */}
-      <p className="gg-deals-ad" data-gift-deals-help="">{HINTS.deals}</p>
+      {/* Owner 2026-11-21 ("remove this"): no intro, "#ad" or helper line here; the footer's affiliate disclosure stays. */}
       {/* Owner 11-21 ("i dont see the discount codes or sales"): the store codes and sales live on this page, open, and
           nowhere else on the landing ("Codes and deals shouldn't randomly show in sections"). */}
       <DealsAndCodes open />

@@ -56,7 +56,7 @@ describe("Login for a guest who opened a Declutter link (AUD31-16)", () => {
 
   it("Login puts Create an account inside the notice when it leads", () => {
     const src = blankComments(readFileSync("src/pages/auth/Login.tsx", "utf8"));
-    expect(src).toContain("redirect: safeInternalRedirect(pendingRedirect) });");
+    expect(src).toContain(`redirect: safeInternalRedirect(pendingRedirect), reason: searchParams.get("reason") });`);
     expect(src).toMatch(/\{leadWithSignup && \(\s*<Link to=\{signupHref\}[^>]*data-login-lead-signup=""/);
   });
 });

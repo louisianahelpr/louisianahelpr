@@ -244,6 +244,8 @@ try {
   check((await cancel(c.code, [c.tokens[0], c.tokens[1], c.tokens[2], "f".repeat(64)])) === false, "a made-up token cannot stand in for a person");
   check((await cancel(other.code, c.tokens)) === false, "one group's tokens cannot cancel another group");
   check((await cancel(c.code, null)) === false && (await cancel(null, c.tokens)) === false, "a NULL code or token list cancels nothing");
+  const twoD = (await q(`SELECT public.secret_santa_cancel($1, ARRAY[[$2, $3], [$4, $2], [$3, $4]]::text[]) AS r`, [c.code, c.tokens[0], c.tokens[1], c.tokens[2]]))[0].r;
+  check(twoD === false, "a 2-D token array cancels nothing (lh-authz-rls note)");
   check((await rev(c.code, c.tokens[2]))?.match === "Dee", "after the refused cancels, every link still works");
   const exp = (await q(create("1,2,3,0")))[0].r;
   await db.exec(`UPDATE public.secret_santa_groups SET expires_at = now() - interval '1 minute' WHERE code = '${exp.code}'`);

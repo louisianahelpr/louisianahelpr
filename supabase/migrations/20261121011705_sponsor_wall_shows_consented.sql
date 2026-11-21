@@ -11,7 +11,8 @@
 -- WHY THIS FIXES IT: the wall is decided by the two switches that already say who may be on it: wall_ok (the
 -- sponsor's own "OK to show our logo" tick, required by CHECK sponsor_signups_wall_needs_ok) and show_on_wall (the
 -- admin's wall toggle in Admin -> Sponsors, sponsor_admin_set_wall; the admin turned it off for Microtel and
--- Wingate). Status no longer gates the wall. Test sign-ups still never show (is_seed_email). Nothing else changes:
+-- Wingate). Status no longer gates the wall. Test sign-ups still never show (is_seed_email), now in the logo
+-- endpoint too (lh-authz-rls note: without the status gate a pending test sign-up's logo was servable). Otherwise
 -- both functions are restated verbatim from 20261109162829 (their newest definition) except the wall condition.
 --
 -- REPLAY-SAFE: CREATE OR REPLACE only; REVOKE/GRANT restated (FROM PUBLIC, anon, authenticated).
@@ -71,7 +72,7 @@ SET search_path TO 'public'
 AS $function$
   SELECT s.logo_path FROM public.sponsor_signups s
    WHERE s.id = p_signup_id
-     AND (p_any OR (s.show_on_wall AND s.wall_ok));
+     AND (p_any OR (s.show_on_wall AND s.wall_ok AND NOT public.is_seed_email(s.email)));
 $function$;
 REVOKE ALL ON FUNCTION public.sponsor_service_logo_path(uuid, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.sponsor_service_logo_path(uuid, boolean) TO service_role;

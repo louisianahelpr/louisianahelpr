@@ -37,11 +37,12 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
 DECLARE
   v_size integer;
-  v_given integer := COALESCE(array_length(p_tokens, 1), 0);
+  -- cardinality, not array_length(.., 1): a 2-D array is refused below, never counted by its first dimension.
+  v_given integer := COALESCE(cardinality(p_tokens), 0);
   v_matched integer;
   v_rows integer;
 BEGIN
-  IF p_code IS NULL OR p_code !~ '^[a-f0-9]{10}$' OR v_given < 3 OR v_given > 30 THEN
+  IF p_code IS NULL OR p_code !~ '^[a-f0-9]{10}$' OR v_given < 3 OR v_given > 30 OR array_ndims(p_tokens) <> 1 THEN
     RETURN false;
   END IF;
   IF EXISTS (SELECT 1 FROM unnest(p_tokens) t WHERE t IS NULL OR t !~ '^[a-f0-9]{64}$') THEN

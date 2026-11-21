@@ -18,8 +18,6 @@ export const WRONG_PHOTOS_1120 = new Map([
   ["https://images.urbndata.com/is/image/Anthropologie/108979261_025_b14", ""],
   // Meri Meri Nutcracker Gift Tags: the Maisonette store logo.
   ["https://static.shopmy.us/pins/zoom-107826257-1795111508033-mid409239_1548270053.jpg", ""],
-  // Le Creuset Signature Dutch Oven, Nectar: a butter dish.
-  ["https://m.media-amazon.com/images/I/51RYBgIkTML._AC_SL500_.jpg", ""],
   // Hunter Original Short Rain Boots Yellow: a dark green Hunter Play wedge boot.
   ["https://m.media-amazon.com/images/I/61LQC7BUmDL._AC_SL500_.jpg", ""],
   // Charlotte Tilbury Airbrush Bronzer: a bare refill pan, a flat brown circle.
@@ -30,8 +28,6 @@ export const WRONG_PHOTOS_1120 = new Map([
   ["https://m.media-amazon.com/images/I/71hraa-ScmL._AC_SL500_.jpg", ""],
   // The Mayfair Group You Are Safe Here Zip-Up Hoodie: a different crewneck, on a model.
   ["https://static.shopmy.us/uploads/img-product-1792102389656", ""],
-  // Columbia Men's Fleece: a The North Face fleece.
-  ["https://m.media-amazon.com/images/I/61U4GeA7z8L._AC_SL500_.jpg", ""],
   // Fanatics New Orleans Saints Men's Defender Evo hoodie: a women's zebra-stripe hoodie, on a model.
   ["https://m.media-amazon.com/images/I/81f7e9GsgwL.jpg", ""],
   // Costa Farms Snake Plant: a rubber plant.

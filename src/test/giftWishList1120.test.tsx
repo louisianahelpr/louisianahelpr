@@ -42,11 +42,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import deals from "@/content/giftGuideDeals.json";
 import smallBiz from "@/content/giftGuideSmallBiz.json";
-import { DEALS_SLUG, type Deal } from "@/content/giftGuideDeals.mjs";
+import { type Deal } from "@/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
-import { GUIDES, guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
+import { GUIDES, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { HINTS, WISH } from "@/content/giftWishList";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -76,7 +75,7 @@ import { GIFT_WISH_CSS } from "@/pages/info/giftGuides/giftWishStyles";
 import { giftNameProblem } from "@/lib/giftNameClean";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { resetFirstHeartForTests } from "@/pages/info/giftGuides/GiftGuideHints";
-import { bizItemId, dealItemId, dealName } from "@/pages/info/giftGuides/wishListItems";
+import { bizItemId, dealName } from "@/pages/info/giftGuides/wishListItems";
 
 await loadAllGuidePicks();
 

@@ -35,13 +35,13 @@ import type { SponsorPublicState } from "@/lib/sponsor/types";
 import { blankComments } from "./helpers/blankNonCode";
 
 /**
- * The owner's lineup, day -> brands, exactly her 25 Days Sponsor Tracker's calendar (const D) as of 2026-11-17
- * 11:20 PM: 109 giveaways (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
+ * The owner's lineup, day -> brands, exactly her 25 Days Sponsor Tracker's calendar (const D) as of 2026-11-20
+ * 6:45 PM: 176 giveaways (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
  * itself: `node scripts/check-25days-lineup.mjs` (manual; the tracker lives on the owner's Desktop, not in CI).
  */
 const FINAL: Record<number, string[]> = {
   1: ["homerunPET", "RYSE", "CMI Entertainment: A Christmas Carol", "Oil Center (Lafayette Festival of Lights)", "Faith & Fire BBQ", "FELCO North America", "Le Petit Theatre (New Orleans)"],
-  2: ["Boston Mints", "RYSE", "World Ballet Company: The Nutcracker", "David Rabalais", "Cher Bebe Embroidery", "Wicks NOLA Candle Company"],
+  2: ["Boston Mints", "RYSE", "World Ballet Company: The Nutcracker", "David Rabalais", "Cher Bebe Embroidery", "Wicks NOLA Candle Company", "Ace Bungee Fitness"],
   3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Crabtrap Functional Fitness", "RoseMae Eimear Creations", "Everyday Dose", "Forgiven Hearts", "Suzi Marques Photography"],
   4: ["K18 Hair", "RYSE", "Megan Benoit's Closet", "Kate McLeod", "Britt Creates", "Tays Sweet Shop", "Jessica Lanham Photography"],
   5: ["Oyu Botanica", "RYSE", "R&R Wedding Co.", "Breads and Sweets by Babs", "Olivia Grace Photography", "Celebration Station (Baton Rouge)", "Jessica Lanham Photography"],
@@ -54,17 +54,17 @@ const FINAL: Record<number, string[]> = {
   12: ["Oyu Botanica", "RYSE", "Summar T. Photography", "RoseMae Eimear Creations", "Rip Van Winkle Gardens", "Tays Sweet Shop", "Wicks NOLA Candle Company", "Suzi Marques Photography"],
   13: ["SRI Labs", "RYSE", "Hello Darlin'", "Kee's Pretty Little Things", "The Crab Man Plus", "Manta Sleep"],
   14: ["The Sculpt Society", "Crew Dog", "Aeva Beauty", "The Humble Home Decor & Candles", "Deming Delights", "Everyday Dose", "God's Country RV Resort"],
-  15: ["RYSE", "Britt Creates", "Zydeco Chop Chop", "Proof & Pour Wax Co.", "Sky & Sol", "Cat Lady / CatLadyBox"],
+  15: ["RYSE", "Britt Creates", "Zydeco Chop Chop", "Proof & Pour Wax Co.", "Sky & Sol", "Cat Lady / CatLadyBox", "BIME Beauty"],
   16: ["SRI Labs", "RYSE", "3 Redneck Tenors", "Haylie Rudisill · Custom wreath sashes", "Tays Sweet Shop", "Phyllis Guy Dance Center"],
   17: ["Cajun Belle Studio", "LMNT", "Bayou Grace Outfitters", "Dolly's Boutique", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Jessica Lanham Photography"],
-  18: ["Boston Mints", "RYSE", "HOTWORX Baton Rouge (Millerville)", "Basic Bee", "Saranoni", "Monarch Books (Baton Rouge)"],
+  18: ["Boston Mints", "RYSE", "HOTWORX Baton Rouge (Millerville)", "Basic Bee", "Saranoni", "Monarch Books (Baton Rouge)", "Restore Hyper Wellness Mandeville"],
   19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography", "Tushbaby", "aosu", "Everyday Dose", "Bully Made 3D Prints & More"],
   20: ["RYSE", "Cher Bebe Embroidery", "Dupuy's Abbeville", "Salty Cat", "Rip Van Winkle Gardens", "Tays Sweet Shop", "Ripley's Crawfish", "Sprinkle in Time Too (Sulphur)", "Cat 5 Fishing Charters (Lake Charles)"],
-  21: ["The Soft Life Collective", "RYSE", "Bourque's Cajun Country Seasoning", "Rusty's Seasoning", "HOTWORX Denham Springs"],
+  21: ["The Soft Life Collective", "RYSE", "Bourque's Cajun Country Seasoning", "Rusty's Seasoning", "HOTWORX Denham Springs", "Texas Beard Company"],
   22: ["LMNT", "RYSE", "Krazy Bull Kreations", "Bashi", "Handmade By Hayli", "Wicks NOLA Candle Company", "Barclell Photography", "Arey", "Ripley's Crawfish"],
-  23: ["Tiffany Morton Cosmetic Tattooing", "Faith & Fire BBQ", "Bashi", "Mary Kay", "IDRA Wellness"],
+  23: ["Tiffany Morton Cosmetic Tattooing", "Faith & Fire BBQ", "Bashi", "Mary Kay", "IDRA Wellness", "Perfectly Planned Events"],
   24: ["LMNT", "Hilma", "Playtopia Lafayette", "Bashi", "K18 Hair", "Tays Sweet Shop", "Ripley's Crawfish", "Tufted Artworks"],
-  25: ["Louisiana Helpr", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)", "Proof & Pour Wax Co.", "Bashi", "Mind the Skin Labs"],
+  25: ["Louisiana Helpr", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)", "Proof & Pour Wax Co.", "Bashi", "Mind the Skin Labs", "Cajun Fiya"],
 };
 
 const NO_DB: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
@@ -107,7 +107,7 @@ describe("the final lineup", () => {
 
   it("a day the lineup lists never reads Open on the sign-up calendar, even with no sign-up row", () => {
     expect(tileCount(NO_DB, 4)).toBe(7);
-    expect(tileCount(NO_DB, 25)).toBe(5);
+    expect(tileCount(NO_DB, 25)).toBe(6);
     expect(tileCount(NO_DB, 24)).toBe(8);
     expect(tileCount(NO_DB, 14)).toBe(7);
     expect(tileCount(NO_DB, 8)).toBe(7);

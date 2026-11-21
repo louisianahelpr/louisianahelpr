@@ -55,7 +55,7 @@ describe("gift guides follow-up 1120", () => {
     // Owner "FINAL MERGES -> ~30": 28 guides measured 2026-11-20; owner 11-21: only Her, Him and Kids (and the 25 Days
     // sponsors page) stay live. A relationship filter page (Mom, Dad ... on For Her / For Him) is a view, not a guide.
     const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-") && !(g as { view?: unknown }).view);
-    // Owner 11-21 PM: the deals page is live again; it is its own page (GiftGuideDeals), never a catalog guide.
+    // Owner 11-21: the deals page is live too, but it is its own page, no catalog guide.
     expect(shown.map((g) => g.slug).sort()).toEqual(LIVE_GUIDES_1121.filter((s) => s !== DEALS_SLUG).sort());
   });
 
@@ -93,7 +93,8 @@ describe("gift guides follow-up 1120", () => {
 
   it("every confirmed Louisiana sponsor is on a Louisiana guide with the sponsor badge, or named there", () => {
     const biz = JSON.parse(readFileSync("src/content/giftGuideSmallBiz.json", "utf8")) as { name: string; href?: string }[];
-    expect(biz.length).toBeGreaterThan(40);
+    // Owner 11-21: confirmed Louisiana sponsors only (37 measured 2026-11-21; scripts/gift-guide-small-biz.mjs confirmedLocal).
+    expect(biz.length).toBeGreaterThan(30);
     const picks = readFileSync("src/content/giftGuidePicks.ts", "utf8");
     const named = JSON.parse(/NAME_ONLY_SPONSORS: Record<string, string\[\]> = (\{.*?\});/.exec(picks)![1]) as Record<string, string[]>;
     const shown = [...(CHUNKS.get("shop-small-louisiana") ?? []), ...(CHUNKS.get("louisiana-by-region") ?? [])];

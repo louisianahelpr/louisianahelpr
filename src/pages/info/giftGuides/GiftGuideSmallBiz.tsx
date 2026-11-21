@@ -29,7 +29,7 @@ const SMALL_BIZ_CSS = `
 .gg-sb-logo img{width:100%;height:100%;object-fit:contain}
 .gg-sb-logo b{font-size:12px;line-height:1.15;text-align:center;padding:4px;color:var(--gg-olive);overflow-wrap:anywhere}
 .gg-sb-body{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
-.gg-sb-name{margin:0;font-size:15px;font-weight:700;color:var(--gg-ink);overflow-wrap:anywhere}
+.gg-sb-name{margin:0;padding-right:40px;font-size:15px;font-weight:700;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-sb-town{margin:0;font-size:12px;color:var(--gg-muted)}
 .gg-sb-text{margin:0;font-size:13px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-sb-links{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:4px}
@@ -62,7 +62,8 @@ function Out({ href, className, children, label }: { href: string; className?: s
   );
 }
 
-function SmallBizCard({ b }: { b: SmallBiz }) {
+/** One business. `compact` (the deals page): no badge, no description and no extra links, so 37 cards stay calm. */
+function SmallBizCard({ b, compact = false }: { b: SmallBiz; compact?: boolean }) {
   const [logoOk, setLogoOk] = useState(true);
   // My Wish List (owner 2026-11-20): a business hearts by its slug (its Visit link can move between site and Facebook).
   const id = itemId(`biz:${b.slug}`);
@@ -76,8 +77,8 @@ function SmallBizCard({ b }: { b: SmallBiz }) {
       <span className="gg-sb-body">
         <p className="gg-sb-name">{b.name}</p>
         <p className="gg-sb-town">{[b.town || "Louisiana", b.ships === "ships" ? W.ships : W.local].join(" · ")}</p>
-        <span className="gg-badges"><i className="gg-bdg gg-bdg-sponsor" data-gift-badge="sponsor">{W.badge}</i></span>
-        {b.description && <p className="gg-sb-text">{b.description}</p>}
+        {!compact && <span className="gg-badges"><i className="gg-bdg gg-bdg-sponsor" data-gift-badge="sponsor">{W.badge}</i></span>}
+        {!compact && b.description && <p className="gg-sb-text">{b.description}</p>}
         {b.gift && <p className="gg-sb-text" data-gift-sb-gift=""><b>{W.giftLabel}</b> {b.gift}</p>}
         {b.href && (
           <span className="gg-sb-links">
@@ -86,9 +87,9 @@ function SmallBizCard({ b }: { b: SmallBiz }) {
                 {W.visit}<span className="sr-only"> {b.name} ({G.newTab})</span>
               </Out>
             </Button>
-            {b.website && b.href !== b.website && <Out href={b.website} className="gg-link">{W.website}</Out>}
-            {b.facebook && b.href !== b.facebook && <Out href={b.facebook} className="gg-link" label={`${b.name} on ${W.facebook} (${G.newTab})`}>{W.facebook}</Out>}
-            {b.instagram && b.href !== b.instagram && <Out href={b.instagram} className="gg-link" label={`${b.name} on ${W.instagram} (${G.newTab})`}>{W.instagram}</Out>}
+            {!compact && b.website && b.href !== b.website && <Out href={b.website} className="gg-link">{W.website}</Out>}
+            {!compact && b.facebook && b.href !== b.facebook && <Out href={b.facebook} className="gg-link" label={`${b.name} on ${W.facebook} (${G.newTab})`}>{W.facebook}</Out>}
+            {!compact && b.instagram && b.href !== b.instagram && <Out href={b.instagram} className="gg-link" label={`${b.name} on ${W.instagram} (${G.newTab})`}>{W.instagram}</Out>}
           </span>
         )}
       </span>
@@ -144,6 +145,38 @@ export function GiftGuideSmallBiz() {
       {rows !== null && Local && <Local sponsors={(rows ?? []).map((b) => ({ name: b.name, links: [b.href, b.website, b.facebook, b.instagram] }))} />}
       <Link to={`/gift-guides/${SHOP_SMALL_GUIDE}`} className="gg-link gg-sb-guide" data-gift-sb-guide="">{W.guideLink} ›</Link>
     </div>
+  );
+}
+
+/**
+ * The deals page's Small Business Saturday section (owner 2026-11-21): the confirmed Louisiana 25 Days sponsors as one
+ * flat grid, in the file's order (category, then name), without the category headings, free listings or sign-up card
+ * of the standalone page, so the deals page stays calm. The file loads when the section mounts.
+ */
+export function SmallBizGrid() {
+  const [rows, setRows] = useState<SmallBiz[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    void loadSmallBiz().then(
+      (m) => live && m && setRows(m.default as SmallBiz[]),
+      // The chunk failed to load (offline, a stale deploy): the section says so rather than spin.
+      () => live && setRows([]),
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  return (
+    <>
+      <style>{SMALL_BIZ_CSS}</style>
+      {rows === null ? (
+        <p className="gg-sb-town" role="status">{W.loading}</p>
+      ) : rows.length === 0 ? (
+        <p className="gg-sb-intro" data-gift-sb-none="">{W.none}</p>
+      ) : (
+        <ul className="gg-sb-grid" data-gift-sb-grid="">{rows.map((b) => <SmallBizCard key={b.slug} b={b} compact />)}</ul>
+      )}
+    </>
   );
 }
 

@@ -7,6 +7,10 @@
  * lands on /gift-guides (in the page, and as a 301 from api/share.ts). The landing is the three tiles, then the 25 Days
  * sponsors' row (its "See all" opens the sponsors page) and the giveaways card.
  *
+ * Owner 11-21 (later): "we still need to do the black friday section, small business saturday, and cyber monday deals":
+ * the deals page (DEALS_SLUG) is live again as one page with the three day sections; the standalone Small Business
+ * Saturday page stays retired (its businesses are the deals page's middle section).
+ *
  * Owner 11-21, later the same day ("put like a line ... under search bar"; "i also dont see the fun features anymore
  * like the quiz, etc. or the tags"; "i dont see the discount codes or sales on the left section either"; "there will
  * also need to be a free section for our tags color book elf guides"; "move the 25 days of giveaways up"): the deals
@@ -126,6 +130,18 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     expect(container.querySelector("[data-gift-sidebar] a[data-gift-side='']")?.getAttribute("aria-current")).toBeNull();
   });
 
+  it("the deals page opens as itself (owner 11-21), before JS too", async () => {
+    const { container } = renderAt(`/gift-guides/${DEALS_SLUG}`);
+    expect(container.querySelector("[data-test-where]")?.textContent).toBe(`/gift-guides/${DEALS_SLUG}`);
+    expect(container.querySelector("[data-gift-deals-page]")).not.toBeNull();
+    cleanup();
+    ensureOgShellSnapshot(resolve("."));
+    const sharePath = ["..", "..", "api", "share"].join("/");
+    const handler = (await import(/* @vite-ignore */ sharePath)).default as { fetch: (r: Request) => Promise<Response> };
+    const res = await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=page&_id=gift-guides/${DEALS_SLUG}`));
+    expect(res.status).toBe(200);
+  });
+
   it("the 25 Days sponsors page still opens as itself", () => {
     const { container } = renderAt(`/gift-guides/${SPONSORS}`);
     expect(container.querySelector("[data-test-where]")?.textContent).toBe(`/gift-guides/${SPONSORS}`);
@@ -192,14 +208,15 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     for (const q of ["teens", "amazon", "color", "nurse", "coffee"]) {
       for (const g of searchGuides(q)) expect([...LIVE, SPONSORS, ...Object.keys(RELATION_PAGES)], `${q}: ${g.slug}`).toContain(g.slug);
     }
-    const allowed = new Set([...LIVE, SPONSORS, ...Object.keys(RELATION_PAGES)]);
-    expect(readFileSync("public/sitemap.xml", "utf8")).toContain(`/gift-guides/${DEALS_SLUG}<`);
-    allowed.add(DEALS_SLUG);
+    const allowed = new Set([...LIVE, SPONSORS, DEALS_SLUG, ...Object.keys(RELATION_PAGES)]);
     const sitemap = [...readFileSync("public/sitemap.xml", "utf8").matchAll(/\/gift-guides\/([a-z0-9-]+)</g)].map((m) => m[1]);
     const tools = new Set(["swipe", "planner", "draw-names", "printables"]);
     expect(sitemap.filter((s) => !tools.has(s)).length).toBeGreaterThan(3);
     for (const s of sitemap) if (!tools.has(s)) expect(allowed.has(s), `sitemap: ${s}`).toBe(true);
     for (const s of Object.keys(GIFT_GUIDE_SEO)) expect(allowed.has(s), `SEO: ${s}`).toBe(true);
+    // The deals page is in the sitemap; the retired Small Business Saturday page is not.
+    expect(sitemap).toContain(DEALS_SLUG);
+    expect(sitemap).not.toContain(SMALL_BIZ_SLUG);
     const index = JSON.parse(readFileSync("src/content/giftGuideSearchIndex.json", "utf8")) as [string, string][];
     expect(index.length).toBeGreaterThan(20);
     for (const [, s] of index) expect([...LIVE, SPONSORS], `search index: ${s}`).toContain(s);

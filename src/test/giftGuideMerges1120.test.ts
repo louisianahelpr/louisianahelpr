@@ -248,7 +248,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     // A relationship filter page (Mom, Dad ... on For Her / For Him) is a view of its guide, not another guide.
     const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-") && !(g as { view?: unknown }).view);
     // Follow-up 1120 (owner "FINAL MERGES -> ~30"): 28 guides measured 2026-11-20; owner 11-21: the live list only.
-    // Owner 11-21 PM: the deals page is live again; it is its own page (GiftGuideDeals), never a catalog guide.
+    // Owner 11-21: the deals page is live too, but it is its own page, no catalog guide.
     expect(shown.map((g) => g.slug).sort()).toEqual(LIVE_GUIDES_1121.filter((s) => s !== DEALS_SLUG).sort());
   });
 });

@@ -61,7 +61,7 @@ export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count
  */
 export function dealsPageMeta(now) {
   const name = dealsTitle(louisianaDay(now));
-  const description = `${name} 2026: hand-checked sales and codes from brands like Charlotte Tilbury, Stanley, lululemon and Yoto, picked by Louisiana Helpr.`;
+  const description = `${name} 2026: hand-checked Black Friday and Cyber Monday sales from brands like Charlotte Tilbury, Stanley, BaubleBar and Yoto, plus Louisiana small businesses for Small Business Saturday, picked by Louisiana Helpr.`;
   return { title: `${name} — Helpr`, description, canonical: `${SITE_ORIGIN}/gift-guides/${DEALS_SLUG}`, ogTitle: name, ogDescription: description };
 }
 

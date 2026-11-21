@@ -18,7 +18,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |  refundOpen={refundIsOpen(refundStatus)} refundOffered={refundStatus === "offered"} open={open} |  refundOffered={refundStatus === "offered"} open={open}
  *
  * Owner 11-11 F382: after a seller says no, the refund panel's report button reads "Ask Louisiana Helpr to look".
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |  stage="handover" triggerLabel="Ask Louisiana Helpr to look" />} /> |  stage="handover" />} />
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |  stage="handover" triggerLabel={t("dho.askLook")} />} /> |  stage="handover" />} />
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

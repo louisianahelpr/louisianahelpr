@@ -106,4 +106,18 @@ describe("audit 11-20 night quick Lows", () => {
     expect(readSource("src/lib/i18n/es.ts")).toContain("...esDeclPayout,");
     expect(readSource("src/lib/i18n/en.ts")).toContain("...enDeclPayout,");
   });
+  it("6 (order card): the paid-order card's own words read the dictionary", () => {
+    const views = readSource("src/components/declutter/DeclutterHandoverViews.tsx");
+    expect(views).toContain('import "@/lib/i18n/enDeclSell";');
+    expect(views.match(/\bt\("dho\./g)?.length ?? 0).toBeGreaterThan(30);
+    expect(views.match(/^ {2}useLanguage\(\);/gm)?.length).toBe(4);
+    expect(views).not.toMatch(/>(Paid: pickup and handover|Out all day|Finding a Helpr for this delivery\.|Your buyer is on the way\.)</);
+    expect(views).not.toMatch(/"(Saving…|Take the porch photo|Retake the porch photo|Take your pickup photo|Saved\.|When will it be out\?)"/);
+    expect(views).not.toMatch(/toast\((r\.noteProblem \? `|"[A-Z])/);
+    expect(views).not.toMatch(/The handover is when|You said it|Photo of the|Out until/);
+    expect(readSource("src/components/declutter/DeclutterPorchHandover.tsx")).not.toContain("`on ${w}`");
+    const es = readSource("src/lib/i18n/esDeclSell.ts");
+    expect(es).toContain('"dho.takePorch": "Tomar la foto del porche"');
+    expect(es).toContain('"dho.gotIt": "Lo recibí"');
+  });
 });

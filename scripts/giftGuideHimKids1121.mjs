@@ -51,7 +51,7 @@ const shop = ([pin, price, image, name, brand, store, type, commission, line]) =
  * nothing out of stock. Prices read on each store's own page 11-21 (Grove, Clinique, Smathers & Branson, Duck Head).
  */
 export const HIM_SHOPMY_1121 = [
-  ["108628349", 35, "https://static.shopmy.us/pins/zoom-108628349-1795247477620-DuckDecoys_AntiqueBlue__KeyFob_Primary_LowRes_c251e80f-b48c-4193-88c2-0b366856e967.jpg", "Smathers & Branson Duck Decoys Needlepoint Key Fob", "Smathers & Branson", "store-smathers-and-branson", "key-fob", 15, "A hand-stitched needlepoint key fob with a wood duck."],
+  ["108628349", 35, "https://static.shopmy.us/pins/zoom-108628349-1795247477620-DuckDecoys_AntiqueBlue__KeyFob_Primary_LowRes_c251e80f-b48c-4193-88c2-0b366856e967.jpg", "Smathers & Branson Duck Decoys Needlepoint Key Fob", "Smathers & Branson", "store-smathers-and-branson", "accessory", 15, "A hand-stitched needlepoint key fob with a wood duck."],
   ["108628518", 195, "https://static.shopmy.us/uploads/img-product-1792092560933", "Smathers & Branson Camo Needlepoint Belt", "Smathers & Branson", "store-duck-head", "belt", 16, "A hand-stitched needlepoint belt in classic camo."],
   ["108626053", 15.99, "https://static.shopmy.us/pins/zoom-108626053-1795245908121-FaceBeardSerum.jpg", "Phil's Face + Beard Serum", "Phil's", "store-grove", "skincare", 25, "A light serum for his face and beard."],
   ["108626008", 7.49, "https://static.shopmy.us/pins/zoom-108626008-1795245889562-iewmi44ymwp5whivvent.jpg", "Dr. Squatch Fresh Falls Bar Soap", "Dr. Squatch", "store-grove", "soap", 25, "The natural men's soap with a fresh, woodsy scent."],

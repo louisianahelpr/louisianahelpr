@@ -419,6 +419,17 @@ export function prizeWithoutBrand(brand: string, prize: string): string {
   return p;
 }
 
+/**
+ * Holiday audit D H1 (11-20): a prize with alcohol in it says so where it is listed. Louisiana law (La. R.S. 14:93.12,
+ * 26:90) forbids giving alcohol to anyone under 21, and the rules' "Alcohol prizes" section says a winner must be 21+
+ * with ID. Added here, not in lineup.days, so the lineup stays exactly the owner's tracker (check-25days-lineup.mjs).
+ */
+const ALCOHOL_WORDS = /\b(cocktails?|wines?|beers?|bourbon|whiske?y|vodka|rum|tequila|gin|liquor|champagne|mimosas?|margaritas?|sake|lager|ipa|hard seltzer|hard cider|alcohol(ic)?)\b/i;
+const ALCOHOL_NOTE = "(alcohol 21+ with ID)";
+export function withAlcoholNote(prize: string): string {
+  return ALCOHOL_WORDS.test(prize) && !/\b21\+/.test(prize) ? `${prize} ${ALCOHOL_NOTE}` : prize;
+}
+
 export type PublicPartner = { brand: string; prizes: string[]; page: string | null };
 
 /**
@@ -431,7 +442,7 @@ export function publicPartners(days: typeof C.lineup.days = C.lineup.days): Publ
   for (const d of days) {
     for (const p of d.partners) {
       const prizes = seen.get(p.brand) ?? new Set<string>();
-      const prize = prizeWithoutBrand(p.brand, p.prize);
+      const prize = withAlcoholNote(prizeWithoutBrand(p.brand, p.prize));
       if (prize) prizes.add(prize);
       seen.set(p.brand, prizes);
     }

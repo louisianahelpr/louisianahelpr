@@ -1,10 +1,14 @@
 /**
  * @mutate src/lib/redactInviteToken.ts |   return (typeof value === "string" ? value.replace(INVITE, "$1[redacted]").replace(SANTA, "$1[redacted]") : value) as T; |   return value;
  * @mutate src/lib/redactInviteToken.ts | .replace(SANTA, "$1[redacted]") : value) as T; | : value) as T;
+ * @mutate src/components/VercelInsights.tsx | export const redactVercelEvent: BeforeSend = (event) => ({ ...event, url: redactInviteToken(event.url) }); | export const redactVercelEvent: BeforeSend = (event) => event;
+ * @mutate src/components/SpeedInsightsRouted.tsx |   if (pathname.startsWith("/gift-guides/secret-santa/")) return "/gift-guides/secret-santa/:code/:token"; |   if (pathname.startsWith("/gift-guides/secret-santa/")) return pathname;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { redactInviteProps, redactInviteToken } from "./redactInviteToken";
+import { redactVercelEvent } from "@/components/VercelInsights";
+import { speedInsightsRoute } from "@/components/SpeedInsightsRouted";
 
 const TOKEN = "a".repeat(64);
 
@@ -41,5 +45,18 @@ describe("invite tokens never reach analytics or error reports", () => {
     expect(sentry).toContain("redactInviteToken(");
     expect(readFileSync("src/lib/errorLogger.ts", "utf8")).toContain("redactInviteToken(u.origin + u.pathname)");
     expect(readFileSync("src/lib/analytics.ts", "utf8")).toContain("url: redactInviteToken(window.location.pathname)");
+  });
+  it("Vercel Web Analytics and Speed Insights never see a reveal or invite token (holiday audit D M5)", () => {
+    const tok = "0123456789abcdef".repeat(4);
+    const santa = `https://www.louisianahelpr.com/gift-guides/secret-santa/abcdef0123/${tok}`;
+    expect(redactVercelEvent({ type: "pageview", url: santa })).toEqual({ type: "pageview", url: "https://www.louisianahelpr.com/gift-guides/secret-santa/abcdef0123/[redacted]" });
+    expect(redactVercelEvent({ type: "pageview", url: `https://x.com/rentals/invite/${TOKEN}` })?.url).toBe("https://x.com/rentals/invite/[redacted]");
+    expect(readFileSync("src/components/VercelInsights.tsx", "utf8")).toContain("<Analytics beforeSend={redactVercelEvent} />");
+    expect(speedInsightsRoute(`/gift-guides/secret-santa/abcdef0123/${tok}`)).toBe("/gift-guides/secret-santa/:code/:token");
+    expect(speedInsightsRoute(`/rentals/invite/${TOKEN}`)).toBe("/rentals/invite/:token");
+    expect(speedInsightsRoute("/gift-guides/list/abc123def456")).toBe("/gift-guides/list/:code");
+    expect(speedInsightsRoute("/user/abc")).toBe("/user/:userId");
+    expect(speedInsightsRoute("/gift-guides/secret-santa")).toBe("/gift-guides/secret-santa");
+    expect(readFileSync("src/components/SpeedInsightsRouted.tsx", "utf8")).toContain("beforeSend={(e) => ({ ...e, url: redactInviteToken(e.url) })}");
   });
 });

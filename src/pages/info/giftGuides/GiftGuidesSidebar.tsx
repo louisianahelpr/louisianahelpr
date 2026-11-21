@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { giftGuides as G, activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -84,9 +83,9 @@ export function DiscountCodes({ codes, first = Infinity }: { codes: DiscountCode
                 {c.dates ? <span className="gg-code-offer">{G.codeValid(c.dates)}</span> : c.expires && <span className="gg-code-offer">{G.dealEnds(c.expires)}</span>}
                 <span className="gg-code-row">
                   <code>{c.code}</code>
-                  <InlineTextButton className="no-underline" onClick={() => copy(c.code)} aria-label={`${G.copyCode} ${c.code}`}>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => copy(c.code)} data-gift-code-copy="" aria-label={`${G.copyCode} ${c.code}`}>
                     {copied === c.code ? G.copiedCode : G.copyCode}
-                  </InlineTextButton>
+                  </Button>
                 </span>
               </span>
             ))}

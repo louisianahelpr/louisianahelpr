@@ -3,6 +3,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
 import { GIFT_WISH_CSS } from "../giftWishStyles";
+import { GiftDisclosure } from "../GiftDisclosure";
 
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables";
 
@@ -21,7 +22,9 @@ export function FunBody({ title, path, noindex, children }: { title: string; pat
   return (
     <>
       <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
-      <div className="gg gg-fun w-full" data-gift-fun={path}>{children}</div>
+      {/* Holiday audit D H3 (11-20): every fun page can show affiliate links (Swipe's Shop, the planner's ideas, the
+          Secret Santa reveal's gift ideas), so each carries the guides' own disclosure footer. */}
+      <div className="gg gg-fun w-full" data-gift-fun={path}>{children}<GiftDisclosure /></div>
     </>
   );
 }

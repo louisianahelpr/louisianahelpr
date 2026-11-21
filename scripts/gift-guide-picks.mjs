@@ -3909,8 +3909,9 @@ const fillPrices = () => {
   console.log(`gift-guide-picks: budget caps ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
 /**
- * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days
- * (scripts/gift-guide-go-clicks.json, measured from prod analytics), then effective commission x item popularity, among
+ * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks plus Shop clicks
+ * (gift_out_click, holiday audit D H2) over the last 7 days (scripts/gift-guide-go-clicks.json, measured from prod
+ * analytics), then effective commission x item popularity, among
  * the picks the guides show now, with a product photo, one per brand. The owner's keep, the Ninja CREAMi, stays in it.
  */
 export const weeklyTop = (() => {
@@ -3918,12 +3919,25 @@ export const weeklyTop = (() => {
   let goMap = {};
   try { goClicks = JSON.parse(readFileSync(new URL("./gift-guide-go-clicks.json", import.meta.url), "utf8")).clicks ?? {}; } catch { /* no record yet: commission x popularity alone */ }
   try { goMap = JSON.parse(readFileSync(new URL("../src/content/goLinks.json", import.meta.url), "utf8")); } catch { /* no go links: commission x popularity alone */ }
+  let outClicks = {};
+  try { outClicks = JSON.parse(readFileSync(new URL("./gift-guide-go-clicks.json", import.meta.url), "utf8")).outClicks ?? {}; } catch { /* no record yet: go-link clicks alone */ }
   const clicksOf = new Map();
   for (const [slug, n] of Object.entries(goClicks)) if (goMap[slug]?.url) clicksOf.set(goMap[slug].url, Number(n) || 0);
+  // Holiday audit D H2 (11-20): every Shop click on the guides is a gift_out_click row keyed by the link's host + path
+  // (src/pages/info/giftGuides/GiftOut.tsx giftOutProps); those counts add to the go-link counts, by the pick's own href.
+  const linkKey = (href) => {
+    try {
+      const u = new URL(/^https?:\/\//.test(href) ? href : `https://${href}`);
+      const h = u.hostname.replace(/^www\./, "");
+      return `${h}${u.pathname.replace(/\/+$/, "")}`;
+    } catch { return null; /* not a URL: no Shop clicks to add */ }
+  };
+  const outByLink = new Map(Object.entries(outClicks).map(([k, n]) => [k, Number(n) || 0]));
+  const clicksFor = (href) => (clicksOf.get(href) ?? 0) + (outByLink.get(linkKey(href)) ?? 0);
   const popOf = new Map(SORT_POOL.map((e) => [e.p.href, e.pop ?? 0]));
   const cands = Object.entries(pageList).filter(([slug]) => !slug.startsWith("store-") && slug !== SPONSORS_GUIDE).flatMap(([, list]) => list)
     .filter((p) => p.image && looksLikeProduct(p));
-  const score = (p) => (clicksOf.get(p.href) ?? 0) * 1000 + (typeof p.commission === "number" ? p.commission : 0) * (1 + (popOf.get(p.href) ?? 0) / 10);
+  const score = (p) => clicksFor(p.href) * 1000 + (typeof p.commission === "number" ? p.commission : 0) * (1 + (popOf.get(p.href) ?? 0) / 10);
   const keep = topPicks.filter((p) => /\bCREAMi\b/i.test(p.name)).slice(0, 1);
   const out = [...keep];
   const brands = new Set(keep.map((p) => compact(p.brand ?? "")));

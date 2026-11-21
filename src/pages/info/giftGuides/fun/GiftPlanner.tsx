@@ -9,6 +9,7 @@ import { track } from "@/lib/analytics";
 import { FUN_WORDS as W, dollars, parseDollars, personMoney, planMoney, type PlanPerson } from "@/content/giftGuideFun1120";
 import { useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
+import { GiftOut } from "../GiftOut";
 import { FunBody, funHeader } from "./FunPage";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { planActions as A, useAccountSync, usePlan } from "./plannerStore";
@@ -89,7 +90,7 @@ function Person({ p }: { p: PlanPerson }) {
               <label className="gg-plan-check h-11 w-11">
                 <Checkbox checked={i.bought} aria-label={`${W.plannerBought}: ${i.name}`} onCheckedChange={(v) => A.setIdea(p.id, i.id, { bought: v === true })} data-plan-bought={i.id} />
               </label>
-              <span className="gg-plan-iname">{i.href ? <a href={i.href} target="_blank" rel="sponsored noopener" className="gg-link min-h-0">{i.name}</a> : i.name}</span>
+              <span className="gg-plan-iname">{i.href ? <GiftOut href={i.href} className="gg-link min-h-0">{i.name}</GiftOut> : i.name}</span>
               <Input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice}: ${i.name}`} inputMode="decimal" placeholder="$" defaultValue={i.price !== undefined ? String(i.price) : ""}
                 onBlur={(e) => {
                   const t = e.target.value.trim();

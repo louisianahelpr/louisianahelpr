@@ -19,6 +19,7 @@ import { MY_LIST_SLUG } from "./giftGuides/giftList";
 import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
+import { GiftDisclosure } from "./giftGuides/GiftDisclosure";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
 import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "@/content/giftGuideDeals.mjs";
@@ -90,16 +91,10 @@ export default function GiftGuides() {
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
   if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;
 
-  const footer = (
-    <footer className="gg-disc">
-      {/* Owner decision 2026-11-18 (~8:50 AM): the disclosures are plain muted lines at the BOTTOM, no box. The
-          Amazon line is the exact statement the Amazon Associates Operating Agreement requires on a site with
-          Amazon links. */}
-      <p data-gift-disclosure="">{G.disclosure}</p>
-      <p data-gift-amazon-statement="">{G.amazonStatement}</p>
-      {/* Owner 11-18 PM: no "Every collection on ShopMy" / "Every gift guide on Pinterest" links; the disclosures stay. */}
-    </footer>
-  );
+  // Owner decision 2026-11-18 (~8:50 AM): the disclosures are plain muted lines at the BOTTOM, no box; the fun pages
+  // render the same footer (GiftDisclosure). Owner 11-18 PM: no "Every collection on ShopMy" / "Every gift guide on
+  // Pinterest" links; the disclosures stay.
+  const footer = <GiftDisclosure />;
 
   return (
     // Holistic review 11-18 L6: the landing's back arrow went home; the landing has none now (the bar's logo is the way

@@ -5,7 +5,7 @@ import { guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, subscribeGu
 import { FUN_WORDS as W, SWIPE_BUDGETS, SWIPE_WHO, borrowFits, santaRound, swipePool, swipeRound, type SwipeBudget, type SwipeWho } from "@/content/giftGuideFun1120";
 import { BUDGET_GUIDES } from "@/content/giftPickBand";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { PickPrice } from "@/components/giftGuides/PickPrice";
+import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { track } from "@/lib/analytics";
@@ -291,6 +291,8 @@ export default function SwipeGifts() {
               {forName ? W.swipeSaveFor(forName) : `♥ ${W.swipeSave}`}
             </Button>
           </div>
+          {/* Holiday audit D M9 (11-20): the round's prices carry their "as of" day, as a guide's list does. */}
+          <PricesAsOf picks={round} />
         </section>
       )}
       </FunBody>

@@ -1,5 +1,6 @@
 {
- "_readme": "Go-link clicks per /go/<slug> over the 7 days before measuredAt (read-only SQL on prod: analytics_events, event go_link_click, grouped by properties->>'slug'). Read by scripts/gift-guide-picks.mjs for the landing's Top 10 This Week; a pick's clicks rank it first, then commission x popularity. Re-measure before a train.",
+ "_readme": "Clicks over the 7 days before measuredAt (read-only SQL on prod analytics_events). `clicks`: event go_link_click, grouped by properties->>'slug'. `outClicks`: event gift_out_click (every Shop click on the gift guides, holiday audit D H2, first recorded from this change), grouped by properties->>'link' (host + path, no query), rows with properties->>'automated' left out. Read by scripts/gift-guide-picks.mjs for the landing's Top 10 This Week; a pick's clicks rank it first, then commission x popularity. Re-measure before a train.",
  "measuredAt": "2026-11-20",
- "clicks": { "skinfix": 3 }
+ "clicks": { "skinfix": 3 },
+ "outClicks": {}
 }

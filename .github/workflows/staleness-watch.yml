@@ -115,6 +115,11 @@ jobs:
           # script refuses to report fresh in CI.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run check:staleness
+      # Holiday audit D M4 (11-20): gift guide prices hide 3 days after their check, and only a local price pass plus
+      # a train refreshes them (no CI job can). Red two days before they would all hide, so a train is landed first.
+      - name: Gift guide prices are not about to hide
+        if: always()
+        run: node scripts/check-gift-price-freshness.mjs
       # Owner, 2026-10-12: open-auto-tick.yml sat disabled_manually for five
       # days and nothing said so (a disabled workflow has no red run). Every
       # workflow on REQUIRED_ACTIVE must read `active`; branch-prune.yml runs

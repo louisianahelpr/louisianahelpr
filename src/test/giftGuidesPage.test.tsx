@@ -21,8 +21,8 @@
  *
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | rel="sponsored noopener" | rel="noopener"
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | target="_blank" rel= | rel=
- * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
- * @mutate src/pages/info/GiftGuides.tsx |           <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
+ * @mutate src/pages/info/giftGuides/GiftDisclosure.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
+ * @mutate src/pages/info/giftGuides/GiftDisclosure.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
  * @mutate src/pages/info/GiftGuides.tsx | {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
@@ -1238,7 +1238,7 @@ describe("gift guides: Discount codes stay closed while moving between guides (o
 describe("gift guides: no ShopMy collection lines on a guide page, no ShopMy/Pinterest links in the footer (owner 11-18 PM)", () => {
   // Owner: "you can remove this because my full guides are already here with the links" (Shop the full guide / More
   // on ShopMy), and "same for this" (Every collection on ShopMy / Every gift guide on Pinterest). The disclosures stay.
-  // @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n      <p className="gg-more"><a href="https://shopmy.us/shop/lexilombas">Every collection on ShopMy</a></p>\n
+  // @mutate src/pages/info/giftGuides/GiftDisclosure.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n      <p className="gg-more"><a href="https://shopmy.us/shop/lexilombas">Every collection on ShopMy</a></p>\n
   it("Her, Him, Dad and a store page show neither line; the footer keeps both disclosures and no other link", () => {
     let pages = 0;
     for (const slug of ["her", "him", "dad", "store-walmart"]) {

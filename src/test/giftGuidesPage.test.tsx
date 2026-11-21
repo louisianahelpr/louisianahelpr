@@ -645,10 +645,11 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const listed = [...sitemap.matchAll(/<loc>https:\/\/www\.louisianahelpr\.com(\/gift-guides[^<]*)<\/loc>/g)].map((m) => m[1]);
     expect(listed).toContain("/gift-guides");
     // The own pages (the fun pages; the deals guide and Small Business Saturday while live) are in the sitemap too, but
-    // are no catalog guide. Owner 11-21: the deals and Small Business Saturday pages are retired (src/content/giftGuideLive.mjs).
+    // are no catalog guide. Owner 11-21: the Small Business Saturday page is retired (src/content/giftGuideLive.mjs); the
+    // deals page came back the same afternoon ("i dont see the discount codes or sales").
     const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", "")).filter((s) => !OWN_PAGES.includes(s));
-    expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.filter((s) => s !== DEALS_SLUG && s !== SMALL_BIZ_SLUG).map((s) => `/gift-guides/${s}`)));
-    expect(listed).not.toEqual(expect.arrayContaining([`/gift-guides/${DEALS_SLUG}`]));
+    expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.filter((s) => s !== SMALL_BIZ_SLUG).map((s) => `/gift-guides/${s}`)));
+    expect(listed).not.toEqual(expect.arrayContaining([`/gift-guides/${SMALL_BIZ_SLUG}`]));
     expect(guides.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship pages (14, 2026-11-21)
     // Every listed guide opens, holds picks, and is no thin store page.
     for (const s of guides) {

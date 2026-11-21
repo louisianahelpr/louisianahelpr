@@ -159,8 +159,11 @@ export default function GiftGuides() {
           <GiftGuidesWords lead={landing ? "" : G.bandLead} title={G.title} titleId="gift-guides-title" tools={<GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />}
             sub={landing ? <p className="gg-sub" data-gift-sub="">{G.landingSub}{shipNote}</p> : undefined} />
         )}
+        {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a
+            divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
+        {landing && <hr className="gg-divider" data-gift-divider="" />}
         <div className="gg-layout">
-          <GiftGuidesSidebar active={guide} myList={myList} />
+          <GiftGuidesSidebar active={guide} myList={myList} page={deals && !smallBiz ? DEALS_SLUG : undefined} />
           <div className="gg-main">
             {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>

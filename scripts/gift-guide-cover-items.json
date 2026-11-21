@@ -779,6 +779,11 @@
     "image": "https://d307biz9bwtpmz.cloudfront.net/products/primary/zoom/product_96453.jpg"
    },
    {
+    "name": "Terrain Ruffled Marble Bowl",
+    "key": "terrain:bowl",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/terrain-ruffled-marble-bowl-b353c5.webp"
+   },
+   {
     "name": "Cecil & Lou Women's Pink Christmas Candy Pajamas",
     "key": "cecillou:pajamas",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1792980324864"
@@ -787,11 +792,6 @@
     "name": "Bogg Bag Bitty Tote (Light Blue)",
     "key": "boggbag:blue",
     "image": "https://assets.designerbrands.com/match/Site_Name/623352_453_ss_01/?$pdp$"
-   },
-   {
-    "name": "Mejuri Stevie Hoop Earrings",
-    "key": "mejuri:earrings",
-    "image": "https://cdn.shopify.com/s/files/1/0837/7489/8461/files/3-THENEWHOOP-VermeilHoopCharm-V-Angled_100.jpg"
    }
   ]
  },

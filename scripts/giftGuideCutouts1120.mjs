@@ -8,6 +8,8 @@
  */
 export const CUTOUT_BASE = "https://www.louisianahelpr.com/gift-guides/cutouts/";
 export const CUTOUTS_1120 = new Map([
+  // Mejuri Stevie Hoop Earrings (mejuri.com US photo, cream backdrop)
+  ["https://cdn.shopify.com/s/files/1/0631/8568/2616/files/3-THENEWHOOP-TheNewHoopVermeilHoopVermeilCharm-V-AngledFrontView_061_3f4f28ff-b6e1-45ba-9ddc-5ec29192b37a.jpg", "mejuri-stevie-hoop-earrings-b3c171.webp"],
   // Step2 Whisper Ride Cruiser
   ["https://assets.wfcdn.com/avif/im/24582098/compr-r85/3383/338369132/Step2+Whisper+Ride+Cruiser+Toddler+Outdoor+Riding+Toy-49982616.jpg", "step2-whisper-ride-cruiser-304ddc.webp"],
   // Eddie Bauer Reversible Plaid Heated Plush Throw

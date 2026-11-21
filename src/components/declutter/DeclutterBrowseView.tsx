@@ -68,20 +68,11 @@ import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
 import "@/lib/i18n/enDeclBrowse";
 import { BROWSE_EMPTY_SLOT, CHIPS_ROW_PAD } from "@/components/sections/browseHeaderSpacing";
-import { loadModule } from "@/lib/loadModule";
+import { DeclutterNewThisWeek } from "./declutterNewThisWeekLazy";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
 const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));
-// Selling boost (owner 11-20): the "New this week" row is its own chunk, off Browse's critical path (Q178). It starts
-// downloading as Browse's own module runs, beside the list read, so it is in hand by the time the cards paint.
-const DeclutterNewThisWeek = lazy(() => import("./DeclutterNewThisWeek"));
-if (typeof window !== "undefined") {
-  // loadModule (dynamicImportThenDoesNoWork): the early start does no work on the module, it only warms the chunk.
-  void loadModule(() => import("./DeclutterNewThisWeek")).catch(() => {
-    // A failed early start costs nothing: lazy() asks for the chunk again when the row renders.
-  });
-}
 
 /** What Browse hands the tabs row: the desktop end cluster and count, or the phone's search row under the tabs. */
 export interface DeclutterBrowseHeader {
@@ -357,8 +348,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   // A search or a filter that found nothing is never "Opens soon" (lead walkthrough 2026-10-28, shot 04): it says
   // nothing matched, with a way to clear it and the Wanted link.
   const searched = q !== "" || filterCount > 0;
-  // Selling boost (owner 11-20): "New this week", from the full list only (a cold load's preview is a nearest-first
-  // slice, so its newest are not the newest), and only on the plain list: a search or a filter shows its own matches.
+  // Selling boost (owner 11-20): "New this week" from the full list only (a preview is nearest-first), plain list only.
   const freshRows = useMemo(() => (items.data ? newThisWeek(items.data, userId, Date.now()) : []), [items.data, userId]);
   const showFresh = !searched && !preview && freshRows.length > 0;
   // F310: a one-letter typo ("lamb") that finds nothing is offered the search that would ("lamp"), within the filters.
@@ -502,11 +492,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
             draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null, origin: from ?? null, extras: saveExtras }}
           />
         )}
-        {/* Where the miles are measured from, and "Use my location", in sight above the cards (DA-10). */}
-        {/* Owner 11-08 (the Vinted header): on a phone the grid starts right under the chips; the same line and "Use my
-            location" stay in the filter sheet. */}
-        {/* Owner 11-20 (site polish A4): the button moved beside the search (DeclutterLocationButton); only the
-            device's note (denied, timed out) still shows here. */}
+        {/* DA-10 / owner 11-08 / site polish A4 (11-20): "Use my location" sits beside the search (phone: the filter
+            sheet); only the device's note (denied, timed out) shows here, on a computer. */}
         {desktop && itemsPhase !== "offline-empty" && <DeclutterDeviceNote ask={ask} />}
         {/* Audit 1110 F311: an emoji alone is no search, so every item shows; say why instead of looking like a match. */}
         {wordlessSearch && rows.length > 0 && (
@@ -554,11 +541,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
           </div>
         ) : (
           <>
-          {showFresh && (
-            <Suspense fallback={null}>
-              <DeclutterNewThisWeek items={freshRows} cover={cover} from={origin.status === "ready" ? { lat: origin.lat, lng: origin.lng, approximate: origin.approximate } : null} />
-            </Suspense>
-          )}
+          {showFresh && <Suspense fallback={null}><DeclutterNewThisWeek items={freshRows} cover={cover} from={origin.status === "ready" ? { lat: origin.lat, lng: origin.lng, approximate: origin.approximate } : null} /></Suspense>}
           <ul className={desktop && !mapVisible ? DECLUTTER_GRID_FULL : DECLUTTER_GRID}>
             {rows.map(({ item, miles }, index) => (
               <li key={item.id} className="min-w-0">

@@ -50,13 +50,13 @@ export const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] =
 const PRIORITY_COVERS = 4;
 
 /** Where a group's way in goes: the guide itself when the group holds one, else the group's page. */
-export const groupHref = (row: GuideRow) => {
+const groupHref = (row: GuideRow) => {
   const tiles = rowTiles(row);
   return tiles.length === 1 ? `/gift-guides/${tiles[0].g.slug}` : `/gift-guides?group=${row}`;
 };
 
 /** The landing's photo cards: G.entries whose group holds guides (its photo the named guide's cover), then Deals. */
-export function browseEntries(): { key: string; title: string; sub: string; to: string; cover: string | undefined }[] {
+function browseEntries(): { key: string; title: string; sub: string; to: string; cover: string | undefined }[] {
   const groups = G.entries.flatMap((e) => {
     const row = ROWS.find((r) => r.row === e.row)?.row;
     if (!row || rowTiles(row).length === 0) return [];
@@ -67,7 +67,7 @@ export function browseEntries(): { key: string; title: string; sub: string; to: 
 }
 
 /** The groups with no card of their own (Hobbies, By career, Life moments, Pets, Colors...), as one plain line of links. */
-export const moreGroups = () => ROWS.filter((r) => !G.entries.some((e) => e.row === r.row) && rowTiles(r.row).length > 0);
+const moreGroups = () => ROWS.filter((r) => !G.entries.some((e) => e.row === r.row) && rowTiles(r.row).length > 0);
 
 function BrowseGrid() {
   const entries = browseEntries();

@@ -9,6 +9,7 @@
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclutter";
+import "@/lib/i18n/enDeclBrowse";
 import { Row } from "./DeclutterItemRows";
 
 export default function DeclutterNewThisWeek({ items, cover, from }: {

@@ -480,26 +480,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/holidays/lights" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayLights /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/holidays/events" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayEvents /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/holidays/hire-a-helpr" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayHire /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
-          /browse-jobs were removed along with their redirect stubs (2352466e).
-          Same as above: no redirect exists, and none is warranted on current
-          evidence. */}
-      {/* Helpr Wrapped — auth-gated at the route level so a logged-out
-          visitor never sees a flash of authed chrome (HelprWrapped's own
-          useEffect redirect used to fire only after the first paint). */}
-      {/* /benefits (BenefitsPage) was removed 2026-08-31 (owner): there were
-          no partner agreements behind it — every row was a plain link to a
-          public third-party site, so the screen made a promise the product
-          could not honour. Deleted outright rather than retitled. NO redirect,
-          for the same reason as the retired routes above: nothing outside the
-          app cites the URL (it is absent from sitemap.xml, robots.txt, the App
-          Store metadata, every email/push template and every legal page — it
-          was a ProtectedRoute reachable only from the Profile → Work group),
-          so it falls through to the `path="*"` NotFound below. If an external
-          citation ever appears, add a real <Route>, not a comment. */}
-      {/* Pet care — manage pet profiles and vet notes */}
-      {/* /evacuation was removed; its redirect to /pets went with it in
-          2352466e. The path now 404s. */}
+      {/* Retired with no redirect, so they fall to NotFound below (no outside citation; add a real <Route> if one
+          appears): /parishes, /parish/:slug, /impact, /local-guide, /community, /browse-jobs and /evacuation
+          (2352466e); /benefits (BenefitsPage, owner 2026-08-31: no partner agreements behind it). */}
       <Route path="*" element={<RouteErrorBoundary>{routeEl(<NotFound />)}</RouteErrorBoundary>} />
     </Routes>
   );

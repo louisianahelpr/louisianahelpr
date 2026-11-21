@@ -269,7 +269,9 @@ describe("New this week", () => {
 
   it("the row is its own chunk (lazy), never a static import of Browse", () => {
     const src = blankComments(readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8"));
-    expect(src).toContain('const DeclutterNewThisWeek = lazy(() => import("./DeclutterNewThisWeek"));');
+    // 2026-11-20 (train 1120f): the lazy() line lives in declutterNewThisWeekLazy.ts (Browse stays under 600 lines).
+    expect(src).toContain('import { DeclutterNewThisWeek } from "./declutterNewThisWeekLazy";');
+    expect(blankComments(readFileSync("src/components/declutter/declutterNewThisWeekLazy.ts", "utf8"))).toContain('export const DeclutterNewThisWeek = lazy(() => import("./DeclutterNewThisWeek"));');
     expect(src).not.toMatch(/import\s+[^;]*from\s+"\.\/DeclutterNewThisWeek"/);
   });
 });

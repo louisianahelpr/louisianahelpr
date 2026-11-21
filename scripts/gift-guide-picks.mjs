@@ -29,13 +29,14 @@ import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
+import { applyOwner1120d } from "./giftGuideOwner1120d.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
 import { FRANCHISE_SPONSORS_1120, SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
 import { BASE_MERGES, GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, NO_LIST_SECTIONS, STORE_PAGES_KEPT, SECTION_CAP, SECTION_GROUPS, SECTION_MAX, SECTION_MIN, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
 import { GUIDE_CAP, buildRateData, byCommission, ccTwin, commissionOf, guideRanks, itemPopularity, pickType, sectionGuides, typeMax, CROWD_TYPES, KNOWN_BRAND, THIN_TARGET } from "./giftGuideSort.mjs";
-import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3, INSULATED, TUMBLER_MAX, fillerGuide, FILLER_OK, R4_OFF, kidsToyOff } from "./giftGuideRules.mjs";
+import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, menPastelOff, menStyleWhy, ownerStyleOff, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3, INSULATED, TUMBLER_MAX, fillerGuide, FILLER_OK, R4_OFF, kidsToyOff } from "./giftGuideRules.mjs";
 /** True for an amazon.com URL (exact host or a subdomain), checked on the parsed hostname. */
 const isAmazonUrl = (u) => { try { const h = new URL(String(u)).hostname; return h === "amazon.com" || h.endsWith(".amazon.com"); } catch { return false; } };
 
@@ -2491,7 +2492,7 @@ const BRAND_FILL = [
         const where = shownIn.get(k) ?? new Set();
         if (!where.size || where.has(slug) || where.size >= COLORWAY_MAX) continue;
         if (typeof p.image !== "string" || !p.image.startsWith("https://") || usedImg.has(p.image) || usedHref.has(p.href) || usedName.has(compact(p.name))) continue;
-        if (JOB_ITEM.test(`${p.name} ${p.line ?? ""}`) || !fitsGuide(slug, p) || curatedOut(slug, p) || !fillFits(slug, p) || (men && MEN_PASTEL.test(`${p.name} ${String(p.image).replace(/[-_]/g, " ")}`))) continue;
+        if (JOB_ITEM.test(`${p.name} ${p.line ?? ""}`) || !fitsGuide(slug, p) || curatedOut(slug, p) || !fillFits(slug, p) || (men && (MEN_PASTEL.test(`${p.name} ${String(p.image).replace(/[-_]/g, " ")}`) || menStyleWhy(p) !== ""))) continue;
         if (pageList[slug].length < 12 && topCore.has(k)) continue;
         pageList[slug].push(p);
         usedImg.add(p.image); usedHref.add(p.href); usedName.add(compact(p.name));
@@ -2744,7 +2745,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       if (!storeList[store].hosts.includes(new URL(r.href).hostname)) storeList[store].hosts = [...storeList[store].hosts, new URL(r.href).hostname];
     }
     // Owner picks still go where they fit (lead 11-19): no pastel colorway on a men's guide.
-    for (const g of Array.isArray(r.guides) ? r.guides : []) if (GUIDE_SLUGS.has(g) && !NOT_A_LIST.has(g) && !(MEN_COLOR_GUIDES.includes(g) && MEN_PASTEL.test(`${pick.name} ${String(pick.image ?? "").replace(/[-_]/g, " ")}`))) byGuide.set(g, [...(byGuide.get(g) ?? []), pick]);
+    for (const g of Array.isArray(r.guides) ? r.guides : []) if (GUIDE_SLUGS.has(g) && !NOT_A_LIST.has(g) && !(menPastelOff(g, pick))) byGuide.set(g, [...(byGuide.get(g) ?? []), pick]);
   }
   for (const [g, picks] of byGuide) {
     const own = new Set(picks.flatMap((p) => [p.href, compact(p.name), `k:${dedupeKey(p.name)}`]));
@@ -3108,7 +3109,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
     const gate = (slug, p) => {
       const group = GUIDE_GROUPS.get(slug) ?? "";
       return !why(slug, p) && !excludedRow(p) && fitsGuide(slug, p) && !belongsWhy(slug, group, p, { tumblers: 0 }, true) && !fitR4Why(slug, group, p)
-        && !louisianaBlocked(slug, p) && !(MEN_COLOR_GUIDES.includes(slug) && MEN_PASTEL.test(`${p.name} ${String(p.image ?? "").replace(/[-_]/g, " ")}`))
+        && !louisianaBlocked(slug, p) && !(menPastelOff(slug, p))
         && !(typeof p.price === "number" && p.price > PRICE_MAX) && !judgedOut(slug, p) && !holisticWhy(slug, p) && !SORT_FIXED.has(slug)
         // A title cut at its comma ("Salt, Fat" by "Salt") is no product name.
         && !(p.brand && new RegExp(`^${p.brand.replace(/[^\w]/g, "\\$&")}, \\w+$`).test(p.name));
@@ -3439,7 +3440,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
       for (const { e } of heldCrowd) {
         if (list.length >= THIN_TARGET) break;
         if (process.env.GIFT_SORT_DEBUG === slug) console.error(`CROWD ${slug}: ${e.p.name} on=${e.on.size} pastel=${!women && MEN_PASTEL.test(e.p.name)} why=${why(slug, e.p)} fits=${fitsGuide(slug, e.p)} hol=${holisticWhy(slug, e.p)} bel=${belongsWhy(slug, GUIDE_GROUPS.get(slug) ?? "", e.p, { tumblers: 0 }, true)} r4=${fitR4Why(slug, GUIDE_GROUPS.get(slug) ?? "", e.p)} take=${canTake(slug, e, list)}`);
-        if (e.on.size || (!women && MEN_PASTEL.test(`${e.p.name} ${String(e.p.image ?? "").replace(/[-_]/g, " ")}`)) || !gate(slug, e.p) || !canTake(slug, e, list)) continue;
+        if (e.on.size || (!women && (MEN_PASTEL.test(`${e.p.name} ${String(e.p.image ?? "").replace(/[-_]/g, " ")}`) || menPastelOff(slug, e.p))) || !gate(slug, e.p) || !canTake(slug, e, list)) continue;
         take(slug, e, list);
         e.crowd = true;
         sortCounts.crowd += 1;
@@ -3478,7 +3479,7 @@ export const followUpCounts = { rules: 0, dropped: [], merged: 0, capped: 0, rei
         const r4 = fitR4Why(slug, group, p);
         if (r4) return `fit rule: ${r4}`;
         if (louisianaBlocked(slug, p)) return "a Louisiana item outside the Louisiana section";
-        if (MEN_COLOR_GUIDES.includes(slug) && MEN_PASTEL.test(`${p.name} ${String(p.image ?? "").replace(/[-_]/g, " ")}`)) return "pastel on a men's guide";
+        if (menPastelOff(slug, p)) return "pastel on a men's guide";
         if (typeof p.price === "number" && p.price > PRICE_MAX) return "over $500";
         if (judgedOut(slug, p)) {
           const c = OWNER_CUT_KIND_1120.get(p.href);
@@ -3897,6 +3898,12 @@ const fillPrices = () => {
   const t = applyTrain1120c(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT] });
   console.log(`gift-guide-picks: train 1120c ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
+/** OWNER 11-20 phone fixes: fill the freed spots, Dad / Him / Grandpa under $25 (scripts/giftGuideOwner1120d.mjs). */
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-owner-1120d.json", import.meta.url), "utf8"));
+  const t = applyOwner1120d(pageList, spec);
+  console.log(`gift-guide-picks: owner 1120d ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT PLACED (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+}
 // The train passes add picks (sponsors, campaign adds) after the backfill: they take their checked prices here.
 {
   const n = fillPrices();
@@ -3946,6 +3953,19 @@ export const weeklyTop = (() => {
   }
   return out;
 })();
+// Owner 11-20: the named owner removals leave EVERY page (store pages included), and the owner style rules (men's guides:
+// no pink / pastel / funky colorway, women's footwear or women's product link; no neon anywhere; no boots in grandma or
+// in-law sections; no plain black Stanley / YETI on women's guides) hold on every page, after every late fill.
+export const finalSweep = { owner: 0, menStyle: 0 };
+for (const slug of Object.keys(pageList)) {
+  const before = pageList[slug].length;
+  pageList[slug] = pageList[slug].filter((p) => !OWNER_REMOVED(p));
+  finalSweep.owner += before - pageList[slug].length;
+  const mid = pageList[slug].length;
+  if (!slug.startsWith("store-")) pageList[slug] = pageList[slug].filter((p) => !ownerStyleOff(slug, p));
+  finalSweep.menStyle += mid - pageList[slug].length;
+}
+console.log(`gift-guide-picks: final sweep ${JSON.stringify(finalSweep)}`);
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();

@@ -1344,9 +1344,66 @@ export const jdDrinkwareOff = (slug, p) => !slug.startsWith("store-") && /^jd sp
  * Men's guides: no pink or pastel on ANY item type (owner: pale mint Crocs and a pink YETI Roadie on Brother, a pink
  * Southern Tide polo), read from the name and the photo's file name.
  */
-export const MEN_PASTEL = /\b(mint|pink|blush|rose quartz|lavender|lilac|peach|pastel|seafoam|baby blue|petal|orchid|sea pink|bubblegum|cotton candy|marshmallow|candy coated)\b/i;
+export const MEN_PASTEL = /\b(mint|pink|blush|rose quartz|lavender|lilac|peach|pastel|seafoam|baby blue|petal|orchid|sea pink|bubblegum|cotton candy|marshmallow|candy coated|plum)\b/i;
 export const MEN_COLOR_GUIDES = [...MEN_FAMILY_GUIDES, "nephew", "boys-teens", "brother-in-law", "new-dad"];
-export const menPastelOff = (slug, p) => MEN_COLOR_GUIDES.includes(slug) && MEN_PASTEL.test(`${p.name} ${String(p.image ?? "").replace(/[-_]/g, " ")}`);
+/**
+ * OWNER 11-20 ("cmon this is crazy"): a HEYDUDE Austin Lift mule (a women's lift slide) on Dad Top picks, and a pink
+ * Bombas Sunday Slipper and pink Vineyard Vines Surf Terry Shep on Father-in-Law. MEN_PASTEL only read the name and the
+ * photo name, so a pink colorway whose name has no color word slipped through. The men's style rule also reads:
+ *  - women's footwear styles: platform, flatform, lift, wedge, heels and women's mules/slides (HEYDUDE "Lift" is a women's line);
+ *  - a women's product link or photo (bombas.com/products/womens-..., a "-Female-" photo);
+ *  - a feminine colorway in the link (color=pink, variant names), the photo name (glued words like "prairiemauve"),
+ *    the line, and any color / variant field.
+ */
+export const WOMENS_FOOTWEAR = /\b(platforms?|flatforms?|lift|wedges?|heels?|stilettos?|kitten heel|mary janes?|ballet flats?)\b/i;
+export const FOOTWEAR = /\b(shoes?|slippers?|sandals?|slides?|mules?|clogs?|loafers?|sneakers?|boots?|moccasins?|flip ?flops?|footwear)\b/i;
+export const WOMENS_LINK = /\bwom[ae]ns?\b|\bladies\b|\bfemale\b/i;
+export const FEMININE_COLOR = /(pink|mauve|blush|lilac|lavender|fuchsia|magenta|rose ?gold|bubblegum|orchid|peony|cotton ?candy|baby ?blue|seafoam|pastel)/i;
+export const MEN_FUNKY_COLOR = /\b(mint|aqua|turquoise|teal|seafoam|sea ?glass|coral|sherbet|lime|neon|chartreuse)\b/i;
+const decodeSafe = (u) => {
+  try { return decodeURIComponent(u); } catch { /* a malformed escape keeps the raw link text */ return u; }
+};
+export const menStyleWhy = (p) => {
+  const name = String(p.name ?? "");
+  const type = String(p.type ?? "");
+  const links = decodeSafe([p.href, p.affiliate_href, p.fallback_href, p.product_url].map((u) => String(u ?? "")).join(" "));
+  const image = String(p.image ?? "");
+  if (FOOTWEAR.test(`${name} ${type}`) && WOMENS_FOOTWEAR.test(name)) return "women's footwear style";
+  if (WOMENS_LINK.test(links.replace(/[-_/?=&.+]/g, " ")) || /[-_]female[-_.]/i.test(image)) return "women's product link";
+  const colorText = `${links} ${image} ${p.line ?? ""} ${p.color ?? ""} ${p.colour ?? ""} ${p.variant ?? ""} ${p.colorway ?? ""}`;
+  if (FEMININE_COLOR.test(colorText)) return "feminine colorway";
+  // Owner 11-20 (a mint Southern Tide quarter zip: "men don't wear this funky color in Louisiana"): men's guides keep
+  // classic colors (navy, grey, white, black, olive, khaki, burgundy); a mint / aqua / teal colorway read as a whole
+  // word from the link, photo name or color field goes.
+  if (MEN_FUNKY_COLOR.test(colorText.replace(/[-_/?=&.+]/g, " "))) return "funky colorway";
+  return "";
+};
+/**
+ * OWNER 11-20 phone fixes (Mom / Mother-in-Law / Her / Dad), rules that hold on every guide:
+ *  - no neon or chartreuse colorway anywhere (a neon-yellow YETI Roadie on Dad);
+ *  - no boots in a grandma, grandparents or in-law section ("grandmas or in-laws don't want boots");
+ *  - no plain black Stanley / YETI drinkware on a women's guide ("there are cuter cups than a black Stanley").
+ * A merged page's section carries its old guide in `from` / `sectionId`, so each rule reads the page, the section and
+ * the pick's origin.
+ */
+export const NEON = /\b(neon|chartreuse|hi-?vis|high-?vis(ibility)?|safety (yellow|orange|green)|fluorescent|day-?glo)\b/i;
+export const neonOff = (slug, p) => !slug.startsWith("store-") && NEON.test(`${p.name} ${String(p.image ?? "").replace(/[-_]/g, " ")} ${String(p.href ?? "").replace(/[-_]/g, " ")} ${p.line ?? ""}`);
+export const NO_BOOT_SECTIONS = ["grandma", "grandparents", "new-grandparent", "mother-in-law", "father-in-law", "sister-in-law", "brother-in-law", "in-laws"];
+export const BOOT = /\bboots?\b(?!\s*(socks?|dryers?|jacks?|trays?|bags?|cuffs?|liners?))|\bbooties\b/i;
+// A merged page's pick answers for its section's old guide (from / sectionId); the page slug only when it carries neither.
+const guideKeys = (slug, p) => (p.from || p.sectionId ? [p.from, p.sectionId] : [slug]).filter(Boolean).map(String);
+const allKeys = (slug, p) => [slug, p.from, p.sectionId].filter(Boolean).map(String);
+export const elderBootOff = (slug, p) => !slug.startsWith("store-") && guideKeys(slug, p).some((k) => NO_BOOT_SECTIONS.includes(k))
+  && (BOOT.test(String(p.name ?? "")) || /^boots?$/i.test(String(p.type ?? "")));
+export const WOMEN_CUP_GUIDES = [...WOMEN_GUIDES, "mother-in-law", "sister-in-law", "best-friend", "bridesmaids", "girls-teens"];
+export const PLAIN_BLACK_CUP = (p) => /\b(stanley|yeti)\b/i.test(`${p.brand ?? ""} ${p.name}`)
+  && /\b(tumbler|quencher|rambler|bottle|mug|cup|flowstate|iceflow)\b/i.test(String(p.name ?? ""))
+  && /\bblack\b/i.test(`${p.name} ${String(p.image ?? "").replace(/[-_]/g, " ")} ${String(p.href ?? "").replace(/[-_]/g, " ")}`);
+export const womenBlackCupOff = (slug, p) => !slug.startsWith("store-") && allKeys(slug, p).some((k) => WOMEN_CUP_GUIDES.includes(k)) && PLAIN_BLACK_CUP(p);
+/** Every owner 11-20 style rule, for the follow-up filter and the final sweep. */
+export const ownerStyleOff = (slug, p) => neonOff(slug, p) || elderBootOff(slug, p) || womenBlackCupOff(slug, p)
+  || allKeys(slug, p).some((k) => menPastelOff(k, p));
+export const menPastelOff = (slug, p) => MEN_COLOR_GUIDES.includes(slug) && (MEN_PASTEL.test(`${p.name} ${String(p.image ?? "").replace(/[-_]/g, " ")}`) || menStyleWhy(p) !== "");
 /** Baby items (soothers, loveys, rattles, teethers, baby blankets, swaddles) only on baby, new-parent and baby-age guides (owner: a Jellycat Bunny Soother on a friend guide). */
 export const BABY_ITEM = /\b(soothers?|loveys?|rattles?|teethers?|teething|baby blankets?|swaddles?|pacifiers?|onesies?|crib|bassinet|burp cloths?|bibs?|baby (bodysuit|sleeper|monitor|carrier|bottle)s?)\b/i;
 export const BABY_OK = (slug) => /bab(y|ies)|^new-(mom|dad|grandparent)$|^mom-to-be$|^new-parents$|^grandparents$/.test(slug);
@@ -1356,7 +1413,20 @@ export const OWNER_REMOVED = (p) => {
   const t = `${p.name} ${p.brand ?? ""} ${p.href ?? ""} ${p.affiliate_href ?? ""} ${p.image ?? ""} ${p.retailer ?? ""} ${p.store ?? ""}`;
   return (/\belisa\b/i.test(p.name) && /kendra/i.test(t) && /bloomingdale|pink/i.test(t))
     || /\bair force 1\b[^,]*\bsuede\b/i.test(p.name)
-    || (/\bskipjack\b/i.test(p.name) && /pink/i.test(t));
+    || (/\bskipjack\b/i.test(p.name) && /pink/i.test(t))
+    // Owner 11-20: the HEYDUDE Austin Lift mule, the pink Bombas Sunday Slipper, the pink Vineyard Vines Surf Terry Shep.
+    || (/\baustin lift\b/i.test(p.name) && /hey ?dude/i.test(t))
+    || (/\bsunday slippers?\b/i.test(p.name) && /bombas/i.test(t))
+    || (/\bsurf terry shep\b/i.test(p.name) && /vineyard vines/i.test(t))
+    // Owner 11-20 phone fixes: the mint Southern Tide Sandy Cove quarter zip, the neon-yellow YETI Roadie 24 link, the
+    // Michael Kors Logo Small Nylon Crossbody, the black YETI x Ten Thousand Rambler, every Muck women's Rainscape boot
+    // (XTRATUF women's boots take their spots), the L.L.Bean Wicked Good Moccasins (an UGG takes the spot).
+    || (/\bsandy cove\b/i.test(p.name) && /southern tide/i.test(t))
+    || /go\.shopmy\.us\/p-107836771\b/.test(t)
+    || (/\blogo small nylon crossbody\b/i.test(p.name) && /michael kors/i.test(t))
+    || (/\bten thousand\b/i.test(p.name) && /\byeti\b/i.test(t) && /\brambler\b/i.test(p.name))
+    || (/\brainscape\b/i.test(p.name) && /\bmuck\b/i.test(t))
+    || (/\bwicked good moccasins?\b/i.test(p.name) && /l\.?l\.? ?bean/i.test(t));
 };
 /**
  * Old electronics (owner: "no electronics should not be the most up to date version"): the previous generations the
@@ -1375,7 +1445,7 @@ export const offBrandOff = (slug, p) => {
   if (!/amazon\.com|amzn\.to|walmart\.com|walmrt\.us/i.test(url)) return false;
   return GENERIC_TRINKET.test(String(p.name ?? "")) || (GENERIC_BRAND.test(String(p.brand ?? "").trim()) && !brandFromName(p.name));
 };
-export const followUpOff = (slug, p) => OWNER_REMOVED(p) || OLD_ELECTRONICS.test(String(p.name ?? "")) || menPastelOff(slug, p) || babyOff(slug, p) || offBrandOff(slug, p);
+export const followUpOff = (slug, p) => OWNER_REMOVED(p) || ownerStyleOff(slug, p) || OLD_ELECTRONICS.test(String(p.name ?? "")) || menPastelOff(slug, p) || babyOff(slug, p) || offBrandOff(slug, p);
 /**
  * READY PASS 1119c (owner 11-19, "not ready for people to see"; FOLLOWUP-OWNER-1119.md).
  * Non-gift categories (owner 1:08 PM): rentals, ad platforms, CBD, specialty sauces, smoke and CO2 alarms, TV / DVR /

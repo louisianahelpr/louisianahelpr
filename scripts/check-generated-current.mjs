@@ -97,6 +97,15 @@ export const GENERATED = [
     what: "every gift-guide product name with its link and the guide it sits in, for item search",
   },
   {
+    // Owner 2026-11-21 ("the colors on the cover need to match the color when you click into the guide"): each cover's
+    // and share image's content hash, the ?v= on its URL, so a redrawn cover is never served from an old cache.
+    id: "gift-guide-cover-versions",
+    script: "scripts/gift-guide-cover-versions.mjs",
+    cmd: ["node", "scripts/gift-guide-cover-versions.mjs"],
+    outputs: ["src/lib/giftGuideCoverVersions.mjs"],
+    what: "the first 8 hex of each gift guide cover's and share image's MD5, the ?v= cache key on their URLs",
+  },
+  {
     // SURFACE.md's toast count is read from this same scanner (Q228).
     id: "toast-inventory",
     script: "scripts/toast-inventory.mjs",

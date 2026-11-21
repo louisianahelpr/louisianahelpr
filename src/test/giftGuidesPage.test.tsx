@@ -249,7 +249,8 @@ describe("gift guides: the content inventory", () => {
     for (const s of slugs) expect(s).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
     const covers = GUIDES.filter((g) => g.cover);
     expect(covers.length).toBeGreaterThan(10); // owner 11-21: the live guides and their relationship views (14, 2026-11-21)
-    for (const g of covers) expect(existsSync(`public${g.cover}`), g.cover).toBe(true);
+    // A cover URL carries ?v=<content hash> (owner 11-21; src/test/giftGuideCoverVersions1121.test.ts): the file is the path before it.
+    for (const g of covers) expect(existsSync(`public${g.cover!.split("?")[0]}`), g.cover).toBe(true);
     expect(ROWS.map((r) => r.label)).toEqual(ROW_LABELS);
     // Owner 11-21: only Her, Him, Kids and the sponsors page are live (src/content/giftGuideLive.mjs), so only their
     // rows hold a guide; the other rows stay on the owner's list for the guides' return.
@@ -550,11 +551,11 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       expect(rule, fam).toContain(`--c-cross:rgb(${m[1]} ${m[2]} ${m[3]})`);
       expect(rule, fam).toContain(`--c-band:rgb(${m[4]} ${m[5]} ${m[6]})`);
     }
-    expect(guideBySlug("her")!.cover).toBe("/gift-guides/covers/her.webp"); // Mom is a filter of Her (owner 11-20 evening) and shows Her's cover
-    for (const g of GUIDES.filter((x) => x.cover)) expect(existsSync(`public${g.cover}`), g.cover).toBe(true);
+    expect(guideBySlug("her")!.cover).toMatch(/^\/gift-guides\/covers\/her\.webp\?v=[0-9a-f]{8}$/); // Mom is a filter of Her (owner 11-20 evening) and shows Her's cover
+    for (const g of GUIDES.filter((x) => x.cover)) expect(existsSync(`public${g.cover!.split("?")[0]}`), g.cover).toBe(true);
     // Two-way: every cover file shipped is some guide's cover, or a retired guide's (owner 11-21: kept for its return,
     // src/content/giftGuideLive.mjs), never a stray file.
-    const used = new Set(GUIDES.map((g) => g.cover));
+    const used = new Set(GUIDES.map((g) => g.cover?.split("?")[0]));
     const files = readdirSync("public/gift-guides/covers");
     expect(files.length).toBeGreaterThan(40);
     // Dad and Mom are filter views of Him and Her (owner 11-20 evening); their cover files are the owner's and stay for the views.

@@ -11,12 +11,13 @@
  *  - M9: quick-pick chips under the search; L3: the item count; L6: no back arrow on the landing; L1: no repeated name
  *    under a cover, and the heart under the cover; L2: the phone banner is short.
  *
- * @mutate src/content/giftGuideCatalog.ts |   { words: ["fishing", "fish", | {   words: ["xfishing", "fish",
+ * Owner 11-21: only Her, Him and Kids are live (src/content/giftGuideLive.mjs); the budget, Christmas and Kids-by-
+ * age tests (all reaching retired guides or blocks) are gone.
+ *
  * @mutate src/content/giftGuideCatalog.ts |     if (BAND_WORDS[w]) { |     if (BAND_WORDS[w] && false) {
  * @mutate src/content/giftGuideCatalog.ts |   const words = meaningful.length ? meaningful : all; |   const words = all;
  * @mutate src/content/giftGuideCatalog.ts | (label.get(g.row) ?? []).includes(w)); | (label.get(g.row) ?? []).some((x) => x.includes(w)));
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |           {r.row === "for-kids" && <KidsByAge />} |
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px; | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;
  * @mutate src/pages/info/GiftGuides.tsx | hideBack={!guide && !deals && !myList && !shared && !group} | hideBack={false}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
@@ -54,12 +55,10 @@ const slugs = (q: string) => searchGuides(q).map((g) => g.slug);
 const live = (s: string) => !!guideBySlug(s) && !guideBySlug(s)!.empty;
 
 describe("H5: search finds what shoppers type", () => {
-  it("fishing finds the fishing guides, not only a store", () => {
-    // The review: "fishing" returned only the Simms store.
-    const hits = slugs("fishing");
-    // Follow-up 1120: Fishermen is a section of Outdoors & Travel (Fish Lover, aquarium fish, of Pet Lovers after it).
-    expect(hits.filter((s) => !s.startsWith("store-"))[0]).toBe("outdoors-and-travel");
-    expect(slugs("something for my husband who fishes")).toEqual(expect.arrayContaining(["fishermen", "boyfriend-or-husband"].filter(live)));
+  it("a sentence finds its person: 'something for my husband who fishes' finds Husband and Him", () => {
+    // Owner 11-21: the fishing guides (Outdoors & Travel) are retired (src/content/giftGuideLive.mjs); the person stays.
+    expect(slugs("something for my husband who fishes")).toEqual(expect.arrayContaining(["husband", "him"]));
+    expect(slugs("fishing").filter((s) => s === "outdoors-and-travel" || s.startsWith("store-"))).toEqual([]);
   });
 
   it("an age finds the age guides; a niece's age finds the girls' guide first; a budget finds its Under $X guide", () => {
@@ -74,14 +73,6 @@ describe("H5: search finds what shoppers type", () => {
     if (live("under-25")) expect(slugs("$22")[0]).toBe("under-25");
   });
 
-  it("tween, cheap and christmas find guides (each found nothing)", () => {
-    expect(slugs("tween")).toEqual(expect.arrayContaining(["girls-big-kids", "girls-teens"].filter(live)));
-    expect(slugs("cheap")).toEqual(expect.arrayContaining(["under-10", "under-25"].filter(live)));
-    // Follow-up 1120: Stocking Stuffers is a section of Gifts by Budget.
-    expect(slugs("christmas")).toContain("gifts-by-budget");
-    expect(slugs("stocking")[0]).toBe("gifts-by-budget");
-  });
-
   it("filler words are dropped: 'gift for mom' is Mom, and no guide matches through 'Life moments'", () => {
     const mom = searchGuides("gift for mom");
     expect(mom[0].slug).toBe("mom");
@@ -92,7 +83,7 @@ describe("H5: search finds what shoppers type", () => {
 
   it("product names are searched from the item index, which matches the picks exactly (two-way)", () => {
     const items = ITEMS as unknown as SearchItem[];
-    expect(items.length).toBeGreaterThan(690);
+    expect(items.length).toBeGreaterThan(100); // owner 11-21: Her, Him, Kids and the sponsors page only (144 measured 2026-11-21)
     // The committed index is what the generator writes from today's picks; run `node scripts/gift-guide-search-index.mjs`.
     expect(readFileSync("src/content/giftGuideSearchIndex.json", "utf8")).toBe(indexText(buildIndex()));
     for (const [name, slug] of items.slice(0, 200)) {
@@ -131,22 +122,6 @@ describe("H5: search finds what shoppers type", () => {
 });
 
 describe("H1: the kids age guides are two taps from the landing", () => {
-  // Follow-up 1120 (owner 11-20 ~1:10 AM): ONE Kids guide by age; Kids by age opens each age section, teens included.
-  it("the For kids group's page carries Kids by age: five bands, each opening its section of Kids", () => {
-    const { container } = renderAt("/gift-guides?group=for-kids");
-    const row = container.querySelector("[data-gift-row='for-kids']")!;
-    const ages = row.querySelector("[data-gift-ages]")!;
-    expect(ages).not.toBeNull();
-    const kids = guideBySlug("kids")!;
-    // Teens is its own guide (owner 11-20 evening): its chip opens /gift-guides/teens.
-    const teens = guideBySlug("teens");
-    const want = ["babies", "toddlers", "little-kids", "big-kids", "teens"].filter((t) => (t === "teens" ? !!teens && !teens.empty : kids.picks.some((p) => p.sectionId === t)));
-    expect(want.length).toBeGreaterThan(3);
-    expect([...ages.querySelectorAll("[data-gift-age-band]")].map((b) => b.getAttribute("data-gift-age-band"))).toEqual(want);
-    expect(ages.querySelector("[data-gift-age-band='little-kids']")?.textContent).toBe("Little kids 4–7");
-    const links = [...ages.querySelectorAll("a[data-gift-age-link]")].map((a) => a.getAttribute("href"));
-    expect(links).toEqual(want.map((t) => (t === "teens" ? "/gift-guides/teens" : `/gift-guides/kids#${t}`)));
-  });
 
   it("Niece, Nephew and Cousins carry BY AGE chips to their hub's age guides; Mom has none", () => {
     for (const [slug, hub] of [["niece", "girls"], ["nephew", "boys"], ["cousins", "gender-neutral"]] as const) {
@@ -188,12 +163,11 @@ describe("H4: every item has a visible Shop link", () => {
 });
 
 describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () => {
-  it("one tap from the landing: its photo cards open By person, Kids, By budget, Louisiana, By store and Deals (no chip strip since owner 11-20 PM)", () => {
+  it("one tap from the landing: its three tiles open Her, Him and Kids (owner 11-21; no chip strip since owner 11-20 PM)", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector("[data-gift-quick-picks]")).toBeNull();
-    const cards = [...container.querySelectorAll("a[data-gift-entry]")];
-    expect(cards.map((a) => a.querySelector(".gg-entry-title")?.textContent)).toEqual([...GG.entries.map((e) => e.title), GG.dealsEntry.title]);
-    expect(cards.map((a) => a.getAttribute("href"))).toEqual(expect.arrayContaining(["/gift-guides?group=by-person", "/gift-guides?group=for-kids", "/gift-guides?group=louisiana"])); // Kids + Teens (owner 11-20 evening): two guides, so the group page
+    const tiles = [...container.querySelectorAll("[data-gift-live-guides] a[data-gift-tile]")];
+    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids"]);
   });
 
   it("the landing has no back arrow; a guide's goes to the landing", () => {
@@ -201,13 +175,13 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     cleanup();
     expect(renderAt("/gift-guides/mom").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("/gift-guides");
     cleanup();
-    expect(renderAt("/gift-guides?group=by-budget").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("/gift-guides");
+    expect(renderAt("/gift-guides?group=by-person").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("/gift-guides");
   });
 
   it("a cover tile does not repeat its cover's name, and its heart sits after the cover, not on it", () => {
     const { container } = renderAt("/gift-guides?group=by-person");
     const tiles = [...container.querySelectorAll("[data-gift-row='by-person'] li.gg-tile-li")];
-    expect(tiles.length).toBeGreaterThanOrEqual(5); // For Her / For Him 1120: Mom, Dad ... are filters, not tiles
+    expect(tiles.length).toBeGreaterThanOrEqual(2); // owner 11-21: Her and Him (Mom, Dad ... are filters, not tiles)
     for (const li of tiles) {
       expect(li.querySelector("[data-gift-tile-name]")?.classList.contains("sr-only")).toBe(true);
       expect(li.lastElementChild?.hasAttribute("data-gift-heart")).toBe(true);
@@ -222,6 +196,6 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     const h = Number(/\.gg-banner\{height:(\d+)px/.exec(phone)?.[1]);
     expect(h).toBeGreaterThan(0);
     expect(h).toBeLessThanOrEqual(96);
-    expect(GUIDES.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
+    expect(GUIDES.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship views (14, 2026-11-21)
   });
 });

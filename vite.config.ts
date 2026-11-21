@@ -1190,6 +1190,38 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
+            // The small business listing rules (supabase/functions/_shared/sbsSubmission.ts, ~10 KB): as a
+            // supabase/functions file, shared-late (every route's boot) took it once /shop-small (2026-11-21) made the
+            // listing form reachable, pushing /, /login and /signup over their critical-path budgets. Its own chunk:
+            // only the Shop Small page and its form reach it.
+            {
+              name: "sbs-submission",
+              test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]sbsSubmission\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // The Shops item and digital-file checks (supabase/functions/declutter-ai-draft/shopItemSanitize.ts and
+            // supabase/functions/_shared/digitalFileCheck.ts, ~12 KB): as supabase/functions files, shared-late (every
+            // route's boot) took them, though only src/lib/shops/items.ts and digitalFiles.ts read them. Their own
+            // chunk (2026-11-21, /login and /signup sat ~0.1 KB over their critical-path budgets after /shop-small).
+            {
+              name: "shops-checks",
+              test: /[\\/]supabase[\\/]functions[\\/](declutter-ai-draft[\\/]shopItemSanitize|_shared[\\/]digitalFileCheck)\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // The crew pay split (supabase/functions/_shared/crewShares.ts, ~8 KB): shared-late took it as a
+            // supabase/functions file, though only the job checkout, cancellation and activity dialogs read it. Its own
+            // chunk (2026-11-21, with shops-checks above, so /login and /signup stay inside their budgets).
+            {
+              name: "crew-shares",
+              test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]crewShares\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             // The parish tables and the location hook. Only the job lists, the
             // location hook and address checks read them, but several lazy
             // screens share them, so app-shared captured them onto EVERY page's

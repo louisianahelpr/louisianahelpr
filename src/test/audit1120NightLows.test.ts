@@ -62,4 +62,10 @@ describe("audit 11-20 night quick Lows", () => {
     expect(es).toContain("se guarda en Historial, en Vendiendo.");
     expect(es).not.toContain("Retirado, en Vendiendo");
   });
+  it("27: Messages failure toasts come from the dictionary, with Spanish words", () => {
+    const files = ["src/pages/messages/Messages.tsx", "src/pages/messages/useThreadMuteActions.ts", "src/pages/messages/useMessagesData.ts", "src/pages/messages/messagesData/sendHandlers.ts"];
+    for (const f of files) expect(readSource(f), f).not.toMatch(/toast\.error\(["`](Couldn't|Message didn't|Messages are limited)/);
+    const es = readSource("src/lib/i18n/esMessages.ts");
+    for (const k of ["msg.editFailed", "msg.muteFailed", "msg.refreshFailed", "msg.olderFailed", "msg.sendFailed"]) expect(es, k).toContain(`"${k}"`);
+  });
 });

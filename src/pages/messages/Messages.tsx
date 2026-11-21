@@ -384,7 +384,7 @@ const Messages = () => {
     if (!trimmed) return;
     if (trimmed.length > MESSAGE_MAX_LENGTH) {
       hapticError();
-      toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+      toast.error(t("chat.limit", { count: MESSAGE_MAX_LENGTH.toLocaleString() }));
       return;
     }
     const { data, error } = await supabase
@@ -394,7 +394,7 @@ const Messages = () => {
       .select("id, edited_at");
     if (error || !data || data.length === 0) {
       hapticError();
-      toast.error("Couldn't save that edit — give it another try?");
+      toast.error(t("msg.editFailed"));
       return;
     }
     const editedAt = data[0].edited_at ?? new Date().toISOString();

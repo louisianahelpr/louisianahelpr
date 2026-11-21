@@ -83,7 +83,7 @@ describe("off the job: source wiring", () => {
     expect(branch).toContain('sendStatus: "refused"');
     expect(branch).toContain("offJobState: offJob");
     expect(at, "asked after the retryable fallback: a refused send would still offer a retry").toBeLessThan(
-      code.indexOf(`toast.error("Message didn't go through — tap it to try again.")`),
+      code.indexOf('toast.error(t("msg.sendFailed"))'),
     );
     expect(code.lastIndexOf('refusalCode === "42501"', at)).toBeGreaterThan(0);
   });

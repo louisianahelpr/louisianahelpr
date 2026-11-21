@@ -3,6 +3,7 @@
  * (docs/specs/local-shops-prep.md; migration 20261017061155_shops_profiles).
  * Plain words only: no codes reach the member.
  */
+import { t } from "@/lib/i18n/language";
 import { BadgeCheck, FileCheck2, IdCard, Landmark, ShieldCheck, Star, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -146,7 +147,7 @@ function ShopsOpensSoon({ title, backTo, sectionRoot }: { title: string; backTo?
       body={SHOPS_OPENS_SOON_BODY}
       action={
         <Button asChild variant="outline" size="sm">
-          <Link to="/home">Go to Dashboard</Link>
+          <Link to="/home">{t("nav.goHome")}</Link>
         </Button>
       }
     />

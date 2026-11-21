@@ -22,6 +22,7 @@ export const enCore = {
 
   // Main nav (desktop rail + phone dock)
   "nav.home": "Home",
+  "nav.goHome": "Go to Home",
   // F146 (owner UI audit 11-09): the phone dock reads "Home · Jobs · Declutter · Messages · You".
   "nav.dockHome": "Home",
   "nav.posts": "Posts",

@@ -38,6 +38,22 @@ describe("audit 11-20 night quick Lows", () => {
     expect(readSource("src/components/declutter/SellPorchPlaces.tsx")).toContain('data-porch-places-card=""');
   });
 
+  it("28: the buttons that go to /home say Go to Home (translated), not Go to Dashboard", () => {
+    for (const f of ["src/pages/auth/ResetPassword.tsx", "src/pages/post-job/GoToDashboardButton.tsx", "src/components/shops/shopsUi.tsx", "src/components/rentals/rentalsUi.tsx"]) {
+      const src = readSource(f);
+      expect(src, f).toContain('t("nav.goHome")');
+      expect(src, f).not.toContain("Go to Dashboard\n");
+      expect(src, f).not.toContain(">Go to Dashboard<");
+    }
+    expect(readSource("src/lib/i18n/enCore.ts")).toContain('"nav.goHome": "Go to Home"');
+    expect(readSource("src/lib/i18n/es.ts")).toContain('"nav.goHome": "Ir a Inicio"');
+  });
+
+  it("4: the price-raise refusal says what to do about a typo, in both languages", () => {
+    expect(readSource("src/lib/i18n/enListingParts.ts")).toContain("Listed too low by mistake? Delete it and post again.");
+    expect(readSource("src/lib/i18n/esListingParts.ts")).toContain("Bórrelo y publíquelo de nuevo.");
+  });
+
   it("5: the delete toast names History, not a Taken down section", () => {
     const en = readSource("src/lib/i18n/enListingParts.ts");
     const es = readSource("src/lib/i18n/esListingParts.ts");

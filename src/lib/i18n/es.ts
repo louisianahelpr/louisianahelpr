@@ -162,6 +162,7 @@ export const es: Record<MsgKey, string> = {
   "lang.legalInEnglish": "Los términos legales están en inglés. Hay un resumen en español en la página de Términos.",
 
   "nav.home": "Inicio",
+  "nav.goHome": "Ir a Inicio",
   "nav.dockHome": "Inicio",
   "nav.posts": "Publicaciones",
   "nav.jobs": "Trabajos",

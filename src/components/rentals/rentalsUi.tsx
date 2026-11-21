@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n/language";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useFeature } from "@/hooks/useFeature";
@@ -47,7 +48,7 @@ function HomesOpensSoon() {
         body={HOMES_OPENS_SOON_BODY}
         action={
           <Button asChild variant="outline" size="sm">
-            <Link to="/home">Go to Dashboard</Link>
+            <Link to="/home">{t("nav.goHome")}</Link>
           </Button>
         }
       />

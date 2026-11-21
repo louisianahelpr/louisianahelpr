@@ -265,7 +265,7 @@ describe("Rentals screens", () => {
     expect(screen.queryByText("Opens soon")).toBeNull();
     expect(screen.getByRole("heading", { level: 1, name: "Homes" })).toBeTruthy();
     expect(screen.getByText(HOMES_OPENS_SOON_BODY)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Go to Dashboard" }).getAttribute("href")).toBe("/home");
+    expect(screen.getByRole("link", { name: "Go to Home" }).getAttribute("href")).toBe("/home");
     expect(screen.queryByText("Page not found")).toBeNull();
   });
   it("the hidden switch off: a Homes sub-screen link (/rentals/requests/:id) stays the 404", async () => {

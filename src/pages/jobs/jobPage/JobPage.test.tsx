@@ -29,7 +29,7 @@
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire. |   escrow: "Paid. Louisiana Helpr holds it until the job is done.",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | releasedLine(job)) : refundInTracker ? null : refundLine ?? heldWords[status] ?? HELD_LINE[status] ?? null; | releasedLine(job)) : status === "held" \|\| refundInTracker ? null : refundLine ?? heldWords[status] ?? HELD_LINE[status] ?? null;
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until you hire a Helpr.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && open && !offerOut && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | {isPoster && open && !offerOut &&
@@ -65,6 +65,8 @@ const state = {
   reach: null as number | null,
   party: false,
   applicants: { total: 0, pending: 0 } as { total: number; pending: number; noShowAt?: string | null },
+  /** Audit 11-21 (G5): the applicants read failed. */
+  applicantsError: false,
   owed: 0,
   myApplication: null as { status: string; closed_reason: string | null } | null,
   cardHold: false,
@@ -104,7 +106,9 @@ vi.mock("./useJobPage", () => ({
   useMyInstantBooking: () => state.instantUntil,
   useJobPage: (_id: string, userId: string) => ({
     job: { isLoading: false, isError: false, data: state.job ? { job: state.job, party: state.party } : null, refetch: vi.fn() },
-    applicants: { isLoading: false, data: state.applicants },
+    applicants: state.applicantsError
+      ? { isLoading: false, isError: true, data: undefined, refetch: applicantsRefetch }
+      : { isLoading: false, isError: false, data: state.applicants, refetch: applicantsRefetch },
     isPoster: !!state.job && state.job.customer_id === userId,
     myApplication: { data: state.myApplication },
     tracking: { data: state.tracking },
@@ -200,6 +204,7 @@ vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }))
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "instant_book" || (key === "card_hold_at_post" && state.cardHold) }));
 // The Posted card's own flows on the page (usePosterPageFlows; its wiring is posterPageFlows.test.tsx): record each call.
 const flowCalls = vi.hoisted(() => [] as string[]);
+const applicantsRefetch = vi.hoisted(() => vi.fn());
 // The no-applicants card's own photo add (useAddJobPhotos; its upload and write are useAddJobPhotos.test.ts).
 const addPhotosCalls = vi.hoisted(() => [] as File[][]);
 vi.mock("./useAddJobPhotos", () => ({ useAddJobPhotos: () => ({ add: async (f: File[]) => { addPhotosCalls.push(f); return true; }, busy: false }) }));
@@ -614,7 +619,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     unmount();
     state.job = row({ customer_id: ME, payment_status: "held" });
     renderPage();
-    expect(screen.getByText("Your card isn't charged until a Helpr accepts your offer.")).toBeTruthy();
+    expect(screen.getByText("Your card isn't charged until you hire a Helpr.")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/Paid when you posted|You're charged when you post/);
   });
 
@@ -1245,6 +1250,23 @@ describe("board 57: the poster's open job with no applicants", () => {
     fireEvent.change(input, { target: { files: [file] } });
     expect(addPhotosCalls.map((c) => c.map((f) => f.name))).toEqual([["porch.jpg"]]);
     expect(flowCalls, "a no-applicants row opened the edit dialog, which can't add photos or change a paid price").toEqual([]);
+  });
+
+  // Audit 11-21 (G5): with the applicants read failing, the page said "Pick your Helpr" with no list, error or retry.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isPoster && open && applicants.isError && ( |           {false && (
+  it("a failed applicants read says so with Try again, never 'No applicants yet'", async () => {
+    state.job = row({ customer_id: ME });
+    state.applicantsError = true;
+    applicantsRefetch.mockClear();
+    try {
+      renderPage();
+      expect(await screen.findByText("We couldn't load your applicants")).toBeTruthy();
+      expect(screen.queryByRole("heading", { name: "No applicants yet" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+      expect(applicantsRefetch).toHaveBeenCalled();
+    } finally {
+      state.applicantsError = false;
+    }
   });
 
   it("an unpaid post, a post with a photo, or one with applicants does not claim it", async () => {

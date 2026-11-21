@@ -109,7 +109,7 @@ const Login = () => {
       tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
     });
   }, [oauthError]);
-  const { accountChoice, notice, leadWithSignup } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", hadSessionHere: hadSessionOnThisBrowser(), arrivedFromSignup, bouncedFromGatedRoute, redirect: safeInternalRedirect(pendingRedirect) });
+  const { accountChoice, notice, leadWithSignup } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", hadSessionHere: hadSessionOnThisBrowser(), arrivedFromSignup, bouncedFromGatedRoute, redirect: safeInternalRedirect(pendingRedirect), reason: searchParams.get("reason") });
   const queryClient = useQueryClient();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/login"]);

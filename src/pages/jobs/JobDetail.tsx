@@ -137,6 +137,9 @@ const JobDetail = () => {
     canonical: id ? `https://www.louisianahelpr.com/jobs/${id}` : "https://www.louisianahelpr.com/browse",
     ogTitle: headingText,
     ogDescription: jobDescription,
+    // Audit 11-21 (P14): a job that is not public (hired, done, cancelled, gone) is noindex before JS (api/share.ts);
+    // the page said index after JS. Same answer both ways now.
+    robots: !authLoading && !user && !isLoading && !isError && !job ? "noindex, follow" : undefined,
   });
 
   // Signed in: the job's own page (it used to redirect to /home?quickApply=<id>;

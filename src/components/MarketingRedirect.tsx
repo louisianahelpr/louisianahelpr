@@ -27,6 +27,8 @@ interface MarketingRedirectProps {
    * the shape that is about to arrive rather than on a blank field.
    */
   fallback?: ReactNode;
+  /** Carry the query string to `to` (SignedInRedirect's keepQuery). */
+  keepQuery?: boolean;
 }
 
 /**
@@ -92,6 +94,7 @@ const MarketingRedirect = ({
   children,
   to = "/home",
   fallback = <div className="min-h-screen bg-premium-page" />,
+  keepQuery = false,
 }: MarketingRedirectProps) => {
   const [maybeSignedIn] = useState(() => !isNativePlatform && hasPersistedAuthToken());
 
@@ -102,7 +105,7 @@ const MarketingRedirect = ({
 
   return (
     <Suspense fallback={fallback}>
-      <SignedInRedirect to={to} pendingFallback={fallback}>{children}</SignedInRedirect>
+      <SignedInRedirect to={to} pendingFallback={fallback} keepQuery={keepQuery}>{children}</SignedInRedirect>
     </Suspense>
   );
 };

@@ -98,7 +98,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
 const HELD_LINE: Partial<Record<string, string>> = {
   // Owner 11-01: "Remove paid Louisiana Helpr holds until job is done." A paid (escrow) job prints no line here.
   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire.
-  held: "Your card isn't charged until a Helpr accepts your offer.",
+  held: "Your card isn't charged until you hire a Helpr.",
   unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
   abandoned: "Not paid yet. Helprs can't see this job until it's paid.",
   // Q2608 (Jobs audit 1102b row 22): the same words as the Job done sheet ("Paid to Eli · It's on its way to their bank").

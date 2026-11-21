@@ -141,9 +141,9 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     list.querySelectorAll("[data-gift-price]").forEach((el) => el.remove());
     expect(list.textContent).not.toMatch(/\$\s?\d/);
     const out = [...container.querySelectorAll("[data-gift-list] a")];
-    // Two links per pick, both to the shop: the row (photo and name) and its visible Shop pill (holistic review 11-18
-    // H4); the count follows the data (_featured-order.json grows the list).
-    expect(out.length).toBe(2 * guideBySlug("25-days-sponsors")!.picks.length);
+    // One link per pick (owner 11-21: "remove the shop at button, when they click the title of the image it will go
+    // there"): the photo and name together; the count follows the data.
+    expect(out.length).toBe(guideBySlug("25-days-sponsors")!.picks.length);
     expect(out.length).toBeGreaterThan(10); // one guide per product (owner 11-19)
     for (const a of out) expect(a.getAttribute("rel")).toBe("sponsored noopener");
   });

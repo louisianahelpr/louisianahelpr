@@ -18,7 +18,7 @@
  * @mutate src/content/giftGuideCatalog.ts |   const words = meaningful.length ? meaningful : all; |   const words = all;
  * @mutate src/content/giftGuideCatalog.ts | (label.get(g.row) ?? []).includes(w)); | (label.get(g.row) ?? []).some((x) => x.includes(w)));
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px; | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <GiftOut href={pick.href} className="gg-item" data-gift-title-link=""> | <GiftOut href={pick.href} className="gg-item">
  * @mutate src/pages/info/GiftGuides.tsx | wrapTitle={!banner} backTo= | wrapTitle={!banner} hideBack={!guide} backTo=
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
  */
@@ -137,28 +137,25 @@ describe("H1: the kids age guides are two taps from the landing", () => {
   });
 });
 
-describe("H4: every item has a visible Shop link", () => {
-  // Owner 11-20 ("take the circle of shop at, it's too busy looking"): a plain text link now, not a Button pill; the
-  // 44px tap area is in its CSS (min-height:44px), guarded in giftGuideCalmCards1120.test.tsx.
-  // Owner 11-21 ("for shop just put 'shop' not 'shop at store name'"): every row's link reads "Shop ›".
-  it("'Shop ›', a 44px text link, its own link apart from the heart, opening the same shop", () => {
+describe("H4: every item says tap to buy: its photo and name are the link", () => {
+  // Owner 2026-11-21: "remove the shop at button, when they click the title of the image it will go there to the link".
+  it("each row's photo and name are ONE outbound link (new tab, sponsored rel), with no Shop button; the heart is outside", () => {
     const { container } = renderAt("/gift-guides/mom");
     const rows = [...container.querySelectorAll("[data-gift-list] > li")];
     expect(rows.length).toBeGreaterThan(10);
-    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-shop-btn\{[^}]*min-height:44px/);
     for (const li of rows) {
-      const pill = li.querySelector("a.gg-shop-btn")!;
-      expect(pill).not.toBeNull();
-      expect(pill.querySelector("[data-gift-shop]")?.textContent).toBe("Shop");
-      expect(pill.textContent).toContain("›");
-      expect(pill.getAttribute("href")).toBe(li.querySelector("a.gg-item")!.getAttribute("href"));
-      expect(pill.getAttribute("rel")).toBe("sponsored noopener");
-      expect(pill.contains(li.querySelector("[data-gift-heart]"))).toBe(false);
+      const links = [...li.querySelectorAll("a")];
+      expect(links.length).toBe(1);
+      const a = li.querySelector("a[data-gift-title-link]")!;
+      expect(a).toBe(links[0]);
+      expect(a.querySelector(".gg-nm-name")?.textContent?.length).toBeGreaterThan(2);
+      expect(a.querySelector(".gg-photo, .gg-thumb")).not.toBeNull();
+      expect(a.getAttribute("rel")).toBe("sponsored noopener");
+      expect(a.getAttribute("target")).toBe("_blank");
+      expect(a.contains(li.querySelector("[data-gift-heart]"))).toBe(false);
+      expect(li.querySelector(".gg-shop-btn, [data-gift-shop]")).toBeNull();
     }
-    expect(rows.some((li) => /Shop at /.test(li.textContent ?? ""))).toBe(false);
-    // The pill is never hidden (the old Shop word was display:none on every width).
-    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-shop-btn\{[^}]*display:none/);
-    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-shop\{/);
+    expect(rows.some((li) => /\bShop\b/.test(li.textContent ?? ""))).toBe(false);
   });
 });
 

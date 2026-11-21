@@ -12,8 +12,9 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-photo{border-radius:12px;background:#fff} | .gg-list .gg-photo{border-radius:12px;background:#faf6ee}
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | aspect-ratio:1/1;border-radius:10px;background:#fff; | aspect-ratio:1/1;border-radius:10px;background:#faf6ee;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply} | img.gg-thumb{background:transparent;mix-blend-mode:multiply}
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <GiftOut href={pick.href} className="gg-shop-btn"> |       <GiftOut href={pick.href} className="gg-shop-btn rounded-full border h-11">
- * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |         {item.href && <Out href={item.href} className="gg-shop-btn"> |         {item.href && <Out href={item.href} className="gg-shop-btn rounded-full border">
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <Heart saved={saved} label={WISH.saveLabel(pick.name)} |       <GiftOut href={pick.href} className="gg-shop-btn">Shop</GiftOut><Heart saved={saved} label={WISH.saveLabel(pick.name)}
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |       {heart && ( |       <Out href={item.href} className="gg-shop-btn">Shop</Out>{heart && (
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:underline; | .gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:none;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | padding:0 6px 0 0;border:0;border-radius:0;background:none; | padding:0 6px 0 0;border:1px solid;border-radius:999px;background:none;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | min-height:44px;margin-top:auto;padding:0 4px 0 0;border:0;background:none; | margin-top:auto;padding:0 4px 0 0;border:1px solid;background:none;
  */
@@ -88,23 +89,33 @@ describe("owner 11-20: every Shop link is plain text, not a pill", () => {
     }
   });
 
-  const pillClass = /(^|\s)(rounded-full|border|h-11|h-9)(\s|$)/;
-  it("a guide row's Shop link renders with no Button classes", () => {
+  // Owner 2026-11-21: "remove the shop at button, when they click the title of the image it will go there to the link".
+  // Each card is ONE outbound link holding the photo and the name (new tab, sponsored rel, "(opens in a new tab)"), no
+  // Shop button; the heart is its own button outside it. The name underlines on hover and focus only.
+  it("a guide row and a wish-list row: one link (photo + name), no Shop button, the heart outside it", () => {
     const pick = { name: "Align High-Rise Pant", href: "https://shop.lululemon.com/p/x", store: "store-lululemon", line: "" } as unknown as CatalogPick;
-    const { container } = render(<MemoryRouter><ol><PickRow pick={pick} /></ol></MemoryRouter>);
-    const a = container.querySelector("a.gg-shop-btn")!;
-    // Owner 11-21 ("for shop just put 'shop' not 'shop at store name'"): "Shop ›"; the store is said to screen readers.
-    expect(a.textContent).toMatch(/^Shop\s› Align High-Rise Pant at .+, opens in a new tab$/);
-    expect(a.querySelector("[data-gift-shop]")?.textContent).toBe("Shop");
-    expect(a.className).not.toMatch(pillClass);
-  });
-
-  it("a wish-list row's Shop link renders with no Button classes", () => {
-    const { container } = render(
-      <MemoryRouter><ol><WishRow item={{ id: "x1", name: "Flow Y Bra", store: "lululemon", href: "https://shop.lululemon.com/p/y", out: "affiliate" }} /></ol></MemoryRouter>,
-    );
-    const a = container.querySelector("a.gg-shop-btn")!;
-    expect(a.textContent).toMatch(/^Shop at lululemon/);
-    expect(a.className).not.toMatch(pillClass);
+    const guide = render(<MemoryRouter><ol><PickRow pick={pick} /></ol></MemoryRouter>).container;
+    const wish = render(
+      <MemoryRouter><ol><WishRow item={{ id: "x1", name: "Flow Y Bra", store: "lululemon", href: "https://shop.lululemon.com/p/y", out: "affiliate" }} heart={{ saved: true, onToggle: () => undefined }} /></ol></MemoryRouter>,
+    ).container;
+    for (const [c, name, href] of [[guide, "Align High-Rise Pant", "https://shop.lululemon.com/p/x"], [wish, "Flow Y Bra", "https://shop.lululemon.com/p/y"]] as const) {
+      const links = [...c.querySelectorAll("li a")];
+      expect(links.length, name).toBe(1);
+      const a = links[0];
+      expect(a.getAttribute("href"), name).toBe(href);
+      expect(a.getAttribute("target"), name).toBe("_blank");
+      expect(a.getAttribute("rel"), name).toBe("sponsored noopener");
+      expect(a.querySelector(".gg-nm-name")?.textContent, name).toBe(name);
+      expect(a.querySelector(".gg-thumb, .gg-photo"), name).not.toBeNull();
+      expect(a.textContent, name).toContain("(opens in a new tab)");
+      expect(a.textContent, name).not.toMatch(/\bShop\b|›/);
+      expect(c.querySelector(".gg-shop-btn, [data-gift-shop]"), name).toBeNull();
+      const heart = c.querySelector("[data-gift-heart]")!;
+      expect(a.contains(heart), name).toBe(false);
+      expect(heart.className, name).toMatch(/\bw-11\b.*\bh-11\b/);
+    }
+    const own = css("src/pages/info/giftGuides/giftGuidesStyles.ts");
+    expect(own).toContain(".gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:underline;");
+    expect(own).not.toMatch(/(^|[}\n])\.gg-nm-name\{[^}]*text-decoration:underline/);
   });
 });

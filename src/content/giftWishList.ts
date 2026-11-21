@@ -23,7 +23,6 @@ export const WISH = {
   removedToast: "Removed",
   undo: "Undo",
   undoLabel: (name: string) => `Undo: put ${name} back on your wish list`,
-  visit: "Visit",
   share: "Share my list",
   sharing: "Getting your link…",
   shareMenuLabel: "Share your list",

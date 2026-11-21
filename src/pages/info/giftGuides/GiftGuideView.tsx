@@ -85,7 +85,10 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
   const code = pick.code && (!pick.codeEnds || today <= pick.codeEnds) ? pick.code : undefined;
   return (
     <li data-gift-pick="">
-      <GiftOut href={pick.href} className="gg-item">
+      {/* Owner 2026-11-21: "remove the shop at button, when they click the title of the image it will go there to the
+          link". ONE link holds the photo and the name (calm: underlined on hover and focus only); the heart stays its
+          own 44px button outside it. A screen reader hears "<name> (On <store>) ~$24 (opens in a new tab)". */}
+      <GiftOut href={pick.href} className="gg-item" data-gift-title-link="">
         <PickThumb pick={pick} />
         {/* Owner 2026-11-21 ("how can we polish the listings so they aren't so busy looking? maybe remove the subtitle
             that describes the item. just show the price and not 'on whatever site'"): the name (2 lines at most), then
@@ -105,15 +108,6 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
       <Heart saved={saved} label={WISH.saveLabel(pick.name)} onToggle={() => heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) }))} className="gg-heart-pick" />
-      {/* Holistic review 11-18 H4 (High): every item says "tap to buy", apart from the heart. Owner 11-20 ("take the
-          circle of shop at, it's too busy looking"): a plain olive text link, no border or pill; its padding keeps the
-          44px tap area (.gg-shop-btn in giftGuidesStyles.ts). Owner 11-21 ("for shop just put 'shop' not 'shop at store
-          name'"): it reads "Shop ›"; a screen reader hears "Shop <name> at <store>, opens in a new tab". */}
-      <GiftOut href={pick.href} className="gg-shop-btn">
-        <span data-gift-shop="">{G.shopAt("")}</span>
-        <span aria-hidden="true">&nbsp;›</span>
-        <span className="sr-only"> {G.shopSr(pick.name, isShopMyCollection(pick.href) ? "ShopMy" : storeLabel(pick))}</span>
-      </GiftOut>
     </li>
   );
 }

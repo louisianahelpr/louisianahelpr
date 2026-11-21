@@ -153,7 +153,6 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
 .gg-list .gg-letter{font-size:16px}
 .gg-list .gg-heart-pick{position:absolute;top:6px;right:6px}
-.gg-list .gg-shop-btn{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto}
 .gg-list .gg-nm-name{min-height:2.6em}
 .gg-list .gg-item{margin-bottom:10px}
 }
@@ -164,7 +163,6 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
 .gg-list .gg-heart-pick{position:absolute;top:6px;right:6px}
-.gg-list .gg-shop-btn{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto}
 .gg-list .gg-nm-name{min-height:2.6em}
 .gg-list .gg-item{margin-bottom:10px}
 }
@@ -206,7 +204,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-more-groups-k{font-size:13px;font-weight:600;color:var(--gg-muted)}
 .gg-more-groups ul{display:flex;flex-wrap:wrap;gap:0 18px;list-style:none;margin:0;padding:0}
 .gg-gated{display:flex;flex-direction:column;gap:6px;margin:4px 0 12px}
-.gg-item:hover .gg-nm,.gg-item:focus-visible .gg-nm{text-decoration:underline}
+.gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:underline;text-underline-offset:3px}
 .gg-price{font-size:13px;font-weight:700;color:var(--gg-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .gg-price-note{margin:8px 0 0;font-size:12px;color:var(--gg-muted)}
 .gg-codes li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--gg-line)}

@@ -866,6 +866,8 @@ describe("gift guides: links and disclosures on every view", () => {
         if (href.startsWith("/")) {
           // The one link out of the guides: the Hire-a-Helpr box's pre-filled Post a job (owner 2026-11-18).
           if (href === GIFT_WRAP_JOB_PATH) continue;
+          // The landing's Louisiana Holiday Hub card (owner-approved 2026-11-20), and only that card.
+          if (href === "/holidays" && a.hasAttribute("data-gift-holiday-hub-link")) continue;
           // 1120: a merged guide's section link carries its anchor ("/gift-guides/girls#girls-babies").
           expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+(?:#[a-z0-9-]+)?|\?group=[a-z-]+(?:#[a-z-]+)?|\?list=mine|#[a-z0-9-]+)?$/);
           continue;

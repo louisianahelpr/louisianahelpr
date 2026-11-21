@@ -84,6 +84,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/fees",         // F255 (owner 2026-11-11): what it costs, words only
   "/safety",       // F255 (owner 2026-11-11): how members are kept safe
   "/gift-guides",  // Owner 2026-11-16: the Holiday Gift Guides
+  "/holidays",     // Owner-approved 2026-11-20: the Louisiana Holiday Hub (and its three pages, prefix match)
   // 25 Days of Louisiana Giveaways (owner 2026-11-09): the public sponsor page and /25days/rules, document scroll.
   "/sponsor",
   "/25days",
@@ -120,7 +121,8 @@ const DOCUMENT_SCROLL_ROUTES = [
 // /help and /support (Q965): PublicLayout renders AppShell for them on native
 // (useAppChrome), the same internal-scroll container as Legal, so they need
 // the same lock; they were on DOCUMENT_SCROLL_ROUTES only.
-const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/browse", "/help", "/support", "/sms-opt-in", "/fees", "/safety", "/gift-guides"];
+// /holidays (Holiday Hub, owner-approved 2026-11-20): a PublicHeaderPage like /gift-guides, so locked the same way.
+const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/browse", "/help", "/support", "/sms-opt-in", "/fees", "/safety", "/gift-guides", "/holidays"];
 
 /**
  * The pathname currently rendering the `path="*"` catch-all (NotFound), or

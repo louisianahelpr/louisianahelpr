@@ -16,8 +16,8 @@
  * three, so /sms-opt-in and the /terms/full, /privacy/full pages were outside it), and a route counts as listed the
  * way useAppShellViewport matches it: the entry itself or a path under it.
  *
- * @mutate src/hooks/useAppShellViewport.ts | "/browse", "/help", "/support", "/sms-opt-in", "/fees", "/safety", "/gift-guides"]; | "/browse"];
- * @mutate src/hooks/useAppShellViewport.ts | "/sms-opt-in", "/fees", "/safety", "/gift-guides"]; | "/sms-opt-in", "/fees", "/safety"];
+ * @mutate src/hooks/useAppShellViewport.ts | "/browse", "/help", "/support", "/sms-opt-in", "/fees", "/safety", "/gift-guides", "/holidays"]; | "/browse"];
+ * @mutate src/hooks/useAppShellViewport.ts | "/sms-opt-in", "/fees", "/safety", "/gift-guides", "/holidays"]; | "/sms-opt-in", "/fees", "/safety", "/holidays"];
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

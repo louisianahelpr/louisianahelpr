@@ -269,6 +269,12 @@ export const giftGuides = {
     right: "Scroll sponsors right",
   },
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
+  // Louisiana Holiday Hub (owner-approved 2026-11-20): the landing's link to /holidays.
+  holidayHub: {
+    title: "Louisiana Holiday Hub",
+    body: "Christmas lights, parades and holiday events near you, and a Helpr when you need a hand.",
+    cta: "See the Holiday Hub",
+  },
   giveaways: {
     title: "25 Days of Louisiana Giveaways",
     body: "A new Louisiana giveaway every day, December 1 to 25. Follow us on Facebook so you don't miss one.",

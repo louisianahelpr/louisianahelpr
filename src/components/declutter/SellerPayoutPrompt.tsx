@@ -10,6 +10,8 @@ import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
 import { formatPrice } from "@/lib/declutter/distance";
 import { Notice } from "@/components/ui/Notice";
 import { AlertTriangle, ChevronRight } from "lucide-react";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclPayout";
 
 /**
  * The Declutter money that really waits for this seller (owner 2026-10-28, shots 12 + 19: the banner said "You have
@@ -45,9 +47,10 @@ export function declutterMoneyWaiting(cart: CartLine[], payouts: MyPayout[]): { 
 
 /** "Oak chair", "Oak chair and Blue mug", "Oak chair, Blue mug and 1 more": every item the money is for, counted. */
 export function soldWords(titles: string[]): string {
-  if (titles.length <= 2) return titles.join(" and ");
-  if (titles.length === 3) return `${titles[0]}, ${titles[1]} and ${titles[2]}`;
-  return `${titles[0]}, ${titles[1]} and ${titles.length - 2} more`;
+  if (titles.length <= 1) return titles.join("");
+  if (titles.length === 2) return t("dpo.two", { a: titles[0], b: titles[1] });
+  if (titles.length === 3) return t("dpo.three", { a: titles[0], b: titles[1], c: titles[2] });
+  return t("dpo.more", { a: titles[0], b: titles[1], n: titles.length - 2 });
 }
 
 /**
@@ -84,6 +87,7 @@ function OwedPayoutPrompt({ cents, titles }: { cents: number; titles: string[] }
   // The one reader every payout-setup entry point uses (payoutSetupPausedEntryPoints guard). Money is owed
   // here, so its only possible "no" is the pause for everyone.
   const paused = usePayoutSetupBlock() === "paused";
+  useLanguage();
   const { payoutPrompt } = useStripeConnectStatus();
   if (payoutPrompt.kind !== "setup") return null;
   if (paused) return <PayoutSetupPausedNotice />;
@@ -91,13 +95,13 @@ function OwedPayoutPrompt({ cents, titles }: { cents: number; titles: string[] }
     <div data-declutter-payout-prompt="">
       {/* Design audit 11-17 #3: the same warning as the You page's payout row (PayoutStatusRow): terracotta, the
           warning icon and a trailing "Set up payouts >", not an amber box with an underlined inline link. */}
-      <Notice tone="warn" icon={AlertTriangle} title={`Set up payouts to get your ${formatPrice(cents)}.`}
+      <Notice tone="warn" icon={AlertTriangle} title={t("dpo.promptTitle", { amount: formatPrice(cents) })}
         action={(
           <Link to="/profile?tab=payment" className="inline-flex min-h-11 items-center gap-0.5 font-semibold text-[hsl(var(--burnt-sienna))]" data-payout-prompt-action="">
-            Set up payouts <ChevronRight className="h-4 w-4" aria-hidden />
+            {t("dpo.setUp")} <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
         )}>
-        {titles.length ? `You sold ${soldWords(titles)}. ` : ""}The money is held safely until payouts are set up, one short step.
+        {titles.length ? `${t("dpo.youSold", { items: soldWords(titles) })} ` : ""}{t("dpo.heldSafely")}
       </Notice>
     </div>
   );

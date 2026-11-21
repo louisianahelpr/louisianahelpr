@@ -81,8 +81,6 @@ const COPY_MODULES: Readonly<Record<string, readonly string[]>> = {
   "src/lib/seriesDates.ts": ["claimSetupStep"],
   // checkHelperStripeConnect has no caller today (dead export, reported); a new caller must gate.
   "src/hooks/useStripeConnectCheck.ts": ["checkHelperStripeConnect"],
-  // payoutLine(payout, problemOpen, { payoutReady, setupPaused }) -> DeclutterHandoverViews (reads usePayoutSetupPaused()).
-  "src/components/declutter/declutterPayoutWords.ts": ["payoutLine"],
 };
 
 /** Files whose payout words send nobody to setup. EXACT. */
@@ -107,6 +105,7 @@ const NOT_AN_ENTRY_POINT: Readonly<Record<string, string>> = {
   "src/lib/i18n/enMoneyTiles.ts": "the money tiles' words (F260q); HomeMoneyTiles, which shows them, reads usePayoutSetupPaused() and says mt.kept instead while setup is paused",
   "src/lib/i18n/enHome.ts": "Home's English dictionary (F260q): its payout words are drawn only by HomeDashboard.tsx and FirstJobHome.tsx, which read usePayoutSetupPaused() (FirstJobHome drops the step while setup is paused)",
   // Train 11-18: two dictionaries the design-audit areas made (their English moved out of components that hold the hook).
+  "src/lib/i18n/enDeclPayout.ts": "Declutter payout words (audit 11-20 night Low 6); dpo.setUp / dpo.promptTitle / dpo.onceSetup are drawn only by SellerPayoutPrompt.tsx and FailedPayoutLink.tsx (both read usePayoutSetupBlock()) and by payoutLine, whose caller DeclutterHandoverViews reads usePayoutSetupPaused()",
   "src/lib/i18n/enDeclSell.ts": "Declutter selling words (area 06b); dsl.setUpPayouts / dsl.getOnceSetup are drawn only by DeclutterPorchHandover.tsx, which reads usePayoutSetupPaused()",
   "src/lib/i18n/enNotifPrefs.ts": "notification-preference labels (area 08): np.jr.l.payout_hired names the \"You're hired: set up payouts\" reminder's on/off switch; it sends nobody to setup",
   "src/lib/payoutSetupPaused.ts": "the notices' own words (\"You'll set up payouts when you're hired\"): they replace setup, they send nobody to it",

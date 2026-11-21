@@ -569,7 +569,9 @@ describe("gift guides: the landing opens to the guides", () => {
   it("kids in one tap: the landing's For kids card opens Kids; its group page shows Kids and Kids by age (each age section, teens too); the menu Kids", () => {
     // Owner 11-20 PM: the landing's For kids card opens the one Kids guide (its sections are the ages).
     const card = renderAt("/gift-guides").container.querySelector('a[data-gift-entry="for-kids"]');
-    expect(card?.getAttribute("href")).toBe("/gift-guides/kids");
+    // Owner 11-20 evening: Teens is its own guide, so the For kids group holds two guides and its card opens the
+    // group's page (the landing's rule: the guide itself only when the group holds one).
+    expect(card?.getAttribute("href")).toBe("/gift-guides?group=for-kids");
     cleanup();
     const { container } = renderAt("/gift-guides?group=for-kids");
     const kidsRow = container.querySelector('[data-gift-row="for-kids"]')!;
@@ -830,7 +832,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
     for (const g of GUIDES) expect(["green", "oat", "red"], g.slug).toContain(g.tint);
     expect(guideBySlug("mom")!.tint).toBe("green");
     expect(guideBySlug("kids")!.tint).toBe("red");
-    expect(guideBySlug("mom")!.cover).toBe("/gift-guides/covers/mom.webp");
+    expect(guideBySlug("her")!.cover).toBe("/gift-guides/covers/her.webp"); // Mom is a filter of Her (owner 11-20 evening) and shows Her's cover
     for (const g of GUIDES.filter((x) => x.cover)) expect(existsSync(`public${g.cover}`), g.cover).toBe(true);
     // Two-way: every cover file shipped is some guide's cover.
     const used = new Set(GUIDES.map((g) => g.cover));

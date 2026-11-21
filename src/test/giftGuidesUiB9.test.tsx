@@ -193,7 +193,7 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     expect(container.querySelector("[data-gift-quick-picks]")).toBeNull();
     const cards = [...container.querySelectorAll("a[data-gift-entry]")];
     expect(cards.map((a) => a.querySelector(".gg-entry-title")?.textContent)).toEqual([...GG.entries.map((e) => e.title), GG.dealsEntry.title]);
-    expect(cards.map((a) => a.getAttribute("href"))).toEqual(expect.arrayContaining(["/gift-guides?group=by-person", "/gift-guides/kids", "/gift-guides?group=louisiana"]));
+    expect(cards.map((a) => a.getAttribute("href"))).toEqual(expect.arrayContaining(["/gift-guides?group=by-person", "/gift-guides?group=for-kids", "/gift-guides?group=louisiana"])); // Kids + Teens (owner 11-20 evening): two guides, so the group page
   });
 
   it("the landing has no back arrow; a guide's goes to the landing", () => {

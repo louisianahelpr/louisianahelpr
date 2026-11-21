@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Dialog, DialogAcknowledgeAction, DialogContent, DialogFooter, DialogHero } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, subscribeGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
@@ -96,7 +97,7 @@ export function GuidePicksPicker({ open, onOpenChange, personName, added, onPick
                 const done = added.has(p.href);
                 return (
                   <li key={p.href}>
-                    <button type="button" className="gg-plan-pick" disabled={done} aria-label={done ? `${p.name}: ${W.plannerGuidesAdded}` : W.plannerGuidesAdd(p.name, personName)}
+                    <Button type="button" variant="ghost" size="inline" className="gg-plan-pick justify-start whitespace-normal text-left font-normal tracking-normal" disabled={done} aria-label={done ? `${p.name}: ${W.plannerGuidesAdded}` : W.plannerGuidesAdd(p.name, personName)}
                       onClick={() => onPick(p)} data-plan-pick={p.href}>
                       <PickThumb pick={p} size={48} />
                       <span className="gg-plan-pick-nm">
@@ -104,7 +105,7 @@ export function GuidePicksPicker({ open, onOpenChange, personName, added, onPick
                         <small><PickPrice pick={p} /></small>
                       </span>
                       <span className={done ? "gg-plan-pick-act" : "gg-plan-pick-act add"} aria-hidden="true">{done ? W.plannerGuidesAdded : "+"}</span>
-                    </button>
+                    </Button>
                   </li>
                 );
               })}

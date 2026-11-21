@@ -1,13 +1,17 @@
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { GUIDES, MERGED_GUIDES, OLD_SLUGS, RETIRED_SLUGS, ROWS, STORES, childrenOf, guidesIn, loadAllGuidePicks, newSlugFor, relatedGuides } from "@/content/giftGuideCatalog";
 import type { SeoData, SeoGuide } from "@/lib/seoBodies.mjs";
+import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
+import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import deals from "@/content/giftGuideDeals.json";
 
 /**
  * SEO P1 (owner 11-19): the gift guide data api/share.ts needs to write each guide's body, ItemList and 404s with no
  * JavaScript (src/lib/seoBodies.mjs). Built from the page's own catalog (giftGuideCatalog.ts: the same guides, picks,
  * stores, groups and old-slug forwarding the page uses), so the raw HTML cannot drift from the page.
  * scripts/prerender-static-pages.mjs writes it to scripts/generated/seo-data.js at build time (gitignored, like
- * og-shell.js); the function bundle carries only names, stores and links, never the photos or lines.
+ * og-shell.js); the function bundle carries names, stores, links, and (structured data 1121) each pick's photo URL and
+ * checked price with its day, never the lines.
  * Guard: src/test/seoPageBodies.test.ts.
  */
 
@@ -29,7 +33,11 @@ export async function buildSeoData(): Promise<SeoData> {
       seen.add(p.href);
       const store = STORES[p.store]?.name ?? "";
       // "a 25 Days sponsor" reads oddly in a list: the brand is the store there.
-      picks.push([p.name, p.store === "sponsor" && p.brand ? p.brand : store, p.href]);
+      // Structured data (lead 11-21): the photo URL and checked price feed the guide's ItemList of Products
+      // (seoBodies.mjs giftGuideItemListLd); whether the price shows is decided per request, as the card decides it.
+      const extra = { ...(p.image ? { image: p.image } : {}), ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}) };
+      const where = p.store === "sponsor" && p.brand ? p.brand : store;
+      picks.push(Object.keys(extra).length ? [p.name, where, p.href, extra] : [p.name, where, p.href]);
     }
     // A hub (For Kids, Girls...) lists its child guides; any other guide, its siblings.
     const related = (g.children ? childrenOf(g) : relatedGuides(g))
@@ -51,5 +59,9 @@ export async function buildSeoData(): Promise<SeoData> {
       .filter((g) => guides[g.slug]?.indexed)
       .map((g) => [g.slug, guides[g.slug].name] as [string, string]),
   ]).filter(([, list]) => list.length > 0) as SeoData["groups"];
-  return { guides, moved, groups };
+  // The deals page's cards (structured data 1121): name, shop link and last day; empty while the page is retired.
+  const dealList: SeoData["deals"] = isLiveGuide(DEALS_SLUG)
+    ? (deals as { item?: string; href?: string; ends?: string }[]).filter((d) => d.item && d.href).map((d) => [d.item as string, d.href as string, d.ends ?? ""])
+    : [];
+  return { guides, moved, groups, deals: dealList };
 }

@@ -1501,7 +1501,7 @@ export default defineConfig(({ mode, command }) => ({
             // GiftGuideHelpr writes its one param out instead). Guard: src/test/publicPagesSkipSignedInChunks.test.ts.
             {
               name: "public-page-reads",
-              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean)|content[\\/](sponsorPage|giftGuideFun1120))\.ts$/,
+              test: /[\\/]src[\\/]((lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean)|content[\\/](sponsorPage|giftGuideFun1120))\.ts|lib[\\/]pickPriceShown\.mjs)$/,
               priority: 16.7,
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,

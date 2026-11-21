@@ -174,6 +174,7 @@ export const NOT_MONITORED = {
   secret_santa_reveal_opened: "usage count of Secret Santa reveal links opened, read by hand; a quiet day of zero is normal",
   gift_swipe_round_done: "usage count of finished swipe rounds (cards, saved), read by hand",
   gift_planner_person_added: "usage count of people added to the gift planner, read by hand",
+  gift_price_alerts_on: "usage count of saved-gift price alert sign-ups (gifts, signed in or not), read by hand; the outcome is the gift_price_alerts rows",
   gift_wish_heart: "usage count of gift guide hearts (added, removed, list full), read by hand; a quiet day of zero is normal",
   gift_wish_list_link: "usage count of share links made from My Wish List, read by hand; the outcome is the gift_wish_lists rows",
   gift_wish_list_share: "usage count of how a wish list link was sent (copy, text, Messenger, share sheet), read by hand",

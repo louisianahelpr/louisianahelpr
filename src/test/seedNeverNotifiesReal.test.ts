@@ -308,6 +308,7 @@ const EMAIL_SENDERS: Record<string, string> = {
   "supabase/functions/signup-lead-reminders/index.ts": "a sign-up lead with no account (so no seed subject): fixture, reserved and profiled addresses are never claimed",
   "supabase/functions/sponsor-25days/index.ts": "a brand's own 25 Days sign-up confirmation to the address it typed, and the same details to admin@; no account (so no seed subject), and a test address gets neither (isTestRecipient before each send)",
   "supabase/functions/admin-update-email/index.ts": "own email changed by an admin",
+  "supabase/functions/gift-price-alerts/index.ts": "an address's own saved-gift price alerts, to the address that opted in; names no other person (only products), is_seed subscriptions are never read outside test mode, and test or suppressed addresses are skipped",
   "supabase/functions/admin-support-reply/index.ts": "an admin's answer to the member's own support ticket, to their own address",
   "supabase/functions/admin-user-actions/index.ts": "own verification / ID re-upload / password reset / formal warning",
   "supabase/functions/_shared/giftCardEmail.ts": "names the donor: its one caller asks giftEmailCrossesSeedBoundary first (Q139, asserted below)",

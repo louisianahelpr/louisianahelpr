@@ -122,6 +122,7 @@ describe("no test or seed recipient reaches Resend (Q840)", () => {
       "confirm-reminders/index.ts",
       "declutter-money/index.ts",
       "engagement-automations/index.ts",
+      "gift-price-alerts/index.ts",
       "signup-lead-reminders/index.ts",
       "stripe-webhook/handlers/declutterCheckout.ts",
       "welcome-emails/index.ts",

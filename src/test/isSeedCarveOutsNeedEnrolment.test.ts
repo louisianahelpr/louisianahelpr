@@ -93,6 +93,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   claim_come_back_emails: "hides",
   // welcome emails (20261114234041, owner 11-14): a seed account is never mailed
   claim_welcome_emails: "hides",
+  // saved-gift price alerts (owner 11-21): a sign-up by a test account or for a seed profile's address is marked is_seed
+  gift_price_alert_subscribe: "tags",
   // confirm-your-email reminders (20261025190000): a seed account gets no reminder email
   claim_confirm_reminders: "hides",
   // payout setup after the hire (20261025162003): an enrolled seed Helpr with no payout account gets no reminder
@@ -362,6 +364,8 @@ const EDGE_READERS: Record<string, Kind> = {
   "engagement-automations/index.ts": "hides",
   // welcome emails (owner 11-14): seed items are never shown in the email (and seed jobs are left out by p_include_seed false)
   "welcome-emails/index.ts": "hides",
+  // saved-gift price alerts (owner 11-21): is_seed subscriptions are never mailed (.eq("is_seed", false)) outside test mode
+  "gift-price-alerts/index.ts": "hides",
   "money-reconciliation/index.ts": "alerts",
   "payment-confirm-reminder/index.ts": "hides",
   "process-scheduled-payouts/index.ts": "alerts",

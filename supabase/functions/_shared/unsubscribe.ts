@@ -104,11 +104,14 @@ const TOKEN_VERSION = 'unsub.v1'
  *                  link already in an inbox keeps verifying)
  *   'job_matches'  the "new job posted" email every member gets (Q1585, owner
  *                  2026-10-12): notification_preferences.email_job_matches only
+ *   'gift_price_alerts'  the saved-gift price alerts and the before-Dec-15 reminder
+ *                  (owner 2026-11-21): gift_price_alerts.unsubscribed_at only, for an
+ *                  address that may have no account at all
  *
  * The list is INSIDE the signature (`unsub.v1.job_matches:<address>`), so a
  * promotions link cannot be edited into a job-match opt-out or the reverse.
  */
-export type UnsubscribeList = 'promotions' | 'job_matches'
+export type UnsubscribeList = 'promotions' | 'job_matches' | 'gift_price_alerts'
 
 function signedPayload(normalized: string, list: UnsubscribeList): string {
   return list === 'promotions' ? `${TOKEN_VERSION}:${normalized}` : `${TOKEN_VERSION}.${list}:${normalized}`
@@ -116,7 +119,7 @@ function signedPayload(normalized: string, list: UnsubscribeList): string {
 
 /** The `list` query value, read strictly: anything unknown is the promotions list. */
 export function unsubscribeListFrom(value: string | null): UnsubscribeList {
-  return value === 'job_matches' ? 'job_matches' : 'promotions'
+  return value === 'job_matches' || value === 'gift_price_alerts' ? value : 'promotions'
 }
 
 async function hmac(secret: string, message: string): Promise<string> {

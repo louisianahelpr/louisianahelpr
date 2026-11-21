@@ -33,6 +33,18 @@ const COPY = {
     back: "New-job emails are back on",
     backBody: (who: string) => `${who} will get an email again whenever a new job is posted.`,
   },
+  // Saved-gift price alerts (owner 2026-11-21): only those emails; nothing about an account changes.
+  gift_price_alerts: {
+    ask: "Stop gift price alerts?",
+    askBody: (who: string) =>
+      `We'll stop emailing ${who} when a gift you saved drops in price, and we won't send the reminder before Dec 15.`,
+    confirm: "Stop Price Alerts",
+    done: "Price alerts are off",
+    doneBody: (who: string) => `We won't email ${who} about saved gifts any more.`,
+    undo: "Turn Price Alerts Back On",
+    back: "Price alerts are back on",
+    backBody: (who: string) => `${who} will get an email again when a saved gift drops in price.`,
+  },
   promotions: {
     ask: "Unsubscribe from promotional email?",
     askBody: (who: string) =>

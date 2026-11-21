@@ -3325,6 +3325,66 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_price_alert_hits: {
+        Row: {
+          bucket: string
+          hit_at: string
+          id: number
+        }
+        Insert: {
+          bucket: string
+          hit_at?: string
+          id?: number
+        }
+        Update: {
+          bucket?: string
+          hit_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
+      gift_price_alerts: {
+        Row: {
+          consent_at: string
+          created_at: string
+          email: string
+          id: string
+          is_seed: boolean
+          items: Json
+          last_alert_at: string | null
+          reminder_sent_at: string | null
+          send_claimed_at: string | null
+          unsubscribed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          consent_at: string
+          created_at?: string
+          email: string
+          id?: string
+          is_seed?: boolean
+          items: Json
+          last_alert_at?: string | null
+          reminder_sent_at?: string | null
+          send_claimed_at?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consent_at?: string
+          created_at?: string
+          email?: string
+          id?: string
+          is_seed?: boolean
+          items?: Json
+          last_alert_at?: string | null
+          reminder_sent_at?: string | null
+          send_claimed_at?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       helpr_task_talk_messages: {
         Row: {
           body: string
@@ -18640,6 +18700,8 @@ export type Database = {
       sbs_service_logo_path: { Args: { p_any: boolean; p_id: string }; Returns: string }
       sbs_town_key: { Args: { p_town: string }; Returns: string }
       secret_santa_cancel: { Args: { p_code: string; p_tokens: string[] }; Returns: boolean }
+      gift_price_alert_subscribe: { Args: { p_consent: boolean; p_email: string; p_items: Json }; Returns: Json }
+      gift_price_alerts_expire: { Args: never; Returns: Json }
       secret_santa_create: { Args: { p_avoid?: number[]; p_budget?: number; p_exchange_on?: string; p_gives_to: number[]; p_names: string[] }; Returns: Json }
       secret_santa_expire: { Args: never; Returns: Json }
       secret_santa_reveal: { Args: { p_code: string; p_token: string }; Returns: Json }

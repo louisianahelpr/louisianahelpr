@@ -253,6 +253,18 @@ export const enDeclutter = {
   "dsl.hist.relisted": "Back in your listings. Add photos and put it up again.",
   "dsl.hist.relisting": "Relisting…",
   "dsl.hist.relist": "Relist",
+  "dsl.end.missedRefundFree": "Cancelled after it was claimed. Your item is back up.",
+  "dsl.end.missedRefund": "Cancelled after the buyer paid. They were refunded, and your item is back on sale.",
+  "dsl.end.sellerRefundFree": "Cancelled on your side after it was claimed.",
+  "dsl.end.sellerRefund": "Cancelled on your side after the buyer paid. They were refunded.",
+  "dsl.end.missedFree": "The buyer didn't pick a pickup in 48 hours.",
+  "dsl.end.missed": "The buyer didn't check out in time. Nothing was charged.",
+  "dsl.end.calledOff": "You called off the sale. Nothing was charged.",
+  "dsl.ho.thanks": "Thanks. The Helpr can mark it picked up now.",
+  "dsl.ho.said": "You said you handed it over · {time}",
+  "dsl.ho.button": "Handed over",
+  "dsl.ho.ask": "Did you hand it to {who}?",
+  "dsl.ho.body": "Tap this only once the item is in the Helpr's hands. They can then mark it picked up.",
 } as const;
 
 addEnglish(enDeclutter);

@@ -70,7 +70,7 @@ export function ApplicantsErrorState({ onRetry }: { onRetry: () => void }) {
         className="btn-press"
         onClick={onRetry}
       >
-        Retry
+        Try again
       </Button>
     </div>
   );

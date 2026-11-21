@@ -234,7 +234,7 @@ export const esListingParts: Record<keyof typeof enListingParts, string> = {
   "lp.m.tPaused": "En pausa. Está oculto para los compradores.",
   "lp.m.tBack": "De nuevo a la venta.",
   "lp.m.tSoldDone": "Marcado como vendido en otro lado. Ya no está a la venta y queda en su historial de ventas.",
-  "lp.m.tDeleted": "Borrado. {title} ya no lo ven los compradores; se guarda en Retirado, en Vendiendo.",
+  "lp.m.tDeleted": "Borrado. {title} ya no lo ven los compradores; se guarda en Historial, en Vendiendo.",
   "lp.m.pBetween": "El precio debe estar entre $1 y $1,000.",
   "lp.m.pRaise": "Puede bajar el precio, o subirlo de nuevo hasta {price}, el precio con que lo publicó.",
   "lp.m.pUnder": "{price} está por debajo de su precio más bajo, {floor}.",

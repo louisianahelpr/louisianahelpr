@@ -537,7 +537,8 @@ function endedWords(line: Pick<CartLine, "status" | "order_id" | "order_status" 
   if ((line.total_cents ?? 0) === 0) {
     return sellerFault ? "The seller cancelled this free pickup." : "This free pickup was cancelled.";
   }
-  return sellerFault ? "The seller cancelled this sale. Your refund is on its way to your card." : "This sale was cancelled. Your refund is on its way to your card.";
+  // Audit 11-20 night #14: an order paid all by gift card goes back to the gift balance, so this never names a card.
+  return sellerFault ? "The seller cancelled this sale. Your refund is on its way." : "This sale was cancelled. Your refund is on its way.";
 }
 
 export function EndedLine({ line }: { line: CartLine }) {

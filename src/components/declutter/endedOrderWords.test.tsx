@@ -43,9 +43,10 @@ describe("Ended on Buying: every kind of ended order says what happened (A2-4)",
 
   it("a paid sale cancelled after paying: a refund is on its way, never \"Nothing was charged\"", () => {
     const buyerFault = words({ status: "missed", order_id: "o1", order_status: "refunded", total_cents: 2170 });
-    expect(buyerFault).toBe("This sale was cancelled. Your refund is on its way to your card.");
-    expect(words({ status: "cancelled_by_seller", order_id: "o1", order_status: "refunded", total_cents: 2170 })).toBe("The seller cancelled this sale. Your refund is on its way to your card.");
-    expect(buyerFault).not.toMatch(/Nothing was charged|\$|fee/);
+    expect(buyerFault).toBe("This sale was cancelled. Your refund is on its way.");
+    expect(words({ status: "cancelled_by_seller", order_id: "o1", order_status: "refunded", total_cents: 2170 })).toBe("The seller cancelled this sale. Your refund is on its way.");
+    // Audit 11-20 night #14: a gift-card-only order is refunded to the gift balance, so no card is named.
+    expect(buyerFault).not.toMatch(/Nothing was charged|\$|fee|to your card/);
   });
 
   // @mutate src/components/declutter/BuyingOrders.tsx |     if (free) return sellerFault ? "The giver called it off." : "You didn't pick it up in time."; |

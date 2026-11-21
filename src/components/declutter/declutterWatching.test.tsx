@@ -22,13 +22,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
-const state = { ids: new Set<string>(), items: [] as unknown[], toasts: [] as unknown[][] };
+const state = { ids: new Set<string>(), items: [] as unknown[], toasts: [] as unknown[][], cart: [] as unknown[] };
 
 vi.mock("sonner", () => ({ toast: Object.assign((...a: unknown[]) => { state.toasts.push(a); }, { error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchWatching: async () => state.ids,
   fetchWatchedItems: async () => state.items,
+  fetchMyCart: async () => state.cart,
+  respondOffer: async () => undefined,
 }));
 
 import { WatchingList, goneLine, watchedLine } from "./DeclutterWatching";
@@ -45,6 +47,7 @@ beforeEach(() => {
   state.ids = new Set(["a", "b", "c", "d"]);
   state.items = [item("b", "Oak dresser", "reserved", 4000), item("a", "Blue lamp", "live", 1999), item("c", "Free crib", "live", 0)];
   state.toasts = [];
+  state.cart = [];
 });
 
 describe("Watching under Buying (SS-5)", () => {
@@ -59,6 +62,18 @@ describe("Watching under Buying (SS-5)", () => {
     expect(rows[1]).toHaveTextContent("Free crib" + "Free");
     expect(rows[2]).toHaveTextContent("Oak dresserOn hold for another buyer");
     expect(within(section).getByText("1 item you saved is no longer listed.")).toBeInTheDocument();
+  });
+
+  // Audit 11-20 night #12: the buyer's own hold read "On hold for another buyer" under Saved.
+  // @mutate src/components/declutter/DeclutterWatching.tsx | {watchedLine(item, !!myHoldOn(cart.data, item.id))}</span> | {watchedLine(item)}</span>
+  it("says the hold is the buyer's own when their cart holds the item", async () => {
+    state.cart = [{ item_id: "b", my_side: "buyer", status: "in_cart" }];
+    show();
+    const section = await screen.findByRole("region", { name: "Saved" });
+    expect(await within(section).findByText("On hold for you. Check out")).toBeInTheDocument();
+    expect(within(section).queryByText("On hold for another buyer")).toBeNull();
+    expect(watchedLine({ status: "reserved", current_price_cents: 4000 }, true)).toBe("On hold for you. Check out");
+    expect(watchedLine({ status: "reserved", current_price_cents: 4000 })).toBe("On hold for another buyer");
   });
 
   it("shows nothing with no hearts", async () => {

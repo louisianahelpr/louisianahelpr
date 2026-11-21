@@ -16,6 +16,7 @@ import { fetchMyAway, fetchSellerAwayUntil } from "@/lib/declutter/api";
 import { calendarDayWords, comeBack, dateInDays, goAway } from "@/lib/declutter/sellerTools";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { SHOP_TOOL_MIN, ShopToolBones } from "./ShopSaleCard";
@@ -42,7 +43,8 @@ export function AwayCard({ userId }: { userId: string }) {
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (away.isPending) return <ShopToolBones name="away" />;
-  if (away.isError) return null;
+  // Audit 11-20 night #9: a failed read said nothing, so an away seller could not see or end away mode. It says so, with a retry.
+  if (away.isError) return <ErrorState variant="inline" title={t("dt5.away.loadFailed")} body={declutterErrorMessage(away.error)} onRetry={() => void away.refetch()} />;
   const a = away.data;
   return (
     <section className={`flex ${SHOP_TOOL_MIN} items-start gap-3 rounded-[20px] border border-border bg-card p-4`} aria-label={t("dt5.away.title")} data-away={a ? "on" : "off"}>

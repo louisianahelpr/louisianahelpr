@@ -96,6 +96,7 @@ export const enDeclTop5 = {
   "dt5.bulk.doneN": "Done: {n} of {total}.",
   "dt5.bulk.someFailed": "{n} couldn't be changed. Open them to see why.",
   "dt5.away.title": "Away mode",
+  "dt5.away.loadFailed": "We couldn't load away mode.",
   "dt5.away.off": "Going away? Pause your whole shop until a day you pick. Everything comes back on that day by itself.",
   "dt5.away.on": "You're away until {when}. Your listings are paused and come back that day.",
   "dt5.away.go": "Go away",

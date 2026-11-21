@@ -140,7 +140,7 @@ export function ManageListingSheet({
   const pause = useListingAction(() => pauseListing(item.id), t("lp.m.tPaused"), close);
   const relist = useListingAction(() => relistListing(item.id), t("lp.m.tBack"), close);
   // A2-5: "Mark sold elsewhere" keeps the listing in the seller's history; Delete stays a withdraw.
-  // F335: the toast names the listing and where it went (it stays under Taken down in Selling, with Relist).
+  // F335: the toast names the listing and where it went (it stays under History in Selling, with Relist).
   const takeDown = useListingAction(() => (view === "sold" ? markSoldElsewhere(item.id) : withdrawItem(item.id)),
     view === "sold" ? t("lp.m.tSoldDone") : t("lp.m.tDeleted", { title: item.title }),
     () => { close(); if (view !== "sold") onDeleted?.(); });

@@ -483,7 +483,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         {/* Owner 11-14 (Depop/Vinted audit item 7): a phone search shows the query and a Filter | Sort bar over the grid. */}
         {phoneResults && <DeclutterResultsHead query={query} count={preview ? null : rows.length} />}
         {/* F055 (UI audit 11-09): what is filtered, each removable. */}
-        <DeclutterActiveFilters filters={filters} maxMiles={maxMiles} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />
+        <DeclutterActiveFilters filters={filters} maxMiles={from ? maxMiles : null} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />
         {/* The filters a saved search keeps: words, category, price, distance and (BUY-13) Free, porch pickup, price
             drops and condition; the sheet shows them. Sort is how the list is ordered, not what it alerts on. */}
         {member && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null) || hasExtras(saveExtras)) && (

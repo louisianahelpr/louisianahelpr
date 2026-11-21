@@ -91,6 +91,7 @@ export const esDeclTop5: Record<keyof typeof enDeclTop5, string> = {
   "dt5.bulk.doneN": "Listo: {n} de {total}.",
   "dt5.bulk.someFailed": "{n} no se pudieron cambiar. Ábralos para ver por qué.",
   "dt5.away.title": "Modo ausente",
+  "dt5.away.loadFailed": "No pudimos cargar el modo ausente.",
   "dt5.away.off": "¿Se va? Pause toda su tienda hasta el día que elija. Todo vuelve ese día solo.",
   "dt5.away.on": "Está ausente hasta {when}. Sus anuncios están en pausa y vuelven ese día.",
   "dt5.away.go": "Ausentarme",

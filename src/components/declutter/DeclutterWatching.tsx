@@ -7,13 +7,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { fetchWatchedItems, fetchWatching, type DeclutterItem } from "@/lib/declutter/api";
+import { fetchMyCart, fetchWatchedItems, fetchWatching, type DeclutterItem } from "@/lib/declutter/api";
+import { myHoldOn } from "./DeclutterYourOffer";
 import { formatPrice } from "@/lib/declutter/distance";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 
 /** What a watched item's row says under its title. */
-export function watchedLine(item: Pick<DeclutterItem, "status" | "current_price_cents">): string {
+export function watchedLine(item: Pick<DeclutterItem, "status" | "current_price_cents">, heldByMe = false): string {
   if (item.status === "live") return item.current_price_cents > 0 ? formatPrice(item.current_price_cents) : "Free";
+  // Audit 11-20 night #12: the buyer's own hold (Buy now or an accepted offer) is not "another buyer".
+  if (item.status === "reserved" && heldByMe) return "On hold for you. Check out";
   if (item.status === "reserved") return "On hold for another buyer";
   return "No longer for sale";
 }
@@ -35,6 +38,8 @@ export function WatchingList() {
     queryFn: () => fetchWatchedItems(list),
     enabled: list.length > 0,
   });
+  // The Buying tab's own cart read (same key), so this costs no extra request there.
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: !!user && list.length > 0 });
   const failed = ids.isError ? ids.error : items.isError ? items.error : null;
   if (failed) {
     return (
@@ -60,7 +65,7 @@ export function WatchingList() {
             <li key={item.id}>
               <Link to={`/declutter/item/${item.id}`} className="block min-h-11 px-4 py-3">
                 <span className="block break-words text-ds-15 font-semibold">{item.title}</span>
-                <span className="block text-ds-13 text-muted-foreground">{watchedLine(item)}</span>
+                <span className="block text-ds-13 text-muted-foreground">{watchedLine(item, !!myHoldOn(cart.data, item.id))}</span>
               </Link>
             </li>
           ))}

@@ -1,0 +1,49 @@
+// @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx :: "        Try again\n      </Button>" => "        Retry\n      </Button>"
+// @mutate src/components/declutter/DeclutterBrowseView.tsx :: "<DeclutterActiveFilters filters={filters} maxMiles={from ? maxMiles : null}" => "<DeclutterActiveFilters filters={filters} maxMiles={maxMiles}"
+// @mutate src/pages/auth/signup/SignupStep1.tsx :: "<Link to={loginHref} className=\"tap-44" => "<Link to=\"/login\" className=\"tap-44"
+// @mutate src/pages/declutter/DeclutterSettingsPage.tsx :: ", \"Pickup places\": \"[data-porch-places-card]\"" => ""
+// @mutate src/lib/i18n/enListingParts.ts :: "it's kept under History in Selling." => "it's kept under Taken down in Selling."
+/**
+ * App audit 11-20 night, quick Lows (findings 19, 13, 26, 7, 5):
+ *  19 the applicants error button reads "Try again", as its own words say;
+ *  13 the "Within N mi" chip only shows when the distance filter is really applied (a location is known);
+ *  26 the bottom Log in link on sign-up keeps the page the member came for;
+ *   7 the Settings "Pickup places" chip finds its card in Spanish too (by attribute, not by its translated name);
+ *   5 the delete toast names the History tab, which exists, in both languages.
+ */
+import { describe, expect, it } from "vitest";
+import { readSource } from "@/test/helpers/walkSource";
+
+describe("audit 11-20 night quick Lows", () => {
+  it("19: the applicants error state button says Try again", () => {
+    const src = readSource("src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx");
+    expect(src).toMatch(/onClick=\{onRetry\}\s*>\s*Try again\s*<\/Button>/);
+    expect(src).not.toMatch(/>\s*Retry\s*<\/Button>/);
+  });
+
+  it("13: the active-filter chips get the distance only when a location is known", () => {
+    const src = readSource("src/components/declutter/DeclutterBrowseView.tsx");
+    expect(src).toContain("<DeclutterActiveFilters filters={filters} maxMiles={from ? maxMiles : null}");
+    expect(src).not.toContain("<DeclutterActiveFilters filters={filters} maxMiles={maxMiles}");
+  });
+
+  it("26: no plain /login link is left on sign-up step 1", () => {
+    const src = readSource("src/pages/auth/signup/SignupStep1.tsx");
+    expect(src).not.toMatch(/to="\/login"/);
+    expect(src).toContain("<Link to={loginHref}");
+  });
+
+  it("7: the Pickup places chip targets the card's attribute, which the card carries", () => {
+    expect(readSource("src/pages/declutter/DeclutterSettingsPage.tsx")).toContain('"Pickup places": "[data-porch-places-card]"');
+    expect(readSource("src/components/declutter/SellPorchPlaces.tsx")).toContain('data-porch-places-card=""');
+  });
+
+  it("5: the delete toast names History, not a Taken down section", () => {
+    const en = readSource("src/lib/i18n/enListingParts.ts");
+    const es = readSource("src/lib/i18n/esListingParts.ts");
+    expect(en).toContain("it's kept under History in Selling.");
+    expect(en).not.toContain("Taken down in Selling");
+    expect(es).toContain("se guarda en Historial, en Vendiendo.");
+    expect(es).not.toContain("Retirado, en Vendiendo");
+  });
+});

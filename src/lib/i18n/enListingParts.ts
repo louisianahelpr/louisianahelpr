@@ -241,7 +241,7 @@ export const enListingParts = {
   "lp.m.tPaused": "Paused. It's hidden from buyers.",
   "lp.m.tBack": "Back on sale.",
   "lp.m.tSoldDone": "Marked sold elsewhere. It's off sale and in your selling history.",
-  "lp.m.tDeleted": "Deleted. {title} is gone from buyers; it's kept under Taken down in Selling.",
+  "lp.m.tDeleted": "Deleted. {title} is gone from buyers; it's kept under History in Selling.",
   "lp.m.pBetween": "The price must be between $1 and $1,000.",
   "lp.m.pRaise": "You can lower the price, or raise it back up to {price}, the price you listed it at.",
   "lp.m.pUnder": "{price} is under your lowest price, {floor}.",

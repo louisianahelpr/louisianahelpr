@@ -207,7 +207,7 @@ describe("a guest's Declutter listing survives sign-up and email verification (o
     expect(document.querySelector("[data-sell-tax]")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Post it" })).toBeInTheDocument();
     await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
-    const target = (Element.prototype.scrollIntoView as ReturnType<typeof vi.fn>).mock.contexts.at(-1) as Element;
+    const target = (Element.prototype.scrollIntoView as ReturnType<typeof vi.fn>).mock.contexts.slice(-1)[0] as Element;
     expect(target.matches('[data-sell-row="pickup"], [data-sell-row="tax"]')).toBe(true);
     // Nothing was written for them yet: their own Post does that.
     for (const write of ["createDraft", "publishItem", "attestItem", "updateDraft"]) expect(h.calls).not.toContain(write);

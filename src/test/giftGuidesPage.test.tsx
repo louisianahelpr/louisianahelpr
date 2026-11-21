@@ -92,7 +92,7 @@ import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { DEAL_CODES, SALES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, REMOVED_GUIDES, guidesIn, childrenOf, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
-import { GiftGuideView, DEALS_AFTER_PICKS, PICKS_PAGE, STORE_DEALS_FIRST, storeDealRows, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
+import { GiftGuideView, DEALS_BELOW_LIST, PICKS_PAGE, STORE_DEALS_FIRST, storeDealRows, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { isLouisianaItem } from "../../scripts/giftGuideRules.mjs";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
@@ -1225,10 +1225,12 @@ describe("gift guides: Discount codes stay closed while moving between guides (o
     // Opened on Her, it is closed again on Mom (a new section per guide, nothing remembered).
     // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <DealsAndCodes key={guide.slug} guide={guide} /> |       <DealsAndCodes guide={guide} />
     if (codesNow()) codesNow().open = true;
-    // On a guide it comes right after pick 10 (design spec 11-18 H5), never above pick #1.
-    // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | export const DEALS_AFTER_PICKS = 10; | export const DEALS_AFTER_PICKS = 0;
+    // On a guide it sits below the whole list (owner 11-20: "codes and deals shouldn't randomly show in sections"),
+    // never between picks: every pick comes before it.
+    // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {draw(0, upTo)}\n      <PricesAsOf | {draw(0, 1)}{after}{draw(1, upTo)}\n      <PricesAsOf
     const herPicks = [...container.querySelectorAll("li[data-gift-pick]")];
-    if (codesNow() && herPicks.length > DEALS_AFTER_PICKS) expect(herPicks.filter((li) => li.compareDocumentPosition(codesNow()) & Node.DOCUMENT_POSITION_FOLLOWING).length).toBe(DEALS_AFTER_PICKS);
+    expect(DEALS_BELOW_LIST).toBe(true);
+    if (codesNow()) expect(herPicks.filter((li) => li.compareDocumentPosition(codesNow()) & Node.DOCUMENT_POSITION_FOLLOWING).length).toBe(herPicks.length);
     const mom = [...container.querySelectorAll("[data-gift-sidebar] a")].find((a) => a.getAttribute("href") === "/gift-guides/mom")!;
     fireEvent.click(mom);
     expect(codesNow()?.open ?? false).toBe(false);
@@ -1369,6 +1371,8 @@ describe("gift guides: the Amazon page in sections (design audit 11-18 #3)", () 
     expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length).toBe(g.picks.length);
     // The numbers run on across sections (each later list starts its counter where the last one stopped).
     const lists = [...container.querySelectorAll<HTMLOListElement>("ol[data-gift-list]")];
-    expect(lists[1].style.counterReset).toBe(`gg ${lists[0].children.length}`);
+    // One list per section run (deals no longer split a section, owner 11-20); with two or more, the count runs on.
+    expect(lists.length).toBe(runs.length);
+    if (lists.length > 1) expect(lists[1].style.counterReset).toBe(`gg ${lists[0].children.length}`);
   });
 });

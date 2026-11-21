@@ -68,12 +68,17 @@ def soften(pal, k=0.30, kb=0.15):
 
 
 FAMILY = {
-    "green": soften(((123, 148, 119), (186, 198, 180), CREAM_O), 0.45, 0.30),
+    # Owner 11-21: "we also agreed on a more christmas red and christmas green": deep holly green and berry red checks,
+    # no longer softened toward cream (beige stays as it was).
+    "green": ((38, 94, 60), (150, 178, 154), CREAM_O),
     "tan": soften(((206, 186, 154), (228, 215, 196), CREAM_O), 0.30, 0.15),
-    "red": soften(((177, 104, 100), (215, 176, 168), CREAM_O), 0.45, 0.30),
+    "red": ((168, 36, 42), (222, 150, 148), CREAM_O),
 }
 TINT = {"By person": "green", "By store": "green", "Life moments": "green", "Louisiana": "green",
         "By budget": "tan", "By career": "tan", "Colors": "tan", "For kids": "red", "Hobbies": "red", "Pets": "red"}
+# Owner 11-21 ("update the her him and kids guides to be red green or beige"): one family each, so the three
+# live guides never share a colour. Wins over the section tint above.
+SLUG_TINT = {"her": "red", "him": "green", "kids": "tan"}
 TIGHT = re.compile(r"airpods", re.I)
 # The cover audit's six per guide (11-18; "idk that a girl wants a grill toy"), then the fit audit's final_top25 for
 # that guide (owner 11-18: "Make sure all gifts are appropriate per section"). Only the guide's own picks are used
@@ -313,6 +318,15 @@ def cutout(data, tight=False):
     # The opening above shaves thin attached parts (grill legs, glasses arms, cords): put back raw pixels touching them.
     keep |= raw & ndimage.binary_dilation(keep, iterations=3)
     fg = ndimage.binary_fill_holes(keep)
+    # Owner 11-21 ("no guides images have background like the stanley cooler ... has white in the background of the
+    # handle"): a hole the product encloses (a bag's handle, a mug's ear) that is the photo's own backdrop is cut out
+    # too, so the gingham shows through it. Only a sizeable hole of near-backdrop colour; the product's own white
+    # panels are shaded or printed and stay.
+    holes, nh = ndimage.label(fg & ~keep | (fg & (off <= 8)))
+    for i in range(1, nh + 1):
+        h = holes == i
+        if h.sum() >= 0.004 * h.size and not (h[0].any() or h[-1].any() or h[:, 0].any() or h[:, -1].any()) and (off[h] <= 10).mean() > 0.9:
+            fg &= ~h
     edge = np.concatenate([fg[:2].ravel(), fg[-2:].ravel(), fg[:, :2].ravel(), fg[:, -2:].ravel()])
     # A product standing on the photo's bottom edge (Dillard's crops shoes and bags tight to the floor) is whole: only
     # the bottom edge touched, along at most half its width.
@@ -728,7 +742,7 @@ def draw(row, prods, out, share=None):
 def render(row, prods):
     """pin_covers.photo_cover / cover2_example.cover2 on a 1000 x 1000 square."""
     W = 1000
-    fam = TINT.get(row["group"], "green")
+    fam = SLUG_TINT.get(row["slug"]) or TINT.get(row["group"], "green")
     im = pc.gingham(W, W, fam, c=56, palettes=FAMILY)
     acc = ACCENT[fam] if POLISH else pc.INK
     d = ImageDraw.Draw(im)

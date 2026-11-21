@@ -1,6 +1,6 @@
 /** Types for scripts/giftGuideHer1121.mjs (For Her = the owner's saves, 2026-11-21). */
 export interface Her1121Row { name: string; brand: string; line: string; href: string; image: string; store: string; sortPrice: number; price?: number; commission: number | null; type: string }
-export interface Her1121Pick { name: string; brand: string; line: string; href: string; image: string; store: string; price?: number; priceAt?: string; commission: number | null; type: string; ownerPick: true; from: string; rels: string[] }
+export interface Her1121Pick { name: string; brand: string; line: string; href: string; image: string; store: string; price?: number; priceAt?: string; commission: number | null; type: string; ownerPick: true; from: string; priceRank: number | null; rels: string[] }
 export const HER_GUIDE: string;
 export const HER_PRICE_AT: string;
 export const HER_STORES: Readonly<Record<string, string>>;

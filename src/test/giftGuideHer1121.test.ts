@@ -6,9 +6,9 @@
  * photo; every ShopMy pick shows its checked price and a transparent cutout. The page shows no relationship chips and
  * no deals-and-codes box on For Her, and /mom, /wife ... still build from the same list.
  *
- * @mutate scripts/giftGuideHer1121.mjs |   return rows.map((r, i) => ({ r, i })).sort((a, b) => a.r.sortPrice - b.r.sortPrice \|\| a.i - b.i).map(({ r }) => { |   return rows.map((r, i) => ({ r, i })).map(({ r }) => {
+ * @mutate scripts/giftGuideHer1121.mjs |   return rankByPrice(rows).map(({ row: r, priceRank }) => { |   return rows.map((r) => ({ row: r, priceRank: null })).map(({ row: r, priceRank }) => {
  * @mutate scripts/giftGuideHer1121.mjs |     if (!isAmazon(r)) Object.assign(p, { price, priceAt: HER_PRICE_AT }); |     Object.assign(p, { price, priceAt: HER_PRICE_AT });
- * @mutate scripts/giftGuideHer1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE }; |     const p = { ...rest, image: r.image, ownerPick: true, from: HER_GUIDE };
+ * @mutate scripts/giftGuideHer1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE, priceRank }; |     const p = { ...rest, image: r.image, ownerPick: true, from: HER_GUIDE, priceRank };
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {!isOwnerList(guide.slug) && <PeopleChips guide={guide} />} |       <PeopleChips guide={guide} />
  * @mutate src/content/giftGuidePeople.mjs | export const OWNER_LIST_GUIDES = ["her", "him", "kids"]; | export const OWNER_LIST_GUIDES = [];
  */

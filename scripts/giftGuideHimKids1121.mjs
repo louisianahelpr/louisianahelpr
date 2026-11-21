@@ -16,6 +16,7 @@
  */
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { relsOf } from "./giftGuidePeople1120.mjs";
+import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
@@ -110,9 +111,9 @@ export const KIDS_1121 = [
 ].map(row);
 
 const build = (rows, slug, g) =>
-  rows.map((r, i) => ({ r, i })).sort((a, b) => a.r.sortPrice - b.r.sortPrice || a.i - b.i).map(({ r }) => {
+  rankByPrice(rows).map(({ row: r, priceRank }) => {
     const { sortPrice: _sp, ...rest } = r;
-    const p = { ...rest, ownerPick: true, from: slug };
+    const p = { ...rest, ownerPick: true, from: slug, priceRank };
     return { ...p, rels: g ? relsOf(g, p) : [] };
   });
 

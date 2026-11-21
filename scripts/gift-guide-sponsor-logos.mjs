@@ -31,6 +31,19 @@ const NOT_A_SPONSOR = new Set(["Louisiana Helpr"]);
  * lineup still lists them (holiday audit B, scripts/gift-guide-holiday-b-1120.json droppedSponsors).
  */
 export const DROPPED_SPONSORS = new Set(["R&R Wedding Co."]);
+/**
+ * Owner 2026-11-21 ("if all details are not confirmed they should not be on the list"; "separate 25 sponsors by louisiana
+ * national. put louisiana ones first then under list the national and they should all be listed from gift value"):
+ * scripts/gift-guide-sponsor-order-1121.json names the sponsors still missing a prize, value or delivery (left out), the
+ * national ones, and each one's total gift value. The row is Louisiana first, then national, each by value high to low.
+ */
+export const SPONSOR_ORDER = JSON.parse(readFileSync(join(REPO, "scripts/gift-guide-sponsor-order-1121.json"), "utf8"));
+export const NOT_CONFIRMED = new Set(SPONSOR_ORDER.notConfirmed);
+/** The row's order: Louisiana before national, then gift value high to low, then A to Z. */
+export const sponsorRowOrder = (a, b) =>
+  (a.group === b.group ? 0 : a.group === "la" ? -1 : 1) ||
+  (SPONSOR_ORDER.value[b.name] ?? 0) - (SPONSOR_ORDER.value[a.name] ?? 0) ||
+  a.name.localeCompare(b.name, "en", { sensitivity: "base" });
 /** Logos drawn white on clear (INDEX.md: "use on a dark background"): their circle is dark. */
 const DARK_LOGOS = new Set(["Everyday Dose", "3 Redneck Tenors"]);
 /**
@@ -139,6 +152,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for (const brand of brands) {
     const slug = sponsorSlug(brand);
     if (rows.some((r) => r.slug === slug)) continue; // HOTWORX Baton Rouge + Denham Springs: one logo, one tile.
+    if (NOT_CONFIRMED.has(shortName(brand))) continue; // owner 11-21: details not all confirmed yet
     const file = logoFor(brand, index, logoFiles);
     // Else the Small Business Saturday page's own logo for that sponsor (public/gift-guides/small-biz/<slug>.*).
     const small = smallBiz.find((b) => fold(shortName(b.name)).startsWith(fold(shortName(brand)).slice(0, 8)) || fold(shortName(brand)).startsWith(fold(shortName(b.name))));
@@ -153,9 +167,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     } else noLogo.push(brand);
     const spot = spotFor(brand, chunks);
     const fb = links[brand];
-    rows.push({ name: shortName(brand), slug, ...(logo ? { logo } : {}), href: spot ?? fb ?? "/gift-guides/25-days-sponsors", ...(!spot && fb ? { external: true } : {}), ...(logo && DARK_LOGOS.has(brand) ? { dark: true } : {}) });
+    rows.push({ name: shortName(brand), slug, group: SPONSOR_ORDER.national.includes(shortName(brand)) ? "us" : "la", ...(logo ? { logo } : {}), href: spot ?? fb ?? "/gift-guides/25-days-sponsors", ...(!spot && fb ? { external: true } : {}), ...(logo && DARK_LOGOS.has(brand) ? { dark: true } : {}) });
   }
-  rows.sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+  rows.sort(sponsorRowOrder);
   writeFileSync(OUT, `[\n${rows.map((r) => JSON.stringify(r)).join(",\n")}\n]\n`);
   console.log(`gift-guide-sponsor-logos: ${rows.length} sponsors, ${rows.length - noLogo.length} logos; no logo file: ${noLogo.join(", ") || "none"}`);
 }

@@ -3,11 +3,6 @@
   "section": "By person",
   "items": [
    {
-    "name": "BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack",
-    "key": "biodance:mask",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/biodance-hydro-cera-nol-real-deep-mask-08b369.webp"
-   },
-   {
     "name": "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box",
     "key": "campsnap:box",
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/camp-snap-cs-8-micro-video-camera-keychain-60114e.webp"
@@ -31,12 +26,48 @@
     "name": "Shark Depuffi Hot & Cold Face Sculpting Tool",
     "key": "shark:tool",
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/shark-depuffi-hot-cold-face-tool-154ac1.webp"
+   },
+   {
+    "name": "On Cloud 6 Sneakers, Glacier/White",
+    "key": "on:shoe",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/on-cloud-6-sneakers-glacier-white-4f6466.webp"
    }
   ]
  },
  "him": {
   "section": "By person",
-  "items": []
+  "items": [
+   {
+    "name": "Smathers & Branson Camo Needlepoint Belt",
+    "key": "smathersbranson:belt",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/smathers-branson-camo-needlepoint-belt-9362af.webp"
+   },
+   {
+    "name": "LaCrosse Grange Rubber Boot",
+    "key": "lacrosse:boot",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lacrosse-grange-18-rubber-boot-906f98.webp"
+   },
+   {
+    "name": "Theragun Prime Massage Gun",
+    "key": "theragun:massager",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/therabody-theragun-prime-6th-gen-e4ad1b.webp"
+   },
+   {
+    "name": "Dr. Squatch Fresh Falls Bar Soap",
+    "key": "drsquatch:soap",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/dr-squatch-fresh-falls-bar-soap-655c35.webp"
+   },
+   {
+    "name": "Clinique For Men Oil-Free Moisturizer",
+    "key": "clinique:moisturizer",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/clinique-for-men-oil-free-moisturizer-0b9a93.webp"
+   },
+   {
+    "name": "Method Men Body Wash, Sea + Surf",
+    "key": "method:surf",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/method-men-body-wash-sea-surf-7c385f.webp"
+   }
+  ]
  },
  "grandparents": {
   "section": "By person",
@@ -145,7 +176,38 @@
  },
  "kids": {
   "section": "For kids",
-  "items": []
+  "items": [
+   {
+    "name": "Model U Horse Ride-On, Brown",
+    "key": "ponycycle:brown",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/model-u-horse-ride-on-aac217.webp"
+   },
+   {
+    "name": "Hape Captain's Rocking Boat",
+    "key": "hape:boat",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hape-captains-rocking-boat-6e6b18.webp"
+   },
+   {
+    "name": "PlanToys Dancing Alligator Pull Toy",
+    "key": "plantoys:toy",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/plantoys-dancing-alligator-20c33e.webp"
+   },
+   {
+    "name": "Freddo 3 Wheel Balance Bike",
+    "key": "freddo:bike",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/freddo-3-wheel-balance-bike-b29eb6.webp"
+   },
+   {
+    "name": "Mentari Puppy on Wheels",
+    "key": "mentari:wheels",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/mentari-puppy-on-wheels-90b238.webp"
+   },
+   {
+    "name": "Tender Leaf Toys Rocket Construction",
+    "key": "tenderleaftoys:construction",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tender-leaf-rocket-construction-f554d4.webp"
+   }
+  ]
  },
  "teens": {
   "section": "For kids",

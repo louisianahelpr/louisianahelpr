@@ -266,6 +266,14 @@ def cutout(data, tight=False):
             # convert("RGB") alone turns its transparent background black, and every such photo failed the white
             # border test (r3 H1: store-stanley drew 2 of 26 photos, so its cover went text only).
             rgba = src.convert("RGBA")
+            al = np.asarray(rgba)[:, :, 3]
+            ring = np.concatenate([al[0], al[-1], al[:, 0], al[:, -1]])
+            if (ring <= 8).mean() > 0.98 and 0.04 < (al > 128).mean() < 0.9:
+                # Already a clean cutout (the guides' own cutouts, a brand's transparent packshot): keep its alpha as is.
+                # Flattened onto white, a white product (a cream cap, a white mask) merged into the backdrop and was cut
+                # apart (owner 11-21 cover review).
+                rgba.thumbnail((600, 600))
+                return rgba.crop(rgba.getbbox())
             im = Image.new("RGB", rgba.size, (255, 255, 255))
             im.paste(rgba, (0, 0), rgba)
         else:

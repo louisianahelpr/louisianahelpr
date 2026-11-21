@@ -43,6 +43,15 @@ describe("gift guide covers show only their own guide's products", () => {
     expect(isAmazonPhoto("https://notamazon.example/x.jpg")).toBe(false);
   });
 
+  it("lets an Amazon-linked pick on only through the owner's non-Amazon stand-in photo (scripts/gift-guide-cover-pins.json)", () => {
+    // Owner 11-21: an Amazon-linked pick may be on its cover with the same product's photo from another store, cut out.
+    const amz: Pick = { name: "YETI Rambler", image: "https://m.media-amazon.com/images/I/y.jpg", href: "https://www.amazon.com/dp/Y", store: "store-amazon" };
+    const cutout = "https://www.louisianahelpr.com/gift-guides/cutouts/yeti.webp";
+    expect(coverStrays({ a: { items: [{ name: "YETI Rambler", image: cutout }] } }, guide([amz]), { a: { "YETI Rambler": cutout } })).toEqual([]);
+    expect(coverStrays({ a: { items: [{ name: "YETI Rambler", image: cutout }] } }, guide([amz]), {})).toEqual(['a: "YETI Rambler" shows a photo the guide does not use']);
+    expect(coverStrays({ a: { items: [{ name: "YETI Rambler", image: amz.image }] } }, guide([amz]), { a: { "YETI Rambler": amz.image! } })).toEqual(['a: "YETI Rambler" is an Amazon photo']);
+  });
+
   it("passes a cover whose products are all in the guide", () => {
     expect(coverStrays({ a: { items: [{ name: "Camp Mug", image: mug.image }] } }, guide([mug]))).toEqual([]);
   });

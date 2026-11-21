@@ -38,15 +38,28 @@ export const guidePicks = (slug, dir = PICKS_DIR) => {
   return own.length ? own : childrenOf(slug).flatMap((c) => ownPicks(c, dir));
 };
 
+/**
+ * The owner's stand-in cover photos (scripts/gift-guide-cover-pins.json, owner 11-21: an Amazon-linked pick may be on its
+ * cover with the same product's photo from another store, cut out; Amazon's own photo never): { slug: { name: url } }.
+ */
+export const PINS_FILE = join(ROOT, "scripts", "gift-guide-cover-pins.json");
+export const pinnedPhotos = () => {
+  const pins = existsSync(PINS_FILE) ? JSON.parse(readFileSync(PINS_FILE, "utf8")) : {};
+  return Object.fromEntries(Object.entries(pins).filter(([k]) => !k.startsWith("_")).map(([k, v]) => [k, v.photos ?? {}]));
+};
+
 /** One line per cover product that is not in its guide (by name and photo), or is an Amazon photo or pick. */
-export function coverStrays(manifest, picksOf = guidePicks) {
+export function coverStrays(manifest, picksOf = guidePicks, standIns = pinnedPhotos()) {
   const out = [];
   for (const [slug, cover] of Object.entries(manifest)) {
     const picks = picksOf(slug);
     for (const item of cover.items ?? []) {
       const named = picks.filter((p) => p.name === item.name);
+      // An Amazon-linked pick on its cover only through the owner's stand-in photo, which is never Amazon's.
+      const standIn = standIns[slug]?.[item.name];
       if (!named.length) out.push(`${slug}: "${item.name}" is not in the guide`);
       else if (!item.image) out.push(`${slug}: "${item.name}" has no photo in the manifest`);
+      else if (standIn && item.image === standIn && !isAmazonPhoto(standIn)) continue;
       else if (!named.some((p) => p.image === item.image)) out.push(`${slug}: "${item.name}" shows a photo the guide does not use`);
       else if (isAmazonPhoto(item.image) || named.every((p) => isAmazonPhoto(p.href) || p.store === "store-amazon")) out.push(`${slug}: "${item.name}" is an Amazon photo`);
     }

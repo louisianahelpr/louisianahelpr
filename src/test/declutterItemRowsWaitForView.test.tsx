@@ -6,11 +6,18 @@
  * screen; until then the same bones hold the space.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const reads = vi.hoisted(() => ({ more: 0, similar: 0 }));
+const reads = vi.hoisted(() => ({ more: 0, similar: 0, asks: 0 }));
+// The rows also mount the bundle ask (a lazy chunk) for a signed-in viewer, and it reads the viewer's asks. Unmocked,
+// that read went to the network whenever the chunk arrived before the test ended: never in the plain run, always in
+// the coverage run (main run 44871305141: prodNetworkGuard refused a fetch to declutter_bundle_requests).
+vi.mock("@/lib/declutter/bundleRequest", async () => ({
+  ...(await vi.importActual<object>("@/lib/declutter/bundleRequest")),
+  fetchBundleRequests: async () => { reads.asks++; return []; },
+}));
 vi.mock("@/lib/declutter/api", async () => ({
   ...(await vi.importActual<object>("@/lib/declutter/api")),
   fetchSellerItems: async () => { reads.more++; return [{ id: "a1", seller_id: "s1", status: "live", title: "Lamp", category: "home_decor", condition_stars: 4, price_cents: 500, current_price_cents: 500, area_label: "X", area_lat: 30, area_lng: -91 }]; },
@@ -36,7 +43,7 @@ function open() {
   return render(<QueryClientProvider client={qc}><MemoryRouter><DeclutterItemRows item={ITEM} viewerId="u1" from={null} /></MemoryRouter></QueryClientProvider>);
 }
 
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); reads.more = 0; reads.similar = 0; fire = null; margins.length = 0; });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); reads.more = 0; reads.similar = 0; reads.asks = 0; fire = null; margins.length = 0; });
 
 describe("F062: the rows under an item read only when they come near the screen", () => {
   it("far below the screen: the bones hold the space and nothing is read", async () => {
@@ -44,7 +51,7 @@ describe("F062: the rows under an item read only when they come near the screen"
     open();
     expect(screen.getByRole("status", { name: "Loading more items" })).toBeTruthy();
     await new Promise((r) => setTimeout(r, 20));
-    expect(reads).toEqual({ more: 0, similar: 0 });
+    expect(reads).toEqual({ more: 0, similar: 0, asks: 0 });
     expect(margins).toContain(ROWS_NEAR_MARGIN);
   });
 
@@ -53,6 +60,8 @@ describe("F062: the rows under an item read only when they come near the screen"
     open();
     fire!(true);
     expect(await screen.findByRole("region", { name: "More from this seller" })).toBeTruthy();
-    expect(reads).toEqual({ more: 1, similar: 1 });
+    expect(reads).toMatchObject({ more: 1, similar: 1 });
+    // The bundle ask's chunk lands after the rows; wait for its one read so nothing is still in flight at the end.
+    await waitFor(() => expect(reads.asks).toBe(1));
   });
 });

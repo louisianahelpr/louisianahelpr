@@ -34,9 +34,13 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-const settle = async () => {
-  for (let i = 0; i < 5; i++) await new Promise((resolve) => setTimeout(resolve, 0));
-};
+/**
+ * The entry starts pathPageRoute's chunk, and that module starts the page: two dynamic imports, one inside the other.
+ * Wait for the imports themselves, not for a number of timer turns: five turns were enough in the plain run but not in
+ * the coverage run, where the first load of pathPageRoute took longer and the page's import had not begun when the
+ * test looked (main run 44871305141, Coverage floor: "expected [] to deeply equal ['HelpCenter']" on /help and /help/).
+ */
+const settle = () => vi.dynamicImportSettled();
 
 /** preloadEntryRoute runs from the entry with the page's own URL, so infoPageRoute.ts reads the same path. */
 async function open(path: string, signedIn = false) {

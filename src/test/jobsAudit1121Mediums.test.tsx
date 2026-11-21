@@ -18,6 +18,15 @@
  * P4: a guest's pet job showed "Loading your pets…" forever, and Add a pet left the post for a login wall.
  * @mutate src/components/postjob/PetPicker.tsx |   if (!user) { |   if (false) {
  *
+ * P0: guest post / hire entry points still forced sign-up first (owner 11-20/21: sign up at the end).
+ * @mutate src/pages/info/HireTownPage.tsx |   const post = form; |   const post = `/signup?redirect=${encodeURIComponent(form)}`;
+ * @mutate src/lib/bookMe.ts |   return bookOfferPath(userId); |   return signupUrlFor(bookOfferPath(userId));
+ * @mutate src/pages/home/DashboardGuest.tsx | onHire={() => navigate("/post-job")} | onHire={() => navigate("/signup")}
+ *
+ * P14: /search and /post-job were indexable with the home description; /helprs had no head of its own.
+ * @mutate src/hooks/useNoIndex.ts |     el.setAttribute("content", "noindex, follow"); |     el.setAttribute("content", "index, follow");
+ * @mutate src/pages/post-job/PostJob.tsx |   useNoIndex();\n |
+ *
  * G3: the card hold was explained three different ways (held until accepted / not charged until accepted / saved).
  * @mutate supabase/functions/_shared/cardHoldCopy.ts | postPromise: "Pay by card and you're only charged when you hire a Helpr. | postPromise: "Your card is held, not charged, until a Helpr accepts your offer.
  * @mutate src/lib/i18n/enJobPoster.ts | "Your card isn't charged until you hire a Helpr." | "Your card isn't charged until a Helpr accepts your offer."
@@ -160,6 +169,40 @@ describe("G19: Post a job's search finds the common Louisiana jobs", () => {
     const text = search(q);
     expect(text).not.toMatch(/No category matches/);
     expect(text).toMatch(want);
+  });
+});
+
+describe("P0: a guest's post / hire entry opens Post a job itself (sign-up comes at the end)", () => {
+  it("no source sends a guest through /signup on the way to /post-job", async () => {
+    const { walkSource } = await import("./helpers/walkSource");
+    const { join, relative } = await import("node:path");
+    const ROOT = resolve(__dirname, "../..");
+    const files = walkSource([join(ROOT, "src")]).filter((f) => !/\.test\.tsx?$/.test(f) && !f.includes("/src/test/"));
+    // Inventory floor: the scan reads the app.
+    expect(files.length).toBeGreaterThan(500);
+    const SIGNUP_THEN_POST = /signupUrlFor\([^)]*post-job|\/signup\?redirect=[^"'`\s]*post-job|\/signup\?redirect=\$\{encodeURIComponent\(form\)\}|signupUrlFor\(bookOfferPath/;
+    const hits = files.filter((f) => SIGNUP_THEN_POST.test(blankComments(readFileSync(f, "utf8")))).map((f) => relative(ROOT, f));
+    expect(hits).toEqual([]);
+  });
+  it("the guest empty board's 'hire someone' opens Post a job", () => {
+    expect(code("src/pages/home/DashboardGuest.tsx")).toContain('onHire={() => navigate("/post-job")}');
+  });
+});
+
+describe("P14: tool pages are noindex, /helprs has its own head, an unavailable job is noindex after JS too", () => {
+  it("useNoIndex says noindex while mounted and takes it away after", async () => {
+    const { renderHook } = await import("@testing-library/react");
+    const { useNoIndex } = await import("@/hooks/useNoIndex");
+    const h = renderHook(() => useNoIndex());
+    expect(document.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe("noindex, follow");
+    h.unmount();
+    expect(document.querySelector('meta[name="robots"]')).toBeNull();
+  });
+  it("Post a job and Search call it; Find a Helpr names itself; the unavailable guest job says noindex", () => {
+    expect(code("src/pages/post-job/PostJob.tsx")).toMatch(/\buseNoIndex\(\);/);
+    expect(code("src/pages/search/SearchPage.tsx")).toMatch(/\buseNoIndex\(\);/);
+    expect(code("src/pages/helprs/FindHelprs.tsx")).toMatch(/canonical: "https:\/\/www\.louisianahelpr\.com\/helprs"/);
+    expect(code("src/pages/jobs/JobDetail.tsx")).toMatch(/robots: !authLoading && !user && !isLoading && !isError && !job \? "noindex, follow" : undefined/);
   });
 });
 

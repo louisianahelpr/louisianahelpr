@@ -5,6 +5,7 @@
  * is passed in by the dialog, which owns the quote, the fee and the cancel.
  */
 import type { PosterCancelQuote } from "@/lib/posterCancelQuote";
+import { Button } from "@/components/ui/button";
 // formatPriceExact, not formatPrice: these show the fee arithmetic, and
 // whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
@@ -105,7 +106,19 @@ function unquotedBackToYou(reason: string | null): string {
   }
 }
 
-export function CancelBackToYou({ quote, quoteLoading, backToYouCents }: { quote: PosterCancelQuote | null; quoteLoading: boolean; backToYouCents: number | null }) {
+export function CancelBackToYou({ quote, quoteLoading, backToYouCents, quoteFailed = false, onRetry }: { quote: PosterCancelQuote | null; quoteLoading: boolean; backToYouCents: number | null; quoteFailed?: boolean; onRetry?: () => void }) {
+  // Audit 11-21 (G4): the quote did not load. Say so with a way to try again (Confirm waits for it).
+  if (quoteFailed) {
+    return (
+      <div className="border-b border-border py-3" data-testid="cancel-quote-failed" data-cancel-money-row="back-to-you" role="alert">
+        <p className="font-sans font-semibold text-ds-13 text-foreground">We couldn&rsquo;t load what you&rsquo;d get back</p>
+        <p className="text-ds-12 text-muted-foreground mt-0.5">Check your connection, then try again. You can cancel once it loads.</p>
+        {onRetry && (
+          <Button type="button" variant="outline" size="default" className="mt-2 rounded-full" onClick={onRetry}>Try again</Button>
+        )}
+      </div>
+    );
+  }
   return (
     <div
       className="border-b border-border py-3"

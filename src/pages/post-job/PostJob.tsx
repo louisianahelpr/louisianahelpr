@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import AppPage from "@/components/AppPage";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useNoIndex } from "@/hooks/useNoIndex";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { resetLargeTitles } from "@/lib/largeTitles";
 import { usePostJobForm } from "./usePostJobForm";
@@ -14,6 +15,7 @@ import { CheckoutStepView } from "./CheckoutStepView";
 
 const PostJob = () => {
   usePageTitle("Post a job — Helpr");
+  useNoIndex();
   const form = usePostJobForm();
   // Posting needs no ID (owner 2026-11-20): the poster's ID check is asked when they send an offer
   // (20261120205350; src/lib/posterIdAtOffer.ts). Guard: src/test/posterIdAtOffer.test.ts.

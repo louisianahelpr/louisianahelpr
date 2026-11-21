@@ -73,6 +73,7 @@ const WORK_RPC = /\.rpc\(\s*["'](apply_to_job|respond_to_direct_offer|claim_seri
 /** Files that name /post-job but are not an entry a member taps, with why. EXACT: each must still name the route. */
 const NOT_AN_ENTRY: Record<string, string> = {
   "src/App.tsx": "the route table; the page's own form is gated (FormStep)",
+  "src/pages/home/DashboardGuest.tsx": "the signed-out board (no member, so no age is known); its empty state's 'hire someone' opens the guest post, whose own form is gated at sign-up and posting (FormStep), audit 11-21 P0",
   "src/boot/routePreload.ts": "chunk preloading, not a control",
   "src/lib/routePrefetch.ts": "chunk prefetching, not a control",
   "src/lib/routePrefetchTable.ts": "chunk prefetching (the route-to-chunk table split out of routePrefetch.ts), not a control",

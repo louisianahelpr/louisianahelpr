@@ -32,7 +32,7 @@ export const enJobPoster = {
   "jp.applicantOne": "1 applicant",
   "jp.applicantN": "{n} applicants",
   "jp.unpaid": "Not paid yet. Helprs can't see this job until it's paid.",
-  "jp.heldLine": "Your card isn't charged until a Helpr accepts your offer.",
+  "jp.heldLine": "Your card isn't charged until you hire a Helpr.",
   "jp.seeReceipt": "See your receipt",
   // M8: the confirm before "Confirm" arrival on the Posted card.
   "jp.arriveTitle": "Did {name} arrive?",

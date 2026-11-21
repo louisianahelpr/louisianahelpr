@@ -29,7 +29,7 @@
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire. |   escrow: "Paid. Louisiana Helpr holds it until the job is done.",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | releasedLine(job)) : refundInTracker ? null : refundLine ?? heldWords[status] ?? HELD_LINE[status] ?? null; | releasedLine(job)) : status === "held" \|\| refundInTracker ? null : refundLine ?? heldWords[status] ?? HELD_LINE[status] ?? null;
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until you hire a Helpr.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && open && !offerOut && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | {isPoster && open && !offerOut &&
@@ -614,7 +614,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     unmount();
     state.job = row({ customer_id: ME, payment_status: "held" });
     renderPage();
-    expect(screen.getByText("Your card isn't charged until a Helpr accepts your offer.")).toBeTruthy();
+    expect(screen.getByText("Your card isn't charged until you hire a Helpr.")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/Paid when you posted|You're charged when you post/);
   });
 

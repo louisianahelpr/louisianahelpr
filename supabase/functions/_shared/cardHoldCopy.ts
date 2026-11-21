@@ -36,7 +36,10 @@ export const CARD_HOLD_COPY = {
    * Stripe page said three different things ("isn't charged", "a bank payment is charged", "Pay $25"). ONE sentence
    * on both steps; `checkout` is its Stripe-page form, under the Pay button, with the real hold.
    */
-  postPromise: "Your card is held, not charged, until a Helpr accepts your offer. A bank payment is charged when you post. Either way the money is held until the job is done.",
+  // Audit 11-21 (G3): "held until a Helpr accepts" (here), "isn't charged until a Helpr accepts" (the job page)
+  // and "saved; we'll hold it about 4 days before" (payment success) read as three promises. The one true line on
+  // every screen: you're only charged when you hire (held now, or saved and held later for a job far out).
+  postPromise: "Pay by card and you're only charged when you hire a Helpr. Pay by bank and it's charged when you post. Either way the money is held until the job is done.",
   checkout: (amountCents: number, feeCents = 0) => {
     const note = setupFeeNote(amountCents, feeCents);
     return `Pay by card and it's held for ${holdDollars(amountCents)}${note.including}, not charged: you're only charged when you hire someone${note.once}. Pay by bank and it's charged now. Either way the money is held until the job is done.`;

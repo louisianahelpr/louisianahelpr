@@ -136,7 +136,7 @@ export function signupUrlFor(path?: string | null): string {
 
 /** F268a (audit 11-10): "Log in" from the guest job preview comes back to this job after sign-in. Lives here, not in
  *  GuestJobPreview.tsx, so guest /browse can name it without loading the dialog (Q2705, 11-17). */
-export const guestLogInUrl = (jobId: string) => `/login?redirect=${encodeURIComponent(`/jobs/${jobId}`)}`;
+export const guestLogInUrl = (jobId: string) => `/login?redirect=${encodeURIComponent(`/jobs/${jobId}`)}&reason=apply`;
 
 /** Signed-out "Notify Me When Work Lands" (Q1313): quick sign-up, back to the feed. */
 export const NOTIFY_SIGNUP_URL = `${signupUrlFor("/jobs")}&reason=notify`;

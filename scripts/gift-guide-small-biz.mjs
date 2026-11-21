@@ -30,8 +30,12 @@ const DIR = join(homedir(), "Desktop/Gift-guide-picks");
 const OUT = join(REPO, "src/content/giftGuideSmallBiz.json");
 const LOGOS = join(REPO, "public/gift-guides/small-biz");
 
-/** Logo use declined (FOLLOWUP item 64): the card shows the name only. */
-const NO_LOGO = new Set(["sprinkle-in-time-too"]);
+/**
+ * The card shows the name only. Sprinkle in Time Too declined logo use (FOLLOWUP item 64). The Fois and Tiffany Morton
+ * (audit 11-20): the file on hand is a personal photo (a headshot, a couple's photo), not a logo, and no logo could be
+ * read from their public pages; add the logo file and drop the slug here when one exists.
+ */
+const NO_LOGO = new Set(["sprinkle-in-time-too", "david-rabalais-the-fois", "tiffany-morton-cosmetic-tattooing"]);
 /**
  * Words the page says differently: the AllWays Lounge's street ("St. Claude Ave.") reads as the Marigny, since no
  * member-facing text may say "Claude" (src/test/noClaudeInMemberCopy.test.ts).

@@ -25,7 +25,8 @@ color:var(--gg-ink)}
 @media (hover:none){.gg-heart-tile{opacity:1}}
 .gg-list>li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;column-gap:4px}
 .gg-list>li>.gg-item{min-width:0}
-.gg-shop-btn{grid-column:1/-1;justify-self:start;margin:-4px 0 12px 100px;border-radius:999px;font-weight:700;color:var(--gg-olive);border-color:var(--gg-olive)}
+.gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px;margin:-4px 0 8px 100px;padding:0 6px 0 0;border:0;border-radius:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
+.gg-shop-btn:hover,.gg-shop-btn:focus-visible{text-decoration:underline}
 .gg-side details{border-top:0}
 .gg-side summary{list-style:none;cursor:pointer;display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--gg-ink)}
 .gg-side summary:hover{background:hsl(var(--muted) / .6)}
@@ -100,7 +101,7 @@ article[data-gift-guide]>section:first-child>.gg-list,article[data-gift-guide]>.
 @media (min-width:1024px){.gg-toprow>li{width:200px}.gg-topcard .gg-thumb{width:200px;height:200px}}
 .gg-topcard{display:flex;flex-direction:column;gap:4px;color:var(--gg-ink);text-decoration:none}
 .gg-topcard-photo{position:relative;display:block}
-.gg-topcard .gg-photo{border-radius:14px;background:#faf6ee}
+.gg-topcard .gg-photo{border-radius:14px;background:#fff}
 .gg-topcard .gg-thumb{width:148px;height:148px;border-radius:14px;padding:10px}
 .gg-topcard-n{position:absolute;left:8px;bottom:2px;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:28px;font-weight:700;line-height:1;color:#b8913a;-webkit-text-stroke:2px #fff;paint-order:stroke fill}
 .gg-topcard .gg-letter{font-size:14px}
@@ -125,10 +126,10 @@ article[data-gift-guide]>section:first-child>.gg-list,article[data-gift-guide]>.
 .gg-item{display:flex;align-items:center;gap:14px;padding:11px 0;color:var(--gg-ink);text-decoration:none;font-size:15px;min-height:44px}
 .gg-photo{display:flex;flex:none;border-radius:10px;background:#fff;isolation:isolate;overflow:hidden}
 .gg-thumb{width:52px;height:52px;flex:none;border-radius:10px;border:1px solid var(--gg-line);background:#fff;object-fit:contain}
-img.gg-thumb{background:transparent;mix-blend-mode:multiply}
-.gg-list .gg-item{align-items:flex-start;gap:12px;padding:14px 0}
-.gg-list .gg-photo{border-radius:12px;background:#faf6ee}
-.gg-list .gg-thumb{width:88px;height:88px;border-radius:12px;padding:6px;background:#faf6ee;border:0}
+img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
+.gg-list .gg-item{align-items:flex-start;gap:12px;padding:14px 0 2px}
+.gg-list .gg-photo{border-radius:12px;background:#fff}
+.gg-list .gg-thumb{width:88px;height:88px;border-radius:12px;padding:6px;background:#fff;border:0}
 .gg-list img.gg-thumb{background:transparent}
 .gg-list .gg-letter{font-size:12px}
 .gg-nm-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:16px;font-weight:500;line-height:1.3}
@@ -145,7 +146,7 @@ img.gg-thumb{background:transparent;mix-blend-mode:multiply}
 .gg-list .gg-letter{font-size:16px}
 .gg-nm .gg-nm-line{-webkit-line-clamp:2}
 .gg-list .gg-heart-pick{position:absolute;top:6px;right:6px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
-.gg-list .gg-shop-btn{display:flex;width:100%;margin:0;margin-top:auto}
+.gg-list .gg-shop-btn{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto}
 .gg-list .gg-item{margin-bottom:10px}
 }
 @media (min-width:768px) and (max-width:1023px){
@@ -155,7 +156,7 @@ img.gg-thumb{background:transparent;mix-blend-mode:multiply}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
 .gg-list .gg-heart-pick{position:absolute;top:6px;right:6px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
-.gg-list .gg-shop-btn{display:flex;width:100%;margin:0;margin-top:auto}
+.gg-list .gg-shop-btn{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto}
 .gg-list .gg-item{margin-bottom:10px}
 }
 .gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}

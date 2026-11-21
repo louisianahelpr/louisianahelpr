@@ -8,8 +8,8 @@
  * Food Gifts), no magazines, women's Sperrys, Life is Good, Bass Pro home decor or off-brand decor on the people guides,
  * nixplay canvas / photo book, the Ring doorbell and CHORD's plaid cap where they do not belong, and no shared top-12
  * pick between sibling guides (mom / wife ...). Reads the rules, the styles, PickThumb and every generated chunk.
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | img.gg-thumb{background:transparent;mix-blend-mode:multiply} | img.gg-thumb{background:transparent}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-topcard .gg-photo{border-radius:14px;background:#faf6ee} | .gg-topcard .gg-photo{border-radius:14px}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply} | img.gg-thumb{background:transparent;border:0}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-topcard .gg-photo{border-radius:14px;background:#fff} | .gg-topcard .gg-photo{border-radius:14px}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | onLoad={(e) => { if (photoFailed(e.currentTarget)) setFailed(true); }} | onLoad={() => undefined}
  * @mutate scripts/giftGuideRules.mjs |   if (decorOff(slug, p) \|\| foodOff(slug, p) \|\| | if (decorOff(slug, p) \|\|
  * @mutate scripts/giftGuideRules.mjs |   if (OLD_YEAR_BARE.test(n)) return ""; |   if (false) return "";
@@ -41,11 +41,13 @@ const guides = slugs.filter((s) => !s.startsWith("store-") && s !== "25-days-spo
 const offenders = (rule: (slug: string, p: Pick) => boolean) =>
   guides.flatMap((s) => chunk(s).filter((p) => !p.ownerPick && rule(s, p)).map((p) => `${s}: ${p.name}`));
 
-describe("gift guides 11-19: photos sit on the cream card, not in white boxes", () => {
-  it("the cream is on the photo box and the photo multiplies onto it; the store tile keeps its own look", () => {
-    expect(GIFT_GUIDES_CSS).toContain("img.gg-thumb{background:transparent;mix-blend-mode:multiply}");
-    expect(GIFT_GUIDES_CSS).toContain(".gg-topcard .gg-photo{border-radius:14px;background:#faf6ee}");
-    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-photo{border-radius:12px;background:#faf6ee}");
+// Owner 11-20 ("none of the images should have a background"): the photo box is white now, not cream; the photo still
+// multiplies onto it, so a white product shot shows no box at all (giftGuideCalmCards1120.test.tsx guards the class).
+describe("gift guides 11-19/11-20: photos sit on a plain white box with no border", () => {
+  it("the white is on the photo box and the photo multiplies onto it; the store tile keeps its own look", () => {
+    expect(GIFT_GUIDES_CSS).toContain("img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}");
+    expect(GIFT_GUIDES_CSS).toContain(".gg-topcard .gg-photo{border-radius:14px;background:#fff}");
+    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-photo{border-radius:12px;background:#fff}");
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-topcard \.gg-thumb\{[^}]*background:/);
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-letter\{[^}]*mix-blend-mode/);
   });
@@ -77,7 +79,7 @@ describe("gift guides 11-19: every Shop button sits on the same line in a row", 
   it("each grid card is a full-height flex column with the Shop button pushed to its foot (tablet and desktop)", () => {
     expect(GIFT_GUIDES_CSS.match(/\.gg-list\{display:grid;[^}]*align-items:stretch\}/g)?.length).toBe(2);
     expect(GIFT_GUIDES_CSS.match(/\.gg-list>li\{position:relative;display:flex;flex-direction:column;height:100%;border-top:0\}/g)?.length).toBe(2);
-    expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-shop-btn\{display:flex;width:100%;margin:0;margin-top:auto\}/g)?.length).toBe(2);
+    expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-shop-btn\{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto\}/g)?.length).toBe(2);
     // Every photo is the same square, and the heart stays on it.
     expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-thumb\{width:100%;height:auto;aspect-ratio:1\/1/g)?.length).toBe(2);
     expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{position:absolute;top:6px;right:6px");

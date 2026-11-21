@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { DEALS_SLUG, DEALS_WORDS as W, dealSections, dealsFeatured, dealsTitle, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
@@ -28,7 +27,7 @@ const DEALS_CSS = `
 @media (min-width:640px){.gg-deal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (min-width:1100px){.gg-deal-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .gg-deal{display:flex;flex-direction:column;gap:6px;min-width:0;padding:10px;border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card));color:var(--gg-ink)}
-.gg-deal-photo{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border-radius:10px;background:#faf6ee;overflow:hidden;isolation:isolate;text-decoration:none}
+.gg-deal-photo{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border-radius:10px;background:#fff;overflow:hidden;isolation:isolate;text-decoration:none}
 .gg-deal-photo img{width:100%;height:100%;object-fit:contain;padding:8px;mix-blend-mode:multiply}
 .gg-deal-photo b{font-size:15px;color:var(--gg-muted);padding:8px;text-align:center}
 .gg-deal-brand{margin:2px 0 0;font-size:15px;font-weight:700;color:var(--gg-ink);overflow-wrap:anywhere}
@@ -36,7 +35,8 @@ const DEALS_CSS = `
 .gg-deal-meta{margin:0;font-size:12px;color:var(--gg-muted)}
 .gg-deal-code{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .gg-deal-code code{font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:var(--gg-soft);color:var(--gg-ink);overflow-wrap:anywhere}
-.gg-deal .gg-deal-shop{margin-top:auto;width:100%;border-radius:999px;font-weight:700;color:var(--gg-olive);border-color:var(--gg-olive)}
+.gg-deal .gg-deal-shop{display:inline-flex;align-items:center;align-self:flex-start;min-height:44px;margin-top:auto;padding:0 4px 0 0;border:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
+.gg-deal .gg-deal-shop:hover,.gg-deal .gg-deal-shop:focus-visible{text-decoration:underline}
 .gg-deals-feature{display:flex;align-items:center;gap:14px;margin:4px 0 14px;padding:12px;border-radius:14px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);text-decoration:none}
 .gg-deals-feature img{width:88px;height:88px;flex:none;border-radius:10px;object-fit:cover}
 .gg-deals-feature b{display:block;font-size:16px}
@@ -93,13 +93,12 @@ function DealCard({ deal }: { deal: Deal }) {
           {[deal.ends ? W.endsOn(deal.ends) : "", deal.store ? G.onStore(deal.store) : ""].filter(Boolean).join(" · ")}
         </p>
       )}
-      <Button asChild variant="outline" size="sm" className="gg-deal-shop">
-        <GiftOut href={deal.href}>
-          <span data-gift-shop="">{W.shop(deal.brand)}</span>
-          <span aria-hidden="true">&nbsp;›</span>
-          <span className="sr-only"> ({G.newTab})</span>
-        </GiftOut>
-      </Button>
+      {/* Owner 11-20 ("too busy looking"): a plain text link like every pick's, no pill. */}
+      <GiftOut href={deal.href} className="gg-deal-shop">
+        <span data-gift-shop="">{W.shop(deal.brand)}</span>
+        <span aria-hidden="true">&nbsp;›</span>
+        <span className="sr-only"> ({G.newTab})</span>
+      </GiftOut>
     </li>
   );
 }

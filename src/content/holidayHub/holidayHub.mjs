@@ -228,11 +228,14 @@ export function holidayCountLabel(items) {
 }
 
 /**
- * The list as the page shows it: "Happening now" (started before today, or with no start, and still running), then one
- * group per start day from today on, then "Dates TBA". Each list by name. `day` is YYYY-MM-DD or null for the two others.
+ * The list as the page shows it, soonest first (owner 11-21: "sorted by happened soonest"): "Happening now" (started
+ * before today, or with no start, and still running; the one closing soonest first, an open-ended one last), then one
+ * group per start day from today on, then "Dates TBA". Items over before today never reach here (isOver). Within a day
+ * and within TBA, by name. `day` is YYYY-MM-DD or null for the two others.
  */
 export function holidayItemsByDay(items, today) {
   const byName = (a, b) => a.name.localeCompare(b.name);
+  const closingSoonest = (a, b) => (a.end ?? "9999-12-31").localeCompare(b.end ?? "9999-12-31") || byName(a, b);
   const now = [];
   const days = new Map();
   const tba = [];
@@ -245,7 +248,7 @@ export function holidayItemsByDay(items, today) {
     }
   }
   return [
-    ...(now.length ? [{ key: "now", day: null, items: now.sort(byName) }] : []),
+    ...(now.length ? [{ key: "now", day: null, items: now.sort(closingSoonest) }] : []),
     ...[...days.keys()].sort().map((day) => ({ key: day, day, items: days.get(day).sort(byName) })),
     ...(tba.length ? [{ key: "tba", day: null, items: tba.sort(byName) }] : []),
   ];

@@ -181,9 +181,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     expect(high.map((x) => x.title), slug).toEqual([...low.map((x) => x.title)].reverse());
     for (const x of high) expect(x.dollars, x.title).toEqual([...x.dollars].sort((a, b) => b - a));
     expect(high.reduce((n, x) => n + x.dollars.length, 0)).toBe(CHUNKS[slug].length);
-    // Counts per band, measured 2026-11-21 from the shown (rounded) prices (all of her saves: Him 141, Kids 81, Her 47): exact, so a moved boundary shows.
+    // Counts per band, measured 2026-11-21 from the shown (rounded) prices (all of her saves: Him 150 with her LSU picks, Kids 81, Her 47): exact, so a moved boundary shows.
     const COUNTS: Record<string, Record<string, number>> = {
-      him: { "Under $25": 44, "$25 to $50": 40, "$50 to $75": 19, "$75 to $100": 10, "$100 and up": 28 },
+      him: { "Under $25": 44, "$25 to $50": 42, "$50 to $75": 20, "$75 to $100": 12, "$100 and up": 32 },
       kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 5, "$75 to $100": 5, "$100 and up": 17 },
       her: { "Under $25": 18, "$25 to $50": 15, "$50 to $75": 2, "$75 to $100": 2, "$100 and up": 10 },
     };

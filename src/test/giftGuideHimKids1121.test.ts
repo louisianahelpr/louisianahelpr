@@ -30,7 +30,8 @@ const SWITCHED: Record<string, Record<string, string>> = {
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
  * Kids-saved-shopmy-1121.md (pin -> the store it goes to), not from the module. The rest were left out by her rules:
- * a third of one brand (Smathers & Branson, Melissa & Doug), a third of one item type, LSU, or out of stock on 11-21.
+ * a third of one brand (Smathers & Branson, Melissa & Doug), a third of one item type, LSU (until the owner's 11-21 PM
+ * "You can list LSU stuff"), or out of stock on 11-21.
  */
 const sm = (pins: string[], store: string) => Object.fromEntries(pins.map((p) => [`https://go.shopmy.us/p-${p}`, store]));
 const SAVES: Record<string, Record<string, string>> = {
@@ -40,6 +41,10 @@ const SAVES: Record<string, Record<string, string>> = {
     // Owner 11-21 ("Him = ALL of her men's saves"): every other in-stock, non-LSU Smathers & Branson save, two more Dr. Squatch.
     ...sm(["108628554", "108628535", "108628533", "108628457", "108628432", "108628429", "108628421", "108628411", "108628379", "108628348", "108628058", "108628052", "108628047"], "store-smathers-and-branson"),
     ...sm(["108626037", "108625979"], "store-grove"),
+    // Owner 2026-11-21 PM ("You can list LSU stuff"): her in-stock LSU saves (the sunglass strap and luggage tag were sold out).
+    ...sm(["108628318", "108628311", "108628309", "108628296", "108628280", "108628276", "108628274", "108628018"], "store-smathers-and-branson"),
+    // Owner 2026-11-21 PM ("Find a replacement for the yeti backpack one with a price"): the same Crossroads backpack on her YETI pin.
+    ...sm(["107838580"], "store-yeti"),
   },
   kids: {
     ...sm(["108632461", "108632432", "108632392", "108632273", "108632257", "108632317", "108632251", "108632230", "108632184", "108632365", "108632379", "108632481", "108632592"], "store-maisonette"),
@@ -129,10 +134,9 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
         expect(p?.priceAt, r.name).toBe(HIM_KIDS_PRICE_AT);
         expect(HIM_KIDS_STORES[r.store], r.store).toBeTruthy();
         expect(r.brand.toLowerCase(), r.name).not.toMatch(/vineyard vines|lilly pulitzer/);
-        expect(r.name, r.name).not.toMatch(/\bLSU\b/);
       }
     }
-    expect(HIM_SHOPMY_1121.length).toBe(23);
+    expect(HIM_SHOPMY_1121.length).toBe(32);
     expect(KIDS_SHOPMY_1121.length).toBe(23);
   });
 });

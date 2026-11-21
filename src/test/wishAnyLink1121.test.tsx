@@ -138,12 +138,12 @@ describe("Add from any store in the planner", () => {
     expect(stored().people[0].ideas[0].guide).toBe("her");
     go(c, id, `${word} size M`);
     fireEvent.click(c.querySelector("[data-anystore-words]")!);
-    expect(stored().people[0].ideas.at(-1)).toMatchObject({ name: `${word} size M` });
-    expect(stored().people[0].ideas.at(-1)?.href).toBeUndefined();
+    expect(stored().people[0].ideas.slice(-1)[0]).toMatchObject({ name: `${word} size M` });
+    expect(stored().people[0].ideas.slice(-1)[0]?.href).toBeUndefined();
     // Nothing close in our guides: the words go straight on, no extra tap.
     go(c, id, "zzqx qqzz");
     expect(c.querySelector("[data-anystore-matches]")).toBeNull();
-    expect(stored().people[0].ideas.at(-1)).toMatchObject({ name: "zzqx qqzz" });
+    expect(stored().people[0].ideas.slice(-1)[0]).toMatchObject({ name: "zzqx qqzz" });
   });
 
   it("the planner has one idea box (no second Gift idea field), with From our guides beside it", async () => {

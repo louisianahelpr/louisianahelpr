@@ -225,7 +225,7 @@ describe("the planner shows the same lists, and every list can be shared", () =>
     expect(all.textContent).toContain("2 gifts you typed in stay private");
     fireEvent.click(within(all).getByText("Share all my lists"));
     await waitFor(() => expect(shareGiftLists).toHaveBeenCalledTimes(1));
-    const sent = shareGiftLists.mock.calls[0][0];
+    const sent = shareGiftLists.mock.calls[0][0] as { n: string; items: { g: string; i: string }[] }[];
     expect(sent).toEqual([
       { n: "Mom", items: [{ g: "her", i: itemId(her[0].href) }] },
       { n: "Jake", items: [{ g: "kids", i: itemId(kids[0].href) }] },

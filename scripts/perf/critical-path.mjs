@@ -61,7 +61,7 @@ export const ROUTES = [
   // A member's tabs (DeclutterHomeView) load apart from the page (Q2705, 11-14); declutterRoute.ts starts them beside it.
   { path: "/declutter?tab=selling", chunk: "DeclutterPage", with: ["DeclutterMineViews", "DeclutterHomeView"], withHost: "declutterRoute" },
   { path: "/declutter?tab=buying", chunk: "DeclutterPage", with: ["DeclutterBuyingViews", "DeclutterHomeView"], withHost: "declutterRoute" },
-  // The public pages a guest opens cold from a pin, a post or a sponsor email (speed 11-20): every gift guide and the
+  // The public pages a guest opens cold from a pin, a post or a sponsor email (speed 2026-11-20): every gift guide and the
   // 25 Days pages (/sponsor and /25days are one page chunk). pathPageRoute.ts starts each beside the app. Their budget
   // is what keeps signed-in code off them: their reads sat in signed-in-deep, whose static imports put ~95 files of
   // shops, rentals, declutter and job code on both (vite.config.ts public-page-reads).

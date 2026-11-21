@@ -1,6 +1,6 @@
 /**
  * GUARD: the Declutter selling boost (owner 11-20, "make sharing and discovery easy": 2 real listings in 30 days, and
- * a real $85 lamp got 21 views from one Facebook share and nothing since).
+ * a real $85 lamp got 21 views from one Facebook share as of 2026-11-20 and nothing since).
  *
  *  1. One-tap "Share to Facebook" for the seller, on the item page and in the sheet right after listing: Facebook's
  *     share dialog on a computer, the phone's share sheet on a touch screen, the link copied when the pop-up is

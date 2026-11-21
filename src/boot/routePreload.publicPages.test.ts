@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Speed 11-20: the gift guides and the 25 Days page start their page chunk from the ENTRY, beside the app
+ * Speed 2026-11-20: the gift guides and the 25 Days page start their page chunk from the ENTRY, beside the app
  * (routePreload.ts PATH_PAGE_PATH, pathPageRoute.ts), as /help and /hire do (Q2705). Before, nothing in the entry started
  * them, so the page waited for App.tsx to run and render the route: on prod (cwv-lab, Slow 4G + 4x, 375, guest)
  * /sponsor's first words drew at 8.0-8.6 s and the landing's covers at 7.3 s.

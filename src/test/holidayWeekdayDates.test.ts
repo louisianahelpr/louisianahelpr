@@ -1,5 +1,5 @@
 /**
- * Every weekday + date pair in the holiday content is a real 2026 season day (holiday audit C8a, 11-20: the 25 Days
+ * Every weekday + date pair in the holiday content is a real 2026 season day (holiday audit C8a, 2026-11-20: the 25 Days
  * lineup said "Family mini session on Sat Dec 20", and Dec 20, 2026 is a Sunday; a winner could show up on the wrong
  * day). Reads every tracked file under src/content and src/components/sponsor (the 25 Days page, sponsor page, rules,
  * gift guides and Small Business Saturday copy) for "Sat Dec 20", "Sunday, November 22", "Fri Jan 22" and the like,

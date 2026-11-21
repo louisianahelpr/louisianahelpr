@@ -1,5 +1,5 @@
 /**
- * Speed 11-20 (owner: pages under 2 s for users). A guest's /sponsor, /25days and every /gift-guides page downloaded
+ * Speed 2026-11-20 (owner: pages under 2 s for users). A guest's /sponsor, /25days and every /gift-guides page downloaded
  * ~95 files of signed-in code beside the page: their own shared code (the 25 Days reads, the wish list, the "Hire a
  * Helpr" deep link) is reached by signed-in screens too, so bootReach.mjs files it as signed-in-only and vite.config.ts
  * put it in signed-in-deep / signed-in-pages / signed-in-late, whose static imports are shops, rentals, declutter and

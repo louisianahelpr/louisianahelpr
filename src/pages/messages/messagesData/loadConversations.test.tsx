@@ -321,6 +321,53 @@ describe("fetchConversations — viewerIsAssignedHelper mirrors can_message_in_j
     expect(convo.viewerIsAssignedHelper).toBe(false);
   });
 
+  // Audit 11-20 night #22: since 20261120205350 an offered, not yet accepted Helpr cannot read the jobs row.
+  function hiddenJob(row: Record<string, unknown>) {
+    withJobs([row]);
+    fromMock.mockImplementation((table: string) => {
+      if (table === "messages") return makeBuilder(messagesResponse);
+      if (table === "jobs") return makeBuilder({ data: table === "jobs" ? [] : null, error: null });
+      return makeBuilder({ data: [], error: null });
+    });
+  }
+
+  it("is true for a direct-offer Helpr who cannot read the jobs row yet", async () => {
+    hiddenJob({ id: "job-1", title: "Mow a corner lot", status: "open", customer_id: POSTER, helper_id: null, offered_to_helper_id: ME });
+    const [convo] = await fetchConversations(ME, thumbRef());
+    expect(convo.viewerIsAssignedHelper).toBe(true);
+  });
+
+  it("is true for a Helpr hired through an application who cannot read the jobs row yet", async () => {
+    hiddenJob({ id: "job-1", title: "Mow a corner lot", status: "open", customer_id: POSTER, helper_id: ME, offered_to_helper_id: null });
+    const base = rpcMock.getMockImplementation()!;
+    rpcMock.mockImplementation(async (fn: string, args: unknown) =>
+      fn === "get_jobs_for_my_applications" ? { data: [{ id: "job-1", helper_id: ME }], error: null } : base(fn, args));
+    const [convo] = await fetchConversations(ME, thumbRef());
+    expect(convo.viewerIsAssignedHelper).toBe(true);
+  });
+
+  it("stays FALSE for an applicant on a hidden job who was not hired", async () => {
+    hiddenJob({ id: "job-1", title: "Mow a corner lot", status: "open", customer_id: POSTER, helper_id: null, offered_to_helper_id: null });
+    const base = rpcMock.getMockImplementation()!;
+    rpcMock.mockImplementation(async (fn: string, args: unknown) =>
+      fn === "get_jobs_for_my_applications" ? { data: [{ id: "job-1", helper_id: null }], error: null } : base(fn, args));
+    const [convo] = await fetchConversations(ME, thumbRef());
+    expect(convo.viewerIsAssignedHelper).toBe(false);
+  });
+
+  it("deep link: a Helpr hired through an application, jobs row hidden, keeps a working composer", async () => {
+    fromMock.mockImplementation(() => makeBuilder({ data: null, error: null }));
+    rpcMock.mockImplementation(async (fn: string) => {
+      if (fn === "get_safe_profiles") return profilesResponse;
+      if (fn === "get_jobs_for_my_applications") return { data: [{ id: "job-1", helper_id: ME }], error: null };
+      return { data: [], error: null };
+    });
+    const convo = await buildDeepLinkPlaceholder(ME, "job-1", POSTER);
+    expect("problem" in convo).toBe(false);
+    if ("problem" in convo) return;
+    expect(convo.viewerIsAssignedHelper).toBe(true);
+  });
+
   it("does not mistake the poster for the assigned helper", async () => {
     withJobs([
       { id: "job-1", title: "Mow a corner lot", status: "in_progress", customer_id: ME, helper_id: POSTER, offered_to_helper_id: null },
@@ -336,7 +383,7 @@ describe("fetchConversations — viewerIsAssignedHelper mirrors can_message_in_j
 // @mutate src/pages/messages/messagesData/loadConversations.ts | if (!p.profile_id \|\| byId.has(p.profile_id)) continue; | continue;
 // The composer lock must release for a helper the job is merely OFFERED to,
 // exactly as can_message_in_job does.
-// @mutate src/pages/messages/messagesData/loadConversations.ts | jobMap.get(v.jobId)?.offered_to_helper_id === uid), | false),
+// @mutate src/pages/messages/messagesData/loadConversations.ts | offerTargets.get(v.jobId) === uid \|\| | false \|\|
 
 // docs/OPEN.md Q333: a stale `?jobId=&userId=<deleted id>` link opened an empty
 // thread with a LIVE composer addressed to the deleted id. With no profile but

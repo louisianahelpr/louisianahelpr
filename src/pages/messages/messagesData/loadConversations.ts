@@ -348,6 +348,9 @@ export async function fetchConversations(
   }
   const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, photo: j.photos?.[0] ?? null, status: j.status, expired: jobIsExpiredListing(j), customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: offerTargets.get(j.id) ?? null }]) || []);
 
+  // #22: jobs whose row I cannot read and that are not offered to me: am I the hired Helpr there?
+  const hiredUnseen = await fetchJobsIAmHiredOn(uid, jobIds.filter((id) => !jobMap.has(id) && offerTargets.get(id) !== uid));
+
   const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => {
     const last = v.messages[0];
     const teamUser = teamUserIdFromKey(v.jobId);
@@ -397,7 +400,8 @@ export async function fetchConversations(
     viewerIsAssignedHelper:
       !!uid &&
       (jobMap.get(v.jobId)?.helper_id === uid ||
-        jobMap.get(v.jobId)?.offered_to_helper_id === uid),
+        offerTargets.get(v.jobId) === uid ||
+        hiredUnseen.has(v.jobId)),
     lastMessage: last.content,
     lastAt: last.created_at,
     unread: threadUnread(v.messages, uid),
@@ -481,6 +485,8 @@ export async function buildDeepLinkPlaceholder(
   // now instead of a silent broken thread.
   const profileFound = !!(profileRes.data?.[0]);
   const jobFound = !!(jobRes.data);
+  // #22: the job row is hidden from a Helpr hired through an application until they accept.
+  const hiredUnseen = await fetchJobsIAmHiredOn(uid, jobFound || offerTargets.get(deepLinkJobId) === uid ? [] : [deepLinkJobId]);
   if (!profileFound && !jobFound) {
     console.warn("[Messages] deep-link resolved to a dead thread — no profile and no job found", { deepLinkUserId, deepLinkJobId });
     return { problem: "This conversation link is no longer available." };
@@ -517,7 +523,8 @@ export async function buildDeepLinkPlaceholder(
     viewerIsAssignedHelper:
       !!uid &&
       (jobRes.data?.helper_id === uid ||
-        offerTargets.get(deepLinkJobId) === uid),
+        offerTargets.get(deepLinkJobId) === uid ||
+        hiredUnseen.has(deepLinkJobId)),
     lastMessage: "",
     lastAt: new Date().toISOString(),
     unread: 0,
@@ -525,4 +532,21 @@ export async function buildDeepLinkPlaceholder(
     lastMessageAttachmentPath: null,
     lastMessageAttachmentMime: null,
   };
+}
+
+/**
+ * Audit 11-20 night #22: the jobs I am HIRED on, read without the jobs row. Row security hides a job from an
+ * offered Helpr until they accept (20261120205350), yet can_message_in_job lets them write, and the client may
+ * never be stricter than the server. get_jobs_for_my_applications still answers for my own applications (the
+ * same fallback DealCard uses). A failed read is reported and leaves the lock as it was.
+ */
+async function fetchJobsIAmHiredOn(uid: string, jobIds: string[]): Promise<Set<string>> {
+  if (jobIds.length === 0) return new Set();
+  const { data, error } = await supabase.rpc("get_jobs_for_my_applications");
+  if (error) {
+    report(error, { severity: "warning", tags: { source: "loadConversations.hiredJobs" } });
+    return new Set();
+  }
+  const wanted = new Set(jobIds);
+  return new Set(((data ?? []) as { id: string; helper_id: string | null }[]).filter((j) => wanted.has(j.id) && j.helper_id === uid).map((j) => j.id));
 }

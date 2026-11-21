@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
  * an affiliate (or affiliate-holding) link: it is marked sponsored + noopener and opens a new tab. The scheme is fixed here, not by
  * the content file: whatever a value starts with, the link is https.
  */
-export function GiftOut({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
+export function GiftOut({ href, className, children, ...data }: { href: string; className?: string; children: ReactNode } & Record<`data-${string}`, string>) {
   return (
-    <a href={`https://${href.replace(/^https:\/\//, "")}`} target="_blank" rel="sponsored noopener" className={className} data-gift-out="">
+    <a href={`https://${href.replace(/^https:\/\//, "")}`} target="_blank" rel="sponsored noopener" className={className} data-gift-out="" {...data}>
       {children}
     </a>
   );

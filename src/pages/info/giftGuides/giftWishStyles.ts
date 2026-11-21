@@ -14,8 +14,6 @@ export const GIFT_WISH_CSS = `
 .gg-wish-share-menu{display:flex;flex-direction:column;gap:8px;margin-top:10px;padding:12px;border:1px solid var(--gg-line);border-radius:14px;max-width:34rem}
 .gg-wish-link{width:100%;min-height:40px;padding:8px 12px;border:1px solid var(--gg-line);border-radius:10px;font-size:13px;background:hsl(var(--background));color:var(--gg-ink)}
 .gg-wish-list>li.gg-wish-row{grid-template-columns:minmax(0,1fr)}
-.gg-wish-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-4px 0 12px 62px}
-.gg-wish-actions .gg-shop-btn{margin:0}
 .gg-wish-mine{position:relative}
 .gg-wish-mine .gg-heart-wish{position:absolute;top:6px;right:6px}
 @media (max-width:767px){.gg-wish-mine>.gg-item{padding-right:52px}}

@@ -159,6 +159,8 @@ export const CUTOUTS_1120 = new Map([
   ["https://dimg.dillards.com/is/image/DillardsZoom/zoom/lacrosse-mens-grange-18-tall-waterproof-rubber-hunting-work-boots/00000000_zi_ac01ed80-ad36-4d40-8cca-066a3f05fcbd.jpg", "lacrosse-grange-18-rubber-boot-906f98.webp"],
   // BIODANCE Hydro Cera-Nol Real Deep Mask, 4 sheets (iherb.com photo, white gaps cleared; switched from Sephora UK 11-21)
   ["https://cloudinary.images-iherb.com/image/upload/f_auto,q_auto:eco/images/bdo/bdo36097/l/19.jpg", "biodance-hydro-cera-nol-real-deep-mask-4-sheets-5ff79f.webp"],
+  // Stanley All Day Julienne Midi Cooler, Cream (stanley1913.com photo, already transparent; cropped only)
+  ["https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-The_All-Day_Julienne_Midi_Cooler_12QT_-_Cream_-_Front.png", "stanley-all-day-julienne-midi-cooler-cream-309bba.webp"],
   // FOR HIM and FOR KIDS 11-21 (the owner's ShopMy saves, scripts/giftGuideHimKids1121.mjs): Apple Vision cutouts unless noted.
   // smathers branson duck decoys key fob
   ["https://static.shopmy.us/pins/zoom-108628349-1795247477620-DuckDecoys_AntiqueBlue__KeyFob_Primary_LowRes_c251e80f-b48c-4193-88c2-0b366856e967.jpg", "smathers-branson-duck-decoys-key-fob-f959a7.webp"],

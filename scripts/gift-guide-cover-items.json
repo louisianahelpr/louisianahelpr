@@ -3,11 +3,6 @@
   "section": "By person",
   "items": [
    {
-    "name": "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box",
-    "key": "campsnap:box",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/camp-snap-cs-8-micro-video-camera-keychain-60114e.webp"
-   },
-   {
     "name": "Ember Mug 2, Brown",
     "key": "ember:drink",
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/ember-mug-2-6dfd0f.webp"
@@ -18,19 +13,24 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lola-blankets-original-throw-green-ac1ca0.webp"
    },
    {
-    "name": "Stanley All Day Julienne Midi Cooler",
-    "key": "stanley:cooler",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/stanley-all-day-julienne-midi-cooler-792e50.webp"
-   },
-   {
-    "name": "Shark Depuffi Hot & Cold Face Sculpting Tool",
-    "key": "shark:tool",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/shark-depuffi-hot-cold-face-tool-154ac1.webp"
+    "name": "Stanley All Day Julienne Midi Cooler, Cream",
+    "key": "stanley:cream",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/stanley-all-day-julienne-midi-cooler-cream-309bba.webp"
    },
    {
     "name": "On Cloud 6 Sneakers, Glacier/White",
     "key": "on:shoe",
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/on-cloud-6-sneakers-glacier-white-4f6466.webp"
+   },
+   {
+    "name": "Hatch Restore 3, Putty",
+    "key": "hatch:putty",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hatch-restore-3-putty-37e619.webp"
+   },
+   {
+    "name": "CurrentBody LED Red Light Therapy Face Mask",
+    "key": "currentbody:mask",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/currentbody-led-red-light-face-mask-86c492.webp"
    }
   ]
  },
@@ -38,9 +38,9 @@
   "section": "By person",
   "items": [
    {
-    "name": "Smathers & Branson Camo Needlepoint Belt",
-    "key": "smathersbranson:belt",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/smathers-branson-camo-needlepoint-belt-9362af.webp"
+    "name": "YETI Rambler 20 oz Tumbler",
+    "key": "yeti:drink",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/yeti-rambler-20-oz-tumbler-wetlands-camo-7f0109.webp"
    },
    {
     "name": "LaCrosse Grange Rubber Boot",
@@ -48,24 +48,24 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lacrosse-grange-18-rubber-boot-906f98.webp"
    },
    {
-    "name": "Theragun Prime Massage Gun",
-    "key": "theragun:massager",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/therabody-theragun-prime-6th-gen-e4ad1b.webp"
+    "name": "RTIC Soft Cooler",
+    "key": "rtic:cooler",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/rtic-ultra-tough-soft-cooler-20-tan-e1d3e3.webp"
    },
    {
-    "name": "Dr. Squatch Fresh Falls Bar Soap",
-    "key": "drsquatch:soap",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/dr-squatch-fresh-falls-bar-soap-655c35.webp"
+    "name": "Turtlebox Ranger Speaker",
+    "key": "turtlebox:speaker",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/turtlebox-ranger-tan-06e916.webp"
    },
    {
-    "name": "Clinique For Men Oil-Free Moisturizer",
-    "key": "clinique:moisturizer",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/clinique-for-men-oil-free-moisturizer-0b9a93.webp"
+    "name": "BURLEBO Cap",
+    "key": "burlebo:hat",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/burlebo-outdoors-cap-putty-b33402.webp"
    },
    {
-    "name": "Method Men Body Wash, Sea + Surf",
-    "key": "method:surf",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/method-men-body-wash-sea-surf-7c385f.webp"
+    "name": "SIMIYA Merino Wool Socks, 5 Pairs",
+    "key": "simiya:sock",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/simiya-merino-wool-socks-5-pairs-43466d.webp"
    }
   ]
  },
@@ -178,34 +178,24 @@
   "section": "For kids",
   "items": [
    {
-    "name": "Model U Horse Ride-On, Brown",
-    "key": "ponycycle:brown",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/model-u-horse-ride-on-aac217.webp"
+    "name": "Nex Playground",
+    "key": "nex:playground",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nex-playground-56f785.webp"
    },
    {
-    "name": "Hape Captain's Rocking Boat",
-    "key": "hape:boat",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hape-captains-rocking-boat-6e6b18.webp"
+    "name": "Segway Ninebot C2 Go Kids Scooter",
+    "key": "segway:scooter",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/segway-ninebot-c2-go-5a4f31.webp"
    },
    {
-    "name": "PlanToys Dancing Alligator Pull Toy",
-    "key": "plantoys:toy",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/plantoys-dancing-alligator-20c33e.webp"
+    "name": "Toniebox 2, Sky Blue",
+    "key": "tonies:blue",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/toniebox-2-sky-blue-playtime-puppy-8e3a2e.webp"
    },
    {
-    "name": "Freddo 3 Wheel Balance Bike",
-    "key": "freddo:bike",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/freddo-3-wheel-balance-bike-b29eb6.webp"
-   },
-   {
-    "name": "Mentari Puppy on Wheels",
-    "key": "mentari:wheels",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/mentari-puppy-on-wheels-90b238.webp"
-   },
-   {
-    "name": "Tender Leaf Toys Rocket Construction",
-    "key": "tenderleaftoys:construction",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tender-leaf-rocket-construction-f554d4.webp"
+    "name": "Nintendo Switch Lite",
+    "key": "nintendo:lite",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nintendo-switch-lite-turquoise-front-888c6e.webp"
    }
   ]
  },

@@ -35,7 +35,7 @@ export const HER_STORES = {
   "store-jd-sports": "JD Sports", "store-sephora": "Sephora", "store-hatch": "Hatch", "store-macys": "Macy's",
   "store-haven-well-within": "Haven Well Within", "store-camp-snap": "Camp Snap", "store-rei": "REI",
   "store-the-swank-company": "The Swank Company", "store-baublebar": "BaubleBar", "store-currentbody": "CurrentBody",
-  "store-anthropologie": "Anthropologie",
+  "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha",
 };
 
 /**
@@ -58,7 +58,9 @@ export const HER_1121 = [
   { name: "TULA Spresso Energizing Eye Balm", brand: "TULA", line: "A cooling eye balm that wakes up tired eyes.", href: amz("B0C7LTPXBV"), image: amzImg("71N7JF4XK1L"), store: "store-amazon", sortPrice: 22.8, commission: 10, type: "skincare" },
   { name: "nodpod Weighted Sleep Mask", brand: "nodpod", line: "A gently weighted eye mask that helps her drift off.", href: amz("B0B1RWJ4QJ"), image: amzImg("31+H+LGa0OL"), store: "store-amazon", sortPrice: 28.5, commission: null, type: "sleep-mask" },
   { name: "Tyler Candle Company Diva Glamorous Gift Suite", brand: "Tyler Candle Company", line: "The Diva scent in a candle gift set.", href: amz("B0D7TR9PBZ"), image: amzImg("718bvTOBovL"), store: "store-amazon", sortPrice: 28.68, commission: 3, type: "candle" },
-  { name: "TATCHA Kissu Lip Mask", brand: "TATCHA", line: "An overnight lip mask for soft lips.", href: amz("B08D3FXF64"), image: amzImg("41rTJDQgTpL"), store: "store-amazon", sortPrice: 29, commission: 10, type: "lip" },
+  // COMMISSION SWITCH 11-21 (owner: "if the items on the guides can we fund at another place for higher commison just
+  // change the link"): was Amazon B08D3FXF64 at 10%; same jar, same $29 at Tatcha (direct) at 20%.
+  { name: "TATCHA Kissu Lip Mask", brand: "TATCHA", line: "An overnight lip mask for soft lips.", href: shopmy("p-108732256"), image: "https://cdn.shopify.com/s/files/1/0949/3328/7221/files/TheKissuLipMask-pdp-Aug26-Omi-FullSize-MainImage-1200x1200.jpg", store: "store-tatcha", sortPrice: 29, price: 29, commission: 20, type: "lip" },
   { name: "Owala FreeSip 24 oz Bottle, Open Air", brand: "Owala", line: "The leak-proof bottle she can sip or swig from.", href: shopmy("p-108613192"), image: "https://static.shopmy.us/pins/zoom-108613192-1795240422444-C07940_450", store: "store-jd-sports", sortPrice: 29.99, price: 29.99, commission: 15, type: "drinkware" },
   { name: "Bedsure Bubble Faux Fur Christmas Throw Blanket", brand: "Bedsure", line: "A fluffy faux fur throw for the couch.", href: amz("B0F5N7S36V"), image: amzImg("91HJeXmiufL"), store: "store-amazon", sortPrice: 32.48, commission: 3, type: "throw-blanket" },
   { name: "JEIBKOUY Oversized Camo Hoodie, Maple Leaf", brand: "JEIBKOUY", line: "An oversized camo hoodie with a maple leaf print.", href: amz("B0FFMJMB6K"), image: amzImg("41tsU8jZI3L"), store: "store-amazon", sortPrice: 32.99, commission: 4, type: "sweatshirt" },
@@ -66,7 +68,8 @@ export const HER_1121 = [
   { name: "Sol de Janeiro Cheirosa Sol & Go Mini Perfume Mist", brand: "Sol de Janeiro", line: "A mini perfume mist in a best-loved scent.", href: amz("B0H42QZ8BW"), image: amzImg("71uJ6m6sS1L"), store: "store-amazon", sortPrice: 36, commission: 10, type: "fragrance" },
   { name: "ZDEER GS5 Heated Gua Sha Tool", brand: "ZDEER", line: "A heated gua sha with red light for a spa night in.", href: amz("B0FPCH9S11"), image: amzImg("31iCM-w+Z6L"), store: "store-amazon", sortPrice: 39.99, commission: 3, type: "beauty-device" },
   { name: "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box", brand: "Camp Snap", line: "A tiny video camera on a keychain, color a surprise.", href: shopmy("p-108611500"), image: "https://static.shopmy.us/pins/zoom-106643598-1794927315931-micro1.jpg", store: "store-camp-snap", sortPrice: 39.99, price: 39.99, commission: 10, type: "accessory" },
-  { name: "L'OCCITANE Shea Butter Classics Gift Set", brand: "L'OCCITANE", line: "Shea butter hand and body care, ready to give.", href: amz("B0HFYLTJR7"), image: amzImg("41h6A280IZL"), store: "store-amazon", sortPrice: 40, commission: 10, type: "gift-set" },
+  // COMMISSION SWITCH 11-21: was Amazon B0HFYLTJR7 at 10%; same boxed set, same $40 at Anthropologie at 15%.
+  { name: "L'OCCITANE Shea Butter Classics Gift Set", brand: "L'OCCITANE", line: "Shea butter hand and body care, ready to give.", href: shopmy("p-108732809"), image: "https://images.urbndata.com/is/image/Anthropologie/114587041_030_b2", store: "store-anthropologie", sortPrice: 40, price: 40, commission: 15, type: "gift-set" },
   { name: "HEYDUDE Austin Lift Platform Mule", brand: "HEYDUDE", line: "Easy slip-on platform mules for everyday errands.", href: amz("B0CPB1MWMP"), image: amzImg("315u2EGcJpL"), store: "store-amazon", sortPrice: 44.99, commission: null, type: "shoes" },
   { name: "Trendy Queen Mock Neck 2 Piece Sweat Set", brand: "Trendy Queen", line: "A matching mock neck sweat set for travel days.", href: amz("B0H2D9Q7CV"), image: amzImg("61-DZ19Gx3L"), store: "store-amazon", sortPrice: 48.99, commission: 4, type: "matching-set" },
   { name: "BaubleBar Fallon 14K Gold Bezel Earrings", brand: "BaubleBar", line: "Gold bezel drop earrings that go with everything.", href: shopmy("p-108607824"), image: "https://static.shopmy.us/uploads/adc16a77-2764-49c6-8995-55c0e42754c9_s-blob-v1-IMAGE-DBeu-uRDNQQ.png", store: "store-baublebar", sortPrice: 64, price: 64, commission: 20, type: "jewelry" },

@@ -136,13 +136,16 @@ describe("the config", () => {
   });
 
   it("only switched-on printables with their files show; the rest wait hidden", () => {
-    expect(shownPrintables().map((p) => p.id)).toEqual(["gift-tags"]);
+    expect(shownPrintables().map((p) => p.id)).toEqual(["gift-tags", "coloring-book"]);
     expect(isShown(overlays.find((p) => p.id === "santa-letter")!)).toBe(false);
     // Only the final tags' pictures ship: no leftover design in public/printables/tags.
     expect(readdirSync(join(ROOT, "public/printables/tags")).sort()).toEqual(FINAL_TAGS.flatMap((id) => [`${id}.jpg`, `${id}.webp`]).sort());
-    for (const p of downloads) expect(isShown(p), p.id).toBe(false);
-    expect(isShown({ ...downloads[0], ready: true })).toBe(true);
-    expect(isShown({ ...downloads[0], ready: true, files: [] })).toBe(false);
+    // Owner 2026-11-21: the coloring book is live (Boys book); every other download still waits hidden.
+    for (const p of downloads) expect(isShown(p), p.id).toBe(p.id === "coloring-book");
+    for (const p of downloads.filter(isShown)) for (const f of p.files) expect(existsSync(join(ROOT, "public", f.href)), f.href).toBe(true);
+    const hidden = downloads.find((d) => !isShown(d))!;
+    expect(isShown({ ...hidden, ready: true })).toBe(true);
+    expect(isShown({ ...hidden, ready: true, files: [] })).toBe(false);
     expect(isShown({ ...tags, designs: [] })).toBe(false);
     expect(downloads.find((d) => d.id === "elf-kit")!.files.map((f) => f.label)).toEqual(["12-day plan", "24-day plan", "25-day plan"]);
     expect(JSON.stringify(PRINTABLES)).not.toMatch(/elf on the shelf/i);
@@ -223,7 +226,7 @@ describe("the maker and the page", () => {
   it("the page shows the shown makers and no hidden card; the guides link only shown printables", () => {
     render(<MemoryRouter><Printables /></MemoryRouter>);
     const cards = [...document.querySelectorAll("[data-printable-card]")].map((c) => c.getAttribute("data-printable-card"));
-    expect(cards).toEqual(["gift-tags"]);
+    expect(cards).toEqual(["gift-tags", "coloring-book"]);
     act(() => cleanup());
     expect(printablesForGuide("gift-wrap-and-cards").map((p) => p.id)).toEqual(["gift-tags"]);
     expect(printablesForGuide("educators")).toEqual([]);

@@ -15,8 +15,8 @@ const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuideP
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
-  ["him", HIM_1121 as { sortPrice: number }[], him1121Picks() as Pick[]],
-  ["kids", KIDS_1121 as { sortPrice: number }[], kids1121Picks() as Pick[]],
+  ["him", [...HIM_1121], him1121Picks() as Pick[]],
+  ["kids", [...KIDS_1121], kids1121Picks() as Pick[]],
 ])("For %s is the owner's Amazon saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
 

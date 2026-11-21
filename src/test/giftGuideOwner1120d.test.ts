@@ -91,7 +91,7 @@ describe("gift guides: owner 11-20 removals and style rules", () => {
   it("Him (with Dad's picks) shows at least 5 priced gifts under $25 (none had any)", () => {
     // Owner 11-21 ~2:47 AM: Him is her own Amazon men list now (Dad's old picks left with the old list). The site never
     // shows an Amazon price, so the bar reads the prices she saw when she saved them: 10 under $25, measured 2026-11-21.
-    const under = (HIM_1121 as { name: string; sortPrice: number }[]).filter((r) => r.sortPrice < 25);
+    const under = HIM_1121.filter((r) => r.sortPrice < 25);
     expect(under.length).toBeGreaterThanOrEqual(5);
     const names = new Set((CHUNKS.get("him") ?? []).map((p) => p.name));
     expect(under.filter((r) => names.has(r.name)).length).toBeGreaterThanOrEqual(5);

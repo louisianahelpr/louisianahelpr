@@ -94,7 +94,7 @@ describe("owner 11-20: every Shop link is plain text, not a pill", () => {
     const { container } = render(<MemoryRouter><ol><PickRow pick={pick} /></ol></MemoryRouter>);
     const a = container.querySelector("a.gg-shop-btn")!;
     // Owner 11-21 ("for shop just put 'shop' not 'shop at store name'"): "Shop ›"; the store is said to screen readers.
-    expect(a.textContent).toMatch(/^Shop › Align High-Rise Pant at .+, opens in a new tab$/);
+    expect(a.textContent).toMatch(/^Shop\s› Align High-Rise Pant at .+, opens in a new tab$/);
     expect(a.querySelector("[data-gift-shop]")?.textContent).toBe("Shop");
     expect(a.className).not.toMatch(pillClass);
   });

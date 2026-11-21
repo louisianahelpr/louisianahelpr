@@ -60,13 +60,12 @@ export function WishRow({ item, heart }: { item: WishItem; heart?: { saved: bool
         <span className="sr-only"> ({G.newTab})</span>
       </Out>
       <span className="gg-wish-actions">
-        {item.href && <Button asChild variant="outline" size="sm" className="gg-shop-btn">
-          <Out href={item.href}>
-            <span data-gift-shop="">{item.out === "plain" ? WISH.visit : G.shopAt(item.store)}</span>
-            <span aria-hidden="true">&nbsp;›</span>
-            <span className="sr-only">: {item.name} ({G.newTab})</span>
-          </Out>
-        </Button>}
+        {/* Owner 11-20 ("too busy looking"): a plain text link like every pick's, no pill. */}
+        {item.href && <Out href={item.href} className="gg-shop-btn">
+          <span data-gift-shop="">{item.out === "plain" ? WISH.visit : G.shopAt(item.store)}</span>
+          <span aria-hidden="true">&nbsp;›</span>
+          <span className="sr-only">: {item.name} ({G.newTab})</span>
+        </Out>}
       </span>
       {heart && (
         <Heart saved={heart.saved} label={heart.saved ? WISH.removeLabel(item.name) : WISH.saveLabel(item.name)} onToggle={heart.onToggle} className="gg-heart-pick gg-heart-wish"

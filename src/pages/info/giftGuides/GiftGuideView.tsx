@@ -100,15 +100,14 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
       <Heart saved={saved} label={WISH.saveLabel(pick.name)} onToggle={() => heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) }))} className="gg-heart-pick" />
-      {/* Holistic review 11-18 H4 (High): the Shop word was hidden on every item, so nothing said "tap to buy". A visible
-          44px pill on every item, apart from the heart: "Shop at Amazon ›". */}
-      <Button asChild variant="outline" size="sm" className="gg-shop-btn">
-        <GiftOut href={pick.href}>
-          <span data-gift-shop="">{G.shopAt(isShopMyCollection(pick.href) ? "" : storeLabel(pick))}</span>
-          <span aria-hidden="true">&nbsp;›</span>
-          <span className="sr-only">: {pick.name} ({G.newTab})</span>
-        </GiftOut>
-      </Button>
+      {/* Holistic review 11-18 H4 (High): every item says "tap to buy", apart from the heart: "Shop at Amazon ›". Owner
+          11-20 ("take the circle of shop at, it's too busy looking"): a plain olive text link, no border or pill; its
+          padding keeps the 44px tap area (.gg-shop-btn in giftGuidesStyles.ts). */}
+      <GiftOut href={pick.href} className="gg-shop-btn">
+        <span data-gift-shop="">{G.shopAt(isShopMyCollection(pick.href) ? "" : storeLabel(pick))}</span>
+        <span aria-hidden="true">&nbsp;›</span>
+        <span className="sr-only">: {pick.name} ({G.newTab})</span>
+      </GiftOut>
     </li>
   );
 }

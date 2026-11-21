@@ -3,7 +3,8 @@
  * at all"): the UI half of the review's findings.
  *  - H1: the kids age guides sit two taps from the landing (a "Kids by age" block in For kids: Babies 0–1 to Big kids
  *    8–12, each with Girls, Boys and Gender-neutral), and Niece, Nephew and Cousins carry BY AGE chips.
- *  - H4: every item has a visible "Shop at <store> ›" pill, a 44px shared Button, apart from the heart.
+ *  - H4: every item has a visible "Shop at <store> ›" link with a 44px tap area, apart from the heart (a plain text
+ *    link since the owner's 11-20 "too busy looking"; it was an outlined pill Button).
  *  - H5: search knows meaning (fishing, "4 year old niece", tween, cheap, christmas, under $25), drops filler words
  *    ("gift for mom" is Mom, not 18 Life moments guides), reads product names from a lazily loaded index kept current by
  *    scripts/gift-guide-search-index.mjs, and shows each guide's cover.
@@ -16,7 +17,7 @@
  * @mutate src/content/giftGuideCatalog.ts | (label.get(g.row) ?? []).includes(w)); | (label.get(g.row) ?? []).some((x) => x.includes(w)));
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |         {row === "for-kids" && !group && <KidsByAge />} |
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <Button asChild variant="outline" size="sm" className="gg-shop-btn"> |       <Button asChild variant="outline" size="inline" className="gg-shop-btn">
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px; | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;
  * @mutate src/pages/info/GiftGuides.tsx | hideBack={!guide && !deals && !myList && !shared && !group} | hideBack={false}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
  */
@@ -160,15 +161,17 @@ describe("H1: the kids age guides are two taps from the landing", () => {
   });
 });
 
-describe("H4: every item has a visible Shop pill", () => {
-  it("'Shop at <store> ›', a 44px shared Button (h-11), its own link apart from the heart, opening the same shop", () => {
+describe("H4: every item has a visible Shop link", () => {
+  // Owner 11-20 ("take the circle of shop at, it's too busy looking"): a plain text link now, not a Button pill; the
+  // 44px tap area is in its CSS (min-height:44px), guarded in giftGuideCalmCards1120.test.tsx.
+  it("'Shop at <store> ›', a 44px text link, its own link apart from the heart, opening the same shop", () => {
     const { container } = renderAt("/gift-guides/mom");
     const rows = [...container.querySelectorAll("[data-gift-list] > li")];
     expect(rows.length).toBeGreaterThan(10);
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-shop-btn\{[^}]*min-height:44px/);
     for (const li of rows) {
       const pill = li.querySelector("a.gg-shop-btn")!;
       expect(pill).not.toBeNull();
-      expect(pill.className.split(/\s+/)).toContain("h-11");
       expect(pill.querySelector("[data-gift-shop]")?.textContent).toMatch(/^Shop( at .+)?$/);
       expect(pill.textContent).toContain("›");
       expect(pill.getAttribute("href")).toBe(li.querySelector("a.gg-item")!.getAttribute("href"));

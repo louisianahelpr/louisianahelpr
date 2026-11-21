@@ -19,7 +19,7 @@
  * @mutate src/pages/info/giftGuides/wishListItems.ts | const pickItemId = (p: { href: string }) => itemId(p.href); | const pickItemId = (p: { href: string }) => itemId(`${p.href}#`);
  * @mutate src/pages/info/giftGuides/GiftGuideSharedList.tsx | <WishRow key={it.id} item={it} /> | <WishRow key={it.id} item={it} heart={{ saved: true, onToggle: () => undefined }} />
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     if (!putBackInWishList(g.pick, g.index)) return; |     return;
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <Heart saved={saved} label={WISH.saveLabel(name)} | {null}<Heart saved={false} label={WISH.saveLabel(name)}
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <Heart saved={saved} label={WISH.saveForLabel(name)} | {null}<Heart saved={false} label={WISH.saveForLabel(name)}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     removeFromWishList(it.id); |     void it;
  * @mutate src/pages/info/GiftGuides.tsx |   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />; |   if (false) return null;
  * @mutate src/pages/info/giftGuides/giftWishStyles.ts | .gg-toast .gg-toast-long{display:none}.gg-toast .gg-toast-short{display:inline} | .gg-toast-x{}
@@ -76,6 +76,20 @@ import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { resetFirstHeartForTests } from "@/pages/info/giftGuides/GiftGuideHints";
 import { bizItemId, dealName } from "@/pages/info/giftGuides/wishListItems";
 
+/**
+ * A guide card's heart now asks for whom (owner 2026-11-21, saveForPeople): tap it, then "Me" (My Wish List), then
+ * Done. Where no picker is on the page the heart still saves straight to the wish list.
+ */
+const tapHeart = (heart: Element) => {
+  fireEvent.click(heart);
+  const me = document.querySelector("[data-savefor-me]");
+  if (!me) return;
+  fireEvent.click(me);
+  const done = document.querySelector("[data-savefor-done]");
+  if (done) fireEvent.click(done);
+};
+
+
 await loadAllGuidePicks();
 
 const renderAt = (url: string) =>
@@ -118,7 +132,7 @@ describe("hearts persist and one heart covers the gift everywhere", () => {
     const g = pickedGuides[0];
     const view = renderAt(`/gift-guides/${g.slug}`);
     const heart = view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!;
-    fireEvent.click(heart);
+    tapHeart(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     resetGiftListForTests(); // the in-memory copy forgotten: the next read is storage, as after a reload
     const refs = listRefs(giftListNow());
@@ -329,7 +343,7 @@ describe("how-to hints dismiss and stay dismissed", () => {
       const g = pickedGuides[0];
       const view = renderAt(`/gift-guides/${g.slug}`);
       expect(document.body.querySelector("[data-gift-hint='first-heart']")).toBeNull();
-      fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
+      tapHeart(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
       const note = document.body.querySelector("[data-gift-hint='first-heart']");
       expect(note?.textContent).toContain(HINTS.firstHeart);
       expect(note?.querySelector("a")?.getAttribute("href")).toBe("/gift-guides/my-list");
@@ -402,7 +416,7 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     for (let k = 0; k < 100; k++) addToWishList({ href: `https://www.amazon.com/dp/Y${k}?tag=louisianahelpr-20`, name: `y${k}`, guide: "her" });
     expect(togglePick(pick(0))).toBe("full");
     const view = renderAt(`/gift-guides/${g().slug}`);
-    fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
+    tapHeart(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
     expect(document.body.querySelector("[data-gift-hint='list-full']")?.textContent).toContain(WISH.listFull);
   });
 
@@ -467,7 +481,7 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
 
   it("L7: a heart tap is counted (gift_wish_heart)", () => {
     const view = renderAt(`/gift-guides/${g().slug}`);
-    fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
+    tapHeart(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
     expect(track).toHaveBeenCalledWith("gift_wish_heart", { result: "added" });
   });
 
@@ -476,7 +490,7 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     expect(GIFT_WISH_CSS).toMatch(/@media \(max-width:400px\)\{[^}]*\}?.*\.gg-toast \.gg-toast-long\{display:none\}\.gg-toast \.gg-toast-short\{display:inline\}/);
     expect(GIFT_WISH_CSS).toMatch(/\.gg-toast-text,\.gg-toast-link\{white-space:nowrap\}/);
     const view = renderAt(`/gift-guides/${g().slug}`);
-    fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
+    tapHeart(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
     const note = document.body.querySelector("[data-gift-hint='first-heart']")!;
     expect(note.querySelector(".gg-toast-short")?.textContent).toBe(HINTS.firstHeartShort);
     expect(note.querySelector(".gg-toast-link .gg-toast-short")?.textContent).toContain(HINTS.seeListShort);

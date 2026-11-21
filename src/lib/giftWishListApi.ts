@@ -8,6 +8,9 @@
  *   gift_wish_list_get(p_code)            anyone: a list by its code (name and item refs only), or null.
  *   gift_wish_list_mine()                 signed in: the account's list, or null.
  *   gift_wish_list_new_link()             signed in: a new code for the account's list (the old link stops working).
+ *   gift_wish_lists_share(p_lists, p_test) anyone: several named lists (the gift planner's people, owner 2026-11-21:
+ *                                         "share all lists") as one new snapshot and its code (migration
+ *                                         20261121204723_gift_wish_lists_share); the same /gift-guides/list/<code> page.
  * A list holds only its name and item refs (guide slug + item id): no name, email or account id is ever in a link or
  * read back. The Supabase client loads only when a list is shared, opened or synced (loadModule), never on page load.
  */
@@ -31,6 +34,12 @@ export const GIFT_WISH_RPC_ERROR_COPY = {
     invalid_name: "Please use a name without a link or phone number.",
     empty_list: "Add a gift to your list first, then share it.",
   },
+  gift_wish_lists_share: {
+    rate_limited: "You've shared a lot just now. Try again in a few minutes.",
+    invalid_items: "Something on these lists couldn't be shared. Remove a gift or two and try again.",
+    invalid_name: "Please use names without a link or phone number.",
+    empty_list: "Add a gift from our guides first, then share.",
+  },
   gift_wish_list_new_link: {
     not_authenticated: "Sign in again to make a new link.",
   },
@@ -47,7 +56,10 @@ function rpcErrorMessage(rpc: keyof typeof GIFT_WISH_RPC_ERROR_COPY, error: unkn
   return null;
 }
 
-export interface SharedList { name: string; items: WishRef[] }
+/** One person's list in a lists share: its name ("Mom") and its gifts as refs. */
+export interface SharedPersonList { name: string; items: WishRef[] }
+/** A shared link: one wish list (`items`), or a lists share (`lists`, owner 11-21; `items` then empty). */
+export interface SharedList { name: string; items: WishRef[]; lists?: SharedPersonList[] }
 
 type Rpc = (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>;
 
@@ -62,10 +74,17 @@ const isRef = (v: unknown): v is WishRef => {
 };
 
 /** A list as the server answered it, or null when the answer is not one. */
-function asSharedList(data: unknown): SharedList | null {
+export function asSharedList(data: unknown): SharedList | null {
   const d = data as { name?: unknown; items?: unknown } | null;
   if (!d || typeof d !== "object" || !Array.isArray(d.items)) return null;
-  return { name: typeof d.name === "string" ? d.name : "", items: d.items.filter(isRef) };
+  const raw = (d as { lists?: unknown }).lists;
+  const lists = Array.isArray(raw)
+    ? raw.flatMap((l): SharedPersonList[] => {
+      const x = l as { n?: unknown; items?: unknown } | null;
+      return x && typeof x === "object" && typeof x.n === "string" && Array.isArray(x.items) ? [{ name: x.n, items: x.items.filter(isRef) }] : [];
+    })
+    : undefined;
+  return { name: typeof d.name === "string" ? d.name : "", items: d.items.filter(isRef), ...(lists ? { lists } : {}) };
 }
 
 /** Why a save did not happen: too many shares from here just now, or anything else (offline, a server error). */
@@ -101,6 +120,19 @@ export async function saveWishList(name: string, items: WishRef[]): Promise<stri
   if (!sb) throw new WishListSaveError("failed", "client not loaded");
   const { data, error } = await sb.rpc("gift_wish_list_save", { p_name: name, p_items: items, p_test: automationReason() !== null });
   if (error) throw new WishListSaveError(/rate_limited/.test(error.message ?? "") ? "rateLimited" : "failed", error.message ?? "save failed", rpcErrorMessage("gift_wish_list_save", error));
+  if (typeof data !== "string" || !LIST_CODE.test(data)) throw new WishListSaveError("failed", "no code returned");
+  return data;
+}
+
+/**
+ * Share several named lists (the gift planner's people) as one link: always a new snapshot, signed in or not. Names
+ * and refs only: never a budget, price or "bought" mark. Throws like saveWishList.
+ */
+export async function shareGiftLists(lists: { n: string; items: WishRef[] }[]): Promise<string> {
+  const sb = await client();
+  if (!sb) throw new WishListSaveError("failed", "client not loaded");
+  const { data, error } = await sb.rpc("gift_wish_lists_share", { p_lists: lists, p_test: automationReason() !== null });
+  if (error) throw new WishListSaveError(/rate_limited/.test(error.message ?? "") ? "rateLimited" : "failed", error.message ?? "share failed", rpcErrorMessage("gift_wish_lists_share", error));
   if (typeof data !== "string" || !LIST_CODE.test(data)) throw new WishListSaveError("failed", "no code returned");
   return data;
 }

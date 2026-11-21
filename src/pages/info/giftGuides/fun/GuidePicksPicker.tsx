@@ -6,7 +6,7 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, subscribeGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 import { OWNER_LIST_GUIDES, peopleGuideOf } from "@/content/giftGuidePeople.mjs";
 import { FUN_WORDS as W } from "@/content/giftGuideFun1120";
-import { PickPrice, showsPrice } from "@/components/giftGuides/PickPrice";
+import { PickPrice } from "@/components/giftGuides/PickPrice";
 import { PickThumb } from "../GiftGuideView";
 
 /**
@@ -42,9 +42,6 @@ const matchesSearch = (p: CatalogPick, query: string) => {
   const hay = `${p.name} ${p.brand ?? ""}`.toLowerCase();
   return query.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
 };
-
-/** The price a pick adds to the planner: the one its guide shows today, or none. */
-export const pickPlannerPrice = (p: CatalogPick) => (showsPrice(p) ? p.price : undefined);
 
 export function GuidePicksPicker({ open, onOpenChange, personName, added, onPick }: {
   open: boolean;

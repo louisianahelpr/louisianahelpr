@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { WISH } from "@/content/giftWishList";
-import { getSharedList, type SharedList } from "@/lib/giftWishListApi";
+import { getSharedList, type SharedList, type SharedPersonList } from "@/lib/giftWishListApi";
+import { dollars } from "@/content/giftGuideFun1120";
+import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { WishRow } from "./GiftGuideMyList";
 import { DEFAULT_LIST_NAME } from "./giftList";
 import { useWishItems } from "./wishListItems";
@@ -15,6 +17,27 @@ import { useWishItems } from "./wishListItems";
  * dropped (UX audit M7). The tab title is the list's name (UX audit L4). A code with no list says so; a failed read
  * offers a retry.
  */
+/**
+ * One person's list on a lists share (owner 2026-11-21, "share all lists"): its name, its count and the sum of the
+ * prices the guides show today ("3 gifts · about $54"), and its gifts as on any shared list. No budget or Bought mark
+ * is ever in a share (gift_wish_lists_share stores names and refs only).
+ */
+function SharedPerson({ list, index }: { list: SharedPersonList; index: number }) {
+  const { items, loading, missing } = useWishItems(list.items);
+  const amount = Math.round(items.reduce((t, it) => t + (it.pick && showsPrice(it.pick) ? it.pick.price ?? 0 : 0), 0));
+  const id = `gift-shared-person-${index}`;
+  return (
+    <section aria-labelledby={id} className="gg-shared-person" data-gift-shared-person={list.name}>
+      <h3 id={id} className="gg-shared-person-name">{list.name}</h3>
+      {!loading && <p className="gg-price-note" data-gift-shared-person-total="">{WISH.sharedListTotal(items.length, amount > 0 ? dollars(amount) : null)}</p>}
+      {loading && items.length === 0 ? <p className="gg-soon" role="status">{WISH.loading}</p> : (
+        <ol className="gg-list gg-wish-list" data-gift-list="">{items.map((row) => <WishRow key={row.id} item={row} />)}</ol>
+      )}
+      {missing > 0 && <p className="gg-wish-missing" data-gift-wish-missing="">{WISH.missing(missing)}</p>}
+    </section>
+  );
+}
+
 export function GiftGuideSharedList({ code, read = getSharedList }: { code: string; read?: (code: string) => Promise<SharedList | null> }) {
   const [list, setList] = useState<SharedList | null | undefined>(undefined);
   const [failed, setFailed] = useState(false);
@@ -38,15 +61,16 @@ export function GiftGuideSharedList({ code, read = getSharedList }: { code: stri
   // Holiday audit C9: the sender's own name for the list, or (unnamed, or our default "My Wish List", which reads as
   // the recipient's own list) "A wish list for you"; a code with no list says "List not found".
   const named = list?.name?.trim() && list.name.trim() !== DEFAULT_LIST_NAME ? list.name.trim() : null;
-  const title = list === null ? WISH.sharedMissingTitle : named ?? WISH.sharedUnnamed;
+  const many = list?.lists && list.lists.length > 0 ? list.lists : null;
+  const title = list === null ? WISH.sharedMissingTitle : many ? WISH.sharedListsTitle : named ?? WISH.sharedUnnamed;
   useEffect(() => {
     if (list === undefined) return;
-    document.title = `${named ?? WISH.sharedLead} — Louisiana Helpr`;
-  }, [list, named]);
+    document.title = `${many ? WISH.sharedListsTitle : named ?? WISH.sharedLead} — Louisiana Helpr`;
+  }, [list, named, many]);
   const { items, loading, missing } = useWishItems(list?.items ?? []);
   return (
     <section aria-labelledby="gift-shared-list" data-gift-shared-list={code}>
-      <p className="gg-wish-lead" data-gift-shared-lead="">{WISH.sharedLead}</p>
+      <p className="gg-wish-lead" data-gift-shared-lead="">{many ? WISH.sharedListsLead : WISH.sharedLead}</p>
       <h2 id="gift-shared-list" className="gg-wish-title" data-gift-shared-title="">{title}</h2>
       {failed ? (
         <div className="gg-soon" role="alert" data-gift-shared-failed="">
@@ -55,6 +79,11 @@ export function GiftGuideSharedList({ code, read = getSharedList }: { code: stri
         </div>
       ) : list === undefined || (loading && items.length === 0 && (list?.items.length ?? 0) > 0) ? (
         <p className="gg-soon" role="status">{WISH.loading}</p>
+      ) : many ? (
+        <>
+          <p className="gg-price-note">{WISH.sharedIntro}</p>
+          {many.map((l, k) => <SharedPerson key={`${k} ${l.name}`} list={l} index={k} />)}
+        </>
       ) : list === null ? (
         <p className="gg-soon" data-gift-shared-missing="">{WISH.sharedMissing}</p>
       ) : items.length === 0 ? (

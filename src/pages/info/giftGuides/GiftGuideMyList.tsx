@@ -16,6 +16,7 @@ import { Heart, listName, listRefs, pickId, putBackInWishList, removeFromWishLis
 import { useWishItems, type WishItem } from "./wishListItems";
 import { useSyncProblem } from "./wishListSync";
 import { giftNameProblem } from "@/lib/giftNameClean";
+import { PickPrice, showsPrice } from "@/components/giftGuides/PickPrice";
 
 /**
  * /gift-guides/my-list (owner 2026-11-18 "My list"; 2026-11-20 "My Wish List": "add something that they can add to
@@ -55,7 +56,7 @@ export function WishRow({ item, heart }: { item: WishItem; heart?: { saved: bool
         <span className="gg-nm">
           <span className="gg-nm-name">{item.name}</span>
           {/* UX audit M6: a business shows its town ("Baton Rouge area"), never "On Baton Rouge area". */}
-          {item.store && <small className="gg-nm-meta"><span>{item.out === "plain" ? item.store : G.onStore(item.store)}</span></small>}
+          {item.store && <small className="gg-nm-meta"><span>{item.out === "plain" ? item.store : G.onStore(item.store)}</span>{item.pick && showsPrice(item.pick) && <> · <PickPrice pick={item.pick} /></>}</small>}
         </span>
         <span className="sr-only"> ({G.newTab})</span>
       </Out>

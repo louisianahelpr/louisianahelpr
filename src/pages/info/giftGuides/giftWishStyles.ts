@@ -32,4 +32,6 @@ export const GIFT_WISH_CSS = `
 .gg-wish-title{margin:2px 0 4px;font-size:26px;line-height:1.2;font-weight:700;overflow-wrap:anywhere}
 .gg-wish-lead{margin:8px 0 0;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--gg-muted)}
 .gg-wish-missing{margin:6px 0 0;font-size:13px;color:var(--gg-muted)}
+.gg-shared-person{margin:18px 0 0}
+.gg-shared-person-name{margin:0;font-size:20px;line-height:1.25;font-weight:700;overflow-wrap:anywhere}
 `;

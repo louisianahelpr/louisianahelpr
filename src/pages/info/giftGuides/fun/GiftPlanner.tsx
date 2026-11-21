@@ -16,7 +16,12 @@ import { PRINTABLES, PRINTABLES_PATH, isShown } from "@/content/printables";
 import { storeOf } from "@/content/giftGuideCatalog";
 import { PickThumb } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
-import { GuidePicksPicker, pickPlannerPrice, type GuidePick } from "./GuidePicksPicker";
+import { GuidePicksPicker, type GuidePick } from "./GuidePicksPicker";
+import { plannerPrice, shareListOf } from "../saveForPeople";
+import { ShareAllLists } from "../SaveForSomeone";
+import { GiftWishShare } from "../GiftWishShare";
+import { WISH } from "@/content/giftWishList";
+import { shareGiftLists } from "@/lib/giftWishListApi";
 
 /**
  * /gift-guides/planner (owner 2026-11-20): the people you're shopping for (a name only), a budget each, gift ideas
@@ -57,7 +62,7 @@ function Person({ p }: { p: PlanPerson }) {
   // Owner 11-21: a guide pick comes in with its name, the price its guide shows, its shop link and its photo.
   const addPick = (g: GuidePick) => {
     if (added.has(g.href)) return;
-    const price = pickPlannerPrice(g);
+    const price = plannerPrice(g);
     A.addIdea(p.id, { name: g.name, href: g.href, guide: g.guide, ...(price !== undefined ? { price } : {}), ...(g.image ? { image: g.image } : {}) });
   };
   const addIdea = (e: FormEvent) => {
@@ -133,6 +138,10 @@ function Person({ p }: { p: PlanPerson }) {
         <Button type="submit" variant="outline" size="sm" data-plan-add-idea={p.id}>{W.plannerAddIdea}</Button>
         <Button type="button" variant="outline" size="sm" aria-haspopup="dialog" onClick={() => setFromGuides(true)} data-plan-from-guides={p.id}>{W.plannerFromGuides}</Button>
       </form>
+      {/* Owner 11-21 ("share all lists"): this person's list as a link (names and gifts from our guides only). */}
+      {shareListOf(p).items.length > 0 && (
+        <GiftWishShare name={p.name} refs={shareListOf(p).items} label={WISH.shareThisList} message={WISH.shareListsMessage} hint={false} quiet save={() => shareGiftLists([shareListOf(p)])} />
+      )}
       <GuidePicksPicker open={fromGuides} onOpenChange={setFromGuides} personName={p.name} added={added} onPick={addPick} />
       {list.picks.length > 0 && (
         <Button type="button" variant="link" size="inline" className="gg-link" aria-expanded={picking} onClick={() => setPicking((v) => !v)} data-plan-from-list={p.id}>{W.plannerFromList}</Button>
@@ -189,6 +198,7 @@ export default function GiftPlanner() {
       )}
       {plan.people.length === 0 && <p className="gg-fun-note" data-plan-empty="">{W.plannerEmpty}</p>}
       <ul className="gg-fun-list">{plan.people.map((p) => <Person key={p.id} p={p} />)}</ul>
+      <ShareAllLists plan={plan} />
       <form className="gg-fun-row mt-3" onSubmit={add}>
         <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} data-plan-new-name="" />
         <Button type="submit" className="btn-grad-primary" data-plan-add-person="">{W.plannerAddPerson}</Button>

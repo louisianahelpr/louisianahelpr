@@ -40,6 +40,20 @@ import { MATCHMAKER_PARAM, readMatchmakerLink } from "@/lib/matchmakerLink";
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { PREFILL_OPENS_DETAILS } from "@/pages/post-job/usePrefillOpensDetails";
 
+/**
+ * A guide card's heart now asks for whom (owner 2026-11-21, saveForPeople): tap it, then "Me" (My Wish List), then
+ * Done. Where no picker is on the page the heart still saves straight to the wish list.
+ */
+const tapHeart = (heart: Element) => {
+  fireEvent.click(heart);
+  const me = document.querySelector("[data-savefor-me]");
+  if (!me) return;
+  fireEvent.click(me);
+  const done = document.querySelector("[data-savefor-done]");
+  if (done) fireEvent.click(done);
+};
+
+
 afterEach(cleanup);
 
 /** Each guide's researched chunk, as generated (PERF split 11-18: one lazy file per guide), and every chunk loaded. */
@@ -240,11 +254,11 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     const heart = container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!;
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(heart.closest("a")).toBeNull();
-    fireEvent.click(heart);
+    tapHeart(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 1 saved");
     expect(link.textContent).toBe("1");
-    fireEvent.click(heart);
+    tapHeart(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
   });
@@ -255,7 +269,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     const hearts = [...view.container.querySelectorAll("[data-gift-pick] [data-gift-heart]")];
     expect(hearts.length).toBe(g.picks.length);
     for (const h of hearts) expect(h.closest("a")).toBeNull();
-    fireEvent.click(hearts[0]);
+    tapHeart(hearts[0]);
     expect(hearts[0].getAttribute("aria-pressed")).toBe("true");
     cleanup();
     const mine = renderAt("/gift-guides?list=mine").container;
@@ -269,7 +283,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     });
     const { container } = renderAt("/gift-guides/him");
     const heart = container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!;
-    fireEvent.click(heart);
+    tapHeart(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     spy.mockRestore();
   });

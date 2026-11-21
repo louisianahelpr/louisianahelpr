@@ -98,6 +98,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   // payout setup after the hire (20261025162003): an enrolled seed Helpr with no payout account gets no reminder
   claim_payout_setup_reminders: "hides",
   gift_wish_list_save: "tags", // gift guides wish list (20261120062130): a test account's synced list is is_seed (is_test_member); gates no money
+  gift_wish_lists_share: "tags", // gift guides lists share (20261121204723): a test member's or test browser's share snapshot is is_seed; gates no money
   secret_santa_create: "tags", // gift guides Secret Santa (20261120062334): a group a test member draws is is_seed; gates no money
   giveaway_reminder_sweep: "hides", // 25 Days reminders (20261119200128): a seed or test account never gets a giveaway reminder; notifications only, gates no money
   complete_pending_accepts_on_setup: "alerts",

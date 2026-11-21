@@ -354,7 +354,7 @@ describe("Give it away free (?free=1)", () => {
   // LEAD-FREE-MOVE (owner 2026-10-31): free is picked on the chooser's first screen, never ticked on the Price row.
   // @mutate src/components/declutter/SellOneScreen.tsx | priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : <div className="pt-1"><SellOffersToggle s={s} /></div>} | priceExtras={<div className="pt-1" data-sell-free="">Give it away free</div>}
   // A give-away earns nothing, so the "set up payouts" prompt has no place on it (audit 1110 F340).
-  // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && <SellerPayoutPrompt />} | <SellerPayoutPrompt />
+  // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && !s.isGuest && <SellerPayoutPrompt />} | <SellerPayoutPrompt />
   it("the payout prompt shows on a priced listing, never on a give-away", async () => {
     open("/declutter/sell");
     await screen.findByRole("heading", { name: "Show it off" });

@@ -2,7 +2,7 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const sortedCount = items.filter((it) => !it.notSorted).length; |   const sortedCount = items.length;
  * @mutate src/lib/declutter/bunchSaved.ts |         await set(photoPrefix + photo.key, await photo.file.arrayBuffer()); |         throw blobRefused;
  * @mutate src/components/declutter/useDeviceSaved.ts |     window.addEventListener("pagehide", now); |     void now;
- * @mutate src/components/declutter/useDeviceSaved.ts |       if (document.visibilityState === "hidden") flush(); |       void 0;
+ * @mutate src/components/declutter/useDeviceSaved.ts |       if (document.visibilityState === "hidden") void flush(); |       void 0;
  * @mutate src/lib/declutter/bunchSaved.ts |     return { bunch: kept, moving: kept && | return { bunch: false, moving: kept &&
  * Sell a bunch audit finding 2: reload, the back link, a killed tab or a crash lost every photo and every word, with no
  * warning. The store is mocked with an in-memory idb-keyval (jsdom has no IndexedDB); the real one is a browser check.
@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       setSortNote(unusablePhotosNote(back.unusable)); |       void back.unusable;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item); |     void next;
  * @mutate src/components/declutter/DeclutterBunchView.tsx | {t(items.some((it) => it.price.trim() !== "") ? | {t(true ?
- * @mutate src/lib/declutter/bunchSaved.ts |   if (saved.userId !== userId \|\| now - saved.savedAt > MAX_AGE_MS) { |   if (false) {
+ * @mutate src/lib/declutter/bunchSaved.ts |       if ((saved.userId !== userId && !claimed) \|\| now - saved.savedAt > MAX_AGE_MS) { |   if (false) {
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |   const continueTo = kept.data?.bunch && kept.data.one ? { to: undefined } : kept.data?.bunch ? { to: bunchTo } |   const continueTo = kept.data?.bunch && kept.data.one ? { to: bunchTo } : kept.data?.bunch ? { to: bunchTo }
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | onClick={continueTo.to ? undefined : () => setChoosingKept(true)} | onClick={undefined}
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | <ChoiceCard compact data-kept-choice="one" to={SELL_ONE_PATH} | <ChoiceCard compact data-kept-choice="one" to={SELL_BUNCH_PATH}

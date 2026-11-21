@@ -385,6 +385,7 @@ export const es: Record<MsgKey, string> = {
   "signup.itemSubtitle": "Regístrese y le llevaremos directamente de vuelta a este artículo.",
   "signup.jobSubtitle": "Regístrese para postularse y le llevaremos directamente de vuelta a este trabajo.",
   "signup.postSubtitle": "Su trabajo quedó guardado en este dispositivo. Regístrese y verifique su correo, y le traeremos de vuelta para publicarlo.",
+  "signup.sellSubtitle": "Su anuncio quedó guardado en este dispositivo. Regístrese y verifique su correo, y le traeremos de vuelta para publicarlo.",
   "signup.saveItemSubtitle": "Regístrese para guardar artículos. Le llevaremos directamente de vuelta a donde estaba.",
   "zip.unknown": "No reconocemos ese código postal como de Louisiana. Los trabajos se asignan por parroquia, así que revíselo; si no, el trabajo cercano no le llegará.",
 

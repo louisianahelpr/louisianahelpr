@@ -52,6 +52,8 @@ export const enCore = {
   "signup.jobSubtitle": "Sign up to apply, and we'll take you straight back to this job.",
   // Owner 11-20 (ease batch): a guest who started a job post (src/lib/guestPostDraft.ts).
   "signup.postSubtitle": "Your job post is saved on this device. Sign up and verify your email, and we'll bring you right back to post it.",
+  // Owner 11-21: a guest who filled a Declutter listing (src/lib/guestSellDraft.ts).
+  "signup.sellSubtitle": "Your listing is saved on this device. Sign up and verify your email, and we'll bring you right back to post it.",
   "signup.saveItemSubtitle": "Sign up to save items. We'll take you straight back to where you were.",
   "zip.unknown": "We don't recognise that as a Louisiana ZIP code. Jobs are matched by parish, so double-check it — otherwise nearby work won't reach you.",
   // Jobs browse (the section tabs)

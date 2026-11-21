@@ -100,7 +100,7 @@ export function useBunchSaved(
     const change = (list: BunchItem[]) => (patch === null ? list.filter((it) => it.key !== key) : list.map((it) => (it.key === key ? { ...it, ...patch } : it)));
     latest.current = { ...latest.current, items: change(latest.current.items) };
     setItems(change);
-    flush();
+    void flush();
   }, [flush, latest, setItems]);
 
   const clearSaved = useCallback(() => {

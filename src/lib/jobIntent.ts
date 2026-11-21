@@ -168,6 +168,8 @@ export function signupSubtitle(reason: string | null | undefined, redirect: stri
   if (reason === SAVE_ITEM_REASON) return t("signup.saveItemSubtitle");
   // Owner 11-20 (ease batch): a guest who started a job post; it is kept on the device (src/lib/guestPostDraft.ts).
   if (reason === "post") return t("signup.postSubtitle");
+  // Owner 11-21: a guest who filled a Declutter listing; it is kept on the device (src/lib/guestSellDraft.ts).
+  if (reason === "sell") return t("signup.sellSubtitle");
   const safe = safeInternalRedirect(redirect);
   const path = safe ? new URL(safe, "https://x.invalid").pathname : "";
   if (path.startsWith("/declutter/item/")) return t("signup.itemSubtitle");

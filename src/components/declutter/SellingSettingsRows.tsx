@@ -67,8 +67,9 @@ export function pickupLines({ ways, places, areaLabel, windows }: {
 }
 
 /** The Pickup row's lines for the signed-in seller, with their saved places (the same read and cache as Settings). */
-export function usePickupLines(ways: readonly SellerHandover[], areaLabel: string, windows: readonly PickupWindow[]): string[] {
-  const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
+export function usePickupLines(ways: readonly SellerHandover[], areaLabel: string, windows: readonly PickupWindow[], signedIn = true): string[] {
+  // Not read for a guest (owner 11-21, guestSellDraft.ts): they have no saved places, and nothing is asked of the server.
+  const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces, enabled: signedIn });
   const places = Array.isArray(mine.data) ? [...mine.data].sort((a, b) => a.position - b.position) : [];
   return pickupLines({ ways, places, areaLabel, windows });
 }

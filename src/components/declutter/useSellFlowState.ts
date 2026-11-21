@@ -65,13 +65,18 @@ import { useSavedPickup } from "./useSavedPickup";
 import { FULL_LISTING_COPY } from "@/lib/declutter/photoRules";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { useSellSaved, type SellOneWork } from "./useSellSaved";
+import { GUEST_SELLER } from "@/lib/declutter/bunchSaved";
+import { guestSellSignupUrl } from "@/lib/guestSellDraft";
 import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
 import { tradesOnIfChosen } from "@/lib/declutter/tradesOnPost";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
 
 export function useSellFlowState(urlItemId: string | null) {
-  const { user } = useCurrentUser();
+  const { user, isLoading: authLoading } = useCurrentUser();
+  // Owner 11-21 (src/lib/guestSellDraft.ts): a guest fills a new listing before signing up. Nothing of theirs reaches
+  // the server: no early photo upload (stage), no AI draft (aiAsk), no draft row (onPublish); it is kept on the device.
+  const isGuest = !authLoading && !user;
   const navigate = useNavigate();
   const qc = useQueryClient();
   // Quick-list from "I have this" (owner 2026-10-30): a NEW listing made from a Wanted post answers it once live.
@@ -235,9 +240,10 @@ export function useSellFlowState(urlItemId: string | null) {
   // Owner 2026-10-28: Claude writes the listing. A new listing's photos are still on the device, so they
   // go in the request (never stored) and it runs by itself once the first ones are added; a saved draft
   // asks from its uploaded photos. Either way "Write it again" asks once more.
+  // A guest's photos are never sent: the AI draft's edge function needs an account (401 not_authenticated).
   const aiAsk = useMemo(
-    () => (itemId ? (photoCount > 0 ? () => requestAiDraft(itemId, hintAt) : null) : held.length > 0 ? withCoverFile(held, (f) => requestAiDraftFromPhotos(f, hintAt)) : null),
-    [itemId, photoCount, held],
+    () => (!user ? null : itemId ? (photoCount > 0 ? () => requestAiDraft(itemId, hintAt) : null) : held.length > 0 ? withCoverFile(held, (f) => requestAiDraftFromPhotos(f, hintAt)) : null),
+    [user, itemId, photoCount, held],
   );
   // Audit AA9: a resumed draft with photos and an empty title or details is filled by itself too (empty fields only).
   const resumedEmpty = !!urlItemId && loadedId === urlItemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
@@ -274,7 +280,7 @@ export function useSellFlowState(urlItemId: string | null) {
   // Area 06 H1 (11-18): "Give away free" (?free=1) never silently opens a priced kept draft. A priced one waits for the
   // seller's answer: start a free listing, or continue the draft.
   const [freeOrDraft, setFreeOrDraft] = useState<(SellOneWork & { held: File[] }) | null>(null);
-  const keptWork = useSellSaved(urlItemId || answer ? undefined : user?.id, { form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId, aiMemory: ai.memory.current, sizeKnown }, held, (back) => {
+  const keptWork = useSellSaved(urlItemId || answer ? undefined : (user?.id ?? (isGuest ? GUEST_SELLER : undefined)), { form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId, aiMemory: ai.memory.current, sizeKnown }, held, (back) => {
     if (!urlItemId && startsFree(params) && !back.form.free) {
       setFreeOrDraft(back);
       return;
@@ -527,6 +533,8 @@ export function useSellFlowState(urlItemId: string | null) {
 
   /** `withoutFailed`: the seller's own choice to post with the photos that went up. */
   async function onPublish({ withoutFailed = false }: { withoutFailed?: boolean } = {}) {
+    // A guest never writes: Post asks them to sign up first (SellOneScreen's SellGuestSignup).
+    if (!user) return;
     if (!attested) {
       toast.error(tr("sf.tickBox"));
       return;
@@ -604,6 +612,12 @@ export function useSellFlowState(urlItemId: string | null) {
     }
   }
 
+  /** A guest's "Create your free account": the listing is on the device first, then sign-up, back to it at Post. */
+  async function finishAsGuest(): Promise<void> {
+    await keptWork.saveNow();
+    navigate(guestSellSignupUrl());
+  }
+
   // A new listing's draft exists only once Post made it, so a photo still held after that is one that failed.
   const failedHeld = !urlItemId && !!createdId && !publishing ? held.length : 0;
   const photoTotal = photoCount + held.length;
@@ -612,7 +626,7 @@ export function useSellFlowState(urlItemId: string | null) {
   const postStep = postStepAt ? tr(postStepAt.key, { n: postStepAt.n ?? 0, total: postStepAt.total ?? 0 }) : null;
   const postStage = postStepOf(postStepAt?.key ?? null);
   return {
-    saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, place, saving, uploading, windows, setWindows,
+    saved, sizeKnown, setSizePicked, user, isGuest, finishAsGuest, underAge, itemId, item, photos, form, setForm, set, coords, place, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, offersWanted, setOffersWanted, tradesWanted, setTradesWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
     floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, postStage, failedHeld, photoFailure, keptWork, freeChoice, refusedNote, makeCover, reorderHeld, coverUndo, undoCover,

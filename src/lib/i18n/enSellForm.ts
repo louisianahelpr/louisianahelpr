@@ -158,6 +158,15 @@ export const enSellForm = {
   "sf.fs.loadFailed": "We couldn't load your selling settings.",
   "sf.fs.loadFailedBody": "Check your connection and try again.",
   "sf.moreWays": "Several things, or giving it away? More ways to sell",
+  // Owner 11-21: a guest fills the listing first and signs up at Post (src/lib/guestSellDraft.ts).
+  "sf.gu.cta": "Sign up to post",
+  "sf.gu.head": "Create your free account to post",
+  "sf.gu.body": "Your listing is saved on this device. Sign up and verify your email, and we'll bring you right back to post it.",
+  "sf.gu.create": "Create free account",
+  "sf.gu.logIn": "I already have an account",
+  "sf.gu.photosSub": "Add up to {max} photos. They stay on this device until you post.",
+  "sf.gu.aiNote": "Fill in the details yourself for now. Once you have an account, we can write them from your photos.",
+  "sf.gu.back": "Your listing is here, ready to post.",
   "sf.continueBunch": "Continue your Sell a bunch items",
 } as const;
 

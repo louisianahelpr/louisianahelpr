@@ -54,7 +54,7 @@ function Logo({ s }: { s: SponsorLogo }) {
   );
 }
 
-function Tile({ s }: { s: SponsorLogo }) {
+export function SponsorTile({ s }: { s: SponsorLogo }) {
   const body = (
     <>
       <Logo s={s} />
@@ -64,7 +64,9 @@ function Tile({ s }: { s: SponsorLogo }) {
   return (
     <li data-gift-sponsor={s.slug}>
       {s.external && /^https:\/\//.test(s.href) ? (
-        <a href={s.href} target="_blank" rel="noopener noreferrer" className="gg-spons-a" aria-label={`${s.name} (${G.newTab})`}>{body}</a>
+        // No aria-label: a sponsor with no logo shows its initials, and a label that left that visible text out failed
+        // axe's label-content-name-mismatch on the landing (a11y sweep 11-20). The name comes from the content.
+        <a href={s.href} target="_blank" rel="noopener noreferrer" className="gg-spons-a">{body}{" "}<span className="sr-only">({G.newTab})</span></a>
       ) : (
         <Link to={s.href.startsWith("/") ? s.href : G.sponsorRow.allHref} className="gg-spons-a">{body}</Link>
       )}
@@ -107,7 +109,7 @@ export function SponsorRow() {
       </div>
       <p className="gg-spons-intro">{G.sponsorRow.intro}</p>
       <ul className="gg-spons-row" ref={row}>
-        {list.map((s) => <Tile key={s.slug} s={s} />)}
+        {list.map((s) => <SponsorTile key={s.slug} s={s} />)}
       </ul>
     </section>
   );

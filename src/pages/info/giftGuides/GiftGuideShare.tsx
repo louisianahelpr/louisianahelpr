@@ -80,10 +80,10 @@ function GiftGuideSort({ order, onChange }: { order: SortOrder; onChange: (o: So
       {open && (
         <span className="gg-share-menu" role="menu" aria-label={G.sortLabel} data-gift-sort-menu="">
           {choices.map((c, i) => (
-            <button key={c.value} type="button" role="menuitemradio" aria-checked={order === c.value} ref={(el) => { items.current[i] = el; }}
+            <InlineTextButton key={c.value} role="menuitemradio" aria-checked={order === c.value} ref={(el) => { items.current[i] = el; }}
               onKeyDown={(e) => move(e, i)} onClick={() => { onChange(c.value); setOpen(false); }} data-gift-sort-choice={c.value}>
               <span className="gg-sort-check" aria-hidden="true">{order === c.value ? "✓" : ""}</span>{c.label}
-            </button>
+            </InlineTextButton>
           ))}
         </span>
       )}

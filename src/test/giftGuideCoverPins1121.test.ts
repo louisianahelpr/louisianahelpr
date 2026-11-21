@@ -17,7 +17,15 @@ type Pick = { name: string; href: string; store?: string };
 const pins = Object.fromEntries(Object.entries(JSON.parse(readFileSync("scripts/gift-guide-cover-pins.json", "utf8")) as Record<string, unknown>).filter(([k]) => !k.startsWith("_"))) as Pins;
 const manifest = JSON.parse(readFileSync("scripts/gift-guide-cover-items.json", "utf8")) as Record<string, { items: { name: string; image: string }[] }>;
 const picksOf = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
-const isAmazonPick = (p: Pick) => p.store === "store-amazon" || /amazon\.com\//.test(p.href);
+/** The host, not a substring of the URL (CodeQL js/missing-regexp-anchor): amazon.com or a subdomain of it. */
+const amazonHost = (href: string) => {
+  try {
+    return /(^|\.)amazon\.com$/.test(new URL(href).hostname);
+  } catch {
+    return false; // not an absolute URL, so not an Amazon link
+  }
+};
+const isAmazonPick = (p: Pick) => p.store === "store-amazon" || amazonHost(p.href);
 
 describe("the owner's pinned cover picks (11-21)", () => {
   it("pins her, him and kids, with four to six products each", () => {

@@ -10,7 +10,7 @@
  * @mutate src/pages/info/giftGuides/printables/NameMaker.tsx | .pr-designs{display:grid; | .pr-designs{display:flex;overflow-x:auto;
  * @mutate src/pages/info/giftGuides/printables/NameMaker.tsx | const HOLD_MS = 400; | const HOLD_MS = 4000;
  * @mutate src/pages/info/giftGuides/printables/NameMaker.tsx |       onPointerUp: clear, |       onPointerUp: () => undefined,
- * @mutate src/pages/info/giftGuides/printables/NameMaker.tsx |         e.preventDefault(); |         void 0;
+ * @mutate src/pages/info/giftGuides/printables/NameMaker.tsx |         held.current = false;\n        e.preventDefault(); |         held.current = false;\n        void 0;
  * @mutate src/pages/info/giftGuides/printables/NameMaker.tsx | onClick={() => { setDesignId(zoomDesign.id); setZoomId(null); }} | onClick={() => { setZoomId(null); }}
  * @mutate src/pages/info/giftGuides/printables/NameMaker.tsx | src={zoomDesign.image} | src={zoomDesign.thumb ?? zoomDesign.image}
  */

@@ -97,6 +97,8 @@ export const enDeclBrowse = {
   "decl.group.Family": "Family",
   "decl.group.Hobbies and fun": "Hobbies and fun",
   "decl.group.More": "More",
+  // Declutter selling boost (owner 11-20): the row of the last 7 days' listings above the grid.
+  "decl.newThisWeek": "New this week",
 } as const;
 
 addEnglish(enDeclBrowse);

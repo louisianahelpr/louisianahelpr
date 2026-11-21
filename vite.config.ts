@@ -1503,7 +1503,7 @@ export default defineConfig(({ mode, command }) => ({
             // signed-in-deep they put /gift-guides/<slug> at 593 KB gz on the critical path (budget 336; #4857 bundle-size run).
             {
               name: "public-page-reads",
-              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean)|content[\\/](sponsorPage|giftGuideFun1120))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$/,
+              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean)|content[\\/](sponsorPage|giftGuideFun1120))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$|[\\/]src[\\/]lib[\\/]pickPriceShown\.mjs$/,
               priority: 16.7,
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,

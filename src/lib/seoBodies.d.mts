@@ -1,5 +1,6 @@
 /** Types for src/lib/seoBodies.mjs (api/share.ts's per-page bodies and JSON-LD). */
-export type SeoPick = [name: string, store: string, href: string];
+export interface SeoPickExtra { image?: string; price?: number; priceAt?: string }
+export type SeoPick = [name: string, store: string, href: string, extra?: SeoPickExtra];
 export interface SeoGuide {
   name: string;
   /** In the sitemap (GIFT_GUIDE_SEO): index, follow. Any other catalog guide is served noindex. */
@@ -16,6 +17,8 @@ export interface SeoData {
   /** Old slug -> its guide now ("mom"), its section in a merged guide ("healthcare#rns", 1120) or "" (the landing page). */
   moved: Record<string, string>;
   groups: [label: string, guides: [slug: string, name: string][]][];
+  /** The deals page's cards: item name, shop link, last day ("" = no end). */
+  deals?: [item: string, href: string, ends: string][];
 }
 export interface TownService { slug: string; label: string; pageLabel?: string; phrase: string; category: string }
 export interface Town { slug: string; name: string }
@@ -26,7 +29,8 @@ export function breadcrumbLd(crumbs: { name: string; path: string }[]): Record<s
 export function seoPageBody(crumbs: { name: string; path: string }[], inner: string): string;
 export function giftGuideBody(slug: string, guide: SeoGuide): string;
 export function dealsGuideBody(slug: string, name: string, intro: string, disclosure: string): string;
-export function giftGuideItemListLd(slug: string, guide: SeoGuide): Record<string, unknown>;
+export function giftGuideItemListLd(slug: string, guide: SeoGuide, today: string): Record<string, unknown>;
+export function dealsItemListLd(name: string, deals: NonNullable<SeoData["deals"]>, today: string): Record<string, unknown> | null;
 export function giftGuidesLandingBody(groups: SeoData["groups"]): string;
 export function giftGuidesLandingLd(groups: SeoData["groups"]): Record<string, unknown>;
 export function hireBody(service: TownService, town: Town): string;

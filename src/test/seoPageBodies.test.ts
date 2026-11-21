@@ -122,8 +122,10 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
     expect(root).toContain(`on ${store.replace(/&/g, "&amp;").replace(/'/g, "&#39;")}`);
     expect(root).toContain(`href="${href.replace(/&/g, "&amp;")}" rel="sponsored nofollow noopener"`);
     expect(root).toContain('<a href="/gift-guides">Holiday Gift Guides</a>');
-    const list = jsonLd(body).find((b) => b["@type"] === "ItemList") as { itemListElement: { name: string; url: string }[] };
-    expect(list.itemListElement[0]).toMatchObject({ name, url: href });
+    const list = jsonLd(body).find((b) => b["@type"] === "ItemList") as { itemListElement: { name?: string; url?: string; item?: { name: string; url: string } }[] };
+    // A pick showing a price is a Product (giftGuideStructuredData1121.test.ts); either way its name and shop link.
+    const first = list.itemListElement[0];
+    expect(first.item ?? first).toMatchObject({ name, url: href });
     expect(body).toContain('<meta name="robots" content="index, follow" />');
   });
 

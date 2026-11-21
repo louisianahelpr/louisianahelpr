@@ -10,8 +10,8 @@
  * @mutate scripts/giftGuidePrice.mjs |   if ([p.store, p.retailer, p.brand].some((x) => typeof x === "string" && /^amazon\b/i.test(x.trim()))) return undefined; |   if (false) return undefined;
  * @mutate scripts/giftGuidePrice.mjs |   if (now - at > PRICE_MAX_AGE_DAYS * DAY_MS \|\| at - now > DAY_MS / 24) return undefined; |   if (at - now > DAY_MS / 24) return undefined;
  * @mutate scripts/giftGuidePrice.mjs | p.price_currency !== "USD" \|\| !p.price_source | !p.price_source
- * @mutate src/components/giftGuides/PickPrice.tsx | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt)) return false; | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt) \|\| pick.store === "amazon") return false;
- * @mutate src/components/giftGuides/PickPrice.tsx |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
+ * @mutate src/components/giftGuides/PickPrice.tsx | => pickPriceShown(pick.price, pick.priceAt, today); | => pick.store !== "amazon" && pickPriceShown(pick.price, pick.priceAt, today);
+ * @mutate src/lib/pickPriceShown.mjs |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <small className="gg-nm-meta"><PickPrice pick={pick} /></small> | <small className="gg-nm-meta">{null}</small>
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={picks.slice(0, upTo)} /> |       {null}
  * @mutate src/content/giftGuideCatalog.ts | ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}), | ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}),

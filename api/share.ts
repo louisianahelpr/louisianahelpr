@@ -75,6 +75,7 @@ import {
   dealsGuideBody,
   giftGuideBody,
   giftGuideItemListLd,
+  dealsItemListLd,
   giftGuidesLandingBody,
   giftGuidesLandingLd,
   hireBody,
@@ -1211,15 +1212,17 @@ function seoFor(url: URL): SeoOutcome {
       return { kind: "page", body: dealsGuideBody(SMALL_BIZ_SLUG, name, SMALL_BIZ_WORDS.intro, SMALL_BIZ_WORDS.featuredLine), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${SMALL_BIZ_SLUG}` }])] };
     }
     if (slug === DEALS_SLUG) {
-      const name = dealsTitle(louisianaDay(new Date()));
-      return { kind: "page", body: dealsGuideBody(DEALS_SLUG, name, DEALS_WORDS.featuredLine, DEALS_WORDS.disclosure), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${DEALS_SLUG}` }])] };
+      const today = louisianaDay(new Date());
+      const name = dealsTitle(today);
+      const list = dealsItemListLd(name, seoData()?.deals ?? [], today);
+      return { kind: "page", body: dealsGuideBody(DEALS_SLUG, name, DEALS_WORDS.featuredLine, DEALS_WORDS.disclosure), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${DEALS_SLUG}` }]), ...(list ? [list] : [])] };
     }
     const d = seoData();
     if (!d) return null;
     if (slug && hasOwn(d.guides, slug)) {
       const g = d.guides[slug];
       const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: g.name, path: `/gift-guides/${slug}` }]);
-      return { kind: "page", body: giftGuideBody(slug, g), jsonLd: g.picks.length ? [crumbs, giftGuideItemListLd(slug, g)] : [crumbs] };
+      return { kind: "page", body: giftGuideBody(slug, g), jsonLd: g.picks.length ? [crumbs, giftGuideItemListLd(slug, g, louisianaDay(new Date()))] : [crumbs] };
     }
     // 1120: a merged guide's old slug 301s to its section ("healthcare#rns"); a folded store page to the landing page ("").
     if (slug && hasOwn(d.moved, slug) && /^([a-z0-9-]+(#[a-z0-9-]+)?)?$/.test(d.moved[slug])) return { kind: "moved", location: d.moved[slug] ? `${SITE_ORIGIN}/gift-guides/${d.moved[slug]}` : `${SITE_ORIGIN}/gift-guides` };

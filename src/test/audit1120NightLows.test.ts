@@ -4,7 +4,7 @@
 // @mutate src/pages/declutter/DeclutterSettingsPage.tsx :: ", \"Pickup places\": \"[data-porch-places-card]\"" => ""
 // @mutate src/lib/i18n/enListingParts.ts :: "it's kept under History in Selling." => "it's kept under Taken down in Selling."
 /**
- * App audit 11-20 night, quick Lows (findings 19, 13, 26, 7, 5):
+ * App audit 2026-11-20 night, quick Lows (findings 19, 13, 26, 7, 5):
  *  19 the applicants error button reads "Try again", as its own words say;
  *  13 the "Within N mi" chip only shows when the distance filter is really applied (a location is known);
  *  26 the bottom Log in link on sign-up keeps the page the member came for;

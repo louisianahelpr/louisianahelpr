@@ -1,5 +1,5 @@
 /**
- * Audit 11-20 night #17: dispute photos are shrunk before the 5 MB check.
+ * Audit 11-20 night #17: dispute photos are shrunk before the size check.
  *
  * @mutate src/lib/disputeEvidencePhotos.ts | const file = await compress(picked).catch( | const file = await Promise.resolve(picked).catch(
  */

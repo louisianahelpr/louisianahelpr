@@ -19,7 +19,7 @@
  * @mutate src/content/giftGuideCatalog.ts | (label.get(g.row) ?? []).includes(w)); | (label.get(g.row) ?? []).some((x) => x.includes(w)));
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px; | .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;
- * @mutate src/pages/info/GiftGuides.tsx | hideBack={!guide && !deals && !myList && !shared && !group} | hideBack={false}
+ * @mutate src/pages/info/GiftGuides.tsx | wrapTitle={!banner} backTo= | wrapTitle={!banner} hideBack={!guide} backTo=
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -140,7 +140,8 @@ describe("H1: the kids age guides are two taps from the landing", () => {
 describe("H4: every item has a visible Shop link", () => {
   // Owner 11-20 ("take the circle of shop at, it's too busy looking"): a plain text link now, not a Button pill; the
   // 44px tap area is in its CSS (min-height:44px), guarded in giftGuideCalmCards1120.test.tsx.
-  it("'Shop at <store> ›', a 44px text link, its own link apart from the heart, opening the same shop", () => {
+  // Owner 11-21 ("for shop just put 'shop' not 'shop at store name'"): every row's link reads "Shop ›".
+  it("'Shop ›', a 44px text link, its own link apart from the heart, opening the same shop", () => {
     const { container } = renderAt("/gift-guides/mom");
     const rows = [...container.querySelectorAll("[data-gift-list] > li")];
     expect(rows.length).toBeGreaterThan(10);
@@ -148,13 +149,13 @@ describe("H4: every item has a visible Shop link", () => {
     for (const li of rows) {
       const pill = li.querySelector("a.gg-shop-btn")!;
       expect(pill).not.toBeNull();
-      expect(pill.querySelector("[data-gift-shop]")?.textContent).toMatch(/^Shop( at .+)?$/);
+      expect(pill.querySelector("[data-gift-shop]")?.textContent).toBe("Shop");
       expect(pill.textContent).toContain("›");
       expect(pill.getAttribute("href")).toBe(li.querySelector("a.gg-item")!.getAttribute("href"));
       expect(pill.getAttribute("rel")).toBe("sponsored noopener");
       expect(pill.contains(li.querySelector("[data-gift-heart]"))).toBe(false);
     }
-    expect(rows.some((li) => /^Shop at /.test(li.querySelector("[data-gift-shop]")!.textContent!))).toBe(true);
+    expect(rows.some((li) => /Shop at /.test(li.textContent ?? ""))).toBe(false);
     // The pill is never hidden (the old Shop word was display:none on every width).
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-shop-btn\{[^}]*display:none/);
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-shop\{/);
@@ -169,23 +170,27 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     expect(tiles.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids"]);
   });
 
-  it("the landing has no back arrow; a guide's goes to the landing", () => {
-    expect(renderAt("/gift-guides").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("hidden");
+  // Owner 11-21 ("title on left with back arrow on the left of the title", like the other pages): the landing's back
+  // arrow goes home; every other page's to the landing.
+  it("the landing's back arrow goes home; a guide's goes to the landing", () => {
+    expect(renderAt("/gift-guides").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("/");
     cleanup();
     expect(renderAt("/gift-guides/mom").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("/gift-guides");
     cleanup();
     expect(renderAt("/gift-guides?group=by-person").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("/gift-guides");
   });
 
-  it("a cover tile does not repeat its cover's name, and its heart sits after the cover, not on it", () => {
+  // Owner 11-21: "they don't need an option to heart the whole guide": no tile carries a heart.
+  it("a cover tile does not repeat its cover's name, and has no heart", () => {
     const { container } = renderAt("/gift-guides?group=by-person");
     const tiles = [...container.querySelectorAll("[data-gift-row='by-person'] li.gg-tile-li")];
     expect(tiles.length).toBeGreaterThanOrEqual(2); // owner 11-21: Her and Him (Mom, Dad ... are filters, not tiles)
     for (const li of tiles) {
       expect(li.querySelector("[data-gift-tile-name]")?.classList.contains("sr-only")).toBe(true);
-      expect(li.lastElementChild?.hasAttribute("data-gift-heart")).toBe(true);
+      expect(li.querySelector("[data-gift-heart]")).toBeNull();
+      expect(li.children.length).toBe(1);
     }
-    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-heart-tile\{[^}]*position:absolute/);
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-heart-tile\b/);
   });
 
   it("a guide shows how many gifts it holds; the phone banner is at most 96px tall", () => {

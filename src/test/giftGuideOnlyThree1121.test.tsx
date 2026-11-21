@@ -19,15 +19,25 @@
  * under the tiles, then the gift finder, the fun tools, the free printables (ready ones only) and the deals card. The
  * tiles stay exactly Her, Him and Kids.
  *
+ * Owner 11-21 ~12:05 PM and after ("move the holiday hub into the left column and remove it from the main holiday
+ * screen"; "move 25 day sponsors to the left panel too"; "i have already said free printables, louisiana hub, sponsors go
+ * in the left panel ... and black friday deals, small business saturday and cyber monday"): the main column is the
+ * three tiles, the 25 Days giveaways card and the gift finder; no Holiday Hub card, sponsors' row, printables or deals
+ * card. The left menu holds Her, Him, Kids, then Black Friday deals, Small Business Saturday, Cyber Monday (the deals
+ * page's sections), Free printables, Louisiana Holiday Hub and 25 Days sponsors, then the fun tools.
+ *
  * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday-cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday-cyber-monday", "teens"];
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug)).flatMap((slug) => { |   LIVE_GUIDES_1121.flatMap((slug) => {
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <FunTools /> |       {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       {finderAsked(search, hash) && <GiftFinder />} |       <GiftFinder />
  * @mutate src/pages/info/GiftGuides.tsx |         {landing && <hr className="gg-divider" data-gift-divider="" />} |         {null}
  * @mutate src/content/printables.ts |   if (!p.ready) return false; |   if (false) return false;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <DealsAndCodes open /> |       {null}
  * @mutate src/content/giftGuideCatalog.ts | draftOf.has(slug) && isLiveGuide(slug) && | draftOf.has(slug) &&
  * @mutate src/prerender/seoData.ts | else if (!to && !guides[old]) moved[old] = ""; | else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       {null}
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.holidayHub.title}</Link></li> |         {null}
+ * @mutate src/content/giftGuides.ts |     { id: "cyber-monday", label: "Cyber Monday" }, |
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       {finderAsked(search, hash) && <GiftFinder />} |       {finderAsked(search, hash) && <GiftFinder />}<aside data-gift-holiday-hub="" />
  * @mutate api/share.ts | if ((slug === SMALL_BIZ_SLUG \|\| slug === DEALS_SLUG) && !isLiveGuide(slug)) | if (false)
  */
 import { readFileSync } from "node:fs";
@@ -48,6 +58,7 @@ import { RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { CHUNK_SLUGS, PICK_CHUNKS } from "@/content/giftGuidePicks";
 import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
+import { shownPrintables } from "@/content/printables";
 import { SMALL_BIZ_SLUG } from "@/content/giftGuideSmallBiz.mjs";
 import { buildSeoData } from "@/prerender/seoData";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
@@ -126,7 +137,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const codes = container.querySelector<HTMLDetailsElement>("[data-gift-deals-page] details[data-gift-deals-codes]");
     expect(codes, "the codes and sales box").not.toBeNull();
     expect(codes!.open).toBe(true);
-    expect(container.querySelector("[data-gift-side-deals]")?.getAttribute("aria-current")).toBe("page");
+    expect(container.querySelector("[data-gift-side-deals='black-friday']")?.getAttribute("aria-current")).toBe("page");
     expect(container.querySelector("[data-gift-sidebar] a[data-gift-side='']")?.getAttribute("aria-current")).toBeNull();
   });
 
@@ -148,7 +159,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     expect(container.querySelector("#gift-guide-title")).not.toBeNull();
   });
 
-  it("the landing: a divider, the three guide tiles, the 25 Days card, the finder, the fun tools, printables and deals; no Top 10, Gift of the Day or codes", () => {
+  it("the landing: a divider, the three guide tiles and the 25 Days card; the rest is in the left menu; no Top 10, Gift of the Day or codes", () => {
     const { container } = renderAt("/gift-guides");
     const tiles = [...container.querySelectorAll<HTMLAnchorElement>("[data-gift-live-guides] a[data-gift-tile]")].map((a) => a.getAttribute("href"));
     expect(tiles).toEqual(LIVE.map((s) => `/gift-guides/${s}`));
@@ -156,32 +167,46 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const divider = container.querySelector("hr[data-gift-divider]");
     expect(divider).not.toBeNull();
     expect(divider!.nextElementSibling?.classList.contains("gg-layout")).toBe(true);
-    // Order (owner 11-21: the 25 Days card right under the tiles, above the Holiday Hub).
-    const order = ["[data-gift-browse]", "[data-gift-giveaways]", "[data-gift-finder]", "[data-gift-tools]", "[data-gift-extras]", "[data-gift-holiday-hub]"]
-      .map((sel) => container.querySelector(sel));
-    for (const el of order) expect(el).not.toBeNull();
-    for (let i = 1; i < order.length; i++) expect(order[i - 1]!.compareDocumentPosition(order[i]!) & Node.DOCUMENT_POSITION_FOLLOWING, `${i}`).toBeTruthy();
-    // The fun tools, exactly; the free printables name only what is ready (the gift tags and, owner 11-21 "boys coloring
-    // pages are ready for site", the coloring book), never the elf kit.
-    expect([...container.querySelectorAll("[data-gift-fun-tools] a")].map((a) => a.getAttribute("href"))).toEqual(TOOLS);
-    const printables = container.querySelector("a[data-gift-printables]");
-    expect(printables?.getAttribute("href")).toBe(PRINTABLES);
-    expect(printables?.textContent).toBe("Free printablesGift tags with names, Christmas coloring book. Free to print at home.");
-    expect(container.querySelector("a[data-gift-deals-link]")?.getAttribute("href")).toBe(`/gift-guides/${DEALS_SLUG}`);
+    // The main column, in order and nothing else (owner 11-21): the tiles and the 25 Days card right under them. The
+    // finder (the quiz) shows under them only when the menu's link (#gift-finder) or a shared finder link asks for it.
+    const kinds = (c: HTMLElement) => [...c.querySelector(".gg-landing")!.children].map((x) => (x.matches("[data-gift-browse]") ? "tiles" : x.matches("[data-gift-giveaways]") ? "giveaways" : x.matches("[data-gift-finder]") ? "finder" : x.outerHTML.slice(0, 60)));
+    expect(kinds(container)).toEqual(["tiles", "giveaways"]);
+    for (const url of ["/gift-guides#gift-finder", "/gift-guides?who=her&budget=50&vibe=cozy"]) {
+      const asked = renderAt(url).container;
+      expect(kinds(asked), url).toEqual(["tiles", "giveaways", "finder"]);
+      asked.remove();
+    }
+    expect(container.querySelector(".gg-main")!.querySelector("[data-gift-holiday-hub], [data-gift-sponsors], .gg-spons, [data-gift-tools], [data-gift-extras], a[data-gift-printables], a[data-gift-deals-link]"), "main column").toBeNull();
+    // The left menu: the three guides, then the deals days, printables, the Holiday Hub and the sponsors, then the tools.
+    const more = [...container.querySelectorAll("[data-gift-side-more] a")].map((a) => [a.textContent, a.getAttribute("href")]);
+    expect(more).toEqual([
+      ["Black Friday deals", `/gift-guides/${DEALS_SLUG}#black-friday`],
+      ["Small Business Saturday", `/gift-guides/${DEALS_SLUG}#small-business-saturday`],
+      ["Cyber Monday", `/gift-guides/${DEALS_SLUG}#cyber-monday`],
+      ["Free printables", PRINTABLES],
+      ["Louisiana Holiday Hub", "/holidays"],
+      ["25 Days sponsors", `/gift-guides/${SPONSORS}`],
+    ]);
+    expect([...container.querySelectorAll("[data-gift-side-tools] a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides#gift-finder", ...TOOLS]);
+    // The free printables show only what is ready (the gift tags and, owner 11-21 "boys coloring pages are ready for
+    // site", the coloring book), never the elf kit.
+    expect(shownPrintables().map((p) => p.title)).toEqual(["Gift tags with names", "Christmas coloring book"]);
     // Codes and sales live only on the deals page; the deleted Gift of the Day and the retired strips stay gone.
     expect(container.querySelector("[data-gift-top], [data-gift-countdown], [data-gift-of-the-day], [data-gift-deals-codes], [data-gift-codes], [data-gift-sales], [data-gift-entries], [data-gift-more-groups]")).toBeNull();
-    // The menu: All guides, Deals & codes, Free printables, then the finder and the tools.
-    expect(container.querySelector("[data-gift-side-deals]")?.getAttribute("href")).toBe(`/gift-guides/${DEALS_SLUG}`);
-    expect(container.querySelector("[data-gift-side-printables]")?.getAttribute("href")).toBe(PRINTABLES);
-    expect([...container.querySelectorAll("[data-gift-side-tools] a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides#gift-finder", ...TOOLS]);
     // No link anywhere on the landing to a retired guide.
     const hrefs = [...container.querySelectorAll<HTMLAnchorElement>("a[href^='/gift-guides/']")].map((a) => a.getAttribute("href")!.slice("/gift-guides/".length).split("#")[0]);
     expect(hrefs.length).toBeGreaterThan(2);
     const pages = ["my-list", DEALS_SLUG, ...[...TOOLS, PRINTABLES].map((t) => t.slice("/gift-guides/".length))];
     for (const h of hrefs) expect([...LIVE, SPONSORS, ...pages], h).toContain(h);
     cleanup();
-    // A guide's page has no divider.
-    expect(renderAt("/gift-guides/her").container.querySelector("hr[data-gift-divider]")).toBeNull();
+    // A guide's page has no divider and no deals box (owner 11-21: "Codes and deals shouldn't randomly show in sections").
+    const her = renderAt("/gift-guides/her").container;
+    expect(her.querySelector("hr[data-gift-divider]")).toBeNull();
+    expect(her.querySelector("[data-gift-deals-codes]")).toBeNull();
+    cleanup();
+    const sponsors = renderAt(`/gift-guides/${SPONSORS}`).container;
+    expect(sponsors.querySelector("[data-gift-side-sponsors]")?.getAttribute("aria-current")).toBe("page");
+    expect(sponsors.querySelector("[data-gift-deals-codes]")).toBeNull();
   });
 
   it("the gift finder asks only about people with a live guide, and offers only budgets their picks can fill", async () => {
@@ -190,8 +215,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const who = [...container.querySelectorAll('[data-gift-finder-step="who"] [data-gift-finder-choice]')].map((b) => b.getAttribute("data-gift-finder-choice"));
     expect(who).toEqual(["who:her", "who:him", "who:mom", "who:dad", "who:kids"]);
     const budgets = [...container.querySelectorAll('[data-gift-finder-step="budget"] [data-gift-finder-choice]')].map((b) => b.getAttribute("data-gift-finder-choice"));
-    // Him: the owner's Amazon list (no prices) plus the priced commission switches and her ShopMy saves for Him
-    // (feat/guide-him-kids-shopmy-1121), so every budget step (measured 2026-11-21).
+    // Owner 11-21 ~12:05 PM ("each item also needs a price"; "Show Amazon prices anyway"): Him's Amazon picks carry
+    // their captured prices now, so every budget his picks can fill is offered (was only "$100" and "Any budget").
     expect(budgets).toEqual(["budget:25", "budget:50", "budget:100", "budget:0"]);
     cleanup();
     const herBudgets = [...renderAt("/gift-guides?who=her#gift-finder").container.querySelectorAll('[data-gift-finder-step="budget"] [data-gift-finder-choice]')].length;

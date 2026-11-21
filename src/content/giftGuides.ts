@@ -218,18 +218,17 @@ export const codesByStore = (codes: DiscountCode[]) => {
 };
 
 export const giftGuides = {
-  /** The page header's short title; the band carries the full one. */
-  pageTitle: "Gift guides",
-  bandLead: "top-rated finds",
+  /** The header title on every gift guides page, by the back arrow (owner 11-21: "add holiday to gift guides where it is by the back arrow"). */
+  headerTitle: "Holiday gift guides",
   title: "Holiday Gift Guides",
-  /** The landing's one short subline under its title (owner 11-20 PM); the shipping words follow it when in season. */
-  landingSub: "Top-rated finds for everyone on your list",
   /**
    * The landing's ONE set of ways in (owner 11-20 PM: "a tidy grid of nicely spaced cards, each with a good photo and
    * title"): a card per main group, its photo the named guide's own cover, its short line below the title; then the
    * smaller groups as a plain line of links. Every guide is one tap from its group's page.
    */
   browseTitle: "Browse the guides",
+  /** The quiet line under a landing tile (lead 11-21): "36 gifts". */
+  tileCount: (n: number) => `${n} ${n === 1 ? "gift" : "gifts"}`,
   moreTitle: "More guides",
   entries: [
     { row: "by-person", title: "By person", sub: "Mom, Dad, Her & Him", cover: "her" },
@@ -244,12 +243,23 @@ export const giftGuides = {
   amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",
   allGuidesLabel: "All guides",
   sidebarLabel: "Gift guides",
-  // The tidier sidebar (owner 11-20 12:30 PM): the heading over the guide groups, under the tools.
-  sideGuidesHead: "Guides",
+  /**
+   * The left menu's links to the deals page's three day sections (owner 11-21). The ids are the section anchors of the
+   * one deals page (src/content/giftGuideDeals.mjs DEAL_EVENTS on feat/guide-deals-bfcm-1121).
+   */
+  sideDeals: [
+    { id: "black-friday", label: "Black Friday deals" },
+    { id: "small-business-saturday", label: "Small Business Saturday" },
+    { id: "cyber-monday", label: "Cyber Monday" },
+  ],
+  /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
+  sideSponsorsLabel: "25 Days sponsors",
   seeAllLabel: "See all",
   shopLabel: "Shop",
   /** Every item's visible Shop pill (holistic review 11-18 H4): "Shop at Amazon", or plain "Shop" with no store name. */
   shopAt: (store: string) => (store ? `Shop at ${store}` : "Shop"),
+  /** The item card's Shop link, for screen readers (owner 11-21: the card shows only "Shop"). */
+  shopSr: (name: string, store: string) => `${name}${store ? ` at ${store}` : ""}, opens in a new tab`,
   /** The kids age rows (holistic review 11-18 H1): the landing's For kids section and the Niece, Nephew and Cousins pages. */
   agesTitle: "Kids by age",
   byAgeLabel: "By age",
@@ -274,7 +284,7 @@ export const giftGuides = {
   /** The pick badges (owner 2026-11-18). Never a price. */
   badges: { trending: "Trending", tiktok: "Trending on TikTok", preorder: "Pre-order", "louisiana-made": "Louisiana-made", sponsor: "25 Days sponsor", "ships-fast": "Ships fast", "local-pickup": "Local pickup", "shop-louisiana": "Shop Louisiana" },
   alsoSponsoring: (names: string) => `Also sponsoring: ${names}`,
-  /** A non-Amazon pick's checked price beside Shop (owner 11-18), rounded to the dollar: "~$24". Never on Amazon. */
+  /** A pick's checked price beside Shop (owner 11-18), rounded to the dollar: "~$24". Amazon too since owner 11-21. */
   priceApprox: (dollars: number) => `~$${dollars}`,
   /** One note per page under a list that shows prices: the oldest check date, "Nov 18". */
   pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
@@ -332,8 +342,6 @@ export const giftGuides = {
   moreShare: "More ways to share",
   /** One collapsed section for every discount (owner 11-18 PM: "Codes should be a section with the other discount stuff"). */
   dealsAndCodesLabel: "Deals & codes",
-  /** The landing's deals card line (owner 11-21): the card opens the deals page, where every code and sale is. */
-  dealsLine: "Store sales and discount codes, all in one place.",
   dealsCount: (deals: number, codes: number) => [deals ? `${deals} deal${deals === 1 ? "" : "s"}` : "", codes ? `${codes} code${codes === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · "),
   allCodesLabel: (n: number) => `See all codes (${n})`,
   /** A store page's compact deals list (live audit r3 #1): its first few rows, then this opens the rest. */
@@ -352,11 +360,11 @@ export const giftGuides = {
   sectionNavLabel: "Jump to a section",
   /** A brand's discount code on its cards (1120: 21 Collective). */
   codeChip: (code: string) => `Code ${code}`,
-  /** The budget filter inside every guide (owner-approved 11-19 9:05 PM). Amazon shows no prices, so its items leave a budget view. */
+  /** The budget filter inside every guide (owner-approved 11-19 9:05 PM). A pick with no checked price leaves a budget view. */
   budgetLabel: "Budget",
   budgetAll: "Any price",
   budgetUnder: (n: number) => `Under $${n}`,
-  budgetNote: "Amazon items aren't sorted by price here (Amazon doesn't let us list its prices).",
+  budgetNote: "Items without a checked price aren't shown in a budget view.",
   budgetNone: "Nothing in this budget yet. Try a higher one.",
   /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
   sortLabel: "Sort by price",

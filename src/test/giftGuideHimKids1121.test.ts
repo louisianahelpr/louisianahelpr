@@ -9,7 +9,7 @@
  * need gifts on their covers"), shown the same way.
  * @mutate scripts/giftGuideHimKids1121.mjs | pageList[slug] = picks; | void picks;
  * @mutate scripts/giftGuideHimKids1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank }; |     const p = { ...rest, image: r.image, ownerPick: true, from: slug, priceRank };
- * @mutate scripts/giftGuideHimKids1121.mjs |     if (!isAmazon(r)) Object.assign(p, { price, priceAt: HIM_KIDS_PRICE_AT }); |     void price;
+ * @mutate scripts/giftGuideHimKids1121.mjs |     const shown = isAmazon(r) ? r.sortPrice : price; |     const shown = isAmazon(r) ? r.sortPrice : undefined;
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -60,16 +60,22 @@ describe.each([
     expect(new Set(page.map((p) => p.href)).size).toBe(page.length);
   });
 
-  it("every pick is an Amazon link with her tag, Amazon's own photo and no price, except the switches and her ShopMy saves", () => {
+  // Owner 2026-11-21 ~12:05 PM: "each item also needs a price"; she chose "Show Amazon prices anyway" after the pop-up
+  // warning that Amazon allows prices only from its PA-API feed (Associates risk). An Amazon pick now shows EXACTLY the
+  // price captured from her saved list (its row's sortPrice), dated 11-21; this guard used to assert no Amazon price.
+  it("every pick is an Amazon link with her tag, Amazon's own photo and its captured price, except the switches and her ShopMy saves", () => {
     const switched = notAmazon(slug);
     expect(page.filter((p) => switched[p.href]).length).toBe(Object.keys(switched).length);
+    const captured = new Map(rows.map((r) => [r.href, r.sortPrice]));
     for (const p of page) {
       expect(p.sortPrice).toBeUndefined();
       if (switched[p.href]) continue;
       expect(p.href).toMatch(/^https:\/\/www\.amazon\.com\/dp\/[A-Z0-9]{10}\?tag=louisianahelpr-20$/);
       expect(p.image).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
       expect(p.store).toBe("store-amazon");
-      expect(p.price).toBeUndefined();
+      expect(p.price, p.name).toBe(captured.get(p.href));
+      expect(p.price, p.name).toBeGreaterThan(0);
+      expect(p.priceAt, p.name).toBe("2026-11-21");
     }
   });
 

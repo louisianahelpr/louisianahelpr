@@ -91,12 +91,12 @@ const sectionBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
 };
 /**
  * What a pick costs, as a band ($25, $50, $100; 500 = over $100): its own band, else its checked price, else the
- * budget section it sits in ("Under $25"). Amazon picks carry no band or price (Amazon allows no price outside its
- * own site), so a budget section is the only way one joins a budget; the band is only used to sort, never shown.
+ * budget section it sits in ("Under $25"). An Amazon pick's captured price counts too (owner 2026-11-21: "each item
+ * also needs a price"); the band is only used to sort, never shown.
  */
 const pickBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
   if (p.band !== undefined) return p.band;
-  if (p.price !== undefined && p.store !== "amazon") return p.price <= 25 ? 25 : p.price <= 50 ? 50 : p.price <= 100 ? 100 : 500;
+  if (p.price !== undefined) return p.price <= 25 ? 25 : p.price <= 50 ? 50 : p.price <= 100 ? 100 : 500;
   return sectionBand(p);
 };
 
@@ -157,7 +157,7 @@ const ANY_TYPE = new Set(["other", ""]);
  *   2. this person's picks within the budget, any vibe;
  *   3. the budget guides' picks within the budget that suit this person (men's/women's, kids), vibe first;
  *   4. for "Louisiana", the Louisiana guides' picks that suit this person within the budget.
- * A pick with no known price fits only "Any budget" (Amazon shows none). Each tier keeps the guide's own order
+ * A pick with no known price fits only "Any budget". Each tier keeps the guide's own order
  * (commission, high to low).
  */
 export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: FinderVibe, borrow: CatalogPick[] = [], who?: FinderWho, local: CatalogPick[] = []): FinderResult => {
@@ -197,8 +197,8 @@ export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: Find
 
 /**
  * The budgets worth offering one person (owner 11-21, finder back on the landing): "Any budget", and each other budget
- * only when at least one of their picks (or a budget guide's that suits them) is known to fit it. Him and Kids are the
- * owner's Amazon lists, which carry no price, so they get "Any budget" alone rather than a dead "Under $25".
+ * only when at least one of their picks (or a budget guide's that suits them) is known to fit it, so no budget is dead.
+ * Him and Kids' Amazon picks carry their captured prices since owner 2026-11-21, so they get real budgets too.
  */
 export const finderBudgets = (pool: CatalogPick[], who: FinderWho, borrow: CatalogPick[] = []) =>
   FINDER_BUDGETS.filter((b) => {

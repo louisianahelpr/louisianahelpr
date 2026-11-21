@@ -93,9 +93,6 @@ export default function GiftGuides() {
       {ship.endsWith(shipTail) && <span className="hidden sm:inline">{shipTail}</span>}
     </p>
   ) : undefined;
-  // The landing itself (owner 11-20 PM, "still a busy mess"): ONE title. No header row ("Gift guides" over "Holiday Gift
-  // Guides"); the shipping words ride the title's short subline instead of a pill.
-  const shipNote = ship ? <span className="gg-sub-ship" data-gift-ship="">{ship}</span> : null;
   // The old My list address (?list=mine) opens My Wish List's own page.
   const oldMyList = !slug && !shared && !myListPage && params.get("list") === "mine";
   const myList = myListPage;
@@ -128,11 +125,23 @@ export default function GiftGuides() {
     </footer>
   );
 
+  // The search, My list heart and Share for this page (one set, on the row under the header).
+  const tools = smallBiz ? <GiftGuideTools path={`/gift-guides/${SMALL_BIZ_SLUG}`} title={dealsName} />
+    : deals ? <GiftGuideTools path={`/gift-guides/${DEALS_SLUG}`} title={dealsName} image={DEALS_COVER} />
+    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />
+    : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
+  // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
+  const banner = Boolean(deals || guide);
+
   return (
-    // Holistic review 11-18 L6: the landing's back arrow went home; the landing has none now (the bar's logo is the way
-    // home), and My list or a group's page goes back to the landing.
-    <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide || deals || myList || shared || group ? "/gift-guides" : "/"} hideBack={!guide && !deals && !myList && !shared && !group} bottomPaddingClassName="pb-12 md:pb-16"
-      titleActions={landing ? undefined : shipPill} hideHeader={landing}>
+    // Owner 2026-11-21 ~12:30 PM ("holiday gift guides needs the same set up as the other pages. title on left with back
+    // arrow on the left of the title"; then "add holiday to gift guides where it is by the back arrow. remove the
+    // repeated title below. then move the 3 icons to the right of order by dec 15 etc"): EVERY gift guides page, the
+    // landing too, opens with the shared header row (back arrow + "Holiday gift guides", left), and under it ONE row:
+    // the shipping pill on the left, search + My list heart + Share on the right (wrapping on a phone). The centered
+    // "top-rated finds / Holiday Gift Guides" title block is gone. The landing's arrow goes home; every other page's to
+    // the landing.
+    <PublicHeaderPage title={G.headerTitle} titleTag={banner ? "p" : "h1"} wrapTitle={!banner} backTo={guide || deals || myList || shared || group ? "/gift-guides" : "/"} bottomPaddingClassName="pb-12 md:pb-16">
       <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS}</style>
       {/* The first heart's one-time "Saved to your wish list" note (owner 2026-11-20 hints), on every gift guides page. */}
       <FirstHeartHint />
@@ -145,21 +154,19 @@ export default function GiftGuides() {
         {/* Owner redesign 11-18 PM: under the title ONE slim row (search, My list, Share); Text and Copy link sit in
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
+        <div className={shipPill ? "gg-headrow" : "gg-headrow gg-headrow-noship"} data-gift-headrow="">
+          {shipPill}
+          {tools}
+        </div>
         {deals ? (
           smallBiz ? (
-            <GiftGuidesWords lead={SMALL_BIZ_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="green"
-              tools={<GiftGuideTools path={`/gift-guides/${SMALL_BIZ_SLUG}`} title={dealsName} />} />
+            <GiftGuidesWords lead={SMALL_BIZ_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="green" tools={null} />
           ) : (
-            <GiftGuidesWords lead={DEALS_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="red"
-              tools={<GiftGuideTools path={`/gift-guides/${DEALS_SLUG}`} title={dealsName} image={DEALS_COVER} />} />
+            <GiftGuidesWords lead={DEALS_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="red" tools={null} />
           )
         ) : guide ? (
-          <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint}
-            tools={<GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
-        ) : (
-          <GiftGuidesWords lead={landing ? "" : G.bandLead} title={G.title} titleId="gift-guides-title" tools={<GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />}
-            sub={landing ? <p className="gg-sub" data-gift-sub="">{G.landingSub}{shipNote}</p> : undefined} />
-        )}
+          <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint} tools={null} />
+        ) : null}
         {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}

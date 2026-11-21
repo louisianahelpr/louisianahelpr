@@ -422,8 +422,6 @@ export const PRINTABLES_WORDS = {
   title: "Free holiday printables",
   lead: "Gift tags with names and more, made by Louisiana Helpr. Type the names, see them on the design, and print at home. Free, no sign-up, nothing saved.",
   tile: { title: "Free printables", body: "Gift tags with names and more, free to print." },
-  /** The gift guides landing's card (owner 11-21): the ready printables by name, so it never promises one still hidden. */
-  landingLine: (titles: string[]) => `${titles.join(", ")}. Free to print at home.`,
   guideLink: (title: string) => `Free printable: ${title}`,
   make: "Make yours",
   making: "Making",

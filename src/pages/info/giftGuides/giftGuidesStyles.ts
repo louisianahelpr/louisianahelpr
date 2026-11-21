@@ -20,9 +20,9 @@ color:var(--gg-ink)}
 .gg-search-none{padding:8px 10px;color:var(--gg-muted)}
 .gg-tile-li{position:relative;display:flex;flex-direction:column}
 .gg-heart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border:0;background:transparent;border-radius:999px;cursor:pointer}
-.gg-heart-tile{align-self:flex-end;margin-top:-2px;opacity:0;transition:opacity .15s}
-.gg-tile-li:hover .gg-heart-tile,.gg-heart-tile:focus-visible,.gg-heart-tile[aria-pressed="true"]{opacity:1}
-@media (hover:none){.gg-heart-tile{opacity:1}}
+/* Owner 11-21 ("remove the circle around the heart"): no circle, fill or shadow behind any card heart (.gg-heart-pick,
+   -wish, -deal, -sb), only the heart with a thin white halo so it reads over a photo; the button keeps its 44px tap area. */
+.gg-heart svg{filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 0 2px rgba(255,255,255,.8))}
 .gg-list>li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;column-gap:4px}
 .gg-list>li>.gg-item{min-width:0}
 .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px;margin:-4px 0 8px 100px;padding:0 6px 0 0;border:0;border-radius:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
@@ -36,6 +36,7 @@ color:var(--gg-ink)}
 .gg-side summary::after{content:"+";margin-left:auto;font-size:15px;line-height:1}
 .gg-side details[open] summary::after{content:"\\2212"}
 .gg-side ul{list-style:none;margin:0 0 8px;padding:0}
+.gg-side .gg-side-more{padding-top:8px;border-top:1px solid var(--gg-line)}
 .gg-side details a{padding-left:28px}
 .gg-side ul ul a{padding-left:44px;font-size:12.5px}
 .gg-side ul ul{margin:0}
@@ -62,6 +63,12 @@ color:var(--gg-ink)}
 .gg-ship{margin:0;font-size:12px;font-weight:600;line-height:1.3;color:#3f5a1c;background:#eef2e6;border-radius:999px;padding:5px 12px;white-space:nowrap}@media (max-width:479px){.gg-ship{white-space:normal;max-width:52vw;font-size:11px;text-align:center;padding:4px 10px;border-radius:14px}}
 .gg-tools{display:flex;align-items:center;justify-content:center;gap:4px;max-width:440px;margin:8px auto 0}
 .gg-tools-search{position:relative;flex:1;min-width:0}
+/* Owner 11-21: the row under the header, the shipping pill left and search + heart + Share right; a phone wraps it. */
+.gg-headrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:0 0 12px}
+.gg-headrow-noship{justify-content:flex-end}
+.gg-headrow .gg-tools{margin:0;flex:1 1 280px;max-width:420px;justify-content:flex-end}
+.gg-headrow .gg-ship{flex:none}
+@media (max-width:479px){.gg-headrow .gg-ship{max-width:none}.gg-headrow .gg-tools{max-width:none}}
 .gg-search-results{position:absolute;z-index:6;top:calc(100% + 6px);left:0;right:0;list-style:none;margin:0;padding:4px;max-height:60vh;overflow-y:auto;text-align:left;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:14px}
 .gg-search-results a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
 .gg-search-results a{gap:10px;padding:4px 12px}
@@ -132,7 +139,6 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list img.gg-thumb{background:transparent}
 .gg-list .gg-letter{font-size:12px}
 .gg-nm-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:16px;font-weight:500;line-height:1.3}
-.gg-nm .gg-nm-line{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.35;margin-top:2px}
 .gg-nm .gg-nm-meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.04em}
 .gg-nm-meta .gg-price{font-size:15px;letter-spacing:0}
 .gg-list>li{align-items:flex-start}
@@ -143,9 +149,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
 .gg-list .gg-letter{font-size:16px}
-.gg-nm .gg-nm-line{-webkit-line-clamp:2}
-.gg-list .gg-heart-pick{position:absolute;top:6px;right:6px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.gg-list .gg-heart-pick{position:absolute;top:6px;right:6px}
 .gg-list .gg-shop-btn{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto}
+.gg-list .gg-nm-name{min-height:2.6em}
 .gg-list .gg-item{margin-bottom:10px}
 }
 @media (min-width:768px) and (max-width:1023px){
@@ -154,8 +160,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-item{flex-direction:column;align-items:stretch;padding:0;gap:10px}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
-.gg-list .gg-heart-pick{position:absolute;top:6px;right:6px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.gg-list .gg-heart-pick{position:absolute;top:6px;right:6px}
 .gg-list .gg-shop-btn{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto}
+.gg-list .gg-nm-name{min-height:2.6em}
 .gg-list .gg-item{margin-bottom:10px}
 }
 .gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}
@@ -182,16 +189,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-finder-open-words small{font-family:Montserrat,sans-serif;font-size:13px;font-weight:500;color:var(--gg-muted)}
 .gg-finder-arrow{flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;background:var(--gg-soft);color:var(--gg-olive);font-family:Montserrat,sans-serif;font-size:17px;font-weight:600}
 .gg-finder-open:hover .gg-finder-arrow{background:hsl(var(--bark) / .22)}
-.gg-words-landing{border-bottom:0;padding:22px 0 4px;margin-bottom:0}
-.gg-words-landing h1{font-size:32px;margin:0}
-.gg-sub{margin:6px auto 0;max-width:36rem;font-size:14px;line-height:1.45;color:var(--gg-muted)}
-.gg-sub-ship{display:block;font-weight:600;color:var(--gg-olive)}
-.gg-words-landing .gg-tools{margin-top:16px;max-width:520px}
-.gg-words-landing .gg-icon,.gg-words-landing .gg-mylist-icon{color:var(--gg-muted)}
-.gg-words-landing .gg-search input{border-color:var(--gg-line)}
-@media (min-width:768px){.gg-words-landing{padding-top:28px}.gg-words-landing h1{font-size:40px}.gg-sub{font-size:15px}}
-.gg-browse{margin:30px 0 4px}
-.gg-browse-title{margin:0 0 14px;font-size:17px;font-weight:700;color:var(--gg-ink)}
+.gg-browse{margin:20px 0 4px}
 .gg-entries{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px;list-style:none;margin:0;padding:0}
 @media (min-width:640px){.gg-entries{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 18px}}
 @media (min-width:1180px){.gg-entries{grid-template-columns:repeat(6,minmax(0,1fr))}}
@@ -231,19 +229,12 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg .gg-landing>*+*{margin-top:28px}
 .gg-wrap-three{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 12px}
 @media (min-width:768px){.gg-wrap-three{gap:20px 20px}}
-.gg-fun-tools,.gg-extras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;list-style:none;margin:0;padding:0}
-.gg-extras{grid-template-columns:repeat(2,minmax(0,1fr))}
-@media (max-width:767px){.gg-fun-tools,.gg-extras{grid-template-columns:minmax(0,1fr)}}
-.gg-fun-tools>li,.gg-extras>li{min-width:0}
+/* Lead 11-21 landing polish: the tiles' quiet line under each cover. */
+.gg-tile-line{display:block;margin-top:8px;font-size:13px;line-height:1.3;text-align:center;color:var(--gg-muted)}
 .gg-fun-tool{display:flex;flex-direction:column;justify-content:center;height:100%;min-height:76px;border:1px solid var(--gg-line);border-radius:14px;padding:12px 16px;text-decoration:none;color:var(--gg-ink);background:hsl(var(--card))}
 .gg-fun-tool:hover,.gg-fun-tool:focus-visible{border-color:var(--gg-olive)}
 .gg-fun-tool b{display:block;font-size:14px;color:var(--gg-olive)}
 .gg-fun-tool span{display:block;font-size:13px;line-height:1.4;color:var(--gg-muted);margin-top:2px}
-.gg-extra{flex-direction:row;align-items:center;justify-content:flex-start;gap:14px}
-.gg-fun-tool .gg-extra-thumbs{display:flex;flex:none;margin:0}
-.gg-extra-thumbs img{width:40px;height:40px;object-fit:cover;border-radius:6px;box-shadow:0 0 0 2px hsl(var(--card))}
-.gg-extra-thumbs img+img{margin-left:-12px}
-.gg-fun-tool .gg-extra-words{display:flex;flex-direction:column;min-width:0;margin:0;color:var(--gg-ink)}
 .gg-more{display:flex;flex-wrap:wrap;gap:0 20px;margin-top:12px}
 
 .gg-disc{border-top:1px solid var(--gg-line);margin-top:26px;padding-top:14px;font-size:12px;color:var(--gg-muted);text-align:center}
@@ -252,7 +243,10 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (max-width:767px){
 
 .gg-layout{grid-template-columns:minmax(0,1fr)}
-.gg-side{display:none}
+/* Owner 11-21: on a phone the menu sits AFTER the page (not hidden), so the 25 Days sponsors and the Holiday Hub,
+   which left the main column, stay one tap away. */
+.gg-side{order:2;position:static;max-height:none;overflow:visible;border-right:0;border-top:1px solid var(--gg-line);padding:12px 0 8px}
+.gg-side a{min-height:44px}
 .gg-main{padding:4px 0 24px;order:1}
 .gg-item{gap:10px;padding:8px 0;font-size:14px}
 .gg-banner-wrap{padding:0 0 4px}.gg-banner{height:96px;padding-top:8px;border-radius:12px}.gg-arch{width:min(260px,70%);padding:14px 10px 6px;box-shadow:0 0 0 5px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:13px}.gg-banner h1{font-size:20px;-webkit-line-clamp:1}.gg-arch-foot{display:none}.gg-tools{margin-top:6px}

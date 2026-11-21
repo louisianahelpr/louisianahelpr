@@ -13,8 +13,8 @@
  * scripts/gift-guide-picks.mjs runs applyHimKids1121 LAST, next to applyHer1121, so no earlier pass can drop or reorder
  * these. Page rules are the same as For Her (scripts/giftGuideHer1121.mjs): ONE flat list, cheapest first, no sections,
  * no relationship chips, no codes or deals box (OWNER_LIST_GUIDES in src/content/giftGuidePeople.mjs). An Amazon pick
- * carries no price (Associates rule) and keeps Amazon's own photo, never edited; `sortPrice` is the price she saw, used
- * only to order the list. COMMISSION SWITCHES 11-21 (owner: "if the items on the guides can we fund at another place
+ * shows the price she saw on her saved list (`sortPrice`, captured 11-21; owner 11-21 ~12:05 PM chose "Show Amazon prices
+ * anyway") and keeps Amazon's own photo, never edited. COMMISSION SWITCHES 11-21 (owner: "if the items on the guides can we fund at another place
  * for higher commison just change the link"; same item, same price, better-paying store): those few picks are ShopMy
  * links instead, and like For Her's ShopMy picks they show their price checked 11-21 and a transparent cutout of the
  * new store's own photo (scripts/giftGuideCutouts1120.mjs), never Amazon's. Him picks keep their relationship tags
@@ -179,7 +179,10 @@ const build = (rows, slug, g) =>
   rankByPrice(rows).map(({ row: r, priceRank }) => {
     const { sortPrice: _sp, price, ...rest } = r;
     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank };
-    if (!isAmazon(r)) Object.assign(p, { price, priceAt: HIM_KIDS_PRICE_AT });
+    // AMAZON PRICES ON (owner 2026-11-21 ~12:05 PM: "each item also needs a price"; she chose "Show Amazon prices
+    // anyway" after the Associates warning): an Amazon pick shows the price captured from her saved list (sortPrice).
+    const shown = isAmazon(r) ? r.sortPrice : price;
+    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: HIM_KIDS_PRICE_AT });
     return { ...p, rels: g ? relsOf(g, p) : [] };
   });
 

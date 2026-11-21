@@ -1,17 +1,21 @@
 /**
- * Gift-guide prices (owner 11-18): "~$24" beside Shop only on a NON-Amazon pick whose price fill_prices.py checked in
- * the last 3 days, and one "Prices as of <day>, may change" note per list. No Amazon pick ever carries or shows a price
- * (Associates rule), checked at the import (scripts/giftGuidePrice.mjs), in the generated chunks and on the page.
+ * Gift-guide prices (owner 11-18): "~$24" beside Shop on a pick whose price was checked in the last 3 days, and one
+ * "Prices as of <day>, may change" note per list. The researched import (scripts/giftGuidePrice.mjs) still keeps no
+ * Amazon price. AMAZON PRICES ON THE OWNER'S LISTS (owner 2026-11-21 ~12:05 PM, "each item also needs a price"; warned
+ * in a pop-up that Amazon allows prices only from its PA-API feed and that showing them risks the Associates account,
+ * she chose "Show Amazon prices anyway"): every Her, Him and Kids pick, Amazon ones included, carries the price captured
+ * from her saved lists, and the page shows it like any other. An Amazon price anywhere else is still refused.
  *
  * @mutate scripts/giftGuidePrice.mjs |   if (store === "store-amazon" \|\| hosts.some(isAmazonHost)) return undefined; |   if (store === "store-amazon") return undefined;
  * @mutate scripts/giftGuidePrice.mjs |   if ([p.store, p.retailer, p.brand].some((x) => typeof x === "string" && /^amazon\b/i.test(x.trim()))) return undefined; |   if (false) return undefined;
  * @mutate scripts/giftGuidePrice.mjs |   if (now - at > PRICE_MAX_AGE_DAYS * DAY_MS \|\| at - now > DAY_MS / 24) return undefined; |   if (at - now > DAY_MS / 24) return undefined;
  * @mutate scripts/giftGuidePrice.mjs | p.price_currency !== "USD" \|\| !p.price_source | !p.price_source
- * @mutate src/components/giftGuides/PickPrice.tsx | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt) \|\| isAmazonPick(pick)) return false; | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt)) return false;
+ * @mutate src/components/giftGuides/PickPrice.tsx | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt)) return false; | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt) \|\| pick.store === "amazon") return false;
  * @mutate src/components/giftGuides/PickPrice.tsx |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         <PickPrice pick={pick} /> |         {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <small className="gg-nm-meta"><PickPrice pick={pick} /></small> | <small className="gg-nm-meta">{null}</small>
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={picks.slice(0, upTo)} /> |       {null}
- * @mutate src/content/giftGuideCatalog.ts | ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}), | ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}),
+ * @mutate src/content/giftGuideCatalog.ts | ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}), | ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}),
+ * @mutate scripts/giftGuideHimKids1121.mjs |     const shown = isAmazon(r) ? r.sortPrice : price; |     const shown = isAmazon(r) ? undefined : price;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -66,19 +70,34 @@ describe("gift-guide prices: the import keeps only checked, fresh, non-Amazon pr
   });
 });
 
+/** The owner's own lists, where every pick (Amazon too) carries her captured price (owner 2026-11-21). */
+const OWNER_LISTS = ["her", "him", "kids"];
+
 describe("gift-guide prices: the generated chunks", () => {
-  it("no Amazon pick in any chunk (or the Top 10) carries a price; every price has a check day", () => {
+  it("an Amazon price only on an owner-saved pick of Her, Him or Kids (or the Top 10's copy of one); every price has a check day", () => {
     const all = Object.entries(CHUNKS).flatMap(([slug, picks]) => picks.map((p) => ({ slug, p })));
     expect(Object.keys(CHUNKS).length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
     expect(all.length).toBeGreaterThan(760);
+    let amazonPriced = 0;
     for (const { slug, p } of [...all, ...TOP_PICKS.map((p) => ({ slug: "top", p }))]) {
       if (p.price === undefined) continue;
-      expect(AMAZON_HOST.test(new URL(p.href).hostname), `${slug}: ${p.name}`).toBe(false);
-      expect(p.store, `${slug}: ${p.name}`).not.toBe("store-amazon");
+      const amazon = AMAZON_HOST.test(new URL(p.href).hostname) || p.store === "store-amazon";
+      if (amazon) {
+        amazonPriced++;
+        expect(OWNER_LISTS.includes(slug) || (slug === "top" && p.ownerPick === true), `${slug}: ${p.name}`).toBe(true);
+        expect(p.ownerPick, `${slug}: ${p.name}`).toBe(true);
+      }
       expect(slug, p.name).not.toBe("store-amazon");
       expect(p.price, p.name).toBeGreaterThan(0);
       expect(p.priceAt ?? "", p.name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
+    // Two-way: every Her, Him and Kids pick is priced (owner 11-21: "each item also needs a price"); 0 unpriced,
+    // and 97 Amazon picks carry a price (20 Her + 37 Him + 40 Kids, measured 2026-11-21).
+    for (const slug of OWNER_LISTS) {
+      expect(CHUNKS[slug].length, slug).toBeGreaterThan(30);
+      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && p.priceAt === "2026-11-21")).map((p) => p.name), slug).toEqual([]);
+    }
+    expect(amazonPriced).toBeGreaterThan(90);
     // Amazon keeps its 15 best (owner's 10-15 per store page; lead 11-19, 1530 train).
     expect((CHUNKS["store-amazon"] ?? []).length).toBeGreaterThanOrEqual(10);
     expect((CHUNKS["store-amazon"] ?? []).length).toBeLessThanOrEqual(15);
@@ -91,12 +110,14 @@ const amazon: CatalogPick = { name: "Stanley cup", href: "https://www.amazon.com
 const row = (pick: CatalogPick) => render(<MemoryRouter><ol><PickRow pick={pick} /></ol></MemoryRouter>).container;
 
 describe("gift-guide prices: the page", () => {
-  it("a non-Amazon pick shows ~$24 beside Shop; an Amazon pick never shows a price, even one the data carries", () => {
+  it("a pick shows ~$24 beside Shop, an Amazon one too (owner 11-21: \"Show Amazon prices anyway\"); no price, none shown", () => {
     expect(row(walmart).querySelector("[data-gift-price]")?.textContent).toBe("~$24");
     cleanup();
-    expect(row(amazon).querySelector("[data-gift-price]")).toBeNull();
-    expect(showsPrice({ ...amazon, store: "store-walmart" })).toBe(false);
-    expect(showsPrice({ ...walmart, store: "amazon" })).toBe(false);
+    expect(row(amazon).querySelector("[data-gift-price]")?.textContent).toBe("~$30");
+    cleanup();
+    expect(showsPrice({ ...walmart, store: "amazon" })).toBe(true);
+    const { price: _p, ...unpriced } = amazon;
+    expect(row(unpriced).querySelector("[data-gift-price]")).toBeNull();
   });
   it("a price older than 3 days on the day the page opens is hidden; one note per list, with the oldest day", () => {
     expect(showsPrice({ ...walmart, priceAt: ago(4) })).toBe(false);
@@ -106,7 +127,7 @@ describe("gift-guide prices: the page", () => {
     expect(container.querySelectorAll("[data-gift-prices-as-of]").length).toBe(1);
     expect(container.textContent).toBe(`Prices as of ${day(ago(1))}, may change`);
     cleanup();
-    expect(render(<PricesAsOf picks={[amazon]} />).container.textContent).toBe("");
+    expect(render(<PricesAsOf picks={[{ ...amazon, priceAt: ago(5) }]} />).container.textContent).toBe("");
   });
 });
 
@@ -127,6 +148,26 @@ describe("gift-guide prices: a real guide page", () => {
     );
     await screen.findAllByText(/^~\$\d+$/);
     expect(container.querySelectorAll("[data-gift-price]").length).toBeGreaterThan(0); // one guide per product (owner 11-19)
+    expect(container.querySelectorAll("[data-gift-prices-as-of]").length).toBe(1);
+    vi.useRealTimers();
+  });
+
+  it("For Him (owner 11-21, all Amazon but two): every row shows its price, in the order low to high", async () => {
+    await loadAllGuidePicks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
+    const { container } = render(
+      <MemoryRouter initialEntries={["/gift-guides/him"]}>
+        <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>
+      </MemoryRouter>,
+    );
+    await screen.findAllByText(/^~\$\d+$/);
+    const rows = [...container.querySelectorAll("li[data-gift-pick]")];
+    expect(rows.length).toBe(CHUNKS.him.length);
+    const shown = rows.map((li) => li.querySelector("[data-gift-price]")?.textContent ?? "none");
+    expect(shown.filter((t) => t === "none")).toEqual([]);
+    const dollars = shown.map((t) => Number(t.replace("~$", "")));
+    expect(dollars).toEqual([...dollars].sort((a, b) => a - b));
     expect(container.querySelectorAll("[data-gift-prices-as-of]").length).toBe(1);
     vi.useRealTimers();
   });

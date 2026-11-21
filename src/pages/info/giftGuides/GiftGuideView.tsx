@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
@@ -16,7 +16,6 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { sortByPrice, type PriceOrder } from "@/content/giftGuidePriceSort";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
-import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { AgeChips } from "./GiftGuideAges";
 import { PeopleChips } from "./GiftGuidePeopleChips";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
@@ -88,12 +87,13 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
     <li data-gift-pick="">
       <GiftOut href={pick.href} className="gg-item">
         <PickThumb pick={pick} />
-        {/* Design spec 11-18 H1: the name gets the full width (2 lines at most), the why-line one line, then the store
-            and the price together; no number column. */}
+        {/* Owner 2026-11-21 ("how can we polish the listings so they aren't so busy looking? maybe remove the subtitle
+            that describes the item. just show the price and not 'on whatever site'"): the name (2 lines at most), then
+            the price alone. No why-line and no "On <store>"; the store is still said to screen readers (sr-only). */}
         <span className="gg-nm">
           <span className="gg-nm-name">{pick.name}</span>
-          {pick.line && <small className="gg-nm-line">{pick.line}</small>}
-          <small className="gg-nm-meta"><span>{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}</span><PickPrice pick={pick} /></small>
+          <span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>
+          <small className="gg-nm-meta"><PickPrice pick={pick} /></small>
           {(badges || code || ship) && (
             <span className="gg-badges">
               {badges?.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
@@ -105,13 +105,14 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
       <Heart saved={saved} label={WISH.saveLabel(pick.name)} onToggle={() => heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) }))} className="gg-heart-pick" />
-      {/* Holistic review 11-18 H4 (High): every item says "tap to buy", apart from the heart: "Shop at Amazon ›". Owner
-          11-20 ("take the circle of shop at, it's too busy looking"): a plain olive text link, no border or pill; its
-          padding keeps the 44px tap area (.gg-shop-btn in giftGuidesStyles.ts). */}
+      {/* Holistic review 11-18 H4 (High): every item says "tap to buy", apart from the heart. Owner 11-20 ("take the
+          circle of shop at, it's too busy looking"): a plain olive text link, no border or pill; its padding keeps the
+          44px tap area (.gg-shop-btn in giftGuidesStyles.ts). Owner 11-21 ("for shop just put 'shop' not 'shop at store
+          name'"): it reads "Shop ›"; a screen reader hears "Shop <name> at <store>, opens in a new tab". */}
       <GiftOut href={pick.href} className="gg-shop-btn">
-        <span data-gift-shop="">{G.shopAt(isShopMyCollection(pick.href) ? "" : storeLabel(pick))}</span>
+        <span data-gift-shop="">{G.shopAt("")}</span>
         <span aria-hidden="true">&nbsp;›</span>
-        <span className="sr-only">: {pick.name} ({G.newTab})</span>
+        <span className="sr-only"> {G.shopSr(pick.name, isShopMyCollection(pick.href) ? "ShopMy" : storeLabel(pick))}</span>
       </GiftOut>
     </li>
   );
@@ -146,7 +147,7 @@ const sectionNav = (picks: CatalogPick[]) => {
 
 /** The budget filter's choices (owner-approved 11-19 9:05 PM): picks whose band is at most this. */
 export const BUDGETS = [25, 50, 100] as const;
-/** The picks a budget keeps: a known band at most the budget (Amazon picks carry none, Associates rule). */
+/** The picks a budget keeps: a known band at most the budget (the owner-list guides carry none: they sort by price instead). */
 export const withinBudget = (picks: CatalogPick[], budget: number | null) => (budget ? picks.filter((p) => p.band !== undefined && p.band <= budget) : picks);
 /** The filter shows on a guide holding at least this many priced picks. */
 const BUDGET_MIN_PICKS = 3;
@@ -161,11 +162,6 @@ export const PICKS_PAGE = 50;
  */
 /** "Show more" with this many or fewer left draws them all instead. */
 const SHOW_ALL_UNDER = 6;
-/**
- * Deals & codes sit BELOW the whole pick list (owner 11-20: "codes and deals shouldn't randomly show in sections"; it
- * was after pick 10, in the middle of a section). One place per guide, never between picks.
- */
-const DEALS_BELOW_LIST = true;
 
 /** The person guides (giftGuideIndex "By person"): a merged section of one reads "For your father-in-law". */
 const PERSON_SECTIONS = new Set(GUIDE_INDEX.filter((g) => g.group === "By person").map((g) => g.slug));
@@ -180,7 +176,7 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
   return title;
 };
 
-function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNode }) {
+function GiftGuideList({ guide }: { guide: CatalogGuide }) {
   const [shown, setShown] = useState(PICKS_PAGE);
   const [budget, setBudget] = useState<number | null>(null);
   // Her, Him, Kids and their relationship views (owner 11-21): low to high is the list as imported.
@@ -267,7 +263,6 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
           {G.showMorePicks(left)}
         </Button>
       )}
-      {after && budget === null && DEALS_BELOW_LIST ? after : null}
       {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && (
         // Owner 2026-11-18: a guide with no picks yet opens a friendly note, never an empty list or a dead link.
         <div className="gg-soon" data-gift-coming-soon="">
@@ -387,9 +382,9 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
           </ul>
         </section>
       ))}
-      {/* Owner redesign 11-18 PM: the codes and sales are one collapsed section in the list (after pick 10, or after
-          a shorter list), never a button; a new one per guide, so it is closed again on the next guide. */}
-      <GiftGuideList key={guide.slug} guide={guide} after={isOwnerList(guide.slug) ? null : <DealsAndCodes key={guide.slug} guide={guide} />} />
+      {/* Owner 11-21 ("Codes and deals shouldn't randomly show in sections"): no "Deals & codes" box on any guide page;
+          the codes and sales live only on the deals page, which the left menu opens. */}
+      <GiftGuideList key={guide.slug} guide={guide} />
       {picksReady(guide.slug) && <StoreDeals key={`deals ${guide.slug}`} guide={guide} />}
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>

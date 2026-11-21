@@ -1,8 +1,8 @@
 /**
  * The price sort of the owner-list guides (Her, Him, Kids and their relationship views like /gift-guides/mom; owner
  * 2026-11-21: "the guides should be able to be sorted by price"). Each pick carries `priceRank`, its place in the
- * cheapest-first order written by the import (scripts/giftGuidePriceRank1121.mjs). It is a position, never a price, so
- * sorting shows no Amazon price (Associates rule). "low" is the list as imported; "high" reverses the ranked picks. A
+ * cheapest-first order written by the import (scripts/giftGuidePriceRank1121.mjs), from the same price each row shows
+ * (Amazon ones too since owner 11-21). "low" (the default) is the list as imported; "high" reverses the ranked picks. A
  * pick with no rank (unknown price) stays after every ranked pick in BOTH orders, in its own order.
  * Guard: src/test/giftGuidePriceSort1121.test.tsx.
  */

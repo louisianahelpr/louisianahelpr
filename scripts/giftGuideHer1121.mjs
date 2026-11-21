@@ -12,9 +12,9 @@
  * sold-out Stanley cooler (she is looking for it on Amazon). The HEYDUDE Austin Lift is banned from men's guides only.
  *
  * Page rules (owner): ONE flat list, cheapest first (no sections, no relationship chips, no codes or deals box; see
- * OWNER_LIST_GUIDES in src/content/giftGuidePeople.mjs). An Amazon pick never carries a price (Associates rule), and
- * its photo is Amazon's own, never edited; `sortPrice` is the price she saw, used only to order the list and never
- * written to the page. A ShopMy pick shows its price checked 11-21 (the page rounds it, "~$30") and its photo as a
+ * OWNER_LIST_GUIDES in src/content/giftGuidePeople.mjs). An Amazon pick shows the price she saw on her own saved list
+ * (`sortPrice`, captured 11-21; owner 11-21 ~12:05 PM chose "Show Amazon prices anyway" after the Associates warning),
+ * and its photo is Amazon's own, never edited. A ShopMy pick shows its price checked 11-21 (the page rounds it, "~$30") and its photo as a
  * transparent cutout (scripts/giftGuideCutouts1120.mjs). Each pick keeps its relationship tags (`rels`), so /mom,
  * /wife ... still build from this list.
  * Guard: src/test/giftGuideHer1121.test.ts.
@@ -40,8 +40,8 @@ export const HER_STORES = {
 };
 
 /**
- * Her saves, cheapest first (sortPrice). One row per pick, so a link swap is a one-line change. `price` only on a ShopMy
- * pick; never on an Amazon one.
+ * Her saves, cheapest first (sortPrice). One row per pick, so a link swap is a one-line change. `price` on a ShopMy pick;
+ * an Amazon pick shows its captured `sortPrice` (owner 11-21: "each item also needs a price").
  */
 export const HER_1121 = [
   { name: "YUDSUD High Waisted Leggings", brand: "YUDSUD", line: "Soft high-waisted leggings she will live in all winter.", href: amz("B0D3L9BYFZ"), image: amzImg("31wNp8LsF5L"), store: "store-amazon", sortPrice: 6.64, commission: 4, type: "pants" },
@@ -92,13 +92,18 @@ export const HER_1121 = [
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
-/** The page rows: cheapest first, Amazon without a price, cutout photos, relationship tags, no section. */
+/** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
 export function her1121Picks(rows = HER_1121) {
   const g = PEOPLE_GUIDES.find((x) => x.slug === HER_GUIDE);
   return rankByPrice(rows).map(({ row: r, priceRank }) => {
     const { sortPrice: _sp, price, ...rest } = r;
     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE, priceRank };
-    if (!isAmazon(r)) Object.assign(p, { price, priceAt: HER_PRICE_AT });
+    // AMAZON PRICES ON (owner 2026-11-21 ~12:05 PM: "each item also needs a price"; warned in a pop-up that Amazon only
+    // allows prices from its PA-API feed and that showing them risks the Associates account, she chose "Show Amazon
+    // prices anyway"). An Amazon pick shows the price captured from her own saved list that morning (sortPrice, the
+    // Desktop notes); a ShopMy pick its checked price. A row with no captured price shows none.
+    const shown = isAmazon(r) ? r.sortPrice : price;
+    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: HER_PRICE_AT });
     return { ...p, rels: relsOf(g, p) };
   });
 }

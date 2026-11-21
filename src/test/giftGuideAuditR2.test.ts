@@ -17,7 +17,7 @@
  * @mutate scripts/giftGuideRules.mjs | export const brokenImage = (u) => /liquid(%20\|\s\|\+)error/i.test(u) \|\| /[<>{}]/.test(u) \|\| | export const brokenImage = (u) => /[<>{}]/.test(u) \|\|
  * @mutate src/content/giftGuideCatalog.ts |  ${SEARCH_KEYWORDS[g.slug] ?? ""} ${sectionWords(g.slug)}`); | `);
  * @mutate src/content/giftGuideCatalog.ts | .sort(([a, i], [b, j]) => rank(a) - rank(b) \|\| i - j) | .sort(([, i], [, j]) => i - j)
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? | {false ? G.collectionOnShopMy : storeLabel(pick) ?
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? | {false ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ?
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -135,7 +135,8 @@ describe("design audit r2: lines, variants, photos, brands", () => {
     // Holistic review 11-18 H3: a collection link is no product, so no row keeps one (giftGuideHolistic1118.test.ts);
     // the label stays for any collection link a static pick still carries.
     expect(all.filter(({ p }) => p.href.startsWith("https://shopmy.us/collections/")).length).toBe(0);
-    expect(VIEW).toContain('{isShopMyCollection(pick.href) ? G.collectionOnShopMy : storeLabel(pick) ? G.onStore(storeLabel(pick)) : ""}');
+    // Owner 11-21 ("just show the price and not 'on whatever site'"): the store line is for screen readers only now.
+    expect(VIEW).toContain('<span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>');
   });
 });
 

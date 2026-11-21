@@ -103,11 +103,6 @@ export const subscribeGiftList = (l: () => void) => {
 /** The list as it is now (outside React: the sync and the share read it). */
 export const giftListNow = (): GiftList => read();
 
-export const toggleGuide = (slug: string) => {
-  const cur = read();
-  write({ ...cur, guides: cur.guides.includes(slug) ? cur.guides.filter((s) => s !== slug) : [...cur.guides, slug] });
-};
-
 /** True when the gift with this id is on the list. */
 export const isSaved = (list: GiftList, id: string) => list.picks.some((p) => pickId(p) === id);
 

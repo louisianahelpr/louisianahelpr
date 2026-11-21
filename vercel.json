@@ -602,6 +602,10 @@
     },
     {
       "source": "/gift-guides/secret-santa/:code/:token",
+      "destination": "/api/share?_og=santa&_code=:code&_tok=:token"
+    },
+    {
+      "source": "/gift-guides/secret-santa/:code/:token",
       "destination": "/index.html"
     },
     {

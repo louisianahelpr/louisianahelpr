@@ -1111,6 +1111,26 @@ function metaForWishList(code: string): Meta {
   };
 }
 
+/**
+ * A Secret Santa reveal link (/gift-guides/secret-santa/<code>/<token>, holiday audit C7, 11-20): it previewed as the
+ * marketplace homepage in iMessage, WhatsApp and Messenger, with an index,follow head and a homepage canonical. Its own
+ * card now: never a name (the server is not asked; the giver and match are only shown after the page opens), noindex,
+ * canonical to the link itself when the code and token have the right shape (else the drawer page).
+ */
+const SANTA_REVEAL_ID = /^([a-f0-9]{10})\/([a-f0-9]{64})$/;
+function metaForSantaReveal(id: string): Meta {
+  const m = SANTA_REVEAL_ID.exec(id);
+  return {
+    title: "Your Secret Santa match — Louisiana Helpr",
+    ogTitle: "Your Secret Santa match is ready 🎁",
+    description: "Tap to see who you're buying for. It's just for you, so don't forward it.",
+    url: m ? `${SITE_ORIGIN}/gift-guides/secret-santa/${m[1]}/${m[2]}` : `${SITE_ORIGIN}/gift-guides/draw-names`,
+    robots: "noindex, nofollow",
+    noindexHeader: true,
+    image: { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: "Louisiana Helpr holiday gift guides" },
+  };
+}
+
 /** My Wish List's page (owner 2026-11-20): an SPA page under /gift-guides/, noindex, never the unknown-guide 404 (UX audit H2). */
 const MY_LIST_SLUG = "my-list";
 
@@ -1339,7 +1359,7 @@ const NOINDEX_CARDS: Record<string, { path: string; alt: string }> = {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book" | "matchmaker" | "profile" | "wishlist"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book" | "matchmaker" | "profile" | "wishlist" | "santa"; id: string } | null {
   const declared = url.searchParams.get("_og");
   if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop" || declared === "declutter" || declared === "book" || declared === "profile") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
@@ -1347,6 +1367,7 @@ function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "n
   if (declared === "signup") return { kind: "signup", id: "" };
   if (declared === "matchmaker") return { kind: "matchmaker", id: "" };
   if (declared === "wishlist") return { kind: "wishlist", id: url.searchParams.get("_id") ?? "" };
+  if (declared === "santa") return { kind: "santa", id: `${url.searchParams.get("_code") ?? ""}/${url.searchParams.get("_tok") ?? ""}` };
 
   const pathname = url.pathname.replace(/\/+$/, "") || "/";
   const jobMatch = pathname.match(/^\/jobs\/([^/]+)$/);
@@ -1393,6 +1414,10 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
 
   if (route.kind === "wishlist") {
     return metaForWishList(route.id);
+  }
+
+  if (route.kind === "santa") {
+    return metaForSantaReveal(route.id);
   }
 
   if (route.kind === "book") {

@@ -3,6 +3,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
 import { GIFT_WISH_CSS } from "../giftWishStyles";
+import { giftGuides as G } from "@/content/giftGuides";
 
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables";
 
@@ -21,7 +22,16 @@ export function FunBody({ title, path, noindex, children }: { title: string; pat
   return (
     <>
       <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
-      <div className="gg gg-fun w-full" data-gift-fun={path}>{children}</div>
+      <div className="gg gg-fun w-full" data-gift-fun={path}>
+        {children}
+        {/* Holiday audit 1121 (High): Swipe's Shop links and the planner's ideas are affiliate links (Amazon's among
+            them), so every fun page ends with the same two plain muted lines as the guides: the FTC disclosure
+            (16 CFR Part 255) and the statement the Amazon Associates agreement requires. */}
+        <footer className="gg-disc" data-gift-fun-disclosure="">
+          <p data-gift-disclosure="">{G.disclosure}</p>
+          <p data-gift-amazon-statement="">{G.amazonStatement}</p>
+        </footer>
+      </div>
     </>
   );
 }

@@ -121,7 +121,8 @@ export function GiftFinder() {
             <p className="gg-price-note" data-gift-finder-few=""><Link to={`/gift-guides/${ownGuide.slug}`} className="gg-link">{W.finderFew(ownGuide.title)} ›</Link></p>
           )}
           <span className="gg-chips">
-            <Button type="button" variant="outline" size="sm" className="gg-chip" onClick={copy} data-gift-finder-share="">{copied ? W.finderCopied : W.finderShare}</Button>
+            {/* Holiday audit 1121: no "Copy link to these picks" for zero picks. */}
+            {shown > 0 && <Button type="button" variant="outline" size="sm" className="gg-chip" onClick={copy} data-gift-finder-share="">{copied ? W.finderCopied : W.finderShare}</Button>}
             <Button asChild variant="link" size="inline" className="gg-link"><Link to={`/gift-guides#${FINDER_ID}`} data-gift-finder-again="">{W.finderAgain}</Link></Button>
           </span>
         </div>

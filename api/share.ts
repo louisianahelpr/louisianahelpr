@@ -1307,10 +1307,10 @@ function withRootBody(html: string, body: string): string {
  * folders), so no image folder is bundled into this function. The slug is the rewrite's single path segment, re-checked here.
  * Guard: src/test/giftGuideSharePreview.test.ts.
  */
-const GIFT_GUIDES_LANDING_OG = "/gift-guides/og/landing.jpg?v=1";
+const GIFT_GUIDES_LANDING_OG = "/gift-guides/og/landing.jpg?v=2";
 function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
-  // The landing's own card (holistic review 11-18 M7: it shared the generic logo card): a 1200x630 collage of eight
-  // covers, public/gift-guides/og/landing.jpg (<=150 KB). ?v= is the cache bust: bump it when the art changes.
+  // The landing's own card (holistic review 11-18 M7: it shared the generic logo card): a 1200x630 card of the three live
+  // covers (holiday audit 1121; scripts/gift-guide-landing-og.py), public/gift-guides/og/landing.jpg (<=150 KB). ?v= is the cache bust: bump it when the art changes.
   if (id === "gift-guides") return { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: name };
   const slug = /^gift-guides\/([a-z0-9-]+)$/.exec(id)?.[1];
   if (!slug) return undefined;

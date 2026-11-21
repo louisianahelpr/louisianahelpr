@@ -41,6 +41,44 @@ function onLanding(pathname: string): boolean {
   return pathname === "/";
 }
 
+/** How long an in-app #link keeps looking for its section while the page's lazy content mounts. */
+const HASH_WAIT_MS = 2000;
+/** The fixed top bar's clearance when the section sets no scroll-margin-top (the deals sections' own scroll-mt-24). */
+const HASH_CLEARANCE = "96px";
+
+/**
+ * Scroll an in-app "#section" link to its section (holiday audit 1121): polls each frame for the element (it may not
+ * be drawn yet), then scrolls it to the top under the fixed bar. Returns a cancel for the next navigation.
+ */
+function scrollToHash(hash: string, waitMs = HASH_WAIT_MS): () => void {
+  let id = hash.replace(/^#/, "");
+  try {
+    id = decodeURIComponent(id);
+  } catch {
+    // A malformed %-escape: look the raw text up instead.
+  }
+  if (!id) return () => {};
+  const until = Date.now() + waitMs;
+  let frame = 0;
+  // Where the page scrollers sat after our last scroll: a reader who has scrolled since is never pulled back.
+  const offsets = () => `${window.scrollY}|${[...document.querySelectorAll<HTMLElement>(".app-shell-scroll")].map((s) => s.scrollTop).join(",")}`;
+  let ours: string | null = null;
+  const tryScroll = () => {
+    const el = document.getElementById(id);
+    if (el && (ours === null || ours === offsets())) {
+      if (getComputedStyle(el).scrollMarginTop === "0px") el.style.scrollMarginTop = HASH_CLEARANCE;
+      // Re-aligned each frame while content above it is still drawing (photos, lazy lists push it down).
+      el.scrollIntoView({ block: "start", behavior: "instant" });
+      ours = offsets();
+    } else if (el) {
+      return; // the reader scrolled: stop
+    }
+    if (Date.now() < until) frame = requestAnimationFrame(tryScroll);
+  };
+  frame = requestAnimationFrame(tryScroll);
+  return () => cancelAnimationFrame(frame);
+}
+
 // Per-history-entry scroll offsets, keyed by react-router's `location.key`.
 // Module-level so it survives the AppShell remounting between routes (but
 // resets on a full reload, which matches browser-native scroll restoration).
@@ -97,7 +135,16 @@ const ScrollToTop = () => {
 
   useLayoutEffect(() => {
     currentKeyRef.current = key;
-    if (hash) return; // Let the browser handle anchor scrolling
+    if (hash) {
+      // Holiday audit 1121 (High): an in-app link to "/page#section" never scrolled. Browsers scroll to a #hash only
+      // on a real page load, never on a pushState navigation, and the section is often drawn late (lazy data), so the
+      // page stayed at the top on desktop and at the OLD page's offset on a phone. Scroll to it here, retrying while
+      // the content mounts; a second tap on the same link mints a new key and scrolls again.
+      const samePath = prevPathnameRef.current === pathname;
+      prevPathnameRef.current = pathname;
+      if (!samePath) resetLargeTitles();
+      return scrollToHash(hash);
+    }
 
     const samePathname = prevPathnameRef.current === pathname;
     prevPathnameRef.current = pathname;

@@ -175,8 +175,9 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     expect(who).toEqual(["who:her", "who:him", "who:mom", "who:dad", "who:kids"]);
     const budgets = [...container.querySelectorAll('[data-gift-finder-step="budget"] [data-gift-finder-choice]')].map((b) => b.getAttribute("data-gift-finder-choice"));
     // Him is the owner's Amazon list (no prices) plus the two commission switches to priced ShopMy picks ($99.95 and
-    // $189.99, feat/guide-commission-1121), so "$100 and up" and "Any budget" (measured 2026-11-21).
-    expect(budgets).toEqual(["budget:100", "budget:0"]);
+    // $189.99, feat/guide-commission-1121) and her 8 priced ShopMy saves ($7.49 to $195), so every budget fills
+    // (measured 2026-11-21).
+    expect(budgets).toEqual(["budget:25", "budget:50", "budget:100", "budget:0"]);
     cleanup();
     const herBudgets = [...renderAt("/gift-guides?who=her#gift-finder").container.querySelectorAll('[data-gift-finder-step="budget"] [data-gift-finder-choice]')].length;
     expect(herBudgets).toBeGreaterThan(1);

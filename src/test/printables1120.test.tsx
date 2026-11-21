@@ -228,6 +228,11 @@ describe("the maker and the page", () => {
     render(<MemoryRouter><Printables /></MemoryRouter>);
     const cards = [...document.querySelectorAll("[data-printable-card]")].map((c) => c.getAttribute("data-printable-card"));
     expect(cards).toEqual(["gift-tags", "coloring-book", "thanksgiving-banner"]);
+    // Owner 2026-11-21: tags, coloring books and banners each sit under their own heading, in that order.
+    const heads = [...document.querySelectorAll("h2.pr-section")].map((h) => h.textContent);
+    expect(heads).toEqual(["Gift tags", "Coloring books", "Banners"]);
+    expect(document.querySelector("#pr-coloring")!.closest("section")!.querySelector('[data-printable-card="coloring-book"]')).not.toBeNull();
+    expect(document.querySelector("#pr-banners")!.closest("section")!.querySelector('[data-printable-card="thanksgiving-banner"]')).not.toBeNull();
     act(() => cleanup());
     expect(printablesForGuide("gift-wrap-and-cards").map((p) => p.id)).toEqual(["gift-tags"]);
     expect(printablesForGuide("educators")).toEqual([]);

@@ -218,7 +218,7 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
   it("every guide and hire URL in it is one the function serves 200 and indexable; /25days is in it", async () => {
     // The two own pages (the deals guide, Small Business Saturday) answer 200 with their own body: checked by fetching.
     // The fun pages (owner 2026-11-20) are info pages under /gift-guides: 200 with their own body, no guide.
-    const own = ["/gift-guides/black-friday-cyber-monday", "/gift-guides/small-business-saturday", "/gift-guides/swipe", "/gift-guides/planner", "/gift-guides/draw-names"];
+    const own = ["/gift-guides/black-friday-cyber-monday", "/gift-guides/small-business-saturday", "/gift-guides/swipe", "/gift-guides/planner", "/gift-guides/draw-names", "/gift-guides/printables"];
     const guides = locs.filter((p) => p.startsWith("/gift-guides/") && !own.includes(p));
     expect(guides.length).toBeGreaterThan(40); // follow-up 1120: 28 guides + 26 store pages = 54, measured 2026-11-20
     for (const p of guides) expect(data.guides[p.slice("/gift-guides/".length)]?.indexed, p).toBe(true);

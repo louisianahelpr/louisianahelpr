@@ -367,6 +367,11 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # (auth.getUser) and refuses everything while the sponsor_25days switch is off.
   [functions.sponsor-25days]
     verify_jwt = false
+  # Small Business Saturday free "Featured local" listing requests and their logos (owner 2026-11-20). Signed-out
+  # businesses submit and the page's <img> sends no token, so verify_jwt MUST be false. The handler rate-limits per
+  # address and per device, saves only PENDING rows (an admin approves), and verifies any token itself (auth.getUser).
+  [functions.sbs-featured]
+    verify_jwt = false
   # CSP violation reports (vercel.json report-uri / report-to). Browsers post
   # them with no apikey and no Authorization header, so verify_jwt MUST be
   # false. The handler size-limits, drops extension noise, rate-limits per IP

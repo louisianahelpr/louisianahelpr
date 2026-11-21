@@ -108,10 +108,12 @@ const CLASSIFIED: Record<string, string> = {
   // Gift guides (owner 2026-11-18) and the admin stage-preview list (design audit area 10).
   "components/admin/AdminStagePreviews.tsx::p.href": "STAGE_PREVIEWS: a fixed list of in-app /admin/preview/... paths in the same file",
   "pages/info/giftGuides/fun/SwipeGifts.tsx::card.href": "GiftOut's prop (a swipe card is a guide pick, our content file); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/fun/SecretSantaReveal.tsx::i.href": "GiftOut's prop (a gift idea saved on this device for a Secret Santa match, from a swipe card = a guide pick); santaIdeasOnDevice keeps only https:// links on every read, and GiftOut forces the https:// scheme",
   "pages/info/giftGuides/fun/GiftCountdown.tsx::gift.href": "GiftOut's prop (the Gift of the Day is one of the Top 10 picks, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/fun/GiftPlanner.tsx::i.href": "a planner idea's link, copied from a wish-list gift; cleanPlan (src/content/giftGuideFun1120.ts) keeps an idea's href only when it starts with https://, on every read from storage or the account",
   "pages/info/giftGuides/GiftGuideView.tsx::pick.href": "GiftOut's prop (a guide's picks, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideLanding.tsx::pick.href": "GiftOut's prop (the Top 10 strip's picks, our content file); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/printables/NameMaker.tsx::item.design.image": "an SVG <image href>, not a navigation: the design's picture, a fixed site-relative /printables/... path from our content file (src/content/printables.ts; printables1120.test.tsx checks every one exists)",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.facebook": "shareLinks(): a fixed https://www.facebook.com/sharer/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.pinterest": "shareLinks(): a fixed https://www.pinterest.com/pin/create/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::smsHref(links.url, title, typeof navigator === \"undefined\" ? \"\" : navigator.userAgent)": "smsHref(): a fixed sms: scheme + encodeURIComponent(the guide's own URL and title) (\"Text this guide\", owner 2026-11-18)",
@@ -127,6 +129,7 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.website": "Out's prop (a sponsor's website from our generated content file); Out forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.facebook": "Out's prop (a sponsor's Facebook Page from our generated content file); Out forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.instagram": "Out's prop (a sponsor's Instagram from our generated content file); Out forces the https:// scheme",
+  "pages/info/giftGuides/SmallBizLocal.tsx::href": "safeDocumentUrl(b.link) (src/lib/storagePath.ts): an approved Featured local listing's link, https:// only (also the sbs_featured_submissions CHECK link ~ '^https://' and the shared validator cleanLink); the anchor renders only when it is non-null; rel noopener nofollow ugc",
   "pages/info/giftGuides/GiftGuidesSidebar.tsx::x.href": "GiftOut's prop (the Sales list, generated from our content files' deal links; https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideLanding.tsx::sponsorPage.links.facebookPage": "a fixed https://www.facebook.com/... constant in src/content/sponsorPage.ts (the 25 Days card's follow link)",
   // 25 Days sponsor page (owner 2026-11-09).
@@ -181,7 +184,6 @@ const CLASSIFIED: Record<string, string> = {
   // --- openExternalUrl callers: edge-function-returned Stripe URLs ---
   "components/AwardGateDialog.tsx::data.url": STRIPE_EDGE_URL,
   // Q2352: the one-time setup fee page (pay-onboarding-fee) for a refused first Declutter listing.
-  "lib/declutter/setupFee.ts::data.url": STRIPE_EDGE_URL,
   // Owner 2026-10-25: "Finish payout setup" (the hired prompt and the job card) opens stripe-connect's onboard link.
   "hooks/useStartPayoutSetup.ts::data.url": STRIPE_EDGE_URL,
   "components/declutter/DeliveryRaisePanel.tsx::res.url": STRIPE_EDGE_URL, // Q1929: declutter-checkout raise_pay's Stripe page

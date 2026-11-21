@@ -49,14 +49,13 @@ const photos = new Map(["p1", "p2"].map((k) => [k, new File([k], `${k}.jpg`, { t
 const run = (items: BunchItem[], d: ListDeps, choices: BunchChoices, ways: ("porch" | "meetup")[] = ["porch", "meetup"]) =>
   listBunch("seller", items, photos, place, ways, () => {}, d, undefined, choices);
 
-describe("while the setup fee is due", () => {
+describe("which items a listing run takes (owner 2026-11-20: no setup fee holds a priced one)", () => {
   const ready = (over: Partial<BunchItem>): BunchItem => ({ ...blankItem(["a"]), title: "Rug", price: "20", sizeUnknown: false, ...over });
-  it("only free items go; a priced one and an unready one do not, and with no fee due every ready item goes", () => {
+  it("every ready item goes, free or priced; an unready one does not", () => {
     const free = ready({ key: "free", free: true, price: "" });
     const priced = ready({ key: "priced" });
     const unnamed = ready({ key: "unnamed", free: true, title: "" });
-    expect(bunchListable([free, priced, unnamed], true).map((i) => i.key)).toEqual(["free"]);
-    expect(bunchListable([free, priced, unnamed], false).map((i) => i.key)).toEqual(["free", "priced"]);
+    expect(bunchListable([free, priced, unnamed]).map((i) => i.key)).toEqual(["free", "priced"]);
   });
 });
 

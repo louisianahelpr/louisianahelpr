@@ -28607,6 +28607,19 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/gift-guides/printables",
+      "persona": "anon",
+      "base": "http://127.0.0.1:5391",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/gift-guides/printables",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -28661,6 +28674,14 @@
         "anon /gift-guides/draw-names",
         "anon /gift-guides/swipe",
         "anon /gift-guides/planner"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-11-20T17:21:54.933Z",
+      "base": "http://127.0.0.1:5391",
+      "surfaces": [
+        "anon /gift-guides/printables"
       ],
       "replaced": []
     }

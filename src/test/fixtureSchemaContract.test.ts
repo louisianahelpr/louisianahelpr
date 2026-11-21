@@ -379,6 +379,8 @@ describe("every fixture literal could be inserted", () => {
     // The same migration's sponsor_days.day made `day` shared, so Stripe Identity's date of birth (`dob: { year, month,
     // day }`) is left with `year` alone and read as a facilitator_threshold_alerts row; it is not.
     { file: "src/test/edge/stripe-idv-webhook.test.ts", keys: ["year", "month", "day"] },
+    // Gift guide picks with a budget section heading (`{ store, sectionId, section: "Under $25" }`), not saved_searches rows.
+    { file: "src/test/secretSantaIdeas1120.test.tsx", keys: ["store", "section"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

@@ -4,7 +4,7 @@
  * @mutate src/lib/declutter/pickupWords.ts |   if (ways.includes("porch")) return "porch"; |   if (ways.length) return "porch";
  * @mutate src/lib/declutter/pickupWords.ts | way === "none" ? "decl.total.none" : "decl.total.pickup"); | "decl.total.pickup");
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | {t("offer.atMost", { phrase: totalPhrase(way) })} | At most, with pickup.
- * @mutate src/components/declutter/OfferSentWhatNext.tsx | pendingClassName="font-normal" /> {forPhrase(way)}</> | pendingClassName="font-normal" /> for pickup</>
+ * @mutate src/components/declutter/OfferSentWhatNext.tsx | className={MONEY} /> {forPhrase(way)}</> | className={MONEY} /> for pickup</>
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

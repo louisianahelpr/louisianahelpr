@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     items: lists.map((l) => ({ key: l.value, label: tr(l.labelKey), |     items: lists.map((l) => ({ key: l.value, label: l.label,
  * @mutate src/components/declutter/declutterUi.tsx |   const label = CONDITION_LABEL[stars] ? t(`decl.cond.${stars}` as MsgKey) : null; |   const label = CONDITION_LABEL[stars];
  * @mutate src/components/declutter/DeclutterItemView.tsx | className="text-base font-semibold">{t("decl.item.about")}</h2> | className="text-base font-semibold">About this item</h2>
- * @mutate src/components/declutter/DeclutterItemView.tsx | <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ? t(`decl.cat.${it.category}` as MsgKey) : t("decl.cat.other")}</Detail> | <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ?? "Other"}</Detail>
+ * @mutate src/components/declutter/DeclutterItemView.tsx | const categoryName = CATEGORY_LABEL[it.category] ? t(`decl.cat.${it.category}` as MsgKey) : t("decl.cat.other"); | const categoryName = CATEGORY_LABEL[it.category] ?? "Other";
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx |       title: t("decl.sheet.distance"), |       title: "Distance",
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx |               {SORT_LABEL[s] ? t(`decl.sort.${s}` as MsgKey) : s} |               {SORT_LABEL[s]}
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <span data-offer-label="">{t("decl.buy.makeOffer")}</span> | <span data-offer-label="">Make offer</span>
@@ -116,7 +116,7 @@ describe("F260q: Declutter Browse in Spanish", () => {
     render(<ConditionChip stars={5} />);
     expect(screen.getByText("Como nuevo")).toBeTruthy();
     const view = blankComments(readFileSync("src/components/declutter/DeclutterItemView.tsx", "utf8"));
-    const keys = ["decl.item.about", "decl.item.category", "decl.item.size", "decl.item.freePorch", "decl.item.save", "decl.item.share", "decl.item.bought", "decl.item.messageSeller", "decl.card.trades"];
+    const keys = ["decl.item.about", "decl.item.category", "decl.item.size", "ip.porchPickup", "ip.buyerProtection", "ip.breadcrumb", "decl.item.save", "decl.item.share", "decl.item.bought", "decl.item.messageSeller", "decl.card.trades"];
     for (const k of keys) expect(view, k).toContain(`t("${k}")`);
     expect(view).toContain("t(`decl.cat.${it.category}` as MsgKey)");
     expect(view).not.toMatch(/>About this item<|>Free porch pickup|"Save this item"|"Share this item"/);

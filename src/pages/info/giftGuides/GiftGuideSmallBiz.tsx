@@ -5,6 +5,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { SHOP_SMALL_GUIDE, SMALL_BIZ_SLUG, SMALL_BIZ_WORDS as W, smallBizDay, smallBizFeatured, smallBizSections, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { loadModule } from "@/lib/loadModule";
 import { WISH } from "@/content/giftWishList";
+import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 
@@ -42,6 +43,13 @@ const SMALL_BIZ_CSS = `
 
 /** The businesses file, loaded alone (loadModule: a prevented preload gives null and the page keeps its loading line). */
 const loadSmallBiz = () => loadModule(() => import("@/content/giftGuideSmallBiz.json"));
+
+/**
+ * "Featured local" (owner 2026-11-20): approved free listings BELOW the sponsors, then the "Get your business
+ * featured" card. Its own chunk (SmallBizLocal.tsx), loaded after the page opens; its form is a further chunk.
+ */
+type LocalModule = typeof import("./SmallBizLocal");
+const loadLocal = () => loadModule(() => import("./SmallBizLocal"));
 
 /** A business's own page, in a new tab (not an affiliate link: no "sponsored"). */
 function Out({ href, className, children, label }: { href: string; className?: string; children: React.ReactNode; label?: string }) {
@@ -103,10 +111,20 @@ export function GiftGuideSmallBiz() {
     };
   }, []);
   const sections = rows ? smallBizSections(rows) : [];
+  const [Local, setLocal] = useState<LocalModule["SmallBizLocal"] | null>(null);
+  useEffect(() => {
+    let live = true;
+    // A chunk that fails to load leaves the page as it was (sponsors only).
+    void loadLocal().then((m) => live && m && setLocal(() => m.SmallBizLocal), () => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
   return (
     <div data-gift-small-biz-page="">
       <style>{SMALL_BIZ_CSS}</style>
       <p className="gg-sb-intro">{W.intro}</p>
+      <a href="#get-featured" className="gg-link" data-gift-sbs-introlink="">{SBS_WORDS.introLink} ›</a>
       {rows === null ? (
         <p className="gg-sb-town" role="status">{W.loading}</p>
       ) : sections.length === 0 ? (
@@ -122,6 +140,8 @@ export function GiftGuideSmallBiz() {
           );
         })
       )}
+      {/* Sponsors first, always (owner 11-20); the free listings and the sign-up card come after them. */}
+      {rows !== null && Local && <Local sponsors={(rows ?? []).map((b) => ({ name: b.name, links: [b.href, b.website, b.facebook, b.instagram] }))} />}
       <Link to={`/gift-guides/${SHOP_SMALL_GUIDE}`} className="gg-link gg-sb-guide" data-gift-sb-guide="">{W.guideLink} ›</Link>
     </div>
   );

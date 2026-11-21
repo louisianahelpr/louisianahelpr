@@ -96,7 +96,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { checkIdentityHold, checkPayoutHold } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold, declutterKindSkipsIdHold } from "../_shared/payoutHold.ts";
 import { isTransientStripeError, peekConnectReadiness, readConnectReadiness, transferReady, type ConnectReadiness, type ReadinessCache } from "../_shared/connectReadiness.ts";
 import { syncConnectGate } from "../_shared/connectGateSync.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
@@ -674,9 +674,10 @@ serve(async (req) => {
       await skipRow(kind, payoutId, payeeId, amountCents, 60, "held", "an admin payout hold placed during the run");
       return false;
     }
-    // No payout without a verified ID (owner 2026-10-30): a wait, no try used, the payee told.
-    // Except a Shops seller (owner 2026-11-20: no ID check for Shops; 20261120203904).
-    const idHold = kind === "shop" ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId);
+    // No payout without a verified ID (owner 2026-10-30): a wait, no try used, the payee told. Owner 2026-11-20: never
+    // for a Declutter seller (declutterKindSkipsIdHold says which kinds) nor a Shops seller (no ID check for Shops;
+    // 20261120203904); a Declutter manager and a delivery Helpr still wait.
+    const idHold = declutterKindSkipsIdHold(kind) || kind === "shop" ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId);
     if (idHold.kind === "error") {
       await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", `ID check read failed: ${idHold.message}`);
       return false;
@@ -1418,21 +1419,7 @@ serve(async (req) => {
         const charge = giftCents > 0 ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
         if (!(await payeeReadyNow(stripe, mode, "declutter", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
         if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
-        // Owner 2026-10-30: the seller's one-time setup fee comes out here, once the sale is final and the send is
-        // certain (0 while the identity_check switch is off). Never on a row a send may have started: its Stripe key
-        // was sent with the old amount. Fails closed: an unreadable answer sends nothing this run, no try used.
-        if (!maybeSent_declutter(p)) {
-          const { data: toSend, error: feeErr } = await admin.rpc("declutter_payout_take_setup_fee", { p_payout_id: p.payout_id });
-          if (feeErr) {
-            if ((feeErr as { code?: string }).code !== "PGRST202") {
-              defects.record(`payout ${p.payout_id}: setup fee read failed, not sent this run: ${feeErr.message}`.slice(0, 200));
-              await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", `setup fee read failed: ${feeErr.message}`);
-              continue;
-            }
-          } else if (typeof toSend === "number") {
-            p.amount_cents = toSend;
-          }
-        }
+        // Owner 2026-11-20: a Declutter seller's payout never loses the one-time setup fee (it used to come out here).
         // Q2106: the platform-balance guard, on the final amount, before the send is marked.
         if (giftCents > 0) {
           await giftCovers(stripe, { group, paymentIntentId: p.payment_intent_id, refundsRecordedCents: p.refunds_recorded_cents, giftCents, amountCents: p.amount_cents });

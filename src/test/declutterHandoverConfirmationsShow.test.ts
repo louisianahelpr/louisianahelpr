@@ -32,7 +32,7 @@ const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8")
  * cancel-rule "saved" toasts became the settings' inline "Saved. New orders use it." line (ShopSettingSaved).
  * 81 on 10-31 after LEAD-TOAST2, SS-2 and LEAD-TOAST3. Never raise it.
  */
-const SUPPRESSED_CEILING = 79;
+const SUPPRESSED_CEILING = 78; // 78 on 2026-11-20: #4820 (no Declutter ID / $2) removed one suppressed toast
 
 describe("Declutter handover, problem and refund confirmations are shown", () => {
   it("reads the screens (floor: they raise toasts)", () => {

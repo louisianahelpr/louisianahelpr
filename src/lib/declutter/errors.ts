@@ -52,15 +52,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   declutter_strikes_blocked:
     "You have 3 Declutter strikes, so Declutter is paused for you. It opens again when one of them expires.",
   under_18: "You must be 18 or older to buy or sell on Declutter.",
-  // Stripe Identity once, at the first purchase or listing (owner 2026-10-22); the ID sheet opens with it.
-  identity_required_to_buy: "Verify your ID with Stripe first. It takes about 2 minutes, once, then buy again.",
-  identity_required_to_list: "Verify your ID with Stripe first. It takes about 2 minutes, once, then publish again.",
-  // Owner 2026-10-30: a first free claim: the one-time fee first, then the ID check. Their own screens answer these.
-  identity_required_to_claim: "Verify your ID with Stripe first. It takes about 2 minutes, once, then confirm again.",
-  setup_fee_required_to_claim: "Your first free item needs the one-time ID check, because a claim shares a real person's address. Pay its fee once, then verify. The item stays free.",
-  // Q2352 (owner 2026-10-23): the one-time account setup fee, by card at the first listing; the fee page is offered with it.
-  setup_fee_required_to_list:
-    "Your first listing needs the one-time account setup fee. Pay it once, then publish again. If you already paid it for Jobs, you won't pay it again.",
+  // Owner 2026-11-20: Declutter asks no ID check and no setup fee, so it has no words for identity_required_to_* or
+  // setup_fee_required_to_* any more (20261120184430 removed every server refusal).
   payout_setup_incomplete: "Set up your payouts first, so we can pay you when your item sells.",
   photos_required: "Add at least 1 photo of the item (up to 12).",
   attestation_required: "Tick the box under the four statements before you list this item.",

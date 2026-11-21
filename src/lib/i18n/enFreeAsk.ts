@@ -23,7 +23,6 @@ export const enFreeAsk = {
   "fask.noTimes": "{name} has no pickup times open in the next week, so this item can't be asked for right now.",
   "fask.dayAria": "Pickup day",
   "fask.timeAria": "Pickup time on {day}",
-  "fask.noteFirst": "Asking is free. {name} picks who gets it. If it's you, {steps}.",
   "fask.noteLead": "Free, nothing is charged. {name} picks who gets it. If it's you, ",
   "fask.theTimeYouPick": "the time you pick",
   "fask.noteTail": " is already set, and you'll get the address.",

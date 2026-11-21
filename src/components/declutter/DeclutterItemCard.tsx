@@ -3,6 +3,7 @@
  * seller" / "Similar items" rows): one card for every list of items.
  */
 import { useEffect, useRef, useState } from "react";
+import { displayTitle } from "@/lib/declutter/displayTitle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -178,8 +179,8 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
           price (with "$X incl. fee" beside it, the 11-07 rule). "Condition · distance" shows from lg only (owner pick 4,
           11-08, still the desktop card). Porch pickup stays a photo tag at every width. */}
       <span className="block min-w-0 px-0.5 pt-2">
-        {/* Owner 11-20 (site polish A5): the title gets two lines, then an ellipsis. */}
-        <span data-card-title className="line-clamp-2 break-words text-ds-13 font-semibold leading-snug" title={item.title}>{item.title}</span>
+        {/* Owner 11-20 #7: the title shows in smart title case (display only). Site polish A5: two lines, then an ellipsis. */}
+        <span data-card-title className="line-clamp-2 break-words text-ds-13 font-semibold leading-snug" title={displayTitle(item.title)}>{displayTitle(item.title)}</span>
         {(condition || away) && (
           // "Like new · 16 mi" on ONE line. #45 (deep audit 2026-10-28): the distance always shows whole (it never
           // shrinks); the condition gives way first.

@@ -27,6 +27,7 @@ import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
 import { sponsorAdminBackend, type SponsorAdminBackend } from "./sponsorAdminApi";
+import { SbsReviewPanel } from "./SbsReviewPanel";
 import type { SponsorAdminData, SponsorAdminSignup, SponsorStatus } from "@/lib/sponsor/types";
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { cleanDays, slugifyBrand } from "../../../../supabase/functions/_shared/sponsorSignup";
@@ -120,6 +121,8 @@ export default function AdminSponsorsPage() {
       <PageHeader title="25 Days sponsors" backTo="/admin" />
       <div className="flex w-full flex-col gap-4 px-4 pb-10">
         {demo ? <p className="rounded-lg bg-black px-3 py-2 text-center text-xs font-bold tracking-wider text-yellow-300">LOCAL PREVIEW · SAMPLE DATA · NOT LIVE</p> : null}
+        {/* Small Business Saturday free listings to review (owner 2026-11-20); shown whatever the 25 Days switch says. */}
+        {!demo && <SbsReviewPanel />}
         {!allowed && sw.settled ? (
           <Panel title="The 25 Days page is switched off">
             <p className="text-sm text-muted-foreground">

@@ -8,7 +8,7 @@
  */
 // @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql | CASE WHEN o.wanted_id IS NULL AND NOT public.declutter_names_hidden(o.buyer_id, o.seller_id)\n           THEN (SELECT | CASE WHEN NOT public.declutter_names_hidden(o.buyer_id, o.seller_id)\n           THEN (SELECT
 // @mutate supabase/migrations/20261112023602_declutter_reserved_notice_says_who_accepted.sql |     IF (p_offer_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.declutter_offers wo WHERE wo.id = p_offer_id AND wo.wanted_id IS NOT NULL))\n | IF true\n
-// @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |           COALESCE(v_buyer, 'A buyer'), cardinality(v_ids) |           v_buyer, cardinality(v_ids)
+// @mutate supabase/migrations/20261120184430_declutter_no_id_no_setup_fee.sql |           COALESCE(v_buyer, 'A buyer'), cardinality(v_ids) |           v_buyer, cardinality(v_ids)
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -16,14 +16,14 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 
 const defs = effectiveDefs(resolve(__dirname, "../../supabase/migrations"));
 const flat = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "").replace(/\s+/g, " ");
-const FILE = /20261112004748_declutter_seller_notices_name_the_buyer\.sql$/;
 
 describe("F356 follow-up part 2: more seller notices name the buyer", () => {
   it("reads the newest definitions (floor)", () => {
     for (const fn of ["declutter_request_bundle", "declutter_deadline_sweep", "declutter_take_item"]) {
       expect(flat(fn).length).toBeGreaterThan(2000);
     }
-    expect(defs.get("declutter_request_bundle")?.file).toMatch(FILE);
+    // Restated without the ID gate by 20261120184430 (owner 2026-11-20, #4820), the buyer-naming notice verbatim.
+    expect(defs.get("declutter_request_bundle")?.file).toMatch(/20261120184430_declutter_no_id_no_setup_fee\.sql$/);
     expect(defs.get("declutter_take_item")?.file).toMatch(/20261112023602_declutter_reserved_notice_says_who_accepted\.sql$/);
     // Restated with the block/ban rule (20261112010100).
     expect(defs.get("declutter_deadline_sweep")?.file).toMatch(/20261112010100_declutter_names_hidden_across_block_or_ban\.sql$/);

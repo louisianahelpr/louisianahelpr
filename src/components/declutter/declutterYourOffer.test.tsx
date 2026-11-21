@@ -21,7 +21,7 @@
  * @mutate src/components/declutter/DeclutterYourOffer.tsx | onClick={() => setAsking(true)} | onClick={() => takeBack.mutate()}
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   if (myAsk) { |   if (false) {
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | t("free.confirming") : t("free.confirmPick") | t("free.confirming") : t("free.askForIt")
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {freeAskLine(offered, oneTimeCheckAhead)} | {freeAskLine(["porch", "pickup_home"], oneTimeCheckAhead)}
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {freeAskLine(offered)} | {freeAskLine(["porch", "pickup_home"])}
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | .filter((h) => wayAllowed(ways, h)); | ;
  *   DA-5 (Declutter audit 2026-10-30): the free ask line names only the ways the giver ticked, by the same rule
  *   (freeWaysOffered) as the free checkout.
@@ -238,41 +238,26 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
   });
 
-  // 11-07 free-claim trace (owner posting free items in local groups): a first-timer's ask sheet said "Free, nothing is
-  // charged" and "If it's you, <time> is already set, and you'll get the address". For them the pick holds the item and
-  // the one-time ID check comes first (declutter_free_claim_gate), then they choose the time (the asked time is booked
-  // only for a verified member, declutter_pick_free_request). The sheet and How it works now say so.
-  // @mutate src/components/declutter/FreeAskSheet.tsx |           {oneTimeCheckAhead ? ( |           {false ? (
-  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   const ifYou = oneTimeCheckAhead ? `${firstPickSteps()}${how}` : | const ifYou =
-  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | open={asking} onClose={() => setAsking(false)} oneTimeCheckAhead={oneTimeCheckAhead} /> | open={asking} onClose={() => setAsking(false)} />
-  it("a first-timer's ask sheet and How it works never say nothing is charged or that the time is already set", async () => {
+  // Owner 2026-11-20: a free claimer never has an ID check or a setup fee, so a first-timer reads exactly what everyone
+  // reads: nothing is charged, and the asked time is set (it said "a one-time ID check first" from 11-07).
+  // @mutate src/components/declutter/FreeAskSheet.tsx |           {t("fask.noteLead", { name: giverFirstName })} |           {"Asking is free. "}{t("fask.noteLead", { name: giverFirstName })}
+  it("owner 11-20: a first-timer's ask sheet and How it works say nothing is charged and the time is set", async () => {
     state.profile = { onboarding_fee_paid: false };
     state.ticks = ["porch"];
     show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
     fireEvent.click(await screen.findByRole("button", { name: "How it works" }));
     const rules = (await waitFor(() => { const el = document.querySelector("[data-free-rules]"); expect(el).not.toBeNull(); return el!; })).textContent!;
-    expect(rules).toMatch(/if it's you, your first free item has a one-time ID check first \(we show you the cost before you pay\), then you choose your pickup time and get the address to collect it from their porch\./);
-    expect(rules).not.toMatch(/nothing is charged|already set/i);
+    expect(rules).toMatch(/Free, nothing is charged\./);
+    expect(rules).not.toMatch(/ID check|setup fee/i);
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     const ask = screen.getAllByRole("button", { name: "Ask for it" })[0];
     await waitFor(() => expect(ask).not.toBeDisabled());
     fireEvent.click(ask);
     const times = await screen.findByRole("group", { name: /^Pickup time on / });
     fireEvent.click(within(times).getAllByRole("button")[0]);
-    const note = document.querySelector("[data-sheet-note]")!;
-    expect(note.textContent).toBe("Asking is free. Lexi picks who gets it. If it's you, your first free item has a one-time ID check first (we show you the cost before you pay), then you choose your pickup time and get the address.");
-    // Asking itself is unchanged: the time still rides the ask.
+    expect(document.querySelector("[data-sheet-note]")!.textContent).toMatch(/^Free, nothing is charged\. Lexi picks who gets it\. If it's you, .+ is already set, and you'll get the address\.$/);
     fireEvent.click(screen.getByRole("button", { name: /^Ask for it · / }));
     await waitFor(() => expect(state.claimed).toBe(1));
-  });
-
-  // identityCheckOffEntryPoints (c2): the ID check is named only while the identity_check switch is on.
-  // @mutate src/lib/i18n/enFree.ts |   "free.stepsNoId": "you choose your pickup time and get the address", |   "free.stepsNoId": "your first free item has a one-time ID check first, then you choose your pickup time and get the address",
-  it("with the ID check switch off, the first-pick steps never name an ID check", async () => {
-    const { firstPickSteps } = await import("@/lib/declutter/freePickSteps");
-    expect(firstPickSteps(false)).toBe("you choose your pickup time and get the address");
-    expect(firstPickSteps(false)).not.toMatch(/ID check/i);
-    expect(firstPickSteps(true)).toMatch(/one-time ID check/);
   });
 
   it("a member who already paid the one-time fee still reads that the time is set and nothing is charged", async () => {

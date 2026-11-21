@@ -205,7 +205,7 @@ export function DeclutterItemSkeleton() {
   // BELOW"); the real column is taller and grows below the fold.
   const { ref: columnRef, reserve } = useScreenfulBelow();
   return (
-    <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader phoneBleed>
+    <AppPage title="Item" backTo="/declutter" desktopHidesHeader phoneHidesTitle hidesTitle stickyHeader phoneBleed>
       <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8" role="status" aria-label="Loading the item">
         <div className={ITEM_PHOTO_BLEED}>
           <Skeleton className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} />

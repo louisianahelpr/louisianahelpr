@@ -1,8 +1,9 @@
 /**
- * The line under "Confirm and pick a time" (Tester 11, 10-30). A first-timer is one tap from the one-time fee there
- * (setup_fee_required_to_claim), so "Nothing is charged" was false for them. Same reading as the ask line.
+ * The line under "Confirm and pick a time" (Tester 11, 10-30). Owner 2026-11-20: a free claim never has an ID check or
+ * a setup fee, so every member, first-timer or not, ID switch on or off, reads that nothing is charged (it told a
+ * first-timer about "a one-time ID check next" from 10-30).
  *
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {t(trade ? TRADE_CHECKOUT_LINE : oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE)} | {t(trade ? TRADE_CHECKOUT_LINE : FREE_CHECKOUT_LINE)}
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {t(trade ? TRADE_CHECKOUT_LINE : FREE_CHECKOUT_LINE)} | {t(trade ? TRADE_CHECKOUT_LINE : TRADE_CHECKOUT_LINE)}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -35,25 +36,15 @@ function show() {
 describe("the free checkout's charge line", () => {
   afterEach(cleanup);
 
-  it("a first-timer with the check on is never told nothing is charged, and is told what comes next", () => {
-    h.paid = false;
-    h.on = true;
-    show();
-    expect(screen.queryByText(/nothing is charged/i)).toBeNull();
-    expect(screen.getByText(/The item stays free\. Your first claim has a one-time ID check next, and we'll show you the cost first\./)).toBeTruthy();
-  });
-
-  it("a member who already paid still reads that nothing is charged", () => {
-    h.paid = true;
-    h.on = true;
+  it.each([
+    ["a first-timer with the ID switch on", false, true],
+    ["a member who already paid", true, true],
+    ["a first-timer with the switch off", false, false],
+  ])("%s reads that nothing is charged, with no ID or fee words", (_label, paid, on) => {
+    h.paid = paid;
+    h.on = on;
     show();
     expect(screen.getByText(/Nothing is charged\./)).toBeTruthy();
-  });
-
-  it("with the switch off, nothing changes", () => {
-    h.paid = false;
-    h.on = false;
-    show();
-    expect(screen.getByText(/Nothing is charged\./)).toBeTruthy();
+    expect(screen.queryByText(/ID check|setup fee/i)).toBeNull();
   });
 });

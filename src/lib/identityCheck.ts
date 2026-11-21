@@ -21,8 +21,8 @@ import { toast } from "sonner";
 
 /** Why the sheet opened: picks the first sentence, never the rule. */
 // "shop_buy" / "shop_list": Shops reuses Declutter's gate and codes (20261105174853), with its own words.
-// "get_paid" (owner 11-12): a Declutter seller's first payout waits on the check (20261112065000).
-export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "get_paid" | "shop_buy" | "shop_list" | "deliver" | "claim" | "general";
+// Owner 2026-11-20: no Declutter reason any more (buy, list, get_paid and claim were Declutter's); a delivery Helpr keeps "deliver".
+export type IdentityCheckReason = "start" | "post" | "accept" | "shop_buy" | "shop_list" | "deliver" | "general";
 
 interface SheetState {
   open: boolean;
@@ -190,16 +190,13 @@ export async function readIdentityReviewSince(userId: string, fallback: string |
  * The server's refusal, recognised by its raised code (migration
  * 20261021081258), so a caller can open the sheet instead of a dead-end toast.
  */
-export function identityRefusal(err: unknown): "post" | "start" | "buy" | "list" | "deliver" | "claim" | null {
+export function identityRefusal(err: unknown): "post" | "start" | "deliver" | null {
   const raw = typeof err === "string" ? err : (err as { message?: unknown } | null)?.message;
   const m = typeof raw === "string" ? raw : "";
   if (/(^|[^a-z_])identity_required_to_post($|[^a-z_])/.test(m)) return "post";
   if (/(^|[^a-z_])identity_required_to_start($|[^a-z_])/.test(m)) return "start";
-  // Declutter (owner 2026-10-22): the first purchase or the first listing (20261021202226).
-  if (/(^|[^a-z_])identity_required_to_buy($|[^a-z_])/.test(m)) return "buy";
-  if (/(^|[^a-z_])identity_required_to_list($|[^a-z_])/.test(m)) return "list";
+  // Owner 2026-11-20: Declutter raises no ID refusal any more (20261120184430); Shops reads its own (shops/errors.ts).
   if (/(^|[^a-z_])identity_required_to_deliver($|[^a-z_])/.test(m)) return "deliver";
-  if (/(^|[^a-z_])identity_required_to_claim($|[^a-z_])/.test(m)) return "claim";
   return null;
 }
 

@@ -64,16 +64,12 @@ const NOT_GATED: Readonly<Record<string, string>> = {
   "src/components/shops/shopsUi.tsx": "the 'ID checked' shop badge, drawn only when shop_badges says the owner really verified",
   "src/components/declutter/DeclutterGuest.tsx": "F227/F319: the guest seller card's 'ID checked' badge, drawn only when declutter_guest_seller_card says the seller really verified (a fact, not a prompt)",
   "src/lib/shops/errors.ts": "Shops refusal words (Shops is testers-only and on hold)",
-  "src/lib/i18n/enDeclErrors.ts": "F260q: errors.ts' refusal words by code (de.*); drawn only by declutterErrorMessage for identity_required_to_buy/list, which the server raises only while the switch is on (s2)",
-  "src/lib/declutter/errors.ts": "words for identity_required_to_buy/list, which the server raises only while the switch is on (s2)",
   "src/lib/quotes/errors.ts": "words for identity_required_to_offer (the poster's ID at the offer, 20261120205350), which the server raises only while the switch is on (s2)",
   "src/lib/helprTasks/errorCopy.ts": "words for helper_identity_unverified, which the server raises only while the switch is on (s2)",
   "src/lib/posterIdAtOffer.ts": "owner 11-20: words and the sheet opener for identity_required_to_offer (the poster's ID at the offer), which the server raises only while the switch is on (s2); openIdentityCheck itself reads the switch",
   "src/lib/i18n/enJobPoster.ts": "owner 11-20: jp.idAtOffer is drawn only by posterIdAtOffer.ts on identity_required_to_offer, which the server raises only while the switch is on (s2)",
   "src/lib/i18n/enLanding.ts": "F260q: the landing's English dictionary; its ID words are drawn only by SectionsShowcase.tsx and LandingProof.tsx, which read the switch",
-  "src/lib/i18n/enFree.ts": "F260q: the free-item English dictionary; its ID words are drawn only by freePickSteps.ts (identityCheckOn()) and DeclutterFreeClaim.tsx (useIdentityCheckOnStore()), which read the switch",
   "src/lib/i18n/enPublic.ts": "F260q: the public pages' English dictionary; safety.idChecked is drawn only by Safety.tsx, which reads the switch",
-  "src/lib/i18n/enTodos.ts": "owner 11-12: todo.idPayout / todo.verifyId are drawn only by needsYouTodos.ts's 'Verify your ID to get paid' to-do, which shows only when declutterIdPayoutCents > 0, which idPayoutWait.ts computes through needsIdentityCheck() (the switch)",
   "src/components/landing/LandingBrowseShell.tsx": "F260q: the Spanish lookup for the line its caller passes; the ID line is picked by proofLine(useIdentityCheckOnStore()) in LandingProof.tsx",
 };
 

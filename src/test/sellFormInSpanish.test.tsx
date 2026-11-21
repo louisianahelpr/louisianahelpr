@@ -39,7 +39,6 @@ import { fireEvent } from "@testing-library/react";
 import { CATEGORY_GROUPS } from "@/lib/declutter/categoryIcons";
 import { formProblem, formProblemCode, problemRow, sellStepProblem, type FormState } from "@/components/declutter/sellForm";
 
-vi.mock("@/components/declutter/useSellerSetupFee", () => ({ useSellerSetupFee: () => ({ unknown: false, server: false, orderId: null, cents: 0 }) }));
 
 const { SellTradesRow } = await import("@/components/declutter/SellTradesRow");
 const { CategoryDrillDown } = await import("@/components/declutter/CategoryDrillDown");

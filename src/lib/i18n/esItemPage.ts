@@ -24,5 +24,8 @@ export const esItemPage: Record<keyof typeof enItemPage, string> = {
   "ip.badge.listsOften": "Publica seguido",
   "ip.badge.onTime": "Entregas a tiempo",
   "ip.badge.active": "Activo hoy",
-  "ip.joined": "Se unió en {date}",
+  "ip.memberSince": "Miembro desde {date}",
+  "ip.buyerProtection": "Protección al comprador",
+  "ip.porchPickup": "Recogida en el porche",
+  "ip.breadcrumb": "Dónde está este artículo en Declutter",
 };

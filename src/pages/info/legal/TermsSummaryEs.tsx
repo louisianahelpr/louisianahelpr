@@ -23,7 +23,7 @@ function termsSummaryEsItems({ idOn, feeLabel, posterPaysNothing }: { idOn: bool
   return [
     `Debe tener 18 años o más. Cada cuenta verifica su correo electrónico antes de publicar o aceptar trabajos.${
       idOn
-        ? " También verifica una identificación con foto, una sola vez por cuenta: la primera vez que publica un trabajo, lo contratan o hace una entrega, publica un artículo o compra uno."
+        ? " También verifica una identificación con foto, una sola vez por cuenta: la primera vez que publica un trabajo, lo contratan o hace una entrega."
         : ""
     }`,
     "Helpr es un mercado: no hacemos los trabajos nosotros mismos y no somos responsables del trabajo entregado.",

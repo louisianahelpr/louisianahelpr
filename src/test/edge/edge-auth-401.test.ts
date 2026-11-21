@@ -124,6 +124,10 @@ const NOT_401: Record<string, { status: number; why: string }> = {
     status: 404,
     why: "auth is optional by design (owner 2026-11-09): signed-out brands sign up and the sponsor wall's <img> sends no token, so a failed getUser makes the caller SIGNED OUT, never a 401; the 404 is the one answer to every refusal while sponsor_25days is not on for a signed-out caller",
   },
+  "sbs-featured": {
+    status: 400,
+    why: "auth is optional by design (owner 2026-11-20): signed-out businesses submit, so a POST is never refused for its token; the 400 is the empty form. A token is read only on the admin logo GET, where a failed getUser means not an admin (404)",
+  },
   "create-bgc-payment": {
     status: 503,
     why: "BGC_PURCHASE_ENABLED=false kill switch answers everyone 503 before auth (nothing is charged); its auth branch returns 401",

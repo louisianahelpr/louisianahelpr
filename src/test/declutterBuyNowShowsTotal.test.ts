@@ -10,13 +10,10 @@
  * money.test.ts and posterJobFee.parity.test.ts), in exact cents (formatPrice, the cart's own formatter: "$42.70", "$28").
  *
  *
- * A1-B2 (Declutter audit, prod 2026-10-29): the item page said "Buy now ·
- * $32.20 total" while Stripe charged $34.20, because a first purchase also
- * carries the one-time account setup fee (checkout's payCents adds
- * useFirstPayoutFeeCents; declutter-checkout charges total_cents +
- * setup_fee_cents). So every such label also adds the setup fee from that
- * hook, and its file says "+ any one-time setup fee" while the answer is
- * unknown (useFirstPayoutFeeKnown), never a figure $2 low.
+ * A1-B2 (2026-10-29) added a first purchase's one-time setup fee to every such
+ * label. Owner 2026-11-20: a Declutter purchase never carries the setup fee
+ * (declutter_start_checkout freezes setup_fee_cents = 0), so no label adds it
+ * or names it, even for a member who still owes it for Jobs.
  *
  * BuyerTotal (lead-approved, 2026-10-29): ONE shared <BuyerTotal priceCents/>
  * (src/components/declutter/BuyerTotal.tsx) builds every buyer-total figure:
@@ -25,12 +22,9 @@
  * no bare buyNowTotalCents( in src/components outside it, and every one of
  * those four screens renders it.
  *
- * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents + addCents)}{suffix} | {formatPrice(priceCents + setupFeeCents + addCents)}{suffix}
- * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents + addCents)}{suffix} | {formatPrice(buyNowTotalCents(priceCents) + addCents)}{suffix}
- * @mutate src/components/declutter/BuyerTotal.tsx |   const setupFeeCents = useFirstPayoutFeeCents(); |   const setupFeeCents = 0;
- * @mutate src/components/declutter/BuyerTotal.tsx | {!setupFeeKnown && <span data-buy-setup-fee-pending="" | {false && <span data-buy-setup-fee-pending=""
+ * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + addCents)}{suffix} | {formatPrice(priceCents + addCents)}{suffix}
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | burnt-sienna))]"><BuyerTotal priceCents={takeCents} /> | burnt-sienna))]">{takeCents}
- * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> | <Money cents={cents} />
+ * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} /> | <Money cents={cents} />
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <BuyerTotal priceCents={cents} /> | {cents}
  * @mutate src/lib/declutter/money.ts |   return checkoutAmounts([priceCents]).totalCents; |   return priceCents;
  */
@@ -66,7 +60,7 @@ describe("D6: Buy now names what checkout will charge", () => {
     expect(bare, bare.map((b) => `${b.file}: {${b.expr}}`).join("\n")).toEqual([]);
   });
 
-  it("A1-B2: every Buy-now total adds the first purchase's setup fee, and says so while it is unknown", () => {
+  it("owner 2026-11-20: no Buy-now total adds or names the setup fee", () => {
     const files = walkSource([join(REPO, "src")]).filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f));
     expect(files.length).toBeGreaterThan(500);
     const problems: string[] = [];
@@ -77,20 +71,10 @@ describe("D6: Buy now names what checkout will charge", () => {
       if (found.length === 0) continue;
       labels += found.length;
       const rel = relative(REPO, f);
-      // The fee variable must be the checkout hook's answer, not a constant.
-      const feeVar = /const\s+(\w+)\s*=\s*useFirstPayoutFeeCents\(\)/.exec(src)?.[1];
-      if (!feeVar) { problems.push(`${rel}: no useFirstPayoutFeeCents() read`); continue; }
-      for (const m of found) if (!new RegExp(`buyNowTotalCents\\([^()]*\\)\\s*\\+\\s*${feeVar}\\b`).test(m[1])) problems.push(`${rel}: {${m[1]}} leaves out ${feeVar}`);
-      const knownVar = /const\s+(\w+)\s*=\s*useFirstPayoutFeeKnown\(\)/.exec(src)?.[1];
-      if (!knownVar || !new RegExp(`\\{!${knownVar}\\s*&&\\s*<span[^>]*>[^<]*(setup fee|SETUP_FEE_PENDING_WORDS)`).test(src)) problems.push(`${rel}: no "setup fee" words while useFirstPayoutFeeKnown() is false`);
+      if (/useFirstPayoutFee(?:Cents|Known)\(|setup.fee/i.test(src)) problems.push(`${rel}: reads or names the setup fee`);
     }
     expect(labels).toBeGreaterThan(0);
     expect(problems, problems.join("\n")).toEqual([]);
-  });
-
-  it("the pending words name the setup fee", () => {
-    const src = readSource(join(REPO, "src", "components", "declutter", "BuyerTotal.tsx")) ?? "";
-    expect(src).toMatch(/SETUP_FEE_PENDING_WORDS = "\+ any one-time setup fee"/);
   });
 
   it("BuyerTotal: no bare buyNowTotalCents( in src/components outside BuyerTotal.tsx, and the four buyer-total screens use it", () => {

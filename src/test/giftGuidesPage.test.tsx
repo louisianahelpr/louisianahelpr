@@ -103,7 +103,7 @@ import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG } from "@/content/giftGuideSmallBiz.mjs";
 // The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are own pages too: in the sitemap, no guide.
-const OWN_PAGES = [DEALS_SLUG, SMALL_BIZ_SLUG, "swipe", "planner", "draw-names"];
+const OWN_PAGES = [DEALS_SLUG, SMALL_BIZ_SLUG, "swipe", "planner", "draw-names", "printables"];
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
@@ -982,6 +982,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       { source: "/gift-guides/draw-names", destination: "/index.html" },
       { source: "/gift-guides/swipe", destination: "/index.html" },
       { source: "/gift-guides/planner", destination: "/index.html" },
+      { source: "/gift-guides/printables", destination: "/index.html" },
       { source: "/gift-guides/secret-santa/:code/:token", destination: "/index.html" },
     ]);
   });

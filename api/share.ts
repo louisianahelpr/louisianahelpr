@@ -1281,6 +1281,8 @@ function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
   if (!slug) return undefined;
   // The deals guide's own card (owner 2026-11-19), drawn by scripts/gift-guide-deals-cover.py.
   if (slug === DEALS_SLUG) return { url: `${SITE_ORIGIN}/gift-guides/deals/${DEALS_SLUG}.jpg`, type: "image/jpeg", width: 600, height: 600, alt: name };
+  // The free printables page's own 1200x630 card (owner 2026-11-20): three gift tags with names on the gingham.
+  if (slug === "printables") return { url: `${SITE_ORIGIN}/printables/og-printables.jpg?v=1`, type: "image/jpeg", width: 1200, height: 630, alt: "Free printable Christmas gift tags with names from Louisiana Helpr" };
   // The share JPG first (600x600 JPEG, the format every link-preview crawler takes), then the WebP cover.
   if (OG_JPG_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/og/${slug}.jpg`, type: "image/jpeg", width: 600, height: 600, alt: name };
   if (COVER_WEBP_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/covers/${slug}.webp`, type: "image/webp", width: 480, height: 480, alt: name };

@@ -196,7 +196,7 @@ export const sponsorPage = {
    * The final lineup (owner 2026-11-16: "each person will have their own day" is no longer true; some days have
    * two or three brands, each with its own winner). Source: the owner's 25 Days Sponsor Tracker (const S and D); owner 2026-11-17: every sponsor who said yes by
    * email or Facebook is listed on their tracker day. Owner 2026-11-18 (nothing stale anywhere): lineup.days is exactly
-   * the tracker's calendar (170 giveaways from 104 brands as of 2026-11-19 7:15 PM). Check drift with `node scripts/check-25days-lineup.mjs`,
+   * the tracker's calendar (176 giveaways as of 2026-11-20 6:45 PM). Check drift with `node scripts/check-25days-lineup.mjs`,
    * regenerate with `--print` (manual; never in CI).
    * Business names, prizes and Facebook Page links ONLY: never a contact person's name, email or phone (this page and repo are public).
    * Owner 2026-11-19: three sponsors show by their own name (David Rabalais; Tevin Lewis, District 2 Alderman, linked to his own page;
@@ -317,6 +317,7 @@ export const sponsorPage = {
           { brand: "David Rabalais", prize: "The Fois t-shirt (winner size) + koozie" },
           { brand: "Cher Bebe Embroidery", prize: "Tea towel of choice" },
           { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
+          { brand: "Ace Bungee Fitness", prize: "Private bungee fitness party for 6" },
         ],
       },
       {
@@ -472,6 +473,7 @@ export const sponsorPage = {
           { brand: "Proof & Pour Wax Co.", prize: "8 oz candle + wax melt (one set each day)" },
           { brand: "Sky & Sol", prize: "1 full-size tube of sunscreen" },
           { brand: "Cat Lady / CatLadyBox", prize: "$60 digital gift card (Cat Lady Box or catlady.com items)" },
+          { brand: "BIME Beauty", prize: "3-brush set (scalp therapy + self-cleaning brushes)" },
         ],
       },
       {
@@ -506,6 +508,7 @@ export const sponsorPage = {
           { brand: "Basic Bee", prize: "Basic Bee honey gift set" },
           { brand: "Saranoni", prize: "Saranoni Patterned Faux Fur Throw (Clove)" },
           { brand: "Monarch Books (Baton Rouge)", prize: "Book bundle + 2 coffee mugs with stickers and bookmarks" },
+          { brand: "Restore Hyper Wellness Mandeville", prize: "10 wellness sessions (cryo, infrared sauna, red light, compression)" },
         ],
       },
       {
@@ -542,6 +545,7 @@ export const sponsorPage = {
           { brand: "Bourque's Cajun Country Seasoning", prize: "Gift basket" },
           { brand: "Rusty's Seasoning", prize: "Seasoning bundle" },
           { brand: "HOTWORX Denham Springs", prize: "1-month Sweat Basic membership + free equipment rental" },
+          { brand: "Texas Beard Company", prize: "Beard Oil + Balm, winner's choice of scents" },
         ],
       },
       {
@@ -566,6 +570,7 @@ export const sponsorPage = {
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
           { brand: "Mary Kay", prize: "Mary Kay gift set" },
           { brand: "IDRA Wellness", prize: "Body oil" },
+          { brand: "Perfectly Planned Events", prize: "A custom event invitation + a decor shopping list for your budget" },
         ],
       },
       {
@@ -589,6 +594,7 @@ export const sponsorPage = {
           { brand: "Proof & Pour Wax Co.", prize: "8 oz candle + wax melt (one set each day)" },
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
           { brand: "Mind the Skin Labs", prize: "1 pack Signal + 1 pack Surge" },
+          { brand: "Cajun Fiya", prize: "A case of Cajun Fiya seasoning" },
         ],
       },
     ],

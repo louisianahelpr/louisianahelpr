@@ -1,0 +1,50 @@
+{
+  "_about": "gg-live-1120: in-budget refills for the budget sections after scripts/giftGuideBudgetCaps.mjs moves or removes over-cap picks. Each href is a pick a store page already shows with a checked price.",
+  "adds": [
+    {
+      "guide": "gifts-by-budget",
+      "section": "under-25",
+      "href": "https://walmrt.us/490eb0T",
+      "why": "Rainbow Loom Bracelet Kit ($9.97): the in-budget Rainbow Loom",
+      "commission": 2.8,
+      "type": "craft-kit"
+    },
+    {
+      "guide": "gifts-by-budget",
+      "section": "under-25",
+      "href": "https://walmrt.us/4iS26AI",
+      "why": "Hitster Music Party Card Game ($14.88)",
+      "commission": 2.8,
+      "type": "game"
+    },
+    {
+      "guide": "gifts-by-budget",
+      "section": "under-25",
+      "href": "https://go.shopmy.us/p-104190825",
+      "why": "Nike Elite 2.0 Cushioned Crew Socks ($20), in place of the $28 Malbon socks"
+    },
+    {
+      "guide": "gifts-by-budget",
+      "section": "stocking-stuffers",
+      "href": "https://go.shopmy.us/p-108162089",
+      "why": "Bath & Body Works Warm Vanilla Sugar Fine Fragrance Mist ($8.95)"
+    },
+    {
+      "guide": "gifts-by-budget",
+      "section": "stocking-stuffers",
+      "href": "https://mavely.app.link/igfGJ30qb8b",
+      "why": "Stanley Classic Easy Fill Wide Mouth Flask ($19.50)",
+      "commission": 14,
+      "type": "flask"
+    },
+    {
+      "guide": "friends-and-coworkers",
+      "section": "secret-santa",
+      "from": "white-elephant",
+      "href": "https://mavely.app.link/aMJKjE0qb8b",
+      "why": "Stanley Classic Legendary Camp Mug ($18.75), in place of the $39.99 YETI Rambler",
+      "commission": 14,
+      "type": "drinkware"
+    }
+  ]
+}

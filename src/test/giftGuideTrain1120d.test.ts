@@ -32,6 +32,11 @@ const spec = JSON.parse(readFileSync("scripts/gift-guide-train-1120d.json", "utf
   sectionMin: number; sectionCap: number;
   pageCaps: { max: number; brandTypeMax: number; exemptTypes: string[]; typeMax: Record<string, number>; guides: Record<string, { max?: number; brandTypeMax?: number; exemptTypes?: string[] }> };
 };
+// Owner's standard plan (11-20 evening, scripts/gift-guide-standard-1120.json): she chose every pick, section and order on
+// the planned guides, so the plan wins there (guarded by giftGuideStandard1120.test.ts and
+// scripts/check-gift-guide-standard.mjs). The section-size, by-use and price-spread rules below still hold every
+// guide the plan does not cover.
+const PLANNED = new Set(Object.keys((JSON.parse(readFileSync("scripts/gift-guide-standard-1120.json", "utf8")) as { guides: Record<string, unknown> }).guides));
 const FIXED = new Set(["subscriptions", "gift-cards", "gift-wrap-and-cards", "mail-carrier-and-delivery-drivers"]);
 const fold = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 
@@ -41,8 +46,12 @@ describe("page-level type caps (holiday audit A #1)", () => {
     let pages = 0;
     for (const [slug, g] of Object.entries(spec.pageCaps.guides)) {
       const picks = guide(slug).filter((p) => !FIXED.has(p.from ?? ""));
-      expect(picks.length, slug).toBeGreaterThan(5);
+      // The owner's plan (11-20 evening) names every pick on a planned guide (Kids keeps five Cecil & Lou dresses, Him
+      // three Lodge pieces; flagged for her in the lander handoff): the plan wins there, the caps hold everywhere else.
+      // A filtered view (Dad on Him holds 5 picks in the owner's plan) is short by design; a guide with its own file is not.
+      expect(picks.length, slug).toBeGreaterThan(chunks.some((c) => c.slug === slug) ? 5 : 3);
       pages += 1;
+      if (PLANNED.has(slug)) continue; // the owner's plan wins on a planned guide (comment above)
       const exempt = new Set([...spec.pageCaps.exemptTypes, ...(g.exemptTypes ?? [])]);
       const byType = new Map<string, Row[]>();
       for (const p of picks) byType.set(p.type ?? "other", [...(byType.get(p.type ?? "other") ?? []), p]);
@@ -64,7 +73,8 @@ describe("page-level type caps (holiday audit A #1)", () => {
     expect(her.filter((p) => p.type === "pajamas").length).toBeLessThanOrEqual(2);
     expect(her.filter((p) => /printfresh/i.test(p.name) && p.type === "pajamas").length).toBeLessThanOrEqual(1);
     const him = guide("him");
-    expect(him.filter((p) => /needlepoint.*belt/i.test(p.name)).length).toBe(1);
+    // The owner's plan keeps no needlepoint belt on Him (11-20 evening); never more than one.
+    expect(him.filter((p) => /needlepoint.*belt/i.test(p.name)).length).toBeLessThanOrEqual(1);
     expect(him.filter((p) => p.type === "eyewear").length).toBeLessThanOrEqual(2);
   });
 
@@ -104,7 +114,7 @@ describe("gift types agree with names (holiday audit A #2)", () => {
       if (t) wrong.push(`${slug}: ${p.name} (${p.type} -> ${t})`);
     }
     expect(wrong).toEqual([]);
-    expect(typed).toBeGreaterThan(1000);
+    expect(typed).toBeGreaterThan(700); // owner's standard plan (11-20 evening, 49 shorter guides): 773 measured 2026-11-20 night; 1,000+ before
   });
 });
 
@@ -113,7 +123,12 @@ describe("sections (holiday audit A #60, owner 11-19 fold thin sections)", () =>
     const sp = guide("splurge");
     expect(sp.length).toBeGreaterThan(8);
     expect(sp.filter((p) => p.sectionId === "under-100")).toEqual([]);
-    expect(sp.filter((p) => typeof p.price === "number" && p.price < 100).map((p) => p.name)).toEqual([]);
+    // The owner's plan (11-20 evening) keeps five picks under $100 on Splurge by name (flagged for her in the lander
+    // handoff); nothing else under $100 may join them.
+    const PLAN_UNDER_100 = ["Gorjana Reed Huggies", "Quay Hyped Up Sunglasses", "lululemon Align", "Durango Westward", "Stanley The Easy Carry"];
+    const under = sp.filter((p) => typeof p.price === "number" && p.price < 100).map((p) => p.name);
+    expect(under.filter((n) => !PLAN_UNDER_100.some((k) => n.includes(k)))).toEqual([]);
+    expect(under.length).toBeLessThanOrEqual(PLAN_UNDER_100.length);
   });
 
   it("no guide section holds fewer than sectionMin picks (when a guide has 2+ sections) or more than sectionCap", () => {
@@ -125,7 +140,8 @@ describe("sections (holiday audit A #60, owner 11-19 fold thin sections)", () =>
       for (const p of picks) if (p.sectionId) counts.set(p.sectionId, (counts.get(p.sectionId) ?? 0) + 1);
       for (const [id, n] of counts) {
         sections += 1;
-        if ((counts.size > 1 && n < spec.sectionMin) || n > spec.sectionCap) bad.push(`${slug}#${id}: ${n}`);
+        // The owner's plan sets each planned guide's section sizes (some hold 9); the cap holds everywhere.
+        if ((counts.size > 1 && n < spec.sectionMin && !PLANNED.has(slug)) || n > spec.sectionCap) bad.push(`${slug}#${id}: ${n}`);
       }
     }
     expect(bad).toEqual([]);
@@ -160,14 +176,17 @@ describe("sections by use (owner standard 11-20, ~/.lh-shots/gg-reference-1120/S
     const picks = guide("fitness") as (Row & { line?: string })[];
     expect(picks.filter((p) => !p.line || p.line.length < 15 || p.line.length > 110).map((p) => p.name)).toEqual([]);
     const priced = picks.filter((p) => typeof p.price === "number").map((p) => p.price!);
-    // Measured 11-20: 3 under $25 (the owner's bar is 4: one more needs the Chrome price step), 8 at $25-$99, 3 at $100+.
-    expect(priced.filter((x) => x < 25).length).toBeGreaterThanOrEqual(3);
+    // The owner's plan (11-20 evening) chose Fitness's picks: its checked prices now start at $29.99, none under $25
+    // (flagged for her in the lander handoff as a gap); 9 at $25-$99, 3 at $100+.
+    expect(priced.filter((x) => x < 100).length).toBeGreaterThanOrEqual(6);
     expect(priced.filter((x) => x >= 100).length).toBeGreaterThanOrEqual(3);
   });
 
   it("a by-use guide holds exactly its rule's sections, a short reason on every pick and a rounded price spread", () => {
     expect(byUse.map((u) => u.guide)).toContain("healthcare");
     for (const u of byUse) {
+      // Heroes follows the owner's plan now (its own four sections, giftGuideStandard1120.test.ts).
+      if (PLANNED.has(u.guide)) continue;
       const picks = guide(u.guide) as (Row & { line?: string })[];
       expect([...new Set(picks.map((p) => `${p.sectionId}:${p.section}`))], u.guide).toEqual(u.sections.map((x) => `${x.id}:${x.title}`));
       expect(picks.length, u.guide).toBe(u.sections.reduce((n, x) => n + x.picks.length, 0));
@@ -205,7 +224,7 @@ describe("tap targets (holiday audit A #6, #71)", () => {
   it("the section jump links and the Gift of the Day link are at least 44px tall", () => {
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-secnav \.gg-chip\{[^}]*min-height:44px/);
     const countdown = readFileSync("src/pages/info/giftGuides/fun/GiftCountdown.tsx", "utf8");
-    expect(countdown).toMatch(/\.gg-today-name\{[^}]*min-height:44px/);
+    expect(countdown).toMatch(/\.gg-today-link\{[^}]*min-height:44px/);
   });
 });
 

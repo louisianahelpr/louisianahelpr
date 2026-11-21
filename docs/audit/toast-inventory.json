@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1260,
+    "calls": 1261,
     "files": 365,
-    "rendering": 1182,
+    "rendering": 1183,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 11,
       "successToast": 2,
       "toast": 254,
-      "toast.error": 847,
+      "toast.error": 848,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 84,
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 466,
-      "template": 100,
-      "dynamic": 748,
+      "literal": 457,
+      "template": 99,
+      "dynamic": 759,
       "jsx": 0
     }
   },
@@ -303,7 +303,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 81,
+      "line": 82,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -320,17 +320,17 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 85,
+      "line": 89,
       "kind": "toast.error",
       "title": {
         "form": "template",
-        "text": "\"${f.name}\" exceeds 5 MB limit."
+        "text": "\"${f.name}\" is too large to attach, even after we shrank it. Try a screenshot of the photo instead."
       },
       "renders": true
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 119,
+      "line": 121,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -340,7 +340,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 128,
+      "line": 130,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -350,7 +350,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 173,
+      "line": 175,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -360,7 +360,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 290,
+      "line": 292,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4614,7 +4614,7 @@
     },
     {
       "file": "src/components/declutter/AwayMode.tsx",
-      "line": 41,
+      "line": 42,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4641,7 +4641,7 @@
     },
     {
       "file": "src/components/declutter/AwayMode.tsx",
-      "line": 42,
+      "line": 43,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4651,7 +4651,7 @@
     },
     {
       "file": "src/components/declutter/AwayMode.tsx",
-      "line": 69,
+      "line": 71,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4678,7 +4678,7 @@
     },
     {
       "file": "src/components/declutter/AwayMode.tsx",
-      "line": 70,
+      "line": 72,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4688,15 +4688,15 @@
     },
     {
       "file": "src/components/declutter/BulkActions.tsx",
-      "line": 98,
+      "line": 103,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "failed > 0 ? `${t(\"dt5.bulk.doneN\", { n: done, total })} ${t(\"dt5.bulk.someFailed\", { n: failed })}` : t(\"dt5.bulk.doneN\", { n: done, total })",
+        "text": "failed > 0 ? `${t(\"dt5.bulk.doneN\", { n: done, total })} ${t(\"dt5.bulk.failedWhy\", { n: failed, why: declutterErrorMessage(firstError) })}` : t(\"dt5.bulk.doneN\", { n: done, total })",
         "branches": [
           {
             "form": "template",
-            "text": "${t(\"dt5.bulk.doneN\", { n: done, total })} ${t(\"dt5.bulk.someFailed\", { n: failed })}"
+            "text": "${t(\"dt5.bulk.doneN\", { n: done, total })} ${t(\"dt5.bulk.failedWhy\", { n: failed, why: declutterErrorMessage(firstError) })}"
           },
           {
             "form": "dynamic",
@@ -4725,7 +4725,7 @@
     },
     {
       "file": "src/components/declutter/BulkActions.tsx",
-      "line": 110,
+      "line": 116,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4735,7 +4735,7 @@
     },
     {
       "file": "src/components/declutter/BulkActions.tsx",
-      "line": 115,
+      "line": 121,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5039,7 +5039,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterEditListing.tsx",
-      "line": 93,
+      "line": 109,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5066,11 +5066,38 @@
     },
     {
       "file": "src/components/declutter/DeclutterEditListing.tsx",
-      "line": 96,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
+        "text": "err instanceof EditPhotoFailed ? t(\"lp.ed.photoFailed\") : declutterErrorMessage(err)",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "t(\"lp.ed.photoFailed\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "declutterErrorMessage(err)"
+          }
+        ]
       },
       "renders": true
     },
@@ -6247,17 +6274,34 @@
     },
     {
       "file": "src/components/declutter/DeclutterReopenListing.tsx",
-      "line": 19,
+      "line": 21,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Back in your listings. Add photos and put it up again."
+        "form": "dynamic",
+        "text": "t(\"dsl.hist.relisted\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterReopenListing.tsx",
-      "line": 23,
+      "line": 25,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8054,17 +8098,34 @@
     },
     {
       "file": "src/components/declutter/SellerHandedOver.tsx",
-      "line": 25,
+      "line": 27,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Thanks. The Helpr can mark it picked up now."
+        "form": "dynamic",
+        "text": "t(\"dsl.ho.thanks\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/SellerHandedOver.tsx",
-      "line": 28,
+      "line": 30,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14442,7 +14503,7 @@
     },
     {
       "file": "src/pages/auth/ResetPassword.tsx",
-      "line": 165,
+      "line": 166,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14562,7 +14623,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 198,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14572,7 +14633,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 206,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15525,8 +15586,25 @@
       "line": 387,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters."
+        "form": "dynamic",
+        "text": "t(\"chat.limit\", { count: MESSAGE_MAX_LENGTH.toLocaleString() })",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -15535,8 +15613,25 @@
       "line": 397,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't save that edit — give it another try?"
+        "form": "dynamic",
+        "text": "t(\"msg.editFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -15582,7 +15677,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 147,
+      "line": 148,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15592,7 +15687,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 251,
+      "line": 252,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15602,7 +15697,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 289,
+      "line": 290,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15612,7 +15707,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 317,
+      "line": 318,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15622,7 +15717,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 355,
+      "line": 356,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15649,17 +15744,34 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 372,
+      "line": 373,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Message didn't go through — tap it to try again."
+        "form": "dynamic",
+        "text": "t(\"msg.sendFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 462,
+      "line": 463,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15669,7 +15781,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 521,
+      "line": 522,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15733,7 +15845,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 624,
+      "line": 625,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15743,7 +15855,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 685,
+      "line": 686,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15753,51 +15865,136 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 717,
+      "line": 718,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't refresh this conversation."
+        "form": "dynamic",
+        "text": "t(\"msg.refreshFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 756,
+      "line": 757,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't load earlier messages. Tap to try again."
+        "form": "dynamic",
+        "text": "t(\"msg.olderFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/messages/useThreadMuteActions.ts",
-      "line": 82,
+      "line": 83,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't update mute — try again?"
+        "form": "dynamic",
+        "text": "t(\"msg.muteFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/messages/useThreadMuteActions.ts",
-      "line": 133,
+      "line": 134,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't update mute — try again?"
+        "form": "dynamic",
+        "text": "t(\"msg.muteFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/messages/useThreadMuteActions.ts",
-      "line": 161,
+      "line": 162,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't update mute — try again?"
+        "form": "dynamic",
+        "text": "t(\"msg.muteFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -16543,7 +16740,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 133,
+      "line": 147,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16553,7 +16750,17 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 200,
+      "line": 156,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "problem"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/EditJobDialog.tsx",
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -3986,6 +3986,16 @@ STANDARD_SNAPSHOTS.push(Object.fromEntries(Object.entries(pageList).map(([k, l])
   const t = applyStandard(pageList, spec, { snapshots: STANDARD_SNAPSHOTS, anchors: SECTION_ANCHORS, aliases: SECTION_ALIASES, parentOf: (k) => MERGED_INTO[k]?.parent });
   Object.assign(SECTION_ALIASES, t.aliases);
   // A pick the plan brings back from a snapshot skipped the train's type pass (a dress filed as "pants"): re-typed here.
+  // A pick the plan adds that no guide list held (lander 11-20 night: seven guide picks had no commission and no type)
+  // gets both here, like every guide pick: a sponsor card's are 0 and "sponsor", the rest are looked up.
+  for (const slug of Object.keys(pageList)) {
+    if (slug.startsWith("store-") || slug === SPONSORS_GUIDE) continue;
+    pageList[slug] = pageList[slug].map((p) => {
+      if (p.type && "commission" in p) return p;
+      if (p.sponsor) return { ...p, commission: p.commission ?? 0, type: p.type || "sponsor" };
+      return { ...p, commission: "commission" in p ? p.commission : SORT_CTX.rateData ? commissionOf(p, SORT_CTX.rateData, SORT_CTX.today).pct : null, type: p.type || pickType(p) };
+    });
+  }
   for (const slug of Object.keys(pageList)) pageList[slug] = pageList[slug].map((p) => { const ty = typeFix(p); return ty ? { ...p, type: ty } : p; });
   fillPrices();
   console.log(`gift-guide-picks: standard 1120 ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}${t.extras.length ? `; NOT IN PLAN, removed (${t.extras.length}): ${t.extras.join(" | ")}` : ""}${t.kept.length ? `; NOT IN PLAN, kept (sponsor or owner pick, ${t.kept.length}): ${t.kept.join(" | ")}` : ""}`);

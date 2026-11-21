@@ -176,7 +176,11 @@ describe("gift guides: featured order and Our Top 10 (owner 11-18 PM: \"This can
     for (const [slug, picks] of Object.entries(CHUNKS)) {
       if (slug.startsWith("store-")) continue;
       guides += 1;
-      expect(picks.slice(0, 12).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(1);
+      // The rule is about boots (the title's "two XTRATUF boots"): the owner's plan (11-20 evening) puts an XTRATUF beanie
+      // on Him beside the one boot.
+      const boots = (n: number) => picks.slice(0, n).filter((p) => /^xtratuf$/i.test(p.brand) && /boot/i.test(p.name)).length;
+      expect(boots(12), slug).toBeLessThanOrEqual(1);
+      expect(boots(25), slug).toBeLessThanOrEqual(2);
       expect(picks.slice(0, 25).filter((p) => /^xtratuf$/i.test(p.brand)).length, slug).toBeLessThanOrEqual(2);
     }
     expect(guides).toBeGreaterThan(150); // 1120: counted per section (helpers/giftGuideSections.ts)

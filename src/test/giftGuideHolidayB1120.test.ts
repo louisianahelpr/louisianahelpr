@@ -24,6 +24,9 @@ type Pick = { name: string; brand?: string; line?: string; href: string; image?:
 type Deal = { title: string; href: string };
 const DIR = "src/content/giftGuidePicks";
 const CHUNKS = new Map<string, { picks: Pick[]; deals?: Deal[] }>(readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => [f.slice(0, -5), JSON.parse(readFileSync(`${DIR}/${f}`, "utf8"))]));
+// Owner's standard plan (11-20 evening, scripts/gift-guide-standard-1120.json): she chose every pick, section and order on
+// the planned guides, so the plan wins there (guarded by giftGuideStandard1120.test.ts).
+const PLANNED = new Set(Object.keys((JSON.parse(readFileSync("scripts/gift-guide-standard-1120.json", "utf8")) as { guides: Record<string, unknown> }).guides));
 const ALL = [...CHUNKS.values()].flatMap((c) => c.picks);
 const MOD = readFileSync("src/content/giftGuidePicks.ts", "utf8");
 const exported = <T,>(name: string): T => JSON.parse(MOD.match(new RegExp(`export const ${name}[^=]*= (.*);\\n`))?.[1] ?? "null") as T;
@@ -92,10 +95,11 @@ describe("gift guides holiday audit B", () => {
 
   it("Bird Lover is pet birds, Fish has aquarium gifts, and the known wrong products and photos stay out", () => {
     const pets = CHUNKS.get("pets")?.picks ?? [];
-    expect(pets.filter((p) => /feeder/i.test(p.name) && /bird/i.test(p.name)).map((p) => p.name)).toEqual([]);
+    // The owner's plan (11-20 evening) adds a section for backyard birds: a bird feeder sits only there, never with the pet birds.
+    expect(pets.filter((p) => /feeder/i.test(p.name) && /bird/i.test(p.name) && !/backyard birds/i.test(p.section ?? "")).map((p) => p.name)).toEqual([]);
     expect(pets.some((p) => /Sibley/i.test(p.name))).toBe(false);
-    expect(pets.filter((p) => /aquarium|betta|fish tank|fluval/i.test(p.name)).length).toBeGreaterThanOrEqual(3);
-    expect(pets.filter((p) => /parrot|bird cage|perch|cage bird|foraging|bird (toy|harness|swing)|bird harness/i.test(p.name)).length).toBeGreaterThanOrEqual(4);
+    expect(pets.filter((p) => /aquarium|betta|fish tank|fluval/i.test(p.name)).length).toBeGreaterThanOrEqual(1); // the owner's plan (11-20 evening) keeps one aquarium gift (Fluval Flex kit); 3 before
+    expect(pets.filter((p) => /parrot|bird cage|perch|cage bird|foraging|bird (toy|harness|swing)|bird harness/i.test(p.name)).length).toBeGreaterThanOrEqual(1); // the owner's plan (11-20 evening) has no pet-bird section (4+ before; flagged for her in the lander handoff)
     // B #63: B09577FFFT is a green Hunter Play boot (named yellow), B0H5RFTWQX a butter dish (named Dutch oven);
     // B #65: the Meri Meri tags' photo was the Maisonette logo; B #58: the SKIMS hoodie photo was a skeleton print.
     const NEVER = [/B09577FFFT/, /B0H5RFTWQX/, /mid409239_1548270053/, /SKIMS-LOUNGEWEAR-TP-SCL-127733W-OBS/, /manta_seo\.png/];
@@ -141,6 +145,9 @@ describe("gift guides holiday audit B", () => {
       const by = new Map<string, number>();
       for (const p of c.picks) if (p.sectionId) by.set(p.sectionId, (by.get(p.sectionId) ?? 0) + 1);
       sections += by.size;
+      // The owner's plan (11-20 evening) sets the planned guides' sections; the sponsors guide's three sections follow
+      // the sign-ups (giftGuideTrain1120d.test.ts skips it too).
+      if (PLANNED.has(slug) || slug === "25-days-sponsors") continue;
       if (by.size > 1) for (const [id, n] of by) if (n < 8) thin.push(`${slug}#${id}: ${n}`);
     }
     expect(sections).toBeGreaterThan(50);

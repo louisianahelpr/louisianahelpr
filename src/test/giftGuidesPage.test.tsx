@@ -292,8 +292,9 @@ describe("gift guides: the content inventory", () => {
     expect(GUIDE_INDEX.some((g) => g.group === "Experiences")).toBe(false);
     // Follow-up 1120: Easy & Last-Minute (its gift cards out, owner 11-20 ~12:20 AM) is a section of Gifts by Budget.
     expect(guideBySlug("gifts-by-budget")?.row).toBe("by-budget");
-    expect(newSlugFor("gift-cards")).toBe(`gifts-by-budget#${SECTION_ANCHORS["gift-cards"]}`);
-    expect(newSlugFor("subscriptions")).toBe(`gifts-by-budget#${SECTION_ANCHORS.subscriptions}`);
+    // Owner's standard plan 11-20 evening: Gifts by Budget is one flat plan list, so the two old addresses open the guide itself.
+    expect(newSlugFor("gift-cards")).toBe("gifts-by-budget");
+    expect(newSlugFor("subscriptions")).toBe("gifts-by-budget");
     // Lead 11-18 PM (analytics: visits to store-hide-me-vpn, store-wondershare, store-rvshare): no VPN, software,
     // PC-cleaner, game, airline/travel-booking, car/RV-rental or ticket-resale store page, and the brands are blocked.
     // @mutate scripts/giftGuideBlocklist.mjs | "Wondershare", "Roxio", | "Roxio",
@@ -602,12 +603,14 @@ describe("gift guides: the landing opens to the guides", () => {
       // 1120 section groups (owner: "by role, not job title"): every section is one its roles point to.
       const ids = [...new Set(g.picks.map((p) => p.sectionId).filter((x) => x && x !== "top-picks"))];
       // Owner standard 11-20 (gg-reference-1120): Healthcare's and Heroes' sections are by use, not by role (train 1120d `byUse`).
-      const byUse = hub === "healthcare" ? ["small-treats", "on-shift", "after-shift", "splurges"] : hub === "heroes" ? ["small-treats", "on-duty", "off-duty"] : null;
+      // Owner's standard plan 11-20 evening (scripts/gift-guide-standard-1120.json): a planned hub's sections are the plan's, in its order.
+      const plan = JSON.parse(readFileSync("scripts/gift-guide-standard-1120.json", "utf8")).guides as Record<string, { sections: { id: string }[] }>;
+      const byUse = plan[hub] ? plan[hub].sections.map((x) => x.id) : hub === "healthcare" ? ["small-treats", "on-shift", "after-shift", "splurges"] : null;
       for (const id of ids) expect(byUse ?? roles.map((r) => SECTION_ANCHORS[r]), `${hub}#${id}`).toContain(id);
       if (byUse) expect(ids, hub).toEqual(byUse);
       expect(ids.length, hub).toBeGreaterThan(1);
     }
-    expect(newSlugFor("teachers")).toBe(`work-life#${SECTION_ANCHORS.teachers}`);
+    expect(newSlugFor("teachers")).toBe("work-life"); // the owner's plan (11-20 evening) names Work Life's sections; the old address opens the guide
     const row = renderAt("/gift-guides?group=by-career").container.querySelector('[data-gift-row="by-career"]')!;
     const tiles = [...row.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
     expect(tiles).toContain("healthcare");
@@ -838,7 +841,9 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
     const used = new Set(GUIDES.map((g) => g.cover));
     const files = readdirSync("public/gift-guides/covers");
     expect(files.length).toBeGreaterThan(40);
-    for (const f of files) expect(used.has(`/gift-guides/covers/${f}`), f).toBe(true);
+    // Dad and Mom are filter views of Him and Her (owner 11-20 evening); their cover files are the owner's and stay for the views.
+    const VIEW_COVERS = new Set(["dad.webp", "mom.webp"]);
+    for (const f of files) expect(used.has(`/gift-guides/covers/${f}`) || VIEW_COVERS.has(f), f).toBe(true);
   });
 
   it("every ShopMy collection is a guide's full-guide link or a guide of its own", () => {
@@ -1384,11 +1389,13 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
 describe("gift guides: the Amazon page in sections (design audit 11-18 #3)", () => {
   it("opens on Louisiana Helpr Picks, then By person, For kids and the rest, in order, each once", () => {
     // @mutate scripts/gift-guide-picks.mjs | pageList["store-amazon"] = [...byHref.values()].map((p) => ({ ...p, section: sectionOf(p) })) | pageList["store-amazon"] = [...byHref.values()].map((p) => ({ ...p }))
-    const order = ["Louisiana Helpr Picks", "By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Colors", "Pets", "More finds"];
+    // Owner's standard plan 11-20 evening: the plan names the Amazon page's sections ("Most-wished-for on Amazon"); without a plan the old order holds.
+    const planned = (JSON.parse(readFileSync("scripts/gift-guide-standard-1120.json", "utf8")).guides as Record<string, { sections: { title: string }[] }>)["store-amazon"];
+    const order = planned ? planned.sections.map((x) => x.title) : ["Louisiana Helpr Picks", "By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Colors", "Pets", "More finds"];
     const amazon = RESEARCHED_PICKS["store-amazon"];
     expect(amazon.every((p) => p.section && order.includes(p.section))).toBe(true);
     const runs = amazon.map((p) => p.section).filter((x, i, all) => x !== all[i - 1]);
-    expect(runs[0]).toBe("Louisiana Helpr Picks");
+    expect(runs[0]).toBe(order[0]);
     expect(new Set(runs).size).toBe(runs.length);
     expect([...runs].sort((a, b) => order.indexOf(a!) - order.indexOf(b!))).toEqual(runs);
     // Amazon keeps its 15 best (lead 11-19, 1530 train): one or more sections, in order.

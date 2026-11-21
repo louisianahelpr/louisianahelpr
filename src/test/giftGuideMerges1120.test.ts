@@ -33,6 +33,9 @@ const DIR = "src/content/giftGuidePicks";
 // Read once: ~95 chunks.
 const CHUNKS = new Map<string, Pick[]>(readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => [f.slice(0, -5), JSON.parse(readFileSync(`${DIR}/${f}`, "utf8")).picks as Pick[]]));
 /** Lists of their own order or a sponsor list (the 25 Days sponsors guide names each sponsor as they gave it). */
+// Owner's standard plan (11-20 evening, scripts/gift-guide-standard-1120.json): she chose every pick, section and order on
+// the planned guides, so the plan wins there (guarded by giftGuideStandard1120.test.ts).
+const PLANNED = new Set(Object.keys((JSON.parse(readFileSync("scripts/gift-guide-standard-1120.json", "utf8")) as { guides: Record<string, unknown> }).guides));
 const SPONSORS = "25-days-sponsors";
 const guideChunks = [...CHUNKS].filter(([s]) => !s.startsWith("store-") && s !== SPONSORS);
 const COLORS = /\b(black|white|red|blue|green|pink|purple|gold|silver|grey|gray|navy|brown|beige|cream|tan|ivory|yellow|orange|teal|clear|rose|charcoal|olive|sage|lavender|burgundy|maroon|natural|espresso|stone|sand|mint|coral|plum)\b/g;
@@ -100,11 +103,13 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
 
   it("a merged guide holds at most SECTION_MAX sections of SECTION_MIN to SECTION_CAP picks, by role; LSU at most 2", () => {
     let sections = 0;
+    let planned = 0;
     const bad: string[] = [];
     for (const m of GUIDE_MERGES) {
       if (peopleGuideOf(m.parent)) continue; // For Her / For Him: interest sections (giftGuidePeople1120.test.ts)
       const list = CHUNKS.get(m.parent) ?? [];
       if (!list.some((p) => p.sectionId)) continue; // folded to one plain list
+      if (PLANNED.has(m.parent)) { planned += 1; continue; } // her sections, sizes and order (giftGuideStandard1120.test.ts)
       const ids = list.map((p) => p.sectionId ?? "");
       const order = [...new Set(ids)];
       // Every section is one an old guide points to (or the guide's own Top picks), each in one run.
@@ -126,7 +131,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     }
     for (const [slug, list] of guideChunks) if (!GUIDE_MERGES.some((m) => m.parent === slug) && !peopleGuideOf(slug) && list.length > SECTION_CAP) bad.push(`${slug}: ${list.length} picks`);
     // Follow-up 1120: 80 sections on the ~30 guides, measured 2026-11-20 (more on the 65 guides before).
-    expect(sections).toBeGreaterThan(40); // audits A+B combined (11-20): 51 measured, sections under 10 merged
+    // Owner's standard plan (11-20 evening): the planned merged guides follow the plan, the rest keep these rules.
+    expect(sections + planned).toBeGreaterThan(8);
     expect(bad).toEqual([]);
   });
 

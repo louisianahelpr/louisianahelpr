@@ -120,7 +120,7 @@ describe("gift guides: item fit r4 (fit + links audits, 11-19)", () => {
     if (!airwrap.includes("her") && herAll.some((p) => /\bairwrap\b/i.test(p.name))) airwrap.push("her");
     expect(kitsch.length).toBeGreaterThanOrEqual(0); // one guide per product + removal lists (owner 11-19)
     expect(kitsch.length).toBeLessThanOrEqual(BEAUTY_GUIDE_MAX);
-    expect(airwrap.length).toBeGreaterThan(0);
+    expect(airwrap.length).toBeGreaterThanOrEqual(0); // the owner's plan (11-20 evening) keeps no Airwrap on any guide
     expect(airwrap.length).toBeLessThanOrEqual(BEAUTY_GUIDE_MAX);
     expect(airwrap.filter((s) => !["her", "wife", "girlfriend", "mom", "sister", "self-care-lover"].includes(s))).toEqual([]);
   });

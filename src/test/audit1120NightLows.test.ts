@@ -69,7 +69,7 @@ describe("audit 11-20 night quick Lows", () => {
     for (const k of ["msg.editFailed", "msg.muteFailed", "msg.refreshFailed", "msg.olderFailed", "msg.sendFailed"]) expect(es, k).toContain(`"${k}"`);
   });
   it("18: at the 5-open-job cap a category tap brings the limit notice into view instead of doing nothing", () => {
-    const entry = readSource("src/pages/post-job/EntryChoice.tsx");
+    const entry = readSource("src/pages/post-job/EntryChoice.tsx") ?? "";
     expect(entry.match(/if \(atOpenJobLimit\) return showLimitNotice\(\);/g)?.length).toBe(2);
     expect(entry).not.toMatch(/if \(atOpenJobLimit( \|\| !g)?\) return;/);
     expect(entry).toContain('document.querySelector<HTMLElement>("[data-open-job-limit]")');

@@ -79,19 +79,22 @@ describe("gift guides: owner 11-20 removals and style rules", () => {
     expect(over).toEqual([]);
   });
 
-  it("Dad shows at least 5 priced gifts under $25, Him at least 3, Grandpa at least 1 (none had any)", () => {
+  // Owner's standard plan (11-20 evening): Dad is a filter on Him (5 picks she chose, 1 under $25) and Grandparents has
+  // no Grandpa section and no checked price under $25; both gaps are flagged for her in the lander handoff. Him, the
+  // guide a shopper for Dad lands on, keeps the bar.
+  it("Him (with Dad's picks) shows at least 5 priced gifts under $25 (none had any)", () => {
     const under = (picks: Pick[]) => picks.filter((p) => typeof p.price === "number" && p.price < 25 && p.store !== "store-amazon").length;
-    expect(under(CHUNKS.get("dad") ?? [])).toBeGreaterThanOrEqual(5);
-    expect(under(CHUNKS.get("him") ?? [])).toBeGreaterThanOrEqual(3);
-    expect(under((CHUNKS.get("grandparents") ?? []).filter((p) => p.section === "Grandpa"))).toBeGreaterThanOrEqual(1);
+    expect(under(CHUNKS.get("him") ?? [])).toBeGreaterThanOrEqual(5);
+    expect((CHUNKS.get("him") ?? []).some((p) => (p as { from?: string }).from === "dad")).toBe(true);
   });
 
-  it("the freed spots: XTRATUF women's boots on Mom and Her, the UGG Evelina on Mom, a Nectarine Quencher and Eberjey on Mother-in-Law", () => {
-    const mom = CHUNKS.get("mom") ?? [];
-    expect(mom.some((p) => /^XTRATUF Women's/.test(p.name) && p.section === "Top picks" && typeof p.price === "number")).toBe(true);
-    expect(mom.some((p) => /UGG .*Evelina/.test(p.name))).toBe(true);
-    expect(mom.some((p) => /Quencher.*Nectarine/.test(p.name) && p.section === "Mother-in-Law")).toBe(true);
-    expect(mom.some((p) => /^Eberjey/.test(p.name) && p.section === "Mother-in-Law")).toBe(true);
-    expect((CHUNKS.get("her") ?? []).some((p) => /^XTRATUF Women's/.test(p.name))).toBe(true);
+  // Owner's standard plan (11-20 evening): Mom is a filter on Her and the plan places these where she chose (the UGG
+  // Evelina on Her, the Nectarine Quencher on Gifts by Budget, Eberjey on Friends & Coworkers). The plan keeps no XTRATUF
+  // women's boot on any guide (flagged for her in the lander handoff).
+  it("the freed spots still show: the UGG Evelina on Her, a Nectarine Quencher and Eberjey on a guide", () => {
+    const on = (rx: RegExp) => GUIDES.filter(([, picks]) => picks.some((p) => rx.test(p.name))).map(([slug]) => slug);
+    expect(on(/UGG .*Evelina/)).toContain("her");
+    expect(on(/Quencher.*Nectarine/).length).toBeGreaterThan(0);
+    expect(on(/^Eberjey/).length).toBeGreaterThan(0);
   });
 });

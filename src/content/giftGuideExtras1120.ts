@@ -27,7 +27,9 @@ export const FINDER_WHO: { id: FinderWho; label: string; guides: { slug: string;
   { id: "kids", label: "Kids", guides: [{ slug: "kids", sections: ["little-kids"] }, { slug: "kids", sections: ["big-kids"] }] },
   // Owner 11-20 evening: Teens is its own guide.
   { id: "teen", label: "Teen", guides: [{ slug: "teens" }] },
-  { id: "friend", label: "Friend", guides: [{ slug: "friends-and-coworkers", sections: ["for-your-best-friend"] }] },
+  // Owner's standard plan 11-20 evening: "For your best friend" holds 11 picks, 8 once the finder keeps one per brand and
+  // gift type; the Secret Santa picks take turns with them so a friend still gets a full list.
+  { id: "friend", label: "Friend", guides: [{ slug: "friends-and-coworkers", sections: ["for-your-best-friend"] }, { slug: "friends-and-coworkers", sections: ["secret-santa-and-white-elephant"] }] },
   { id: "coworker", label: "Coworker", guides: [{ slug: "friends-and-coworkers", sections: ["for-the-office-coworkers-and-the-boss"] }] },
   { id: "grandparent", label: "Grandparent", guides: [{ slug: "grandparents" }] },
 ];

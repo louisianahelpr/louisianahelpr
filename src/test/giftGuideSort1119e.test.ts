@@ -29,14 +29,20 @@ const FIXED = new Set(["subscriptions", "gift-cards", "gift-wrap-and-cards", "ma
 const guideSlugs = readdirSync(DIR).filter((f: string) => f.endsWith(".json")).map((f: string) => f.replace(/\.json$/, "")).filter((s: string) => !s.startsWith("store-") && s !== "25-days-sponsors");
 const PEOPLE_SLUGS = new Set<string>(PEOPLE_GUIDES.map((g: { slug: string }) => g.slug));
 /** Each list a shopper reads as one: a guide, or each section of a merged guide (its old slug; "top-picks" is the guide's own). */
+/** The guide each list sits on (a planned guide's lists are keyed by the plan's section ids). */
+const PARENT = new Map<string, string>();
 const sectionLists = (): [string, Pick[]][] => guideSlugs.flatMap((slug: string) => {
   const by = new Map<string, Pick[]>();
   for (const p of pageOf(slug)) {
     const k = p.sectionId && PEOPLE_SLUGS.has(slug) ? `${slug}/${p.sectionId}` : p.sectionId && p.sectionId !== "top-picks" ? p.sectionId : slug;
     by.set(k, [...(by.get(k) ?? []), p]);
+    PARENT.set(k, slug);
   }
   return [...by.entries()];
 });
+// Owner's standard plan (11-20 evening, scripts/gift-guide-standard-1120.json): she chose every pick, section and order on
+// the planned guides, so the plan wins there (guarded by giftGuideStandard1120.test.ts).
+const PLANNED = new Set(Object.keys((JSON.parse(readFileSync("scripts/gift-guide-standard-1120.json", "utf8")) as { guides: Record<string, unknown> }).guides));
 const lists = sectionLists();
 /** The For Her / For Him interest sections, each its own list ("her/under-25"). */
 const PEOPLE = new Set(PEOPLE_GUIDES.flatMap((g: { slug: string; sections: readonly { id: string }[] }) => g.sections.map((s) => `${g.slug}/${s.id}`)));
@@ -62,7 +68,8 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
         if (typeof p.type !== "string" || !p.type) bad.push(`${slug}: no type: ${p.name}`);
         if (typeof p.commission === "number") known += 1;
       }
-      if (FIXED.has(slug)) continue;
+      // The owner's plan sets the planned guides' order (her order beats the commission order).
+      if (FIXED.has(slug) || PLANNED.has(PARENT.get(slug) ?? slug)) continue;
       const rate = (p: Pick) => (typeof p.commission === "number" ? p.commission : -1);
       // A list with its own order (FIXED) that joined a section keeps it, leading; the rest are by commission.
       // His Classic Style leads with the brands Louisiana men wear (owner 11-20), each group by commission.
@@ -79,6 +86,9 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
     const bad: string[] = [];
     for (const slug of guides) {
       const list = pageOfList.get(slug)!;
+      // A planned guide holds the picks the owner chose, section by section (her list beats the 25 cap and the type
+      // cap: Him's grill section has three Lodge pieces by her plan); the caps hold on every unplanned list.
+      if (PLANNED.has(PARENT.get(slug) ?? slug)) continue;
       if (list.length > GUIDE_CAP) bad.push(`${slug}: ${list.length} picks`);
       if (FIXED.has(slug)) continue;
       const n = new Map<string, number>();

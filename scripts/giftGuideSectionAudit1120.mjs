@@ -68,8 +68,8 @@ export const RENAMED_1120 = [
   [/^Nano Titanium Vented Straightening Iron - BaBylissPRO$/i, "BaBylissPRO Nano Titanium Vented Straightening Iron", "BaBylissPRO"],
   [/^Coral Coast Fine Fragrance Body Mist - Saltair$/i, "Saltair Coral Coast Fine Fragrance Body Mist", "Saltair"],
 ];
-/** A non-Amazon pick with no price: the audit read it on the maker's own page that day: [name test, price, date]. */
-export const PRICED_1120 = [[/^Fire Department Coffee Backdraft Coffee$/i, 15.99, "2026-11-20"]];
+/** A non-Amazon pick with no price: the audit read it on the maker's own page that day: [name test, price, date, price band]. */
+export const PRICED_1120 = [[/^Fire Department Coffee Backdraft Coffee$/i, 15.99, "2026-11-20", 25]];
 
 /** The pick as the audit leaves it: undefined when it goes, a renamed copy, or the pick itself. */
 export function auditFix1120(slug, p) {
@@ -77,7 +77,7 @@ export function auditFix1120(slug, p) {
   if (GONE_1120.some(([re]) => re.test(name))) return undefined;
   if ((GONE_IN_GUIDE_1120[slug] ?? []).some(([re]) => re.test(name))) return undefined;
   const pr = PRICED_1120.find(([re]) => re.test(name));
-  if (pr && typeof p.price !== "number") p = { ...p, price: pr[1], priceAt: pr[2] };
+  if (pr && typeof p.price !== "number") p = { ...p, price: pr[1], priceAt: pr[2], band: pr[3] };
   const r = RENAMED_1120.find(([re]) => re.test(name));
   return r ? { ...p, name: r[1], ...(r[2] ? { brand: r[2] } : {}), ...(r[3] ? { line: r[3] } : {}) } : p;
 }

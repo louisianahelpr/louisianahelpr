@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1997,
-  "latest": "20261112224850",
+  "count": 2048,
+  "latest": "20261121035500",
   "versions": [
    "20260311000404",
    "20260311001514",
@@ -1999,7 +1999,58 @@
    "20261112220952",
    "20261112222000",
    "20261112223654",
-   "20261112224850"
+   "20261112224850",
+   "20261114233422",
+   "20261114234033",
+   "20261114234041",
+   "20261115001106",
+   "20261115014233",
+   "20261115032241",
+   "20261115033601",
+   "20261115040732",
+   "20261115063613",
+   "20261115064940",
+   "20261115073221",
+   "20261115073802",
+   "20261115173740",
+   "20261115174345",
+   "20261115181026",
+   "20261115181414",
+   "20261115185124",
+   "20261115185143",
+   "20261116152258",
+   "20261117041858",
+   "20261118002340",
+   "20261118055433",
+   "20261118055756",
+   "20261118055848",
+   "20261118060158",
+   "20261118060659",
+   "20261119200128",
+   "20261120010630",
+   "20261120012050",
+   "20261120012729",
+   "20261120014036",
+   "20261120015456",
+   "20261120062130",
+   "20261120062334",
+   "20261120110948",
+   "20261120121830",
+   "20261120150247",
+   "20261120152039",
+   "20261120152652",
+   "20261120155422",
+   "20261120173903",
+   "20261120184430",
+   "20261120185250",
+   "20261120201223",
+   "20261120203904",
+   "20261120205106",
+   "20261120205350",
+   "20261120220306",
+   "20261120221545",
+   "20261121011706",
+   "20261121035500"
   ]
  },
  "functions": {
@@ -2257,6 +2308,15 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 3
+   }
+  ],
+  "admin_app_signins_week": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "admin_apply_account_action": [
@@ -3338,6 +3398,15 @@
     "nargs": 0
    }
   ],
+  "check_referral_bonus_declutter": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "check_seed_boundary_failures": [
    {
     "anon": false,
@@ -3520,6 +3589,18 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 3
+   }
+  ],
+  "claim_welcome_emails": [
+   {
+    "anon": false,
+    "args": [
+     "p_step",
+     "p_limit"
+    ],
+    "authenticated": false,
+    "nargdefaults": 1,
+    "nargs": 2
    }
   ],
   "clamp_helpr_fault_fee": [
@@ -4642,6 +4723,26 @@
     "nargs": 1
    }
   ],
+  "declutter_away_return": [
+   {
+    "anon": false,
+    "args": [
+     "p_seller"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_away_sweep": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "declutter_block_wanted_poster": [
    {
     "anon": false,
@@ -4704,6 +4805,18 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "declutter_bulk_discount": [
+   {
+    "anon": false,
+    "args": [
+     "p_item_ids",
+     "p_percent_off"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "declutter_bundle_applies": [
@@ -5054,6 +5167,15 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "declutter_come_back": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "declutter_complete_handover": [
@@ -5699,6 +5821,15 @@
     "nargs": 11
    }
   ],
+  "declutter_end_shop_sale": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "declutter_end_swap": [
    {
     "anon": false,
@@ -5738,17 +5869,6 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
-   }
-  ],
-  "declutter_free_claim_gate": [
-   {
-    "anon": false,
-    "args": [
-     "p_member"
-    ],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 1
    }
   ],
   "declutter_free_hold_charge_words": [
@@ -5805,26 +5925,6 @@
     "anon": false,
     "args": [],
     "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
-  "declutter_free_still_available": [
-   {
-    "anon": false,
-    "args": [
-     "p_item_id"
-    ],
-    "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 1
-   }
-  ],
-  "declutter_free_still_available_sweep": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
    }
@@ -5894,6 +5994,17 @@
     "authenticated": false,
     "nargdefaults": 1,
     "nargs": 6
+   }
+  ],
+  "declutter_go_away": [
+   {
+    "anon": false,
+    "args": [
+     "p_back_on"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "declutter_guest_first_screen": [
@@ -6008,6 +6119,37 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "declutter_haul_away_opt_in_state": [
+   {
+    "anon": false,
+    "args": [
+     "p_item_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_haul_away_opt_ins": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_haul_away_opted_in": [
+   {
+    "anon": false,
+    "args": [
+     "p_item_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "declutter_haul_away_state": [
@@ -6201,15 +6343,6 @@
     "nargs": 1
    }
   ],
-  "declutter_identity_before_buy": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
   "declutter_identity_gate": [
    {
     "anon": false,
@@ -6251,6 +6384,17 @@
     "anon": false,
     "args": [
      "p_item_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_item_demand": [
+   {
+    "anon": true,
+    "args": [
+     "p_item_ids"
     ],
     "authenticated": true,
     "nargdefaults": 0,
@@ -6426,6 +6570,24 @@
    }
   ],
   "declutter_items_ship_follows_listing": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_items_shop_sale_price": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_items_shop_sale_return": [
    {
     "anon": false,
     "args": [],
@@ -7134,6 +7296,17 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "declutter_my_order_cards": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_ids"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "declutter_my_order_talks": [
@@ -9000,6 +9173,17 @@
     "nargs": 1
    }
   ],
+  "declutter_seller_away_until": [
+   {
+    "anon": true,
+    "args": [
+     "p_seller_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "declutter_seller_can_ship": [
    {
     "anon": false,
@@ -9274,6 +9458,15 @@
     "nargs": 1
    }
   ],
+  "declutter_selling_home": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "declutter_send_handover_message": [
    {
     "anon": false,
@@ -9296,6 +9489,19 @@
     ],
     "authenticated": true,
     "nargdefaults": 1,
+    "nargs": 3
+   }
+  ],
+  "declutter_send_saver_offer": [
+   {
+    "anon": false,
+    "args": [
+     "p_item_id",
+     "p_percent_off",
+     "p_amount_cents"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
     "nargs": 3
    }
   ],
@@ -9392,6 +9598,18 @@
     "args": [
      "p_item_id",
      "p_handovers"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "declutter_set_haul_away_opt_in": [
+   {
+    "anon": false,
+    "args": [
+     "p_item_id",
+     "p_on"
     ],
     "authenticated": true,
     "nargdefaults": 0,
@@ -9631,15 +9849,6 @@
     "nargs": 2
    }
   ],
-  "declutter_setup_fee_before_list": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
   "declutter_setup_fee_due_cents": [
    {
     "anon": false,
@@ -9877,6 +10086,37 @@
     "nargs": 1
    }
   ],
+  "declutter_shop_sale_apply": [
+   {
+    "anon": false,
+    "args": [
+     "p_sale_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_shop_sale_restore": [
+   {
+    "anon": false,
+    "args": [
+     "p_sale_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_shop_sale_sweep": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "declutter_slot_in_windows": [
    {
     "anon": false,
@@ -9924,6 +10164,19 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "declutter_start_shop_sale": [
+   {
+    "anon": false,
+    "args": [
+     "p_percent_off",
+     "p_starts_at",
+     "p_ends_at"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
    }
   ],
   "declutter_stop_my_seller_delivery": [
@@ -10875,15 +11128,6 @@
     "nargs": 0
    }
   ],
-  "enforce_identity_before_post": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
   "enforce_identity_before_start": [
    {
     "anon": false,
@@ -11056,6 +11300,15 @@
    }
   ],
   "enforce_paid_job_fee_fields_fixed": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "enforce_poster_identity_before_offer": [
    {
     "anon": false,
     "args": [],
@@ -11350,6 +11603,17 @@
     "nargs": 0
    }
   ],
+  "fair_price_typical": [
+   {
+    "anon": false,
+    "args": [
+     "p_category"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "fan_out_push_on_notification": [
    {
     "anon": false,
@@ -11560,6 +11824,19 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "get_fair_price_hint": [
+   {
+    "anon": true,
+    "args": [
+     "p_category",
+     "p_lat",
+     "p_lng"
+    ],
+    "authenticated": true,
+    "nargdefaults": 2,
+    "nargs": 3
    }
   ],
   "get_fill_rate_stats": [
@@ -11933,17 +12210,6 @@
     "nargs": 0
    }
   ],
-  "get_price_guidance": [
-   {
-    "anon": false,
-    "args": [
-     "p_category"
-    ],
-    "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 1
-   }
-  ],
   "get_public_open_jobs": [
    {
     "anon": true,
@@ -12100,6 +12366,66 @@
     "nargs": 1
    }
   ],
+  "gift_wish_list_get": [
+   {
+    "anon": true,
+    "args": [
+     "p_code"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "gift_wish_list_mine": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "gift_wish_list_new_code": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "gift_wish_list_new_link": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "gift_wish_list_prune": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "gift_wish_list_save": [
+   {
+    "anon": true,
+    "args": [
+     "p_name",
+     "p_items",
+     "p_test"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 3
+   }
+  ],
   "give_up_series_dates": [
    {
     "anon": false,
@@ -12110,6 +12436,24 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "giveaway_entry_url": [
+   {
+    "anon": true,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "giveaway_reminder_sweep": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "group_member_slot": [
@@ -13283,6 +13627,15 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "identity_check_on_for_everyone": [
+   {
+    "anon": true,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "identity_fingerprint": [
@@ -15871,6 +16224,18 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "record_app_open": [
+   {
+    "anon": false,
+    "args": [
+     "p_platform",
+     "p_app_version"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 2
    }
   ],
   "record_backout_notice": [
@@ -18620,6 +18985,70 @@
     "nargs": 0
    }
   ],
+  "sbs_admin_list": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sbs_admin_review": [
+   {
+    "anon": false,
+    "args": [
+     "p_id",
+     "p_status"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "sbs_public_featured": [
+   {
+    "anon": true,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sbs_service_create": [
+   {
+    "anon": false,
+    "args": [
+     "p_row"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "sbs_service_logo_path": [
+   {
+    "anon": false,
+    "args": [
+     "p_id",
+     "p_any"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "sbs_town_key": [
+   {
+    "anon": false,
+    "args": [
+     "p_town"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "scan_application_contact_info": [
    {
     "anon": false,
@@ -18676,6 +19105,67 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "secret_santa_cancel": [
+   {
+    "anon": true,
+    "args": [
+     "p_code",
+     "p_tokens"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "secret_santa_create": [
+   {
+    "anon": true,
+    "args": [
+     "p_names",
+     "p_gives_to",
+     "p_avoid",
+     "p_budget",
+     "p_exchange_on"
+    ],
+    "authenticated": true,
+    "nargdefaults": 3,
+    "nargs": 5
+   }
+  ],
+  "secret_santa_expire": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "secret_santa_reveal": [
+   {
+    "anon": true,
+    "args": [
+     "p_code",
+     "p_token"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "secret_santa_set_wish_list": [
+   {
+    "anon": true,
+    "args": [
+     "p_code",
+     "p_token",
+     "p_wish_list_code"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
    }
   ],
   "section_keys_ok": [
@@ -19244,6 +19734,17 @@
     "nargs": 1
    }
   ],
+  "shop_closed_for_today": [
+   {
+    "anon": false,
+    "args": [
+     "p_shop_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "shop_complete_handover": [
    {
     "anon": false,
@@ -19679,24 +20180,6 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 1
-   }
-  ],
-  "shop_identity_before_buy": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
-  "shop_identity_before_list": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
    }
   ],
   "shop_item_files_guard": [
@@ -20530,6 +21013,19 @@
      "p_kept",
      "p_tax",
      "p_paid"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
+  "shop_refund_tax_kept_on_base": [
+   {
+    "anon": false,
+    "args": [
+     "p_kept",
+     "p_tax",
+     "p_base"
     ],
     "authenticated": false,
     "nargdefaults": 0,
@@ -23723,6 +24219,57 @@
    "rls": false,
    "triggers": []
   },
+  "app_installs": {
+   "checks": [
+    "CHECK (((app_version IS NULL) OR (app_version ~ '^[0-9A-Za-z.+-]{1,40}$'::text)))",
+    "CHECK ((platform = ANY (ARRAY['ios'::text, 'android'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "app_version": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "first_seen_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "last_seen_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "platform": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "apple_sign_in_tokens": {
    "checks": [
     "CHECK ((client_id ~ '^[A-Za-z0-9.\\-]{1,200}$'::text))",
@@ -24725,7 +25272,7 @@
    "checks": [
     "CHECK (((admin_note IS NULL) OR (char_length(admin_note) <= 300)))",
     "CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'declined'::text])))",
-    "CHECK ((suggested_in = ANY (ARRAY['jobs'::text, 'declutter'::text])))",
+    "CHECK ((suggested_in = ANY (ARRAY['jobs'::text, 'declutter'::text, 'shops'::text])))",
     "CHECK (((char_length(btrim(suggestion)) >= 2) AND (char_length(btrim(suggestion)) <= 40)))"
    ],
    "columnGrants": {},
@@ -27696,40 +28243,6 @@
     "before:update"
    ]
   },
-  "declutter_free_still_asks": {
-   "checks": [],
-   "columnGrants": {},
-   "columns": {
-    "answered_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "timestamp with time zone"
-    },
-    "asked_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "timestamp with time zone"
-    },
-    "item_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "uuid"
-    }
-   },
-   "grants": {},
-   "kind": "table",
-   "policies": [],
-   "rls": true,
-   "triggers": [
-    "before:insert|update|delete"
-   ]
-  },
   "declutter_funnel_events": {
    "checks": [
     "CHECK (((detail IS NULL) OR (detail ~ '^[a-z0-9_]{1,64}$'::text)))",
@@ -28546,6 +29059,13 @@
      "hasDefault": false,
      "notNull": true,
      "type": "integer"
+    },
+    "haul_away_opt_in": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
     },
     "item_id": {
      "enum": null,
@@ -30001,6 +30521,13 @@
      "notNull": true,
      "type": "timestamp with time zone"
     },
+    "saver_offer_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
     "seller_id": {
      "enum": null,
      "generated": false,
@@ -30055,8 +30582,7 @@
     "after:insert",
     "after:update",
     "before:insert",
-    "before:insert|update|delete",
-    "before:update"
+    "before:insert|update|delete"
    ]
   },
   "declutter_order_deliveries": {
@@ -32667,6 +33193,154 @@
     "before:insert|update|delete"
    ]
   },
+  "declutter_saver_offer_sends": {
+   "checks": [
+    "CHECK (((amount_cents >= 100) AND (amount_cents <= 100000)))",
+    "CHECK (((percent_off IS NULL) OR ((percent_off >= 5) AND (percent_off <= 50))))",
+    "CHECK (((price_cents >= 100) AND (price_cents <= 100000)))",
+    "CHECK ((sent_count > 0))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "amount_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "item_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "percent_off": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "smallint"
+    },
+    "price_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "sent_count": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter saver offer sends: seller reads own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "declutter_seller_away": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "back_on": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "date"
+    },
+    "paused_item_ids": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid[]"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "started_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter seller away: seller reads own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "declutter_seller_defaults": {
    "checks": [
     "CHECK ((drop_pct = ANY (ARRAY[5, 10, 15, 20])))",
@@ -33302,6 +33976,171 @@
     {
      "cmd": "SELECT",
      "name": "declutter_seller_porch_days_own_read",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "declutter_shop_sale_items": {
+   "checks": [
+    "CHECK (((before_cents >= 100) AND (before_cents <= 100000)))",
+    "CHECK ((sale_cents < before_cents))",
+    "CHECK (((sale_cents >= 100) AND (sale_cents <= 100000)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "before_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "item_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "restored_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "sale_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "sale_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "seller_changed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter shop sale items: seller reads own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "declutter_shop_sales": {
+   "checks": [
+    "CHECK (((percent_off >= 5) AND (percent_off <= 50)))",
+    "CHECK (((ends_at > starts_at) AND (ends_at <= (starts_at + '14 days 02:00:00'::interval))))",
+    "CHECK ((status = ANY (ARRAY['scheduled'::text, 'on'::text, 'ended'::text, 'cancelled'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "ended_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "ends_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "percent_off": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "smallint"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "starts_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter shop sales: seller reads own",
      "permissive": "PERMISSIVE",
      "roles": [
       "authenticated"
@@ -35443,6 +36282,286 @@
      ]
     }
    ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "gift_planner_plans": {
+   "checks": [
+    "CHECK (((jsonb_typeof(plan) = 'object'::text) AND (pg_column_size(plan) <= 65536)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "plan": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "jsonb"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "DELETE",
+     "INSERT",
+     "SELECT",
+     "UPDATE"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "INSERT",
+     "name": "gift planner: member adds own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "UPDATE",
+     "name": "gift planner: member changes own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "SELECT",
+     "name": "gift planner: member reads own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "DELETE",
+     "name": "gift planner: member removes own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:delete",
+    "before:insert",
+    "before:insert|update|delete",
+    "before:update"
+   ]
+  },
+  "gift_wish_list_hits": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "bucket": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "hit_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "bigint"
+    },
+    "snapshot": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "gift_wish_lists": {
+   "checks": [
+    "CHECK ((code ~ '^[a-z0-9]{12}$'::text))",
+    "CHECK (((jsonb_typeof(items) = 'array'::text) AND (jsonb_array_length(items) <= 100)))",
+    "CHECK (((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 60)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "code": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "is_seed": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "items": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "jsonb"
+    },
+    "name": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "giveaway_reminder_sends": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "reminder_key": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "sent_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "giveaway_reminders": {
+   "checks": [
+    "CHECK ((key ~ '^[a-z0-9_]+$'::text))",
+    "CHECK ((link ~ '^/[^/]'::text))",
+    "CHECK (((length(btrim(message)) >= 1) AND (length(btrim(message)) <= 300)))",
+    "CHECK (((length(btrim(title)) >= 1) AND (length(btrim(title)) <= 80)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "key": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "link": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "message": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "send_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "title": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"
@@ -44634,6 +45753,13 @@
      "notNull": true,
      "type": "boolean"
     },
+    "email_giveaway_reminders": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
     "email_job_applications": {
      "enum": null,
      "generated": false,
@@ -44747,6 +45873,13 @@
      "type": "boolean"
     },
     "financial_alerts": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "giveaway_reminders": {
      "enum": null,
      "generated": false,
      "hasDefault": true,
@@ -45083,7 +46216,7 @@
   },
   "notifications": {
    "checks": [
-    "CHECK ((type = ANY (ARRAY['info'::text, 'success'::text, 'warning'::text, 'job_update'::text, 'application'::text, 'review'::text, 'payment'::text, 'job_match'::text, 'job_updates'::text, 'work_status'::text, 'transit_updates'::text, 'system_alert'::text, 'new_offers'::text, 'expired'::text, 'financial_alerts'::text, 'verified'::text, 'message'::text, 'admin_alert'::text, 'declutter_listings'::text, 'declutter_offers'::text, 'declutter_sales'::text, 'declutter_pickups'::text, 'declutter_refunds'::text, 'declutter_price_drops'::text, 'declutter_wanted'::text, 'declutter_questions'::text, 'shops_orders'::text, 'shops_messages'::text, 'shops_updates'::text, 'admin_activity'::text, 'shops_following'::text])))"
+    "CHECK ((type = ANY (ARRAY['info'::text, 'success'::text, 'warning'::text, 'job_update'::text, 'application'::text, 'review'::text, 'payment'::text, 'job_match'::text, 'job_updates'::text, 'work_status'::text, 'transit_updates'::text, 'system_alert'::text, 'new_offers'::text, 'expired'::text, 'financial_alerts'::text, 'verified'::text, 'message'::text, 'admin_alert'::text, 'declutter_listings'::text, 'declutter_offers'::text, 'declutter_sales'::text, 'declutter_pickups'::text, 'declutter_refunds'::text, 'declutter_price_drops'::text, 'declutter_wanted'::text, 'declutter_questions'::text, 'shops_orders'::text, 'shops_messages'::text, 'shops_updates'::text, 'admin_activity'::text, 'shops_following'::text, 'giveaway_reminders'::text])))"
    ],
    "columnGrants": {},
    "columns": {
@@ -52780,6 +53913,288 @@
     "before:update"
    ]
   },
+  "sbs_featured_submissions": {
+   "checks": [
+    "CHECK (((length(btrim(business_name)) >= 2) AND (length(btrim(business_name)) <= 80)))",
+    "CHECK (((length(btrim(category)) >= 1) AND (length(btrim(category)) <= 40)))",
+    "CHECK ((((length(contact_email) >= 6) AND (length(contact_email) <= 254)) AND (contact_email !~ '\\s'::text) AND (contact_email ~~ '%_@_%.__%'::text)))",
+    "CHECK (((deal IS NULL) OR (length(deal) <= 200)))",
+    "CHECK ((((length(link) >= 10) AND (length(link) <= 300)) AND (link ~ '^https://[^\\s]+$'::text)))",
+    "CHECK (((logo_path IS NULL) OR (logo_path ~ '^submissions/[0-9a-f-]{36}\\.(png|jpg|webp)$'::text)))",
+    "CHECK (participating)",
+    "CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])))",
+    "CHECK (((length(btrim(town)) >= 2) AND (length(btrim(town)) <= 60)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "business_name": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "category": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "contact_email": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "deal": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "link": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "logo_path": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "participating": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "reviewed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "reviewed_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "town": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "secret_santa_groups": {
+   "checks": [
+    "CHECK (((budget IS NULL) OR ((budget >= 1) AND (budget <= 500))))",
+    "CHECK ((code ~ '^[a-f0-9]{10}$'::text))",
+    "CHECK (((size >= 3) AND (size <= 30)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "budget": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "code": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "exchange_on": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "date"
+    },
+    "expires_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "is_seed": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "size": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "smallint"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "secret_santa_hits": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "bucket": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "hit_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "bigint"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "secret_santa_people": {
+   "checks": [
+    "CHECK ((((gives_to >= 0) AND (gives_to <= 29)) AND (gives_to <> slot)))",
+    "CHECK ((((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 30)) AND (name !~ '[[:cntrl:]]'::text) AND (name !~ '[\\u0001-\\u001F\\u007F-\\u009F\\u00AD\\u061C\\u180E\\u200B-\\u200F\\u202A-\\u202E\\u2060-\\u2069\\uFEFF]'::text) AND (name !~* '(://|www\\.|@|[a-z0-9-]+\\.(com|net|org|ly|io|co|us|info|biz|me|app|link|xyz|gg|tv|site|online|shop)(\\M|/))'::text) AND (length(regexp_replace(name, '[^0-9]'::text, ''::text, 'g'::text)) < 7)))",
+    "CHECK (((slot >= 0) AND (slot <= 29)))",
+    "CHECK ((token_hash ~ '^[0-9a-f]{64}$'::text))",
+    "CHECK (((wish_list_code IS NULL) OR (wish_list_code ~ '^[a-z0-9]{12}$'::text)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "gives_to": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "smallint"
+    },
+    "group_code": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "name": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "slot": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "smallint"
+    },
+    "token_hash": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "wish_list_code": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "seed_purge_runs": {
    "checks": [],
    "columnGrants": {},
@@ -52872,6 +54287,7 @@
    ],
    "rls": true,
    "triggers": [
+    "before:insert",
     "before:insert|update|delete"
    ]
   },
@@ -56776,7 +58192,8 @@
     "CHECK (((status <> 'succeeded'::text) OR (stripe_refund_id IS NOT NULL)))",
     "CHECK ((tax_cents >= 0))",
     "CHECK (((tax_cents < paid_cents) AND (card_fee_cents <= paid_cents)))",
-    "CHECK ((tax_kept_cents = shop_refund_tax_kept(kept_cents, tax_cents, paid_cents)))"
+    "CHECK ((tax_kept_cents =\nCASE\n    WHEN (taxed_base_cents IS NULL) THEN shop_refund_tax_kept(kept_cents, tax_cents, paid_cents)\n    ELSE shop_refund_tax_kept_on_base(kept_cents, tax_cents, taxed_base_cents)\nEND))",
+    "CHECK (((taxed_base_cents IS NULL) OR ((taxed_base_cents > 0) AND (taxed_base_cents <= (paid_cents - tax_cents)))))"
    ],
    "columnGrants": {
     "authenticated": {
@@ -56992,6 +58409,13 @@
      "generated": false,
      "hasDefault": false,
      "notNull": true,
+     "type": "integer"
+    },
+    "taxed_base_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
      "type": "integer"
     }
    },
@@ -58141,6 +59565,7 @@
   },
   "sponsor_settings": {
    "checks": [
+    "CHECK (((entry_url IS NULL) OR (entry_url ~ '^https://[^\\s]+$'::text)))",
     "CHECK (((founder_photo_path IS NULL) OR (founder_photo_path ~ '^founder/[0-9a-f-]{36}\\.(png|jpg)$'::text)))",
     "CHECK (((group_members IS NULL) OR (group_members >= 0)))",
     "CHECK (id)",
@@ -58150,6 +59575,13 @@
    ],
    "columnGrants": {},
    "columns": {
+    "entry_url": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
     "founder_photo_path": {
      "enum": null,
      "generated": false,
@@ -59201,6 +60633,13 @@
      "generated": false,
      "hasDefault": true,
      "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "cleared_before": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
      "type": "timestamp with time zone"
     },
     "id": {
@@ -60387,6 +61826,56 @@
      ]
     }
    ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "welcome_email_sends": {
+   "checks": [
+    "CHECK ((email_step = ANY (ARRAY[1, 3])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "claimed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "email_step": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "smallint"
+    },
+    "message_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "queued_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"

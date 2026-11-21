@@ -99,7 +99,7 @@ describe("the calm landing (owner 11-20 PM)", () => {
       expect(existsSync(`public${img.getAttribute("src")}`), img.getAttribute("src")!).toBe(true);
       expect(a.querySelector(".gg-entry-sub")?.textContent).toBeTruthy();
     }
-    expect(cards.at(-1)!.getAttribute("href")).toBe(`/gift-guides/${DEALS_SLUG}`);
+    expect(cards[cards.length - 1].getAttribute("href")).toBe(`/gift-guides/${DEALS_SLUG}`);
     // Every group with guides is reached: by its card or its link; a group of one opens that guide, else its page.
     const links = [...container.querySelectorAll<HTMLAnchorElement>("[data-gift-entries] a[data-gift-entry], [data-gift-more-groups] a")].map((a) => a.getAttribute("href"));
     const groups = ROWS.filter((r) => rowTiles(r.row).length > 0);
@@ -126,7 +126,7 @@ describe("the Gift of the Day is affordable and priced (owner 11-20)", () => {
   const budget = guideBySlug(GOTD_SOURCE_GUIDE)!.picks;
   const pool = [...budget, ...topPicks()];
   // The day the newest price was checked: every price shown on that day is fresh.
-  const newest = pool.map((p) => p.priceAt ?? "").sort().at(-1)!;
+  const newest = pool.map((p) => p.priceAt ?? "").sort().slice(-1)[0];
   const pricedOn = (ymd: string) => (p: CatalogPick) => showsPrice(p, ymd);
 
   it("draws only checked, shown prices of $50 or less, from a known brand, on every day of a month", () => {

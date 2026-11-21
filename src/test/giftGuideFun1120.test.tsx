@@ -319,7 +319,7 @@ describe("Christmas countdown and Gift of the Day", () => {
     // Owner 11-20: "The gift of the day shouldn't be expensive" (src/test/giftGuideLandingCalm1120.test.tsx).
     await loadAllGuidePicks();
     const pool = [...guideBySlug(GOTD_SOURCE_GUIDE)!.picks, ...topPicks()];
-    const newest = pool.map((p) => p.priceAt ?? "").sort().at(-1)!;
+    const newest = pool.map((p) => p.priceAt ?? "").sort().slice(-1)[0];
     const priced = (p: CatalogPick) => showsPrice(p, newest);
     expect(pool.length).toBeGreaterThan(3);
     const a = giftOfTheDay(pool, la("2026-12-01", 1), priced);
@@ -340,7 +340,7 @@ describe("Christmas countdown and Gift of the Day", () => {
   });
   it("the landing's small card shows the days and the gift; no 25 Days link while the flag is off; the tools are one row of four", async () => {
     await loadAllGuidePicks();
-    const newest = [...guideBySlug(GOTD_SOURCE_GUIDE)!.picks, ...topPicks()].map((p) => p.priceAt ?? "").sort().at(-1)!;
+    const newest = [...guideBySlug(GOTD_SOURCE_GUIDE)!.picks, ...topPicks()].map((p) => p.priceAt ?? "").sort().slice(-1)[0];
     const { container } = render(<MemoryRouter><GiftCountdown now={la(newest)} /></MemoryRouter>);
     const c = christmasCountdown(la(newest));
     expect(container.querySelector("[data-gift-countdown-days]")?.getAttribute("data-gift-countdown-days")).toBe(String(c.kind === "days" ? c.days : c.kind));

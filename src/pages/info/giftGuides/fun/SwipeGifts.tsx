@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type Pointe
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, subscribeGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { FUN_WORDS as W, SWIPE_BUDGETS, SWIPE_WHO, borrowFits, santaRound, swipePool, swipeRound, type SwipeBudget, type SwipeWho } from "@/content/giftGuideFun1120";
+import { FUN_WORDS as W, SWIPE_BUDGETS, SWIPE_ROUND, SWIPE_WHO, borrowFits, santaRound, swipePool, swipeRound, type SwipeBudget, type SwipeWho } from "@/content/giftGuideFun1120";
 import { BUDGET_GUIDES } from "@/content/giftPickBand";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { PickPrice } from "@/components/giftGuides/PickPrice";

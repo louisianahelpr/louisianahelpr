@@ -147,7 +147,7 @@ describe("Holiday Hub filters", () => {
     expect(all.some((e) => e.tba)).toBe(true);
     expect(all.every((e) => !isOver(e, today))).toBe(true);
     const groups = eventsByDay(all, today);
-    expect(groups.at(-1)?.key).toBe("tba");
+    expect(groups[groups.length - 1]?.key).toBe("tba");
     expect(groups.filter((g) => g.day).map((g) => g.day)).toEqual([...groups.filter((g) => g.day).map((g) => g.day)].sort());
   });
 
@@ -206,7 +206,7 @@ describe("Holiday Hub pages", () => {
   it("/holidays/events: This weekend lists only this weekend's events, grouped by day; TBA under Dates TBA", () => {
     const { container, unmount } = at("/holidays/events", <HolidayEvents />);
     const headings = [...container.querySelectorAll("h2")].map((h) => h.textContent ?? "");
-    expect(headings.at(-1)).toMatch(/^Dates TBA/);
+    expect(headings[headings.length - 1]).toMatch(/^Dates TBA/);
     expect(headings.some((h) => h.startsWith("Today, Friday, November 20"))).toBe(true);
     unmount();
     const weekend = at("/holidays/events?when=weekend", <HolidayEvents />);

@@ -20,6 +20,7 @@
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { relsOf } from "./giftGuidePeople1120.mjs";
 import { cutoutPhoto } from "./giftGuideCutouts1120.mjs";
+import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
@@ -124,9 +125,9 @@ export const KIDS_1121 = [
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 const build = (rows, slug, g) =>
-  rows.map((r, i) => ({ r, i })).sort((a, b) => a.r.sortPrice - b.r.sortPrice || a.i - b.i).map(({ r }) => {
+  rankByPrice(rows).map(({ row: r, priceRank }) => {
     const { sortPrice: _sp, price, ...rest } = r;
-    const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug };
+    const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank };
     if (!isAmazon(r)) Object.assign(p, { price, priceAt: HIM_KIDS_PRICE_AT });
     return { ...p, rels: g ? relsOf(g, p) : [] };
   });

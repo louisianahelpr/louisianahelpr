@@ -1,6 +1,6 @@
 /** Types for scripts/giftGuideHimKids1121.mjs (For Him and For Kids = the owner's Amazon saves, 2026-11-21; a few switched to a better-paying ShopMy store). */
 export interface HimKids1121Row { name: string; brand: string; line: string; href: string; image: string; store: string; sortPrice: number; price?: number; commission: number; type: string }
-export interface HimKids1121Pick { name: string; brand: string; line: string; href: string; image: string; store: string; price?: number; priceAt?: string; commission: number; type: string; ownerPick: true; from: string; rels: string[] }
+export interface HimKids1121Pick { name: string; brand: string; line: string; href: string; image: string; store: string; price?: number; priceAt?: string; commission: number; type: string; ownerPick: true; from: string; priceRank: number | null; rels: string[] }
 export const HIM_GUIDE: string;
 export const KIDS_GUIDE: string;
 export const HIM_KIDS_PRICE_AT: string;

@@ -73,7 +73,7 @@ export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.n
  */
 // Follow-up 1120 (owner 11-20 ~12:05 AM): a 0% Louisiana shop shows only when it is a 25 Days sponsor, so the
 // non-sponsor shops' hosts left with their picks (Dirty Coast, Fleurty Girl, NOLA Couture, Aunt Sally's, KREWE ...).
-export const LOUISIANA_SHOPS = ["crew-dog.com", "dupuys.com", "www.ripvanwinklegardens.com", "www.theoilcenter.com"] as const;
+export const LOUISIANA_SHOPS = ["crew-dog.com", "dupuys.com", "www.ripvanwinklegardens.com"] as const;
 
 /**
  * Brands made in Louisiana: only these get the "Louisiana-made" badge (a pick marked louisianaFit that is not one of
@@ -96,7 +96,7 @@ export const SPONSOR_SITES = ["thestrandtheatre.com", "basicbee.co", "www.zydeco
  * the sponsor badge, 0% allowed). Kept apart from SPONSOR_SITES, which are Louisiana businesses: a Louisiana host's
  * pick stays in the Louisiana section, a national sponsor's does not.
  */
-export const NATIONAL_SPONSOR_SITES = ["homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "mindtheskinlabs.com", "idrawellness.com", "arey.com", "bostonmints.com", "www.hilma.co", "saranoni.com", "skyandsol.co", "criquetshirts.com", "www.aosulife.com", "catlady.com", "www.demingdelights.com", "21collectiveco.com"] as const;
+export const NATIONAL_SPONSOR_SITES = ["homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "mindtheskinlabs.com", "arey.com", "bostonmints.com", "www.hilma.co", "saranoni.com", "skyandsol.co", "criquetshirts.com", "www.aosulife.com", "catlady.com", "www.demingdelights.com", "21collectiveco.com"] as const;
 
 /** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
 export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop", "21 Collective"];
@@ -287,6 +287,8 @@ export const giftGuides = {
     allHref: "/gift-guides/25-days-sponsors",
     left: "Scroll sponsors left",
     right: "Scroll sponsors right",
+    louisiana: "Louisiana",
+    national: "National",
   },
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
   // Louisiana Holiday Hub (owner-approved 2026-11-20): the landing's link to /holidays.
@@ -356,6 +358,10 @@ export const giftGuides = {
   budgetUnder: (n: number) => `Under $${n}`,
   budgetNote: "Amazon items aren't sorted by price here (Amazon doesn't let us list its prices).",
   budgetNone: "Nothing in this budget yet. Try a higher one.",
+  /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
+  sortLabel: "Sort by price",
+  sortLowHigh: "Price: low to high",
+  sortHighLow: "Price: high to low",
   sections: [
     {
       id: "for-her",

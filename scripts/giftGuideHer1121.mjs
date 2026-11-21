@@ -22,6 +22,7 @@
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { relsOf } from "./giftGuidePeople1120.mjs";
 import { cutoutPhoto } from "./giftGuideCutouts1120.mjs";
+import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 
 export const HER_GUIDE = "her";
 /** The day the ShopMy prices were checked (Louisiana day). */
@@ -93,9 +94,9 @@ const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon
 /** The page rows: cheapest first, Amazon without a price, cutout photos, relationship tags, no section. */
 export function her1121Picks(rows = HER_1121) {
   const g = PEOPLE_GUIDES.find((x) => x.slug === HER_GUIDE);
-  return rows.map((r, i) => ({ r, i })).sort((a, b) => a.r.sortPrice - b.r.sortPrice || a.i - b.i).map(({ r }) => {
+  return rankByPrice(rows).map(({ row: r, priceRank }) => {
     const { sortPrice: _sp, price, ...rest } = r;
-    const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE };
+    const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE, priceRank };
     if (!isAmazon(r)) Object.assign(p, { price, priceAt: HER_PRICE_AT });
     return { ...p, rels: relsOf(g, p) };
   });

@@ -8,7 +8,7 @@ import { loadModule } from "@/lib/loadModule";
 /**
  * "Our 25 Days sponsors" (owner 2026-11-20 ~8:40 AM: "a row of sponsor LOGOS that scrolls left/right"; mockup
  * claude.ai/artifact/5MPXu5UGMCGqkvqsrPmwGX): on the gift-guides landing, after the first row of covers and before the
- * Top 10. One round logo per sponsor (Louisiana and national, A to Z), its name under it; swipe on a phone, snap
+ * Top 10. One round logo per sponsor (owner 11-21: Louisiana first, then national, each by gift value; only sponsors whose details are all confirmed), its name under it; swipe on a phone, snap
  * scrolling, arrow buttons on wider screens; no auto-play. A sponsor with a guide spot links to it, else to its
  * Facebook page (new tab); a sponsor without a logo shows its initials. Never a giveaway day. The list
  * (src/content/giftGuideSponsorLogos.json, scripts/gift-guide-sponsor-logos.mjs) loads in its own small chunk after the
@@ -16,7 +16,7 @@ import { loadModule } from "@/lib/loadModule";
  * Guard: src/test/giftGuideTrain1120b.test.ts.
  */
 
-export interface SponsorLogo { name: string; slug: string; logo?: string; href: string; external?: boolean; dark?: boolean }
+export interface SponsorLogo { name: string; slug: string; logo?: string; href: string; external?: boolean; dark?: boolean; group?: "la" | "us" }
 
 const SPONSOR_ROW_CSS = `
 .gg-spons{margin:18px 0 6px;padding:14px 0 12px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card))}
@@ -24,6 +24,8 @@ const SPONSOR_ROW_CSS = `
 .gg-spons-end{display:flex;align-items:center;gap:8px}
 .gg-spons-intro{margin:0 14px 8px;font-size:13px;color:var(--gg-muted)}
 .gg-spons-wrap{position:relative}
+.gg-spons-group{margin:6px 14px 2px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gg-muted)}
+.gg-spons-group+.gg-spons-row{margin-bottom:4px}
 .gg-spons-row{display:flex;gap:12px;overflow-x:auto;list-style:none;margin:0;padding:4px 14px 6px;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
 .gg-spons-row::-webkit-scrollbar{display:none}
 .gg-spons-row>li{flex:none;width:88px;scroll-snap-align:start}
@@ -76,7 +78,7 @@ export function SponsorTile({ s }: { s: SponsorLogo }) {
 
 export function SponsorRow() {
   const [list, setList] = useState<SponsorLogo[] | null>(null);
-  const row = useRef<HTMLUListElement>(null);
+  const rows = useRef<(HTMLUListElement | null)[]>([]);
   useEffect(() => {
     let live = true;
     loadSponsors().then((m) => {
@@ -89,7 +91,14 @@ export function SponsorRow() {
     };
   }, []);
   if (!list || list.length === 0) return null;
-  const scroll = (dir: 1 | -1) => row.current?.scrollBy({ left: dir * Math.max(240, (row.current?.clientWidth ?? 480) * 0.8), behavior: "smooth" });
+  // Owner 2026-11-21: Louisiana sponsors first, national under them, each by gift value (the list's own order).
+  const groups = [
+    { key: "la", label: G.sponsorRow.louisiana, items: list.filter((s) => s.group !== "us") },
+    { key: "us", label: G.sponsorRow.national, items: list.filter((s) => s.group === "us") },
+  ].filter((g) => g.items.length > 0);
+  const scroll = (dir: 1 | -1) => {
+    for (const r of rows.current) r?.scrollBy({ left: dir * Math.max(240, (r.clientWidth || 480) * 0.8), behavior: "smooth" });
+  };
   return (
     <section className="gg-spons" aria-labelledby="gift-sponsors" data-gift-sponsors="">
       <style>{SPONSOR_ROW_CSS}</style>
@@ -108,9 +117,14 @@ export function SponsorRow() {
         </span>
       </div>
       <p className="gg-spons-intro">{G.sponsorRow.intro}</p>
-      <ul className="gg-spons-row" ref={row}>
-        {list.map((s) => <SponsorTile key={s.slug} s={s} />)}
-      </ul>
+      {groups.map((g, i) => (
+        <div key={g.key} data-gift-sponsor-group={g.key}>
+          <h3 className="gg-spons-group" id={`gift-sponsors-${g.key}`}>{g.label}</h3>
+          <ul className="gg-spons-row" aria-labelledby={`gift-sponsors-${g.key}`} ref={(el) => { rows.current[i] = el; }}>
+            {g.items.map((s) => <SponsorTile key={s.slug} s={s} />)}
+          </ul>
+        </div>
+      ))}
     </section>
   );
 }

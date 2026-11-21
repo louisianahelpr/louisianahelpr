@@ -97,6 +97,6 @@ export function clearSantaLast(): void {
   try {
     storage()?.removeItem(SANTA_LAST_KEY);
   } catch {
-    // Nothing kept to clear.
+    // Silence is correct: storage is blocked, so nothing was kept and there is nothing to clear.
   }
 }

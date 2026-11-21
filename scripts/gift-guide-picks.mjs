@@ -4006,7 +4006,7 @@ STANDARD_SNAPSHOTS.push(Object.fromEntries(Object.entries(pageList).map(([k, l])
 // FOR HER = THE OWNER'S OWN SAVES (owner 2026-11-21, scripts/giftGuideHer1121.mjs): in place before the landing strip
 // reads the pages, so the strip never shows a Her pick the page no longer lists; set again after the final sweep below.
 console.log(`gift-guide-picks: her 1121 (before the Top 10) ${JSON.stringify(applyHer1121(pageList, storeList))}`);
-console.log(`gift-guide-picks: him + kids 1121 (before the Top 10) ${JSON.stringify(applyHimKids1121(pageList))}`);
+console.log(`gift-guide-picks: him + kids 1121 (before the Top 10) ${JSON.stringify(applyHimKids1121(pageList, storeList))}`);
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days
  * (scripts/gift-guide-go-clicks.json, measured from prod analytics), then effective commission x item popularity, among
@@ -4099,7 +4099,7 @@ console.log(`gift-guide-picks: final sweep ${JSON.stringify(finalSweep)}`);
 {
   const t = applyHer1121(pageList, storeList);
   console.log(`gift-guide-picks: her 1121 (after the final sweep) ${JSON.stringify(t)}`);
-  console.log(`gift-guide-picks: him + kids 1121 (after the final sweep) ${JSON.stringify(applyHimKids1121(pageList))}`);
+  console.log(`gift-guide-picks: him + kids 1121 (after the final sweep) ${JSON.stringify(applyHimKids1121(pageList, storeList))}`);
 }
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });

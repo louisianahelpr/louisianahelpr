@@ -147,6 +147,16 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/pins/zoom-108604684-1795237968140-108971391_025_b", "ugg-goldenstar-evelina-clog-beige-39d6c0.webp"],
   // Lola Blankets Original Throw (flood-filled, grey shadow removed; Vision lifted only the label)
   ["https://static.shopmy.us/uploads/346f926f-f41b-444e-b686-921455d30264_74A53B12-D898-44DD-8ADB-BBB0CD895907.jpg", "lola-blankets-original-throw-green-ac1ca0.webp"],
+  // COMMISSION SWITCHES 11-21 (same item, better-paying store; scripts/giftGuideHer1121.mjs, scripts/giftGuideHimKids1121.mjs).
+  // Each photo is from the new store's own product page (never Amazon's), Apple Vision cutout, checked on red.
+  // TATCHA The Kissu Lip Mask (tatcha.com main photo)
+  ["https://cdn.shopify.com/s/files/1/0949/3328/7221/files/TheKissuLipMask-pdp-Aug26-Omi-FullSize-MainImage-1200x1200.jpg", "tatcha-kissu-lip-mask-306203.webp"],
+  // L'OCCITANE Shea Butter Classics Gift Set (anthropologie.com boxed-set photo, reflection left out)
+  ["https://images.urbndata.com/is/image/Anthropologie/114587041_030_b2", "loccitane-shea-butter-classics-gift-set-5532cc.webp"],
+  // Therabody Theragun Prime (6th Generation), Black (exclusivebeautyclub.com photo)
+  ["https://cdn.shopify.com/s/files/1/2959/8080/files/therabody-theragun-prime-massage-gun-black.png", "therabody-theragun-prime-6th-gen-e4ad1b.webp"],
+  // LaCrosse Men's Grange 18" Rubber Boot, OD Green (dillards.com photo)
+  ["https://dimg.dillards.com/is/image/DillardsZoom/zoom/lacrosse-mens-grange-18-tall-waterproof-rubber-hunting-work-boots/00000000_zi_ac01ed80-ad36-4d40-8cca-066a3f05fcbd.jpg", "lacrosse-grange-18-rubber-boot-906f98.webp"],
 ]);
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */

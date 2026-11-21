@@ -16,7 +16,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { track } from "@/lib/analytics";
 import { loadModule } from "@/lib/loadModule";
 import { readPushPermission, waitForNoModal } from "@/lib/pushPermissionNudge";
-import { isNativePlatform } from "@/lib/nativeInit";
+import { isNativeIos, isNativePlatform } from "@/lib/nativeInit";
 import { hasWebPushApis, isIosOutsideHomeScreen, subscribeWebPushOnUse } from "@/lib/webPushSupport";
 import { JOB_ACTION_EVENT } from "@/hooks/useNotificationPermissionPrompt";
 
@@ -91,7 +91,9 @@ async function askNativeOnce(context: string | null): Promise<void> {
       const granted = await requestPushPermission();
       track("web_push_ask", { kind: "native", step: "os_answer", answer: granted ? "granted" : "not_granted" });
     },
-    { onShown: () => markAskShown("native"), ...(words ? { words } : {}) },
+    // Apple 5.1.1(iv) (iOS pre-build check, 11-20): on iPhone the sheet's one button is Continue, which always raises
+    // the OS prompt; no "Not now" on our screen. Android and the website keep both buttons.
+    { onShown: () => markAskShown("native"), ...(words ? { words } : {}), ...(isNativeIos ? { continueOnly: true } : {}) },
   );
   if (!agreed) track("web_push_ask", { kind: "native", step: "not_now" });
 }

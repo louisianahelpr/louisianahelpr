@@ -21,16 +21,17 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 
-const env = vi.hoisted(() => ({ native: true, permission: "prompt" as string }));
+const env = vi.hoisted(() => ({ native: true, ios: true, permission: "prompt" as string }));
 const explain = vi.fn();
 const requestPush = vi.fn(async () => true);
 
 vi.mock("@/lib/nativeInit", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/nativeInit")>()),
   get isNativePlatform() { return env.native; },
+  get isNativeIos() { return env.native && env.ios; },
 }));
 vi.mock("@/lib/nativePush", () => ({ requestPushPermission: () => requestPush() }));
-type Opts = { onShown?: () => void } | undefined;
+type Opts = { onShown?: () => void; continueOnly?: boolean } | undefined;
 vi.mock("@/hooks/usePermissionRationale", () => ({
   explainPermission: (kind: string, run: () => unknown, opts?: Opts) => explain(kind, run, opts),
 }));
@@ -47,6 +48,7 @@ beforeEach(() => {
   explain.mockReset();
   requestPush.mockClear();
   env.native = true;
+  env.ios = true;
   env.permission = "prompt";
 });
 
@@ -75,13 +77,27 @@ describe("the app asks with the sheet after a job action (Q2003)", () => {
     expect(explain).toHaveBeenCalledTimes(1);
   });
 
-  // @mutate src/hooks/useWebPush.ts |     { onShown: () => markAskShown("native"), ...(words ? { words } : {}) }, |     { onShown: () => {}, ...(words ? { words } : {}) }, markAskShown("native"),
+  // @mutate src/hooks/useWebPush.ts |     { onShown: () => markAskShown("native"), ...(words ? { words } : {}), ...(isNativeIos ? { continueOnly: true } : {}) }, |     { onShown: () => {}, ...(words ? { words } : {}), ...(isNativeIos ? { continueOnly: true } : {}) }, markAskShown("native"),
   it("native: a sheet that never rendered does not spend the cooldown (Q2003, lead 11-04)", async () => {
     explain.mockImplementation(async () => false); // dismissed before it ever rendered: onShown never ran
     await offerWebPushAfterJobAction();
     expect(localStorage.getItem(WEB_PUSH_ASKED_KEY)).toBeNull();
     await offerWebPushAfterJobAction();
     expect(explain).toHaveBeenCalledTimes(2);
+  });
+
+  // Apple 5.1.1(iv) (iOS pre-build check, 11-20): on iPhone the sheet has one Continue (no decline on our screen);
+  // Android keeps both buttons. The dialog half is src/test/iosPushAskContinueOnly.test.tsx.
+  // @mutate src/hooks/useWebPush.ts | ...(isNativeIos ? { continueOnly: true } : {}) | ...({})
+  it("native iOS asks for the Continue-only sheet; Android does not", async () => {
+    explain.mockImplementation(async (_k: string, _r: () => unknown, opts: Opts) => { opts?.onShown?.(); return true; });
+    await offerWebPushAfterJobAction("posted");
+    expect(explain.mock.calls[0][2]?.continueOnly).toBe(true);
+    localStorage.clear();
+    env.ios = false;
+    await offerWebPushAfterJobAction("posted");
+    expect(explain).toHaveBeenCalledTimes(2);
+    expect(explain.mock.calls[1][2]?.continueOnly).toBeUndefined();
   });
 
   it("the floating toast path is gone", () => {

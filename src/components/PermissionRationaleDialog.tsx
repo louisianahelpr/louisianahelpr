@@ -33,8 +33,14 @@ export function PermissionRationaleDialog() {
     // confirm in the app fired its Cancel and left the dialog on screen. A
     // dead ✕ is worse than none. Dismissing resolves the rationale as a
     // decline, exactly like "Not now".
-    <Dialog open={state.open} onOpenChange={(next) => { if (!next) __resolveRationale(false); }}>
-      <DialogContent role="alertdialog">
+    // Apple 5.1.1(iv) (state.continueOnly, the native iOS push ask): no way to decline on our screen, so the X is
+    // gone and Escape / an outside tap do nothing; Continue is the one way on, and the OS prompt holds the choice.
+    <Dialog open={state.open} onOpenChange={(next) => { if (!next && !state.continueOnly) __resolveRationale(false); }}>
+      <DialogContent
+        role="alertdialog"
+        data-continue-only={state.continueOnly ? "" : undefined}
+        {...(state.continueOnly ? { closeDisabled: true, onEscapeKeyDown: (e: Event) => e.preventDefault(), onInteractOutside: (e: Event) => e.preventDefault() } : {})}
+      >
         {/* NO ICON ROW. This was a bespoke 56px tile rendered ABOVE the Hero,
             which pushed the title off the top row and left the ✕ aligned to an
             icon instead of to a heading — so this was the one popup in the app
@@ -82,9 +88,11 @@ export function PermissionRationaleDialog() {
             shared 56px — so this dialog's controls were visibly shorter than
             the ones in the confirm that might open right after it. */}
         <DialogFooter>
-          <DialogSecondaryAction onClick={() => __resolveRationale(false)}>
-            Not now
-          </DialogSecondaryAction>
+          {!state.continueOnly && (
+            <DialogSecondaryAction onClick={() => __resolveRationale(false)}>
+              Not now
+            </DialogSecondaryAction>
+          )}
           <DialogPrimaryAction onClick={() => __resolveRationale(true)}>
             {copy.cta}
           </DialogPrimaryAction>

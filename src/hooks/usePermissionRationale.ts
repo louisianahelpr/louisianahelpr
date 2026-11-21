@@ -103,6 +103,12 @@ interface State {
   onShown?: (() => void) | null;
   /** Owner 11-20 (ease batch): the ask in context ("Want a ping when someone applies?"); null = the kind's own words. */
   words?: { title: string; body: string } | null;
+  /**
+   * Apple guideline 5.1.1(iv) (iOS pre-build check, 11-20): in the native iOS app a pre-permission sheet may not offer
+   * a way to decline or leave on our own screen. One "Continue", which always raises the OS prompt (its Allow /
+   * Don't Allow is the choice); no "Not now", no X, no Escape or outside tap.
+   */
+  continueOnly?: boolean;
 }
 
 let externalState: State = { open: false, kind: null, resolve: null };
@@ -258,9 +264,9 @@ export function usePermissionRationale() {
 export function explainPermission(
   kind: PermissionKind,
   run: () => Promise<void> | void,
-  opts?: { onShown?: () => void; words?: { title: string; body: string } },
+  opts?: { onShown?: () => void; words?: { title: string; body: string }; continueOnly?: boolean },
 ): Promise<boolean> {
-  return explainThenRun(kind, run, opts?.onShown, opts?.words);
+  return explainThenRun(kind, run, opts?.onShown, opts?.words, opts?.continueOnly === true);
 }
 
 /**
@@ -280,13 +286,14 @@ export function __markRationaleShown(): void {
 }
 
 /** Open the explainer; on a yes, record it and run the OS call. */
-function explainThenRun(kind: PermissionKind, runNativeCall: () => Promise<void> | void, onShown?: () => void, words?: { title: string; body: string }): Promise<boolean> {
+function explainThenRun(kind: PermissionKind, runNativeCall: () => Promise<void> | void, onShown?: () => void, words?: { title: string; body: string }, continueOnly = false): Promise<boolean> {
   return new Promise((resolve) => {
     setState({
       open: true,
       kind,
       onShown: onShown ?? null,
       words: words ?? null,
+      continueOnly,
       resolve: async (confirmed: boolean) => {
         if (!confirmed) {
           resolve(false);
@@ -322,7 +329,9 @@ export function usePermissionRationaleState() {
   // sync
   if (state !== externalState) setLocal(externalState);
   // Owner 11-20: an ask in context keeps the kind's icon and button, with its own question and line.
-  const copy = state.kind ? (state.words ? { ...COPY[state.kind], ...state.words } : COPY[state.kind]) : null;
+  const base = state.kind ? (state.words ? { ...COPY[state.kind], ...state.words } : COPY[state.kind]) : null;
+  // 5.1.1(iv): the one button says what it does next (the OS prompt follows), not "Turn on notifications".
+  const copy = base && state.continueOnly ? { ...base, cta: "Continue" } : base;
   return { state, subscribe, copy, setState };
 }
 

@@ -41,7 +41,7 @@ describe("gift guide photo cutouts (photo review 11-20)", () => {
   });
 
   it("no generated guide still shows a photo that has a cutout", () => {
-    expect(guides.length).toBeGreaterThan(40);
+    expect(guides.length).toBeGreaterThan(34);
     const shown = guides.flatMap((g) => g.picks.filter((p) => p.image && CUTOUTS_1120.has(p.image.split("?")[0])).map((p) => `${g.slug}: ${p.name}`));
     expect(shown).toEqual([]);
     const used = new Set(guides.flatMap((g) => g.picks.map((p) => p.image)).filter((i) => i?.startsWith(CUTOUT_BASE)));

@@ -69,9 +69,16 @@ export const overPrice = (slug, p) => {
 /** Owner 11-20 9:50 and 9:53 PM: "remove the color guides", "remove the pet guides". Their lists are dropped whole, never re-homed. */
 export const REMOVED_GUIDES_1120E = ["gifts-by-color", "red-lover", "pink-lover", "purple-lover", "blue-lover", "green-lover", "yellow-lover", "black-lover", "neutral-lover", "pets", "dog-lover", "cat-person", "new-puppy", "new-kitten", "horse-lover", "fish-lover", "bird-lover"];
 
+/**
+ * OWNER RESET 11-20 10:25 PM ("yes lets do that"): only Her, Him, Kids, Teens, Grandparents, Friends & Coworkers, the Louisiana guides and
+ * the 25 Days sponsors page stay on the site. These are unpublished, not deleted: their source lists stay in the import, their pages are not
+ * written, and their links open the gift guides page (REMOVED_GUIDES, giftGuideCatalog.ts). Delete a slug in both places to bring it back.
+ */
+export const UNPUBLISHED_GUIDES_1120E = ["car-lover", "coffee-lover", "creative-and-entertainment", "family", "fitness", "gift-wrap-and-cards", "gifts-by-budget", "healthcare", "heroes", "home-and-kitchen", "life-moments", "outdoors-and-travel", "splurge", "work-life"];
+
 export function applyOwner1120e(pageList, spec, log = { tapped: [], notes: [], price: [], brand: [] }) {
   log.brand ??= [];
-  for (const gone of REMOVED_GUIDES_1120E) delete pageList[gone];
+  for (const gone of [...REMOVED_GUIDES_1120E, ...UNPUBLISHED_GUIDES_1120E]) delete pageList[gone];
   const seen = new Set([...log.tapped, ...log.notes, ...log.price, ...(log.brand ?? []), ...(log.sponsor ?? [])].map((r) => `${r[0]}|${r[1]}`));
   const note = (bucket, slug, p, extra) => { const k = `${slug}|${p.name}`; if (!seen.has(k)) { seen.add(k); log[bucket].push(extra === undefined ? [slug, p.name] : [slug, p.name, extra]); } };
   const sponsorBrands = sponsorBrands1120e(pageList[SPONSORS_GUIDE_1120E], spec.sponsorNames ?? []);

@@ -88,7 +88,7 @@ describe("gift guides r3 UX Lows", () => {
   it("#15: no guide shows the badge photos", () => {
     const dir = "src/content/giftGuidePicks";
     const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
-    expect(files.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
+    expect(files.length).toBeGreaterThan(34); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
     const hits = files.filter((f) => /b9346480-e5d8-405a-be12-eedecc9dad24|a1cad1c0a8ae4be69efa19221195a9c4/.test(readFileSync(`${dir}/${f}`, "utf8")));
     expect(hits).toEqual([]);
   });

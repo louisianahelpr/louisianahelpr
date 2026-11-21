@@ -78,7 +78,7 @@ describe("gift guides: item fit r4 (fit + links audits, 11-19)", () => {
   });
 
   it("every guide follows them", () => {
-    expect(guides.length).toBeGreaterThan(100);
+    expect(guides.length).toBeGreaterThan(35);
     const bad: string[] = [];
     let picks = 0;
     for (const slug of guides) {

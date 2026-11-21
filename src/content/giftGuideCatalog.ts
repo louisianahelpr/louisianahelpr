@@ -372,7 +372,10 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
   // Owner 11-20 9:50 PM ("remove the color guides"): By Color and every color guide are gone; an old link lands on the main page.
   "gifts-by-color", "red-lover", "pink-lover", "purple-lover", "blue-lover", "green-lover", "yellow-lover", "black-lover", "neutral-lover",
   // Owner 11-20 9:53 PM ("remove the pet guides"): Pet Lovers and every pet guide are gone; their items move nowhere.
-  "pets", "dog-lover", "cat-person", "new-puppy", "new-kitten", "horse-lover", "fish-lover", "bird-lover"];
+  "pets", "dog-lover", "cat-person", "new-puppy", "new-kitten", "horse-lover", "fish-lover", "bird-lover",
+  // OWNER RESET 11-20 10:25 PM ("yes lets do that"): UNPUBLISHED for now, not deleted. Only Her, Him, Kids, Teens, Grandparents, Friends & Coworkers,
+  // the Louisiana guides and 25 Days sponsors stay; these come back by deleting this line and UNPUBLISHED_GUIDES_1120E (scripts/giftGuideOwner1120e.mjs).
+  "car-lover", "coffee-lover", "creative-and-entertainment", "family", "fitness", "gift-wrap-and-cards", "gifts-by-budget", "healthcare", "heroes", "home-and-kitchen", "life-moments", "outdoors-and-travel", "splurge", "work-life"];
 
 /**
  * Guides the owner folded into others (2026-11-18: Female Nurses and Male Nurses go into RNs, LPNs and CNAs). Each

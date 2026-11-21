@@ -25,7 +25,7 @@ describe("gift guide section audit 11-20", () => {
     expect(auditFix1120("dad", mug)).toBe(mug);
   });
   it("no generated guide page carries a gone pick or an old wrong name", () => {
-    expect(guides.length).toBeGreaterThan(40);
+    expect(guides.length).toBeGreaterThan(34);
     expect(GONE_1120.length).toBeGreaterThan(20);
     const left = guides.flatMap((g) => g.picks.filter((p) =>
       GONE_1120.some(([re]) => (re as RegExp).test(p.name)) || (GONE_IN_GUIDE_1120[g.slug as keyof typeof GONE_IN_GUIDE_1120] ?? []).some(([re]) => (re as RegExp).test(p.name)) || RENAMED_1120.some(([re]) => (re as RegExp).test(p.name)),

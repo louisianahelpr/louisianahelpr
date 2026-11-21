@@ -53,7 +53,7 @@ describe("gift guides: items that belong (owner 11-19)", () => {
   });
 
   it("every guide follows them", () => {
-    expect(guides.length).toBeGreaterThan(100);
+    expect(guides.length).toBeGreaterThan(35);
     let picks = 0;
     for (const slug of guides) {
       const group = groupOf.get(slug) ?? "";
@@ -82,7 +82,7 @@ describe("gift guides: items that belong (owner 11-19)", () => {
   it("no national guide's line names Louisiana", () => {
     // An old slug that is now a section of a Louisiana guide (tailgater, in Louisiana Celebrations) is Louisiana.
     const national = guides.filter((s) => groupOf.get(s) !== "Louisiana" && groupOf.get(MERGED_INTO[s]?.parent ?? s) !== "Louisiana");
-    expect(national.length).toBeGreaterThan(99);
+    expect(national.length).toBeGreaterThan(26);
     for (const slug of national) for (const p of pageOf(slug)) expect(Boolean(p.line && LA_LINE.test(p.line)), `${slug}: ${p.name}: ${p.line}`).toBe(false);
   });
 

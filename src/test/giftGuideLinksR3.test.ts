@@ -61,7 +61,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
   });
 
   it("no page shows a banned, non-US or homepage-only link (picks, deals, deal items)", () => {
-    expect(slugs.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
+    expect(slugs.length).toBeGreaterThan(34); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
     let picks = 0;
     let deals = 0;
     for (const slug of slugs) {

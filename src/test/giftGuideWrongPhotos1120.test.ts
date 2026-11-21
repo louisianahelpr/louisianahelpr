@@ -39,7 +39,7 @@ describe("gift guide wrong photos (photo review 11-20)", () => {
   });
 
   it("no generated guide shows one of the wrong photos", () => {
-    expect(guides.length).toBeGreaterThan(40);
+    expect(guides.length).toBeGreaterThan(34);
     const shown = guides.flatMap((g) => g.picks.filter((p) => p.image && WRONG_PHOTOS_1120.has(p.image.split("?")[0])).map((p) => `${g.slug}: ${p.name}`));
     expect(shown).toEqual([]);
   });

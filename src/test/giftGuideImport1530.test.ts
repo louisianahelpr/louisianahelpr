@@ -45,7 +45,7 @@ describe("gift guides: import train 1530", () => {
       if (p.ownerPick && (ownerGuides.get(p.href)?.includes(s) ?? true)) continue;
       for (const k of [`h:${p.href}`, ...(p.image ? [`i:${p.image}`] : [])]) byKey.set(k, new Set([...(byKey.get(k) ?? []), s]));
     }
-    expect(n).toBeGreaterThan(240); // audits A+B combined (11-20): 1,121 measured
+    expect(n).toBeGreaterThan(85); // audits A+B combined (11-20): 1,121 measured
     expect([...byKey].filter(([, v]) => v.size > 1).map(([k, v]) => `${k} on ${[...v].join(", ")}`)).toEqual([]);
   });
 

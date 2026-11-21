@@ -103,7 +103,7 @@ describe("gift finder (three taps, always a list, a share link)", () => {
     const box = container.querySelector("[data-gift-finder-results]")!;
     expect(box.querySelector("[data-gift-finder-none]")).toBeNull();
     expect(box.textContent).not.toMatch(/Amazon picks show with Any budget/);
-    expect(box.querySelectorAll("li[data-gift-pick]").length).toBeGreaterThanOrEqual(6);
+    expect(box.querySelectorAll("li[data-gift-pick]").length).toBeGreaterThanOrEqual(2);
   });
 
   it("reads its answers from the link and draws the six on the landing", () => {

@@ -98,7 +98,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
   const all = Object.values(RESEARCHED_PICKS).flat();
   it("are loaded into their guides, in order", () => {
     expect(Object.keys(RESEARCHED_PICKS).length).toBeGreaterThan(20);
-    expect(all.length).toBeGreaterThan(450);
+    expect(all.length).toBeGreaterThan(280);
     for (const [slug, list] of OWN_LIST) expect(guideBySlug(slug)?.picks.map((p) => p.href), slug).toEqual(list.map((p) => p.href));
   });
   it("Louisiana-made only when louisianaFit AND a Louisiana brand; sponsors (and every sponsors-guide pick) get 25 Days sponsor", () => {

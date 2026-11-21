@@ -1,10 +1,14 @@
 /**
  * FOR HIM and FOR KIDS = THE OWNER'S SAVES (owner 2026-11-21 ~2:15 AM: "i also added the mens stuff to the amazon men
  * list"; ~2:45 AM: "i did kids too in amazon list"; ~2:47 AM: "add all oft he things to the guides. fix them how you
- * see fit. launch the 3 guides"). Both pages hold ONLY picks from her own Amazon lists (Desktop notes
- * Him-saved-amazon-1121.md and Kids-saved-amazon-1121.md), tidied by her standing rules: at most 2 of one brand and 2 of
- * one item type per page, men in classic colors, no Louisiana brands, cheaper first. Her ShopMy saves for Him and Kids
- * follow once their prices and cutout photos are checked.
+ * see fit. launch the 3 guides"). Both pages hold ONLY picks she saved herself, from her Amazon lists (Desktop notes
+ * Him-saved-amazon-1121.md and Kids-saved-amazon-1121.md) and her ShopMy links (below), tidied by her standing rules: at
+ * most 2 of one brand and 2 of one item type per page, men in classic colors, no Louisiana brands, cheaper first.
+ *
+ * HER SHOPMY SAVES 11-21 (owner ~2:45 AM: "i also added some man and kids stuff in shop my"; later: "the him and kids
+ * need gifts on their covers"): HIM_SHOPMY_1121 and KIDS_SHOPMY_1121 add the ones her rules keep (Desktop notes
+ * Him-saved-shopmy-1121.md and Kids-saved-shopmy-1121.md; also no LSU, nothing out of stock). Their non-Amazon photos are
+ * what the Him and Kids covers draw.
  *
  * scripts/gift-guide-picks.mjs runs applyHimKids1121 LAST, next to applyHer1121, so no earlier pass can drop or reorder
  * these. Page rules are the same as For Her (scripts/giftGuideHer1121.mjs): ONE flat list, cheapest first, no sections,
@@ -30,9 +34,32 @@ const shopmy = (pin) => `https://go.shopmy.us/${pin}`;
 /** The day the switched picks' ShopMy prices were checked (Louisiana day). */
 export const HIM_KIDS_PRICE_AT = "2026-11-21";
 /** Stores a switched pick goes to that the store list may not hold yet (key -> shown name). */
-export const HIM_KIDS_STORES = { "store-dillards": "Dillard's", "store-exclusive-beauty-club": "Exclusive Beauty Club" };
+export const HIM_KIDS_STORES = {
+  "store-dillards": "Dillard's", "store-exclusive-beauty-club": "Exclusive Beauty Club",
+  // The owner's ShopMy saves for Him and Kids (11-21).
+  "store-smathers-and-branson": "Smathers & Branson", "store-duck-head": "Duck Head", "store-grove": "Grove",
+  "store-clinique": "Clinique", "store-maisonette": "Maisonette", "store-wayfair": "Wayfair",
+};
 /** One row per pick: [ASIN, price she saw, Amazon image id, name, brand, type, commission %, line]. */
 const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
+/** One of her ShopMy saves: [pin, price on the store's own page 11-21, store photo, name, brand, store, type, commission %, line]. */
+const shop = ([pin, price, image, name, brand, store, type, commission, line]) => ({ name, brand, line, href: shopmy(`p-${pin}`), image, store, sortPrice: price, price, commission, type });
+
+/**
+ * Her men's ShopMy saves (Desktop note Him-saved-shopmy-1121.md, 43 pins), 8 kept by her rules: at most 2 of a brand
+ * (Smathers & Branson made ~30 of them; the camo belt she saved at Duck Head is theirs too), 2 of an item type, no LSU,
+ * nothing out of stock. Prices read on each store's own page 11-21 (Grove, Clinique, Smathers & Branson, Duck Head).
+ */
+export const HIM_SHOPMY_1121 = [
+  ["108628349", 35, "https://static.shopmy.us/pins/zoom-108628349-1795247477620-DuckDecoys_AntiqueBlue__KeyFob_Primary_LowRes_c251e80f-b48c-4193-88c2-0b366856e967.jpg", "Smathers & Branson Duck Decoys Needlepoint Key Fob", "Smathers & Branson", "store-smathers-and-branson", "key-fob", 15, "A hand-stitched needlepoint key fob with a wood duck."],
+  ["108628518", 195, "https://static.shopmy.us/uploads/img-product-1792092560933", "Smathers & Branson Camo Needlepoint Belt", "Smathers & Branson", "store-duck-head", "belt", 16, "A hand-stitched needlepoint belt in classic camo."],
+  ["108626053", 15.99, "https://static.shopmy.us/pins/zoom-108626053-1795245908121-FaceBeardSerum.jpg", "Phil's Face + Beard Serum", "Phil's", "store-grove", "skincare", 25, "A light serum for his face and beard."],
+  ["108626008", 7.49, "https://static.shopmy.us/pins/zoom-108626008-1795245889562-iewmi44ymwp5whivvent.jpg", "Dr. Squatch Fresh Falls Bar Soap", "Dr. Squatch", "store-grove", "soap", 25, "The natural men's soap with a fresh, woodsy scent."],
+  ["108626036", 18, "https://static.shopmy.us/pins/zoom-108626036-1795245900235-scay0j7x7kubjvla5qrv.jpg", "Dr. Squatch Hand and Body Lotion, Wood Barrel Bourbon", "Dr. Squatch", "store-grove", "lotion", 25, "A rich lotion in the Wood Barrel Bourbon scent."],
+  ["108625988", 8.49, "https://static.shopmy.us/pins/zoom-108625988-1795245880004-qtvoydnznvaowxmbx9or.jpg", "Method Men Body Wash, Sea + Surf", "Method", "store-grove", "body-wash", 15, "A fresh sea and surf body wash for his shower."],
+  ["108625882", 29.4, "https://www.clinique.com/cdn/shop/files/cl_sku_V2Y701_3000x3000_0.png", "Clinique For Men Oil-Free Moisturizer", "Clinique", "store-clinique", "skincare", 21, "A light gel moisturizer that never feels greasy."],
+  ["108625877", 23.1, "https://www.clinique.com/cdn/shop/files/cl_sku_651705_3000x3000_0.png", "Clinique For Men Post-Shave Soother", "Clinique", "store-clinique", "shave", 21, "An aloe lotion that calms skin after a shave."],
+].map(shop);
 
 export const HIM_1121 = [
   ["B087G6TGJL", 6.64, "51mBoAiS5XL", "Super Universal Socket Tool", "", "tool", 3, "One socket that grips almost any nut or bolt."],
@@ -77,7 +104,31 @@ export const HIM_1121 = [
   { name: "Theragun Prime Massage Gun", brand: "Therabody", line: "A massage gun for sore backs and shoulders.", href: shopmy("p-108734364"), image: "https://cdn.shopify.com/s/files/1/2959/8080/files/therabody-theragun-prime-massage-gun-black.png", store: "store-exclusive-beauty-club", sortPrice: 189.99, price: 189.99, commission: 16, type: "massager" },
   ["B0FDYD1C2N", 200, "41tgypUHtjL", "YETI Roadie 15 Hard Cooler", "YETI", "cooler", 3, "A small hard cooler that rides behind the seat."],
   ["B0F2JHSGCJ", 237.5, "31f9tFHPW4L", "Turtlebox Ranger Speaker", "Turtlebox", "speaker", 3, "A loud, waterproof speaker built for the outdoors."],
-].map((r) => (Array.isArray(r) ? row(r) : r));
+].map((r) => (Array.isArray(r) ? row(r) : r)).concat(HIM_SHOPMY_1121);
+
+/**
+ * Her kids' ShopMy saves (Desktop note Kids-saved-shopmy-1121.md, 54 pins), 16 kept by her rules: at most 2 of a brand
+ * (Melissa & Doug made ~22 of them, at Macy's, Wayfair and Over The Moon), 2 of an item type, nothing out of stock.
+ * Prices read on each store's own page 11-21 (Maisonette, Grove, Wayfair).
+ */
+export const KIDS_SHOPMY_1121 = [
+  ["108632461", 34.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/eWo2uVncVtpsQvebn-mR5bF0A.jpg", "Steffi Love Baby Doctor Doll Playset", "Simba", "store-maisonette", "doll", 16, "A doll doctor set with a baby to check on."],
+  ["108632432", 20.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/0dnFbFKBx5K6e6OmCfMNzo-dI.jpg", "Mentari Puppy on Wheels", "Mentari", "store-maisonette", "pull-toy", 16, "A wooden puppy to pull along on a string."],
+  ["108632392", 27.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/1ZzbSn-AD4C1Zcfr2WzDUTQmE.jpg", "Tender Leaf Toys Rocket Construction", "Tender Leaf Toys", "store-maisonette", "construction-toy", 16, "Wooden rockets to take apart and build again."],
+  ["108632273", 37.79, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/CaauQ70t8wMJ7uoE4RIz-0T7I.jpg", "Mentari Wooden Ramp Racer", "Mentari", "store-maisonette", "car-toy", 16, "A wooden ramp the little cars zig-zag down."],
+  ["108632257", 25.5, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/DbI113V-lJpF_YY2t9LI_4_q4.jpg", "Colored Organics Truck Bath Toys", "Colored Organics", "store-maisonette", "bath-toy", 16, "Soft trucks for bath time."],
+  ["108632317", 89, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/ASDi5ER268eeqg9QDRplkfnBw.jpg", "Round & Round Spin Toy", "Asweets", "store-maisonette", "spin-toy", 16, "A wooden spinning toy that keeps them moving."],
+  ["108632251", 89, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/e3bkcRFq2cOoChymkqAzOUnxU.jpg", "Sand and Water Table", "Asweets", "store-maisonette", "play-table", 16, "A wooden play table for sand and water play."],
+  ["108632230", 145, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/07fMtvSKy51XUzMcnMjlI4vks.jpg", "Highwaykick 1 Scooter and Ride-On, Ash", "Scoot and Ride", "store-maisonette", "scooter", 16, "A ride-on that grows into a scooter."],
+  ["108632184", 59.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/OED6YgUaANM9D31fVA1qZUCTA.jpg", "Freddo 3 Wheel Balance Bike", "Freddo", "store-maisonette", "balance-bike", 16, "A first balance bike for toddlers."],
+  ["108632365", 299, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/xuh1iRemTEjNomia7C6j_bKqU.jpg", "Model U Horse Ride-On, Brown", "PonyCycle", "store-maisonette", "ride-on", 16, "A plush ride-on horse for little cowboys and cowgirls."],
+  ["108632379", 124.94, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/EP6NaZng2SVj-x3HxemGP-5QQ.jpg", "Hape Captain's Rocking Boat", "Hape", "store-maisonette", "rocker", 16, "A wooden rocking boat for pretend voyages."],
+  ["108632481", 27, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/HtPxvujQFBYNQ2lbeag2NGhew.jpg", "Baby's 1st Christmas Toy & Gifting Tote", "Bits & Bows", "store-maisonette", "bag", 16, "A plaid tote for baby's first Christmas gifts."],
+  ["108632592", 29.9, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/YVDrFHlUiF5bHBL0uzS5MXo_w.jpg", "Nellapima Wooden Toys Baby Gown", "Nellapima", "store-maisonette", "baby-clothes", 16, "A soft pima baby gown with a wooden toy print."],
+  ["108632104", 29.99, "https://static.shopmy.us/pins/zoom-108632104-1795250093805-DancingAlligator-5105-Main-sq.jpg", "PlanToys Dancing Alligator Pull Toy", "PlanToys", "store-grove", "pull-toy", 25, "A wiggly wooden alligator to pull along."],
+  ["108632077", 117.99, "https://assets.wfcdn.com/im/45146626/compr-r85/4085/408563114/Wood+Furnished+Mansion.jpg", "Melissa & Doug Wood Furnished Mansion", "Melissa & Doug", "store-wayfair", "dollhouse", null, "A big wooden dollhouse with the furniture inside."],
+  ["108632046", 55.99, "https://assets.wfcdn.com/im/84968246/compr-r85/1747/174755531/Preschool+Pretend+Grocery+Shopping+Accessories+with+Kitchen+Accessories.jpg", "Melissa & Doug Toy Shopping Cart", "Melissa & Doug", "store-wayfair", "pretend-play", null, "A sturdy metal shopping cart for pretend errands."],
+].map(shop);
 
 export const KIDS_1121 = [
   ["152350675X", 3.44, "51J30U2ygrL", "Paint by Sticker Kids: Christmas", "Workman", "book", 3, "Sticker-by-number Christmas pictures, no mess."],
@@ -120,7 +171,7 @@ export const KIDS_1121 = [
   ["B0HDSSPY7Z", 127.49, "21gcm6OqZ0L", "Segway Ninebot C2 Go Kids Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
   ["B0D2JGYX3F", 209, "31HNx5am69L", "Nex Playground", "Nex", "game-console", 3, "Active family games that get everyone moving."],
   ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 3, "The handheld Switch for games on the go."],
-].map(row);
+].map(row).concat(KIDS_SHOPMY_1121);
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 

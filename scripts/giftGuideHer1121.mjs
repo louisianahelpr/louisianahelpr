@@ -36,7 +36,7 @@ export const HER_STORES = {
   "store-jd-sports": "JD Sports", "store-sephora": "Sephora", "store-hatch": "Hatch", "store-macys": "Macy's",
   "store-haven-well-within": "Haven Well Within", "store-camp-snap": "Camp Snap", "store-rei": "REI",
   "store-the-swank-company": "The Swank Company", "store-baublebar": "BaubleBar", "store-currentbody": "CurrentBody",
-  "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha",
+  "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb",
 };
 
 /**
@@ -51,8 +51,9 @@ export const HER_1121 = [
   { name: "Loritta Long Plaid Winter Scarf", brand: "Loritta", line: "A long plaid scarf that doubles as a cozy wrap.", href: amz("B0C246HFWN"), image: amzImg("51J4ztPBNYL"), store: "store-amazon", sortPrice: 13.99, commission: 4, type: "scarf" },
   { name: "Kitsch Satin Pillowcase With Zipper", brand: "Kitsch", line: "A satin pillowcase that is kind to hair and skin.", href: amz("B0CCWSGSCT"), image: amzImg("81zPpWuuXHL"), store: "store-amazon", sortPrice: 15.19, commission: 3, type: "bedding" },
   { name: "Personalized Floral Mama Quarter Zip Sweatshirt", brand: "", line: "A cozy quarter zip with Mama stitched in florals.", href: amz("B0HJVYHH35"), image: amzImg("41LM2AYUzKL"), store: "store-amazon", sortPrice: 18.15, commission: 4, type: "sweatshirt" },
-  // OWNER SWAP PENDING (11-21): this pin goes to Sephora UK; replace the href with her Sephora US pin (and keep store-sephora).
-  { name: "BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack", brand: "BIODANCE", line: "Overnight hydrogel masks she peels off to glowy skin.", href: shopmy("p-108613754"), image: "https://static.shopmy.us/uploads/c5e32645-7fc2-4c8a-af7f-d12b9c83bc61imageye___-_imgi_1_4201001452-847__1.jpeg", store: "store-sephora", sortPrice: 19, price: 19, commission: 16, type: "skincare" },
+  // Switched 11-21 from her Sephora UK pin p-108613754 (US shoppers cannot buy there) to the same 4-sheet set at iHerb,
+  // same $19, 15% (Desktop note Commission-switches-1121.md); photo is iHerb's own.
+  { name: "BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack", brand: "BIODANCE", line: "Overnight hydrogel masks she peels off to glowy skin.", href: shopmy("p-108755104"), image: "https://cloudinary.images-iherb.com/image/upload/f_auto,q_auto:eco/images/bdo/bdo36097/l/19.jpg", store: "store-iherb", sortPrice: 19, price: 19, commission: 15, type: "skincare" },
   { name: "Summer Fridays Tinted Lip Butter Balm", brand: "Summer Fridays", line: "The tinted lip balm everyone keeps in their bag.", href: amz("B0D82LVR3N"), image: amzImg("51s-g+euH5L"), store: "store-amazon", sortPrice: 19.2, commission: 10, type: "lip" },
   { name: "Kitsch XL Microfiber Hair Towel Wrap", brand: "Kitsch", line: "A quick-dry hair towel wrap for after the shower.", href: amz("B0CDF7GJ4Y"), image: amzImg("81h7Kvf9ttL"), store: "store-amazon", sortPrice: 19.24, commission: 3, type: "hair" },
   { name: "Amazon Essentials Women's Flannel Pajamas", brand: "Amazon Essentials", line: "Soft flannel pajamas for cold mornings.", href: amz("B08X8P91FX"), image: amzImg("71vZPpqtf5L"), store: "store-amazon", sortPrice: 20.69, commission: 4, type: "pajamas" },

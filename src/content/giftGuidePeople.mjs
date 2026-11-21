@@ -59,6 +59,15 @@ export const PEOPLE_GUIDES = [
   },
 ];
 
+/**
+ * The owner's own lists (owner 2026-11-21, For Her = her 25 saves, scripts/giftGuideHer1121.mjs): ONE flat list, so the
+ * page shows no relationship chips and no deals-and-codes box on these guides or their relationship pages (/mom ...).
+ */
+export const OWNER_LIST_GUIDES = ["her"];
+/** True when `slug` (a guide, or a relationship page such as "mom") shows one of the owner's own lists. */
+const relationPageGuide = (slug) => PEOPLE_GUIDES.find((g) => g.rels.some((r) => r.slug === slug))?.slug ?? slug;
+export const isOwnerList = (slug) => OWNER_LIST_GUIDES.includes(relationPageGuide(slug));
+
 /** The most picks one interest section shows, and of one gift type in it (owner 11-19/11-20). */
 export const PEOPLE_SECTION_CAP = 25;
 export const PEOPLE_TYPE_MAX = 2;

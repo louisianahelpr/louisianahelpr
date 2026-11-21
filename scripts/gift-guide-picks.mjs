@@ -40,6 +40,7 @@ import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
 import { applyTrain1120d, typeFix } from "./giftGuideTrain1120d.mjs";
 import { applyPeople } from "./giftGuidePeople1120.mjs";
 import { applyStandard } from "./giftGuideStandard1120.mjs";
+import { applyHer1121 } from "./giftGuideHer1121.mjs";
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 /** The merged guides whose picks feed For Her and For Him (the people guides and Mom and Dad). */
 const PEOPLE_PARENTS = new Set(PEOPLE_GUIDES.flatMap((g) => [g.slug, ...g.sources]));
@@ -4000,6 +4001,9 @@ STANDARD_SNAPSHOTS.push(Object.fromEntries(Object.entries(pageList).map(([k, l])
   fillPrices();
   console.log(`gift-guide-picks: standard 1120 ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}${t.extras.length ? `; NOT IN PLAN, removed (${t.extras.length}): ${t.extras.join(" | ")}` : ""}${t.kept.length ? `; NOT IN PLAN, kept (sponsor or owner pick, ${t.kept.length}): ${t.kept.join(" | ")}` : ""}`);
 }
+// FOR HER = THE OWNER'S 25 (owner 11-21, scripts/giftGuideHer1121.mjs): in place before the Top 10 reads the pages,
+// so the strip never shows a Her pick the page no longer lists; set again after the final sweep below.
+console.log(`gift-guide-picks: her 1121 (before the Top 10) ${JSON.stringify(applyHer1121(pageList, storeList))}`);
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days
  * (scripts/gift-guide-go-clicks.json, measured from prod analytics), then effective commission x item popularity, among
@@ -4025,7 +4029,9 @@ export const weeklyTop = (() => {
   const popOf = new Map(SORT_POOL.map((e) => [e.p.href, e.pop ?? 0]));
   const guideOf = new Map();
   const cands = Object.entries(pageList).filter(([slug]) => !slug.startsWith("store-") && slug !== SPONSORS_GUIDE).flatMap(([slug, list]) => list.map((p) => (guideOf.has(p) ? p : (guideOf.set(p, slug), p))))
-    .filter((p) => p.image && looksLikeProduct(p));
+    // Only a pick the strip will keep when it is written (TOP_PICKS drops a dropped photo or an audit removal): a pick
+    // dropped there left the strip at 9 (11-21, Rare Beauty's trio).
+    .filter((p) => p.image && looksLikeProduct(p) && !droppedPhoto(p.image) && auditFix1120("", p));
   const score = (p) => (clicksOf.get(p.href) ?? 0) * 1000 + (typeof p.commission === "number" ? p.commission : 0) * (1 + (popOf.get(p.href) ?? 0) / 10);
   const keep = topPicks.filter((p) => /\bCREAMi\b/i.test(p.name)).slice(0, 1).map((p) => (p.price != null ? p : { ...p, ...(cachedPrice(p) ?? {}) }));
   const out = [...keep];
@@ -4085,6 +4091,12 @@ for (const slug of Object.keys(pageList)) {
   finalSweep.menStyle += mid - pageList[slug].length;
 }
 console.log(`gift-guide-picks: final sweep ${JSON.stringify(finalSweep)}`);
+// FOR HER = THE OWNER'S 25 SAVES (owner 11-21): again after every rule and sweep, so none of them can drop, add or
+// reorder a pick she chose herself (scripts/giftGuideHer1121.mjs; the narrow owner-kept allowance is that module, Her only).
+{
+  const t = applyHer1121(pageList, storeList);
+  console.log(`gift-guide-picks: her 1121 (after the final sweep) ${JSON.stringify(t)}`);
+}
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();

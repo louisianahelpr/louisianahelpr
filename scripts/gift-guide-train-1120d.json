@@ -1,0 +1,377 @@
+{
+ "about": "Gift guides train 1120d (holiday design audit A, 2026-11-20, ~/.lh-shots/holiday-audit-1120/A-findings.md): retypes, swaps, Splurge without its under-$100 section, page-level type caps, thin sections folded. Applied after the budget caps by scripts/gift-guide-picks.mjs through scripts/giftGuideTrain1120d.mjs.",
+ "sectionMin": 10,
+ "sectionCap": 25,
+ "retype": [],
+ "moves": [
+  {
+   "guide": "splurge",
+   "match": "Leatherman Wingman",
+   "to": "dad",
+   "why": "audit A #20/#60: a giftable Dad pick under $50, out of Splurge"
+  },
+  {
+   "guide": "kids",
+   "match": "GentleStyle Brush",
+   "to": "kids",
+   "section": "Toddlers",
+   "why": "audit A #51: a hair brush fits Toddlers better than 4-7 boys"
+  },
+  {
+   "guide": "grandparents",
+   "match": "Fellow Carter Slide Mug",
+   "to": "grandparents",
+   "section": "Grandpa",
+   "why": "audit A #37/#40: the top-picks section folds into Grandma; the mug is a Grandpa gift"
+  },
+  {
+   "guide": "grandparents",
+   "match": "Birdfy Smart Bird Feeder",
+   "to": "grandparents",
+   "section": "Grandpa",
+   "why": "audit A #37: the top-picks section folds into Grandma; the feeder suits Grandpa"
+  },
+  {
+   "guide": "dad",
+   "match": "WORX Trivac",
+   "to": "outdoors-and-travel",
+   "section": "Gardeners & Plant Lovers",
+   "why": "audit A #20: a leaf blower is a utility buy, not a Dad gift; this Creator Connections campaign keeps its one spot where yard work fits"
+  },
+  {
+   "guide": "dad",
+   "match": "Rhino USA Retractable Ratchet Straps",
+   "to": "car-lover",
+   "why": "audit A #20: ratchet straps are a utility buy, not a Dad gift; this Creator Connections campaign keeps its one spot on Car Lover (truck gear)"
+  },
+  {
+   "guide": "mom",
+   "match": "Foton Pearled Candle",
+   "to": "home-and-kitchen",
+   "section": "Cozy & Self-Care",
+   "why": "audit A #13: an obscure candle brand on Mom next to Sol de Janeiro and Diptyque; this Creator Connections campaign keeps its one spot in Cozy & Self-Care"
+  }
+ ],
+ "sets": [
+  {
+   "guide": "family",
+   "match": "BÉIS Carry-On Roller",
+   "set": {
+    "name": "BÉIS The Carry-On Roller"
+   },
+   "why": "audit A #44: the name said Glossy Midnight, the photo is olive"
+  }
+ ],
+ "cuts": [
+  {
+   "guide": "dad",
+   "match": "lululemon Men's Pace Breaker Lined Short",
+   "why": "audit A #21: shorts in a Christmas guide, shown on a model"
+  },
+  {
+   "guide": "dad",
+   "match": "HUK Men's Next Level",
+   "why": "audit A #21/#22: shorts in a Christmas guide, raw Amazon title"
+  },
+  {
+   "guide": "her",
+   "match": "FORM Slim Strap Cami",
+   "why": "audit A #25: shapewear-style bodysuit on a model, not a gift"
+  },
+  {
+   "guide": "her",
+   "match": "lululemon Align Tank Top",
+   "why": "audit A #26: summer tank",
+   "optional": true
+  },
+  {
+   "guide": "her",
+   "match": "lululemon Ebb to Street Ribbed Tank Top",
+   "why": "audit A #26: summer tank",
+   "optional": true
+  },
+  {
+   "guide": "her",
+   "match": "Eberjey Gisele Short PJ Set",
+   "why": "audit A #28: short PJ set in a Christmas guide",
+   "optional": true
+  },
+  {
+   "guide": "her",
+   "match": "Southern Tide Ella Pleated Tennis Dress",
+   "why": "audit A #28: tennis dress in a Christmas guide"
+  },
+  {
+   "guide": "him",
+   "match": "Duck Head x Smathers & Branson Needlepoint Camo Belt",
+   "why": "audit A #32: three near-identical $195 needlepoint belts; one stays"
+  },
+  {
+   "guide": "him",
+   "match": "Vineyard Vines Dreamcloth Shep Shirt",
+   "why": "audit A #30: shown in pink on a men's guide",
+   "optional": true
+  },
+  {
+   "guide": "him",
+   "match": "BOTE Kula 5 Magnepod Cooler",
+   "why": "audit A #31: lime green cooler on a men's guide; the YETI Tundra 35 stays"
+  },
+  {
+   "guide": "grandparents",
+   "match": "Waterford Golden Teddy Ornament",
+   "why": "audit A #37: a teddy ornament is no grandparent top pick"
+  },
+  {
+   "guide": "grandparents",
+   "match": "CALPAK Terra Hanging Toiletry Bag",
+   "why": "audit A #37: weak grandparent gift",
+   "optional": true
+  },
+  {
+   "guide": "grandparents",
+   "match": "YETI Rambler 10 oz Stackable Mug",
+   "why": "audit A #36: pink mug in the Grandpa section"
+  },
+  {
+   "guide": "grandparents",
+   "match": "HUK Camouflage Long Sleeve Hooded Fishing Shirt with Mask",
+   "why": "audit A #38: a masked hoodie is an odd grandpa gift, shown on a model"
+  },
+  {
+   "guide": "grandparents",
+   "match": "Longchamp Le Pliage Filet Knit Shoulder Bag",
+   "why": "audit A #39: neon yellow"
+  },
+  {
+   "guide": "family",
+   "match": "lululemon Men's Zeroed In Linerless Short",
+   "why": "audit A #41: the photo is a black T-shirt, and shorts in a Christmas guide"
+  },
+  {
+   "guide": "family",
+   "match": "Rawlings Baseball Glove",
+   "why": "audit A #42: generic Amazon filler with no model"
+  },
+  {
+   "guide": "family",
+   "match": "Wilson NFL Football",
+   "why": "audit A #42: generic Amazon filler with no model"
+  },
+  {
+   "guide": "family",
+   "match": "Nerf Elite 2.0 Blaster",
+   "why": "audit A #42: generic Amazon filler with no model"
+  },
+  {
+   "guide": "family",
+   "match": "Hot Wheels Track Set",
+   "why": "audit A #42: generic Amazon filler with no model"
+  },
+  {
+   "guide": "family",
+   "match": "Victoria's Secret Body Care Gift Set",
+   "why": "audit A #42: odd for a niece"
+  },
+  {
+   "guide": "family",
+   "match": "LEGO Technic Lamborghini",
+   "why": "audit A #45: a collector set with no price"
+  },
+  {
+   "guide": "family",
+   "match": "Riedel Wine-Friendly Wine Glasses",
+   "why": "audit A #43: one glassware set stays (Waterford Lismore)"
+  },
+  {
+   "guide": "family",
+   "match": "materialkitchen.com MATERIAL - Serve Platter",
+   "why": "audit A #43: two Material sets; The Iconics stays"
+  },
+  {
+   "guide": "friends-and-coworkers",
+   "match": "BonWellness Big Year Energy Wellness Kit",
+   "why": "audit A #48: unknown brand at the top of Coworkers"
+  },
+  {
+   "guide": "friends-and-coworkers",
+   "match": "CALPAK Terra Sling Bag",
+   "why": "audit A #49: over a Secret Santa budget, no price"
+  },
+  {
+   "guide": "friends-and-coworkers",
+   "match": "CALPAK Terra 35L",
+   "why": "audit A #49: over a Secret Santa budget, no price"
+  },
+  {
+   "guide": "kids",
+   "match": "Stanley The IceFlow Flip Straw Tumbler 2.0, 30 oz",
+   "why": "audit A #50: a drink cup should not headline the kids guide"
+  },
+  {
+   "guide": "kids",
+   "match": "Bits & Bows Lifeguard Hat",
+   "why": "audit A #52: summer item"
+  },
+  {
+   "guide": "kids",
+   "match": "SUNNYLiFE Kids Beach Poncho Towel",
+   "why": "audit A #52: summer item"
+  },
+  {
+   "guide": "kids",
+   "match": "minnow",
+   "why": "audit A #52: summer rashguards",
+   "all": true
+  },
+  {
+   "guide": "kids",
+   "match": "SUNNYLiFE Vintage Beach Paddles",
+   "why": "audit A #52: summer item"
+  },
+  {
+   "guide": "kids",
+   "match": "BabyBjörn Baby Carrier Harmony",
+   "why": "audit A #54: parent gear; the bouncer stays"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "LANEIGE Water Sleeping Mask",
+   "why": "audit A #57: an $8 mini from an obscure reseller, named as the full size"
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "match": "Meri Meri Nutcracker Gift Tags",
+   "why": "audit A #62: the photo is the Maisonette logo (the product page is gone, 404)"
+  }
+ ],
+ "adds": [
+  {
+   "guide": "him",
+   "why": "audit A #34: a Him gift under $25",
+   "row": {
+    "name": "Carhartt Knit Cuffed Beanie",
+    "brand": "Carhartt",
+    "line": "The classic cuffed watch hat for cold mornings.",
+    "href": "https://go.shopmy.us/p-107847394",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1775934017921",
+    "store": "store-carhartt",
+    "type": "hat"
+   },
+   "section": "Boyfriend or Husband"
+  },
+  {
+   "guide": "mom",
+   "why": "audit A #17: a Mom gift under $25",
+   "row": {
+    "name": "Glossier You Perfume Discovery Set",
+    "brand": "Glossier",
+    "line": "Four Glossier You scents to try before the full bottle.",
+    "href": "https://go.shopmy.us/p-107946038",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1759335116494",
+    "store": "store-sephora",
+    "type": "fragrance"
+   },
+   "section": "Top picks"
+  },
+  {
+   "guide": "splurge",
+   "why": "audit A #60: a real splurge in place of the under-$100 section",
+   "row": {
+    "name": "Nespresso Lattissima One Espresso Machine",
+    "brand": "Nespresso",
+    "line": "One-touch lattes and cappuccinos with fresh milk at home.",
+    "href": "https://go.shopmy.us/p-107940248",
+    "image": "https://static.shopmy.us/pins/zoom-107940248-1795123278564-00000000_zi_47117f4a-8d82-4d38-bf0c-65577bcb7e11.jpg",
+    "store": "store-dillards",
+    "type": "kitchen-appliance"
+   },
+   "section": "$100 & Up"
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "why": "audit A #63: bows and tags in place of a fourth tag set",
+   "row": {
+    "name": "Hallmark Wrap Accessory Kit, Bows and Tags",
+    "brand": "Hallmark",
+    "line": "Matching bows, ribbon and tags in blue, silver and gold.",
+    "href": "https://www.amazon.com/dp/B088SNQCWV?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/81IzUUQ33yL._AC_SL1500_.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "gift-wrap"
+   }
+  }
+ ],
+ "splurge": {
+  "guide": "splurge",
+  "dropSection": "under-100",
+  "moveTo": {
+   "guide": "gifts-by-budget",
+   "section": "under-50",
+   "max": 50
+  }
+ },
+ "pageCaps": {
+  "max": 2,
+  "brandTypeMax": 1,
+  "exemptTypes": [
+   "other",
+   "gift-card",
+   "subscription"
+  ],
+  "typeMax": {
+   "can-cooler": 1,
+   "advent-calendar": 6
+  },
+  "guides": {
+   "mom": {},
+   "dad": {},
+   "her": {},
+   "him": {},
+   "grandparents": {},
+   "friends-and-coworkers": {},
+   "splurge": {},
+   "family": {
+    "max": 3
+   },
+   "gifts-by-budget": {
+    "max": 3
+   },
+   "kids": {
+    "max": 3,
+    "brandTypeMax": 2,
+    "exemptTypes": [
+     "toy",
+     "building-toy",
+     "plush",
+     "doll",
+     "art-supplies",
+     "ride-on",
+     "toy-vehicle",
+     "book",
+     "game",
+     "board-game",
+     "craft-kit"
+    ]
+   }
+  }
+ },
+ "folds": [
+  {
+   "guide": "heroes",
+   "section": "paramedics-and-dispatchers",
+   "into": "police-and-deputies",
+   "title": "Firefighters, Police & EMTs",
+   "optional": true
+  },
+  {
+   "guide": "heroes",
+   "section": "firefighters",
+   "into": "police-and-deputies",
+   "title": "Firefighters, Police & EMTs",
+   "optional": true
+  }
+ ],
+ "sponsorMoves": "Arey The System (a national 25 Days sponsor's one spot) moved from Mom > Mother-in-Law to Her > Wife in scripts/gift-guide-train-1120b.json (audit A #12: a gray-hair routine is an awkward Mother-in-Law gift; Her's self-care fits better)."
+}

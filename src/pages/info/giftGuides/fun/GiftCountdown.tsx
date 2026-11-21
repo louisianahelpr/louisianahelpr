@@ -108,7 +108,7 @@ const COUNTDOWN_CSS = `
 .gg-today-days b{font-weight:800}
 .gg-today-gift{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 220px}
 .gg-today-k{font-weight:700;white-space:nowrap}
-.gg-today-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gg-ink);text-decoration:underline;text-underline-offset:2px}
+.gg-today-name{display:inline-flex;align-items:center;min-height:44px;min-width:0;overflow-wrap:anywhere;color:var(--gg-ink);text-decoration:underline;text-underline-offset:2px}
 .gg-today-share{flex:none;min-height:32px;margin-left:auto;padding:0 12px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font-size:12px;font-weight:600;color:var(--gg-ink)}
 `;
 const TOOLS_CSS = `

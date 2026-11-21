@@ -7,7 +7,7 @@
  * @mutate src/content/giftGuideExtras1120.ts |   if (!d \|\| today > d.orderBy) return null; |   if (!d) return null;
  * @mutate src/content/giftGuideExtras1120.ts |   giveawayBanner: { on: false, from: "2026-11-22" }, |   giveawayBanner: { on: true, from: "2026-11-22" },
  * @mutate src/content/giftGuideExtras1120.ts |   const fits = (p: CatalogPick) => { const b = pickBand(p); return budget === 0 \|\| (b !== undefined && b <= budget); }; |   const fits = (p: CatalogPick) => true;
- * @mutate src/content/giftGuideExtras1120.ts |     lent.filter(vibed), lent, |
+ * @mutate src/content/giftGuideExtras1120.ts |   for (const tier of [own.filter(fits), lent.filter(vibed), lent, louisiana]) | for (const tier of [own.filter(fits), louisiana])
  * @mutate src/content/giftGuideExtras1120.ts |   if (p.price !== undefined && p.store !== "amazon") return | if (false) return
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | export const withinBudget = (picks: CatalogPick[], budget: number \| null) => (budget ? picks.filter((p) => p.band !== undefined && p.band <= budget) : picks); | export const withinBudget = (picks: CatalogPick[], budget: number \| null) => picks;
  */
@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_COUNT, FINDER_VIBES, FINDER_WHO, pickBand, GIFT_GUIDE_FLAGS, SHIP_DEADLINES, deadlineChip, declutterTieInOn, finderPool, giftFinder, giveawayBannerOn, readFinder } from "@/content/giftGuideExtras1120";
+import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_COUNT, FINDER_FEW, FINDER_LOUISIANA_GUIDES, FINDER_VIBES, FINDER_WHO, pickBand, GIFT_GUIDE_FLAGS, SHIP_DEADLINES, deadlineChip, declutterTieInOn, finderPool, giftFinder, giveawayBannerOn, readFinder } from "@/content/giftGuideExtras1120";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -62,11 +62,15 @@ describe("gift finder (three taps, always a list, a share link)", () => {
     if (dad.some((p) => /louisiana|lsu|saints|cajun|nola/i.test(`${p.name} ${p.brand ?? ""}`))) expect(`${la[0].name} ${la[0].brand ?? ""}`).toMatch(/louisiana|lsu|saints|cajun|nola|creole|bayou|crawfish|geaux/i);
   });
 
-  it("never says nothing fits: every who x budget x vibe gives 6+ picks (owner 11-20: Mom + Under $25 + Trendy)", () => {
+  it("never says nothing fits: every who x budget x vibe gives a list, every pick within the budget (owner 11-20; holiday audit A #65)", () => {
     for (const w of FINDER_WHO) for (const b of FINDER_BUDGETS) for (const v of FINDER_VIBES) {
       const r = all(giftFinder(finderPool(w.id, picksOf), b.id, v.id, borrow, w.id));
-      expect(r.length, `${w.id} ${b.id} ${v.id}`).toBeGreaterThanOrEqual(6);
+      expect(r.length, `${w.id} ${b.id} ${v.id}`).toBeGreaterThanOrEqual(FINDER_FEW);
       expect(new Set(r.map((p) => p.href)).size, `${w.id} ${b.id} ${v.id}`).toBe(r.length);
+      if (b.id) for (const p of r) expect(pickBand(p) ?? Infinity, `${w.id} ${b.id} ${v.id}: ${p.name}`).toBeLessThanOrEqual(b.id);
+      // One card per brand (A #69: three Summer Fridays items in one list).
+      const brands = r.map((p) => (p.brand ?? "").toLowerCase()).filter(Boolean);
+      expect(new Set(brands).size, `${w.id} ${b.id} ${v.id}: ${brands.join(", ")}`).toBe(brands.length);
     }
     // Mom + Under $25 + Trendy: real under-$25 picks lead (a known band, price or "Under $25" section), never men's or toys.
     const mom = all(giftFinder(finderPool("mom", picksOf), 25, "trendy", borrow, "mom"));
@@ -74,6 +78,17 @@ describe("gift finder (three taps, always a list, a share link)", () => {
     for (const p of mom) expect(`${p.name}`).not.toMatch(/\b(men'?s|boys'?|play-?doh|melissa & doug|squishmallows?)\b/i);
     const dad = all(giftFinder(finderPool("dad", picksOf), 25, "practical", borrow, "dad"));
     for (const p of dad) expect(p.name).not.toMatch(/\b(women'?s|lip|makeup|nail|earrings)\b/i);
+  });
+
+  it("the Louisiana vibe lists Louisiana picks for every person (holiday audit A #64)", () => {
+    const local = FINDER_LOUISIANA_GUIDES.flatMap(picksOf);
+    expect(local.length).toBeGreaterThan(30);
+    const fromLouisiana = new Set(local.map((p) => p.href));
+    for (const who of ["dad", "mom", "friend", "her", "him", "grandparent", "coworker"] as const) for (const b of [0, 100] as const) {
+      const r = giftFinder(finderPool(who, picksOf), b, "louisiana", borrow, who, local);
+      expect(r.exact.length, `${who} ${b}`).toBeGreaterThanOrEqual(3);
+      for (const p of r.exact) expect(fromLouisiana.has(p.href) || p.badges?.includes("louisiana-made") || /louisiana|lsu|saints|nola|cajun|creole|bayou|crawfish|geaux|new orleans/i.test(`${p.name} ${p.brand ?? ""}`), `${who} ${b}: ${p.name}`).toBe(true);
+    }
   });
 
   it("an Amazon pick joins a budget only by its budget section, and no Amazon price is ever shown", () => {

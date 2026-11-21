@@ -44,11 +44,26 @@ export const FINDER_VIBES: { id: FinderVibe; label: string; words: RegExp }[] = 
 /** How many picks the finder shows (owner 11-20: always a list, 6 to 12): the exact matches, then close ones up to this. */
 export const FINDER_COUNT = 9;
 
-/** A pick is the vibe: its badges (TikTok/trending, Louisiana) or its words. */
+/**
+ * Gift types (the import's `type`) that are a vibe whatever the name says (holiday audit A #67: Her + Outdoorsy listed
+ * five beauty items, Kids + Outdoorsy a Barbie and puffy pens).
+ */
+const VIBE_TYPES: Partial<Record<FinderVibe, RegExp>> = {
+  cozy: /^(pajamas|robe|slippers|throw-blanket|blanket|candle|socks|sweatshirt|baby-clothes)$/,
+  practical: /^(wallet|bag|tools?|tech-accessory|drinkware|luggage|kitchen-tool|cookware|accessory|cooler)$/,
+  outdoorsy: /^(cooler|boots|outdoor|grill|fishing|hunting|camping|ride-on)$/,
+};
+/** Gift types that are never "outdoorsy", whatever a word in the name says (a "rain" hair oil, a "Columbia" lip). */
+const NOT_OUTDOORSY = /^(skincare|makeup|lip|fragrance|hair-care|hair-tool|hair-accessory|beauty-device|body-care|nails|jewelry|doll|art-supplies|stationery|plush)$/;
+/** A pick is the vibe: its badges (TikTok/trending, Louisiana), its gift type or its words. */
 const isVibe = (p: CatalogPick, vibe: FinderVibe) => {
   const v = FINDER_VIBES.find((x) => x.id === vibe)!;
   if (vibe === "trendy" && p.badges?.some((b) => b === "tiktok" || b === "trending")) return true;
-  if (vibe === "louisiana" && p.badges?.some((b) => b === "louisiana-made" || b === "shop-louisiana" || b === "sponsor")) return true;
+  // Only "Louisiana-made": the national 25 Days sponsors (K18, SRI) carry the sponsor and shop badges too (holiday audit
+  // A #64); the Louisiana guides' own picks join through giftFinder's `local` list.
+  if (vibe === "louisiana" && p.badges?.some((b) => b === "louisiana-made")) return true;
+  if (vibe === "outdoorsy" && NOT_OUTDOORSY.test(p.type ?? "")) return false;
+  if (VIBE_TYPES[vibe]?.test(p.type ?? "")) return true;
   return v.words.test(`${p.name} ${p.brand ?? ""}`);
 };
 
@@ -84,6 +99,13 @@ export const pickBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
 
 /** The guides whose sections are budgets ("Under $25", "Under $100"): the finder borrows from them when a person's own guide runs short. */
 export const FINDER_BUDGET_GUIDES = ["gifts-by-budget", "splurge"];
+/**
+ * The Louisiana guides: the "Louisiana" vibe draws from them for every person (holiday audit A #64: Dad, Friend, Kids
+ * and Mom + Louisiana listed no Louisiana item at all, since Louisiana things live only in these guides).
+ */
+export const FINDER_LOUISIANA_GUIDES = ["shop-small-louisiana", "louisiana-by-region", "louisiana-celebrations", "louisiana-food-gifts"];
+/** Fewer picks than this and the finder points to the person's own guide too (holiday audit A #65). */
+export const FINDER_FEW = 3;
 
 /** Toys and kids' things: a grown-up's finder never borrows them; a kid's borrows only them. */
 const KID_THING = /\b(play-?doh|rainbow loom|loomi|melissa (&|and) doug|squish\w*|lincoln logs|barbie|dolls?|plush|play ?sets?|toys?|paint sticks|dive buddies|ms\.? rachel|lego|stacker|kids?'?)\b/i;
@@ -100,7 +122,7 @@ const WOMENS_TYPE = /^(skincare|makeup|lip|nails?|bath|body-care|body care|body 
 /** Beauty and body care by name, for a pick whose type is missing or wrong (Bondi Boost shampoo came in typed "shoes"). */
 const BEAUTY_NAME = /\b(shampoo|conditioner|volumi[sz]ing|serum|moisturi[sz]er|body (wash|cream|lotion|butter|oil|mist)|shower oil|pimple|mighty patch|eye patch(es)?|face mask|sheet mask)\b/i;
 /** Gift types that are men's gifts unless the name says women's (the reverse rule, for Her and Mom). */
-const MENS_TYPE = /^(cologne|aftershave|beard|shaving|razor)$/i;
+const MENS_TYPE = /^(cologne|aftershave|beard|shaving|razor|hunting)$/i;
 /** Whether a pick suits this person: men's things never go to Her/Mom, women's things never to Him/Dad, toys only to Kids. */
 const finderFits = (who: FinderWho, p: CatalogPick) => {
   const text = `${p.name} ${p.brand ?? ""}`;
@@ -124,54 +146,54 @@ export const nearDupKey = (p: CatalogPick) => {
 
 /** The finder's answer: the picks that fit all three, then the closest ones (shown under "Close matches"). */
 interface FinderResult { exact: CatalogPick[]; close: CatalogPick[] }
+/** Gift types any number of which may show (no type to repeat). */
+const ANY_TYPE = new Set(["other", ""]);
 
 /**
- * The finder's picks (owner 11-20: "always show a list from those 3 picks"; never "nothing fits"). In order, each link once:
- *   1. exact: this person's picks within the budget and the vibe;
- *   then, as close matches, until FINDER_COUNT:
+ * The finder's picks (owner 11-20: "always show a list from those 3 picks"), each link once, at most one per brand and
+ * (in the close matches) one per gift type, so one can cooler, one pair of socks (holiday audit A #66, #69):
+ *   1. exact: this person's picks within the budget and the vibe; for "Louisiana", the Louisiana guides' picks that
+ *      suit this person within the budget too (A #64);
+ *   then, as close matches, until FINDER_COUNT, ALWAYS for this person and within the budget (A #65: Dad + Under $25
+ *   listed shampoo, pimple patches and a $50 tumbler); only the vibe relaxes:
  *   2. this person's picks within the budget, any vibe;
- *   3. the budget guides' picks within the budget that suit this person (men's/women's, kids), vibe first (a real
- *      in-budget pick always comes before one over it: Mom + Under $25 + Trendy leads with under-$25 gifts);
- *   4. this person's vibe picks one budget up;
- *   5. this person's vibe picks with no known price, then any of their picks with no known price;
- *   6. anything else of theirs (so the list is empty only when their guide is).
- * Each tier keeps the guide's own order (owner picks and commission, high to low). "Any budget" fits every pick.
+ *   3. the budget guides' picks within the budget that suit this person (men's/women's, kids), vibe first;
+ *   4. for "Louisiana", the Louisiana guides' picks that suit this person within the budget.
+ * A pick with no known price fits only "Any budget" (Amazon shows none). Fewer than FINDER_FEW in all and the page links
+ * the person's own guide. Each tier keeps the guide's own order (commission, high to low).
  */
-export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: FinderVibe, borrow: CatalogPick[] = [], who?: FinderWho): FinderResult => {
+export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: FinderVibe, borrow: CatalogPick[] = [], who?: FinderWho, local: CatalogPick[] = []): FinderResult => {
   const fits = (p: CatalogPick) => { const b = pickBand(p); return budget === 0 || (b !== undefined && b <= budget); };
-  const up = budget === 25 ? 50 : budget === 50 ? 100 : budget === 100 ? 500 : 0;
-  const nextUp = (p: CatalogPick) => up !== 0 && pickBand(p) === up;
-  const unknown = (p: CatalogPick) => pickBand(p) === undefined;
   const vibed = (p: CatalogPick) => isVibe(p, vibe);
-  const lent = budget === 0 || !who ? [] : borrow.filter((p) => fits(p) && finderFits(who, p));
-  // A close match must suit the person too (gg-live-1120): the person's own list is theirs, but its tail never hands
-  // Dad a women's item, nor Mom a men's one.
-  const own = who ? pool.filter((p) => finderFits(who, p) || who === "kids") : pool;
+  const suits = (p: CatalogPick) => !who || finderFits(who, p);
+  const lent = budget === 0 || !who ? [] : borrow.filter((p) => fits(p) && suits(p));
+  // The person's own list is theirs, but never hands Dad a women's item, nor Mom a men's one (gg-live-1120).
+  const own = who ? pool.filter((p) => suits(p) || who === "kids") : pool;
+  const louisiana = vibe === "louisiana" ? local.filter((p) => fits(p) && (who === "kids" ? KID_THING.test(`${p.name} ${p.brand ?? ""}`) || /\b(baby|toddler|youth|kids?)\b/i.test(p.name) : suits(p))) : [];
   const seen = new Set<string>();
   const near = new Set<string>();
-  const take = (list: CatalogPick[], into: CatalogPick[], cap: number) => {
+  const brands = new Set<string>();
+  const types = new Map<string, number>();
+  const typeOf = (p: CatalogPick) => (ANY_TYPE.has(p.type ?? "") ? "" : (p.type as string));
+  const take = (list: CatalogPick[], into: CatalogPick[], cap: number, typeMax: number) => {
     for (const p of list) {
       if (into.length >= cap) return;
       const key = nearDupKey(p);
-      if (seen.has(p.href) || near.has(key)) continue;
+      const brand = (p.brand ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const t = typeOf(p);
+      if (seen.has(p.href) || near.has(key) || (brand && brands.has(brand)) || (t && (types.get(t) ?? 0) >= typeMax)) continue;
       seen.add(p.href);
       near.add(key);
+      if (brand) brands.add(brand);
+      if (t) types.set(t, (types.get(t) ?? 0) + 1);
       into.push(p);
     }
   };
   const exact: CatalogPick[] = [];
-  take(pool.filter((p) => fits(p) && vibed(p)), exact, FINDER_COUNT);
+  take([...own.filter((p) => fits(p) && vibed(p)), ...louisiana], exact, FINDER_COUNT, 2);
   const close: CatalogPick[] = [];
   const room = FINDER_COUNT - exact.length;
-  for (const tier of [
-    own.filter(fits),
-    lent.filter(vibed), lent,
-    own.filter((p) => vibed(p) && nextUp(p)),
-    own.filter((p) => vibed(p) && unknown(p)), own.filter(unknown),
-    own,
-    // Always a list (owner 11-20): the person's whole guide last, only if all of the above ran dry.
-    pool,
-  ]) take(tier, close, room);
+  for (const tier of [own.filter(fits), lent.filter(vibed), lent, louisiana]) take(tier, close, room, 1);
   return { exact, close };
 };
 
@@ -227,7 +249,7 @@ export const declutterTieInOn = (flags: { on: boolean } = GIFT_GUIDE_FLAGS.declu
 export const EXTRAS_WORDS = {
   finderTitle: "Find a gift in 3 taps",
   // Owner 11-20 12:30 PM landing plan: the big call to action's one line under its title.
-  finderLead: "Pick who it's for, your budget and their vibe. We'll show 6 gifts.",
+  finderLead: "Pick who it's for, your budget and their vibe. We'll show up to 9 gifts.",
   finderWho: "Who's it for?",
   finderBudget: "Your budget",
   finderVibe: "Their vibe",
@@ -237,6 +259,7 @@ export const EXTRAS_WORDS = {
   finderAgain: "Start over",
   finderClose: "Close matches",
   finderNone: "No picks for them yet. Try someone else.",
+  finderFew: (guide: string) => `Only a few fit. See every gift in the ${guide} guide`,
   giveawayBanner: "25 Days of Louisiana Giveaways: a new Louisiana prize every day, Dec 1 to 25. See how to enter",
   declutterTieIn: "Sell what you don't use to pay for gifts, on Declutter",
 };

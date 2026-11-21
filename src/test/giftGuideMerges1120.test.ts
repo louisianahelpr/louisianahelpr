@@ -15,6 +15,7 @@
  * @mutate api/share.ts | /^([a-z0-9-]+(#[a-z0-9-]+)?)?$/.test(d.moved[slug]) | /^[a-z0-9-]+$/.test(d.moved[slug])
  * @mutate scripts/giftGuideBig1120.mjs |       if (kept.some((k) => sameProduct(k, r) && | if (false && kept.some((k) => sameProduct(k, r) &&
  */
+import { LIVE_GUIDES_1121, isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -79,6 +80,13 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       // For Her / For Him (owner 11-20 evening): the old Mom, Dad, Wife ... slugs are filter pages now, guarded by giftGuidePeople1120.test.ts.
       if (peopleGuideOf(s) || peopleGuideOf(parent) || s in OLD_PEOPLE_SLUGS) continue;
       expect(guideBySlug(s), `${s} keeps a page`).toBeUndefined();
+      // Owner 11-21: a retired parent (src/content/giftGuideLive.mjs) has no page; its old guides 301 to the landing.
+      if (!isLiveGuide(parent)) {
+        expect(guideBySlug(parent), parent).toBeUndefined();
+        expect(newSlugFor(s), s).toBeNull();
+        expect(moved[s], `route map: ${s}`).toBe("");
+        continue;
+      }
       expect(guideBySlug(parent), parent).toBeTruthy();
       // The section groups (owner 11-20) name the section the old guide's picks joined.
       const want = SECTION_ANCHORS[s] ? `${parent}#${SECTION_ANCHORS[s]}` : parent;
@@ -233,11 +241,10 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     }
   });
 
-  it("the page lists ~30 guides (from ~250), every one reachable", () => {
+  it("the page lists only the live guides (owner 11-21: Her, Him and Kids, plus the 25 Days sponsors page)", () => {
     // A relationship filter page (Mom, Dad ... on For Her / For Him) is a view of its guide, not another guide.
     const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-") && !(g as { view?: unknown }).view);
-    // Follow-up 1120 (owner "FINAL MERGES -> ~30"): 28 guides measured 2026-11-20.
-    expect(shown.length).toBeGreaterThan(24);
-    expect(shown.length).toBeLessThan(34);
+    // Follow-up 1120 (owner "FINAL MERGES -> ~30"): 28 guides measured 2026-11-20; owner 11-21: the live list only.
+    expect(shown.map((g) => g.slug).sort()).toEqual([...LIVE_GUIDES_1121].sort());
   });
 });

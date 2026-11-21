@@ -23,7 +23,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
-import { SEARCH_KEYWORDS, searchGuides, sectionWords } from "@/content/giftGuideCatalog";
+import { SEARCH_KEYWORDS, guideBySlug, searchGuides, sectionWords } from "@/content/giftGuideCatalog";
+import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
 import { LOUISIANA_SHOPS, SPONSOR_SITES } from "@/content/giftGuides";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
@@ -146,13 +147,9 @@ describe("design audit r2: sales and search", () => {
   it("#11 'lsu', 'saints', 'boots' and 'nurse' find their guides; a title match ranks first", () => {
     const slugs = (q: string) => searchGuides(q).map((g) => g.slug);
     expect(Object.keys(SEARCH_KEYWORDS).length).toBeGreaterThan(5);
-    // Follow-up 1120: Game Day (with Purple & Gold Lover) is a section of Louisiana Celebrations; its LSU words find it.
-    expect(slugs("lsu")).toContain("louisiana-celebrations");
-    expect(slugs("saints")).toContain("louisiana-celebrations");
-    // 1120: the Muck Boot store page folded into the guides; Tractor Supply carries the boots now.
-    expect(slugs("boots")).toContain("store-tractor-supply");
-    // One guide per product (owner 11-19): a nurse guide under 6 picks is hidden; whatever nurse guide shows matches.
-    expect(slugs("nurse").every((s) => /nurs|healthcare|cnas|rns|lpns/.test(s))).toBe(true);
+    // Owner 11-21: only Her, Him and Kids are live (src/content/giftGuideLive.mjs); the LSU, boots and nurse words
+    // pointed at guides now retired (Louisiana Celebrations, Tractor Supply, Healthcare), so they find no retired guide.
+    for (const q of ["lsu", "saints", "boots", "nurse"]) expect(slugs(q).every((s) => isLiveGuide(guideBySlug(s)?.view?.of ?? s)), q).toBe(true);
     expect(slugs("mom")[0]).toBe("mom");
     // Every guide titled with the word comes before any guide that only matches through its lead or row.
     const inTitle = searchGuides("mom").map((g) => /mom/i.test(g.title));

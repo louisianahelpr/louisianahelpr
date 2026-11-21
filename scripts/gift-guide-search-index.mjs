@@ -10,6 +10,7 @@
  */
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 
 const REPO = resolve(import.meta.dirname, "..");
 const DIR = join(REPO, "src/content/giftGuidePicks");
@@ -17,7 +18,8 @@ const OUT = join(REPO, "src/content/giftGuideSearchIndex.json");
 
 /** The rows: non-store guides first (by slug), then store pages; the first occurrence of a name wins. */
 export function buildIndex() {
-  const files = readdirSync(DIR).filter((f) => f.endsWith(".json")).sort();
+  // Owner 11-21: only the live guides' chunks (src/content/giftGuideLive.mjs); a retired guide's file stays on disk unlisted.
+  const files = readdirSync(DIR).filter((f) => f.endsWith(".json") && isLiveGuide(f.slice(0, -5))).sort();
   const slugs = [...files.filter((f) => !f.startsWith("store-")), ...files.filter((f) => f.startsWith("store-"))].map((f) => f.slice(0, -5));
   const seen = new Set();
   const rows = [];

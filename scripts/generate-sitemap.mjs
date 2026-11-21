@@ -47,6 +47,7 @@ import { allTownPagePaths } from "../src/lib/townPages.mjs";
 import { GIFT_GUIDE_SEO } from "../src/content/giftGuideSeo.mjs";
 import { DEALS_SLUG } from "../src/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG } from "../src/content/giftGuideSmallBiz.mjs";
+import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -62,7 +63,8 @@ export function allGiftGuidePaths() {
   const slugs = Object.keys(GIFT_GUIDE_SEO);
   if (slugs.length === 0) throw new Error("generate-sitemap: src/content/giftGuideSeo.mjs lists no guide");
   // The two own pages (no catalog guide, indexed): the deals guide (#4776 left it out) and Small Business Saturday (1120).
-  return ["/gift-guides", ...slugs.sort().map((slug) => `/gift-guides/${slug}`), `/gift-guides/${DEALS_SLUG}`, `/gift-guides/${SMALL_BIZ_SLUG}`];
+  // Owner 11-21: the deals and Small Business Saturday pages are listed only while live (src/content/giftGuideLive.mjs).
+  return ["/gift-guides", ...slugs.sort().map((slug) => `/gift-guides/${slug}`), ...[DEALS_SLUG, SMALL_BIZ_SLUG].filter(isLiveGuide).map((slug) => `/gift-guides/${slug}`)];
 }
 
 /** Canonical origin — must match src/lib/sitemap.test.ts. */

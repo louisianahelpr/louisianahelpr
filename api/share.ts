@@ -98,6 +98,7 @@ import { jobShareDescription } from "../src/lib/jobShareLine.mjs";
 import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "../src/lib/giftGuideShareImages.mjs";
 import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "../src/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS, smallBizDay, smallBizTitle } from "../src/content/giftGuideSmallBiz.mjs";
+import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -1201,6 +1202,9 @@ function seoFor(url: URL): SeoOutcome {
     if (slug === MY_LIST_SLUG) return null;
     // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is no catalog guide: its own body, never a 404.
     // The Small Business Saturday page (owner 2026-11-19, big batch 1120): its own body, never a 404.
+    // Owner 11-21 ("launch the 3 guides remove the rest that are live"): while either is retired (not in
+    // src/content/giftGuideLive.mjs) its old link 301s to the landing page, as the page itself sends it there.
+    if ((slug === SMALL_BIZ_SLUG || slug === DEALS_SLUG) && !isLiveGuide(slug)) return { kind: "moved", location: `${SITE_ORIGIN}/gift-guides` };
     if (slug === SMALL_BIZ_SLUG) {
       const name = smallBizTitle(smallBizDay(new Date()));
       return { kind: "page", body: dealsGuideBody(SMALL_BIZ_SLUG, name, SMALL_BIZ_WORDS.intro, SMALL_BIZ_WORDS.featuredLine), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name, path: `/gift-guides/${SMALL_BIZ_SLUG}` }])] };

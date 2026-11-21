@@ -17,6 +17,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 
 const REPO = resolve(import.meta.dirname, "..");
 const LOGOS = process.env.SPONSOR_LOGOS_DIR ?? join(homedir(), "Desktop", "25 Days Logos");
@@ -99,7 +100,8 @@ export function spotFor(brand, chunks) {
   const k = fold(shortName(brand));
   if (k.length < 3) return undefined;
   for (const [slug, picks] of Object.entries(chunks)) {
-    if (slug.startsWith("store-") || slug === "25-days-sponsors") continue;
+    // Owner 11-21: a retired guide (src/content/giftGuideLive.mjs) is no spot; its sponsor links to Facebook or the sponsors page.
+    if (slug.startsWith("store-") || slug === "25-days-sponsors" || !isLiveGuide(slug)) continue;
     const p = picks.find((x) => x.sponsor && (fold(x.brand).startsWith(k) || fold(x.name).startsWith(k) || (fold(x.brand).length >= 4 && k.startsWith(fold(x.brand)))));
     if (p) return `/gift-guides/${slug}${p.sectionId && p.sectionId !== "top-picks" ? `#${p.sectionId}` : ""}`;
   }

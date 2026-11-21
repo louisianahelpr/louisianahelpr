@@ -55,6 +55,9 @@ export const WISH = {
   /** The shared list's page. */
   /** Above the list's name on a shared list: the name is the sender's own words, never ours (security review #4). */
   sharedLead: "Someone shared their wish list with you",
+  /** Holiday audit C9: an unnamed (or default-named) shared list never shows the recipient "My Wish List". */
+  sharedUnnamed: "A wish list for you",
+  sharedMissingTitle: "List not found",
   sharedIntro: "Tap Shop to buy any gift. Prices and stock are on the store's site.",
   sharedMissing: "This list isn't here anymore, or the link is incomplete.",
   sharedFailed: "Couldn't load this list. Check your connection and try again.",

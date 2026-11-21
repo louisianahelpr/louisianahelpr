@@ -311,6 +311,41 @@ ok(isErr(await as("authenticated", ORDINARY, `SELECT public.sponsor_admin_add_si
 ok(!/(^|,)(anon|authenticated)=/.test(await acl("public.sponsor_create_signup(uuid,jsonb)")), "proacl after 20261110171648: no anon/authenticated EXECUTE on sponsor_create_signup");
 ok(!/(^|,)anon=/.test(await acl("public.sponsor_admin_add_signup(jsonb)")) && /(^|,)authenticated=X/.test(await acl("public.sponsor_admin_add_signup(jsonb)")), "proacl after 20261110171648: sponsor_admin_add_signup is authenticated-only (no anon)");
 
+// ── holiday audit C4 (20261121011705): the wall is the sponsors who said OK and the admin shows, any status ──
+// WALL_FIX=skip: RED (the old status gate leaves a pending sponsor off the wall). WALL_FIX_PATH=<planted copy>.
+let appliedWall = 0;
+if (process.env.WALL_FIX !== "skip") {
+  const WALL_FIX = process.env.WALL_FIX_PATH ? readFileSync(process.env.WALL_FIX_PATH, "utf8") : mig("20261121011705_sponsor_wall_shows_consented.sql");
+  for (let i = 0; i < 3; i++) {
+    try {
+      await db.exec(WALL_FIX);
+      appliedWall++;
+    } catch (e) {
+      console.log(`apply 20261121011705 ${i + 1} failed: ${e.message}`);
+    }
+  }
+}
+ok(appliedWall === 3, "20261121011705 (wall shows consented sponsors) applies 3 times on top (replay-safe)");
+const pendingShown = await signup([18], { brand_name: "Pending Shown Brand", email: "ps@example.com", wall_ok: true, show_on_wall: true });
+const pendingHidden = await signup([18], { brand_name: "Pending Hidden Brand", email: "ph@example.com", wall_ok: true, show_on_wall: true });
+await as("authenticated", ADMIN, `SELECT public.sponsor_admin_set_wall('${pendingHidden?.id}', false)`);
+const noTick = await signup([18], { brand_name: "No Tick Brand", email: "nt@example.com", wall_ok: false, show_on_wall: true });
+const seedShown = await signup([18], { brand_name: "Seed Shown Brand", email: "Seed.Brand@example.com", wall_ok: true, show_on_wall: true });
+const statusOf = (await q(`SELECT status FROM public.sponsor_signups WHERE id = '${pendingShown?.id}'`)).rows[0]?.status;
+const wallNow = ((await state("anon", null))?.wall ?? []).map((s) => s.brand);
+ok(statusOf === "pending" && wallNow.includes("Pending Shown Brand"), `a PENDING sponsor who said OK and is shown is on the wall (status ${statusOf}, wall ${JSON.stringify(wallNow)})`);
+ok(!wallNow.includes("Pending Hidden Brand"), "the admin's wall toggle off keeps a sponsor off the wall (Microtel, Wingate)");
+ok(!wallNow.includes("No Tick Brand"), "a sponsor who did not tick OK is never on the wall");
+ok(!wallNow.includes("Seed Shown Brand") && seedShown?.ok === true, "a test address's sign-up never shows on the wall");
+const logoPath = async (id) => (await as("service_role", null, `SELECT public.sponsor_service_logo_path('${id}', false) AS p`));
+await q(`UPDATE public.sponsor_signups SET logo_path = 'signups/' || id || '.png' WHERE id IN ('${pendingShown?.id}', '${pendingHidden?.id}', '${noTick?.id}')`);
+const lp = await logoPath(pendingShown?.id);
+ok(Array.isArray(lp) && typeof lp[0].p === "string", `the logo endpoint serves a shown pending sponsor's logo (got ${JSON.stringify(lp)})`);
+const lh = await logoPath(pendingHidden?.id);
+ok(Array.isArray(lh) && lh[0].p === null, "the logo endpoint serves no logo for a sponsor the admin hid");
+ok(isErr(await as("anon", null, `SELECT public.sponsor_service_logo_path('${pendingShown?.id}', true)`), /permission denied/), "anon still cannot run sponsor_service_logo_path after 20261121011705");
+ok(/(^|,)anon=X/.test(await acl("public.sponsor_public_state(text)")) && !/(^|,)(anon|authenticated)=/.test(await acl("public.sponsor_service_logo_path(uuid,boolean)")), "proacl after 20261121011705: public state anon-callable, logo path service-role only");
+
 // ── back off -> dark again ──────────────────────────────────────────────────
 await setAudience("off");
 ok((await state("anon", null))?.on === false && (await state("anon", null))?.day_counts === undefined, "switched off again: on=false and no data");

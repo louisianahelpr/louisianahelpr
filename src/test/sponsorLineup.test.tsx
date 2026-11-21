@@ -44,7 +44,7 @@ const FINAL: Record<number, string[]> = {
   2: ["Boston Mints", "RYSE", "World Ballet Company: The Nutcracker", "David Rabalais", "Cher Bebe Embroidery", "Wicks NOLA Candle Company", "Ace Bungee Fitness"],
   3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Crabtrap Functional Fitness", "RoseMae Eimear Creations", "Everyday Dose", "Forgiven Hearts", "Suzi Marques Photography"],
   4: ["K18 Hair", "RYSE", "Megan Benoit's Closet", "Kate McLeod", "Britt Creates", "Tays Sweet Shop", "Jessica Lanham Photography"],
-  5: ["Oyu Botanica", "RYSE", "R&R Wedding Co.", "Breads and Sweets by Babs", "Olivia Grace Photography", "Celebration Station (Baton Rouge)", "Jessica Lanham Photography"],
+  5: ["Oyu Botanica", "RYSE", "Breads and Sweets by Babs", "Olivia Grace Photography", "Celebration Station (Baton Rouge)", "Jessica Lanham Photography"],
   6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery", "Rusty's Seasoning", "Faulk's Game Call Co.", "Paddlewheeler Creole Queen (New Orleans)", "Jessica Lanham Photography", "Hair Fashion and Spa (Opelousas)"],
   7: ["Whimsies from Within", "RYSE", "Rock Bottom Golf", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Suzi Marques Photography"],
   8: ["RYSE", "Written on the River", "Timeless Skin Care", "David Rabalais", "Tays Sweet Shop", "Candle Bloom Confections", "Active Beauty"],
@@ -77,8 +77,9 @@ describe("the final lineup", () => {
     const got = Object.fromEntries(days.map((d) => [d.day, d.partners.map((p) => p.brand)]));
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
-    // 176 giveaways (owner 2026-11-19: show the full sponsor list; the tracker's calendar as of 2026-11-20 6:45 PM), and no brand twice on one day (each partner's row is keyed by its brand).
-    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(176);
+    // 175 giveaways (owner 2026-11-19: show the full sponsor list; the tracker's calendar as of 2026-11-20 6:45 PM, 176,
+    // less R&R Wedding Co., which the owner dropped 2026-11-20), and no brand twice on one day (each partner's row is keyed by its brand).
+    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(175);
     for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
 
@@ -114,7 +115,7 @@ describe("the final lineup", () => {
     expect(tileCount(NO_DB, 12)).toBe(8);
     expect(tileCount(NO_DB, 1)).toBe(7);
     expect(tileCount(NO_DB, 3)).toBe(7);
-    expect(tileCount(NO_DB, 5)).toBe(7);
+    expect(tileCount(NO_DB, 5)).toBe(6); // owner 2026-11-20: R&R Wedding Co. dropped from Dec 5
     expect(tileCount(NO_DB, 10)).toBe(7);
     expect(tileCount({ dayCounts: { 2: 7 } }, 2)).toBe(7);
     render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
@@ -231,12 +232,14 @@ describe("lineup polish (design audit r2 #18, #19; display only, the owner's dat
     expect(CSS).toMatch(/@media \(min-width: 640px\) \{(?:[^{}]*\{[^{}]*\})*?\s*\.lh25-lineup-more-row \{ display: none; \}/);
   });
 
-  it("each business name links to its Facebook Page in a new tab; no contact details", () => {
+  it("each business name links to its own page (website, Facebook or Instagram) in a new tab; no contact details", () => {
     render(<MemoryRouter><Lineup /></MemoryRouter>);
     const links = screen.getAllByTestId("lineup-partner").map((c) => c.querySelector("a.lh25-lineup-brand")).filter((a): a is HTMLAnchorElement => !!a);
-    expect(links.length).toBeGreaterThan(30);
+    // Holiday audit C4 (11-20): the names with no Facebook link get their website or Instagram (sponsorPage.lineup.links).
+    expect(links.length).toBeGreaterThan(80);
     for (const a of links) {
-      expect(a.getAttribute("href")).toMatch(/^https:\/\/(www\.)?facebook\.com\//);
+      expect(a.getAttribute("href")).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}\//);
+      expect(a.getAttribute("href")).not.toMatch(/mailto:|tel:|@/);
       expect(a.getAttribute("target")).toBe("_blank");
       expect(a.getAttribute("rel")).toContain("noopener");
     }

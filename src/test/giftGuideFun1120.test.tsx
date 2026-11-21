@@ -12,7 +12,7 @@
  *
  * @mutate src/content/giftGuideFun1120.ts |       if (taken[r] \|\| blocked[giver].has(r)) continue; |       if (taken[r]) continue;
  * @mutate src/content/giftGuideFun1120.ts |       blocked[b].add(a); |       blocked[b].add(b);
- * @mutate src/content/giftGuideFun1120.ts | ...pool.filter(unknown)]) {\n    if (out.length >= SWIPE_ROUND) break;\n    if (!p.href \|\| !p.name \|\| seen.has(p.href) \|\| used.has(p.href)) continue; | ...pool.filter(unknown)]) {\n    if (out.length >= SWIPE_ROUND) break;\n    if (!p.href \|\| !p.name \|\| used.has(p.href)) continue;
+ * @mutate src/content/giftGuideFun1120.ts |   for (const p of from.filter(fits)) {\n    if (out.length >= SWIPE_ROUND) break;\n    if (!p.href \|\| !p.name \|\| seen.has(p.href) \|\| used.has(p.href)) continue; |   for (const p of from.filter(fits)) {\n    if (out.length >= SWIPE_ROUND) break;\n    if (!p.href \|\| !p.name \|\| used.has(p.href)) continue;
  * @mutate src/content/giftGuideFun1120.ts |   const spent = sum(p.ideas.filter((i) => i.bought)); |   const spent = sum(p.ideas);
  * @mutate src/content/giftGuideFun1120.ts |   if (md > "12-25") return { kind: "after" }; |   if (md > "12-26") return { kind: "after" };
  * @mutate src/content/giftGuideFun1120.ts |   return flagOn && md >= "12-01" && md <= "12-25"; |   return md >= "12-01" && md <= "12-25";
@@ -22,7 +22,8 @@
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |   if (viewer === undefined \|\| !copyBelongsTo(c.ownerId, viewer)) return EMPTY_PLAN; |   if (viewer === undefined) return EMPTY_PLAN;
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |         const local = copyBelongsTo(c.ownerId, userId) ? c.plan : EMPTY_PLAN; |         const local = c.plan;
  * @mutate src/lib/giftPlannerDevice.ts |   resets.forEach((fn) => fn()); |   void resets;
- * @mutate src/content/giftGuideFun1120.ts |   for (const p of [...pool.filter(fits), ...pool.filter(unknown)]) { |   for (const p of pool.filter(fits)) {
+ * @mutate src/content/giftGuideFun1120.ts |   const fits = (p: CatalogPick) => fitsBudget(p, budget); |   const fits = (p: CatalogPick) => budget === 0 \|\| (p.band !== undefined && p.band <= budget);
+ * @mutate src/content/giftGuideFun1120.ts |   const fits = (p: CatalogPick) => fitsBudget(p, budget); |   const fits = (p: CatalogPick) => budget === 0 \|\| pickCeiling(p) === undefined \|\| fitsBudget(p, budget);
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto} | .gg-plan-budget{flex:none}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | display:grid;grid-template-columns:minmax(0,1fr);gap:8px} | display:grid;gap:8px}
  * @mutate src/pages/info/giftGuides/fun/SecretSanta.tsx |  onChange={() => setError(null)} | 
@@ -41,8 +42,9 @@ import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { guideBySlug, loadAllGuidePicks, loadSearchItems, topPicks } from "@/content/giftGuideCatalog";
 import {
   SWIPE_BUDGETS, SWIPE_PER_STORE, SWIPE_ROUND, SWIPE_WHO, duplicateName, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giftOfTheDay, giveawayTieInOn, parseDollars,
-  SANTA_PATH, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan,
+  SANTA_PATH, borrowFits, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan,
 } from "@/content/giftGuideFun1120";
+import { BUDGET_GUIDES, pickCeiling } from "@/content/giftPickBand";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -202,23 +204,51 @@ describe("swipe rounds", () => {
     expect(Math.max(...per.values())).toBeLessThanOrEqual(SWIPE_PER_STORE);
     for (const p of r) expect(p.band).toBeLessThanOrEqual(25);
   });
-  it("leaves out what was already seen; picks with no price band come after the ones known to fit, never one known to cost more", () => {
+  it("leaves out what was already seen; a budget round deals only picks known to fit (holiday audit C1)", () => {
     const first = swipeRound(pool, 0, new Set(), seededRandom(2));
     const second = swipeRound(pool, 0, new Set(first.map((p) => p.href)), seededRandom(3));
     expect(second.some((p) => first.some((q) => q.href === p.href))).toBe(false);
     const mixed = [pick(1, { store: "amazon", band: undefined }), pick(2, { band: 100 }), pick(3, { band: 25 })];
     const r = swipeRound(mixed, 25, new Set(), () => 0.99);
-    expect(r.map((p) => p.name).sort()).toEqual(["Gift 1", "Gift 3"]);
+    expect(r.map((p) => p.name).sort()).toEqual(["Gift 3"]);
     expect(swipeRound(mixed, 0, new Set()).length).toBe(3);
+    // A checked price beats the band (Dyson: band 500, price 749.99), and a priced pick with no band still counts.
+    const priced = [pick(4, { band: 25, price: 40, priceAt: "2026-11-19" }), pick(5, { band: undefined, price: 128, priceAt: "2026-11-19" }), pick(6, { band: undefined, price: 19, priceAt: "2026-11-19" })];
+    expect(swipeRound(priced, 25, new Set(), () => 0.5).map((p) => p.name)).toEqual(["Gift 6"]);
+    // Borrowed budget-guide picks fill in only for a budget round, and only when they fit.
+    const borrowed = [pick(7, { band: 25 }), pick(8, { band: 100 })];
+    expect(swipeRound([], 25, new Set(), () => 0.5, borrowed).map((p) => p.name)).toEqual(["Gift 7"]);
+    expect(swipeRound([], 0, new Set(), () => 0.5, borrowed)).toEqual([]);
   });
 
-  it("every who and budget gives at least 10 cards from the real guides (UX audit H3)", async () => {
+  it("Him under $25 deals only gifts known to cost $25 or less, from the real guides (holiday audit C1)", async () => {
+    await loadAllGuidePicks();
+    const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
+    const borrow = BUDGET_GUIDES.flatMap((g) => picksOf(g).filter((p) => borrowFits("him", p)));
+    let dealt = 0;
+    const over: string[] = [];
+    for (let seed = 1; seed <= 5; seed++) {
+      for (const p of swipeRound(swipePool("him", picksOf), 25, new Set(), seededRandom(seed), borrow)) {
+        dealt++;
+        const c = pickCeiling(p);
+        if (c === undefined || c > 25) over.push(`${p.name} (${c ?? "no price"})`);
+      }
+    }
+    // Measured 11-20: 8 Him picks are known to cost $25 or less (5 rounds x 8); the deck says "Only 8 gifts" (swipeFew).
+    expect(dealt).toBeGreaterThanOrEqual(5 * 8);
+    expect(over).toEqual([]);
+  });
+
+  // Holiday audit C1 (11-20): a budget round deals only gifts KNOWN to fit, so the floor is 8 (Dad and Him under $25
+  // had exactly 8, measured 11-20); a short round says so and offers the next budget (W.swipeFew, data-swipe-next-budget).
+  it("every who and budget gives at least 8 cards from the real guides (UX audit H3)", async () => {
     await loadAllGuidePicks();
     const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
     const thin: string[] = [];
     for (const w of SWIPE_WHO) for (const b of SWIPE_BUDGETS) {
-      const n = swipeRound(swipePool(w.id, picksOf), b.id, new Set(), seededRandom(1)).length;
-      if (n < 10) thin.push(`${w.id}/${b.id}: ${n}`);
+      const borrow = BUDGET_GUIDES.flatMap((g) => picksOf(g).filter((p) => borrowFits(w.id, p)));
+      const n = swipeRound(swipePool(w.id, picksOf), b.id, new Set(), seededRandom(1), borrow).length;
+      if (n < 8) thin.push(`${w.id}/${b.id}: ${n}`);
     }
     expect(SWIPE_WHO.length * SWIPE_BUDGETS.length).toBeGreaterThan(30);
     expect(thin).toEqual([]);

@@ -133,7 +133,7 @@ export const SANTA_TOKEN = /^[a-f0-9]{64}$/;
 // ---------------------------------------------------------------------------------------------------------------
 // (2) Swipe to find gifts
 
-export type SwipeWho = "me" | "mom" | "dad" | "her" | "him" | "teen" | "kids" | "friends" | "coworkers" | "louisiana";
+export type SwipeWho = "me" | "mom" | "dad" | "her" | "him" | "teen" | "kids" | "friends" | "coworkers" | "grandparents" | "louisiana";
 export type SwipeBudget = 25 | 50 | 100 | 0;
 
 /**
@@ -152,6 +152,8 @@ export const SWIPE_WHO: { id: SwipeWho; label: string; guides: { slug: string; s
   { id: "kids", label: "Kids", guides: finderGuides("kids"), forName: "Kids" },
   { id: "friends", label: "Friends", guides: finderGuides("friend"), forName: "Friends" },
   { id: "coworkers", label: "Coworkers", guides: finderGuides("coworker"), forName: "Coworkers" },
+  // Holiday audit C12c: the quiz has Grandparents, so the swipe deck does too.
+  { id: "grandparents", label: "Grandparents", guides: finderGuides("grandparent"), forName: "Grandparents" },
   { id: "louisiana", label: "Louisiana", guides: [{ slug: "louisiana-made" }, { slug: "shop-small-louisiana" }, { slug: "louisiana-food-gifts" }], forName: "Louisiana gifts" },
 ];
 export const SWIPE_BUDGETS: { id: SwipeBudget; label: string }[] = [
@@ -173,18 +175,19 @@ export const swipePool = (who: SwipeWho, picksOf: (slug: string) => CatalogPick[
 
 /**
  * One round: up to 20 cards, strongest first, each link once, at most 5 per store, none already seen this visit. With
- * a budget, the picks known to fit it (a price band at most the budget) come first, then the picks with no band (Amazon
- * allows no price outside its own site, and some shops publish none), never a pick known to cost more (UX audit H3:
- * a band-only round left 0-1 cards for some people and budgets). A light shuffle inside each run of 4 keeps rounds
- * from feeling the same.
+ * a budget, ONLY picks known to fit it are dealt (fitsBudget: the checked price when there is one, else the price band,
+ * else a budget section; holiday audit C1, 11-20: "Him under $25" dealt a $128 quarter zip because 249 priced picks had
+ * no band, and unknown-price picks padded the deck). A pick with no known price is never in a budget round. `borrow`
+ * (the budget guides' picks that suit this "who") fills in after the person's own guides, so a strict budget still
+ * gets a full round. A light shuffle inside each run of 4 keeps rounds from feeling the same.
  */
-export function swipeRound<T extends CatalogPick>(pool: T[], budget: SwipeBudget, seen: ReadonlySet<string>, rand: () => number = Math.random): T[] {
-  const fits = (p: CatalogPick) => budget === 0 || (p.band !== undefined && p.band <= budget);
-  const unknown = (p: CatalogPick) => budget !== 0 && p.band === undefined;
+export function swipeRound<T extends CatalogPick>(pool: T[], budget: SwipeBudget, seen: ReadonlySet<string>, rand: () => number = Math.random, borrow: readonly T[] = []): T[] {
+  const fits = (p: CatalogPick) => fitsBudget(p, budget);
+  const from = budget === 0 ? pool : [...pool, ...borrow];
   const perStore = new Map<string, number>();
   const used = new Set<string>();
   const out: T[] = [];
-  for (const p of [...pool.filter(fits), ...pool.filter(unknown)]) {
+  for (const p of from.filter(fits)) {
     if (out.length >= SWIPE_ROUND) break;
     if (!p.href || !p.name || seen.has(p.href) || used.has(p.href)) continue;
     const n = perStore.get(p.store) ?? 0;
@@ -392,7 +395,8 @@ export const FUN_WORDS = {
   gotdCopied: "Link copied",
   giveawayOn: "25 Days of Louisiana Giveaways is on",
   // Secret Santa
-  santaTitle: "Secret Santa drawer",
+  // Holiday audit C15e: "drawer" read as furniture.
+  santaTitle: "Secret Santa name draw",
   santaLead: "Type everyone's first name. We draw the names, then you send each person a private link to their match.",
   santaNames: "Who's in?",
   santaNamePlaceholder: (n: number) => `Name ${n}`,
@@ -423,8 +427,18 @@ export const FUN_WORDS = {
   santaCopy: "Copy link",
   santaCopied: "Copied",
   santaShareText: (name: string) => `${name}, here's your Secret Santa match. Open it when no one's looking!`,
-  santaKeepNote: "Links stop working after the holidays. We don't save emails or phone numbers.",
+  santaKeepNote: "Links stop working on Jan 15. We don't save emails or phone numbers.",
   santaStartOver: "Start a new group",
+  santaBudgetPlaceholder: "e.g. 25",
+  santaLastDraw: (day: string) => `Your last draw (${day})`,
+  santaKept: "We keep these links on this device, so you can come back and send them later.",
+  santaSent: "Sent ✓",
+  santaResetQ: "Start a new group?",
+  santaResetWarn: "This turns off every link from this draw, including ones you already sent. Everyone will need a new link.",
+  santaResetYes: "Turn off old links and start over",
+  santaResetNo: "Keep this draw",
+  santaResetting: "Turning off old links...",
+  santaResetFailed: "We couldn't turn off the old links. Check your connection and try again.",
   // Reveal
   revealTitle: "Your Secret Santa",
   revealHi: (name: string) => `Hi ${name}! You're getting a gift for`,
@@ -440,7 +454,7 @@ export const FUN_WORDS = {
   revealShared: "Your Secret Santa can see your wish list now.",
   revealShareFailed: "We couldn't share your list. Try again.",
   revealEmptyList: "Your wish list is empty. Heart a few gifts first.",
-  revealMissing: "This link doesn't work anymore. Ask your organizer for a new one.",
+  revealMissing: "This link doesn't work anymore. Ask your organizer to send you your link again.",
   revealLoading: "Opening your match...",
   revealRetry: "Try again",
   revealFindGifts: "Find a gift for them",
@@ -468,6 +482,10 @@ export const FUN_WORDS = {
   swipeDetails: "Details",
   swipeShop: "Shop",
   swipeCount: (i: number, n: number) => `${i} of ${n}`,
+  swipeSavedSoFar: (n: number) => `${n} saved`,
+  swipeFew: (n: number, budget: string) => (n === 1 ? `Only 1 gift we know is ${budget.toLowerCase()}.` : `Only ${n} gifts we know are ${budget.toLowerCase()}.`),
+  swipeNextBudget: (budget: string) => `See ${budget}`,
+  swipeSavedOne: (name: string) => `Saved ${name}.`,
   swipeHelp: "Swipe right or tap Save to keep it. Swipe left or tap Skip to pass.",
   swipeDoneTitle: (n: number) => (n === 1 ? "You saved 1 gift" : `You saved ${n} gifts`),
   swipeDoneNone: "Nothing caught your eye? Try another round.",

@@ -29,7 +29,7 @@ const KEY = "lh-gift-list";
 /** My Wish List's page: /gift-guides/my-list. */
 export const MY_LIST_SLUG = "my-list";
 /** The list's name until the visitor gives it one (no field is ever required). */
-const DEFAULT_LIST_NAME = "My Wish List";
+export const DEFAULT_LIST_NAME = "My Wish List";
 /** The most gifts one list holds (the server's own cap, gift_wish_list_save). */
 const MAX_LIST_ITEMS = 100;
 /** The longest list name (the server's CHECK). */

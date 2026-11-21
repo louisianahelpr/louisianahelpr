@@ -18639,6 +18639,7 @@ export type Database = {
       sbs_service_create: { Args: { p_row: Json }; Returns: Json }
       sbs_service_logo_path: { Args: { p_any: boolean; p_id: string }; Returns: string }
       sbs_town_key: { Args: { p_town: string }; Returns: string }
+      secret_santa_cancel: { Args: { p_code: string; p_tokens: string[] }; Returns: boolean }
       secret_santa_create: { Args: { p_avoid?: number[]; p_budget?: number; p_exchange_on?: string; p_gives_to: number[]; p_names: string[] }; Returns: Json }
       secret_santa_expire: { Args: never; Returns: Json }
       secret_santa_reveal: { Args: { p_code: string; p_token: string }; Returns: Json }

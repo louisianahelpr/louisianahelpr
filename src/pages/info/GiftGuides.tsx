@@ -23,6 +23,7 @@ import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
+import { GiftGuidesPhoneNav } from "./giftGuides/GiftGuidesPhoneNav";
 import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
 import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { GiftGuideSmallBiz } from "./giftGuides/GiftGuideSmallBiz";
@@ -140,6 +141,8 @@ export default function GiftGuides() {
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
   // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
   const banner = Boolean(deals || guide);
+  // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
+  const sidePage = deals && !smallBiz ? DEALS_SLUG : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
   // The landing's arrow goes home; every other page's to the landing.
   const backTo = guide || deals || myList || shared || group ? "/gift-guides" : "/";
 
@@ -175,6 +178,9 @@ export default function GiftGuides() {
           {shipPill}
           {tools}
         </div>
+        {/* Owner 11-21 ("We need a way to organize this on the phones"): up to 767px a sticky chip row and a menu sheet
+            replace the sidebar (which a phone no longer draws at the page's foot). */}
+        <GiftGuidesPhoneNav active={guide} myList={myList} page={sidePage} />
         {deals ? (
           smallBiz ? (
             <GiftGuidesWords lead={SMALL_BIZ_WORDS.lead} title={dealsName} titleId="gift-guide-title" tint="green" tools={null} />
@@ -188,7 +194,7 @@ export default function GiftGuides() {
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
         <div className="gg-layout">
-          <GiftGuidesSidebar active={guide} myList={myList} page={deals && !smallBiz ? DEALS_SLUG : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined} />
+          <GiftGuidesSidebar active={guide} myList={myList} page={sidePage} />
           <div className="gg-main">
             {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>

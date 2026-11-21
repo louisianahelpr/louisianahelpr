@@ -255,6 +255,11 @@ export const giftGuides = {
   /** The left menu's group headings (owner 11-21: "guides, deals, free, make it fun should all be their own section"). */
   sideHeads: { guides: "Guides", deals: "Deals", free: "Free printables", louisiana: "Louisiana" },
   sideHolidayHub: "Holiday Hub",
+  /** The phone's chip row and menu sheet (owner 11-21: "We need a way to organize this on the phones"). */
+  phoneNavLabel: "Gift guides menu",
+  phoneNavPrintables: "Printables",
+  phoneNavFun: "Make it fun",
+  phoneNavMenu: "Menu",
   sideShopSmall: "Shop Small",
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",

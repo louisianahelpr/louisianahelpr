@@ -40,21 +40,42 @@ const SIDE_PRINTABLES = [
  *   FREE PRINTABLES: Gift tags, Coloring books, Banners (sections of the printables page, while each is shown);
  *   MAKE IT FUN: the gift finder and the fun tools;
  *   LOUISIANA: Holiday Hub, 25 Days sponsors, Shop Small.
- * A 220px sticky menu beside the page on desktop; on a phone the same groups in the same order, after the page.
+ * A 220px sticky menu beside the page on desktop. On a phone (owner 11-21: "We need a way to organize this on the
+ * phones") the sidebar is hidden and the same groups open in a bottom sheet from the chip row (GiftGuidesPhoneNav).
  */
-export function GiftGuidesSidebar({ active, myList = false, page }: { active: CatalogGuide | null; myList?: boolean; page?: string }) {
-  const open = page ?? active?.view?.of ?? active?.slug ?? null;
+export function GiftGuidesSidebar({ active, myList = false, page }: MenuProps) {
+  return (
+    <nav className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
+      <GiftGuidesMenu active={active} myList={myList} page={page} />
+    </nav>
+  );
+}
+
+interface MenuProps { active: CatalogGuide | null; myList?: boolean; page?: string }
+
+/** The live guides with their cover dots, for the menu and the phone's chip row (GiftGuidesPhoneNav). */
+export const sideGuides = () => SIDE_GUIDES.flatMap((x) => {
+  const g = guideBySlug(x.slug);
+  return g && !g.empty ? [{ ...x, title: g.title }] : [];
+});
+
+/** Which menu entry is open: a page key, a relationship view's guide (Mom -> Her), or the guide itself. */
+export const openEntry = ({ active, page }: MenuProps) => page ?? active?.view?.of ?? active?.slug ?? null;
+
+/**
+ * The grouped menu's body, shared by the desktop sidebar and the phone's menu sheet (owner 11-21: "We need a way to
+ * organize this on the phones"). `idPrefix` keeps the group heading ids unique when both are in the page.
+ */
+export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-side" }: MenuProps & { idPrefix?: string }) {
+  const open = openEntry({ active, page });
   const current = (slug: string | null) => (!myList && open === slug ? ({ "aria-current": "page" } as const) : {});
-  const guides = SIDE_GUIDES.flatMap((x) => {
-    const g = guideBySlug(x.slug);
-    return g && !g.empty ? [{ ...x, title: g.title }] : [];
-  });
+  const guides = sideGuides();
   const shown = new Set(shownPrintables().map((p) => p.id));
   const printables = SIDE_PRINTABLES.filter((p) => shown.has(p.id));
   return (
-    <nav className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
-      <p className="gg-side-h" id="gg-side-guides">{G.sideHeads.guides}</p>
-      <ul data-gift-side-guides="" aria-labelledby="gg-side-guides">
+    <>
+      <p className="gg-side-h" id={`${idPrefix}-guides`}>{G.sideHeads.guides}</p>
+      <ul data-gift-side-guides="" aria-labelledby={`${idPrefix}-guides`}>
         <li><Link to="/gift-guides" {...current(null)} data-gift-side="">{G.allGuidesLabel}</Link></li>
         {guides.map((g) => (
           <li key={g.slug}>
@@ -62,34 +83,34 @@ export function GiftGuidesSidebar({ active, myList = false, page }: { active: Ca
           </li>
         ))}
       </ul>
-      <p className="gg-side-h" id="gg-side-deals">{G.sideHeads.deals}</p>
-      <ul data-gift-side-deals-group="" aria-labelledby="gg-side-deals">
+      <p className="gg-side-h" id={`${idPrefix}-deals`}>{G.sideHeads.deals}</p>
+      <ul data-gift-side-deals-group="" aria-labelledby={`${idPrefix}-deals`}>
         {G.sideDeals.map((d, i) => (
           <li key={d.id}><Link to={`/gift-guides/${DEALS_SLUG}#${d.id}`} {...(i === 0 ? current(DEALS_SLUG) : {})} data-gift-side-deals={d.id}>{d.label}</Link></li>
         ))}
       </ul>
       {printables.length > 0 && (
         <>
-          <p className="gg-side-h" id="gg-side-free">{G.sideHeads.free}</p>
-          <ul data-gift-side-printables-group="" aria-labelledby="gg-side-free">
+          <p className="gg-side-h" id={`${idPrefix}-free`}>{G.sideHeads.free}</p>
+          <ul data-gift-side-printables-group="" aria-labelledby={`${idPrefix}-free`}>
             {printables.map((p) => <li key={p.id}><Link to={`${PRINTABLES_PATH}#${p.anchor}`} data-gift-side-printables={p.id}>{p.label}</Link></li>)}
           </ul>
         </>
       )}
-      <p className="gg-side-h" id="gg-side-fun">{FUN_WORDS.toolsTitle}</p>
-      <ul data-gift-side-tools="" aria-labelledby="gg-side-fun">
+      <p className="gg-side-h" id={`${idPrefix}-fun`}>{FUN_WORDS.toolsTitle}</p>
+      <ul data-gift-side-tools="" aria-labelledby={`${idPrefix}-fun`}>
         <li><Link to={`/gift-guides#${FINDER_ID}`} {...current("finder")} data-gift-side-tool="finder">{EXTRAS_WORDS.finderTitle}</Link></li>
         {FUN_TOOLS.map((t) => (
           <li key={t.to}><Link to={t.to} data-gift-side-tool={t.to}>{t.title}</Link></li>
         ))}
       </ul>
-      <p className="gg-side-h" id="gg-side-la">{G.sideHeads.louisiana}</p>
-      <ul data-gift-side-more="" aria-labelledby="gg-side-la">
+      <p className="gg-side-h" id={`${idPrefix}-la`}>{G.sideHeads.louisiana}</p>
+      <ul data-gift-side-more="" aria-labelledby={`${idPrefix}-la`}>
         <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li>
         <li><Link to={`/gift-guides/${SPONSORS_SLUG}`} {...current(SPONSORS_SLUG)} data-gift-side-sponsors="">{G.sideSponsorsLabel}</Link></li>
         <li><Link to="/shop-small" data-gift-side-shop-small="">{G.sideShopSmall}</Link></li>
       </ul>
-    </nav>
+    </>
   );
 }
 

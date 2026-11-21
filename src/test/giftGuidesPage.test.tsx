@@ -52,7 +52,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | "gg w-full" | "gg page-column"
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{order:2;position:static; | .gg-side{display:none;order:2;position:static;
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{display:none} | .gg-side{order:2;position:static}
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | /iPhone\|iPad\|iPod/.test(userAgent) ? "&" : "?" | "?"
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.empty && g.row === row
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.thin && g.row === row
@@ -441,10 +441,10 @@ describe("gift guides: the landing opens to the guides", () => {
       expect([...view.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href")), url).toEqual([cur]);
       cleanup();
     }
-    // On a phone the menu sits after the page instead of being hidden (the sponsors and the Holiday Hub live only there).
-    const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.indexOf("@media (max-width:767px){\n"));
-    expect(phone).toMatch(/\.gg-side\{order:2;position:static;/);
-    expect(phone).not.toMatch(/\.gg-side\{display:none/);
+    // Owner 11-21 ("We need a way to organize this on the phones"): a phone draws no sidebar at the page's foot; the
+    // chip row and its menu sheet carry the menu (src/test/giftGuidesPhoneNav1121.test.tsx).
+    expect(GIFT_GUIDES_CSS).toMatch(/@media \(max-width:767px\)\{[^@]*\.gg-side\{display:none\}/);
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-side\{order:2/);
   });
 
   it("a store page with fewer than 6 picks is no By store tile, menu entry or search result, but its link still opens it", () => {

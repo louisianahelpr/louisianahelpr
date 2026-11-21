@@ -74,6 +74,27 @@ color:var(--gg-ink)}
 .gg-headrow{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:var(--shell-gap,12px) 0 12px}
 .gg-head-title{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 100%}
 .gg-head-title .text-page-title{margin:0;min-width:0;white-space:nowrap}
+/* The phone's chip row (owner 11-21): sticky under the bar, one line that scrolls sideways by itself (never the page);
+   hidden from 768px up, where the sidebar is the menu. */
+.gg-pnav{display:none}
+@media (max-width:767px){
+.gg-pnav{display:block;position:sticky;top:calc(var(--public-nav-h,3.5rem) + var(--safe-area-top,0px));z-index:5;margin:0 -20px;padding:6px 0 8px;background:hsl(var(--background));border-bottom:1px solid var(--gg-line)}
+.gg-pnav-row{display:flex;gap:8px;list-style:none;margin:0;padding:0 20px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.gg-pnav-row::-webkit-scrollbar{display:none}
+.gg-pnav-row>li{flex:none}
+}
+@media (min-width:640px) and (max-width:767px){.gg-pnav{margin:0 -32px}.gg-pnav-row{padding:0 32px}}
+.gg-chip-nav{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font:600 13px Montserrat,sans-serif;color:var(--gg-ink);white-space:nowrap;text-decoration:none;cursor:pointer}
+.gg-chip-nav .gg-dot{margin-right:0}
+.gg-chip-nav.is-on{background:var(--gg-olive);border-color:var(--gg-olive);color:#fff}
+.gg-chip-nav:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px}
+/* The menu sheet: the sidebar's groups, rows and current-page look. */
+.gg-sheet-menu .gg-sheet-menu-body{max-height:70dvh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+.gg-sheet-menu-body ul{list-style:none;margin:0 0 8px;padding:0}
+.gg-sheet-menu-body a{display:flex;align-items:center;min-height:44px;padding:4px 10px;border-radius:8px;color:var(--gg-ink);text-decoration:none;font-size:15px}
+.gg-sheet-menu-body a[aria-current="page"]{background:var(--gg-soft);color:var(--gg-olive);font-weight:700}
+.gg-sheet-menu-body .gg-side-h{scroll-margin-top:8px}
+.gg-sheet-menu-body>.gg-side-h:first-child{margin-top:0;padding-top:0;border-top:0}
 .gg-headrow .gg-ship{flex:none;max-width:none}
 .gg-headrow .gg-tools{margin:0 0 0 auto;flex:0 1 auto;justify-content:flex-end}
 /* A phone: the search is a 44px magnifier on the pill's row and opens across the row while typing. */
@@ -259,9 +280,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (max-width:767px){
 
 .gg-layout{grid-template-columns:minmax(0,1fr)}
-/* Owner 11-21: on a phone the menu sits AFTER the page (not hidden), so the 25 Days sponsors and the Holiday Hub,
-   which left the main column, stay one tap away. */
-.gg-side{order:2;position:static;max-height:none;overflow:visible;border-right:0;border-top:1px solid var(--gg-line);padding:12px 0 8px}
+/* Owner 11-21 ("We need a way to organize this on the phones"): a phone draws no sidebar (it sat at the page's foot);
+   the chip row under the header and its menu sheet carry the same menu (GiftGuidesPhoneNav). */
+.gg-side{display:none}
 .gg-main{padding:4px 0 24px;order:1}
 .gg-item{gap:10px;padding:8px 0;font-size:14px}
 .gg-banner-wrap{padding:0 0 4px}.gg-banner{height:96px;padding-top:8px;border-radius:12px}.gg-arch{width:min(260px,70%);padding:14px 10px 6px;box-shadow:0 0 0 5px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:13px}.gg-banner h1{font-size:20px;-webkit-line-clamp:1}.gg-tools{margin-top:6px}

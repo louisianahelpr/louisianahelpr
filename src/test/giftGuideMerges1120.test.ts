@@ -45,6 +45,8 @@ beforeAll(async () => {
   moved = (await buildSeoData()).moved;
 }, 120_000);
 
+const BY_USE = (JSON.parse(readFileSync("scripts/gift-guide-train-1120d.json", "utf8")) as { byUse?: { guide: string; sections: { id: string; title: string; picks: { match: string; line?: string }[] }[] }[] }).byUse ?? [];
+
 describe("gift guides big batch 1120: merges, redirects, one place per item", () => {
   it("reads the owner's numbers and a merge table that names real guides once each", () => {
     expect(SECTION_CAP).toBe(25);
@@ -107,7 +109,9 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       const order = [...new Set(ids)];
       // Every section is one an old guide points to (or the guide's own Top picks), each in one run.
       // Follow-up 1120: the two 25 Days sponsor sections on Shop Small Louisiana (no old guide points to them).
-      const known = new Set(["top-picks", ...m.sections.map((s) => SECTION_ANCHORS[s]), ...SPONSOR_SECTIONS_1120.map((x) => x.id)]);
+      // Owner standard 11-20: a guide cut into sections by use (train 1120d `byUse`) holds exactly those sections.
+      const byUse = BY_USE.find((u) => u.guide === m.parent)?.sections.map((x) => x.id);
+      const known = new Set(byUse ?? ["top-picks", ...m.sections.map((s) => SECTION_ANCHORS[s]), ...SPONSOR_SECTIONS_1120.map((x) => x.id)]);
       for (const id of order) if (!known.has(id)) bad.push(`${m.parent}: unknown section "${id}"`);
       expect(order.length, m.parent).toBe(ids.filter((x, i) => i === 0 || ids[i - 1] !== x).length);
       expect(order.length, m.parent).toBeLessThanOrEqual(SECTION_MAX);
@@ -122,7 +126,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     }
     for (const [slug, list] of guideChunks) if (!GUIDE_MERGES.some((m) => m.parent === slug) && !peopleGuideOf(slug) && list.length > SECTION_CAP) bad.push(`${slug}: ${list.length} picks`);
     // Follow-up 1120: 80 sections on the ~30 guides, measured 2026-11-20 (more on the 65 guides before).
-    expect(sections).toBeGreaterThan(60);
+    expect(sections).toBeGreaterThan(40); // audits A+B combined (11-20): 51 measured, sections under 10 merged
     expect(bad).toEqual([]);
   });
 
@@ -142,7 +146,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       }
     }
     // Follow-up 1120: ~1,500 guide picks on the ~30 guides, measured 2026-11-20 (2,000+ on the 65 guides before).
-    expect(n).toBeGreaterThan(1300);
+    expect(n).toBeGreaterThan(1000); // audits A+B combined (11-20): 1,131 measured
     expect(bad.slice(0, 10)).toEqual([]);
   });
 

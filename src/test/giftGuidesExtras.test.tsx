@@ -129,7 +129,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
   it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
     expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);
     const { container } = renderAt("/gift-guides/25-days-sponsors");
-    expect(container.querySelector("[data-gift-also-sponsoring]")?.textContent).toBe("Also sponsoring: Hilma");
+    expect(container.querySelector("[data-gift-also-sponsoring]")?.textContent).toMatch(/^Also sponsoring: (.*, )?Hilma(,|$)/); // holiday audit B (11-20): every lineup sponsor without a card is named here
     expect(container.querySelector('a[href*="hilma"]')).toBeNull();
   });
   it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {

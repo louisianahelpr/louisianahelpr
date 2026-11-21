@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
 import { peopleGuideOf } from "@/content/giftGuidePeople.mjs";
 import { STORE_PAGES_KEPT } from "@/content/giftGuideMerges.mjs";
+import { DROPPED_SPONSORS } from "../../scripts/gift-guide-sponsor-logos.mjs";
 import { applyDealsPage1120b, applyTrain1120b, isBrandPick, matches, placeInSection } from "../../scripts/giftGuideTrain1120b.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; section?: string; sectionId?: string; sponsor?: boolean; store?: string; commission?: number | null; price?: number };
@@ -69,7 +70,9 @@ describe("gift guides train 1120b", () => {
   it("the sponsor logo row lists every lineup sponsor once, A to Z, with real logo files and safe links", () => {
     const rows = JSON.parse(readFileSync("src/content/giftGuideSponsorLogos.json", "utf8")) as { name: string; slug: string; logo?: string; href: string; external?: boolean }[];
     const src = readFileSync("src/content/sponsorPage.ts", "utf8");
-    const lineup = new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]).filter((b) => b !== "Louisiana Helpr"));
+    const lineup = new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]).filter((b) => b !== "Louisiana Helpr" && !DROPPED_SPONSORS.has(b)));
+    // Holiday audit B (11-20): a sponsor the owner dropped (R&R Wedding Co.) has no logo here, even while the public
+    // lineup still lists it.
     expect(rows.length).toBe(lineup.size);
     expect(new Set(rows.map((r) => r.slug)).size).toBe(rows.length);
     expect(rows.map((r) => r.name)).toEqual([...rows.map((r) => r.name)].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })));

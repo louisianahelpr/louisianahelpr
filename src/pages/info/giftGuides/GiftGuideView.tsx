@@ -5,7 +5,7 @@ import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, rel
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
-import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
+import { NAME_ONLY_SPONSORS, SECTION_ALIASES, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { HINTS, WISH } from "@/content/giftWishList";
@@ -176,8 +176,11 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
   };
   const navKey = nav.map((x) => x.id).join(" ");
   useEffect(() => {
-    const id = decodeURIComponent(window.location.hash.replace(/^#/, ""));
-    if (id && navKey.split(" ").includes(id)) jump(id);
+    const raw = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+    // An old #section link (a section folded into a sibling, or an old guide's slug) opens its section now (1120d).
+    const ids = navKey.split(" ");
+    const id = ids.includes(raw) ? raw : SECTION_ALIASES[guide.slug]?.[raw] || SECTION_ANCHORS[raw] || "";
+    if (id && ids.includes(id)) jump(id);
     // Once per guide, when its list is in (the hash is read only on arrival).
      
   }, [navKey]);

@@ -11,8 +11,8 @@
  * Every rule that finds nothing is reported. Guard: src/test/giftGuideBudgetCaps1120.test.ts.
  */
 
-/** Section id -> the most a pick in it may cost (USD). Stocking Stuffers: little gifts, $50 at most (gg-live-1120). */
-export const BUDGET_SECTION_CAPS = { "under-25": 25, "stocking-stuffers": 50, "secret-santa": 30, "under-50": 50, "under-100": 100 };
+/** Section id -> the most a pick in it may cost (USD). Stocking Stuffers: little gifts, $30 at most (gg-live-1120; holiday audit A #56: a $45 cocotte and a $48 jewelry case are no stocking stuffers). */
+export const BUDGET_SECTION_CAPS = { "under-25": 25, "stocking-stuffers": 30, "secret-santa": 30, "under-50": 50, "under-100": 100 };
 const SECTION_ROOM = 25;
 
 const rate = (p) => (typeof p.commission === "number" ? p.commission : -1);

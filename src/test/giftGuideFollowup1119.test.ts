@@ -37,15 +37,16 @@ describe("gift guides: owner follow-ups 11-19", () => {
   it("the named removals and old electronics show on no page, store pages included", () => {
     let n = 0;
     const bad = slugs.flatMap((s: string) => pageOf(s).filter((p) => { n += 1; return !p.ownerPick && (OWNER_REMOVED(p) || OLD_ELECTRONICS.test(p.name)); }).map((p) => `${s}: ${p.name}`));
-    expect(n).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,750 rows)
+    expect(n).toBeGreaterThan(1300); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
     expect(bad).toEqual([]);
   });
 
   it("owner picks keep their badge on guides (no longer first: owner 11-19 ~6:40 PM sorts by commission); Advent Calendars and Gift Tags hold picks; a guide shows from one pick", () => {
     const withOwner = guides.filter((s: string) => pageOf(s).some((p) => p.ownerPick));
     expect(withOwner.length).toBeGreaterThan(20);
+    // Holiday audit B (11-20, B #65): Gift Tags keeps 2 tag products of its 5 (the rest of its list is wrap and cards).
     for (const s of ["advent-calendars", "gift-tags"]) {
-      expect(pageOf(s).length, s).toBeGreaterThan(3);
+      expect(pageOf(s).length, s).toBeGreaterThan(s === "gift-tags" ? 1 : 3);
       expect(guideBySlug(s)?.empty, s).toBeFalsy();
     }
     expect(GUIDE_MIN_PICKS).toBe(1);

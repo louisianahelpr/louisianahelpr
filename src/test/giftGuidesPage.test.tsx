@@ -583,8 +583,11 @@ describe("gift guides: the landing opens to the guides", () => {
       expect(childrenOf(g), hub).toEqual([]);
       // 1120 section groups (owner: "by role, not job title"): every section is one its roles point to.
       const ids = [...new Set(g.picks.map((p) => p.sectionId).filter((x) => x && x !== "top-picks"))];
-      for (const id of ids) expect(roles.map((r) => SECTION_ANCHORS[r]), `${hub}#${id}`).toContain(id);
-      expect(ids.length, hub).toBeGreaterThan(2);
+      // Owner standard 11-20 (gg-reference-1120): Healthcare's and Heroes' sections are by use, not by role (train 1120d `byUse`).
+      const byUse = hub === "healthcare" ? ["small-treats", "on-shift", "after-shift", "splurges"] : hub === "heroes" ? ["small-treats", "on-duty", "off-duty"] : null;
+      for (const id of ids) expect(byUse ?? roles.map((r) => SECTION_ANCHORS[r]), `${hub}#${id}`).toContain(id);
+      if (byUse) expect(ids, hub).toEqual(byUse);
+      expect(ids.length, hub).toBeGreaterThan(1);
     }
     expect(newSlugFor("teachers")).toBe(`work-life#${SECTION_ANCHORS.teachers}`);
     const row = renderAt("/gift-guides").container.querySelector('[data-gift-row="by-career"]')!;
@@ -728,8 +731,9 @@ describe("gift guides: the landing opens to the guides", () => {
   it("Female and Male Nurses fold into RNs, which is a section of Healthcare Workers (1120): their old links open it", () => {
     for (const gone of Object.keys(MERGED_GUIDES)) expect(guideBySlug(gone), gone).toBeUndefined();
     const g = guideBySlug("healthcare")!;
-    const rns = g.picks.filter((p) => p.sectionId === SECTION_ANCHORS.rns);
-    expect(rns.length).toBeGreaterThan(3);
+    // Owner standard 11-20: Healthcare's sections are by use now, so the old role links open the guide's top.
+    expect(SECTION_ANCHORS.rns).toBeUndefined();
+    expect(g.picks.length).toBeGreaterThan(30);
     // Once each on the whole page: by link, and by name for a ShopMy collection link that several products share.
     expect(new Set(g.picks.map((p) => `${p.href} ${p.name}`)).size).toBe(g.picks.length);
     renderAt("/gift-guides/female-nurses");
@@ -1309,7 +1313,8 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     }
     // Owner 11-18 PM: photo-less Amazon picks show their CDN photo (measured below the floor = the switch is off).
     // Follow-up 1120: ~30 guides and 26 store pages hold ~390 Amazon CDN photos (measured 2026-11-20; 500+ on 65 guides).
-    expect(amazonCdn).toBeGreaterThan(300);
+    // Holiday audit B (11-20), measured: 291 after B's cuts (was 300+).
+    expect(amazonCdn).toBeGreaterThan(220); // owner standard 11-20 (Healthcare by use): 248 measured
     // Brand-site photos (lead 11-18 PM): a photo-less Amazon pick takes the brand's own photo of the same product from
     // amazon-brand-images.json, its Amazon link kept (179 rows from 45 ASINs, measured 2026-11-18).
     // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"
@@ -1317,7 +1322,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image && !p.image.startsWith("https://m.media-amazon.com/")) brandSite += 1;
     expect(brandSite).toBeGreaterThan(10); // one guide per product (owner 11-19); 22 after the Amazon page kept its 15 best (1530 train); 12 after the train 1120b re-audit cuts
     // Floor re-measured 2026-11-18 after design audit r2 dropped page titles, store names and promos (4,397 photos).
-    expect(photos).toBeGreaterThan(1500); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,850)
+    expect(photos).toBeGreaterThan(1300); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
     // collection, not the retailer) is on no store page.
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null

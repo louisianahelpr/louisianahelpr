@@ -40,6 +40,7 @@ export const GUIDE_INDEX: { group: string; tint: "green" | "oat" | "red"; slug: 
   { group: "By person", tint: "green", slug: "big-sisters", title: "Big Sisters", lead: "gifts for" },
   { group: "By person", tint: "green", slug: "mail-carrier-and-delivery-drivers", title: "Mail Carrier & Delivery Drivers", lead: "gifts for" },
   { group: "For kids", tint: "red", slug: "kids", title: "Kids", lead: "gifts for" },
+  { group: "For kids", tint: "red", slug: "teens", title: "Teens", lead: "gifts for", age: "ages 13+" },
   { group: "For kids", tint: "red", slug: "girls", title: "Girls", lead: "gifts for" },
   { group: "For kids", tint: "red", slug: "boys", title: "Boys", lead: "gifts for" },
   { group: "For kids", tint: "red", slug: "gender-neutral", title: "Gender-Neutral", lead: "gifts for kids" },

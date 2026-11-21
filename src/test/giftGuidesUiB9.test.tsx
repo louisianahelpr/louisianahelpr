@@ -137,12 +137,14 @@ describe("H1: the kids age guides are two taps from the landing", () => {
     const ages = row.querySelector("[data-gift-ages]")!;
     expect(ages).not.toBeNull();
     const kids = guideBySlug("kids")!;
-    const want = ["babies", "toddlers", "little-kids", "big-kids", "teens"].filter((t) => kids.picks.some((p) => p.sectionId === t));
+    // Teens is its own guide (owner 11-20 evening): its chip opens /gift-guides/teens.
+    const teens = guideBySlug("teens");
+    const want = ["babies", "toddlers", "little-kids", "big-kids", "teens"].filter((t) => (t === "teens" ? !!teens && !teens.empty : kids.picks.some((p) => p.sectionId === t)));
     expect(want.length).toBeGreaterThan(3);
     expect([...ages.querySelectorAll("[data-gift-age-band]")].map((b) => b.getAttribute("data-gift-age-band"))).toEqual(want);
     expect(ages.querySelector("[data-gift-age-band='little-kids']")?.textContent).toBe("Little kids 4–7");
     const links = [...ages.querySelectorAll("a[data-gift-age-link]")].map((a) => a.getAttribute("href"));
-    expect(links).toEqual(want.map((t) => `/gift-guides/kids#${t}`));
+    expect(links).toEqual(want.map((t) => (t === "teens" ? "/gift-guides/teens" : `/gift-guides/kids#${t}`)));
   });
 
   it("Niece, Nephew and Cousins carry BY AGE chips to their hub's age guides; Mom has none", () => {

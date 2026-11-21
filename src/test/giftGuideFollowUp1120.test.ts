@@ -37,7 +37,7 @@ describe("gift guides follow-up 1120", () => {
       "outdoors-and-travel": ["hunters", "fishermen", "golfer", "lake-and-beach", "traveler", "gardener"], "home-and-kitchen": ["home-cook", "wine-lover", "cozy-and-self-care", "baker"],
       "creative-and-entertainment": ["creative-and-hobby", "book-lover", "entertainment", "gamer"], "gifts-by-budget": ["stocking-stuffers", "under-25", "under-50", "under-10", "gift-cards", "subscriptions"],
       "louisiana-celebrations": ["mardi-gras", "game-day", "tailgater", "crawfish-season"], "life-moments": ["new-baby-and-parents", "new-mom", "graduate", "new-homeowner", "get-well-soon", "thinking-of-you", "retiree"],
-      kids: ["girls", "boys", "gender-neutral", "girls-teens", "boys-babies"], pets: ["new-puppy", "dog-lover"],
+      kids: ["girls", "boys", "gender-neutral", "boys-babies"], teens: ["girls-teens", "boys-teens", "gender-neutral-teens"], pets: ["new-puppy", "dog-lover"],
     };
     for (const [parent, olds] of Object.entries(want)) {
       expect(GUIDE_MERGES.some((m) => m.parent === parent), parent).toBe(true);

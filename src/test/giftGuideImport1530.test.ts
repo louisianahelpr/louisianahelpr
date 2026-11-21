@@ -45,7 +45,7 @@ describe("gift guides: import train 1530", () => {
       if (p.ownerPick && (ownerGuides.get(p.href)?.includes(s) ?? true)) continue;
       for (const k of [`h:${p.href}`, ...(p.image ? [`i:${p.image}`] : [])]) byKey.set(k, new Set([...(byKey.get(k) ?? []), s]));
     }
-    expect(n).toBeGreaterThan(1250); // For Her / For Him 1120 evening: 1,271 (five people lists became two guides of five capped sections)
+    expect(n).toBeGreaterThan(1200); // Kids by age + Teens 1120 evening: 1,245 (Kids is four capped age bands, Teens its own guide) // For Her / For Him 1120 evening: 1,271 (five people lists became two guides of five capped sections)
     // // follow-up 1120: ~1,480 rows; train 1120b re-audit cuts and two held store pages: 1,380 measured 2026-11-20
     expect([...byKey].filter(([, v]) => v.size > 1).map(([k, v]) => `${k} on ${[...v].join(", ")}`)).toEqual([]);
   });

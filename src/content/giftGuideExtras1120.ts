@@ -25,7 +25,8 @@ export const FINDER_WHO: { id: FinderWho; label: string; guides: { slug: string;
   { id: "dad", label: "Dad", guides: [{ slug: "dad" }] },
   // Follow-up 1120: Kids is one guide by age; Friends and Coworkers are sections of Friends & Coworkers.
   { id: "kids", label: "Kids", guides: [{ slug: "kids", sections: ["little-kids"] }, { slug: "kids", sections: ["big-kids"] }] },
-  { id: "teen", label: "Teen", guides: [{ slug: "kids", sections: ["teens"] }] },
+  // Owner 11-20 evening: Teens is its own guide.
+  { id: "teen", label: "Teen", guides: [{ slug: "teens" }] },
   { id: "friend", label: "Friend", guides: [{ slug: "friends-and-coworkers", sections: ["friends"] }] },
   { id: "coworker", label: "Coworker", guides: [{ slug: "friends-and-coworkers", sections: ["coworkers-and-boss"] }] },
   { id: "grandparent", label: "Grandparent", guides: [{ slug: "grandparents" }] },

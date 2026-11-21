@@ -338,6 +338,8 @@ describe("gift guides: the content inventory", () => {
       expect(guideBySlug(who), who).toBeUndefined();
       for (const age of GUIDE_INDEX.filter((x) => x.parent === who).map((x) => x.slug)) {
         expect(guideBySlug(age), age).toBeUndefined();
+        // Teens is its own guide (owner 11-20 evening): an old teens slug opens it.
+        if (age.endsWith("-teens")) { expect(newSlugFor(age), age).toBe("teens"); continue; }
         expect(newSlugFor(age), age).toBe(`${KIDS_HUB}#${SECTION_ANCHORS[age]}`);
         expect(age.endsWith(SECTION_ANCHORS[age]), age).toBe(true);
       }
@@ -556,14 +558,14 @@ describe("gift guides: the landing opens to the guides", () => {
     const { container } = renderAt("/gift-guides");
     const kidsRow = container.querySelector('[data-gift-row="for-kids"]')!;
     expect(TEEN_TILES).toEqual([]);
-    expect([...kidsRow.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"))).toEqual(["kids"]);
-    expect(kidsRow.querySelector("[data-gift-row-count]")?.textContent).toBe("\u00a0(1)");
+    expect([...kidsRow.querySelectorAll("a[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"))).toEqual(["kids", "teens"]);
+    expect(kidsRow.querySelector("[data-gift-row-count]")?.textContent).toBe("\u00a0(2)");
     const ageLinks = [...kidsRow.querySelectorAll("a[data-gift-age-link]")].map((a) => a.getAttribute("href"));
     expect(ageLinks.length).toBeGreaterThan(3);
-    for (const h of ageLinks) expect(h).toMatch(/^\/gift-guides\/kids#(babies|toddlers|little-kids|big-kids|teens)$/);
-    expect(ageLinks.some((h) => h!.endsWith("#teens"))).toBe(true);
+    for (const h of ageLinks) expect(h).toMatch(/^\/gift-guides\/(kids#(babies|toddlers|little-kids|big-kids)|teens)$/);
+    expect(ageLinks.some((h) => h === "/gift-guides/teens")).toBe(true); // Teens is its own guide (owner 11-20 evening)
     const menu = container.querySelector('details[data-gift-group="for-kids"]')!;
-    expect([...menu.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/kids"]);
+    expect([...menu.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/kids", "/gift-guides/teens"]);
     cleanup();
     const side = renderAt("/gift-guides/kids").container;
     const open = ([...side.querySelectorAll("details[data-gift-group]")] as HTMLDetailsElement[]).filter((d) => d.open);

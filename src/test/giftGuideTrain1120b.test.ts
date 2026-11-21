@@ -150,9 +150,11 @@ describe("gift guides train 1120b", () => {
     expect(d.deals.map((x: { brand: string }) => x.brand)).toEqual(["Huk", "Georgia Boot"]);
   });
 
-  it("the BF/CM deals page: the weak featured items are out and Georgia Boot is in Outdoors", () => {
-    const deals = JSON.parse(readFileSync("src/content/giftGuideDeals.json", "utf8")) as { brand: string; category: string; item?: string; ends?: string }[];
+  it("the BF/CM deals page: the weak featured items stay out", () => {
+    // Owner 2026-11-21: the deals page was re-checked into day sections (scripts/gift-guide-deals-1121.json); Georgia
+    // Boot's sale ended before Black Friday and its site was not re-read, so it left the page (giftGuideDeals1119.test.tsx).
+    const deals = JSON.parse(readFileSync("src/content/giftGuideDeals.json", "utf8")) as { brand: string; item?: string }[];
+    expect(deals.length).toBeGreaterThan(20);
     expect(deals.some((x) => /Snug Mattress|iPhone 17|Skeletool CX|Barista Express/.test(x.item ?? ""))).toBe(false);
-    expect(deals.find((x) => x.brand === "Georgia Boot")).toMatchObject({ category: "Outdoors", ends: "2026-11-25" });
   });
 });

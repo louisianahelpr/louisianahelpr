@@ -13,7 +13,10 @@
  * the page-render test is gone, the data and feature-window checks stay for its return.
  *
  * @mutate src/content/giftGuideSmallBiz.mjs |   return today >= SMALL_BIZ_FEATURE_FROM && today <= SMALL_BIZ_FEATURE_TO; |   return today >= SMALL_BIZ_FEATURE_FROM;
- * @mutate scripts/gift-guide-small-biz.mjs | const NO_LOGO = new Set(["sprinkle-in-time-too", | const NO_LOGO = new Set([
+ * Owner 11-21: the businesses are the deals page's Small Business Saturday section, confirmed Louisiana 25 Days
+ * sponsors only (scripts/gift-guide-sponsor-order-1121.json: never its notConfirmed or national names).
+ *
+ * @mutate scripts/gift-guide-small-biz.mjs |   return Object.hasOwn(order.value, name) && !order.notConfirmed.includes(name) && !order.national.includes(name); |   return Object.hasOwn(order.value, name) && !order.notConfirmed.includes(name);
  */
 import { existsSync, readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -22,6 +25,7 @@ import { MemoryRouter } from "react-router-dom";
 import ROWS from "@/content/giftGuideSmallBiz.json";
 import { SMALL_BIZ_CATEGORIES, SMALL_BIZ_SLUG, smallBizFeatured, smallBizSections, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
+import { TRACKER_NAME, confirmedLocal } from "../../scripts/gift-guide-small-biz.mjs";
 // The Featured local section (owner 11-20) reads the server; unit tests never reach Supabase.
 vi.mock("@/lib/sbsFeaturedApi", async (orig) => ({ ...(await orig<typeof import("@/lib/sbsFeaturedApi")>()), listFeaturedLocal: async () => [] }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -34,7 +38,7 @@ const rows = ROWS as SmallBiz[];
 
 describe("Small Business Saturday: the businesses", () => {
   it("say nothing of a giveaway day, prize or price, and link only https pages", () => {
-    expect(rows.length).toBeGreaterThan(40);
+    expect(rows.length).toBeGreaterThan(30); // 37 measured 2026-11-21 (confirmed Louisiana sponsors only)
     const text = JSON.stringify(rows);
     expect(text).not.toMatch(/\bgiveaway\b|\bprize\b|\bwinner\b/i);
     expect(text).not.toMatch(/\$\s?\d/);
@@ -47,9 +51,32 @@ describe("Small Business Saturday: the businesses", () => {
       if (b.logo) expect(existsSync(`public${b.logo}`), b.logo).toBe(true);
       expect(SMALL_BIZ_CATEGORIES, b.name).toContain(b.category);
     }
-    expect(rows.find((b) => b.slug === "sprinkle-in-time-too")?.logo).toBeUndefined();
-    // The two sponsors who signed up 11-19 PM.
-    expect(rows.map((b) => b.name)).toEqual(expect.arrayContaining(["Birdwell's", "Accesorios Para Niñas"]));
+  });
+
+  it("are confirmed Louisiana 25 Days sponsors only: none national, none unconfirmed, none off the tracker (owner 11-21)", () => {
+    const order = JSON.parse(readFileSync("scripts/gift-guide-sponsor-order-1121.json", "utf8")) as { notConfirmed: string[]; national: string[]; value: Record<string, number> };
+    expect(order.notConfirmed.length).toBeGreaterThan(5);
+    expect(order.national.length).toBeGreaterThan(20);
+    for (const b of rows) {
+      const name = TRACKER_NAME[b.slug];
+      expect(name, `${b.name}: no tracker name`).toBeTruthy();
+      expect(Object.keys(order.value), b.name).toContain(name);
+      expect(order.notConfirmed, b.name).not.toContain(name);
+      expect(order.national, b.name).not.toContain(name);
+      expect(confirmedLocal(b.slug, order), b.name).toBe(true);
+    }
+    // Both ways: every confirmed Louisiana sponsor the research file holds is on the page, minus the one held for the
+    // owner's OK (Sprinkle in Time Too declined "OK on the wall") and R&R Wedding Co. (dropped by the owner 11-20).
+    const expected = Object.keys(TRACKER_NAME).filter((s) => confirmedLocal(s, order)).sort();
+    expect(rows.map((b) => b.slug).sort()).toEqual(expected);
+    expect(rows.map((b) => b.slug)).not.toContain("sprinkle-in-time-too");
+    for (const s of ["basic-bee", "written-on-the-river", "megan-benoits-closet", "humble-home-decor-candles", "barclell-photography", "birdwells", "accesorios-para-ninas", "rr-wedding-co"]) {
+      expect(rows.map((b) => b.slug), s).not.toContain(s);
+    }
+    // A national or unconfirmed name is refused even when the tracker lists a value for it.
+    expect(confirmedLocal("bake-and-brush", { ...order, national: ["Bake & Brush"] })).toBe(false);
+    expect(confirmedLocal("bake-and-brush", { ...order, notConfirmed: ["Bake & Brush"] })).toBe(false);
+    expect(confirmedLocal("bake-and-brush", order)).toBe(true);
   });
 
   it("group into the page's sections, in order", () => {

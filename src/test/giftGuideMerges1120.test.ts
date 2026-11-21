@@ -16,6 +16,7 @@
  * @mutate scripts/giftGuideBig1120.mjs |       if (kept.some((k) => sameProduct(k, r) && | if (false && kept.some((k) => sameProduct(k, r) &&
  */
 import { LIVE_GUIDES_1121, isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -247,6 +248,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     // A relationship filter page (Mom, Dad ... on For Her / For Him) is a view of its guide, not another guide.
     const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-") && !(g as { view?: unknown }).view);
     // Follow-up 1120 (owner "FINAL MERGES -> ~30"): 28 guides measured 2026-11-20; owner 11-21: the live list only.
-    expect(shown.map((g) => g.slug).sort()).toEqual([...LIVE_GUIDES_1121].sort());
+    // Owner 11-21: the deals page is live too, but it is its own page, no catalog guide.
+    expect(shown.map((g) => g.slug).sort()).toEqual(LIVE_GUIDES_1121.filter((s) => s !== DEALS_SLUG).sort());
   });
 });

@@ -68,8 +68,10 @@ describe("gift guides train 1120c", () => {
     expect(xt.length).toBeGreaterThanOrEqual(1); // the owner's standard plan (11-20 evening) keeps 3 XTRATUF cards
     for (const p of xt) expect([p.code, p.codeEnds], p.name).toEqual(["XT25", "2026-11-29"]);
     expect(readFileSync("src/content/giftGuides.ts", "utf8")).toMatch(/store: "XTRATUF", code: "XT25"[^}]*expires: "2026-11-29"/);
+    // Owner 11-21: the deals page row was re-read on xtratuf.com (scripts/gift-guide-deals-1121.json): the code still
+    // shows, the site names no end day, so the row carries none (the guide chip keeps its own Nov 29).
     const deals = JSON.parse(readFileSync("src/content/giftGuideDeals.json", "utf8")) as { brand: string; code?: string; ends?: string }[];
-    expect(deals.find((d) => d.brand === "XTRATUF")).toMatchObject({ code: "XT25", ends: "2026-11-29" });
+    expect(deals.find((d) => d.brand === "XTRATUF")).toMatchObject({ code: "XT25", event: "black-friday" });
   });
 
   it("the owner adds waiting on links are listed and not placed", () => {

@@ -70,8 +70,9 @@ export default function GiftGuides() {
   // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is its own page, not a catalog list of picks.
   // The Small Business Saturday page (owner 2026-11-19, big batch 1120) is its own page too. `deals` covers both own
   // pages wherever the page only asks "is this a catalog guide?".
-  // Owner 11-21: both pages are retired with every guide but Her, Him and Kids (src/content/giftGuideLive.mjs); their
-  // old links land on /gift-guides until a slug is listed live again.
+  // Owner 11-21: the Small Business Saturday page is retired with every guide but Her, Him and Kids
+  // (src/content/giftGuideLive.mjs) and its old link lands on /gift-guides; the deals page is live again, its three day
+  // sections holding Black Friday, Small Business Saturday and Cyber Monday.
   const smallBiz = slug === SMALL_BIZ_SLUG && isLiveGuide(SMALL_BIZ_SLUG);
   const deals = (slug === DEALS_SLUG && isLiveGuide(DEALS_SLUG)) || smallBiz;
   const dealsName = smallBiz ? smallBizTitle(smallBizDay(new Date())) : dealsTitle(louisianaDay(new Date()));

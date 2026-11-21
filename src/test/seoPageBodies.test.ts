@@ -222,13 +222,13 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
     const guides = locs.filter((p) => p.startsWith("/gift-guides/") && !own.includes(p));
     expect(guides.length).toBeGreaterThan(10); // owner 11-21: the 14 live pages (54 before, 2026-11-20)
     for (const p of guides) expect(data.guides[p.slice("/gift-guides/".length)]?.indexed, p).toBe(true);
-    // Owner 11-21: the deals and Small Business Saturday pages are retired (src/content/giftGuideLive.mjs): out of the
-    // sitemap, and their old links 301 to the landing.
-    for (const p of own.slice(0, 2)) {
+    // Owner 11-21: the Small Business Saturday page is retired (src/content/giftGuideLive.mjs): out of the sitemap, and
+    // its old link 301s to the landing. The deals page is live again (its middle section is Small Business Saturday).
+    for (const p of own.slice(1, 2)) {
       expect(locs, p).not.toContain(p);
       expect((await fetchPage(p.slice(1))).status, p).toBe(301);
     }
-    for (const p of own.slice(2)) {
+    for (const p of [own[0], ...own.slice(2)]) {
       expect(locs, p).toContain(p);
       expect((await fetchPage(p.slice(1))).status, p).toBe(200);
     }

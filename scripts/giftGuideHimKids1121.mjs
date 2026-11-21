@@ -48,7 +48,7 @@ const shop = ([pin, price, image, name, brand, store, type, commission, line]) =
 /**
  * Her men's ShopMy saves (Desktop note Him-saved-shopmy-1121.md, 43 pins), 8 kept by her rules: at most 2 of a brand
  * (Smathers & Branson made ~30 of them; the camo belt she saved at Duck Head is theirs too), 2 of an item type, no LSU,
- * nothing out of stock. Prices read on each store's own page 11-21 (Grove, Clinique, Smathers & Branson, Duck Head).
+ * nothing out of stock. Counts and prices measured 2026-11-21 on each store's own page (Grove, Clinique, S&B, Duck Head).
  */
 export const HIM_SHOPMY_1121 = [
   ["108628349", 35, "https://static.shopmy.us/pins/zoom-108628349-1795247477620-DuckDecoys_AntiqueBlue__KeyFob_Primary_LowRes_c251e80f-b48c-4193-88c2-0b366856e967.jpg", "Smathers & Branson Duck Decoys Needlepoint Key Fob", "Smathers & Branson", "store-smathers-and-branson", "accessory", 15, "A hand-stitched needlepoint key fob with a wood duck."],
@@ -109,7 +109,7 @@ export const HIM_1121 = [
 /**
  * Her kids' ShopMy saves (Desktop note Kids-saved-shopmy-1121.md, 54 pins), 16 kept by her rules: at most 2 of a brand
  * (Melissa & Doug made ~22 of them, at Macy's, Wayfair and Over The Moon), 2 of an item type, nothing out of stock.
- * Prices read on each store's own page 11-21 (Maisonette, Grove, Wayfair).
+ * Counts and prices measured 2026-11-21 on each store's own page (Maisonette, Grove, Wayfair).
  */
 export const KIDS_SHOPMY_1121 = [
   ["108632461", 34.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/eWo2uVncVtpsQvebn-mR5bF0A.jpg", "Steffi Love Baby Doctor Doll Playset", "Simba", "store-maisonette", "doll", 16, "A doll doctor set with a baby to check on."],

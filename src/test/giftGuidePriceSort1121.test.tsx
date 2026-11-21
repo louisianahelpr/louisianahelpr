@@ -46,7 +46,14 @@ const renderAt = (url: string) =>
     </MemoryRouter>,
   );
 /** The names of the rows on screen, top to bottom. */
-const shownNames = (c: HTMLElement) => [...c.querySelectorAll("[data-gift-pick] .gg-nm-name")].map((n) => n.textContent);
+/** Every row's name, after opening every "Show more" (the page shows 50 at a time; Him holds 141 since 11-21). */
+const shownNames = (c: HTMLElement) => {
+  for (let b = within(c).queryByRole("button", { name: /^Show more/ }); b; b = within(c).queryByRole("button", { name: /^Show more/ })) {
+    const more = b;
+    act(() => { fireEvent.click(more); });
+  }
+  return [...c.querySelectorAll("[data-gift-pick] .gg-nm-name")].map((n) => n.textContent);
+};
 
 describe("the price sort key in the three chunks (owner 11-21)", () => {
   it("every pick has an integer priceRank, 1..n in the list's cheapest-first order", () => {

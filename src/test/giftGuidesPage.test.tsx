@@ -103,7 +103,7 @@ import { rowTiles } from "@/pages/info/giftGuides/GiftGuideLanding";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { RETIRED_SLUGS, newSlugFor } from "@/content/giftGuideCatalog";
-import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
+import { CHUNK_PICK_COUNTS, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG } from "@/content/giftGuideSmallBiz.mjs";
 // The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are own pages too: in the sitemap, no guide.
@@ -320,7 +320,9 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelector("[data-gift-words]")).toBeNull();
     // Lead 11-21 landing polish: each landing tile says "Her · 36 gifts" (the count of its list, no chunk loaded).
     const lines = [...container.querySelectorAll("[data-gift-live-guides] [data-gift-tile-name]")].map((n) => n.textContent);
-    expect(lines).toEqual(["Her · , 36 gifts", "Him · , 47 gifts", "Kids · , 56 gifts"]);
+    // The counts are each list's own (owner 11-21: Him and Kids grow to every one of her saves).
+    expect(lines).toEqual(["her", "him", "kids"].map((s) => `${s[0].toUpperCase()}${s.slice(1)} · , ${CHUNK_PICK_COUNTS[s]} gifts`));
+    expect(CHUNK_PICK_COUNTS.him).toBeGreaterThan(100);
     cleanup();
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
     // age guide keeps its age band). The tiles are on the groups' pages (owner 11-20 PM).

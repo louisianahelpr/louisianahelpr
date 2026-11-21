@@ -157,7 +157,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
         const at = `${slug}#${p.sectionId ?? ""}`;
         // Owner 11-21: For Her is her own 25 saves (scripts/giftGuideHer1121.mjs); one she picked may also sit on another
         // guide (the Theragun Mini is on Healthcare too), so her picks are checked for repeats within For Her only.
-        const own = slug === "her" && HER_1121.some((r) => r.href === p.href) ? "her-owner:" : "";
+        // Owner 11-21 ("Him = ALL of her men's saves"): For Him and For Kids are her own saves too, checked the same way.
+        const own = slug === "her" && HER_1121.some((r) => r.href === p.href) ? "her-owner:" : (slug === "him" || slug === "kids") && (p as { ownerPick?: boolean }).ownerPick ? `${slug}-owner:` : "";
         const keys = [`h:${p.href}`, `n:${p.name.toLowerCase()}`, ...(p.image ? [`i:${p.image}`] : []), `p:${productKey1120(p.brand, p.name, plain)}#${colorOf(p.name)}`].map((k) => own + k);
         for (const k of keys) {
           if (seen.has(k)) bad.push(`${k.slice(0, 80)} at ${seen.get(k)} and ${at}`);

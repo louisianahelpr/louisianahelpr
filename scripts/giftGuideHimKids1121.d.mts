@@ -6,6 +6,7 @@ export const KIDS_GUIDE: string;
 export const HIM_KIDS_PRICE_AT: string;
 export const HIM_KIDS_STORES: Record<string, string>;
 export const HIM_SHOPMY_1121: readonly HimKids1121Row[];
+export const HIM_AMAZON_MORE_1121: readonly HimKids1121Row[];
 export const KIDS_SHOPMY_1121: readonly HimKids1121Row[];
 export const HIM_1121: readonly HimKids1121Row[];
 export const KIDS_1121: readonly HimKids1121Row[];

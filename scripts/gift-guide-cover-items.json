@@ -1228,14 +1228,14 @@
     "image": "https://static.shopmy.us/uploads/pretty-prod-1783984931037"
    },
    {
-    "name": "Bath & Body Works Pink Suede 3-Wick Candle",
-    "key": "bathbodyworks:bath body works pink suede 3 wick candle",
-    "image": "https://media.ulta.com/i/ulta/2662423"
-   },
-   {
     "name": "Bath & Body Works The Perfect Christmas 3-Wick Candle",
     "key": "bathbodyworks:bath body works the perfect christmas 3 wick candle",
     "image": "https://static.shopmy.us/uploads/img-product-1793131363473"
+   },
+   {
+    "name": "Bath & Body Works Fresh Balsam 3-Wick Candle",
+    "key": "bathbodyworks:bath body works fresh balsam 3 wick candle",
+    "image": "https://static.shopmy.us/uploads/img-product-1736194080725"
    }
   ]
  },
@@ -1441,14 +1441,14 @@
     "image": "https://static.shopmy.us/pins/zoom-107586104-1795061203577-Rambler_Wine_Chiller_White_Front_Bottle_0891_Primary_B_2400x2400.png"
    },
    {
-    "name": "YETI Hopper Flip 12 Soft Cooler",
-    "key": "yeti:yeti hopper flip 12 soft cooler",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1756835127318"
-   },
-   {
     "name": "YETI Rambler 34 oz French Press",
     "key": "yeti:yeti rambler 34 oz french press",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1765271707307"
+   },
+   {
+    "name": "YETI Ranchero 27L Commuter Backpack",
+    "key": "yeti:yeti ranchero 27l commuter backpack",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1762592139274"
    }
   ]
  }

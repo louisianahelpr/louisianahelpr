@@ -8,8 +8,12 @@ import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
 import { FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftFinder } from "./GiftGuideFinder";
+import { GiftGuideTop10 } from "./GiftGuideTop10";
 
 /**
+ * OWNER 11-21 ~5:05 PM ("put the top 10 items back when you open the guide"): the "Top 10 gifts" row sits right under
+ * the three tiles, above the 25 Days card (GiftGuideTop10.tsx; the list: src/content/giftGuideTop10.json).
+ *
  * OWNER + LEAD 11-21 (supersedes the order below where they differ): the main column is the three tiles, sharing the
  * full width, each with a quiet "Her · 36 gifts" line and no heading over them; then the 25 Days giveaways card; nothing
  * else. The menu's "Find a gift in 3 taps" (or a shared finder link) shows the gift finder ALONE in the main column
@@ -101,6 +105,7 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   return (
     <div className="gg-landing" data-gift-landing="">
       <LiveGuides />
+      <GiftGuideTop10 />
       {/* Owner 2026-11-18: the 25 Days card; owner 11-21 moved it up, right under the guides. App.tsx has no shopper
           giveaway page (/25days is the sponsors' page), so it links to the Facebook page the giveaways run on. */}
       <aside className="gg-helpr" aria-label={G.giveaways.title} data-gift-giveaways="">

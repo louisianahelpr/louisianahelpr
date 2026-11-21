@@ -227,6 +227,8 @@ export const giftGuides = {
    * smaller groups as a plain line of links. Every guide is one tap from its group's page.
    */
   browseTitle: "Browse the guides",
+  /** The landing's Top 10 row (owner 2026-11-21 ~5:05 PM, src/content/giftGuideTop10.ts). */
+  top10Title: "Top 10 gifts",
   /** The quiet line under a landing tile (lead 11-21): "36 gifts". */
   tileCount: (n: number) => `${n} ${n === 1 ? "gift" : "gifts"}`,
   moreTitle: "More guides",

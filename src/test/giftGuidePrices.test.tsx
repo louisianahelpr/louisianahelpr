@@ -18,7 +18,7 @@
  * @mutate scripts/giftGuideHimKids1121.mjs |     const shown = isAmazon(r) ? r.sortPrice : price; |     const shown = isAmazon(r) ? undefined : price;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { PickChunk } from "@/content/giftGuidePicks";
 import { TOP_PICKS } from "@/content/giftGuidePicks";
@@ -162,6 +162,11 @@ describe("gift-guide prices: a real guide page", () => {
       </MemoryRouter>,
     );
     await screen.findAllByText(/^~\$\d+$/);
+    // Him holds all of the owner's men's saves (141, 11-21): the page shows 50 at a time behind "Show more".
+    for (let b = screen.queryByRole("button", { name: /^Show more/ }); b; b = screen.queryByRole("button", { name: /^Show more/ })) {
+      const more = b;
+      act(() => { fireEvent.click(more); });
+    }
     const rows = [...container.querySelectorAll("li[data-gift-pick]")];
     expect(rows.length).toBe(CHUNKS.him.length);
     const shown = rows.map((li) => li.querySelector("[data-gift-price]")?.textContent ?? "none");

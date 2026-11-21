@@ -1,0 +1,304 @@
+{
+ "about": "Owner 11-20 phone fixes (Dad / Him / Grandpa / Mom / Mother-in-Law / Her), applied by scripts/gift-guide-picks.mjs through scripts/giftGuideOwner1120d.mjs after train 1120c and before the late price fill. The removals themselves are OWNER_REMOVED and the style rules in scripts/giftGuideRules.mjs (they leave every page and hold after every fill); this file only fills the freed spots and adds Dad / Him / Grandpa gifts under $25 (owner: 'why are there no options under 25?'). Prices: the price cache's checked prices (Link-library/price-cache.json, 2026-11-20), the XTRATUF rows read from xtratuf.com/products/<handle>.js on 2026-11-20. A row already on another guide MOVES here (every product shows on one guide).",
+ "adds": [
+  {
+   "guide": "dad",
+   "section": "Top picks",
+   "why": "the neon-yellow YETI Roadie 24 link leaves: the Roadie 24 2.0 in a dark green (photo checked)",
+   "row": {
+    "name": "YETI Roadie 24 2.0 Hard Cooler",
+    "brand": "YETI",
+    "line": "",
+    "href": "https://go.shopmy.us/p-107862403",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1765315393509",
+    "store": "store-rei",
+    "commission": 8,
+    "type": "cooler"
+   }
+  },
+  {
+   "guide": "dad",
+   "section": "Top picks",
+   "why": "under $25 (stanley1913.com $18.75)",
+   "row": {
+    "name": "Stanley Classic Legendary Camp Mug, 12 OZ",
+    "brand": "Stanley",
+    "line": "",
+    "href": "https://mavely.app.link/aMJKjE0qb8b",
+    "image": "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-TheStay-HotCampMug12OZ-Shale-Front.png",
+    "store": "store-stanley",
+    "commission": 14,
+    "type": "drinkware"
+   }
+  },
+  {
+   "guide": "dad",
+   "section": "Top picks",
+   "why": "under $25 (stanley1913.com $19.50), Hammertone Green",
+   "row": {
+    "name": "Stanley Classic Easy Fill Wide Mouth Flask, 8 OZ",
+    "brand": "Stanley",
+    "line": "",
+    "href": "https://mavely.app.link/igfGJ30qb8b",
+    "image": "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/B2B_Web_PNG-Classic-Easy-Fill-Wide-Mouth-Flask-8oz-Hammertone-Green_13d39fef-922d-422e-a703-c339e49bf056.png",
+    "store": "store-stanley",
+    "commission": 14,
+    "type": "flask"
+   }
+  },
+  {
+   "guide": "dad",
+   "section": "Top picks",
+   "why": "under $25 (DXL $24.99), army green",
+   "row": {
+    "name": "Carhartt Odessa Cap",
+    "brand": "Carhartt",
+    "line": "",
+    "href": "https://go.shopmy.us/p-107899225",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1782027195803",
+    "store": "store-dxl",
+    "commission": 20,
+    "type": "hat"
+   }
+  },
+  {
+   "guide": "dad",
+   "section": "Top picks",
+   "why": "Vineyard Vines leaves (owner: 'men here don't really wear Vineyard Vines'): Columbia PFG Tamiami II ($48, checked 2026-11-20)",
+   "row": {
+    "name": "Columbia PFG Tamiami II Long Sleeve Shirt",
+    "brand": "Columbia",
+    "line": "",
+    "href": "https://go.shopmy.us/p-107817325",
+    "image": "https://static.shopmy.us/uploads/58601e63-2db3-4643-9a93-b4c2d5c4b3b9_1275701_455_f_om_img-cachesmaspectaspect1280_1344w1280fmtautoqlt75_1100x1155.jpg",
+    "store": "store-columbia",
+    "type": "shirt",
+    "price": 48,
+    "priceAt": "2026-11-20",
+    "band": 50,
+    "commission": 10
+   }
+  },
+  {
+   "guide": "dad",
+   "section": "Top picks",
+   "why": "Vineyard Vines leaves: Huk Leward fleece hoodie in black ($80, Dillard's, checked 2026-11-20)",
+   "row": {
+    "name": "Huk Leward Lightweight Fleece Hoodie, Black",
+    "brand": "Huk",
+    "line": "",
+    "href": "https://go.shopmy.us/p-107994935",
+    "image": "https://static.shopmy.us/pins/zoom-107994935-1795129947117-00000000_zi_c9ff6ff3-5e86-46ae-9b9e-a4694a2cc6c3.jpg",
+    "store": "store-dillards",
+    "type": "sweatshirt",
+    "price": 80,
+    "priceAt": "2026-11-20",
+    "band": 100,
+    "commission": 8
+   }
+  },
+  {
+   "guide": "dad",
+   "section": "Top picks",
+   "why": "the lilac FootJoy Quantum leaves (photo review): Columbia PFG Bahama Vent boat shoes in grey ($70, checked 2026-11-20)",
+   "row": {
+    "name": "Columbia PFG Bahama Vent Boat Shoes, Grey",
+    "brand": "Columbia",
+    "line": "",
+    "href": "https://go.shopmy.us/p-107975080",
+    "image": "https://static.shopmy.us/pins/zoom-107975080-1795127509432-1815351-steam-rocket.jpg",
+    "store": "store-st-bernard",
+    "type": "shoes",
+    "price": 70,
+    "priceAt": "2026-11-20",
+    "band": 100,
+    "commission": 10
+   }
+  },
+  {
+   "guide": "dad",
+   "section": "Father-in-Law",
+   "why": "fills the Bombas slipper / Vineyard Vines spot; under $25 (St. Bernard $19.99)",
+   "row": {
+    "name": "YETI Camo Trucker Hat",
+    "brand": "YETI",
+    "line": "Outdoorsy camo trucker for hunting and fishing season",
+    "href": "https://go.shopmy.us/p-107791367",
+    "image": "https://cdn.shopify.com/s/files/1/1038/6190/products/download_3_14_0a8ad95a-d8da-431a-ad04-1698f874025d.jpg",
+    "store": "store-st-bernard",
+    "commission": 10,
+    "type": "hat"
+   }
+  },
+  {
+   "guide": "him",
+   "section": "Top picks",
+   "why": "under $25 (xtratuf.com $19.99), code XT25",
+   "row": {
+    "name": "XTRATUF Unisex Beanie",
+    "brand": "XTRATUF",
+    "line": "A cozy knit XTRATUF beanie that tucks right into a stocking.",
+    "href": "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxacb000",
+    "image": "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XACB000_gray.jpg?v=1760716977",
+    "store": "store-xtratuf",
+    "commission": 15,
+    "type": "hat",
+    "code": "XT25",
+    "codeEnds": "2026-11-29"
+   }
+  },
+  {
+   "guide": "him",
+   "section": "Top picks",
+   "why": "under $25 (carhartt $21.99)",
+   "row": {
+    "name": "Carhartt Midweight Crew Socks 6-Pack",
+    "brand": "Carhartt",
+    "line": "",
+    "href": "https://go.shopmy.us/p-107847939",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1764768697667",
+    "store": "store-carhartt",
+    "commission": 12,
+    "type": "socks",
+    "price": 21.99,
+    "priceAt": "2026-11-19",
+    "band": 25
+   }
+  },
+  {
+   "guide": "grandparents",
+   "section": "Grandpa",
+   "why": "under $25 (muckbootcompany.com $16.99)",
+   "row": {
+    "name": "Muck Boot Men's Merino Wool Over the Calf Boot Socks",
+    "brand": "Muck Boot",
+    "line": "Warm merino socks for cold mornings.",
+    "href": "https://www.anrdoezrs.net/click-101930553-15735627?url=https%3A%2F%2Fwww.muckbootcompany.com%2Fproducts%2F72893",
+    "image": "https://cdn.shopify.com/s/files/1/0918/9123/7146/files/72893_profile.jpg?v=1791566345",
+    "store": "store-muck-boot",
+    "commission": 4,
+    "type": "socks"
+   }
+  },
+  {
+   "guide": "mom",
+   "section": "Top picks",
+   "why": "the pink Muck Rainscape 8\" leaves: XTRATUF Women's Ankle Deck Boot in black ($115 on xtratuf.com, 2026-11-20), our CJ link, code XT25",
+   "row": {
+    "name": "XTRATUF Women's Ankle Deck Boot, Black",
+    "brand": "XTRATUF",
+    "line": "The Gulf Coast deck boot, in classic black.",
+    "href": "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwab000",
+    "image": "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XWAB000_gray_main_720x720_04bbb28a-4792-419d-b73d-4fd8c477030f.jpg?v=1771526185",
+    "store": "store-xtratuf",
+    "commission": 15,
+    "type": "boots",
+    "code": "XT25",
+    "codeEnds": "2026-11-29",
+    "price": 115,
+    "priceAt": "2026-11-20",
+    "band": 500
+   }
+  },
+  {
+   "guide": "mom",
+   "section": "Top picks",
+   "why": "the L.L.Bean Wicked Good Moccasins leave: the owner's UGG Goldenstar Evelina Clog (chestnut, Anthropologie $175, checked 2026-11-20)",
+   "row": {
+    "name": "UGG Goldenstar Evelina Clog",
+    "brand": "UGG",
+    "line": "",
+    "href": "https://go.shopmy.us/p-108154782",
+    "image": "https://static.shopmy.us/pins/zoom-108154782-1795153568600-108971391_025_b",
+    "store": "store-anthropologie",
+    "trending": true,
+    "tiktok": true,
+    "commission": 15,
+    "type": "shoes"
+   }
+  },
+  {
+   "guide": "mom",
+   "section": "Mother-in-Law",
+   "why": "the black YETI x Ten Thousand Rambler leaves: a Stanley Quencher in Nectarine (stanley1913.com $45)",
+   "row": {
+    "name": "Stanley Quencher H2.0 FlowState Tumbler 30 oz, Nectarine",
+    "brand": "Stanley",
+    "line": "",
+    "href": "https://go.shopmy.us/p-107586258",
+    "image": "https://static.shopmy.us/pins/zoom-107586258-1795061224802-B2B_Web_PNG-TheQuencherH2.OFlowStateTumbler30OZ-Nectarine-Front.png",
+    "store": "store-stanley",
+    "commission": 18,
+    "type": "drinkware"
+   }
+  },
+  {
+   "guide": "mom",
+   "section": "Mother-in-Law",
+   "why": "the Lilly Pulitzer sleep dress leaves: Eberjey Gisele Long PJ Set (Anthropologie $158)",
+   "row": {
+    "name": "Eberjey Gisele Long PJ Set, Ivory",
+    "brand": "Eberjey",
+    "line": "",
+    "href": "https://go.shopmy.us/p-108002676",
+    "image": "https://static.shopmy.us/pins/zoom-108002676-1795131005268-4141400580175_270_b",
+    "store": "store-anthropologie",
+    "commission": 15,
+    "type": "pajamas"
+   }
+  },
+  {
+   "guide": "her",
+   "section": "Top picks",
+   "why": "the Muck Rainscape 12\" leaves: XTRATUF Women's Camp Fleece Lined Ankle Deck Boot, bone white / dark olive ($130 on xtratuf.com, 2026-11-20), code XT25",
+   "row": {
+    "name": "XTRATUF Women's Camp Fleece Lined Ankle Deck Boot",
+    "brand": "XTRATUF",
+    "line": "A fleece-lined deck boot for cold mornings.",
+    "href": "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwadbc10",
+    "image": "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XWADBC10.jpg?v=1755046652",
+    "store": "store-xtratuf",
+    "commission": 15,
+    "type": "boots",
+    "code": "XT25",
+    "codeEnds": "2026-11-29",
+    "price": 130,
+    "priceAt": "2026-11-20",
+    "band": 500
+   }
+  },
+  {
+   "guide": "grandparents",
+   "section": "Grandma",
+   "why": "the Lilly Pulitzer pajama top leaves: Eberjey Gisele Short PJ Set, Navy (Anthropologie $138)",
+   "row": {
+    "name": "Eberjey Gisele Short PJ Set, Navy",
+    "brand": "Eberjey",
+    "line": "",
+    "href": "https://go.shopmy.us/p-108002657",
+    "image": "https://static.shopmy.us/pins/zoom-108002657-1795131003013-49556467_041_b",
+    "store": "store-anthropologie",
+    "commission": 15,
+    "type": "pajamas"
+   }
+  },
+  {
+   "guide": "him",
+   "section": "Top picks",
+   "why": "under $25 (carhartt $19.99, checked 2026-11-20)",
+   "row": {
+    "name": "Carhartt K87 Pocket T-Shirt",
+    "brand": "Carhartt",
+    "line": "",
+    "href": "https://go.shopmy.us/p-107847495",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1783223772496",
+    "store": "store-carhartt",
+    "commission": 8,
+    "type": "shirt",
+    "price": 19.99,
+    "priceAt": "2026-11-19",
+    "band": 25
+   }
+  }
+ ]
+}

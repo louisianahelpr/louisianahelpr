@@ -45,6 +45,8 @@ const FUN_CSS = `
 .gg-fun-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .gg-swipe-stage{position:relative;max-width:360px;margin:0 auto;touch-action:pan-y}
 .gg-swipe-card{position:relative;border:1px solid var(--gg-line);border-radius:20px;background:hsl(var(--card));box-shadow:0 6px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;padding:16px;user-select:none;transition:transform .2s ease}
+.gg-swipe-card{touch-action:pan-y;-webkit-user-select:none}
+.gg-swipe-card img{-webkit-user-drag:none;user-drag:none;pointer-events:none}
 .gg-swipe-card.is-dragging{transition:none}
 .gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter{width:220px;height:220px}
 .gg-swipe-card .gg-thumb{width:220px;height:220px;object-fit:contain}

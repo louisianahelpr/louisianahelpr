@@ -86,6 +86,7 @@ const VIEWS: Record<string, Rule> = {
   declutter: { kind: "none", why: "Declutter cards moved from Settings; test listings only behind Show test listings (D2-4)" },
   previews: { kind: "none", why: "a list of links to the stage previews; reads no rows" },
   sponsors: { kind: "none", why: "redirects to /admin/sponsors (25 Days sponsors, businesses not member accounts)" },
+  wishlinks: { kind: "none", why: "admin_wish_link_requests leaves every is_seed request out on the server (20261121221514); rows hold no account id" },
   growth: { kind: "none", why: "the matchmaker link builder reads no rows; Who brings customers reads admin_booking_sources, which drops every test Helpr and test poster on the server (20261030013347; is_seed carve-out 'hides' in isSeedCarveOutsNeedEnrolment), so no test row reaches this view" },
 };
 

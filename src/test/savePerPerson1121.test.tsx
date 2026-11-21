@@ -15,7 +15,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | onToggle={() => { if (!requestSaveFor(saveItemOf(pick, guide))) heartTapped( | onToggle={() => { if (true) heartTapped(
  * @mutate src/pages/info/giftGuides/saveForPeople.ts |   if (have) {\n    planActions.removeIdea(personId, have.id);\n    return "removed";\n  } |   if (have) {\n    return "removed";\n  }
  * @mutate src/pages/info/giftGuides/saveForPeople.ts |   amount: Math.round(p.ideas.reduce((t, i) => t + (i.price ?? 0), 0) * 100) / 100, |   amount: 0,
- * @mutate src/pages/info/giftGuides/saveForPeople.ts |   items: p.ideas.flatMap((i) => (i.guide && i.href ? [{ g: i.guide, i: itemId(i.href) }] : [])), |   items: p.ideas.flatMap((i) => (i.href ? [{ g: i.guide ?? "", i: itemId(i.href) }] : [])),
+ * @mutate src/pages/info/giftGuides/saveForPeople.ts | (i): ShareRef[] => (i.guide && i.href ? [{ g: i.guide, i: itemId(i.href) }] | (i): ShareRef[] => (i.href ? [{ g: i.guide ?? "", i: itemId(i.href) }]
  * @mutate src/pages/info/giftGuides/saveForPeople.ts | export const saveItemOf = (p: CatalogPick, guide?: string): SaveItem => {\n  const price = plannerPrice(p); | export const saveItemOf = (p: CatalogPick, guide?: string): SaveItem => {\n  const price = undefined;
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |     if (b !== undefined) planActions.setBudget(id, b); |     void b;
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |   const ready = isReady && (!user \|\| sync !== "device"); |   const ready = isReady;

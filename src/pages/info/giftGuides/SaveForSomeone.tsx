@@ -15,6 +15,7 @@ import { PickThumb } from "./GiftGuideView";
 import { GiftWishShare } from "./GiftWishShare";
 import { AmazonCartForList } from "./AmazonCartButton";
 import { AnyStoreAdd } from "./AnyStoreAdd";
+import { useOurLinkSync } from "./wishLinkSync";
 import { MY_LIST_SLUG, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { allTotals, closeSaveFor, listTotal, onPersonList, privateIdeas, shareListOf, togglePersonItem, useSaveForHost, useSaveForRequest, type SaveItem } from "./saveForPeople";
@@ -175,6 +176,8 @@ export function ShareAllLists({ plan }: { plan: GiftPlan }) {
 function Panel({ open, onOpenChange, ready }: { open: boolean; onOpenChange: (o: boolean) => void; ready: boolean }) {
   const plan = usePlan();
   const list = useGiftList();
+  // Owner 11-21: gifts from any store switch to our link once we made it (asked when the panel opens).
+  useOurLinkSync(plan, open && ready);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-mylists-panel="">

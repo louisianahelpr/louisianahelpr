@@ -5759,6 +5759,51 @@ export type Database = {
         }
         Relationships: []
       }
+      wish_link_requests: {
+        Row: {
+          affiliate_url: string | null
+          created_at: string
+          filled_at: string | null
+          id: string
+          is_seed: boolean
+          kind: string
+          list_key: string
+          list_name: string
+          status: string
+          url: string | null
+          url_key: string | null
+          words: string
+        }
+        Insert: {
+          affiliate_url?: string | null
+          created_at?: string
+          filled_at?: string | null
+          id?: string
+          is_seed?: boolean
+          kind: string
+          list_key: string
+          list_name: string
+          status?: string
+          url?: string | null
+          url_key?: string | null
+          words: string
+        }
+        Update: {
+          affiliate_url?: string | null
+          created_at?: string
+          filled_at?: string | null
+          id?: string
+          is_seed?: boolean
+          kind?: string
+          list_key?: string
+          list_name?: string
+          status?: string
+          url?: string | null
+          url_key?: string | null
+          words?: string
+        }
+        Relationships: []
+      }
       gift_wish_lists: {
         Row: {
           code: string
@@ -18698,6 +18743,16 @@ export type Database = {
         Args: { p_lists: Json; p_test?: boolean }
         Returns: string
       }
+      wish_link_request_add: {
+        Args: { p_kind: string; p_words: string; p_url: string; p_list_key: string; p_list_name: string; p_test?: boolean }
+        Returns: Json
+      }
+      wish_link_requests_get: { Args: { p_ids: string[] }; Returns: Json }
+      wish_link_url_key: { Args: { p_url: string }; Returns: string }
+      wish_link_url_ok: { Args: { p_url: string }; Returns: boolean }
+      admin_wish_link_requests: { Args: never; Returns: Json }
+      admin_wish_link_request_fill: { Args: { p_id: string; p_url: string }; Returns: Json }
+      admin_wish_link_request_dismiss: { Args: { p_id: string }; Returns: undefined }
       giveaway_entry_url: { Args: never; Returns: string | null }
       giveaway_reminder_sweep: { Args: never; Returns: Json }
       sbs_admin_list: { Args: never; Returns: Json }

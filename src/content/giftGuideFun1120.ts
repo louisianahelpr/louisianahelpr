@@ -246,8 +246,11 @@ export function santaRound<T extends CatalogPick>(pool: T[], borrow: T[], budget
 // ---------------------------------------------------------------------------------------------------------------
 // (3) Gift planner
 
-/** `image`: the guide pick's photo (owner 11-21, "let them add ideas from our guides"), https only, for the row's thumbnail. */
-export interface PlanIdea { id: string; name: string; price?: number; bought: boolean; href?: string; guide?: string; item?: string; image?: string }
+/** `image`: the guide pick's photo (owner 11-21, "let them add ideas from our guides"), https only, for the row's thumbnail.
+ *  `req`: a gift added from any store, its link request (owner 11-21, wish_link_requests): we make our link for it, the
+ *  planner swaps it in once made, and a share carries it as {r}. `ask`: sent to us, no answer yet (tried again when a
+ *  list opens). */
+export interface PlanIdea { id: string; name: string; price?: number; bought: boolean; href?: string; guide?: string; item?: string; image?: string; req?: string; ask?: true }
 export interface PlanPerson { id: string; name: string; budget?: number; ideas: PlanIdea[] }
 export interface GiftPlan { people: PlanPerson[]; updatedAt: number }
 export const EMPTY_PLAN: GiftPlan = { people: [], updatedAt: 0 };
@@ -255,6 +258,8 @@ export const PLAN_MAX_PEOPLE = 50;
 export const PLAN_MAX_IDEAS = 30;
 /** The longest photo link a planner idea keeps (the account row is capped at 64 KB). */
 const PLAN_IMAGE_MAX = 400;
+/** A link request id (a uuid, as wish_link_request_add makes them). */
+const PLAN_REQ = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const money = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v * 100) / 100 : undefined);
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
@@ -273,7 +278,8 @@ export function cleanPlan(v: unknown): GiftPlan {
       return [{ id: d.id, name: text(d.name, 120), bought: d.bought === true, ...(price !== undefined ? { price } : {}),
         ...(typeof d.href === "string" && /^https:\/\//.test(d.href) ? { href: d.href } : {}),
         ...(typeof d.guide === "string" ? { guide: d.guide } : {}), ...(typeof d.item === "string" ? { item: d.item } : {}),
-        ...(typeof d.image === "string" && /^https:\/\//.test(d.image) && d.image.length <= PLAN_IMAGE_MAX ? { image: d.image } : {}) }];
+        ...(typeof d.image === "string" && /^https:\/\//.test(d.image) && d.image.length <= PLAN_IMAGE_MAX ? { image: d.image } : {}),
+        ...(typeof d.req === "string" && PLAN_REQ.test(d.req) ? { req: d.req } : {}), ...(d.ask === true ? { ask: true as const } : {}) }];
     });
     const budget = money(q.budget);
     return [{ id: q.id, name: text(q.name, 40), ideas, ...(budget !== undefined ? { budget } : {}) }];

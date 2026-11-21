@@ -4100,9 +4100,12 @@ console.log(`gift-guide-picks: final sweep ${JSON.stringify(finalSweep)}`);
 }
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
-// Owner 11-21 ("launch the 3 guides remove the rest that are live"): only the live guides (src/content/giftGuideLive.mjs)
-// ship a chunk; a retired guide's picks stay in the research data, never in the bundle, the search index or the sitemap.
-const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].filter(isLiveGuide).sort();
+const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();
+// Owner 11-21 ("launch the 3 guides remove the rest that are live"): every guide's chunk is still written (the content
+// guards keep reading them, and a guide comes back by listing it live), but only the live guides' chunks
+// (src/content/giftGuideLive.mjs) are in CHUNK_SLUGS and PICK_CHUNKS, so a retired chunk is never in the bundle, the
+// search index, the sitemap or the SEO list.
+const liveChunkSlugs = chunkSlugs.filter(isLiveGuide);
 for (const slug of chunkSlugs) {
   writeFileSync(new URL(`${slug}.json`, chunkDir), `${JSON.stringify({ picks: pageList[slug] ?? [], ...(deals[slug]?.length ? { deals: deals[slug] } : {}) })}\n`);
 }
@@ -4120,7 +4123,7 @@ writeFileSync(
     `export const RESEARCHED_STORES: Record<string, { name: string; hosts: string[] }> = ${JSON.stringify(storeList)};\n` +
     `/** The guides with a researched chunk: their list (and deals) come only from it. */\n` +    `/** How many picks each chunk holds (the By store row lists a store page from 4 picks; lead 2026-11-18). */\n` +
     `export const CHUNK_PICK_COUNTS: Record<string, number> = ${JSON.stringify(Object.fromEntries(chunkSlugs.map((x) => [x, pageList[x]?.length ?? 0])))};\n` +
-    `export const CHUNK_SLUGS: readonly string[] = ${JSON.stringify(chunkSlugs)};\n` +
+    `export const CHUNK_SLUGS: readonly string[] = ${JSON.stringify(liveChunkSlugs)};\n` +
     `/** Old guide slug -> its section's id on its merged guide (1120 section groups; the redirects and age links read it). */\n` +
     `export const SECTION_ANCHORS: Record<string, string> = ${JSON.stringify(SECTION_ANCHORS)};\n` +
     `/** A folded section's old id -> its new one, per guide (train 1120d), so an old #section link still opens it ("" = the guide's top). */\n` +
@@ -4133,8 +4136,8 @@ writeFileSync(
     `export const TOP_PICKS: ResearchedPick[] = ${JSON.stringify(weeklyTop.filter((p) => !droppedPhoto(p.image)).map((p) => auditFix1120("", p)).filter(Boolean).map((p) => (p.image ? { ...p, image: cutoutPhoto(p.image) } : p)))};\n` +
     `/** The sidebar's Sales (each hidden after its end date). */\n` +
     `export const SALES: Sale[] = ${JSON.stringify(sales)};\n` +
-    `/** Each guide's chunk, fetched only when its page opens (Vite splits every file into its own chunk). */\n` +
-    `export const PICK_CHUNKS = import.meta.glob<PickChunk>("./giftGuidePicks/*.json", { import: "default" });\n`,
+    `/** Each live guide's chunk, fetched only when its page opens (Vite splits every file into its own chunk; a retired guide's file is not listed, so never bundled). */\n` +
+    `export const PICK_CHUNKS = import.meta.glob<PickChunk>(${JSON.stringify(liveChunkSlugs.map((x) => `./giftGuidePicks/${x}.json`))}, { import: "default" });\n`,
 );
 /**
  * The guides search engines see (SEO): each with a chunk holding picks, minus the removed and folded guides
@@ -4160,7 +4163,7 @@ const entryOf = (slug) => {
 const cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
 const seo = {};
 const usedNames = new Set();
-for (const slug of chunkSlugs) {
+for (const slug of liveChunkSlugs) {
   const n = pageList[slug]?.length ?? 0;
   if (n === 0 || (!slug.startsWith("store-") && n < GUIDE_MIN_PICKS && !HUB_SLUGS.has(slug)) || removedGuides.includes(slug) || mergedGuides.includes(slug) || (slug.startsWith("store-") && n < minStorePicks)) continue;
   const e = entryOf(slug) ?? { title: storeList[slug]?.name, lead: "shop", age: undefined };

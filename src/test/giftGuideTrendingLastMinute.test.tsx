@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
-import { LAST_MINUTE, SHIP_LINES, lastMinuteOn } from "@/content/giftGuideShipping";
+import { LAST_MINUTE, lastMinuteOn } from "@/content/giftGuideShipping";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));

@@ -37,7 +37,6 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
-import { giftGuides as GG } from "@/content/giftGuides";
 
 afterEach(cleanup);
 await loadAllGuidePicks();

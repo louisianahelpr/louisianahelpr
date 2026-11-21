@@ -15,12 +15,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_COUNT, FINDER_FEW, FINDER_LOUISIANA_GUIDES, FINDER_VIBES, FINDER_WHO, pickBand, GIFT_GUIDE_FLAGS, SHIP_DEADLINES, deadlineChip, declutterTieInOn, finderPool, giftFinder, giveawayBannerOn, readFinder } from "@/content/giftGuideExtras1120";
+import { GIFT_GUIDE_FLAGS, SHIP_DEADLINES, deadlineChip, declutterTieInOn, giveawayBannerOn } from "@/content/giftGuideExtras1120";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
-import { BUDGETS, sectionNav, withinBudget } from "@/pages/info/giftGuides/GiftGuideView";
+import { BUDGETS, withinBudget } from "@/pages/info/giftGuides/GiftGuideView";
 import { resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 
 await loadAllGuidePicks();
@@ -40,11 +40,6 @@ const renderAt = (url: string) =>
     </MemoryRouter>,
   );
 const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
-
-describe("gift finder (three taps, always a list, a share link)", () => {
-  const borrow = FINDER_BUDGET_GUIDES.flatMap(picksOf);
-  const all = (r: { exact: CatalogPick[]; close: CatalogPick[] }) => [...r.exact, ...r.close];
-});
 
 describe("shipping deadlines (a store's order-by day, hidden after it)", () => {
   it("shows through the day and hides after; the table holds only sourced rows", () => {

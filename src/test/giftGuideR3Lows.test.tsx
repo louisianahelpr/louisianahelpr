@@ -28,8 +28,6 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
-import { topCardName } from "@/pages/info/giftGuides/GiftGuideLanding";
-import { KIDS_BY_AGE_ID } from "@/pages/info/giftGuides/GiftGuideAges";
 import { readdirSync } from "./helpers/trackedFiles";
 
 afterEach(cleanup);

@@ -40,12 +40,8 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { guideBySlug, loadAllGuidePicks, loadSearchItems, topPicks } from "@/content/giftGuideCatalog";
-import {
-  SWIPE_BUDGETS, SWIPE_PER_STORE, SWIPE_ROUND, SWIPE_WHO, duplicateName, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giftOfTheDay, giveawayTieInOn, parseDollars,
-  SANTA_PATH, borrowFits, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan,
-} from "@/content/giftGuideFun1120";
+import { SWIPE_BUDGETS, SWIPE_PER_STORE, SWIPE_ROUND, SWIPE_WHO, duplicateName, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giveawayTieInOn, parseDollars, SANTA_PATH, borrowFits, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan } from "@/content/giftGuideFun1120";
 import { BUDGET_GUIDES, pickCeiling } from "@/content/giftPickBand";
-import { showsPrice } from "@/components/giftGuides/PickPrice";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -65,7 +61,7 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 }));
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSantaReveal from "@/pages/info/giftGuides/fun/SecretSantaReveal";
-import { GOTD_SOURCE_GUIDE, GiftCountdown, GiftTools, giftOfTheDayPath } from "@/pages/info/giftGuides/fun/GiftCountdown";
+import { giftOfTheDayPath } from "@/pages/info/giftGuides/fun/GiftCountdown";
 import { giftListNow, resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { planActions, resetPlanStoreForTests, setPlanViewer, useAccountSync, usePlan } from "@/pages/info/giftGuides/fun/plannerStore";

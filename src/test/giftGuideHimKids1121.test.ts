@@ -6,7 +6,7 @@
  * guides can we fund at another place for higher commison just change the link"): the same item at the same price at a
  * better-paying store, a ShopMy link that shows its checked price and a transparent cutout of that store's own photo.
  * @mutate scripts/giftGuideHimKids1121.mjs | pageList[slug] = picks; | void picks;
- * @mutate scripts/giftGuideHimKids1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug }; |     const p = { ...rest, image: r.image, ownerPick: true, from: slug };
+ * @mutate scripts/giftGuideHimKids1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank }; |     const p = { ...rest, image: r.image, ownerPick: true, from: slug, priceRank };
  * @mutate scripts/giftGuideHimKids1121.mjs |     if (!isAmazon(r)) Object.assign(p, { price, priceAt: HIM_KIDS_PRICE_AT }); |     void price;
  */
 import { existsSync, readFileSync } from "node:fs";

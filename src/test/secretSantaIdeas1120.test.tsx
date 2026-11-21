@@ -91,11 +91,16 @@ describe("a Secret Santa round keeps to the group's budget", () => {
     }
     // Owner 11-21 2:47 AM: only Her, Him and Kids are live, and Amazon picks never carry a site price, so a budget
     // round only has Her's priced store picks. Exact list, both ways: a round that fills up must come OFF this list
-    // (re-measure after her ShopMy Him/Kids picks land); never add a new name to it.
+    // (re-measure after her ShopMy Him/Kids picks land); never add a new name to it. The 11-21 commission switches
+    // (feat/guide-commission-1121) priced more Her picks (her $100 rounds now fill: off the list) and two Him picks
+    // ($99.95 and $189.99), so Him's $100 round holds one (measured 2026-11-21, CI run 44933210530).
     const withHer = ["me", "mom", "her"];
-    const herCount: Record<number, number> = { 25: 1, 50: 3, 100: 5 };
+    const withHim = ["dad", "him"];
+    const herCount: Record<number, number> = { 25: 1, 50: 5 };
+    const himCount: Record<number, number> = { 25: 0, 50: 0, 100: 1 };
     const KNOWN_THIN_1121 = [25, 50, 100].flatMap((b) =>
-      SWIPE_WHO.map((w) => `${w.id} $${b}: ${withHer.includes(w.id) ? herCount[b] : 0}`));
+      SWIPE_WHO.filter((w) => !(b === 100 && withHer.includes(w.id)))
+        .map((w) => `${w.id} $${b}: ${withHer.includes(w.id) ? herCount[b] : withHim.includes(w.id) ? himCount[b] : 0}`));
     expect(thin).toEqual(KNOWN_THIN_1121);
   });
 });

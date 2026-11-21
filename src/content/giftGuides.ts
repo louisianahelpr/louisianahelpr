@@ -293,6 +293,8 @@ export const giftGuides = {
   /** A deal's end date, "2026-11-22" -> "Ends Nov 22". */
   dealEnds: (ymd: string) => `Ends ${new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
   newTab: "opens in a new tab",
+  // Amazon Buy Now on a card (owner 11-21): the cart icon's spoken label.
+  addToAmazonCart: (name: string) => `Add ${name} to your Amazon cart (opens in a new tab)`,
   onStore: (store: string) => `On ${store}`,
   /** A ShopMy collection link opens a page of many products, not this one (design audit r2 #3/#9): the row says so. */
   collectionOnShopMy: "Collection on ShopMy",

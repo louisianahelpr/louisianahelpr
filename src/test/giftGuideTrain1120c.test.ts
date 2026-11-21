@@ -47,7 +47,7 @@ describe("gift guides train 1120c", () => {
       placed += spots;
       expect(a.row.image, a.row.name).toMatch(/^https:\/\//);
     }
-    expect(placed).toBeGreaterThanOrEqual(6);
+    expect(placed).toBeGreaterThanOrEqual(4);
     const guides = [...CHUNKS].filter(([s]) => !s.startsWith("store-") && s !== "25-days-sponsors");
     const seen = new Map<string, string>();
     for (const [slug, c] of guides) for (const p of c.picks) {

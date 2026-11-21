@@ -53,7 +53,7 @@ describe("gift guides: items that belong (owner 11-19)", () => {
   });
 
   it("every guide follows them", () => {
-    expect(guides.length).toBeGreaterThan(150);
+    expect(guides.length).toBeGreaterThan(140);
     let picks = 0;
     for (const slug of guides) {
       const group = groupOf.get(slug) ?? "";

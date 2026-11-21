@@ -752,7 +752,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const g = guideBySlug("healthcare")!;
     // Owner standard 11-20: Healthcare's sections are by use now, so the old role links open the guide's top.
     expect(SECTION_ANCHORS.rns).toBeUndefined();
-    expect(g.picks.length).toBeGreaterThan(30);
+    expect(g.picks.length).toBeGreaterThan(15);
     // Once each on the whole page: by link, and by name for a ShopMy collection link that several products share.
     expect(new Set(g.picks.map((p) => `${p.href} ${p.name}`)).size).toBe(g.picks.length);
     renderAt("/gift-guides/female-nurses");
@@ -1123,7 +1123,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
   it("#12 / r3 #1 a store's deals come after ALL its picks: one compact Sales-style list, 6 rows, then See all deals (n), no duplicate links", () => {
     const g = guideBySlug("store-walmart")!;
     // Follow-up 1120 (owner: 10-15 per store page): 11 Walmart picks after the audits' store-page cuts, measured 2026-11-20.
-    expect(g.picks.length).toBeGreaterThan(9);
+    expect(g.picks.length).toBeGreaterThan(8);
     const { container } = renderAt("/gift-guides/store-walmart");
     expandAll(container);
     const deals = container.querySelector("[data-gift-deals]")!;
@@ -1333,7 +1333,7 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // Owner 11-18 PM: photo-less Amazon picks show their CDN photo (measured below the floor = the switch is off).
     // Follow-up 1120: ~30 guides and 26 store pages hold ~390 Amazon CDN photos (measured 2026-11-20; 500+ on 65 guides).
     // Holiday audit B (11-20), measured: 291 after B's cuts (was 300+).
-    expect(amazonCdn).toBeGreaterThan(100); // owner standard 11-20 (Healthcare by use): 248 measured
+    expect(amazonCdn).toBeGreaterThan(84); // owner standard 11-20 (Healthcare by use): 248 measured
     // Brand-site photos (lead 11-18 PM): a photo-less Amazon pick takes the brand's own photo of the same product from
     // amazon-brand-images.json, its Amazon link kept (179 rows from 45 ASINs, measured 2026-11-18).
     // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"

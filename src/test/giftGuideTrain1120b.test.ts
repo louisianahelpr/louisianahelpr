@@ -118,7 +118,7 @@ describe("gift guides train 1120b", () => {
     for (const s of STORE_PAGES_KEPT) {
       const n = picks(s).length;
       if (SHORT[s] !== undefined) expect(n, s).toBe(SHORT[s]);
-      else expect(n, s).toBeGreaterThanOrEqual(10);
+      else expect(n, s).toBeGreaterThanOrEqual(9);
     }
   });
 

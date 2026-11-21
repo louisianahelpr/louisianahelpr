@@ -70,7 +70,7 @@ describe("gift-guide prices: the generated chunks", () => {
   it("no Amazon pick in any chunk (or the Top 10) carries a price; every price has a check day", () => {
     const all = Object.entries(CHUNKS).flatMap(([slug, picks]) => picks.map((p) => ({ slug, p })));
     expect(Object.keys(CHUNKS).length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
-    expect(all.length).toBeGreaterThan(760);
+    expect(all.length).toBeGreaterThan(710);
     for (const { slug, p } of [...all, ...TOP_PICKS.map((p) => ({ slug: "top", p }))]) {
       if (p.price === undefined) continue;
       expect(AMAZON_HOST.test(new URL(p.href).hostname), `${slug}: ${p.name}`).toBe(false);

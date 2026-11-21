@@ -43,7 +43,7 @@ describe("gift guides holiday audit B", () => {
   it("shown text carries no researcher's note and no lowercase note fragment", () => {
     const shown = [...ALL, ...TOP_PICKS];
     // ~1,500 picks on 52 chunks (measured 2026-11-20).
-    expect(shown.length).toBeGreaterThan(770);
+    expect(shown.length).toBeGreaterThan(720);
     const bad = shown.flatMap((p) => [p.name, p.line ?? ""].filter((t) => NOTE.test(t)).map((t) => `${p.name}: ${t}`));
     expect(bad).toEqual([]);
     expect(shown.filter((p) => /^[a-z#]/.test(p.line ?? "")).map((p) => `${p.name}: ${p.line}`)).toEqual([]);

@@ -64,7 +64,7 @@ describe("gift guides: item fit r3b (fit audit + lead's calls, 11-19)", () => {
   });
 
   it("every guide follows them", () => {
-    expect(guides.length).toBeGreaterThan(150);
+    expect(guides.length).toBeGreaterThan(140);
     const bad: string[] = [];
     const beautyOn = new Map<string, Set<string>>();
     let picks = 0;

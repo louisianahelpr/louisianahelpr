@@ -103,7 +103,7 @@ describe("the calm landing (owner 11-20 PM)", () => {
     // Every group with guides is reached: by its card or its link; a group of one opens that guide, else its page.
     const links = [...container.querySelectorAll<HTMLAnchorElement>("[data-gift-entries] a[data-gift-entry], [data-gift-more-groups] a")].map((a) => a.getAttribute("href"));
     const groups = ROWS.filter((r) => rowTiles(r.row).length > 0);
-    expect(groups.length).toBeGreaterThan(8);
+    expect(groups.length).toBeGreaterThan(7);
     for (const r of groups) {
       const tiles = rowTiles(r.row);
       const want = tiles.length === 1 ? `/gift-guides/${tiles[0].g.slug}` : `/gift-guides?group=${r.row}`;

@@ -1,0 +1,136 @@
+{
+  "_about": "For Her + For Him, sorted by interest (owner pop-up 2026-11-20 ~6:50 PM): moves, adds and cuts for scripts/giftGuidePeople1120.mjs. An add is a pick a store page already shows (its link, photo and checked price are copied from there); a move takes a pick off the guide it was on, because it fits a people guide best (owner 11-19: every product in exactly one guide, the one it fits best). Every rule that finds nothing is printed by the import.",
+  "moves": [
+    {
+      "to": "her",
+      "guide": "home-and-kitchen",
+      "href": "https://go.shopmy.us/p-103888922",
+      "type": "sleep mask",
+      "why": "owner 11-20: the DROWSY sleep mask goes in For Her (Cozy or Self-Care)"
+    },
+    {
+      "to": "him",
+      "guide": "life-moments",
+      "href": "https://go.shopmy.us/p-108154407",
+      "type": "fan and heater",
+      "why": "owner 11-20: the Shark TurboBlade fan in Home/Tech; For Him's Tech & Gadgets"
+    },
+    {
+      "to": "him",
+      "guide": "home-and-kitchen",
+      "href": "https://go.shopmy.us/p-107927593",
+      "why": "Lodge Cast Iron Burger Press ($19.99) sat under Wine Lovers; it is a grilling gift for him, Under $25"
+    },
+    {
+      "to": "him",
+      "guide": "car-lover",
+      "href": "https://go.shopmy.us/p-107791367",
+      "why": "YETI Camo Trucker Hat ($19.99): Under $25 for him (owner 11-20: Dad had zero gifts under $25)"
+    },
+    {
+      "to": "him",
+      "guide": "work-life",
+      "href": "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxacb000",
+      "why": "XTRATUF Unisex Beanie ($19.99): Under $25 for him"
+    },
+    {
+      "to": "him",
+      "guide": "gifts-by-budget",
+      "href": "https://mavely.app.link/igfGJ30qb8b",
+      "why": "Stanley Classic Easy Fill Wide Mouth Flask ($19.50): Under $25 for him"
+    },
+    {
+      "to": "him",
+      "guide": "work-life",
+      "href": "https://go.shopmy.us/p-107847939",
+      "why": "Carhartt Midweight Crew Socks 6-Pack ($21.99): Under $25 for him"
+    },
+    {
+      "to": "him",
+      "guide": "friends-and-coworkers",
+      "href": "https://mavely.app.link/aMJKjE0qb8b",
+      "why": "Stanley Classic Legendary Camp Mug, Shale ($18.75): Under $25 for him"
+    }
+  ],
+  "adds": [
+    {
+      "guide": "her",
+      "href": "https://go.shopmy.us/p-104200166",
+      "type": "body-care",
+      "why": "Sol de Janeiro Brazilian Touch Hand Cream ($16), Sephora page"
+    },
+    {
+      "guide": "her",
+      "href": "https://go.shopmy.us/p-104060577",
+      "type": "candle",
+      "why": "VOLUSPA Mini Forbidden Fig Tin Candle ($16), Sephora page"
+    },
+    {
+      "guide": "her",
+      "href": "https://go.shopmy.us/p-107946038",
+      "type": "fragrance",
+      "why": "Glossier You Perfume Discovery Set ($15), Sephora page"
+    },
+    {
+      "guide": "her",
+      "href": "https://go.shopmy.us/p-107929784",
+      "type": "fragrance",
+      "why": "Bath & Body Works Snowflakes & Cashmere Fragrance Mist ($17.95), Bath & Body Works page"
+    },
+    {
+      "guide": "her",
+      "href": "https://walmrt.us/4fi5WRn",
+      "type": "drinkware",
+      "why": "Stanley Quencher H2.0 30 oz in Hibiscus ($24.97, a cute colorway: owner 11-20), Walmart page"
+    },
+    {
+      "guide": "him",
+      "href": "https://go.shopmy.us/p-107847495",
+      "type": "shirt",
+      "why": "Carhartt K87 Pocket T-Shirt ($19.99), Carhartt page"
+    },
+    {
+      "guide": "him",
+      "href": "https://go.shopmy.us/p-104130965",
+      "type": "cookware",
+      "why": "Lodge Square Cast Iron Grill Pan ($24.99), At Home page"
+    },
+    {
+      "guide": "her",
+      "href": "https://go.shopmy.us/p-107929726",
+      "type": "candle",
+      "why": "Bath & Body Works Pink Suede 3-Wick Candle ($24.95), Bath & Body Works page"
+    },
+    {
+      "guide": "her",
+      "href": "https://go.shopmy.us/p-104210517",
+      "type": "mug",
+      "why": "Le Creuset Mugs, Set of 4 ($79.95), Dillard's page: Home & Candles was 7 picks"
+    },
+    {
+      "guide": "her",
+      "href": "https://go.shopmy.us/p-107935900",
+      "type": "drinkware",
+      "why": "Ember Mug 3 14 oz in Lavender (a cute colorway), Target page: Home & Candles"
+    },
+    {
+      "guide": "him",
+      "href": "https://walmrt.us/4jpvoqw",
+      "type": "cookware",
+      "commission": 2.8,
+      "why": "Lodge 12 inch Seasoned Cast Iron Skillet ($29.90), Walmart page: Grilling & Kitchen was 7 picks"
+    }
+  ],
+  "cuts": [],
+  "keeps": [
+    {
+      "guide": "her",
+      "match": "Dyson Airwrap",
+      "section": "beauty-and-self-care",
+      "rels": [
+        "mom"
+      ],
+      "why": "owner 11-20: the Dyson Airwrap stays in For Her (Mom filter); never Gift of the Day"
+    }
+  ]
+}

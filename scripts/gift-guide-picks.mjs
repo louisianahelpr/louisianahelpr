@@ -32,9 +32,17 @@ import { cutoutPhoto } from "./giftGuideCutouts1120.mjs";
 import { auditFix1120 } from "./giftGuideSectionAudit1120.mjs";
 import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
+import { applyHolidayB1120 } from "./giftGuideHolidayB1120.mjs";
+import { readLineup, shortName as shortSponsorName } from "./gift-guide-sponsor-logos.mjs";
 import { applyOwner1120d } from "./giftGuideOwner1120d.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
+import { applyTrain1120d } from "./giftGuideTrain1120d.mjs";
+import { applyPeople } from "./giftGuidePeople1120.mjs";
+import { applyStandard } from "./giftGuideStandard1120.mjs";
+import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
+/** The merged guides whose picks feed For Her and For Him (the people guides and Mom and Dad). */
+const PEOPLE_PARENTS = new Set(PEOPLE_GUIDES.flatMap((g) => [g.slug, ...g.sources]));
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
 import { FRANCHISE_SPONSORS_1120, SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
 import { BASE_MERGES, GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, NO_LIST_SECTIONS, STORE_PAGES_KEPT, SECTION_CAP, SECTION_GROUPS, SECTION_MAX, SECTION_MIN, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
@@ -3584,14 +3592,14 @@ export const SECTION_ANCHORS = {};
   // The small shops the owner asked for by name (BRAND_SITES, OWNER_SHOPS_1120) hold their places in a section: they
   // claim theirs first (no type or brand cap), the rest fill by commission, and the section then lists by commission.
   const ownerShop = (p) => { try { return BRANDS.has(new URL(p.href).hostname); } catch { return false; } };
-  const fill = (rows, ownSlug) => {
-    const out = rows.filter(ownerShop).filter((p, i, all) => all.findIndex((x) => x.href === p.href) === i).slice(0, SECTION_CAP);
+  const fill = (rows, ownSlug, cap = SECTION_CAP) => {
+    const out = rows.filter(ownerShop).filter((p, i, all) => all.findIndex((x) => x.href === p.href) === i).slice(0, cap);
     // SORT_FIXED rows keep their own order and lead; the rest by commission.
     // Follow-up 1120 (lead 11-20): the owner's own picks claim their places first; the owner's firm rules still hold
     // (one place per item and color, two of a gift type, two LSU items, one lash item), then the rest by commission.
     const ranked = rows.map((p, i) => ({ p, i })).sort((x, y) => Number(SORT_FIXED.has(y.p.from)) - Number(SORT_FIXED.has(x.p.from)) || Number(Boolean(y.p.ownerPick)) - Number(Boolean(x.p.ownerPick)) || (SORT_FIXED.has(x.p.from) && SORT_FIXED.has(y.p.from) ? x.i - y.i : byCommission({ ...x.p, _at: x.i }, { ...y.p, _at: y.i })));
     for (const { p } of ranked) {
-      if (out.length >= SECTION_CAP) break;
+      if (out.length >= cap) break;
       // Her picks are held to her own one-place rule (the same item and color), not to our name-start match.
       if (out.some((x) => x.href === p.href || (!p.ownerPick && variantKey(x) === variantKey(p)) || (p.ownerPick && compact(x.name) === compact(p.name)))) continue;
       // A list with its own order (memberships, gift cards, wrap, Mail Carrier: SORT_FIXED) keeps every row it had.
@@ -3607,6 +3615,9 @@ export const SECTION_ANCHORS = {};
     }
     return out.map((p, i) => ({ p, i })).sort((x, y) => Number(SORT_FIXED.has(y.p.from)) - Number(SORT_FIXED.has(x.p.from)) || (SORT_FIXED.has(x.p.from) && SORT_FIXED.has(y.p.from) ? x.i - y.i : byCommission({ ...x.p, _at: x.i }, { ...y.p, _at: y.i }))).map((x) => x.p);
   };
+  // For Her + For Him (owner pop-up 11-20 ~6:50 PM): the people guides' sections and Family's Siblings are only the pool
+  // scripts/giftGuidePeople1120.mjs sorts into interest sections (capped there), so they keep every pick here.
+  const peopleCap = (parent, id) => (PEOPLE_PARENTS.has(parent) || (parent === "family" && id === "siblings") ? Infinity : SECTION_CAP);
   for (const m of GUIDE_MERGES) {
     const spec = SECTION_GROUPS[m.parent];
     const own = NEW_MERGE_PARENTS.has(m.parent) ? [] : (pageList[m.parent] ?? []).map((p) => ({ ...p, from: m.parent }));
@@ -3625,7 +3636,7 @@ export const SECTION_ANCHORS = {};
       if (!to) continue;
       for (const g of groups) if (g !== to) { const moved = g.rows.filter((p) => pin.name.test(p.name)); g.rows = g.rows.filter((p) => !pin.name.test(p.name)); to.rows.push(...moved.map((p) => ({ ...p, pinned: true }))); }
     }
-    const capped = () => groups.forEach((g) => { g.picks = fill(g.rows, g.from[0]); });
+    const capped = () => groups.forEach((g) => { g.picks = fill(g.rows, g.from[0], peopleCap(m.parent, g.id)); });
     capped();
     if (process.env.GIFT_SECTIONS_DEBUG) console.error(`SECTIONS ${m.parent}: ${groups.map((g) => `${g.id}=${g.picks.length}/${g.rows.length}`).join(" ")}`);
     groups = groups.filter((g) => g.picks.length);
@@ -3637,7 +3648,7 @@ export const SECTION_ANCHORS = {};
       const parts = [...x.parts, ...y.parts].filter((t, k, all) => t !== "Top picks" || all.length === 1);
       const id = keep.id === "top-picks" ? (x === keep ? y.id : x.id) : keep.id;
       const merged = { id, parts, from: [...x.from, ...y.from], rows: [...x.rows, ...y.rows] };
-      merged.picks = fill(merged.rows, merged.from[0]);
+      merged.picks = fill(merged.rows, merged.from[0], peopleCap(m.parent, id));
       groups.splice(Math.max(i, j), 1);
       groups.splice(Math.min(i, j), 1, merged);
     };
@@ -3920,11 +3931,78 @@ const fillPrices = () => {
   const t = applyBudgetCaps(pageList, spec);
   console.log(`gift-guide-picks: budget caps ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
+/** A folded section's old id -> its new one, per guide (audit B's folds, then train 1120d's). */
+export const SECTION_ALIASES = {};
+/**
+ * HOLIDAY AUDIT B (2026-11-20): shopper-only lines, the dropped sponsor, sponsor cards that show gifts, every 25 Days
+ * sponsor on the sponsors guide, the deals' blocked retailers and the audit's cuts, moves and photo fixes
+ * (scripts/giftGuideHolidayB1120.mjs, rules in scripts/gift-guide-holiday-b-1120.json). Before train 1120d, so the page caps, the under-10 fold and the 25 cap hold on what it adds, moves and joins;
+ * train 1120d's own adds carry shopper lines (guarded by giftGuideHolidayB1120.test.ts).
+ */
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-holiday-b-1120.json", import.meta.url), "utf8"));
+  const { brands } = readLineup(readFileSync(new URL("../src/content/sponsorPage.ts", import.meta.url), "utf8"));
+  const lineup = [...new Set(brands.map(shortSponsorName))];
+  const t = applyHolidayB1120(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT], nameOnly: NAME_ONLY, dealCodes, lineup, blockedBrand, merges: GUIDE_MERGES, anchors: SECTION_ANCHORS, sortFixed: SORT_FIXED, sectionMin: 10, aliases: SECTION_ALIASES, thinFold: false });
+  console.log(`gift-guide-picks: holiday audit B ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+}
+/**
+ * TRAIN 1120d (holiday design audit A, 11-20): type fixes, swaps, Splurge without its under-$100 section, the PAGE caps
+ * (max 2 of a gift type per page, one of a brand's same type), thin sections folded into a sibling, then the late price
+ * fill and the budget caps once more for anything it added (scripts/giftGuideTrain1120d.mjs, rules in
+ * scripts/gift-guide-train-1120d.json). SECTION_ALIASES: a folded section's old id -> its new one, per guide.
+ */
+// The pages before the 1120d and people passes: the standard (last pass) restores a planned pick they took off.
+const STANDARD_SNAPSHOTS = [Object.fromEntries(Object.entries(pageList).map(([k, l]) => [k, [...l]]))];
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-train-1120d.json", import.meta.url), "utf8"));
+  const t = applyTrain1120d(pageList, spec, { sponsorsGuide: SPONSORS_GUIDE, anchors: SECTION_ANCHORS, parentOf: (k) => MERGED_INTO[k]?.parent, fixedOrder: [...SORT_FIXED] });
+  // Audit B's folds ran first: an old id it sent to a section this pass folds again follows on to the final one.
+  for (const [g, mine] of Object.entries(t.aliases)) {
+    const had = (SECTION_ALIASES[g] ??= {});
+    for (const k of Object.keys(had)) if (had[k] in mine) had[k] = mine[had[k]];
+    Object.assign(had, mine);
+  }
+  console.log(`gift-guide-picks: train 1120d ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+  const n = fillPrices();
+  const b = applyBudgetCaps(pageList, {});
+  console.log(`gift-guide-picks: 1120d late price fill ${n.rows + n.cache}, budget caps ${JSON.stringify(b.counts)}`);
+}
+// FOR HER + FOR HIM BY INTEREST (owner pop-up 11-20 ~6:50 PM): last, on the finished pages (scripts/giftGuidePeople1120.mjs);
+// its adds and moves take their checked prices from one more fill.
+STANDARD_SNAPSHOTS.push(Object.fromEntries(Object.entries(pageList).map(([k, l]) => [k, [...l]])));
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-people-1120.json", import.meta.url), "utf8"));
+  const campaign = JSON.parse(readFileSync(new URL("./gift-guide-train-1120c.json", import.meta.url), "utf8"));
+  const t = applyPeople(pageList, spec, { keepHrefs: new Set((campaign.adds ?? []).map((a) => a.row?.href).filter(Boolean)) });
+  fillPrices();
+  console.log(`gift-guide-picks: people 1120 ${JSON.stringify({ her: t.counts.her, him: t.counts.him, moved: t.counts.moved, added: t.counts.added, cut: t.counts.cut.length, overflow: t.counts.overflow.length })}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+  if (process.env.GIFT_PEOPLE_VERBOSE) console.log(`  cut: ${t.counts.cut.join(" | ")}\n  overflow: ${t.counts.overflow.join(" | ")}`);
+}
+// THE STANDARD (owner 11-20): the verified plan, last of all (scripts/giftGuideStandard1120.mjs). Each planned guide
+// ends as scripts/gift-guide-standard-1120.json lists it: cuts gone, sections and order as planned, one reason a pick.
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-standard-1120.json", import.meta.url), "utf8"));
+  const t = applyStandard(pageList, spec, { snapshots: STANDARD_SNAPSHOTS, anchors: SECTION_ANCHORS, aliases: SECTION_ALIASES, parentOf: (k) => MERGED_INTO[k]?.parent });
+  Object.assign(SECTION_ALIASES, t.aliases);
+  fillPrices();
+  console.log(`gift-guide-picks: standard 1120 ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}${t.extras.length ? `; NOT IN PLAN, removed (${t.extras.length}): ${t.extras.join(" | ")}` : ""}${t.kept.length ? `; NOT IN PLAN, kept (sponsor or owner pick, ${t.kept.length}): ${t.kept.join(" | ")}` : ""}`);
+}
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days
  * (scripts/gift-guide-go-clicks.json, measured from prod analytics), then effective commission x item popularity, among
  * the picks the guides show now, with a product photo, one per brand. The owner's keep, the Ninja CREAMi, stays in it.
+ * BALANCE (holiday audit A #8: 7 of 10 were women's beauty, 4 Amazon skincare in a row, nothing for men): at most
+ * TOP10_BEAUTY_MAX beauty picks, at least TOP10_MEN_MIN from Dad/Him and TOP10_KIDS_MIN from Kids; the strip then reads
+ * by the same score. The CREAMi takes its checked price like every pick.
  */
+/** Top 10 balance (holiday audit A #8). */
+export const TOP10_BEAUTY_MAX = 3;
+export const TOP10_MEN_MIN = 2;
+export const TOP10_KIDS_MIN = 1;
+const TOP10_MEN_GUIDES = new Set(["dad", "him"]);
+/** The beauty gift types (the import's `type`). */
+export const TOP10_BEAUTY = /^(skincare|makeup|lip|fragrance|hair-care|haircare|hair-tool|hair-accessory|beauty-device|body-care|bath|nails|gift-set|lash|sleep-mask)$/;
 export const weeklyTop = (() => {
   let goClicks = {};
   let goMap = {};
@@ -3933,10 +4011,11 @@ export const weeklyTop = (() => {
   const clicksOf = new Map();
   for (const [slug, n] of Object.entries(goClicks)) if (goMap[slug]?.url) clicksOf.set(goMap[slug].url, Number(n) || 0);
   const popOf = new Map(SORT_POOL.map((e) => [e.p.href, e.pop ?? 0]));
-  const cands = Object.entries(pageList).filter(([slug]) => !slug.startsWith("store-") && slug !== SPONSORS_GUIDE).flatMap(([, list]) => list)
+  const guideOf = new Map();
+  const cands = Object.entries(pageList).filter(([slug]) => !slug.startsWith("store-") && slug !== SPONSORS_GUIDE).flatMap(([slug, list]) => list.map((p) => (guideOf.has(p) ? p : (guideOf.set(p, slug), p))))
     .filter((p) => p.image && looksLikeProduct(p));
   const score = (p) => (clicksOf.get(p.href) ?? 0) * 1000 + (typeof p.commission === "number" ? p.commission : 0) * (1 + (popOf.get(p.href) ?? 0) / 10);
-  const keep = topPicks.filter((p) => /\bCREAMi\b/i.test(p.name)).slice(0, 1);
+  const keep = topPicks.filter((p) => /\bCREAMi\b/i.test(p.name)).slice(0, 1).map((p) => (p.price != null ? p : { ...p, ...(cachedPrice(p) ?? {}) }));
   const out = [...keep];
   const brands = new Set(keep.map((p) => compact(p.brand ?? "")));
   // A card's name: brand first, no trailing spec after a comma, at most 40 letters (else the next pick); no work gear
@@ -3946,15 +4025,29 @@ export const weeklyTop = (() => {
     return p.brand && !base.toLowerCase().startsWith(String(p.brand).toLowerCase()) && !/^(amazon|walmart|target|shopmy)/i.test(p.brand) ? `${p.brand} ${base}` : base;
   };
   const CAREER = /\b(nurs\w*|scrubs?|compression|dansko|bombas|clogs?|stethoscope|badge reel|teacher|shift)\b/i;
-  for (const p of [...cands].sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name))) {
-    if (out.length >= 10) break;
+  const ranked = [...cands].sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name));
+  const chosen = [];
+  const ok = (p) => {
     const b = compact(p.brand ?? "");
     const name = cardName(p);
-    if ((b && brands.has(b)) || out.some((x) => x.href === p.href) || name.length > 40 || CAREER.test(`${name} ${p.line ?? ""}`)) continue;
-    brands.add(b);
+    return !(b && brands.has(b)) && !out.some((x) => x.href === p.href) && !chosen.some((x) => x.href === p.href) && name.length <= 40 && !CAREER.test(`${name} ${p.line ?? ""}`);
+  };
+  const beauty = (p) => TOP10_BEAUTY.test(p.type ?? "");
+  const take = (p) => { brands.add(compact(p.brand ?? "")); chosen.push(p); };
+  // The quotas first (men's, kids'), each its best-scoring picks; then the rest by score, beauty capped.
+  for (const [want, n] of [[(p) => TOP10_MEN_GUIDES.has(guideOf.get(p)) && !beauty(p), TOP10_MEN_MIN], [(p) => guideOf.get(p) === "kids", TOP10_KIDS_MIN]]) {
+    let got = 0;
+    for (const p of ranked) { if (got >= n) break; if (want(p) && ok(p)) { take(p); got += 1; } }
+  }
+  for (const p of ranked) {
+    if (out.length + chosen.length >= 10) break;
+    if (!ok(p) || (beauty(p) && chosen.filter(beauty).length >= TOP10_BEAUTY_MAX)) continue;
+    take(p);
+  }
+  for (const p of chosen.sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name))) {
     // Only what a Top 10 card shows (the rate, type and origin stay in the sort; members never read a commission).
     const { section: _s, sectionId: _i, commission: _c, type: _t, from: _f, swappedFrom: _sf, swappedFromPct: _sp, campaignEnds: _ce, fallback_href: _fh, switch_on: _so, band: _b, ...rest } = p;
-    out.push({ ...rest, name });
+    out.push({ ...rest, name: cardName(p) });
   }
   return out;
 })();
@@ -3989,7 +4082,7 @@ for (const slug of chunkSlugs) {
 writeFileSync(
   out,
   `/** GENERATED by scripts/gift-guide-picks.mjs from ~/Desktop/Gift-guide-picks (re-run it after any change there). Do not edit. */\n` +
-    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string; fallback_href?: string; switch_on?: string; sectionId?: string; from?: string; band?: 25 | 50 | 100 | 500; preorder?: true; code?: string; codeEnds?: string; tiktok?: true }\n` +
+    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string; fallback_href?: string; switch_on?: string; sectionId?: string; from?: string; band?: 25 | 50 | 100 | 500; preorder?: true; code?: string; codeEnds?: string; tiktok?: true; rels?: string[] }\n` +
     `export interface StoreDeal { title: string; href: string; ends?: string; items?: { name: string; href: string }[] }\n` +
     `export interface Sale { store: string; slug: string; offer: string; ends: string; href: string }\n` +
     `/** One guide's chunk (src/content/giftGuidePicks/<slug>.json): its final picks and, on a store page, its deal sections. */\n` +
@@ -4003,6 +4096,8 @@ writeFileSync(
     `export const CHUNK_SLUGS: readonly string[] = ${JSON.stringify(chunkSlugs)};\n` +
     `/** Old guide slug -> its section's id on its merged guide (1120 section groups; the redirects and age links read it). */\n` +
     `export const SECTION_ANCHORS: Record<string, string> = ${JSON.stringify(SECTION_ANCHORS)};\n` +
+    `/** A folded section's old id -> its new one, per guide (train 1120d), so an old #section link still opens it ("" = the guide's top). */\n` +
+    `export const SECTION_ALIASES: Record<string, Record<string, string>> = ${JSON.stringify(SECTION_ALIASES)};\n` +
     `/** How many picks each merged guide's section holds (1120: old slug -> count), so a link to an empty section is never drawn. */\n` +
     `export const SECTION_PICK_COUNTS: Record<string, number> = ${JSON.stringify(Object.fromEntries(Object.values(pageList).flat().filter((p) => p.sectionId && p.sectionId !== "top-picks").reduce((m, p) => m.set(p.sectionId, (m.get(p.sectionId) ?? 0) + 1), new Map())))};\n` +
     `/** Codes the researched deals name (the sidebar's Discount codes, after the owner's; each hidden after its end date). */\n` +
@@ -4051,6 +4146,16 @@ for (const slug of chunkSlugs) {
   if (usedNames.has(named.toLowerCase())) named = `${named} (${slug.startsWith("store-") ? "store" : slug})`;
   usedNames.add(named.toLowerCase());
   seo[slug] = named;
+}
+// For Her + For Him (owner pop-up 11-20 ~6:50 PM): each relationship page (/gift-guides/mom, /dad, /wife ...) is the
+// guide filtered to that relationship, indexed under its own name ("Gifts for Mom") while it holds picks.
+for (const g of PEOPLE_GUIDES) {
+  if (!seo[g.slug]) continue;
+  for (const r of g.rels) {
+    if (!(pageList[g.slug] ?? []).some((p) => p.rels?.includes(r.slug))) continue;
+    const title = entryOf(r.slug)?.title ?? r.label;
+    seo[r.slug] = `Gifts for ${title}`;
+  }
 }
 writeFileSync(
   seoOut,

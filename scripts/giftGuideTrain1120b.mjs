@@ -155,6 +155,22 @@ export function applyTrain1120b(pageList, deals, spec, ctx) {
   // National 25 Days sponsors: one spot each.
   const sponsorsList = page(ctx.sponsorsGuide);
   for (const s of spec.nationalSponsors ?? []) {
+    // Owner 11-20 9:33 PM: being a 25 Days sponsor guarantees no spot on a regular guide. A `sponsorsOnly` sponsor (one
+    // more popular gifts beat) lives on the sponsors guide alone: every copy on a guide leaves and nothing is placed.
+    if (s.sponsorsOnly) {
+      for (const slug of Object.keys(pageList)) {
+        if (!isPeopleGuide(slug)) continue;
+        const before = pageList[slug].length;
+        pageList[slug] = pageList[slug].filter((p) => !isBrandPick(p, s.brand));
+        counts.sponsorCopiesOut += before - pageList[slug].length;
+      }
+      // Its card stays on the sponsors guide: a sponsor that only ever had a guide row (Arey) gets that row there.
+      if (s.row && !page(ctx.sponsorsGuide).some((p) => isBrandPick(p, s.brand))) {
+        pageList[ctx.sponsorsGuide] = [...page(ctx.sponsorsGuide), { ...s.row, brand: s.brand, line: s.line || "", sponsor: true, commission: 0 }];
+      }
+      counts.sponsorsOnly = (counts.sponsorsOnly ?? 0) + 1;
+      continue;
+    }
     let keep = null;
     if (s.keepMatch) {
       const i = page(s.guide).findIndex((p) => matches(p, { match: s.keepMatch }));

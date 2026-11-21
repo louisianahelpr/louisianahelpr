@@ -129,7 +129,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
   it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
     expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);
     const { container } = renderAt("/gift-guides/25-days-sponsors");
-    expect(container.querySelector("[data-gift-also-sponsoring]")?.textContent).toBe("Also sponsoring: Hilma");
+    expect(container.querySelector("[data-gift-also-sponsoring]")?.textContent).toMatch(/^Also sponsoring: (.*, )?Hilma(,|$)/); // holiday audit B (11-20): every lineup sponsor without a card is named here
     expect(container.querySelector('a[href*="hilma"]')).toBeNull();
   });
   it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {
@@ -227,7 +227,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     window.localStorage.clear();
     resetGiftListForTests();
     const { container } = renderAt("/gift-guides?group=by-person");
-    const heart = screen.getAllByRole("button", { name: "Save Mom to My Wish List" })[0];
+    const heart = screen.getAllByRole("button", { name: "Save Her to My Wish List" })[0];
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(heart.closest("a")).toBeNull();
     const link = container.querySelector("[data-gift-my-list-link]")!;
@@ -239,7 +239,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe("Holiday Gift Guides");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 1 saved");
     expect(link.textContent).toBe("1");
-    expect(JSON.parse(window.localStorage.getItem("lh-gift-list")!).guides).toEqual(["mom"]);
+    expect(JSON.parse(window.localStorage.getItem("lh-gift-list")!).guides).toEqual(["her"]);
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
@@ -264,7 +264,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
       throw new Error("blocked");
     });
     renderAt("/gift-guides?group=by-person");
-    const heart = screen.getAllByRole("button", { name: "Save Dad to My Wish List" })[0];
+    const heart = screen.getAllByRole("button", { name: "Save Him to My Wish List" })[0];
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     spy.mockRestore();

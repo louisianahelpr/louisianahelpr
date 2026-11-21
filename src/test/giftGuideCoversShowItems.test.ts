@@ -44,7 +44,6 @@ const TEXT_ONLY: Record<string, string> = {
   "store-hoka": `${FEW_PHOTOS}: 3 of its 10 picks cut out cleanly (the rest are on-foot or coloured-backdrop shots), measured 2026-11-20`,
   "store-baublebar": `${FEW_PHOTOS}: 1 of its 10 picks is on white (the rest are coloured-backdrop shots), measured 2026-11-20`,
   "store-amazon": `${FEW_PHOTOS}: every pick is an Amazon photo, and Amazon photos never go on a cover`,
-  "gift-wrap-and-cards": `${FEW_PHOTOS}: 3 of its 7 non-Amazon picks are usable, measured 2026-11-20`,
   "louisiana-by-region": `${FEW_PHOTOS}: 2 of its 8 non-Amazon picks are usable, measured 2026-11-20`,
   "car-lover": `${FEW_PHOTOS}: 1 of its 2 non-Amazon picks is usable, measured 2026-11-20`,
 };
@@ -80,7 +79,7 @@ function plainGingham(): Buffer {
 describe("gift guide covers show their products", () => {
   it("reads every shown guide's cover", () => {
     expect(shown.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages (54 covers drawn, 2026-11-20)
-    expect(checked.length).toBeGreaterThanOrEqual(45); // 45 measured 2026-11-20 after the section audit took heroes text only (52 shown, 7 text only)
+    expect(checked.length).toBeGreaterThanOrEqual(43); // 43 measured 2026-11-20 night: the owner standard left Coffee Lover (7) and Gift Wrap & Cards (6) under SMALL_GUIDE picks (51 shown, 6 text only)
     for (const s of shown) expect(existsSync(`${COVER_DIR}/${s}.webp`), s).toBe(true);
   });
 

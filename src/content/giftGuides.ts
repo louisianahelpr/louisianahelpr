@@ -65,7 +65,7 @@ export const BRAND_SITES = [] as const;
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
  * Walmart Creator, CJ, Awin, Rakuten, ShopMy product links). Exact hosts; two-way (each is used by some link).
  */
-export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
+export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
 
 /**
  * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:

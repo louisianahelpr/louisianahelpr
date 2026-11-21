@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, subscribeGuidePicks } from "@/content/giftGuideCatalog";
 import {
-  EXTRAS_WORDS as W, FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_VIBES, FINDER_WHO, GIFT_GUIDE_FLAGS, declutterTieInOn, finderPool, giftFinder, giveawayBannerOn, louisianaToday, readFinder,
+  EXTRAS_WORDS as W, FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_FEW, FINDER_LOUISIANA_GUIDES, FINDER_VIBES, FINDER_WHO, GIFT_GUIDE_FLAGS, declutterTieInOn, finderPool, giftFinder, giveawayBannerOn, louisianaToday, readFinder,
   type FinderBudget, type FinderVibe, type FinderWho,
 } from "@/content/giftGuideExtras1120";
 import { PickRow } from "./GiftGuideView";
@@ -56,13 +56,16 @@ export function GiftFinder() {
   const who = FINDER_WHO.find((x) => x.id === a.who);
   // The chosen guides' picks are lazy chunks: load them once "who" is picked (and the budget guides once a budget is).
   const withBudget = a.budget !== undefined && a.budget !== 0;
+  const louisiana = a.vibe === "louisiana";
   useEffect(() => {
-    const slugs = [...(who?.guides ?? []).map((g) => g.slug), ...(who && withBudget ? FINDER_BUDGET_GUIDES : [])];
+    const slugs = [...(who?.guides ?? []).map((g) => g.slug), ...(who && withBudget ? FINDER_BUDGET_GUIDES : []), ...(who && louisiana ? FINDER_LOUISIANA_GUIDES : [])];
     for (const slug of slugs) loadGuidePicks(slug).catch((e: unknown) => console.warn("gift finder: picks chunk failed", slug, e));
-  }, [who, withBudget]);
+  }, [who, withBudget, louisiana]);
   const done = a.who !== undefined && a.budget !== undefined && a.vibe !== undefined;
   const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
-  const result = done ? giftFinder(finderPool(a.who!, picksOf), a.budget!, a.vibe!, FINDER_BUDGET_GUIDES.flatMap(picksOf), a.who) : { exact: [], close: [] };
+  const result = done ? giftFinder(finderPool(a.who!, picksOf), a.budget!, a.vibe!, FINDER_BUDGET_GUIDES.flatMap(picksOf), a.who, louisiana ? FINDER_LOUISIANA_GUIDES.flatMap(picksOf) : []) : { exact: [], close: [] };
+  const shown = result.exact.length + result.close.length;
+  const ownGuide = who ? guideBySlug(who.guides[0].slug) : undefined;
   const copy = () => {
     void navigator.clipboard?.writeText(window.location.href).then(
       () => setCopied(true),
@@ -104,7 +107,10 @@ export function GiftFinder() {
               <ol className="gg-list" data-gift-list="" data-gift-finder-close-list="">{result.close.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} />)}</ol>
             </>
           )}
-          {!result.exact.length && !result.close.length && <p className="gg-price-note" data-gift-finder-none="">{W.finderNone}</p>}
+          {!shown && <p className="gg-price-note" data-gift-finder-none="">{W.finderNone}</p>}
+          {shown > 0 && shown < FINDER_FEW && ownGuide && (
+            <p className="gg-price-note" data-gift-finder-few=""><Link to={`/gift-guides/${ownGuide.slug}`} className="gg-link">{W.finderFew(ownGuide.title)} ›</Link></p>
+          )}
           <span className="gg-chips">
             <Button type="button" variant="outline" size="sm" className="gg-chip" onClick={copy} data-gift-finder-share="">{copied ? W.finderCopied : W.finderShare}</Button>
             <Button asChild variant="link" size="inline" className="gg-link"><Link to={`/gift-guides#${FINDER_ID}`} data-gift-finder-again="">{W.finderAgain}</Link></Button>

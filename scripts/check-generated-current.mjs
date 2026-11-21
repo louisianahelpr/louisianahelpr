@@ -254,6 +254,14 @@ export const EVIDENCE = [
     checkedBy: "src/test/giftGuidesPage.test.tsx (two-way link allowlist, Amazon tag, no prices) + src/test/giftGuidesExtras.test.tsx (badges, loaded guides)",
   },
   {
+    id: "gift-guide-standard-1120",
+    script: "scripts/gift-guide-standard-1120-build.mjs",
+    outputs: ["scripts/gift-guide-standard-1120.json"],
+    refresh: "node scripts/gift-guide-standard-1120-build.mjs (reads the verified plan ~/.lh-shots/gg-standard-wf/APPLY-PLAN.json plus the owner's overlay in the script; not in CI)",
+    refreshedBy: "by the committer when the owner changes a keep or a cut (content, not a count), then scripts/gift-guide-picks.mjs",
+    checkedBy: "src/test/giftGuideStandard1120.test.ts + scripts/check-gift-guide-standard.mjs (each planned guide against its page)",
+  },
+  {
     id: "gift-guide-deals",
     script: "scripts/gift-guide-deals.mjs",
     outputs: ["src/content/giftGuideDeals.json"],

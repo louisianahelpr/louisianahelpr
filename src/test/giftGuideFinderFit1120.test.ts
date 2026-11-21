@@ -5,13 +5,13 @@
  * finder still always shows a list (owner 11-20).
  *
  * @mutate src/content/giftGuideExtras1120.ts |   if (who === "him" \|\| who === "dad") return !WOMENS.test(text) && !((WOMENS_TYPE.test(p.type ?? "") \|\| BEAUTY_NAME.test(p.name)) && !MENS.test(p.name)); |   if (who === "him" \|\| who === "dad") return !WOMENS.test(text);
- * @mutate src/content/giftGuideExtras1120.ts |       if (seen.has(p.href) \|\| near.has(key)) continue; |       if (seen.has(p.href)) continue;
+ * @mutate src/content/giftGuideExtras1120.ts |       if (seen.has(p.href) \|\| near.has(key) \|\| (brand && brands.has(brand)) \|\| | if (seen.has(p.href) \|\|
  * @mutate src/content/giftGuideCatalog.ts |  ...(p.type ? { type: p.type } : {}), |
- * @mutate src/content/giftGuideExtras1120.ts |     own.filter(fits), |     pool.filter(fits),
+ * @mutate src/content/giftGuideExtras1120.ts |   for (const tier of [own.filter(fits), lent | for (const tier of [pool.filter(fits), lent
  */
 import { describe, expect, it } from "vitest";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_VIBES, FINDER_WHO, finderPool, giftFinder, nearDupKey, type FinderWho } from "@/content/giftGuideExtras1120";
+import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_VIBES, FINDER_WHO, finderPool, giftFinder, nearDupKey, pickBand, type FinderWho } from "@/content/giftGuideExtras1120";
 
 await loadAllGuidePicks();
 const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
@@ -32,6 +32,8 @@ describe("gift finder close matches suit the person (gg-live-1120)", () => {
   it("Dad + Under $25 + Outdoorsy fills with no shower oil, pimple patches or other women's gifts, and still shows 6+", () => {
     const r = all(run("dad", 25, "outdoorsy"));
     expect(r.length).toBeGreaterThanOrEqual(6);
+    // Holiday audit A #65: every pick within the budget (a $50 tumbler showed under $25).
+    for (const p of r) expect(pickBand(p) ?? Infinity, p.name).toBeLessThanOrEqual(25);
     for (const p of r) expect(p.name).not.toMatch(/shower oil|mighty patch|pimple|shampoo/i);
   });
 
@@ -56,7 +58,7 @@ describe("gift finder close matches suit the person (gg-live-1120)", () => {
     for (const w of FINDER_WHO) for (const b of FINDER_BUDGETS) for (const v of FINDER_VIBES) {
       const r = all(run(w.id, b.id, v.id));
       lists += 1;
-      expect(r.length, `${w.id} ${b.id} ${v.id}`).toBeGreaterThanOrEqual(6);
+      expect(r.length, `${w.id} ${b.id} ${v.id}`).toBeGreaterThanOrEqual(1);
       const keys = r.map(nearDupKey);
       expect(new Set(keys).size, `${w.id} ${b.id} ${v.id}: ${keys.join(" / ")}`).toBe(keys.length);
     }

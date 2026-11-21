@@ -3,8 +3,9 @@
  * data and the train's rule module (scripts/giftGuideTrain1120b.mjs, rules in scripts/gift-guide-train-1120b.json):
  *   - the re-audit's Highs are gone: blank or 404 photos, the BedJet in "Under $100", Milk Bar in the Louisiana sweets,
  *     the Walmart house brands in its deals box, the MX Master twice;
- *   - every national 25 Days sponsor holds exactly ONE guide spot with the sponsor badge, never in a guide's first
- *     row of cards (owner 11-20 ~8:45 AM: not covers, not the Top 10, not the first row);
+ *   - a national 25 Days sponsor holds at most ONE guide spot with the sponsor badge (owner 11-20 9:33 PM: a sponsor
+ *     is guaranteed no spot; SRI Labs, Arey and Oyu Botanica live on the sponsors guide only), outside a guide's first
+ *     row of cards except where the plan orders it there (owner 11-20 ~8:45 AM: not covers, not the Top 10);
  *   - "Our 25 Days sponsors": every lineup sponsor once, A to Z, each logo file on disk, links internal or https;
  *   - Microtel and Wingate appear nowhere; no gift over $500 is added; the rules themselves.
  *
@@ -15,7 +16,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
+import { peopleGuideOf } from "@/content/giftGuidePeople.mjs";
 import { STORE_PAGES_KEPT } from "@/content/giftGuideMerges.mjs";
+import { DROPPED_SPONSORS } from "../../scripts/gift-guide-sponsor-logos.mjs";
 import { applyDealsPage1120b, applyTrain1120b, isBrandPick, matches, placeInSection } from "../../scripts/giftGuideTrain1120b.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; section?: string; sectionId?: string; sponsor?: boolean; store?: string; commission?: number | null; price?: number };
@@ -51,23 +54,44 @@ describe("gift guides train 1120b", () => {
     expect(SALES.find((s) => s.store === "Georgia Boot")).toMatchObject({ ends: "2026-11-25", slug: "store-georgia-boot" });
   });
 
-  it("every national 25 Days sponsor holds exactly one guide spot, badged, never in a guide's first section", () => {
-    for (const s of SPEC.nationalSponsors as { brand: string; guide: string }[]) {
+  it("a national 25 Days sponsor holds at most one guide spot, badged; a sponsors-only brand holds none and stays on the sponsors guide", () => {
+    // Owner 11-20 9:33 PM: being a 25 Days sponsor guarantees no spot on a regular guide ("there are more popular
+    // items ... even if they are our sponsor they can be removed"). A spot the plan keeps is still one spot, badged.
+    // The plan (the owner's standard, later than her 8:45 AM first-row rule) orders these four into a first row.
+    // EXACT: a sponsor that moves down, or a new one that moves up, changes this list.
+    const FIRST_ROW_BY_PLAN = new Set(["RYSE", "Boston Mints", "Rock Bottom Golf", "Sky & Sol"]);
+    const sponsorsGuide = picks("25-days-sponsors");
+    let held = 0;
+    for (const s of SPEC.nationalSponsors as { brand: string; guide: string; sponsorsOnly?: boolean }[]) {
       const spots = guideChunks.flatMap(([slug, c]) => c.picks.filter((p) => isBrandPick(p, s.brand) || (s.brand === "FELCO North America" && /felco/i.test(p.name))).map((p) => ({ slug, p })));
-      expect(spots.map((x) => x.slug), s.brand).toEqual([s.guide]);
+      if (s.sponsorsOnly) {
+        expect(spots.map((x) => `${x.slug}: ${x.p.name}`), s.brand).toEqual([]);
+        expect(sponsorsGuide.filter((p) => isBrandPick(p, s.brand)).length, s.brand).toBe(1);
+        continue;
+      }
+      expect(spots.length, s.brand).toBeLessThanOrEqual(1);
+      if (!spots.length) continue;
+      held += 1;
+      // For Her / For Him (owner 11-20 evening): a sponsor placed on Mom or Dad sits on For Her or For Him.
+      expect(spots[0].slug, s.brand).toBe(peopleGuideOf(s.guide) ?? s.guide);
       const { p } = spots[0];
       expect(p.sponsor, s.brand).toBe(true);
-      const list = picks(s.guide);
-      // Never in a guide's first row (its first 8 cards): each spot sits at the end of its section.
-      expect(list.indexOf(p), s.brand).toBeGreaterThanOrEqual(8);
+      const list = picks(peopleGuideOf(s.guide) ?? s.guide);
+      // Not in a guide's first row (its first 8 cards), except where the plan itself orders it there.
+      expect(list.indexOf(p) < 8, s.brand).toBe(FIRST_ROW_BY_PLAN.has(s.brand));
       expect(p.image, s.brand).toMatch(/^https:\/\//);
     }
+    // Not vacuous: the plan still keeps most sponsors' spots.
+    expect(held).toBeGreaterThanOrEqual(20);
+    expect((SPEC.nationalSponsors as { brand: string; sponsorsOnly?: boolean }[]).filter((x) => x.sponsorsOnly).map((x) => x.brand).sort()).toEqual(["Arey", "Oyu Botanica", "SRI Labs"]);
   });
 
   it("the sponsor logo row lists every lineup sponsor once, A to Z, with real logo files and safe links", () => {
     const rows = JSON.parse(readFileSync("src/content/giftGuideSponsorLogos.json", "utf8")) as { name: string; slug: string; logo?: string; href: string; external?: boolean }[];
     const src = readFileSync("src/content/sponsorPage.ts", "utf8");
-    const lineup = new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]).filter((b) => b !== "Louisiana Helpr"));
+    const lineup = new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]).filter((b) => b !== "Louisiana Helpr" && !DROPPED_SPONSORS.has(b)));
+    // Holiday audit B (11-20): a sponsor the owner dropped (R&R Wedding Co.) has no logo here, even while the public
+    // lineup still lists it.
     expect(rows.length).toBe(lineup.size);
     expect(new Set(rows.map((r) => r.slug)).size).toBe(rows.length);
     expect(rows.map((r) => r.name)).toEqual([...rows.map((r) => r.name)].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })));
@@ -80,12 +104,17 @@ describe("gift guides train 1120b", () => {
     expect(rows.find((r) => /sprinkle/i.test(r.name))?.logo).toBeUndefined();
   });
 
-  it("Microtel and Wingate appear nowhere; store pages keep 10-15 picks (two dated exceptions)", () => {
+  it("Microtel and Wingate appear nowhere; store pages keep 10-15 picks (three dated exceptions)", () => {
     const everything = [...CHUNKS.values()].map((c) => JSON.stringify(c)).join("\n") + readFileSync("src/content/giftGuideSponsorLogos.json", "utf8") + readFileSync("src/content/giftGuideDeals.json", "utf8");
     expect(everything).not.toMatch(/microtel|wingate/i);
     // 2026-11-20: TJ Maxx's photos are hotlink-blocked (6 out) and JCPenney's house-brand picks are out; both wait for
     // a refill. EXACT: a refill lowers or clears these.
-    const SHORT: Record<string, number> = {};
+    // 2026-11-20 night: BaubleBar holds 8. The standard's plan keeps 9 and its only cut from this store (Horseshoe
+    // Necklace) and one keep (Disney Stitch Pisa Bracelet) are not in BaubleBar's live catalog, so no pick from the
+    // source list can refill it; new items need the owner's approval. EXACT: a refill clears this.
+    // Apple and Old Navy hold 9: each one's only plan cut is a second version of a pick already on the page (Apple
+    // Watch SE 3 with cellular; a second SoSoft crew-neck cardigan), which the one-per-brand-and-type rule keeps off.
+    const SHORT: Record<string, number> = { "store-baublebar": 8, "store-apple": 9, "store-old-navy": 9 };
     for (const s of STORE_PAGES_KEPT) {
       const n = picks(s).length;
       if (SHORT[s] !== undefined) expect(n, s).toBe(SHORT[s]);

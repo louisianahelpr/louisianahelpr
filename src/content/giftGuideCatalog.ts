@@ -13,6 +13,7 @@ import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
 import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, SECTION_ANCHORS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
+import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 
 /**
  * The owner's list plus every store page the researched picks name (follow-up batch 2026-11-18: every store or brand
@@ -90,6 +91,8 @@ export interface CatalogPick {
   code?: string;
   /** The code's last day (YYYY-MM-DD, Louisiana; 1120c: XTRATUF XT25 ends Nov 29): the chip hides after it. */
   codeEnds?: string;
+  /** For Her / For Him (owner 11-20): the relationship pages it shows on ("mom", "wife" ...), from the import. Never shown. */
+  rels?: string[];
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -150,6 +153,11 @@ export interface CatalogGuide {
   empty?: true;
   /** A store page with fewer than STORE_ROW_MIN_PICKS picks: not a By store tile or menu entry (search and its link still find it). */
   thin?: true;
+  /**
+   * A relationship page (owner 11-20, For Her + For Him): /gift-guides/mom is For Her filtered to Mom (`of` the guide,
+   * `rel` the tag). Its own H1, title and description; no row tile of its own (the guide's chips link to it).
+   */
+  view?: { of: string; rel: string };
 }
 
 const rowId = (label: string) => label.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -249,7 +257,7 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
     ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.type ? { type: p.type } : {}), ...(p.code ? { code: p.code, ...(p.codeEnds ? { codeEnds: p.codeEnds } : {}) } : {}),
     // Never an Amazon price (Associates rule), whatever the generated file holds.
-    ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) };
+    ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}), ...(p.rels ? { rels: p.rels } : {}) };
 };
 /** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */
 export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);
@@ -269,9 +277,12 @@ const loaded = new Map<string, { picks: CatalogPick[]; deals?: StoreDeal[] }>();
 const listeners = new Set<() => void>();
 let version = 0;
 /** Whether a guide's picks are in hand (a guide with no chunk always is). */
-export const picksReady = (slug: string) => !HAS_CHUNK.has(slug) || loaded.has(slug);
+/** The chunk a guide reads: a relationship page reads its guide's (/gift-guides/mom reads For Her's). */
+const chunkOf = (slug: string) => RELATION_PAGES[slug]?.guide ?? slug;
+export const picksReady = (slug0: string) => { const slug = chunkOf(slug0); return !HAS_CHUNK.has(slug) || loaded.has(slug); };
 /** Fetch one guide's chunk (once); every guide object's `picks` and `deals` read it from then on. */
-export const loadGuidePicks = async (slug: string): Promise<void> => {
+export const loadGuidePicks = async (slug0: string): Promise<void> => {
+  const slug = chunkOf(slug0);
   if (picksReady(slug)) return;
   const load = PICK_CHUNKS[`./giftGuidePicks/${slug}.json`];
   if (!load) throw new Error(`gift guides: no picks chunk for ${slug}`);
@@ -409,11 +420,17 @@ for (const [from, { parent }] of Object.entries(MERGED_INTO)) {
   if (!src || !d) continue;
   draftOf.set(parent, { ...d, links: [...new Map([...d.links, ...src.links].map((l) => [l.href, l] as const)).values()] });
 }
-const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug] && !MERGED_INTO[slug] && !isFoldedStore(slug);
+// For Her + For Him (owner 11-20): a relationship page (Mom, Wife ...) is a filtered view built below, and an old people
+// slug (Boyfriend or Husband, Sister-in-Law ...) opens its relationship page; neither is a guide of its own.
+const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug] && !MERGED_INTO[slug] && !isFoldedStore(slug)
+  && !RELATION_PAGES[slug] && !OLD_PEOPLE_SLUGS[slug];
 
 /** Where an old or folded guide's link now goes (null: no such guide). */
 export const newSlugFor = (slug: string): string | null => {
-  const s = OLD_SLUGS[slug] ?? slug;
+  const s0 = OLD_SLUGS[slug] ?? slug;
+  // For Her + For Him: an old people slug opens its relationship page, and a relationship page is itself (11-20).
+  const s = OLD_PEOPLE_SLUGS[s0] ?? s0;
+  if (RELATION_PAGES[s]) return GUIDES.some((g) => g.slug === s) ? s : null;
   const to = MERGED_GUIDES[s]?.[0] ?? s;
   // 1120: a guide merged into another opens the parent at its section ("healthcare#nurses"; the section groups name
   // the section, SECTION_ANCHORS), or at the top when its picks folded into a guide with one list.
@@ -422,7 +439,7 @@ export const newSlugFor = (slug: string): string | null => {
   return GUIDES.some((g) => g.slug === to) ? to : null;
 };
 /** Every old slug the merges (1120) and the folded store pages retire: each answers a 301 (api/share.ts). */
-export const RETIRED_SLUGS = (): string[] => [...Object.keys(MERGED_INTO), ...GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug)];
+export const RETIRED_SLUGS = (): string[] => [...Object.keys(MERGED_INTO).filter((s) => !RELATION_PAGES[s]), ...Object.keys(OLD_PEOPLE_SLUGS), ...GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug)];
 const parentOf = new Map(Object.entries(HUBS).flatMap(([hub, groups]) => groups.flatMap((x) => x.slugs.map((c) => [c, hub] as const))));
 
 
@@ -512,11 +529,29 @@ export const GUIDES: CatalogGuide[] = ROWS.flatMap((r) => [
 ]);
 
 /**
+ * The relationship pages (owner pop-up 11-20 ~6:50 PM, For Her + For Him): /gift-guides/mom, /dad, /wife, /husband ...,
+ * each its guide's list filtered to the picks tagged for it (`rels`, from the import), under its own title ("Gifts for
+ * Mom", the owner's index title where it has one). Searchable and indexed; no row tile (the guide's chips link to each).
+ */
+const relationView = (slug: string): CatalogGuide | null => {
+  const { guide, label } = RELATION_PAGES[slug];
+  const of = GUIDES.find((g) => g.slug === guide);
+  if (!of) return null;
+  const listed = GUIDE_INDEX.find((g) => g.slug === slug);
+  // Its own cover and share card when it has one (Mom, Dad), else its guide's; its old ShopMy collection link stays.
+  const v: CatalogGuide = { slug, row: of.row, lead: "gifts for", title: listed?.title ?? label, line: "", tint: of.tint, cover: hasCover.has(slug) ? `${COVER_DIR}/${slug}.webp` : of.cover,
+    picks: [], links: draftOf.get(slug)?.links ?? [], view: { of: guide, rel: slug } };
+  Object.defineProperty(v, "picks", { enumerable: true, get: () => of.picks.filter((p) => p.rels?.includes(slug)) });
+  return v;
+};
+GUIDES.push(...Object.keys(RELATION_PAGES).map(relationView).filter((g): g is CatalogGuide => g !== null));
+
+/**
  * The guides a group's row and menu list, in order (owner 2026-11-18, "covers in two taps"): top-level guides only.
  * Follow-up 1120 (owner 11-20 ~1:10 AM): Kids is ONE guide by age (Girls, Boys and Gender-Neutral are its sections), so
  * it is listed itself. A guide that holds nothing is not listed.
  */
-export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === row && !g.parent);
+export const guidesIn = (row: GuideRow) => GUIDES.filter((g) => !g.empty && !g.thin && g.row === row && !g.parent && !g.view);
 
 
 /**
@@ -584,7 +619,10 @@ export const SEARCH_SYNONYMS: { words: string[]; slugs: string[] }[] = [
   { words: ["hunting", "hunt", "hunter", "deer", "duck"], slugs: ["hunters"] },
   { words: ["cheap", "cheaper", "budget", "inexpensive", "affordable"], slugs: ["under-10", "under-15", "under-20", "under-25", "stocking-stuffers"] },
   { words: ["christmas", "xmas", "stocking", "stockings", "stuffer", "stuffers"], slugs: ["stocking-stuffers"] },
-  { words: ["husband", "hubby", "boyfriend"], slugs: ["boyfriend-or-husband", "him"] },
+  // For Her + For Him (owner 11-20): each relationship has its own page, a filtered view of the guide.
+  { words: ["husband", "hubby"], slugs: ["husband", "him"] },
+  { words: ["boyfriend"], slugs: ["boyfriend", "him"] },
+  { words: ["wife"], slugs: ["wife", "her"] },
   { words: ["girlfriend"], slugs: ["girlfriend", "her"] },
   { words: ["grandmother", "granny", "nana", "mimi", "mawmaw"], slugs: ["grandma"] },
   { words: ["grandfather", "papa", "pawpaw"], slugs: ["grandpa"] },
@@ -620,7 +658,9 @@ export const searchIntent = (words: string[]): { slugs: string[]; used: Set<stri
   const slugs: string[] = [];
   const add = (s0: string) => {
     // 1120: a guide merged into another as a section is found as its parent guide.
-    const s = MERGED_INTO[s0]?.parent ?? s0;
+    // A relationship page (Mom, Wife ...) is found as itself; an old people slug as its relationship page (11-20).
+    const s1 = OLD_PEOPLE_SLUGS[s0] ?? s0;
+    const s = RELATION_PAGES[s1] ? s1 : MERGED_INTO[s1]?.parent ?? s1;
     const g = guideBySlug(s);
     if (g && !g.empty && !slugs.includes(s)) slugs.push(s);
   };

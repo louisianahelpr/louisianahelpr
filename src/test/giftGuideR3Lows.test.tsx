@@ -57,7 +57,7 @@ describe("gift guides r3 UX Lows", () => {
   it("#10: the For kids row shows the one Kids tile; Girls, Boys and Gender-neutral have no tiles of their own", () => {
     const { container } = renderAt("/gift-guides?group=for-kids");
     const row = container.querySelector("[data-gift-row='for-kids']")!;
-    expect([...row.querySelectorAll("[data-gift-tile]")].map((t) => t.getAttribute("data-gift-tile"))).toEqual(["kids"]);
+    expect([...row.querySelectorAll("[data-gift-tile]")].map((t) => t.getAttribute("data-gift-tile"))).toEqual(["kids", "teens"]); // Teens is its own guide (owner 11-20 evening)
     for (const slug of ["girls", "boys", "gender-neutral"]) expect(row.querySelector(`[data-gift-tile='${slug}']`), slug).toBeNull();
   });
 

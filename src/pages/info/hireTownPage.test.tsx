@@ -10,7 +10,7 @@
  * @mutate src/pages/info/HireTownPage.tsx |   return (JOB_CATEGORY_VALUES as readonly string[]).includes(value) ? value : null; |   return value \|\| null;
  * @mutate src/pages/info/HireTownPage.tsx |   if (!page) return <NotFound />; |   if (!page) return <TownPage service={TOWN_PAGE_SERVICES[0]} town={TOWN_PAGE_TOWNS[0]} />;
  * @mutate src/pages/info/HireTownPage.tsx |   usePageMeta(townPageMeta(service, town)); |
- * @mutate src/pages/info/HireTownPage.tsx |   const post = form; |   const post = `/signup?redirect=${encodeURIComponent(form)}`;
+ * @mutate src/pages/info/HireTownPage.tsx |   const post = user ? form : `/signup?redirect=${encodeURIComponent(form)}`; |   const post = form;
  * F244 (audit 11-10): Post a job carries the service and town into the form.
  * @mutate src/pages/info/HireTownPage.tsx | cat: service.category, town: town.name }).toString()}`; | cat: service.category }).toString()}`;
  * @mutate src/lib/townPages.mjs |   { slug: "baton-rouge", name: "Baton Rouge" }, |
@@ -82,8 +82,7 @@ describe("OPS-4: town + service pages", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Handyman in Baton Rouge");
     expect(meta[0]).toMatchObject({ title: "Handyman in Baton Rouge, LA — Helpr", canonical: "https://www.louisianahelpr.com/hire/handyman/baton-rouge" });
     expect(meta[0].description).toMatch(/Baton Rouge/);
-    // Audit 11-21 (P0, owner 11-20/21): a guest starts the post itself and signs up at the end.
-    expect(screen.getByRole("link", { name: "Post a job" })).toHaveAttribute("href", "/post-job?mm=1&cat=handyman&town=Baton+Rouge");
+    expect(screen.getByRole("link", { name: "Post a job" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/post-job?mm=1&cat=handyman&town=Baton+Rouge")}`);
     expect(screen.getByRole("link", { name: "Handyman in Lafayette" })).toHaveAttribute("href", "/hire/handyman/lafayette");
     expect(screen.getByRole("link", { name: "Cleaning in Baton Rouge" })).toHaveAttribute("href", "/hire/cleaning/baton-rouge");
     expect(screen.queryByRole("link", { name: "Handyman in Baton Rouge" })).toBeNull();
@@ -102,9 +101,8 @@ describe("OPS-4: town + service pages", () => {
   it("F244: the service and town ride along to the form, through sign-up too, and read back as the category and town", () => {
     at("/hire/cleaning/baton-rouge");
     const href = screen.getByRole("link", { name: "Post a job" }).getAttribute("href") ?? "";
-    // A guest goes straight to the form (P0, owner 11-20/21); the link must survive the same-origin check (it is
-    // what sign-up carries back at the end) and still carry the fields.
-    const after = safeInternalRedirect(href);
+    // A guest goes through /signup; the redirect must survive the same-origin check and still carry the fields.
+    const after = safeInternalRedirect(new URL(href, "https://www.louisianahelpr.com").searchParams.get("redirect"));
     expect(after).toBe("/post-job?mm=1&cat=cleaning&town=Baton+Rouge");
     const fields = readMatchmakerLink(new URL(after ?? "", "https://www.louisianahelpr.com").searchParams);
     expect(fields).toMatchObject({ category: "cleaning", town: "Baton Rouge", title: "Cleaning", price: null });

@@ -4,7 +4,6 @@ import { hasInAppHistory } from "@/lib/inAppHistory";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, Send, Star } from "lucide-react";
 import AppPage from "@/components/AppPage";
-import { usePageMeta } from "@/hooks/usePageMeta";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -58,12 +57,6 @@ export default function FindHelprs() {
   // The tab reads "Find a Helpr — Helpr": AppPage names it (F137, owner UI audit 11-09); a bare title here ran after
   // AppPage's and dropped the "— Helpr". Guard: src/test/pageTitlesEndInHelpr.test.ts.
   const navigate = useNavigate();
-  // Audit 11-21 (P14): the page had no description or canonical of its own (it kept the home page's).
-  usePageMeta({
-    title: "Find a Helpr — Helpr",
-    description: "Find a Louisiana Helpr by skill and town, see their reviews, and offer them a job at your price.",
-    canonical: "https://www.louisianahelpr.com/helprs",
-  });
   useLanguage(); // design audit areas 11-18 #1: re-render when the Spanish words arrive
   const [params, setParams] = useSearchParams();
   const skill = params.get("skill") ?? "";

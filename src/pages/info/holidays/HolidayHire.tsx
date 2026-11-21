@@ -17,10 +17,10 @@ import { HIRE_STEPS } from "@/components/landing/hireSteps";
 import { HOLIDAY_HELP, HOLIDAY_HUB_PATH, HOLIDAY_WORDS as W } from "@/content/holidayHub/holidayHub.mjs";
 import { HUB_COLUMN, HUB_HEADER_COLUMN, useHolidayPageView } from "./holidayParts";
 
-/** Post a job, filled in when a holiday job was picked. Audit 11-21 (P0, owner 11-20/21): a guest starts the post
- *  and signs up at the end, so the link is the form itself for everyone. */
-function holidayPostLink(_signedIn: boolean, job?: { category: string; title: string }): string {
-  return job ? `/post-job?${new URLSearchParams({ [MATCHMAKER_PARAM]: "1", cat: job.category, t: job.title }).toString()}` : "/post-job";
+/** Post a job, filled in when a holiday job was picked; a visitor signs up first and lands back on the form. */
+function holidayPostLink(signedIn: boolean, job?: { category: string; title: string }): string {
+  const form = job ? `/post-job?${new URLSearchParams({ [MATCHMAKER_PARAM]: "1", cat: job.category, t: job.title }).toString()}` : "/post-job";
+  return signedIn ? form : `/signup?redirect=${encodeURIComponent(form)}`;
 }
 
 export default function HolidayHire() {

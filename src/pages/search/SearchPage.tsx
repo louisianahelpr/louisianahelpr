@@ -17,7 +17,6 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useSectionsOpen } from "@/components/landing/useSectionsOpen";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useNoIndex } from "@/hooks/useNoIndex";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { SEARCH_PARAM } from "@/components/landing/heroSearch";
@@ -262,7 +261,6 @@ function SoonLine({ names }: { names: string[] }) {
 export default function SearchPage() {
   useLanguage();
   usePageTitle(t("srch.pageTitle"));
-  useNoIndex();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const q = (params.get(SEARCH_PARAM) ?? "").trim();

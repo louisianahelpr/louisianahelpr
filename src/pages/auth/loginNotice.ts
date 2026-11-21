@@ -38,10 +38,8 @@ export function loginNotice(o: {
   bouncedFromGatedRoute: boolean;
   /** Where the bounced guest was going (already checked by safeInternalRedirect). */
   redirect?: string | null;
-  /** ?reason= on the Login URL: "apply" from an open job's Log in (guestLogInUrl). */
-  reason?: string | null;
 }) {
-  const declutterPage = o.bouncedFromGatedRoute ? gatedPageNotice(o.redirect, o.reason) : null;
+  const declutterPage = o.bouncedFromGatedRoute ? gatedPageNotice(o.redirect) : null;
   const accountChoice = o.oauthError?.choice ? { ...o.oauthError.choice, provider: o.oauthError.provider } : null;
   const connectName = o.connect === "apple" ? "Apple" : o.connect === "google" ? "Google" : o.connect === "any" ? "Apple or Google" : null;
   const notice =
@@ -70,8 +68,6 @@ export function loginNotice(o: {
 
 const BACK_TO_IT = "Create an account, or log in and we'll take you straight back to it.";
 /** F286a: the one gated line that does not end with BACK_TO_IT, so the form leads with Log in. */
-/** Log in from an open job a guest was reading (guestLogInUrl): it is public, so never "only visible to". */
-export const JOB_APPLY_NOTICE = "Log in to apply, and we'll take you straight back to this job.";
 export const JOB_LINK_NOTICE = "This job is only visible to the person who posted it and the person doing it. Log in and we'll take you straight back to it.";
 
 /**
@@ -102,13 +98,10 @@ const RETURNING_PAGE_LINES: readonly [prefix: string, line: string][] = [
 ];
 const LOG_BACK_IN = "We'll take you straight back to it.";
 
-export function gatedPageNotice(redirect: string | null | undefined, reason?: string | null): string | null {
+export function gatedPageNotice(redirect: string | null | undefined): string | null {
   const declutter = declutterGatedNotice(redirect);
   if (declutter || !redirect) return declutter;
   const path = new URL(redirect, "https://x.invalid").pathname;
-  // Audit 11-21 (P1): Log in from an OPEN job (the guest page or preview, guestLogInUrl's reason=apply) said the job
-  // was private. Only the not-public branch (JobDetail's sign-in bounce, no reason) gets JOB_LINK_NOTICE.
-  if (reason === "apply" && /^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_APPLY_NOTICE;
   // F286a (audit 11-10): a link to one job that is not public (hired, done, cancelled) comes from the
   // job's own poster or Helpr, who already has an account. Lead with Log in, not Create an account.
   if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_LINK_NOTICE;

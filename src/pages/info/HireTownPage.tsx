@@ -9,6 +9,7 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { Button } from "@/components/ui/button";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import NotFound from "@/pages/info/NotFound";
 import { JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
@@ -42,6 +43,7 @@ function unknownComboCategory(serviceSlug: string | undefined): string | null {
 
 function TownPage({ service, town }: { service: TownPageService; town: TownPageTown }) {
   usePageMeta(townPageMeta(service, town));
+  const { user } = useCurrentUser();
   // Under 18 (Q1586(c)): the link greys out and says why instead of opening the form. It stays a real link, so
   // search engines and signed-out visitors still follow it.
   const { underAge, explain, gatedProps } = useAgeGate();
@@ -49,8 +51,7 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
   // re-checked by readMatchmakerLink), so someone who chose Cleaning in Baton Rouge does not start from a blank form
   // after signing up. The form opens at Details with the category and town filled, all still editable.
   const form = `/post-job?${new URLSearchParams({ [MATCHMAKER_PARAM]: "1", cat: service.category, town: town.name }).toString()}`;
-  // Audit 11-21 (P0, owner 11-20/21): a guest starts the post and signs up at the end, like /helprs' Offer a job.
-  const post = form;
+  const post = user ? form : `/signup?redirect=${encodeURIComponent(form)}`;
   const ink = { color: "hsl(var(--ink-deep))" };
   return (
     // F063 (owner UI audit 11-09): the page is a ~760px column, centred, title included (the header's max width is the

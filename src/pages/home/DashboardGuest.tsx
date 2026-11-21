@@ -408,7 +408,7 @@ const DashboardGuest = () => {
                 onClearFilters={filters.clearFilters}
                 clearLabel={browseFilteredEmptyCopy({ searchQuery: filters.searchQuery, activeFilterCount: filters.activeFilterCount, nearbyActive, currentMiles, nextMiles }).clearLabel}
                 onNotify={() => navigate(NOTIFY_SIGNUP_URL)}
-                onHire={() => navigate("/post-job")}
+                onHire={() => navigate("/signup")}
                 onDeclutter={() => navigate("/declutter")}
               />
             }

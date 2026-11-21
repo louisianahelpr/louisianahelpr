@@ -52,8 +52,7 @@ export async function fetchPosterCancelQuote(jobId: string, opts?: { asNoShow?: 
       charge_state: q.charge_state === "hold" || q.charge_state === "captured" ? q.charge_state : null,
     };
   } catch (e) {
-    // Null = the read failed. On a paid job CancellationDialog then holds Confirm and offers Try again (audit 11-21,
-    // G4); an unquotable amount is a normal answer with a reason, never null.
+    // The cancel itself does not depend on the quote; only the amount line does.
     report(e, { severity: "warning", tags: { source: "posterCancelQuote" }, context: { job_id: jobId } });
     return null;
   }

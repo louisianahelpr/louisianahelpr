@@ -531,9 +531,6 @@ export function FormStep({ form }: FormStepProps) {
                 >
                   {/* Design audit r2 #10: the gap-2 is the one space; a leading " " made it two. */}
                   · ${formatPriceExact(form.budgetNum)}
-                  {/* Audit 11-21 (G2): with an urgent bonus on, the button read $120 and Review's total $130. The
-                      typed price stays (owner 2026-10-01) and the bonus is named beside it, so the sum is Review's. */}
-                  {form.urgentFeeNum > 0 && <span data-testid="post-job-cta-urgent"> + ${formatPriceExact(form.urgentFeeNum)} urgent</span>}
                 </span>
               )}
             </span>

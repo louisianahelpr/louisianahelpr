@@ -6,6 +6,7 @@ import { buildMovingDayPrefill, MOVING_DAY_PARAM } from "@/lib/declutter/movingD
 import { useEffect, useCallback } from "react";
 import { keptDraftInCategory } from "@/hooks/useDraftJob";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lookupParishByZip } from "@/lib/parishLookup";
@@ -549,9 +550,8 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         // Abbreviated like every other surface ("Hallie H."), not the full
         // name: the banner read "Direct offer to Hallie Helper" while the
         // card, the chat and the applicant list all said "Hallie H." — the
-        // one screen that printed a surname was this one (2026-09-07). The banner formats it, ONCE: formatting here
-        // too turned a nameless profile's fallback "this Helpr" into "this H." (audit 11-21, P2).
-        if (prof) setOfferToHelperName((prof.full_name ?? "").trim());
+        // one screen that printed a surname was this one (2026-09-07).
+        if (prof) setOfferToHelperName(formatName(prof.full_name, "this Helpr"));
       });
   }, [searchParams]);
 

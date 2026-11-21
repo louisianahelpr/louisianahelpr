@@ -452,7 +452,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {/* A continue day replaces the first day's "arrived" line: the next visit is what matters now. */}
           {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
           <JobTracker job={dayJob} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
-            hideNext={refundOpen || (isPoster && !continueDay.row && showsNow(job, trackingStatus)) || (isPoster && open && applicants.isError)}
+            hideNext={refundOpen || (isPoster && !continueDay.row && showsNow(job, trackingStatus))}
             otherFirst={isPoster ? helperFirst ?? noShowHelprFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={offerUntil} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft} helprCancelled={helprCancelled}
@@ -496,14 +496,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               out (JA-48 / JA-49: "Copy link" and "Edit job" beside a booked Helpr). */}
           {isPoster && open && !offerOut && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
             <NoApplicantsYet job={job} />
-          )}
-          {/* Audit 11-21 (G5): the applicants read failed and the page showed "Pick your Helpr" with no list, no error
-              and no retry, so the poster could not tell whether anyone applied. Say so, with Try again; the tracker's
-              next step waits for the count (hideNext above). */}
-          {isPoster && open && applicants.isError && (
-            <div data-applicants-error="">
-              <ErrorState variant="inline" title="We couldn't load your applicants" body={t("jobPage.checkConnection")} onRetry={() => void applicants.refetch()} />
-            </div>
           )}
         </div>
 

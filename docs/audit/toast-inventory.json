@@ -76,7 +76,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 292,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -86,7 +86,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 347,
+      "line": 338,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -96,7 +96,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 349,
+      "line": 340,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -106,7 +106,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 394,
+      "line": 385,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -223,7 +223,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 408,
+      "line": 399,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10966,7 +10966,7 @@
     },
     {
       "file": "src/components/quotes/QuoteAnswerControls.tsx",
-      "line": 85,
+      "line": 79,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -10996,7 +10996,7 @@
     },
     {
       "file": "src/components/quotes/QuoteAnswerControls.tsx",
-      "line": 93,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -16249,7 +16249,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 267,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16259,7 +16259,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 327,
+      "line": 328,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16269,7 +16269,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 331,
+      "line": 332,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -16279,7 +16279,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 351,
+      "line": 352,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16289,7 +16289,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 371,
+      "line": 372,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -16299,7 +16299,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 384,
+      "line": 385,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16309,7 +16309,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 448,
+      "line": 449,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16319,7 +16319,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 453,
+      "line": 454,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -16329,7 +16329,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 457,
+      "line": 458,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -16339,7 +16339,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 476,
+      "line": 477,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -17538,7 +17538,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 129,
+      "line": 128,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -17548,7 +17548,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 204,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -17558,7 +17558,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 208,
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -17568,7 +17568,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 213,
+      "line": 212,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -17578,7 +17578,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 216,
+      "line": 215,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

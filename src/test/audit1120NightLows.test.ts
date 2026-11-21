@@ -121,7 +121,7 @@ describe("audit 11-20 night quick Lows", () => {
     expect(readSource("src/lib/i18n/en.ts")).toContain("...enDeclPayout,");
   });
   it("6 (order card): the paid-order card's own words read the dictionary", () => {
-    const views = readSource("src/components/declutter/DeclutterHandoverViews.tsx");
+    const views = readSource("src/components/declutter/DeclutterHandoverViews.tsx") ?? "";
     expect(views).toContain('import "@/lib/i18n/enDeclSell";');
     expect(views.match(/\bt\("dho\./g)?.length ?? 0).toBeGreaterThan(30);
     expect(views.match(/^ {2}useLanguage\(\);/gm)?.length).toBe(4);

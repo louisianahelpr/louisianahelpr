@@ -91,7 +91,7 @@ describe("markTourCompleted", () => {
     writeResult = { data: [], error: null };
     expect(await markTourCompleted("u1")).toBe(false);
     // unwrapMutation reports the rejected write itself; this module adds its own warning after it.
-    expect(reports.at(-1)).toMatchObject({ severity: "warning", tags: { kind: "onboarding_tour_completion_write" } });
+    expect(reports[reports.length - 1]).toMatchObject({ severity: "warning", tags: { kind: "onboarding_tour_completion_write" } });
   });
   it("a column that is not deployed yet is false with no report (retried next visit)", async () => {
     writeResult = { data: null, error: { message: "column profiles.onboarding_tour_completed_at does not exist", code: "42703" } };

@@ -213,6 +213,13 @@ def targets(rows):
 
 
 def fetch(url):
+    # A photo the site hosts itself (a sponsor photo, a 11-20 cutout) is read from public/: it may not be deployed yet,
+    # and a 404 would be remembered in the cache as a dead photo.
+    own = "https://www.louisianahelpr.com/gift-guides/"
+    if url.startswith(own):
+        local = os.path.join(ROOT, "public", "gift-guides", *url[len(own):].split("?")[0].split("/"))
+        if os.path.exists(local):
+            return open(local, "rb").read()
     os.makedirs(CACHE, exist_ok=True)
     path = os.path.join(CACHE, hashlib.sha1(url.encode()).hexdigest())
     if os.path.exists(path):

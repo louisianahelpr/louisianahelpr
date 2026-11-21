@@ -14,10 +14,14 @@
  * free tier, the group split, the fee stamp), never "Budget $85" beside a card that said $74.
  * The X closes it (owner 10-31 14:22: every sheet keeps the X only, no drag bar).
  *
+ * Audit 11-21 (P11): the guest job PAGE shows the server-masked Details now (owner 11-12, F268a), so the sheet links to
+ * it ("See the whole job"); the sheet itself still shows no free text.
+ *
  * Guard: src/test/guestSeesFourFacts.test.tsx.
  */
 import { Dialog, DialogContent, DialogFooter, DialogHero, DialogPrimaryAction } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { categoryLabels } from "@/components/job-card/activityConstants";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
@@ -151,6 +155,9 @@ export function GuestJobPreview({ job, onClose, onSignUp, onLogIn }: {
             </div>
           ))}
         </dl>
+        <Button asChild variant="link" size="sm" className="self-start px-0 text-ds-13 font-semibold">
+          <Link to={`/jobs/${encodeURIComponent(job.id)}`} data-guest-whole-job="">{wordInLang("pub.job.seeWhole", "See the whole job")}</Link>
+        </Button>
         {/* No "Not now": the sheet's X closes it (owner 10-31, every sheet has the X). */}
         <DialogFooter>
           <DialogPrimaryAction onClick={() => onSignUp(job.id)}>{wordInLang("pub.job.signUpApply", "Sign up to apply")}</DialogPrimaryAction>

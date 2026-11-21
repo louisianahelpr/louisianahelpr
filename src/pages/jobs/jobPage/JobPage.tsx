@@ -89,6 +89,8 @@ const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ 
 const PageOfferPanel = lazy(() => import("@/components/job-card/JobListPage").then((m) => ({ default: m.PageOfferPanel })));
 
 const CARD = "rounded-2xl border border-border bg-card";
+/** The poster waits on a Helpr who never checked in (posterStatusLine): no-show leads, release only warns (G15). */
+const NO_ARRIVAL_WAITS: ReadonlySet<string> = new Set(["overdue_no_show", "started_no_checkin"]);
 // Area 11 H2: no visible child (the phone bar portals out, step controls are hidden), no card.
 /** The hired Helpr's done step (helperFaceAction.ts, key "done"). */
 const DONE_FACE_LABEL = "Mark it done"; // helperFaceAction's done label (JA-56)
@@ -183,7 +185,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     onChanged: () => void q.refetch(),
   });
   // Owner 11-10: past its day with no done from the Helpr, the poster marks it done and releases (usePosterFinish).
-  const posterFinish = usePosterFinish({ job: q.data?.job, enabled: isPoster, day: continueDay.row, helperFirst, flows: posterFlows, refundOpen });
+  // Audit 11-21 (G15): releasing is still in More options when the Helpr never checked in (Area 03 H1 moved it off the
+  // main button); the confirm now warns first, naming the no-show report instead.
+  const finishBeforeArrival = isPoster && !!q.data && !q.data.job.is_group_job
+    && NO_ARRIVAL_WAITS.has(posterStatusLine(q.data.job as unknown as Job, applicants.data?.pending ?? 0).id);
+  const posterFinish = usePosterFinish({ job: q.data?.job, enabled: isPoster, day: continueDay.row, helperFirst, flows: posterFlows, refundOpen, notArrived: finishBeforeArrival });
 
   if (q.isPending) {
     return (
@@ -257,11 +263,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // "Report no-show" in the sticky main button, never "Mark done and release" (that paid the no-show Helpr in one
   // tap); the release moves into the "..." menu below. The report is the card's own NoShowDialog (posterFlows.noShow).
   // Guard: src/test/area03JobsPoster.test.tsx.
-  const noShowLead = !job.is_group_job && (posterWait === "overdue_no_show" || posterWait === "started_no_checkin");
+  const noShowLead = !job.is_group_job && NO_ARRIVAL_WAITS.has(posterWait ?? "");
   const posterStep = posterWait === "confirm_arrival"
     ? { label: arrival.confirming ? t("jp.confirming") : t("jp.confirmArrived"), go: () => void arrival.confirm(), disabled: arrival.confirming }
     : noShowLead
-    ? { label: t("jp.reportNoShow"), go: posterFlows.noShow, disabled: !posterFlows.ready }
+    ? { label: t("jp.reportNoShow"), go: posterFlows.noShow, disabled: !posterFlows.ready, plain: true }
     : jobIsUnfundedDraft(job)
     // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. Area 03 H2: it says
     // what it does, "Pay to post" (the copy, paid at its own checkout; owner 2026-09-27: no "finish paying" on a server

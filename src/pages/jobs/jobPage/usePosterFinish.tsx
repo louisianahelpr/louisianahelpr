@@ -25,6 +25,7 @@ export function usePosterFinish({
   helperFirst,
   flows,
   refundOpen,
+  notArrived = false,
 }: {
   job: (PosterFinishJob & { title: string; budget?: number | null; urgent_fee?: number | null }) | null | undefined;
   /** The poster only. */
@@ -34,6 +35,8 @@ export function usePosterFinish({
   helperFirst: string | null;
   flows: PosterPageFlows;
   refundOpen: boolean;
+  /** The Helpr never checked in (no-show waits): the confirm warns before releasing (audit 11-21, G15). */
+  notArrived?: boolean;
 }): { lead: PagePrimary | null; sheet: React.ReactNode } {
   const [open, setOpen] = useState(false);
   if (!enabled || !job || refundOpen || !posterFinishOpen(job, day)) return { lead: null, sheet: null };
@@ -52,6 +55,7 @@ export function usePosterFinish({
         onContinueDay={onContinueDay}
         missedOffered={!!day && day.status === "set" && continueDayMissedOpen({ status: day.status, new_date: day.new_date ?? "", new_start_time: day.new_start_time }, job.helper_completed_at)}
         busy={flows.completing}
+        notArrived={notArrived}
         onConfirm={() => { setOpen(false); flows.finish(); }}
       />
     ),

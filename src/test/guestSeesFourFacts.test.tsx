@@ -35,6 +35,7 @@ import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 import { GuestJobPreview, guestJobArea, guestJobFacts, guestTakeHome, GUEST_FEE_PERCENT, GUEST_JOB_FIELDS, type GuestJob } from "@/components/dashboard/GuestJobPreview";
 import { JobPrice } from "@/components/dashboard/JobPrice";
@@ -62,7 +63,7 @@ const JOB = {
 
 describe("the guest job preview", () => {
   it("prints the title and the four facts, and nothing else from the row", () => {
-    render(<GuestJobPreview job={JOB} onClose={vi.fn()} onSignUp={vi.fn()} />);
+    render(<GuestJobPreview job={JOB} onClose={vi.fn()} onSignUp={vi.fn()} />, { wrapper: MemoryRouter });
     const sheet = document.querySelector("[data-guest-job-preview]") as HTMLElement;
     expect(sheet).toBeTruthy();
     expect(screen.getByText("Haul off an old couch")).toBeTruthy();
@@ -77,6 +78,9 @@ describe("the guest job preview", () => {
     for (const secret of ["Oak St", "4411", "337-555", "Ann", "Guidry", "30.22", "-92.02", JOB.customer_id]) {
       expect(sheet.textContent, secret).not.toContain(secret);
     }
+    // Audit 11-21 (P11): the sheet leads to the whole (server-masked) job page, so a guest can read what it involves.
+    // @mutate src/components/dashboard/GuestJobPreview.tsx | <Link to={`/jobs/${encodeURIComponent(job.id)}`} data-guest-whole-job=""> | <Link to="/browse" data-guest-whole-job="">
+    expect(screen.getByRole("link", { name: "See the whole job" }).getAttribute("href")).toBe(`/jobs/${encodeURIComponent(JOB.id)}`);
     expect([...GUEST_JOB_FIELDS]).toEqual([
       "id", "title", "category", "budget", "location",
       "urgent_fee", "is_group_job", "helpers_needed", "helper_fee_flat_cents", "helper_fee_percent",
@@ -87,7 +91,7 @@ describe("the guest job preview", () => {
   it("Sign up to apply carries the job; the X closes; no drag bar", () => {
     const onSignUp = vi.fn();
     const onClose = vi.fn();
-    render(<GuestJobPreview job={JOB} onClose={onClose} onSignUp={onSignUp} />);
+    render(<GuestJobPreview job={JOB} onClose={onClose} onSignUp={onSignUp} />, { wrapper: MemoryRouter });
     const sheet = document.querySelector("[data-guest-job-preview]") as HTMLElement;
     expect(sheet.querySelector("[data-sheet-handle]")).toBeNull();
     expect(screen.queryByRole("button", { name: /^not now$/i })).toBeNull();
@@ -137,7 +141,7 @@ describe("the guest job preview", () => {
     expect(facts.find((f) => f.label === "Day")?.value).toBe(formatJobDate(day));
     expect(facts.find((f) => f.label === "Time")?.value).toBe("2:30 PM");
     expect(guestJobFacts({ ...JOB, date_needed: day }).find((f) => f.label === "Day")?.value).toBe(formatJobDate(day));
-    render(<GuestJobPreview job={{ ...JOB, date_needed: day, start_time: "14:30:00" }} onClose={vi.fn()} onSignUp={vi.fn()} />);
+    render(<GuestJobPreview job={{ ...JOB, date_needed: day, start_time: "14:30:00" }} onClose={vi.fn()} onSignUp={vi.fn()} />, { wrapper: MemoryRouter });
     const sheet = document.querySelector("[data-guest-job-preview]") as HTMLElement;
     expect(sheet.textContent).toContain(`Day${formatJobDate(day)}`);
     expect(sheet.textContent).toContain("Time2:30 PM");

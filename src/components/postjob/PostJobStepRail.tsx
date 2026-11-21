@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
 import type { MsgKey } from "@/lib/i18n/en";
-import { POST_JOB_STEPS, screenNumber, type PostJobScreen } from "./postJobScreens";
+import { POST_JOB_SCREEN_COUNT, POST_JOB_STEPS, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 /**
  * Board 166's desktop columns, shared by every Post a Job screen that shows the rail (the form steps
@@ -40,7 +40,9 @@ export function PostJobStepRail({ screen, onPick, canPick }: { screen: PostJobSc
                 }`}
                 aria-hidden
               >
-                {done ? <Check className="h-3.5 w-3.5" /> : n}
+                {/* Audit 11-21 (G13): the phone says "1 of 3 … Ready", so the rail numbers the same three steps and its
+                    last row (Post) is the "ready" mark, never a fourth number. */}
+                {done || n > POST_JOB_SCREEN_COUNT ? <Check className="h-3.5 w-3.5" data-rail-final={n > POST_JOB_SCREEN_COUNT ? "" : undefined} /> : n}
               </span>
               <span className={`text-ds-15 ${current ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{label}</span>
             </>

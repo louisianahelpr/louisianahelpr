@@ -342,9 +342,8 @@ const Signup = () => {
       if (!userId) throw new Error("Account creation failed");
       clearSignupDraft(); // F259c: the account exists, so the reload draft goes
 
-      // Complete profile with uploads (no ID — Stripe handles identity).
-      // This call also records the referral and the legal consent — see the
-      // body it sends above.
+      // Complete profile with uploads (no ID — Stripe handles identity). This call also records the referral and the
+      // legal consent — see the body it sends above.
       // OA-001: from here on the account EXISTS. A failed or hung completion
       // used to end on "Couldn't create your account — try again?", and trying
       // again cannot work: signUp on a now-registered email takes the
@@ -459,9 +458,8 @@ const Signup = () => {
     }
   };
 
-  // Match the Login screen's field styling exactly so the two auth screens
-  // read as one set. (The `pl-10`/`pr-10` icon padding is appended at each
-  // call site, mirroring Login.)
+  // Match the Login screen's field styling exactly so the two auth screens read as one set. (The `pl-10`/`pr-10`
+  // icon padding is appended at each call site, mirroring Login.)
   // Step 2's two ways out, one single-flight path (OA-002): "Create account"
   // checks the optional fields' format first; "Skip for now" sends none of them.
   const finishStep2 = async (skip: boolean) => {
@@ -481,26 +479,20 @@ const Signup = () => {
     "rounded-ds-md text-ellipsis bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
-  // Subtitles only where they carry information. Step 1 drops its
-  // "Create your account to get started." — the email/password form directly
-  // below already says that, the same reason Login's
-  // "Pick up right where you left off." was removed. `subtitle` is optional;
-  // the header renders the <p> only when one is present.
+  // Subtitles only where they carry information. Step 1 drops its "Create your account to get started." (the form
+  // below already says that, as Login's "Pick up right where you left off." went). `subtitle` is optional; the
+  // header renders the <p> only when one is present.
   const stepHeading: { title: string; subtitle?: string } =
     step === 1 ? { title: t("signup.title"), subtitle: signupSubtitle(searchParams.get("reason"), searchParams.get("redirect")) } : { title: t("signup.aboutTitle") };
 
-  // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
-  // 2026-08-25) was only the H emblem, and it stacked
-  // ABOVE the form at lg+ while the heading row carried its own emblem below —
-  // two marks, plus a tall vertical stack that pushed the Google button off the
-  // bottom of a 922px-tall window. One emblem now sits beside the heading at
-  // every width.
+  // No `desktopBrandPanel`: the AuthBrandPane (deleted unused 2026-08-25) was only the H emblem, stacked ABOVE the form
+  // at lg+ with the heading row's own emblem below: two marks, and the Google button pushed off a 922px-tall window.
+  // One emblem now sits beside the heading at every width.
   return (
     <AuthShell
       hideHeader
       centerColumn
-      // A3-101 (audit 11-01): step 2 ran to page-measure (1,344 px at 1440) on a screen with no nav above it; it
-      // now keeps one centred column ("lg": 576 px at lg+).
+      // A3-101 (audit 11-01): step 2 ran to page-measure (1,344 px at 1440); one centred column now ("lg": 576 px).
       maxWidth={step === 1 ? "sm" : "lg"}
       noWebChrome
       // Board 55: step 1 sits in the Log in card's width with its heading inside the card and no
@@ -518,19 +510,15 @@ const Signup = () => {
         )
       }
     >
-      {/* F024 (owner UI audit 11-09): at 1440x900 the card sat 24px under the top edge of the window; 48px from lg up
-          (the shell's 24 + 24 here), and the page scrolls naturally below. */}
+      {/* F024 (owner UI audit 11-09): 48px from the window's top edge from lg up (the shell's 24 + 24 here). */}
       <div className="lg:pt-6" data-signup-top="">
-          {/* Liquid-glass card — matches the Login screen so the two auth
-              screens read as one set (see Login.tsx's `.liquid-glass` card). */}
+          {/* Liquid-glass card: matches Login's `.liquid-glass` card so the two auth screens read as one set. */}
           <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
-            {/* No heading inside the card: both steps' [back] [title] rows are
-                AuthShell's `title` row above it, and step 2 has no subtitle
-                (Q2257: its subtitle block could never render and was removed). */}
+            {/* No heading inside the card: both steps' [back] [title] rows are AuthShell's `title` row above it, and
+                step 2 has no subtitle (Q2257: its subtitle block could never render and was removed). */}
 
         {/* Step 2: About you + ID */}
         {step === 2 && (
-          <>
           <SignupStep2
             avatarPreview={avatarPreview}
             onAvatarChange={handleAvatarChange}
@@ -554,7 +542,6 @@ const Signup = () => {
             onSkip={() => finishStep2(true)}
             captchaSlot={turnstile}
           />
-          </>
         )}
 
         {/* Owner 11-20: a sign-up here already waits on its email. Its final step is the email, not a second form. */}

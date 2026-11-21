@@ -56,12 +56,6 @@ const REQUIRED_MOMENTS: Readonly<Record<string, string>> = {
   "src/components/JobConfirmation.tsx": "Helpr: right after the hired Helpr's day-of confirm (never the poster)",
   // Delivery Helpr, when taking a delivery.
   "src/lib/helprTasks/api.ts": "delivery Helpr: taking a delivery (identity_required_to_deliver)",
-  // Declutter as it stands on main; PR #4820 removes all Declutter ID. When it lands these four go RED here as
-  // stale: delete them then.
-  "src/lib/declutter/api.ts": "Declutter (until #4820): opened on the server's buy/list/claim refusal",
-  "src/components/identity/FreeClaimFirstTime.tsx": "Declutter (until #4820): a first free claim",
-  "src/components/declutter/SellerPayoutPrompt.tsx": "Declutter (until #4820): the seller's first payout",
-  "src/pages/home/homeDashboard/needsYouTodos.ts": "Declutter (until #4820): the seller's first-payout to-do",
 };
 
 /** Edge functions that link to the ID step (verify_id=1) or start it. EXACT. */

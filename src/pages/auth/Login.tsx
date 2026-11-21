@@ -3,7 +3,6 @@ import { clearPendingSignup } from "@/lib/pendingSignup";
 import { useEffect, useRef, useState } from "react";
 import { loginNotice, loginNoticeInLang, takeOneShotFlag } from "./loginNotice";
 import { hadSessionOnThisBrowser } from "@/lib/hadSession";
-import { AlertCircle, Clock } from "lucide-react";
 import { postAuthDestination, rememberSignupRedirect, signupUrlFor } from "@/lib/jobIntent";
 import { rememberReferralFromUrl } from "@/lib/pendingReferral";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -14,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, Clock, Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -267,9 +266,8 @@ const Login = () => {
     await finishLogin();
   };
 
-  // Post-authentication routing, shared by the plain password path and the
-  // post-MFA path. Remembers the method, warms the user cache, then routes
-  // into the app.
+  // Post-authentication routing, shared by the plain password path and the post-MFA path. Remembers the method,
+  // warms the user cache, then routes into the app.
   const finishLogin = async () => {
     setLastAuthMethod("email");
     void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
@@ -278,9 +276,9 @@ const Login = () => {
     // postAuthDestination spends whichever intent is pending: the ?redirect=
     // path a bounced visitor was trying to reach, else ?quickApply=<id> for a
     // job card tapped while logged out, else the home dashboard. See
-    // lib/jobIntent. Shared with the MFA path below, which is why the target
-    // lives in storage rather than in this closure.
-    clearPendingSignup(); // owner 11-20: signed in, so no sign-up on this device is waiting on its email
+    // lib/jobIntent. Shared with the MFA path below, which is why the target lives in storage rather than in this
+    // closure. Owner 11-20: signed in, so no sign-up on this device is waiting on its email (clearPendingSignup).
+    clearPendingSignup();
     navigate(postAuthDestination(postLoginDest), { replace: true });
   };
 

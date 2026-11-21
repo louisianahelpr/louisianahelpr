@@ -212,7 +212,7 @@ export const PRINTABLES: Printable[] = [
     kind: "download",
     id: "thanksgiving-banner",
     title: "Happy Thanksgiving banner",
-    blurb: "A 2-to-1 banner to print at Walgreens or any photo counter (a 12 x 24 in poster print fits it).",
+    blurb: "A 2-to-1 banner to print at Walgreens or any photo counter (a 12 x 24 in print fits it).",
     // Owner 2026-11-21: "add this to the free printables, it's a banner they can print at walgreens" (her Canva design).
     ready: true,
     preview: "/printables/thanksgiving-banner/preview.webp",

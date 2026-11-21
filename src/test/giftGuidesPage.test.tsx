@@ -1002,6 +1002,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       { source: "/gift-guides/swipe", destination: "/index.html" },
       { source: "/gift-guides/planner", destination: "/index.html" },
       { source: "/gift-guides/printables", destination: "/index.html" },
+      // Holiday audit C (2026-11-20): a reveal link gets its own noindex preview card (api/share metaForSanta) first.
+      { source: "/gift-guides/secret-santa/:code/:token", destination: "/api/share?_og=santa&_code=:code&_tok=:token" },
       { source: "/gift-guides/secret-santa/:code/:token", destination: "/index.html" },
     ]);
   });

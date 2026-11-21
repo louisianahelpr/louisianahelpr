@@ -159,7 +159,7 @@ const CLASSIFIED: Record<string, string> = {
   // Louisiana Holiday Hub (owner-approved 2026-11-20): "Open in Maps" on a public light display or event.
   "pages/info/holidays/holidayParts.tsx::href": MAPS + " (holidayMapsQuery(item): the place's name and address from src/content/holidayHub)",
   // Declutter share-fb (Train D): window.open / openExternalUrl of the Facebook sharer for a listing.
-  "components/declutter/DeclutterShareCard.tsx::url": "facebookShareUrl(): a fixed https://www.facebook.com/sharer/sharer.php?u= prefix + encodeURIComponent(`${getPublicOrigin()}/declutter/item/${id}`)",
+  "components/declutter/DeclutterShareCard.tsx::facebookShareUrl(url)": "facebookShareUrl() (src/lib/declutter/listingShare.ts, Declutter boost 2026-11-20): a fixed https://www.facebook.com/sharer/sharer.php?u= prefix + encodeURIComponent(listingLink(id)), our own /declutter/item/<id> page",
   "components/declutter/DeclutterPickupDayCard.tsx::s.map": "meetupMapUrl() (fixed https://maps.apple.com prefix, Number() coordinates, encodeURIComponent(name)) or mapsSearchUrl() (src/lib/mapsLink.ts, encodeURIComponent(address))",
   "components/declutter/DeclutterPickupDayCard.tsx::route.href": "routeMapsUrl() (src/lib/declutter/route.ts): a fixed https://www.google.com/maps/dir/?api=1 prefix + encodeURIComponent(address) per stop",
   "components/declutter/DeliveryRoute.tsx::maps.href": "routeMapsUrl() (src/lib/declutter/route.ts): a fixed https://www.google.com/maps/dir/?api=1 prefix + encodeURIComponent(address) per stop",

@@ -154,8 +154,8 @@ const COUNTDOWN_CSS = `
 .gg-today-words{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
 .gg-today-gift{display:flex;align-items:center;gap:10px;margin-top:10px;min-width:0}
 .gg-today-link{display:flex;align-items:center;gap:12px;flex:1;min-width:0;color:var(--gg-ink);text-decoration:none}
-.gg-today-link .gg-thumb{width:56px;height:56px;border-radius:12px;padding:4px;background:#faf6ee;border:0}
-.gg-today-link .gg-photo{border-radius:12px;background:#faf6ee}
+.gg-today-link .gg-thumb{width:56px;height:56px;border-radius:12px;padding:4px;background:#fff;border:0}
+.gg-today-link .gg-photo{border-radius:12px;background:#fff}
 .gg-today-name{min-width:0;font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
 .gg-today-link:hover .gg-today-name,.gg-today-link:focus-visible .gg-today-name{text-decoration:underline}
 .gg-today-share{flex:none;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--gg-line);background:transparent;font-size:12.5px;font-weight:600;color:var(--gg-ink)}

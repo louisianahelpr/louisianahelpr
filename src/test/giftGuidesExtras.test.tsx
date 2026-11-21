@@ -227,7 +227,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     window.localStorage.clear();
     resetGiftListForTests();
     const { container } = renderAt("/gift-guides");
-    const heart = screen.getAllByRole("button", { name: "Save Mom to My Wish List" })[0];
+    const heart = screen.getAllByRole("button", { name: "Save Her to My Wish List" })[0];
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(heart.closest("a")).toBeNull();
     const link = container.querySelector("[data-gift-my-list-link]")!;
@@ -239,7 +239,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe("Holiday Gift Guides");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 1 saved");
     expect(link.textContent).toBe("1");
-    expect(JSON.parse(window.localStorage.getItem("lh-gift-list")!).guides).toEqual(["mom"]);
+    expect(JSON.parse(window.localStorage.getItem("lh-gift-list")!).guides).toEqual(["her"]);
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
@@ -264,7 +264,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
       throw new Error("blocked");
     });
     renderAt("/gift-guides");
-    const heart = screen.getAllByRole("button", { name: "Save Dad to My Wish List" })[0];
+    const heart = screen.getAllByRole("button", { name: "Save Him to My Wish List" })[0];
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     spy.mockRestore();

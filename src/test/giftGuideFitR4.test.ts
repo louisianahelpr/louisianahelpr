@@ -115,6 +115,9 @@ describe("gift guides: item fit r4 (fit + links audits, 11-19)", () => {
     const on = (rx: RegExp) => guides.filter((s) => pageOf(s).some((p) => rx.test(`${p.name} ${p.brand ?? ""}`)));
     const kitsch = on(/\bheatless satin curlers, jumbo\b/i);
     const airwrap = on(/\bairwrap\b/i);
+    // For Her (owner 11-20 evening) is one guide whatever old list a pick came from: read its file, not the old-list view.
+    const herAll = JSON.parse(readFileSync("src/content/giftGuidePicks/her.json", "utf8")).picks as { name: string }[];
+    if (!airwrap.includes("her") && herAll.some((p) => /\bairwrap\b/i.test(p.name))) airwrap.push("her");
     expect(kitsch.length).toBeGreaterThanOrEqual(0); // one guide per product + removal lists (owner 11-19)
     expect(kitsch.length).toBeLessThanOrEqual(BEAUTY_GUIDE_MAX);
     expect(airwrap.length).toBeGreaterThan(0);

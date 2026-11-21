@@ -20,6 +20,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { beforeAll, describe, expect, it } from "vitest";
 import { GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, SECTION_CAP, SECTION_MAX, SECTION_MIN, STORE_PAGES_HELD, STORE_PAGES_KEPT, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
+import { OLD_PEOPLE_SLUGS, peopleGuideOf } from "@/content/giftGuidePeople.mjs";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { GUIDES, guideBySlug, newSlugFor } from "@/content/giftGuideCatalog";
 import { buildSeoData } from "@/prerender/seoData";
@@ -69,6 +70,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     const old = Object.keys(MERGED_INTO);
     for (const s of old) {
       const { parent } = MERGED_INTO[s];
+      // For Her / For Him (owner 11-20 evening): the old Mom, Dad, Wife ... slugs are filter pages now, guarded by giftGuidePeople1120.test.ts.
+      if (peopleGuideOf(s) || peopleGuideOf(parent) || s in OLD_PEOPLE_SLUGS) continue;
       expect(guideBySlug(s), `${s} keeps a page`).toBeUndefined();
       expect(guideBySlug(parent), parent).toBeTruthy();
       // The section groups (owner 11-20) name the section the old guide's picks joined.
@@ -97,6 +100,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     let sections = 0;
     const bad: string[] = [];
     for (const m of GUIDE_MERGES) {
+      if (peopleGuideOf(m.parent)) continue; // For Her / For Him: interest sections (giftGuidePeople1120.test.ts)
       const list = CHUNKS.get(m.parent) ?? [];
       if (!list.some((p) => p.sectionId)) continue; // folded to one plain list
       const ids = list.map((p) => p.sectionId ?? "");
@@ -116,7 +120,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
         if (run.some((p) => !p.section)) bad.push(`${m.parent}#${id}: a pick with no section title`);
       }
     }
-    for (const [slug, list] of guideChunks) if (!GUIDE_MERGES.some((m) => m.parent === slug) && list.length > SECTION_CAP) bad.push(`${slug}: ${list.length} picks`);
+    for (const [slug, list] of guideChunks) if (!GUIDE_MERGES.some((m) => m.parent === slug) && !peopleGuideOf(slug) && list.length > SECTION_CAP) bad.push(`${slug}: ${list.length} picks`);
     // Follow-up 1120: 80 sections on the ~30 guides, measured 2026-11-20 (more on the 65 guides before).
     expect(sections).toBeGreaterThan(60);
     expect(bad).toEqual([]);
@@ -204,7 +208,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       ["self-care-lover", "Dr Teal's Epsom Salt Magnesium Soak", "VOESH Pedi Moments Pedicure Kit"], ["traveler", "Toiletry Bag for Men, Water-Resistant Dopp Kit", "Weezie Large Toiletry Bag"],
       ["mom", "UGREEN Bluetooth Tracker for Apple Find My", "Mom Rules Needlepoint Pillow"], ["girls-babies", "Baby Bath Time Essentials Gift Set", "Monogram Mary Complete Baby Bundle"],
     ];
-    const on = (slug: string) => (MERGED_INTO[slug] ? (CHUNKS.get(MERGED_INTO[slug].parent) ?? []).filter((p) => p.from === slug) : (CHUNKS.get(slug) ?? []).filter((p) => !p.from || p.from === slug));
+    const on = (slug: string) => (peopleGuideOf(slug) ? (CHUNKS.get(peopleGuideOf(slug)!) ?? []).filter((p) => p.from === slug) : MERGED_INTO[slug] ? (CHUNKS.get(MERGED_INTO[slug].parent) ?? []).filter((p) => p.from === slug) : (CHUNKS.get(slug) ?? []).filter((p) => !p.from || p.from === slug));
     const fold = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
     for (const [guide, remove, add] of SWAPS_1119) {
       expect(on(guide).some((p) => fold(p.name).startsWith(fold(add).slice(0, 16))), `${guide}: ${add}`).toBe(true);
@@ -213,7 +217,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
   });
 
   it("the page lists ~30 guides (from ~250), every one reachable", () => {
-    const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-"));
+    // A relationship filter page (Mom, Dad ... on For Her / For Him) is a view of its guide, not another guide.
+    const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-") && !(g as { view?: unknown }).view);
     // Follow-up 1120 (owner "FINAL MERGES -> ~30"): 28 guides measured 2026-11-20.
     expect(shown.length).toBeGreaterThan(24);
     expect(shown.length).toBeLessThan(34);

@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
+import { peopleGuideOf } from "@/content/giftGuidePeople.mjs";
 import { STORE_PAGES_KEPT } from "@/content/giftGuideMerges.mjs";
 import { applyDealsPage1120b, applyTrain1120b, isBrandPick, matches, placeInSection } from "../../scripts/giftGuideTrain1120b.mjs";
 
@@ -54,10 +55,11 @@ describe("gift guides train 1120b", () => {
   it("every national 25 Days sponsor holds exactly one guide spot, badged, never in a guide's first section", () => {
     for (const s of SPEC.nationalSponsors as { brand: string; guide: string }[]) {
       const spots = guideChunks.flatMap(([slug, c]) => c.picks.filter((p) => isBrandPick(p, s.brand) || (s.brand === "FELCO North America" && /felco/i.test(p.name))).map((p) => ({ slug, p })));
-      expect(spots.map((x) => x.slug), s.brand).toEqual([s.guide]);
+      // For Her / For Him (owner 11-20 evening): a sponsor placed on Mom or Dad sits on For Her or For Him.
+      expect(spots.map((x) => x.slug), s.brand).toEqual([peopleGuideOf(s.guide) ?? s.guide]);
       const { p } = spots[0];
       expect(p.sponsor, s.brand).toBe(true);
-      const list = picks(s.guide);
+      const list = picks(peopleGuideOf(s.guide) ?? s.guide);
       // Never in a guide's first row (its first 8 cards): each spot sits at the end of its section.
       expect(list.indexOf(p), s.brand).toBeGreaterThanOrEqual(8);
       expect(p.image, s.brand).toMatch(/^https:\/\//);

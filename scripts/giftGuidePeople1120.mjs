@@ -212,9 +212,13 @@ export function applyPeople(pageList, spec = {}, { keepHrefs = new Set() } = {})
       if (fits(bins.get(id), p)) bins.get(id).push(p);
       else counts.overflow.push(`${g.slug}/${id}: ${p.name}`);
     }
+    // Each section lists by commission, highest first, unknown last (owner 11-19), keeps included; his Classic Style
+    // leads with the brands Louisiana men wear, each group by commission.
+    const laFirst = (s, p) => Number(g.slug === "him" && s.id === "classic-style" && LA_MEN_FIRST.test(String(p.brand ?? "").trim()));
+    for (const s of g.sections) bins.set(s.id, bins.get(s.id).map((p, i) => ({ p, i })).sort((x, y) => laFirst(s, y.p) - laFirst(s, x.p) || rate(y.p) - rate(x.p) || x.i - y.i).map((x) => x.p));
     pageList[g.slug] = g.sections.flatMap((s) => bins.get(s.id).map((p) => {
       const { pinned: _p, keptRels, ...rest } = p;
-      return { ...rest, section: s.title, sectionId: s.id, rels: keptRels ? [...new Set([...keptRels, ...relsOf(g, p)])] : relsOf(g, p) };
+      return { ...rest, commission: typeof rest.commission === "number" ? rest.commission : null, section: s.title, sectionId: s.id, rels: keptRels ? [...new Set([...keptRels, ...relsOf(g, p)])] : relsOf(g, p) };
     }));
     counts[g.slug] = Object.fromEntries(g.sections.map((s) => [s.id, bins.get(s.id).length]));
     counts[g.slug].rels = Object.fromEntries(g.rels.map((r) => [r.slug, pageList[g.slug].filter((p) => p.rels.includes(r.slug)).length]));

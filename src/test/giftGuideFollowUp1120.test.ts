@@ -17,6 +17,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { GUIDE_MERGES, MERGED_INTO, STORE_PAGES_HELD, STORE_PAGES_KEPT } from "@/content/giftGuideMerges.mjs";
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
+import { peopleGuideOf } from "@/content/giftGuidePeople.mjs";
 import { GUIDES, newSlugFor } from "@/content/giftGuideCatalog";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 import { GIFT_CARD, auditActions1120, brandFirst, followUpOut, moveTarget, renameOf } from "../../scripts/giftGuideFollowUp1120.mjs";
@@ -43,11 +44,13 @@ describe("gift guides follow-up 1120", () => {
       for (const s of olds) {
         expect(MERGED_INTO[s]?.parent, s).toBe(parent);
         const to = newSlugFor(s);
-        expect(to === parent || to === `${parent}#${SECTION_ANCHORS[s]}`, `${s} -> ${to}`).toBe(true);
+        // For Her / For Him (owner 11-20 evening): Brother and Sister are filter pages of those guides now.
+        expect(to === parent || to === `${parent}#${SECTION_ANCHORS[s]}` || (peopleGuideOf(s) !== null && to === s), `${s} -> ${to}`).toBe(true);
       }
     }
     // Owner "FINAL MERGES -> ~30": 28 guides measured 2026-11-20.
-    const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-"));
+    // A relationship filter page (Mom, Dad ... on For Her / For Him) is a view of its guide, not another guide.
+    const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-") && !(g as { view?: unknown }).view);
     expect(shown.length).toBeGreaterThan(24);
     expect(shown.length).toBeLessThan(34);
   });

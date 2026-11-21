@@ -203,7 +203,7 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
   it("a cover tile does not repeat its cover's name, and its heart sits after the cover, not on it", () => {
     const { container } = renderAt("/gift-guides");
     const tiles = [...container.querySelectorAll("[data-gift-row='by-person'] li.gg-tile-li")];
-    expect(tiles.length).toBeGreaterThan(5);
+    expect(tiles.length).toBeGreaterThanOrEqual(5); // For Her / For Him 1120: Mom, Dad ... are filters, not tiles
     for (const li of tiles) {
       expect(li.querySelector("[data-gift-tile-name]")?.classList.contains("sr-only")).toBe(true);
       expect(li.lastElementChild?.hasAttribute("data-gift-heart")).toBe(true);

@@ -538,8 +538,18 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
 
   it("every guide's palette is one of the three cover palettes; covers are the owner's files, two-way", () => {
     for (const g of GUIDES) expect(["green", "oat", "red"], g.slug).toContain(g.tint);
-    expect(guideBySlug("mom")!.tint).toBe("green");
-    expect(guideBySlug("kids")!.tint).toBe("red");
+    // Owner 11-21: Her beige, Him Christmas green, Kids Christmas red (the covers); Mom is a view of Her, so beige.
+    // @mutate src/content/giftGuideIndex.ts |   { group: "By person", tint: "oat", slug: "her", title: "Her", lead: "gifts for" }, |   { group: "By person", tint: "green", slug: "her", title: "Her", lead: "gifts for" },
+    expect(["her", "him", "kids", "mom"].map((s) => guideBySlug(s)!.tint)).toEqual(["oat", "green", "red", "oat"]);
+    // The banner's gingham is the covers' own colours (scripts/gift-guide-photo-covers.py FAMILY), not a faded overlay.
+    const py = readFileSync("scripts/gift-guide-photo-covers.py", "utf8");
+    for (const [fam, css] of [["green", "gg-green"], ["red", "gg-red"]] as const) {
+      const m = new RegExp(`"${fam}": \\(\\((\\d+), (\\d+), (\\d+)\\), \\((\\d+), (\\d+), (\\d+)\\)`).exec(py)!;
+      expect(m, fam).not.toBeNull();
+      const rule = new RegExp(`\\.${css}\\{[^}]*`).exec(GIFT_GUIDES_CSS)![0];
+      expect(rule, fam).toContain(`--c-cross:rgb(${m[1]} ${m[2]} ${m[3]})`);
+      expect(rule, fam).toContain(`--c-band:rgb(${m[4]} ${m[5]} ${m[6]})`);
+    }
     expect(guideBySlug("her")!.cover).toBe("/gift-guides/covers/her.webp"); // Mom is a filter of Her (owner 11-20 evening) and shows Her's cover
     for (const g of GUIDES.filter((x) => x.cover)) expect(existsSync(`public${g.cover}`), g.cover).toBe(true);
     // Two-way: every cover file shipped is some guide's cover, or a retired guide's (owner 11-21: kept for its return,
